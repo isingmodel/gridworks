@@ -65,8 +65,8 @@ Use case: ui-mockup
 Asset type: original PC strategy game transmission-route planning mockup, 16:9 landscape.
 Primary request: show two mutually exclusive planned 154 kV routes between the industrial power area and a town substation, with exact cost, schedule, tower count, peak loading, and N-1 comparison.
 Scene: severe semi-rural industrial valley with river, road corridor, power plant, factory, town, hospital, substations, and an existing cyan-white energized network. Desaturate terrain slightly while keeping ports and overlays crisp.
-Route A: shorter amber dashed river-crossing route, 3.8 km, 12 ghost towers, tight bends, a river warning icon, shared upstream bus and corridor exposure, N-1 failure.
-Route B: longer pale-cyan dashed route following a live public road, 5.1 km, 15 ghost towers, a safer-path shield, independent source-side bus, N-1 success. Show draggable waypoint handles. Planned routes must remain different from solid energized lines.
+Route A: shorter amber dashed river-crossing route, 3.8 km, 12 ghost towers, tight bends, a river warning icon, shared upstream bus and protection zone causing electrical N-1 failure; also mark shared-corridor common-mode exposure as a separate risk.
+Route B: longer pale-cyan dashed route following a live public road, 5.1 km, 15 ghost towers, a safer-path shield, independent source-side bus and protection zone, N-1 success, and lower common-mode exposure. Show draggable waypoint handles. Planned routes must remain different from solid energized lines.
 Composition: map occupies about 70 percent; right rugged steel ROUTE COMPARISON panel contains two stacked cards; top bar, left build palette, and bottom time controls remain visible.
 Exact right-panel tokens:
 "ROUTE A"
@@ -98,18 +98,18 @@ Asset type: original PC strategy game nuclear plant-siting and project-finance m
 Primary request: compare a near and remote nuclear plant site against a town, hospital, factory, and existing grid, showing deterministic NIMBY cost, required capital, construction date, and the mandatory export network for a 900 MW station.
 Scene: isometric semi-rural industrial valley. A compact town and hospital sit on the right, factory and a 1,200 MW regional hub near the lower center, river and barren hills divide the map, and a remote plateau lies on the left.
 Siting overlay: regulatory and community-exposure distance bands measured from residential parcels—muted red inside 1.5 km, amber 1.5–3 km, desaturated yellow 3–6 km, cool gray-green beyond 6 km. These bands are not service fields. Show distance labels and dotted measurements from the nearest town edge.
-Candidate A: translucent nuclear station ghost at 2.4 km near town; two closely spaced independent amber 345 kV circuit routes on separate tower rows; one compact route tag "2×345 kV".
-Candidate B: translucent nuclear station ghost at 6.8 km on the distant plateau; a visibly longer paired 345 kV export corridor on separate tower rows; one compact route tag "2×345 kV".
+Candidate A: translucent nuclear station ghost at 2.4 km residential distance near town; two closely spaced independent amber 345 kV circuit routes on separate tower rows; compact route tags "2×345 kV" and "EXPORT 1.85 km".
+Candidate B: translucent nuclear station ghost at 6.8 km residential distance on the distant plateau; a visibly longer paired 345 kV export corridor on separate tower rows; compact route tags "2×345 kV" and "EXPORT 6.9 km".
 Composition: wide map occupies 70 percent; right rugged dark-steel comparison inspector occupies 30 percent; narrow top bar; left plant toolbar with LNG, COAL, NUCLEAR, SOLAR, WIND, with NUCLEAR selected.
 Exact SITE A card:
-"SITE A — 2.4 km"
+"SITE A — RESIDENTIAL 2.4 km"
 "PLANT 420 M"
 "SITING +630 M"
 "GRID 90 M"
 "TOTAL 1,140 M"
 "CAPITAL 228 M · D-630"
 Exact SITE B card:
-"SITE B — 6.8 km"
+"SITE B — RESIDENTIAL 6.8 km"
 "PLANT 420 M"
 "SITING +0 M"
 "GRID 180 M"
@@ -132,3 +132,7 @@ Avoid: magical rings, fantasy energy, glossy sci-fi, Victorian steampunk, cheerf
    산식과 일치한다.
 6. 발전소 입지 화면은 A만 자금 부족이며 B만 즉시 확정 가능하다.
 7. 특정 작품의 화면·건물·아이콘을 알아볼 수 있게 복제하지 않는다.
+8. `N-1`과 회랑 공통원인 위험은 서로 다른 표식과 설명 행을 사용한다.
+9. 발전소의 `RESIDENTIAL` 거리와 `EXPORT` 경로 길이를 같은 거리로 오해하게 만들지 않는다.
+10. 폭염 화면의 `RESERVE 6%`는 세 시간대 예비력 중 현재 제약을 결정하는 값이며, 상세
+    패널에서는 즉시·15분·2시간 구간을 분리한다.

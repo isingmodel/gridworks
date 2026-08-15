@@ -35,7 +35,8 @@ docs/
 | 이 게임은 어떤 경험과 장기 원칙을 지향하는가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 현재 scope의 절차·fixture를 복제하지 않음 |
 | 무엇이 오브젝트이며 무엇을 할 수 있는가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 미개방 기능을 현재 가능으로 표시하지 않음 |
 | 규칙을 어떻게 보이게 하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 게임 규칙이나 수치를 새로 만들지 않음 |
-| Scope 0의 진행 순서와 Scope 1 후보 TODO는 무엇인가? | [Scope 0 TODO](scopes/SCOPE_0_TODO.md), [Scope 1 TODO](scopes/SCOPE_1_INTERACTION_TODO.md) | 실행 계약의 숫자를 복제하거나 선행 결과 없이 다음 gate를 승인하지 않음 |
+| Scope 0A/0B의 전환 checkpoint는 무엇인가? | [Scope 0 TODO](scopes/SCOPE_0_TODO.md) | 활성 실행 계약의 절차·숫자를 다시 정의하지 않음 |
+| 수동 선로 Interaction 후보의 경계는 무엇인가? | [Scope 1 후보 TODO](scopes/SCOPE_1_INTERACTION_TODO.md) | 선행 결과 없이 구현하거나 실행 수치를 확정하지 않음 |
 | 1.0의 최대 후보 범위는 무엇인가? | [Release 1.0 후보 범위](scopes/RELEASE_1_0_BOUNDARY.md) | 확정 roadmap이나 backlog로 사용하지 않음 |
 | 정적 밸런스 도구는 언제·어디까지 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 게임을 대신 플레이하거나 수치를 자동 확정하지 않음 |
 | 1.0 뒤의 냉각수·원전 방향은 무엇인가? | [1.0 이후 방향](future/POST_1_0.md) | 현재 interface·schema·UI를 선결하지 않음 |

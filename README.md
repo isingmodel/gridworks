@@ -43,9 +43,8 @@ Scope 0은 인과 이해를 검사하는 단계이며 전체 재미, 재플레�
 시뮬레이션 깊이를 증명하지 않는다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
-그 뒤 수동 전신주 배치와 거리 제한이 다음 최대 위험으로 확인될 때만
-[Scope 1 후보 TODO](docs/scopes/SCOPE_1_INTERACTION_TODO.md)를 별도 승인해 연다. 두 TODO는
-현재 활성 gate나 확정 roadmap을 바꾸지 않는다.
+그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 활성 gate나
+확정 roadmap을 바꾸지 않는다.
 
 ## 문서 구조
 
@@ -101,9 +100,9 @@ gate 통과는 다음 작업을 자동 승인하지 않는다. 큰 개발단위 
 
 자동검사는 사람의 이해·재미·공정성을 대신하지 않는다. 사람 테스트 한 라운드에서는 정보
 규칙, 구조 규칙 또는 parameter family 중 하나만 바꾸며, 물질적으로 바뀐 prototype의 결과를
-이전 참가자와 합산하지 않는다. [Static Balance Lab](docs/development/BALANCING_STATIC_SIM.md)이 별도로
-승인된 경우에도 active knob는
-최대 3개, `FrozenFixture + ActiveKnob`는 최대 6개 family다.
+이전 참가자와 합산하지 않는다. 전역 parameter 분류와 상한은
+[Static Balance Lab](docs/development/BALANCING_STATIC_SIM.md)의 계약만 소유하며, 각 활성 scope는
+그보다 엄격한 제한만 둔다.
 
 작업 완료 전에는 활성 scope가 요구하는 formatting, link, unit, oracle, build와 smoke 검사를
 실행한다. 열리지 않은 시스템의 테스트를 현재 완료조건에 추가하지 않는다.

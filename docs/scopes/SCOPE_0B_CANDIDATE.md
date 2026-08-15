@@ -59,5 +59,5 @@ Scope 0A 결과를 본 뒤 고정한다.
 조작이 새 오해를 만들면 `Interaction` 문제 하나만 수정한다. 카드에서조차 인과가 통과하지
 않았거나, playable을 위해 범용 물리·경제 시스템이 필요해지면 Scope 0B를 열지 않는다.
 
-Scope 0B가 `GO`여도 다음 gate는 결과 점검으로 다시 선정한다. 수동 지지물 배치가 실제
-다음 위험일 경우의 준비된 후보는 [Scope 1 TODO](SCOPE_1_INTERACTION_TODO.md)다.
+Scope 0B가 `GO`여도 다음 gate는 결과 점검으로 다시 선정하며, 미개방 후보가 자동으로
+활성화되지 않는다.

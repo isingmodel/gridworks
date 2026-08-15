@@ -2,13 +2,13 @@
 
 > 상태: **진행 체크리스트**
 >
-> 현재 활성 하위 gate: [Scope 0A 카드 테스트](SCOPE_0A_CARD_TEST.md)
+> 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
-> 조건부 후속: [Scope 0B 2D playable](SCOPE_0B_CANDIDATE.md)
+> 구성: [Scope 0A 카드 계약](SCOPE_0A_CARD_TEST.md) → 조건부 [Scope 0B 후보](SCOPE_0B_CANDIDATE.md)
 
-이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**만 관리한다. 숫자, topology,
-oracle, 참가자 기준과 실행 절차의 권위는 루트 README가 현재 지목한 하위 scope에
-있다. 이 문서에 그 값을 복제하지 않는다.
+이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다.
+숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만
+정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
 Scope 0B 항목이 있다는 사실은 구현 승인이 아니다. Scope 0A `GO`, 결과 점검과
 사용자의 별도 승인 전에는 Scope 0B TODO를 실행하지 않는다.
@@ -23,29 +23,36 @@ Scope 0이 묻는 질문은 하나다.
 ```text
 0A_ACTIVE
 ├─ 0A_REVISE → 새 카드 version·신규 참가자 → 0A_DECISION
+│                └─ 활성 계약의 revision budget 소진 → 0A_NO_GO
 ├─ 0A_NO_GO → SCOPE_0_STOPPED
 └─ 0A_GO → AWAIT_0B_APPROVAL
-                 ├─ 승인 없음 → SCOPE_0_PAUSED
-                 └─ 명시 승인 → 0B_CONTRACT → 0B_ACTIVE
-                                               ├─ 0B_REVISE → 한 항목 수정·신규 참가자 → 0B_DECISION
-                                               ├─ 0B_NO_GO → SCOPE_0_STOPPED
-                                               └─ 0B_GO → SCOPE_0_REVIEWED
+                 ├─ 응답 없음 → AWAIT_0B_APPROVAL 유지
+                 ├─ 명시적 보류·거절 → SCOPE_0_PAUSED
+                 └─ 명시적 승인 → 0B_CONTRACT → 0B_ACTIVE
+                                                   ├─ 0B_REVISE → 활성 계약의 bounded revision
+                                                   │                └─ budget 소진 → 0B_NO_GO
+                                                   ├─ 0B_NO_GO → SCOPE_0_STOPPED
+                                                   └─ 0B_GO → SCOPE_0_REVIEWED
 ```
 
 `SCOPE_0_REVIEWED`는 Scope 1 구현 승인이 아니다. 결과 점검에서 다음 위험을 다시 선정하고,
 사용자가 별도로 승인해야 다음 gate를 열 수 있다.
 
-## 2. 현재 계약·권위 TODO
+## 2. 계약·권위 TODO
 
 - [x] Scope 0A의 완전한 실행 계약이 존재한다.
 - [x] Scope 0B의 최대 후보 경계와 개방 조건이 분리돼 있다.
-- [x] 루트 README가 Scope 0A를 현재 활성 gate로 지목한다.
+- [ ] 각 작업단위 시작 전에 루트 README가 지목한 활성 scope를 다시 확인한다.
+- [ ] 활성 scope 전체를 읽고 이 색인의 해당 묶음이 빠뜨린 요구를 보충한다.
 - [ ] 카드·진행자 시트·기록표의 `CardSetVersion`을 한 라운드 동안 고정한다.
 - [ ] Scope 0A 실행 전에 문서의 동결 fixture·oracle·rubric과 제작물을 대조한다.
 - [ ] 카드 내부에 stable ID·개발자 용어·숨은 숫자가 노출되지 않는지 검사한다.
 - [ ] 새 값이 필요해지면 이 상위 TODO가 아니라 현재 활성 scope에서만 닫는다.
 
 ## 3. Scope 0A 제작 TODO
+
+이 절부터 §6까지는 루트 README가 Scope 0A를 지목할 때만 사용한다. 세부 의미와
+완료조건은 항상 [Scope 0A 계약](SCOPE_0A_CARD_TEST.md)이 우선한다.
 
 ### 산출물 준비
 
@@ -79,6 +86,7 @@ Scope 0이 묻는 질문은 하나다.
 - [ ] 카드의 두 회랑·두 사건 결과가 동결 fixture와 일치하는지 확인한다.
 - [ ] 한 명의 내부 dry run으로 절차·기록표의 누락만 찾고, 그 응답은 본 집계에 포함하지 않는다.
 - [ ] dry run이 카드 내용을 바꾸게 하면 `CardSetVersion`을 올리고 본 라운드 전에 다시 검증한다.
+- [ ] 카드·진행자 자료를 동결한 뒤 §11의 작업단위 checkpoint를 마쳐야 사람 테스트로 넘어간다.
 
 ## 5. Scope 0A 사람 테스트 TODO
 
@@ -99,110 +107,85 @@ Scope 0이 묻는 질문은 하나다.
 - [ ] `NO-GO`면 자유 배선, 경제, 물리가 부족하다고 가정해 기능을 추가하지 않는다.
 - [ ] `GO`면 카드가 지지한 세 인과와 남은 오해를 분리해 기록한다.
 - [ ] `GO`여도 Scope 0B를 자동 시작하지 않고 `AWAIT_0B_APPROVAL`에서 사용자 지시를 기다린다.
+- [ ] 판정과 익명 집계를 기록한 뒤 §11의 작업단위 checkpoint를 완료한다.
 
 ## 7. Scope 0B 활성화 TODO — Scope 0A `GO` 후 별도 승인 시만
 
+- [ ] 응답 없음·추정 동의가 아니라 사용자의 명시적 구현 승인을 기록한다.
 - [ ] Scope 0A의 식별 불가능한 집계·오해·예상 밖 결과를 첨부한다.
 - [ ] playable에서 다시 검사할 오해 하나만 선정한다.
 - [ ] [Scope 0B 후보](SCOPE_0B_CANDIDATE.md)를 증거에 맞는 완전한 활성 실행 계약으로 다시 쓴다.
-- [ ] 루트 README가 Scope 0B를 활성 gate로 지목하고 Scope 0A를 완료 상태로 바꾸게 한다.
+- [ ] 한 문장 가설, 포함·제외, 산출물과 중단조건을 고정한다.
+- [ ] 참가자 조건, 기록 필드, 사전 rubric, 통과선과 bounded revision budget을 고정한다.
 - [ ] 단일 machine-readable fixture의 경로, schema, stable ID, 좌표·시간·화폐 단위를 고정한다.
 - [ ] Scope 0A의 값·ID·제거행렬·oracle이 새 fixture와 일치하는 인계검사를 먼저 통과한다.
-- [ ] 수치 권위가 새 fixture로 전환된 시점과 이전 권위의 종료를 기록한다.
+- [ ] 인계검사 뒤 새 fixture가 **Scope 0B의** 기계 숫자 권위가 된 시점을 기록한다. Scope 0A 문서와 결과는 Scope 0A의 불변 권위로 보존한다.
 - [ ] 공사 완료·graph 편입·의무·계량·사건·복구·절체의 같은 분 적용 순서를 고정한다.
 - [ ] 최소 명령, 실패 무상태변경, 사람 질문과 정확한 통과선을 구현 전에 닫는다.
+- [ ] 구현 TODO, 자동검사, build·smoke와 사람 검증 절차를 활성 Scope 0B 문서 안에 작성한다.
 - [ ] 공식 지원 상태를 확인한 뒤 Godot .NET·.NET SDK의 exact patch를 고정한다.
 - [ ] 통과에 필요하지 않은 항목은 후보 문서에서 더 제거한다.
+- [ ] 위 계약 전체를 닫은 동일 변경에서 루트 README를 Scope 0B로 전환하고 Scope 0A 결과를 링크한다.
+- [ ] §11의 작업단위 checkpoint를 완료하기 전에는 구현을 시작하지 않는다.
 
-## 8. Scope 0B 구현 TODO — 활성 계약 완료 후에만
+## 8. Scope 0B 실행 TODO — 활성 계약과 checkpoint 완료 후에만
 
-### 저장소·권위 경계
+이 절은 미래 구현 내용을 선결하지 않는다. 정확한 class, command, UI와 test 목록은
+Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
-- [ ] Godot을 참조하지 않는 순수 .NET Core와 Godot 표현·입력 계층을 분리한다.
-- [ ] 권위 규칙·상태전이·정산은 Core에, 입력·camera·animation은 Godot에 둔다.
-- [ ] 활성 fixture에 없는 미래 field, interface, registry, save schema와 placeholder UI를 만들지 않는다.
-- [ ] fixture load 실패 시 사일런트 default로 진행하지 않고 실행을 거부한다.
-- [ ] 결정론적 ID, stable 순회 순서와 정수 `GameMinute`·`CashUnit`를 사용한다.
+### 구현·자동 증거 단위
 
-### 순수 Core
+- [ ] 활성 Scope 0B의 TODO만 구현하고 이 색인에서 누락된 기능을 추론해 추가하지 않는다.
+- [ ] 권위 규칙·상태전이·정산과 표현·입력 계층의 경계를 활성 계약대로 지킨다.
+- [ ] fixture 인계검사, 단위·상태전이·보존식·결정론 검사와 대표 smoke를 모두 통과한다.
+- [ ] 자유 배치, 상세 물리, 저장·replay, 미래 schema와 placeholder UI가 artifact에 없는지 확인한다.
+- [ ] 실행한 명령, 결과와 예상 밖 기술 관찰을 재현 가능하게 기록한다.
+- [ ] 자동검사 전체 통과 뒤 §11의 작업단위 checkpoint를 마쳐야 사람 검증으로 넘어간다.
 
-- [ ] fixture·ID·좌표·정격·사건·요율 검증기를 구현한다.
-- [ ] 온라인 발전원까지 사용 가능한 경로와 공유 병목을 검사하는 이진 공급을 구현한다.
-- [ ] 전기 contingency 제거와 공간 risk group 제거를 별도 규칙으로 구현한다.
-- [ ] 주 경로가 끊기면 살아 있는 authored 예비 경로로만 고정 절체한다.
-- [ ] 선택한 authored 공사의 비용 지불·공사 중·완공·원자 graph 편입을 구현한다.
-- [ ] 전력회사 인도전력, 미공급, 판매, 발전 변동비와 고객별 보상을 중복 없이 정산한다.
-- [ ] 병원 내부전원 에너지·지속시간과 P0 연속성을 전력회사 공급·판매와 분리한다.
-- [ ] 공사, 의무, 계량, 사건, 절체, 내부전원과 복구를 활성 scope의 동일 분 순서로 처리한다.
-- [ ] 완료·의무·사건·복구 이정표로만 시간을 전진하고 중간 무작위 틱을 만들지 않는다.
-- [ ] 실패한 명령은 현금, graph, 시간, 내부전원과 ID allocator를 바꾸지 않는다.
+### 사람 증거·판정 단위
 
-### 2D 표현·입력
+- [ ] 검토를 마친 동일 build·fixture·rubric을 한 라운드 동안 동결한다.
+- [ ] 활성 Scope 0B가 정한 신규 참가자·세션·무도움 절차만 따른다.
+- [ ] 조작 결과를 서비스 권역·상위 연결, 전기·공간 원인과 내부전원·전력회사 공급에 귀속하는지 기록한다.
+- [ ] 계획 선택률이나 미세 조정된 성공률을 통과 목표로 사용하지 않는다.
+- [ ] 원자료는 공개 저장소 밖에 두고 식별 불가능한 집계와 예상 밖 행동만 보존한다.
+- [ ] `SubGateDecision`을 활성 계약의 `GO / REVISE / NO-GO` 중 하나로 기록한다.
+- [ ] 판정 뒤 §11의 작업단위 checkpoint를 완료하고 다음 위험을 새로 선정한다.
 
-- [ ] 하나의 탑다운 지도에 기존 발전소, 마을, 병원, 변전소, authored 선로를 보여준다.
-- [ ] 현재 공급·무전압·공사·사용불가·우회 상태를 색 외의 pattern으로 구분한다.
-- [ ] 읽기 전용 선형 타임라인에 현재, 의무, 발주 공사 완료, 고정 사용불가와 복구만 표시한다.
-- [ ] 완료 예정이고 아직 발주하지 않은 공사를 타임라인에 표시하지 않는다.
-- [ ] 다음 이정표 전진이 pending 결정을 넘지 않게 하고, 거부 시 상태를 바꾸지 않는다.
-- [ ] 상시 `왜?` 패널은 서비스 실패, 경로 제거, 내부전원과 정산의 첫 원인만 보여준다.
-- [ ] 선택 전에 두 회랑×두 사건의 예측을 받고 응답 고정 후에만 실제 결과를 보여준다.
-- [ ] 종료 overlay에 원인, 전력회사 공급, P0 연속성과 돈을 분리해 요약한다.
-- [ ] 자유 배치·경로, 수리·정비, 저장·replay와 3D 버튼을 노출하지 않는다.
+## 9. Scope 0 파라미터 규칙
 
-## 9. Scope 0B 자동검사 TODO
-
-- [ ] fixture schema, stable ID, 좌표, 정격, 의무, 사건과 요율을 fail-closed로 검증한다.
-- [ ] Scope 0A→0B 인계검사가 모든 값·제거행렬·oracle을 통과한다.
-- [ ] 정상, 전기 단일제거, 공간 제거의 수요처별 공급 행렬을 검사한다.
-- [ ] 공유 간선·발전원 정격이 할당된 전체 수요를 감당하는지 검증한다.
-- [ ] 공사 전·중·완료와 같은 분 의무 확인의 경계순서를 검사한다.
-- [ ] 사건 시작·복구, 고정 절체와 graph 재계산의 순서를 검사한다.
-- [ ] 병원 내부전원의 절체 공백, 소모, 잔여시간과 P0 미공급을 경계별로 검사한다.
-- [ ] 판매·LostSales·변동비·보상·현금이 보존식과 일치하고 중복 정산되지 않는지 검사한다.
-- [ ] 동일 fixture·명령열이 동일 snapshot·정산·종료 결과를 만드는지 검사한다.
-- [ ] invalid 명령, pending 결정 중 시간전진과 현금 부족 발주가 상태를 바꾸지 않는지 검사한다.
-- [ ] 부팅 → 접속공사 → 회랑 선택 → 의무 → 고정 사건 → 복구 → 결산 smoke test를 실행한다.
-- [ ] headless Core 검사와 Godot 대표 scene 부팅·입력 smoke test를 분리해 실행한다.
-
-## 10. Scope 0B 사람 검증·판정 TODO
-
-- [ ] Scope 0A와 겹치지 않는 비전문가를 모집한다.
-- [ ] 참가자 수, 세션 시간, 무도움 기준과 통과선은 Scope 0A 결과를 본 활성 계약에서 고정한다.
-- [ ] 진행자는 최소 목표 외의 조작·전기 설명을 하지 않는다.
-- [ ] 플레이어가 서비스 권역·상위 연결, 전기·공간 경계, 내부전원·전력회사 공급을 조작에서 사용하는지 기록한다.
-- [ ] 사건 결과를 무작위가 아니라 자신의 authored 회랑 선택에 귀속하는지 묻는다.
-- [ ] 계통공급, P0 연속성, 내부전원과 현금을 서로 바꿔 설명하지 않는지 판정한다.
-- [ ] 정답 클릭만이 아니라 사전 rubric의 이유까지 같은 참가자가 만족해야 통과로 센다.
-- [ ] 계획·회랑 선택률을 밸런스 목표로 사용하지 않는다.
-- [ ] 활성 scope의 `GO / REVISE / NO-GO`만 사용하고 사후에 기준을 바꾸지 않는다.
-- [ ] 한 차례 bounded 수정 뒤에도 인과를 조작에서 사용하지 못하면 기능을 더하지 않고 Scope 0을 종료한다.
-
-## 11. Scope 0 파라미터 제한
-
-- `ActiveKnob`: 0개
-- 자동 sweep·Static Balance Lab·LLM 튜닝: 없음
+- 정확한 `ActiveKnob`, parameter family와 revision budget: 활성 하위 scope가 소유
+- 자동 sweep·목표 점수용 LLM 튜닝: [Static Balance Lab](../development/BALANCING_STATIC_SIM.md)의 개방 조건과 사용자 승인을 모두 통과하지 않는 한 없음
 - 선택률·성공률을 목표로 한 수치 조정: 금지
-- Scope 0A의 모든 숫자: 활성 Scope 0A의 `FrozenFixture`
-- Scope 0B의 숫자: 승인·인계검사 후 새 활성 fixture에서만 `FrozenFixture`
-- 한 라운드에서 바꾸는 것: Presentation, 정보구조 또는 parameter family 하나
+- Scope 0A 수치: Scope 0A의 동결 fixture가 소유
+- Scope 0B 수치: 승인된 인계검사 뒤 활성 Scope 0B의 기계 fixture가 소유
+- 한 라운드의 변경 제한: 루트 README와 활성 하위 scope의 parameter policy를 따름
 - fixture·rubric·상태전이가 물질적으로 바뀌면 이전 참가자 결과와 합산: 금지
 
-## 12. Scope 0 즉시 중단 조건
+## 10. 진행 차단·재검토 신호
 
-- [ ] 핵심 세 인과를 설명하려면 자유 배선, 상세 전력물리, 확률사건 또는 복수 추가 시스템이 필요하다.
-- [ ] 카드·playable의 표현 수정으로도 서비스 권역과 실제 공급을 구분하지 못한다.
-- [ ] 전기 단일고장과 공간 공통원인을 한 fixture에서 독립적으로 설명할 수 없다.
-- [ ] 병원 내부전원과 전력회사 공급·판매 경계를 구분할 수 없다.
-- [ ] fixture·oracle·단위 보존식이 닫히지 않는다.
-- [ ] Scope 0B를 위해 범용 framework, 저장·replay, 3D 또는 future schema가 필요해진다.
+- [ ] fixture·oracle·단위·링크가 닫히지 않으면 사람 테스트를 시작하지 않는다. 이는 사람 증거의 `NO-GO`가 아니라 preflight blocker다.
+- [ ] preflight blocker는 활성 계약의 권위를 보존한 문서 변경과 재검산으로만 해소한다.
+- [ ] 핵심 인과를 설명하려면 자유 배선, 상세 물리, 확률사건이나 복수 추가 시스템이 필요할 경우 현재 단위를 멈추고 사용자와 범위를 재검토한다.
+- [ ] 범용 framework, 저장·replay, 3D 또는 future schema가 필요해질 경우 현재 단위를 확대하지 않는다.
+- [ ] `SCOPE_0_STOPPED`는 활성 하위 scope가 사전에 정의한 `NO-GO`를 실제 증거가 충족했을 때만 선언한다.
 
-중단 조건을 만족하면 시스템을 더하지 않고 현재 증거·실패 원인·제거할 가정을
-기록한 뒤 Scope 0을 종료한다.
+재검토 신호는 부모 TODO가 새 판정 기준을 만드는 것이 아니다. 현재 증거, blocker와 제거할
+가정을 기록하고 활성 scope의 승인된 절차 또는 사용자 결정으로만 다음 상태를 정한다.
 
-## 13. Scope 0 완료 checkpoint
+## 11. 반복 작업단위 checkpoint
 
-- [ ] 현재 하위 scope의 승인된 산출물·자동검사·사람 증거·예상 밖 관찰을 기록한다.
-- [ ] 결과를 `GO / REVISE / NO-GO / PAUSED`로 명시하고 근거를 남긴다.
+다음 다섯 지점에서 이 checkpoint를 각각 수행한다.
+
+1. Scope 0A 카드·진행자 자료 동결 후, 사람 테스트 전
+2. Scope 0A 판정 후
+3. Scope 0B 활성 계약 완료 후, 구현 전
+4. Scope 0B 구현·자동검사 완료 후, 사람 테스트 전
+5. Scope 0B 판정 후
+
+- [ ] 해당 시점까지 존재하는 승인된 산출물·자동검사·사람 증거·예상 밖 관찰만 기록한다.
+- [ ] checkpoint 1·3·4에서는 `SubGateDecision = PENDING`, 판정 뒤인 2·5에서는 `GO | REVISE | NO-GO` 중 하나를 기록한다.
+- [ ] workflow는 별도로 `Scope0State = ACTIVE | AWAITING_APPROVAL | PAUSED | STOPPED | REVIEWED`로 기록한다.
 - [ ] 루트 README의 현재 개발 상태와 하위 scope 상태를 일치시킨다.
 - [ ] [오브젝트 카탈로그](../product/OBJECT_CATALOG.md)는 실제로 열린 기능만 `현재`로 갱신한다.
 - [ ] 비주얼 명세는 실제 관찰로 표현 규칙이 바뀌었을 때만 갱신한다.
@@ -213,14 +196,16 @@ Scope 0이 묻는 질문은 하나다.
 - [ ] 검토 반영 커밋을 만든다.
 - [ ] 사용자의 명시적 승인 없이 push·PR·다음 gate를 실행하지 않는다.
 
-## 14. Scope 1 인계 조건
+## 12. 다음 gate 선정과 Scope 1 후보
 
-[Scope 1 TODO](SCOPE_1_INTERACTION_TODO.md)를 활성화하려면 다음이 모두 필요하다.
+Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한다. 그 결과 `Interaction`이
+선정됐을 때만 [Scope 1 후보](SCOPE_1_INTERACTION_TODO.md)를 출발점으로 다시 검토한다.
 
 - [ ] Scope 0B가 별도 승인·구현됐고 자동검사와 사람 기준을 `GO`로 통과했다.
 - [ ] Scope 0 후 적응형 점검에서 수동 pole·`MaxSpan` 상호작용이 다음 최대 미검증 위험으로 선정됐다.
-- [ ] Scope 0의 graph·공사·상태전이 계약 중 Scope 1에 인계할 부분과 폐기할 authored 경로 계층을 구분했다.
+- [ ] 실제 Scope 0B 계약에 존재하는 graph·공사·상태전이만 인계표에 적고, 존재하지 않는 범용 lifecycle은 가정하지 않는다.
 - [ ] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 동결했다.
+- [ ] Scope 0 증거에 맞게 Scope 1 후보의 표본·시간·rubric·범위와 fixture를 다시 썼다.
 - [ ] 사용자가 Scope 1 구현을 별도로 승인했다.
 - [ ] 같은 변경에서 README·Scope 0 결과·Scope 1 활성 계약·문서 링크를 갱신했다.
 

@@ -254,11 +254,9 @@ P-B가 통과한 뒤에만 원전 `LOW/HIGH` 입지 부담, 실제 건설비·�
 
 현재 모든 밸런스 숫자는 `TBD`다. 각 단계는 실제로 쓰는 값만 정의한다.
 
-- 한 단계의 `FrozenFixture + ActiveKnob`는 최대 6개 family다.
-- active knob는 최대 3개이며 첫 사람 round 전에는 0개다.
-- 표를 한 family로 묶으면 scalar와 행 수를 기록한다.
-- 셀 하나를 독립 변경하면 새 family다.
-- 여섯 family로 가설을 닫지 못하면 단계를 더 작게 나눈다.
+- 분류, family 묶음 규칙과 전역 상한은 [Static Balance Lab](../development/BALANCING_STATIC_SIM.md)을 따르며 각 단계가 더 엄격하게 줄일 수 있다.
+- 첫 사람 round 전의 active knob는 0개다.
+- 전역 상한 안에서 가설을 닫지 못하면 단계를 더 작게 나눈다.
 - 앞 단계의 결과는 승인된 option/envelope 표 하나로 동결한다.
 - 그 표의 셀을 다시 조정하려면 앞 gate를 재개방한다.
 

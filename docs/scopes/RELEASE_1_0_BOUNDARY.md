@@ -2,7 +2,7 @@
 
 > 상태: 미개방 제품 상한
 >
-> 현재 승인 단위: [Scope 0A 카드 테스트](SCOPE_0A_CARD_TEST.md)
+> 현재 활성 gate: 루트 [README](../../README.md) 참조
 
 이 문서는 첫 출시가 될 수 있는 범위를 설명하지만 backlog나 확정 로드맵은 아니다. Scope 0A가
 통과해도 Scope 0B가 자동 승인되지 않고, Scope 0B가 통과해도 아래 시스템 전체가 열리지 않는다.
@@ -70,7 +70,7 @@ MWh는 매출이 되고, 미공급 MWh는 잃은 판매와 고객등급별 보�
 | `Decommissioning` | 사용자 결정으로 유상 철거와 망 재구성이 1.0에 필요함 | whole `LineProject` 하나, 자동격리, 철거비·기간 하나 |
 | `Persistence` | 세션 길이나 회귀가 저장을 실제로 요구 | 단일 JSON 저장; replay/hash는 별도 |
 | `Presentation` | 지도와 `왜?` 패널로 절체·공통원인을 설명하지 못함 | 축약 결선도 또는 3D scene 중 하나 |
-| `Balance Lab` | 유효 전략 3개 이상이고 손검산이 반복 개발을 막음 | knob 최대 3개의 bounded grid |
+| `Balance Lab` | 유효 전략 3개 이상이고 손검산이 반복 개발을 막음 | [도구 계약](../development/BALANCING_STATIC_SIM.md) 안의 bounded grid |
 
 한 점검에서 축을 둘 이상 열지 않는다. 다음 축을 위한 빈 interface, schema, 저장 필드와 UI를
 미리 만들지 않는다.
@@ -84,7 +84,7 @@ MWh는 매출이 되고, 미공급 MWh는 잃은 판매와 고객등급별 보�
 
 ### Gate 0A — 정보와 인과
 
-현재 gate다. 카드로 서비스 권역/실제 연결, 전기 단일고장/공간 공통원인, 전력회사 공급/병원
+카드로 서비스 권역/실제 연결, 전기 단일고장/공간 공통원인, 전력회사 공급/병원
 내부전원을 구분하는지 검사한다. 코드는 없다.
 
 ### Gate 0B — authored causal playable
@@ -181,16 +181,10 @@ EndingCash = StartingCash
 
 ## 7. 파라미터 예산
 
-- Scope 0A/0B: `ActiveKnob` 0개, 자동 sweep 없음
-- 사람 테스트 한 라운드: 가설 하나, 정보·구조·parameter family 중 하나만 변경
-- Static Balance Lab: 개방된 경우 active knob 최대 3개
-- 미래의 한 실험: 결론을 뒤집을 수 있는 `FrozenFixture + ActiveKnob` 최대 6개 family
-
-각 입력은 `Structural / Derived / FrozenFixture / ActiveKnob / Presentation / Removed`로
-분류한다. 고정값도 검증 완료가 아니며 `UnverifiedFixture / ObservedSupport / ReviewRequired`
-상태를 가진다. 여러 숫자를 한 family로 묶으려면 함께 변경되는 authored 표여야 하고 scalar와
-행 수를 기록한다. 한 셀을 독립적으로 바꾸면 새 family다. 여섯 family로 가설을 닫지 못하면
-실험을 나눈다. 목표 A/B 선택률은 밸런스 목표가 아니다.
+전역 분류, 증거 상태, family 묶음 규칙과 상한은
+[Static Balance Lab 계약](../development/BALANCING_STATIC_SIM.md)만 소유한다. 정확한 실험별 예산은
+각 활성 scope가 더 엄격하게 정한다. 전역 상한 안에서 가설을 닫지 못하면 실험을 나누며,
+목표 A/B 선택률은 밸런스 목표가 아니다.
 
 ## 8. 1.0 명시적 제외
 

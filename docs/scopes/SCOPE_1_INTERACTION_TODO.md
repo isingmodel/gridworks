@@ -14,8 +14,8 @@ scope는 루트 [README](../../README.md)가 지목한다.
 
 > 전력망 게임을 처음 접한 플레이어가 완공된 두 terminal 사이에 한 종류의
 > 전신주·철탑을 하나씩 놓고, 모든 인접 span이 하나의 `MaxSpan` 이하인
-> `LineProject`를 자동 배치 없이 완공하며, 거리 제한·미완성 선로·접속점 없는
-> 교차의 의미를 설명할 수 있는가?
+> `LineProject`를 자동 배치 없이 완공하며, 거리 제한과 미완성 선로의 의미를
+> 설명할 수 있는가?
 
 이 gate는 수동 pole 배치와 거리 피드백이 읽히는지만 검사한다. 자유 배선의 장기
 재미, 최저비용 경로, 발전소·변전소 입지, 철거와 완성 게임의 밸런스를 증명하지
@@ -26,12 +26,13 @@ scope는 루트 [README](../../README.md)가 지목한다.
 - [ ] Scope 0A가 `GO`로 종료되었다.
 - [ ] Scope 0B가 별도 승인되어 구현·자동검사·신규 참가자 검증을 마쳤다.
 - [ ] Scope 0B 결과에서 서비스 권역·실제 공급과 공간 공통원인 이해가 회귀하지 않았다.
-- [ ] 적응형 점검에서 수동 선로 상호작이 다음 최대 미검증 위험으로 기록됐다.
+- [ ] 적응형 점검에서 수동 선로 상호작용이 다음 최대 미검증 위험으로 기록됐다.
 - [ ] 현재 사용자에게 Scope 1 구현을 별도로 승인받았다.
 - [ ] 같은 변경에서 루트 README가 이 문서를 활성 scope로 지목한다.
-- [ ] Scope 0B에서 재사용할 graph·공사·시간전진 계약과 제거할 부분을 표 하나로 기록한다.
+- [ ] 실제 Scope 0B에 존재하는 graph 도달성·원자 편입·단위·공사 상태와 제거할 authored 계층을 인계표로 기록한다.
 - [ ] 신규 scope의 단일 machine-readable fixture 경로·schema·ID 권위를 활성화 변경에서 고정한다.
 - [ ] 참가자 지시문, 기록 필드와 사전 rubric을 구현 전에 동결한다.
+- [ ] 표본, 세션 상한, 통합 통과선과 bounded revision budget을 선행 증거에 맞춰 활성화 변경에서 고정한다.
 
 한 항목이라도 충족되지 않으면 이 문서는 후보 상태로 남고 아래 TODO를 실행하지
 않는다.
@@ -45,9 +46,11 @@ scope는 루트 [README](../../README.md)가 지목한다.
 - [ ] 최소 pole 수를 정답으로 만들지 않고, 모든 span이 유효하면 추가 pole을 허용한다.
 - [ ] 배치 영역을 가로지르는 기존 회선 하나를 두되 교차점에 terminal을 두지 않는다.
 - [ ] line class 하나, 회선 전용 degree-2 support type 하나, `MaxSpan` 하나만 둔다.
-- [ ] 좌표 단위, 거리 metric, snap/selection tolerance, 양자화 순서와 `<=` 경계 처리를 고정한다.
+- [ ] 좌표 단위, 거리 metric, 배치 좌표 양자화·snap 순서와 `<=` 경계 처리를 고정한다.
+- [ ] 화면 pick radius는 비권위 Presentation 값으로 두고, 겹친 후보의 deterministic tie-break를 고정한다.
 - [ ] 시작 현금은 모든 유효한 경로를 발주할 수 있게 두어 현금 부족이 선택을 가리지 않게 한다.
-- [ ] 비용·공기·시간전진은 Scope 0B에서 검증된 한 묶음을 값 변경 없이 재사용한다.
+- [ ] Scope 0B에 재사용 가능한 공사 상태전이가 실제로 있으면 인계표대로 쓴다. 없으면 이 gate의 최소 상태전이를 `Structural`로 정의한다.
+- [ ] 비용·공기 값은 선택을 만들지 않는 `FrozenFixture`로 활성화 시 고정하며 경제 증거를 주장하지 않는다.
 - [ ] pole 수·총 길이별 비용 최적화는 제거하고 현재 quote가 경로 선택을 유도하지 않게 한다.
 - [ ] terrain, 장애물, 공간 위험, 사건, 복수 부하와 대체 발전원은 fixture에 두지 않는다.
 - [ ] validator가 직접 span의 실패, witness path의 성공, 모든 정격의 여유를 검사한다.
@@ -62,10 +65,24 @@ fixture의 exact 숫자는 활성화 변경의 기계 데이터에만 둔다. �
 - [ ] 완공 terminal을 선택해 `LineProject` draft를 시작한다.
 - [ ] 마지막 endpoint에서 빈 위치로 지지물을 하나씩 순서대로 배치한다.
 - [ ] 마지막 배치를 되돌리는 `Undo`를 제공한다.
-- [ ] 전체 draft를 권위 상태변경 없이 버리는 `Cancel`을 제공한다.
+- [ ] 전체 draft를 버리되 graph·현금·게임시간을 바꾸지 않는 `Cancel`을 제공한다.
 - [ ] 완공된 목표 terminal을 선택해 경로를 닫는다.
 - [ ] 한 번에 하나의 draft만 편집한다.
 - [ ] drag 이동·복수선택 대신 배치·undo·cancel로만 수정한다.
+
+발주를 확정하는 주 경로는 다음 한 방향으로 진행한다.
+
+```text
+Idle → DraftOpen → Quoted → Ordered → Building → Commissioned
+```
+
+- [ ] `Back`은 발주 전 `Quoted → DraftOpen`으로 돌아가며 graph·현금·시간을 바꾸지 않는다.
+- [ ] `Cancel`은 `DraftOpen` 또는 `Quoted`에서 draft를 버리고 `Idle`로 돌아간다.
+- [ ] `Ordered` 이후에는 `Back`·`Cancel`을 허용하지 않는다. 발주취소는 이 gate의 제외 기능이다.
+- [ ] `AddSupport`의 prospective span이 무효면 오류만 반환하고 support를 추가하지 않는다.
+- [ ] `CloseAtTerminal`의 prospective span이 무효면 경로를 닫지 않고 `DraftOpen`을 유지한다.
+- [ ] 유효한 terminal 종단만 `Quoted`로 전이하고, 발주 직전 전체 ordered path를 다시 검증한다.
+- [ ] 실패 명령은 권위 상태를 바꾸지 않으며 플레이어는 support 추가·`Undo`·`Cancel`로 계속 조작할 수 있다.
 
 ### 거리와 topology
 
@@ -88,11 +105,11 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
 
 - [ ] 유효한 전체 ordered path만 하나의 `LineProject`로 발주한다.
 - [ ] 발주 전 지지물 수, 총 도체 길이, 고정 quote와 완공시각을 확인한다.
-- [ ] 발주 시 Scope 0B에서 검증된 비용·공사 상태전이를 한 번만 적용한다.
+- [ ] 발주 시 인계표 또는 이 gate가 정의한 최소 비용·공사 상태전이를 한 번만 적용한다.
 - [ ] draft와 공사 중 project는 graph·공급에 편입하지 않는다.
 - [ ] 완공 분에 지지물과 span 전체를 graph에 원자적으로 한 번만 편입한다.
 - [ ] graph 재계산 뒤에만 목표 terminal의 통전 표시를 바꾼다.
-- [ ] 실패·undo·cancel은 현금, 공사 queue, ID allocator와 기존 graph를 바꾸지 않는다.
+- [ ] 실패·undo·cancel은 현금, 승인된 공사 상태, ID allocator와 기존 graph를 바꾸지 않는다.
 
 ### 화면 피드백
 
@@ -138,7 +155,7 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
 - [ ] terminal 완공상태와 시작·종료 endpoint 적격성을 검증한다.
 - [ ] support의 line 전용성, degree-2, 유일성과 유한 좌표를 검증한다.
 - [ ] 선분 교차를 graph 접속으로 변환하지 않는다.
-- [ ] invalid confirm, undo와 cancel의 무상태변경을 보장한다.
+- [ ] invalid `AddSupport`·`CloseAtTerminal`의 권위 상태 불변과 `Undo`·`Back`·`Cancel`의 명시 전이를 보장한다.
 - [ ] valid project 전체를 공사 완료 시 한 transaction으로 graph에 추가한다.
 - [ ] 통전은 기존 graph의 온라인 발전원 도달 규칙으로만 재계산한다.
 - [ ] 결정론적 ID 생성과 stable 순회 순서를 유지한다.
@@ -148,7 +165,7 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
 - [ ] terminal 선택 → support 배치 → terminal 종단 → quote → 발주의 한 흐름을 연결한다.
 - [ ] `MaxSpan` 경계, cursor span, first-failure 피드백을 구현한다.
 - [ ] 잘못된 클릭이 draft를 파괴하거나 자동 확정하지 않게 한다.
-- [ ] camera zoom에 따라 terminal·support 선택 판정이 바뀌지 않는지 확인한다.
+- [ ] camera zoom과 무관한 world-space 배치 결과와, 겹친 pick 후보의 deterministic tie-break를 확인한다.
 - [ ] 발주 전·공사 중·시운전 후의 표시를 분리한다.
 - [ ] 시각 표현은 [비주얼 명세](../product/VISUAL_PRODUCTION_SPEC.md)의 Interaction QA를 따른다.
 
@@ -170,14 +187,15 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
 
 ### 상태전이·통합
 
-- [ ] invalid confirm 뒤 graph, 현금, queue와 ID allocator가 byte-equivalent한지 검사한다.
-- [ ] undo·cancel 뒤 draft 이외의 상태가 변하지 않는지 검사한다.
+- [ ] invalid 명령 전후의 권위 projection `(draft, GameMinute, graph, cash, 승인된 공사 상태, ID allocator)`이 동일한지 검사한다. command result와 진단 log는 제외한다.
+- [ ] `Undo`·`Back`·`Cancel`이 허용된 draft 전이만 만들고 graph·현금·시간을 바꾸지 않는지 검사한다.
 - [ ] draft와 공사 중 project가 전력을 전달하지 않는지 검사한다.
 - [ ] 완료 분에 support·span 전체가 원자 편입되고 부분 통전 frame이 없는지 검사한다.
 - [ ] 편입 전 무전압 target이 편입 뒤에만 발전원에 도달 가능해지는지 검사한다.
 - [ ] 같은 fixture·명령열이 같은 validation·graph·현금 결과를 만드는지 검사한다.
-- [ ] Scope 0B의 서비스 권역·실제 공급과 교차 비접속 인과 회귀검사를 유지한다.
-- [ ] 부팅 → draft → invalid 수정 → 발주 → 완공 → target 통전 smoke test를 실행한다.
+- [ ] 실제로 인계한 Scope 0B의 서비스 권역·실제 공급 회귀검사를 유지한다.
+- [ ] 교차 비접속은 Scope 1의 신규 invariant로 별도 검사한다.
+- [ ] 부팅 → draft → invalid 시도 → 수동 support 추가 → 발주 → 완공 → target 통전 smoke test를 실행한다.
 
 ### 수동 시각 QA
 
@@ -192,38 +210,42 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
 
 ### 운영
 
-- [ ] Scope 0A/0B에 참여하지 않은 비전문가 5명을 모집한다.
-- [ ] 한 사람당 최대 10분, 동일 build·fixture·중립 지시문을 사용한다.
-- [ ] `P01`∼`P05`, build/fixture version, 완료시간, undo 횟수, invalid 시도와 진행자 도움만 기록한다.
+- [ ] Scope 0A/0B에 참여하지 않은 비전문가를 활성 계약의 표본만큼 모집한다.
+- [ ] 활성 계약의 세션 상한과 동일 build·fixture·중립 지시문을 사용한다.
+- [ ] 익명 참가자 ID, build/fixture version, 완료시간, undo 횟수, invalid 시도와 진행자 도움만 기록한다.
 - [ ] 지시문은 “완공된 두 terminal을 새 회선으로 연결하세요” 이외의 전기·조작 설명을 하지 않는다.
 - [ ] 진행자 도움 뒤의 성공은 통과로 세지 않는다.
 - [ ] build·정보구조·fixture 기하가 바뀌면 새 version과 신규 참가자로 다시 시작한다.
 
 ### 사후 질문과 통과 판정
 
-- [ ] 처음의 직접 연결은 왜 발주되지 않았는가?
+- [ ] 두 terminal을 바로 잇는 안은 왜 발주할 수 없는가?
 - [ ] `MaxSpan` 원은 무엇을 뜻하는가?
 - [ ] 어떤 단위 사이의 거리를 모두 만족해야 하는가?
 - [ ] 기존 선로와 교차한 지점에서 두 회선은 접속되었는가?
 - [ ] draft와 공사 중 선로는 언제부터 전기를 전달하는가?
+
+교차 비접속 질문은 표현 문제를 찾는 진단값이다. 이 fixture에서는 잘못 접속해도 목표 terminal의
+최종 통전 여부가 달라지지 않으므로 `IntegratedInteractionPass`에는 넣지 않는다.
 
 같은 참가자가 아래를 모두 만족해야 `IntegratedInteractionPass`다.
 
 - [ ] 진행자 도움 없이 유효한 경로를 발주·완공한다.
 - [ ] 모든 인접 span이 `MaxSpan` 이하여야 함을 설명한다.
 - [ ] 초과한 경로에는 중간 지지물을 직접 추가해야 함을 설명한다.
-- [ ] terminal 없는 선로 교차는 접속이 아니라고 답한다.
 - [ ] draft·공사 중 project는 통전되지 않고 전체 완료 후에만 통전된다고 답한다.
 - [ ] `FacilitatorHelp = false`다.
 
 ## 9. GO / REVISE / NO-GO
 
-- [ ] 자동검사가 모두 통과하고 같은 4/5 이상이 `IntegratedInteractionPass`를 만족하면 `GO`다.
-- [ ] 같은 오해가 2명 이상에게 반복되고 원인이 한 표현·입력 규칙·parameter family에 한정되면 `REVISE`다.
+- [ ] 자동검사나 수동 시각 QA 미통과는 사람 테스트 전 preflight blocker이며 revision budget과 사람 증거의 `NO-GO`를 소비하지 않는다.
+- [ ] preflight 통과 뒤 활성 계약의 사람 통합 통과선을 만족하면 `GO`다.
+- [ ] `GO` 미달 원인이 한 표현·입력 규칙·parameter family에 귀속되면 남은 budget 안에서 `REVISE`다.
+- [ ] `GO` 미달인데 단일 수정 원인이 없으면 즉시 `NO-GO`다.
 - [ ] 한 라운드에서는 Presentation, 구조 규칙 또는 parameter family 하나만 바꾼다.
 - [ ] 수정 시 새 build/version과 신규 참가자로 다시 검사한다.
-- [ ] bounded revision은 한 번만 허용한다.
-- [ ] 한 차례 수정 뒤에도 4/5 미만이거나 자동 경로·복수 시스템 없이 상호작이 읽히지 않으면 `NO-GO`다.
+- [ ] 활성 계약의 revision budget을 소진했는데 통과선 미달이면 `NO-GO`다.
+- [ ] 자동 경로·복수 시스템 없이는 상호작용이 읽히지 않으면 `NO-GO`다.
 - [ ] 통과를 위해 `MaxSpan`이나 fixture 좌표를 미세 조정하지 않는다.
 - [ ] 최소 pole 수, 최단시간, 최저비용과 경로 모양은 통과 기준이 아니다.
 - [ ] Scope 1 `GO`는 변전소·발전소·철거 또는 다음 번호 scope 구현을 자동 승인하지 않는다.
@@ -239,6 +261,7 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
   - ordered polyline과 회선 전용 degree-2 support
   - 교차 비접속
   - 전체 경로 검증과 원자 편입
+  - 실제로 인계했거나 이 gate에서 정의한 공사 상태전이
 
 - `Derived`:
 
@@ -250,17 +273,19 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
 
   1. 지도·terminal·기존 교차선 geometry
   2. support type·line class·`MaxSpan`
-  3. snap·selection tolerance
-  4. Scope 0B에서 그대로 상속한 비판정 공사 lifecycle
+  3. 배치 좌표 양자화·snap
+  4. 비판정 fixed quote·duration 값
 
 결론을 뒤집을 수 있는 `FrozenFixture + ActiveKnob`은 최대 4개 family다. geometry나
 `MaxSpan`을 바꾸면 기존 참가자 결과와 합산하지 않는다.
+
+화면 pick radius는 `Presentation`이며 위 family에 넣지 않는다. 이를 바꿔 통과선을 맞추지 않는다.
 
 ## 11. 즉시 중단 조건
 
 - [ ] 유효 경로를 만들기 위해 terrain, optimizer, 복수 support class가 필요하다.
 - [ ] 기본 조작을 설명하기 위해 변전소·발전소 배치나 철거까지 함께 열어야 한다.
-- [ ] invalid draft가 graph·현금·queue를 변경하거나 부분 통전을 만든다.
+- [ ] invalid draft가 graph·현금·승인된 공사 상태를 변경하거나 부분 통전을 만든다.
 - [ ] 교차 비접속을 최소 표현으로 설명할 수 없다.
 - [ ] Scope 0의 서비스 권역·실제 공급 인과가 직접 배치 UI 때문에 다시 흐려진다.
 - [ ] 하나의 fixture와 최대 4개 parameter family로 가설을 닫을 수 없다.

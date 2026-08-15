@@ -3,7 +3,7 @@
 > 한 줄 소개: **사람과 산업의 전기를 지킬 수 있는 가장 설명 가능하고 경제적인 망을 건설하라.**
 
 이 문서는 `Gridworks`의 제품 비전과 플레이 경험을 정의한다. 현재 개발단위의 정확한 절차와
-숫자는 [Scope 0A](../scopes/SCOPE_0A_CARD_TEST.md), 출시 후보의 상한과 개방 조건은
+숫자는 루트 [README](../../README.md)가 지목한 활성 scope, 출시 후보의 상한과 개방 조건은
 [Release 1.0 후보 범위](../scopes/RELEASE_1_0_BOUNDARY.md)가 맡는다. 오브젝트별 가능 동작은
 [오브젝트 카탈로그](OBJECT_CATALOG.md)가 정리한다. 이 문서에 등장하는 장기 시스템은 제품 방향이지
 자동으로 승인된 구현 목록이 아니다.
@@ -425,7 +425,7 @@ Godot scene은 명령을 보내고 반환 상태만 그린다.
 - 저장·replay·hash는 세션 길이와 회귀 필요가 관찰된 뒤 별도 개방
 - 외부 AC solver는 선택된 상태를 감사하는 오프라인 도구일 뿐 런타임 의존성 아님
 
-현재 Scope 0의 더 작은 계약은 [Scope 0A](../scopes/SCOPE_0A_CARD_TEST.md)가 우선한다.
+Scope 0의 더 작은 카드 계약은 [Scope 0A](../scopes/SCOPE_0A_CARD_TEST.md)가 우선한다.
 
 ## 15. 파라미터와 밸런싱 원칙
 
@@ -433,25 +433,14 @@ Godot scene은 명령을 보내고 반환 상태만 그린다.
 않는다. 먼저 손계산으로 단위, 일정, 용량, 지배전략과 보존식을 확인하고, 실제 사람이 정보를
 이해하고 어떤 이유로 선택하는지 본다.
 
-각 실험의 입력은 다음으로 분류한다.
-
-| 종류 | 의미 |
-|---|---|
-| `Structural` | 틱 순서와 안전 규칙처럼 sweep하지 않는 구조 |
-| `Derived` | 거리에서 얻은 철탑 수나 단위 변환 같은 파생값 |
-| `FrozenFixture` | 이번 실험에서 고정했지만 검증 완료는 아닌 값 |
-| `ActiveKnob` | 관찰 근거로 이번 실험에서만 비교하는 값 |
-| `Presentation` | 결과를 바꾸지 않는 화면 표현 |
-| `Removed` | 이번 실험에 없고 숨은 기본값도 없는 기능 |
-
-한 사람 테스트 라운드에서는 정보 규칙, 구조 규칙 또는 parameter family 하나만 바꾼다.
-Static Balance Lab은 유효 전략이 세 개 이상이고 손검산이 실제 개발을 막을 때만 연다. 그때도
-active knob는 최대 세 개, 결론을 뒤집을 수 있는 `FrozenFixture + ActiveKnob`는 최대 여섯
-family다. 자세한 절차는 [Static Balance Lab](../development/BALANCING_STATIC_SIM.md)에 둔다.
+입력 분류, 증거 상태, family 묶음 규칙과 전역 상한은
+[Static Balance Lab](../development/BALANCING_STATIC_SIM.md)만 소유한다. Lab은 유효 전략이
+여럿이고 손검산이 실제 개발을 막을 때만 별도 승인해 열며, 각 활성 scope는 전역 계약보다
+엄격한 실험별 예산을 정할 수 있다.
 
 ## 16. 개발 게이트
 
-현재 gate는 [Scope 0A 카드 테스트](../scopes/SCOPE_0A_CARD_TEST.md)다. 그 뒤의 기능은 한 번에
+현재 활성 gate는 루트 [README](../../README.md)가 지목한다. 그 뒤의 기능은 한 번에
 하나의 축만 연다. 아래 `Interaction`, `Substation Siting`, `Generation`, `Decommissioning`은 사용자 결정에 따라
 1.0 필수 제품 능력이지만, 앞 gate 통과와 별도 scope 승인 전에는 구현하지 않는다.
 

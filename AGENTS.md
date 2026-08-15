@@ -8,3 +8,7 @@
    an explicitly approved next gate.
 6. Do not use LLM or policy agents for open-ended tuning or target choice ratios. Keep experiments bounded by
    the parameter policy in `README.md` and `BALANCING_STATIC_SIM.md`.
+7. After every major work unit, commit the completed unit, have subagents review it, address their findings,
+   rerun the relevant checks, and merge only after the reviewed improvements are complete.
+8. At the same checkpoint, audit all documentation for current behavior and decisions; update or remove any
+   legacy, stale, contradictory, or superseded material before proceeding.

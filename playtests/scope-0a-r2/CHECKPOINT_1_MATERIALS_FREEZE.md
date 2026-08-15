@@ -47,7 +47,9 @@ treated as a statistical population sample. R1 is not rescored and remains faile
 - `git diff --check`: PASS
 - manual render QA: PASS for Korean text fit, margins, Card 1 two-line prompt, Card 4 header/reason-label fit,
   AB/BA symmetry, neutral choices and causal-before-settlement reveal
-- post-review non-scored cold dry run: `PENDING`
+- post-review non-scored cold dry run `R2-L00C AB`: completed all three exact messages after reviewed
+  commit `75637eb`; used only the seven allowed PNG `view_image` calls; correctly stated Coverage, all four
+  event cells, utility/internal boundary and trade-off; excluded from the scored round
 - protocol note: `R2-L00` and `R2-L00B` were mistakenly used as pre-review procedure rehearsals. They
   occurred before the required reviewed commit, are invalid as checkpoint evidence, are excluded from every
   aggregate and are not reused. A new cold ID must rerun the frozen prompt only after the reviewed commit.
@@ -67,5 +69,5 @@ treated as a statistical population sample. R1 is not rescored and remains faile
   read-only; seven P1 and one P2 findings were resolved: participant boilerplate drift, premise/outcome wording,
   decision catch-all, verifier contract coverage, stale R1 workflow, premature rehearsal handling, state token
   mismatch and stale top-level R1 navigation
-- Reviewed commit: `PENDING`
+- Reviewed commit: `75637eb2f77d2a96d8903754aa68f5fdf1534fd8`
 - Push/PR: not authorized by the current task

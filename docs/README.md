@@ -1,7 +1,7 @@
 # Gridworks 문서 안내
 
-이 파일은 문서의 **내용이 아니라 소유권과 관계**를 관리한다. 프로젝트의 현재 상태는 루트
-[README](../README.md), 현재 실행 계약은 [Scope 0A](scopes/SCOPE_0A_CARD_TEST.md)가 맡는다.
+이 파일은 문서의 **내용이 아니라 소유권과 관계**를 관리한다. 프로젝트의 현재 상태와 활성
+scope 지목은 루트 [README](../README.md), 실행 계약은 그 README가 지목한 scope가 맡는다.
 
 ## 디렉터리 구조
 
@@ -13,7 +13,7 @@ docs/
 │   ├── OBJECT_CATALOG.md             오브젝트 정의와 기능 상태
 │   └── VISUAL_PRODUCTION_SPEC.md      규칙을 표현하는 시각 기준
 ├── scopes/
-│   ├── SCOPE_0A_CARD_TEST.md          현재 실행 계약
+│   ├── SCOPE_0A_CARD_TEST.md          카드 테스트 실행 계약
 │   ├── SCOPE_0B_CANDIDATE.md          다음 playable 후보의 경계
 │   └── SCOPE_1_0.md                   1.0 범위의 미개방 상한
 ├── development/
@@ -56,19 +56,11 @@ docs/
 3. [1.0 후보 범위](scopes/SCOPE_1_0.md)
 4. 필요할 때만 비주얼·개발 도구·장기 후보 문서
 
-## 현재 상태
-
-| 문서 | 상태 | 실행 권한 |
-|---|---|---|
-| [Scope 0A](scopes/SCOPE_0A_CARD_TEST.md) | 현재 gate | 있음: 카드 테스트 문서 제작과 검증만 |
-| [Scope 0B](scopes/SCOPE_0B_CANDIDATE.md) | 미개방 후보 | 없음 |
-| [1.0 후보 범위](scopes/SCOPE_1_0.md) | 미개방 상한 | 없음 |
-| [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 미개방 도구 | 없음 |
-| [1.0 이후 방향](future/POST_1_0.md) | 장기 후보 | 없음 |
-
 ## 유지 규칙
 
-- 활성 gate가 바뀌면 루트 README, 이 파일의 현재 상태, 완료 scope와 새 scope를 함께 갱신한다.
+- 활성 gate와 실행 권한은 이 파일에 복제하지 않고 루트 README에서만 지목한다.
+- 활성 gate가 바뀌면 루트 README, 완료 scope와 새 scope를 함께 갱신한다. 문서 역할이나 경로도
+  바뀐 경우에만 이 안내를 갱신한다.
 - 오브젝트의 건설·운영·철거 가능성이 바뀌면 오브젝트 카탈로그를 같은 변경에서 갱신한다.
 - 파일을 이동하거나 역할을 나누면 이 트리와 모든 상대 링크를 같은 변경에서 고친다.
 - 비주얼 문서와 후보 문서에 활성 fixture 숫자를 복제하지 않는다.

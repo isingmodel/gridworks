@@ -52,11 +52,11 @@ flowchart LR
 
 | 오브젝트 | 소유·생성 | 플레이어가 할 수 있는 일 | 핵심 특성 | 현재 할 수 없는 일 |
 |---|---|---|---|---|
-| 발전소 | 전력회사 설비. Scope 0에서는 기존 가스발전만 authored | 제품 gate에서 유효 부지에 배치·발주하고 접속점 연결, 이후 유상 철거 | 위치·footprint, 접속 terminal, 출력용량, 가용상태, 변동비 | Scope 0 신규 건설·철거·연속 수동급전 |
+| 발전소 | 전력회사 설비. Scope 0에서는 기존 가스발전만 authored | 제품 gate에서 유효 부지에 배치·발주하고 접속점 연결, 이후 연결선과 함께 유상 철거 | 위치·footprint, 접속 terminal, 건설비·공기, 출력용량, 가용상태, 변동비 | Scope 0 신규 건설·철거·연속 수동급전 |
 | 모선·접속점 | 전기 그래프의 authored node | 연결경로와 고장영향 확인 | 연결관계, 통전상태, 상위 공급원 | 직접 배치·이동·철거·상세 개폐조작 |
-| 변전소 | 전력회사 설비. 현재는 고정 위치에 설치된 상태 | 제품 gate에서 직접 배치·발주하고 피더 연결, 이후 유상 철거 | 위치·footprint, 정격, terminal, 기하학적 서비스 권역 또는 전용부하 | Scope 0 자유 배치·upgrade·철거 |
-| 송전·배전선 | 인접 endpoint 사이의 전기 span과 이를 묶은 line project | authored 회랑 선택; 제품 gate에서 pole별 span 연결·발주 | 정격, 길이, `MaxSpan`, 비용, 공기, 전기 contingency, 공간 위험 group | Scope 0 자유 배치·부분 통전·철거 |
-| 전신주·철탑 | `제품 방향`의 전력회사 설비. Scope 0에서는 선로에 포함된 추상 표현 | 제품 gate에서 하나씩 위치 지정·선택·발주하고 이후 유상 철거 | 위치, support class, 건설상태, 연결 span, 인접 endpoint까지 거리 | Scope 0 개별 조작, 지지물별 노후·재고·장력 설정 |
+| 변전소 | 전력회사 설비. 현재는 고정 위치에 설치된 상태 | 제품 gate에서 직접 배치·발주하고 피더 연결, 이후 연결선과 함께 유상 철거 | 위치·footprint, 건설비·공기, 정격, terminal, 기하학적 서비스 권역 또는 전용부하 | Scope 0 자유 배치·upgrade·철거 |
+| 송전·배전선 | 인접 endpoint 사이의 전기 span과 이를 묶은 `LineProject` | authored 회랑 선택; 제품 gate에서 pole별 span 연결·발주하고 whole project 철거 | 정격, 길이, `MaxSpan`, 비용, 공기, 전기 contingency, 공간 위험 group | Scope 0 자유 배치·부분 통전·철거 |
+| 전신주·철탑 | `제품 방향`의 전력회사 설비. Scope 0에서는 선로에 포함된 추상 표현 | 제품 gate에서 하나씩 위치 지정·선택·발주하고, 선택한 지지물의 whole line package를 유상 철거 | 위치, support class, 기본 건설·철거비, 건설상태, 소속 `LineProject`, 연결 span과 인접 endpoint까지 거리 | Scope 0 개별 조작, 부분 line 편집, 지지물별 노후·재고·장력 설정 |
 | 서비스 권역 | 변전소 위치·형식에서 생기는 공간 data layer | 잠재 접속범위와 통전상태 확인 | 무전압일 때도 기하학은 존재하며 실제 공급에는 상위 경로와 용량이 필요 | 건설·판매·철거·독립 전원 역할 |
 | 마을 | authored 수요처, 전력회사 소유 아님 | 공급상태·의무·보상 확인 | 일반 수요, 서비스 권역 접속, P2 후보 | 건설·이동·철거·개별 시민 조작 |
 | 병원 | authored 중요 수요처, 전력회사 소유 아님 | 주·예비 경로와 계통공급 확인 | P0, 전용 피더, 고객 내부전원, 높은 미공급 책임 | 건설·철거·P0 자동차단·내부전력을 판매로 계량 |
@@ -73,21 +73,24 @@ flowchart LR
 
 ### 건설
 
-제품 방향에서 플레이어는 발전소와 변전소를 유효 부지에 놓고, 두 terminal 사이에 전신주·철탑을
-하나씩 배치해 선로 경로를 만든다. 건설안은 다음 순서로 처리한다.
+제품 방향에서 발전소와 변전소는 각각 하나의 `AssetProject`, 지지물과 도체로 이루어진 선로는
+하나의 `LineProject`다. 플레이어는 발전소와 변전소를 유효 부지에 놓고, 완공된 두 terminal
+사이에 전신주·철탑을 하나씩 배치해 선로 경로를 만든다. 두 project 종류는 같은 최소 생명주기를
+따른다.
 
 ```text
 배치 초안 작성
-→ 모든 span 거리·endpoint·충돌 검증
+→ 부지 또는 모든 span의 거리·endpoint·충돌 검증
 → 전체 견적과 완공시각 확인
-→ 한 line project로 발주
+→ AssetProject 또는 LineProject로 발주
 → 비용 지불·공사
 → 모든 구성요소 완공 뒤 원자 시운전·graph 편입
 ```
 
-개별 지지물을 직접 놓지만 공사 queue를 pole마다 쪼개지는 않는다. 미완성 pole이나 일부 span은
-전기를 전달하지 않는다. 활성 Scope 0A는 카드 검증이라 직접 건설 UI가 없고, 조건부 Scope 0B도
-고정 피더와 authored 회랑만 사용한다.
+`LineProject`는 완공된 terminal 사이에서만 발주한다. 개별 지지물을 직접 놓지만 공사 queue를
+pole마다 쪼개지 않는다. 미완성 pole이나 일부 span은 전기를 전달하지 않는다. plant→substation
+→line 순서의 공사 DAG, 병렬 crew와 미래 project 예약은 만들지 않는다. 활성 Scope 0A는 카드
+검증이라 직접 건설 UI가 없고, 조건부 Scope 0B도 고정 피더와 authored 회랑만 사용한다.
 
 ### 통전과 공급
 
@@ -101,18 +104,24 @@ flowchart LR
 
 ### 철거
 
-제품 방향에서 발전소, 변전소와 전신주·철탑은 철거할 수 있다. 철거는 즉시 삭제가 아니라 다음
-규칙을 가진 유상 공사다.
+제품 방향에서 발전소, 변전소, whole `LineProject`와 개별 전신주·철탑은 철거할 수 있다. 철거는
+즉시 삭제가 아니라 다음 규칙을 가진 유상 공사다.
 
-- 대상과 연결 span을 먼저 무전압으로 만들고, 통전 중 철거 요청은 거부한다.
-- 발전소·변전소는 연결 span을 먼저 철거하거나 같은 철거 package에 포함해야 한다.
-- pole 철거는 그 pole에 붙은 모든 span을 같은 package에서 제거해야 한다.
-- `철거비 = 오브젝트 종류별 기본 철거비 + 제거 conductor 길이비`의 두 항목만 사용한다.
+- 확인 화면에서 대상과 함께 제거할 span을 하나의 package로 확정한다. 공사 시작 순간 시스템이
+  그 package만 원자적으로 격리·사용불가 처리하고 graph를 다시 계산한다. 별도 switch UI는 없다.
+- 첫 버전에는 부분 line 철거가 없다. 지지물을 철거 대상으로 고르면 그 지지물이 속한 whole
+  `LineProject`가 package에 자동 포함된다.
+- 발전소·변전소를 고르면 접속된 whole `LineProject`들이 같은 package에 자동 포함된다.
+- whole `LineProject` 철거는 그 도체와 그 project 전용 지지물을 함께 제거한다. 따라서 orphan
+  span·지지물이나 재시운전할 수 없는 line fragment를 남기지 않는다.
+- `철거비 = Σ 대상 오브젝트 기본 철거비 + 제거 conductor 길이비`의 두 항목만 사용한다.
 - 첫 버전에는 salvage, 잔존가치, 중고판매와 환급이 없다.
-- 철거도 공사 자원을 점유하고 완료시 node·span을 graph에서 원자 제거한다.
+- 철거도 공사 자원을 점유하고 완료시 package의 node·span을 graph에서 원자 제거한다.
 - 철거로 발생한 미공급, LostSales와 보상은 일반 계통 결과와 동일하게 정산한다.
 - 미완공 발주 취소는 철거와 다른 기능이며 별도 승인 전에는 제공하지 않는다.
 
+플레이어는 발전소·변전소와 각 지지물을 직접 철거 대상으로 고를 수 있지만, 첫 버전의 실제 제거
+단위는 위 자동확장 package다. 부분 철거와 잔존 fragment 재시운전은 별도 gate 전에는 없다.
 정확한 비용·기간은 `Decommissioning` gate의 단일 fixture에서 정한다. 그 전에는 철거 UI나 숨은
 기본값을 만들지 않는다.
 
@@ -124,13 +133,16 @@ flowchart LR
 SpanValid = distance(EndpointA, EndpointB) <= MaxSpan(LineClass)
 ```
 
-- 한 span이라도 `MaxSpan`을 넘으면 발주할 수 없고, UI는 부족한 중간 지지물 위치를 미리보기한다.
-- 공간에서 선이 교차해도 endpoint를 공유하지 않으면 전기적으로 접속되지 않는다.
+- 한 span이라도 `MaxSpan`을 넘으면 발주할 수 없고, UI는 실패 span과 실제 거리만 표시한다.
+- 첫 `Interaction`에서 지지물은 한 `LineProject`와 한 회선만을 위한 degree-2 공간 waypoint다.
+  전기적 분기·합류는 발전소·변전소·모선 terminal에서만 가능하다.
+- 공간에서 선이 교차하거나 가까이 지나가도 접속되지 않는다. 전기적 분기·합류는 명시적으로
+  허용된 terminal에서만 생긴다.
 - 총 선로 길이에는 별도 hard limit을 두지 않는다. pole 수, conductor 길이, 비용과 공기가 자연스러운
   한계가 된다.
 - 첫 `Interaction` prototype은 line class와 support type을 각각 하나만 사용하므로 `MaxSpan`도
   하나다.
-- 지형별 장력, 처짐, 풍하중, 기초형식과 자동 최적 pole 배치는 계산하지 않는다.
+- 다회선 공유철탑, 지형별 장력, 처짐, 풍하중, 기초형식과 자동 pole 배치는 계산하지 않는다.
 
 후속 전압 등급이 실제 선택을 만들 때만 line class별 `MaxSpan`을 추가한다. 숫자는 해당 scope의
 fixture가 정하며 이 문서에는 하드코딩하지 않는다.

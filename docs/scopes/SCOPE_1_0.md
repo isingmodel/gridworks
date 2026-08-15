@@ -35,11 +35,12 @@ MWh는 매출이 되고, 미공급 MWh는 잃은 판매와 고객등급별 보�
 
 - 마을·병원·공장이 있는 authored 지도 1개
 - 장 시작 또는 고정 일정에 자동 발효되는 공급 의무
-- 기존 grid-forming 가스발전 1기, 직접 배치·건설할 수 있는 발전소 한 종류와 자동급전
-- 유효 부지에 직접 배치하는 배전 변전소
-- 직접 배치하는 지지물 한 종류, line class 하나와 `MaxSpan` 하나
-- 인접 endpoint를 잇는 conductor span과 전체 경로의 원자 시운전
-- 발전소·변전소·지지물의 무전압 유상 철거와 연결 span 동시 제거
+- 기존 grid-forming 가스발전 1기, 각각 단일 `AssetProject`로 직접 건설하는 발전소 한 종류와
+  배전 변전소, 자동급전
+- 직접 배치하는 한 회선 전용 degree-2 지지물 한 종류, line class 하나와 `MaxSpan` 하나
+- 완공 terminal 사이를 잇는 `LineProject` 하나와 전체 경로의 원자 시운전
+- 발전소·변전소·각 지지물을 선택 대상으로 하는 whole-project 유상 철거 package, 자동격리와
+  연결 span 제거; 부분 line 편집 없음
 - 배전 변전소 서비스 권역과 수요처별 주 공급
 - 병원 독립 주·예비 경로, UPS와 비상 디젤
 - 비용·공기·전기 contingency·공간 회랑이 다른 경로 선택
@@ -57,15 +58,15 @@ MWh는 매출이 되고, 미공급 MWh는 잃은 판매와 고객등급별 보�
 
 | 축 | 개방 근거 | 첫 최소 범위 |
 |---|---|---|
-| `Interaction` | 사용자 결정으로 1.0에 직접 지지물 배치와 거리한계가 필요함 | 고정 endpoint, support type 하나, `MaxSpan` 하나 |
+| `Interaction` | 사용자 결정으로 1.0에 직접 지지물 배치와 거리한계가 필요함 | 고정 endpoint, 회선 전용 support type 하나, `MaxSpan` 하나 |
 | `Risk/Economy` | 인과는 이해하지만 비용과 복원력 사이 유효한 비지배 선택이 없음 | 선언 stress, 안전 profile과 비용 비교 하나 |
 | `Active Response` | 사전 건설만으로 위기 구간이 수동적임 | 도착시간·지속시간이 있는 조치 한 종 |
 | `Scheduling` | 읽기 전용 예고만으로는 공사·정비 순서의 선택을 표현하지 못함 | 공사 자원 하나와 사건 한 쌍 |
 | `Physics` | 단순 연결·병목이 메시 우회 결과를 설명하지 못함 | 고정 DC-like solver와 최소 손실 |
 | `Thermal` | 과부하 지속시간이 실제 위기 결정을 만듦 | 전역 열상수 하나 |
 | `Battery` | 짧은 bridge를 병원 내부전원으로 표현할 수 없음 | grid-following 저장 한 종 |
-| `Generation` | 사용자 결정으로 직접 발전소 건설이 1.0에 필요함 | 유효 부지와 발전원 한 종; 포트폴리오 없음 |
-| `Decommissioning` | 사용자 결정으로 유상 철거와 망 재구성이 1.0에 필요함 | 자산종류 하나, 무전압 조건, 철거비·기간 하나 |
+| `Generation` | 사용자 결정으로 직접 발전소 건설이 1.0에 필요함 | 유효 부지와 `AssetProject` 한 종; 포트폴리오 없음 |
+| `Decommissioning` | 사용자 결정으로 유상 철거와 망 재구성이 1.0에 필요함 | whole `LineProject` 하나, 자동격리, 철거비·기간 하나 |
 | `Persistence` | 세션 길이나 회귀가 저장을 실제로 요구 | 단일 JSON 저장; replay/hash는 별도 |
 | `Presentation` | 지도와 `왜?` 패널로 절체·공통원인을 설명하지 못함 | 축약 결선도 또는 3D scene 중 하나 |
 | `Balance Lab` | 유효 전략 3개 이상이고 손검산이 반복 개발을 막음 | knob 최대 3개의 bounded grid |

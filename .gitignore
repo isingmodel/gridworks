@@ -1,0 +1,3 @@
+# Scope 0A raw responses are intentionally local-only.
+/playtests/scope-0a/private/*
+!/playtests/scope-0a/private/.gitignore

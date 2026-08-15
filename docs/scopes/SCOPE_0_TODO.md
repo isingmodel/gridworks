@@ -8,7 +8,7 @@
 
 이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
-Scope 0B 항목이 있다는 사실은 구현 승인이 아니다. Scope 0A `GO`, 결과 점검과 사용자의 별도 승인 전에는 Scope 0B TODO를 실행하지 않는다.
+Scope 0B 항목이 있다는 사실은 구현 승인이 아니다. 현재 Scope 0A의 `PROXY-PASS`, 결과 점검과 사용자의 별도 승인 전에는 Scope 0B TODO를 실행하지 않는다. `PROXY-PASS`는 사람 `GO`가 아니며 인간 이해도 증거를 만들지 않는다.
 
 ## 1. Scope 0의 목적과 종료상태
 
@@ -19,10 +19,10 @@ Scope 0이 묻는 질문은 하나다.
 
 ```text
 0A_ACTIVE
-├─ 0A_REVISE → 새 카드 version·신규 참가자 → 0A_DECISION
-│                └─ 활성 계약의 revision budget 소진 → 0A_NO_GO
-├─ 0A_NO_GO → SCOPE_0_STOPPED
-└─ 0A_GO → AWAIT_0B_APPROVAL
+├─ 0A_PROXY_REVISE → 새 카드 version·다섯 새 cold session → 0A_DECISION
+│                      └─ 활성 계약의 revision budget 소진 → 0A_PROXY_FAIL
+├─ 0A_PROXY_FAIL → SCOPE_0_STOPPED
+└─ 0A_PROXY_PASS → AWAIT_0B_APPROVAL
                  ├─ 응답 없음 → AWAIT_0B_APPROVAL 유지
                  ├─ 명시적 보류·거절 → SCOPE_0_PAUSED
                  └─ 명시적 승인 → 0B_CONTRACT → 0B_ACTIVE
@@ -39,12 +39,12 @@ Scope 0이 묻는 질문은 하나다.
 
 - [x] Scope 0A의 완전한 실행 계약이 존재한다.
 - [x] Scope 0B의 최대 후보 경계와 개방 조건이 분리돼 있다.
-- [ ] 각 작업단위 시작 전에 루트 README가 지목한 활성 scope를 다시 확인한다.
-- [ ] 활성 scope 전체를 읽고 이 색인의 해당 묶음이 빠뜨린 요구를 보충한다.
-- [ ] 카드·진행자 시트·기록표의 `CardSetVersion`을 한 라운드 동안 고정한다.
-- [ ] Scope 0A 실행 전에 문서의 동결 fixture·oracle·rubric과 제작물을 대조한다.
-- [ ] 카드 내부에 stable ID·개발자 용어·숨은 숫자가 노출되지 않는지 검사한다.
-- [ ] 새 값이 필요해지면 이 상위 TODO가 아니라 현재 활성 scope에서만 닫는다.
+- [x] 각 작업단위 시작 전에 루트 README가 지목한 활성 scope를 다시 확인한다.
+- [x] 활성 scope 전체를 읽고 이 색인의 해당 묶음이 빠뜨린 요구를 보충한다.
+- [x] 카드·진행자 시트·기록표의 `CardSetVersion`을 `S0A-CARD-v1`으로 동결한다.
+- [x] Scope 0A 실행 전에 문서의 동결 fixture·oracle·rubric과 제작물을 대조한다.
+- [x] 카드 내부에 stable ID·개발자 용어·숨은 숫자가 노출되지 않는지 검사한다.
+- [x] 새로 닫은 proxy·카드 상태 값은 현재 활성 Scope 0A에서만 정의한다.
 
 ## 3. Scope 0A 제작 TODO
 
@@ -52,60 +52,62 @@ Scope 0이 묻는 질문은 하나다.
 
 ### 산출물 준비
 
-- [ ] [Scope 0A §3](SCOPE_0A_CARD_TEST.md#3-네-장의-카드)에 맞는 저충실도 16:9 카드 네 장을 제작한다.
-- [ ] 카드 1은 서비스 권역과 상위 연결 부재 하나만 검사한다.
-- [ ] 카드 1 응답 기록 후 고정 접속공사 완료를 고지하고 카드 2로 넘어가는 진행자 문장을 고정한다.
-- [ ] 카드 2는 병원 주 회로, 내부전원, 의무와 읽기 전용 예고 타임라인을 보여준다.
-- [ ] 카드 3은 두 authored 회랑을 같은 순서·크기·시각 무게로 비교한다.
-- [ ] 카드 4는 선택 전에 두 계획×두 제거사건을 모두 예측하게 하고 응답 후에만 결과를 공개한다.
-- [ ] `SAFE/RISKY`, 추천색, 방패·해골과 총점을 사용하지 않는다.
-- [ ] 서비스 권역, 통전, 공사, 사용불가와 내부전원을 색 외의 pattern·선·label로 구분한다.
-- [ ] [비주얼 명세](../product/VISUAL_PRODUCTION_SPEC.md)의 Scope 0A 카드 QA를 통과한다.
+- [x] [Scope 0A §3](SCOPE_0A_CARD_TEST.md#3-네-장의-카드)에 맞는 저충실도 16:9 카드 네 장을 제작한다.
+- [x] 카드 1은 서비스 권역과 상위 연결 부재 하나만 검사한다.
+- [x] 카드 1 응답 기록 후 고정 접속공사 완료를 고지하고 카드 2로 넘어가는 진행자 문장을 고정한다.
+- [x] 카드 2는 병원 주 회로, 내부전원, 의무와 읽기 전용 예고 타임라인을 보여준다.
+- [x] 카드 3은 두 authored 회랑을 같은 순서·크기·시각 무게로 비교한다.
+- [x] 카드 4는 선택 전에 두 계획×두 제거사건을 모두 예측하게 하고 응답 후에만 인과·정산 결과를 차례로 공개한다.
+- [x] `SAFE/RISKY`, 추천색, 방패·해골과 총점을 사용하지 않는다.
+- [x] 서비스 권역, 통전, 공사, 사용불가와 내부전원을 색 외의 pattern·선·label로 구분한다.
+- [x] [비주얼 명세](../product/VISUAL_PRODUCTION_SPEC.md)의 Scope 0A 카드 QA를 통과한다.
 
 ### 진행자 시트·기록
 
-- [ ] 중립 지시문, 카드 전환 문장, 질문 순서와 추가 설명 금지를 한 장에 정리한다.
-- [ ] Scope 0A의 기록 필드와 사전 rubric을 그대로 사용한다.
-- [ ] 진행자 도움 후 고친 답을 통과로 세지 않는다.
-- [ ] 배치 순서 variant를 참가자별로 번갈아 배정할 표를 준비한다.
-- [ ] 자유응답 원자료는 공개 저장소에 커밋하지 않고, 식별 불가능한 집계·오해 유형만 남긴다.
-- [ ] 이름·연락처·음성을 수집하지 않는 로컬 보관 절차를 확인한다.
+- [x] 중립 지시문, 카드 전환 문장, 질문 순서와 추가 설명 금지를 한 장에 정리한다.
+- [x] Scope 0A의 기록 필드와 사전 rubric을 그대로 사용한다.
+- [x] 진행자 도움 후 고친 답을 통과로 세지 않는다.
+- [x] 배치 순서 variant를 세션별로 번갈아 배정한 표를 준비한다.
+- [x] 자유응답 원자료는 공개 저장소에 커밋하지 않고, 식별 불가능한 집계·오해 유형만 남기도록 `private/`를 Git에서 제외한다.
+- [x] proxy 라운드는 이름·연락처·음성을 수집하지 않으며 model/session metadata만 로컬 보관한다.
 
 ## 4. Scope 0A 사전 검증 TODO
 
-- [ ] 모든 카드·진행자 자료의 링크, 해상도, 폰트, 대비, 여백과 16:9 표시를 수동 검사한다.
-- [ ] 한국어 문구가 카드의 경로·상태·숫자를 가리지 않는지 확인한다.
-- [ ] Scope 0A topology 제거 행렬을 별도 손검산 또는 일회성 검사로 확인한다.
-- [ ] 병원 내부전원 에너지·지속시간·잔여시간 oracle을 다시 검산한다.
-- [ ] 전력회사 인도, 미공급, 판매, 가스비, 보상과 기말현금에 중복·누락이 없는지 검산한다.
-- [ ] `M`, `CashUnit`, `MW`, `MWh/GWh`, `GameMinute`의 단위 변환이 닫히는지 확인한다.
-- [ ] 카드의 두 회랑·두 사건 결과가 동결 fixture와 일치하는지 확인한다.
-- [ ] 한 명의 내부 dry run으로 절차·기록표의 누락만 찾고, 그 응답은 본 집계에 포함하지 않는다.
-- [ ] dry run이 카드 내용을 바꾸게 하면 `CardSetVersion`을 올리고 본 라운드 전에 다시 검증한다.
-- [ ] 카드·진행자 자료를 동결한 뒤 §11의 작업단위 checkpoint를 마쳐야 사람 테스트로 넘어간다.
+- [x] 모든 카드·진행자 자료의 링크, 해상도, 폰트, 대비, 여백과 16:9 표시를 수동 검사한다.
+- [x] 한국어 문구가 카드의 경로·상태·숫자를 가리지 않는지 확인한다.
+- [x] Scope 0A topology 제거 행렬을 deterministic 검사로 확인한다.
+- [x] 병원 내부전원 에너지·지속시간·잔여시간 oracle을 다시 검산한다.
+- [x] 전력회사 인도, 미공급, 판매, 가스비, 보상과 기말현금에 중복·누락이 없는지 검산한다.
+- [x] `M`, `CashUnit`, `MW`, `MWh/GWh`, `GameMinute`의 단위 변환이 닫히는지 확인한다.
+- [x] 카드의 두 회랑·두 사건 결과가 동결 fixture와 일치하는지 확인한다.
+- [x] 내부 dry run `L00`으로 절차·기록표 누락만 확인하고 본 집계에서 제외한다.
+- [x] dry run은 카드 변경을 요구하지 않았으며 `S0A-CARD-v1`을 그대로 동결했다.
+- [ ] 카드·진행자 자료를 동결한 뒤 §11의 작업단위 checkpoint를 마쳐야 LLM proxy 테스트로 넘어간다.
 
-## 5. Scope 0A 사람 테스트 TODO
+## 5. Scope 0A LLM proxy 테스트 TODO
 
-- [ ] 참가자 수, 대상, 세션 시간과 배치 variant는 [Scope 0A §2](SCOPE_0A_CARD_TEST.md#2-참가자와-운영), 통과선은 [§6](SCOPE_0A_CARD_TEST.md#6-산출물과-완료조건)을 그대로 따른다.
-- [ ] 전력계통 전문가·이 문서를 미리 본 사람은 본 집계에서 제외한다.
+- [ ] 세션 수, cold-context 조건, 금지 도구, 배치 variant와 통과선은 [Scope 0A §2](SCOPE_0A_CARD_TEST.md#2-proxy-세션과-운영)와 [§6](SCOPE_0A_CARD_TEST.md#6-산출물과-완료조건)을 그대로 따른다.
+- [ ] 다섯 세션 모두 같은 model/build를 쓰고 fork·memory 없이 시작하며 participant PNG와 고정 진행자 문장 외 context를 주지 않는다.
+- [ ] 이미지 확인 외 도구·저장소 탐색·검색을 사용한 세션은 무효 처리하고 같은 ID·variant로 교체한다.
 - [ ] 참가자별로 권역, 전기/공간 원인, 내부전원, trade-off와 진행자 도움을 사전 기록표에 남긴다.
 - [ ] 선택률·좋아하는 계획·응답속도를 통과 목표로 사용하지 않는다.
 - [ ] 사후에 정답 문구만 맞추지 않고 필수 이유까지 사전 rubric으로 판정한다.
 - [ ] 동일 참가자의 필수 항목을 통합해 `IntegratedCausalPass`를 계산한다.
-- [ ] 식별 불가능한 개수·오해 유형·예상 밖 응답을 한 페이지로 요약한다.
+- [ ] 원답, model/build, 카드 hash, 실제 도구 사용과 실행시각은 Git 제외 로컬 표에 보존한다.
+- [ ] 원답 SHA-256, 식별 불가능한 개수·오해 유형·예상 밖 응답과 `HumanValidationStatus = NOT_COLLECTED`를 한 페이지로 요약한다.
 
 ## 6. Scope 0A 결정 TODO
 
-- [ ] 자동·수동 사전 검사 결과와 사람 원자료를 분리해 보관한다.
-- [ ] 사전 정의된 `GO / REVISE / NO-GO`만 사용하고 결과를 본 뒤 기준을 바꾸지 않는다.
-- [ ] `REVISE`는 반복 오해가 한 표현·정보구조 원인에 한정될 때만 선택한다.
-- [ ] 한 번에 표현 또는 정보구조 하나만 바꾸고, 새 version·신규 참가자로 반복한다.
-- [ ] `NO-GO`면 자유 배선, 경제, 물리가 부족하다고 가정해 기능을 추가하지 않는다.
-- [ ] `GO`면 카드가 지지한 세 인과와 남은 오해를 분리해 기록한다.
-- [ ] `GO`여도 Scope 0B를 자동 시작하지 않고 `AWAIT_0B_APPROVAL`에서 사용자 지시를 기다린다.
+- [ ] 자동·수동 사전 검사 결과와 LLM proxy 원자료를 분리해 보관한다.
+- [ ] 사전 정의된 `PROXY-PASS / PROXY-REVISE / PROXY-FAIL`만 사용하고 결과를 본 뒤 기준을 바꾸지 않는다.
+- [ ] `PROXY-REVISE`는 둘 이상 세션의 반복 오해가 한 표현·정보구조 원인에 한정될 때만 선택한다.
+- [ ] 한 번에 표현 또는 정보구조 하나만 바꾸고, 새 version·다섯 새 cold session으로 반복한다.
+- [ ] `PROXY-FAIL`이면 자유 배선, 경제, 물리가 부족하다고 가정해 기능을 추가하지 않는다.
+- [ ] `PROXY-PASS`면 LLM proxy가 지지한 세 인과와 남은 오해를 분리하고 사람 증거가 아님을 기록한다.
+- [ ] `PROXY-PASS`여도 Scope 0B를 자동 시작하지 않고 `AWAIT_0B_APPROVAL`에서 사용자 지시를 기다린다.
 - [ ] 판정과 익명 집계를 기록한 뒤 §11의 작업단위 checkpoint를 완료한다.
 
-## 7. Scope 0B 활성화 TODO — Scope 0A `GO` 후 별도 승인 시만
+## 7. Scope 0B 활성화 TODO — Scope 0A `PROXY-PASS` 후 별도 승인 시만
 
 - [ ] 응답 없음·추정 동의가 아니라 사용자의 명시적 구현 승인을 기록한다.
 - [ ] Scope 0A의 식별 불가능한 집계·오해·예상 밖 결과를 첨부한다.
@@ -160,7 +162,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 ## 10. 진행 차단·재검토 신호
 
-- [ ] fixture·oracle·단위·링크가 닫히지 않으면 사람 테스트를 시작하지 않는다. 이는 사람 증거의 `NO-GO`가 아니라 preflight blocker다.
+- [ ] fixture·oracle·단위·링크가 닫히지 않으면 해당 증거 수집을 시작하지 않는다. 이는 활성 판정의 실패가 아니라 preflight blocker다.
 - [ ] preflight blocker는 활성 계약의 권위를 보존한 문서 변경과 재검산으로만 해소한다.
 - [ ] 핵심 인과를 설명하려면 자유 배선, 상세 물리, 확률사건이나 복수 추가 시스템이 필요할 경우 현재 단위를 멈추고 사용자와 범위를 재검토한다.
 - [ ] 범용 framework, 저장·replay, 3D 또는 future schema가 필요해질 경우 현재 단위를 확대하지 않는다.
@@ -172,14 +174,14 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 다음 다섯 지점에서 이 checkpoint를 각각 수행한다.
 
-1. Scope 0A 카드·진행자 자료 동결 후, 사람 테스트 전
+1. Scope 0A 카드·진행자 자료 동결 후, LLM proxy 테스트 전
 2. Scope 0A 판정 후
 3. Scope 0B 활성 계약 완료 후, 구현 전
 4. Scope 0B 구현·자동검사 완료 후, 사람 테스트 전
 5. Scope 0B 판정 후
 
-- [ ] 해당 시점까지 존재하는 승인된 산출물·자동검사·사람 증거·예상 밖 관찰만 기록한다.
-- [ ] checkpoint 1·3·4에서는 `SubGateDecision = PENDING`, 판정 뒤인 2·5에서는 `GO | REVISE | NO-GO` 중 하나를 기록한다.
+- [ ] 해당 시점까지 존재하는 승인된 산출물·자동검사·LLM proxy 또는 사람 증거·예상 밖 관찰만 기록한다.
+- [ ] checkpoint 1·3·4에서는 `SubGateDecision = PENDING`을 기록한다. checkpoint 2는 `PROXY-PASS | PROXY-REVISE | PROXY-FAIL`, checkpoint 5는 활성 Scope 0B의 판정 어휘를 사용한다.
 - [ ] workflow는 별도로 `Scope0State = ACTIVE | AWAITING_APPROVAL | PAUSED | STOPPED | REVIEWED`로 기록한다.
 - [ ] 루트 README의 현재 개발 상태와 하위 scope 상태를 일치시킨다.
 - [ ] [오브젝트 카탈로그](../product/OBJECT_CATALOG.md)는 실제로 열린 기능만 `현재`로 갱신한다.

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      text { font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; fill: #e8edf0; }
+      .title { font-size: 44px; font-weight: 700; }
+      .task { font-size: 28px; font-weight: 650; }
+      .head { font-size: 24px; font-weight: 650; }
+      .plan { font-size: 28px; font-weight: 700; }
+      .result { font-size: 21px; fill: #d8e0e4; }
+      .state { font-size: 25px; font-weight: 700; fill: #9bd4e1; }
+      .note { font-size: 22px; fill: #c1cbd0; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#20272b"/>
+  <rect x="48" y="44" width="1504" height="812" rx="24" fill="#293238" stroke="#69777f" stroke-width="3"/>
+  <text x="82" y="108" class="title">카드 4 · 인과 결과 공개</text>
+  <rect x="82" y="135" width="1436" height="68" rx="15" fill="#343e43"/>
+  <text x="800" y="179" text-anchor="middle" class="task">제거된 설비 → 남은 전력회사 경로 → P0 공급원 → 내부전원 → 마을 순서로 확인</text>
+
+  <rect x="82" y="230" width="1436" height="520" rx="18" fill="#1b2226" stroke="#5a676e" stroke-width="2"/>
+  <line x1="330" y1="230" x2="330" y2="750" stroke="#68777e" stroke-width="3"/>
+  <line x1="920" y1="230" x2="920" y2="750" stroke="#68777e" stroke-width="3"/>
+  <line x1="82" y1="330" x2="1518" y2="330" stroke="#68777e" stroke-width="3"/>
+  <line x1="82" y1="540" x2="1518" y2="540" stroke="#68777e" stroke-width="3"/>
+  <text x="625" y="288" text-anchor="middle" class="head">병원 E1만 사용불가</text>
+  <text x="1220" y="280" text-anchor="middle" class="head">강변 통로 전체 사용불가</text>
+  <text x="1220" y="312" text-anchor="middle" class="note">4시간 뒤 복구</text>
+  <text x="205" y="440" text-anchor="middle" class="plan">강변 병행</text>
+  <text x="205" y="650" text-anchor="middle" class="plan">북부 우회</text>
+
+  <text x="360" y="370" class="state">병원 계통공급 남음</text>
+  <text x="360" y="405" class="result">• 병원 주 회로만 끊김</text>
+  <text x="360" y="434" class="result">• 강변 예비회로로 전력회사 공급</text>
+  <text x="360" y="463" class="result">• P0는 계통 · 내부전원 미사용</text>
+  <text x="360" y="492" class="result">• 마을 공급 유지</text>
+  <text x="950" y="370" class="state" fill="#b5bec3">병원 계통공급 끊김</text>
+  <text x="950" y="405" class="result">• 강변의 기존 주선·E1·예비선 함께 끊김</text>
+  <text x="950" y="434" class="result">• 남은 전력회사 병원 경로 없음</text>
+  <text x="950" y="463" class="result">• P0는 병원 내부전원으로 4시간 유지</text>
+  <text x="950" y="492" class="result">• 내부전원 60분 남음 · 마을 공급 끊김</text>
+
+  <text x="360" y="580" class="state">병원 계통공급 남음</text>
+  <text x="360" y="615" class="result">• 병원 주 회로만 끊김</text>
+  <text x="360" y="644" class="result">• 북부 예비회로로 전력회사 공급</text>
+  <text x="360" y="673" class="result">• P0는 계통 · 내부전원 미사용</text>
+  <text x="360" y="702" class="result">• 마을 공급 유지</text>
+  <text x="950" y="580" class="state">병원 계통공급 남음</text>
+  <text x="950" y="615" class="result">• 강변의 기존 주선·E1이 함께 끊김</text>
+  <text x="950" y="644" class="result">• 강변 밖 북부회로로 전력회사 공급</text>
+  <text x="950" y="673" class="result">• P0는 계통 · 내부전원 미사용</text>
+  <text x="950" y="702" class="result">• 마을 공급 끊김</text>
+
+  <rect x="82" y="780" width="1436" height="42" rx="12" fill="#303a40"/>
+  <text x="800" y="809" text-anchor="middle" class="note">병원 연속성과 전력회사 공급은 별도 판정입니다. 다음 화면에서 사건 정산만 공개합니다.</text>
+</svg>

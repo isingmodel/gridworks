@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      text { font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; fill: #e8edf0; }
+      .title { font-size: 44px; font-weight: 700; }
+      .subtitle { font-size: 25px; fill: #aebbc2; }
+      .label { font-size: 28px; font-weight: 650; }
+      .small { font-size: 22px; fill: #c2ccd1; }
+      .question { font-size: 34px; font-weight: 700; }
+    </style>
+    <pattern id="service-dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="2" fill="#71818a" opacity="0.7"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="#20272b"/>
+  <rect x="48" y="44" width="1504" height="812" rx="24" fill="#293238" stroke="#69777f" stroke-width="3"/>
+  <text x="82" y="108" class="title">카드 1 · 권역과 연결</text>
+  <text x="82" y="148" class="subtitle">DAY 0 08:00 · 마을 상위 접속공사 전</text>
+
+  <rect x="82" y="180" width="1436" height="500" rx="20" fill="#1b2226" stroke="#4d5b62" stroke-width="2"/>
+  <ellipse cx="1235" cy="430" rx="245" ry="195" fill="#5d6d75" opacity="0.18" stroke="#8b9ba3" stroke-width="5" stroke-dasharray="14 12"/>
+  <ellipse cx="1235" cy="430" rx="230" ry="180" fill="url(#service-dots)" opacity="0.55"/>
+  <text x="1110" y="260" class="small">마을 서비스 권역</text>
+
+  <rect x="150" y="340" width="160" height="150" rx="18" fill="#3b4a50" stroke="#7fc7d9" stroke-width="5"/>
+  <path d="M190 340 L230 286 L270 340" fill="none" stroke="#7fc7d9" stroke-width="10"/>
+  <circle cx="230" cy="410" r="30" fill="#7fc7d9" opacity="0.55"/>
+  <text x="142" y="535" class="label">가스발전소</text>
+  <text x="178" y="570" class="small">온라인</text>
+
+  <line x1="310" y1="415" x2="650" y2="415" stroke="#7fc7d9" stroke-width="14"/>
+  <circle cx="650" cy="415" r="18" fill="#7fc7d9"/>
+  <text x="448" y="380" class="small">발전 측 모선</text>
+  <line x1="668" y1="415" x2="790" y2="415" stroke="#5c676d" stroke-width="12" stroke-dasharray="20 16"/>
+  <line x1="880" y1="415" x2="1050" y2="415" stroke="#5c676d" stroke-width="12" stroke-dasharray="20 16"/>
+  <line x1="804" y1="385" x2="854" y2="445" stroke="#aebbc2" stroke-width="8"/>
+  <line x1="854" y1="385" x2="804" y2="445" stroke="#aebbc2" stroke-width="8"/>
+  <text x="735" y="500" class="label">상위 피더 미연결</text>
+
+  <rect x="1048" y="350" width="170" height="130" rx="14" fill="#38444a" stroke="#aebbc2" stroke-width="5"/>
+  <line x1="1080" y1="390" x2="1185" y2="390" stroke="#aebbc2" stroke-width="7"/>
+  <line x1="1080" y1="420" x2="1185" y2="420" stroke="#aebbc2" stroke-width="7"/>
+  <text x="1020" y="535" class="label">배전 변전소</text>
+  <text x="1015" y="572" class="small">설치·시운전 완료 · 무전압</text>
+
+  <g fill="#7b858a" stroke="#aebbc2" stroke-width="3">
+    <rect x="1260" y="380" width="84" height="70"/>
+    <path d="M1250 380 L1302 340 L1354 380 Z"/>
+    <rect x="1370" y="425" width="76" height="62"/>
+    <path d="M1360 425 L1408 390 L1456 425 Z"/>
+    <rect x="1250" y="500" width="70" height="56"/>
+    <path d="M1240 500 L1285 470 L1330 500 Z"/>
+  </g>
+  <text x="1328" y="600" class="label">마을</text>
+
+  <rect x="82" y="714" width="1436" height="108" rx="18" fill="#303a40" stroke="#88969d" stroke-width="2"/>
+  <text x="800" y="780" text-anchor="middle" class="question">이 마을은 지금 공급 중인가? 공급되려면 무엇이 더 필요한가?</text>
+</svg>

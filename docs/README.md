@@ -24,6 +24,8 @@ docs/
     └── POST_1_0.md                    1.0 이후 격리된 후보
 ```
 
+현재 gate의 participant-facing 카드와 진행 자료 같은 파생 실행 산출물은 루트 [`playtests/`](../playtests/)에 둔다. 이 자료는 활성 scope를 구현할 뿐 규칙·숫자 권위가 아니다. 원답은 `playtests/**/private/`에만 두고 Git에서 제외한다.
+
 폴더는 문서의 권위 수준이 아니라 역할을 나타낸다. `scopes/` 안에서도 현재 scope 하나만 실행
 권한을 가지며, 후보 scope는 backlog가 아니다.
 

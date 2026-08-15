@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      text { font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; fill: #e8edf0; }
+      .title { font-size: 44px; font-weight: 700; }
+      .task { font-size: 27px; font-weight: 650; }
+      .plan { font-size: 30px; font-weight: 700; }
+      .row { font-size: 23px; fill: #c7d0d4; }
+      .value { font-size: 25px; font-weight: 650; }
+      .delta { font-size: 30px; font-weight: 700; fill: #e4bd72; }
+      .note { font-size: 21px; fill: #c1cbd0; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#20272b"/>
+  <rect x="48" y="44" width="1504" height="812" rx="24" fill="#293238" stroke="#69777f" stroke-width="3"/>
+  <text x="82" y="108" class="title">카드 4 · 고정 4시간 사건 정산</text>
+  <rect x="82" y="135" width="1436" height="68" rx="15" fill="#343e43"/>
+  <text x="800" y="178" text-anchor="middle" class="task">인과 결과를 확인한 뒤 공개 · 건설비와 사건 중 현금흐름을 분리</text>
+
+  <rect x="82" y="232" width="1436" height="505" rx="18" fill="#1b2226" stroke="#5a676e" stroke-width="2"/>
+  <line x1="470" y1="232" x2="470" y2="737" stroke="#68777e" stroke-width="3"/>
+  <line x1="995" y1="232" x2="995" y2="737" stroke="#68777e" stroke-width="3"/>
+  <line x1="82" y1="310" x2="1518" y2="310" stroke="#68777e" stroke-width="3"/>
+  <text x="732" y="282" text-anchor="middle" class="plan">북부 우회</text>
+  <text x="1256" y="282" text-anchor="middle" class="plan">강변 병행</text>
+
+  <text x="120" y="353" class="row">회랑 건설비</text>
+  <text x="732" y="353" text-anchor="middle" class="value">12 M</text>
+  <text x="1256" y="353" text-anchor="middle" class="value">8 M</text>
+  <text x="120" y="404" class="row">전력회사 인도</text>
+  <text x="732" y="404" text-anchor="middle" class="value">병원 32 MWh</text>
+  <text x="1256" y="404" text-anchor="middle" class="value">0 MWh</text>
+  <text x="120" y="455" class="row">판매</text>
+  <text x="732" y="455" text-anchor="middle" class="value">0.00576 M</text>
+  <text x="1256" y="455" text-anchor="middle" class="value">0 M</text>
+  <text x="120" y="506" class="row">가스비</text>
+  <text x="732" y="506" text-anchor="middle" class="value">0.00368 M</text>
+  <text x="1256" y="506" text-anchor="middle" class="value">0 M</text>
+  <text x="120" y="557" class="row">미공급 보상</text>
+  <text x="732" y="557" text-anchor="middle" class="value">0.0768 M</text>
+  <text x="1256" y="557" text-anchor="middle" class="value">0.7168 M</text>
+  <text x="120" y="608" class="row">LostSales · 진단값</text>
+  <text x="732" y="608" text-anchor="middle" class="value">0.01728 M</text>
+  <text x="1256" y="608" text-anchor="middle" class="value">0.02304 M</text>
+  <line x1="105" y1="638" x2="1490" y2="638" stroke="#59666d" stroke-width="2"/>
+  <text x="120" y="690" class="row">사건 현금변화</text>
+  <text x="732" y="690" text-anchor="middle" class="delta">-0.07472 M</text>
+  <text x="1256" y="690" text-anchor="middle" class="delta">-0.7168 M</text>
+
+  <rect x="82" y="765" width="1436" height="57" rx="15" fill="#303a40"/>
+  <text x="800" y="790" text-anchor="middle" class="note">LostSales는 판매하지 못한 진단값이며 현금에서 다시 빼지 않습니다.</text>
+  <text x="800" y="816" text-anchor="middle" class="note">병원 내부전력은 전력회사 판매가 아닙니다. 이 표는 기말현금이나 계획 전체 순위를 표시하지 않습니다.</text>
+</svg>

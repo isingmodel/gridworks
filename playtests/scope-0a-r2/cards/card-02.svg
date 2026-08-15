@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      text { font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; fill: #e8edf0; }
+      .title { font-size: 44px; font-weight: 700; }
+      .subtitle { font-size: 24px; fill: #b8c3c8; }
+      .label { font-size: 27px; font-weight: 650; }
+      .small { font-size: 21px; fill: #c5ced2; }
+      .tiny { font-size: 18px; fill: #bec8cd; }
+    </style>
+    <pattern id="corridor-hatch" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+      <line x1="0" y1="0" x2="0" y2="22" stroke="#8b7a68" stroke-width="7" opacity="0.48"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="#20272b"/>
+  <rect x="48" y="44" width="1504" height="812" rx="24" fill="#293238" stroke="#69777f" stroke-width="3"/>
+  <text x="82" y="108" class="title">카드 2 · 병원과 예고 타임라인</text>
+
+  <rect x="82" y="138" width="1436" height="135" rx="18" fill="#1b2226" stroke="#5a686f" stroke-width="2"/>
+  <line x1="142" y1="216" x2="1440" y2="216" stroke="#8e9ba1" stroke-width="4"/>
+  <circle cx="190" cy="216" r="14" fill="#7fc7d9"/>
+  <circle cx="650" cy="216" r="14" fill="#d2a65a"/>
+  <circle cx="1120" cy="216" r="14" fill="#8e9ba1"/>
+  <line x1="1120" y1="216" x2="1385" y2="216" stroke="#8e9ba1" stroke-width="15" opacity="0.55"/>
+  <text x="130" y="174" class="small">지금 · DAY 1 08:00</text>
+  <text x="528" y="174" class="small">DAY 3 08:00</text>
+  <text x="502" y="250" class="tiny">병원 두 번째 회로 기한</text>
+  <text x="1010" y="174" class="small">DAY 9 16:00</text>
+  <text x="1040" y="250" class="tiny">강변 통로 전체 사용불가 · 4시간</text>
+  <text x="1322" y="174" class="small">20:00 복구</text>
+
+  <rect x="82" y="303" width="925" height="430" rx="18" fill="#1b2226" stroke="#4d5b62" stroke-width="2"/>
+  <path d="M425 318 C510 380 480 470 570 525 C650 575 670 655 760 720 L890 720 C790 620 790 520 700 460 C620 405 625 350 560 318 Z" fill="url(#corridor-hatch)" stroke="#8b7a68" stroke-width="3" stroke-dasharray="12 10"/>
+  <text x="550" y="345" class="small">노후 강변 통로</text>
+
+  <rect x="145" y="480" width="145" height="115" rx="15" fill="#3b4a50" stroke="#7fc7d9" stroke-width="5"/>
+  <path d="M175 480 L218 435 L260 480" fill="none" stroke="#7fc7d9" stroke-width="9"/>
+  <text x="125" y="640" class="label">가스발전소</text>
+  <line x1="290" y1="535" x2="510" y2="535" stroke="#7fc7d9" stroke-width="13"/>
+  <circle cx="510" cy="535" r="16" fill="#7fc7d9"/>
+  <path d="M510 535 C610 535 645 565 735 565 C795 565 825 540 865 520" fill="none" stroke="#7fc7d9" stroke-width="13"/>
+  <text x="590" y="515" class="small">병원 주 회로 E1</text>
+
+  <rect x="850" y="430" width="120" height="150" rx="12" fill="#39464c" stroke="#7fc7d9" stroke-width="5"/>
+  <rect x="892" y="455" width="36" height="100" fill="#dce9ed"/>
+  <rect x="860" y="487" width="100" height="36" fill="#dce9ed"/>
+  <text x="820" y="625" class="label">병원 · P0 8 MW</text>
+  <text x="822" y="662" class="small">현재 E1로 전력회사 공급 중</text>
+
+  <rect x="1060" y="303" width="458" height="430" rx="18" fill="#252d32" stroke="#59676e" stroke-width="2"/>
+  <text x="1095" y="355" class="label">병원 두 번째 전기회로 의무</text>
+  <text x="1095" y="392" class="small">기한 · DAY 3 08:00</text>
+  <line x1="1095" y1="425" x2="1480" y2="425" stroke="#59676e" stroke-width="2"/>
+  <text x="1095" y="475" class="label">병원 소유 내부전원</text>
+  <rect x="1095" y="505" width="165" height="88" rx="12" fill="#403a50" stroke="#b89ad6" stroke-width="4"/>
+  <text x="1178" y="543" text-anchor="middle" class="small">UPS</text>
+  <text x="1178" y="574" text-anchor="middle" class="small">15분</text>
+  <rect x="1285" y="505" width="195" height="88" rx="12" fill="#403a50" stroke="#b89ad6" stroke-width="4"/>
+  <text x="1382" y="543" text-anchor="middle" class="small">비상 디젤</text>
+  <text x="1382" y="574" text-anchor="middle" class="small">4시간 45분</text>
+  <text x="1095" y="632" class="small">8 MW P0 전부를 총 5시간 유지</text>
+  <text x="1095" y="670" class="small">전력회사 공급·판매로 계량하지 않음</text>
+
+  <rect x="82" y="762" width="1436" height="60" rx="16" fill="#303a40"/>
+  <text x="800" y="802" text-anchor="middle" class="subtitle">상황을 확인하세요. 아직 회랑을 선택하지 않습니다.</text>
+</svg>

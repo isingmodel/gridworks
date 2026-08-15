@@ -29,19 +29,19 @@
 
 ## 현재 개발 상태
 
-현재 실행 가능한 개발 gate는 없다. 마지막 승인 단위인 [**Scope 0A — 코딩 전 의사결정 카드 테스트**](docs/scopes/SCOPE_0A_CARD_TEST.md)는 사용자의 지시에 따라 실제 비전문가 대신 정답과 rubric을 보지 않은 격리 LLM 세션 다섯 개로 다음 세 관계를 검사했고, `PROXY-FAIL`로 종료됐다.
+현재 승인된 개발단위는 [**Scope 0A R2 — 구조화 카드 테스트**](docs/scopes/SCOPE_0A_R2_CARD_TEST.md)다. 사용자가 2026-08-16에 coverage와 통합 통과가 될 때까지 증거 기반 iteration을 계속하고 Scope 1 실행 준비상태까지 진행하도록 새로 승인했다. 종료된 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남긴다.
 
 1. 서비스 권역과 실제 전력 공급은 다르다.
 2. 전기적으로 다른 두 회로도 같은 공간 회랑을 쓰면 함께 끊길 수 있다.
 3. 병원 내부전원이 환자를 지키는 것과 전력회사가 전기를 공급·판매한 것은 다르다.
 
-이 대체 라운드는 사람 사용성 증거가 아니다. 통과했더라도 비전문가의 이해·10분 제한·시각 주의·접근성을 입증하지 않았을 것이다. 실제 결과가 실패했으므로 10~15분짜리 **Scope 0B 2D playable**은 열리지 않는다. Scope 0은 인과 이해만 검사했으며 전체 재미, 재플레이성, 경제 밸런스나 완성 게임의 시뮬레이션 깊이에 대한 결론을 만들지 않는다.
+R2도 실제 비전문가가 아니라 새 cold LLM session 다섯 개를 사용하므로 사람 사용성 증거가 아니다. R1에서 빠지거나 섞인 두 대비축을 한 `InformationStructure` family로 구조화하되 fixture·비용·field rubric·선택률은 바꾸지 않는다. 같은-model 5회는 통계 표본이 아니므로 `S0A-GATE-v2`는 네 field 각각 4/5와 한 응답 내 통합 3/5를 함께 요구한다. `PROXY-PASS` 뒤에는 별도 checkpoint를 거쳐 10~15분짜리 **Scope 0B 2D playable**의 실제 조작 가설을 검증한다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
 확정 roadmap을 만들지 않는다.
 
-`LLM-PROXY-R1`의 [검토된 결과](playtests/scope-0a/RESULT.md)는 coverage `0/5`, 위험 인과 `4/5`, 내부전원 경계와 trade-off 각 `5/5`, 통합 `0/5`다. 다섯 세션 모두 서비스 권역의 의미를 명시하지 않았고, L02는 북부선의 E1 생존을 전기적으로 다른 회로가 아니라 공간적으로 다른 통로에 귀속했다. 실패 세션의 유일한 결손이 하나로 같지 않아 revision 조건도 충족하지 못했다. 다음 gate는 자동 선택하지 않으며, 새 사용자 결정 전에는 카드 수정·Scope 0B·Scope 1을 시작하지 않는다.
+`LLM-PROXY-R1`의 [검토된 결과](playtests/scope-0a/RESULT.md)는 coverage `0/5`, 위험 인과 `4/5`, 내부전원 경계와 trade-off 각 `5/5`, 통합 `0/5`다. R2는 서비스 권역의 의미·실제 공급 판단을 나눠 묻고, Card 4의 전기회로·공간 통로 근거칸을 분리한다. 다음 허용 작업은 `S0A-CARD-v2`를 동결·검토한 뒤 `LLM-PROXY-R2` 다섯 세션을 실행하는 것이다.
 
 ## 문서 구조
 
@@ -57,8 +57,9 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 | [`docs/development/`](docs/development/) | 조건부 개발·검증 도구 |
 | [`docs/future/`](docs/future/) | 1.0 이후 장기 후보 |
 
-문서 간 충돌이 있으면 현재 개발단위의 scope가 우선한다. Scope 0A에서는
-[카드 테스트 문서](docs/scopes/SCOPE_0A_CARD_TEST.md)의 동결 fixture와 oracle이 숫자 권위다.
+문서 간 충돌이 있으면 현재 개발단위의 scope가 우선한다. 현재 Scope 0A R2는
+[R2 계약](docs/scopes/SCOPE_0A_R2_CARD_TEST.md)에 따라 [R1 카드 테스트](docs/scopes/SCOPE_0A_CARD_TEST.md)의
+동결 fixture와 oracle을 값 변경 없이 숫자 권위로 위임받는다.
 Scope 0B가 승인되어도 fixture 인계검사를 통과하기 전에는 이 권위를 자동으로 바꾸지 않는다.
 
 ## 개발 방식

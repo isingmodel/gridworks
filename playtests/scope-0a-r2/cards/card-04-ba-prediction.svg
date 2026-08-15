@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      text { font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; fill: #e8edf0; }
+      .title { font-size: 44px; font-weight: 700; }
+      .task { font-size: 29px; font-weight: 650; }
+      .head { font-size: 25px; font-weight: 650; }
+      .plan { font-size: 28px; font-weight: 700; }
+      .cell { font-size: 25px; fill: #d7dfe3; }
+      .note { font-size: 23px; fill: #c1cbd0; }
+      .reason { font-size: 19px; fill: #d7dfe3; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#20272b"/>
+  <rect x="48" y="44" width="1504" height="812" rx="24" fill="#293238" stroke="#69777f" stroke-width="3"/>
+  <text x="82" y="108" class="title">카드 4 · 결과를 예측한 뒤 선택</text>
+  <rect x="82" y="135" width="1436" height="70" rx="15" fill="#343e43"/>
+  <text x="800" y="180" text-anchor="middle" class="task">사고 범위를 구분해 예측하세요 · 왼쪽은 차단 회로 관계 · 오른쪽은 공간 통로 관계</text>
+
+  <rect x="82" y="235" width="1436" height="500" rx="18" fill="#1b2226" stroke="#5a676e" stroke-width="2"/>
+  <line x1="345" y1="235" x2="345" y2="735" stroke="#68777e" stroke-width="3"/>
+  <line x1="930" y1="235" x2="930" y2="735" stroke="#68777e" stroke-width="3"/>
+  <line x1="82" y1="340" x2="1518" y2="340" stroke="#68777e" stroke-width="3"/>
+  <line x1="82" y1="537" x2="1518" y2="537" stroke="#68777e" stroke-width="3"/>
+
+  <text x="637" y="270" text-anchor="middle" class="head">전기회로 사고</text>
+  <text x="637" y="306" text-anchor="middle" class="note">병원 주 회로 E1만 사용불가</text>
+  <text x="1224" y="270" text-anchor="middle" class="head">공간 통로 사고</text>
+  <text x="1224" y="306" text-anchor="middle" class="note">강변 통로 전체 사용불가 · 4시간</text>
+  <text x="212" y="435" text-anchor="middle" class="plan">북부 우회</text>
+  <text x="212" y="632" text-anchor="middle" class="plan">강변 병행</text>
+
+  <text x="395" y="400" class="cell">○ 남음　 ○ 끊김</text>
+  <text x="375" y="454" class="reason">근거 · E1과의 차단 회로 관계:</text>
+  <line x1="375" y1="470" x2="870" y2="470" stroke="#8b979d" stroke-width="2"/>
+  <text x="980" y="400" class="cell">○ 남음　 ○ 끊김</text>
+  <text x="960" y="454" class="reason">근거 · 강변과의 공간 통로 관계:</text>
+  <line x1="960" y1="470" x2="1455" y2="470" stroke="#8b979d" stroke-width="2"/>
+  <text x="395" y="597" class="cell">○ 남음　 ○ 끊김</text>
+  <text x="375" y="651" class="reason">근거 · E1과의 차단 회로 관계:</text>
+  <line x1="375" y1="667" x2="870" y2="667" stroke="#8b979d" stroke-width="2"/>
+  <text x="980" y="597" class="cell">○ 남음　 ○ 끊김</text>
+  <text x="960" y="651" class="reason">근거 · 강변과의 공간 통로 관계:</text>
+  <line x1="960" y1="667" x2="1455" y2="667" stroke="#8b979d" stroke-width="2"/>
+
+  <rect x="82" y="765" width="1436" height="57" rx="15" fill="#303a40"/>
+  <text x="800" y="803" text-anchor="middle" class="note">네 칸의 결론과 이유를 모두 고정하기 전에는 결과를 공개하지 않습니다.</text>
+</svg>

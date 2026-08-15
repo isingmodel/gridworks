@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **종료 — `SCOPE_0_STOPPED`**
+> 상태: **재개 — `0A_R2_ACTIVE`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -8,7 +8,20 @@
 
 이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
-Scope 0B 항목이 있다는 사실은 구현 승인이 아니다. Scope 0A가 `PROXY-FAIL`로 끝나 개방 조건을 충족하지 못했으므로 Scope 0B와 Scope 1 TODO는 실행하지 않는다. 새 사용자 결정이 없는 한 이 문서는 terminal record다.
+R1은 `PROXY-FAIL`로 끝났지만 사용자가 2026-08-16에 coverage·통합 통과까지 새 iteration을 계속하고 Scope 1 실행 준비상태까지 진행하도록 명시했다. 현재 실행 권위는 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)다. R2 통과·checkpoint 전에는 Scope 0B를 시작하지 않는다.
+
+R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
+
+### 재개된 경로
+
+```text
+0A_R2_ACTIVE
+├─ 0A_R2_PROXY_REVISE → evidence review → 새 version의 bounded information-structure round
+├─ 0A_R2_PROXY_FAIL → version 부적합 기록 → 새 evidence-based gate
+└─ 0A_R2_PROXY_PASS → R2_CHECKPOINT → 0B_CONTRACT_AUTHORIZED
+```
+
+각 round는 사전계약·동결 hash·새 다섯 session을 가지며 이전 결과와 합산하지 않는다. 사용자 목표가 반복을 승인했어도 open-ended parameter tuning, 비용·선택률 조정과 사후 rubric 완화는 금지한다.
 
 ## 1. Scope 0의 목적과 종료상태
 
@@ -178,14 +191,14 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 ## 11. 반복 작업단위 checkpoint
 
-완료 기록: checkpoint 1은 [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a/CHECKPOINT_1_MATERIALS_FREEZE.md), checkpoint 2는 [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md)에 있다. Checkpoint 3~5는 `SCOPE_0_STOPPED` 때문에 개방되지 않았으며 아래 공통 항목은 미래 실행 권한이 아니다.
+역사적 R1 기록은 [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a/CHECKPOINT_1_MATERIALS_FREEZE.md)와 [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md)에 있다. 재개된 R2의 현재 기록은 [`R2 CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a-r2/CHECKPOINT_1_MATERIALS_FREEZE.md)다. 아래 공통 항목은 각 활성 gate의 checkpoint에만 적용되며 미래 실행 권한이 아니다.
 
 다음 다섯 지점에서 이 checkpoint를 각각 수행한다.
 
 1. Scope 0A 카드·진행자 자료 동결 후, LLM proxy 테스트 전
 2. Scope 0A 판정 후
 3. Scope 0B 활성 계약 완료 후, 구현 전
-4. Scope 0B 구현·자동검사 완료 후, 사람 테스트 전
+4. Scope 0B 구현·자동검사 완료 후, 승인된 LLM 조작 proxy 전
 5. Scope 0B 판정 후
 
 - [ ] 해당 시점까지 존재하는 승인된 산출물·자동검사·LLM proxy 또는 사람 증거·예상 밖 관찰만 기록한다.

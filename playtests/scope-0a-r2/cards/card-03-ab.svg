@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <style>
+      text { font-family: "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; fill: #e8edf0; }
+      .title { font-size: 44px; font-weight: 700; }
+      .plan { font-size: 34px; font-weight: 700; }
+      .price { font-size: 31px; font-weight: 700; fill: #e4bd72; }
+      .label { font-size: 23px; fill: #c5ced2; }
+      .note { font-size: 25px; fill: #c5ced2; }
+    </style>
+    <pattern id="river-hatch" width="20" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
+      <line x1="0" y1="0" x2="0" y2="20" stroke="#8b7a68" stroke-width="7" opacity="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="900" fill="#20272b"/>
+  <rect x="48" y="44" width="1504" height="812" rx="24" fill="#293238" stroke="#69777f" stroke-width="3"/>
+  <text x="82" y="108" class="title">카드 3 · 두 회랑 비교</text>
+  <rect x="82" y="136" width="1436" height="68" rx="15" fill="#343e43"/>
+  <text x="800" y="179" text-anchor="middle" class="note">두 안 모두 기한 안에 완공 · 병원 E1과 다른 차단 회로 · 현재 회랑 예산 약 14 M</text>
+
+  <rect x="82" y="232" width="688" height="500" rx="20" fill="#1b2226" stroke="#5b686f" stroke-width="3"/>
+  <text x="126" y="287" class="plan">강변 병행</text>
+  <text x="700" y="287" text-anchor="end" class="price">8 M</text>
+  <rect x="120" y="318" width="612" height="310" rx="16" fill="#242c31"/>
+  <path d="M330 325 C390 395 370 465 445 520 C500 560 530 595 570 625 L680 625 C610 565 610 500 545 450 C485 405 480 360 435 325 Z" fill="url(#river-hatch)" stroke="#8b7a68" stroke-width="3" stroke-dasharray="12 10"/>
+  <rect x="145" y="455" width="88" height="74" rx="10" fill="#3d4a50" stroke="#7fc7d9" stroke-width="4"/>
+  <text x="142" y="558" class="label">발전소</text>
+  <rect x="630" y="430" width="64" height="90" rx="8" fill="#3d4a50" stroke="#7fc7d9" stroke-width="4"/>
+  <text x="620" y="558" class="label">병원</text>
+  <path d="M233 485 C355 485 485 470 630 470" fill="none" stroke="#7fc7d9" stroke-width="10"/>
+  <path d="M233 515 C360 515 490 500 630 500" fill="none" stroke="#d2a65a" stroke-width="9" stroke-dasharray="18 13"/>
+  <text x="150" y="604" class="label">기존 주 회로 옆 · 같은 해칭된 강변 통로</text>
+  <line x1="150" y1="660" x2="230" y2="660" stroke="#d2a65a" stroke-width="9" stroke-dasharray="18 13"/>
+  <text x="250" y="668" class="label">계획선</text>
+
+  <rect x="830" y="232" width="688" height="500" rx="20" fill="#1b2226" stroke="#5b686f" stroke-width="3"/>
+  <text x="874" y="287" class="plan">북부 우회</text>
+  <text x="1448" y="287" text-anchor="end" class="price">12 M</text>
+  <rect x="868" y="318" width="612" height="310" rx="16" fill="#242c31"/>
+  <path d="M1078 325 C1138 395 1118 465 1193 520 C1248 560 1278 595 1318 625 L1428 625 C1358 565 1358 500 1293 450 C1233 405 1228 360 1183 325 Z" fill="url(#river-hatch)" stroke="#8b7a68" stroke-width="3" stroke-dasharray="12 10"/>
+  <rect x="893" y="455" width="88" height="74" rx="10" fill="#3d4a50" stroke="#7fc7d9" stroke-width="4"/>
+  <text x="890" y="558" class="label">발전소</text>
+  <rect x="1378" y="430" width="64" height="90" rx="8" fill="#3d4a50" stroke="#7fc7d9" stroke-width="4"/>
+  <text x="1368" y="558" class="label">병원</text>
+  <path d="M981 500 C1095 500 1235 490 1378 475" fill="none" stroke="#7fc7d9" stroke-width="10"/>
+  <path d="M981 475 C1005 365 1080 350 1160 355 C1260 360 1335 380 1378 450" fill="none" stroke="#d2a65a" stroke-width="9" stroke-dasharray="28 11 7 11"/>
+  <text x="898" y="604" class="label">북쪽 언덕을 도는 떨어진 별도 통로</text>
+  <line x1="898" y1="660" x2="978" y2="660" stroke="#d2a65a" stroke-width="9" stroke-dasharray="28 11 7 11"/>
+  <text x="998" y="668" class="label">계획선</text>
+
+  <rect x="82" y="762" width="1436" height="60" rx="16" fill="#303a40"/>
+  <text x="800" y="802" text-anchor="middle" class="note">두 경로의 비용과 공간 위치를 비교하세요. 아직 선택하지 않습니다.</text>
+</svg>

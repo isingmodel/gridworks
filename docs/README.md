@@ -15,6 +15,7 @@ docs/
 ├── scopes/
 │   ├── SCOPE_0_TODO.md               Scope 0 통합 진행 체크리스트
 │   ├── SCOPE_0A_CARD_TEST.md          카드 테스트 실행 계약
+│   ├── SCOPE_0A_R2_CARD_TEST.md       현재 구조화 카드 재검증 계약
 │   ├── SCOPE_0B_CANDIDATE.md          다음 playable 후보의 경계
 │   ├── SCOPE_1_INTERACTION_TODO.md    전신주·거리제한 미개방 후보
 │   └── RELEASE_1_0_BOUNDARY.md        1.0 범위의 미개방 상한
@@ -55,7 +56,7 @@ docs/
 3. 작업 질문에 해당하는 소유 문서만 추가로 읽기
 4. 미개방 후보는 범위 경계를 확인할 때만 읽기
 
-루트 README가 활성 gate 없음 또는 terminal state를 선언하면 후보 문서를 다음 작업으로 추론하지 않고 새 사용자 결정을 기다린다.
+루트 README가 활성 gate 없음 또는 terminal state를 선언하면 후보 문서를 다음 작업으로 추론하지 않고 새 사용자 결정을 기다린다. 현재 사용자 결정으로 terminal state가 다시 열리면 새 활성 scope를 별도 문서로 만들고 이전 결과는 고치지 않는다.
 
 ### 제품 전체를 이해할 때
 

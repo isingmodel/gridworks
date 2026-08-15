@@ -6,6 +6,7 @@
 
 - `PromptVersion = S0A-PROXY-v2`
 - `DecisionRuleVersion = S0A-GATE-v2`
+- allocation: `R2-L01 AB`, `R2-L02 BA`, `R2-L03 AB`, `R2-L04 BA`, `R2-L05 AB`
 - model identifier: `gpt-5.6-sol`
 - reasoning effort: `medium`
 - context: `fork_turns = none`
@@ -19,11 +20,11 @@ Substitute only `{SESSION_ID}`, `{VARIANT}` (`ab|ba`) and `{PATH_PREFIX}` ending
 ```text
 [Scope 0A R2 LLM proxy {SESSION_ID} — 1/3]
 
-네 장의 게임 카드가 전달하는 정보만 사용해 답해주세요. 검색하거나 저장소의 다른 파일, 기억 또는 다른 대화를 참조하지 마세요. 잘 모르겠으면 무엇이 모호한지 적어주세요.
+네 장의 게임 카드가 전달하는 정보만 사용해 답해주세요. 정답을 맞히려 검색하거나 저장소의 다른 파일을 읽지 말고, 처음 보는 전략 게임 화면처럼 판단해주세요. 잘 모르겠으면 추측하지 말고 무엇이 모호한지 적어주세요.
 
 허용 도구는 view_image뿐입니다. 다음 한 파일만 여십시오.
 {PATH_PREFIX}/cards/png/card-01.png
-다른 파일이나 도구를 사용하면 이 세션은 무효입니다.
+다른 파일, 도구, 검색, 저장소, 기억 또는 다른 대화를 사용하면 이 세션은 무효입니다.
 
 ① 이 마을은 지금 공급 중인가?
 ② 마을이 서비스 권역 안에 있다는 것은 무엇을 가능하게 하는가?
@@ -31,6 +32,8 @@ Substitute only `{SESSION_ID}`, `{VARIANT}` (`ab|ba`) and `{PATH_PREFIX}` ending
 
 1~3번에 각각 결론과 카드에서 읽은 이유를 짧게 답하고, 마지막 줄에 `도구 기록: view_image — <실제로 연 파일>`을 적으세요.
 ```
+
+Record the answer before continuing.
 
 ## Message 2/3
 
@@ -57,6 +60,8 @@ Substitute only `{SESSION_ID}`, `{VARIANT}` (`ab|ba`) and `{PATH_PREFIX}` ending
 마지막 줄에 `도구 기록: view_image — <실제로 연 파일들을 순서대로>`를 적으세요.
 ```
 
+Record the complete response and choice before revealing anything.
+
 ## Message 3/3
 
 ```text
@@ -64,14 +69,16 @@ Substitute only `{SESSION_ID}`, `{VARIANT}` (`ab|ba`) and `{PATH_PREFIX}` ending
 
 앞선 답은 이미 고정됐습니다. 수정하거나 다시 채점하지 마세요.
 
-허용 도구는 view_image뿐입니다. 먼저 인과 공개 파일을 확인한 뒤 정산 공개 파일을 여십시오.
+허용 도구는 view_image뿐입니다. 먼저 아래 인과 공개 파일만 열어 확인한 뒤, 다음 정산 공개 파일을 여십시오.
 {PATH_PREFIX}/cards/png/card-04-{VARIANT}-causal-reveal.png
 {PATH_PREFIX}/cards/png/card-04-{VARIANT}-settlement-reveal.png
 다른 파일이나 도구는 사용하지 마세요.
 
-앞선 답을 다시 풀지 말고 두 화면이 정상적으로 읽혔는지와 예상 밖 관찰만 한두 문장으로 적으세요.
+앞선 답을 다시 풀지 말고, 두 화면이 정상적으로 읽혔는지와 예상 밖 관찰만 한두 문장으로 적으세요.
 마지막 줄에 `도구 기록: view_image — <실제로 연 파일들을 순서대로>`를 적으세요.
 ```
+
+Do not change any score after this message. Record only unexpected comments.
 
 ## Pre-registered scoring
 
@@ -86,4 +93,4 @@ Substitute only `{SESSION_ID}`, `{VARIANT}` (`ab|ba`) and `{PATH_PREFIX}` ending
 
 R2 is `PROXY-PASS` only when Coverage, RiskCausality, UtilityInternal and TradeOff are each at least 4/5 and Integrated is at least 3/5 among the same five technically valid sessions. These five same-model runs are a bounded consistency probe, not a population estimate. Choice and response speed are diagnostic. Do not relax the field rubrics or tune costs/choice ratios after seeing results.
 
-Below PASS, use `PROXY-REVISE` only when every required conclusion is correct in at least 4/5 and all remaining reason omissions or axis ambiguities fit one InformationStructure family without changing the fixture, field rubric, values or answers. Use `PROXY-FAIL` when a core conclusion or event outcome is wrong in at least two sessions, two or more change families are required, or passing would require a fixture, answer meaning or game-rule change. FAIL applies to this card version, not to the whole game idea.
+Below PASS, use `PROXY-REVISE` only when every required conclusion is correct in at least 4/5 and all remaining reason omissions or axis ambiguities fit one InformationStructure family without changing the fixture, field rubric, values or answers. Use `PROXY-FAIL` when a core conclusion or event outcome is wrong in at least two sessions, two or more change families are required, passing would require answer disclosure or a fixture, answer-meaning or game-rule change, or the run meets neither PASS nor REVISE. FAIL applies to this card version, not to the whole game idea.

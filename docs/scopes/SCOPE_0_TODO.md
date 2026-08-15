@@ -4,7 +4,7 @@
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
-> 구성: [Scope 0A 카드 계약](SCOPE_0A_CARD_TEST.md) → 조건부 [Scope 0B 후보](SCOPE_0B_CANDIDATE.md)
+> 구성: 종료된 [R1 카드 계약](SCOPE_0A_CARD_TEST.md) → 현재 [R2 계약](SCOPE_0A_R2_CARD_TEST.md) → 조건부 [Scope 0B 후보](SCOPE_0B_CANDIDATE.md)
 
 이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
@@ -31,24 +31,23 @@ Scope 0이 묻는 질문은 하나다.
 > 비전문가가 카드와 최소 직접 조작에서 일관되게 구분할 수 있는가?
 
 ```text
-0A_ACTIVE
-├─ 0A_PROXY_REVISE → 새 카드 version·다섯 새 cold session → 0A_DECISION
-│                      └─ 활성 계약의 revision budget 소진 → 0A_PROXY_FAIL
-├─ 0A_PROXY_FAIL → SCOPE_0_STOPPED
-└─ 0A_PROXY_PASS → AWAIT_0B_APPROVAL
-                 ├─ 응답 없음 → AWAIT_0B_APPROVAL 유지
-                 ├─ 명시적 보류·거절 → SCOPE_0_PAUSED
-                 └─ 명시적 승인 → 0B_CONTRACT → 0B_ACTIVE
-                                                   ├─ 0B_REVISE → 활성 계약의 bounded revision
-                                                   │                └─ budget 소진 → 0B_NO_GO
-                                                   ├─ 0B_NO_GO → SCOPE_0_STOPPED
-                                                   └─ 0B_GO → SCOPE_0_REVIEWED
+0A_R2_ACTIVE
+├─ PROXY_REVISE/FAIL → 결과 checkpoint → 새 version의 bounded gate
+└─ PROXY_PASS → 결과 checkpoint → 0B_CONTRACT_AUTHORIZED
+                                      └─ 계약 동결·review → 0B_ACTIVE
+                                                               ├─ 0B_REVISE → 새 build·cold proxy
+                                                               ├─ 0B_NO_GO → SCOPE_0_STOPPED
+                                                               └─ 0B_GO → SCOPE_0_REVIEWED
 ```
 
 `SCOPE_0_REVIEWED`는 Scope 1 구현 승인이 아니다. 결과 점검에서 다음 위험을 다시 선정하고,
 사용자가 별도로 승인해야 다음 gate를 열 수 있다.
 
-## 2. 계약·권위 TODO
+아래 §2~§6의 완료 체크는 R1 당시의 불변 기록이다. 현재 R2의 자료·절차·판정은
+[R2 계약](SCOPE_0A_R2_CARD_TEST.md)과 [R2 checkpoint](../../playtests/scope-0a-r2/CHECKPOINT_1_MATERIALS_FREEZE.md)가
+소유하며, R1 체크박스를 R2 완료로 재사용하지 않는다.
+
+## 2. R1 역사적 계약·권위 TODO
 
 - [x] Scope 0A의 완전한 실행 계약이 존재한다.
 - [x] Scope 0B의 최대 후보 경계와 개방 조건이 분리돼 있다.
@@ -59,9 +58,10 @@ Scope 0이 묻는 질문은 하나다.
 - [x] 카드 내부에 stable ID·개발자 용어·숨은 숫자가 노출되지 않는지 검사한다.
 - [x] 새로 닫은 proxy·카드 상태 값은 실행 당시 활성 Scope 0A에서만 정의했다.
 
-## 3. Scope 0A 제작 TODO
+## 3. R1 역사적 Scope 0A 제작 TODO
 
-이 절부터 §6까지는 루트 README가 Scope 0A를 지목할 때만 사용한다. 세부 의미와 완료조건은 항상 [Scope 0A 계약](SCOPE_0A_CARD_TEST.md)이 우선한다.
+이 절부터 §6까지는 R1 실행 당시 완료한 불변 기록이다. 세부 의미와 완료조건은 종료된
+[R1 Scope 0A 계약](SCOPE_0A_CARD_TEST.md)이 소유하며 현재 R2 절차로 사용하지 않는다.
 
 ### 산출물 준비
 
@@ -84,7 +84,7 @@ Scope 0이 묻는 질문은 하나다.
 - [x] 자유응답 원자료는 공개 저장소에 커밋하지 않고, 식별 불가능한 집계·오해 유형만 남기도록 `private/`를 Git에서 제외한다.
 - [x] proxy 라운드는 이름·연락처·음성을 수집하지 않으며 model/session metadata만 로컬 보관한다.
 
-## 4. Scope 0A 사전 검증 TODO
+## 4. R1 역사적 Scope 0A 사전 검증 TODO
 
 - [x] 모든 카드·진행자 자료의 링크, 해상도, 폰트, 대비, 여백과 16:9 표시를 수동 검사한다.
 - [x] 한국어 문구가 카드의 경로·상태·숫자를 가리지 않는지 확인한다.
@@ -97,7 +97,7 @@ Scope 0이 묻는 질문은 하나다.
 - [x] dry run은 카드 변경을 요구하지 않았으며 `S0A-CARD-v1`을 그대로 동결했다.
 - [x] 카드·진행자 자료를 동결한 뒤 §11의 작업단위 checkpoint를 마쳐야 LLM proxy 테스트로 넘어간다. 기록: [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a/CHECKPOINT_1_MATERIALS_FREEZE.md)
 
-## 5. Scope 0A LLM proxy 테스트 TODO
+## 5. R1 역사적 Scope 0A LLM proxy 테스트 TODO
 
 `LLM-PROXY-R1`은 available runner evidence 기준 기술 유효 `5/5`, coverage `0/5`, 위험 인과 `4/5`, 내부전원 경계·trade-off 각 `5/5`, integrated `0/5`로 `PROXY-FAIL`이었다. L02가 coverage 외에도 전기/공간 인과를 섞어 revision의 단일결손 조건을 충족하지 못했다. 원문은 Git 제외 로컬 파일에, hash·집계·결정은 [`RESULT.md`](../../playtests/scope-0a/RESULT.md)에 보존한다.
 
@@ -111,7 +111,7 @@ Scope 0이 묻는 질문은 하나다.
 - [x] 원답, 공개 model 설정, 카드 hash, 보고된 도구 사용과 round timestamp를 Git 제외 로컬 표에 보존했다.
 - [x] 원답 SHA-256, 식별 불가능한 개수·오해 유형·예상 밖 응답과 `HumanValidationStatus = NOT_COLLECTED`를 한 페이지로 요약했다.
 
-## 6. Scope 0A 결정 TODO
+## 6. R1 역사적 Scope 0A 결정 TODO
 
 R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md). `PROXY-FAIL`이므로 revision은 허용되지 않았고 `SCOPE_0_STOPPED`가 terminal state다.
 
@@ -124,11 +124,12 @@ R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a
 - [x] Scope 0B를 시작하지 않고 `SCOPE_0_STOPPED`로 종료했다.
 - [x] 판정과 익명 집계를 기록한 뒤 §11의 작업단위 checkpoint를 완료했다. 기록: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md)
 
-## 7. Scope 0B 활성화 TODO — Scope 0A `PROXY-PASS` 후 별도 승인 시만
+## 7. Scope 0B 활성화 TODO — R2 `PROXY-PASS`와 결과 checkpoint 뒤
 
-종료 판정으로 개방 조건이 거짓이다. 아래 항목은 미완료 backlog가 아니라 **실행 불가 조건부 기록**이며 새 사용자 결정 없이 실행하지 않는다.
+아래 항목은 backlog가 아니라 조건부 gate다. 현재 사용자 목표는 R2 통과와 결과 checkpoint를
+조건으로 Scope 0B 계약·구현을 승인했으며, 조건 충족 전에는 실행하지 않는다.
 
-- [ ] 응답 없음·추정 동의가 아니라 사용자의 명시적 구현 승인을 기록한다.
+- [x] 사용자의 조건부 구현 승인과 발효 조건을 R2 계약에 기록했다.
 - [ ] Scope 0A의 식별 불가능한 집계·오해·예상 밖 결과를 첨부한다.
 - [ ] playable에서 다시 검사할 오해 하나만 선정한다.
 - [ ] [Scope 0B 후보](SCOPE_0B_CANDIDATE.md)를 증거에 맞는 완전한 활성 실행 계약으로 다시 쓴다.
@@ -138,8 +139,8 @@ R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a
 - [ ] Scope 0A의 값·ID·제거행렬·oracle이 새 fixture와 일치하는 인계검사를 먼저 통과한다.
 - [ ] 인계검사 뒤 새 fixture가 **Scope 0B의** 기계 숫자 권위가 된 시점을 기록한다. Scope 0A 문서와 결과는 Scope 0A의 불변 권위로 보존한다.
 - [ ] 공사 완료·graph 편입·의무·계량·사건·복구·절체의 같은 분 적용 순서를 고정한다.
-- [ ] 최소 명령, 실패 무상태변경, 사람 질문과 정확한 통과선을 구현 전에 닫는다.
-- [ ] 구현 TODO, 자동검사, build·smoke와 사람 검증 절차를 활성 Scope 0B 문서 안에 작성한다.
+- [ ] 최소 명령, 실패 무상태변경, LLM 조작 proxy 질문과 정확한 통과선을 구현 전에 닫는다.
+- [ ] 구현 TODO, 자동검사, build·smoke와 LLM 조작 proxy 절차를 활성 Scope 0B 문서 안에 작성한다.
 - [ ] 공식 지원 상태를 확인한 뒤 Godot .NET·.NET SDK의 exact patch를 고정한다.
 - [ ] 통과에 필요하지 않은 항목은 후보 문서에서 더 제거한다.
 - [ ] 위 계약 전체를 닫은 동일 변경에서 루트 README를 Scope 0B로 전환하고 Scope 0A 결과를 링크한다.
@@ -157,15 +158,16 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 - [ ] fixture 인계검사, 단위·상태전이·보존식·결정론 검사와 대표 smoke를 모두 통과한다.
 - [ ] 자유 배치, 상세 물리, 저장·replay, 미래 schema와 placeholder UI가 artifact에 없는지 확인한다.
 - [ ] 실행한 명령, 결과와 예상 밖 기술 관찰을 재현 가능하게 기록한다.
-- [ ] 자동검사 전체 통과 뒤 §11의 작업단위 checkpoint를 마쳐야 사람 검증으로 넘어간다.
+- [ ] 자동검사 전체 통과 뒤 §11의 작업단위 checkpoint를 마쳐야 LLM 조작 proxy로 넘어간다.
 
-### 사람 증거·판정 단위
+### LLM 조작 proxy·판정 단위
 
 - [ ] 검토를 마친 동일 build·fixture·rubric을 한 라운드 동안 동결한다.
-- [ ] 활성 Scope 0B가 정한 신규 참가자·세션·무도움 절차만 따른다.
+- [ ] 활성 Scope 0B가 정한 신규 cold LLM session·실제 화면 조작·무도움 절차만 따른다.
 - [ ] 조작 결과를 서비스 권역·상위 연결, 전기·공간 원인과 내부전원·전력회사 공급에 귀속하는지 기록한다.
 - [ ] 계획 선택률이나 미세 조정된 성공률을 통과 목표로 사용하지 않는다.
-- [ ] 원자료는 공개 저장소 밖에 두고 식별 불가능한 집계와 예상 밖 행동만 보존한다.
+- [ ] 원자료는 공개 저장소 밖에 두고 비식별 집계와 예상 밖 행동만 보존한다.
+- [ ] `HumanValidationStatus = NOT_COLLECTED`를 유지하고 사람 사용성 증거로 표현하지 않는다.
 - [ ] `SubGateDecision`을 활성 계약의 `GO / REVISE / NO-GO` 중 하나로 기록한다.
 - [ ] 판정 뒤 §11의 작업단위 checkpoint를 완료하고 다음 위험을 새로 선정한다.
 
@@ -203,7 +205,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 - [ ] 해당 시점까지 존재하는 승인된 산출물·자동검사·LLM proxy 또는 사람 증거·예상 밖 관찰만 기록한다.
 - [ ] checkpoint 1·3·4에서는 `SubGateDecision = PENDING`을 기록한다. checkpoint 2는 `PROXY-PASS | PROXY-REVISE | PROXY-FAIL`, checkpoint 5는 활성 Scope 0B의 판정 어휘를 사용한다.
-- [ ] workflow는 별도로 `Scope0State = ACTIVE | AWAIT_0B_APPROVAL | PAUSED | STOPPED | REVIEWED`로 기록한다.
+- [ ] workflow는 별도로 `Scope0State = 0A_R2_ACTIVE | 0B_CONTRACT_AUTHORIZED | 0B_ACTIVE | PAUSED | STOPPED | REVIEWED` 중 실제 상태로 기록한다.
 - [ ] 루트 README의 현재 개발 상태와 하위 scope 상태를 일치시킨다.
 - [ ] [오브젝트 카탈로그](../product/OBJECT_CATALOG.md)는 실제로 열린 기능만 `현재`로 갱신한다.
 - [ ] 비주얼 명세는 실제 관찰로 표현 규칙이 바뀌었을 때만 갱신한다.
@@ -218,7 +220,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한다. 그 결과 `Interaction`이 선정됐을 때만 [Scope 1 후보](SCOPE_1_INTERACTION_TODO.md)를 출발점으로 다시 검토한다.
 
-- [ ] Scope 0B가 별도 승인·구현됐고 자동검사와 사람 기준을 `GO`로 통과했다.
+- [ ] Scope 0B가 조건부 승인·구현됐고 자동검사와 LLM 조작 proxy 기준을 `GO`로 통과했다.
 - [ ] Scope 0 후 적응형 점검에서 수동 pole·`MaxSpan` 상호작용이 다음 최대 미검증 위험으로 선정됐다.
 - [ ] 실제 Scope 0B 계약에 존재하는 graph·공사·상태전이만 인계표에 적고, 존재하지 않는 범용 lifecycle은 가정하지 않는다.
 - [ ] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 동결했다.

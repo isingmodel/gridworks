@@ -245,10 +245,14 @@ end
   hits = %w[0.7168 0.07472 0.00576 0.00368 0.02304 0.01728].select { |token| all_svg_text.fetch(stem).include?(token) }
   check(hits.empty?, "causal settlement leak #{stem}: #{hits.join(', ')}")
 end
-check(all_svg_text.fetch("card-03-ab").index("강변 병행") < all_svg_text.fetch("card-03-ab").index("북부 우회"), "card 3 AB order")
-check(all_svg_text.fetch("card-03-ba").index("북부 우회") < all_svg_text.fetch("card-03-ba").index("강변 병행"), "card 3 BA order")
-check(all_svg_text.fetch("card-04-ab-prediction").index("강변 병행") < all_svg_text.fetch("card-04-ab-prediction").index("북부 우회"), "card 4 AB order")
-check(all_svg_text.fetch("card-04-ba-prediction").index("북부 우회") < all_svg_text.fetch("card-04-ba-prediction").index("강변 병행"), "card 4 BA order")
+ab_stems = %w[card-03-ab card-04-ab-prediction card-04-ab-causal-reveal card-04-ab-settlement-reveal]
+ba_stems = %w[card-03-ba card-04-ba-prediction card-04-ba-causal-reveal card-04-ba-settlement-reveal]
+ab_stems.each do |stem|
+  check(all_svg_text.fetch(stem).index("강변 병행") < all_svg_text.fetch(stem).index("북부 우회"), "AB order #{stem}")
+end
+ba_stems.each do |stem|
+  check(all_svg_text.fetch(stem).index("북부 우회") < all_svg_text.fetch(stem).index("강변 병행"), "BA order #{stem}")
+end
 card_1_fragments = ["서비스 권역 안에 있다는 것은", "실제 공급 여부", "더 필요한가", "상위 피더 미연결"]
 check(card_1_fragments.all? { |fragment| all_svg_text.fetch("card-01").include?(fragment) }, "card 1 structured prompt")
 check(all_svg_text.fetch("card-02").include?("UPS") && all_svg_text.fetch("card-02").include?("전력회사 공급·판매로 계량하지 않음"), "card 2 copy")
@@ -263,6 +267,8 @@ end
 end
 
 facilitator = FACILITATOR.read
+expected_facilitator_sha256 = "8561848fa873109be2adad6a52d3d43119d9ddd8afd010f9c5ab89e9f14b6f88"
+check(Digest::SHA256.hexdigest(facilitator) == expected_facilitator_sha256, "exact facilitator template hash")
 facilitator_fragments = [
   "S0A-CARD-v2",
   "S0A-PROXY-v2",
@@ -273,7 +279,40 @@ facilitator_fragments = [
   "각 계획선과 강변 통로의 공간 관계"
 ]
 check(facilitator_fragments.all? { |fragment| facilitator.include?(fragment) }, "facilitator prompt freeze")
+allocations = ["R2-L01 AB", "R2-L02 BA", "R2-L03 AB", "R2-L04 BA", "R2-L05 AB"]
+check(allocations.all? { |allocation| facilitator.include?(allocation) }, "facilitator allocation freeze")
 active_scope = ACTIVE_SCOPE.read
 check(active_scope.include?("S0A-GATE-v2") && active_scope.include?("각각 4/5 이상") && active_scope.include?("3/5 이상"), "decision rule freeze")
+check(allocations.all? { |allocation| active_scope.include?(allocation) }, "scope allocation freeze")
+record_header = Pathname(__dir__).join("record-template.csv").readlines.first
+expected_record_columns = %w[
+  EvidenceType HumanValidationStatus ParticipantId SessionId ModelBuild RunTimestamp CardSetVersion
+  PromptVersion DecisionRuleVersion CardHashes OrderVariant AllowedToolUse ActualToolUse TranscriptRef
+  TechnicalValid CoverageRaw CoveragePass RiverE1 RiverSpatial NorthE1 NorthSpatial RiskCausalityPass
+  UtilityInternalRaw UtilityInternalPass TradeOffRaw TradeOffPass Choice ChoiceReason SwitchingCondition
+  FacilitatorHelp IntegratedCausalPass
+]
+check(record_header.strip.split(",") == expected_record_columns, "record-template columns")
+
+def proxy_decision(valid_sessions:, field_passes:, integrated_passes:, conclusion_passes:, reason_only:, one_family:, safe_fix:)
+  return "PROXY-RUN-INVALID" unless valid_sessions == 5
+  return "PROXY-PASS" if field_passes.values.all? { |count| count >= 4 } && integrated_passes >= 3
+
+  revisable = conclusion_passes.values.all? { |count| count >= 4 } && reason_only && one_family && safe_fix
+  revisable ? "PROXY-REVISE" : "PROXY-FAIL"
+end
+
+all_four = { coverage: 4, risk: 4, utility: 4, tradeoff: 4 }
+all_five = { coverage: 5, risk: 5, utility: 5, tradeoff: 5 }
+one_field_short = { coverage: 3, risk: 4, utility: 5, tradeoff: 5 }
+check(proxy_decision(valid_sessions: 4, field_passes: all_five, integrated_passes: 5, conclusion_passes: all_five, reason_only: true, one_family: true, safe_fix: true) == "PROXY-RUN-INVALID", "gate invalid-session boundary")
+check(proxy_decision(valid_sessions: 5, field_passes: all_four, integrated_passes: 3, conclusion_passes: all_four, reason_only: false, one_family: false, safe_fix: false) == "PROXY-PASS", "gate exact pass boundary")
+check(proxy_decision(valid_sessions: 5, field_passes: all_four, integrated_passes: 2, conclusion_passes: all_five, reason_only: true, one_family: true, safe_fix: true) == "PROXY-REVISE", "gate integrated revise boundary")
+check(proxy_decision(valid_sessions: 5, field_passes: one_field_short, integrated_passes: 3, conclusion_passes: all_five, reason_only: true, one_family: true, safe_fix: true) == "PROXY-REVISE", "gate field revise boundary")
+check(proxy_decision(valid_sessions: 5, field_passes: one_field_short, integrated_passes: 2, conclusion_passes: one_field_short, reason_only: true, one_family: true, safe_fix: true) == "PROXY-FAIL", "gate repeated wrong-conclusion boundary")
+check(proxy_decision(valid_sessions: 5, field_passes: one_field_short, integrated_passes: 2, conclusion_passes: all_five, reason_only: false, one_family: true, safe_fix: true) == "PROXY-FAIL", "gate active-wrong-reason boundary")
+check(proxy_decision(valid_sessions: 5, field_passes: one_field_short, integrated_passes: 2, conclusion_passes: all_five, reason_only: true, one_family: false, safe_fix: true) == "PROXY-FAIL", "gate multiple-family boundary")
+check(proxy_decision(valid_sessions: 5, field_passes: one_field_short, integrated_passes: 2, conclusion_passes: all_five, reason_only: true, one_family: true, safe_fix: false) == "PROXY-FAIL", "gate unsafe-fix boundary")
+puts "PASS gate-contract: exact prompt/allocation, record fields, PASS/REVISE/FAIL boundaries"
 puts "PASS participant-copy: R1 unchanged frames, structured contrasts, 0 forbidden tokens, 0 phase leaks"
 puts "Scope 0A R2 deterministic preflight: PASS"

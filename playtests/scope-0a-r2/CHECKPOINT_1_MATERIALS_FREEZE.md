@@ -29,7 +29,8 @@ byte-identical to R1. Only Card 1 and the prediction/causal axis copy changed.
 - Card 1 separately elicits current supply, service-area capability and the energized upstream path.
 - Card 4 separately elicits electrical switching-circuit and spatial-corridor relationships.
 - No fixture, topology, result, cost, schedule, settlement value, field rubric or choice incentive changed.
-- No service-area definition, relationship answer, recommended plan or scored result is revealed.
+- Card 3의 authored circuit/corridor 관계 premise는 R1 그대로 보이지만, 계획별 event outcome,
+  서비스-area definition, recommended plan이나 scored result는 reveal 전에는 보이지 않는다.
 
 Before any R2 response was collected, the user's concern about an overly strong binary gate was resolved by
 freezing `S0A-GATE-v2`: every field must reach 4/5 and the same-response four-field AND must reach 3/5. This
@@ -46,7 +47,10 @@ treated as a statistical population sample. R1 is not rescored and remains faile
 - `git diff --check`: PASS
 - manual render QA: PASS for Korean text fit, margins, Card 1 two-line prompt, Card 4 header/reason-label fit,
   AB/BA symmetry, neutral choices and causal-before-settlement reveal
-- non-scored cold dry run: `PENDING`
+- post-review non-scored cold dry run: `PENDING`
+- protocol note: `R2-L00` and `R2-L00B` were mistakenly used as pre-review procedure rehearsals. They
+  occurred before the required reviewed commit, are invalid as checkpoint evidence, are excluded from every
+  aggregate and are not reused. A new cold ID must rerun the frozen prompt only after the reviewed commit.
 
 ## Limits
 
@@ -58,7 +62,10 @@ treated as a statistical population sample. R1 is not rescored and remains faile
 
 ## Repository checkpoint
 
-- Initial materials commit: `PENDING`
-- Independent bounded review: `PENDING`
+- Initial materials commit: `f13161e67c07b3624e5512d45a09e5a605bc47ef`
+- Independent bounded review: `r2_materials_review` inspected initial commit `f13161e` and the fixes
+  read-only; seven P1 and one P2 findings were resolved: participant boilerplate drift, premise/outcome wording,
+  decision catch-all, verifier contract coverage, stale R1 workflow, premature rehearsal handling, state token
+  mismatch and stale top-level R1 navigation
 - Reviewed commit: `PENDING`
 - Push/PR: not authorized by the current task

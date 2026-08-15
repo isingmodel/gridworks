@@ -14,7 +14,7 @@ docs/
 │   └── VISUAL_PRODUCTION_SPEC.md      규칙을 표현하는 시각 기준
 ├── scopes/
 │   ├── SCOPE_0_TODO.md               Scope 0 통합 진행 체크리스트
-│   ├── SCOPE_0A_CARD_TEST.md          카드 테스트 실행 계약
+│   ├── SCOPE_0A_CARD_TEST.md          종료된 R1 카드 실행 계약
 │   ├── SCOPE_0A_R2_CARD_TEST.md       현재 구조화 카드 재검증 계약
 │   ├── SCOPE_0B_CANDIDATE.md          다음 playable 후보의 경계
 │   ├── SCOPE_1_INTERACTION_TODO.md    전신주·거리제한 미개방 후보

@@ -1,204 +1,279 @@
 # Gridworks — 비주얼 제작 명세
 
-이 문서는 게임의 화면 언어, 첫 플레이 검증판과 장기 콘셉트 스케치의 제작 명세다. 현재
-범위·완료조건과 첫 코드 전 fixture 숫자는 `SCOPE_0_PLAYABLE.md`, 첫 코드 후 fixture 숫자는
-`data/scenario.json`, 개방된 제품 규칙은 `GAME_DESIGN_KO.md`를 따른다. 이 문서는 규칙이나
-숫자를 재정의하지 않으며, 아래 프롬프트는 각 화면을 처음부터 생성할 수 있는 독립 프롬프트다.
+이 문서는 `Gridworks`의 화면 언어와 시각 산출물 기준을 정의한다. 규칙과 숫자를 새로 만들지
+않는다. 현재 Scope 0의 사실은 [Scope 0 핵심 인과 검증](SCOPE_0_PLAYABLE.md)이 권위이며,
+Scope 0B 첫 코드부터는 `data/scenario.json`이 숫자 권위다.
 
-현재 승인된 Scope 0는 최종 이미지를 재현하지 않는 디버그 2D 화면 하나만 만든다. 1.0 후보의
-제작 캡처는 `construction`, `route-comparison`, `hospital-transfer`, `heatwave`지만 각 기능과
-정식 3D 게이트가 통과하기 전에는 제작 의무가 아니다.
-현재 발전소 입지 이미지는 공간 비교 레이아웃을 떠올리기 위한 비권위 참고일 뿐이며 그 안의
-금융·비용 수치는 구현 결정이 아니다. 장기 방향은 원전·데이터센터·공유 냉각수로 바뀌었지만
-해당 이미지는 이번 문서 작업에서 새로 만들지 않는다. 병원 자동절체 화면은 아래 텍스트 명세를
-바탕으로 런타임에서 새로 캡처한다.
+현재 승인된 시각 작업은 Scope 0A의 저충실도 카드 네 장뿐이다. 기존 PNG는 장기 분위기와
+공간 구도 참고 자료이며 런타임 재현 의무나 숫자 oracle이 아니다.
 
-## 1. 공통 아트 방향
+## 1. 시각 목표
 
-- 장르 인상: 혹독한 환경에서 도시의 생명선을 관리하는 산업 생존 전략
-- 화면: 읽기 쉬운 아이소메트릭 3D 지도와 견고한 2D 운영 UI의 결합
-- 재질: 풍화된 철, 리벳, 그을린 콘크리트, 산화 갈색 지면, 더러운 상아색 하늘
-- 상태 색: 통전 청백색, 계획 호박색, 주의 주황색, 실제 고장만 적색
-- UI: 숯검정 철제 프레임, 절제된 황동 체결부, 큰 숫자와 단순한 용량 막대
-- 감정: 기반시설이 무너지면 도시도 멈춘다는 무게감
-- 금지: 원형 도시와 중앙 거대 발전기, 특정 게임의 건물·아이콘·글꼴·문구 복제, 증기기관
-  판타지, 외계 에너지, 과도한 네온, 로고와 워터마크
+화면을 처음 본 플레이어가 다음 순서로 읽을 수 있어야 한다.
 
-## 2. 기준 산출물
+1. 발전소와 수요처가 어디 있는가?
+2. 어느 설비와 선로가 현재 사용 가능한가?
+3. 어느 배전 변전소가 어떤 지역을 서비스할 수 있는가?
+4. 발전소에서 그 변전소까지 실제 경로가 이어져 있는가?
+5. 무엇이 병목이며, 어떤 고장에 무엇이 함께 꺼지는가?
+6. 지금 고르는 경로가 비용·시간·안전 여유를 어떻게 바꾸는가?
 
-| 화면 | 파일 | 상태·목적 |
+분위기는 이 정보 위계를 강화해야 하며 가리면 안 된다.
+
+## 2. 공통 아트 방향
+
+### 정서와 재질
+
+- 혹독한 환경에서 도시의 생명선을 관리하는 산업 생존 전략
+- 풍화된 철, 리벳, 그을린 콘크리트, 산화 갈색 지면
+- 먼지 낀 상아색 하늘과 낮은 채도의 반농촌 산업 계곡
+- 거대한 설비가 사람의 시간과 노동을 요구한다는 물성
+- 전원이 들어온 병원과 마을의 빛이 계통 상태와 직접 연결되는 연출
+
+`Frostpunk`에서 참고하는 것은 기반시설의 무게, 한정된 자원과 생존형 긴장감이다. 원형 도시,
+중앙 발전기, 증기기관 세계관, 건물 실루엣, 아이콘, 글꼴, UI 배치와 문구를 복제하지 않는다.
+
+### 상태 언어
+
+| 상태 | 색 | 색 이외의 표현 |
 |---|---|---|
-| Scope 0 디버그 지도 | 런타임 화면 | 현재, 서비스·A/B·고장의 사람 검증 |
-| 핵심 건설 | `assets/01-grid-construction.png` | 비권위 참고, 서비스 필드와 실제 연결 설명 |
-| 폭염 위기 | `assets/02-heatwave-outage.png` | 비권위 참고, 노후 회선 사용불가와 우회 설명 |
-| 경로 비교 | `assets/03-route-comparison.png` | 비권위 참고, 비용·공기·독립성 선택 설명 |
-| 병원 자동절체 | 조건부 런타임 캡처 | 1.0 후보, E1 상실·UPS·독립 E2 절체 설명 |
-| 기존 발전소 입지 구도 | `assets/04-plant-siting.png` | 후속 화면의 레이아웃 참고; 재현·수치 검증 대상 아님 |
+| 통전 | 청백색 | 실선, 느린 흐름 |
+| 기하학적 서비스 권역 | 저채도 청회색 | 반투명 면, 외곽 점선 |
+| 계획 | 호박색 | 점선, 반투명 구조물 |
+| 공사 | 황토색 | 사선 패턴, 진행 표식 |
+| 주의·용량근접 | 호박·주황 | 굵기 증가, 한계 아이콘 |
+| 사용불가 | 어두운 회색 + 국소 적색 | 끊긴 파선, 잠금·정비 표식 |
+| 우회공급 | 청백색 | 바뀐 흐름방향과 짧은 강조 pulse |
 
-조건부 정식 캡처를 만들게 되면 1672×941 RGB PNG, 16:9 가로형을 사용한다.
+색만으로 상태를 구분하지 않는다. 적색은 실제 고장과 즉시 위험에만 쓰며 화면 전체를 붉게
+물들이지 않는다. 서비스 권역은 선로와 다른 면 표현을 사용한다.
 
-### 2.1 현재 Scope 0 화면
+### UI 원칙
 
-첫 화면은 탑다운 2D이며 원·사각형 설비, 굵은 선로와 반투명 서비스 권역만 쓴다. A/B 회랑은
-모두 호박색 계획선이고 색이 아닌 `공통 경계` 파선과 `독립 경계` 이중선 패턴으로 구분한다.
-오른쪽 `왜?` 패널은 현재 공급 원인, 한 자산 상실 결과, 선택이 바꾸는 비용·완공·연속성의
-세 줄만 보여준다. 산업 미학은 색·프레임·타이포의 낮은 수준으로만 적용하고 3D 모델,
-후처리, 날씨 VFX와 골든 캡처는 만들지 않는다. 오른쪽 아래 `다음 이정표` 버튼은 미결정
-마을 부지나 A/B가 있을 때 비활성화되고 필요한 결정을 한 줄로 설명한다.
+- 숯검정 철제 frame과 절제된 황동 체결부
+- 큰 숫자, 분모가 있는 용량 표시와 짧은 원인 문장
+- 한 화면에는 현재 결정에 필요한 정보만 표시
+- 추천색, 방패·해골과 불투명한 총점으로 선택을 도덕화하지 않음
+- 색각 이상 대응 pattern, 키보드 focus, UI scale과 현지화 여유 확보
+- 로고, watermark와 알아볼 수 있는 타 작품 UI 금지
 
-Scope 0 경로 카드는 `A · 8 M · 2 DAYS · SHARED BOUNDARY`와
-`B · 12 M · 3 DAYS · INDEPENDENT BOUNDARY`만 표시한다. 아래 1.0 콘셉트의 18.4/19.6 M와
-52/58일 값을 Scope 0에 복사하지 않는다.
+## 3. 산출물 상태
 
-마을의 외곽 셀은 실제 개별 부하가 아니다. 집계 공급률이 72%라면 authored 바깥→안쪽
-순서로 셀 28%를 어둡게 그리는 결정론적 표현이다.
+| 산출물 | 파일·형태 | 상태 |
+|---|---|---|
+| Scope 0A 카드 | 16:9 카드 4장 | 현재 제작 대상 |
+| Scope 0B 화면 | 단일 2D scene + overlay | 별도 승인 뒤 |
+| 핵심 건설 콘셉트 | `assets/01-grid-construction.png` | 비권위 참고 |
+| 폭염·사용불가 콘셉트 | `assets/02-heatwave-outage.png` | 비권위 참고 |
+| 경로 비교 콘셉트 | `assets/03-route-comparison.png` | 비권위 참고 |
+| 기존 발전소 입지 구도 | `assets/04-plant-siting.png` | 레이아웃 참고 전용 |
+| 병원 자동절체 | 런타임 캡처 후보 | 관련 1.0 gate 뒤 |
+| 원전·데이터센터·냉각수 | 새 텍스트 명세부터 시작 | P-A 승인 뒤 |
 
-## 3. 핵심 전력망 건설 화면
+정식 런타임 캡처를 만들게 되면 16:9 RGB PNG를 사용한다. 정확한 해상도와 golden 상태는 해당
+presentation gate에서 고정한다.
 
-이 화면은 “범위 안에 있으면 자동으로 전기가 생긴다”는 오해를 막아야 한다. 발전소에서
-1차 변전소, 배전 변전소로 이어진 실제 통전 경로와 배전 변전소의 서비스 필드를 서로 다른
-그래픽 언어로 표현한다. 플레이어가 선택한 마을 변전소는 40 MW 중 32 MW를 공급하고 있으며,
-아직 건설되지 않은 노선은 실선이 아니라 호박색 계획 상태로 남는다.
+## 4. Scope 0A 카드
 
-화면을 처음 본 사람은 발전소와 마을이 어디 있는지, 어느 선로가 실제로 살아 있는지,
-어느 건물이 서비스 범위 안인지, 선택한 공사가 아직 미완성이라는 사실을 차례대로 읽을 수
-있어야 한다. 분위기보다 연결 관계가 우선이며, UI 숫자는 현재 상태와 정격을 혼동시키지
-않는다.
+### 공통 형식
 
-```text
-Use case: ui-mockup
-Asset type: original PC strategy game gameplay concept sketch, 16:9 landscape, polished pre-production UX image.
-Primary request: show an isometric power-grid construction game in which the player connects a gas power plant to transmission lines, a regional substation, distribution substations, a town, hospital, and factory while controlling cost and spare capacity.
-Scene: a severe semi-rural industrial valley with a river, low hills, roads, one gas plant at the map edge, a factory district, a compact town, and a recognizable hospital.
-Electrical rules: solid cyan-white transmission lines must connect the generator to a regional primary substation and then to the single standard type of local distribution substation. The regional primary substation has no service field. Only local distribution substations project translucent cyan polygonal service fields. Buildings inside an energized field are softly lit; unserved outskirts remain dim.
-Construction state: show one ghosted amber planned transmission route with planned tower nodes and clearly separate it from solid energized lines.
-Composition: wide isometric map fills most of the canvas; narrow top resource bar; left construction palette for power plant, transmission line, primary substation, and local substation; right inspector for the selected 40 MW town substation; bottom time controls.
-Exact readable UI tokens: top "120.0 M", top and inspector "32 MW / 40 MW", "12 DAYS TO DEADLINE", "PAUSED". Add no paragraphs or other numbers.
-Art direction: bleak original industrial survival-management atmosphere, weathered charcoal steel UI, restrained brass, soot-stained structures, sparse vegetation, dusty overcast light, cyan-white current, amber construction. Modern electrical infrastructure, not steampunk.
-Constraints: practical shippable strategy-game UI; towers rather than underground cables; service fields visibly different from transmission routes; no characters, logos, trademarks, or watermark; no copied franchise layout, type, icon, or architecture.
-Avoid: cheerful pastoral mood, fantasy crystals, glossy sci-fi, central circular city, excessive darkness, unreadable type.
-```
+- 저충실도 16:9, 탑다운 2D
+- 원·사각형 설비, 굵은 선, 한 개의 반투명 서비스 권역
+- 배경 장식과 날씨효과 없음
+- 카드마다 질문 하나만 전면에 둠
+- 참가자 응답 전에는 결과와 가치판단 표식을 숨김
+- 강변/북부 카드의 좌우와 먼저 읽는 순서는 테스트 배치표로 교차
 
-## 4. 폭염과 노후 송전선 사용불가 화면
+### 카드 1 — 연결
 
-이 화면은 고장난 선로, 살아 있는 우회선과 전체 수요를 한 숫자로 섞지 않는다. 상부 154 kV
-회선은 명판 180 MW지만 현재 사용불가라 0 MW다. 하부 임시 우회선은 35 MW 중 34 MW를
-전달하고, 현지 가스·배터리 24 MW가 더해져 54 MW 수요에 58 MW 공급력이 남는다. 병원은
-살아 있지만 계통은 안전하지 않다.
+목표는 “권역 안에 있으면 자동 공급” 오해를 드러내는 것이다.
 
-폭염의 밝은 눈부심과 구리색 먼지는 환경 압력을 전달하되 전기 경로를 가리지 않아야 한다.
-적색은 실제 고장 구간에만 쓰고, 용량 한계는 호박색으로 구분한다. 플레이어가 화면만 보고도
-“고장선은 복구 대상, 우회선은 현재 병목, 배터리는 시간 제한 자원”이라고 설명할 수 있어야
-한다.
+화면에는 다음만 둔다.
 
-```text
-Use case: ui-mockup
-Asset type: original PC strategy game emergency-event gameplay concept sketch, 16:9 landscape.
-Primary request: show a severe heatwave combined with an aged 154 kV transmission-line outage, successful emergency rerouting, and a grid that is still close to its limit.
-Scene: the same type of semi-rural industrial valley with power plant, town, hospital, factory, substations, river, and two transmission corridors. Brutal late-afternoon heat, washed-out copper sky, white sun glare through dust, cracked ground, and visible heat shimmer. No snow.
-Grid state: the old upper transmission corridor is unavailable. Its conductors are dark with no electrical glow, one tower carries a maintenance-lockout and aged-equipment warning, and a localized red-orange diagnostic outline marks the corridor without fire or explosion. A lower temporary bypass is complete and carries bright cyan-white current toward the town and hospital; its bottleneck pulses amber near capacity. A local gas and battery path contributes 24 MW. The hospital stays powered, outer town cells fade amber, and factory lighting is partially curtailed.
-Composition: top status bar, left operating tools, right unavailable-line inspector, bottom time controls, wide readable isometric map.
-Exact readable UI tokens: top "54 MW / 58 MW", "HEAT +8°C", "GRID RESERVE LOW", "DAY 75 16:00", "PAUSED"; right inspector "UNAVAILABLE", "AGED LINE", "0 MW / 180 MW"; compact tag beside the lower bypass bottleneck "34 MW / 35 MW".
-Meaning: 54 MW is demand, 58 MW is live supply from the 34 MW bypass plus 24 MW local generation and storage. The failed line carries 0 MW against a 180 MW nameplate rating.
-Art direction: original bleak industrial survival-management mood, charcoal steel UI, dirty ivory glare, oxidized brown, cyan-white live current, localized amber-red danger only.
-Constraints: communicate both heatwave stress and aged-line unavailability; preserve route readability; no entire-screen red tint, snow, fire, characters, logos, trademarks, watermark, or copied franchise assets.
-Avoid: fantasy effects, cheerful mood, tiny text, darkness that hides the network.
-```
+- 온라인 가스발전소와 발전 측 모선
+- 중간에 끊긴 상위 피더
+- 미건설 마을 배전 변전소 고정 패드
+- 회색 서비스 권역 안의 마을
+- 질문: `이 마을은 지금 공급 중인가? 왜인가?`
 
-## 5. 송전 경로 비교 화면
+전원 광선, 활성 건물 조명과 정답 문구는 넣지 않는다.
 
-이 화면은 짧은 A와 긴 B를 미적 취향으로 고르는 장면이 아니다. A는 싸고 빠르지만 기존
-상위 모선·전기적 차단 경계를 공유해 독립 N-1을 통과하지 못한다. B는 비용과 공기가 조금 더 들지만
-전기적으로 독립된 접속과 별도 공간 회랑을 확보한다. N-1 실패와 공통회랑 위험은 관련되어
-있어도 같은 판정은 아니므로 별도 행과 표식으로 나타낸다.
+### 카드 2 — 상황
 
-지도상의 경로를 가리키면 비교 카드의 길이, 철탑, 비용, 완공일, 피크 부하율과 안전 판정이
-함께 강조되어야 한다. 사용자는 두 버튼을 보기 전에 추가 1.2 M과 6일이 무엇을 사는지
-문장으로 이해할 수 있어야 한다.
+목표는 병원 주 회로, 두 번째 회로 의무와 내부전원을 구분하는 것이다.
+
+- 병원 8 MW P0와 현재 주 회로 E1
+- `DAY 3 08:00` 두 번째 전기회로 의무
+- `DAY 9 16:00` `OLD_CORRIDOR` 네 시간 사용불가
+- UPS 15분 + 디젤 4시간 45분
+- 전력회사 선로와 병원 내부전원은 서로 다른 선·아이콘 체계
+
+### 카드 3 — 선택
+
+두 카드는 같은 순서와 같은 시각 무게로 표시한다.
 
 ```text
-Use case: ui-mockup
-Asset type: original PC strategy game transmission-route planning mockup, 16:9 landscape.
-Primary request: show two mutually exclusive planned 154 kV routes between the industrial power area and a town substation, with exact cost, schedule, tower count, peak loading, and N-1 comparison.
-Scene: severe semi-rural industrial valley with river, road corridor, power plant, factory, town, hospital, substations, and an existing cyan-white energized network. Desaturate terrain slightly while keeping ports and overlays crisp.
-Route A: shorter amber dashed river-crossing route, 3.8 km, 12 ghost towers, tight bends, a river warning icon, shared upstream bus and electrical contingency boundary causing N-1 failure; also mark shared-corridor common-mode exposure as a separate risk.
-Route B: longer amber double-dashed route following a visible public road landmark, 5.1 km, 15 ghost towers, a safer-path shield, independent source-side bus and electrical contingency boundary, selected-path contingency success, and lower common-mode exposure. Show draggable waypoint handles. Both planned routes are amber but use different line patterns, and both must remain different from solid energized lines.
-Composition: map occupies about 70 percent; right rugged steel ROUTE COMPARISON panel contains two stacked cards; top bar, left build palette, and bottom time controls remain visible.
-Exact right-panel tokens:
-"ROUTE A"
-"3.8 km"
-"12 TOWERS"
-"18.4 M"
-"52 DAYS"
-"PEAK 78%"
-"PATH CONTINGENCY: NO"
-"ROUTE B"
-"5.1 km"
-"15 TOWERS"
-"19.6 M"
-"58 DAYS"
-"PEAK 62%"
-"PATH CONTINGENCY: YES"
-Buttons: two amber planned-action buttons, "BUILD A" and "BUILD B"; use focus outline and pattern, not route color, to show the hovered choice.
-Top bar tokens: "120.0 M", "32 MW / 40 MW", "12 DAYS TO DEADLINE", "PAUSED".
-Art direction: original bleak industrial survival-management atmosphere, weathered charcoal steel UI, restrained brass, cyan-white live electricity, amber planning language.
-Constraints: practical shippable strategy-game UX; exact legible numbers; no extra text, logos, trademarks, watermark, copied UI, or fantasy energy.
-Avoid: cinematic-only composition, cheerful palette, unreadable routes, excessive darkness.
+강변 병행 회랑
+8 M · 2 DAYS
+E1과 다른 차단 회로
+OLD_CORRIDOR 사용
+
+북부 우회 회랑
+12 M · 2 DAYS
+E1과 다른 차단 회로
+NORTH_CORRIDOR 사용
 ```
 
-## 6. 후속 원전·데이터센터·냉각수 화면 계획
+`SHARED/INDEPENDENT`, `SAFE/RISKY`, 추천 badge와 초록/빨강 대비는 금지한다. 지도에서는 두
+계획선을 모두 호박색으로 두고 line pattern으로만 구분한다.
 
-`assets/04-plant-siting.png`는 후보 부지와 송출 경로를 한 화면에서 비교하는 레이아웃만
-참고한다. 이미지의 발전소 가격, 자기자본, 공기, 후보 A/B와 버튼은 새 장기 방향의 규칙이나
-재현 대상이 아니다. 현재 구현은 이 이미지를 데이터·UI·schema의 근거로 사용하지 않는다.
+### 카드 4 — 예측과 결과
 
-원전·데이터센터 milestone을 실제로 열면 새 `nuclear-datacenter-cooling` 화면을 별도로
-설계한다. 지도에는 원전·데이터센터 후보 위치, `LOW/HIGH` 원전 입지 부담, 수원지 geometry,
-수랭 가능 hard cut과 두 시설의 송전 연결이 동시에 보여야 한다. hard cut 밖의 데이터센터
-후보는 `AIR ONLY`로 표시한다. 선택한 데이터센터 패널은 `SERVICE 0–100%`를 5% 단위로
-조작하게 하고, `최종 전력 MW`, `최종 냉각수 CW/h`, 수원지 거리, 거리 펌프 MW,
-`WATER/AIR` 상태와 예상 계약 위약을 즉시 미리 본다. 선택한 원전 패널은 목표출력 MW,
-거리 펌프 MW와 순계통주입 MW를 서로 다른 행에 표시한다. 냉각수 패널은 원전과 수랭
-데이터센터의 점유량을 한 용량 막대에서 분리한다.
+먼저 다음 두 질문만 보여준다.
 
-냉각수 초과로 시간이 자동 정지한 화면은 `원전 감발 / AIR 전환 / SERVICE 축소` 세 조치의
-전력·물·판매·위약 결과를 나란히 비교해야 한다. 자동으로 한 해법을 고르거나 일부 냉각수를
-임의 배분하지 않는다. `LOW/HIGH` 배지는 원전 후보의 입지 부담이고 데이터센터 등급이 아니다.
+- `E1만 사용불가`: 병원 계통공급 `남음 / 끊김`
+- `OLD_CORRIDOR 사용불가`: 병원 계통공급 `남음 / 끊김`
 
-구체 숫자와 UI 토큰은 모두 `TBD`이므로 지금 이미지 생성 프롬프트나 골든 캡처를 만들지 않는다.
-후속 adaptive planning checkpoint에서 [1.0 이후 방향](POST_1_0.md)의 범위를 다시 승인한 뒤
-텍스트 명세부터 확정한다.
+응답을 확정한 뒤 선택한 회랑의 제거 자산, 병원 계통공급, 병원 내부전원과 마을 공급을
+순서대로 공개한다. 현금 결과는 `건설비`, `판매`, `가스비`, `보상`, `LostSales`의 별도 행으로
+보여주며 승자나 점수를 표시하지 않는다.
 
-## 7. 병원 독립공급·자동절체 화면
+## 5. 조건부 Scope 0B 화면
 
-이 1.0 런타임 캡처는 병원에 선이 두 개 보이는 것과 실제 독립 공급이 다르다는 사실을 한
-화면에서 설명한다. 공간 지도와 작은 단선결선도를 함께 보이고 같은 병원 중요모선으로 들어오는
-E1·E2가 서로 다른 상위 모선, 전기적 차단 경계와 공간 회랑을 사용해야 한다.
+Scope 0B가 승인되면 카드 그래픽을 단일 탑다운 2D scene으로 옮긴다. 기존 콘셉트 PNG를
+재현하지 않는다.
 
-캡처 시점은 E1 계획정지가 시작된 직후다. E1은 개방·무전압이고 병원 핵심부하는 UPS가
-지탱한다. E2는 살아 있지만 고정 자동절체 검증 중이며, 작은 타임라인은
-`E1 OPEN → UPS <1s → E2 TRANSFER <10s`를 보여준다. 전환 완료 상태에서는 병원이 계속
-밝고 고객 경계 P0 미공급은 0이어야 한다. 비상 디젤은 대기이며 E1/E2와 같은 전원으로
-계산하지 않는다.
+### 화면 구성
 
-필수 구조 토큰은 `HOSPITAL P0`, `E1 OPEN`, `E2 READY`, `UPS`, `TRANSFER <10s`,
-`P0 UNSERVED 0`이다. N-1 제거 대상, 두 경로의 차단 경계·회랑 표식과 UPS 남은 시간이 색 없이도
-읽혀야 한다. 단순히 같은 선을 두 갈래로 그리거나, 절체 공백을 없었던 것으로 숨기거나,
-비상 디젤 MWh를 전력 판매로 표시하면 실패다.
+```text
+┌ 현금 ─ 공급/수요 ─ DAY·시각 ─ 일시정지 ┐
+│                                           │
+│                 2D 지도                   │ 왜? 패널
+│                                           │
+└ 상태 문장 ───────────────── 다음 이정표 ┘
+```
 
-패널의 설치 표기는 `2×40 MW`, firm service 표기는 정상과 한 베이 제거 뒤 모두 `40 MW`다.
-두 베이를 합산한 `80 MW AVAILABLE` 표현은 금지한다.
+- 상단은 현금, 공급/수요, 시각과 일시정지만 표시한다.
+- 지도는 통전·계획·사용불가 선과 서비스 권역을 보여준다.
+- `왜?` 패널은 현재 공급원인, 제거 결과, 선택의 비용·서비스 차이 세 줄만 표시한다.
+- `다음 이정표`는 필요한 발주나 예측 확정이 남으면 비활성화하고 이유를 보여준다.
+- 결과는 새 탐색화면이 아니라 modal overlay다.
+- 3D, 후처리, 날씨 VFX, 단선결선도와 상세 원장은 없다.
 
-## 8. 제작 검수 기준
+예측 overlay의 상태는 scene-local이다. Core, 저장, 경제와 scenario에 들어가지 않는다.
 
-1. 1.0 화면의 통화 표기는 모두 기호 없는 `M`이다.
-2. 통전, 계획, 주의, 고장의 상태 색이 모든 화면에서 동일하다.
-3. 서비스 필드는 배전 변전소에만 붙고 1차 변전소에는 붙지 않는다.
-4. 위기 화면의 `54/58`, `34/35`, `0/180`은 서로 다른 계량 대상을 뜻한다.
-5. 경로 화면의 비용·공기는 `GAME_DESIGN_KO.md`의 단순 산식과 일치한다.
-6. 특정 작품의 화면·건물·아이콘을 알아볼 수 있게 복제하지 않는다.
-7. `N-1`과 회랑 공통원인 위험은 서로 다른 표식과 설명 행을 사용한다.
-8. 폭염 화면의 `GRID RESERVE LOW`는 공급력 합계와 다른 판정이다. 예비력 게이트가 열린 뒤
-   숫자를 표시하려면 제약 시간대, 적격 MW와 요구 MW를 골든 상태에 함께 고정한다.
-9. 병원 화면은 E1/E2의 상위 모선·차단 경계·회랑 독립성과 UPS 절체 공백을 함께 설명한다.
-10. 기존 발전소 입지 이미지는 1.0 또는 원전·데이터센터 확장의 UI·숫자 검수에 사용하지 않는다.
+## 6. 장기 콘셉트 화면
+
+아래 화면은 관련 시스템이 검증된 뒤의 제작 방향이다. 기존 PNG 안의 숫자와 배치는 구현
+계약이 아니다.
+
+### 6.1 핵심 전력망 건설
+
+![핵심 전력망 건설 콘셉트](assets/01-grid-construction.png)
+
+목표는 서비스 권역과 실제 연결을 동시에 설명하는 것이다.
+
+- 가스발전소 → 1차 변전소 → 배전 변전소의 실제 통전 경로
+- 배전 변전소에만 붙는 반투명 서비스 권역
+- 범위 안의 공급 건물과 범위 밖 또는 미공급 건물의 차이
+- 실선 통전망과 호박 점선 계획선의 분리
+- 선택 변전소의 `현재 MW / 유효 정격 MW`
+- 공사 전액, 대기열 위치와 완공예정일을 견적 원인별로 표시
+
+1차 변전소에 서비스 권역을 그리거나 미완공 계획선을 통전처럼 빛내면 실패다.
+
+### 6.2 폭염과 노후 선로 사용불가
+
+![폭염과 노후 송전선 콘셉트](assets/02-heatwave-outage.png)
+
+목표는 사용불가 설비, 살아 있는 우회와 지속시간 제한 자원을 구분하는 것이다.
+
+- 사용불가 선로는 `현재 0 MW / 명판정격`과 잠금 표식
+- 우회선은 `현재 흐름 / 유효 정격`과 근접한 병목 표시
+- 현지 발전·저장은 우회선 용량과 별도 행
+- 총수요와 현재 살아 있는 공급력을 분리
+- 배터리는 MW뿐 아니라 남은 MWh와 지속시간 표시
+- 폭염 glare와 먼지는 경로를 가리지 않음
+
+고장선은 화재·폭발 없이 국소 진단 표식만 쓰고, 공급력 합계가 양수라는 이유로 `안전`이라고
+표시하지 않는다.
+
+### 6.3 송전 경로 비교
+
+![송전 경로 비교 콘셉트](assets/03-route-comparison.png)
+
+목표는 짧은 길과 독립 경로의 차이를 미적 취향이 아니라 원인으로 설명하는 것이다.
+
+비교표의 행은 다음 순서로 고정한다.
+
+1. 길이와 파생 철탑 수
+2. 건설비와 비용 분해
+3. 공기와 완공예정일
+4. 예상 피크 부하율
+5. 전기 contingency 결과
+6. 공간 공통회랑 노출
+
+전기 N-1과 공간 공통원인은 서로 다른 행과 표식을 사용한다. 실제 통전선과 두 계획경로는
+line pattern으로 구분한다. 정확한 숫자는 해당 `Interaction/Risk` gate의 기계 데이터에서
+생성하며 이미지 prompt에 하드코딩하지 않는다.
+
+### 6.4 병원 자동절체
+
+이 화면은 병원에 선 두 개가 보이는 것과 독립공급이 다름을 설명한다.
+
+- 공간 지도와 작은 단선결선도에서 같은 자산을 함께 강조
+- 서로 다른 상위 모선·차단 경계·공간 회랑의 E1/E2
+- `E1 OPEN → UPS → E2 TRANSFER` 순서와 실제 절체시간
+- 병원 P0 미공급, UPS 잔여와 비상 디젤 대기 상태
+- 설치용량은 `2×정격`, firm service는 한 베이 정격으로 표시
+
+두 베이 정격을 합쳐 firm service로 표기하거나 병원 내부전원을 전력 판매로 표시하면 실패다.
+
+### 6.5 원전·데이터센터·냉각수
+
+`assets/04-plant-siting.png`는 후보지와 송출경로를 한 화면에서 비교하는 레이아웃만 참고한다.
+
+![기존 발전소 입지 레이아웃 참고](assets/04-plant-siting.png)
+
+P-A가 실제로 승인되면 새 텍스트 명세부터 만든다. P-A 화면은 이미 건설된 원전·데이터센터와
+수원지를 보여주며 입지, 공사, NIMBY와 돈 UI는 없다.
+
+- 원전: `FULL / REDUCED`, gross MW, pump MW, net injection MW
+- 데이터센터: `FULL / REDUCED / OFF`, `WATER / AIR`, grid demand MW와 CW/h
+- 냉각수: 원전과 수랭 데이터센터 점유를 나눈 단일 capacity bar
+- 자원부족 정지: 원전 감발, 공랭 전환, 서비스 제한의 결과를 나란히 비교
+
+P-B 승인 뒤에만 후보지, hard cut, 거리 펌프, 송전 옵션과 `LOW/HIGH` 입지 delta를 추가한다.
+P-C 승인 전에는 현금, 공사와 위약을 표시하지 않는다. 구체 숫자는 모두 `TBD`이며 지금 golden
+capture나 이미지 prompt를 만들지 않는다.
+
+## 7. 사운드 방향
+
+- 통전: 차단기 투입 → 변압기 상승음 → 건물 점등
+- 정상 zoom-in: 변압기 저주파, 도체 바람, 공장·병원 환경음
+- 정상 zoom-out: 개별 소리는 줄이고 망 전체의 낮은 전기음과 바람 강조
+- 과부하: 반복 alarm보다 팬·변압기 음색과 불균형 경고 변화
+- 사용불가: 차단 충격 뒤 전류음이 사라지는 정적
+- 내부전원: 계통음과 구분되는 UPS·디젤의 국소 기계음
+
+## 8. 제작 검수표
+
+### 현재 카드
+
+- 네 카드가 각각 질문 하나만 전달하는가?
+- 회색 서비스 권역이 통전으로 오해되지 않는가?
+- 전기회로와 공간회랑이 다른 선·label로 읽히는가?
+- 두 선택 카드의 정보 순서와 시각 무게가 같은가?
+- 응답 전에 추천·정답·결과가 노출되지 않는가?
+- 병원 내부전원과 전력회사 선로가 구분되는가?
+
+### 모든 후속 화면
+
+- 통전·계획·주의·사용불가의 색과 pattern이 일관적인가?
+- 서비스 권역이 배전 변전소에만 붙는가?
+- 모든 MW 수치가 현재값과 정격·요구량의 의미를 함께 가지는가?
+- N-1과 공간 공통원인을 별도 행으로 보여주는가?
+- 현금, 서비스와 안전을 하나의 추천점수로 숨기지 않는가?
+- 산업 미학이 경로·상태·text의 가독성을 해치지 않는가?
+- 특정 작품의 화면·건물·icon·font를 알아볼 수 있게 복제하지 않는가?
+- 이미지 숫자와 권위 데이터가 다를 때 이미지를 폐기하거나 다시 생성하는가?

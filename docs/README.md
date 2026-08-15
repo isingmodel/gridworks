@@ -13,9 +13,11 @@ docs/
 │   ├── OBJECT_CATALOG.md             오브젝트 정의와 기능 상태
 │   └── VISUAL_PRODUCTION_SPEC.md      규칙을 표현하는 시각 기준
 ├── scopes/
+│   ├── SCOPE_0_TODO.md               Scope 0 통합 진행 체크리스트
 │   ├── SCOPE_0A_CARD_TEST.md          카드 테스트 실행 계약
 │   ├── SCOPE_0B_CANDIDATE.md          다음 playable 후보의 경계
-│   └── SCOPE_1_0.md                   1.0 범위의 미개방 상한
+│   ├── SCOPE_1_INTERACTION_TODO.md    전신주·거리제한 미개방 후보
+│   └── RELEASE_1_0_BOUNDARY.md        1.0 범위의 미개방 상한
 ├── development/
 │   └── BALANCING_STATIC_SIM.md        조건부 정적 검증 도구
 └── future/
@@ -33,7 +35,8 @@ docs/
 | 이 게임은 어떤 경험과 장기 원칙을 지향하는가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 현재 scope의 절차·fixture를 복제하지 않음 |
 | 무엇이 오브젝트이며 무엇을 할 수 있는가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 미개방 기능을 현재 가능으로 표시하지 않음 |
 | 규칙을 어떻게 보이게 하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 게임 규칙이나 수치를 새로 만들지 않음 |
-| 1.0의 최대 후보 범위는 무엇인가? | [1.0 후보 범위](scopes/SCOPE_1_0.md) | 확정 roadmap이나 backlog로 사용하지 않음 |
+| Scope 0의 진행 순서와 Scope 1 후보 TODO는 무엇인가? | [Scope 0 TODO](scopes/SCOPE_0_TODO.md), [Scope 1 TODO](scopes/SCOPE_1_INTERACTION_TODO.md) | 실행 계약의 숫자를 복제하거나 선행 결과 없이 다음 gate를 승인하지 않음 |
+| 1.0의 최대 후보 범위는 무엇인가? | [Release 1.0 후보 범위](scopes/RELEASE_1_0_BOUNDARY.md) | 확정 roadmap이나 backlog로 사용하지 않음 |
 | 정적 밸런스 도구는 언제·어디까지 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 게임을 대신 플레이하거나 수치를 자동 확정하지 않음 |
 | 1.0 뒤의 냉각수·원전 방향은 무엇인가? | [1.0 이후 방향](future/POST_1_0.md) | 현재 interface·schema·UI를 선결하지 않음 |
 
@@ -53,7 +56,7 @@ docs/
 
 1. [게임 기획서](product/GAME_DESIGN_KO.md)
 2. [오브젝트 카탈로그](product/OBJECT_CATALOG.md)
-3. [1.0 후보 범위](scopes/SCOPE_1_0.md)
+3. [Release 1.0 후보 범위](scopes/RELEASE_1_0_BOUNDARY.md)
 4. 필요할 때만 비주얼·개발 도구·장기 후보 문서
 
 ## 유지 규칙

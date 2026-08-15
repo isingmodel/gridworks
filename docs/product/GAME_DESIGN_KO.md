@@ -4,7 +4,7 @@
 
 이 문서는 `Gridworks`의 제품 비전과 플레이 경험을 정의한다. 현재 개발단위의 정확한 절차와
 숫자는 [Scope 0A](../scopes/SCOPE_0A_CARD_TEST.md), 출시 후보의 상한과 개방 조건은
-[1.0 후보 범위](../scopes/SCOPE_1_0.md)가 맡는다. 오브젝트별 가능 동작은
+[Release 1.0 후보 범위](../scopes/RELEASE_1_0_BOUNDARY.md)가 맡는다. 오브젝트별 가능 동작은
 [오브젝트 카탈로그](OBJECT_CATALOG.md)가 정리한다. 이 문서에 등장하는 장기 시스템은 제품 방향이지
 자동으로 승인된 구현 목록이 아니다.
 
@@ -452,11 +452,11 @@ family다. 자세한 절차는 [Static Balance Lab](../development/BALANCING_STA
 ## 16. 개발 게이트
 
 현재 gate는 [Scope 0A 카드 테스트](../scopes/SCOPE_0A_CARD_TEST.md)다. 그 뒤의 기능은 한 번에
-하나의 축만 연다. 아래 `Interaction`, `Generation`, `Decommissioning`은 사용자 결정에 따라
+하나의 축만 연다. 아래 `Interaction`, `Substation Siting`, `Generation`, `Decommissioning`은 사용자 결정에 따라
 1.0 필수 제품 능력이지만, 앞 gate 통과와 별도 scope 승인 전에는 구현하지 않는다.
 
-- `Interaction`: 고정 endpoint 사이 pole 직접 배치와 `MaxSpan`부터 검증하고, 변전소·발전소
-  부지배치를 각각 별도 단위로 연다.
+- [`Interaction`](../scopes/SCOPE_1_INTERACTION_TODO.md): 고정 endpoint 사이 pole 직접 배치와 `MaxSpan`이 읽히는가?
+- `Substation Siting`: 변전소 부지·권역·상위 연결을 구분해 사용하는가?
 - `Generation`: 직접 지은 발전소 한 종류가 임무 기간 안에 공급·경제 선택을 만드는가?
 - `Decommissioning`: 무전압·연결 검증과 유상 철거가 망 재구성 선택을 만드는가?
 - `Risk/Economy`: 비용과 복원력 사이 비지배 선택이 실제로 존재하는가?

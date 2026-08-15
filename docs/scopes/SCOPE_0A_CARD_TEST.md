@@ -7,7 +7,7 @@
 
 이 문서는 코드 없이 네 장의 저충실도 카드로 `Gridworks`의 핵심 인과가 읽히는지 검사하는
 완전한 실행 계약이다. 제품 방향은 [게임 기획서](../product/GAME_DESIGN_KO.md), 후속 범위의 상한은
-[1.0 후보 범위](SCOPE_1_0.md)를 따른다. 충돌하면 현재 gate인 이 문서가 우선한다.
+[Release 1.0 후보 범위](RELEASE_1_0_BOUNDARY.md)를 따른다. 충돌하면 현재 gate인 이 문서가 우선한다.
 
 Scope 0A의 숫자 권위는 이 문서의 동결 fixture와 oracle이다. 카드 제작이나 손검산을 위한
 스크립트는 권위가 아니다. 향후 Scope 0B가 승인되면 새 활성 scope가 단일 machine-readable

@@ -42,6 +42,11 @@ Scope 0A가 통과해도 구현은 자동으로 시작되지 않는다. 결과�
 Scope 0은 인과 이해를 검사하는 단계이며 전체 재미, 재플레이성, 경제 밸런스나 완성 게임의
 시뮬레이션 깊이를 증명하지 않는다.
 
+Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
+그 뒤 수동 전신주 배치와 거리 제한이 다음 최대 위험으로 확인될 때만
+[Scope 1 후보 TODO](docs/scopes/SCOPE_1_INTERACTION_TODO.md)를 별도 승인해 연다. 두 TODO는
+현재 활성 gate나 확정 roadmap을 바꾸지 않는다.
+
 ## 문서 구조
 
 세부 문서의 관계, 질문별 권위와 읽는 순서는 [문서 안내](docs/README.md)가 관리한다.
@@ -52,7 +57,7 @@ Scope 0은 인과 이해를 검사하는 단계이며 전체 재미, 재플레�
 | [README.md](README.md) | 프로젝트 진입점과 현재 개발 상태 |
 | [AGENTS.md](AGENTS.md) | 저장소 작업 규칙 |
 | [`docs/product/`](docs/product/) | 제품 비전, 오브젝트와 표현 규칙 |
-| [`docs/scopes/`](docs/scopes/) | 현재 gate와 미개방 출시 범위 |
+| [`docs/scopes/`](docs/scopes/) | gate 실행 계약, 진행 TODO와 출시 후보 상한 |
 | [`docs/development/`](docs/development/) | 조건부 개발·검증 도구 |
 | [`docs/future/`](docs/future/) | 1.0 이후 장기 후보 |
 

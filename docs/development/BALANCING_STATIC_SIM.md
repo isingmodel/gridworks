@@ -244,4 +244,4 @@ BatteryEligibleMW(h) = min(MaxDischargeMW, UsableSocMWh / hHours)
 8. 도구만으로 재미 또는 출시 통과를 선언하지 않는다.
 
 원전·데이터센터·냉각수 실험은 1.0 bundle과 섞지 않는다. 해당 방향이 열리면
-[1.0 이후 방향](POST_1_0.md)의 단계별 parameter inventory로 별도 bundle을 만든다.
+[1.0 이후 방향](../future/POST_1_0.md)의 단계별 parameter inventory로 별도 bundle을 만든다.

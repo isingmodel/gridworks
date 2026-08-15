@@ -14,7 +14,10 @@
 - 마을·병원·공장은 플레이어가 짓는 도시가 아니라 지켜야 할 수요처다.
 - 배전 변전소의 서비스 권역은 접속 가능 범위이지 전기의 원천이 아니다.
 - 발전소에서 수요처까지 이어지는 모든 선로와 변전소가 충분한 용량을 가져야 한다.
-- 선로·변전소·발전소를 짓는 데 돈과 시간이 들며, 공사가 끝나기 전에는 사용할 수 없다.
+- 완성 제품에서는 발전소·변전소와 전신주/철탑을 직접 배치하고, 인접 오브젝트 사이 길이
+  한계 안에서 전선을 연결한다.
+- 건설에는 돈과 시간이 들며 완공 전에는 사용할 수 없다. 완공 설비의 철거도 추가 비용·시간과
+  무전압 조건을 요구한다.
 - 실제로 전달한 전력만 매출이 되고, 미공급 전력에는 고객별 보상이 붙는다.
 - 폭염과 예고된 설비 사용불가는 미리 선택한 경로, 여유와 정비의 가치를 드러낸다.
 - 화면 구석의 선형 예고 타임라인은 폭염, 공장 증설과 계획된 사용불가를 대비 가능한 시점에
@@ -26,7 +29,7 @@
 
 ## 현재 개발 상태
 
-현재 승인된 개발단위는 [**Scope 0A — 코딩 전 의사결정 카드 테스트**](doc/SCOPE_0A_CARD_TEST.md)다.
+현재 승인된 개발단위는 [**Scope 0A — 코딩 전 의사결정 카드 테스트**](docs/scopes/SCOPE_0A_CARD_TEST.md)다.
 코드부터 만들지 않고, 전력망 게임을 처음 접하는 다섯 명이 다음 세 관계를 설명 없이
 이해하는지 먼저 확인한다.
 
@@ -41,21 +44,21 @@ Scope 0은 인과 이해를 검사하는 단계이며 전체 재미, 재플레�
 
 ## 문서 구조
 
-| 문서 | 역할 | 상태 |
-|---|---|---|
-| [게임 기획서](doc/GAME_DESIGN_KO.md) | 제품 비전, 플레이 경험과 장기 설계 원칙 | 제품 기준 |
-| [Scope 0A 카드 테스트](doc/SCOPE_0A_CARD_TEST.md) | 현재 카드 테스트의 fixture, 절차와 완료조건 | 현재 권위 |
-| [Scope 0B 후보](doc/SCOPE_0B_CANDIDATE.md) | 카드 통과 뒤 검토할 첫 2D playable의 경계 | 미개방 후보 |
-| [1.0 후보 범위](doc/SCOPE_1_0.md) | 증거에 따라 열 수 있는 출시 범위의 상한 | 미개방 후보 |
-| [Static Balance Lab](doc/BALANCING_STATIC_SIM.md) | 손검산이 실제 병목일 때만 여는 정적 도구 | 미개방 후보 |
-| [1.0 이후 방향](doc/POST_1_0.md) | 원전·데이터센터·공유 냉각수의 단계별 후보 | 장기 후보 |
-| [비주얼 제작 명세](doc/VISUAL_PRODUCTION_SPEC.md) | 화면 언어, 카드와 콘셉트 이미지 기준 | 비주얼 기준 |
-| [AGENTS.md](AGENTS.md) | 저장소 작업 순서, 현재 게이트와 검증 규칙 | 작업 규칙 |
+세부 문서의 관계, 질문별 권위와 읽는 순서는 [문서 안내](docs/README.md)가 관리한다.
+오브젝트별 건설·운영·철거 가능성은 [오브젝트 카탈로그](docs/product/OBJECT_CATALOG.md)에 있다.
 
-`README.md`와 `AGENTS.md`만 저장소 진입점과 작업 규칙으로 루트에 두고, 기획·범위·제작 문서는
-`doc/`에 둔다. 문서 간 충돌이 있으면 현재 개발단위의 범위 문서가 우선한다. Scope 0A에서는
-[카드 테스트 문서](doc/SCOPE_0A_CARD_TEST.md)의 동결 fixture와 oracle이 숫자 권위다. Scope 0B가
-승인되어도 fixture 인계검사를 통과하기 전에는 이 권위를 자동으로 바꾸지 않는다.
+| 경로 | 역할 |
+|---|---|
+| [README.md](README.md) | 프로젝트 진입점과 현재 개발 상태 |
+| [AGENTS.md](AGENTS.md) | 저장소 작업 규칙 |
+| [`docs/product/`](docs/product/) | 제품 비전, 오브젝트와 표현 규칙 |
+| [`docs/scopes/`](docs/scopes/) | 현재 gate와 미개방 출시 범위 |
+| [`docs/development/`](docs/development/) | 조건부 개발·검증 도구 |
+| [`docs/future/`](docs/future/) | 1.0 이후 장기 후보 |
+
+문서 간 충돌이 있으면 현재 개발단위의 scope가 우선한다. Scope 0A에서는
+[카드 테스트 문서](docs/scopes/SCOPE_0A_CARD_TEST.md)의 동결 fixture와 oracle이 숫자 권위다.
+Scope 0B가 승인되어도 fixture 인계검사를 통과하기 전에는 이 권위를 자동으로 바꾸지 않는다.
 
 ## 개발 방식
 
@@ -93,7 +96,7 @@ gate 통과는 다음 작업을 자동 승인하지 않는다. 큰 개발단위 
 
 자동검사는 사람의 이해·재미·공정성을 대신하지 않는다. 사람 테스트 한 라운드에서는 정보
 규칙, 구조 규칙 또는 parameter family 중 하나만 바꾸며, 물질적으로 바뀐 prototype의 결과를
-이전 참가자와 합산하지 않는다. [Static Balance Lab](doc/BALANCING_STATIC_SIM.md)이 별도로
+이전 참가자와 합산하지 않는다. [Static Balance Lab](docs/development/BALANCING_STATIC_SIM.md)이 별도로
 승인된 경우에도 active knob는
 최대 3개, `FrozenFixture + ActiveKnob`는 최대 6개 family다.
 

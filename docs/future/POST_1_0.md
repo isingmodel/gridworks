@@ -271,7 +271,7 @@ P-B가 통과한 뒤에만 원전 `LOW/HIGH` 입지 부담, 실제 건설비·�
 | P-C | `ValidatedProjectOptionTable`, `ConstructionCostTable`, `ConstructionDurationTable`, `ContractSettlementTable`, `GenerationVariableCostTable`, `DemandAndEventTimeline` |
 
 인과는 이해되지만 세 개 이상의 유효 전략 비교가 손검산을 막을 때만
-[Static Balance Lab](BALANCING_STATIC_SIM.md)을 별도 승인한다.
+[Static Balance Lab](../development/BALANCING_STATIC_SIM.md)을 별도 승인한다.
 
 ## 11. 별도 후보로 보류한 것
 

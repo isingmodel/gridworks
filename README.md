@@ -15,6 +15,10 @@
 
 - [게임 기획·시스템 설계 기준서](GAME_DESIGN_KO.md): 제품 정의, 핵심 루프, 전력·건설·경제,
   발전원, 사건, 캠페인, UI, 네 핵심 상황의 텍스트 명세, 밸런스와 기술 구현 경계
+- [1.0 범위](SCOPE_1_0.md): 첫 출시의 포함·제외 기능, 구현 게이트와 기준 캡처
+- [Static Balance Lab](BALANCING_STATIC_SIM.md): 빠른 정적 검산, 제한된 파라미터 탐색,
+  권위 실행과 사람 플레이테스트의 역할 분담
+- [1.0 이후 확장](POST_1_0.md): 장기 캠페인, 발전 포트폴리오와 후속 모드 대기열
 - [비주얼 제작 명세](VISUAL_PRODUCTION_SPEC.md): 공통 아트 방향, 네 기준 화면의 독립 제작
   프롬프트와 검수 기준
 
@@ -27,13 +31,16 @@
 - [핵심 전력망 건설](assets/01-grid-construction.png)
 - [폭염과 노후 송전선 사용불가](assets/02-heatwave-outage.png)
 - [송전 경로 비교](assets/03-route-comparison.png)
-- [발전소 입지·님비·금융 비교](assets/04-plant-siting.png)
+- [발전소 입지·님비·금융 비교](assets/04-plant-siting.png) — 1.0 이후 확장 참고
 
 ## 권위 순서
 
-1. 게임 규칙과 숫자는 `GAME_DESIGN_KO.md`가 기준이다.
-2. 화면 언어와 이미지 제작 조건은 `VISUAL_PRODUCTION_SPEC.md`가 기준이다.
-3. PNG는 의도와 구도를 전달하는 시각 참고 자료이며, 글자나 숫자가 문서와 다르면 문서를
+1. 코드가 생기기 전에는 `GAME_DESIGN_KO.md`의 규칙·표·산식이 숫자의 기준이다.
+2. 첫 코드 커밋부터 `data/`의 versioned JSON/CSV와 schema가 catalog·scenario 숫자의 단일
+   기계 권위이며, 문서 표와 UI 기준값은 여기에서 생성한다.
+3. 제품 범위는 `SCOPE_1_0.md`와 `POST_1_0.md`의 경계를 따른다.
+4. 화면 언어와 이미지 제작 조건은 `VISUAL_PRODUCTION_SPEC.md`가 기준이다.
+5. PNG는 의도와 구도를 전달하는 시각 참고 자료이며, 글자나 숫자가 문서와 다르면 문서를
    따른다.
 
 통화 단위 `M`, 전력 단위 `MW`, 에너지 단위 `MWh/GWh`, 시간 단위 `D-일수`는 모든 문서와

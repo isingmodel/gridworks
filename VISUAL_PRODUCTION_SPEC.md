@@ -4,6 +4,10 @@
 게임 규칙과 숫자의 권위 기준은 `GAME_DESIGN_KO.md`이며, 아래 프롬프트는 각 화면을 처음부터
 생성할 수 있는 독립 프롬프트다.
 
+1.0의 실제 제작 캡처는 `construction`, `route-comparison`, `hospital-transfer`, `heatwave`다.
+현재 원전 입지 이미지는 장기 캠페인용 선행 콘셉트이고, 병원 자동절체 화면은 아래 텍스트
+명세를 바탕으로 런타임에서 새로 캡처한다.
+
 ## 1. 공통 아트 방향
 
 - 장르 인상: 혹독한 환경에서 도시의 생명선을 관리하는 산업 생존 전략
@@ -17,12 +21,13 @@
 
 ## 2. 기준 산출물
 
-| 화면 | 파일 | 목적 |
+| 화면 | 파일 | 범위·목적 |
 |---|---|---|
-| 핵심 건설 | `assets/01-grid-construction.png` | 서비스 필드와 실제 송전 연결 설명 |
-| 폭염 위기 | `assets/02-heatwave-outage.png` | 노후 회선 사용불가와 임시 우회 설명 |
-| 경로 비교 | `assets/03-route-comparison.png` | 비용·공기·N-1 선택 설명 |
-| 발전소 입지 | `assets/04-plant-siting.png` | 님비 할증·금융·필수 송출망 설명 |
+| 핵심 건설 | `assets/01-grid-construction.png` | 1.0, 서비스 필드와 실제 송전 연결 설명 |
+| 폭염 위기 | `assets/02-heatwave-outage.png` | 1.0, 노후 회선 사용불가와 임시 우회 설명 |
+| 경로 비교 | `assets/03-route-comparison.png` | 1.0, 비용·공기·N-1 선택 설명 |
+| 병원 자동절체 | 런타임 신규 캡처 | 1.0, E1 상실·UPS·독립 E2 절체 설명 |
+| 발전소 입지 | `assets/04-plant-siting.png` | 1.0 이후, 님비·금융·필수 송출망 설명 |
 
 모든 기준 이미지는 1672×941 RGB PNG, 16:9 가로형이다.
 
@@ -130,6 +135,12 @@ Avoid: cinematic-only composition, cheerful palette, unreadable routes, excessiv
 후보라는 뜻이 아니라 금융 조치가 먼저 필요하다는 뜻이다. 입지 띠는 서비스 범위가 아니며,
 화면의 색만 보아도 두 시스템을 혼동하지 않게 해야 한다.
 
+현재 정적 스케치는 캠페인 day 0, 개발 옵션 미구매 상태에서 최종 투자를 바로 비교하는
+화면이다. `D-630/D-664`는 오늘부터의 소요일수이고 `CAPITAL`은 옵션 선납 전 총 자기자본이다.
+옵션을 구매한 실제 화면은 A/B 각각 선납 6/10 M을 표시하고, 남은 자기자본 222/110 M,
+절대 `COD DAY`, 옵션·최종 투자 마감과 승인 진행률을 보여준다. 옵션 뒤에도 총액이나 채권을
+선납액만큼 다시 가산하지 않는다.
+
 ```text
 Use case: ui-mockup
 Asset type: original PC strategy game nuclear plant-siting and project-finance mockup, 16:9 landscape.
@@ -160,7 +171,24 @@ Constraints: show paired circuits rather than a single 600 MW line; distinguish 
 Avoid: magical rings, fantasy energy, glossy sci-fi, Victorian steampunk, cheerful pastoral palette, illegible text.
 ```
 
-## 7. 제작 검수 기준
+## 7. 병원 독립공급·자동절체 화면
+
+이 1.0 런타임 캡처는 병원에 선이 두 개 보이는 것과 실제 독립 공급이 다르다는 사실을 한
+화면에서 설명한다. 공간 지도와 작은 단선결선도를 함께 보이고 같은 병원 중요모선으로 들어오는
+E1·E2가 서로 다른 상위 모선, 보호구역과 공간 회랑을 사용해야 한다.
+
+캡처 시점은 E1 계획정지가 시작된 직후다. E1은 개방·무전압이고 병원 핵심부하는 UPS가
+지탱한다. E2는 살아 있지만 고정 자동절체 검증 중이며, 작은 타임라인은
+`E1 OPEN → UPS <1s → E2 TRANSFER <10s`를 보여준다. 전환 완료 상태에서는 병원이 계속
+밝고 고객 경계 P0 미공급은 0이어야 한다. 비상 디젤은 대기이며 E1/E2와 같은 전원으로
+계산하지 않는다.
+
+필수 구조 토큰은 `HOSPITAL P0`, `E1 OPEN`, `E2 READY`, `UPS`, `TRANSFER <10s`,
+`P0 UNSERVED 0`이다. N-1 제거 대상, 두 경로의 보호구역·회랑 표식과 UPS 남은 시간이 색 없이도
+읽혀야 한다. 단순히 같은 선을 두 갈래로 그리거나, 절체 공백을 없었던 것으로 숨기거나,
+비상 디젤 MWh를 전력 판매로 표시하면 실패다.
+
+## 8. 제작 검수 기준
 
 1. 네 이미지의 통화 표기는 모두 기호 없는 `M`이다.
 2. 통전, 계획, 주의, 고장의 상태 색이 모든 화면에서 동일하다.
@@ -174,3 +202,5 @@ Avoid: magical rings, fantasy energy, glossy sci-fi, Victorian steampunk, cheerf
 9. 발전소의 `RESIDENTIAL` 거리와 `EXPORT` 경로 길이를 같은 거리로 오해하게 만들지 않는다.
 10. 폭염 화면의 `RESERVE 6%`는 세 시간대 예비력 중 현재 제약을 결정하는 값이며, 상세
     패널에서는 즉시·15분·2시간 구간을 분리한다.
+11. 병원 화면은 E1/E2의 상위 모선·보호구역·회랑 독립성과 UPS 절체 공백을 함께 설명한다.
+12. 발전소 입지 정적 스케치의 `CAPITAL`은 옵션 전 총 자기자본이며 `D`는 소요일수다.

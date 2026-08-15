@@ -38,7 +38,7 @@ Scope 0A의 숫자 권위는 이 문서의 동결 fixture와 oracle이다. 카�
 
 ## 2. Proxy 세션과 운영
 
-현재 한정 라운드는 실제 비전문가 모집 대신 동일한 model/build의 독립 cold-context LLM 세션 다섯 개를 사용한다. 이는 사용자가 승인한 임시 대체이며 사람 이해도 주장을 만들지 않는다.
+현재 한정 라운드는 실제 비전문가 모집 대신 동일한 공개 model identifier와 runner 설정의 독립 cold-context LLM 세션 다섯 개를 사용한다. 이는 사용자가 승인한 임시 대체이며 사람 이해도 주장을 만들지 않는다. 제공자가 내부 build identifier를 노출하지 않으면 `NOT_EXPOSED`로 기록하고 같은 연속 실행 구간에서 세션을 완료한다. 이를 동일 build의 증거로 과장하지 않는다.
 
 - 세션 ID는 `L01`~`L05`, `EvidenceType = LLM_PROXY`, `HumanValidationStatus = NOT_COLLECTED`로 고정한다.
 - 각 세션은 대화 이력과 memory를 전달하지 않은 새 context에서 시작한다. 전력 비전문가인 척하거나 일부러 틀리라고 지시하지 않는다.
@@ -47,7 +47,7 @@ Scope 0A의 숫자 권위는 이 문서의 동결 fixture와 oracle이다. 카�
 - 진행자는 카드에 없는 전기 설명을 하지 않으며, 추가 설명이나 결과 공개 뒤 고친 답은 통과로 세지 않는다.
 - `CardSetVersion = S0A-CARD-v1`, `PromptVersion = S0A-PROXY-v1`을 한 라운드 동안 고정한다. 참가자용 문구·그림을 바꾸면 version을 올리고 다섯 세션을 처음부터 다시 실행한다.
 - 배치는 `L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`로 사전 고정한다. `AB`는 강변이 왼쪽, `BA`는 북부가 왼쪽이다.
-- session ID, model/build, 실행시각, 카드 hash, 실제 도구 사용, 모든 진행자 입력과 원답을 로컬에 기록한다.
+- session ID, 공개 model identifier·runner 설정·노출된 build metadata, 실행시각, 카드 hash, 실제 도구 사용, 모든 진행자 입력과 원답을 로컬에 기록한다. 실제 세 단계 메시지는 [동결 진행자 시트](../../playtests/scope-0a/FACILITATOR_SHEET.md)의 template만 사용한다.
 
 LLM 원답은 공개 저장소에 커밋하지 않고 로컬에 보관한다. 저장소에는 원답 파일의 SHA-256, 집계 결과와 식별 불가능한 오해 유형만 남긴다. LLM은 이미 전력 지식을 가질 수 있고 같은 모델 반복은 상관돼 있으며 사람의 시각적 주의·망설임·피로·접근성을 재현하지 못한다.
 
@@ -280,11 +280,13 @@ CurrentCash = 20,000,000
 3. 공개하지 않는 익명 원자료 표
 4. 집계·오해 유형·다음 결정을 담은 한 페이지 `PROXY-PASS / PROXY-REVISE / PROXY-FAIL` 기록
 
-`PROXY-PASS`는 **같은 유효 세션 4개 이상**이 도움 없이 `IntegratedCausalPass`를 만족할 때만 가능하다.
+판정은 아래 순서로 한 번만 적용한다.
 
-- `PROXY-REVISE`: 둘 이상 세션의 오해가 한 표현 또는 정보 구조 하나에 귀속될 때만 그것 하나를 고치고 새 `CardSetVersion`과 다섯 새 세션으로 한 차례 반복한다.
-- `PROXY-FAIL`: 허용된 한 차례 수정 뒤에도 통합 이해가 4/5 미만이거나, 첫 실패가 한 표현 문제로 격리되지 않거나, 싼 회랑이 병원 2회로 의무와 E1 전력회사 공급에서 `NoBuild`와 같아지거나, 인과를 만들기 위해 복수 확률사건이 필요하다.
-- `PROXY-RUN-INVALID`: 입력 누락, 이미지 접근 실패, 금지 context·tool 사용 때문에 유효한 다섯 세션을 확보하지 못한 기술 상태다. 판정이 아니며 다시 실행한다.
-- `PROXY-PASS`: “동결된 카드가 격리된 동일 모델 LLM 세션 4/5 이상에서 사전 rubric을 통과했다. 실제 비전문가 이해도는 측정하지 않았다”고만 기록한다. 결과와 예상 밖 응답을 검토한 뒤에만 Scope 0B 승인 여부를 사용자에게 묻는다.
+1. 입력 누락, 이미지 접근 실패, 금지 context·tool 사용 때문에 유효한 세션 다섯 개가 아니면 `PROXY-RUN-INVALID`다. 이는 판정이 아니며 같은 slot을 새 cold session으로 교체한다.
+2. 같은 유효 세션 중 **4개 이상**이 도움 없이 `IntegratedCausalPass`를 만족하면 `PROXY-PASS`다. “동결된 카드가 격리된 동일 모델 설정 LLM 세션 4/5 이상에서 사전 rubric을 통과했다. 실제 비전문가 이해도는 측정하지 않았다”고만 기록한다.
+3. 4/5 미만일 때, **모든 실패 세션의 유일한 scored deficit**이 동일한 표현 또는 정보 구조 하나에 귀속될 때만 `PROXY-REVISE`다. 그것 하나만 고치고 새 `CardSetVersion` 또는 `PromptVersion`과 다섯 새 세션으로 한 차례 반복한다.
+4. 그 밖의 4/5 미달, 허용된 한 차례 수정 뒤의 4/5 미달, 싼 회랑이 병원 2회로 의무와 E1 전력회사 공급에서 `NoBuild`와 같아지는 구조 변경, 또는 인과를 만들기 위해 복수 확률사건이 필요한 경우는 `PROXY-FAIL`이다.
+
+`PROXY-PASS` 결과와 예상 밖 응답을 검토한 뒤에만 Scope 0B 승인 여부를 사용자에게 묻는다.
 
 polished art, animation, telemetry, 별도 앱, 구현 architecture와 parameter sweep은 Scope 0A의 산출물이 아니다.

@@ -100,7 +100,7 @@ Scope 0이 묻는 질문은 하나다.
 
 - [ ] 자동·수동 사전 검사 결과와 LLM proxy 원자료를 분리해 보관한다.
 - [ ] 사전 정의된 `PROXY-PASS / PROXY-REVISE / PROXY-FAIL`만 사용하고 결과를 본 뒤 기준을 바꾸지 않는다.
-- [ ] `PROXY-REVISE`는 둘 이상 세션의 반복 오해가 한 표현·정보구조 원인에 한정될 때만 선택한다.
+- [ ] `PROXY-REVISE`는 4/5 미달이고 모든 실패 세션의 유일한 scored deficit이 동일한 한 표현·정보구조 원인일 때만 선택한다.
 - [ ] 한 번에 표현 또는 정보구조 하나만 바꾸고, 새 version·다섯 새 cold session으로 반복한다.
 - [ ] `PROXY-FAIL`이면 자유 배선, 경제, 물리가 부족하다고 가정해 기능을 추가하지 않는다.
 - [ ] `PROXY-PASS`면 LLM proxy가 지지한 세 인과와 남은 오해를 분리하고 사람 증거가 아님을 기록한다.
@@ -182,7 +182,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 - [ ] 해당 시점까지 존재하는 승인된 산출물·자동검사·LLM proxy 또는 사람 증거·예상 밖 관찰만 기록한다.
 - [ ] checkpoint 1·3·4에서는 `SubGateDecision = PENDING`을 기록한다. checkpoint 2는 `PROXY-PASS | PROXY-REVISE | PROXY-FAIL`, checkpoint 5는 활성 Scope 0B의 판정 어휘를 사용한다.
-- [ ] workflow는 별도로 `Scope0State = ACTIVE | AWAITING_APPROVAL | PAUSED | STOPPED | REVIEWED`로 기록한다.
+- [ ] workflow는 별도로 `Scope0State = ACTIVE | AWAIT_0B_APPROVAL | PAUSED | STOPPED | REVIEWED`로 기록한다.
 - [ ] 루트 README의 현재 개발 상태와 하위 scope 상태를 일치시킨다.
 - [ ] [오브젝트 카탈로그](../product/OBJECT_CATALOG.md)는 실제로 열린 기능만 `현재`로 갱신한다.
 - [ ] 비주얼 명세는 실제 관찰로 표현 규칙이 바뀌었을 때만 갱신한다.

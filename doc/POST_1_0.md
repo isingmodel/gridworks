@@ -29,9 +29,9 @@
 
 | 단계 | 검증할 것 | 새로 여는 것 | 제외하는 것 |
 |---|---|---|---|
-| `P-A 운영` | 물·전력 인과가 읽히는가 | 이산 운전상태, 상태별 총량, 물 용량, 자원부족 정지 | 입지·거리·송전건설·NIMBY·돈 |
-| `P-B 입지` | 입지가 전력망 결정을 깊게 하는가 | 후보 geometry, 거리 hard cut, 선형 펌프, 송전 옵션, 비교용 입지비 | 공사 queue·현금·계약정산 |
-| `P-C 경제` | 경제가 물·전력 선택을 강화하는가 | 실제 건설비·공기·현금, 판매·변동비·위약 | 금융·주민 정치·연료시장 |
+| `P-A 운영` | 물·전력 인과가 읽히는가 | 이산 운전안, 정상/사건 snapshot, 상태별 물·전력 결과 | 시간축·입지·거리·송전건설·NIMBY·돈 |
+| `P-B 입지` | 입지가 전력망 결정을 깊게 하는가 | 후보 geometry, 거리 hard cut, 선형 펌프, 송전 옵션 | 공사 queue·현금·입지비·계약정산 |
+| `P-C 경제` | 경제가 물·전력 선택을 강화하는가 | 입지 부담, 실제 건설비·공기·현금, 판매·변동비·위약 | 금융·주민 정치·연료시장 |
 
 각 단계의 통과는 적응형 점검을 열 뿐 다음 단계 구현을 자동 승인하지 않는다. 아래 규칙은
 표시된 단계부터만 적용한다.
@@ -83,21 +83,14 @@
 - 폭염에는 authored 공랭 추가수요가 붙는다.
 - 수원지 거리와 냉각수 부족의 직접 영향을 받지 않는다.
 
-수원지 hard cut 안에 있는 데이터센터는 건설 때 냉각방식이 영구 고정되지 않는다. 운영 중
-`WATER → AIR`, `AIR → WATER`를 모두 전환할 수 있다. 다만 임의의 매분 threshold를 맞추는
-미세조작을 막기 위해 다음 경계에서만 변경한다.
+수원지 hard cut 안에 있는 데이터센터는 건설 때 냉각방식이 영구 고정되지 않는다. 완성 방향은
+운영 중 `WATER → AIR`, `AIR → WATER`를 모두 허용한다.
 
-- scenario가 정한 `OperatingDecisionMarker`
-- 다음 틱의 냉각수 요구가 가용량을 넘어 자동 정지한 경계
-
-허용 경계의 전환은 다음 자원검증 전에 적용되며 첫 prototype에는 전환비용·전환시간·중간상태가
-없다. 실제 플레이에서 너무 관대하거나 교착을 만든다는 증거가 생기면 비용 또는 시간 중 하나만
-새 가설로 연다.
-
-원전 출력상태와 데이터센터 서비스·냉각상태도 같은 경계에서만 바꾼다. 세 값을 따로 확정하지
-않고 하나의 후보 운전안으로 함께 선택해 물·전력·P0 조건을 한 번 검증한 뒤 원자 적용한다.
-이 방식은 중간의 불법 상태 때문에 다음 조작으로 넘어가지 못하는 교착을 피하면서 별도 queue나
-최적화기를 만들지 않는다.
+P-A는 이 전환을 시간축으로 구현하지 않는다. `NORMAL`과 `HEAT_DROUGHT` 두 snapshot마다 원전
+출력, 데이터센터 서비스와 냉각상태를 하나의 운전안으로 선택해 결과를 비교한다. 두 snapshot의
+선택이 다르면 전환을 표현한 것으로 충분하다. 비용, 시간, 중간상태, command queue, tick과
+`OperatingDecisionMarker`는 없다. 사람 증거가 실제 시간 조작을 요구할 때만 별도 gate에서
+authored 결정경계 하나를 연다.
 
 ## 5. 하나의 냉각수 권역
 
@@ -109,11 +102,11 @@
 
 P-A는 위치와 거리를 계산하지 않고 다섯 authored 입력만 읽는다.
 
-- `AvailableCoolingWater[CwPerHour]`
+- `CoolingWaterAvailabilityByCase[CaseId]`
 - `NuclearOperationTable[OutputState]`
 - `DataCenterOperationTable[ServiceState, CoolingMode, HeatwaveState]`
-- `NonProjectDemandTimeline[GameMinute]`
-- `GridTransferLimitTimeline[GameMinute]`
+- `NonProjectDemandByCase[CaseId]`
+- `GridTransferLimitByCase[CaseId]`
 
 ```text
 TotalCoolingWater = NuclearWater + DataCenterWater
@@ -191,34 +184,35 @@ DataCenterGridDemandMW = DataCenterITMW + DataCenterAuxMW
 `OFF/WATER`, `OFF/AIR` 중복은 없다. 여러 데이터센터 유형, 비선형 효율곡선, 연속
 service/output slider와 개별 펌프도 없다.
 
-## 7. 자원 부족 처리
+## 7. 자원 제약 판정
 
-다음 틱에 냉각수, 계통 MW 또는 병원 P0 조건을 위반하면 그 틱을 확정하지 않고 자동 정지한다.
-UI는 최초 위반과 세 조치의 전력·물·서비스 결과를 나란히 보여준다.
+각 snapshot에서 냉각수, 계통 MW 또는 병원 P0 조건을 위반한 운전안은 `INVALID`로 표시한다.
+UI 또는 종이표는 최초 위반과 세 조정 방향의 전력·물·서비스 결과를 나란히 보여준다.
 
 1. 원전을 `FULL → REDUCED`로 낮춘다.
 2. 수랭 가능한 데이터센터를 `WATER → AIR`로 바꾼다.
 3. 데이터센터 서비스를 `FULL → REDUCED → OFF`로 낮춘다.
 
-플레이어는 정지 경계에서 원전·서비스·냉각상태를 한 운전안으로 고른다. 세 조건이 모두 유효할
-때만 상태와 틱을 함께 확정한다. 엔진은 최적해나 일부 자원배분을 자동 선택하지 않는다. P-A/B는
-병원 P0, 계통 한계, 전력·물과 서비스만 계산하고 P-C에서만 현금 결과를 추가한다.
+플레이어는 원전·서비스·냉각상태를 한 운전안으로 고른다. 엔진은 최적해나 일부 자원배분을
+자동 선택하지 않는다. P-A/B는 병원 P0, 계통 한계, 전력·물과 서비스만 계산하고 P-C에서만
+현금 결과를 추가한다.
 
-fixture validator는 모든 부족 경계에 합법적인 해소 조합이 하나 이상 있는지 검사한다. 없으면
-플레이어 실패가 아니라 저작 오류다.
+fixture 표는 각 snapshot에 합법적인 운전안이 하나 이상 있는지 손검산한다. 없으면 플레이어
+실패가 아니라 저작 오류다.
 
 ## 8. 원전 입지 부담
 
 주거지 인접 대형 열발전의 NIMBY 효과는 정치 simulation이 아니라 비용으로만 표현한다.
 
-| 등급 | 의미 | P-B | P-C |
-|---|---|---|---|
-| `LOW` | 주요 주거지에서 충분히 떨어짐 | 기준 비교비 | 기준 건설비 |
-| `HIGH` | 주거지 인접 | 고정 `SitingCostDelta` | 실제 추가 건설비 |
+| 등급 | 의미 | P-C 건설비 |
+|---|---|---|
+| `LOW` | 주요 주거지에서 충분히 떨어짐 | 기준비 |
+| `HIGH` | 주거지 인접 | 고정 추가비 |
 
 등급은 authored 후보지와 인구권의 공간 관계로 정한다. 런타임 주민, 시위, 여론·신뢰, 연속
-거리곡선과 허가기간은 없다. P-B의 delta는 현금을 차감하거나 지급능력을 판정하지 않는다.
-P-C에서만 실제 CashUnit에 편입한다. 데이터센터에는 NIMBY를 적용하지 않는다.
+거리곡선과 허가기간은 없다. P-A/B에서는 등급과 비용을 비교하지 않고, P-C의
+`ConstructionCostTable`에서만 실제 CashUnit 추가비로 편입한다. 데이터센터에는 NIMBY를
+적용하지 않는다.
 
 향후 석탄·LNG를 별도 발전 포트폴리오 gate에서 열 경우에도 같은 `LOW/HIGH` 비용 규칙부터
 재사용한다.
@@ -227,8 +221,9 @@ P-C에서만 실제 CashUnit에 편입한다. 데이터센터에는 NIMBY를 적
 
 ### P-A — 운영 교환관계
 
-이미 건설·접속된 원전 하나, 데이터센터 하나와 수원지 하나를 사용한다. 고정 폭염·가뭄에서
-세 이산 상태명령만 조작한다. 입지, 거리, 송전건설, NIMBY, 판매·위약과 현금은 없다.
+이미 건설·접속된 원전 하나, 데이터센터 하나와 수원지 하나를 사용한다. 정상과 고정 폭염·가뭄
+두 snapshot에서 이산 운전안만 비교한다. 입지, 거리, 시간진행, 송전건설, NIMBY, 판매·위약과
+현금은 없다.
 
 검증 질문은 하나다.
 
@@ -242,17 +237,18 @@ snapshot에 대입해 손검산한다. 물 초과, 계통 초과와 병원 P0 �
 
 ### P-B — 입지·접속
 
-P-A가 신규 참가자 검증을 통과한 뒤에만 authored 후보지, 송출 회랑, hard cut, 선형 펌프전력과
-원전 `LOW/HIGH` 비교 delta를 연다. 현금, queue, 허가기간, 계약경제는 없다.
+P-A가 신규 참가자 검증을 통과한 뒤에만 authored 후보지, 송출 회랑, hard cut과 선형 펌프전력을
+연다. 현금, queue, 입지비, 허가기간과 계약경제는 없다.
 
 입지와 접속이 물·전력 선택을 실제로 더 깊게 만들지 못하거나 한 후보가 모든 면에서 지배하면
 P-B를 폐기한다.
 
 ### P-C — 경제·공사
 
-P-B가 통과한 뒤에만 실제 건설비·공기·현금, 접속 분담금, 전력 판매, 변동비와 위약을 연다.
-프로젝트 금융, 주민 정치, 연료·탄소시장은 없다. 경제 정보가 물·전력 인과를 가리면 수치를
-더 추가하지 않고 P-B로 돌아간다.
+P-B가 통과한 뒤에만 원전 `LOW/HIGH` 입지 부담, 실제 건설비·공기·현금, 접속 분담금, 전력
+판매, 변동비와 위약을 연다. 입지 추가비는 `ConstructionCostTable` 안의 한 행이며 별도 정치
+시스템이 아니다. 프로젝트 금융, 주민 정치, 연료·탄소시장은 없다. 경제 정보가 물·전력 인과를
+가리면 수치를 더 추가하지 않고 P-B로 돌아간다.
 
 ## 10. 파라미터 예산
 
@@ -270,8 +266,8 @@ P-B가 통과한 뒤에만 실제 건설비·공기·현금, 접속 분담금, �
 
 | 단계 | 독립 family 6개 이하 |
 |---|---|
-| P-A | `NuclearOperationTable`, `DataCenterOperationTable`, `CoolingWaterAvailabilityTimeline`, `NonProjectDemandTimeline`, `GridTransferLimitTimeline`, `OperatingDecisionTimeline` |
-| P-B | `ValidatedOperatingEnvelope`, `CandidateSiteGeometry`, `MaxWaterCoolingDistance`, `WaterCoolingPumpMwPerKm`, `TransmissionOptionTable`, `NuclearSitingCostDeltaTable` |
+| P-A | `NuclearOperationTable`, `DataCenterOperationTable`, `CoolingWaterAvailabilityByCase`, `NonProjectDemandByCase`, `GridTransferLimitByCase` |
+| P-B | `ValidatedOperatingEnvelope`, `CandidateSiteGeometry`, `MaxWaterCoolingDistance`, `WaterCoolingPumpMwPerKm`, `TransmissionOptionTable` |
 | P-C | `ValidatedProjectOptionTable`, `ConstructionCostTable`, `ConstructionDurationTable`, `ContractSettlementTable`, `GenerationVariableCostTable`, `DemandAndEventTimeline` |
 
 인과는 이해되지만 세 개 이상의 유효 전략 비교가 손검산을 막을 때만
@@ -317,10 +313,10 @@ P-B가 통과한 뒤에만 실제 건설비·공기·현금, 접속 분담금, �
 각 단계는 다음 질문을 해당 범위에서만 검증한다.
 
 1. P-A에서 물·전력 인과를 사고 전에 예측하고 설명하는가?
-2. 세 이산 상태명령으로 유효 대응이 둘 이상 생기며 미세조작이 없는가?
+2. 열 개의 정적 운전안으로 유효 대응이 둘 이상 생기고 시간축 없이 인과가 읽히는가?
 3. P-B에서 입지가 송전망 결정을 실제로 더 깊게 만드는가?
 4. 단일 물 용량, 선형 펌프와 hard cut만으로 유효 설계가 둘 이상 생기는가?
-5. `LOW/HIGH` 비교 delta가 정치 simulation 없이 이해되는가?
+5. P-C의 `LOW/HIGH` 건설비 차이가 정치 simulation 없이 이해되는가?
 6. P-C의 경제가 물 UI와 전력 병목을 가리지 않는가?
 7. 평가기간 안에 원전·데이터센터가 지배적 무선택이나 필수 함정이 되지 않는가?
 

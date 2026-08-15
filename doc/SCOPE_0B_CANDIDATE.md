@@ -6,7 +6,7 @@
 > 사용자의 별도 구현 승인
 
 이 문서는 다음 단계가 무엇을 검증해야 하는지만 제한한다. 현재 구현 계약이나 backlog가 아니다.
-Scope 0A에서 관찰된 오해와 성공 근거를 보기 전에는 명령 API, 저장소 구조, JSON schema, 정확한
+Scope 0A에서 관찰된 오해와 성공 근거를 보기 전에는 명령 API, 저장소 구조, fixture 형식, 정확한
 화면 배치와 자동검사를 확정하지 않는다.
 
 ## 1. 목적
@@ -40,7 +40,7 @@ Scope 0A와 다른 새 게임 가설을 여기에 추가하지 않는다.
 Scope 0B를 승인하는 변경은 다음을 같은 scope 문서에서 새로 닫아야 한다.
 
 - Scope 0A 결과 중 playable에서 다시 검사할 오해 하나
-- 카드 fixture에서 `data/scenario.json`으로의 값·ID·제거행렬·oracle 인계 검사
+- 카드 fixture에서 새 scope가 정한 단일 machine-readable fixture로의 값·ID·제거행렬·oracle 인계 검사
 - 이전 구간 정산, 공사·복구, 사건 시작, 경로 재평가, 내부전원 절체와 새 의무의 경계 순서
 - 시작·UPS·디젤·복구 경계에서 P0 공백이 없는 최소 상태전이
 - UI가 예측을 막는 책임과 simulation Core의 권위 경계

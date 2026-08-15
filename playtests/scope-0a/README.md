@@ -1,14 +1,16 @@
 # Scope 0A test kit
 
-This directory contains the participant-facing card set and the facilitator materials for the active Scope 0A gate. The rules and values remain authoritative only in [`docs/scopes/SCOPE_0A_CARD_TEST.md`](../../docs/scopes/SCOPE_0A_CARD_TEST.md); these files are derived test artifacts.
+> Archived evidence: `LLM-PROXY-R1 = PROXY-FAIL`, `Scope0State = STOPPED`. There is no active round. Do not rerun or revise these materials without a newly authorized gate.
+
+This directory contains the participant-facing card set and facilitator materials used by the completed Scope 0A gate. The rules and values remain authoritative only in [`docs/scopes/SCOPE_0A_CARD_TEST.md`](../../docs/scopes/SCOPE_0A_CARD_TEST.md); these files are derived historical test artifacts.
 
 ## Frozen identifiers
 
 - `CardSetVersion`: `S0A-CARD-v1`
-- Current round: `LLM-PROXY-R1`
+- Archived round: `LLM-PROXY-R1`
 - Order allocation: `L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
 
-The current user instruction permits five isolated LLM sessions to stand in for the first nonexpert round. This can establish only that the causal story is readable to those proxy sessions. It is not evidence about human usability, play time, enjoyment, or accessibility.
+The user instruction permitted five isolated LLM sessions to stand in for the first nonexpert round. The completed result is not evidence about human usability, play time, enjoyment, or accessibility.
 
 ## Files
 
@@ -17,7 +19,9 @@ The current user instruction permits five isolated LLM sessions to stand in for 
 - [`record-template.csv`](record-template.csv): blank per-session record schema. Copy it into `private/` before use.
 - [`RESULT.md`](RESULT.md): aggregate round evidence, decision, and bounded-revision history.
 
-## Run order
+## Archived R1 run order
+
+The following records what was executed; it is not current authorization.
 
 1. Copy `record-template.csv` to `private/LLM-PROXY-R1-responses.csv` and keep all verbatim answers there.
 2. Freeze every participant on the same commit and `CardSetVersion`.

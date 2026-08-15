@@ -1,15 +1,15 @@
 # Gridworks — Scope 0A 카드 테스트
 
-> 상태: **현재 승인된 개발단위**
+> 상태: **종료 — `PROXY-FAIL`**
 >
-> 다음 후보: [Scope 0B 2D playable](SCOPE_0B_CANDIDATE.md). Scope 0A 결과 검토와 사용자의
-> 별도 승인이 있기 전에는 구현하지 않는다.
+> 후속 후보: [Scope 0B 2D playable](SCOPE_0B_CANDIDATE.md). 이 `PROXY-FAIL` 결과로는 개방할
+> 수 없다. 새 gate 자체에 대한 명시적 사용자 결정 없이는 구현하지 않는다.
 
 > 현재 증거 방식: 사용자가 2026-08-16에 승인한 5회 격리 LLM proxy. `HumanValidationStatus = NOT_COLLECTED`.
 >
-> 실행 상태: `LLM-PROXY-R1 = PROXY-REVISE`. [집계 결과](../../playtests/scope-0a/RESULT.md)에 따라 Card 1 질문 한 곳만 바꾸는 단 한 차례 revision이 허용됐다.
+> 실행 상태: `LLM-PROXY-R1 = PROXY-FAIL`, `Scope0State = STOPPED`. [검토된 집계 결과](../../playtests/scope-0a/RESULT.md)에 따라 revision과 Scope 0B는 열리지 않는다.
 
-이 문서는 코드 없이 네 장의 저충실도 카드로 `Gridworks`의 핵심 인과가 읽히는지 검사하는 완전한 실행 계약이다. 제품 방향은 [게임 기획서](../product/GAME_DESIGN_KO.md), 후속 범위의 상한은 [Release 1.0 후보 범위](RELEASE_1_0_BOUNDARY.md)를 따른다. 충돌하면 현재 gate인 이 문서가 우선한다.
+이 문서는 코드 없이 네 장의 저충실도 카드로 `Gridworks`의 핵심 인과가 읽히는지 검사한 불변 실행 계약이다. 제품 방향은 [게임 기획서](../product/GAME_DESIGN_KO.md), 후속 범위의 상한은 [Release 1.0 후보 범위](RELEASE_1_0_BOUNDARY.md)를 따른다. 실행 당시 충돌에는 이 문서가 우선했다.
 
 Scope 0A의 숫자 권위는 이 문서의 동결 fixture와 oracle이다. 카드 제작이나 손검산을 위한 스크립트는 권위가 아니다. 향후 Scope 0B가 승인되면 새 활성 scope가 단일 machine-readable fixture의 경로·형식을 정하고, 별도 인계검사를 통과한 시점에만 기계 숫자 권위로 승격한다.
 

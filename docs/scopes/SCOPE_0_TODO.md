@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **진행 체크리스트**
+> 상태: **종료 — `SCOPE_0_STOPPED`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -8,7 +8,7 @@
 
 이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
-Scope 0B 항목이 있다는 사실은 구현 승인이 아니다. 현재 Scope 0A의 `PROXY-PASS`, 결과 점검과 사용자의 별도 승인 전에는 Scope 0B TODO를 실행하지 않는다. `PROXY-PASS`는 사람 `GO`가 아니며 인간 이해도 증거를 만들지 않는다.
+Scope 0B 항목이 있다는 사실은 구현 승인이 아니다. Scope 0A가 `PROXY-FAIL`로 끝나 개방 조건을 충족하지 못했으므로 Scope 0B와 Scope 1 TODO는 실행하지 않는다. 새 사용자 결정이 없는 한 이 문서는 terminal record다.
 
 ## 1. Scope 0의 목적과 종료상태
 
@@ -86,32 +86,34 @@ Scope 0이 묻는 질문은 하나다.
 
 ## 5. Scope 0A LLM proxy 테스트 TODO
 
-`LLM-PROXY-R1`은 기술 유효 `5/5`, coverage `0/5`, 나머지 세 scored field `5/5`, integrated `0/5`로 `PROXY-REVISE`였다. 모든 실패 세션의 유일한 결손은 서비스 권역의 의미를 명시하지 않은 것이었다. 원문은 Git 제외 로컬 파일에, hash·집계·결정은 [`RESULT.md`](../../playtests/scope-0a/RESULT.md)에 보존한다. 아래 체크리스트는 R1과 합산하지 않는 R2의 새 다섯 세션까지 마쳐야 완료한다.
+`LLM-PROXY-R1`은 available runner evidence 기준 기술 유효 `5/5`, coverage `0/5`, 위험 인과 `4/5`, 내부전원 경계·trade-off 각 `5/5`, integrated `0/5`로 `PROXY-FAIL`이었다. L02가 coverage 외에도 전기/공간 인과를 섞어 revision의 단일결손 조건을 충족하지 못했다. 원문은 Git 제외 로컬 파일에, hash·집계·결정은 [`RESULT.md`](../../playtests/scope-0a/RESULT.md)에 보존한다.
 
-- [ ] 세션 수, cold-context 조건, 금지 도구, 배치 variant와 통과선은 [Scope 0A §2](SCOPE_0A_CARD_TEST.md#2-proxy-세션과-운영)와 [§6](SCOPE_0A_CARD_TEST.md#6-산출물과-완료조건)을 그대로 따른다.
-- [ ] 다섯 세션 모두 같은 model/build를 쓰고 fork·memory 없이 시작하며 participant PNG와 고정 진행자 문장 외 context를 주지 않는다.
-- [ ] 이미지 확인 외 도구·저장소 탐색·검색을 사용한 세션은 무효 처리하고 같은 ID·variant로 교체한다.
-- [ ] 참가자별로 권역, 전기/공간 원인, 내부전원, trade-off와 진행자 도움을 사전 기록표에 남긴다.
-- [ ] 선택률·좋아하는 계획·응답속도를 통과 목표로 사용하지 않는다.
-- [ ] 사후에 정답 문구만 맞추지 않고 필수 이유까지 사전 rubric으로 판정한다.
-- [ ] 동일 참가자의 필수 항목을 통합해 `IntegratedCausalPass`를 계산한다.
-- [ ] 원답, model/build, 카드 hash, 실제 도구 사용과 실행시각은 Git 제외 로컬 표에 보존한다.
-- [ ] 원답 SHA-256, 식별 불가능한 개수·오해 유형·예상 밖 응답과 `HumanValidationStatus = NOT_COLLECTED`를 한 페이지로 요약한다.
+- [x] 세션 수, cold-context 조건, 금지 도구, 배치 variant와 통과선은 [Scope 0A §2](SCOPE_0A_CARD_TEST.md#2-proxy-세션과-운영)와 [§6](SCOPE_0A_CARD_TEST.md#6-산출물과-완료조건)을 그대로 따랐다.
+- [x] 다섯 세션 모두 같은 공개 model identifier·runner 설정을 쓰고 fork·memory 없이 시작하며 participant PNG와 고정 진행자 문장 외 context를 주지 않았다.
+- [x] available runner evidence의 도구 보고를 확인했다. 금지 도구가 보고된 세션은 없었다.
+- [x] 참가자별로 권역, 전기/공간 원인, 내부전원, trade-off와 진행자 도움을 사전 기록표에 남겼다.
+- [x] 선택률·좋아하는 계획·응답속도를 통과 목표로 사용하지 않았다.
+- [x] 사후에 정답 문구만 맞추지 않고 필수 이유까지 사전 rubric으로 판정했다.
+- [x] 동일 참가자의 필수 항목을 통합해 `IntegratedCausalPass`를 계산했다.
+- [x] 원답, 공개 model 설정, 카드 hash, 보고된 도구 사용과 round timestamp를 Git 제외 로컬 표에 보존했다.
+- [x] 원답 SHA-256, 식별 불가능한 개수·오해 유형·예상 밖 응답과 `HumanValidationStatus = NOT_COLLECTED`를 한 페이지로 요약했다.
 
 ## 6. Scope 0A 결정 TODO
 
-R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md). 한 번 허용된 revision은 Card 1 질문의 정보 초점만 바꾸며, fixture·rubric·Cards 2–4·숫자와 선택률은 동결한다.
+R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md). `PROXY-FAIL`이므로 revision은 허용되지 않았고 `SCOPE_0_STOPPED`가 terminal state다.
 
-- [ ] 자동·수동 사전 검사 결과와 LLM proxy 원자료를 분리해 보관한다.
-- [ ] 사전 정의된 `PROXY-PASS / PROXY-REVISE / PROXY-FAIL`만 사용하고 결과를 본 뒤 기준을 바꾸지 않는다.
-- [ ] `PROXY-REVISE`는 4/5 미달이고 모든 실패 세션의 유일한 scored deficit이 동일한 한 표현·정보구조 원인일 때만 선택한다.
-- [ ] 한 번에 표현 또는 정보구조 하나만 바꾸고, 새 version·다섯 새 cold session으로 반복한다.
-- [ ] `PROXY-FAIL`이면 자유 배선, 경제, 물리가 부족하다고 가정해 기능을 추가하지 않는다.
-- [ ] `PROXY-PASS`면 LLM proxy가 지지한 세 인과와 남은 오해를 분리하고 사람 증거가 아님을 기록한다.
-- [ ] `PROXY-PASS`여도 Scope 0B를 자동 시작하지 않고 `AWAIT_0B_APPROVAL`에서 사용자 지시를 기다린다.
+- [x] 자동·수동 사전 검사 결과와 LLM proxy 원자료를 분리해 보관했다.
+- [x] 사전 정의된 `PROXY-PASS / PROXY-REVISE / PROXY-FAIL`만 사용하고 결과를 본 뒤 기준을 바꾸지 않았다.
+- [x] `PROXY-REVISE`의 단일결손 조건을 검사했고 L02의 두 번째 결손 때문에 거짓으로 판정했다.
+- [x] revision 조건이 거짓이므로 카드·prompt·version을 바꾸거나 새 세션을 실행하지 않았다.
+- [x] `PROXY-FAIL`을 자유 배선·경제·물리 부족으로 해석해 기능을 추가하지 않았다.
+- [x] `PROXY-PASS` 분기는 해당 없음으로 기록하고 사람 증거를 주장하지 않았다.
+- [x] Scope 0B를 시작하지 않고 `SCOPE_0_STOPPED`로 종료했다.
 - [ ] 판정과 익명 집계를 기록한 뒤 §11의 작업단위 checkpoint를 완료한다.
 
 ## 7. Scope 0B 활성화 TODO — Scope 0A `PROXY-PASS` 후 별도 승인 시만
+
+종료 판정으로 개방 조건이 거짓이다. 아래 항목은 미완료 backlog가 아니라 **실행 불가 조건부 기록**이며 새 사용자 결정 없이 실행하지 않는다.
 
 - [ ] 응답 없음·추정 동의가 아니라 사용자의 명시적 구현 승인을 기록한다.
 - [ ] Scope 0A의 식별 불가능한 집계·오해·예상 밖 결과를 첨부한다.

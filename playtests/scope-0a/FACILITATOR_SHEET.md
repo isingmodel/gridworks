@@ -1,8 +1,8 @@
 # Scope 0A facilitator sheet — S0A-CARD-v1
 
-> Keep this sheet hidden from participants. Do not explain electricity, define a corridor, point to a correct route, or paraphrase a question after the session begins. The current round uses five cold-context LLM proxy sessions; each session may inspect only the named participant card files.
+> Frozen historical R1 protocol. `LLM-PROXY-R1 = PROXY-FAIL`; there is no active round. Do not execute, revise, or reuse this sheet without a newly authorized gate. During R1 this sheet was hidden from participants, and each cold-context LLM proxy could inspect only the named participant card files.
 
-## Frozen runner and message contract
+## Frozen R1 runner and message contract
 
 - `PromptVersion = S0A-PROXY-v1`
 - model identifier: `gpt-5.6-sol`

@@ -32,5 +32,5 @@ Because not every failed session has the same single scored deficit, the active 
 
 - Initial R1 result commit: `5086419`
 - Independent bounded review: `r1_result_review` found the L02 electrical/spatial attribution error; blind `l02_risk_adjudicator` independently confirmed `RiskCausalityPass=false`
-- Reviewed result commit: `PENDING`
+- Reviewed result commit: `e732079`
 - Push/PR: not authorized by the current task

@@ -109,7 +109,7 @@ R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a
 - [x] `PROXY-FAIL`을 자유 배선·경제·물리 부족으로 해석해 기능을 추가하지 않았다.
 - [x] `PROXY-PASS` 분기는 해당 없음으로 기록하고 사람 증거를 주장하지 않았다.
 - [x] Scope 0B를 시작하지 않고 `SCOPE_0_STOPPED`로 종료했다.
-- [ ] 판정과 익명 집계를 기록한 뒤 §11의 작업단위 checkpoint를 완료한다.
+- [x] 판정과 익명 집계를 기록한 뒤 §11의 작업단위 checkpoint를 완료했다. 기록: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md)
 
 ## 7. Scope 0B 활성화 TODO — Scope 0A `PROXY-PASS` 후 별도 승인 시만
 
@@ -177,6 +177,8 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 재검토 신호는 부모 TODO가 새 판정 기준을 만드는 것이 아니다. 현재 증거, blocker와 제거할 가정을 기록하고 활성 scope의 승인된 절차 또는 사용자 결정으로만 다음 상태를 정한다.
 
 ## 11. 반복 작업단위 checkpoint
+
+완료 기록: checkpoint 1은 [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a/CHECKPOINT_1_MATERIALS_FREEZE.md), checkpoint 2는 [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md)에 있다. Checkpoint 3~5는 `SCOPE_0_STOPPED` 때문에 개방되지 않았으며 아래 공통 항목은 미래 실행 권한이 아니다.
 
 다음 다섯 지점에서 이 checkpoint를 각각 수행한다.
 

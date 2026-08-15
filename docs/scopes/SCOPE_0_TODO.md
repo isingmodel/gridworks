@@ -6,12 +6,9 @@
 >
 > 구성: [Scope 0A 카드 계약](SCOPE_0A_CARD_TEST.md) → 조건부 [Scope 0B 후보](SCOPE_0B_CANDIDATE.md)
 
-이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다.
-숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만
-정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
+이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
-Scope 0B 항목이 있다는 사실은 구현 승인이 아니다. Scope 0A `GO`, 결과 점검과
-사용자의 별도 승인 전에는 Scope 0B TODO를 실행하지 않는다.
+Scope 0B 항목이 있다는 사실은 구현 승인이 아니다. Scope 0A `GO`, 결과 점검과 사용자의 별도 승인 전에는 Scope 0B TODO를 실행하지 않는다.
 
 ## 1. Scope 0의 목적과 종료상태
 
@@ -51,8 +48,7 @@ Scope 0이 묻는 질문은 하나다.
 
 ## 3. Scope 0A 제작 TODO
 
-이 절부터 §6까지는 루트 README가 Scope 0A를 지목할 때만 사용한다. 세부 의미와
-완료조건은 항상 [Scope 0A 계약](SCOPE_0A_CARD_TEST.md)이 우선한다.
+이 절부터 §6까지는 루트 README가 Scope 0A를 지목할 때만 사용한다. 세부 의미와 완료조건은 항상 [Scope 0A 계약](SCOPE_0A_CARD_TEST.md)이 우선한다.
 
 ### 산출물 준비
 
@@ -170,8 +166,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 - [ ] 범용 framework, 저장·replay, 3D 또는 future schema가 필요해질 경우 현재 단위를 확대하지 않는다.
 - [ ] `SCOPE_0_STOPPED`는 활성 하위 scope가 사전에 정의한 `NO-GO`를 실제 증거가 충족했을 때만 선언한다.
 
-재검토 신호는 부모 TODO가 새 판정 기준을 만드는 것이 아니다. 현재 증거, blocker와 제거할
-가정을 기록하고 활성 scope의 승인된 절차 또는 사용자 결정으로만 다음 상태를 정한다.
+재검토 신호는 부모 TODO가 새 판정 기준을 만드는 것이 아니다. 현재 증거, blocker와 제거할 가정을 기록하고 활성 scope의 승인된 절차 또는 사용자 결정으로만 다음 상태를 정한다.
 
 ## 11. 반복 작업단위 checkpoint
 
@@ -198,8 +193,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 ## 12. 다음 gate 선정과 Scope 1 후보
 
-Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한다. 그 결과 `Interaction`이
-선정됐을 때만 [Scope 1 후보](SCOPE_1_INTERACTION_TODO.md)를 출발점으로 다시 검토한다.
+Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한다. 그 결과 `Interaction`이 선정됐을 때만 [Scope 1 후보](SCOPE_1_INTERACTION_TODO.md)를 출발점으로 다시 검토한다.
 
 - [ ] Scope 0B가 별도 승인·구현됐고 자동검사와 사람 기준을 `GO`로 통과했다.
 - [ ] Scope 0 후 적응형 점검에서 수동 pole·`MaxSpan` 상호작용이 다음 최대 미검증 위험으로 선정됐다.

@@ -40,7 +40,7 @@ Scope 0A의 숫자 권위는 이 문서의 동결 fixture와 oracle이다. 카�
 
 ## 2. Proxy 세션과 운영
 
-현재 한정 라운드는 실제 비전문가 모집 대신 동일한 공개 model identifier와 runner 설정의 독립 cold-context LLM 세션 다섯 개를 사용한다. 이는 사용자가 승인한 임시 대체이며 사람 이해도 주장을 만들지 않는다. 제공자가 내부 build identifier를 노출하지 않으면 `NOT_EXPOSED`로 기록하고 같은 연속 실행 구간에서 세션을 완료한다. 이를 동일 build의 증거로 과장하지 않는다.
+R1 한정 라운드는 실제 비전문가 모집 대신 동일한 공개 model identifier와 runner 설정의 독립 cold-context LLM 세션 다섯 개를 사용했다. 이는 사용자가 승인한 임시 대체였으며 사람 이해도 주장을 만들지 않는다. 제공자가 내부 build identifier를 노출하지 않아 `NOT_EXPOSED`로 기록했고 같은 연속 실행 구간에서 세션을 완료했다. 이를 동일 build의 증거로 과장하지 않는다.
 
 - 세션 ID는 `L01`~`L05`, `EvidenceType = LLM_PROXY`, `HumanValidationStatus = NOT_COLLECTED`로 고정한다.
 - 각 세션은 대화 이력과 memory를 전달하지 않은 새 context에서 시작한다. 전력 비전문가인 척하거나 일부러 틀리라고 지시하지 않는다.

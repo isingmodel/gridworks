@@ -44,7 +44,7 @@ Scope 0이 묻는 질문은 하나다.
 - [x] 카드·진행자 시트·기록표의 `CardSetVersion`을 `S0A-CARD-v1`으로 동결한다.
 - [x] Scope 0A 실행 전에 문서의 동결 fixture·oracle·rubric과 제작물을 대조한다.
 - [x] 카드 내부에 stable ID·개발자 용어·숨은 숫자가 노출되지 않는지 검사한다.
-- [x] 새로 닫은 proxy·카드 상태 값은 현재 활성 Scope 0A에서만 정의한다.
+- [x] 새로 닫은 proxy·카드 상태 값은 실행 당시 활성 Scope 0A에서만 정의했다.
 
 ## 3. Scope 0A 제작 TODO
 

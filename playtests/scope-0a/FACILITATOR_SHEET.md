@@ -91,4 +91,4 @@ Set each pass field to true only when the original answer contains every require
 
 `IntegratedCausalPass = CoveragePass && RiskCausalityPass && UtilityInternalPass && TradeOffPass && !FacilitatorHelp`.
 
-Choice, preference, response speed, and which route is selected are diagnostic only. Apply the decision order in the active scope: obtain five technically valid sessions; choose `PROXY-PASS` at 4/5 or better; below 4/5 choose `PROXY-REVISE` only when every failed session has the same single scored deficit attributable to one expression or information structure; otherwise choose `PROXY-FAIL`. Do not tune costs or target a choice ratio.
+Choice, preference, response speed, and which route is selected were diagnostic only. The frozen R1 decision order was: obtain five technically valid sessions; choose `PROXY-PASS` at 4/5 or better; below 4/5 choose `PROXY-REVISE` only when every failed session has the same single scored deficit attributable to one expression or information structure; otherwise choose `PROXY-FAIL`. Costs and choice ratios were not tuned.

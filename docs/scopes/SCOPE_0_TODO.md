@@ -86,6 +86,8 @@ Scope 0이 묻는 질문은 하나다.
 
 ## 5. Scope 0A LLM proxy 테스트 TODO
 
+`LLM-PROXY-R1`은 기술 유효 `5/5`, coverage `0/5`, 나머지 세 scored field `5/5`, integrated `0/5`로 `PROXY-REVISE`였다. 모든 실패 세션의 유일한 결손은 서비스 권역의 의미를 명시하지 않은 것이었다. 원문은 Git 제외 로컬 파일에, hash·집계·결정은 [`RESULT.md`](../../playtests/scope-0a/RESULT.md)에 보존한다. 아래 체크리스트는 R1과 합산하지 않는 R2의 새 다섯 세션까지 마쳐야 완료한다.
+
 - [ ] 세션 수, cold-context 조건, 금지 도구, 배치 variant와 통과선은 [Scope 0A §2](SCOPE_0A_CARD_TEST.md#2-proxy-세션과-운영)와 [§6](SCOPE_0A_CARD_TEST.md#6-산출물과-완료조건)을 그대로 따른다.
 - [ ] 다섯 세션 모두 같은 model/build를 쓰고 fork·memory 없이 시작하며 participant PNG와 고정 진행자 문장 외 context를 주지 않는다.
 - [ ] 이미지 확인 외 도구·저장소 탐색·검색을 사용한 세션은 무효 처리하고 같은 ID·variant로 교체한다.
@@ -97,6 +99,8 @@ Scope 0이 묻는 질문은 하나다.
 - [ ] 원답 SHA-256, 식별 불가능한 개수·오해 유형·예상 밖 응답과 `HumanValidationStatus = NOT_COLLECTED`를 한 페이지로 요약한다.
 
 ## 6. Scope 0A 결정 TODO
+
+R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md). 한 번 허용된 revision은 Card 1 질문의 정보 초점만 바꾸며, fixture·rubric·Cards 2–4·숫자와 선택률은 동결한다.
 
 - [ ] 자동·수동 사전 검사 결과와 LLM proxy 원자료를 분리해 보관한다.
 - [ ] 사전 정의된 `PROXY-PASS / PROXY-REVISE / PROXY-FAIL`만 사용하고 결과를 본 뒤 기준을 바꾸지 않는다.

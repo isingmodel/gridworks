@@ -15,7 +15,7 @@ The current user instruction permits five isolated LLM sessions to stand in for 
 - [`cards/`](cards/): four logical 16:9 cards. SVG is the editable source; [`cards/png/`](cards/png/) contains the exact RGB inputs used in the proxy round. Cards 3 and 4 have `AB` and `BA` order variants. Card 4 also has facilitator-controlled causal and settlement reveal states.
 - [`FACILITATOR_SHEET.md`](FACILITATOR_SHEET.md): fixed neutral script, question order, scoring rubric, and reveal sequence.
 - [`record-template.csv`](record-template.csv): blank per-session record schema. Copy it into `private/` before use.
-- [`RESULT_TEMPLATE.md`](RESULT_TEMPLATE.md): one-page aggregate decision template.
+- [`RESULT.md`](RESULT.md): aggregate round evidence, decision, and bounded-revision history.
 
 ## Run order
 
@@ -26,6 +26,6 @@ The current user instruction permits five isolated LLM sessions to stand in for 
 5. Record all predictions, reasons, internal-power answers, trade-off explanation, choice, and switching condition before any reveal.
 6. Show the matching causal reveal. Only after that show the matching settlement reveal.
 7. Score with the pre-registered rubric. Do not count a corrected answer after help.
-8. Commit only an aggregate, non-identifying result. Do not commit the `private/` file.
+8. Update only the aggregate, non-identifying [`RESULT.md`](RESULT.md). Do not commit the `private/` file.
 
 Run `ruby verify_scope0a.rb` before freezing a round. The command checks the fixture oracle, units, links, 10 SVG/PNG frames, dimensions, metadata, forbidden participant copy, order variants, and staged information release.

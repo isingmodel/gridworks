@@ -42,7 +42,7 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 활성 gate나
 확정 roadmap을 바꾸지 않는다.
 
-현재 `S0A-CARD-v1` 카드·진행자 자료와 deterministic preflight는 동결됐고, 점수에 포함하지 않는 내부 dry run을 통과했다. 다음 허용 작업은 해시로 고정된 동일 자료를 사용하는 `LLM-PROXY-R1` 다섯 세션이다.
+`LLM-PROXY-R1`은 기술적으로 유효한 다섯 세션을 마쳤지만 `PROXY-REVISE`였다. 다섯 세션 모두 상위 피더의 필요성은 맞혔으나 서비스 권역이 공급 자체가 아니라는 설명을 명시하지 않아, 사전 rubric상 같은 단일 결손으로 통합 통과하지 못했다. 현재 허용 작업은 [R1 결과](playtests/scope-0a/RESULT.md)에 고정한 Card 1 질문 한 곳만 수정하고 새 version·다섯 새 cold session으로 한 차례 반복하는 것이다. 다른 카드, fixture, 숫자, rubric과 선택 목표는 바꾸지 않는다.
 
 ## 문서 구조
 

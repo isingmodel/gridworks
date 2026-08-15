@@ -6,6 +6,8 @@
 > 별도 승인이 있기 전에는 구현하지 않는다.
 
 > 현재 증거 방식: 사용자가 2026-08-16에 승인한 5회 격리 LLM proxy. `HumanValidationStatus = NOT_COLLECTED`.
+>
+> 실행 상태: `LLM-PROXY-R1 = PROXY-REVISE`. [집계 결과](../../playtests/scope-0a/RESULT.md)에 따라 Card 1 질문 한 곳만 바꾸는 단 한 차례 revision이 허용됐다.
 
 이 문서는 코드 없이 네 장의 저충실도 카드로 `Gridworks`의 핵심 인과가 읽히는지 검사하는 완전한 실행 계약이다. 제품 방향은 [게임 기획서](../product/GAME_DESIGN_KO.md), 후속 범위의 상한은 [Release 1.0 후보 범위](RELEASE_1_0_BOUNDARY.md)를 따른다. 충돌하면 현재 gate인 이 문서가 우선한다.
 

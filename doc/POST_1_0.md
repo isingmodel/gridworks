@@ -60,7 +60,7 @@
 플레이어는 서버·AI workload를 경영하지 않고 다음만 결정한다.
 
 - `P-A`: 서비스상태 `FULL / REDUCED / OFF`
-- `P-A`: 냉각상태 `WATER / AIR`
+- `P-A`: 운전 중 냉각상태 `WATER / AIR`; `OFF`일 때는 `NONE`
 - `P-B`: 후보지와 계통 접속
 - `P-C`: 계약경제와 공사
 
@@ -94,7 +94,10 @@
 없다. 실제 플레이에서 너무 관대하거나 교착을 만든다는 증거가 생기면 비용 또는 시간 중 하나만
 새 가설로 연다.
 
-원전 출력상태와 데이터센터 서비스상태도 같은 경계에서만 바꾼다.
+원전 출력상태와 데이터센터 서비스·냉각상태도 같은 경계에서만 바꾼다. 세 값을 따로 확정하지
+않고 하나의 후보 운전안으로 함께 선택해 물·전력·P0 조건을 한 번 검증한 뒤 원자 적용한다.
+이 방식은 중간의 불법 상태 때문에 다음 조작으로 넘어가지 못하는 교착을 피하면서 별도 queue나
+최적화기를 만들지 않는다.
 
 ## 5. 하나의 냉각수 권역
 
@@ -104,16 +107,25 @@
 
 ### P-A의 총량 모델
 
-P-A는 위치와 거리를 계산하지 않고 세 authored 표만 읽는다.
+P-A는 위치와 거리를 계산하지 않고 다섯 authored 입력만 읽는다.
 
 - `AvailableCoolingWater[CwPerHour]`
 - `NuclearOperationTable[OutputState]`
 - `DataCenterOperationTable[ServiceState, CoolingMode, HeatwaveState]`
+- `NonProjectDemandTimeline[GameMinute]`
+- `GridTransferLimitTimeline[GameMinute]`
 
 ```text
 TotalCoolingWater = NuclearWater + DataCenterWater
 CoolingWaterMargin = AvailableCoolingWater - TotalCoolingWater
+
+AvailableGridSupplyMW = min(NuclearNetInjectionMW, GridTransferLimitMW)
+TotalGridDemandMW = NonProjectDemandMW + DataCenterGridDemandMW
+GridMarginMW = AvailableGridSupplyMW - TotalGridDemandMW
 ```
+
+P-A에서 합법적인 운전안은 `CoolingWaterMargin >= 0`, `GridMarginMW >= 0`, 병원 P0 충족을 모두
+만족한다. 부족할 때의 자동 부하배분이나 가격급전은 만들지 않는다.
 
 ### P-B의 거리 모델
 
@@ -175,21 +187,22 @@ AIR:
 DataCenterGridDemandMW = DataCenterITMW + DataCenterAuxMW
 ```
 
-idle 전력과 idle 물은 첫 prototype에서 0이다. 여러 데이터센터 유형, 비선형 효율곡선, 연속
-service/output slider와 개별 펌프는 없다.
+`OFF`는 냉각상태를 기억하지 않는 canonical 상태 `OFF/NONE`이며 전력과 물이 0이다. 따라서
+`OFF/WATER`, `OFF/AIR` 중복은 없다. 여러 데이터센터 유형, 비선형 효율곡선, 연속
+service/output slider와 개별 펌프도 없다.
 
 ## 7. 자원 부족 처리
 
-다음 틱의 냉각수 요구가 가용량을 넘으면 그 틱을 확정하지 않고 자동 정지한다. UI는 초과량과
-세 조치의 전력·물·서비스 결과를 나란히 보여준다.
+다음 틱에 냉각수, 계통 MW 또는 병원 P0 조건을 위반하면 그 틱을 확정하지 않고 자동 정지한다.
+UI는 최초 위반과 세 조치의 전력·물·서비스 결과를 나란히 보여준다.
 
 1. 원전을 `FULL → REDUCED`로 낮춘다.
 2. 수랭 가능한 데이터센터를 `WATER → AIR`로 바꾼다.
 3. 데이터센터 서비스를 `FULL → REDUCED → OFF`로 낮춘다.
 
-플레이어가 정지 경계에서 명령을 적용하고 총 요구가 가용량 이하가 되어야 다음 틱으로 진행한다.
-엔진은 최적해나 일부 냉각수 배분을 자동 선택하지 않는다. P-A/B는 병원 P0, 계통 한계,
-전력·물과 서비스만 계산하고 P-C에서만 현금 결과를 추가한다.
+플레이어는 정지 경계에서 원전·서비스·냉각상태를 한 운전안으로 고른다. 세 조건이 모두 유효할
+때만 상태와 틱을 함께 확정한다. 엔진은 최적해나 일부 자원배분을 자동 선택하지 않는다. P-A/B는
+병원 P0, 계통 한계, 전력·물과 서비스만 계산하고 P-C에서만 현금 결과를 추가한다.
 
 fixture validator는 모든 부족 경계에 합법적인 해소 조합이 하나 이상 있는지 검사한다. 없으면
 플레이어 실패가 아니라 저작 오류다.
@@ -222,8 +235,9 @@ P-C에서만 실제 CashUnit에 편입한다. 데이터센터에는 NIMBY를 적
 > 플레이어가 수랭↔공랭, 원전 감발과 서비스 제한의 물·전력 인과를 사고 전에 예측하고
 > 결과를 설명하는가?
 
-코드 전에 `2 원전상태 × 3 서비스상태 × 2 냉각상태 = 12`개 조합을 정상·사건 snapshot에
-대입한 표를 손검산한다. 물 초과, 계통 초과와 병원 P0 실패를 별도 열로 둔다. 이 12행으로
+코드 전에 원전 2상태와 데이터센터의 다섯 고유상태
+`FULL/WATER, FULL/AIR, REDUCED/WATER, REDUCED/AIR, OFF/NONE`을 조합한 10개 행을 정상·사건
+snapshot에 대입해 손검산한다. 물 초과, 계통 초과와 병원 P0 실패를 별도 열로 둔다. 이 10행으로
 충분하면 범용 simulator를 만들지 않는다.
 
 ### P-B — 입지·접속

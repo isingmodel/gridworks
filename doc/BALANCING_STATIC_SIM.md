@@ -28,7 +28,7 @@ Static Balance Lab은 게임을 대신 플레이하는 AI가 아니다. 살아�
 
 ## 2. Scope 0에서 허용하는 도구
 
-Scope 0에는 별도 Lab이 없다. `NoBuild`, `RIVER_PARALLEL`, `NORTH_DETOUR`와 `E1`,
+Scope 0에는 별도 Lab이 없다. `NoBuild`, `RIVER_PARALLEL`, `NORTH_DETOUR`와 `HOSPITAL_E1`,
 `OLD_CORRIDOR`의 작은 sanity matrix 또는 짧은 일회성 스크립트만 허용한다.
 
 각 조합에서 다음을 분리해 본다.
@@ -46,7 +46,7 @@ Scope 0에는 별도 Lab이 없다. `NoBuild`, `RIVER_PARALLEL`, `NORTH_DETOUR`�
 - 필수 공사가 공급기한 또는 사건 전에 완공될 수 없음
 - 의무가 물리적 최단 완공보다 먼저 활성화됨
 - 같은 결과를 내는 비싼 후보 또는 모든 면에서 지배하는 후보
-- `NoBuild`와 싼 후보가 같은 안전 결과를 냄
+- 싼 후보가 `NoBuild`와 병원 2회로 의무 및 `HOSPITAL_E1` 전력회사 공급에서 같은 결과를 냄
 - MWh/GWh와 CashUnit 단위가 닫히지 않음
 - 같은 판매·비용·보상이 중복 정산됨
 
@@ -149,6 +149,9 @@ Lab은 열린 시스템에 필요한 snapshot만 계산한다. 최대 후보는 
 - `GridReserve`: 온라인 grid-forming 전원이 있는 섬에서 실제 도달 가능한 추가 MW
 - `HospitalP0Continuity`: 독립 주·예비 경로, UPS와 병원 비상 디젤
 - `BlackoutRecovery`: grid-forming 전원과 재기동 절차
+
+병원 내부전원 때문에 네 시간 사건의 `HospitalP0Continuity`가 `NoBuild`와 같은 것은 오류가
+아니다. 비교해야 할 추가 가치는 선언된 전기고장 중의 전력회사 계통공급과 계약 이행이다.
 
 병원 내부전원은 Grid Reserve나 전력 판매가 아니다. 배터리는 같은 섬에 온라인 grid-forming
 전원이 있을 때만 다음처럼 계산한다.

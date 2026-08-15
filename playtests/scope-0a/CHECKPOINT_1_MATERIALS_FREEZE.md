@@ -36,5 +36,5 @@
 
 - Initial materials commit: `f861900`
 - Independent bounded review: `checkpoint1_review` inspected `f861900` and the fixes read-only; no P0, three resolved P1 findings (exact prompts, exclusive decision order, BA prompt order) and one resolved P2 state-name finding
-- Reviewed commit: `PENDING`
+- Reviewed commit: `c7ce91d`
 - Push/PR: not authorized by the current task

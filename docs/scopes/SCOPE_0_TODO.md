@@ -82,7 +82,7 @@ Scope 0이 묻는 질문은 하나다.
 - [x] 카드의 두 회랑·두 사건 결과가 동결 fixture와 일치하는지 확인한다.
 - [x] 내부 dry run `L00`으로 절차·기록표 누락만 확인하고 본 집계에서 제외한다.
 - [x] dry run은 카드 변경을 요구하지 않았으며 `S0A-CARD-v1`을 그대로 동결했다.
-- [ ] 카드·진행자 자료를 동결한 뒤 §11의 작업단위 checkpoint를 마쳐야 LLM proxy 테스트로 넘어간다.
+- [x] 카드·진행자 자료를 동결한 뒤 §11의 작업단위 checkpoint를 마쳐야 LLM proxy 테스트로 넘어간다. 기록: [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a/CHECKPOINT_1_MATERIALS_FREEZE.md)
 
 ## 5. Scope 0A LLM proxy 테스트 TODO
 

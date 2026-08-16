@@ -1,12 +1,12 @@
 # Scope 0B contract-freeze checkpoint
 
-> Status: **DRAFT — independent review pending**
+> Status: **REVIEWED — implementation authorized; proxy remains closed**
 >
 > `SubGateDecision = PENDING`
 >
-> `Scope0State = 0B_CONTRACT_AUTHORIZED`
+> `Scope0State = 0B_ACTIVE`
 
-## Frozen candidates
+## Frozen authority
 
 - contract: [`docs/scopes/SCOPE_0B_PLAYABLE.md`](../../docs/scopes/SCOPE_0B_PLAYABLE.md)
 - machine fixture: [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json)
@@ -14,7 +14,7 @@
 - `FixtureVersion = S0B-FIXTURE-v1`
 - frozen prompt-template SHA-256: `4a07e8fdf61cbd2475ba27613e9a89d4fcb254cc54c6d19d5f6a740ca64f2111`
 - `DecisionRuleVersion = S0B-GATE-v1`
-- implementation authority: **closed until this checkpoint is reviewed**
+- implementation authority: **open for the exact Scope 0B contract only**
 
 ## Evidence
 
@@ -32,8 +32,14 @@
 ## Repository checkpoint
 
 - initial contract commit: `f0326030c480f482fcb86013615c5264a876f35f`
-- independent bounded reviewer: `PENDING`
-- scope-valid findings and fixes: `PENDING`
-- reviewed contract commit: `PENDING`
-- documentation freshness audit: `PENDING`
-- implementation may start: `NO`
+- independent bounded reviewers: `scope0b_adversarial`, `scope0b_frozen_review`
+- scope-valid findings and fixes: full snapshot/settlement oracle, commissioned-only removal, River-only
+  hidden trace, OLD-only display bands, non-terminal crossing rejection, exact participant prompt/AX labels,
+  uncensored interaction failures, runner/app fault truth table, and stale-document cleanup
+- reviewer result: `P0=0, P1=0, P2=0`
+- reviewed contract commit: `01c3c279edfcd3b5b5c743bad5476b1b87ce3dbc`
+- documentation freshness audit: `PASS` — README, docs map, product documents, scope index and historical R2
+  package agree on current authority
+- verification: Scope 0B contract verifier, Scope 0A R2 regression, Scope 0A R1 regression and
+  `git diff --check` all `PASS`
+- implementation may start: `YES`

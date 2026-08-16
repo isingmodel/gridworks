@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **R2 checkpoint 완료 — `0B_CONTRACT_AUTHORIZED`**
+> 상태: **Scope 0B 계약 checkpoint 완료 — `0B_ACTIVE`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -144,14 +144,16 @@ R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a
 - [x] 참가자 조건, 기록 필드, 사전 rubric, 통과선과 bounded revision budget을 고정했다.
 - [x] 단일 machine-readable fixture의 경로, schema, stable ID, 좌표·시간·화폐 단위를 고정했다.
 - [x] Scope 0A의 값·ID·제거행렬·oracle이 새 fixture와 일치하는 인계검사를 통과했다.
-- [ ] 인계검사 뒤 새 fixture가 **Scope 0B의** 기계 숫자 권위가 된 시점을 기록한다. Scope 0A 문서와 결과는 Scope 0A의 불변 권위로 보존한다.
+- [x] reviewed contract commit `01c3c279edfcd3b5b5c743bad5476b1b87ce3dbc` 뒤 새 fixture가
+  **Scope 0B의** 기계 숫자 권위가 된 시점을 기록했다. Scope 0A 문서와 결과는 불변 권위로 보존한다.
 - [x] 공사 완료·편입·의무·계량·사건·복구·절체의 같은 분 적용 순서를 고정했다.
 - [x] 최소 명령, 실패 무상태변경, LLM 조작 proxy 질문과 exact 통과선을 구현 전에 닫았다.
 - [x] 구현 TODO, 자동검사, build·smoke와 LLM 조작 proxy 절차를 활성 Scope 0B 문서 안에 작성했다.
 - [x] 공식 지원 상태를 확인하고 Godot .NET·.NET SDK exact patch를 고정했다.
 - [x] 자유 배치·일반 BFS·범용 scheduler 등 통과에 필요하지 않은 항목을 제거했다.
 - [x] 같은 변경에서 루트 README를 Scope 0B 계약 review로 전환하고 Scope 0A 결과를 링크했다.
-- [ ] §11의 작업단위 checkpoint를 완료하기 전에는 구현을 시작하지 않는다.
+- [x] §11의 계약 작업단위 checkpoint를 완료한 뒤에만 구현을 열었다. 기록:
+  [`CHECKPOINT_0_CONTRACT_FREEZE.md`](../../playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md)
 
 ## 8. Scope 0B 실행 TODO — 활성 계약과 checkpoint 완료 후에만
 

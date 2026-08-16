@@ -1,15 +1,15 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **계약 동결 초안 — 구현 미개방**
+> 상태: **ACTIVE — 구현 승인, 조작 proxy 미개방**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
 > 사람 증거: `HumanValidationStatus = NOT_COLLECTED`
 
 이 문서는 카드에서 확인한 인과가 실제 상태변화와 클릭이 있는 화면으로 전이되는지만 검사하는
-Scope 0B의 완전한 실행 계약이다. 이 계약과 fixture를 commit하고 독립 review한 checkpoint가
-완료되기 전에는 코드를 만들지 않는다. 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은
-현재 backlog가 아니다.
+Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review checkpoint는 완료됐고, 이 문서의
+구현 TODO만 실행할 수 있다. 공식 조작 proxy는 구현·자동검사 checkpoint 전까지 열리지 않는다.
+후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설
 

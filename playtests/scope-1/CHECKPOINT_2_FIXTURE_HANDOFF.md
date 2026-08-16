@@ -4,7 +4,7 @@
 >
 > `MachineAuthority = CONTRACT_SKELETON`
 >
-> `ImplementationAuthorization = GRANTED_AFTER_REVIEW`
+> `CoreGameStart = CLOSED_UNTIL_REVIEW`
 >
 > `OfficialProxyAuthorization = NOT_GRANTED`
 
@@ -27,9 +27,9 @@ closed. After review, the JSON becomes the sole machine authority. The checker-o
 
 ## Review closure
 
-- initial fixture commit: `PENDING`
-- bounded independent reviewer: `PENDING`
-- initial findings: `PENDING`
+- initial fixture commit: `17d76099d1c16974b62d3fa59233e338b5df4a5d`
+- bounded independent reviewer: `development_lessons_audit`
+- initial findings: `P0=0, P1=1, P2=2`; authority wording and redundant checker cases simplified
 - final recheck: `PENDING`
 - reviewed fixture commit: `PENDING`
 

@@ -87,13 +87,7 @@ check(squared(witness[0], target) == 36 && squared(witness[0], target) > limit_s
 check(squared(witness[0], witness[1]) == limit_squared, "witness internal boundary")
 check(squared(witness[1], target) == 4 && squared(witness[1], target) < limit_squared,
       "witness final span oracle")
-check(squared(source, { "x" => 6, "y" => 4 }) == 25, "known invalid support oracle")
-check(squared(source, { "x" => 3, "y" => 7 }) == 13, "two-axis valid oracle")
-check(squared(source, { "x" => 4, "y" => 7 }) == 18, "two-axis invalid oracle")
 check(initial_minute + build_minutes == 60, "completion minute oracle")
-
-forbidden_fields = %w[verificationOnly presentation witness witnessSupportPositions]
-check((fixture.keys & forbidden_fields).empty?, "product fixture contains checker/presentation fields")
 
 puts "PASS fixture: exact nine-field root, nested shapes and integer values"
 puts "PASS oracle: direct fail, boundary spans, witness success and completion minute"

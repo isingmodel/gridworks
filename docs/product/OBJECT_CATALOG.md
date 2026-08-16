@@ -140,8 +140,8 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan(LineClass)
   허용된 terminal에서만 생긴다.
 - 총 선로 길이에는 별도 hard limit을 두지 않는다. pole 수, conductor 길이, 비용과 공기가 자연스러운
   한계가 된다.
-- 준비된 첫 `Interaction` 계약은 line class와 support type을 각각 하나만 사용하므로 `MaxSpan`도
-  하나다. 구현 전에는 현재 가능한 조작으로 표시하지 않는다.
+- 활성 Scope 1 계약은 line class와 support type을 각각 하나만 사용하므로 `MaxSpan`도 하나다.
+  구현·검증 완료 전에는 실행 가능한 조작으로 주장하지 않는다.
 - 다회선 공유철탑, 지형별 장력, 처짐, 풍하중, 기초형식과 자동 pole 배치는 계산하지 않는다.
 
 후속 전압 등급이 실제 선택을 만들 때만 line class별 `MaxSpan`을 추가한다. 숫자는 해당 scope의

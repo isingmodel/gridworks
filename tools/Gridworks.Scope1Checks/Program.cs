@@ -136,6 +136,13 @@ internal sealed class Scope1Checks
                 "\"position\": \"GridUnit\",\n    \"position\": \"GridUnit\","));
         ExpectFixtureRejected("malformed JSON", "{\"schemaVersion\":");
         ExpectFixtureRejected("trailing JSON value", _fixtureJson + "{}");
+        ExpectFixtureRejected("JSON comment", "// forbidden comment\n" + _fixtureJson);
+        ExpectFixtureRejected(
+            "trailing comma",
+            ReplaceRequired(
+                _fixtureJson,
+                "\"buildMinutes\": 60\n}",
+                "\"buildMinutes\": 60,\n}"));
         ExpectFixtureRejected("non-object root", "[]");
         ExpectFixtureRejectedBytes("invalid UTF-8", [0xff, 0xfe, 0xfd]);
 
@@ -433,6 +440,12 @@ internal sealed class Scope1Checks
             36,
             "target/one-support");
         AssertTargetPreviewParity(
+            SessionAtTargetBoundary,
+            expectedErrorCode: null,
+            new Scope1Point(7, 4),
+            16,
+            "target/exact-boundary");
+        AssertTargetPreviewParity(
             () => SessionWithSupports(2),
             expectedErrorCode: null,
             SecondWitness,
@@ -597,25 +610,30 @@ internal sealed class Scope1Checks
         Equal(64, firstHash.Length, "SHA-256 hex length");
         Equal(firstHash.ToLowerInvariant(), firstHash, "SHA-256 hex must be lowercase");
 
-        using JsonDocument document = JsonDocument.Parse(firstBytes);
-        JsonElement root = document.RootElement;
-        Equal(JsonValueKind.Object, root.ValueKind, "view JSON root kind");
-        SequenceEqual(
-            ViewPropertyOrder,
-            root.EnumerateObject().Select(property => property.Name),
-            "view JSON property order");
-        Equal(60, root.GetProperty("minute").GetInt32(), "view JSON minute");
-        Equal("commissioned", root.GetProperty("phase").GetString(), "view JSON phase");
-        Equal(60, root.GetProperty("completionMinute").GetInt32(), "view JSON completionMinute");
-        Check(root.GetProperty("targetEnergized").GetBoolean(), "view JSON targetEnergized");
-
-        JsonElement supports = root.GetProperty("supportPositions");
-        Equal(JsonValueKind.Array, supports.ValueKind, "view JSON supportPositions kind");
-        Equal(2, supports.GetArrayLength(), "view JSON support count");
-        Scope1Point[] parsedSupports = supports.EnumerateArray()
-            .Select(point => new Scope1Point(point.GetProperty("x").GetInt32(), point.GetProperty("y").GetInt32()))
-            .ToArray();
-        SequenceEqual([FirstWitness, SecondWitness], parsedSupports, "view JSON support order");
+        AssertSerializedView(
+            firstTrace[0],
+            0,
+            "drafting",
+            [],
+            null,
+            targetEnergized: false,
+            "view JSON initial");
+        AssertSerializedView(
+            firstTrace[^2],
+            0,
+            "building",
+            [FirstWitness, SecondWitness],
+            60,
+            targetEnergized: false,
+            "view JSON building");
+        AssertSerializedView(
+            firstView,
+            60,
+            "commissioned",
+            [FirstWitness, SecondWitness],
+            60,
+            targetEnergized: true,
+            "view JSON commissioned");
 
         string draftingHash = Scope1ViewJson.Sha256Hex(NewSession().GetView());
         Check(!string.Equals(firstHash, draftingHash, StringComparison.Ordinal), "different views shared one hash");
@@ -784,6 +802,17 @@ internal sealed class Scope1Checks
         return session;
     }
 
+    private Scope1PlacementSession SessionAtTargetBoundary()
+    {
+        Scope1PlacementSession session = NewSession();
+        AssertAccepted(session, session.AddSupport(FirstWitness), "setup/target-boundary-first");
+        AssertAccepted(
+            session,
+            session.AddSupport(new Scope1Point(7, 4)),
+            "setup/target-boundary-last");
+        return session;
+    }
+
     private Scope1PlacementSession CommissionedSession()
     {
         Scope1PlacementSession session = OrderedSession();
@@ -856,6 +885,44 @@ internal sealed class Scope1Checks
     }
 
     private static string Serialize(Scope1View view) => Scope1ViewJson.Serialize(view);
+
+    private void AssertSerializedView(
+        Scope1View view,
+        int minute,
+        string phase,
+        IReadOnlyList<Scope1Point> expectedSupports,
+        int? completionMinute,
+        bool targetEnergized,
+        string label)
+    {
+        using JsonDocument document = JsonDocument.Parse(Scope1ViewJson.SerializeToUtf8Bytes(view));
+        JsonElement root = document.RootElement;
+        Equal(JsonValueKind.Object, root.ValueKind, $"{label}: root kind");
+        SequenceEqual(
+            ViewPropertyOrder,
+            root.EnumerateObject().Select(property => property.Name),
+            $"{label}: property order");
+        Equal(minute, root.GetProperty("minute").GetInt32(), $"{label}: minute");
+        Equal(phase, root.GetProperty("phase").GetString(), $"{label}: phase");
+
+        JsonElement completion = root.GetProperty("completionMinute");
+        if (completionMinute.HasValue)
+        {
+            Equal(completionMinute.Value, completion.GetInt32(), $"{label}: completionMinute");
+        }
+        else
+        {
+            Equal(JsonValueKind.Null, completion.ValueKind, $"{label}: completionMinute kind");
+        }
+        Equal(targetEnergized, root.GetProperty("targetEnergized").GetBoolean(), $"{label}: targetEnergized");
+
+        JsonElement supports = root.GetProperty("supportPositions");
+        Equal(JsonValueKind.Array, supports.ValueKind, $"{label}: supportPositions kind");
+        Scope1Point[] parsedSupports = supports.EnumerateArray()
+            .Select(point => new Scope1Point(point.GetProperty("x").GetInt32(), point.GetProperty("y").GetInt32()))
+            .ToArray();
+        SequenceEqual(expectedSupports, parsedSupports, $"{label}: support order");
+    }
 
     private void Check(bool condition, string message)
     {

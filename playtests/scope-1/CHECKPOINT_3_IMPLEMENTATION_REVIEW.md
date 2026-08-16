@@ -2,9 +2,9 @@
 
 > `CheckpointStatus = REVIEW_IN_PROGRESS`
 >
-> `ImplementationStatus = INITIAL_IMPLEMENTATION_COMPLETE`
+> `ImplementationStatus = REVIEW_FIXES_APPLIED`
 >
-> `NativeVisualReview = NOT_RUN`
+> `NativeVisualReview = PASS`
 >
 > `OfficialProxyAuthorization = NOT_GRANTED`
 
@@ -39,6 +39,28 @@ The existing `project.godot`, `Main.tscn`, Scope 0B Core/Game source and Scope 0
 The initial smoke evidence is under `/private/tmp/gridworks-s1-initial.wQ413u/`. Final review will use a fresh
 directory and record any changed build or view hashes.
 
+## Review fixes and reviewed-build evidence
+
+The first bounded review found no P0. Two P1 findings were that the visible/accessible status omitted the ordered
+support coordinates and that Game repeated the fixture's unit strings. Four P2 findings covered singleton CLI
+duplicates and direct test cases for target-boundary equality, pre-completion JSON semantics, comments and trailing
+commas. The fixes only expose existing Core state, consume fixture units and add bounded negative/boundary checks;
+they add no rule, fixture field or generic framework.
+
+- reviewed source build hash: `6322218c7ad0396fbe0e3c4f435f35f584f85c0ee999dc559e686a25590d5899`
+- Scope 1 checks: `8` suites, `646` assertions, PASS
+- Scope 1 headless diagnostic events: `READY → SUPPORT_ADDED → SUPPORT_ADDED → ORDERED → COMPLETED → FINAL`
+- Scope 1 initial/final view SHA-256: `928a92efde792d1c40a6452424785f181a060bbce6a12cf02010a47c754ab34d` /
+  `f088b365ec59ec127a2215cf6f65bd09550598303d2b2d33c2b5bb6a00989555`
+- native `1280×720` review: initial, ordered-coordinate, Building and Commissioned screens have no clipping; visible
+  state and the accessibility tree expose phase, ordered coordinates, target power, button state and help text
+- native diagnostic SHA-256: app `01b643d55ef83a85e0c0b223e7498099c55395b93f06204604caf3c62c6f54ac`,
+  engine `678be1a5c713f54beb463daf16a33bc57ef6b439cdf48326e1db931eb7842dc0`
+- duplicate singleton CLI smoke is rejected with exit `1`; ordinary Scope 1 smoke exits `0`
+- Scope 0B checks remain `7` suites / `3,098` assertions; AB/BA final hashes remain unchanged
+
+Final automated and native evidence is under `/private/tmp/gridworks-s1-reviewed.4gF1Ac/`.
+
 ## Reproducible checks
 
 ```text
@@ -56,9 +78,9 @@ run through the unchanged default `Main.tscn` with fresh logs.
 
 ## Review closure
 
-- initial implementation commit: `PENDING`
-- bounded independent reviewers: `PENDING`
-- initial findings: `PENDING`
+- initial implementation commit: `213873f1810d59b3ca19fe118c71468ae5b0fbed`
+- bounded independent reviewers: `scope1_core_review`, `development_lessons_audit`
+- initial findings: `P0=0`, `P1=2`, `P2=4`; all bounded fixes applied
 - final recheck: `PENDING`
 - reviewed implementation commit: `PENDING`
 

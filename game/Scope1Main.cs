@@ -174,7 +174,8 @@ public sealed partial class Scope1Main : Control
     private void Render()
     {
         string phase = PhaseLabel(_view.Phase);
-        _header.Text = $"GRIDWORKS  |  수동 선로 건설  |  {phase}  |  {_view.Minute} GameMinute";
+        _header.Text =
+            $"GRIDWORKS  |  수동 선로 건설  |  {phase}  |  {_view.Minute} {_fixture.Units.Time}";
         _header.AccessibilityName = _header.Text;
         _phaseLabel.Text = phase;
         _phaseLabel.AccessibilityName = $"현재 상태 {phase}";
@@ -198,7 +199,7 @@ public sealed partial class Scope1Main : Control
         _advanceButton.Disabled = _view.Phase != Scope1Phase.Building;
         _advanceButton.AccessibilityDescription = _advanceButton.Disabled
             ? "선로를 발주해 공사 중일 때만 사용할 수 있습니다."
-            : $"{_view.CompletionMinute} GameMinute까지 진행하고 선로를 완공합니다.";
+            : $"{_view.CompletionMinute} {_fixture.Units.Time}까지 진행하고 선로를 완공합니다.";
 
         _mapView.SetModel(_fixture, _view, _pointerPreview);
 
@@ -351,10 +352,14 @@ public sealed partial class Scope1Main : Control
     private string BuildPathStatus(Scope1PreviewResult targetPreview)
     {
         string target = _view.TargetEnergized ? "통전" : "무전압";
-        string supports = $"전신주 {_view.SupportPositions.Count}개 · TARGET {target}";
+        string orderedSupports = _view.SupportPositions.Count == 0
+            ? "없음"
+            : string.Join(" → ", _view.SupportPositions.Select(point => $"({point.X},{point.Y})"));
+        string supports =
+            $"전신주 {_view.SupportPositions.Count}개: {orderedSupports} · TARGET {target}";
         if (_view.Phase == Scope1Phase.Building)
         {
-            return $"{supports}\n완공 예정 {_view.CompletionMinute} GameMinute · 공사 중에는 무전압";
+            return $"{supports}\n완공 예정 {_view.CompletionMinute} {_fixture.Units.Time} · 공사 중에는 무전압";
         }
         if (_view.Phase == Scope1Phase.Commissioned)
         {
@@ -367,7 +372,7 @@ public sealed partial class Scope1Main : Control
             : $"{supports}\n목표까지 {distance} · 중간 전신주가 필요합니다";
     }
 
-    private static string BuildPointerStatus(Scope1PreviewResult? preview)
+    private string BuildPointerStatus(Scope1PreviewResult? preview)
     {
         if (preview is null)
         {
@@ -388,11 +393,11 @@ public sealed partial class Scope1Main : Control
         };
     }
 
-    private static string DistanceText(Scope1PreviewResult preview)
+    private string DistanceText(Scope1PreviewResult preview)
     {
         string actual = Math.Sqrt(preview.DistanceSquared).ToString("0.##", CultureInfo.InvariantCulture);
         string allowed = Math.Sqrt(preview.MaxSpanSquared).ToString("0.##", CultureInfo.InvariantCulture);
-        return $"거리 {actual} / 허용 {allowed} GridUnit";
+        return $"거리 {actual} / 허용 {allowed} {_fixture.Units.Position}";
     }
 
     private static string InstructionText(Scope1Phase phase) => phase switch
@@ -643,12 +648,24 @@ public sealed partial class Scope1Main : Control
                 switch (arguments[index])
                 {
                     case "--session-id":
+                        if (sessionId is not null)
+                        {
+                            throw new ArgumentException("--session-id may be provided only once.");
+                        }
                         sessionId = RequiredValue(arguments, ref index, "--session-id");
                         break;
                     case "--diagnostic-log":
+                        if (diagnosticPath is not null)
+                        {
+                            throw new ArgumentException("--diagnostic-log may be provided only once.");
+                        }
                         diagnosticPath = RequiredValue(arguments, ref index, "--diagnostic-log");
                         break;
                     case "--smoke":
+                        if (smoke)
+                        {
+                            throw new ArgumentException("--smoke may be provided only once.");
+                        }
                         smoke = true;
                         break;
                     case "--smoke-support":

@@ -1,6 +1,6 @@
 # Gridworks — Scope 1 수동 선로 건설 계약
 
-> 상태: **ACTIVE — 초기 구현 완료·source/native review 중; 공식 관찰 CLOSED**
+> 상태: **ACTIVE — 구현·native 검토 완료, 최종 source 재검토 중; 공식 관찰 CLOSED**
 >
 > 다음 위험 선정: `Interaction — manual supports + one MaxSpan`
 >

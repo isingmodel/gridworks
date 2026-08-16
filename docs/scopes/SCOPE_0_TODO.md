@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B v1·v2·v3·v4 protocol `PROXY-RUN-BLOCKED` — v5 미동결·미승인, `0B_ACTIVE`**
+> 상태: **Scope 0B v1·v2·v3·v4 protocol `PROXY-RUN-BLOCKED` — v5 DRAFT review 중, `0B_ACTIVE`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -46,7 +46,7 @@ R2 실제 판정: technically valid `5/5`, Coverage/Risk/Utility/Trade-off 각�
 Scope 0이 묻는 질문은 하나다.
 
 > 서비스 권역·실제 공급, 전기적 분리·공간 독립, 병원 연속성·전력회사 공급을
-> 비전문가가 카드와 최소 직접 조작에서 일관되게 구분할 수 있는가?
+> 비전문가 이해의 임시 proxy인 cold LLM이 카드와 최소 직접 조작에서 일관되게 구분하는가?
 
 ```text
 0A_R2_ACTIVE

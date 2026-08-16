@@ -22,7 +22,8 @@ a smaller v4 delivery rule: one canonical prompt source, whitespace-only normali
 Runtime, fixture, UI, rubric and gate remain unchanged. Independent v4 review closed with `P0/P1/P2 = 0`;
 five v4 launches then reached native `FINAL`, but three traces did not preserve the complete metadata `exact text`
 required by that frozen evidence format. [Checkpoint 1E](CHECKPOINT_1E_RUN_PROTOCOL_V5.md) therefore closes v4
-as protocol `PROXY-RUN-BLOCKED` with `TechnicalValid = 2/5` and no gameplay score. v5 is not frozen or authorized.
+as protocol `PROXY-RUN-BLOCKED` with `TechnicalValid = 2/5` and no gameplay score. The v5 evidence delta is
+DRAFT and cannot run before its independent review and reviewed authorization.
 
 Future raw transcripts, native diagnostic logs and screenshots belong in `private/` and stay out of Git.
 Only their hashes, anonymous aggregate and reviewed decision may be published here.

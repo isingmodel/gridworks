@@ -8,7 +8,7 @@ require "pathname"
 ROOT = Pathname(__dir__).join("../..").expand_path
 CONTRACT = ROOT.join("docs/scopes/SCOPE_0B_PLAYABLE.md")
 BUILD_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1_IMPLEMENTATION_FREEZE.md")
-RUN_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md")
+RUN_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md")
 SHEET = ROOT.join("playtests/scope-0b/FACILITATOR_SHEET.md")
 RECORD = ROOT.join("playtests/scope-0b/record-template.csv")
 FIXTURE = ROOT.join("data/scope-0b-v1.json")
@@ -33,11 +33,11 @@ end
 
 def session_assignments
   {
-    "S0B-V4-L01" => "ab",
-    "S0B-V4-L02" => "ba",
-    "S0B-V4-L03" => "ab",
-    "S0B-V4-L04" => "ba",
-    "S0B-V4-L05" => "ab"
+    "S0B-V5-L01" => "ab",
+    "S0B-V5-L02" => "ba",
+    "S0B-V5-L03" => "ab",
+    "S0B-V5-L04" => "ba",
+    "S0B-V5-L05" => "ab"
   }
 end
 
@@ -58,13 +58,13 @@ case ARGV.first
 when "--render-prompt"
   check(ARGV.length == 2, "usage: verify_implementation.rb --render-prompt SESSION_ID")
   session_id = ARGV.fetch(1)
-  check(session_assignments.key?(session_id), "unknown v4 session #{session_id}")
+  check(session_assignments.key?(session_id), "unknown v5 session #{session_id}")
   STDOUT.write(canonical_prompt.sub("<SESSION_ID>", session_id))
   exit 0
 when "--check-transcript"
   check(ARGV.length == 3, "usage: verify_implementation.rb --check-transcript SESSION_ID PATH")
   session_id = ARGV.fetch(1)
-  check(session_assignments.key?(session_id), "unknown v4 session #{session_id}")
+  check(session_assignments.key?(session_id), "unknown v5 session #{session_id}")
   transcript_path = Pathname(ARGV.fetch(2)).expand_path
   check(transcript_path.file?, "transcript not found: #{transcript_path}")
   transcript_prompt = fenced_section(transcript_path.read, "Exact task message")
@@ -117,7 +117,7 @@ check(contract.include?("FACILITATOR_SHEET.md") && !contract.include?(canonical_
 prompt_hash = Digest::SHA256.hexdigest(ascii_whitespace_fold(canonical_prompt))
 expected_prompt_hash = run_checkpoint[/task-message template SHA-256: `([0-9a-f]{64})`/, 1]
 check(prompt_hash == expected_prompt_hash, "prompt-template hash drift")
-%w[S0B-CONTRACT-v4 S0B-PROXY-v4 S0B-RUN-v4].each do |version|
+%w[S0B-CONTRACT-v5 S0B-PROXY-v5 S0B-RUN-v5].each do |version|
   check(run_checkpoint.include?(version), "run checkpoint version #{version} missing")
 end
 
@@ -149,20 +149,32 @@ check(sheet.include?("--accessibility always"), "launch command lacks forced acc
 check(sheet.include?("--resolution 1280x720"), "launch command lacks frozen resolution")
 check(sheet.include?("--diagnostic-log"), "launch command lacks separate diagnostic path")
 check(sheet.include?("S0B-L00") && sheet.include?("L00Status = PASS"), "L00 pass is not explicit")
-check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v4 direct transport target missing")
+check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v5 direct transport target missing")
 check(sheet.include?("Generic environment-owned tool name/signature metadata") &&
-      sheet.include?("other-app contents are forbidden"), "v4 content-source boundary missing")
+      sheet.include?("other-app contents are forbidden"), "v5 content-source boundary missing")
 check(sheet.include?("Literal wrapper spelling and first-call success are not") &&
-      sheet.include?("Any `TechnicalValid=false` launch"), "v4 semantic validity/replacement boundary missing")
-check(sheet.include?("ascii-whitespace-fold-v1"), "v4 prompt normalization policy missing")
+      sheet.include?("Any `TechnicalValid=false` launch"), "v5 semantic validity/replacement boundary missing")
+check(sheet.include?("ascii-whitespace-fold-v1"), "v5 prompt normalization policy missing")
 check(sheet.include?("participant stop/timeout is a TechnicalValid scored failure") &&
       sheet.include?("before scoring or") && sheet.include?("gameplay answer quality must not affect"),
-      "v4 no-state/anti-selection boundary missing")
+      "v5 no-state/anti-selection boundary missing")
 check(sheet.include?("<EVIDENCE_ID>") && sheet.include?("<SESSION_ID>-launch1"), "replacement evidence ID boundary missing")
-check(sheet.include?("## 5. Exact post-measurement evidence export") &&
-      sheet.include?("result status/content type") &&
-      sheet.include?("전체 AX 본문은 복제하지 마세요") &&
-      sheet.include?("도구를 다시 호출하지 마세요"), "tool-trace export template missing")
+ledger_policy = %w[
+  EvidenceLedger\ =\ S0B-CALL-SOURCE-v1
+  Coverage\ =\ ALL_CALLS_TASK_START_TO_FINAL_REPORT
+  EntryFields\ =\ ORDER|TOOL|PURPOSE|CONTENT_SOURCE|REQUEST|RESULT|FRESH_STATE_FOR
+  MetadataOrErrorRequest\ =\ EXACT
+  MetadataResult\ =\ RETURNED_TOOL_NAMES_AND_USED_SIGNATURE_ONLY
+  ErrorResult\ =\ EXACT_TEXT
+  UiSequence\ =\ ACTION_THEN_FRESH_STATE
+  UnusedToolDescriptions\ =\ OMIT
+  FullAxOrScreenshotBody\ =\ OMIT
+]
+ledger_policy.each { |line| check(sheet.include?(line.tr("\\", "")), "v5 evidence policy missing: #{line}") }
+check(sheet.include?("## 5. Exact post-measurement provenance export") &&
+      sheet.include?("전체 tool-catalog 응답") &&
+      sheet.include?("생략해도 증거 누락이 아닙니다") &&
+      sheet.include?("도구를 다시 호출하지 마세요"), "v5 provenance export template missing")
 
 game_text = ROOT.glob("game/*.{cs,tscn,godot}").map(&:read).join("\n")
 check(!game_text.include?("verificationOnly"), "Game reads hidden oracle")
@@ -175,16 +187,16 @@ check(tracked_private.empty?, "private proxy evidence is tracked")
 puts "PASS facilitator-record-boundary: exact files, launch, no private evidence"
 
 checkpoint_reviewed = run_checkpoint.match?(
-  /\A# Scope 0B v3 protocol result and v4 reset checkpoint\n\n> Status: \*\*REVIEWED — official v4 sessions authorized\*\*/
+  /\A# Scope 0B v4 protocol result and v5 reset checkpoint\n\n> Status: \*\*REVIEWED — official v5 sessions authorized\*\*/
 )
 sheet_reviewed = sheet.match?(
-  /\A# Scope 0B LLM UI-proxy facilitator sheet\n\n> Status: \*\*S0B-RUN-v4 REVIEWED — official sessions authorized\*\*/
+  /\A# Scope 0B LLM UI-proxy facilitator sheet\n\n> Status: \*\*S0B-RUN-v5 REVIEWED — official sessions authorized\*\*/
 )
-review_recorded = run_checkpoint.match?(/- initial v4 reset commit: `[0-9a-f]{40}`/) &&
-                  run_checkpoint.match?(/- bounded independent v4 reviewers?: `(?!PENDING`)[^`]+`/) &&
+review_recorded = run_checkpoint.match?(/- initial v5 protocol commit: `[0-9a-f]{40}`/) &&
+                  run_checkpoint.match?(/- bounded independent v5 reviewers?: `(?!PENDING`)[^`]+`/) &&
                   run_checkpoint.include?("final review: `P0=0, P1=0, P2=0`") &&
-                  run_checkpoint.match?(/- reviewed protocol commit: `[0-9a-f]{40}`/)
+                  run_checkpoint.match?(/- reviewed v5 protocol commit: `[0-9a-f]{40}`/)
 check(checkpoint_reviewed && sheet_reviewed && review_recorded,
-      "v4 checkpoint is not independently reviewed/authorized")
+      "v5 checkpoint is not independently reviewed/authorized")
 
 puts "Scope 0B implementation freeze: PASS"

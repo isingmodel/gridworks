@@ -1,12 +1,12 @@
 # Scope 0B LLM UI-proxy facilitator sheet
 
-> Status: **S0B-RUN-v4 REVIEWED — official sessions authorized**
+> Status: **S0B-RUN-v5 DRAFT — official sessions closed pending independent review**
 >
 > `BuildVersion = S0B-BUILD-v1`
 >
-> `PromptVersion = S0B-PROXY-v4`
+> `PromptVersion = S0B-PROXY-v5`
 >
-> `RunProtocolVersion = S0B-RUN-v4`
+> `RunProtocolVersion = S0B-RUN-v5`
 >
 > `DecisionRuleVersion = S0B-GATE-v1`
 >
@@ -47,11 +47,11 @@ Assignment is fixed:
 | Session | Variant | Evidence role |
 |---|---|---|
 | `S0B-L00` | `ab` | reviewed native UI rehearsal retained from unchanged build |
-| `S0B-V4-L01` | `ab` | official v4 slot 1 |
-| `S0B-V4-L02` | `ba` | official v4 slot 2 |
-| `S0B-V4-L03` | `ab` | official v4 slot 3 |
-| `S0B-V4-L04` | `ba` | official v4 slot 4 |
-| `S0B-V4-L05` | `ab` | official v4 slot 5 |
+| `S0B-V5-L01` | `ab` | official v5 slot 1 |
+| `S0B-V5-L02` | `ba` | official v5 slot 2 |
+| `S0B-V5-L03` | `ab` | official v5 slot 3 |
+| `S0B-V5-L04` | `ba` | official v5 slot 4 |
+| `S0B-V5-L05` | `ab` | official v5 slot 5 |
 
 Every log path must not exist before launch; the app fails closed rather than appending. The coordinator
 sets `EVIDENCE_ID=<SESSION_ID>-launch1` for the first launch and increments the launch number for every
@@ -60,7 +60,8 @@ do not change. The runner manifest contains both IDs and the launch-specific tra
 The coordinator
 records launch, READY and end with monotonic times and the exact `endReason`/`faultAttribution` pair from the
 active contract. The one-row runner manifest also records the exact model, reasoning, fork and tool policy,
-plus the path and SHA-256 of the independent participant-launch/tool evidence. A non-`none` fault attribution
+plus the path and SHA-256 of the participant-returned provenance ledger and independent app/launch evidence.
+A non-`none` fault attribution
 must likewise point to a preserved engine, app, host or transport artifact and its SHA-256; a coordinator note
 alone is not evidence.
 
@@ -104,10 +105,11 @@ oracle·rubric과 이전 세션은 보지 마세요. Gridworks 화면 읽기와 
 (5) 예상 밖이거나 이해하기 어려웠던 조작.
 ```
 
-## 3. Native preflight inherited by v4
+## 3. Native preflight inherited by v5
 
-The reviewed `S0B-L00` remains valid because v4 changes no build, UI, app target, fixture or Computer Use
-action path. Do not start official v4 sessions unless all are true:
+The reviewed `S0B-L00` remains valid because v5 changes no build, UI, app target, fixture or Computer Use
+action path. Do not start official v5 sessions unless this sheet and the v5 checkpoint are reviewed and all
+of the following are true:
 
 1. The host UI is unlocked and exactly one target process is running.
 2. `get_app_state` returns twice within 20 seconds and exposes the exact title, current stage and enabled
@@ -116,7 +118,7 @@ action path. Do not start official v4 sessions unless all are true:
 4. One complete run reaches `FINAL`; the diagnostic contains the frozen ten-event sequence and the runner
    manifest agrees with it.
 5. The source-manifest build and fixture hashes match the implementation checkpoint; prompt, facilitator and
-   assignment hashes match the current v4 run-protocol checkpoint.
+   assignment hashes match the current v5 run-protocol checkpoint.
 6. An independent protocol review confirms the setup/scored-interaction boundary and that no game context is
    available through bootstrap metadata.
 
@@ -143,15 +145,15 @@ If both AX and screenshot are unavailable, or a real accepted command cannot be 
   force through the scored final report; measurement ends only when that report is submitted.
 - The four `PREDICTION_LOCKED` values are prediction authority; reveal-time prose cannot repair them.
 - Fill [`record-template.csv`](record-template.csv) from transcript, diagnostic and runner evidence.
-- After the final participant report, send the exact export message in §5. Hash its output and verify the exact
-  preparation and measured-tool boundary before starting the next session.
+- After the final participant report, send the exact export message in §5. Hash its output and verify the
+  closed provenance fields before starting the next session.
 - Do not discuss earlier sessions, scores or expected answers with a later participant.
 - Do not tune text, layout, values or controls between official sessions.
 
 The gate is exactly the active contract: each of the four fields at least `4/5`, integrated at least `3/5`.
 Selection ratio, completion time and click count are diagnostic only.
 
-## 5. Exact post-measurement evidence export
+## 5. Exact post-measurement provenance export
 
 This is a separate, unscored turn to the same participant after its final report. Send it byte-identically and
 add nothing else. The participant returns Markdown in its response without calling a tool. The coordinator,
@@ -159,14 +161,34 @@ who already satisfied the repository reading rules, stores that response verbati
 `<EVIDENCE_ID>-tool-trace.md` path.
 
 ```text
+EvidenceLedger = S0B-CALL-SOURCE-v1
+Coverage = ALL_CALLS_TASK_START_TO_FINAL_REPORT
+EntryFields = ORDER|TOOL|PURPOSE|CONTENT_SOURCE|REQUEST|RESULT|FRESH_STATE_FOR
+MetadataOrErrorRequest = EXACT
+MetadataResult = RETURNED_TOOL_NAMES_AND_USED_SIGNATURE_ONLY
+ErrorResult = EXACT_TEXT
+UiSequence = ACTION_THEN_FRESH_STATE
+UnusedToolDescriptions = OMIT
+FullAxOrScreenshotBody = OMIT
+```
+
+```text
 측정은 종료됐습니다. Gridworks, @oai/sky, node_repl 또는 다른 도구를 다시 호출하지 마세요. 이번
 세션에 보존된 task/tool history만 사용해 이 응답에 Markdown 본문만 반환하세요.
 
-다음을 실제 순서대로 기록하세요: (1) task 시작부터 final report까지의 모든 tool call 이름·목적·
-content source, (2) skill read와 첫 readable Gridworks state 전 metadata/error의 exact text,
-(3) 각 Gridworks call의 request code 또는 method/action, result status/content type과 fresh-state 여부,
-(4) 첫 readable Gridworks state를 scored interaction start로, final app-state read를 UI interaction end로,
-final report 제출을 measurement end로 표시, (5) 금지 source 접근이 있었다면 그 call과 반환 내용을
-명시하고 없었다면 없다고 명시. 전체 AX 본문은 복제하지 마세요. repository나 다른 파일을 읽지
-말고 앱을 조작하지 마세요.
+task 시작부터 final report까지의 모든 tool call을 실제 순서대로 짧은 ledger로 적으세요. 각 행에는
+순서, tool 이름, 목적, content-source 종류와 OK/ERROR가 있어야 합니다.
+
+- skill read는 등록 skill 이름과 성공 여부를 적으세요.
+- metadata/import/dispatch/error call은 request를 정확히 적으세요. 성공한 metadata 결과는 반환된
+  callable 이름과 실제 사용한 signature만 적고, 모든 ERROR는 오류 원문을 적으세요.
+- Gridworks call은 method/action, result status/content type을 적으세요. 각 UI action 뒤 어느 fresh
+  state read를 했는지 같은 행 또는 바로 다음 행에 표시하고 짧은 stage marker만 적으세요.
+- 첫 readable Gridworks state, final app-state read와 final report 제출 경계를 표시하세요.
+- 금지 source 접근이 있었다면 해당 call과 source를 적고, 없었다면 `ForbiddenContentSources: NONE`이라고
+  적으세요.
+
+사용하지 않은 tool description, 전체 tool-catalog 응답, wrapper 내부 구현, screenshot과 전체 AX 본문은
+요청하지도 보존하지도 않습니다. 이들을 생략해도 증거 누락이 아닙니다. repository나 다른 파일을
+읽지 말고 앱을 조작하지 마세요.
 ```

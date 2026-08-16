@@ -1,6 +1,6 @@
 # Scope 0B v4 protocol result and v5 reset checkpoint
 
-> Status: **v4 `PROXY-RUN-BLOCKED`; v5 protocol not yet frozen or authorized**
+> Status: **v4 `PROXY-RUN-BLOCKED`; v5 DRAFT — official sessions closed pending independent review**
 >
 > `SubGateDecision = PENDING`
 >
@@ -65,10 +65,57 @@ accepted events and final snapshot `d8d6ac9edf2dd05e45be72dd1d0f2d01d849a8e051d2
 - documentation/state review: `s0b_result_docs_audit`; terminal-state and stale-document findings resolved
 - reviewed v4 closure commit: `e031aa70686d7b24035f971141a8586c5c2ab9de`
 
-## 4. Next boundary
+## 4. Small v5 delta
 
-v5 is not authorized by this checkpoint. If resumed, it must remove the ambiguous evidence requirement rather
-than add another wrapper choreography: retain an exact call/source ledger and error text, but explicitly avoid
-requiring unused tool descriptions or full AX dumps. Build, fixture, UI, rubric and gate remain unchanged.
-The v5 protocol needs its own initial commit, bounded independent review and reviewed authorization commit
-before any new session. Scope 1 remains unopened.
+v5 changes only the post-run provenance format. It does not add another wrapper choreography.
+
+1. The task message, build, fixture, UI, rubric, gate, model and AB/BA allocation are unchanged except for the
+   new session IDs.
+2. The post-run export is a compact chronological call/source ledger, not a byte-complete output dump.
+3. Successful generic metadata records only returned callable names and the signature actually used.
+4. Each metadata/error request and every returned error are exact; each UI action points to its following
+   fresh-state read and short stage marker.
+5. Unused tool descriptions, wrapper internals, full AX/screenshot text and every target-state response are
+   explicitly neither retained nor required for `TechnicalValid`.
+6. The report is a bounded participant attestation cross-checked against the prompt, app diagnostic, transcript
+   and runner manifest. It is not independent proof that an unreported source was never accessed, so the final
+   claim must remain limited to this same-model proxy.
+
+- `ContractVersion = S0B-CONTRACT-v5`
+- `PromptVersion = S0B-PROXY-v5`
+- `RunProtocolVersion = S0B-RUN-v5`
+- unchanged: `S0B-BUILD-v1`, `S0B-FIXTURE-v1`, `S0B-GATE-v1`, runtime, data, scene, field meanings,
+  thresholds, replacement cap and revision budget
+- sessions: `S0B-V5-L01`–`L05`, variants `AB/BA/AB/BA/AB`, five new cold sessions, at most two
+  technical-invalid replacements and seven launches
+- v1–v4 remain immutable under their own rules and are not combined with v5
+
+## 5. v5 draft freeze hashes
+
+- source-manifest build SHA-256:
+  `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
+- fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
+- task-message template SHA-256: `75796ad89829418005a352833c556bd59f8e36f8d442cf2f7735e64fba5cdc74`
+- facilitator-sheet SHA-256: `99457431f277e6d639d3874ad6fa90b172223389498a4c1cb9d9a45479ac5ea2`
+- record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
+
+| Session | Variant | Task-message SHA-256 |
+|---|---|---|
+| `S0B-V5-L01` | `ab` | `80fd3418e078469b315376616bd31577cabc189644b6b1bdc4e74b3bb22f2fdd` |
+| `S0B-V5-L02` | `ba` | `7dfb1b4ef594bb1ed9afb41ae8b655c3e5078a43cafd39cedb723d32e063bc35` |
+| `S0B-V5-L03` | `ab` | `958c01bcb60eae69584356313ac01f71f650dfddd3d9b78142299f2120aeb8e7` |
+| `S0B-V5-L04` | `ba` | `f730446480b86c01494bbd5f5cc887cb98c29f9c41ea4f1cb389cc0c62fc6af1` |
+| `S0B-V5-L05` | `ab` | `f5690c059407ecf2a3108279775cefe8df341250d54517b607e3f40f48a89afa` |
+
+## 6. v5 review checkpoint
+
+- initial v5 protocol commit: `PENDING`
+- bounded independent v5 reviewers: `PENDING`
+- review standard: skeptic; simple structure is the default
+- runtime, fixture, UI, rubric or gate change: `NONE`
+- final review: `PENDING`
+- reviewed v5 protocol commit: `PENDING`
+
+Official v5 sessions remain closed until the hashes are exact, this checkpoint and the facilitator sheet both
+say `REVIEWED`, a bounded independent review is recorded, and the authorization verifier passes. Scope 1
+remains unopened.

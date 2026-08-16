@@ -49,9 +49,9 @@ v4의 다섯 참가자는 실제 native UI를 끝까지 조작했지만, 세 세
 판정과 hash는 [v4 종료·v5 준비 checkpoint](playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md)에
 고정했다. `HumanValidationStatus = NOT_COLLECTED`도 유지한다.
 
-현재 실행 승인된 proxy round는 없다. 다음 작업은 build·fixture·UI·rubric·gate를 바꾸지 않고,
-불필요한 전체 metadata/AX 복사를 요구하지 않는 더 짧은 v5 증거 계약을 별도 commit과 독립 review로
-동결하는 것이다. Scope 0의 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리하며,
+현재 실행 승인된 proxy round는 없다. build·fixture·UI·rubric·gate를 바꾸지 않고, 불필요한 전체
+metadata/AX 복사를 요구하지 않는 더 짧은 v5 증거 계약을 DRAFT로 작성했으며 별도 commit과 독립
+review가 끝나기 전에는 실행하지 않는다. Scope 0의 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리하며,
 Scope 1은 Scope 0B의 실제 `GO`와 별도 적응형 점검 전까지 열리지 않는다.
 
 ## 문서 구조

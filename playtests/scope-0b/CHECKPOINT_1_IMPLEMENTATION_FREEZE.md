@@ -1,6 +1,6 @@
 # Scope 0B implementation-freeze checkpoint
 
-> Status: **REVIEWED IMPLEMENTATION — runtime unchanged; current execution copy is reviewed v4**
+> Status: **REVIEWED IMPLEMENTATION — runtime unchanged; run protocol is owned by the latest reviewed reset checkpoint**
 >
 > `SubGateDecision = PENDING`
 >
@@ -10,11 +10,13 @@
 
 ## Frozen build authority
 
-The build evidence in this file remains current. v1, v2 and v3 were later blocked by run-protocol identity
-rules; their frozen evidence remains in [`checkpoint 1B`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md),
-[`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md) and
-[`checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md). The current execution copy is the v4 facilitator linked
-from checkpoint 1D. Runtime, fixture and gate did not change.
+The build evidence in this file remains current. Later run-protocol results and resets are preserved in
+their own checkpoints:
+[`checkpoint 1B`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md),
+[`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md),
+[`checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md) and
+[`checkpoint 1E`](CHECKPOINT_1E_RUN_PROTOCOL_V5.md). The current execution copy is the facilitator linked
+from the latest reviewed checkpoint. Runtime, fixture and gate did not change.
 
 - active contract: [`docs/scopes/SCOPE_0B_PLAYABLE.md`](../../docs/scopes/SCOPE_0B_PLAYABLE.md)
 - machine fixture: [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json)

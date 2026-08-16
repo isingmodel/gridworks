@@ -61,6 +61,7 @@ four private hashes and unchanged runtime/prompt/gate with `P0=0, P1=0, P2=0`.
 Official `S0B-L01`–`S0B-L05` could then run sequentially on the same frozen build. No official session had
 started when this review closed. The later v1 block is recorded in
 [`checkpoint 1B`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md), the v2 block in
-[`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md), and the v3 block plus current v4 draft in
-[`checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md). This historical L00 result remains reviewed native UI evidence
-for the unchanged build.
+[`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md), the v3 block in
+[`checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md), and later protocol state in
+[`checkpoint 1E`](CHECKPOINT_1E_RUN_PROTOCOL_V5.md). This historical L00 result remains reviewed native UI evidence
+for the unchanged build but does not authorize any official round.

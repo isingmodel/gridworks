@@ -10,7 +10,7 @@ ROOT = Pathname(__dir__).join("../..").expand_path
 FIXTURE_PATH = ROOT.join("data/scope-0b-v1.json")
 CONTRACT_PATH = ROOT.join("docs/scopes/SCOPE_0B_PLAYABLE.md")
 CHECKPOINT_PATH = ROOT.join("playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md")
-RUN_CHECKPOINT_PATH = ROOT.join("playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md")
+RUN_CHECKPOINT_PATH = ROOT.join("playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md")
 SHEET_PATH = ROOT.join("playtests/scope-0b/FACILITATOR_SHEET.md")
 
 def check(condition, message)
@@ -679,7 +679,7 @@ end
 check(missing_links.empty?, "missing links: #{missing_links.join(', ')}")
 check(markdown_paths.none? { |path| path.read.include?("SCOPE_0B_CANDIDATE.md") }, "stale candidate reference")
 contract = CONTRACT_PATH.read
-%w[S0B-CONTRACT-v4 S0B-FIXTURE-v1 S0B-BUILD-v1 S0B-PROXY-v4 S0B-RUN-v4 S0B-GATE-v1].each { |version| check(contract.include?(version), "contract version #{version}") }
+%w[S0B-CONTRACT-v5 S0B-FIXTURE-v1 S0B-BUILD-v1 S0B-PROXY-v5 S0B-RUN-v5 S0B-GATE-v1].each { |version| check(contract.include?(version), "contract version #{version}") }
 check(contract.include?("각각 `4/5` 이상") && contract.include?("`3/5` 이상"), "gate thresholds")
 check(contract.include?("ActiveKnob = 0"), "parameter policy")
 check(contract.include?("InteractionCompletionPass = false"), "technically valid incomplete session contract")
@@ -699,12 +699,14 @@ checkpoint_prompt_hash = RUN_CHECKPOINT_PATH.read[/task-message template SHA-256
 check(checkpoint_prompt_hash == prompt_hash, "checkpoint prompt hash #{checkpoint_prompt_hash.inspect} != #{prompt_hash}")
 check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"),
       "facilitator direct transport target")
-check(contract.include?("v1·v2·v3·v4는 합산하지 않는다"), "run-version evidence separation")
+check(contract.include?("v1·v2·v3·v4·v5는 합산하지 않는다"), "run-version evidence separation")
 check(contract.include?("`evidenceId`") && contract.include?("<sessionId>-launch1"), "replacement evidence identity")
 check(contract.include?("literal wrapper 문법이나 첫 호출 성공 여부는") &&
-      contract.include?("repository·source/data·diagnostic/log"), "v4 content-source validity boundary")
-check(contract.include?("`TechnicalValid = false` launch는 원인과 무관하게 최대 두 번"), "v4 replacement boundary")
-check(sheet.include?("ascii-whitespace-fold-v1"), "v4 prompt normalization policy")
+      contract.include?("repository·source/data·diagnostic/log"), "v5 content-source validity boundary")
+check(contract.include?("`TechnicalValid = false` launch는 원인과 무관하게 최대 두 번"), "v5 replacement boundary")
+check(contract.include?("사용하지 않은 tool description") &&
+      contract.include?("이 생략은 TechnicalValid 실패가 아니다"), "v5 compact evidence boundary")
+check(sheet.include?("ascii-whitespace-fold-v1"), "v5 prompt normalization policy")
 
 def scope0b_decision(valid_sessions:, field_passes:, integrated_passes:, conclusion_passes:, one_family:, safe_fix:, budget_available:)
   check(field_passes.keys.sort == %i[coverage interaction risk utility], "gate field keys")

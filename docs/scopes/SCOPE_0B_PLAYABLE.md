@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — 공식 v1·v2·v3·v4는 protocol `PROXY-RUN-BLOCKED`; v5는 아직 미동결·미승인**
+> 상태: **ACTIVE — 공식 v1·v2·v3·v4는 protocol `PROXY-RUN-BLOCKED`; v5 DRAFT는 review 전 실행 금지**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -52,11 +52,11 @@ R2에는 통과하지 못한 scored 오해가 없다. 따라서 새 오해를 �
 | Scope 0A 인계 원본 | [종료된 Scope 0A R1 §5](SCOPE_0A_CARD_TEST.md#5-동결-fixture) |
 | participant 실행 절차 | 현재 run-protocol checkpoint가 동결하는 [`playtests/scope-0b/FACILITATOR_SHEET.md`](../../playtests/scope-0b/FACILITATOR_SHEET.md) |
 
-- `ContractVersion = S0B-CONTRACT-v4` — 현재 gameplay 계약; 새 protocol 승인 전까지 변경하지 않는다.
+- `ContractVersion = S0B-CONTRACT-v5`
 - `FixtureVersion = S0B-FIXTURE-v1`
 - `BuildVersion = S0B-BUILD-v1` — 구현 commit hash와 함께 동결한다.
-- `PromptVersion = S0B-PROXY-v4` — 종료된 v4 실행 증거의 version
-- `RunProtocolVersion = S0B-RUN-v4` — 종료된 v4 실행 증거의 version; 다음 실행 version은 미동결
+- `PromptVersion = S0B-PROXY-v5`
+- `RunProtocolVersion = S0B-RUN-v5`
 - `DecisionRuleVersion = S0B-GATE-v1`
 
 JSON의 `verificationOnly`는 handoff·oracle 검사 전용이다. Core assembly의 경계 loader는 같은
@@ -501,15 +501,15 @@ AX와 screenshot을 모두 얻지 못하거나 실제 accepted command를 만들
 
 ### 11.2 공식 세션
 
-`S0B-PROXY-v4`의 canonical participant task message는
+`S0B-PROXY-v5`의 canonical participant task message는
 [facilitator sheet §2](../../playtests/scope-0b/FACILITATOR_SHEET.md#2-exact-participant-prompt) 한 곳만
 소유한다. coordinator는 검증기의 `--render-prompt <SESSION_ID>` 출력을 수정 없이 전달하고,
 `--check-transcript <SESSION_ID> <PATH>`가 실제 task turn을 확인한 뒤에만 해당 launch의
 TechnicalValid를 잠근다. `PromptHash`는 UTF-8 입력에서 ASCII space·tab·CR·LF 연속을 한 ASCII
 space로 접고 양끝을 제거한 뒤 계산한 SHA-256이다. 이 규칙은 ASCII whitespace 배치만 무시하며
-비공백 문자나 그 순서가 하나라도 추가·삭제·변경되면 hash가 달라진다. v3에는 소급 적용하지 않는다.
+비공백 문자나 그 순서가 하나라도 추가·삭제·변경되면 hash가 달라진다. 이전 version에는 소급 적용하지 않는다.
 
-- 신규 cold session: `S0B-V4-L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
+- 신규 cold session: `S0B-V5-L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
 - model: `gpt-5.6-sol`, reasoning `medium`, `fork_turns = none`
 - 세션은 직렬 실행하며 매번 새 process·새 in-memory fixture로 시작한다.
 - task 전체의 허용 정보 출처는 exact participant message, 지정 skill과 현재 frozen Gridworks UI뿐이다.
@@ -522,10 +522,15 @@ space로 접고 양끝을 제거한 뒤 계산한 SHA-256이다. 이 규칙은 A
   final app-state read에서 UI interaction은 끝나지만 source-isolation 규칙은 final report까지 유지된다.
   각 UI action 뒤에는 같은 dispatch 또는 다음 read-only direct-wrapper dispatch로 fresh
   `get_app_state`를 얻은 뒤에만 다음 action을 정한다. final 보고 뒤 coordinator는 facilitator sheet의
-  exact export message를 같은 participant에게 별도 turn으로 보내 retained tool history를 Markdown
-  응답으로 받는다. participant는 도구를 다시 호출하지 않으며 coordinator가 응답 원문을 launch별
-  private trace로 저장한다. 이 export는 측정에 합산하지 않고, 다음 session 전에 coordinator가 trace
-  path·SHA와 tool-policy 준수를 runner manifest에 대조한다.
+  exact export message를 같은 participant에게 별도 turn으로 보내 **짧은 provenance report**를 받는다.
+  participant는 도구를 다시 호출하지 않으며 coordinator가 응답 원문을 launch별 private trace로
+  저장한다. 이 export는 측정에 합산하지 않고, 다음 session 전에 path·SHA와 필수 의미 field를
+  runner manifest에 대조한다.
+- provenance report는 task 시작부터 final report까지의 call/source ledger다. 각 행은 순서·tool·목적·
+  content-source·상태를 가지며, metadata/error call은 정확한 request를, metadata 결과는 반환된 callable
+  이름과 실제 사용 signature만, 모든 error는 원문을 보존한다. 각 UI action은 바로 뒤 fresh-state
+  read와 짧은 stage marker에 연결한다. 사용하지 않은 tool description, 전체 tool-catalog 응답,
+  wrapper 내부구현, screenshot과 전체 AX 본문은 복제하지 않는다. 이 생략은 TechnicalValid 실패가 아니다.
 - logical `sessionId`는 prompt와 app state에 쓰며 replacement에서도 바꾸지 않는다. 각 실제 launch의
   `evidenceId`는 `<sessionId>-launch1`부터 증가하고 engine/app/runner/trace/transcript path에만 쓴다.
   replacement는 실패 slot의 variant·prompt hash를 그대로 상속한다.
@@ -548,20 +553,24 @@ space로 접고 양끝을 제거한 뒤 계산한 SHA-256이다. 이 규칙은 A
 - 원 transcript·diagnostic·screenshot은 `playtests/scope-0b/private/`에 두고 Git 제외한다. 공개에는
   SHA-256, 비식별 aggregate·오해·도구 한계만 남긴다.
 
-`TechnicalValid`는 frozen build·fixture·prompt hash, 새 process, exact variant, task 시작부터의 완전한
-tool trace·transcript·runner manifest가 있고, 허용되지 않은 content source나 첫 readable state 전 UI
-mutation이 없으며, (a) 정상 runner에서 `READY`와 app diagnostic prefix가
+`TechnicalValid`는 frozen build·fixture·prompt hash, 새 process, exact variant, transcript·runner
+manifest·facilitator §5 필수 field를 채운 provenance ledger가 있고, 허용되지 않은 content source나 첫 readable
+state 전 UI mutation이 없으며, (a) 정상 runner에서 `READY`와 app diagnostic prefix가
 확보된 뒤 `faultAttribution != runner`이거나 (b) preflight가 통과한 동일 환경에서 frozen app 귀속
 crash·무응답(`faultAttribution = app`)이 runner manifest로 입증되면 true다. 정상 runner의
 participant stop·timeout과 app failure는 `InteractionCompletionPass = false`인 valid scored failure다.
 host lock·Computer Use transport·process launch를 포함해 독립 증거로 `faultAttribution = runner`인
 오류는 READY 전후와 무관하게 TechnicalValid=false이고 replacement 대상이다. 사후 추측만으로
 app/runner 귀속을 바꾸지 않는다.
+TechnicalValid=false의 증거 형식 사유는 필수 artifact/field 누락, identity 불일치, 금지 source 접근,
+첫 state 전 mutation, frozen target·`@oai/sky` 밖 UI 조작, 또는 독립 artifact와 ledger의 모순으로
+닫는다. harmless metadata/import/transport 확인, literal wrapper spelling, 첫 호출 실패와 위에서
+명시적으로 제외한 verbose output 생략은 무효 사유가 아니다.
 각 run protocol version은 독립된 최대 일곱 official launch와 두 번의 technical-invalid replacement 상한을
-갖는다. v1·v2·v3·v4는 합산하지 않는다. v1은 6/7 launch 뒤, v2는 L01 bootstrap 불일치 뒤, v3는
-L03–L05 prompt 불일치 뒤 valid 다섯 slot이 불가능해 각각 `PROXY-RUN-BLOCKED`로 닫혔고 gameplay
-revision budget을 쓰지 않았다. v4에서 두 번의 허용 replacement 뒤에도 valid 다섯 slot을 확보하지
-못하면 같은 protocol 상태로 닫고 게임을 판정하지 않는다.
+갖는다. v1·v2·v3·v4·v5는 합산하지 않는다. v1은 bootstrap, v2는 import, v3는 prompt identity,
+v4는 evidence-format 불일치 때문에 valid 다섯 slot이 불가능해 각각 `PROXY-RUN-BLOCKED`로 닫혔고
+gameplay revision budget을 쓰지 않았다. v5에서 두 번의 허용 replacement 뒤에도 valid 다섯 slot을
+확보하지 못하면 같은 protocol 상태로 닫고 게임을 판정하지 않는다.
 
 ### 11.3 사전 rubric
 

@@ -1,6 +1,6 @@
 # Scope 0B implementation-freeze checkpoint
 
-> Status: **DRAFT — independent checkpoint review pending; proxy remains closed**
+> Status: **REVIEWED — L00 authorized; official sessions remain closed until L00 passes**
 >
 > `SubGateDecision = PENDING`
 >
@@ -21,7 +21,7 @@
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - prompt-template SHA-256: `4a07e8fdf61cbd2475ba27613e9a89d4fcb254cc54c6d19d5f6a740ca64f2111`
-- facilitator-sheet SHA-256: `f3449d254016f3158e0bab4282d48b14bdead8f2c01eb3c07f8d09f9038ebd98`
+- facilitator-sheet SHA-256: `acd9dd5510f07a5a6175b56ed15c79bcfb0e3e2e39a1cfeb6d3e5d398aeec2e2`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
 
 The runtime build hash is a deterministic manifest of the runtime source inputs in `game/`,
@@ -71,6 +71,9 @@ dotnet format game/Gridworks.Game.csproj --verify-no-changes --no-restore
 dotnet build src/Gridworks.Core/Gridworks.Core.csproj -c Release
 dotnet run --project tools/Gridworks.Checks/Gridworks.Checks.csproj -c Release -- data/scope-0b-v1.json
 dotnet build game/Gridworks.Game.csproj -c Release
+/Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --headless --editor --path /Users/fred/dev/electric_simulator/game --quit --log-file /private/tmp/s0b-freeze-c147-import-godot.log
+/Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --headless --path /Users/fred/dev/electric_simulator/game --log-file /private/tmp/s0b-freeze-c147-ab-godot.log -- --session-id S0B-FREEZE-AB --variant ab --diagnostic-log /private/tmp/s0b-freeze-c147-ab-app.jsonl --smoke
+/Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --headless --path /Users/fred/dev/electric_simulator/game --log-file /private/tmp/s0b-freeze-c147-ba-godot.log -- --session-id S0B-FREEZE-BA --variant ba --diagnostic-log /private/tmp/s0b-freeze-c147-ba-app.jsonl --smoke
 ```
 
 - Core checks: `7 suites / 3,098 assertions`, all `PASS`
@@ -95,6 +98,17 @@ dotnet build game/Gridworks.Game.csproj -c Release
 | `S0B-L04` | `ba` | `03e19cbcb1debe1a8d9d1ef44dc50c8a19bfd2f3b78bfa147c31207a88a6c6bb` |
 | `S0B-L05` | `ab` | `bb3fb9929e3605d5d2fb78d1b3a7ae22ec7d95e30ead8b428f54181d069eaaf2` |
 
+## Checkpoint review
+
+- initial checkpoint commit: `42a827e59ff05a12c5c65b890f4c9a8d4fe9541b`
+- bounded independent reviewer: `scope0b_core_review`
+- review rule: challenge both missing evidence and unnecessary structure; prefer the smallest structure that
+  makes a gate decision reproducible
+- accepted fix: define the existing runner manifest's exact prompt hash, fault evidence and replacement
+  boundary in the facilitator sheet; add the exact Godot verification commands
+- rejected expansion: no general runner framework, separate schema or duplicate CSV telemetry was added
+- final review: `P0=0, P1=0, P2=0`; contract, implementation freeze, Core checks and build all passed
+
 ## Remaining gate
 
 The native UI was locked at the host level when Computer Use was probed. Therefore:
@@ -104,5 +118,5 @@ The native UI was locked at the host level when Computer Use was probed. Therefo
 - official sessions remain closed
 - this is an environment preflight condition, not a game score or `NO-GO`
 
-After this checkpoint receives bounded independent review, L00 may start on this exact build. Official L01–L05
+This checkpoint's bounded independent review is complete. L00 may start on this exact build. Official L01–L05
 may start only if L00 meets every preflight item in the facilitator sheet.

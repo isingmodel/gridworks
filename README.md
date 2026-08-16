@@ -41,9 +41,9 @@ Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합
 R2도 실제 비전문가가 아니라 새 cold LLM session 다섯 개를 사용했으므로 사람 사용성 증거가
 아니다. 같은-model 5회는 통계 표본이 아니며, 구조화된 질문에 대한 반복 일관성만 입증했다.
 계약과 machine fixture는 독립 review에서 `P0/P1/P2 = 0`으로 닫혔다. Core·검사도구·단일 Godot
-scene 구현, 자동검사, native smoke와 독립 코드 review도 완료됐다. 현재는 exact build·fixture·prompt와
-runner를 묶는 **구현 동결 checkpoint를 검토 중**이다. 공식 LLM 조작 proxy는 이 checkpoint가
-reviewed 상태가 되고, 별도의 집계 제외 L00 네이티브 조작 preflight가 통과하기 전에는 시작하지 않는다.
+scene 구현, 자동검사, native smoke, 독립 코드 review와 [구현 동결 checkpoint](playtests/scope-0b/CHECKPOINT_1_IMPLEMENTATION_FREEZE.md)까지
+reviewed 상태로 완료됐다. 현재 허용된 다음 단계는 동일 build의 집계 제외 **L00 네이티브 조작
+preflight**뿐이다. 공식 LLM 조작 proxy 다섯 회는 L00가 통과하기 전에는 시작하지 않는다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -51,8 +51,7 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-다음 허용 작업은 Scope 0B 구현 동결 checkpoint를 reviewed 상태로 닫고, 동일 build로 L00 네이티브
-조작 preflight를 수행하는 것이다.
+다음 허용 작업은 동일 build로 L00 네이티브 조작 preflight를 수행하는 것이다.
 
 ## 문서 구조
 

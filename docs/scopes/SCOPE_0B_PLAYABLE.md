@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — reviewed build 완료, 구현 checkpoint review 중, 조작 proxy 미개방**
+> 상태: **ACTIVE — 구현 checkpoint reviewed, L00 preflight 대기, 공식 proxy 미개방**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -8,8 +8,8 @@
 
 이 문서는 카드에서 확인한 인과가 실제 상태변화와 클릭이 있는 화면으로 전이되는지만 검사하는
 Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review checkpoint는 완료됐고, 이 문서의
-구현·자동검사와 독립 코드 review는 완료됐다. 공식 조작 proxy는 구현 동결 checkpoint의 독립 review와
-L00 네이티브 조작 preflight 전까지 열리지 않는다.
+구현·자동검사, 독립 코드 review와 구현 동결 checkpoint는 완료됐다. 현재는 같은 build의 L00
+네이티브 조작 preflight만 열려 있고, 공식 조작 proxy는 L00 통과 전까지 열리지 않는다.
 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설
@@ -624,7 +624,8 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 - [x] Core·Checks·Game과 automatic/native smoke가 모두 통과한다.
 - [x] 허용 범위 밖 abstraction·placeholder가 없음을 감사한다.
 - [x] initial implementation commit, 독립 review, 수정·재검사, reviewed build commit을 기록한다.
-- [ ] `CHECKPOINT_1_IMPLEMENTATION_FREEZE.md`에 build·fixture·prompt hash와 예상 밖 기술관찰을 남긴다.
+- [x] [`CHECKPOINT_1_IMPLEMENTATION_FREEZE.md`](../../playtests/scope-0b/CHECKPOINT_1_IMPLEMENTATION_FREEZE.md)에
+  build·fixture·prompt hash와 예상 밖 기술관찰을 남긴다.
 
 ### 조작 proxy·결과
 

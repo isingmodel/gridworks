@@ -48,12 +48,23 @@ Assignment is fixed:
 
 Every log path must not exist before launch; the app fails closed rather than appending. The coordinator
 records launch, READY and end with monotonic times and the exact `endReason`/`faultAttribution` pair from the
-active contract. A frozen-app failure is scored; only independently evidenced runner faults are replaceable.
+active contract. The one-row runner manifest also records the exact model, reasoning, fork and tool policy,
+plus the path and SHA-256 of the independent participant-launch/tool evidence. A non-`none` fault attribution
+must likewise point to a preserved engine, app, host or transport artifact and its SHA-256; a coordinator note
+alone is not evidence.
+
+The only allowed pairs are `final:none`, `participant_stop:none`, `timeout:none`, `timeout:app`,
+`app_crash:app` and `runner_error:runner`. A frozen-app failure is scored. Only independently evidenced
+`runner_error:runner` launches are replaceable, at most twice; L01–L05 and their replacements may total at
+most seven launches.
 
 ## 2. Exact participant prompt
 
 The following code block must be byte-identical to the active contract. Replace `<SESSION_ID>` once; add no
 greeting, explanation, success criterion or recovery hint.
+
+`PromptHash` means the lowercase SHA-256 of the exact UTF-8 participant message after that replacement. It
+excludes the Markdown fences and the newline immediately before the closing fence.
 
 ```text
 당신은 Gridworks를 처음 플레이하는 전력회사 운영자입니다. 세션 ID는 <SESSION_ID>입니다.

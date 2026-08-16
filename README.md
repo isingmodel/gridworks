@@ -58,7 +58,7 @@ rubric·gate는 바꾸지 않고 direct Computer Use wrapper와 app target만 ex
 따라서 [`v2도 protocol PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1C_RUN_PROTOCOL_V3.md)로
 조기 종료했다. 둘 다 gameplay `REVISE/NO-GO`가 아니며 서로 합산하거나 소급 재채점하지 않는다.
 
-현재 `S0B-RUN-v3`는 게임 정보 출처만 닫는 더 단순한 TechnicalValid 규칙을 review 중이다. generic
+현재 `S0B-RUN-v3`는 게임 정보 출처만 닫는 더 단순한 TechnicalValid 규칙으로 review를 마쳤다. generic
 tool metadata·transport error는 점수와 무관한 setup 진단으로 허용하되 repository·fixture·web·정답·
 이전 세션·다른 앱 내용은 금지한다. 게임 build·fixture·UI·rubric과 `4/5 + integrated 3/5` gate는
 바꾸지 않았다.
@@ -69,8 +69,8 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-v3 protocol은 initial commit과 독립 review가 끝나기 전까지 실행하지 않는다. review가 닫히면 동일
-build의 신규 cold session 다섯 회만 직렬 실행하며 게임 문구·수치·fixture·판정 기준은 바꾸지 않는다.
+v3 protocol은 독립 review에서 `P0/P1/P2 = 0`으로 닫혔다. 이제 동일 build의 신규 cold session 다섯
+회만 직렬 실행하며 게임 문구·수치·fixture·판정 기준은 바꾸지 않는다.
 
 ## 문서 구조
 

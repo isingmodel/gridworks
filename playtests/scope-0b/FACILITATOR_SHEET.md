@@ -1,6 +1,6 @@
 # Scope 0B LLM UI-proxy facilitator sheet
 
-> Status: **S0B-RUN-v3 FROZEN DRAFT — official sessions closed pending independent review**
+> Status: **S0B-RUN-v3 REVIEWED — official sessions authorized, not yet started**
 >
 > `BuildVersion = S0B-BUILD-v1`
 >

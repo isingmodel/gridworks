@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — 공식 v1·v2는 protocol `PROXY-RUN-BLOCKED`; v3 protocol review 중**
+> 상태: **ACTIVE — 공식 v1·v2는 protocol `PROXY-RUN-BLOCKED`; reviewed v3 proxy 실행 허용**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -666,7 +666,7 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 
 - [x] L00 native tool preflight를 동일 reviewed build로 통과했다.
 - [x] v1·v2 protocol blocker를 게임 판정과 분리해 불변 evidence로 닫았다.
-- [ ] v3 task message와 content-source TechnicalValid 경계를 independent review로 닫는다.
+- [x] v3 task message와 content-source TechnicalValid 경계를 independent review로 닫았다.
 - [ ] reviewed v3 task message로 공식 다섯 valid session을 수행한다.
 - [ ] 원자료 hash·독립 strict score·aggregate·판정을 기록한다.
 - [ ] 결과의 큰 단위 checkpoint에서 문서 최신성과 다음 최대 미검증 위험을 다시 점검한다.

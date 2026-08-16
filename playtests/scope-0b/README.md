@@ -16,8 +16,8 @@ replaced under v2, so five valid slots became unreachable and
 
 The same v3 checkpoint now freezes a smaller rule: generic tool metadata and transport errors are diagnostic,
 while repository/source/data, web, saved stimuli, oracle/rubric, prior sessions and other-app content remain
-forbidden. Runtime, fixture, UI, rubric and game gate are unchanged. Official v3 sessions remain closed until
-that checkpoint's independent review is complete.
+forbidden. Runtime, fixture, UI, rubric and game gate are unchanged. The checkpoint's independent review
+closed with `P0/P1/P2 = 0`; official v3 sessions may now run sequentially.
 
 Future raw transcripts, native diagnostic logs and screenshots belong in `private/` and stay out of Git.
 Only their hashes, anonymous aggregate and reviewed decision may be published here.

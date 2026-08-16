@@ -85,6 +85,8 @@ check(sheet.include?("--accessibility always"), "launch command lacks forced acc
 check(sheet.include?("--resolution 1280x720"), "launch command lacks frozen resolution")
 check(sheet.include?("--diagnostic-log"), "launch command lacks separate diagnostic path")
 check(sheet.include?("S0B-L00") && sheet.include?("L00Status = PASS"), "L00 pass is not explicit")
+check(sheet.include?("S0B-RUN-v3 REVIEWED") && sheet.include?("official sessions authorized"),
+      "v3 reviewed execution status missing")
 check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v3 direct transport target missing")
 check(sheet.include?("Generic environment-owned tool name/signature metadata") &&
       sheet.include?("other-app contents are forbidden"), "v3 content-source boundary missing")

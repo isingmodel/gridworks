@@ -1,6 +1,6 @@
 # Scope 0B v2 protocol result and v3 reset checkpoint
 
-> Status: **FROZEN DRAFT — official v3 sessions closed pending independent review**
+> Status: **REVIEWED — official v3 sessions authorized**
 >
 > `RoundStatus = PROXY-RUN-BLOCKED` for `S0B-RUN-v2`
 >
@@ -96,7 +96,7 @@ v2 remain immutable under their own stricter rules.
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - task-message template SHA-256: `34cd25113a33c8aeb3f1ce4e009582f5214db03df6a9d11b2ce8c526505b5391`
-- facilitator-sheet SHA-256: `0a0cd1b941530acae3731332c2cccdefdcd504bcfbc75f1810e2bbcfe8c72654`
+- facilitator-sheet SHA-256: `528633d4d11d1321ffd053a26349d2e9f5d257713183344d26f83f5ae3f41396`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
 
 | Session | Variant | Task-message SHA-256 |
@@ -109,8 +109,13 @@ v2 remain immutable under their own stricter rules.
 
 ## 5. Review checkpoint
 
-- initial v3 protocol commit: `PENDING`
-- bounded independent reviewer: `PENDING`
+- initial v3 protocol commit: `3422fe47514070efc7cca86619321afdd342088b`
+- bounded independent reviewer: `v3_frozen_review`
 - review standard: skeptic; treat simple structure as the default and reject new runner frameworks
-- official v3 sessions remain closed until review findings are fixed, all verifiers pass and a reviewed
-  protocol commit is recorded here
+- accepted fixes: separate implementation/run hash authority, increment evidence IDs for every authorized
+  technical-invalid replacement, distinguish evidenced runner failure from working-app participant failure,
+  label historical v1 hashes and lock TechnicalValid before gameplay scoring rather than before evidence export
+- rejected expansion: no new runner framework, gameplay/UI change, fixture change or gate change
+- final review: `P0=0, P1=0, P2=0`; contract, implementation and R2 regression verifiers plus
+  `git diff --check` passed
+- reviewed protocol commit: `81aa8b194611fedf4402257ae95a97af5548c3e2`

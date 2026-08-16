@@ -12,5 +12,5 @@
 **/bin/
 **/obj/
 
-# Local working documents and temporary artifacts.
+# Local-only documents and temporary artifacts.
 /temp/

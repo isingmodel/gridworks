@@ -81,3 +81,10 @@ Private log paths:
 
 앱 진단은 support 좌표 자체를 기록하지 않는다. 위 final snapshot은 참가자가 보고한 `(4,4) → (7,4)`와
 minute `60`, commissioned, target energized view를 권위 직렬화한 SHA-256과 일치한다.
+
+## 독립 검토
+
+- initial evidence commit: `f2ca4f929063976389c126f914a4e79dc54e3b93`
+- bounded reviewer: `scope1_single_official_guard`
+- initial findings: `P0=0`, `P1=1`, `P2=1`; 원본 anchor 누락과 shell 표현을 수정했다.
+- final recheck: `P0=0`, `P1=0`, `P2=0`; blocker 없음

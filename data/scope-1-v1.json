@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1",
+  "fixtureId": "scope-1-v1",
+  "units": {
+    "position": "GridUnit",
+    "time": "GameMinute"
+  },
+  "mapBounds": {
+    "minX": 0,
+    "maxX": 11,
+    "minY": 0,
+    "maxY": 7
+  },
+  "source": {
+    "x": 1,
+    "y": 4
+  },
+  "target": {
+    "x": 11,
+    "y": 4
+  },
+  "maxSpan": 4,
+  "initialMinute": 0,
+  "buildMinutes": 60
+}

@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **재개 — `0A_R2_ACTIVE`**
+> 상태: **R2 통과 — `0A_R2_PASS_REVIEW`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -8,7 +8,9 @@
 
 이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
-R1은 `PROXY-FAIL`로 끝났지만 사용자가 2026-08-16에 coverage·통합 통과까지 새 iteration을 계속하고 Scope 1 실행 준비상태까지 진행하도록 명시했다. 현재 실행 권위는 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)다. R2 통과·checkpoint 전에는 Scope 0B를 시작하지 않는다.
+R1은 `PROXY-FAIL`로 끝났지만 새 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 네 field와 integrated
+모두 `5/5`로 `PROXY-PASS`했다. 현재 실행 권위는 [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와
+결과 checkpoint다. checkpoint 전에는 Scope 0B를 시작하지 않는다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 
@@ -22,6 +24,10 @@ R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`
 ```
 
 각 round는 사전계약·동결 hash·새 다섯 session을 가지며 이전 결과와 합산하지 않는다. 사용자 목표가 반복을 승인했어도 open-ended parameter tuning, 비용·선택률 조정과 사후 rubric 완화는 금지한다.
+
+R2 실제 판정: technically valid `5/5`, Coverage/Risk/Utility/Trade-off 각각 `5/5`, integrated
+`5/5`, `PROXY-PASS`. 원문·채점표는 Git 제외, SHA-256과 비식별 집계는
+[`RESULT.md`](../../playtests/scope-0a-r2/RESULT.md)에 고정했다.
 
 ## 1. Scope 0의 목적과 종료상태
 
@@ -193,7 +199,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 ## 11. 반복 작업단위 checkpoint
 
-역사적 R1 기록은 [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a/CHECKPOINT_1_MATERIALS_FREEZE.md)와 [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md)에 있다. 재개된 R2의 현재 기록은 [`R2 CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a-r2/CHECKPOINT_1_MATERIALS_FREEZE.md)다. 아래 공통 항목은 각 활성 gate의 checkpoint에만 적용되며 미래 실행 권한이 아니다.
+역사적 R1 기록은 [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a/CHECKPOINT_1_MATERIALS_FREEZE.md)와 [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md)에 있다. R2 기록은 [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a-r2/CHECKPOINT_1_MATERIALS_FREEZE.md)와 현재 [`CHECKPOINT_2_R2_DECISION.md`](../../playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)다. 아래 공통 항목은 각 활성 gate의 checkpoint에만 적용되며 미래 실행 권한이 아니다.
 
 다음 다섯 지점에서 이 checkpoint를 각각 수행한다.
 
@@ -205,7 +211,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 - [ ] 해당 시점까지 존재하는 승인된 산출물·자동검사·LLM proxy 또는 사람 증거·예상 밖 관찰만 기록한다.
 - [ ] checkpoint 1·3·4에서는 `SubGateDecision = PENDING`을 기록한다. checkpoint 2는 `PROXY-PASS | PROXY-REVISE | PROXY-FAIL`, checkpoint 5는 활성 Scope 0B의 판정 어휘를 사용한다.
-- [ ] workflow는 별도로 `Scope0State = 0A_R2_ACTIVE | 0B_CONTRACT_AUTHORIZED | 0B_ACTIVE | PAUSED | STOPPED | REVIEWED` 중 실제 상태로 기록한다.
+- [ ] workflow는 별도로 `Scope0State = 0A_R2_ACTIVE | 0A_R2_PASS_REVIEW | 0B_CONTRACT_AUTHORIZED | 0B_ACTIVE | PAUSED | STOPPED | REVIEWED` 중 실제 상태로 기록한다.
 - [ ] 루트 README의 현재 개발 상태와 하위 scope 상태를 일치시킨다.
 - [ ] [오브젝트 카탈로그](../product/OBJECT_CATALOG.md)는 실제로 열린 기능만 `현재`로 갱신한다.
 - [ ] 비주얼 명세는 실제 관찰로 표현 규칙이 바뀌었을 때만 갱신한다.

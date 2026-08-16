@@ -29,19 +29,26 @@
 
 ## 현재 개발 상태
 
-현재 승인된 개발단위는 [**Scope 0A R2 — 구조화 카드 테스트**](docs/scopes/SCOPE_0A_R2_CARD_TEST.md)다. 사용자가 2026-08-16에 coverage와 통합 통과가 될 때까지 증거 기반 iteration을 계속하고 Scope 1 실행 준비상태까지 진행하도록 새로 승인했다. 종료된 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남긴다.
+현재 승인된 개발단위는 [**Scope 0A R2 결과 checkpoint**](playtests/scope-0a-r2/RESULT.md)다. R2는
+coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했다. 종료된
+[R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.
 
 1. 서비스 권역과 실제 전력 공급은 다르다.
 2. 전기적으로 다른 두 회로도 같은 공간 회랑을 쓰면 함께 끊길 수 있다.
 3. 병원 내부전원이 환자를 지키는 것과 전력회사가 전기를 공급·판매한 것은 다르다.
 
-R2도 실제 비전문가가 아니라 새 cold LLM session 다섯 개를 사용하므로 사람 사용성 증거가 아니다. R1에서 빠지거나 섞인 두 대비축을 한 `InformationStructure` family로 구조화하되 fixture·비용·field rubric·선택률은 바꾸지 않는다. 같은-model 5회는 통계 표본이 아니므로 `S0A-GATE-v2`는 네 field 각각 4/5와 한 응답 내 통합 3/5를 함께 요구한다. `PROXY-PASS` 뒤에는 별도 checkpoint를 거쳐 10~15분짜리 **Scope 0B 2D playable**의 실제 조작 가설을 검증한다.
+R2도 실제 비전문가가 아니라 새 cold LLM session 다섯 개를 사용했으므로 사람 사용성 증거가
+아니다. 같은-model 5회는 통계 표본이 아니며, 구조화된 질문에 대한 반복 일관성만 입증했다.
+현재 허용 작업은 결과를 커밋·독립 review하는 checkpoint까지다. 완료 뒤에는 현재 사용자 목표의
+조건부 승인에 따라 10~15분짜리 **Scope 0B 2D playable** 계약을 동결한다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
 확정 roadmap을 만들지 않는다.
 
-`LLM-PROXY-R1`의 [검토된 결과](playtests/scope-0a/RESULT.md)는 coverage `0/5`, 위험 인과 `4/5`, 내부전원 경계와 trade-off 각 `5/5`, 통합 `0/5`다. R2는 서비스 권역의 의미·실제 공급 판단을 나눠 묻고, Card 4의 전기회로·공간 통로 근거칸을 분리한다. 다음 허용 작업은 `S0A-CARD-v2`를 동결·검토한 뒤 `LLM-PROXY-R2` 다섯 세션을 실행하는 것이다.
+`LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
+integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
+다음 허용 작업은 이 결과 checkpoint를 마친 뒤 Scope 0B 활성 계약을 작성·review하는 것이다.
 
 ## 문서 구조
 

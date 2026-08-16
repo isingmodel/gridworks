@@ -40,13 +40,10 @@ Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합
 
 Scope 0B의 계약·machine fixture, Core·검사도구·단일 Godot scene, 자동검사, native smoke와
 독립 코드 review는 완료됐다. [L00 네이티브 조작](playtests/scope-0b/L00_RESULT.md)도 실제 화면에서
-`FINAL`까지 통과했다. 그러나 공식 LLM 조작 proxy v1~v5는 모두 **게임 판정 전 run protocol
-증거 문제**로 `PROXY-RUN-BLOCKED`다.
-
-v5는 여섯 launch 중 네 번 native `FINAL`에 도달했지만, 첫 완료 slot들의 필수 runner 시각·manifest를
-실행 중 기록하지 않았다. 이를 사후 filesystem 시각으로 메우지 않고, valid 다섯 slot이 불가능한
-시점에 판정 없이 중단했다. 자세한 판정은
-[v5 종료·v6 준비 checkpoint](playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)에 둔다.
+`FINAL`까지 통과했다. 공식 LLM 조작 proxy v1~v5는 각 실행 증거 규칙 문제로 게임 판정 없이
+`PROXY-RUN-BLOCKED`이며 합산하지 않는다. 상세 이력과 현재 승인은
+[evidence package](playtests/scope-0b/README.md)와
+[checkpoint 1F](playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)가 소유한다.
 `HumanValidationStatus = NOT_COLLECTED`도 유지한다.
 
 v6는 build·fixture·UI·rubric·수치 gate를 바꾸지 않고 별도 runner manifest, custom timestamp와 participant

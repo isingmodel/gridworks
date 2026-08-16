@@ -12,20 +12,12 @@ R1은 `PROXY-FAIL`로 끝났지만 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 �
 모두 `5/5`로 `PROXY-PASS`했다. [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와 완료된 checkpoint는
 Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 현재 실행 권위는 루트 README가 가리키는
 [Scope 0B 계약](SCOPE_0B_PLAYABLE.md)이다. 계약 checkpoint 뒤 구현·자동검사·독립 코드 review와
-구현 checkpoint까지 완료했다. 첫 L00은 Computer Use transport에서 막혔지만 재시작 뒤 AX가
-복구됐고 editor-build title target 수정도 독립 review로 닫혔다. 이어진
-[L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 실제 full run으로 `PASS`했고 evidence review도
-`P0/P1/P2 = 0`으로 닫혔다. 이후 공식 v1은 bootstrap provenance 불일치로 판정 없이
-`PROXY-RUN-BLOCKED`가 됐다. v2도 실제 UI를 완주한 launch가 그 전에 남긴 무해한 import 오류로
-frozen bootstrap과 충돌했고 valid 다섯 slot이 불가능해졌으므로 판정 없이 조기 종료했다. v3는
-native UI를 다섯 번 완주했지만 세 task message가 coordinator의 추가 경로 때문에 frozen hash와
-달라 `TechnicalValid = 2/5`로 판정 없이 닫혔다. v4도 다섯 번 native `FINAL`에 도달했지만 세
-tool trace가 동결된 metadata `exact text` 전체를 보존하지 않아 `TechnicalValid = 2/5`로 판정 없이
-닫혔다. [v4 종료 checkpoint](../../playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md)는 gameplay
-답을 채점하지 않는다. v5도 필수 runner 시각·manifest를 실행 중 기록하지 않아 valid 다섯 slot이
-불가능해졌고 [v5 종료·v6 준비 checkpoint](../../playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)에
-판정 없이 닫았다. v6는 coordinator·participant platform 원본과 app diagnostic을 사용하되, 별도
-runner evidence schema 없이 다섯 고정 row를 지우지 않는 더 단순한 계약이다.
+구현 checkpoint까지 완료했다. [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 실제 full run으로
+`PASS`했다. 공식 v1~v5는 실행 증거 규칙 문제로 모두 판정 없이 `PROXY-RUN-BLOCKED`이며 상세 이력은
+[evidence package](../../playtests/scope-0b/README.md)와 각 checkpoint가 소유한다. 현재
+[checkpoint 1F](../../playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)의 v6는 별도 runner evidence
+schema 없이 coordinator·participant platform 원본과 app diagnostic을 사용하고 다섯 고정 row를
+지우지 않는다.
 
 ## 1. Scope 0의 목적과 종료상태
 

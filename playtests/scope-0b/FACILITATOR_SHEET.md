@@ -52,12 +52,18 @@ returns. Before `L01` is dispatched, it performs one non-scored launch with
 `<VARIANT>` placeholders with those literal values. Before using Computer Use, the coordinator reads the frozen
 designated skill completely.
 
-1. Confirm that no Godot process remains and both new log paths do not exist.
-2. Launch the command above, capture its exact PID and confirm exactly one Godot process.
-3. Confirm the diagnostic starts with one `READY` row containing the frozen build hash, fixture hash, preflight ID
+1. From the repository root run exactly
+   `dotnet build game/Gridworks.Game.csproj -c Debug --no-restore -t:Rebuild`; failure blocks the round.
+2. Confirm that no Godot process remains and both new log paths do not exist.
+3. Launch the command above, capture its exact PID and confirm exactly one Godot process.
+4. Confirm the diagnostic starts with one `READY` row containing the frozen build hash, fixture hash, preflight ID
    and variant.
-4. Confirm the exact title is readable from the target UI. Do not click or advance the game.
-5. Terminate only the captured PID, wait for exit and log flush, then confirm no Godot process remains.
+5. Confirm the exact title is readable from the target UI. Do not click or advance the game.
+6. Terminate only the captured PID, wait for exit and log flush, then confirm no Godot process remains.
+
+For preflight and official rows alike, every launch that captured a PID must stop only that PID and confirm
+exit/log flush before the coordinator returns or advances to another launch, even when setup validation fails.
+A partial setup log does not become a new required original.
 
 Failure here closes the round as `PROXY-RUN-BLOCKED` before any participant observation. On success, commit all
 five rows immediately; the round is irrevocable before `L01` setup. Later setup, participant or evidence failures
@@ -95,7 +101,8 @@ oracle·rubric과 이전 세션은 보지 마세요. Gridworks 화면 읽기와 
 - The same coordinator runs the five rows serially. For each row it confirms no Godot process or old row path,
   launches the exact command, captures the exact PID and checks one process plus exact `READY` identity.
 - A row setup failure gets `SlotStatus = SETUP_FAILURE`; no participant is dispatched and all gameplay fields,
-  conclusions and integrated are `false`. Continue with the next row. Never erase an earlier row.
+  conclusions and integrated are `false`. Apply the common PID cleanup invariant, then continue with the next row.
+  Never erase an earlier row.
 - After successful row setup, dispatch the exact rendered prompt once to a new cold `gpt-5.6-sol`, reasoning
   `medium`, `fork_turns=none` task using that row's exact child task name. Send no follow-up or help.
 - When that single participant turn returns, terminate only the captured app PID, wait for exit and log flush,

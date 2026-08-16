@@ -158,6 +158,7 @@ check(sheet.include?("--accessibility always") &&
 check(sheet.include?("new cold `gpt-5.6-sol`, reasoning\n  `medium`, `fork_turns=none`"),
       "frozen model/reasoning/fork identity missing")
 check(sheet.include?("`SESSION_ID=S0B-V6-PREFLIGHT` and `VARIANT=ab`") &&
+      sheet.include?("dotnet build game/Gridworks.Game.csproj -c Debug --no-restore -t:Rebuild") &&
       sheet.include?("Failure here closes the round as `PROXY-RUN-BLOCKED`") &&
       sheet.include?("commit all\nfive rows immediately") &&
       sheet.include?("irrevocable before `L01` setup"),
@@ -165,6 +166,7 @@ check(sheet.include?("`SESSION_ID=S0B-V6-PREFLIGHT` and `VARIANT=ab`") &&
 check(sheet.include?("SlotStatus = SETUP_FAILURE") &&
       sheet.include?("SlotStatus = PARTICIPANT_FAILURE") &&
       sheet.include?("SlotStatus = EVIDENCE_FAILURE") &&
+      sheet.include?("Apply the common PID cleanup invariant") &&
       sheet.include?("Never erase an earlier row"),
       "fixed five-row failure mapping missing")
 check(sheet.include?("coordinator platform JSONL") &&
@@ -189,6 +191,10 @@ check(sheet.include?("source restriction applies to participants") &&
 check(sheet.include?("For a dispatched row, the three originals are required") &&
       sheet.include?("SETUP_FAILURE` row intentionally has no participant"),
       "setup-failure evidence exception missing")
+check(sheet.include?("every launch that captured a PID must stop only that PID") &&
+      sheet.include?("even when setup validation fails") &&
+      sheet.include?("partial setup log does not become a new required original"),
+      "captured-PID cleanup invariant missing")
 check(sheet.include?("Do not send a post-measurement export, create a runner manifest or reconstruct a transcript"),
       "removed evidence machinery prohibition missing")
 
@@ -285,9 +291,9 @@ normalized_checkpoint = run_checkpoint.dup
 normalizations = [
   ["> Status: **AUTHORIZED — official v6 sessions may start**",
    "> Status: **DRAFT — official v6 sessions closed**"],
-  [/- bounded independent v6 reviewers?: `[^`]+`/, "- bounded independent v6 reviewers: `PENDING`"],
-  [/- final review: `[^`]+`/, "- final review: `PENDING`"],
-  [/- reviewed v6 content commit: `[^`]+`/, "- reviewed v6 content commit: `PENDING`"]
+  [/^- bounded independent v6 reviewers?: `[^\r\n`]+`$/, "- bounded independent v6 reviewers: `PENDING`"],
+  [/^- final review: `P0=0, P1=0, P2=0`$/, "- final review: `PENDING`"],
+  [/^- reviewed v6 content commit: `[0-9a-f]{40}`$/, "- reviewed v6 content commit: `PENDING`"]
 ]
 normalizations.each do |from, to|
   check(!normalized_checkpoint.sub!(from, to).nil?, "authorization field normalization failed")

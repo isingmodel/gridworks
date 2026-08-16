@@ -63,6 +63,10 @@ instead of adding another evidence schema.
     platform originals only after the coordinator log becomes immutable.
 11. On timeout, the exact child is interrupted and confirmed closed before its app PID is terminated. Dispatched
     rows require three originals; a setup-failure row intentionally has no participant original.
+12. Every captured PID is stopped and flushed before return or the next launch, even after setup validation fails;
+    a partial setup log is not promoted into a new required artifact.
+13. Global preflight performs one exact Debug rebuild before native launch, so an ignored stale Godot assembly
+    cannot diverge from the reviewed source manifest.
 
 - `ContractVersion = S0B-CONTRACT-v6`
 - `PromptVersion = S0B-PROXY-v6`
@@ -77,7 +81,7 @@ instead of adding another evidence schema.
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - computer-use skill SHA-256: `e0ec667e63fba01381eb889ddbfd44a05b8556b1e502428e8ff0a474750a08d6`
 - task-message template SHA-256: `1625d1a8d2fcb918855d9d9e28bf536bd1a8c0cb9f6d93f25c0c2269831b4869`
-- facilitator-sheet SHA-256: `350dd32aab7cbe607fd950dc2a3a7ae741d348a36cfe6bec73bd1090ef2036ec`
+- facilitator-sheet SHA-256: `08785b80e0231568a6a82ba6fcc9d3bc820ff03b4d9d927ca1d60da258713a9e`
 
 | Session | Variant | Task-message SHA-256 |
 |---|---|---|

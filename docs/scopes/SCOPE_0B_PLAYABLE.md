@@ -12,26 +12,11 @@ Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review chec
 재시작 뒤 AX가 복구됐고, editor-build `(DEBUG)` title target 수정도 독립 review로 닫혔다. 이어진
 [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 두 번의 상태 읽기와 실제 element-index full run으로
 `FINAL`까지 통과했고, evidence review도 `P0/P1/P2 = 0`으로 닫혔다. 첫 공식 실행은 다섯 참가자가
-실제 UI에서 `FINAL`까지 도달했지만, 동결 절차에 없던 participant-side tool-catalog 조회가 매번
-발생해 `TechnicalValid`를 입증하지 못했다. 6/7 launch 뒤 valid 다섯 slot을 채울 수 없으므로
-[`v1 protocol reset checkpoint`](../../playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md)에
-`PROXY-RUN-BLOCKED`로 보존한다. v2 첫 launch는 host lock으로 교체됐고, 두 번째 launch는 실제 UI를
-완주했지만 첫 direct wrapper 전에 게임과 무관한 import 시도를 한 번 남겨 frozen v2 bootstrap과
-충돌했다. 이 slot은 runner replacement가 아니므로 valid 다섯 slot이 불가능해
-[`v2 result / v3 reset checkpoint`](../../playtests/scope-0b/CHECKPOINT_1C_RUN_PROTOCOL_V3.md)에
-별도 `PROXY-RUN-BLOCKED`로 보존한다. v3의 다섯 launch도 모두 native `FINAL`에 도달했지만 L03–L05에
-coordinator가 동결되지 않은 skill 절대경로를 덧붙여 실제 prompt hash가 불일치했다. 기술 유효는
-`2/5`이고 남은 교체 두 번으로 valid 다섯 slot을 만들 수 없어
-[`v3 result / v4 reset checkpoint`](../../playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)에 판정 없이
-닫았다. v4의 다섯 launch도 모두 native `FINAL`에 도달했지만, L02·L04·L05가 동결된 metadata
-`exact text` 전체를 보존하지 않았다. 기술 유효는 `2/5`이고 남은 교체 두 번으로 valid 다섯 slot을
-만들 수 없으므로 [v4 종료·v5 준비 checkpoint](../../playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md)에
-`PROXY-RUN-BLOCKED`로 닫았다. v5도 두 번의 setup 교체 뒤 완료 launch의 필수 runner 시각·manifest를
-실행 중 남기지 않아 valid 다섯 slot이 불가능해졌다. 이를 사후 filesystem 시각으로 메우지 않고
-[v5 종료·v6 준비 checkpoint](../../playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)에 판정 없이
-닫았다. 다섯 version 모두 게임 판정이나 revision이 아니며 gameplay 답은 채점·합산하지 않는다.
-v6는 build·fixture·UI·rubric·gate를 그대로 두고 반복 blocker를 만든 별도 runner manifest와
-participant provenance export를 제거한다.
+공식 v1~v5는 각자 동결한 실행 증거 규칙을 충족하지 못해 모두 게임 판정 없이
+`PROXY-RUN-BLOCKED`로 끝났고 서로 합산하지 않는다. 상세 이력은
+[evidence package](../../playtests/scope-0b/README.md)와 각 checkpoint가 소유한다. 현재
+[checkpoint 1F](../../playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)의 v6는 build·fixture·UI·rubric·gate를
+그대로 두고 반복 blocker를 만든 별도 runner manifest와 participant provenance export를 제거한다.
 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설
@@ -512,12 +497,16 @@ AX와 screenshot을 모두 얻지 못하거나 실제 accepted command를 만들
 - 신규 cold session: `S0B-V6-L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
 - model: `gpt-5.6-sol`, reasoning `medium`, `fork_turns = none`
 - 한 coordinator task가 round 전체를 소유한다. `L01` dispatch 전 `SESSION_ID=S0B-V6-PREFLIGHT`,
-  `VARIANT=ab` process 하나를 띄워 exact `READY` identity와 target title을 확인하고 exact PID만
-  종료·flush한다. 이 global preflight 실패만 참가자 관찰 전 `PROXY-RUN-BLOCKED`다.
+  `VARIANT=ab` process를 띄우기 전에 아래 Debug rebuild를 정확히 한 번 성공시킨다.
+  `dotnet build game/Gridworks.Game.csproj -c Debug --no-restore -t:Rebuild`.
+  이어서 exact `READY` identity와 target title을 확인하고 exact PID만 종료·flush한다. 이 global preflight 실패만 참가자 관찰 전
+  `PROXY-RUN-BLOCKED`다.
 - global preflight가 통과하는 즉시, `L01` setup 전에 다섯 고정 slot 전체를 확정한다. 이후 slot은
   지우거나 교체하지 않는다. 각 row는 새 process 하나의 exact PID와
   `READY`를 확인하고, setup 실패면 `SETUP_FAILURE`로 두고 참가자를 부르지 않은 채 그 row의 모든
   field·conclusion·integrated를 `false`로 기록한 후 다음 row로 간다.
+- preflight와 각 row에서 PID를 확보했다면 검증 성공 여부와 무관하게 coordinator가 반환하거나 다음
+  launch로 가기 전에 그 PID만 종료하고 exit·log flush를 확인한다. setup partial log는 새 필수 원본이 아니다.
 - participant task의 허용 정보 출처는 exact participant message, 지정 skill과 현재 frozen Gridworks UI뿐이다.
   generic tool metadata와 import·transport error는 setup 정보로 허용한다. participant가 repository·source/data,
   diagnostic/log, web, static card·저장 screenshot, oracle·rubric·이전 session, 앱 목록과 다른 앱 내용을 보는

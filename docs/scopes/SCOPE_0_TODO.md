@@ -1,17 +1,19 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B v1·v2·v3 protocol `PROXY-RUN-BLOCKED` — reviewed v4 실행 허용, `0B_ACTIVE`**
+> 상태: **Scope 0B v4 `GO` — `Scope0State = REVIEWED`**
 >
-> 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
+> 상태 권위: 루트 [README](../../README.md)가 지목한 terminal state
 >
-> 구성: 종료된 [R1 카드 계약](SCOPE_0A_CARD_TEST.md) → 종료된 [R2 계약](SCOPE_0A_R2_CARD_TEST.md) → 현재 [Scope 0B 계약](SCOPE_0B_PLAYABLE.md)
+> 구성: 종료된 [R1 카드 계약](SCOPE_0A_CARD_TEST.md) → 종료된 [R2 계약](SCOPE_0A_R2_CARD_TEST.md) → 완료된 [Scope 0B 계약](SCOPE_0B_PLAYABLE.md)
 
-이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
+이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자,
+topology, oracle, 참가자 기준과 실행 절차는 각 하위 scope의 동결 계약만 정한다. 이 문서를 단독
+절차서로 사용하지 않으며, 현재 상태는 루트 README를 따른다.
 
 R1은 `PROXY-FAIL`로 끝났지만 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 네 field와 integrated
 모두 `5/5`로 `PROXY-PASS`했다. [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와 완료된 checkpoint는
-Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 현재 실행 권위는 루트 README가 가리키는
-[Scope 0B 계약](SCOPE_0B_PLAYABLE.md)이다. 계약 checkpoint 뒤 구현·자동검사·독립 코드 review와
+Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 완료된 Scope 0B의 실행 권위는
+[Scope 0B 계약](SCOPE_0B_PLAYABLE.md)에 동결돼 있다. 계약 checkpoint 뒤 구현·자동검사·독립 코드 review와
 구현 checkpoint까지 완료했다. 첫 L00은 Computer Use transport에서 막혔지만 재시작 뒤 AX가
 복구됐고 editor-build title target 수정도 독립 review로 닫혔다. 이어진
 [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 실제 full run으로 `PASS`했고 evidence review도
@@ -19,8 +21,9 @@ Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 현재 실행 
 `PROXY-RUN-BLOCKED`가 됐다. v2도 실제 UI를 완주한 launch가 그 전에 남긴 무해한 import 오류로
 frozen bootstrap과 충돌했고 valid 다섯 slot이 불가능해졌으므로 판정 없이 조기 종료했다. v3는
 native UI를 다섯 번 완주했지만 세 task message가 coordinator의 추가 경로 때문에 frozen hash와
-달라 `TechnicalValid = 2/5`로 판정 없이 닫혔다. 현재는 prompt source를 하나로 줄이고 transcript를
-기계 검증하는 v4 protocol을 같은 build에서 review 완료했고 공식 직렬 실행을 열었다.
+달라 `TechnicalValid = 2/5`로 판정 없이 닫혔다. v4는 prompt source를 하나로 줄이고 transcript를
+기계 검증한 뒤 새 다섯 session을 교체 없이 완료했다. 네 field와 integrated가 모두 `5/5`여서
+[`GO`](../../playtests/scope-0b/RESULT.md)로 Scope 0을 닫았다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 
@@ -193,13 +196,13 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 - [x] v3의 prompt identity 불일치와 `TechnicalValid = 2/5`를 판정 없이
   [`v4 reset checkpoint`](../../playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)에 보존했다.
 - [x] 같은 build·fixture·UI·rubric·gate를 유지한 v4 single-source prompt 계약의 bounded review를 닫았다.
-- [ ] 활성 Scope 0B가 정한 신규 cold LLM session·실제 화면 조작·무도움 절차만 따른다.
-- [ ] 조작 결과를 서비스 권역·상위 연결, 전기·공간 원인과 내부전원·전력회사 공급에 귀속하는지 기록한다.
-- [ ] 계획 선택률이나 미세 조정된 성공률을 통과 목표로 사용하지 않는다.
-- [ ] 원자료는 공개 저장소 밖에 두고 비식별 집계와 예상 밖 행동만 보존한다.
-- [ ] `HumanValidationStatus = NOT_COLLECTED`를 유지하고 사람 사용성 증거로 표현하지 않는다.
-- [ ] `SubGateDecision`을 활성 계약의 `GO / REVISE / NO-GO` 중 하나로 기록한다.
-- [ ] 판정 뒤 §11의 작업단위 checkpoint를 완료하고 다음 위험을 새로 선정한다.
+- [x] 활성 Scope 0B가 정한 신규 cold LLM session·실제 화면 조작·무도움 절차만 따랐다.
+- [x] 조작 결과를 서비스 권역·상위 연결, 전기·공간 원인과 내부전원·전력회사 공급에 귀속해 기록했다.
+- [x] 계획 선택률이나 미세 조정된 성공률을 통과 목표로 사용하지 않았다.
+- [x] 원자료는 공개 저장소 밖에 두고 비식별 집계와 예상 밖 행동만 보존했다.
+- [x] `HumanValidationStatus = NOT_COLLECTED`를 유지하고 사람 사용성 증거로 표현하지 않았다.
+- [x] `SubGateDecision = GO`를 활성 계약의 동결 기준으로 기록했다.
+- [ ] 판정 뒤 §11의 작업단위 checkpoint review를 완료하고 다음 위험을 새로 선정한다.
 
 ## 9. Scope 0 파라미터 규칙
 
@@ -250,7 +253,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한다. 그 결과 `Interaction`이 선정됐을 때만 [Scope 1 후보](SCOPE_1_INTERACTION_TODO.md)를 출발점으로 다시 검토한다.
 
-- [ ] Scope 0B가 조건부 승인·구현됐고 자동검사와 LLM 조작 proxy 기준을 `GO`로 통과했다.
+- [x] Scope 0B가 조건부 승인·구현됐고 자동검사와 LLM 조작 proxy 기준을 `GO`로 통과했다.
 - [ ] Scope 0 후 적응형 점검에서 수동 pole·`MaxSpan` 상호작용이 다음 최대 미검증 위험으로 선정됐다.
 - [ ] 실제 Scope 0B 계약에 존재하는 graph·공사·상태전이만 인계표에 적고, 존재하지 않는 범용 lifecycle은 가정하지 않는다.
 - [ ] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 동결했다.

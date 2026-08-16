@@ -64,7 +64,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 | 산출물 | 파일·형태 | 상태 |
 |---|---|---|
 | Scope 0A 카드 | 16:9 카드 4장 | 종료된 R1/R2 증거로 동결 |
-| Scope 0B 화면 | 단일 2D scene | 활성 계약에 따라 구현·검토 중 |
+| Scope 0B 화면 | 단일 2D scene | 완료된 Scope 0B 증거로 동결 |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |
@@ -139,10 +139,11 @@ presentation gate에서 고정한다.
 인과 공개 뒤 두 번째 층에서 `건설비`, `판매`, `가스비`, `보상`, `LostSales`의 별도 행으로
 보여주며 승자나 점수를 표시하지 않는다.
 
-## 5. 현재 Scope 0B 화면 계약의 시각 경계
+## 5. 완료된 Scope 0B 화면의 시각 경계
 
-동결된 Scope 0B 계약에 따라 카드의 인과를 단일 탑다운 2D scene으로 옮겼다. 구현 checkpoint가
-reviewed 상태로 닫히기 전에는 조작 proxy를 열지 않으며, 기존 콘셉트 PNG를 재현하지 않는다.
+동결된 Scope 0B 계약에 따라 카드의 인과를 단일 탑다운 2D scene으로 옮겼고 조작 proxy까지
+완료했다. 기존 콘셉트 PNG를 재현하지 않았으며, 결과는 [Scope 0B 결과](../../playtests/scope-0b/RESULT.md)에
+동결한다.
 
 ### 화면 구성
 
@@ -283,7 +284,7 @@ capture나 이미지 prompt를 만들지 않는다.
 - 응답 전에 추천·정답·결과가 노출되지 않는가?
 - 병원 내부전원과 전력회사 선로가 구분되는가?
 
-### Scope 0B 화면 — 활성 계약
+### Scope 0B 화면 — 완료된 계약
 
 - 통전·계획·주의·사용불가의 색과 pattern이 일관적인가?
 - 예고 타임라인이 현재와 사건 순서·지속시간을 지도 없이도 읽게 하는가?

@@ -1,13 +1,14 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — 공식 v1·v2·v3는 protocol `PROXY-RUN-BLOCKED`; reviewed v4 proxy 실행 허용**
+> 상태: **COMPLETED — `S0B-GATE-v1 = GO`, `Scope0State = REVIEWED`**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
 > 사람 증거: `HumanValidationStatus = NOT_COLLECTED`
 
-이 문서는 카드에서 확인한 인과가 실제 상태변화와 클릭이 있는 화면으로 전이되는지만 검사하는
-Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review checkpoint는 완료됐고, 이 문서의
+이 문서는 카드에서 확인한 인과가 실제 상태변화와 클릭이 있는 화면으로 전이되는지만 검사한
+Scope 0B의 동결 실행 계약이다. 최종 [v4 결과](../../playtests/scope-0b/RESULT.md)는 technically valid
+`5/5`, 네 field와 integrated 모두 `5/5`로 `GO`다. 계약·fixture의 독립 review checkpoint는 완료됐고, 이 문서의
 구현·자동검사와 독립 코드 review는 완료됐다. 첫 L00은 Computer Use transport에서 막혔지만
 재시작 뒤 AX가 복구됐고, editor-build `(DEBUG)` title target 수정도 독립 review로 닫혔다. 이어진
 [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 두 번의 상태 읽기와 실제 element-index full run으로
@@ -23,8 +24,9 @@ Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review chec
 coordinator가 동결되지 않은 skill 절대경로를 덧붙여 실제 prompt hash가 불일치했다. 기술 유효는
 `2/5`이고 남은 교체 두 번으로 valid 다섯 slot을 만들 수 없어
 [`v3 result / v4 reset checkpoint`](../../playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)에 판정 없이
-닫는다. 세 version 모두 게임 판정이나 revision이 아니다. v4는 build·fixture·UI·rubric·gate를
-바꾸지 않고 prompt 전달만 한 canonical source와 기계 검증으로 단순화한다.
+닫았다. 세 version 모두 게임 판정이나 revision이 아니다. v4는 build·fixture·UI·rubric·gate를
+바꾸지 않고 prompt 전달만 한 canonical source와 기계 검증으로 단순화했고, 새 다섯 session을
+교체 없이 완료해 이 scope를 닫았다.
 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설
@@ -655,10 +657,10 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 - [x] v1·v2 protocol blocker를 게임 판정과 분리해 불변 evidence로 닫았다.
 - [x] v3를 prompt identity 불일치로 판정 없이 닫고 기술 무효 답을 채점·집계하지 않았다.
 - [x] v4의 단일 prompt source와 transcript 검증 경계를 independent review로 닫았다.
-- [ ] reviewed v4 task message로 공식 다섯 valid session을 수행한다.
-- [ ] 원자료 hash·독립 strict score·aggregate·판정을 기록한다.
+- [x] reviewed v4 task message로 공식 다섯 valid session을 수행했다.
+- [x] 원자료 hash·독립 strict score·aggregate·판정을 [결과](../../playtests/scope-0b/RESULT.md)에 기록했다.
 - [ ] 결과의 큰 단위 checkpoint에서 문서 최신성과 다음 최대 미검증 위험을 다시 점검한다.
-- [ ] `GO`라면 Scope 0을 `REVIEWED`로 닫되 Scope 1을 자동 구현하지 않는다.
+- [x] `GO`로 Scope 0을 `REVIEWED`로 닫았고 Scope 1을 자동 구현하지 않았다.
 
 Scope 0B `GO`와 적응형 점검이 수동 pole·`MaxSpan` Interaction을 다음 위험으로 선택하고 현재 사용자
 목표가 그 준비를 계속 승인할 때만, Scope 1 후보를 실제 evidence에 맞는 활성 계약으로 다시 쓴다.

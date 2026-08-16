@@ -29,45 +29,29 @@
 
 ## 현재 개발 상태
 
-현재 활성 개발단위는 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)다.
-Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
-[결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
-[R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.
+Scope 0은 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)의
+`S0B-GATE-v1 = GO`로 끝났다. [v4 결과](playtests/scope-0b/RESULT.md)는 신규 cold LLM session
+다섯 개가 실제 native UI에서 모든 조작을 완료했고, 네 field와 integrated를 모두 `5/5`로 통과했음을
+기록한다. 결과 checkpoint가 review될 때까지 새 구현 gate는 열지 않는다.
 
 1. 서비스 권역과 실제 전력 공급은 다르다.
 2. 전기적으로 다른 두 회로도 같은 공간 회랑을 쓰면 함께 끊길 수 있다.
 3. 병원 내부전원이 환자를 지키는 것과 전력회사가 전기를 공급·판매한 것은 다르다.
 
-R2도 실제 비전문가가 아니라 새 cold LLM session 다섯 개를 사용했으므로 사람 사용성 증거가
-아니다. 같은-model 5회는 통계 표본이 아니며, 구조화된 질문에 대한 반복 일관성만 입증했다.
-계약과 machine fixture는 독립 review에서 `P0/P1/P2 = 0`으로 닫혔다. Core·검사도구·단일 Godot
-scene 구현, 자동검사, native smoke와 독립 코드 review까지 완료됐다. 첫 L00은 Computer Use
-transport 때문에 막혔지만 재시작 뒤 AX가 복구됐고, Godot editor build의 실제 `(DEBUG)` 창 제목을
-동결 target에 반영한 수정도 독립 review로 닫혔다. 이어진 [L00 네이티브 조작](playtests/scope-0b/L00_RESULT.md)은
-두 상태 읽기와 실제 element-index full run으로 `FINAL`까지 통과했다. L00 증거도 독립 review에서
-`P0/P1/P2 = 0`으로 닫혔다.
+이 결과는 실제 비전문가가 아니라 같은 model의 cold LLM 5회를 사용한 bounded proxy다. 따라서
+사람 사용성, 재미, 접근성, 자발적 발견과 자유 배선 품질은 입증하지 않았고
+`HumanValidationStatus = NOT_COLLECTED`다. 다섯 세션 모두 북부 우회선을 골랐으므로 강변 회랑의
+실제 UPS→디젤 분기는 사람이든 proxy든 이번 round에서 조작하지 않았다. 선택률은 밸런스 목표가
+아니며 수치를 조정하지 않는다. 다섯 세션 모두 `남음/끊김` 선택이 라디오 묶음보다 독립 switch처럼
+보였다고 했지만 진행을 막지는 않았다.
 
-공식 LLM 조작 proxy v1·v2·v3는 모두 게임 판정 전에 run protocol 문제로 닫혔다. v1은 harmless
-tool-catalog 조회, v2는 harmless import 시도, v3는 coordinator가 세 prompt에 동결되지 않은 skill
-절대경로를 덧붙인 것이 원인이다. v3의 다섯 참가자는 모두 native `FINAL`에 도달했지만 prompt
-identity를 먼저 적용하면 기술 유효는 `2/5`뿐이므로 gameplay field는 채점하지 않았다. 이를 소급
-구제하거나 다른 version과 합산하지 않고 [`PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)로
-보존했다. 세 번 모두 gameplay `REVISE/NO-GO`가 아니며 revision budget을 쓰지 않았다.
+v1·v2·v3의 protocol blocker는 [v4 reset checkpoint](playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)에
+불변 역사로 남고 v4와 합산하지 않는다. Core·단일 Godot scene·자동검사·native smoke와 독립 코드
+review는 완료됐다. Scope 0의 제작·검증·승인 순서는
+[Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 
-현재 `S0B-RUN-v4`는 게임을 건드리지 않고 prompt 전달만 단순화한다. participant 문구는 한 canonical
-source에서 기계적으로 출력하고, ASCII whitespace 배치만 정규화한 hash를 실제 transcript와 대조한다. generic tool
-metadata·transport error는 setup 진단으로 허용하지만 repository·fixture·web·정답·이전 세션·다른 앱
-내용은 계속 금지한다. build·fixture·UI·rubric과 `4/5 + integrated 3/5` gate는 그대로이며, independent
-protocol review는 `P0/P1/P2 = 0`으로 닫혔다.
-
-Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
-그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
-확정 roadmap을 만들지 않는다.
-
-`LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
-integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-이제 동일 build의 신규 cold session 다섯 회만 직렬 실행한다. 게임 문구·수치·fixture·판정 기준은
-바꾸지 않는다.
+다음 개발 축은 Scope 번호가 아니라 결과의 남은 위험을 보고 다시 선정한다. 미개방 TODO가 있다는
+사실은 구현 권한이나 확정 roadmap을 만들지 않는다. Scope 1 구현은 별도 사용자 승인 전까지 닫혀 있다.
 
 ## 문서 구조
 
@@ -85,7 +69,7 @@ integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은
 
 문서 간 충돌이 있으면 현재 개발단위의 scope가 우선한다. 완료된 Scope 0A R2는
 [R2 계약](docs/scopes/SCOPE_0A_R2_CARD_TEST.md)에 따라 [R1 카드 테스트](docs/scopes/SCOPE_0A_CARD_TEST.md)의
-동결 fixture와 oracle을 값 변경 없이 사용했다. 현재 Scope 0B의 기계 권위 전환 조건과 정확한
+동결 fixture와 oracle을 값 변경 없이 사용했다. 완료된 Scope 0B의 기계 권위 전환 조건과 정확한
 fixture는 [활성 계약](docs/scopes/SCOPE_0B_PLAYABLE.md)만 정한다.
 
 ## 개발 방식

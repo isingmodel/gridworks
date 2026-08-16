@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
 using Gridworks.Core;
 using Godot;
 
@@ -67,7 +67,7 @@ public sealed partial class Main : Control
     {
         try
         {
-            GetWindow().Title = "Gridworks — 강변 병원 회랑";
+            GetWindow().Title = "Gridworks";
             _options = LaunchOptions.Parse(OS.GetCmdlineUserArgs());
 
             var fixturePath = Path.GetFullPath(Path.Combine(
@@ -79,6 +79,7 @@ public sealed partial class Main : Control
             var loaded = FixtureLoader.Load(fixtureBytes);
             _scenario = loaded.Scenario;
             _presentation = loaded.Presentation;
+            GetWindow().Title = $"Gridworks — {_scenario.DisplayName}";
             BindScenarioSemantics();
 
             _session = new GridworksSession(_scenario);
@@ -398,7 +399,7 @@ public sealed partial class Main : Control
             var project = _corridorProjects[corridor];
             var button = NewCheckButton(
                 $"{CorridorLongName(corridor)} · {FormatMoney(project.CostCashUnit)} · {CorridorLocation(corridor)}",
-                $"{CorridorLongName(corridor)} 건설 계획 선택. 결과를 추천하거나 평가하지 않습니다.");
+                $"{CorridorLongName(corridor)} 건설 계획을 선택합니다.");
             button.ButtonGroup = corridorGroup;
             button.Disabled = true;
             button.Toggled += pressed => OnCorridorToggled(corridor, pressed);
@@ -454,22 +455,22 @@ public sealed partial class Main : Control
         var state = _snapshot.CorridorProjectState == ProjectState.Building ? "공사 중" : "완공·통전 가능";
         AddStatusLine(CorridorLongName(corridor), state,
             _snapshot.CorridorProjectState == ProjectState.Building ? WarningColor : AccentColor);
-        AddCopy("잠근 예측과 실제 utility 경로 결과", 14, 24, TextColor);
+        AddCopy("잠근 예측과 완공 가정 검증 결과", 14, 24, TextColor);
 
         foreach (var design in _orderedCorridors)
         {
             var e1 = _reveal[(design, _electricalCase.Id)];
             var spatial = _reveal[(design, _spatialCase.Id)];
             AddCopy(
-                $"{CorridorShortName(design)}  |  E1: {PredictionText(new PredictionKey(design, PredictionCase.Electrical))} → 실제 {OutcomeText(e1)}  |  " +
-                $"강변 통로: {PredictionText(new PredictionKey(design, PredictionCase.Spatial))} → 실제 {OutcomeText(spatial)}",
+                $"{CorridorShortName(design)}  |  E1: {PredictionText(new PredictionKey(design, PredictionCase.Electrical))} → 검증 {OutcomeText(e1)}  |  " +
+                $"강변 통로: {PredictionText(new PredictionKey(design, PredictionCase.Spatial))} → 검증 {OutcomeText(spatial)}",
                 12,
                 42,
                 MutedTextColor);
         }
 
         AddCopy("전기회로 사고는 E1 한 회로만 끊습니다. 공간 통로 사고는 전기적으로 다른 회로라도 같은 강변 통로 안에 있으면 함께 사용불가로 만듭니다.", 13, 55);
-        AddCopy("이 공개 결과는 Core의 고정 반사실 query가 돌려준 utility 경로 결과입니다. 병원 내부전원 결과를 섞지 않습니다.", 12, 38, MutedTextColor);
+        AddCopy("이 결과는 각 계획이 완공됐다고 가정해 두 사건에서 utility 경로만 검증한 것입니다. 병원 내부전원 결과는 섞지 않습니다.", 12, 38, MutedTextColor);
         _advanceButton = AddActionButton(
             _snapshot.CorridorProjectState == ProjectState.Building ? "회랑 완공 이정표로" : "강변 사건 시작으로",
             "다음 공개 이정표까지 시간을 진행합니다.",
@@ -513,12 +514,19 @@ public sealed partial class Main : Control
     private void BuildFinalPanel()
     {
         AddSectionTitle("5 / 5  복구·결산");
-        AddStatusLine("utility", "마을·병원 복구", AccentColor);
+        var hospitalHadOutage = _snapshot.Interval.UtilityUnservedKwMinuteByLoad[_hospitalLoadId] > 0;
+        AddStatusLine(
+            "utility",
+            hospitalHadOutage ? "마을·병원 복구" : "마을 복구 · 병원 공급 유지",
+            AccentColor);
         AddCopy("사건 구간 결산", 14, 23);
         AddLedgerRow("전력 판매", _snapshot.Interval.RevenueCashUnit, false);
         AddLedgerRow("가스 변동비", _snapshot.Interval.GasCostCashUnit, true);
         AddLedgerRow("미공급 보상", _snapshot.Interval.CompensationCashUnit, true);
-        AddLedgerRow("LostSales · 진단값", _snapshot.Interval.LostSalesCashUnit, false);
+        AddStatusLine(
+            "LostSales · 진단값",
+            $"{FormatMoney(_snapshot.Interval.LostSalesCashUnit)} · 현금 미반영",
+            MutedTextColor);
         var eventCashDelta = checked(
             _snapshot.Interval.RevenueCashUnit -
             _snapshot.Interval.GasCostCashUnit -
@@ -852,12 +860,14 @@ public sealed partial class Main : Control
         first?.GrabFocus();
     }
 
-    private void RunSmoke()
+    private async void RunSmoke()
     {
         try
         {
             RequireButton(_townOrderButton, "town order").EmitSignal(BaseButton.SignalName.Pressed);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             RequireButton(_advanceButton, "advance to decision").EmitSignal(BaseButton.SignalName.Pressed);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
             foreach (var key in AllPredictionKeys())
             {
@@ -866,9 +876,13 @@ public sealed partial class Main : Control
 
             _corridorButtons[_orderedCorridors[0]].ButtonPressed = true;
             RequireButton(_confirmButton, "prediction confirmation").EmitSignal(BaseButton.SignalName.Pressed);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             RequireButton(_advanceButton, "advance to commissioning").EmitSignal(BaseButton.SignalName.Pressed);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             RequireButton(_advanceButton, "advance to event").EmitSignal(BaseButton.SignalName.Pressed);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             RequireButton(_advanceButton, "advance to final").EmitSignal(BaseButton.SignalName.Pressed);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 
             if (!_snapshot.IsComplete || !_finalLogged)
             {
@@ -1006,13 +1020,41 @@ public sealed partial class Main : Control
 
     private static string ComputeBuildHash()
     {
-        var assemblyPath = Assembly.GetExecutingAssembly().Location;
-        if (!string.IsNullOrEmpty(assemblyPath) && File.Exists(assemblyPath))
+        var gameDirectory = Path.GetFullPath(ProjectSettings.GlobalizePath("res://"));
+        var repositoryRoot = new DirectoryInfo(gameDirectory).Parent?.FullName
+            ?? throw new InvalidOperationException("Game directory has no repository parent.");
+        var coreDirectory = Path.Combine(repositoryRoot, "src", "Gridworks.Core");
+        var components = new List<string>
         {
-            return LowerHex(SHA256.HashData(File.ReadAllBytes(assemblyPath)));
+            Path.Combine(repositoryRoot, "Directory.Build.props"),
+            Path.Combine(repositoryRoot, "global.json"),
+            Path.Combine(coreDirectory, "Gridworks.Core.csproj"),
+            Path.Combine(gameDirectory, "Gridworks.Game.csproj"),
+            Path.Combine(gameDirectory, "Main.tscn"),
+            Path.Combine(gameDirectory, "project.godot"),
+        };
+        components.AddRange(Directory.EnumerateFiles(coreDirectory, "*.cs"));
+        components.AddRange(Directory.EnumerateFiles(gameDirectory, "*.cs"));
+
+        var manifest = new StringBuilder();
+        foreach (string path in components
+                     .Select(Path.GetFullPath)
+                     .Distinct(StringComparer.Ordinal)
+                     .OrderBy(path => Path.GetRelativePath(repositoryRoot, path), StringComparer.Ordinal))
+        {
+            var label = Path.GetRelativePath(repositoryRoot, path).Replace('\\', '/');
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException($"Build-hash component '{label}' was not found.", path);
+            }
+
+            manifest.Append(label)
+                .Append(':')
+                .Append(LowerHex(SHA256.HashData(File.ReadAllBytes(path))))
+                .Append('\n');
         }
 
-        return LowerHex(SHA256.HashData(Assembly.GetExecutingAssembly().ManifestModule.ModuleVersionId.ToByteArray()));
+        return LowerHex(SHA256.HashData(Encoding.UTF8.GetBytes(manifest.ToString())));
     }
 
     private static string LowerHex(byte[] bytes) => Convert.ToHexString(bytes).ToLowerInvariant();

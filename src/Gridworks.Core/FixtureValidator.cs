@@ -64,7 +64,12 @@ internal static class FixtureValidator
         ValidateCasesAndEvents(cases, events, scenario.Milestones);
         ValidateInternalPower(scenario.HospitalInternalPower, nodes, loads);
         ValidateMilestones(scenario);
-        ValidatePresentation(presentation, nodes, edges, projects);
+        ValidatePresentation(
+            presentation,
+            nodes,
+            edges,
+            projects,
+            scenario.PermittedSupplyPaths);
         ValidateOracle(oracle, scenario, edges, loads, paths, cases);
     }
 
@@ -157,6 +162,8 @@ internal static class FixtureValidator
     {
         foreach (EdgeDefinition edge in edges.Values)
         {
+            EnsureNonBlank(edge.FromNodeId, $"edge '{edge.Id}' fromNodeId");
+            EnsureNonBlank(edge.ToNodeId, $"edge '{edge.Id}' toNodeId");
             Require(nodes.ContainsKey(edge.FromNodeId),
                 $"Edge '{edge.Id}' references missing fromNodeId '{edge.FromNodeId}'.");
             Require(nodes.ContainsKey(edge.ToNodeId),
@@ -423,7 +430,8 @@ internal static class FixtureValidator
         PresentationDefinition presentation,
         IReadOnlyDictionary<string, NodeDefinition> nodes,
         IReadOnlyDictionary<string, EdgeDefinition> edges,
-        IReadOnlyDictionary<string, ProjectDefinition> projects)
+        IReadOnlyDictionary<string, ProjectDefinition> projects,
+        IReadOnlyList<SupplyPathDefinition> paths)
     {
         Require(presentation.MapBounds.Width > 0 && presentation.MapBounds.Height > 0,
             "presentation.mapBounds must be positive.");
@@ -495,6 +503,17 @@ internal static class FixtureValidator
         Require(variants.Keys.ToHashSet(StringComparer.Ordinal)
                 .SetEquals(new[] { "ab", "ba" }),
             "presentation.layoutVariants must contain exactly ab and ba.");
+        HashSet<string> backupEdgeIds = paths
+            .Where(path => path.Role == PathRole.Backup)
+            .Select(path => path.RequiredCommissionedEdgeId!)
+            .ToHashSet(StringComparer.Ordinal);
+        string[] corridorProjectIds = projects.Values
+            .Where(project => backupEdgeIds.Contains(project.EdgeId))
+            .Select(project => project.Id)
+            .OrderBy(projectId => projectId, StringComparer.Ordinal)
+            .ToArray();
+        Require(corridorProjectIds.Length == 2,
+            "Scope 0B must have exactly two corridor projects for authored backup paths.");
         foreach (LayoutVariantDefinition variant in variants.Values)
         {
             EnsureUnique(variant.CorridorProjectOrder,
@@ -503,6 +522,9 @@ internal static class FixtureValidator
                 $"Layout variant '{variant.Id}' must list two corridor projects.");
             Require(variant.CorridorProjectOrder.All(projects.ContainsKey),
                 $"Layout variant '{variant.Id}' references a missing project.");
+            Require(variant.CorridorProjectOrder.ToHashSet(StringComparer.Ordinal)
+                    .SetEquals(corridorProjectIds),
+                $"Layout variant '{variant.Id}' must contain the two authored corridor projects.");
         }
         Require(variants["ab"].CorridorProjectOrder.SequenceEqual(
                     variants["ba"].CorridorProjectOrder.Reverse(), StringComparer.Ordinal),

@@ -40,7 +40,7 @@ public static class FixtureLoader
                     MaxDepth = 64,
                 });
 
-            EnsureNoDuplicateProperties(document.RootElement, "$" );
+            EnsureNoDuplicateProperties(document.RootElement, "$");
             RawFixture raw = document.RootElement.Deserialize<RawFixture>(SerializerOptions)
                 ?? throw new FixtureValidationException("Fixture root cannot be null.");
 
@@ -55,7 +55,8 @@ public static class FixtureLoader
             throw;
         }
         catch (Exception exception) when (
-            exception is JsonException or NotSupportedException or OverflowException or NullReferenceException)
+            exception is JsonException or NotSupportedException or OverflowException or
+            ArgumentException or NullReferenceException or KeyNotFoundException)
         {
             throw new FixtureValidationException("Fixture JSON is invalid.", exception);
         }

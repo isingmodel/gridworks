@@ -18,6 +18,7 @@ internal sealed partial class GridMapView : Control
     private static readonly Color RemovedColor = Color.FromHtml("e66d66");
     private static readonly Color RiskFill = new(0.52f, 0.23f, 0.18f, 0.22f);
     private static readonly Color RiskStroke = Color.FromHtml("a55c4b");
+    private static readonly Color RiskText = Color.FromHtml("dc8b78");
     private static readonly Color ServiceFill = new(0.35f, 0.58f, 0.72f, 0.12f);
     private static readonly Color ServiceStroke = Color.FromHtml("81aeca");
 
@@ -96,7 +97,7 @@ internal sealed partial class GridMapView : Control
         }
 
         DrawString(ThemeDB.FallbackFont, new Vector2(245, Size.Y - 22),
-            "//// 강변 기존 통로: 공간 공통위험", HorizontalAlignment.Left, -1f, 13, RiskStroke);
+            "//// 강변 기존 통로: 공간 공통위험", HorizontalAlignment.Left, -1f, 13, RiskText);
     }
 
     private void DrawEdges(MapDefinition definition, MapState state)

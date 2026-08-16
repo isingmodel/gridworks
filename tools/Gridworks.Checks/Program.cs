@@ -161,11 +161,27 @@ internal sealed class Scope0BChecks
             "missing required field",
             root => Object(root, "economy").Remove("saleRate"));
         ExpectFixtureRejected(
+            "null required object",
+            root => root["economy"] = null);
+        ExpectFixtureRejected(
             "duplicate node ID",
             root => Array(root, "nodes").Add(Array(root, "nodes")[0]!.DeepClone()));
         ExpectFixtureRejected(
+            "null required reference",
+            root => FindById(Array(root, "edges"), "MAIN_TRUNK")["fromNodeId"] = null);
+        ExpectFixtureRejected(
             "broken edge reference",
             root => FindById(Array(root, "edges"), "MAIN_TRUNK")["fromNodeId"] = "MISSING_NODE");
+        ExpectFixtureRejected(
+            "layout includes non-corridor project",
+            root =>
+            {
+                JsonArray variants = Array(Object(root, "presentation"), "layoutVariants");
+                Array(FindById(variants, "ab"), "corridorProjectOrder")[1] =
+                    "PROJECT_TOWN_FEEDER";
+                Array(FindById(variants, "ba"), "corridorProjectOrder")[0] =
+                    "PROJECT_TOWN_FEEDER";
+            });
         ExpectFixtureRejected(
             "invalid enum",
             root => FindById(Array(root, "edges"), "TOWN_FEEDER")["initialConstructionState"] = "queued");

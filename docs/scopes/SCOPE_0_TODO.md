@@ -11,7 +11,8 @@
 R1은 `PROXY-FAIL`로 끝났지만 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 네 field와 integrated
 모두 `5/5`로 `PROXY-PASS`했다. [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와 완료된 checkpoint는
 Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 현재 실행 권위는 루트 README가 가리키는
-[Scope 0B 계약](SCOPE_0B_PLAYABLE.md)이며, 구현은 계약 checkpoint 전까지 시작하지 않는다.
+[Scope 0B 계약](SCOPE_0B_PLAYABLE.md)이다. 계약 checkpoint를 마친 뒤 구현이 활성화됐고,
+구현 checkpoint 전에는 조작 proxy를 시작하지 않는다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 

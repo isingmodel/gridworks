@@ -732,18 +732,18 @@ public sealed class GridworksSession
     private bool MatchesSelector(
         EdgeDefinition edge,
         EvaluationCaseDefinition evaluationCase) => evaluationCase.SelectorType switch
-    {
-        SelectorType.ElectricalContingencyId => string.Equals(
-            edge.ElectricalContingencyId,
-            evaluationCase.SelectorValue,
-            StringComparison.Ordinal),
-        SelectorType.SpatialRiskGroup => string.Equals(
-            edge.SpatialRiskGroup,
-            evaluationCase.SelectorValue,
-            StringComparison.Ordinal),
-        _ => throw new FixtureValidationException(
-            $"Unsupported selector type in case '{evaluationCase.Id}'."),
-    };
+        {
+            SelectorType.ElectricalContingencyId => string.Equals(
+                edge.ElectricalContingencyId,
+                evaluationCase.SelectorValue,
+                StringComparison.Ordinal),
+            SelectorType.SpatialRiskGroup => string.Equals(
+                edge.SpatialRiskGroup,
+                evaluationCase.SelectorValue,
+                StringComparison.Ordinal),
+            _ => throw new FixtureValidationException(
+                $"Unsupported selector type in case '{evaluationCase.Id}'."),
+        };
 
     private int GetCorridorOrderMinute()
     {

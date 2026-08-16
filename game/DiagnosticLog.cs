@@ -29,7 +29,7 @@ internal sealed class DiagnosticLog : IDisposable
             Directory.CreateDirectory(directory);
         }
 
-        _writer = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write, FileShare.Read));
+        _writer = new StreamWriter(new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read));
         _sessionId = sessionId;
         _variant = variant;
     }

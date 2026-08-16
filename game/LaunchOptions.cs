@@ -47,7 +47,8 @@ internal sealed record LaunchOptions(string SessionId, string Variant, string Di
             throw new ArgumentException("--session-id cannot be empty.");
         }
 
-        diagnosticPath ??= ProjectSettings.GlobalizePath("user://scope-0b-local.jsonl");
+        diagnosticPath ??= ProjectSettings.GlobalizePath(
+            $"user://scope-0b-local-{System.Environment.ProcessId}.jsonl");
         diagnosticPath = Path.GetFullPath(diagnosticPath);
         return new LaunchOptions(sessionId, variant, diagnosticPath, smoke);
     }

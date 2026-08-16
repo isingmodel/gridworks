@@ -14,10 +14,10 @@ public static class SnapshotJson
         ArgumentNullException.ThrowIfNull(snapshot);
         using MemoryStream stream = new();
         using (Utf8JsonWriter writer = new(stream, new JsonWriterOptions
-               {
-                   Indented = false,
-                   SkipValidation = false,
-               }))
+        {
+            Indented = false,
+            SkipValidation = false,
+        }))
         {
             WriteSnapshot(writer, snapshot);
         }

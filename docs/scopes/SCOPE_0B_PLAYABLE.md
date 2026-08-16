@@ -610,11 +610,11 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 
 ### 계약 동결 — 구현 전
 
-- [ ] 이 문서와 machine fixture가 complete·strict·링크 가능하다.
-- [ ] R1 handoff verifier와 JSON syntax·oracle check가 통과한다.
-- [ ] README·docs map·Scope 0 TODO가 같은 활성상태를 가리킨다.
-- [ ] initial contract commit, 독립 bounded review, scope-valid 수정, 재검사, reviewed commit을 기록한다.
-- [ ] [`playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md`](../../playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md)에
+- [x] 이 문서와 machine fixture가 complete·strict·링크 가능하다.
+- [x] R1 handoff verifier와 JSON syntax·oracle check가 통과한다.
+- [x] README·docs map·Scope 0 TODO가 같은 활성상태를 가리킨다.
+- [x] initial contract commit, 독립 bounded review, scope-valid 수정, 재검사, reviewed commit을 기록한다.
+- [x] [`playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md`](../../playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md)에
   `SubGateDecision = PENDING`, 실제 commit과 검사 결과를 남긴다.
 
 ### 구현·자동증거 — proxy 전

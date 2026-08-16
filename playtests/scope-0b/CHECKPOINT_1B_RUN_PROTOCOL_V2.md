@@ -109,6 +109,6 @@ fallback search.
 - direct-wrapper check: `PASS` — direct `tools.mcp__node_repl__js` call returned `NODE_REPL_CALLABLE`
 - final review result: `P0=0, P1=0, P2=0`; contract, implementation and R2 regression verifiers plus
   `git diff --check` passed
-- reviewed protocol commit: `PENDING`
+- reviewed protocol commit: `e724d6e6ad4d99e38adda2bf86c3c5cf7fb7364f`
 - official v2 sessions may run sequentially on the unchanged build. No v2 session had started when this
   review closed.

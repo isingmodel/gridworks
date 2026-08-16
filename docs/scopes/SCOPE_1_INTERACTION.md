@@ -68,28 +68,39 @@ native UI에서 구분하는지 확인했다. 그러나 플레이어는 authored
 
 ## 4. 활성화 때 옮길 단일 fixture와 checker oracle
 
-구현 승인 전 숫자 권위는 아래 표뿐이다. 승인되면 같은 값으로 `data/scope-1-v1.json`을 만들고
-독립 인계검사를 통과한 reviewed checkpoint부터 JSON이 기계 권위가 된다. 값이나 항목을 몰래
-늘리지 않는다.
+구현 승인 전 숫자와 JSON 형태의 권위는 아래 skeleton 하나뿐이다. 승인되면 같은 key·값·자료형의
+`data/scope-1-v1.json`으로 옮기고, 독립 인계검사를 통과한 reviewed
+checkpoint부터 그 JSON이 기계 권위가 된다.
 
-| 항목 | 값 |
-|---|---|
-| schema version | `1` |
-| fixture ID | `scope-1-v1` |
-| 좌표 단위 | `GridUnit` integer |
-| 지도 범위 | `x = 0..11`, `y = 0..7` |
-| source | `(1, 4)`, 완공·통전 |
-| target | `(11, 4)`, 완공·무전압 |
-| `MaxSpan` | `4 GridUnit` |
-| 시작 시각 | `0 GameMinute` |
-| 공사기간 | `60 GameMinute` |
+```json
+{
+  "schemaVersion": "1",
+  "fixtureId": "scope-1-v1",
+  "units": {
+    "position": "GridUnit",
+    "time": "GameMinute"
+  },
+  "mapBounds": {
+    "minX": 0,
+    "maxX": 11,
+    "minY": 0,
+    "maxY": 7
+  },
+  "source": { "x": 1, "y": 4 },
+  "target": { "x": 11, "y": 4 },
+  "maxSpan": 4,
+  "initialMinute": 0,
+  "buildMinutes": 60
+}
+```
 
-제품 JSON root는 `schemaVersion`, `fixtureId`, `units`, `mapBounds`, `source`, `target`, `maxSpan`,
-`initialMinute`, `buildMinutes` 아홉 field만 가진다. 화폐, 정격, 부하, presentation과
-`verificationOnly` 객체는 없다.
+제품 JSON root는 위 아홉 field만 가진다. 화폐, 정격, 부하, presentation과 `verificationOnly` 객체는
+없다. source는 고정 완공·통전 terminal이고 target은 고정 완공·초기 무전압 terminal이라는 의미는
+§5의 상태 규칙이며 별도 boolean input으로 복제하지 않는다.
 
 `(5, 4)`, `(9, 4)`는 독립 checker와 Core 검사에서만 쓰는 checker-only witness다. 제품 fixture,
-Core loader 결과, Game, diagnostic과 participant 자료에는 넣지 않는다.
+Core loader 결과, Game source·기본값·일반 실행과 participant 자료에는 저장하지 않는다. §7의 headless
+smoke 명령만 이 좌표를 외부 인자로 일시 전달할 수 있다.
 
 거리 판정은 부동소수 tolerance 없이 정수 제곱으로 한다.
 
@@ -150,7 +161,7 @@ query다. 둘 다 유효성, from/to와 `distanceSquared / maxSpanSquared`를 �
 - `Undo`, `발주`, `완공까지 진행`은 표준 button이고 보이는 label과 고유 접근성 이름을 갖는다.
 - 지도 클릭 뒤 현재 ordered path와 발주 가능 여부를 즉시 갱신한다.
 - 지도는 하나의 custom-drawn input 영역이며 grid point마다 숨은 button이나 좌표 입력칸을 만들지 않는다.
-  native 검토와 조건부 proxy는 화면 좌표의 실제 pointer click을 사용한다.
+  일반 실행은 실제 pointer click만 받으며, headless smoke도 같은 input handler를 통과한다.
 - 현재 phase, ordered support 좌표, target 통전 여부와 마지막 오류는 지도 밖의 보이는 상태 text에도
   표시하고 접근성 tree에서 읽을 수 있게 한다.
 
@@ -190,9 +201,16 @@ Core 검사는 네 오류 code의 도달성, 실패 불변, 경계 `<=`, 원자 
 전후 상태 불변과, 복제한 같은 초기 상태에서 preview의 accepted/code가 실제 명령과 경계·초과·
 invalid·`WRONG_PHASE` case마다 일치하는지도 검사한다.
 
-headless smoke는 `Scope1Main.tscn`을 명시적으로 실행한다. Core 명령을 직접 호출하지 않고 실제 지도
-좌표 변환과 input handler로 두 support를 추가한 뒤 표준 button signal로 발주 → 완공 → target 통전을
-한 번 통과한다.
+headless smoke는 `Scope1Main.tscn`을 명시적으로 실행하고 다음 smoke-only 인자를 정확히 두 번 받는다.
+
+```text
+--smoke --smoke-support 5,4 --smoke-support 9,4
+```
+
+Game source와 fixture에는 기본 support 좌표나 경로 계산을 두지 않는다. `--smoke` 없는 좌표 인자는
+거부하고, 주입된 grid pair를 canvas 좌표로 바꾼 뒤 일반 실행과 같은 mouse-motion·left-click input
+handler에 전달한다. Core 명령을 직접 호출하지 않고 표준 button signal로 발주 → 완공 → target 통전을
+한 번 통과한다. 이 인자는 participant UI에 좌표 입력 기능을 만들지 않는다.
 
 ## 8. 현행 코드와 격리된 구현 경계
 
@@ -211,6 +229,9 @@ scenario/presentation/oracle envelope도 Scope 1에 복제하지 않는다.
 
 ```text
 data/scope-1-v1.json
+
+playtests/scope-1/
+└── verify_contract.rb
 
 src/Gridworks.Core/
 ├── Scope1Contracts.cs
@@ -232,14 +253,19 @@ game/
 `Scope1PlacementSession.cs`는 §5의 네 명령과 두 preview query만 구현한다. 새 Core 파일은 Godot을
 참조하지 않고, 새 checker와 Game은 기존 `Gridworks.Core.csproj`를 참조한다.
 
+기존 `Definitions.cs`, `RawFixtureModels.cs`, `FixtureLoader.cs`, `FixtureValidator.cs`,
+`Gridworks.Core.csproj`와 `Gridworks.Game.csproj`도 수정하지 않는다. 새 C# script에 따라 Godot이 만드는
+`.cs.uid`는 동작 코드가 아닌 generated metadata 예외다.
+
 `Scope1PlacementMapView`가 지도 변환·integer snap·pointer event·그리기를 맡고, `Scope1Main`은 snapped
 integer pair를 Core query/command에 전달한 뒤 반환 view만 그린다. 새 scene은
 `Godot --path game --scene res://Scope1Main.tscn`처럼 명시적으로 실행하며 기본 `Main.tscn`을 바꾸지
 않는다.
 
 초기 수직 slice에는 공통 lifecycle, graph, editor, plugin interface, save schema, DI container,
-scheduler, command bus와 proxy용 diagnostic framework를 만들지 않는다. 공식 proxy가 별도로 승인된
-경우에만 앱이 자동으로 남길 최소 diagnostic을 추가한다.
+scheduler, command bus와 범용 diagnostic framework를 만들지 않는다. `Scope1Main.cs`가 headless smoke의
+accepted input·phase·final view를 확인할 작은 scope-local JSONL만 직접 남기며, 조건부 proxy가 열리면
+같은 기록을 그대로 사용한다.
 
 ### 8.3 Scope 0B 회귀 보존
 
@@ -257,9 +283,10 @@ hash나 checkpoint를 수정하지 않는다.
 
 ## 9. 임시 LLM proxy 계약
 
-구현 review와 자동검사·headless smoke가 끝난 뒤에도 남는 질문은 “범위 피드백을 보고 직접 경로를
-완성하고, 거리 제한과 완공 전 무전압을 설명하는가” 하나뿐이다. 이 질문이 실행 시점에도 남아 있고
-사용자가 별도 승인했을 때만 LLM proxy를 한 번 실행한다. 판정 구조는 다음처럼 제한한다.
+구현 review, 자동검사·headless smoke와 §6의 native 시각검토가 끝난 뒤에도 남는 질문은 “범위
+피드백을 보고 직접 경로를 완성하고, 거리 제한과 완공 전 무전압을 설명하는가” 하나뿐이다. 이 질문이
+실행 시점에도 남아 있고 사용자가 별도 승인했을 때만 LLM proxy를 한 번 실행한다. 판정 구조는
+다음처럼 제한한다.
 
 §6의 구현단계 native 검토는 고정 화면의 clipping·접근성만, §7의 headless smoke는 scene과 Core의
 연결만 확인한다. 아래 global native preflight는 proxy 직전 동일 build에서 실제 창·입력과 원본 기록이
@@ -305,13 +332,14 @@ fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. �
 
 ## 10. 구현 순서 — 별도 승인 뒤에만
 
-각 단계는 하나의 큰 개발단위다. 앞 단계의 검사·문서 최신화·bounded review가 끝나기 전에 다음
-단계를 열지 않는다.
+1~2는 권위 인계, 3~4는 Core와 Core 검사, 5~8은 Game·회귀·native 화면 검토,
+9~10은 별도 승인된 관찰 단위다. 각 단위의 마지막 검사 뒤 문서 최신화·commit·bounded review·
+scope-valid 수정·재검사를 마치고 다음 단위로 넘어간다.
 
 1. 루트 README와 이 문서를 같은 변경에서 활성 구현 scope로 전환한다. 활성화 checkpoint는
    2~8단계만 열며 공식 proxy 실행은 별도 승인으로 남긴다.
 2. `data/scope-1-v1.json`과 Core 비의존 `playtests/scope-1/verify_contract.rb`만 먼저 만들고,
-   checker-only witness로 표에서 JSON으로의 권위 인계를 review한다.
+   checker-only witness로 §4 skeleton에서 JSON으로의 권위 인계를 review한다.
 3. `Scope1Contracts.cs`, `Scope1FixtureLoader.cs`, `Scope1PlacementSession.cs`와 독립
    `tools/Gridworks.Scope1Checks/`를 구현한다. 기존 Scope 0B Core 파일은 수정하지 않는다.
 4. §7의 Core oracle, preview parity, 실패 불변, 원자 완공과 결정론 검사를 통과한다.
@@ -319,10 +347,10 @@ fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. �
    `Main.cs`·`GridMapView.cs`는 수정하지 않는다.
 6. Game을 rebuild하고 `--scene res://Scope1Main.tscn` headless smoke를 통과한다.
 7. §8.3의 Scope 0B 회귀를 모두 다시 통과한다.
-8. 고정 화면의 clipping·pointer input·접근성을 실제 native 창에서 한 번 검토한다. 여기까지 통과하면
+8. 고정 화면의 clipping·접근성을 실제 native 창에서 한 번 검토한다. 여기까지 통과하면
    구현 증거는 완료되지만 Scope 1 `GO`는 아직 아니다.
-9. §2의 이해·상호작용 질문이 남고 사용자가 별도 실행을 승인한 경우에만 최소 app diagnostic,
-   global native preflight와 §9의 세 고정 session을 한 번 연다. 승인하지 않으면 여기서 멈춘다.
+9. §2의 이해·상호작용 질문이 남고 사용자가 별도 실행을 승인한 경우에만 global native preflight와
+   §9의 세 고정 session을 한 번 연다. 승인하지 않으면 여기서 멈춘다.
 10. 관찰 결과와 주장 상한을 기록하고 다음 위험을 다시 선정한다. 공통 framework나 다음 scope를
     자동 구현하지 않는다.
 

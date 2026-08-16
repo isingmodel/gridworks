@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B official v6 `GO` — `Scope0State = REVIEWED`; 다음 gate 미선정**
+> 상태: **Scope 0B official v6 `GO` — `Scope0State = REVIEWED`; Scope 1 준비 완료·구현 닫힘**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >

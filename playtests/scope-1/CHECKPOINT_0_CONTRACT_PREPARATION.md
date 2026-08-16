@@ -30,8 +30,9 @@ one `MaxSpan`, `Undo`, atomic completion and one integrated proxy criterion.
 
 ## Repository checkpoint
 
-- initial preparation commit: `PENDING`
-- bounded independent reviewers: `PENDING`
+- initial preparation commit: `aa0669bc54a3a4847ee6b29aa61a7551a6dcfac2`
+- bounded independent reviewers: `scope1_contract_skeptical_review`, `scope1_docs_authority_review`,
+  `scope1_gate_parameter_review`
 - final review: `PENDING`
 - reviewed preparation content commit: `PENDING`
 - implementation: closed pending explicit user approval

@@ -74,7 +74,8 @@ Checks만 oracle을 받는다. transition engine이나 Game이 oracle 값을 읽
 
 ### 제외
 
-- 자유 배치·선 긋기·전신주·`MaxSpan`과 교차 접속 — 이는 Scope 1 후보조차 아직 미개방이다.
+- 자유 배치·선 긋기·전신주·`MaxSpan`과 교차 접속 — Scope 0B에는 없었다. 이후 적응형 점검은
+  그중 수동 지지물과 `MaxSpan`만 [Scope 1 준비 계약](SCOPE_1_INTERACTION.md)으로 분리했다.
 - 일반 BFS/최단경로, 임의 mesh, 역송, 병렬 경로 합산과 자동 절체 최적화
 - 부분공급, 급전, DC/AC 전력조류, 손실·열·보호·주파수
 - 확률사건, 정비·수리, 폭염·공장 증설, 발전원 추가
@@ -655,7 +656,7 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 - [x] 원자료 hash·독립 strict score·aggregate·판정을 [`RESULT.md`](../../playtests/scope-0b/RESULT.md)에 기록했다.
 - [x] 결과의 큰 단위 checkpoint에서 독립 review와 문서 최신성 점검을 닫았다.
 - [x] `GO`로 Scope 0을 `REVIEWED`로 닫고 Scope 1을 자동 구현하지 않았다.
-- [ ] 별도 적응형 단위에서 다음 최대 미검증 위험을 선정하거나 terminal 상태를 유지한다.
+- [x] 별도 적응형 단위에서 수동 지지물·`MaxSpan`을 다음 최대 미검증 위험으로 선정했다.
 
-Scope 0B `GO`와 적응형 점검이 수동 pole·`MaxSpan` Interaction을 다음 위험으로 선택하고 현재 사용자
-목표가 그 준비를 계속 승인할 때만, Scope 1 후보를 실제 evidence에 맞는 활성 계약으로 다시 쓴다.
+적응형 점검은 [Scope 1 준비 계약](SCOPE_1_INTERACTION.md)을 실제 evidence에 맞게 다시 썼다.
+이는 구현 권한이 아니며 Scope 0B의 역사적 포함 범위를 바꾸지 않는다.

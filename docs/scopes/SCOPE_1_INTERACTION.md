@@ -10,6 +10,8 @@
 사용자는 Scope 1의 계획 준비까지 승인했지만 구현을 승인하지 않았다. 따라서 이 문서가 완결돼도
 `src/`, `game/`, `tools/`, `data/`를 변경하거나 공식 proxy를 실행할 수 없다. 별도 사용자 승인과
 활성화 checkpoint가 있어야 구현이 열린다.
+[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)가 이 문서의 review와
+구현 폐쇄 상태를 기록한다.
 
 ## 1. 왜 이 위험이 다음인가
 
@@ -75,9 +77,6 @@ native UI에서 구분하는지 확인했다. 그러나 플레이어는 authored
 | 지도 범위 | `x = 0..11`, `y = 0..7` |
 | source | `(1, 4)`, 완공·통전 |
 | target | `(11, 4)`, 완공·무전압 |
-| grid step | `1 GridUnit` |
-| support type | `POLE_BASIC` 하나 |
-| line type | `LINE_BASIC` 하나 |
 | `MaxSpan` | `4 GridUnit` |
 | 시작 시각 | `0 GameMinute` |
 | 공사기간 | `60 GameMinute` |
@@ -97,18 +96,18 @@ SpanValid = dx² + dy² <= MaxSpan²
 
 ## 5. 권위 상태와 명령
 
-권위 snapshot은 현재 필요한 다섯 값만 가진다.
+저장하는 권위 상태는 현재 필요한 네 값만 가진다.
 
 ```text
 minute
 phase: drafting | building | commissioned
 supportPositions: ordered coordinate list
 completionMinute: integer | null
-targetEnergized: boolean
 ```
 
 span과 support ID는 저장하지 않는다. source → ordered supports → target의 인접쌍에서 span을
-결정론적으로 파생한다. target 통전은 `phase = commissioned`일 때만 true다.
+결정론적으로 파생한다. Core가 반환하는 view에는 `targetEnergized`를 넣되
+`phase = commissioned`에서만 true인 파생값이며 입력이나 저장 field가 아니다.
 
 | 명령 | 성공 | 실패 |
 |---|---|---|
@@ -117,13 +116,21 @@ span과 support ID는 저장하지 않는다. source → ordered supports → ta
 | `OrderLine()` | target까지 final span이 유효하면 `building`, 완료시각 `60` | `SPAN_TOO_LONG`, `WRONG_PHASE` |
 | `AdvanceToCompletion()` | minute `60`, `commissioned`, target 통전 | `WRONG_PHASE` |
 
-`INVALID_POSITION`은 지도 밖, integer grid가 아닌 점, source·target 또는 기존 support와 같은 점이다.
-모든 실패는 code만 반환하고 snapshot byte projection을 바꾸지 않는다. `Building`과
+`INVALID_POSITION`은 전달된 snapped pair가 지도 밖이거나 source·target 또는 기존 support와 같은 점이다.
+오류는 `WRONG_PHASE → INVALID_POSITION → SPAN_TOO_LONG` 순서로 하나만 반환한다. `UndoSupport`는
+`WRONG_PHASE → NOTHING_TO_UNDO`, `OrderLine`과 `AdvanceToCompletion`은 `WRONG_PHASE`를 먼저 검사한다.
+모든 실패는 code만 반환하고 권위 상태를 바꾸지 않는다. `Building`과
 `Commissioned`에서는 support를 편집할 수 없다.
+
+`PreviewSpan(position)`과 `PreviewTarget()`은 같은 판정 순서와 거리식을 쓰는 순수 query다. 유효성,
+from/to와 `distanceSquared / maxSpanSquared`만 반환하고 상태를 바꾸지 않는다. Game이 별도 거리
+규칙을 복제하지 않는다.
 
 ## 6. 화면 계약
 
 - source는 처음부터 선택된 시작점으로 표시한다. target은 별도 endpoint로 표시한다.
+- map-space cursor의 각 축은 `floor(value + 0.5)`로 visible integer grid에 snap한다. preview와
+  click 제출은 같은 snapped pair를 쓰며 Core에는 integer pair만 보낸다.
 - 마지막 endpoint 중심의 `MaxSpan` 원과 cursor까지 ghost span을 그린다.
 - ghost span은 유효/초과를 색뿐 아니라 실선/점선과 짧은 문장으로 구분한다.
 - 초과 시 `실제 거리 / 허용 거리`와 `중간 전신주가 필요합니다`만 보여준다.
@@ -138,16 +145,25 @@ span과 support ID는 저장하지 않는다. source → ordered supports → ta
 
 ## 7. 필수 oracle과 자동검사
 
+각 묶음은 새 초기 상태에서 시작한다.
+
+**A — 완공 명령열**
+
 1. 초기: `drafting`, support 없음, completion null, target 무전압.
-2. support 없는 `OrderLine`: source→target 길이 `10`, `SPAN_TOO_LONG`, snapshot 불변.
+2. support 없는 `OrderLine`: source→target 길이 `10`, `SPAN_TOO_LONG`, 상태 불변.
 3. `AddSupport(6,4)`: 직전 길이 `5`, 실패·불변.
 4. `AddSupport(5,4)`: 정확히 `4`, 성공.
 5. support 하나 뒤 `OrderLine`: target까지 `6`, 실패·불변.
 6. `(5,4)` 뒤 `AddSupport(9,4)`: 길이 `4`, 성공.
 7. 두 support 뒤 `OrderLine`: `building`, completion `60`, target 무전압.
 8. `AdvanceToCompletion`: minute `60`, `commissioned`, target 통전.
-9. `UndoSupport`: 마지막 좌표만 제거하고 다른 권위 값은 유지.
-10. 같은 fixture와 명령열의 canonical snapshot bytes와 hash가 같다.
+
+**B — Undo 명령열**
+
+1. `AddSupport(5,4)`, `AddSupport(9,4)`, `UndoSupport()` 뒤 phase는 `drafting`, support는
+   `[(5,4)]`, minute `0`, completion null이다.
+2. `building` 또는 `commissioned`의 `UndoSupport()`는 `WRONG_PHASE`이고 상태가 변하지 않는다.
+3. 같은 fixture와 명령열은 같은 권위 field와 파생 view를 반환한다.
 
 validator는 fixture field exactness, integer 좌표, 유일한 endpoints, direct failure와 witness success를
 검사한다. Core 검사는 네 오류 code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다.
@@ -185,6 +201,7 @@ plugin interface나 save schema를 미리 만들지 않는다.
 - setup·participant·evidence failure도 해당 row의 false로 남김
 - platform이 prompt 평문을 사후 증명하지 못하는 한계를 결과에 기록
 - `HumanValidationStatus = NOT_COLLECTED`
+- 실행·증거 실패 수와 실제 상호작용 실패 수를 결과에서 별도 집계
 
 한 row의 유일한 scored 판정은 다음 conjunction이다.
 
@@ -200,12 +217,25 @@ IntegratedPlacementPass =
 만들어도 통과다. pole 수, 클릭수, 경로 모양, 완료시간과 `Undo` 사용은 진단값이다.
 
 - `GO`: `IntegratedPlacementPass >= 2/3`
-- `REVISE`: 미달 원인이 하나의 Interaction 또는 Presentation 원인으로 닫힐 때 한 round만
-- `NO-GO`: 단일 원인이 아니거나 revision 뒤에도 `2/3` 미달
+- `REVISE`: 모든 false row가 독립 재현되는 같은 UI 결함 하나에 귀속되고, fixture·상태규칙·prompt·
+  rubric·정답 노출을 바꾸지 않은 채 정확히 한 Interaction 또는 Presentation family로 고칠 수 있을 때 한 round만
+- `NO-GO`: 위 `REVISE` 조건이 거짓인 모든 미달 또는 revision 뒤 `2/3` 미달
 - global preflight 실패: participant 관찰 전 `PROXY-RUN-BLOCKED`
 
-revision은 UI 정보구조 한 family만 바꾸고 새 build·새 세 session을 쓴다. `MaxSpan`, 좌표 또는
-성공률을 튜닝하지 않는다.
+revision은 허용된 UI family 하나만 바꾸고 새 build·새 세 session을 쓰며 이전 결과와 합산하지
+않는다. `2/3`은 동일 모델의 작은 실행 가능성 probe이지 모집단 성공률이나 사람 검증이 아니다.
+
+### 9.1 파라미터 inventory
+
+- `ActiveKnob = 0`
+- `Unverified FrozenFixture`: §4의 지도 범위, endpoints, `MaxSpan`, 시작시각, 공사기간과 witness
+- `Structural`: integer snap, 제곱거리 `<=`, implicit support/line 하나, lifecycle과 원자 완공
+- `Presentation`: 범위 원, ghost span, pattern, label과 이후 동결할 pixel layout
+- `Derived`: span 거리, 발주 가능 여부와 `targetEnergized`
+
+fixture 또는 Structural 변경은 `REVISE`가 아니라 reviewed 새 계약·새 version·새 session을 요구한다.
+Presentation 한 family만 위 `REVISE` 후보가 될 수 있다. registry, type catalog와 parameter sweep을
+만들지 않는다.
 
 ## 10. 구현 TODO — 별도 승인 뒤에만
 

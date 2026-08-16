@@ -1,6 +1,6 @@
 # Scope 0B v5 protocol result and v6 reset checkpoint
 
-> Status: **DRAFT — official v6 sessions closed**
+> Status: **AUTHORIZED — official v6 sessions may start**
 >
 > `SubGateDecision = PENDING`
 >
@@ -112,12 +112,12 @@ This rehearsal contains no gameplay observation and is not part of the five offi
 ## 5. Review checkpoint
 
 - initial v6 protocol commit: `0e6e0ed35c5053104ae7e5889c8dd9a91b9869d3`
-- bounded independent v6 reviewers: `PENDING`
+- bounded independent v6 reviewers: `v6_content_auth_review, v6_content_protocol_review, v6_content_docs_review`
 - review standard: skeptic; simple structure is the default
 - runtime, fixture, UI, gameplay rubric or numeric gate-threshold change: `NONE`
 - run-protocol failure mapping: global preflight 이후 setup·participant·evidence 실패를 고정 false row로 보존
-- final review: `PENDING`
-- reviewed v6 content commit: `PENDING`
+- final review: `P0=0, P1=0, P2=0`
+- reviewed v6 content commit: `a5f9479d94f96ff5e96b744f0cbfa4a25a32d093`
 
 Official v6 sessions remain closed until this checkpoint and the facilitator sheet are reviewed, hashes are
 exact and both verification scripts pass. Scope 1 remains unopened.

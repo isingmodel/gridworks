@@ -37,6 +37,12 @@ participant-authored evidence system. A miss closes that proxy result and requir
 
 This refinement changes no fixture value, gameplay rule, implementation authorization or human-evidence status.
 
+- initial policy refinement commit: `5ba5142312cab78e7f48d0d6716eff3c13765a2a`
+- bounded independent reviewer: `development_lessons_audit`
+- initial review: `P0=0, P1=2, P2=3`; all findings addressed without new files or execution machinery
+- final recheck: `PENDING`
+- reviewed policy content commit: `PENDING`
+
 ## Repository checkpoint
 
 - initial preparation commit: `aa0669bc54a3a4847ee6b29aa61a7551a6dcfac2`

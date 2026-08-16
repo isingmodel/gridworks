@@ -203,6 +203,10 @@ plugin interface나 save schema를 미리 만들지 않는다.
 완성하고, 거리 제한과 완공 전 무전압을 설명하는가” 하나뿐이다. 이 질문이 실행 시점에도 남아 있고
 사용자가 별도 승인했을 때만 LLM proxy를 한 번 실행한다. 판정 구조는 다음처럼 제한한다.
 
+§6의 구현단계 native 검토는 고정 화면의 clipping·접근성만, §7의 headless smoke는 scene과 Core의
+연결만 확인한다. 아래 global native preflight는 proxy 직전 동일 build에서 실제 창·입력과 원본 기록이
+끝까지 동작하는지 한 번 확인한다.
+
 - 새 cold session `S1-L01`~`L03`, 동일 공개 model·reasoning, `fork_turns=none`
 - 한 번의 global native preflight 뒤 세 row를 고정하고 교체하지 않음
 - 같은 build·fixture·prompt, variant와 facilitator follow-up 없음
@@ -264,7 +268,7 @@ fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. �
 - terrain, optimizer, 복수 support class나 terminal 선택 없이는 fixture를 완성할 수 없다.
 - invalid 명령이 draft를 바꾸거나 `Building` 중 부분 통전을 만든다.
 - 수동 배치를 설명하려면 변전소·발전소·철거 또는 경제를 함께 열어야 한다.
-- 자동 pole 추천 없이는 proxy가 반복해서 완료할 수 없다.
+- 고정 세 row에서 자동 pole 추천 없이는 완료할 수 없음이 관찰된다.
 - implementation-ready 계약과 실제 코드 사이에 범용 graph refactor가 선행조건이 된다.
 
 이 경우 기능을 추가하지 않고 범위를 다시 검토한다. Scope 1 `GO`도 발전소·변전소·철거,

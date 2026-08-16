@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — 구현 checkpoint reviewed, L00 preflight 대기, 공식 proxy 미개방**
+> 상태: **ACTIVE — L00 `PROXY-RUN-BLOCKED`(Computer Use transport), 공식 proxy 미개방**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -8,8 +8,9 @@
 
 이 문서는 카드에서 확인한 인과가 실제 상태변화와 클릭이 있는 화면으로 전이되는지만 검사하는
 Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review checkpoint는 완료됐고, 이 문서의
-구현·자동검사, 독립 코드 review와 구현 동결 checkpoint는 완료됐다. 현재는 같은 build의 L00
-네이티브 조작 preflight만 열려 있고, 공식 조작 proxy는 L00 통과 전까지 열리지 않는다.
+구현·자동검사, 독립 코드 review와 구현 동결 checkpoint는 완료됐다. [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는
+Computer Use transport가 AX·screenshot을 반환하지 못한 `PROXY-RUN-BLOCKED`이며 게임 판정이 아니다.
+공식 조작 proxy는 같은 build의 L00가 실제 full run을 통과할 때까지 열리지 않는다.
 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설

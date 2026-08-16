@@ -42,8 +42,9 @@ R2도 실제 비전문가가 아니라 새 cold LLM session 다섯 개를 사용
 아니다. 같은-model 5회는 통계 표본이 아니며, 구조화된 질문에 대한 반복 일관성만 입증했다.
 계약과 machine fixture는 독립 review에서 `P0/P1/P2 = 0`으로 닫혔다. Core·검사도구·단일 Godot
 scene 구현, 자동검사, native smoke, 독립 코드 review와 [구현 동결 checkpoint](playtests/scope-0b/CHECKPOINT_1_IMPLEMENTATION_FREEZE.md)까지
-reviewed 상태로 완료됐다. 현재 허용된 다음 단계는 동일 build의 집계 제외 **L00 네이티브 조작
-preflight**뿐이다. 공식 LLM 조작 proxy 다섯 회는 L00가 통과하기 전에는 시작하지 않는다.
+reviewed 상태로 완료됐다. 그러나 [L00 네이티브 조작 결과](playtests/scope-0b/L00_RESULT.md)는 앱이
+정확한 hash로 `READY`한 뒤에도 Computer Use가 AX·screenshot을 반환하지 않아
+`PROXY-RUN-BLOCKED`다. 이는 게임 판정이 아니다. 공식 LLM 조작 proxy 다섯 회는 시작하지 않았다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -51,7 +52,8 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-다음 허용 작업은 동일 build로 L00 네이티브 조작 preflight를 수행하는 것이다.
+Computer Use 외부 상태가 바뀐 뒤 동일 build로 L00를 재시도하는 것만 허용된다. 두 번의 상태 읽기와
+한 번의 full native run이 통과하기 전에는 공식 세션을 열지 않는다.
 
 ## 문서 구조
 

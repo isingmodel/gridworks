@@ -109,14 +109,17 @@ dotnet build game/Gridworks.Game.csproj -c Release
 - rejected expansion: no general runner framework, separate schema or duplicate CSV telemetry was added
 - final review: `P0=0, P1=0, P2=0`; contract, implementation freeze, Core checks and build all passed
 
-## Remaining gate
+## Gate after freeze
 
-The native UI was locked at the host level when Computer Use was probed. Therefore:
+At freeze time the native UI was locked at the host level. The later bounded attempts are recorded in
+[`L00_RESULT.md`](L00_RESULT.md): the host unlocked, but Computer Use still failed to return AX or screenshot
+state and the preflight became `PROXY-RUN-BLOCKED`.
 
-- `S0B-L00 = PENDING_HOST_UNLOCK`
+- `S0B-L00 = PROXY-RUN-BLOCKED`
 - actual accessibility-tree interaction has **not** been claimed
 - official sessions remain closed
 - this is an environment preflight condition, not a game score or `NO-GO`
 
-This checkpoint's bounded independent review is complete. L00 may start on this exact build. Official L01–L05
-may start only if L00 meets every preflight item in the facilitator sheet.
+This checkpoint's bounded independent review remains complete. L00 may be retried on this exact build only
+after the external Computer Use state changes. Official L01–L05 may start only if L00 meets every preflight
+item in the facilitator sheet.

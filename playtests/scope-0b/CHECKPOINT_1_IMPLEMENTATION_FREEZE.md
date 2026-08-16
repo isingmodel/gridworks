@@ -1,6 +1,6 @@
 # Scope 0B implementation-freeze checkpoint
 
-> Status: **REVIEWED IMPLEMENTATION — runtime unchanged; run protocol is owned by the latest reviewed reset checkpoint**
+> Status: **REVIEWED IMPLEMENTATION — runtime unchanged; this checkpoint authorizes no run protocol**
 >
 > `SubGateDecision = PENDING`
 >

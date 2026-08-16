@@ -529,7 +529,7 @@ space로 접고 양끝을 제거한 뒤 계산한 SHA-256이다. 이 규칙은 A
   participant가 export를 반환할 수 있으면 같은 message를 보내고, 반환할 수 없으면 runner manifest에
   provenance unavailable과 이유를 기록한다.
 - provenance report는 task 시작부터 measurement end까지의 call/source ledger다. 각 행은 순서·tool·목적·
-  content-source·상태를 가지며, metadata/error call은 정확한 request를, metadata 결과는 반환된 callable
+  content-source·상태를 가지며, metadata/import/error call은 정확한 request를, metadata 결과는 반환된 callable
   이름과 실제 사용 signature만, 모든 error는 원문을 보존한다. 각 UI action은 바로 뒤 fresh-state
   read와 짧은 stage marker에 연결한다. 사용하지 않은 tool description, 전체 tool-catalog 응답,
   wrapper 내부구현, screenshot과 전체 AX 본문은 복제하지 않는다. 이 생략은 TechnicalValid 실패가 아니다.
@@ -571,9 +571,11 @@ host lock·Computer Use transport·process launch를 포함해 독립 증거로 
 오류는 READY 전후와 무관하게 TechnicalValid=false이고 replacement 대상이다. 사후 추측만으로
 app/runner 귀속을 바꾸지 않는다.
 TechnicalValid=false의 증거 형식 사유는 기계 identity artifact 누락, identity 불일치, 관찰된 금지 source 접근,
-첫 state 전 mutation, frozen target·`@oai/sky` 밖 UI 조작, 또는 독립 artifact와 ledger의 모순으로
-닫는다. harmless metadata/import/transport 확인, literal wrapper spelling, 첫 호출 실패와 위에서
-명시적으로 제외한 verbose output 생략, ledger의 서식·완전성·미반환은 무효 사유가 아니다.
+첫 state 전 mutation 또는 frozen target·`@oai/sky` 밖 UI 조작으로 닫는다. ledger가 이 위반 중 하나를
+적극적으로 밝힌 경우에만 무효 근거로 사용한다. 그 밖의 ledger·기계 증거 불일치는 기계 증거를
+우선하고 audit observation으로만 남긴다. harmless metadata/import/transport 확인, literal wrapper
+spelling, 첫 호출 실패와 위에서 명시적으로 제외한 verbose output 생략, ledger의 서식·완전성·미반환은
+무효 사유가 아니다.
 각 run protocol version은 독립된 최대 일곱 official launch와 두 번의 technical-invalid replacement 상한을
 갖는다. v1·v2·v3·v4·v5는 합산하지 않는다. v1은 bootstrap, v2는 import, v3는 prompt identity,
 v4는 evidence-format 불일치 때문에 valid 다섯 slot이 불가능해 각각 `PROXY-RUN-BLOCKED`로 닫혔고

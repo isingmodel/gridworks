@@ -215,7 +215,10 @@ check(system("git", "-C", ROOT.to_s, "cat-file", "-e", "#{initial_commit}^{commi
       "initial v5 protocol commit does not exist")
 check(system("git", "-C", ROOT.to_s, "cat-file", "-e", "#{reviewed_commit}^{commit}", out: File::NULL, err: File::NULL),
       "reviewed v5 protocol commit does not exist")
+check(initial_commit != reviewed_commit, "reviewed v5 commit must differ from initial commit")
 check(system("git", "-C", ROOT.to_s, "merge-base", "--is-ancestor", initial_commit, reviewed_commit,
              out: File::NULL, err: File::NULL), "reviewed v5 commit does not descend from initial commit")
+check(system("git", "-C", ROOT.to_s, "merge-base", "--is-ancestor", reviewed_commit, "HEAD",
+             out: File::NULL, err: File::NULL), "reviewed v5 commit is not contained in current HEAD")
 
 puts "Scope 0B implementation freeze: PASS"

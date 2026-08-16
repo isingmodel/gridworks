@@ -1,13 +1,13 @@
 # Gridworks — Scope 1 수동 선로 건설 계약
 
-> 상태: **ACTIVE — 구현·native 검토 완료, 최종 source 재검토 중; 공식 관찰 CLOSED**
+> 상태: **IMPLEMENTATION COMPLETE — 공식 관찰 NOT_GRANTED**
 >
 > 다음 위험 선정: `Interaction — manual supports + one MaxSpan`
 >
 > 사람 증거: `HumanValidationStatus = NOT_COLLECTED`
 
 이 문서는 Scope 0B `GO` 뒤의 적응형 점검이 선택한 다음 단일 위험을 구현 가능한 크기로 닫는다.
-2026-08-16 사용자는 Scope 1 전체 목표의 구현을 승인했다. [활성화 checkpoint](../../playtests/scope-1/CHECKPOINT_1_IMPLEMENTATION_ACTIVATION.md)는 이 권한과 구현 시작 상태를 기록하고,
+2026-08-16 사용자는 Scope 1 전체 목표의 구현을 승인했다. [구현 checkpoint](../../playtests/scope-1/CHECKPOINT_3_IMPLEMENTATION_REVIEW.md)는 완료된 구현·자동검사·native 검토를 기록하고, [활성화 checkpoint](../../playtests/scope-1/CHECKPOINT_1_IMPLEMENTATION_ACTIVATION.md)는 이 권한과 구현 시작 상태를 기록한다.
 [준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)는 승인 전 계약 준비의 역사 기록으로 남는다. 구현 권한은 이 문서의 fixture·Core·검사·Game·회귀·native 검토에만 한정되며 제외 기능이나 다음 scope를 열지 않는다. §9의 관찰은 reviewed 동일 build 뒤에도 한 문장 질문이 남고 사용자가 별도로 실행을 승인했을 때만 고정 세 row로 한 번 실행한다.
 
 ## 1. 왜 이 위험이 다음인가

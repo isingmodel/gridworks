@@ -22,8 +22,8 @@
 |---|---|
 | 발전소 직접 건설 | `제품 방향·1.0 필수 능력`. 완료된 Scope 0B에는 기존 가스발전만 사용 |
 | 변전소 직접 건설 | `제품 방향·1.0 필수 능력`. 완료된 Scope 0B에는 설치된 고정 변전소와 피더만 사용 |
-| 전신주·철탑을 하나씩 직접 건설 | `현재 Scope 1 구현 범위`. 고정 source·target 사이 support 한 종류만 직접 배치 |
-| 각 오브젝트 사이 전선 길이 hard limit | `현재 Scope 1 구현 범위`. 인접 endpoint 사이 하나의 `MaxSpan`만 사용 |
+| 전신주·철탑을 하나씩 직접 건설 | `Scope 1 구현 완료 범위`. 고정 source·target 사이 support 한 종류만 직접 배치 |
+| 각 오브젝트 사이 전선 길이 hard limit | `Scope 1 구현 완료 범위`. 인접 endpoint 사이 하나의 `MaxSpan`만 사용 |
 | 발전소·변전소·전신주 철거 | `제품 방향·1.0 필수 능력`. 건설 상호작용 검증 뒤 `Decommissioning` gate에서 개방 |
 | 철거 추가비 | `제품 방향·1.0 필수 능력`. 즉시 삭제가 아니라 비용과 시간이 드는 철거공사로 처리 |
 
@@ -55,8 +55,8 @@ flowchart LR
 | 발전소 | 전력회사 설비. Scope 0에서는 기존 가스발전만 authored | 제품 gate에서 유효 부지에 배치·발주하고 접속점 연결, 이후 연결선과 함께 유상 철거 | 위치·footprint, 접속 terminal, 건설비·공기, 출력용량, 가용상태, 변동비 | Scope 0 신규 건설·철거·연속 수동급전 |
 | 모선·접속점 | 전기 그래프의 authored node | 연결경로와 고장영향 확인 | 연결관계, 통전상태, 상위 공급원 | 직접 배치·이동·철거·상세 개폐조작 |
 | 변전소 | 전력회사 설비. 현재는 고정 위치에 설치된 상태 | 제품 gate에서 직접 배치·발주하고 피더 연결, 이후 연결선과 함께 유상 철거 | 위치·footprint, 건설비·공기, 정격, terminal, 기하학적 서비스 권역 또는 전용부하 | Scope 0 자유 배치·upgrade·철거 |
-| 송전·배전선 | 인접 endpoint 사이의 전기 span과 이를 묶은 `LineProject` | authored 회랑 선택; 현재 Scope 1에서 고정 endpoint 사이 span 연결·일괄 발주 | 정격, 길이, `MaxSpan`, 비용, 공기, 전기 contingency, 공간 위험 group | 부분 통전·철거·일반 graph 편집 |
-| 전신주·철탑 | 전력회사 설비. Scope 0에서는 추상 표현, 현재 Scope 1에서는 고정 선로용 support 한 종류 | 현재 Scope 1에서 하나씩 위치 지정하고 마지막 support를 되돌린 뒤 전체 선로를 일괄 발주 | 위치, support class, 건설상태, 소속 `LineProject`, 연결 span과 인접 endpoint까지 거리 | 철거·지지물별 노후·재고·장력 설정 |
+| 송전·배전선 | 인접 endpoint 사이의 전기 span과 이를 묶은 `LineProject` | authored 회랑 선택; Scope 1에서 고정 endpoint 사이 span 연결·일괄 발주를 구현 | 정격, 길이, `MaxSpan`, 비용, 공기, 전기 contingency, 공간 위험 group | 부분 통전·철거·일반 graph 편집 |
+| 전신주·철탑 | 전력회사 설비. Scope 0에서는 추상 표현, Scope 1에서는 고정 선로용 support 한 종류 | Scope 1에서 하나씩 위치 지정하고 마지막 support를 되돌린 뒤 전체 선로를 일괄 발주하도록 구현 | 위치, support class, 건설상태, 소속 `LineProject`, 연결 span과 인접 endpoint까지 거리 | 철거·지지물별 노후·재고·장력 설정 |
 | 서비스 권역 | 변전소 위치·형식에서 생기는 공간 data layer | 잠재 접속범위와 통전상태 확인 | 무전압일 때도 기하학은 존재하며 실제 공급에는 상위 경로와 용량이 필요 | 건설·판매·철거·독립 전원 역할 |
 | 마을 | authored 수요처, 전력회사 소유 아님 | 공급상태·의무·보상 확인 | 일반 수요, 서비스 권역 접속, P2 후보 | 건설·이동·철거·개별 시민 조작 |
 | 병원 | authored 중요 수요처, 전력회사 소유 아님 | 주·예비 경로와 계통공급 확인 | P0, 전용 피더, 고객 내부전원, 높은 미공급 책임 | 건설·철거·P0 자동차단·내부전력을 판매로 계량 |
@@ -140,7 +140,7 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan(LineClass)
   허용된 terminal에서만 생긴다.
 - 총 선로 길이에는 별도 hard limit을 두지 않는다. pole 수, conductor 길이, 비용과 공기가 자연스러운
   한계가 된다.
-- 활성 Scope 1 계약은 line class와 support type을 각각 하나만 사용하므로 `MaxSpan`도 하나다.
+- 구현 완료 Scope 1 계약은 line class와 support type을 각각 하나만 사용하므로 `MaxSpan`도 하나다.
   구현·검증 완료 전에는 실행 가능한 조작으로 주장하지 않는다.
 - 다회선 공유철탑, 지형별 장력, 처짐, 풍하중, 기초형식과 자동 pole 배치는 계산하지 않는다.
 

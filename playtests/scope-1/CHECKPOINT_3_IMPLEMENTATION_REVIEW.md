@@ -1,8 +1,8 @@
 # Scope 1 checkpoint 3 — implementation review
 
-> `CheckpointStatus = REVIEW_IN_PROGRESS`
+> `CheckpointStatus = REVIEWED`
 >
-> `ImplementationStatus = REVIEW_FIXES_APPLIED`
+> `ImplementationStatus = IMPLEMENTATION_COMPLETE`
 >
 > `NativeVisualReview = PASS`
 >
@@ -81,8 +81,8 @@ run through the unchanged default `Main.tscn` with fresh logs.
 - initial implementation commit: `213873f1810d59b3ca19fe118c71468ae5b0fbed`
 - bounded independent reviewers: `scope1_core_review`, `development_lessons_audit`
 - initial findings: `P0=0`, `P1=2`, `P2=4`; all bounded fixes applied
-- final recheck: `PENDING`
-- reviewed implementation commit: `PENDING`
+- final recheck: `P0=0`, `P1=0`, `P2=0`; blocker 없음
+- reviewed implementation commit: `3d94af255db313d3676b6dc1b065c7bb290b9a45`
 
-Source review and native 1280×720 clipping/accessibility review must close before implementation evidence is
-complete. Official proxy execution remains a separate user decision.
+Source review and native `1280×720` clipping/accessibility review are closed. Implementation evidence is complete.
+Official proxy execution remains a separate user decision and is not authorized by this checkpoint.

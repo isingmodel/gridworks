@@ -29,14 +29,14 @@
 
 ## 현재 개발 상태
 
-현재 활성 구현 gate는 [**Scope 1 수동 선로 건설**](docs/scopes/SCOPE_1_INTERACTION.md)이다.
-2026-08-16 사용자 지시로 구현을 열었으며, 고정 endpoint 사이에서
-지지물을 직접 놓고 하나의 `MaxSpan`을 지키는 최소 수직 slice만 만든다. 완료된
+현재 실행 권위는 [**Scope 1 수동 선로 건설**](docs/scopes/SCOPE_1_INTERACTION.md) 계약이다.
+고정 endpoint 사이에서 지지물을 직접 놓고 하나의 `MaxSpan`을 지키는 최소 수직 slice의 구현 증거를
+완료했으며, 추가 구현 gate는 열려 있지 않다. 완료된
 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)은 공식 v6에서 `GO`로 끝났고
 `Scope0State = REVIEWED`다. Scope 1의 아홉 field fixture 인계는 독립 검토를 마쳤고,
 [`data/scope-1-v1.json`](data/scope-1-v1.json)이 현재 단일 기계 권위다. 격리된 Core·자동검사와
-Godot 수동 배치 장면의 구현·headless smoke와 native 화면 검토도 완료했으며, 현재 독립 review
-finding을 반영한 최종 source 재검토 단계다. 기본 실행 장면과 완료된 Scope 0B 구현은 바꾸지 않았다.
+Godot 수동 배치 장면의 구현·headless smoke, native 화면 검토와 독립 source 재검토까지 완료했다.
+기본 실행 장면과 완료된 Scope 0B 구현은 바꾸지 않았다.
 Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
 [결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.
@@ -52,9 +52,9 @@ conclusion이 모두 `5/5`였다. [공식 결과](playtests/scope-0b/RESULT.md)�
 
 이는 동일-model LLM의 authored UI 조작 전이만 지지한다. 다섯 세션 모두 북부선을 골랐고 모두
 `남음/끊김` control을 독립 switch처럼 보인다고 했으므로 선택 밸런스와 사람 사용성을 주장하지
-않는다. `HumanValidationStatus = NOT_COLLECTED`다. Scope 1은 구현·자동검사·native 검토까지만
-활성 상태다. 그 뒤에도 계약의 이해·상호작용 질문이 남으면 공식 proxy 실행을 별도로 승인할지
-사용자에게 묻는다. 승인되더라도 같은 build의 사전점검 한 번과 고정 cold session 세 개뿐이며,
+않는다. `HumanValidationStatus = NOT_COLLECTED`다. Scope 1의 구현·자동검사·native 검토는 완료됐고,
+계약의 이해·상호작용 질문을 위한 공식 proxy는 승인되지 않았다. 실행 여부는 사용자에게 별도로
+묻는다. 승인되더라도 같은 build의 사전점검 한 번과 고정 cold session 세 개뿐이며,
 사람 증거가 아니고 교체·재시도·수정 라운드는 없다.
 
 ## 문서 구조

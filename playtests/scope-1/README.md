@@ -9,7 +9,7 @@ This directory records the active [Scope 1 manual-line contract](../../docs/scop
 - [`CHECKPOINT_2_FIXTURE_HANDOFF.md`](CHECKPOINT_2_FIXTURE_HANDOFF.md) reviews the nine-field product fixture
   before Core or Game consumes it. The review is complete and the JSON is the sole machine authority.
 - [`CHECKPOINT_3_IMPLEMENTATION_REVIEW.md`](CHECKPOINT_3_IMPLEMENTATION_REVIEW.md) records the isolated Core,
-  checks and Godot vertical slice. Its source and native review are not yet closed.
+  checks and Godot vertical slice. Its source and native review are complete.
 - [`verify_contract.rb`](verify_contract.rb) checks only fixture structure, values and the checker oracle. It
   does not authorize implementation or inspect Git history.
 

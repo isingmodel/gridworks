@@ -7,7 +7,8 @@ require "pathname"
 
 ROOT = Pathname(__dir__).join("../..").expand_path
 CONTRACT = ROOT.join("docs/scopes/SCOPE_0B_PLAYABLE.md")
-CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1_IMPLEMENTATION_FREEZE.md")
+BUILD_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1_IMPLEMENTATION_FREEZE.md")
+RUN_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md")
 SHEET = ROOT.join("playtests/scope-0b/FACILITATOR_SHEET.md")
 RECORD = ROOT.join("playtests/scope-0b/record-template.csv")
 FIXTURE = ROOT.join("data/scope-0b-v1.json")
@@ -21,7 +22,8 @@ def sha(path)
 end
 
 contract = CONTRACT.read
-checkpoint = CHECKPOINT.read
+build_checkpoint = BUILD_CHECKPOINT.read
+run_checkpoint = RUN_CHECKPOINT.read
 sheet = SHEET.read
 
 source_files = [
@@ -38,12 +40,12 @@ source_manifest = source_files.uniq.sort_by { |path| path.relative_path_from(ROO
   "#{path.relative_path_from(ROOT)}:#{sha(path)}\n"
 end.join
 build_hash = Digest::SHA256.hexdigest(source_manifest)
-expected_build_hash = checkpoint[/source-manifest build SHA-256:\n\s+`([0-9a-f]{64})`/, 1]
+expected_build_hash = build_checkpoint[/source-manifest build SHA-256:\n\s+`([0-9a-f]{64})`/, 1]
 check(build_hash == expected_build_hash, "build hash #{build_hash} != checkpoint #{expected_build_hash}")
 puts "PASS build-source-hash: #{build_hash}"
 
 fixture_hash = sha(FIXTURE)
-expected_fixture_hash = checkpoint[/fixture SHA-256: `([0-9a-f]{64})`/, 1]
+expected_fixture_hash = build_checkpoint[/fixture SHA-256: `([0-9a-f]{64})`/, 1]
 check(fixture_hash == expected_fixture_hash, "fixture hash drift")
 puts "PASS fixture-hash: #{fixture_hash}"
 
@@ -51,13 +53,13 @@ contract_prompt = contract[/아래 code block.*?```text\n(.*?)\n```/m, 1]
 sheet_prompt = sheet[/## 2\. Exact participant prompt.*?```text\n(.*?)\n```/m, 1]
 check(!contract_prompt.nil? && contract_prompt == sheet_prompt, "facilitator prompt differs from contract")
 prompt_hash = Digest::SHA256.hexdigest(contract_prompt)
-expected_prompt_hash = checkpoint[/prompt-template SHA-256: `([0-9a-f]{64})`/, 1]
+expected_prompt_hash = run_checkpoint[/task-message template SHA-256: `([0-9a-f]{64})`/, 1]
 check(prompt_hash == expected_prompt_hash, "prompt-template hash drift")
 
-assignments = { "S0B-L01" => "ab", "S0B-L02" => "ba", "S0B-L03" => "ab",
-                "S0B-L04" => "ba", "S0B-L05" => "ab" }
+assignments = { "S0B-V2-L01" => "ab", "S0B-V2-L02" => "ba", "S0B-V2-L03" => "ab",
+                "S0B-V2-L04" => "ba", "S0B-V2-L05" => "ab" }
 assignments.each do |session_id, variant|
-  row = checkpoint.lines.find { |line| line.start_with?("| `#{session_id}` |") }
+  row = run_checkpoint.lines.find { |line| line.start_with?("| `#{session_id}` |") }
   check(!row.nil? && row.include?("| `#{variant}` |"), "missing assignment #{session_id}/#{variant}")
   expected = row[/`([0-9a-f]{64})`/, 1]
   actual = Digest::SHA256.hexdigest(contract_prompt.sub("<SESSION_ID>", session_id))
@@ -65,8 +67,8 @@ assignments.each do |session_id, variant|
 end
 puts "PASS prompt-and-assignments: #{prompt_hash}, 5 messages"
 
-expected_sheet_hash = checkpoint[/facilitator-sheet SHA-256: `([0-9a-f]{64})`/, 1]
-expected_record_hash = checkpoint[/record-template SHA-256: `([0-9a-f]{64})`/, 1]
+expected_sheet_hash = run_checkpoint[/facilitator-sheet SHA-256: `([0-9a-f]{64})`/, 1]
+expected_record_hash = run_checkpoint[/record-template SHA-256: `([0-9a-f]{64})`/, 1]
 check(sha(SHEET) == expected_sheet_hash, "facilitator sheet hash drift")
 check(sha(RECORD) == expected_record_hash, "record template hash drift")
 
@@ -83,6 +85,8 @@ check(sheet.include?("--accessibility always"), "launch command lacks forced acc
 check(sheet.include?("--resolution 1280x720"), "launch command lacks frozen resolution")
 check(sheet.include?("--diagnostic-log"), "launch command lacks separate diagnostic path")
 check(sheet.include?("S0B-L00") && sheet.include?("L00Status = PASS"), "L00 pass is not explicit")
+check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v2 direct transport target missing")
+check(sheet.include?("ALL_TOOLS") && sheet.include?("forbidden"), "v2 catalog lookup prohibition missing")
 
 game_text = ROOT.glob("game/*.{cs,tscn,godot}").map(&:read).join("\n")
 check(!game_text.include?("verificationOnly"), "Game reads hidden oracle")

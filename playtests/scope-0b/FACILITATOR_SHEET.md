@@ -1,10 +1,12 @@
 # Scope 0B LLM UI-proxy facilitator sheet
 
-> Status: **FROZEN AFTER REVIEWED L00 PASS — official sessions authorized, not yet started**
+> Status: **S0B-RUN-v2 FREEZE UNDER REVIEW — official sessions closed**
 >
 > `BuildVersion = S0B-BUILD-v1`
 >
-> `PromptVersion = S0B-PROXY-v1`
+> `PromptVersion = S0B-PROXY-v2`
+>
+> `RunProtocolVersion = S0B-RUN-v2`
 >
 > `DecisionRuleVersion = S0B-GATE-v1`
 >
@@ -39,12 +41,12 @@ Assignment is fixed:
 
 | Session | Variant | Evidence role |
 |---|---|---|
-| `S0B-L00` | `ab` | unscored native tool rehearsal |
-| `S0B-L01` | `ab` | official slot 1 |
-| `S0B-L02` | `ba` | official slot 2 |
-| `S0B-L03` | `ab` | official slot 3 |
-| `S0B-L04` | `ba` | official slot 4 |
-| `S0B-L05` | `ab` | official slot 5 |
+| `S0B-L00` | `ab` | reviewed native UI rehearsal retained from unchanged build |
+| `S0B-V2-L01` | `ab` | official v2 slot 1 |
+| `S0B-V2-L02` | `ba` | official v2 slot 2 |
+| `S0B-V2-L03` | `ab` | official v2 slot 3 |
+| `S0B-V2-L04` | `ba` | official v2 slot 4 |
+| `S0B-V2-L05` | `ab` | official v2 slot 5 |
 
 Every log path must not exist before launch; the app fails closed rather than appending. The coordinator
 records launch, READY and end with monotonic times and the exact `endReason`/`faultAttribution` pair from the
@@ -68,9 +70,12 @@ excludes the Markdown fences and the newline immediately before the closing fenc
 
 ```text
 당신은 Gridworks를 처음 플레이하는 전력회사 운영자입니다. 세션 ID는 <SESSION_ID>입니다.
-측정 시작 전에 coordinator가 지정한 computer-use SKILL.md만 한 번 읽고, 그 뒤에는 이미 열린
-Gridworks 창을 Computer Use(node_repl + @oai/sky)로만 조작하세요. repository, shell, web,
-정적 카드와 다른 세션은 보지 마세요.
+측정 시작 전에 coordinator가 지정한 computer-use SKILL.md만 한 번 읽으세요. 측정용 Computer Use
+wrapper는 `tools.mcp__node_repl__js`, 앱 target은 `org.godotengine.godot`입니다. 이 transport 정보는
+도구 목록을 찾지 않고 바로 사용하세요. 첫 wrapper 호출부터 측정이 시작되며, 그 뒤에는 wrapper
+안의 @oai/sky로만 이미 열린 Gridworks 창을 조작하세요. ALL_TOOLS, list_apps, repository, shell,
+web, 정적 카드와 다른 세션은 보지 마세요. 각 UI action 뒤에는 fresh app state를 읽은 다음
+현재 element index로 다음 행동을 정하세요.
 
 화면에서 직접 읽을 수 있는 정보만 사용해 처음 상태부터 마지막 복구·결산 화면까지 도움 없이
 진행하세요. 결과가 공개되기 전에 표의 네 병원 utility 공급경로 결과를 모두 예측해 잠그고,
@@ -83,9 +88,10 @@ Gridworks 창을 Computer Use(node_repl + @oai/sky)로만 조작하세요. repos
 (5) 예상 밖이거나 이해하기 어려웠던 조작.
 ```
 
-## 3. L00 preflight
+## 3. Native preflight inherited by v2
 
-Do not start official sessions unless all are true:
+The reviewed `S0B-L00` remains valid because v2 changes no build, UI, app target, fixture or Computer Use
+action path. Do not start official v2 sessions unless all are true:
 
 1. The host UI is unlocked and exactly one target process is running.
 2. `get_app_state` returns twice within 20 seconds and exposes the exact title, current stage and enabled
@@ -94,6 +100,8 @@ Do not start official sessions unless all are true:
 4. One complete run reaches `FINAL`; the diagnostic contains the frozen ten-event sequence and the runner
    manifest agrees with it.
 5. The source-manifest, fixture and prompt hashes match the implementation checkpoint.
+6. An independent protocol review directly invokes `tools.mcp__node_repl__js` without `ALL_TOOLS` and confirms
+   that the callable is available. The participant must not discover a fallback tool or app identifier.
 
 If both AX and screenshot are unavailable, or a real accepted command cannot be produced, record
 `PROXY-RUN-BLOCKED`. Do not substitute static cards or a screenshot questionnaire.
@@ -101,11 +109,18 @@ If both AX and screenshot are unavailable, or a real accepted command cannot be 
 ## 4. Official run order and scoring boundary
 
 - Spawn one cold `gpt-5.6-sol`, reasoning `medium`, `fork_turns=none` session at a time.
-- Before measurement, permit only the exact computer-use skill read. During measurement, permit only
-  Computer Use through `node_repl + @oai/sky`.
+- Before measurement, permit only the exact computer-use skill read. The task message itself supplies the
+  direct wrapper and app target; `ALL_TOOLS`, `list_apps` and every discovery fallback are forbidden.
+- The first `tools.mcp__node_repl__js` dispatch starts measurement. During measurement, the outer
+  `functions.exec` may only dispatch that tool and UI access inside it may only use `@oai/sky`.
+- Use one Sky UI action followed by a fresh `get_app_state` in each action dispatch. If the direct wrapper or
+  exact app target fails, stop as `runner_error:runner`; do not search for another tool or app.
 - Stop at 15 minutes. A participant stop or timeout on an otherwise working app is a valid scored failure.
 - The four `PREDICTION_LOCKED` values are prediction authority; reveal-time prose cannot repair them.
 - Fill [`record-template.csv`](record-template.csv) from transcript, diagnostic and runner evidence.
+- After the final participant report, request one separate retained-history export to the session's ignored
+  `private/*-tool-trace.md`. It must not read or operate the app. Hash it and verify the exact preparation and
+  measured-tool boundary before starting the next session.
 - Do not discuss earlier sessions, scores or expected answers with a later participant.
 - Do not tune text, layout, values or controls between official sessions.
 

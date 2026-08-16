@@ -45,8 +45,15 @@ scene 구현, 자동검사, native smoke와 독립 코드 review까지 완료됐
 transport 때문에 막혔지만 재시작 뒤 AX가 복구됐고, Godot editor build의 실제 `(DEBUG)` 창 제목을
 동결 target에 반영한 수정도 독립 review로 닫혔다. 이어진 [L00 네이티브 조작](playtests/scope-0b/L00_RESULT.md)은
 두 상태 읽기와 실제 element-index full run으로 `FINAL`까지 통과했다. L00 증거도 독립 review에서
-`P0/P1/P2 = 0`으로 닫혔다. 이는 게임 판정이 아니며 공식 LLM 조작 proxy 다섯 회는 아직 시작하지
-않았다.
+`P0/P1/P2 = 0`으로 닫혔다.
+
+첫 공식 LLM 조작 proxy는 다섯 완료 세션 모두 실제 native UI에서 `FINAL`에 도달했지만, 각 cold
+participant가 동결 절차에 없던 환경 tool-catalog 조회를 측정 전에 한 번씩 실행했다. 이는 게임
+정보 누출은 아니어도 exact runner manifest와 충돌하므로 `TechnicalValid = 0/5`다. 6/7 launch 뒤
+같은 라운드에서 valid 다섯 slot을 확보할 수 없어 [`S0B-RUN-v1`은 protocol
+`PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md)로 닫았다. 게임·fixture·UI·
+rubric·gate는 바꾸지 않고 direct Computer Use wrapper와 app target만 exact task message에 넣은
+`S0B-RUN-v2`를 review 중이다. 이는 gameplay `REVISE/NO-GO`가 아니며 v1 응답을 v2와 합산하지 않는다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -54,8 +61,8 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-동일 build로 공식 세션 다섯 회를 직렬 실행할 수 있다. 파라미터·문구·fixture·판정 기준은 그 사이
-바꾸지 않는다.
+동일 build의 v2 공식 세션은 protocol-reset checkpoint review가 끝난 뒤에만 직렬 실행한다. 게임
+문구·수치·fixture·판정 기준은 바꾸지 않는다.
 
 ## 문서 구조
 

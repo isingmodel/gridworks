@@ -10,6 +10,7 @@ ROOT = Pathname(__dir__).join("../..").expand_path
 FIXTURE_PATH = ROOT.join("data/scope-0b-v1.json")
 CONTRACT_PATH = ROOT.join("docs/scopes/SCOPE_0B_PLAYABLE.md")
 CHECKPOINT_PATH = ROOT.join("playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md")
+RUN_CHECKPOINT_PATH = ROOT.join("playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md")
 
 def check(condition, message)
   raise message unless condition
@@ -667,7 +668,7 @@ end
 check(missing_links.empty?, "missing links: #{missing_links.join(', ')}")
 check(markdown_paths.none? { |path| path.read.include?("SCOPE_0B_CANDIDATE.md") }, "stale candidate reference")
 contract = CONTRACT_PATH.read
-%w[S0B-CONTRACT-v1 S0B-FIXTURE-v1 S0B-BUILD-v1 S0B-PROXY-v1 S0B-GATE-v1].each { |version| check(contract.include?(version), "contract version #{version}") }
+%w[S0B-CONTRACT-v2 S0B-FIXTURE-v1 S0B-BUILD-v1 S0B-PROXY-v2 S0B-RUN-v2 S0B-GATE-v1].each { |version| check(contract.include?(version), "contract version #{version}") }
 check(contract.include?("각각 `4/5` 이상") && contract.include?("`3/5` 이상"), "gate thresholds")
 check(contract.include?("ActiveKnob = 0"), "parameter policy")
 check(contract.include?("InteractionCompletionPass = false"), "technically valid incomplete session contract")
@@ -679,8 +680,10 @@ check(checkpoint_hash == fixture_hash, "checkpoint fixture hash #{checkpoint_has
 prompt_template = contract[/아래 code block.*?```text\n(.*?)\n```/m, 1]
 check(!prompt_template.nil?, "participant prompt template missing")
 prompt_hash = Digest::SHA256.hexdigest(prompt_template)
-checkpoint_prompt_hash = CHECKPOINT_PATH.read[/frozen prompt-template SHA-256: `([0-9a-f]{64})`/, 1]
+checkpoint_prompt_hash = RUN_CHECKPOINT_PATH.read[/task-message template SHA-256: `([0-9a-f]{64})`/, 1]
 check(checkpoint_prompt_hash == prompt_hash, "checkpoint prompt hash #{checkpoint_prompt_hash.inspect} != #{prompt_hash}")
+check(contract.include?("tools.mcp__node_repl__js") && contract.include?("org.godotengine.godot"), "direct transport target")
+check(contract.include?("v1과 v2는 합산하지 않는다"), "run-version evidence separation")
 
 def scope0b_decision(valid_sessions:, field_passes:, integrated_passes:, conclusion_passes:, one_family:, safe_fix:, budget_available:)
   check(field_passes.keys.sort == %i[coverage interaction risk utility], "gate field keys")

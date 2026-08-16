@@ -58,5 +58,7 @@ the facilitator had authorized official sessions before review completion, and o
 was mistyped. Independent parsing then reproduced the AX trace, ten-event diagnostic, runner `final:none`,
 four private hashes and unchanged runtime/prompt/gate with `P0=0, P1=0, P2=0`.
 
-Official `S0B-L01`–`S0B-L05` may now run sequentially on the same frozen build. No official session had started
-when this review closed.
+Official `S0B-L01`–`S0B-L05` could then run sequentially on the same frozen build. No official session had
+started when this review closed. Their later bootstrap-protocol block and the current v2 execution copy are
+recorded in [`CHECKPOINT_1B_RUN_PROTOCOL_V2.md`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md); this historical L00
+result remains native UI evidence for the unchanged build.

@@ -176,6 +176,11 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 ### LLM 조작 proxy·판정 단위
 
+- [x] 공식 v1의 six-launch evidence를 감사했고, 다섯 완료 세션 모두 허용되지 않은 bootstrap
+  tool-catalog 조회 때문에 `TechnicalValid = 0/5`임을
+  [`protocol reset checkpoint`](../../playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md)에 기록했다.
+- [x] v1을 gameplay 판정 없이 `PROXY-RUN-BLOCKED`로 닫고 응답·launch를 v2와 합산하지 않았다.
+- [ ] 게임·fixture·UI·rubric·gate를 그대로 둔 v2 direct-wrapper 실행 계약의 bounded review를 닫는다.
 - [ ] 검토를 마친 동일 build·fixture·rubric을 한 라운드 동안 동결한다.
 - [ ] 활성 Scope 0B가 정한 신규 cold LLM session·실제 화면 조작·무도움 절차만 따른다.
 - [ ] 조작 결과를 서비스 권역·상위 연결, 전기·공간 원인과 내부전원·전력회사 공급에 귀속하는지 기록한다.

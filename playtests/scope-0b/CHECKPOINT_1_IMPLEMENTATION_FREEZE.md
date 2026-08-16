@@ -1,6 +1,6 @@
 # Scope 0B implementation-freeze checkpoint
 
-> Status: **REVIEWED — L00 passed; official sessions authorized**
+> Status: **REVIEWED IMPLEMENTATION — run v1 later blocked; v2 protocol supersedes execution copy**
 >
 > `SubGateDecision = PENDING`
 >
@@ -9,6 +9,11 @@
 > `HumanValidationStatus = NOT_COLLECTED`
 
 ## Frozen build authority
+
+The build evidence in this file remains current. The v1 prompt/facilitator execution copy was later blocked
+by a bootstrap provenance mismatch and is superseded only for execution by
+[`CHECKPOINT_1B_RUN_PROTOCOL_V2.md`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md). Runtime, fixture and gate did not
+change.
 
 - active contract: [`docs/scopes/SCOPE_0B_PLAYABLE.md`](../../docs/scopes/SCOPE_0B_PLAYABLE.md)
 - machine fixture: [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json)
@@ -136,4 +141,5 @@ Its public result and private evidence anchors are in [`L00_RESULT.md`](L00_RESU
 `4a84b55374f2255f36806bc16112cf1f8ebc5fda` received a bounded independent review from
 `scope0b_core_review`. Two `P1` record defects—premature authorization wording and one mistyped app-log SHA
 digit—were fixed. Independent parsing reproduced the AX trace, all hashes and `final:none`; final review was
-`P0=0, P1=0, P2=0`. Official sessions may start on this unchanged build.
+`P0=0, P1=0, P2=0`. Official v1 later became protocol `PROXY-RUN-BLOCKED`; the unchanged build may be reused
+only under the reviewed v2 execution copy linked above.

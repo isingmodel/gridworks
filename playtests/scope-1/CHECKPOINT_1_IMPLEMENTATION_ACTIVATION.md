@@ -1,6 +1,6 @@
 # Scope 1 checkpoint 1 — implementation activation
 
-> `ActivationStatus = REVIEW_IN_PROGRESS`
+> `ActivationStatus = REVIEWED`
 >
 > `ImplementationAuthorization = GRANTED`
 >
@@ -35,7 +35,7 @@ another scope, push, pull request or merge.
 - initial activation commit: `b2125d1049dc36ded218de85b6fd8c13e1d05d01`
 - bounded independent reviewer: `architecture_spec_audit`
 - initial findings: `P0=0, P1=1, P2=2`; proxy authority and two stale ownership/status phrases corrected
-- final recheck: `PENDING`
-- reviewed activation commit: `PENDING`
+- final recheck: `P0=0, P1=0, P2=0`; blockers none
+- reviewed activation commit: `340c52f3236fe3e1cfc9dd9c143762ce1a641f6f`
 
-No fixture, Core, Game or official row may begin until this section records a clean bounded review.
+The reviewed activation opens the fixture handoff and implementation. Official proxy rows remain closed.

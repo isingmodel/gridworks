@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B official v6 `GO` — `Scope0State = REVIEWED`; Scope 1 별도 사용자 승인으로 활성화**
+> 상태: **Scope 0B official v6 `GO` — `Scope0State = REVIEWED`; Scope 1 준비 완료·구현 닫힘**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -31,8 +31,8 @@ Scope 0이 묻는 질문은 하나다.
                                └─ 적응형 점검 → 다음 gate 선정 또는 terminal 유지
 ```
 
-`Scope0State = REVIEWED` 자체는 Scope 1 구현 승인이 아니었다. 결과 점검이 다음 위험을 선정했고,
-이후 사용자의 지속 목표가 Scope 1 구현을 별도로 승인했다.
+`Scope0State = REVIEWED`는 Scope 1 구현 승인이 아니다. 결과 점검에서 다음 위험을 다시 선정하고,
+사용자가 별도로 승인해야 다음 gate를 열 수 있다.
 
 종료된 R1·R2의 경로와 판정은 각각의 계약과 checkpoint가 소유한다. R2는 네 field와 integrated
 모두 `5/5`로 `PROXY-PASS`했으며 Scope 0B의 역사적 승인 근거일 뿐 현재 실행 상태가 아니다.
@@ -219,8 +219,7 @@ Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한
 - [x] 실제 Scope 0B의 공사·실패 불변·원자 편입 원칙만 인계하고 범용 lifecycle을 가정하지 않았다.
 - [x] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 제외했다.
 - [x] Scope 0 증거에 맞게 Scope 1의 임시 표본·rubric·범위와 pre-code fixture 표를 다시 썼다.
-- [x] 사용자가 Scope 1 구현과 단일 Integrated gate, 필요하면 최대 한 번의 bounded UI 수정을
-  별도로 승인했다. Coverage는 Integrated의 구성요소다.
+- [ ] 사용자가 Scope 1 구현을 별도로 승인했다.
 - [x] 같은 변경에서 README·Scope 0 종료 색인·Scope 1 준비 계약·문서 링크를 갱신했다.
 
-이 역사적 개방조건은 모두 충족됐다. 현재 실행 권위는 Scope 1 계약과 활성화 checkpoint가 소유한다.
+하나라도 미충족이면 Scope 1을 구현하지 않는다.

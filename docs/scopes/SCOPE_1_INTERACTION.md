@@ -1,17 +1,17 @@
 # Gridworks — Scope 1 수동 선로 건설 계약
 
-> 상태: **ACTIVE — fixture 인계 완료·source 구현 OPEN; 공식 proxy CLOSED**
+> 상태: **IMPLEMENTATION-READY CANDIDATE — 구현·fixture 파일·공식 실행은 CLOSED**
 >
 > 다음 위험 선정: `Interaction — manual supports + one MaxSpan`
 >
 > 사람 증거: `HumanValidationStatus = NOT_COLLECTED`
 
 이 문서는 Scope 0B `GO` 뒤의 적응형 점검이 선택한 다음 단일 위험을 구현 가능한 크기로 닫는다.
-사용자의 지속 목표가 Scope 1 구현과 계약의 단일 Integrated gate 통과, 필요하면 최대 한 번의
-bounded UI 수정을 명시적으로 승인했다. Coverage는 Integrated의 구성요소다.
-[활성화·fixture checkpoint](../../playtests/scope-1/CHECKPOINT_1_CONTRACT_FREEZE.md)가
-JSON 권위 인계를 review한 뒤 source 구현을 열며, 공식 proxy는 후속 구현 checkpoint까지 닫는다.
-[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)는 승인 전 역사 기록이다.
+사용자는 Scope 1의 계획 준비까지 승인했지만 구현을 승인하지 않았다. 따라서 이 문서가 완결돼도
+`src/`, `game/`, `tools/`, `data/`를 변경하거나 공식 proxy를 실행할 수 없다. 별도 사용자 승인과
+활성화 checkpoint가 있어야 구현이 열린다.
+[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)가 이 문서의 review와
+구현 폐쇄 상태를 기록한다.
 
 ## 1. 왜 이 위험이 다음인가
 
@@ -65,11 +65,11 @@ native UI에서 구분하는지 확인했다. 그러나 플레이어는 authored
 - camera, save/replay, 범용 map editor와 미래 schema
 - parameter sweep과 Static Balance Lab
 
-## 4. 단일 fixture와 권위 인계
+## 4. 활성화 때 옮길 단일 fixture
 
-아래 표와 같은 값의 [`data/scope-1-v1.json`](../../data/scope-1-v1.json)을 활성화 변경에서 만들었고,
-[인계 checkpoint](../../playtests/scope-1/CHECKPOINT_1_CONTRACT_FREEZE.md)가 독립 review를 마쳤다.
-JSON이 유일한 기계 권위이고 이 표는 사람이 읽는 인계 mirror다. 값이나 항목을 몰래 늘리지 않는다.
+구현 승인 전 숫자 권위는 아래 표뿐이다. 승인되면 같은 값으로 `data/scope-1-v1.json`을 만들고
+독립 인계검사를 통과한 reviewed checkpoint부터 JSON이 기계 권위가 된다. 값이나 항목을 몰래
+늘리지 않는다.
 
 | 항목 | 값 |
 |---|---|
@@ -80,9 +80,9 @@ JSON이 유일한 기계 권위이고 이 표는 사람이 읽는 인계 mirror�
 | `MaxSpan` | `4 GridUnit` |
 | 시작 시각 | `0 GameMinute` |
 | 공사기간 | `60 GameMinute` |
+| hand witness | `(5, 4)`, `(9, 4)` |
 
-화폐, 정격과 부하는 없다. 자동검사의 checker-only witness는 `(5, 4)`, `(9, 4)`이며 제품 fixture
-field가 아니다. Game이나 participant UI·diagnostic은 이 test oracle을 소비하지 않는다.
+화폐, 정격과 부하는 없다. witness는 검증 전용이며 Game이나 participant에게 전달하지 않는다.
 
 거리 판정은 부동소수 tolerance 없이 정수 제곱으로 한다.
 
@@ -171,9 +171,8 @@ query다. 둘 다 유효성, from/to와 `distanceSquared / maxSpanSquared`를 �
    `WRONG_PHASE`이고 상태가 변하지 않는다.
 4. 같은 fixture와 명령열은 같은 권위 field와 파생 view를 반환한다.
 
-strict loader·validator는 fixture field exactness, integer 좌표, 유일한 endpoints와 direct failure를
-검사하고, 독립 fixture checker만 checker-only witness success를 검사한다. Core 검사는 네 오류
-code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다.
+validator는 fixture field exactness, integer 좌표, 유일한 endpoints, direct failure와 witness success를
+검사한다. Core 검사는 네 오류 code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다.
 preview 전후 상태 불변과, 복제한 같은 초기 상태에서 preview의 accepted/code가 실제 명령과
 경계·초과·invalid·`WRONG_PHASE` case마다 일치하는지도 검사한다.
 native smoke는 시작 → 두 support 직접 배치 → 발주 → 완공 → target 통전을 한 번 통과한다.
@@ -195,7 +194,7 @@ native smoke는 시작 → 두 support 직접 배치 → 발주 → 완공 → t
 - `GridworksSession`을 일반 graph simulator로 바꾸는 선행 refactor
 - 현재 read-only 지도를 범용 editor로 확장하는 작업
 
-reviewed fixture 인계 뒤 scope-local placement session을 추가한다. 미래 통합을 위해 공통 lifecycle,
+구현이 승인되면 scope-local placement session을 추가한다. 미래 통합을 위해 공통 lifecycle,
 plugin interface나 save schema를 미리 만들지 않는다.
 
 ## 9. 임시 LLM proxy 계약
@@ -237,7 +236,7 @@ revision은 그 UI 결함 하나만 바꾸고 새 build·새 세 session을 쓰�
 ### 9.1 파라미터 inventory
 
 - `ActiveKnob = 0`
-- `Unverified FrozenFixture`: §4의 지도 범위, endpoints, `MaxSpan`, 시작시각과 공사기간
+- `Unverified FrozenFixture`: §4의 지도 범위, endpoints, `MaxSpan`, 시작시각, 공사기간과 witness
 - `Structural`: integer snap, 제곱거리 `<=`, implicit support/line 하나, lifecycle과 원자 완공
 - `Presentation`: 범위 원, ghost span, pattern, label과 이후 동결할 pixel layout
 - `Derived`: span 거리, 발주 가능 여부와 `targetEnergized`
@@ -245,15 +244,14 @@ revision은 그 UI 결함 하나만 바꾸고 새 build·새 세 session을 쓰�
 fixture 또는 Structural 변경은 `REVISE`가 아니라 reviewed 새 계약·새 version·새 session을 요구한다.
 registry, type catalog와 parameter sweep을 만들지 않는다.
 
-## 10. 구현 TODO — reviewed fixture 인계 뒤에만
+## 10. 구현 TODO — 별도 승인 뒤에만
 
-- [x] 루트 README가 이 문서를 활성 구현 scope로 지목한다.
-- [x] 위 표와 exact한 `data/scope-1-v1.json`을 만든다.
-- [x] strict loader·validator와 독립 fixture checker를 만든다.
-- [x] pre-code 표 → JSON 인계검사와 contract-freeze checkpoint를 review한다.
-- [x] scope-local Core state·명령·snapshot과 오류 불변 검사를 구현한다.
-- [x] 단일 Godot scene의 수동 지도 입력과 범위 피드백을 구현한다.
-- [x] oracle, build, headless smoke와 Scope 0B 회귀검사를 통과한다.
+- [ ] 루트 README가 이 문서를 활성 구현 scope로 지목한다.
+- [ ] 위 표와 exact한 `data/scope-1-v1.json`과 strict validator를 만든다.
+- [ ] pre-code 표 → JSON 인계검사와 contract-freeze checkpoint를 review한다.
+- [ ] scope-local Core state·명령·snapshot과 오류 불변 검사를 구현한다.
+- [ ] 단일 Godot scene의 수동 지도 입력과 범위 피드백을 구현한다.
+- [ ] oracle, build, native smoke와 Scope 0B 회귀검사를 통과한다.
 - [ ] 구현 첫 커밋을 bounded independent review하고 scope-valid 지적만 고친다.
 - [ ] exact proxy 자료·원본 경계·실행 승인을 구현 checkpoint에서 동결한다.
 - [ ] 세 고정 session을 실행하고 비식별 결과·claim ceiling을 기록한다.

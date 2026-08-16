@@ -75,8 +75,7 @@ Checks만 oracle을 받는다. transition engine이나 Game이 oracle 값을 읽
 ### 제외
 
 - 자유 배치·선 긋기·전신주·`MaxSpan`과 교차 접속 — Scope 0B에는 없었다. 이후 적응형 점검은
-  그중 수동 지지물과 `MaxSpan`만 [Scope 1 계약](SCOPE_1_INTERACTION.md)으로 분리했고, 별도 사용자
-  승인으로 Scope 1이 활성화됐다. 이 완료된 Scope 0B 계약 자체가 그 구현을 승인한 것은 아니다.
+  그중 수동 지지물과 `MaxSpan`만 [Scope 1 준비 계약](SCOPE_1_INTERACTION.md)으로 분리했다.
 - 일반 BFS/최단경로, 임의 mesh, 역송, 병렬 경로 합산과 자동 절체 최적화
 - 부분공급, 급전, DC/AC 전력조류, 손실·열·보호·주파수
 - 확률사건, 정비·수리, 폭염·공장 증설, 발전원 추가

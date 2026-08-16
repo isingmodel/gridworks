@@ -6,7 +6,7 @@ config_version=5
 [application]
 
 config/name="Gridworks"
-run/main_scene="res://Scope1Main.tscn"
+run/main_scene="res://Main.tscn"
 
 [display]
 

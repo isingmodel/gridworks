@@ -36,6 +36,6 @@ another scope, push, pull request or merge.
 - bounded independent reviewer: `architecture_spec_audit`
 - initial findings: `P0=0, P1=1, P2=2`; proxy authority and two stale ownership/status phrases corrected
 - final recheck: `P0=0, P1=0, P2=0`; blockers none
-- reviewed activation commit: `340c52f3236fe3e1cfc9dd9c143762ce1a641f6f`
+- reviewed activation commit: `340c52fd9f8abe3ed1efae61fc003c1ea87f4e9a`
 
 The reviewed activation opens the fixture handoff and implementation. Official proxy rows remain closed.

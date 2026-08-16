@@ -2,7 +2,7 @@
 
 > `SubGateDecision = PROXY-PASS`
 >
-> `Scope0State = 0A_R2_PASS_REVIEW`
+> `Scope0State = 0B_CONTRACT_AUTHORIZED`
 >
 > `HumanValidationStatus = NOT_COLLECTED`
 
@@ -32,5 +32,5 @@ The user's current goal conditionally authorizes Scope 0B after this checkpoint.
 - Independent bounded review: `r2_result_review` audited initial commit `0474932` and local ignored raw
   evidence read-only; it reproduced all 31-column rows and 5/5 aggregate from pre-reveal responses, matched all
   four public hashes, confirmed commit ancestry and resolved one P2 stale Scope 0B transition sentence
-- Reviewed result commit: `PENDING`
+- Reviewed result commit: `8a110418b4cf384e18ce9035f587c7712db2f1cd`
 - Push/PR: not authorized by the current task

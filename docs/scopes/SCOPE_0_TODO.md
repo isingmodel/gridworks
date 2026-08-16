@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **R2 통과 — `0A_R2_PASS_REVIEW`**
+> 상태: **R2 checkpoint 완료 — `0B_CONTRACT_AUTHORIZED`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -10,7 +10,8 @@
 
 R1은 `PROXY-FAIL`로 끝났지만 새 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 네 field와 integrated
 모두 `5/5`로 `PROXY-PASS`했다. 현재 실행 권위는 [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와
-결과 checkpoint다. checkpoint 전에는 Scope 0B를 시작하지 않는다.
+완료된 결과 checkpoint다. 현재는 Scope 0B 계약 작성만 승인됐고 구현은 계약 checkpoint 전까지
+시작하지 않는다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 

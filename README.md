@@ -29,8 +29,9 @@
 
 ## 현재 개발 상태
 
-현재 승인된 개발단위는 [**Scope 0A R2 결과 checkpoint**](playtests/scope-0a-r2/RESULT.md)다. R2는
-coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했다. 종료된
+현재 승인된 개발단위는 [**Scope 0B playable 계약 작성**](docs/scopes/SCOPE_0B_CANDIDATE.md)이다.
+Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
+[결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.
 
 1. 서비스 권역과 실제 전력 공급은 다르다.
@@ -39,8 +40,9 @@ coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5
 
 R2도 실제 비전문가가 아니라 새 cold LLM session 다섯 개를 사용했으므로 사람 사용성 증거가
 아니다. 같은-model 5회는 통계 표본이 아니며, 구조화된 질문에 대한 반복 일관성만 입증했다.
-현재 허용 작업은 결과를 커밋·독립 review하는 checkpoint까지다. 완료 뒤에는 현재 사용자 목표의
-조건부 승인에 따라 10~15분짜리 **Scope 0B 2D playable** 계약을 동결한다.
+현재 허용 작업은 10~15분짜리 **Scope 0B 2D playable**의 단일 fixture·도구chain·명령·검사와
+LLM 실제 조작 proxy를 완전한 활성 계약으로 작성하고 review하는 것까지다. 그 checkpoint 전에는
+코드·게임 프로젝트를 구현하지 않는다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -48,7 +50,7 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-다음 허용 작업은 이 결과 checkpoint를 마친 뒤 Scope 0B 활성 계약을 작성·review하는 것이다.
+다음 허용 작업은 Scope 0B 활성 계약을 작성·review하는 것이다.
 
 ## 문서 구조
 

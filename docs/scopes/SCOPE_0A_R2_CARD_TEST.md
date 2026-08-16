@@ -1,13 +1,14 @@
 # Gridworks — Scope 0A R2 구조화 카드 테스트
 
-> 상태: **종료 판정 검토 중 — `LLM-PROXY-R2 = PROXY-PASS`**
+> 상태: **종료 — `LLM-PROXY-R2 = PROXY-PASS`**
 >
 > 사용자 승인: 2026-08-16, coverage와 통합 통과가 될 때까지 증거 기반 iteration을 계속하고
 > Scope 1 실행 준비상태까지 진행하라는 현재 목표
 >
 > 사람 증거: `HumanValidationStatus = NOT_COLLECTED`
 >
-> 결과: [`playtests/scope-0a-r2/RESULT.md`](../../playtests/scope-0a-r2/RESULT.md)
+> 결과: [`playtests/scope-0a-r2/RESULT.md`](../../playtests/scope-0a-r2/RESULT.md),
+> [`CHECKPOINT_2_R2_DECISION.md`](../../playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)
 
 이 문서는 종료된 [R1 계약](SCOPE_0A_CARD_TEST.md)과 [R1 결과](../../playtests/scope-0a/RESULT.md)를 바꾸지 않고 새 다섯 cold LLM session으로 동일 인과를 다시 검사한 완전한 R2 실행 계약이다. R1과 R2 결과는 합산하지 않는다. R2 실행 증거에는 이 동결 계약이 우선한다.
 
@@ -130,6 +131,6 @@ family가 필요하거나, 통과시키려면 답을 직접 노출하거나 fixt
 
 세션 뒤에는 원문·CSV hash, 독립 strict rescore, 비식별 오해, aggregate와 판정을 공개 결과 한 페이지에 기록한다. 큰 단위 checkpoint 규칙을 마친 뒤에만 다음 gate로 넘어간다.
 
-R2는 `PROXY-PASS`로 종료됐다. 현재 사용자 목표에 따른 Scope 0B 계약·구현의 조건부 승인은 R2
-결과 checkpoint가 완료된 뒤에만 발효한다. 그 전에는 공식 세션을 다시 실행하거나 Scope 0B를
-구현하지 않는다.
+R2는 `PROXY-PASS`로 종료됐고 결과 checkpoint도 완료됐다. 현재 사용자 목표에 따라 Scope 0B
+계약 작성은 승인됐다. Scope 0B 구현은 새 활성 계약의 fixture·도구chain·명령·검사·조작 proxy를
+동결하고 별도 checkpoint를 완료한 뒤에만 시작한다. R2 공식 세션은 다시 실행하지 않는다.

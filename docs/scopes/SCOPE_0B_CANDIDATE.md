@@ -1,10 +1,10 @@
 # Gridworks — Scope 0B 2D playable 후보
 
-> 상태: **미개방 후보 — Scope 0A R2 `PROXY-PASS`, 결과 checkpoint 대기**
+> 상태: **계약 작성 gate — Scope 0B 구현 미개방**
 >
-> R1은 실패했지만 새 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 통과했다. 사용자가 Scope 1
-> 준비까지의 증거 기반 진행을 조건부 승인했으나 R2 결과 checkpoint 전에는 이 후보를 활성
-> 계약으로 바꾸지 않는다.
+> 새 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 통과했고 결과 checkpoint도 완료됐다. 현재 사용자
+> 목표는 이 문서의 최대 범위 안에서 별도 활성 계약을 작성·review하도록 승인한다. 그 전에는
+> 구현하지 않는다.
 
 이 문서는 다음 단계의 최대 범위만 제한하며 아직 구현 계약이나 backlog가 아니다. R2 결과
 checkpoint가 완료되면 그 결과에 맞춰 불필요한 항목을 더 제거하고 단일 fixture·명령·화면·검사를

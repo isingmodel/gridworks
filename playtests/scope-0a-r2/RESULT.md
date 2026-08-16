@@ -2,7 +2,7 @@
 
 > Current state: `LLM-PROXY-R2 = PROXY-PASS`
 >
-> Workflow: `Scope0State = 0A_R2_PASS_REVIEW`
+> Workflow: `Scope0State = 0B_CONTRACT_AUTHORIZED`
 >
 > Human evidence: `HumanValidationStatus = NOT_COLLECTED`
 
@@ -61,6 +61,6 @@ This result means only that the structured cards elicited the frozen causal dist
 same-model cold LLM runs. It does not establish spontaneous discovery, novice-human understanding, fun,
 accessibility or actual UI interaction. `HumanValidationStatus` remains `NOT_COLLECTED`.
 
-Under the user's current conditional authorization, this result can open the Scope 0B contract only after the
-R2 result checkpoint is committed and independently reviewed. It does not open Scope 1 or authorize Scope 1
-implementation.
+The R2 result checkpoint is committed and independently reviewed, so the user's conditional authorization now
+opens Scope 0B **contract authoring**. Implementation remains blocked until that contract and its toolchain,
+fixture and checks are frozen and independently reviewed. This result does not open Scope 1.

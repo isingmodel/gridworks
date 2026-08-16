@@ -28,7 +28,9 @@ The user's current goal conditionally authorizes Scope 0B after this checkpoint.
 
 ## Repository checkpoint
 
-- Initial result commit: `PENDING`
-- Independent bounded review: `PENDING`
+- Initial result commit: `0474932a0e4d10b1e8db31fb98200550cc8eeab0`
+- Independent bounded review: `r2_result_review` audited initial commit `0474932` and local ignored raw
+  evidence read-only; it reproduced all 31-column rows and 5/5 aggregate from pre-reveal responses, matched all
+  four public hashes, confirmed commit ancestry and resolved one P2 stale Scope 0B transition sentence
 - Reviewed result commit: `PENDING`
 - Push/PR: not authorized by the current task

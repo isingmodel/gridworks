@@ -148,24 +148,21 @@
       "edgeId": "TOWN_FEEDER",
       "costCashUnit": 6000000,
       "allowedOrderMinute": 0,
-      "buildMinutes": 1440,
-      "orderWindow": "town_connection"
+      "buildMinutes": 1440
     },
     {
       "id": "PROJECT_RIVER_PARALLEL",
       "edgeId": "RIVER_PARALLEL",
       "costCashUnit": 8000000,
       "allowedOrderMinute": 1440,
-      "buildMinutes": 2880,
-      "orderWindow": "hospital_corridor"
+      "buildMinutes": 2880
     },
     {
       "id": "PROJECT_NORTH_DETOUR",
       "edgeId": "NORTH_DETOUR",
       "costCashUnit": 12000000,
       "allowedOrderMinute": 1440,
-      "buildMinutes": 2880,
-      "orderWindow": "hospital_corridor"
+      "buildMinutes": 2880
     }
   ],
   "loads": [
@@ -293,6 +290,70 @@
       "label": "DAY 9 20:00"
     }
   ],
+  "presentation": {
+    "mapBounds": { "width": 10, "height": 7 },
+    "serviceAreas": [
+      {
+        "substationId": "TOWN_SUB",
+        "shape": "ellipse",
+        "center": { "x": 7.5, "y": 1.0 },
+        "radiusX": 1.4,
+        "radiusY": 1.1
+      }
+    ],
+    "riskAreas": [
+      {
+        "id": "OLD_CORRIDOR_MAIN_BAND",
+        "spatialRiskGroup": "OLD_CORRIDOR",
+        "polygon": [
+          { "x": 2, "y": 3 },
+          { "x": 2.3, "y": 2.75 },
+          { "x": 4.7, "y": 2.75 },
+          { "x": 5, "y": 3 },
+          { "x": 4.7, "y": 3.25 },
+          { "x": 2.3, "y": 3.25 }
+        ]
+      },
+      {
+        "id": "OLD_CORRIDOR_HOSPITAL_BAND",
+        "spatialRiskGroup": "OLD_CORRIDOR",
+        "polygon": [
+          { "x": 5, "y": 3 },
+          { "x": 5.02, "y": 3.38 },
+          { "x": 6.62, "y": 4.98 },
+          { "x": 7, "y": 5 },
+          { "x": 6.98, "y": 4.62 },
+          { "x": 5.38, "y": 3.02 }
+        ]
+      },
+      {
+        "id": "OLD_CORRIDOR_RIVER_BAND",
+        "spatialRiskGroup": "OLD_CORRIDOR",
+        "polygon": [
+          { "x": 2, "y": 3 },
+          { "x": 3.4, "y": 3.7 },
+          { "x": 5.1, "y": 4.05 },
+          { "x": 7, "y": 5 },
+          { "x": 5.35, "y": 3.5 },
+          { "x": 3.6, "y": 3.15 }
+        ]
+      }
+    ],
+    "edgePolylines": [
+      { "edgeId": "GEN_EXPORT", "points": [{ "x": 1, "y": 3 }, { "x": 2, "y": 3 }] },
+      { "edgeId": "MAIN_TRUNK", "points": [{ "x": 2, "y": 3 }, { "x": 3.5, "y": 3 }, { "x": 5, "y": 3 }] },
+      { "edgeId": "TOWN_FEEDER", "points": [{ "x": 5, "y": 3 }, { "x": 6, "y": 1.8 }, { "x": 7, "y": 1 }] },
+      { "edgeId": "TOWN_SERVICE", "points": [{ "x": 7, "y": 1 }, { "x": 8, "y": 1 }] },
+      { "edgeId": "HOSPITAL_PRIMARY", "points": [{ "x": 5, "y": 3 }, { "x": 6, "y": 4 }, { "x": 7, "y": 5 }] },
+      { "edgeId": "HOSPITAL_SERVICE", "points": [{ "x": 7, "y": 5 }, { "x": 8, "y": 5 }] },
+      { "edgeId": "RIVER_PARALLEL", "points": [{ "x": 2, "y": 3 }, { "x": 3.5, "y": 3.45 }, { "x": 5.25, "y": 3.65 }, { "x": 7, "y": 5 }] },
+      { "edgeId": "NORTH_DETOUR", "points": [{ "x": 2, "y": 3 }, { "x": 1.5, "y": 1 }, { "x": 4, "y": 0.4 }, { "x": 9, "y": 0.4 }, { "x": 9, "y": 5.8 }, { "x": 7, "y": 5 }] }
+    ],
+    "layoutVariants": [
+      { "id": "ab", "corridorProjectOrder": ["PROJECT_RIVER_PARALLEL", "PROJECT_NORTH_DETOUR"] },
+      { "id": "ba", "corridorProjectOrder": ["PROJECT_NORTH_DETOUR", "PROJECT_RIVER_PARALLEL"] }
+    ]
+  },
   "verificationOnly": {
     "topology": {
       "nodeCount": 7,
@@ -308,38 +369,56 @@
       {
         "design": "NO_BUILD",
         "caseId": "E1_REMOVAL",
+        "removedEdgeIds": ["HOSPITAL_PRIMARY"],
         "townUtilityDelivered": true,
-        "hospitalUtilityDelivered": false
+        "hospitalUtilityDelivered": false,
+        "townPathId": "TOWN_PRIMARY_PATH",
+        "hospitalPathId": null
       },
       {
         "design": "NO_BUILD",
         "caseId": "OLD_CORRIDOR_REMOVAL",
+        "removedEdgeIds": ["HOSPITAL_PRIMARY", "MAIN_TRUNK"],
         "townUtilityDelivered": false,
-        "hospitalUtilityDelivered": false
+        "hospitalUtilityDelivered": false,
+        "townPathId": null,
+        "hospitalPathId": null
       },
       {
         "design": "RIVER_PARALLEL",
         "caseId": "E1_REMOVAL",
+        "removedEdgeIds": ["HOSPITAL_PRIMARY"],
         "townUtilityDelivered": true,
-        "hospitalUtilityDelivered": true
+        "hospitalUtilityDelivered": true,
+        "townPathId": "TOWN_PRIMARY_PATH",
+        "hospitalPathId": "HOSPITAL_RIVER_BACKUP_PATH"
       },
       {
         "design": "RIVER_PARALLEL",
         "caseId": "OLD_CORRIDOR_REMOVAL",
+        "removedEdgeIds": ["HOSPITAL_PRIMARY", "MAIN_TRUNK", "RIVER_PARALLEL"],
         "townUtilityDelivered": false,
-        "hospitalUtilityDelivered": false
+        "hospitalUtilityDelivered": false,
+        "townPathId": null,
+        "hospitalPathId": null
       },
       {
         "design": "NORTH_DETOUR",
         "caseId": "E1_REMOVAL",
+        "removedEdgeIds": ["HOSPITAL_PRIMARY"],
         "townUtilityDelivered": true,
-        "hospitalUtilityDelivered": true
+        "hospitalUtilityDelivered": true,
+        "townPathId": "TOWN_PRIMARY_PATH",
+        "hospitalPathId": "HOSPITAL_NORTH_BACKUP_PATH"
       },
       {
         "design": "NORTH_DETOUR",
         "caseId": "OLD_CORRIDOR_REMOVAL",
+        "removedEdgeIds": ["HOSPITAL_PRIMARY", "MAIN_TRUNK"],
         "townUtilityDelivered": false,
-        "hospitalUtilityDelivered": true
+        "hospitalUtilityDelivered": true,
+        "townPathId": null,
+        "hospitalPathId": "HOSPITAL_NORTH_BACKUP_PATH"
       }
     ],
     "internalPower": {
@@ -353,6 +432,152 @@
       "northEventRemainingKwMinute": 2400000,
       "northEventHospitalP0UnservedKwMinute": 0
     },
+    "commonBoundaryStates": [
+      {
+        "id": "INITIAL", "minute": 0, "cash": 20000000,
+        "townProjectState": "not_ordered", "corridorProjectState": "not_ordered", "selectedCorridor": null,
+        "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "TOWN_SERVICE"],
+        "eventRemovedEdgeIds": [], "activeLoadIds": ["HOSPITAL_LOAD"],
+        "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_PRIMARY_PATH" },
+        "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 2400000,
+        "interval": { "revenueCashUnit": 0, "gasCostCashUnit": 0, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 0, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+        "cumulative": { "revenueCashUnit": 0, "gasCostCashUnit": 0, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 0, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+        "isComplete": false
+      },
+      {
+        "id": "TOWN_ORDERED", "minute": 0, "cash": 14000000,
+        "townProjectState": "building", "corridorProjectState": "not_ordered", "selectedCorridor": null,
+        "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "TOWN_SERVICE"],
+        "eventRemovedEdgeIds": [], "activeLoadIds": ["HOSPITAL_LOAD"],
+        "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_PRIMARY_PATH" },
+        "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 2400000,
+        "interval": { "revenueCashUnit": 0, "gasCostCashUnit": 0, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 0, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+        "cumulative": { "revenueCashUnit": 0, "gasCostCashUnit": 0, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 0, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+        "isComplete": false
+      },
+      {
+        "id": "PRE_CHOICE", "minute": 1440, "cash": 14012480,
+        "townProjectState": "commissioned", "corridorProjectState": "not_ordered", "selectedCorridor": null,
+        "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "TOWN_FEEDER", "TOWN_SERVICE"],
+        "eventRemovedEdgeIds": [], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+        "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_PRIMARY_PATH", "TOWN_LOAD": "TOWN_PRIMARY_PATH" },
+        "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 2400000,
+        "interval": { "revenueCashUnit": 34560, "gasCostCashUnit": 22080, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 11520000, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 11520000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+        "cumulative": { "revenueCashUnit": 34560, "gasCostCashUnit": 22080, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 11520000, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 11520000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+        "isComplete": false
+      }
+    ],
+    "routeBoundaryStates": [
+      {
+        "design": "RIVER_PARALLEL",
+        "states": [
+          {
+            "id": "CORRIDOR_ORDERED", "minute": 1440, "cash": 6012480,
+            "townProjectState": "commissioned", "corridorProjectState": "building", "selectedCorridor": "RIVER_PARALLEL",
+            "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "TOWN_FEEDER", "TOWN_SERVICE"],
+            "eventRemovedEdgeIds": [], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+            "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_PRIMARY_PATH", "TOWN_LOAD": "TOWN_PRIMARY_PATH" },
+            "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 2400000,
+            "interval": { "revenueCashUnit": 0, "gasCostCashUnit": 0, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 0, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "cumulative": { "revenueCashUnit": 34560, "gasCostCashUnit": 22080, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 11520000, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 11520000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "isComplete": false
+          },
+          {
+            "id": "CORRIDOR_COMMISSIONED", "minute": 4320, "cash": 6112320,
+            "townProjectState": "commissioned", "corridorProjectState": "commissioned", "selectedCorridor": "RIVER_PARALLEL",
+            "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "RIVER_PARALLEL", "TOWN_FEEDER", "TOWN_SERVICE"],
+            "eventRemovedEdgeIds": [], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+            "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_PRIMARY_PATH", "TOWN_LOAD": "TOWN_PRIMARY_PATH" },
+            "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 2400000,
+            "interval": { "revenueCashUnit": 276480, "gasCostCashUnit": 176640, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 23040000, "TOWN_LOAD": 69120000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 92160000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "cumulative": { "revenueCashUnit": 311040, "gasCostCashUnit": 198720, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 34560000, "TOWN_LOAD": 69120000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 103680000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "isComplete": false
+          },
+          {
+            "id": "EVENT_STARTED", "minute": 13440, "cash": 6428480,
+            "townProjectState": "commissioned", "corridorProjectState": "commissioned", "selectedCorridor": "RIVER_PARALLEL",
+            "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "RIVER_PARALLEL", "TOWN_FEEDER", "TOWN_SERVICE"],
+            "eventRemovedEdgeIds": ["HOSPITAL_PRIMARY", "MAIN_TRUNK", "RIVER_PARALLEL"], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+            "utilityPathByLoad": { "HOSPITAL_LOAD": null, "TOWN_LOAD": null },
+            "hospitalInternalStage": "ups", "hospitalInternalRemainingKwMinute": 2400000,
+            "interval": { "revenueCashUnit": 875520, "gasCostCashUnit": 559360, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 72960000, "TOWN_LOAD": 218880000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 291840000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "cumulative": { "revenueCashUnit": 1186560, "gasCostCashUnit": 758080, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 107520000, "TOWN_LOAD": 288000000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 395520000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "isComplete": false
+          },
+          {
+            "id": "UPS_DEPLETED", "minute": 13455, "cash": 6383680,
+            "townProjectState": "commissioned", "corridorProjectState": "commissioned", "selectedCorridor": "RIVER_PARALLEL",
+            "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "RIVER_PARALLEL", "TOWN_FEEDER", "TOWN_SERVICE"],
+            "eventRemovedEdgeIds": ["HOSPITAL_PRIMARY", "MAIN_TRUNK", "RIVER_PARALLEL"], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+            "utilityPathByLoad": { "HOSPITAL_LOAD": null, "TOWN_LOAD": null },
+            "hospitalInternalStage": "diesel", "hospitalInternalRemainingKwMinute": 2280000,
+            "interval": { "revenueCashUnit": 0, "gasCostCashUnit": 0, "compensationCashUnit": 44800, "lostSalesCashUnit": 1440, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 120000, "TOWN_LOAD": 360000 }, "gasInjectionKwMinute": 0, "hospitalInternalUsedKwMinute": 120000, "hospitalP0UnservedKwMinute": 0 },
+            "cumulative": { "revenueCashUnit": 1186560, "gasCostCashUnit": 758080, "compensationCashUnit": 44800, "lostSalesCashUnit": 1440, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 107520000, "TOWN_LOAD": 288000000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 120000, "TOWN_LOAD": 360000 }, "gasInjectionKwMinute": 395520000, "hospitalInternalUsedKwMinute": 120000, "hospitalP0UnservedKwMinute": 0 },
+            "isComplete": false
+          },
+          {
+            "id": "FINAL", "minute": 13680, "cash": 5711680,
+            "townProjectState": "commissioned", "corridorProjectState": "commissioned", "selectedCorridor": "RIVER_PARALLEL",
+            "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "RIVER_PARALLEL", "TOWN_FEEDER", "TOWN_SERVICE"],
+            "eventRemovedEdgeIds": [], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+            "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_PRIMARY_PATH", "TOWN_LOAD": "TOWN_PRIMARY_PATH" },
+            "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 480000,
+            "interval": { "revenueCashUnit": 0, "gasCostCashUnit": 0, "compensationCashUnit": 716800, "lostSalesCashUnit": 23040, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 1920000, "TOWN_LOAD": 5760000 }, "gasInjectionKwMinute": 0, "hospitalInternalUsedKwMinute": 1920000, "hospitalP0UnservedKwMinute": 0 },
+            "cumulative": { "revenueCashUnit": 1186560, "gasCostCashUnit": 758080, "compensationCashUnit": 716800, "lostSalesCashUnit": 23040, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 107520000, "TOWN_LOAD": 288000000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 1920000, "TOWN_LOAD": 5760000 }, "gasInjectionKwMinute": 395520000, "hospitalInternalUsedKwMinute": 1920000, "hospitalP0UnservedKwMinute": 0 },
+            "isComplete": true
+          }
+        ]
+      },
+      {
+        "design": "NORTH_DETOUR",
+        "states": [
+          {
+            "id": "CORRIDOR_ORDERED", "minute": 1440, "cash": 2012480,
+            "townProjectState": "commissioned", "corridorProjectState": "building", "selectedCorridor": "NORTH_DETOUR",
+            "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "TOWN_FEEDER", "TOWN_SERVICE"],
+            "eventRemovedEdgeIds": [], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+            "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_PRIMARY_PATH", "TOWN_LOAD": "TOWN_PRIMARY_PATH" },
+            "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 2400000,
+            "interval": { "revenueCashUnit": 0, "gasCostCashUnit": 0, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 0, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "cumulative": { "revenueCashUnit": 34560, "gasCostCashUnit": 22080, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 11520000, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 11520000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "isComplete": false
+          },
+          {
+            "id": "CORRIDOR_COMMISSIONED", "minute": 4320, "cash": 2112320,
+            "townProjectState": "commissioned", "corridorProjectState": "commissioned", "selectedCorridor": "NORTH_DETOUR",
+            "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "NORTH_DETOUR", "TOWN_FEEDER", "TOWN_SERVICE"],
+            "eventRemovedEdgeIds": [], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+            "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_PRIMARY_PATH", "TOWN_LOAD": "TOWN_PRIMARY_PATH" },
+            "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 2400000,
+            "interval": { "revenueCashUnit": 276480, "gasCostCashUnit": 176640, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 23040000, "TOWN_LOAD": 69120000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 92160000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "cumulative": { "revenueCashUnit": 311040, "gasCostCashUnit": 198720, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 34560000, "TOWN_LOAD": 69120000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 103680000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "isComplete": false
+          },
+          {
+            "id": "EVENT_STARTED", "minute": 13440, "cash": 2428480,
+            "townProjectState": "commissioned", "corridorProjectState": "commissioned", "selectedCorridor": "NORTH_DETOUR",
+            "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "NORTH_DETOUR", "TOWN_FEEDER", "TOWN_SERVICE"],
+            "eventRemovedEdgeIds": ["HOSPITAL_PRIMARY", "MAIN_TRUNK"], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+            "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_NORTH_BACKUP_PATH", "TOWN_LOAD": null },
+            "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 2400000,
+            "interval": { "revenueCashUnit": 875520, "gasCostCashUnit": 559360, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 72960000, "TOWN_LOAD": 218880000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 291840000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "cumulative": { "revenueCashUnit": 1186560, "gasCostCashUnit": 758080, "compensationCashUnit": 0, "lostSalesCashUnit": 0, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 107520000, "TOWN_LOAD": 288000000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 0 }, "gasInjectionKwMinute": 395520000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "isComplete": false
+          },
+          {
+            "id": "FINAL", "minute": 13680, "cash": 2353760,
+            "townProjectState": "commissioned", "corridorProjectState": "commissioned", "selectedCorridor": "NORTH_DETOUR",
+            "commissionedEdgeIds": ["GEN_EXPORT", "HOSPITAL_PRIMARY", "HOSPITAL_SERVICE", "MAIN_TRUNK", "NORTH_DETOUR", "TOWN_FEEDER", "TOWN_SERVICE"],
+            "eventRemovedEdgeIds": [], "activeLoadIds": ["HOSPITAL_LOAD", "TOWN_LOAD"],
+            "utilityPathByLoad": { "HOSPITAL_LOAD": "HOSPITAL_PRIMARY_PATH", "TOWN_LOAD": "TOWN_PRIMARY_PATH" },
+            "hospitalInternalStage": "none", "hospitalInternalRemainingKwMinute": 2400000,
+            "interval": { "revenueCashUnit": 5760, "gasCostCashUnit": 3680, "compensationCashUnit": 76800, "lostSalesCashUnit": 17280, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 1920000, "TOWN_LOAD": 0 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 5760000 }, "gasInjectionKwMinute": 1920000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "cumulative": { "revenueCashUnit": 1192320, "gasCostCashUnit": 761760, "compensationCashUnit": 76800, "lostSalesCashUnit": 17280, "utilityDeliveredKwMinuteByLoad": { "HOSPITAL_LOAD": 109440000, "TOWN_LOAD": 288000000 }, "utilityUnservedKwMinuteByLoad": { "HOSPITAL_LOAD": 0, "TOWN_LOAD": 5760000 }, "gasInjectionKwMinute": 397440000, "hospitalInternalUsedKwMinute": 0, "hospitalP0UnservedKwMinute": 0 },
+            "isComplete": true
+          }
+        ]
+      }
+    ],
     "cash": {
       "preChoiceCash": 14012480,
       "normalPostChoiceNetCash": 416000,

@@ -66,10 +66,10 @@ integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은
 | [`docs/development/`](docs/development/) | 조건부 개발·검증 도구 |
 | [`docs/future/`](docs/future/) | 1.0 이후 장기 후보 |
 
-문서 간 충돌이 있으면 현재 개발단위의 scope가 우선한다. 현재 Scope 0A R2는
+문서 간 충돌이 있으면 현재 개발단위의 scope가 우선한다. 완료된 Scope 0A R2는
 [R2 계약](docs/scopes/SCOPE_0A_R2_CARD_TEST.md)에 따라 [R1 카드 테스트](docs/scopes/SCOPE_0A_CARD_TEST.md)의
-동결 fixture와 oracle을 값 변경 없이 숫자 권위로 위임받는다.
-Scope 0B가 승인되어도 fixture 인계검사를 통과하기 전에는 이 권위를 자동으로 바꾸지 않는다.
+동결 fixture와 oracle을 값 변경 없이 사용했다. 현재 Scope 0B의 기계 권위 전환 조건과 정확한
+fixture는 [활성 계약](docs/scopes/SCOPE_0B_PLAYABLE.md)만 정한다.
 
 ## 개발 방식
 
@@ -117,9 +117,8 @@ gate 통과는 다음 작업을 자동 승인하지 않는다. 큰 개발단위 
 ## 기술 방향
 
 조건부 첫 구현의 엔진 방향은 Godot .NET과 C#이다. 권위 게임 규칙은 Godot을 참조하지 않는
-순수 .NET 코드에 두고, Godot은 명령을 보내고 결과를 그린다. Scope 0B 계약은 공식 stable인
-Godot 4.7.1 .NET과 이 환경의 .NET SDK 8.0.129를 exact patch로 고정했다. 실제 설치·build 증거는
-계약 review 뒤 구현 checkpoint에서 기록한다.
+순수 .NET 코드에 두고, Godot은 명령을 보내고 결과를 그린다. exact toolchain과 설치·build 증거는
+현재 활성 scope와 그 구현 checkpoint만 소유한다.
 
 프로젝트 금융은 1.0과 현재 장기 확장 후보에서 제외한다. 원전·데이터센터·공유 냉각수도
 전력망 핵심이 사람 플레이에서 검증되기 전에는 구현하지 않는다.

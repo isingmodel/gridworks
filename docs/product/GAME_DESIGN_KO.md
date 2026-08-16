@@ -407,7 +407,7 @@ Scope 0은 인과를 먼저 검증하기 위해 고정 패드와 authored 회랑
 경고음만 반복하기보다 팬과 변압기 음색이 먼저 변한다. 선로가 사용불가가 되면 차단 충격 뒤
 전류음이 사라져 공간의 정적을 느끼게 한다.
 
-구체적인 시각 구현 기준은 [비주얼 제작 명세](VISUAL_PRODUCTION_SPEC.md)에 둔다. 현재 카드의
+구체적인 시각 구현 기준은 [비주얼 제작 명세](VISUAL_PRODUCTION_SPEC.md)에 둔다. 현재 prototype의
 규칙·절차·숫자는 항상 활성 scope가 정한다.
 
 ## 14. 기술·데이터 원칙
@@ -425,7 +425,8 @@ Godot scene은 명령을 보내고 반환 상태만 그린다.
 - 저장·replay·hash는 세션 길이와 회귀 필요가 관찰된 뒤 별도 개방
 - 외부 AC solver는 선택된 상태를 감사하는 오프라인 도구일 뿐 런타임 의존성 아님
 
-Scope 0의 더 작은 카드 계약은 [Scope 0A](../scopes/SCOPE_0A_CARD_TEST.md)가 우선한다.
+종료된 카드 단계에서는 [Scope 0A 계약](../scopes/SCOPE_0A_CARD_TEST.md)이 그 단계의 세부 권위였다.
+현재 작업의 우선권은 언제나 루트 README가 지목한 활성 scope에 있다.
 
 ## 15. 파라미터와 밸런싱 원칙
 

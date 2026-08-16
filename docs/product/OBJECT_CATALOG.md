@@ -89,8 +89,8 @@ flowchart LR
 
 `LineProject`는 완공된 terminal 사이에서만 발주한다. 개별 지지물을 직접 놓지만 공사 queue를
 pole마다 쪼개지 않는다. 미완성 pole이나 일부 span은 전기를 전달하지 않는다. plant→substation
-→line 순서의 공사 DAG, 병렬 crew와 미래 project 예약은 만들지 않는다. Scope 0A는 카드
-검증이라 직접 건설 UI가 없고, 조건부 Scope 0B도 고정 피더와 authored 회랑만 사용한다.
+→line 순서의 공사 DAG, 병렬 crew와 미래 project 예약은 만들지 않는다. 종료된 Scope 0A는 카드
+검증이라 직접 건설 UI가 없고, 현재 Scope 0B 계약도 고정 피더와 authored 회랑만 사용한다.
 
 ### 통전과 공급
 

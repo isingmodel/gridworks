@@ -12,6 +12,7 @@
 - machine fixture: [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json)
 - contract verifier: [`verify_contract.rb`](verify_contract.rb)
 - `FixtureVersion = S0B-FIXTURE-v1`
+- frozen prompt-template SHA-256: `4a07e8fdf61cbd2475ba27613e9a89d4fcb254cc54c6d19d5f6a740ca64f2111`
 - `DecisionRuleVersion = S0B-GATE-v1`
 - implementation authority: **closed until this checkpoint is reviewed**
 
@@ -26,11 +27,11 @@
   - Scope 0A R2 deterministic regression
   - six removal outcomes, energy and exact integer cash oracle
   - local links and stale candidate references
-- frozen fixture SHA-256: `7809b9d3e7d5764e3a991604d8fbd5fa06e15840e79bfdf01df6201d686cabcd`
+- frozen fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 
 ## Repository checkpoint
 
-- initial contract commit: `PENDING`
+- initial contract commit: `f0326030c480f482fcb86013615c5264a876f35f`
 - independent bounded reviewer: `PENDING`
 - scope-valid findings and fixes: `PENDING`
 - reviewed contract commit: `PENDING`

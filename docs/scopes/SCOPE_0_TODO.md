@@ -8,10 +8,10 @@
 
 이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
-R1은 `PROXY-FAIL`로 끝났지만 새 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 네 field와 integrated
-모두 `5/5`로 `PROXY-PASS`했다. 현재 실행 권위는 [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와
-완료된 결과 checkpoint다. 현재는 Scope 0B 계약 동결·review만 승인됐고 구현은 계약 checkpoint
-전까지 시작하지 않는다.
+R1은 `PROXY-FAIL`로 끝났지만 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 네 field와 integrated
+모두 `5/5`로 `PROXY-PASS`했다. [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와 완료된 checkpoint는
+Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 현재 실행 권위는 루트 README가 가리키는
+[Scope 0B 계약](SCOPE_0B_PLAYABLE.md)이며, 구현은 계약 checkpoint 전까지 시작하지 않는다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 

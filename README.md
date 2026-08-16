@@ -49,9 +49,9 @@ transport 때문에 막혔지만 재시작 뒤 AX가 복구됐고, Godot editor 
 
 공식 LLM 조작 proxy v1·v2·v3는 모두 게임 판정 전에 run protocol 문제로 닫혔다. v1은 harmless
 tool-catalog 조회, v2는 harmless import 시도, v3는 coordinator가 세 prompt에 동결되지 않은 skill
-절대경로를 덧붙인 것이 원인이다. 특히 v3의 다섯 참가자는 모두 native `FINAL`에 도달하고 content-only
-rubric에서 `5/5`였지만, prompt identity를 먼저 적용하면 기술 유효는 `2/5`뿐이다. 이를 소급 구제하거나
-다른 version과 합산하지 않고 [`PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)로
+절대경로를 덧붙인 것이 원인이다. v3의 다섯 참가자는 모두 native `FINAL`에 도달했지만 prompt
+identity를 먼저 적용하면 기술 유효는 `2/5`뿐이므로 gameplay field는 채점하지 않았다. 이를 소급
+구제하거나 다른 version과 합산하지 않고 [`PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)로
 보존했다. 세 번 모두 gameplay `REVISE/NO-GO`가 아니며 revision budget을 쓰지 않았다.
 
 현재 `S0B-RUN-v4`는 게임을 건드리지 않고 prompt 전달만 단순화한다. participant 문구는 한 canonical

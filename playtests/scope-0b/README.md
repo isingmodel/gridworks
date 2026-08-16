@@ -16,7 +16,7 @@ replaced under v2, so five valid slots became unreachable and
 
 v3 then completed five native sessions, but the coordinator added a skill cache path to three frozen task
 messages. Those three actual prompt hashes differ from their manifests, so only `2/5` slots are technically
-valid and the round is protocol `PROXY-RUN-BLOCKED` despite a diagnostic-only content score of `5/5`.
+valid and the round is protocol `PROXY-RUN-BLOCKED`; gameplay fields were not scored.
 [`Checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md) preserves that evidence without a game decision and freezes
 a smaller v4 delivery rule: one canonical prompt source, whitespace-only normalization and transcript checking.
 Runtime, fixture, UI, rubric and gate remain unchanged. Official v4 sessions stay closed until its independent

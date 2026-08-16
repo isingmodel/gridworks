@@ -94,7 +94,7 @@ dotnet build game/Gridworks.Game.csproj -c Release
 - expected technical observation: Godot's dummy headless renderer crashed when combined with
   `--write-movie`; native Compatibility rendering recorded frames correctly. Headless smoke itself is clean.
 
-## Frozen participant messages
+## Historical v1 participant messages
 
 | Session | Variant | SHA-256 after replacing `<SESSION_ID>` |
 |---|---|---|

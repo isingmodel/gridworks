@@ -120,8 +120,6 @@ check(prompt_hash == expected_prompt_hash, "prompt-template hash drift")
 %w[S0B-CONTRACT-v4 S0B-PROXY-v4 S0B-RUN-v4].each do |version|
   check(run_checkpoint.include?(version), "run checkpoint version #{version} missing")
 end
-check(run_checkpoint.include?("Status: **REVIEWED") &&
-      run_checkpoint.include?("official v4 sessions authorized"), "v4 checkpoint is not reviewed/authorized")
 
 assignments = session_assignments
 assignments.each do |session_id, variant|
@@ -151,8 +149,6 @@ check(sheet.include?("--accessibility always"), "launch command lacks forced acc
 check(sheet.include?("--resolution 1280x720"), "launch command lacks frozen resolution")
 check(sheet.include?("--diagnostic-log"), "launch command lacks separate diagnostic path")
 check(sheet.include?("S0B-L00") && sheet.include?("L00Status = PASS"), "L00 pass is not explicit")
-check(sheet.include?("S0B-RUN-v4 REVIEWED") && sheet.include?("official sessions authorized"),
-      "v4 reviewed execution status missing")
 check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v4 direct transport target missing")
 check(sheet.include?("Generic environment-owned tool name/signature metadata") &&
       sheet.include?("other-app contents are forbidden"), "v4 content-source boundary missing")
@@ -177,5 +173,17 @@ tracked_private = `git -C #{ROOT} ls-files playtests/scope-0b/private`.lines.rej
 end
 check(tracked_private.empty?, "private proxy evidence is tracked")
 puts "PASS facilitator-record-boundary: exact files, launch, no private evidence"
+
+checkpoint_reviewed = run_checkpoint.match?(
+  /\A# Scope 0B v3 protocol result and v4 reset checkpoint\n\n> Status: \*\*REVIEWED — official v4 sessions authorized\*\*/
+)
+sheet_reviewed = sheet.match?(
+  /\A# Scope 0B LLM UI-proxy facilitator sheet\n\n> Status: \*\*S0B-RUN-v4 REVIEWED — official sessions authorized\*\*/
+)
+review_recorded = run_checkpoint.match?(/- initial v4 reset commit: `[0-9a-f]{40}`/) &&
+                  run_checkpoint.match?(/- bounded independent v4 reviewer: `(?!PENDING`)[^`]+`/) &&
+                  run_checkpoint.include?("final review: `P0=0, P1=0, P2=0`")
+check(checkpoint_reviewed && sheet_reviewed && review_recorded,
+      "v4 checkpoint is not independently reviewed/authorized")
 
 puts "Scope 0B implementation freeze: PASS"

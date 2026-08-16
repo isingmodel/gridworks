@@ -78,9 +78,10 @@ copying it. Replace `<SESSION_ID>` once; add no greeting, path, explanation, suc
 
 `PromptHash` means lowercase SHA-256 after `ascii-whitespace-fold-v1`: validate UTF-8, replace every run of
 ASCII space, tab, CR or LF with one ASCII space, then strip both ends. It excludes Markdown fences. This
-normalizes line wrapping only; any changed or added non-whitespace text changes the hash. Render the actual
+normalizes ASCII whitespace layout only; any changed, removed or added non-whitespace text changes the hash. Render the actual
 message with `ruby playtests/scope-0b/verify_implementation.rb --render-prompt <SESSION_ID>` and do not edit
-that output. After capture, verify the transcript with `--check-transcript <SESSION_ID> <PATH>`.
+that output. Preserve the dispatched message verbatim under a `## Exact task message` heading in one `text`
+fence, then verify the transcript with `--check-transcript <SESSION_ID> <PATH>`.
 
 ```text
 당신은 Gridworks를 처음 플레이하는 전력회사 운영자입니다. 세션 ID는 <SESSION_ID>입니다.

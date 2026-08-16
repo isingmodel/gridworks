@@ -502,8 +502,8 @@ AX와 screenshot을 모두 얻지 못하거나 실제 accepted command를 만들
 소유한다. coordinator는 검증기의 `--render-prompt <SESSION_ID>` 출력을 수정 없이 전달하고,
 `--check-transcript <SESSION_ID> <PATH>`가 실제 task turn을 확인한 뒤에만 해당 launch의
 TechnicalValid를 잠근다. `PromptHash`는 UTF-8 입력에서 ASCII space·tab·CR·LF 연속을 한 ASCII
-space로 접고 양끝을 제거한 뒤 계산한 SHA-256이다. 이 규칙은 줄바꿈 표현만 무시하며 단어·경로·
-인사·힌트가 하나라도 추가되거나 바뀌면 hash가 달라진다. v3에는 소급 적용하지 않는다.
+space로 접고 양끝을 제거한 뒤 계산한 SHA-256이다. 이 규칙은 ASCII whitespace 배치만 무시하며
+비공백 문자나 그 순서가 하나라도 추가·삭제·변경되면 hash가 달라진다. v3에는 소급 적용하지 않는다.
 
 - 신규 cold session: `S0B-V4-L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
 - model: `gpt-5.6-sol`, reasoning `medium`, `fork_turns = none`

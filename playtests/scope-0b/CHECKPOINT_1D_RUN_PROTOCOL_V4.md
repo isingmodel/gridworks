@@ -12,9 +12,8 @@
 
 ## 1. Why v3 stops without a game decision
 
-`S0B-RUN-v3` used five launches. All five reached the native `FINAL` state and the independent content-only
-scorer found every frozen gameplay field at `5/5`. That observation is not an official game score because
-prompt identity is part of TechnicalValid and was locked before scoring.
+`S0B-RUN-v3` used five launches. All five reached the native `FINAL` state, but prompt identity is part of
+TechnicalValid and is locked before any gameplay field is scored.
 
 - L01 and L02 received the frozen participant message and are technically valid.
 - L03–L05 received an added absolute skill path and different wrapping. The path was setup information, not
@@ -27,7 +26,6 @@ EvidenceRound = S0B-RUN-v3
 OfficialLaunches = 5/7
 CompletedNativeUI = 5/5
 TechnicalValid = 2/5
-ContentOnlyRubricObservation = 5/5
 OfficialGameplayScore = NOT_COMPUTED
 RoundStatus = PROXY-RUN-BLOCKED
 BlockerClass = RUN_PROTOCOL
@@ -36,8 +34,7 @@ RevisionBudgetRemaining = 1
 ```
 
 This is not `GO`, `REVISE` or `NO-GO`, and it does not spend the gameplay revision budget. v3 responses are
-not reinterpreted under v4 or combined with another round. The repeated switch/radio observation and all-North
-choice remain unscored diagnostics only.
+not scored, reinterpreted under v4 or combined with another round.
 
 ## 2. Frozen v3 evidence anchors
 
@@ -54,7 +51,7 @@ the fenced task turn in each transcript. The frozen hash is the v3 checkpoint va
 
 All five engine logs have SHA-256
 `678be1a5c713f54beb463daf16a33bc57ef6b439cdf48326e1db931eb7842dc0`. Each diagnostic has the exact
-ten-event sequence, exact locked predictions, North selection and final snapshot
+ten-event completion sequence and final snapshot
 `d8d6ac9edf2dd05e45be72dd1d0f2d01d849a8e051d2d59115b9ba9a7880792d`.
 
 ## 3. Small v4 delta
@@ -64,7 +61,7 @@ v4 changes only prompt delivery and identity checking.
 1. The facilitator sheet owns the only canonical participant-message block; the active contract links it.
 2. The skill locator is the stable registered name `computer-use:computer-use`, not a cache path.
 3. `PromptHash` uses `ascii-whitespace-fold-v1`: valid UTF-8, collapse runs of ASCII space/tab/CR/LF to one
-   ASCII space, strip, then SHA-256. Wrapping may vary; any changed non-whitespace text fails.
+   ASCII space, strip, then SHA-256. ASCII whitespace layout may vary; any changed non-whitespace text fails.
 4. The existing implementation verifier renders the message and checks the captured transcript. The
    coordinator sends rendered output without editing and verifies each transcript before locking validity.
 
@@ -86,7 +83,7 @@ No general runner framework or gameplay change is added.
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - task-message template SHA-256: `75796ad89829418005a352833c556bd59f8e36f8d442cf2f7735e64fba5cdc74`
-- facilitator-sheet SHA-256: `19a6a3766ca141ecb8aa97bf3041808d4925b368069f176d50249c2c4100930c`
+- facilitator-sheet SHA-256: `0500e8e6c7339d898ebf08a731b55e32d58c12db3777f93fb0a7f38e2db6f6cd`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
 
 | Session | Variant | Task-message SHA-256 |
@@ -101,8 +98,13 @@ No general runner framework or gameplay change is added.
 
 - v3 source commit: `82895f458a985b430eb99047c0c5115c0eee0eb6`
 - v3 evidence auditor: `s0b_v3_evidence_audit`; strict result `TechnicalValid = 2/5`, `P0=1`
-- content-only scorer: `s0b_v3_strict_score`; diagnostic observation `5/5`, not an official score
-- initial v4 reset commit: `PENDING`
-- bounded independent v4 reviewer: `PENDING`
+- initial v4 reset commit: `968e7bf81bf7664ef0e539b0424dbaf87312aa3e`
+- bounded independent v4 reviewers: `s0b_v4_freeze_review`, `s0b_v4_docs_review`
 - review standard: skeptic; simple structure is the default
+- accepted fixes: remove every aggregate of technically invalid gameplay answers; describe normalization as
+  ASCII-whitespace layout rather than line wrapping; define the captured transcript fence; move authorization
+  checking after all invariant checks and bind it to exact top-level status; label implementation-freeze prompt
+  hashes as historical v1 evidence
+- rejected expansion: no new runner framework, runtime/UI/fixture/rubric/gate change or retrospective v3 score
+- final review: `PENDING`
 - reviewed protocol commit: `PENDING`

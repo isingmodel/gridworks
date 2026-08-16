@@ -1,6 +1,6 @@
 # Scope 1 checkpoint 0 — contract preparation
 
-> `PreparationStatus = REVIEW_IN_PROGRESS`
+> `PreparationStatus = REVIEWED`
 >
 > `ImplementationAuthorization = NOT_GRANTED`
 >
@@ -46,10 +46,13 @@ coordinates out of the future product fixture, fixes the fixture → Core → Ga
 defines the exact Scope 0B regressions that must remain intact. It still authorizes no implementation, fixture file or
 official proxy execution.
 
-- initial plan refresh commit: `PENDING`
-- bounded independent reviewers: `PENDING`
-- final review: `PENDING`
-- reviewed plan content commit: `PENDING`
+- initial plan refresh commit: `9fc4dfe2da2af226588ced76b12ae80c7d71c629`
+- bounded independent reviewers: `architecture_spec_audit`, `development_lessons_audit`,
+  `game_state_narrative_audit`
+- initial reviews: architecture `P0=0, P1=4, P2=2`; validation `P0=0, P1=2, P2=1`;
+  authority/currentness `P0=0, P1=0, P2=0`
+- final recheck: `P0=0, P1=0, P2=0`; blocker 없음
+- reviewed plan content commit: `445e2ad6b11cb770cbfc2989420f873b09c021cf`
 
 ## Repository checkpoint
 

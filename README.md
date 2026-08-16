@@ -47,21 +47,18 @@ transport 때문에 막혔지만 재시작 뒤 AX가 복구됐고, Godot editor 
 두 상태 읽기와 실제 element-index full run으로 `FINAL`까지 통과했다. L00 증거도 독립 review에서
 `P0/P1/P2 = 0`으로 닫혔다.
 
-첫 공식 LLM 조작 proxy는 다섯 완료 세션 모두 실제 native UI에서 `FINAL`에 도달했지만, 각 cold
-participant가 동결 절차에 없던 환경 tool-catalog 조회를 측정 전에 한 번씩 실행했다. 이는 게임
-정보 누출은 아니어도 exact runner manifest와 충돌하므로 `TechnicalValid = 0/5`다. 6/7 launch 뒤
-같은 라운드에서 valid 다섯 slot을 확보할 수 없어 [`S0B-RUN-v1`은 protocol
-`PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md)로 닫았다. 게임·fixture·UI·
-rubric·gate는 바꾸지 않고 direct Computer Use wrapper와 app target만 exact task message에 넣은
-`S0B-RUN-v2`도 동결했다. v2 첫 교체 뒤 실제 UI를 완주한 launch가 게임과 무관한 import 오류 한 번
-때문에 frozen bootstrap과 충돌했고, 이 slot은 교체할 수 없어 valid 다섯 slot이 불가능해졌다.
-따라서 [`v2도 protocol PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1C_RUN_PROTOCOL_V3.md)로
-조기 종료했다. 둘 다 gameplay `REVISE/NO-GO`가 아니며 서로 합산하거나 소급 재채점하지 않는다.
+공식 LLM 조작 proxy v1·v2·v3는 모두 게임 판정 전에 run protocol 문제로 닫혔다. v1은 harmless
+tool-catalog 조회, v2는 harmless import 시도, v3는 coordinator가 세 prompt에 동결되지 않은 skill
+절대경로를 덧붙인 것이 원인이다. 특히 v3의 다섯 참가자는 모두 native `FINAL`에 도달하고 content-only
+rubric에서 `5/5`였지만, prompt identity를 먼저 적용하면 기술 유효는 `2/5`뿐이다. 이를 소급 구제하거나
+다른 version과 합산하지 않고 [`PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)로
+보존했다. 세 번 모두 gameplay `REVISE/NO-GO`가 아니며 revision budget을 쓰지 않았다.
 
-현재 `S0B-RUN-v3`는 게임 정보 출처만 닫는 더 단순한 TechnicalValid 규칙으로 review를 마쳤다. generic
-tool metadata·transport error는 점수와 무관한 setup 진단으로 허용하되 repository·fixture·web·정답·
-이전 세션·다른 앱 내용은 금지한다. 게임 build·fixture·UI·rubric과 `4/5 + integrated 3/5` gate는
-바꾸지 않았다.
+현재 `S0B-RUN-v4`는 게임을 건드리지 않고 prompt 전달만 단순화한다. participant 문구는 한 canonical
+source에서 기계적으로 출력하고, 줄바꿈만 정규화한 hash를 실제 transcript와 대조한다. generic tool
+metadata·transport error는 setup 진단으로 허용하지만 repository·fixture·web·정답·이전 세션·다른 앱
+내용은 계속 금지한다. build·fixture·UI·rubric과 `4/5 + integrated 3/5` gate는 그대로이며, independent
+protocol review가 끝날 때까지 공식 실행은 닫혀 있다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -69,8 +66,8 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-v3 protocol은 독립 review에서 `P0/P1/P2 = 0`으로 닫혔다. 이제 동일 build의 신규 cold session 다섯
-회만 직렬 실행하며 게임 문구·수치·fixture·판정 기준은 바꾸지 않는다.
+v4 protocol review 뒤에만 동일 build의 신규 cold session 다섯 회를 직렬 실행한다. 게임 문구·수치·
+fixture·판정 기준은 바꾸지 않는다.
 
 ## 문서 구조
 

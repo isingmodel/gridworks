@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B v1·v2 protocol `PROXY-RUN-BLOCKED` — reviewed v3 공식 실행 허용, `0B_ACTIVE`**
+> 상태: **Scope 0B v1·v2·v3 protocol `PROXY-RUN-BLOCKED` — v4 review 중, `0B_ACTIVE`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -17,8 +17,10 @@ Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 현재 실행 
 [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 실제 full run으로 `PASS`했고 evidence review도
 `P0/P1/P2 = 0`으로 닫혔다. 이후 공식 v1은 bootstrap provenance 불일치로 판정 없이
 `PROXY-RUN-BLOCKED`가 됐다. v2도 실제 UI를 완주한 launch가 그 전에 남긴 무해한 import 오류로
-frozen bootstrap과 충돌했고 valid 다섯 slot이 불가능해졌으므로 판정 없이 조기 종료했다. 현재는 literal 호출 순서 대신
-게임 content source만 닫는 v3 protocol을 같은 build에서 review 완료했고 공식 직렬 실행을 열었다.
+frozen bootstrap과 충돌했고 valid 다섯 slot이 불가능해졌으므로 판정 없이 조기 종료했다. v3는
+native UI를 다섯 번 완주했지만 세 task message가 coordinator의 추가 경로 때문에 frozen hash와
+달라 `TechnicalValid = 2/5`로 판정 없이 닫혔다. 현재는 prompt source를 하나로 줄이고 transcript를
+기계 검증하는 v4 protocol을 같은 build에서 review 중이며 공식 실행은 닫혀 있다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 
@@ -188,6 +190,9 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
   않았다. 기록: [`v2 result / v3 reset`](../../playtests/scope-0b/CHECKPOINT_1C_RUN_PROTOCOL_V3.md)
 - [x] 같은 build·fixture·UI·rubric·gate를 유지한 v3 content-source 계약의 bounded review를 닫았다.
 - [x] 검토를 마친 동일 build·fixture·rubric을 한 라운드 동안 동결했다.
+- [x] v3의 prompt identity 불일치와 `TechnicalValid = 2/5`를 판정 없이
+  [`v4 reset checkpoint`](../../playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)에 보존했다.
+- [ ] 같은 build·fixture·UI·rubric·gate를 유지한 v4 single-source prompt 계약의 bounded review를 닫는다.
 - [ ] 활성 Scope 0B가 정한 신규 cold LLM session·실제 화면 조작·무도움 절차만 따른다.
 - [ ] 조작 결과를 서비스 권역·상위 연결, 전기·공간 원인과 내부전원·전력회사 공급에 귀속하는지 기록한다.
 - [ ] 계획 선택률이나 미세 조정된 성공률을 통과 목표로 사용하지 않는다.

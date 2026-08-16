@@ -8,7 +8,7 @@ require "pathname"
 ROOT = Pathname(__dir__).join("../..").expand_path
 CONTRACT = ROOT.join("docs/scopes/SCOPE_0B_PLAYABLE.md")
 BUILD_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1_IMPLEMENTATION_FREEZE.md")
-RUN_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1C_RUN_PROTOCOL_V3.md")
+RUN_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md")
 SHEET = ROOT.join("playtests/scope-0b/FACILITATOR_SHEET.md")
 RECORD = ROOT.join("playtests/scope-0b/record-template.csv")
 FIXTURE = ROOT.join("data/scope-0b-v1.json")
@@ -21,10 +21,69 @@ def sha(path)
   Digest::SHA256.file(path).hexdigest
 end
 
+def ascii_whitespace_fold(text)
+  utf8 = text.dup.force_encoding(Encoding::UTF_8)
+  check(utf8.valid_encoding?, "prompt is not valid UTF-8")
+  utf8.gsub(/[ \t\r\n]+/, " ").sub(/\A +/, "").sub(/ +\z/, "")
+end
+
+def fenced_section(markdown, heading)
+  markdown[/^## #{Regexp.escape(heading)}\s*$.*?^```text[ \t]*\r?\n(.*?)\r?\n```[ \t]*$/m, 1]
+end
+
+def session_assignments
+  {
+    "S0B-V4-L01" => "ab",
+    "S0B-V4-L02" => "ba",
+    "S0B-V4-L03" => "ab",
+    "S0B-V4-L04" => "ba",
+    "S0B-V4-L05" => "ab"
+  }
+end
+
+def expected_session_hash(checkpoint, session_id)
+  row = checkpoint.lines.find { |line| line.start_with?("| `#{session_id}` |") }
+  check(!row.nil?, "checkpoint assignment missing for #{session_id}")
+  hash = row[/`([0-9a-f]{64})`/, 1]
+  check(!hash.nil?, "checkpoint prompt hash missing for #{session_id}")
+  hash
+end
+
+sheet = SHEET.read
+canonical_prompt = fenced_section(sheet, "2. Exact participant prompt")
+check(!canonical_prompt.nil?, "facilitator §2 participant prompt missing")
+check(canonical_prompt.scan("<SESSION_ID>").length == 1, "participant prompt must contain one <SESSION_ID>")
+
+case ARGV.first
+when "--render-prompt"
+  check(ARGV.length == 2, "usage: verify_implementation.rb --render-prompt SESSION_ID")
+  session_id = ARGV.fetch(1)
+  check(session_assignments.key?(session_id), "unknown v4 session #{session_id}")
+  STDOUT.write(canonical_prompt.sub("<SESSION_ID>", session_id))
+  exit 0
+when "--check-transcript"
+  check(ARGV.length == 3, "usage: verify_implementation.rb --check-transcript SESSION_ID PATH")
+  session_id = ARGV.fetch(1)
+  check(session_assignments.key?(session_id), "unknown v4 session #{session_id}")
+  transcript_path = Pathname(ARGV.fetch(2)).expand_path
+  check(transcript_path.file?, "transcript not found: #{transcript_path}")
+  transcript_prompt = fenced_section(transcript_path.read, "Exact task message")
+  check(!transcript_prompt.nil?, "transcript Exact task message fenced block missing")
+  actual = Digest::SHA256.hexdigest(ascii_whitespace_fold(transcript_prompt))
+  run_checkpoint = RUN_CHECKPOINT.read
+  expected = expected_session_hash(run_checkpoint, session_id)
+  check(actual == expected, "transcript prompt hash #{actual} != checkpoint #{expected}")
+  puts "PASS transcript-prompt: #{session_id} #{actual}"
+  exit 0
+when nil
+  # Run the complete freeze verification below.
+else
+  check(false, "unknown mode #{ARGV.first.inspect}")
+end
+
 contract = CONTRACT.read
 build_checkpoint = BUILD_CHECKPOINT.read
 run_checkpoint = RUN_CHECKPOINT.read
-sheet = SHEET.read
 
 source_files = [
   ROOT.join("Directory.Build.props"),
@@ -42,27 +101,34 @@ end.join
 build_hash = Digest::SHA256.hexdigest(source_manifest)
 expected_build_hash = build_checkpoint[/source-manifest build SHA-256:\n\s+`([0-9a-f]{64})`/, 1]
 check(build_hash == expected_build_hash, "build hash #{build_hash} != checkpoint #{expected_build_hash}")
+run_build_hash = run_checkpoint[/source-manifest build SHA-256:\s*`([0-9a-f]{64})`/m, 1]
+check(build_hash == run_build_hash, "build hash #{build_hash} != run checkpoint #{run_build_hash}")
 puts "PASS build-source-hash: #{build_hash}"
 
 fixture_hash = sha(FIXTURE)
 expected_fixture_hash = build_checkpoint[/fixture SHA-256: `([0-9a-f]{64})`/, 1]
 check(fixture_hash == expected_fixture_hash, "fixture hash drift")
+run_fixture_hash = run_checkpoint[/fixture SHA-256: `([0-9a-f]{64})`/, 1]
+check(fixture_hash == run_fixture_hash, "fixture hash #{fixture_hash} != run checkpoint #{run_fixture_hash}")
 puts "PASS fixture-hash: #{fixture_hash}"
 
-contract_prompt = contract[/아래 code block.*?```text\n(.*?)\n```/m, 1]
-sheet_prompt = sheet[/## 2\. Exact participant prompt.*?```text\n(.*?)\n```/m, 1]
-check(!contract_prompt.nil? && contract_prompt == sheet_prompt, "facilitator prompt differs from contract")
-prompt_hash = Digest::SHA256.hexdigest(contract_prompt)
+check(contract.include?("FACILITATOR_SHEET.md") && !contract.include?(canonical_prompt),
+      "active contract must reference, not duplicate, facilitator §2 prompt")
+prompt_hash = Digest::SHA256.hexdigest(ascii_whitespace_fold(canonical_prompt))
 expected_prompt_hash = run_checkpoint[/task-message template SHA-256: `([0-9a-f]{64})`/, 1]
 check(prompt_hash == expected_prompt_hash, "prompt-template hash drift")
+%w[S0B-CONTRACT-v4 S0B-PROXY-v4 S0B-RUN-v4].each do |version|
+  check(run_checkpoint.include?(version), "run checkpoint version #{version} missing")
+end
+check(run_checkpoint.include?("Status: **REVIEWED") &&
+      run_checkpoint.include?("official v4 sessions authorized"), "v4 checkpoint is not reviewed/authorized")
 
-assignments = { "S0B-V3-L01" => "ab", "S0B-V3-L02" => "ba", "S0B-V3-L03" => "ab",
-                "S0B-V3-L04" => "ba", "S0B-V3-L05" => "ab" }
+assignments = session_assignments
 assignments.each do |session_id, variant|
   row = run_checkpoint.lines.find { |line| line.start_with?("| `#{session_id}` |") }
   check(!row.nil? && row.include?("| `#{variant}` |"), "missing assignment #{session_id}/#{variant}")
-  expected = row[/`([0-9a-f]{64})`/, 1]
-  actual = Digest::SHA256.hexdigest(contract_prompt.sub("<SESSION_ID>", session_id))
+  expected = expected_session_hash(run_checkpoint, session_id)
+  actual = Digest::SHA256.hexdigest(ascii_whitespace_fold(canonical_prompt.sub("<SESSION_ID>", session_id)))
   check(actual == expected, "participant message hash drift for #{session_id}")
 end
 puts "PASS prompt-and-assignments: #{prompt_hash}, 5 messages"
@@ -85,18 +151,17 @@ check(sheet.include?("--accessibility always"), "launch command lacks forced acc
 check(sheet.include?("--resolution 1280x720"), "launch command lacks frozen resolution")
 check(sheet.include?("--diagnostic-log"), "launch command lacks separate diagnostic path")
 check(sheet.include?("S0B-L00") && sheet.include?("L00Status = PASS"), "L00 pass is not explicit")
-check(sheet.include?("S0B-RUN-v3 REVIEWED") && sheet.include?("official sessions authorized"),
-      "v3 reviewed execution status missing")
-check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v3 direct transport target missing")
+check(sheet.include?("S0B-RUN-v4 REVIEWED") && sheet.include?("official sessions authorized"),
+      "v4 reviewed execution status missing")
+check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v4 direct transport target missing")
 check(sheet.include?("Generic environment-owned tool name/signature metadata") &&
-      sheet.include?("other-app contents are forbidden"), "v3 content-source boundary missing")
+      sheet.include?("other-app contents are forbidden"), "v4 content-source boundary missing")
 check(sheet.include?("Literal wrapper spelling and first-call success are not") &&
-      sheet.include?("Any `TechnicalValid=false` launch"), "v3 semantic validity/replacement boundary missing")
-check(sheet.include?("prompt, facilitator and") && sheet.include?("current v3 run-protocol checkpoint"),
-      "v3 prompt authority split missing")
+      sheet.include?("Any `TechnicalValid=false` launch"), "v4 semantic validity/replacement boundary missing")
+check(sheet.include?("ascii-whitespace-fold-v1"), "v4 prompt normalization policy missing")
 check(sheet.include?("participant stop/timeout is a TechnicalValid scored failure") &&
       sheet.include?("before scoring or") && sheet.include?("gameplay answer quality must not affect"),
-      "v3 no-state/anti-selection boundary missing")
+      "v4 no-state/anti-selection boundary missing")
 check(sheet.include?("<EVIDENCE_ID>") && sheet.include?("<SESSION_ID>-launch1"), "replacement evidence ID boundary missing")
 check(sheet.include?("## 5. Exact post-measurement evidence export") &&
       sheet.include?("result status/content type") &&

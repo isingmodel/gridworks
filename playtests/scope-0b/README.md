@@ -14,10 +14,13 @@ run had an extra harmless import attempt that the literal frozen bootstrap did n
 replaced under v2, so five valid slots became unreachable and
 [`S0B-RUN-v2` also closed as protocol `PROXY-RUN-BLOCKED`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md).
 
-The same v3 checkpoint now freezes a smaller rule: generic tool metadata and transport errors are diagnostic,
-while repository/source/data, web, saved stimuli, oracle/rubric, prior sessions and other-app content remain
-forbidden. Runtime, fixture, UI, rubric and game gate are unchanged. The checkpoint's independent review
-closed with `P0/P1/P2 = 0`; official v3 sessions may now run sequentially.
+v3 then completed five native sessions, but the coordinator added a skill cache path to three frozen task
+messages. Those three actual prompt hashes differ from their manifests, so only `2/5` slots are technically
+valid and the round is protocol `PROXY-RUN-BLOCKED` despite a diagnostic-only content score of `5/5`.
+[`Checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md) preserves that evidence without a game decision and freezes
+a smaller v4 delivery rule: one canonical prompt source, whitespace-only normalization and transcript checking.
+Runtime, fixture, UI, rubric and gate remain unchanged. Official v4 sessions stay closed until its independent
+review finishes.
 
 Future raw transcripts, native diagnostic logs and screenshots belong in `private/` and stay out of Git.
 Only their hashes, anonymous aggregate and reviewed decision may be published here.

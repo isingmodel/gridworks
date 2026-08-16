@@ -1,12 +1,12 @@
 # Scope 0B LLM UI-proxy facilitator sheet
 
-> Status: **S0B-RUN-v3 REVIEWED — official sessions authorized, not yet started**
+> Status: **S0B-RUN-v4 DRAFT — independent review pending; official sessions closed**
 >
 > `BuildVersion = S0B-BUILD-v1`
 >
-> `PromptVersion = S0B-PROXY-v3`
+> `PromptVersion = S0B-PROXY-v4`
 >
-> `RunProtocolVersion = S0B-RUN-v3`
+> `RunProtocolVersion = S0B-RUN-v4`
 >
 > `DecisionRuleVersion = S0B-GATE-v1`
 >
@@ -47,11 +47,11 @@ Assignment is fixed:
 | Session | Variant | Evidence role |
 |---|---|---|
 | `S0B-L00` | `ab` | reviewed native UI rehearsal retained from unchanged build |
-| `S0B-V3-L01` | `ab` | official v3 slot 1 |
-| `S0B-V3-L02` | `ba` | official v3 slot 2 |
-| `S0B-V3-L03` | `ab` | official v3 slot 3 |
-| `S0B-V3-L04` | `ba` | official v3 slot 4 |
-| `S0B-V3-L05` | `ab` | official v3 slot 5 |
+| `S0B-V4-L01` | `ab` | official v4 slot 1 |
+| `S0B-V4-L02` | `ba` | official v4 slot 2 |
+| `S0B-V4-L03` | `ab` | official v4 slot 3 |
+| `S0B-V4-L04` | `ba` | official v4 slot 4 |
+| `S0B-V4-L05` | `ab` | official v4 slot 5 |
 
 Every log path must not exist before launch; the app fails closed rather than appending. The coordinator
 sets `EVIDENCE_ID=<SESSION_ID>-launch1` for the first launch and increments the launch number for every
@@ -73,15 +73,18 @@ recording any gameplay fields; gameplay answer quality must not affect that clas
 
 ## 2. Exact participant prompt
 
-The following code block must be byte-identical to the active contract. Replace `<SESSION_ID>` once; add no
-greeting, explanation, success criterion or recovery hint.
+This code block is the single canonical participant message. The active contract links here rather than
+copying it. Replace `<SESSION_ID>` once; add no greeting, path, explanation, success criterion or recovery hint.
 
-`PromptHash` means the lowercase SHA-256 of the exact UTF-8 participant message after that replacement. It
-excludes the Markdown fences and the newline immediately before the closing fence.
+`PromptHash` means lowercase SHA-256 after `ascii-whitespace-fold-v1`: validate UTF-8, replace every run of
+ASCII space, tab, CR or LF with one ASCII space, then strip both ends. It excludes Markdown fences. This
+normalizes line wrapping only; any changed or added non-whitespace text changes the hash. Render the actual
+message with `ruby playtests/scope-0b/verify_implementation.rb --render-prompt <SESSION_ID>` and do not edit
+that output. After capture, verify the transcript with `--check-transcript <SESSION_ID> <PATH>`.
 
 ```text
 당신은 Gridworks를 처음 플레이하는 전력회사 운영자입니다. 세션 ID는 <SESSION_ID>입니다.
-먼저 coordinator가 지정한 computer-use SKILL.md를 끝까지 읽으세요. Computer Use wrapper는
+먼저 이 task 환경에 등록된 `computer-use:computer-use` skill의 SKILL.md를 끝까지 읽으세요. Computer Use wrapper는
 `tools.mcp__node_repl__js`, 앱 target은 `org.godotengine.godot`입니다. 전체 task에서 Gridworks 정보는
 이 안내와 현재 target UI에서만 얻으세요. generic tool name/signature와 import·transport error는
 read-only로 확인할 수 있지만 repository·source/data, web, 앱 목록·다른 앱 내용, 정적 카드,
@@ -100,10 +103,10 @@ oracle·rubric과 이전 세션은 보지 마세요. Gridworks 화면 읽기와 
 (5) 예상 밖이거나 이해하기 어려웠던 조작.
 ```
 
-## 3. Native preflight inherited by v3
+## 3. Native preflight inherited by v4
 
-The reviewed `S0B-L00` remains valid because v3 changes no build, UI, app target, fixture or Computer Use
-action path. Do not start official v3 sessions unless all are true:
+The reviewed `S0B-L00` remains valid because v4 changes no build, UI, app target, fixture or Computer Use
+action path. Do not start official v4 sessions unless all are true:
 
 1. The host UI is unlocked and exactly one target process is running.
 2. `get_app_state` returns twice within 20 seconds and exposes the exact title, current stage and enabled
@@ -112,7 +115,7 @@ action path. Do not start official v3 sessions unless all are true:
 4. One complete run reaches `FINAL`; the diagnostic contains the frozen ten-event sequence and the runner
    manifest agrees with it.
 5. The source-manifest build and fixture hashes match the implementation checkpoint; prompt, facilitator and
-   assignment hashes match the current v3 run-protocol checkpoint.
+   assignment hashes match the current v4 run-protocol checkpoint.
 6. An independent protocol review confirms the setup/scored-interaction boundary and that no game context is
    available through bootstrap metadata.
 

@@ -2,6 +2,9 @@
 
 > Status: **REVIEWED — official v5 sessions authorized**
 >
+> Superseded: v5 later closed `PROXY-RUN-BLOCKED`; current state and any future authorization are owned by
+> [checkpoint 1F](CHECKPOINT_1F_RUN_PROTOCOL_V6.md). This historical banner no longer authorizes a launch.
+>
 > `SubGateDecision = PENDING`
 >
 > `Scope0State = 0B_ACTIVE`
@@ -124,5 +127,5 @@ v5 changes only the post-run provenance format. It does not add another wrapper 
 - final review: `P0=0, P1=0, P2=0`
 - reviewed v5 protocol commit: `4c7fa7b6d10d1baa5ba5872708523c4590b071c5`
 
-Official v5 sessions may run serially only while the hashes remain exact and the authorization verifier passes.
-Scope 1 remains unopened.
+This sentence authorized v5 at review time; it is historical and no longer authorizes a launch. Scope 1 remains
+unopened.

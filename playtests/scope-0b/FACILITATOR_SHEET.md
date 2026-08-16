@@ -1,6 +1,6 @@
 # Scope 0B LLM UI-proxy facilitator sheet
 
-> Status: **S0B-RUN-v6 DRAFT — official sessions closed**
+> Status: **S0B-RUN-v6 FROZEN EXECUTION COPY — use only when checkpoint 1F is AUTHORIZED**
 >
 > `BuildVersion = S0B-BUILD-v1`
 >
@@ -12,9 +12,9 @@
 
 This is the execution copy of the active
 [Scope 0B contract](../../docs/scopes/SCOPE_0B_PLAYABLE.md). It adds no gameplay rule or scoring discretion.
-The v6 rule is deliberately small: preflight before participant dispatch, then one scored cold session with no
-replacement. Evidence comes from the platform session JSONL and the app diagnostic JSONL. There is no runner
-manifest, participant-written provenance export or copied transcript.
+The v6 rule is deliberately small: one global preflight, then five fixed cold slots with no replacement.
+Evidence comes from the platform's coordinator and participant session JSONL plus the app diagnostic JSONL.
+There is no runner manifest, participant-written provenance export or copied transcript.
 
 ## 1. Native target and assignments
 
@@ -24,6 +24,9 @@ manifest, participant-written provenance export or copied transcript.
 - expected title: `Gridworks — 강변 병원 회랑 (DEBUG)`
 - app target: `org.godotengine.godot`
 - designated skill: `computer-use:computer-use`
+- skill resource:
+  `/Users/fred/.codex/plugins/cache/openai-bundled/computer-use/1.0.1000717/skills/computer-use/SKILL.md`
+- skill SHA-256: `e0ec667e63fba01381eb889ddbfd44a05b8556b1e502428e8ff0a474750a08d6`
 - diagnostic path:
   `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-app.jsonl`
 - optional engine-log path:
@@ -41,19 +44,20 @@ manifest, participant-written provenance export or copied transcript.
 | `S0B-V6-L04` | `ba` |
 | `S0B-V6-L05` | `ab` |
 
-## 2. Preflight before each participant
+## 2. One global preflight
 
-Preflight is not an official session because no participant has received the task yet.
+One dedicated coordinator task owns the whole round. Its platform session JSONL must become immutable when it
+returns. Before `L01` is dispatched, it performs one non-scored `S0B-V6-PREFLIGHT/ab` launch:
 
 1. Confirm that no Godot process remains and both new log paths do not exist.
-2. Launch the command above and confirm exactly one Godot process.
-3. Confirm the diagnostic starts with one `READY` row containing the frozen build hash, fixture hash, session ID
+2. Launch the command above, capture its exact PID and confirm exactly one Godot process.
+3. Confirm the diagnostic starts with one `READY` row containing the frozen build hash, fixture hash, preflight ID
    and variant.
 4. Confirm the exact title is readable from the target UI. Do not click or advance the game.
-5. If setup fails, close the whole round as `PROXY-RUN-BLOCKED`; do not dispatch or replace a participant.
+5. Terminate only the captured PID, wait for exit and log flush, then confirm no Godot process remains.
 
-Only after a slot's preflight passes may that session begin. All five slots use the same frozen build and run
-serially. Preflight supplies no gameplay observation.
+Failure here closes the round as `PROXY-RUN-BLOCKED` before any participant observation. After `L01` dispatch,
+the round is irrevocable: later setup, participant or evidence failures cannot discard earlier slots.
 
 ## 3. Exact participant prompt
 
@@ -84,24 +88,38 @@ oracle·rubric과 이전 세션은 보지 마세요. Gridworks 화면 읽기와 
 
 ## 4. Official session and evidence
 
-- Run five new cold `gpt-5.6-sol`, reasoning `medium`, `fork_turns=none` sessions in table order.
-- Once the exact participant message is dispatched, that slot is never replaced. Stop, timeout, app crash or
-  incomplete play is a scored `InteractionCompletionPass = false`, not missing data.
+- The same coordinator runs the five rows serially. For each row it confirms no Godot process or old row path,
+  launches the exact command, captures the exact PID and checks one process plus exact `READY` identity.
+- A row setup failure gets `SlotStatus = SETUP_FAILURE`; no participant is dispatched and all gameplay fields,
+  conclusions and integrated are `false`. Continue with the next row. Never erase an earlier row.
+- After successful row setup, dispatch the exact rendered prompt once to a new cold `gpt-5.6-sol`, reasoning
+  `medium`, `fork_turns=none` task whose agent path maps to that session ID. Send no follow-up or help.
+- When that single participant turn returns or reaches the 15-minute operational timeout, terminate only the
+  captured PID, wait for exit and log flush, hash the closed app log, and only then start the next row.
+- Participant stop, timeout, app crash or incomplete play gets `SlotStatus = PARTICIPANT_FAILURE` and
+  `InteractionCompletionPass = false`; other fields use only evidence actually produced. The slot is not replaced.
 - Allowed Gridworks content sources are the exact task message, designated skill and current target UI. Generic
   tool metadata and import/transport errors are allowed setup information. Repository, source/data, web, static
   cards, oracle/rubric, previous sessions, app inventory and other-app content are forbidden.
 - The first readable Gridworks state must precede every UI action. Each action must be followed by a fresh state
   read before the next action. Use only `tools.mcp__node_repl__js` with `@oai/sky` for UI reads and actions.
-- The platform-owned session JSONL is the authority for the exact dispatched prompt, model/task identity, tool
-  calls, content sources, UI sequence and final report. Record its path and SHA-256 after completion; do not copy
-  or rewrite it.
+- The immutable coordinator platform JSONL is the authority for session assignment, exact model, reasoning,
+  `fork_turns`, dispatch order, zero post-dispatch help, PID lifecycle and child platform IDs.
+- Each immutable participant platform JSONL is the authority for its `session_meta` parent/task mapping, model,
+  tool calls, content sources, UI sequence and final report. Record both platform paths and SHA-256 values after
+  their tasks return; do not copy or rewrite either original.
 - The app diagnostic JSONL is the authority for `READY`, accepted commands, pre-reveal `PREDICTION_LOCKED`,
   selected corridor and `FINAL`. Record its SHA-256.
-- A session is scorable when the platform log has the exact prompt and no observed forbidden source, and its
-  diagnostic begins with the exact frozen identity. Completion is not a scorable-session condition.
-- If those two original artifacts are absent or disagree on identity, close the round as `PROXY-RUN-BLOCKED`.
-  Do not replace the participant and do not infer missing evidence from filesystem times or prose.
-- The operational timeout is 15 minutes. It is not a scored field and requires no custom timestamp proof.
+- Platform session files encrypt the spawn-message body. They can link the coordinator dispatch ciphertext to the
+  child receipt but cannot prove the frozen prompt's plaintext bytes. The prompt hash is a reviewed execution
+  procedure, not a post-run evidence predicate; record this limitation in the result.
+- Exact model/reasoning/fork, zero help, frozen app identity, no observed forbidden source and native `FINAL` are
+  required for `SlotStatus = COMPLETED`. A missing or conflicting original, or an observed forbidden source, gets
+  `SlotStatus = EVIDENCE_FAILURE` and every gameplay field, conclusion and integrated is `false`; continue without
+  replacement.
+- If the coordinator itself ends early after `L01` dispatch, every unfinished row is `EVIDENCE_FAILURE/false`.
+  This prevents a later infrastructure or evidence problem from selecting away earlier outcomes.
+- The operational timeout is not a scored field and requires no custom timestamp proof.
 - Do not send a post-measurement export, create a runner manifest or reconstruct a transcript.
 - Do not tune text, layout, values or controls between sessions.
 

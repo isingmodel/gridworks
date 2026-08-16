@@ -49,11 +49,13 @@ v5는 여섯 launch 중 네 번 native `FINAL`에 도달했지만, 첫 완료 sl
 [v5 종료·v6 준비 checkpoint](playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)에 둔다.
 `HumanValidationStatus = NOT_COLLECTED`도 유지한다.
 
-v6는 build·fixture·UI·rubric·gate를 바꾸지 않고 별도 runner manifest, custom timestamp와 participant
-provenance export를 없앤다. 각 참가자 전 단일 process·정확한 `READY`를 확인하고, prompt dispatch 뒤에는
-교체 없이 플랫폼 원본 session JSONL과 app diagnostic JSONL만으로 다섯 cold session을 판정한다.
-현재 이 더 단순한 protocol을 review 중이다. Scope 0의 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리하며,
-Scope 1은 Scope 0B의 실제 `GO`와 별도 적응형 점검 전까지 열리지 않는다.
+v6는 build·fixture·UI·rubric·수치 gate를 바꾸지 않고 별도 runner manifest, custom timestamp와 participant
+provenance export를 없앤다. 한 coordinator가 global preflight 뒤 교체 없는 다섯 cold row를 실행하며,
+setup·participant·evidence 실패도 분모에서 지우지 않고 보수적인 `false`로 남긴다. platform은 spawn
+본문 평문을 보존하지 않으므로 prompt hash는 실행 절차의 동결값이지 사후 평문 증거라고 주장하지 않는다.
+v6의 실행 승인 상태는 [checkpoint 1F](playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)만 소유한다.
+Scope 0의 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리하며, Scope 1은 Scope 0B의 실제
+`GO`와 별도 적응형 점검 전까지 열리지 않는다.
 
 ## 문서 구조
 

@@ -2,8 +2,8 @@
 
 > Status: **REVIEWED — official v4 sessions authorized**
 >
-> Superseded: v4 later closed `PROXY-RUN-BLOCKED`; current state and any future authorization are owned by
-> [checkpoint 1E](CHECKPOINT_1E_RUN_PROTOCOL_V5.md). This historical banner no longer authorizes a launch.
+> Superseded: v4 and v5 later closed `PROXY-RUN-BLOCKED`; current state and any future authorization are owned by
+> [checkpoint 1F](CHECKPOINT_1F_RUN_PROTOCOL_V6.md). This historical banner no longer authorizes a launch.
 >
 > `RoundStatus = PROXY-RUN-BLOCKED` for `S0B-RUN-v3`
 >

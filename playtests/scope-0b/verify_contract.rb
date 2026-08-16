@@ -676,7 +676,7 @@ contract = CONTRACT_PATH.read
 %w[S0B-CONTRACT-v6 S0B-FIXTURE-v1 S0B-BUILD-v1 S0B-PROXY-v6 S0B-RUN-v6 S0B-GATE-v1].each { |version| check(contract.include?(version), "contract version #{version}") }
 check(contract.include?("각각 `4/5` 이상") && contract.include?("`3/5` 이상"), "gate thresholds")
 check(contract.include?("ActiveKnob = 0"), "parameter policy")
-check(contract.include?("InteractionCompletionPass = false"), "technically valid incomplete session contract")
+check(contract.include?("InteractionCompletionPass = false"), "incomplete-session failure mapping")
 check(contract.include?("PROXY-RUN-BLOCKED") && contract.include?("catch-all"), "blocked/catch-all separation")
 fixture_hash = Digest::SHA256.file(FIXTURE_PATH).hexdigest
 checkpoint_hash = CHECKPOINT_PATH.read[/frozen fixture SHA-256: `([0-9a-f]{64})`/, 1]
@@ -695,28 +695,32 @@ check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godoteng
       "facilitator direct transport target")
 check(contract.include?("v1~v5는 각 동결 규칙 아래 `PROXY-RUN-BLOCKED`로 끝났고 v6와 합산하지 않는다"),
       "run-version evidence separation")
-check(contract.include?("플랫폼 소유 session JSONL") &&
+check(contract.include?("coordinator platform JSONL") &&
+      contract.include?("participant platform JSONL") &&
       contract.include?("app diagnostic JSONL") &&
-      contract.include?("두 원본의 path와 SHA-256만 보존한다"),
-      "v6 two-original-artifact authority missing")
-check(contract.include?("두 원본 artifact가 없거나 identity가 충돌하면") &&
-      contract.include?("filesystem 시각이나 사후 prose로 메우지 않는다"),
-      "v6 missing-original fail-closed boundary missing")
-check(contract.include?("prompt dispatch 뒤 각 slot은 한 번뿐이며 교체하지 않는다") &&
-      contract.include?("stop·timeout·app crash·미완료는 `InteractionCompletionPass = false`인 scored failure"),
-      "v6 no-replacement/scored-failure boundary missing")
-check(contract.include?("남은 Godot process와 기존 evidence path가 없어야 한다") &&
-      contract.include?("exact build·fixture·session·variant `READY`") &&
-      contract.include?("실패는 participant를 dispatch하지 않고 round 전체 `PROXY-RUN-BLOCKED`"),
-      "v6 participant preflight boundary missing")
+      contract.include?("세 원본의 path와 SHA-256만 보존한다"),
+      "v6 three-original-artifact authority missing")
+check(contract.include?("spawn message 본문을 암호화") &&
+      contract.include?("prompt 평문 bytes를 증명한다고 주장하지 않는다") &&
+      contract.include?("결과의 claim ceiling"),
+      "v6 prompt-plaintext claim ceiling missing")
+check(contract.include?("global preflight 뒤 다섯 고정 slot은 지우거나 교체하지 않는다") &&
+      contract.include?("SETUP_FAILURE") &&
+      contract.include?("PARTICIPANT_FAILURE") &&
+      contract.include?("EVIDENCE_FAILURE"),
+      "v6 fixed-row failure mapping missing")
+check(contract.include?("`L01` dispatch 전 단 한 번의") &&
+      contract.include?("global preflight가 실패한 `PROXY-RUN-BLOCKED`"),
+      "v6 single blocked boundary missing")
 check(contract.include?("runner manifest, 복사 transcript, participant provenance export") &&
       sheet.include?("Do not send a post-measurement export, create a runner manifest or reconstruct a transcript"),
       "v6 removed-evidence prohibition missing")
 
-def scope0b_decision(valid_sessions:, field_passes:, integrated_passes:, conclusion_passes:, one_family:, safe_fix:, budget_available:)
+def scope0b_decision(global_preflight_passed:, fixed_rows:, field_passes:, integrated_passes:, conclusion_passes:, one_family:, safe_fix:, budget_available:)
   check(field_passes.keys.sort == %i[coverage interaction risk utility], "gate field keys")
   check(conclusion_passes.keys.sort == %i[coverage risk utility], "gate conclusion keys")
-  return "PROXY-RUN-BLOCKED" unless valid_sessions == 5
+  return "PROXY-RUN-BLOCKED" unless global_preflight_passed
+  check(fixed_rows == 5, "started v6 round must retain exactly five rows")
   return "GO" if field_passes.values.all? { |count| count >= 4 } && integrated_passes >= 3
 
   revisable = conclusion_passes.values.all? { |count| count >= 4 } && one_family && safe_fix && budget_available
@@ -728,13 +732,13 @@ five = { interaction: 5, coverage: 5, risk: 5, utility: 5 }
 short = { interaction: 3, coverage: 5, risk: 5, utility: 5 }
 conclusion_five = { coverage: 5, risk: 5, utility: 5 }
 conclusion_short = { coverage: 3, risk: 5, utility: 5 }
-check(scope0b_decision(valid_sessions: 4, field_passes: five, integrated_passes: 5, conclusion_passes: conclusion_five, one_family: true, safe_fix: true, budget_available: true) == "PROXY-RUN-BLOCKED", "gate blocked boundary")
-check(scope0b_decision(valid_sessions: 5, field_passes: four, integrated_passes: 3, conclusion_passes: conclusion_five, one_family: false, safe_fix: false, budget_available: false) == "GO", "gate pass boundary")
-check(scope0b_decision(valid_sessions: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_five, one_family: true, safe_fix: true, budget_available: true) == "REVISE", "gate revise boundary")
-check(scope0b_decision(valid_sessions: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_short, one_family: true, safe_fix: true, budget_available: true) == "NO-GO", "gate repeated conclusion boundary")
-check(scope0b_decision(valid_sessions: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_five, one_family: false, safe_fix: true, budget_available: true) == "NO-GO", "gate multiple family boundary")
-check(scope0b_decision(valid_sessions: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_five, one_family: true, safe_fix: true, budget_available: false) == "NO-GO", "gate budget boundary")
+check(scope0b_decision(global_preflight_passed: false, fixed_rows: 0, field_passes: five, integrated_passes: 5, conclusion_passes: conclusion_five, one_family: true, safe_fix: true, budget_available: true) == "PROXY-RUN-BLOCKED", "gate blocked boundary")
+check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: four, integrated_passes: 3, conclusion_passes: conclusion_five, one_family: false, safe_fix: false, budget_available: false) == "GO", "gate pass boundary")
+check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_five, one_family: true, safe_fix: true, budget_available: true) == "REVISE", "gate revise boundary")
+check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_short, one_family: true, safe_fix: true, budget_available: true) == "NO-GO", "gate repeated conclusion boundary")
+check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_five, one_family: false, safe_fix: true, budget_available: true) == "NO-GO", "gate multiple family boundary")
+check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_five, one_family: true, safe_fix: true, budget_available: false) == "NO-GO", "gate budget boundary")
 puts "PASS documents: 0 missing local links, 0 stale candidate references, gate and versions frozen"
-puts "PASS gate: blocked/GO/REVISE/NO-GO boundaries and incomplete-session scoring"
+puts "PASS gate: global-blocked/fixed-row GO/REVISE/NO-GO boundaries"
 puts "PASS fixture-hash: #{fixture_hash}"
 puts "Scope 0B contract preflight: PASS"

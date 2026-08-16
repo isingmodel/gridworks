@@ -41,16 +41,20 @@ The repeated blockers are caused by the measurement wrapper, not the game. v6 th
 instead of adding another evidence schema.
 
 1. Build, fixture, scene, UI, prompt text, model, rubric, gate and AB/BA allocation are unchanged.
-2. Before participant dispatch, the coordinator confirms a fresh single process, exact `READY` identity and
-   readable target title. Setup failure blocks the round before any participant observation.
-3. After dispatch, each of the five cold sessions is scored and never replaced. A participant/app failure is a
-   completion failure rather than selected-out evidence.
-4. The platform-owned session JSONL and app diagnostic JSONL are the only required original evidence.
+2. One dedicated coordinator performs a single global preflight before `L01`; only that failure can block the
+   round before any participant observation.
+3. After `L01` begins, five fixed rows are never erased or replaced. Setup, participant and evidence failures
+   remain conservative false rows, so a later fault cannot select away earlier observations.
+4. The immutable coordinator platform JSONL, each immutable participant platform JSONL and each app diagnostic
+   JSONL are the required originals. Together they cover dispatch linkage/no-help, model/tools/report and game state.
 5. Runner manifests, copied transcripts, participant provenance exports, custom monotonic timestamps,
    end-reason/fault tables and seven-launch replacement accounting are removed.
-6. The platform log audits exact prompt, model/task identity, content sources, UI sequence and final report.
-   The app log audits frozen identity, locked predictions, accepted commands and final state.
+6. The coordinator log audits model/reasoning/fork, dispatch order, no follow-up and PID lifecycle;
+   participant logs audit model/task mapping, content sources, UI sequence and final reports. The app logs audit
+   frozen identity, locked predictions, accepted commands and final state.
 7. The 15-minute limit remains operational but is not an experimental validity field.
+8. Platform logs encrypt the spawn-message body. The frozen prompt hash is therefore procedural authority, not a
+   falsely claimed plaintext evidence check. The result must state this claim ceiling.
 
 - `ContractVersion = S0B-CONTRACT-v6`
 - `PromptVersion = S0B-PROXY-v6`
@@ -63,8 +67,9 @@ instead of adding another evidence schema.
 - source-manifest build SHA-256:
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
+- computer-use skill SHA-256: `e0ec667e63fba01381eb889ddbfd44a05b8556b1e502428e8ff0a474750a08d6`
 - task-message template SHA-256: `1625d1a8d2fcb918855d9d9e28bf536bd1a8c0cb9f6d93f25c0c2269831b4869`
-- facilitator-sheet SHA-256: `cf67adbccb6bd808e0bf4747c62892372286fc99fda8fe15b9b85c5634e66fca`
+- facilitator-sheet SHA-256: `ce48c0b2c42278952ea3d9dd40b7837f4a5732a84a132dc904fa7d014907dd8d`
 
 | Session | Variant | Task-message SHA-256 |
 |---|---|---|
@@ -74,14 +79,33 @@ instead of adding another evidence schema.
 | `S0B-V6-L04` | `ba` | `21d6c8d0628e9e7aeb965deac130d8c7d61ef587f933fa20ddc3f03fb2893425` |
 | `S0B-V6-L05` | `ab` | `45d1b39a4e738535b19157f927b8566548d259933068e5afe5a151728ecc0e92` |
 
-## 4. Review checkpoint
+## 4. Platform-evidence rehearsal
 
-- initial v6 protocol commit: `PENDING`
+Before authorization, a non-game child dispatch checked the actual persistence boundary.
+
+- coordinator session ID: `01a009ca-519b-7a43-ad41-c36dc5e9cee5`
+- coordinator original:
+  `/Users/fred/.codex/sessions/2026/08/16/rollout-2026-08-16T17-57-29-01a009ca-519b-7a43-ad41-c36dc5e9cee5.jsonl`
+- coordinator SHA-256: `064a81d1eba3a6c9e9ec0f43e7b2ac85deb6a3ac61d4517e0048aaca00e5bd28`
+- child session ID: `01a009ca-649e-7d80-9a67-f09d054ae919`
+- child original:
+  `/Users/fred/.codex/sessions/2026/08/16/rollout-2026-08-16T17-57-34-01a009ca-649e-7d80-9a67-f09d054ae919.jsonl`
+- child SHA-256: `d766a02f2233b74cba6243ebc187d3dcd73f9e88cc64064e96eaee64c1b225da`
+- result: `PASS` for parent/child IDs, `gpt-5.6-sol`, `medium`, `fork_turns=none`, one dispatch,
+  zero follow-up and child final delivery
+- limitation: spawn-message plaintext is encrypted; only matching dispatch/receipt ciphertext is retained
+
+This rehearsal contains no gameplay observation and is not part of the five official rows.
+
+## 5. Review checkpoint
+
+- initial v6 protocol commit: `0e6e0ed35c5053104ae7e5889c8dd9a91b9869d3`
 - bounded independent v6 reviewers: `PENDING`
 - review standard: skeptic; simple structure is the default
-- runtime, fixture, UI, gameplay rubric or gate change: `NONE`
+- runtime, fixture, UI, gameplay rubric or numeric gate-threshold change: `NONE`
+- run-protocol failure mapping: global preflight 이후 setup·participant·evidence 실패를 고정 false row로 보존
 - final review: `PENDING`
-- reviewed v6 protocol commit: `PENDING`
+- reviewed v6 content commit: `PENDING`
 
 Official v6 sessions remain closed until this checkpoint and the facilitator sheet are reviewed, hashes are
 exact and both verification scripts pass. Scope 1 remains unopened.

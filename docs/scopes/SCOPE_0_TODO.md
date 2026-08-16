@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B v1~v5 protocol `PROXY-RUN-BLOCKED` — v6 protocol review 중, `0B_ACTIVE`**
+> 상태: **Scope 0B v1~v5 protocol `PROXY-RUN-BLOCKED` — v6 실행 승인은 checkpoint 1F가 소유, `0B_ACTIVE`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -24,7 +24,8 @@ tool trace가 동결된 metadata `exact text` 전체를 보존하지 않아 `Tec
 닫혔다. [v4 종료 checkpoint](../../playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md)는 gameplay
 답을 채점하지 않는다. v5도 필수 runner 시각·manifest를 실행 중 기록하지 않아 valid 다섯 slot이
 불가능해졌고 [v5 종료·v6 준비 checkpoint](../../playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)에
-판정 없이 닫았다. v6는 platform session과 app diagnostic 두 원본만 남기는 더 단순한 계약이다.
+판정 없이 닫았다. v6는 coordinator·participant platform 원본과 app diagnostic을 사용하되, 별도
+runner evidence schema 없이 다섯 고정 row를 지우지 않는 더 단순한 계약이다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 
@@ -201,8 +202,9 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
   [`v5 준비 checkpoint`](../../playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md)에 보존했다.
 - [x] 같은 build·fixture·UI·rubric·gate를 유지한 v5 evidence contract를 동결하고 bounded review를 닫았다.
 - [x] v5의 필수 runner evidence 미기록을 판정 없이 닫고 filesystem 시각으로 사후 복구하지 않았다.
-- [ ] 같은 build·fixture·UI·rubric·gate에서 별도 runner wrapper를 제거한 v6 계약의 bounded review를 닫는다.
-- [ ] review된 활성 protocol이 정한 신규 cold LLM session·실제 화면 조작·무도움 절차만 따른다.
+- [x] 같은 build·fixture·UI·rubric·수치 gate에서 별도 runner wrapper를 제거한 v6 계약과 rehearsal을
+  정의했으며 review·승인 상태는 checkpoint 1F가 소유한다.
+- [ ] checkpoint 1F가 승인한 protocol의 신규 cold LLM session·실제 화면 조작·무도움 절차만 따른다.
 - [ ] 조작 결과를 서비스 권역·상위 연결, 전기·공간 원인과 내부전원·전력회사 공급에 귀속하는지 기록한다.
 - [ ] 계획 선택률이나 미세 조정된 성공률을 통과 목표로 사용하지 않는다.
 - [ ] 원자료는 공개 저장소 밖에 두고 비식별 집계와 예상 밖 행동만 보존한다.

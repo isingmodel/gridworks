@@ -25,8 +25,9 @@ required by that frozen evidence format. [Checkpoint 1E](CHECKPOINT_1E_RUN_PROTO
 as protocol `PROXY-RUN-BLOCKED` with `TechnicalValid = 2/5` and no gameplay score. v5 then stopped after six
 launches because required runner manifests and contemporaneous monotonic samples were not recorded for the
 first completed slots; reconstructed filesystem times are not substituted. [Checkpoint 1F](CHECKPOINT_1F_RUN_PROTOCOL_V6.md)
-closes v5 without a gameplay score and drafts v6 around only the platform session and app diagnostic originals.
-Official v6 sessions remain closed until that smaller contract is independently reviewed.
+closes v5 without a gameplay score and defines v6 around fixed rows plus coordinator, participant and app originals.
+Whether official v6 sessions may start is owned only by checkpoint 1F.
 
-Future raw transcripts, native diagnostic logs and screenshots belong in `private/` and stay out of Git.
-Only their hashes, anonymous aggregate and reviewed decision may be published here.
+App diagnostics and optional engine logs belong in `private/` and stay out of Git. Platform coordinator and
+participant session JSONL remain in their platform-owned location and are not copied; only paths, SHA-256,
+anonymous aggregate and the reviewed decision may be published here.

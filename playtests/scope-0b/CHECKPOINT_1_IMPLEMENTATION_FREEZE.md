@@ -15,15 +15,17 @@ run-protocol results and resets are preserved in
 their own checkpoints:
 [`checkpoint 1B`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md),
 [`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md),
-[`checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md) and
-[`checkpoint 1F`](CHECKPOINT_1F_RUN_PROTOCOL_V6.md). v1~v5 are historical protocol blocks; checkpoint 1F owns
-the pending v6 review. Runtime, fixture and gate did not change.
+[`checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md),
+[`checkpoint 1E`](CHECKPOINT_1E_RUN_PROTOCOL_V5.md) and
+[`checkpoint 1F`](CHECKPOINT_1F_RUN_PROTOCOL_V6.md). v1~v5 are historical protocol blocks; checkpoint 1F alone
+owns the current v6 review and authorization state. Runtime, fixture and numeric gate thresholds did not change.
 
 - active contract: [`docs/scopes/SCOPE_0B_PLAYABLE.md`](../../docs/scopes/SCOPE_0B_PLAYABLE.md)
 - machine fixture: [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json)
 - implementation verifier: [`verify_implementation.rb`](verify_implementation.rb)
 - facilitator copy: [`FACILITATOR_SHEET.md`](FACILITATOR_SHEET.md)
-- record schema: [`record-template.csv`](record-template.csv)
+- historical v1–v5 record schema: [`record-template.csv`](record-template.csv); v6 results use fixed rows in the
+  reviewed decision artifact
 - `BuildVersion = S0B-BUILD-v1`
 - reviewed build commit: `c14750ee34955236d482e048d769438c10032584`
 - source-manifest build SHA-256:

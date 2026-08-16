@@ -29,7 +29,7 @@
 
 ## 현재 개발 상태
 
-현재 승인된 개발단위는 [**Scope 0B playable 계약 작성**](docs/scopes/SCOPE_0B_CANDIDATE.md)이다.
+현재 승인된 개발단위는 [**Scope 0B playable 계약 동결·review**](docs/scopes/SCOPE_0B_PLAYABLE.md)다.
 Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
 [결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.
@@ -40,9 +40,9 @@ Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합
 
 R2도 실제 비전문가가 아니라 새 cold LLM session 다섯 개를 사용했으므로 사람 사용성 증거가
 아니다. 같은-model 5회는 통계 표본이 아니며, 구조화된 질문에 대한 반복 일관성만 입증했다.
-현재 허용 작업은 10~15분짜리 **Scope 0B 2D playable**의 단일 fixture·도구chain·명령·검사와
-LLM 실제 조작 proxy를 완전한 활성 계약으로 작성하고 review하는 것까지다. 그 checkpoint 전에는
-코드·게임 프로젝트를 구현하지 않는다.
+현재 허용 작업은 10~15분짜리 **Scope 0B 2D playable**의 단일 fixture·toolchain·명령·검사와
+LLM 실제 조작 proxy 계약을 동결하고 review하는 것까지다. 계약 checkpoint 전에는 코드·게임
+프로젝트를 구현하지 않는다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -50,7 +50,7 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-다음 허용 작업은 Scope 0B 활성 계약을 작성·review하는 것이다.
+다음 허용 작업은 Scope 0B 계약 checkpoint를 reviewed 상태로 닫는 것이다.
 
 ## 문서 구조
 
@@ -117,8 +117,9 @@ gate 통과는 다음 작업을 자동 승인하지 않는다. 큰 개발단위 
 ## 기술 방향
 
 조건부 첫 구현의 엔진 방향은 Godot .NET과 C#이다. 권위 게임 규칙은 Godot을 참조하지 않는
-순수 .NET 코드에 두고, Godot은 명령을 보내고 결과를 그린다. 정확한 Godot과 .NET SDK patch는
-Scope 0B 구현이 실제로 승인될 때 공식 지원 상태를 확인해 고정한다.
+순수 .NET 코드에 두고, Godot은 명령을 보내고 결과를 그린다. Scope 0B 계약은 공식 stable인
+Godot 4.7.1 .NET과 이 환경의 .NET SDK 8.0.129를 exact patch로 고정했다. 실제 설치·build 증거는
+계약 review 뒤 구현 checkpoint에서 기록한다.
 
 프로젝트 금융은 1.0과 현재 장기 확장 후보에서 제외한다. 원전·데이터센터·공유 냉각수도
 전력망 핵심이 사람 플레이에서 검증되기 전에는 구현하지 않는다.

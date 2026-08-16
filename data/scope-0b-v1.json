@@ -1,0 +1,383 @@
+{
+  "schemaVersion": "gridworks.scope0b.fixture.v1",
+  "fixtureId": "S0B-FIXTURE-v1",
+  "displayName": "강변 병원 회랑",
+  "units": {
+    "position": "GridUnit",
+    "power": "kW",
+    "energy": "kWMinute",
+    "time": "GameMinute",
+    "cash": "CashUnit",
+    "rate": "CashUnitPerGWh"
+  },
+  "calendar": {
+    "originLabel": "DAY 0 08:00",
+    "minutesPerDay": 1440
+  },
+  "economy": {
+    "initialCash": 20000000,
+    "saleRate": 180000,
+    "gasVariableRate": 115000,
+    "townOutageRate": 800000,
+    "hospitalOutageRate": 20000000
+  },
+  "nodes": [
+    {
+      "id": "GEN_GAS",
+      "kind": "generator",
+      "position": { "x": 1, "y": 3 },
+      "maxOutputKw": 80000,
+      "initialOnline": true
+    },
+    {
+      "id": "SOURCE_BUS",
+      "kind": "bus",
+      "position": { "x": 2, "y": 3 }
+    },
+    {
+      "id": "LOAD_HUB",
+      "kind": "bus",
+      "position": { "x": 5, "y": 3 }
+    },
+    {
+      "id": "TOWN_SUB",
+      "kind": "substation",
+      "position": { "x": 7, "y": 1 },
+      "initialCommissioned": true
+    },
+    {
+      "id": "TOWN_LOAD",
+      "kind": "load",
+      "position": { "x": 8, "y": 1 },
+      "demandKw": 24000,
+      "priority": "P2",
+      "serviceSubstationId": "TOWN_SUB"
+    },
+    {
+      "id": "HOSPITAL_SUB",
+      "kind": "substation",
+      "position": { "x": 7, "y": 5 },
+      "initialCommissioned": true
+    },
+    {
+      "id": "HOSPITAL_LOAD",
+      "kind": "load",
+      "position": { "x": 8, "y": 5 },
+      "demandKw": 8000,
+      "priority": "P0",
+      "serviceSubstationId": "HOSPITAL_SUB"
+    }
+  ],
+  "edges": [
+    {
+      "id": "GEN_EXPORT",
+      "fromNodeId": "GEN_GAS",
+      "toNodeId": "SOURCE_BUS",
+      "ratingKw": 80000,
+      "electricalContingencyId": "GEN_EXPORT",
+      "spatialRiskGroup": "GEN_SITE",
+      "initialConstructionState": "commissioned"
+    },
+    {
+      "id": "MAIN_TRUNK",
+      "fromNodeId": "SOURCE_BUS",
+      "toNodeId": "LOAD_HUB",
+      "ratingKw": 40000,
+      "electricalContingencyId": "MAIN_TRUNK",
+      "spatialRiskGroup": "OLD_CORRIDOR",
+      "initialConstructionState": "commissioned"
+    },
+    {
+      "id": "TOWN_FEEDER",
+      "fromNodeId": "LOAD_HUB",
+      "toNodeId": "TOWN_SUB",
+      "ratingKw": 40000,
+      "electricalContingencyId": "TOWN",
+      "spatialRiskGroup": "TOWN_LOCAL",
+      "initialConstructionState": "not_ordered"
+    },
+    {
+      "id": "TOWN_SERVICE",
+      "fromNodeId": "TOWN_SUB",
+      "toNodeId": "TOWN_LOAD",
+      "ratingKw": 40000,
+      "electricalContingencyId": "TOWN",
+      "spatialRiskGroup": "TOWN_LOCAL",
+      "initialConstructionState": "commissioned"
+    },
+    {
+      "id": "HOSPITAL_PRIMARY",
+      "fromNodeId": "LOAD_HUB",
+      "toNodeId": "HOSPITAL_SUB",
+      "ratingKw": 40000,
+      "electricalContingencyId": "HOSPITAL_E1",
+      "spatialRiskGroup": "OLD_CORRIDOR",
+      "initialConstructionState": "commissioned"
+    },
+    {
+      "id": "HOSPITAL_SERVICE",
+      "fromNodeId": "HOSPITAL_SUB",
+      "toNodeId": "HOSPITAL_LOAD",
+      "ratingKw": 40000,
+      "electricalContingencyId": "HOSPITAL_SERVICE",
+      "spatialRiskGroup": "HOSPITAL_YARD",
+      "initialConstructionState": "commissioned"
+    },
+    {
+      "id": "RIVER_PARALLEL",
+      "fromNodeId": "SOURCE_BUS",
+      "toNodeId": "HOSPITAL_SUB",
+      "ratingKw": 40000,
+      "electricalContingencyId": "BACKUP_RIVER",
+      "spatialRiskGroup": "OLD_CORRIDOR",
+      "initialConstructionState": "not_ordered"
+    },
+    {
+      "id": "NORTH_DETOUR",
+      "fromNodeId": "SOURCE_BUS",
+      "toNodeId": "HOSPITAL_SUB",
+      "ratingKw": 40000,
+      "electricalContingencyId": "BACKUP_NORTH",
+      "spatialRiskGroup": "NORTH_CORRIDOR",
+      "initialConstructionState": "not_ordered"
+    }
+  ],
+  "projects": [
+    {
+      "id": "PROJECT_TOWN_FEEDER",
+      "edgeId": "TOWN_FEEDER",
+      "costCashUnit": 6000000,
+      "allowedOrderMinute": 0,
+      "buildMinutes": 1440,
+      "orderWindow": "town_connection"
+    },
+    {
+      "id": "PROJECT_RIVER_PARALLEL",
+      "edgeId": "RIVER_PARALLEL",
+      "costCashUnit": 8000000,
+      "allowedOrderMinute": 1440,
+      "buildMinutes": 2880,
+      "orderWindow": "hospital_corridor"
+    },
+    {
+      "id": "PROJECT_NORTH_DETOUR",
+      "edgeId": "NORTH_DETOUR",
+      "costCashUnit": 12000000,
+      "allowedOrderMinute": 1440,
+      "buildMinutes": 2880,
+      "orderWindow": "hospital_corridor"
+    }
+  ],
+  "loads": [
+    {
+      "nodeId": "HOSPITAL_LOAD",
+      "activeMinute": 0,
+      "outageRateKey": "hospitalOutageRate"
+    },
+    {
+      "nodeId": "TOWN_LOAD",
+      "noticeMinute": 0,
+      "activeMinute": 1440,
+      "outageRateKey": "townOutageRate"
+    }
+  ],
+  "requirements": [
+    {
+      "id": "HOSPITAL_SECOND_CIRCUIT",
+      "deadlineMinute": 4320,
+      "satisfiedByAnyCommissionedEdgeId": [
+        "RIVER_PARALLEL",
+        "NORTH_DETOUR"
+      ]
+    }
+  ],
+  "permittedSupplyPaths": [
+    {
+      "id": "TOWN_PRIMARY_PATH",
+      "loadNodeId": "TOWN_LOAD",
+      "role": "primary",
+      "edgeIds": [
+        "GEN_EXPORT",
+        "MAIN_TRUNK",
+        "TOWN_FEEDER",
+        "TOWN_SERVICE"
+      ]
+    },
+    {
+      "id": "HOSPITAL_PRIMARY_PATH",
+      "loadNodeId": "HOSPITAL_LOAD",
+      "role": "primary",
+      "edgeIds": [
+        "GEN_EXPORT",
+        "MAIN_TRUNK",
+        "HOSPITAL_PRIMARY",
+        "HOSPITAL_SERVICE"
+      ]
+    },
+    {
+      "id": "HOSPITAL_RIVER_BACKUP_PATH",
+      "loadNodeId": "HOSPITAL_LOAD",
+      "role": "backup",
+      "requiredCommissionedEdgeId": "RIVER_PARALLEL",
+      "edgeIds": [
+        "GEN_EXPORT",
+        "RIVER_PARALLEL",
+        "HOSPITAL_SERVICE"
+      ]
+    },
+    {
+      "id": "HOSPITAL_NORTH_BACKUP_PATH",
+      "loadNodeId": "HOSPITAL_LOAD",
+      "role": "backup",
+      "requiredCommissionedEdgeId": "NORTH_DETOUR",
+      "edgeIds": [
+        "GEN_EXPORT",
+        "NORTH_DETOUR",
+        "HOSPITAL_SERVICE"
+      ]
+    }
+  ],
+  "evaluationCases": [
+    {
+      "id": "E1_REMOVAL",
+      "selectorType": "electricalContingencyId",
+      "selectorValue": "HOSPITAL_E1"
+    },
+    {
+      "id": "OLD_CORRIDOR_REMOVAL",
+      "selectorType": "spatialRiskGroup",
+      "selectorValue": "OLD_CORRIDOR"
+    }
+  ],
+  "events": [
+    {
+      "id": "OLD_CORRIDOR_OUTAGE",
+      "startMinute": 13440,
+      "endMinute": 13680,
+      "evaluationCaseId": "OLD_CORRIDOR_REMOVAL"
+    }
+  ],
+  "hospitalInternalPower": {
+    "loadNodeId": "HOSPITAL_LOAD",
+    "ratedPowerKw": 8000,
+    "stages": [
+      {
+        "id": "UPS",
+        "energyKwMinute": 120000
+      },
+      {
+        "id": "DIESEL",
+        "energyKwMinute": 2280000
+      }
+    ]
+  },
+  "milestones": [
+    {
+      "minute": 0,
+      "label": "DAY 0 08:00"
+    },
+    {
+      "minute": 1440,
+      "label": "DAY 1 08:00"
+    },
+    {
+      "minute": 4320,
+      "label": "DAY 3 08:00"
+    },
+    {
+      "minute": 13440,
+      "label": "DAY 9 16:00"
+    },
+    {
+      "minute": 13680,
+      "label": "DAY 9 20:00"
+    }
+  ],
+  "verificationOnly": {
+    "topology": {
+      "nodeCount": 7,
+      "edgeCount": 8,
+      "normalDemandKw": 32000,
+      "sharedTrunkRatingKw": 40000,
+      "generatorRatingKw": 80000,
+      "initialTownServiceEligible": true,
+      "initialTownUtilityPathAvailable": false,
+      "initialHospitalUtilityPathAvailable": true
+    },
+    "evaluationOutcomes": [
+      {
+        "design": "NO_BUILD",
+        "caseId": "E1_REMOVAL",
+        "townUtilityDelivered": true,
+        "hospitalUtilityDelivered": false
+      },
+      {
+        "design": "NO_BUILD",
+        "caseId": "OLD_CORRIDOR_REMOVAL",
+        "townUtilityDelivered": false,
+        "hospitalUtilityDelivered": false
+      },
+      {
+        "design": "RIVER_PARALLEL",
+        "caseId": "E1_REMOVAL",
+        "townUtilityDelivered": true,
+        "hospitalUtilityDelivered": true
+      },
+      {
+        "design": "RIVER_PARALLEL",
+        "caseId": "OLD_CORRIDOR_REMOVAL",
+        "townUtilityDelivered": false,
+        "hospitalUtilityDelivered": false
+      },
+      {
+        "design": "NORTH_DETOUR",
+        "caseId": "E1_REMOVAL",
+        "townUtilityDelivered": true,
+        "hospitalUtilityDelivered": true
+      },
+      {
+        "design": "NORTH_DETOUR",
+        "caseId": "OLD_CORRIDOR_REMOVAL",
+        "townUtilityDelivered": false,
+        "hospitalUtilityDelivered": true
+      }
+    ],
+    "internalPower": {
+      "upsDurationMinutes": 15,
+      "dieselDurationMinutes": 285,
+      "totalDurationMinutes": 300,
+      "riverEventUsedKwMinute": 1920000,
+      "riverEventRemainingKwMinute": 480000,
+      "riverEventHospitalP0UnservedKwMinute": 0,
+      "northEventUsedKwMinute": 0,
+      "northEventRemainingKwMinute": 2400000,
+      "northEventHospitalP0UnservedKwMinute": 0
+    },
+    "cash": {
+      "preChoiceCash": 14012480,
+      "normalPostChoiceNetCash": 416000,
+      "riverEvent": {
+        "utilityDeliveredKwMinute": 0,
+        "townUtilityUnservedKwMinute": 5760000,
+        "hospitalUtilityUnservedKwMinute": 1920000,
+        "revenueCashUnit": 0,
+        "lostSalesCashUnit": 23040,
+        "compensationCashUnit": 716800,
+        "gasCostCashUnit": 0,
+        "eventCashDelta": -716800,
+        "endingCash": 5711680
+      },
+      "northEvent": {
+        "utilityDeliveredKwMinute": 1920000,
+        "townUtilityUnservedKwMinute": 5760000,
+        "hospitalUtilityUnservedKwMinute": 0,
+        "revenueCashUnit": 5760,
+        "lostSalesCashUnit": 17280,
+        "compensationCashUnit": 76800,
+        "gasCostCashUnit": 3680,
+        "eventCashDelta": -74720,
+        "endingCash": 2353760
+      }
+    }
+  }
+}

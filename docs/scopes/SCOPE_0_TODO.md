@@ -4,14 +4,14 @@
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
-> 구성: 종료된 [R1 카드 계약](SCOPE_0A_CARD_TEST.md) → 현재 [R2 계약](SCOPE_0A_R2_CARD_TEST.md) → 조건부 [Scope 0B 후보](SCOPE_0B_CANDIDATE.md)
+> 구성: 종료된 [R1 카드 계약](SCOPE_0A_CARD_TEST.md) → 종료된 [R2 계약](SCOPE_0A_R2_CARD_TEST.md) → 현재 [Scope 0B 계약](SCOPE_0B_PLAYABLE.md)
 
 이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
 R1은 `PROXY-FAIL`로 끝났지만 새 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 네 field와 integrated
 모두 `5/5`로 `PROXY-PASS`했다. 현재 실행 권위는 [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와
-완료된 결과 checkpoint다. 현재는 Scope 0B 계약 작성만 승인됐고 구현은 계약 checkpoint 전까지
-시작하지 않는다.
+완료된 결과 checkpoint다. 현재는 Scope 0B 계약 동결·review만 승인됐고 구현은 계약 checkpoint
+전까지 시작하지 않는다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 
@@ -50,7 +50,7 @@ Scope 0이 묻는 질문은 하나다.
 `SCOPE_0_REVIEWED`는 Scope 1 구현 승인이 아니다. 결과 점검에서 다음 위험을 다시 선정하고,
 사용자가 별도로 승인해야 다음 gate를 열 수 있다.
 
-아래 §2~§6의 완료 체크는 R1 당시의 불변 기록이다. 현재 R2의 자료·절차·판정은
+아래 §2~§6의 완료 체크는 R1 당시의 불변 기록이다. 종료된 R2의 자료·절차·판정은
 [R2 계약](SCOPE_0A_R2_CARD_TEST.md)과 [R2 checkpoint](../../playtests/scope-0a-r2/CHECKPOINT_1_MATERIALS_FREEZE.md)가
 소유하며, R1 체크박스를 R2 완료로 재사용하지 않는다.
 
@@ -68,7 +68,7 @@ Scope 0이 묻는 질문은 하나다.
 ## 3. R1 역사적 Scope 0A 제작 TODO
 
 이 절부터 §6까지는 R1 실행 당시 완료한 불변 기록이다. 세부 의미와 완료조건은 종료된
-[R1 Scope 0A 계약](SCOPE_0A_CARD_TEST.md)이 소유하며 현재 R2 절차로 사용하지 않는다.
+[R1 Scope 0A 계약](SCOPE_0A_CARD_TEST.md)이 소유하며 R2 또는 Scope 0B 절차로 사용하지 않는다.
 
 ### 산출물 준비
 
@@ -137,20 +137,20 @@ R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a
 조건으로 Scope 0B 계약·구현을 승인했으며, 조건 충족 전에는 실행하지 않는다.
 
 - [x] 사용자의 조건부 구현 승인과 발효 조건을 R2 계약에 기록했다.
-- [ ] Scope 0A의 식별 불가능한 집계·오해·예상 밖 결과를 첨부한다.
-- [ ] playable에서 다시 검사할 오해 하나만 선정한다.
-- [ ] [Scope 0B 후보](SCOPE_0B_CANDIDATE.md)를 증거에 맞는 완전한 활성 실행 계약으로 다시 쓴다.
-- [ ] 한 문장 가설, 포함·제외, 산출물과 중단조건을 고정한다.
-- [ ] 참가자 조건, 기록 필드, 사전 rubric, 통과선과 bounded revision budget을 고정한다.
-- [ ] 단일 machine-readable fixture의 경로, schema, stable ID, 좌표·시간·화폐 단위를 고정한다.
-- [ ] Scope 0A의 값·ID·제거행렬·oracle이 새 fixture와 일치하는 인계검사를 먼저 통과한다.
+- [x] Scope 0A의 식별 불가능한 집계·예상 밖 결과를 연결했다. R2 scored 오해는 없으므로 새 오해를 만들지 않았다.
+- [x] playable에서 다시 검사할 잔여 transfer risk 하나만 선정했다.
+- [x] [Scope 0B 계약](SCOPE_0B_PLAYABLE.md)을 증거에 맞는 완전한 실행 계약으로 작성했다.
+- [x] 한 문장 가설, 포함·제외, 산출물과 중단조건을 고정했다.
+- [x] 참가자 조건, 기록 필드, 사전 rubric, 통과선과 bounded revision budget을 고정했다.
+- [x] 단일 machine-readable fixture의 경로, schema, stable ID, 좌표·시간·화폐 단위를 고정했다.
+- [x] Scope 0A의 값·ID·제거행렬·oracle이 새 fixture와 일치하는 인계검사를 통과했다.
 - [ ] 인계검사 뒤 새 fixture가 **Scope 0B의** 기계 숫자 권위가 된 시점을 기록한다. Scope 0A 문서와 결과는 Scope 0A의 불변 권위로 보존한다.
-- [ ] 공사 완료·graph 편입·의무·계량·사건·복구·절체의 같은 분 적용 순서를 고정한다.
-- [ ] 최소 명령, 실패 무상태변경, LLM 조작 proxy 질문과 정확한 통과선을 구현 전에 닫는다.
-- [ ] 구현 TODO, 자동검사, build·smoke와 LLM 조작 proxy 절차를 활성 Scope 0B 문서 안에 작성한다.
-- [ ] 공식 지원 상태를 확인한 뒤 Godot .NET·.NET SDK의 exact patch를 고정한다.
-- [ ] 통과에 필요하지 않은 항목은 후보 문서에서 더 제거한다.
-- [ ] 위 계약 전체를 닫은 동일 변경에서 루트 README를 Scope 0B로 전환하고 Scope 0A 결과를 링크한다.
+- [x] 공사 완료·편입·의무·계량·사건·복구·절체의 같은 분 적용 순서를 고정했다.
+- [x] 최소 명령, 실패 무상태변경, LLM 조작 proxy 질문과 exact 통과선을 구현 전에 닫았다.
+- [x] 구현 TODO, 자동검사, build·smoke와 LLM 조작 proxy 절차를 활성 Scope 0B 문서 안에 작성했다.
+- [x] 공식 지원 상태를 확인하고 Godot .NET·.NET SDK exact patch를 고정했다.
+- [x] 자유 배치·일반 BFS·범용 scheduler 등 통과에 필요하지 않은 항목을 제거했다.
+- [x] 같은 변경에서 루트 README를 Scope 0B 계약 review로 전환하고 Scope 0A 결과를 링크했다.
 - [ ] §11의 작업단위 checkpoint를 완료하기 전에는 구현을 시작하지 않는다.
 
 ## 8. Scope 0B 실행 TODO — 활성 계약과 checkpoint 완료 후에만

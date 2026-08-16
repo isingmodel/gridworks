@@ -3,3 +3,11 @@
 !/playtests/scope-0a/private/.gitignore
 /playtests/scope-0a-r2/private/*
 !/playtests/scope-0a-r2/private/.gitignore
+/playtests/scope-0b/private/*
+!/playtests/scope-0b/private/.gitignore
+
+# Local SDK/editor and generated implementation artifacts.
+/.tools/
+**/.godot/
+**/bin/
+**/obj/

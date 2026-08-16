@@ -2,8 +2,8 @@
 
 > 상태: **종료 — `PROXY-FAIL`**
 >
-> 후속 후보: [Scope 0B 2D playable](SCOPE_0B_CANDIDATE.md). 이 `PROXY-FAIL` 결과로는 개방할
-> 수 없다. 새 gate 자체에 대한 명시적 사용자 결정 없이는 구현하지 않는다.
+> 후속 기록: 이후 별도 R2와 사용자 결정으로 [Scope 0B 2D playable](SCOPE_0B_PLAYABLE.md) 계약이
+> 열렸다. 이 R1 `PROXY-FAIL` 자체는 그 구현 근거가 아니다.
 
 > 현재 증거 방식: 사용자가 2026-08-16에 승인한 5회 격리 LLM proxy. `HumanValidationStatus = NOT_COLLECTED`.
 >

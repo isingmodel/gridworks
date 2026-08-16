@@ -1,0 +1,13 @@
+<Project Sdk="Godot.NET.Sdk/4.7.1">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>Gridworks.Game</RootNamespace>
+    <AssemblyName>Gridworks.Game</AssemblyName>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../src/Gridworks.Core/Gridworks.Core.csproj" />
+  </ItemGroup>
+</Project>

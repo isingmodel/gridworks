@@ -1,0 +1,32 @@
+; Engine configuration file.
+; This file is deliberately small: Scope 0B has one fixed Control scene.
+
+config_version=5
+
+[application]
+
+config/name="Gridworks"
+run/main_scene="res://Main.tscn"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/size/window_width_override=1280
+window/size/window_height_override=720
+window/size/resizable=false
+window/stretch/mode="canvas_items"
+
+[dotnet]
+
+project/assembly_name="Gridworks.Game"
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+
+[environment]
+
+defaults/default_clear_color=Color(0.0235, 0.0314, 0.0431, 1)

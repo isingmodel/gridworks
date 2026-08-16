@@ -293,7 +293,7 @@ capture나 이미지 prompt를 만들지 않는다.
 - N-1과 공간 공통원인을 별도 행으로 보여주는가?
 - 현금, 서비스와 안전을 하나의 추천점수로 숨기지 않는가?
 
-### Scope 1 Interaction 화면 — 구현 승인 뒤에만
+### Scope 1 Interaction 화면 — 현재 활성 gate
 
 - `MaxSpan`을 넘은 span, 실제 거리와 수동으로 지지물을 더 놓아야 한다는 사실이 즉시 읽히는가?
 - source에서 ordered support를 거쳐 target으로 가는 한 경로가 읽히는가?

@@ -17,7 +17,7 @@ docs/
 │   ├── SCOPE_0A_CARD_TEST.md          종료된 R1 카드 실행 계약
 │   ├── SCOPE_0A_R2_CARD_TEST.md       종료된 R2 카드 실행 계약
 │   ├── SCOPE_0B_PLAYABLE.md           완료된 playable 실행 계약
-│   ├── SCOPE_1_INTERACTION.md         구현 대기 중인 수동 선로 계약
+│   ├── SCOPE_1_INTERACTION.md         활성 수동 선로 구현 계약
 │   └── RELEASE_1_0_BOUNDARY.md        1.0 범위의 미개방 상한
 ├── development/
 │   └── BALANCING_STATIC_SIM.md        조건부 정적 검증 도구
@@ -40,7 +40,7 @@ docs/
 | 규칙을 어떻게 보이게 하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 게임 규칙이나 수치를 새로 만들지 않음 |
 | Scope 0A/0B의 전환 checkpoint는 무엇인가? | [Scope 0 TODO](scopes/SCOPE_0_TODO.md) | 활성 실행 계약의 절차·숫자를 다시 정의하지 않음 |
 | 완료된 authored playable의 정확한 계약은 무엇인가? | [Scope 0B 계약](scopes/SCOPE_0B_PLAYABLE.md) | 제품 문서나 후보 TODO가 역사 실행 범위를 늘리지 않음 |
-| 다음으로 선택된 수동 선로 Interaction의 경계는 무엇인가? | [Scope 1 준비 계약](scopes/SCOPE_1_INTERACTION.md) | 별도 승인 없이 구현·fixture·공식 실행을 열지 않음 |
+| 현재 수동 선로 Interaction의 경계는 무엇인가? | [Scope 1 활성 계약](scopes/SCOPE_1_INTERACTION.md) | 발전소·변전소·철거·경제나 다음 gate를 추론해 열지 않음 |
 | 1.0의 최대 후보 범위는 무엇인가? | [Release 1.0 후보 범위](scopes/RELEASE_1_0_BOUNDARY.md) | 확정 roadmap이나 backlog로 사용하지 않음 |
 | 정적 밸런스 도구는 언제·어디까지 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 게임을 대신 플레이하거나 수치를 자동 확정하지 않음 |
 | 1.0 뒤의 냉각수·원전 방향은 무엇인가? | [1.0 이후 방향](future/POST_1_0.md) | 현재 interface·schema·UI를 선결하지 않음 |

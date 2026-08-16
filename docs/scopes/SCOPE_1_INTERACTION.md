@@ -1,17 +1,16 @@
 # Gridworks — Scope 1 수동 선로 건설 계약
 
-> 상태: **IMPLEMENTATION-READY CANDIDATE — 구현·fixture 파일·공식 실행은 CLOSED**
+> 상태: **ACTIVE — 구현 승인; fixture 인계 review 전 source와 공식 실행은 CLOSED**
 >
 > 다음 위험 선정: `Interaction — manual supports + one MaxSpan`
 >
 > 사람 증거: `HumanValidationStatus = NOT_COLLECTED`
 
 이 문서는 Scope 0B `GO` 뒤의 적응형 점검이 선택한 다음 단일 위험을 구현 가능한 크기로 닫는다.
-사용자는 Scope 1의 계획 준비까지 승인했지만 구현을 승인하지 않았다. 따라서 이 문서가 완결돼도
-`src/`, `game/`, `tools/`, `data/`를 변경하거나 공식 proxy를 실행할 수 없다. 별도 사용자 승인과
-활성화 checkpoint가 있어야 구현이 열린다.
-[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)가 이 문서의 review와
-구현 폐쇄 상태를 기록한다.
+사용자의 지속 목표가 Coverage와 Integrated placement 통과까지 Scope 1 구현과 한정 반복을
+명시적으로 승인했다. [활성화·fixture checkpoint](../../playtests/scope-1/CHECKPOINT_1_CONTRACT_FREEZE.md)가
+JSON 권위 인계를 review한 뒤 source 구현을 열며, 공식 proxy는 후속 구현 checkpoint까지 닫는다.
+[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)는 승인 전 역사 기록이다.
 
 ## 1. 왜 이 위험이 다음인가
 
@@ -65,11 +64,12 @@ native UI에서 구분하는지 확인했다. 그러나 플레이어는 authored
 - camera, save/replay, 범용 map editor와 미래 schema
 - parameter sweep과 Static Balance Lab
 
-## 4. 활성화 때 옮길 단일 fixture
+## 4. 단일 fixture와 권위 인계
 
-구현 승인 전 숫자 권위는 아래 표뿐이다. 승인되면 같은 값으로 `data/scope-1-v1.json`을 만들고
-독립 인계검사를 통과한 reviewed checkpoint부터 JSON이 기계 권위가 된다. 값이나 항목을 몰래
-늘리지 않는다.
+아래 표와 같은 값의 [`data/scope-1-v1.json`](../../data/scope-1-v1.json)을 활성화 변경에서 만들었다.
+[인계 checkpoint](../../playtests/scope-1/CHECKPOINT_1_CONTRACT_FREEZE.md)가 독립 review를 마치기 전에는
+source 구현을 시작하지 않는다. review 뒤 JSON이 유일한 기계 권위이고 이 표는 사람이 읽는
+인계 mirror다. 값이나 항목을 몰래 늘리지 않는다.
 
 | 항목 | 값 |
 |---|---|
@@ -244,10 +244,11 @@ revision은 그 UI 결함 하나만 바꾸고 새 build·새 세 session을 쓰�
 fixture 또는 Structural 변경은 `REVISE`가 아니라 reviewed 새 계약·새 version·새 session을 요구한다.
 registry, type catalog와 parameter sweep을 만들지 않는다.
 
-## 10. 구현 TODO — 별도 승인 뒤에만
+## 10. 구현 TODO — reviewed fixture 인계 뒤에만
 
-- [ ] 루트 README가 이 문서를 활성 구현 scope로 지목한다.
-- [ ] 위 표와 exact한 `data/scope-1-v1.json`과 strict validator를 만든다.
+- [x] 루트 README가 이 문서를 활성 구현 scope로 지목한다.
+- [x] 위 표와 exact한 `data/scope-1-v1.json`을 만든다.
+- [ ] strict loader·validator와 독립 fixture checker를 만든다.
 - [ ] pre-code 표 → JSON 인계검사와 contract-freeze checkpoint를 review한다.
 - [ ] scope-local Core state·명령·snapshot과 오류 불변 검사를 구현한다.
 - [ ] 단일 Godot scene의 수동 지도 입력과 범위 피드백을 구현한다.

@@ -4,8 +4,8 @@ This directory holds the public verification and checkpoint artifacts for the co
 [Scope 0B contract](../../docs/scopes/SCOPE_0B_PLAYABLE.md).
 
 Official v6 closed with five evidence-valid `COMPLETED` rows and a strict `GO`. See
-[`RESULT.md`](RESULT.md) and [`CHECKPOINT_2_DECISION.md`](CHECKPOINT_2_DECISION.md). Scope 1 is not opened by
-that result.
+[`RESULT.md`](RESULT.md) and [`CHECKPOINT_2_DECISION.md`](CHECKPOINT_2_DECISION.md). That result alone did not
+open Scope 1; a later explicit user goal activated it.
 
 Current state: the executable build, independent code review and native [L00 result](L00_RESULT.md) are
 complete. Official run v1 then used six launches, including one evidenced runner replacement. Five

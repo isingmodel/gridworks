@@ -35,9 +35,19 @@ The app processes were stopped after each bounded attempt.
 | unlocked coordinator retry | app diagnostic | `92bd602f8a2b2861e01390383aba0bd8c1b81b264554e57b95e17df992b0ae28` |
 | unlocked cold-subagent retry | Godot engine log | `678be1a5c713f54beb463daf16a33bc57ef6b439cdf48326e1db931eb7842dc0` |
 | unlocked cold-subagent retry | app diagnostic | `2ec095c5d7952f837bf9421f9fccf3ef0234bab6aadbfe0b79b8c76f484eeb7e` |
+| coordinator + cold-subagent transport trace | tool-trace extract | `e02f22b4c145fadbfb7e563342a286382fb8afd33af87a776c1cadb7773cf161` |
 
 Each app diagnostic has exactly one `READY` row and no later command. Raw logs remain under the ignored
 `playtests/scope-0b/private/` directory.
+
+## Review
+
+- initial result commit: `247850d8be2d47e0cc21dcaf871c29d0254e01e8`
+- bounded independent reviewer: `scope0b_core_review`
+- initial finding: one `P2` provenance gap because READY logs did not preserve the separate Computer Use
+  timeout evidence
+- minimal fix: one ignored tool-trace extract and its public SHA-256; no runner framework or schema added
+- game result, build, fixture, prompt and gate rule were unchanged
 
 ## Resume condition
 

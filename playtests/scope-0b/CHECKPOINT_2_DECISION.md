@@ -8,7 +8,7 @@
 >
 > `NextGate = NOT_SELECTED`
 >
-> `RepositoryClosure = REVIEW_IN_PROGRESS`
+> `RepositoryClosure = COMPLETE`
 
 ## Evidence
 
@@ -37,6 +37,6 @@ approves implementation.
 - initial result commit: `6135aefa9713608e5e60bdefd3e43f3651fcea87`
 - bounded independent result review: `scope0_result_evidence_review`, `scope0_result_docs_review`,
   `scope0_result_boundary_review`
-- final review: `PENDING`
-- reviewed result content commit: `PENDING`
+- final review: `P0=0, P1=0, P2=0`
+- reviewed result content commit: `26ebd7f3b2a2e7177020aebcc7f4766df3f7c7f8`
 - push/PR: not authorized by the current task

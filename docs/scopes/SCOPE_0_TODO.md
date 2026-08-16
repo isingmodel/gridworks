@@ -183,7 +183,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 - [x] 원자료는 공개 저장소 밖에 두고 비식별 집계와 예상 밖 행동만 보존했다.
 - [x] `HumanValidationStatus = NOT_COLLECTED`를 유지하고 사람 사용성 증거로 표현하지 않았다.
 - [x] `SubGateDecision = GO`와 `Scope0State = REVIEWED`를 기록했다.
-- [ ] 판정 뒤 결과 작업단위의 독립 review와 문서 최신성 점검을 닫는다.
+- [x] 판정 뒤 결과 작업단위의 독립 review와 문서 최신성 점검을 닫았다.
 
 ## 9. 종료된 파라미터 정책
 
@@ -212,7 +212,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한다. 그 결과 `Interaction`이 선정됐을 때만 [Scope 1 후보](SCOPE_1_INTERACTION_TODO.md)를 출발점으로 다시 검토한다.
 
 - [x] Scope 0B가 조건부 승인·구현됐고 자동검사와 LLM 조작 proxy 기준을 `GO`로 통과했다.
-- [ ] Scope 0 결과 문서의 독립 review와 최신성 점검을 완료했다.
+- [x] Scope 0 결과 문서의 독립 review와 최신성 점검을 완료했다.
 - [ ] Scope 0 후 적응형 점검에서 수동 pole·`MaxSpan` 상호작용이 다음 최대 미검증 위험으로 선정됐다.
 - [ ] 실제 Scope 0B 계약에 존재하는 graph·공사·상태전이만 인계표에 적고, 존재하지 않는 범용 lifecycle은 가정하지 않는다.
 - [ ] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 동결했다.

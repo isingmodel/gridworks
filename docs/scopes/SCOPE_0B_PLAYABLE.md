@@ -653,7 +653,7 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
   checkpoint 1F가 소유한다.
 - [x] checkpoint 1F가 승인한 v6 task message로 교체 없는 공식 다섯 session을 수행했다.
 - [x] 원자료 hash·독립 strict score·aggregate·판정을 [`RESULT.md`](../../playtests/scope-0b/RESULT.md)에 기록했다.
-- [ ] 결과의 큰 단위 checkpoint에서 독립 review와 문서 최신성 점검을 닫는다.
+- [x] 결과의 큰 단위 checkpoint에서 독립 review와 문서 최신성 점검을 닫았다.
 - [x] `GO`로 Scope 0을 `REVIEWED`로 닫고 Scope 1을 자동 구현하지 않았다.
 - [ ] 별도 적응형 단위에서 다음 최대 미검증 위험을 선정하거나 terminal 상태를 유지한다.
 

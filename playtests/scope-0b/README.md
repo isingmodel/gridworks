@@ -22,8 +22,11 @@ a smaller v4 delivery rule: one canonical prompt source, whitespace-only normali
 Runtime, fixture, UI, rubric and gate remain unchanged. Independent v4 review closed with `P0/P1/P2 = 0`;
 five v4 launches then reached native `FINAL`, but three traces did not preserve the complete metadata `exact text`
 required by that frozen evidence format. [Checkpoint 1E](CHECKPOINT_1E_RUN_PROTOCOL_V5.md) therefore closes v4
-as protocol `PROXY-RUN-BLOCKED` with `TechnicalValid = 2/5` and no gameplay score. The smaller v5 evidence
-delta completed independent review with `P0/P1/P2 = 0`; official v5 sessions may run serially.
+as protocol `PROXY-RUN-BLOCKED` with `TechnicalValid = 2/5` and no gameplay score. v5 then stopped after six
+launches because required runner manifests and contemporaneous monotonic samples were not recorded for the
+first completed slots; reconstructed filesystem times are not substituted. [Checkpoint 1F](CHECKPOINT_1F_RUN_PROTOCOL_V6.md)
+closes v5 without a gameplay score and drafts v6 around only the platform session and app diagnostic originals.
+Official v6 sessions remain closed until that smaller contract is independently reviewed.
 
 Future raw transcripts, native diagnostic logs and screenshots belong in `private/` and stay out of Git.
 Only their hashes, anonymous aggregate and reviewed decision may be published here.

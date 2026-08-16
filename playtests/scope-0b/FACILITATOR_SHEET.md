@@ -1,97 +1,65 @@
 # Scope 0B LLM UI-proxy facilitator sheet
 
-> Status: **S0B-RUN-v5 REVIEWED — official sessions authorized**
+> Status: **S0B-RUN-v6 DRAFT — official sessions closed**
 >
 > `BuildVersion = S0B-BUILD-v1`
 >
-> `PromptVersion = S0B-PROXY-v5`
+> `PromptVersion = S0B-PROXY-v6`
 >
-> `RunProtocolVersion = S0B-RUN-v5`
+> `RunProtocolVersion = S0B-RUN-v6`
 >
 > `DecisionRuleVersion = S0B-GATE-v1`
->
-> `L00Status = PASS`
 
-This sheet is an execution copy of the active
-[Scope 0B contract](../../docs/scopes/SCOPE_0B_PLAYABLE.md). It does not add rules, hints, retries or
-scoring discretion. The coordinator may replace only `<SESSION_ID>`, `<EVIDENCE_ID>` and `<VARIANT>` in the
-frozen launch command and only `<SESSION_ID>` in the participant prompt. The evidence-export message has no
-placeholder.
+This is the execution copy of the active
+[Scope 0B contract](../../docs/scopes/SCOPE_0B_PLAYABLE.md). It adds no gameplay rule or scoring discretion.
+The v6 rule is deliberately small: preflight before participant dispatch, then one scored cold session with no
+replacement. Evidence comes from the platform session JSONL and the app diagnostic JSONL. There is no runner
+manifest, participant-written provenance export or copied transcript.
 
-## 1. Frozen native target
+## 1. Native target and assignments
 
 - Godot binary:
   `/Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot`
 - project: `/Users/fred/dev/electric_simulator/game`
-- window title after READY in this frozen Godot editor-build launch: `Gridworks — 강변 병원 회랑 (DEBUG)`
-- app target: the one Godot process whose visible window has that exact title
+- expected title: `Gridworks — 강변 병원 회랑 (DEBUG)`
+- app target: `org.godotengine.godot`
 - designated skill: `computer-use:computer-use`
-- skill resource:
-  `/Users/fred/.codex/plugins/cache/openai-bundled/computer-use/1.0.1000717/skills/computer-use/SKILL.md`
-- skill SHA-256: `e0ec667e63fba01381eb889ddbfd44a05b8556b1e502428e8ff0a474750a08d6`
-- engine log:
-  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-godot.log`
-- diagnostic JSONL:
-  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-app.jsonl`
-- runner manifest JSONL:
-  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-runner.jsonl`
-- retained tool trace:
-  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-tool-trace.md`
-- participant task/final transcript:
-  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-transcript.md`
-
-Run exactly one process and one session at a time:
+- diagnostic path:
+  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-app.jsonl`
+- optional engine-log path:
+  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-godot.log`
 
 ```text
-/Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path /Users/fred/dev/electric_simulator/game --windowed --resolution 1280x720 --position 0,40 --single-window --accessibility always --rendering-method gl_compatibility --log-file /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-godot.log -- --session-id <SESSION_ID> --variant <VARIANT> --diagnostic-log /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-app.jsonl
+/Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path /Users/fred/dev/electric_simulator/game --windowed --resolution 1280x720 --position 0,40 --single-window --accessibility always --rendering-method gl_compatibility --log-file /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-godot.log -- --session-id <SESSION_ID> --variant <VARIANT> --diagnostic-log /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-app.jsonl
 ```
 
-Assignment is fixed:
+| Session | Variant |
+|---|---|
+| `S0B-V6-L01` | `ab` |
+| `S0B-V6-L02` | `ba` |
+| `S0B-V6-L03` | `ab` |
+| `S0B-V6-L04` | `ba` |
+| `S0B-V6-L05` | `ab` |
 
-| Session | Variant | Evidence role |
-|---|---|---|
-| `S0B-L00` | `ab` | reviewed native UI rehearsal retained from unchanged build |
-| `S0B-V5-L01` | `ab` | official v5 slot 1 |
-| `S0B-V5-L02` | `ba` | official v5 slot 2 |
-| `S0B-V5-L03` | `ab` | official v5 slot 3 |
-| `S0B-V5-L04` | `ba` | official v5 slot 4 |
-| `S0B-V5-L05` | `ab` | official v5 slot 5 |
+## 2. Preflight before each participant
 
-Every log path must not exist before launch; the app fails closed rather than appending. The coordinator
-sets `EVIDENCE_ID=<SESSION_ID>-launch1` for the first launch and increments the launch number for every
-authorized `TechnicalValid=false` replacement. The logical session ID, variant and participant message hash
-do not change. The runner manifest contains both IDs and the launch-specific trace/transcript paths and hashes.
-The coordinator
-records launch, READY and end with monotonic times and the exact `endReason`/`faultAttribution` pair from the
-active contract. The one-row runner manifest also records the exact model, reasoning, fork and tool policy,
-plus independent app/launch evidence. A returned provenance ledger has its path and SHA-256; if the participant
-cannot return one after stop, timeout or app failure, both are null and the end reason explains why. Ledger
-absence or prose quality is audit-only and does not itself change TechnicalValid. A non-`none` fault attribution
-must likewise point to a preserved engine, app, host or transport artifact and its SHA-256; a coordinator note
-alone is not evidence.
+Preflight is not an official session because no participant has received the task yet.
 
-The only allowed pairs are `final:none`, `participant_stop:none`, `timeout:none`, `timeout:app`,
-`app_crash:app` and `runner_error:runner`. A frozen-app or participant completion failure on a working target
-is scored. Any `TechnicalValid=false` launch discards its gameplay answer and may be replaced, at most twice;
-L01–L05 and their replacements may total at most seven launches. After measurement end and any available
-export, the coordinator locks TechnicalValid and replacement status from machine provenance and observed
-source violations in launch order before scoring or recording gameplay fields; gameplay answer and ledger
-prose quality must not affect that classification.
-The canonical complete launch ledger is the set of runner manifests sorted by `launchElapsedMs`, then
-`evidenceId`. It includes every invalid launch and replacement; invalid gameplay fields are not entered into
-the score aggregate.
+1. Confirm that no Godot process remains and both new log paths do not exist.
+2. Launch the command above and confirm exactly one Godot process.
+3. Confirm the diagnostic starts with one `READY` row containing the frozen build hash, fixture hash, session ID
+   and variant.
+4. Confirm the exact title is readable from the target UI. Do not click or advance the game.
+5. If setup fails, close the whole round as `PROXY-RUN-BLOCKED`; do not dispatch or replace a participant.
 
-## 2. Exact participant prompt
+Only after a slot's preflight passes may that session begin. All five slots use the same frozen build and run
+serially. Preflight supplies no gameplay observation.
 
-This code block is the single canonical participant message. The active contract links here rather than
-copying it. Replace `<SESSION_ID>` once; add no greeting, path, explanation, success criterion or recovery hint.
+## 3. Exact participant prompt
 
-`PromptHash` means lowercase SHA-256 after `ascii-whitespace-fold-v1`: validate UTF-8, replace every run of
-ASCII space, tab, CR or LF with one ASCII space, then strip both ends. It excludes Markdown fences. This
-normalizes ASCII whitespace layout only; any changed, removed or added non-whitespace text changes the hash. Render the actual
-message with `ruby playtests/scope-0b/verify_implementation.rb --render-prompt <SESSION_ID>` and do not edit
-that output. Preserve the dispatched message verbatim under a `## Exact task message` heading in one `text`
-fence, then verify the transcript with `--check-transcript <SESSION_ID> <PATH>`.
+Replace `<SESSION_ID>` once and add nothing. Render it with
+`ruby playtests/scope-0b/verify_implementation.rb --render-prompt <SESSION_ID>`.
+The prompt hash is lowercase SHA-256 of those exact UTF-8 bytes; no whitespace normalization is applied.
 
 ```text
 당신은 Gridworks를 처음 플레이하는 전력회사 운영자입니다. 세션 ID는 <SESSION_ID>입니다.
@@ -114,92 +82,29 @@ oracle·rubric과 이전 세션은 보지 마세요. Gridworks 화면 읽기와 
 (5) 예상 밖이거나 이해하기 어려웠던 조작.
 ```
 
-## 3. Native preflight inherited by v5
+## 4. Official session and evidence
 
-The reviewed `S0B-L00` remains valid because v5 changes no build, UI, app target, fixture or Computer Use
-action path. Do not start official v5 sessions unless this sheet and the v5 checkpoint are reviewed and all
-of the following are true:
+- Run five new cold `gpt-5.6-sol`, reasoning `medium`, `fork_turns=none` sessions in table order.
+- Once the exact participant message is dispatched, that slot is never replaced. Stop, timeout, app crash or
+  incomplete play is a scored `InteractionCompletionPass = false`, not missing data.
+- Allowed Gridworks content sources are the exact task message, designated skill and current target UI. Generic
+  tool metadata and import/transport errors are allowed setup information. Repository, source/data, web, static
+  cards, oracle/rubric, previous sessions, app inventory and other-app content are forbidden.
+- The first readable Gridworks state must precede every UI action. Each action must be followed by a fresh state
+  read before the next action. Use only `tools.mcp__node_repl__js` with `@oai/sky` for UI reads and actions.
+- The platform-owned session JSONL is the authority for the exact dispatched prompt, model/task identity, tool
+  calls, content sources, UI sequence and final report. Record its path and SHA-256 after completion; do not copy
+  or rewrite it.
+- The app diagnostic JSONL is the authority for `READY`, accepted commands, pre-reveal `PREDICTION_LOCKED`,
+  selected corridor and `FINAL`. Record its SHA-256.
+- A session is scorable when the platform log has the exact prompt and no observed forbidden source, and its
+  diagnostic begins with the exact frozen identity. Completion is not a scorable-session condition.
+- If those two original artifacts are absent or disagree on identity, close the round as `PROXY-RUN-BLOCKED`.
+  Do not replace the participant and do not infer missing evidence from filesystem times or prose.
+- The operational timeout is 15 minutes. It is not a scored field and requires no custom timestamp proof.
+- Do not send a post-measurement export, create a runner manifest or reconstruct a transcript.
+- Do not tune text, layout, values or controls between sessions.
 
-1. The host UI is unlocked and exactly one target process is running.
-2. `get_app_state` returns twice within 20 seconds and exposes the exact title, current stage and enabled
-   action through the accessibility tree or screenshot.
-3. Element-index interaction is tried first. Screenshot coordinates or Tab/Return are fallback only.
-4. One complete run reaches `FINAL`; the diagnostic contains the frozen ten-event sequence and the runner
-   manifest agrees with it.
-5. The source-manifest build, fixture and designated-skill hashes match the implementation/current protocol
-   checkpoints; prompt, facilitator and assignment hashes match the current v5 run-protocol checkpoint.
-6. An independent protocol review confirms the setup/scored-interaction boundary and that no game context is
-   available through bootstrap metadata.
-
-If both AX and screenshot are unavailable, or a real accepted command cannot be produced, record
-`PROXY-RUN-BLOCKED`. Do not substitute static cards or a screenshot questionnaire.
-
-## 4. Official run order and scoring boundary
-
-- Spawn one cold `gpt-5.6-sol`, reasoning `medium`, `fork_turns=none` session at a time.
-- Across the whole task, allowed Gridworks information sources are only the exact message, designated skill
-  and current frozen target UI. Generic environment-owned tool name/signature metadata, import/dispatch/
-  transport errors and exact-target metadata are non-game diagnostics and may be read-only. Repository,
-  source/data, diagnostics/logs, web, stored screenshots/static cards, oracle/rubric, prior sessions, app
-  inventory and other-app contents are forbidden. Literal wrapper spelling and first-call success are not
-  validity criteria.
-- The first readable Gridworks state starts scored interaction. No UI action may precede it. Every Gridworks
-  read/action must use the frozen target through `tools.mcp__node_repl__js` and `@oai/sky`.
-- After each Sky UI action, fetch fresh app state in the same dispatch or the next read-only direct-wrapper
-  dispatch before deciding the next action. If no readable target state appears, use independent evidence:
-  host/process/transport failure is `runner_error:runner`, while a working target and transport followed by
-  participant stop/timeout is a TechnicalValid scored failure. Do not inspect repository or unrelated apps.
-- Stop at 15 minutes. A participant stop or timeout on an otherwise working app is a valid scored failure.
-- The final app-state read ends UI interaction, not the evidence boundary. The same tool policy remains in
-  force through the scored final report. Measurement ends at the final report or, when there is none, at the
-  recorded `participant_stop | timeout | app_crash` runner end.
-- The four `PREDICTION_LOCKED` values are prediction authority; reveal-time prose cannot repair them.
-- Fill [`record-template.csv`](record-template.csv) from transcript, diagnostic and runner evidence.
-- After measurement end, send the exact export message in §5 if the participant can still respond. Hash a
-  returned ledger; otherwise record it unavailable. The ledger is audit-only: omission or formatting does not
-  invalidate a launch, but a disclosed or independently observed forbidden source does.
-- Do not discuss earlier sessions, scores or expected answers with a later participant.
-- Do not tune text, layout, values or controls between official sessions.
-
-The gate is exactly the active contract: each of the four fields at least `4/5`, integrated at least `3/5`.
-Selection ratio, completion time and click count are diagnostic only.
-
-## 5. Exact post-measurement provenance export
-
-This is a separate, unscored turn after measurement end when the participant can still respond. Send the one
-block below byte-identically and add nothing else. The participant returns Markdown without calling a tool.
-The coordinator stores a returned response verbatim at `<EVIDENCE_ID>-tool-trace.md`; non-return is recorded
-in the runner manifest and is not itself invalid.
-
-```text
-측정은 종료됐습니다. Gridworks, @oai/sky, node_repl 또는 다른 도구를 다시 호출하지 마세요. 이번
-세션에 보존된 task/tool history만 사용해 이 응답에 Markdown 본문만 반환하세요.
-
-EvidenceLedger = S0B-CALL-SOURCE-v1
-Coverage = ALL_CALLS_TASK_START_TO_MEASUREMENT_END
-EntryFields = ORDER|CLASS|TOOL|PURPOSE|CONTENT_SOURCE|REQUEST|RESULT|FRESH_STATE_FOR
-MetadataRequest = EXACT
-MetadataResult = RETURNED_TOOL_NAMES_AND_USED_SIGNATURE_ONLY
-ErrorResult = EXACT_TEXT
-UiSequence = ACTION_THEN_FRESH_STATE
-UnusedToolDescriptions = OMIT
-FullAxOrScreenshotBody = OMIT
-
-task 시작부터 measurement end까지의 모든 tool call을 실제 순서대로 짧은 ledger로 적으세요. 비해당
-field는 `-`로 적고 다음 class 규칙을 사용하세요.
-
-- SKILL: REQUEST에는 등록 skill 이름, RESULT에는 성공 또는 오류를 적습니다.
-- METADATA_OR_IMPORT: REQUEST는 원문, RESULT는 반환 callable 이름과 실제 사용 signature만 적습니다.
-- GRIDWORKS_READ: REQUEST는 method 이름, RESULT는 status/content type과 짧은 stage marker를 적습니다.
-- GRIDWORKS_ACTION: REQUEST는 method/action만, RESULT는 status/content type을 적고 FRESH_STATE_FOR에는
-  바로 뒤 state-read 순번을 적습니다. 전체 wrapper code는 적지 않습니다.
-- OTHER_OR_ERROR: REQUEST는 원문을 적고 ERROR의 RESULT는 오류 원문을 적습니다.
-
-첫 readable Gridworks state, final app-state read, final report 또는 다른 measurement end를 표시하세요.
-금지 source 접근이 있었다면 해당 call과 source를 적고, 없었다면
-`ForbiddenContentSources: NONE`이라고 적으세요.
-
-사용하지 않은 tool description, 전체 tool-catalog 응답, wrapper 내부 구현, screenshot과 전체 AX 본문은
-요청하지도 보존하지도 않습니다. 이들을 생략해도 증거 누락이 아닙니다. repository나 다른 파일을
-읽지 말고 앱을 조작하지 마세요.
-```
+The frozen gate remains: each of the four gameplay fields at least `4/5`, and their integrated conjunction at
+least `3/5`. Selection ratio, completion time and click count are diagnostic only. Keep
+`HumanValidationStatus = NOT_COLLECTED`.

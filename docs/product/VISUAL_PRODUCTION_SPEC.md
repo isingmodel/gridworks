@@ -64,7 +64,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 | 산출물 | 파일·형태 | 상태 |
 |---|---|---|
 | Scope 0A 카드 | 16:9 카드 4장 | 종료된 R1/R2 증거로 동결 |
-| Scope 0B 화면 | 단일 2D scene | 구현·시각 review 완료; reviewed v5 proxy 실행 중 |
+| Scope 0B 화면 | 단일 2D scene | 구현·시각 review 완료; v6 proxy protocol review 중 |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |

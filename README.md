@@ -40,18 +40,19 @@ Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합
 
 Scope 0B의 계약·machine fixture, Core·검사도구·단일 Godot scene, 자동검사, native smoke와
 독립 코드 review는 완료됐다. [L00 네이티브 조작](playtests/scope-0b/L00_RESULT.md)도 실제 화면에서
-`FINAL`까지 통과했다. 그러나 공식 LLM 조작 proxy v1~v4는 모두 **게임 판정 전 run protocol
+`FINAL`까지 통과했다. 그러나 공식 LLM 조작 proxy v1~v5는 모두 **게임 판정 전 run protocol
 증거 문제**로 `PROXY-RUN-BLOCKED`다.
 
-v4의 다섯 참가자는 실제 native UI를 끝까지 조작했지만, 세 세션이 동결된 `exact text` 증거 형식을
-완전히 보존하지 않았다. 따라서 `TechnicalValid = 2/5`이고, gameplay field는 채점하지 않는다.
-이는 `GO`, `REVISE`, `NO-GO` 어느 것도 아니며 gameplay revision budget도 쓰지 않는다. 자세한
-판정과 hash는 [v4 종료·v5 준비 checkpoint](playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md)에
-고정했다. `HumanValidationStatus = NOT_COLLECTED`도 유지한다.
+v5는 여섯 launch 중 네 번 native `FINAL`에 도달했지만, 첫 완료 slot들의 필수 runner 시각·manifest를
+실행 중 기록하지 않았다. 이를 사후 filesystem 시각으로 메우지 않고, valid 다섯 slot이 불가능한
+시점에 판정 없이 중단했다. 자세한 판정은
+[v5 종료·v6 준비 checkpoint](playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)에 둔다.
+`HumanValidationStatus = NOT_COLLECTED`도 유지한다.
 
-build·fixture·UI·rubric·gate를 바꾸지 않고 불필요한 전체 metadata/AX 복사를 요구하지 않는 더 짧은
-v5 증거 계약을 동결했으며, 독립 review를 `P0/P1/P2 = 0`으로 닫았다. 이제 신규 cold LLM session
-다섯 회를 같은 build에서 직렬 실행한다. Scope 0의 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리하며,
+v6는 build·fixture·UI·rubric·gate를 바꾸지 않고 별도 runner manifest, custom timestamp와 participant
+provenance export를 없앤다. 각 참가자 전 단일 process·정확한 `READY`를 확인하고, prompt dispatch 뒤에는
+교체 없이 플랫폼 원본 session JSONL과 app diagnostic JSONL만으로 다섯 cold session을 판정한다.
+현재 이 더 단순한 protocol을 review 중이다. Scope 0의 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리하며,
 Scope 1은 Scope 0B의 실제 `GO`와 별도 적응형 점검 전까지 열리지 않는다.
 
 ## 문서 구조

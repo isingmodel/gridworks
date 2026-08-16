@@ -1,6 +1,6 @@
 # Scope 0B implementation-freeze checkpoint
 
-> Status: **REVIEWED — L00 authorized; official sessions remain closed until L00 passes**
+> Status: **REVIEW PENDING — native title-target correction only; official sessions remain closed**
 >
 > `SubGateDecision = PENDING`
 >
@@ -21,7 +21,7 @@
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - prompt-template SHA-256: `4a07e8fdf61cbd2475ba27613e9a89d4fcb254cc54c6d19d5f6a740ca64f2111`
-- facilitator-sheet SHA-256: `acd9dd5510f07a5a6175b56ed15c79bcfb0e3e2e39a1cfeb6d3e5d398aeec2e2`
+- facilitator-sheet SHA-256: `1e2e28131fc88126f3f13ad07f07bcb1cc5e3c2fae8ccfa8113a1c7b7b0a520d`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
 
 The runtime build hash is a deterministic manifest of the runtime source inputs in `game/`,
@@ -123,3 +123,9 @@ state and the preflight became `PROXY-RUN-BLOCKED`.
 This checkpoint's bounded independent review remains complete. L00 may be retried on this exact build only
 after the external Computer Use state changes. Official L01–L05 may start only if L00 meets every preflight
 item in the facilitator sheet.
+
+On the authorized retry, Computer Use returned the native accessibility tree, but the frozen Godot editor
+binary exposed the engine-owned suffix `(DEBUG)` in the window title. The run stopped before the first click.
+Only the exact target title and facilitator hash were corrected; runtime source, fixture, participant prompt,
+gate and prior evidence did not change. This correction must receive a bounded independent review before L00
+continues.

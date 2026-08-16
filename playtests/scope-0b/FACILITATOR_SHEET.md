@@ -20,7 +20,7 @@ and only `<SESSION_ID>` in the participant prompt.
 - Godot binary:
   `/Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot`
 - project: `/Users/fred/dev/electric_simulator/game`
-- window title after READY: `Gridworks — 강변 병원 회랑`
+- window title after READY in this frozen Godot editor-build launch: `Gridworks — 강변 병원 회랑 (DEBUG)`
 - app target: the one Godot process whose visible window has that exact title
 - engine log:
   `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-godot.log`

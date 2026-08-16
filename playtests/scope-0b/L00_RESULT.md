@@ -1,6 +1,6 @@
-# Scope 0B L00 native preflight result
+# Scope 0B L00 first native preflight result
 
-> Result: **PROXY-RUN-BLOCKED — Computer Use transport**
+> Historical result: **PROXY-RUN-BLOCKED — Computer Use transport**
 >
 > `SubGateDecision = PENDING`
 >
@@ -54,3 +54,10 @@ Each app diagnostic has exactly one `READY` row and no later command. Raw logs r
 Retry L00 only after the external Computer Use state changes. The retry must use the same reviewed build and
 must obtain two `get_app_state` responses within 20 seconds before the first click. A successful full native
 run is still required before official sessions open.
+
+## Retry update
+
+After the user restarted Codex and unlocked the host on 2026-08-16, two bounded `get_app_state` calls returned
+the native AX tree. The retry stopped before its first click because the Godot editor build exposed an
+engine-owned `(DEBUG)` title suffix that the frozen target string omitted. Runtime, fixture, prompt and gate
+were unchanged. L00 remains incomplete while that target-only correction receives independent review.

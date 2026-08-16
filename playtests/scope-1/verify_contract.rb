@@ -3,6 +3,7 @@
 
 require "digest"
 require "json"
+require "open3"
 require "pathname"
 
 ROOT = Pathname.new(__dir__).join("../..").expand_path
@@ -43,6 +44,11 @@ def squared(a, b)
   dx * dx + dy * dy
 end
 
+def git_success?(*arguments)
+  _output, status = Open3.capture2e("git", "-C", ROOT.to_s, *arguments)
+  status.success?
+end
+
 begin
   fixture_bytes = FIXTURE_PATH.binread
   fixture = JSON.parse(fixture_bytes, object_class: DuplicateCheckingHash)
@@ -51,7 +57,7 @@ rescue StandardError => e
 end
 
 exact_keys(fixture, %w[
-  schemaVersion fixtureId units mapBounds source target maxSpan initialMinute buildMinutes verificationOnly
+  schemaVersion fixtureId units mapBounds source target maxSpan initialMinute buildMinutes
 ], "fixture root")
 check(fixture.fetch("schemaVersion") == "gridworks.scope1.fixture.v1", "schemaVersion")
 check(fixture.fetch("fixtureId") == "S1-FIXTURE-v1", "fixtureId")
@@ -80,16 +86,7 @@ initial_minute = integer(fixture.fetch("initialMinute"), "initialMinute")
 build_minutes = integer(fixture.fetch("buildMinutes"), "buildMinutes")
 check(max_span == 4 && initial_minute.zero? && build_minutes == 60, "time/span values")
 
-verification = fixture.fetch("verificationOnly")
-exact_keys(verification, ["witnessSupportPositions"], "verificationOnly")
-witness = verification.fetch("witnessSupportPositions")
-check(witness.is_a?(Array) && witness.length == 2, "witness must contain exactly two supports")
-witness.each_with_index do |point, index|
-  exact_keys(point, %w[x y], "witness[#{index}]")
-  integer(point.fetch("x"), "witness[#{index}].x")
-  integer(point.fetch("y"), "witness[#{index}].y")
-end
-check(witness == [{ "x" => 5, "y" => 4 }, { "x" => 9, "y" => 4 }], "witness values")
+witness = [{ "x" => 5, "y" => 4 }, { "x" => 9, "y" => 4 }].freeze
 
 limit_squared = max_span * max_span
 check(squared(source, target) == 100 && squared(source, target) > limit_squared, "direct span oracle")
@@ -100,8 +97,10 @@ check(squared(witness[0], witness[1]) == limit_squared, "witness internal bounda
 check(squared(witness[1], target) == 4 && squared(witness[1], target) < limit_squared,
       "witness final span oracle")
 check(squared(source, { "x" => 6, "y" => 4 }) == 25, "known invalid support oracle")
+check(squared(source, { "x" => 3, "y" => 7 }) == 13, "two-axis valid oracle")
+check(squared(source, { "x" => 4, "y" => 7 }) == 18, "two-axis invalid oracle")
 check(initial_minute + build_minutes == 60, "completion minute oracle")
-puts "PASS fixture: exact 10-field root and integer values"
+puts "PASS fixture: exact 9-field root and integer values"
 puts "PASS oracle: direct fail, boundary spans, witness success, completion minute"
 
 scope = SCOPE_PATH.read
@@ -113,7 +112,7 @@ check(readme.include?("현재 활성 구현 gate는 [**Scope 1 수동 선로 건
 check(scope.include?("상태: **ACTIVE"), "Scope 1 ACTIVE header")
 check(scope.include?("data/scope-1-v1.json"), "Scope 1 fixture link")
 check(docs_map.include?("활성 수동 선로 구현 계약"), "docs map active role")
-check(scope0_todo.include?("[x] 사용자가 Scope 1 구현과 Coverage·Integrated 통과"), "Scope 0 approval history")
+check(scope0_todo.include?("[x] 사용자가 Scope 1 구현과 단일 Integrated gate"), "Scope 0 approval history")
 check(visual.include?("Scope 1 Interaction 화면 — 현재 활성 gate"), "visual current Scope 1 section")
 check(!readme.include?("현재 활성 구현 gate는 없다"), "stale no-active-gate wording")
 check(!scope.include?("IMPLEMENTATION-READY CANDIDATE"), "stale candidate header")
@@ -148,11 +147,29 @@ if ARGV == ["--content"]
   exit 0
 end
 check(ARGV.empty?, "usage: verify_contract.rb [--content]")
-check(checkpoint.include?("CheckpointStatus = REVIEWED"), "activation checkpoint is not REVIEWED")
-check(checkpoint.include?("FixtureAuthorityStatus = REVIEWED_MACHINE_AUTHORITY"),
+lines = checkpoint.lines.map(&:chomp)
+check(lines.include?("> `CheckpointStatus = REVIEWED`"), "activation checkpoint is not REVIEWED")
+check(lines.include?("> `ImplementationAuthorization = GRANTED`"), "implementation is not granted")
+check(lines.include?("> `OfficialProxyAuthorization = NOT_GRANTED`"), "proxy must remain closed")
+check(lines.include?("> `FixtureAuthorityStatus = REVIEWED_MACHINE_AUTHORITY`"),
       "fixture authority handoff is not reviewed")
+check(!checkpoint.include?("PENDING"), "activation checkpoint still contains PENDING")
 check(checkpoint.include?("Fixture SHA-256: `#{fixture_hash}`"), "fixture hash drift")
-check(checkpoint.match?(/initial activation content commit: `[0-9a-f]{40}`/), "initial commit missing")
-check(checkpoint.match?(/reviewed activation content commit: `[0-9a-f]{40}`/), "reviewed commit missing")
+check(checkpoint.include?("scope1_contract_skeptical_review") &&
+      checkpoint.include?("scope1_docs_authority_review") &&
+      checkpoint.include?("scope1_gate_parameter_review"), "bounded reviewers missing")
+check(lines.include?("- final review: `P0=0, P1=0, P2=0`; blockers none"), "clean final review missing")
+initial_commit = checkpoint[/^- initial activation content commit: `([0-9a-f]{40})`$/, 1]
+reviewed_commit = checkpoint[/^- reviewed activation content commit: `([0-9a-f]{40})`$/, 1]
+check(!initial_commit.nil?, "initial commit missing")
+check(!reviewed_commit.nil?, "reviewed commit missing")
+check(initial_commit != reviewed_commit, "initial and reviewed commits must differ")
+check(git_success?("cat-file", "-e", "#{initial_commit}^{commit}"), "initial commit does not exist")
+check(git_success?("cat-file", "-e", "#{reviewed_commit}^{commit}"), "reviewed commit does not exist")
+check(git_success?("merge-base", "--is-ancestor", initial_commit, reviewed_commit),
+      "reviewed commit does not descend from initial commit")
+check(git_success?("merge-base", "--is-ancestor", reviewed_commit, "HEAD"),
+      "reviewed commit is not in HEAD")
+check(`git -C #{ROOT} status --porcelain --untracked-files=all`.empty?, "worktree is not clean")
 puts "PASS fixture-hash: #{fixture_hash}"
 puts "Scope 1 activation contract: PASS"

@@ -219,7 +219,8 @@ Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한
 - [x] 실제 Scope 0B의 공사·실패 불변·원자 편입 원칙만 인계하고 범용 lifecycle을 가정하지 않았다.
 - [x] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 제외했다.
 - [x] Scope 0 증거에 맞게 Scope 1의 임시 표본·rubric·범위와 pre-code fixture 표를 다시 썼다.
-- [x] 사용자가 Scope 1 구현과 Coverage·Integrated 통과까지의 한정 반복을 별도로 승인했다.
+- [x] 사용자가 Scope 1 구현과 단일 Integrated gate, 필요하면 최대 한 번의 bounded UI 수정을
+  별도로 승인했다. Coverage는 Integrated의 구성요소다.
 - [x] 같은 변경에서 README·Scope 0 종료 색인·Scope 1 준비 계약·문서 링크를 갱신했다.
 
 이 역사적 개방조건은 모두 충족됐다. 현재 실행 권위는 Scope 1 계약과 활성화 checkpoint가 소유한다.

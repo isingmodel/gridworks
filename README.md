@@ -30,7 +30,8 @@
 ## 현재 개발 상태
 
 현재 활성 구현 gate는 [**Scope 1 수동 선로 건설**](docs/scopes/SCOPE_1_INTERACTION.md)이다. 사용자의
-지속 목표가 Coverage와 Integrated placement 통과까지 구현·한정 반복을 명시적으로 승인했다.
+지속 목표가 구현과 계약의 단일 Integrated gate 통과, 필요하면 최대 한 번의 bounded UI 수정을
+명시적으로 승인했다. Coverage는 Integrated의 구성요소이지 별도 gate가 아니다.
 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)은 공식 v6에서 `GO`로 끝났고
 `Scope0State = REVIEWED`다. Scope 1은 전신주 수동 배치와 하나의 `MaxSpan`만 열며, 공식 proxy는
 fixture 인계·구현·native preflight의 별도 review가 끝날 때까지 닫혀 있다.

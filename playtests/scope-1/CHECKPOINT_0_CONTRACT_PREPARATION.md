@@ -1,5 +1,8 @@
 # Scope 1 checkpoint 0 — contract preparation
 
+> Historical preparation record. Its `NOT_GRANTED` state was current before the later user goal; current
+> authorization is owned by [`CHECKPOINT_1_CONTRACT_FREEZE.md`](CHECKPOINT_1_CONTRACT_FREEZE.md).
+
 > `PreparationStatus = REVIEWED`
 >
 > `ImplementationAuthorization = NOT_GRANTED`

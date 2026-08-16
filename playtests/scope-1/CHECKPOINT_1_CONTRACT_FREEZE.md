@@ -10,8 +10,11 @@
 
 ## Authority
 
-The user's persistent goal explicitly authorizes Scope 1 implementation and bounded iterations until Coverage
-and Integrated placement pass. Root [`README.md`](../../README.md) now names
+On 2026-08-16 the user-provided persistent objective says: “Coverage, 통합 통과가 완수될 때 까지 수정
+iteration을 돌려줘. Goal은 Scope 1을 실행할 수 있는 상태까지 만드는 거야.” This explicitly
+authorizes Scope 1 implementation and the contract's one possible bounded UI revision. In this contract,
+Coverage is a constituent of `IntegratedPlacementPass`; the sole completion gate is
+`IntegratedPlacementPass >= 2/3`, with at most one `REVISE` round. Root [`README.md`](../../README.md) now names
 [`SCOPE_1_INTERACTION.md`](../../docs/scopes/SCOPE_1_INTERACTION.md) as the active implementation scope.
 
 This checkpoint opens only the manual-support/one-`MaxSpan` vertical slice. It does not open asset siting,
@@ -24,15 +27,17 @@ checkpoint.
 The proposed machine authority is [`data/scope-1-v1.json`](../../data/scope-1-v1.json):
 
 - schema `gridworks.scope1.fixture.v1`, fixture `S1-FIXTURE-v1`
-- exact root fields only; unknown, missing, null or duplicate properties are invalid
+- exact nine root fields only; unknown, missing, null or duplicate properties are invalid
 - integer `GridUnit` coordinates and `GameMinute` time
 - one fixed source, one fixed target, one `MaxSpan`, one build duration
-- `verificationOnly.witnessSupportPositions` is checker-only and must never reach Game or participant copy
+
+The checker-only witness path is test code, not a product fixture parameter. Game and participant-facing
+artifacts do not consume it.
 
 The reviewed pre-code table in the active scope is the human-readable handoff mirror. Once this checkpoint is
 reviewed, JSON becomes the sole machine authority and code must not duplicate its numeric values.
 
-Fixture SHA-256: `31ab8ab0390fd625469f64b463a305880ccab8d87a87d75da2bcb650660fc8d8`
+Fixture SHA-256: `8c1cd63efe1e6a6d3745db96c4071fd3a264ace07e715883581163f1c98e6a2b`
 
 ## Isolation contract
 

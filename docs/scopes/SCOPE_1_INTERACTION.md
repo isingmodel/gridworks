@@ -7,8 +7,9 @@
 > 사람 증거: `HumanValidationStatus = NOT_COLLECTED`
 
 이 문서는 Scope 0B `GO` 뒤의 적응형 점검이 선택한 다음 단일 위험을 구현 가능한 크기로 닫는다.
-사용자의 지속 목표가 Coverage와 Integrated placement 통과까지 Scope 1 구현과 한정 반복을
-명시적으로 승인했다. [활성화·fixture checkpoint](../../playtests/scope-1/CHECKPOINT_1_CONTRACT_FREEZE.md)가
+사용자의 지속 목표가 Scope 1 구현과 계약의 단일 Integrated gate 통과, 필요하면 최대 한 번의
+bounded UI 수정을 명시적으로 승인했다. Coverage는 Integrated의 구성요소다.
+[활성화·fixture checkpoint](../../playtests/scope-1/CHECKPOINT_1_CONTRACT_FREEZE.md)가
 JSON 권위 인계를 review한 뒤 source 구현을 열며, 공식 proxy는 후속 구현 checkpoint까지 닫는다.
 [준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)는 승인 전 역사 기록이다.
 
@@ -80,9 +81,9 @@ source 구현을 시작하지 않는다. review 뒤 JSON이 유일한 기계 권
 | `MaxSpan` | `4 GridUnit` |
 | 시작 시각 | `0 GameMinute` |
 | 공사기간 | `60 GameMinute` |
-| hand witness | `(5, 4)`, `(9, 4)` |
 
-화폐, 정격과 부하는 없다. witness는 검증 전용이며 Game이나 participant에게 전달하지 않는다.
+화폐, 정격과 부하는 없다. 자동검사의 checker-only witness는 `(5, 4)`, `(9, 4)`이며 제품 fixture
+field가 아니다. Game이나 participant UI·diagnostic은 이 test oracle을 소비하지 않는다.
 
 거리 판정은 부동소수 tolerance 없이 정수 제곱으로 한다.
 
@@ -194,7 +195,7 @@ native smoke는 시작 → 두 support 직접 배치 → 발주 → 완공 → t
 - `GridworksSession`을 일반 graph simulator로 바꾸는 선행 refactor
 - 현재 read-only 지도를 범용 editor로 확장하는 작업
 
-구현이 승인되면 scope-local placement session을 추가한다. 미래 통합을 위해 공통 lifecycle,
+reviewed fixture 인계 뒤 scope-local placement session을 추가한다. 미래 통합을 위해 공통 lifecycle,
 plugin interface나 save schema를 미리 만들지 않는다.
 
 ## 9. 임시 LLM proxy 계약
@@ -236,7 +237,7 @@ revision은 그 UI 결함 하나만 바꾸고 새 build·새 세 session을 쓰�
 ### 9.1 파라미터 inventory
 
 - `ActiveKnob = 0`
-- `Unverified FrozenFixture`: §4의 지도 범위, endpoints, `MaxSpan`, 시작시각, 공사기간과 witness
+- `Unverified FrozenFixture`: §4의 지도 범위, endpoints, `MaxSpan`, 시작시각과 공사기간
 - `Structural`: integer snap, 제곱거리 `<=`, implicit support/line 하나, lifecycle과 원자 완공
 - `Presentation`: 범위 원, ghost span, pattern, label과 이후 동결할 pixel layout
 - `Derived`: span 거리, 발주 가능 여부와 `targetEnergized`

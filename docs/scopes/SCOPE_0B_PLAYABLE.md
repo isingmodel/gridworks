@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — 공식 v1·v2·v3·v4는 protocol `PROXY-RUN-BLOCKED`; v5 DRAFT는 review 전 실행 금지**
+> 상태: **ACTIVE — 공식 v1·v2·v3·v4는 protocol `PROXY-RUN-BLOCKED`; reviewed v5 proxy 실행 허용**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -27,8 +27,8 @@ coordinator가 동결되지 않은 skill 절대경로를 덧붙여 실제 prompt
 `exact text` 전체를 보존하지 않았다. 기술 유효는 `2/5`이고 남은 교체 두 번으로 valid 다섯 slot을
 만들 수 없으므로 [v4 종료·v5 준비 checkpoint](../../playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md)에
 `PROXY-RUN-BLOCKED`로 닫았다. 네 version 모두 게임 판정이나 revision이 아니며 gameplay 답은
-채점·합산하지 않는다. v5는 build·fixture·UI·rubric·gate를 그대로 두고 증거 형식만 더 짧게 만드는
-별도 protocol review가 끝나기 전에는 실행할 수 없다.
+채점·합산하지 않는다. v5는 build·fixture·UI·rubric·gate를 그대로 두고 증거 형식만 더 짧게 했고,
+별도 protocol review를 `P0/P1/P2 = 0`으로 닫아 공식 직렬 실행을 허용했다.
 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설
@@ -679,7 +679,7 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 - [x] v3를 prompt identity 불일치로 판정 없이 닫고 기술 무효 답을 채점·집계하지 않았다.
 - [x] v4의 단일 prompt source와 transcript 검증 경계를 independent review로 닫았다.
 - [x] v4를 evidence-format 불일치와 `TechnicalValid = 2/5`로 판정 없이 닫고 답을 채점·집계하지 않았다.
-- [ ] v5의 더 짧은 evidence contract를 별도 commit·independent review로 동결한다.
+- [x] v5의 더 짧은 evidence contract를 별도 commit·independent review로 동결한다.
 - [ ] reviewed v5 task message로 공식 다섯 valid session을 수행한다.
 - [ ] 원자료 hash·독립 strict score·aggregate·판정을 기록한다.
 - [ ] 결과의 큰 단위 checkpoint에서 문서 최신성과 다음 최대 미검증 위험을 다시 점검한다.

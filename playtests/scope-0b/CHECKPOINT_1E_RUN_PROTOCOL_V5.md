@@ -1,6 +1,6 @@
 # Scope 0B v4 protocol result and v5 reset checkpoint
 
-> Status: **v4 `PROXY-RUN-BLOCKED`; v5 DRAFT — official sessions closed pending independent review**
+> Status: **REVIEWED — official v5 sessions authorized**
 >
 > `SubGateDecision = PENDING`
 >
@@ -92,13 +92,13 @@ v5 changes only the post-run provenance format. It does not add another wrapper 
   technical-invalid replacements and seven launches
 - v1–v4 remain immutable under their own rules and are not combined with v5
 
-## 5. v5 draft freeze hashes
+## 5. v5 frozen hashes
 
 - source-manifest build SHA-256:
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - task-message template SHA-256: `75796ad89829418005a352833c556bd59f8e36f8d442cf2f7735e64fba5cdc74`
-- facilitator-sheet SHA-256: `f674bd9173a00fc4f8f7a22f38946d6868c73f160849549549952cf33584a43e`
+- facilitator-sheet SHA-256: `7b05871d247c6a694b0351bf430db750ddcf6092b988c7defcafb2f5f24d36df`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
 - computer-use skill SHA-256: `e0ec667e63fba01381eb889ddbfd44a05b8556b1e502428e8ff0a474750a08d6`
 
@@ -113,12 +113,16 @@ v5 changes only the post-run provenance format. It does not add another wrapper 
 ## 6. v5 review checkpoint
 
 - initial v5 protocol commit: `cada47451b7e8ad0c5f094543fad17915e560937`
-- bounded independent v5 reviewers: `PENDING`
+- bounded independent v5 reviewers: `s0b_v5_freeze_review`, `s0b_v5_adversarial`, `s0b_v5_docs_audit`
 - review standard: skeptic; simple structure is the default
 - runtime, fixture, UI, rubric or gate change: `NONE`
-- final review: `PENDING`
-- reviewed v5 protocol commit: `PENDING`
+- accepted fixes: make the ledger audit-only; preserve incomplete sessions as scored failures; close per-call
+  classes and `-` fields; freeze the designated skill hash; designate ordered runner manifests as launch authority;
+  bind authorization commits to the current history; remove stale v4/current-state wording
+- rejected expansion: no new runner framework, trace parser, runtime/UI/fixture/rubric/gate change or
+  retrospective score
+- final review: `P0=0, P1=0, P2=0`
+- reviewed v5 protocol commit: `4c7fa7b6d10d1baa5ba5872708523c4590b071c5`
 
-Official v5 sessions remain closed until the hashes are exact, this checkpoint and the facilitator sheet both
-say `REVIEWED`, a bounded independent review is recorded, and the authorization verifier passes. Scope 1
-remains unopened.
+Official v5 sessions may run serially only while the hashes remain exact and the authorization verifier passes.
+Scope 1 remains unopened.

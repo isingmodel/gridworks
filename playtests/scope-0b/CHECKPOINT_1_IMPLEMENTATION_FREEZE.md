@@ -17,7 +17,7 @@ their own checkpoints:
 [`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md),
 [`checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md) and
 [`checkpoint 1E`](CHECKPOINT_1E_RUN_PROTOCOL_V5.md). v4 is historical and blocked; checkpoint 1E owns the
-pending v5 draft. Runtime, fixture and gate did not change.
+reviewed v5 run authorization. Runtime, fixture and gate did not change.
 
 - active contract: [`docs/scopes/SCOPE_0B_PLAYABLE.md`](../../docs/scopes/SCOPE_0B_PLAYABLE.md)
 - machine fixture: [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json)

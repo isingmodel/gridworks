@@ -64,7 +64,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 | 산출물 | 파일·형태 | 상태 |
 |---|---|---|
 | Scope 0A 카드 | 16:9 카드 4장 | 종료된 R1/R2 증거로 동결 |
-| Scope 0B 화면 | 단일 2D scene | 구현·시각 review 완료; proxy protocol만 review 중 |
+| Scope 0B 화면 | 단일 2D scene | 구현·시각 review 완료; reviewed v5 proxy 실행 중 |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |
@@ -142,7 +142,7 @@ presentation gate에서 고정한다.
 ## 5. 현재 Scope 0B 화면 계약의 시각 경계
 
 동결된 Scope 0B 계약에 따라 카드의 인과를 단일 탑다운 2D scene으로 옮겼고 구현·시각 review를
-완료했다. 현재 조작 proxy는 별도 v5 protocol review가 끝나기 전까지 닫혀 있으며, 기존 콘셉트 PNG를
+완료했다. 별도 v5 protocol review도 닫혀 현재 조작 proxy를 실행할 수 있으며, 기존 콘셉트 PNG를
 재현하지 않는다.
 
 ### 화면 구성

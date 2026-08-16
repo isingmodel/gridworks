@@ -1,7 +1,11 @@
 # Scope 0B evidence package
 
-This directory holds the public verification and checkpoint artifacts for the active
+This directory holds the public verification and checkpoint artifacts for the completed
 [Scope 0B contract](../../docs/scopes/SCOPE_0B_PLAYABLE.md).
+
+Official v6 closed with five evidence-valid `COMPLETED` rows and a strict `GO`. See
+[`RESULT.md`](RESULT.md) and [`CHECKPOINT_2_DECISION.md`](CHECKPOINT_2_DECISION.md). Scope 1 is not opened by
+that result.
 
 Current state: the executable build, independent code review and native [L00 result](L00_RESULT.md) are
 complete. Official run v1 then used six launches, including one evidenced runner replacement. Five
@@ -34,3 +38,8 @@ manifest or that CSV; its five fixed rows are reported only after the reviewed r
 App diagnostics and optional engine logs belong in `private/` and stay out of Git. Platform coordinator and
 participant session JSONL remain in their platform-owned location and are not copied; only paths, SHA-256,
 anonymous aggregate and the reviewed decision may be published here.
+
+`verify_implementation.rb` is the pre-run authorization guard frozen at commit
+`23be035e856e052091c529c14c8552aecc129327`. A later result commit is expected to fail its HEAD guard; do not
+weaken that historical check. Closure uses the contract verifier, build/checks and the independent evidence and
+strict-score reviews linked from the result.

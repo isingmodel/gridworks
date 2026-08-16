@@ -29,7 +29,8 @@
 
 ## 현재 개발 상태
 
-현재 활성 개발단위는 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)다.
+현재 활성 구현 gate는 없다. [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)은
+공식 v6에서 `GO`로 끝났고 `Scope0State = REVIEWED`다. 다음 gate는 아직 선택하지 않았다.
 Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
 [결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.
@@ -38,21 +39,15 @@ Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합
 2. 전기적으로 다른 두 회로도 같은 공간 회랑을 쓰면 함께 끊길 수 있다.
 3. 병원 내부전원이 환자를 지키는 것과 전력회사가 전기를 공급·판매한 것은 다르다.
 
-Scope 0B의 계약·machine fixture, Core·검사도구·단일 Godot scene, 자동검사, native smoke와
-독립 코드 review는 완료됐다. [L00 네이티브 조작](playtests/scope-0b/L00_RESULT.md)도 실제 화면에서
-`FINAL`까지 통과했다. 공식 LLM 조작 proxy v1~v5는 각 실행 증거 규칙 문제로 게임 판정 없이
-`PROXY-RUN-BLOCKED`이며 합산하지 않는다. 상세 이력과 현재 승인은
-[evidence package](playtests/scope-0b/README.md)와
-[checkpoint 1F](playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)가 소유한다.
-`HumanValidationStatus = NOT_COLLECTED`도 유지한다.
+Scope 0B의 계약·machine fixture, Core·검사도구·Godot scene, 자동검사와 native smoke를 완료했다.
+공식 v6의 고정 다섯 row는 모두 evidence-valid `COMPLETED`였고 네 scored field, integrated와 세 Core
+conclusion이 모두 `5/5`였다. [공식 결과](playtests/scope-0b/RESULT.md)와
+[결정 checkpoint](playtests/scope-0b/CHECKPOINT_2_DECISION.md)가 `GO`의 증거·한계를 소유한다.
 
-v6는 build·fixture·UI·rubric·수치 gate를 바꾸지 않고 별도 runner manifest, custom timestamp와 participant
-provenance export를 없앤다. 한 coordinator가 global preflight 뒤 교체 없는 다섯 cold row를 실행하며,
-setup·participant·evidence 실패도 분모에서 지우지 않고 보수적인 `false`로 남긴다. platform은 spawn
-본문 평문을 보존하지 않으므로 prompt hash는 실행 절차의 동결값이지 사후 평문 증거라고 주장하지 않는다.
-v6의 실행 승인 상태는 [checkpoint 1F](playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)만 소유한다.
-Scope 0의 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리하며, Scope 1은 Scope 0B의 실제
-`GO`와 별도 적응형 점검 전까지 열리지 않는다.
+이는 동일-model LLM의 authored UI 조작 전이만 지지한다. 다섯 세션 모두 북부선을 골랐고 모두
+`남음/끊김` control을 독립 switch처럼 보인다고 했으므로 선택 밸런스와 사람 사용성을 주장하지
+않는다. `HumanValidationStatus = NOT_COLLECTED`다. 별도 적응형 점검과 사용자 승인이 있기 전에는
+Scope 1을 구현하지 않는다.
 
 ## 문서 구조
 
@@ -70,8 +65,8 @@ Scope 0의 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리하며
 
 문서 간 충돌이 있으면 현재 개발단위의 scope가 우선한다. 완료된 Scope 0A R2는
 [R2 계약](docs/scopes/SCOPE_0A_R2_CARD_TEST.md)에 따라 [R1 카드 테스트](docs/scopes/SCOPE_0A_CARD_TEST.md)의
-동결 fixture와 oracle을 값 변경 없이 사용했다. 현재 Scope 0B의 기계 권위 전환 조건과 정확한
-fixture는 [활성 계약](docs/scopes/SCOPE_0B_PLAYABLE.md)만 정한다.
+동결 fixture와 oracle을 값 변경 없이 사용했다. 완료된 Scope 0B의 기계 권위 전환 조건과 정확한
+fixture는 [실행 계약](docs/scopes/SCOPE_0B_PLAYABLE.md)이 보존한다.
 
 ## 개발 방식
 

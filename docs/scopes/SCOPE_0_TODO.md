@@ -1,23 +1,23 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B v1~v5 protocol `PROXY-RUN-BLOCKED` — v6 실행 승인은 checkpoint 1F가 소유, `0B_ACTIVE`**
+> 상태: **Scope 0B official v6 `GO` — `SCOPE_0_REVIEWED`; 다음 gate 미선정**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
-> 구성: 종료된 [R1 카드 계약](SCOPE_0A_CARD_TEST.md) → 종료된 [R2 계약](SCOPE_0A_R2_CARD_TEST.md) → 현재 [Scope 0B 계약](SCOPE_0B_PLAYABLE.md)
+> 구성: 종료된 [R1 카드 계약](SCOPE_0A_CARD_TEST.md) → 종료된 [R2 계약](SCOPE_0A_R2_CARD_TEST.md) → 완료된 [Scope 0B 계약](SCOPE_0B_PLAYABLE.md)
 
 이 문서는 Scope 0 전체의 **순서·산출물·checkpoint**를 추적하는 비권위 실행 색인이다. 숫자, topology, oracle, 참가자 기준과 실행 절차는 루트 README가 지목한 활성 scope만 정한다. 이 문서를 단독 절차서로 사용하지 않으며, 누락·충돌 시 활성 scope를 따른다.
 
 R1은 `PROXY-FAIL`로 끝났지만 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 네 field와 integrated
 모두 `5/5`로 `PROXY-PASS`했다. [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와 완료된 checkpoint는
-Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 현재 실행 권위는 루트 README가 가리키는
-[Scope 0B 계약](SCOPE_0B_PLAYABLE.md)이다. 계약 checkpoint 뒤 구현·자동검사·독립 코드 review와
+Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 완료된 실행 권위는
+[Scope 0B 계약](SCOPE_0B_PLAYABLE.md)에 보존된다. 계약 checkpoint 뒤 구현·자동검사·독립 코드 review와
 구현 checkpoint까지 완료했다. [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 실제 full run으로
 `PASS`했다. 공식 v1~v5는 실행 증거 규칙 문제로 모두 판정 없이 `PROXY-RUN-BLOCKED`이며 상세 이력은
 [evidence package](../../playtests/scope-0b/README.md)와 각 checkpoint가 소유한다. 현재
 [checkpoint 1F](../../playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)의 v6는 별도 runner evidence
-schema 없이 coordinator·participant platform 원본과 app diagnostic을 사용하고 다섯 고정 row를
-지우지 않는다.
+schema 없이 다섯 고정 row를 실행했고, [공식 결과](../../playtests/scope-0b/RESULT.md)는 모든 row
+`COMPLETED`와 전 항목 `5/5`로 `GO`를 기록한다.
 
 ## 1. Scope 0의 목적과 종료상태
 
@@ -27,11 +27,8 @@ Scope 0이 묻는 질문은 하나다.
 > 비전문가 이해의 임시 proxy인 cold LLM이 카드와 최소 직접 조작에서 일관되게 구분하는가?
 
 ```text
-0B_ACTIVE
-├─ global preflight 실패 → PROXY-RUN-BLOCKED · 0B_ACTIVE 유지
-├─ 고정 다섯 row → REVISE → 한 번의 승인된 수정 round
-├─ 고정 다섯 row → NO-GO → SCOPE_0_STOPPED
-└─ 고정 다섯 row → GO → SCOPE_0_REVIEWED
+0B_ACTIVE → 고정 다섯 row GO → SCOPE_0_REVIEWED
+                                   └─ 적응형 점검 → 다음 gate 선정 또는 terminal 유지
 ```
 
 `SCOPE_0_REVIEWED`는 Scope 1 구현 승인이 아니다. 결과 점검에서 다음 위험을 다시 선정하고,
@@ -180,12 +177,12 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 - [x] v5의 필수 runner evidence 미기록을 판정 없이 닫고 filesystem 시각으로 사후 복구하지 않았다.
 - [x] 같은 build·fixture·UI·rubric·수치 gate에서 별도 runner wrapper를 제거한 v6 계약과 rehearsal을
   정의했으며 review·승인 상태는 checkpoint 1F가 소유한다.
-- [ ] checkpoint 1F가 승인한 protocol의 신규 cold LLM session·실제 화면 조작·무도움 절차만 따른다.
-- [ ] 조작 결과를 서비스 권역·상위 연결, 전기·공간 원인과 내부전원·전력회사 공급에 귀속하는지 기록한다.
-- [ ] 계획 선택률이나 미세 조정된 성공률을 통과 목표로 사용하지 않는다.
-- [ ] 원자료는 공개 저장소 밖에 두고 비식별 집계와 예상 밖 행동만 보존한다.
-- [ ] `HumanValidationStatus = NOT_COLLECTED`를 유지하고 사람 사용성 증거로 표현하지 않는다.
-- [ ] `SubGateDecision`을 활성 계약의 `GO / REVISE / NO-GO` 중 하나로 기록한다.
+- [x] checkpoint 1F가 승인한 protocol의 신규 cold LLM session·실제 화면 조작·무도움 절차만 따랐다.
+- [x] 조작 결과를 서비스 권역·상위 연결, 전기·공간 원인과 내부전원·전력회사 공급에 귀속해 기록했다.
+- [x] 계획 선택률이나 미세 조정된 성공률을 통과 목표로 사용하지 않았다.
+- [x] 원자료는 공개 저장소 밖에 두고 비식별 집계와 예상 밖 행동만 보존했다.
+- [x] `HumanValidationStatus = NOT_COLLECTED`를 유지하고 사람 사용성 증거로 표현하지 않았다.
+- [x] `SubGateDecision = GO`와 `Scope0State = REVIEWED`를 기록했다.
 - [ ] 판정 뒤 §11의 작업단위 checkpoint를 완료하고 다음 위험을 새로 선정한다.
 
 ## 9. Scope 0 파라미터 규칙
@@ -237,7 +234,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한다. 그 결과 `Interaction`이 선정됐을 때만 [Scope 1 후보](SCOPE_1_INTERACTION_TODO.md)를 출발점으로 다시 검토한다.
 
-- [ ] Scope 0B가 조건부 승인·구현됐고 자동검사와 LLM 조작 proxy 기준을 `GO`로 통과했다.
+- [x] Scope 0B가 조건부 승인·구현됐고 자동검사와 LLM 조작 proxy 기준을 `GO`로 통과했다.
 - [ ] Scope 0 후 적응형 점검에서 수동 pole·`MaxSpan` 상호작용이 다음 최대 미검증 위험으로 선정됐다.
 - [ ] 실제 Scope 0B 계약에 존재하는 graph·공사·상태전이만 인계표에 적고, 존재하지 않는 범용 lifecycle은 가정하지 않는다.
 - [ ] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 동결했다.

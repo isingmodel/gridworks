@@ -16,7 +16,7 @@ docs/
 │   ├── SCOPE_0_TODO.md               Scope 0 통합 진행 체크리스트
 │   ├── SCOPE_0A_CARD_TEST.md          종료된 R1 카드 실행 계약
 │   ├── SCOPE_0A_R2_CARD_TEST.md       종료된 R2 카드 실행 계약
-│   ├── SCOPE_0B_PLAYABLE.md           현재 playable 실행 계약
+│   ├── SCOPE_0B_PLAYABLE.md           완료된 playable 실행 계약
 │   ├── SCOPE_1_INTERACTION_TODO.md    전신주·거리제한 미개방 후보
 │   └── RELEASE_1_0_BOUNDARY.md        1.0 범위의 미개방 상한
 ├── development/
@@ -39,7 +39,7 @@ docs/
 | 무엇이 오브젝트이며 무엇을 할 수 있는가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 미개방 기능을 현재 가능으로 표시하지 않음 |
 | 규칙을 어떻게 보이게 하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 게임 규칙이나 수치를 새로 만들지 않음 |
 | Scope 0A/0B의 전환 checkpoint는 무엇인가? | [Scope 0 TODO](scopes/SCOPE_0_TODO.md) | 활성 실행 계약의 절차·숫자를 다시 정의하지 않음 |
-| 현재 authored playable의 정확한 계약은 무엇인가? | [Scope 0B 계약](scopes/SCOPE_0B_PLAYABLE.md) | 제품 문서나 후보 TODO가 구현 범위를 늘리지 않음 |
+| 완료된 authored playable의 정확한 계약은 무엇인가? | [Scope 0B 계약](scopes/SCOPE_0B_PLAYABLE.md) | 제품 문서나 후보 TODO가 역사 실행 범위를 늘리지 않음 |
 | 수동 선로 Interaction 후보의 경계는 무엇인가? | [Scope 1 후보 TODO](scopes/SCOPE_1_INTERACTION_TODO.md) | 선행 결과 없이 구현하거나 실행 수치를 확정하지 않음 |
 | 1.0의 최대 후보 범위는 무엇인가? | [Release 1.0 후보 범위](scopes/RELEASE_1_0_BOUNDARY.md) | 확정 roadmap이나 backlog로 사용하지 않음 |
 | 정적 밸런스 도구는 언제·어디까지 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 게임을 대신 플레이하거나 수치를 자동 확정하지 않음 |

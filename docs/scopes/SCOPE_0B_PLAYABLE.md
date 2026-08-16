@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — 공식 v1~v5는 protocol `PROXY-RUN-BLOCKED`; v6 실행 승인은 checkpoint 1F가 소유**
+> 상태: **COMPLETED — official v6 `GO`; `Scope0State = REVIEWED`**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -17,6 +17,9 @@ Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review chec
 [evidence package](../../playtests/scope-0b/README.md)와 각 checkpoint가 소유한다. 현재
 [checkpoint 1F](../../playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)의 v6는 build·fixture·UI·rubric·gate를
 그대로 두고 반복 blocker를 만든 별도 runner manifest와 participant provenance export를 제거한다.
+공식 v6는 고정 다섯 row 모두 `COMPLETED`, 모든 scored field와 integrated `5/5`로
+[`GO`](../../playtests/scope-0b/RESULT.md)했다. 이 문서의 실행 규칙과 fixture는 완료 증거로 보존하며
+다음 scope의 구현 권한을 만들지 않는다.
 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설
@@ -648,10 +651,10 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 - [x] v5를 필수 runner evidence 미기록으로 판정 없이 닫고 사후 시각을 만들지 않는다.
 - [x] v6의 고정 다섯 row·세 원본 경계와 platform rehearsal을 정의했으며 review·승인 상태는
   checkpoint 1F가 소유한다.
-- [ ] checkpoint 1F가 승인한 v6 task message로 교체 없는 공식 다섯 session을 수행한다.
-- [ ] 원자료 hash·독립 strict score·aggregate·판정을 기록한다.
+- [x] checkpoint 1F가 승인한 v6 task message로 교체 없는 공식 다섯 session을 수행했다.
+- [x] 원자료 hash·독립 strict score·aggregate·판정을 [`RESULT.md`](../../playtests/scope-0b/RESULT.md)에 기록했다.
 - [ ] 결과의 큰 단위 checkpoint에서 문서 최신성과 다음 최대 미검증 위험을 다시 점검한다.
-- [ ] `GO`라면 Scope 0을 `REVIEWED`로 닫되 Scope 1을 자동 구현하지 않는다.
+- [x] `GO`로 Scope 0을 `REVIEWED`로 닫고 Scope 1을 자동 구현하지 않았다.
 
 Scope 0B `GO`와 적응형 점검이 수동 pole·`MaxSpan` Interaction을 다음 위험으로 선택하고 현재 사용자
 목표가 그 준비를 계속 승인할 때만, Scope 1 후보를 실제 evidence에 맞는 활성 계약으로 다시 쓴다.

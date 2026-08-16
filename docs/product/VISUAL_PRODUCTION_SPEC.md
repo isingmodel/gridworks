@@ -64,7 +64,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 | 산출물 | 파일·형태 | 상태 |
 |---|---|---|
 | Scope 0A 카드 | 16:9 카드 4장 | 종료된 R1/R2 증거로 동결 |
-| Scope 0B 화면 | 단일 2D scene | 구현·시각 review 완료; v6 실행 승인은 checkpoint 1F가 소유 |
+| Scope 0B 화면 | 단일 2D scene | 구현·시각 review와 official v6 `GO` 완료 |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |
@@ -139,10 +139,10 @@ presentation gate에서 고정한다.
 인과 공개 뒤 두 번째 층에서 `건설비`, `판매`, `가스비`, `보상`, `LostSales`의 별도 행으로
 보여주며 승자나 점수를 표시하지 않는다.
 
-## 5. 현재 Scope 0B 화면 계약의 시각 경계
+## 5. 완료된 Scope 0B 화면 계약의 시각 경계
 
 동결된 Scope 0B 계약에 따라 카드의 인과를 단일 탑다운 2D scene으로 옮겼고 구현·시각 review를
-완료했다. v5는 protocol evidence 문제로 판정 없이 닫혔고 v6 실행 승인은 checkpoint 1F가 소유한다. 기존
+완료했다. v1~v5는 protocol evidence 문제로 판정 없이 닫혔고 official v6는 `GO`했다. 기존
 콘셉트 PNG를 재현하지 않는다.
 
 ### 화면 구성
@@ -284,7 +284,7 @@ capture나 이미지 prompt를 만들지 않는다.
 - 응답 전에 추천·정답·결과가 노출되지 않는가?
 - 병원 내부전원과 전력회사 선로가 구분되는가?
 
-### Scope 0B 화면 — 활성 계약
+### Scope 0B 화면 — 완료된 계약
 
 - 통전·계획·주의·사용불가의 색과 pattern이 일관적인가?
 - 예고 타임라인이 현재와 사건 순서·지속시간을 지도 없이도 읽게 하는가?

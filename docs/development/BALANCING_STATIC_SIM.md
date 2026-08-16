@@ -4,7 +4,7 @@
 >
 > Scope 0과 첫 전략공간이 사람 플레이에서 검증된 뒤에만 만들 수 있다.
 
-현재 Scope 0은 사용자가 승인한 cold-LLM proxy로 비전문가 테스트를 임시 대체하지만
+완료된 Scope 0에서는 사용자가 승인한 cold-LLM proxy로 비전문가 테스트를 임시 대체했지만
 `HumanValidationStatus = NOT_COLLECTED`다. 그 결과는 이 문서가 요구하는 사람 플레이 증거를
 충족하지 않으며 Lab 개방 조건을 낮추지 않는다.
 

@@ -33,11 +33,12 @@ native UI에서 구분하는지 확인했다. 그러나 플레이어는 authored
 
 ## 2. 한 문장 가설과 주장 상한
 
-> cold LLM proxy가 고정된 통전 source에서 고정된 무전압 target까지 전신주를 직접 놓고, 모든
-> 인접 span이 하나의 `MaxSpan` 이하인 선로를 발주·완공해 target을 통전시키며, 거리 제한과
-> 완공 전 무전압을 설명할 수 있는가?
+> 고정된 통전 source와 무전압 target 사이에서 플레이어가 지지물을 직접 놓아 모든 인접 span을
+> 하나의 `MaxSpan` 이하로 만들고, 경로 추천 없이 선로를 발주·완공하며, 공사 중에는 무전압이고
+> 전체 완공 뒤에만 target이 통전됨을 화면에서 이해할 수 있는가?
 
-통과해도 수동 배치 한 흐름만 지지한다. 경로 최적화, 경제적 재미, 일반 graph, 사람 사용성과
+자동검사는 거리·상태·입력 연결의 정확성만, 조건부 LLM proxy는 동일 모델이 이 한 흐름을 수행하고
+설명하는지만 지지한다. 통과해도 경로 최적화, 경제적 재미, 일반 graph, 사람 사용성과
 발전소·변전소·철거의 품질을 입증하지 않는다.
 
 ## 3. 포함과 제외
@@ -65,7 +66,7 @@ native UI에서 구분하는지 확인했다. 그러나 플레이어는 authored
 - camera, save/replay, 범용 map editor와 미래 schema
 - parameter sweep과 Static Balance Lab
 
-## 4. 활성화 때 옮길 단일 fixture
+## 4. 활성화 때 옮길 단일 fixture와 checker oracle
 
 구현 승인 전 숫자 권위는 아래 표뿐이다. 승인되면 같은 값으로 `data/scope-1-v1.json`을 만들고
 독립 인계검사를 통과한 reviewed checkpoint부터 JSON이 기계 권위가 된다. 값이나 항목을 몰래
@@ -73,6 +74,8 @@ native UI에서 구분하는지 확인했다. 그러나 플레이어는 authored
 
 | 항목 | 값 |
 |---|---|
+| schema version | `1` |
+| fixture ID | `scope-1-v1` |
 | 좌표 단위 | `GridUnit` integer |
 | 지도 범위 | `x = 0..11`, `y = 0..7` |
 | source | `(1, 4)`, 완공·통전 |
@@ -80,9 +83,13 @@ native UI에서 구분하는지 확인했다. 그러나 플레이어는 authored
 | `MaxSpan` | `4 GridUnit` |
 | 시작 시각 | `0 GameMinute` |
 | 공사기간 | `60 GameMinute` |
-| hand witness | `(5, 4)`, `(9, 4)` |
 
-화폐, 정격과 부하는 없다. witness는 검증 전용이며 Game이나 participant에게 전달하지 않는다.
+제품 JSON root는 `schemaVersion`, `fixtureId`, `units`, `mapBounds`, `source`, `target`, `maxSpan`,
+`initialMinute`, `buildMinutes` 아홉 field만 가진다. 화폐, 정격, 부하, presentation과
+`verificationOnly` 객체는 없다.
+
+`(5, 4)`, `(9, 4)`는 독립 checker와 Core 검사에서만 쓰는 checker-only witness다. 제품 fixture,
+Core loader 결과, Game, diagnostic과 participant 자료에는 넣지 않는다.
 
 거리 판정은 부동소수 tolerance 없이 정수 제곱으로 한다.
 
@@ -142,6 +149,10 @@ query다. 둘 다 유효성, from/to와 `distanceSquared / maxSpanSquared`를 �
 - `Building`은 전기를 전달하거나 빛나는 통전선처럼 보이면 안 된다.
 - `Undo`, `발주`, `완공까지 진행`은 표준 button이고 보이는 label과 고유 접근성 이름을 갖는다.
 - 지도 클릭 뒤 현재 ordered path와 발주 가능 여부를 즉시 갱신한다.
+- 지도는 하나의 custom-drawn input 영역이며 grid point마다 숨은 button이나 좌표 입력칸을 만들지 않는다.
+  native 검토와 조건부 proxy는 화면 좌표의 실제 pointer click을 사용한다.
+- 현재 phase, ordered support 좌표, target 통전 여부와 마지막 오류는 지도 밖의 보이는 상태 text에도
+  표시하고 접근성 tree에서 읽을 수 있게 한다.
 
 고정 해상도와 exact UI 배치는 구현 checkpoint에서 native clipping·접근성 preflight와 함께
 동결한다. 이번 계약은 pixel 좌표를 게임 규칙으로 만들지 않는다.
@@ -171,31 +182,78 @@ query다. 둘 다 유효성, from/to와 `distanceSquared / maxSpanSquared`를 �
    `WRONG_PHASE`이고 상태가 변하지 않는다.
 4. 같은 fixture와 명령열은 같은 권위 field와 파생 view를 반환한다.
 
-validator는 fixture field exactness, integer 좌표, 유일한 endpoints, direct failure와 witness success를
-검사한다. Core 검사는 네 오류 code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다.
-preview 전후 상태 불변과, 복제한 같은 초기 상태에서 preview의 accepted/code가 실제 명령과
-경계·초과·invalid·`WRONG_PHASE` case마다 일치하는지도 검사한다.
-headless smoke는 시작 → 두 support 직접 배치 → 발주 → 완공 → target 통전을 한 번 통과한다.
+Core 비의존 contract checker는 fixture의 exact field·integer 값·direct failure와 checker-only witness
+success를 검사한다. Scope 1 strict loader는 schema, field exactness, integer 좌표, 유일한 endpoint,
+범위·시간·산술 제약과 direct failure만 검증하며 witness를 알지 못한다.
 
-## 8. Scope 0B에서 가져오는 것과 버리는 것
+Core 검사는 네 오류 code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다. preview
+전후 상태 불변과, 복제한 같은 초기 상태에서 preview의 accepted/code가 실제 명령과 경계·초과·
+invalid·`WRONG_PHASE` case마다 일치하는지도 검사한다.
 
-가져오는 것은 구현 원칙뿐이다.
+headless smoke는 `Scope1Main.tscn`을 명시적으로 실행한다. Core 명령을 직접 호출하지 않고 실제 지도
+좌표 변환과 input handler로 두 support를 추가한 뒤 표준 button signal로 발주 → 완공 → target 통전을
+한 번 통과한다.
 
-- Godot 비의존 Core와 `Game → Core` 의존 방향
-- scenario/presentation/oracle 분리와 strict loader
-- 실패 명령의 권위 상태 불변
-- `Building` 비통전과 완공 시 전체 원자 편입
-- 현재 동결 toolchain과 기존 Scope 0B 회귀검사
+## 8. 현행 코드와 격리된 구현 경계
 
-가져오지 않는 것은 Scope 0B 전용 모델이다.
+### 8.1 완료된 Scope 0B 파일은 범용화하지 않는다
 
-- `permittedSupplyPaths`, 두 회랑과 prediction matrix
-- 마을·병원·UPS·사건·정산·타임라인
-- `GridworksSession`을 일반 graph simulator로 바꾸는 선행 refactor
-- 현재 read-only 지도를 범용 editor로 확장하는 작업
+현재 `src/Gridworks.Core/GridworksSession.cs`와 Scope 0B fixture loader·validator·snapshot,
+`game/Main.cs`, `game/GridMapView.cs`, `game/VisualModels.cs`, `game/TimelineView.cs`,
+`game/LaunchOptions.cs`, `game/DiagnosticLog.cs`, `game/Main.tscn`, `data/scope-0b-v1.json`과
+`tools/Gridworks.Checks/`는 완료된 Scope 0B 전용 구현이다.
 
-구현이 승인되면 scope-local placement session을 추가한다. 미래 통합을 위해 공통 lifecycle,
-plugin interface나 save schema를 미리 만들지 않는다.
+Scope 1을 위해 이 파일들에 phase, support, pointer input, 새 schema 분기나 공통 interface를 추가하지
+않는다. `game/project.godot`의 기본 scene도 `res://Main.tscn`으로 유지한다. Scope 0B의
+scenario/presentation/oracle envelope도 Scope 1에 복제하지 않는다.
+
+### 8.2 별도 승인 뒤 추가할 최소 파일
+
+```text
+data/scope-1-v1.json
+
+src/Gridworks.Core/
+├── Scope1Contracts.cs
+├── Scope1FixtureLoader.cs
+└── Scope1PlacementSession.cs
+
+tools/Gridworks.Scope1Checks/
+├── Gridworks.Scope1Checks.csproj
+└── Program.cs
+
+game/
+├── Scope1Main.tscn
+├── Scope1Main.cs
+└── Scope1PlacementMapView.cs
+```
+
+`Scope1Contracts.cs`는 fixture·phase·command result·preview·view와 결정론적 view 직렬화만 가진다.
+`Scope1FixtureLoader.cs`는 Scope 1 전용 입력 형태와 strict validation을 한 파일에 둔다.
+`Scope1PlacementSession.cs`는 §5의 네 명령과 두 preview query만 구현한다. 새 Core 파일은 Godot을
+참조하지 않고, 새 checker와 Game은 기존 `Gridworks.Core.csproj`를 참조한다.
+
+`Scope1PlacementMapView`가 지도 변환·integer snap·pointer event·그리기를 맡고, `Scope1Main`은 snapped
+integer pair를 Core query/command에 전달한 뒤 반환 view만 그린다. 새 scene은
+`Godot --path game --scene res://Scope1Main.tscn`처럼 명시적으로 실행하며 기본 `Main.tscn`을 바꾸지
+않는다.
+
+초기 수직 slice에는 공통 lifecycle, graph, editor, plugin interface, save schema, DI container,
+scheduler, command bus와 proxy용 diagnostic framework를 만들지 않는다. 공식 proxy가 별도로 승인된
+경우에만 앱이 자동으로 남길 최소 diagnostic을 추가한다.
+
+### 8.3 Scope 0B 회귀 보존
+
+Scope 1 구현 중에도 다음은 계속 통과해야 한다.
+
+- `ruby playtests/scope-0b/verify_contract.rb`
+- `dotnet run --project tools/Gridworks.Checks/Gridworks.Checks.csproj -c Release`
+- `dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild`
+- 기본 `Main.tscn`의 기존 `ab`·`ba` headless smoke
+- `data/scope-0b-v1.json` 불변 확인
+
+`playtests/scope-0b/verify_implementation.rb`는 공식 Scope 0B build의 역사적 source hash를 고정하는
+증거 검사다. 새 Scope 1 source가 생긴 뒤의 일반 회귀검사로 사용하지 않으며, 이를 통과시키려고 과거
+hash나 checkpoint를 수정하지 않는다.
 
 ## 9. 임시 LLM proxy 계약
 
@@ -207,15 +265,11 @@ plugin interface나 save schema를 미리 만들지 않는다.
 연결만 확인한다. 아래 global native preflight는 proxy 직전 동일 build에서 실제 창·입력과 원본 기록이
 끝까지 동작하는지 한 번 확인한다.
 
-- 새 cold session `S1-L01`~`L03`, 동일 공개 model·reasoning, `fork_turns=none`
-- 한 번의 global native preflight 뒤 세 row를 고정하고 교체하지 않음
-- 같은 build·fixture·prompt, variant와 facilitator follow-up 없음
-- coordinator platform JSONL, participant platform JSONL과 app diagnostic JSONL을 원본으로 사용
-- 별도 transcript, runner manifest나 참가자 작성 evidence export를 만들지 않음
-- setup·participant·evidence failure도 해당 row의 false로 남김
-- platform이 prompt 평문을 사후 증명하지 못하는 한계를 결과에 기록
-- `HumanValidationStatus = NOT_COLLECTED`
-- 실행·증거 실패 수와 실제 상호작용 실패 수를 결과에서 별도 집계
+- 세 cold session은 같은 build·fixture·prompt·model 설정을 쓰고 도움·교체가 없다.
+- 플랫폼과 앱이 자동 보존하는 원본만 쓰며 별도 transcript·manifest·export를 만들지 않는다.
+- 실행·증거 실패는 해당 row의 false로 남겨 상호작용 실패와 분리하고, 원본이 증명하지 못한 내용은
+  결과의 한계로 기록한다.
+- `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
 
 한 row의 유일한 scored 판정은 다음 conjunction이다.
 
@@ -241,7 +295,7 @@ IntegratedPlacementPass =
 ### 9.1 파라미터 inventory
 
 - `ActiveKnob = 0`
-- `Unverified FrozenFixture`: §4의 지도 범위, endpoints, `MaxSpan`, 시작시각, 공사기간과 witness
+- `Unverified FrozenFixture`: §4의 제품 JSON 아홉 field와 그 값
 - `Structural`: integer snap, 제곱거리 `<=`, implicit support/line 하나, lifecycle과 원자 완공
 - `Presentation`: 범위 원, ghost span, pattern, label과 이후 동결할 pixel layout
 - `Derived`: span 거리, 발주 가능 여부와 `targetEnergized`
@@ -249,19 +303,28 @@ IntegratedPlacementPass =
 fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. 필요하면 별도 사용자 결정 뒤 reviewed
 새 계약으로 연다. registry, type catalog와 parameter sweep을 만들지 않는다.
 
-## 10. 구현 TODO — 별도 승인 뒤에만
+## 10. 구현 순서 — 별도 승인 뒤에만
 
-- [ ] 루트 README가 이 문서를 활성 구현 scope로 지목한다.
-- [ ] 위 표와 exact한 `data/scope-1-v1.json`과 strict validator를 만든다.
-- [ ] pre-code 표 → JSON 인계검사와 contract-freeze checkpoint를 review한다.
-- [ ] scope-local Core state·명령·snapshot과 오류 불변 검사를 구현한다.
-- [ ] 단일 Godot scene의 수동 지도 입력과 범위 피드백을 구현한다.
-- [ ] oracle, build, headless smoke와 Scope 0B 회귀검사를 통과한다.
-- [ ] 구현 첫 커밋을 bounded independent review하고 scope-valid 지적만 고친다.
-- [ ] 자동검사로 답할 수 없는 상호작용 질문이 남았는지 확인하고, 남았을 때만 exact proxy 자료·
-  원본 경계·실행 승인을 구현 checkpoint에서 동결한다.
-- [ ] 승인된 경우에만 세 고정 session을 한 번 실행하고 비식별 결과·claim ceiling을 기록한다.
-- [ ] 결과 뒤 다음 위험을 다시 선정하며 다음 번호 scope를 자동 구현하지 않는다.
+각 단계는 하나의 큰 개발단위다. 앞 단계의 검사·문서 최신화·bounded review가 끝나기 전에 다음
+단계를 열지 않는다.
+
+1. 루트 README와 이 문서를 같은 변경에서 활성 구현 scope로 전환한다. 활성화 checkpoint는
+   2~8단계만 열며 공식 proxy 실행은 별도 승인으로 남긴다.
+2. `data/scope-1-v1.json`과 Core 비의존 `playtests/scope-1/verify_contract.rb`만 먼저 만들고,
+   checker-only witness로 표에서 JSON으로의 권위 인계를 review한다.
+3. `Scope1Contracts.cs`, `Scope1FixtureLoader.cs`, `Scope1PlacementSession.cs`와 독립
+   `tools/Gridworks.Scope1Checks/`를 구현한다. 기존 Scope 0B Core 파일은 수정하지 않는다.
+4. §7의 Core oracle, preview parity, 실패 불변, 원자 완공과 결정론 검사를 통과한다.
+5. `Scope1Main.tscn`, `Scope1Main.cs`, `Scope1PlacementMapView.cs`만 추가한다. 기본 scene과 기존
+   `Main.cs`·`GridMapView.cs`는 수정하지 않는다.
+6. Game을 rebuild하고 `--scene res://Scope1Main.tscn` headless smoke를 통과한다.
+7. §8.3의 Scope 0B 회귀를 모두 다시 통과한다.
+8. 고정 화면의 clipping·pointer input·접근성을 실제 native 창에서 한 번 검토한다. 여기까지 통과하면
+   구현 증거는 완료되지만 Scope 1 `GO`는 아직 아니다.
+9. §2의 이해·상호작용 질문이 남고 사용자가 별도 실행을 승인한 경우에만 최소 app diagnostic,
+   global native preflight와 §9의 세 고정 session을 한 번 연다. 승인하지 않으면 여기서 멈춘다.
+10. 관찰 결과와 주장 상한을 기록하고 다음 위험을 다시 선정한다. 공통 framework나 다음 scope를
+    자동 구현하지 않는다.
 
 ## 11. 즉시 중단 조건
 
@@ -270,6 +333,8 @@ fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. �
 - 수동 배치를 설명하려면 변전소·발전소·철거 또는 경제를 함께 열어야 한다.
 - 고정 세 row에서 자동 pole 추천 없이는 완료할 수 없음이 관찰된다.
 - implementation-ready 계약과 실제 코드 사이에 범용 graph refactor가 선행조건이 된다.
+- 기존 `GridworksSession`, `Main`, `GridMapView`의 범용화나 기본 main scene 교체가 필요하다.
+- Scope 1을 통과시키기 위해 Scope 0B fixture·검사·역사 checkpoint를 수정해야 한다.
 
 이 경우 기능을 추가하지 않고 범위를 다시 검토한다. Scope 1 `GO`도 발전소·변전소·철거,
 완성 게임의 재미나 다음 gate 구현을 승인하지 않는다.

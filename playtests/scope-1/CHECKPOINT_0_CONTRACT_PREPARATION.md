@@ -1,6 +1,6 @@
 # Scope 1 checkpoint 0 — contract preparation
 
-> `PreparationStatus = REVIEWED`
+> `PreparationStatus = REVIEW_IN_PROGRESS`
 >
 > `ImplementationAuthorization = NOT_GRANTED`
 >
@@ -30,18 +30,26 @@ one `MaxSpan`, `Undo`, atomic completion and one integrated proxy criterion.
 
 ## Validation policy refinement
 
-Later development lessons narrowed the planned proxy without opening implementation or execution. Deterministic
-Core checks, build and headless smoke come first. Only the remaining interaction/comprehension question may use one
-fixed three-session LLM batch; there is no replacement or revision round and no custom transcript, manifest or
-participant-authored evidence system. A miss closes that proxy result and requires a separate user decision.
-
-This refinement changes no fixture value, gameplay rule, implementation authorization or human-evidence status.
+Later development lessons narrowed the proxy to the root README policy as instantiated by Scope 1 §9, without
+opening implementation or execution or changing the fixture, rules, authorization or human-evidence status.
 
 - initial policy refinement commit: `5ba5142312cab78e7f48d0d6716eff3c13765a2a`
 - bounded independent reviewer: `development_lessons_audit`
 - initial review: `P0=0, P1=2, P2=3`; all findings addressed without new files or execution machinery
 - final recheck: `P0=0, P1=0, P2=0`; blocker 없음
 - reviewed policy content commit: `41a2a65e251c1c39fdd69473f53cf461117ca285`
+
+## Current-code plan refresh
+
+The Scope 1 plan now isolates a minimal vertical slice from the completed Scope 0B files, keeps checker-only witness
+coordinates out of the future product fixture, fixes the fixture → Core → Game → optional observation order and
+defines the exact Scope 0B regressions that must remain intact. It still authorizes no implementation, fixture file or
+official proxy execution.
+
+- initial plan refresh commit: `PENDING`
+- bounded independent reviewers: `PENDING`
+- final review: `PENDING`
+- reviewed plan content commit: `PENDING`
 
 ## Repository checkpoint
 

@@ -1,6 +1,6 @@
 # Scope 1 evidence package
 
-This directory records the active [Scope 1 manual-line contract](../../docs/scopes/SCOPE_1_INTERACTION.md).
+This directory records the completed [Scope 1 manual-line contract](../../docs/scopes/SCOPE_1_INTERACTION.md).
 
 - [`CHECKPOINT_0_CONTRACT_PREPARATION.md`](CHECKPOINT_0_CONTRACT_PREPARATION.md) preserves the historical
   pre-authorization preparation.

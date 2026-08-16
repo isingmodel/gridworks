@@ -4,7 +4,11 @@
 >
 > `IntegratedPlacementPass = true`
 >
-> `OfficialSampleProgress = 1/1`
+> `OfficialObservationsExecuted = 1`
+>
+> `OriginalAggregateDecision = NOT_EVALUATED`
+>
+> `AggregateRequirement = WAIVED_BY_USER_DECISION`
 >
 > `Scope1Status = COMPLETED`
 >
@@ -15,8 +19,8 @@
 ## 실행 경계
 
 2026-08-17 사용자는 공식 LLM 실행을 정확히 한 번만 승인했고, 결과를 확인한 뒤 이 한 번의 pass를
-충분한 Scope 1 종료 근거로 수용했다. 따라서 공식 관찰은 `1/1`로 닫고 Scope 1을 완료로 기록한다.
-추가 row, 재시도, 교체와 수정 라운드는 실행하지 않는다.
+충분한 Scope 1 종료 근거로 수용했다. 원래 계획한 3-row aggregate는 평가하지 않고 사용자 결정으로
+면제했으며, Scope 1을 완료로 기록한다. 추가 row, 재시도, 교체와 수정 라운드는 실행하지 않는다.
 
 직전에 완료한 비공식 전체 실행은 동일 build의 기술 사전점검으로만 사용했다. 그 실행은 build·fixture
 identity, 실제 native 입력, `READY → SUPPORT_ADDED → SUPPORT_ADDED → ORDERED → COMPLETED → FINAL`,
@@ -90,4 +94,11 @@ minute `60`, commissioned, target energized view를 권위 직렬화한 SHA-256�
 - initial evidence commit: `f2ca4f929063976389c126f914a4e79dc54e3b93`
 - bounded reviewer: `scope1_single_official_guard`
 - initial findings: `P0=0`, `P1=1`, `P2=1`; 원본 anchor 누락과 shell 표현을 수정했다.
+- final recheck: `P0=0`, `P1=0`, `P2=0`; blocker 없음
+
+완료 결정 문서화도 별도로 검토했다.
+
+- initial completion commit: `f85fdf1d5630c767303b84c9b0143dea1c7f07e7`
+- bounded reviewer: `scope1_completion_review`
+- initial findings: `P0=0`, `P1=1`, `P2=1`; 기존 3-row 규칙과 사용자 면제·완료 결정을 분리했다.
 - final recheck: `P0=0`, `P1=0`, `P2=0`; blocker 없음

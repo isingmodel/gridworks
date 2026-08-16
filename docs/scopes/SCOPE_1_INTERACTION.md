@@ -199,13 +199,15 @@ plugin interface나 save schema를 미리 만들지 않는다.
 
 ## 9. 임시 LLM proxy 계약
 
-구현 review 뒤 exact facilitator message와 evidence path를 별도 checkpoint에서 동결한다. 판정 구조는
-지금 다음처럼 제한한다.
+구현 review와 자동검사·native smoke가 끝난 뒤에도 남는 질문은 “범위 피드백을 보고 직접 경로를
+완성하고, 거리 제한과 완공 전 무전압을 설명하는가” 하나뿐이다. 이 질문이 실행 시점에도 남아 있고
+사용자가 별도 승인했을 때만 LLM proxy를 한 번 실행한다. 판정 구조는 다음처럼 제한한다.
 
 - 새 cold session `S1-L01`~`L03`, 동일 공개 model·reasoning, `fork_turns=none`
 - 한 번의 global native preflight 뒤 세 row를 고정하고 교체하지 않음
 - 같은 build·fixture·prompt, variant와 facilitator follow-up 없음
 - coordinator platform JSONL, participant platform JSONL과 app diagnostic JSONL을 원본으로 사용
+- 별도 transcript, runner manifest나 참가자 작성 evidence export를 만들지 않음
 - setup·participant·evidence failure도 해당 row의 false로 남김
 - platform이 prompt 평문을 사후 증명하지 못하는 한계를 결과에 기록
 - `HumanValidationStatus = NOT_COLLECTED`
@@ -225,13 +227,12 @@ IntegratedPlacementPass =
 만들어도 통과다. pole 수, 클릭수, 경로 모양, 완료시간과 `Undo` 사용은 진단값이다.
 
 - `GO`: `IntegratedPlacementPass >= 2/3`
-- `REVISE`: 모든 false row에서 같은 UI 결함 하나가 독립 재현되고, fixture·상태규칙·prompt·rubric·
-  정답 노출을 바꾸지 않은 bounded UI 수정 하나로 고칠 수 있을 때 한 round만
-- `NO-GO`: 위 `REVISE` 조건이 거짓인 모든 미달 또는 revision 뒤 `2/3` 미달
+- `NO-GO`: global preflight는 통과했지만 `IntegratedPlacementPass < 2/3`
 - global preflight 실패: participant 관찰 전 `PROXY-RUN-BLOCKED`
 
-revision은 그 UI 결함 하나만 바꾸고 새 build·새 세 session을 쓰며 이전 결과와 합산하지
-않는다. `2/3`은 동일 모델의 작은 실행 가능성 probe이지 모집단 성공률이나 사람 검증이 아니다.
+같은 gate에서 revision round나 추가 LLM session을 열지 않는다. 실패 원인은 자동검사로 재현 가능한
+제품 결함, 참가자 미완료, 실행·증거 문제로 나눠 기록하고, 수정이나 사람 테스트는 별도 사용자 결정으로
+연다. `2/3`은 동일 모델의 작은 실행 가능성 probe이지 모집단 성공률이나 사람 검증이 아니다.
 
 ### 9.1 파라미터 inventory
 
@@ -241,8 +242,8 @@ revision은 그 UI 결함 하나만 바꾸고 새 build·새 세 session을 쓰�
 - `Presentation`: 범위 원, ghost span, pattern, label과 이후 동결할 pixel layout
 - `Derived`: span 거리, 발주 가능 여부와 `targetEnergized`
 
-fixture 또는 Structural 변경은 `REVISE`가 아니라 reviewed 새 계약·새 version·새 session을 요구한다.
-registry, type catalog와 parameter sweep을 만들지 않는다.
+fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. 필요하면 별도 사용자 결정 뒤 reviewed
+새 계약으로 연다. registry, type catalog와 parameter sweep을 만들지 않는다.
 
 ## 10. 구현 TODO — 별도 승인 뒤에만
 
@@ -253,8 +254,9 @@ registry, type catalog와 parameter sweep을 만들지 않는다.
 - [ ] 단일 Godot scene의 수동 지도 입력과 범위 피드백을 구현한다.
 - [ ] oracle, build, native smoke와 Scope 0B 회귀검사를 통과한다.
 - [ ] 구현 첫 커밋을 bounded independent review하고 scope-valid 지적만 고친다.
-- [ ] exact proxy 자료·원본 경계·실행 승인을 구현 checkpoint에서 동결한다.
-- [ ] 세 고정 session을 실행하고 비식별 결과·claim ceiling을 기록한다.
+- [ ] 자동검사로 답할 수 없는 상호작용 질문이 남았는지 확인하고, 남았을 때만 exact proxy 자료·
+  원본 경계·실행 승인을 구현 checkpoint에서 동결한다.
+- [ ] 승인된 경우에만 세 고정 session을 한 번 실행하고 비식별 결과·claim ceiling을 기록한다.
 - [ ] 결과 뒤 다음 위험을 다시 선정하며 다음 번호 scope를 자동 구현하지 않는다.
 
 ## 11. 즉시 중단 조건

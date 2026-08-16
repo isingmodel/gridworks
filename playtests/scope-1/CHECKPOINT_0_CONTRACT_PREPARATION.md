@@ -28,6 +28,15 @@ Removed from the earlier candidate:
 The remaining fixture has two fixed terminals, one support type, one line type, integer squared distance,
 one `MaxSpan`, `Undo`, atomic completion and one integrated proxy criterion.
 
+## Validation policy refinement
+
+Later development lessons narrowed the planned proxy without opening implementation or execution. Deterministic
+Core checks, build and native smoke come first. Only the remaining interaction/comprehension question may use one
+fixed three-session LLM batch; there is no replacement or revision round and no custom transcript, manifest or
+participant-authored evidence system. A miss closes that proxy result and requires a separate user decision.
+
+This refinement changes no fixture value, gameplay rule, implementation authorization or human-evidence status.
+
 ## Repository checkpoint
 
 - initial preparation commit: `aa0669bc54a3a4847ee6b29aa61a7551a6dcfac2`

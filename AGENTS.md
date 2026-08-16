@@ -1,11 +1,8 @@
 # Repository instructions
 
-1. Read `README.md`, then the active scope it names, before changing plans, code, or data.
-2. Only the active scope is authorized. Candidate documents are not a backlog; do not prebuild future systems.
-3. Use the question ownership map in `docs/README.md`; current user instruction and the active scope always win.
-4. Use the active scope's single data authority and completion checks; do not duplicate authoritative values.
-5. After every major unit, review the evidence and update `README.md` plus the affected scope before starting an explicitly approved next gate.
-6. Do not use LLM or policy agents for open-ended tuning or target choice ratios. Keep experiments bounded by the parameter policy in `README.md` and `docs/development/BALANCING_STATIC_SIM.md`.
-7. After a major unit, commit it, run one bounded independent subagent review when available, fix only scope-valid findings, rerun checks, and commit the reviewed result.
-8. At the same checkpoint, audit all documentation for current behavior and decisions; update or remove any legacy, stale, contradictory, or superseded material before proceeding.
-9. Push, open a PR, or merge only when the current user task explicitly authorizes that repository write.
+1. Read `README.md`, then the active scope it names. Current user instruction wins, followed by the active scope and the question ownership map in `docs/README.md`.
+2. Only the active scope is authorized. Readiness, a detailed candidate, or an ambiguous goal does not authorize implementation or execution outside it; do not prebuild future systems.
+3. Use the active scope's single data authority and completion checks. Prove rules, state transitions, builds, and wiring with deterministic checks and smoke tests before considering a playtest.
+4. Use an LLM playtest only when the active scope explicitly needs an interaction or comprehension observation that automation cannot provide. Keep one small fixed sample, do not tune from it, do not treat it as human evidence, and do not duplicate evidence already preserved by the platform or app.
+5. After a major unit, commit it, run one bounded independent subagent review when available, fix only scope-valid findings, rerun checks, and update current-state documentation before opening another gate.
+6. Push, open a PR, or merge only when the current user task explicitly authorizes that repository write.

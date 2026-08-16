@@ -124,8 +124,7 @@ span과 support ID는 저장하지 않는다. source → ordered supports → ta
 ## 6. 화면 계약
 
 - source는 처음부터 선택된 시작점으로 표시한다. target은 별도 endpoint로 표시한다.
-- map-space cursor의 각 축은 `floor(value + 0.5)`로 visible integer grid에 snap한다. preview와
-  click 제출은 같은 snapped pair를 쓰며 Core에는 integer pair만 보낸다.
+- map-space cursor의 각 축은 `floor(value + 0.5)`로 visible integer grid에 snap한다. preview와 click 제출은 같은 snapped pair를 쓰며 Core에는 integer pair만 보낸다.
 - 마지막 endpoint 중심의 `MaxSpan` 원과 cursor까지 ghost span을 그린다.
 - ghost span은 유효/초과를 색뿐 아니라 실선/점선과 짧은 문장으로 구분한다.
 - 초과 시 `실제 거리 / 허용 거리`와 `중간 전신주가 필요합니다`만 보여준다.
@@ -134,10 +133,8 @@ span과 support ID는 저장하지 않는다. source → ordered supports → ta
 - `Building`은 전기를 전달하거나 빛나는 통전선처럼 보이면 안 된다.
 - `Undo`, `발주`, `완공까지 진행`은 표준 button이고 보이는 label과 고유 접근성 이름을 갖는다.
 - 지도 클릭 뒤 현재 ordered path와 발주 가능 여부를 즉시 갱신한다.
-- 지도는 하나의 custom-drawn input 영역이며 grid point마다 숨은 button이나 좌표 입력칸을 만들지 않는다.
-  일반 실행은 실제 pointer click만 받으며, headless smoke도 같은 input handler를 통과한다.
-- 현재 phase, ordered support 좌표, target 통전 여부와 마지막 오류는 지도 밖의 보이는 상태 text에도
-  표시하고 접근성 tree에서 읽을 수 있게 한다.
+- 지도는 하나의 custom-drawn input 영역이며 grid point마다 숨은 button이나 좌표 입력칸을 만들지 않는다. 일반 실행은 실제 pointer click만 받으며, headless smoke도 같은 input handler를 통과한다.
+- 현재 phase, ordered support 좌표, target 통전 여부와 마지막 오류는 지도 밖의 보이는 상태 text에도 표시하고 접근성 tree에서 읽을 수 있게 한다.
 
 고정 해상도와 exact UI 배치는 구현 checkpoint에서 native clipping·접근성 preflight와 함께 동결한다. 이번 계약은 pixel 좌표를 게임 규칙으로 만들지 않는다.
 
@@ -158,12 +155,9 @@ span과 support ID는 저장하지 않는다. source → ordered supports → ta
 
 **B — Undo 명령열**
 
-1. `AddSupport(5,4)`, `AddSupport(9,4)`, `UndoSupport()` 뒤 phase는 `drafting`, support는
-   `[(5,4)]`, minute `0`, completion null이다.
-2. 새 초기 상태에서 두 support와 `OrderLine()`으로 `building`을 만든 뒤 `UndoSupport()`는
-   `WRONG_PHASE`이고 상태가 변하지 않는다.
-3. 또 다른 새 초기 상태에서 두 support·발주·완공으로 `commissioned`를 만든 뒤 `UndoSupport()`는
-   `WRONG_PHASE`이고 상태가 변하지 않는다.
+1. `AddSupport(5,4)`, `AddSupport(9,4)`, `UndoSupport()` 뒤 phase는 `drafting`, support는 `[(5,4)]`, minute `0`, completion null이다.
+2. 새 초기 상태에서 두 support와 `OrderLine()`으로 `building`을 만든 뒤 `UndoSupport()`는 `WRONG_PHASE`이고 상태가 변하지 않는다.
+3. 또 다른 새 초기 상태에서 두 support·발주·완공으로 `commissioned`를 만든 뒤 `UndoSupport()`는 `WRONG_PHASE`이고 상태가 변하지 않는다.
 4. 같은 fixture와 명령열은 같은 권위 field와 파생 view를 반환한다.
 
 Core 비의존 contract checker는 fixture의 exact field·integer 값·direct failure와 checker-only witness success를 검사한다. Scope 1 strict loader는 schema, field exactness, integer 좌표, 유일한 endpoint, 범위·시간·산술 제약과 direct failure만 검증하며 witness를 알지 못한다.
@@ -238,8 +232,7 @@ Scope 1 구현 중에도 다음은 계속 통과해야 한다.
 
 - 세 cold session은 같은 build·fixture·prompt·model 설정을 쓰고 도움·교체가 없다.
 - 플랫폼과 앱이 자동 보존하는 원본만 쓰며 별도 transcript·manifest·export를 만들지 않는다.
-- 실행·증거 실패는 해당 row의 false로 남겨 상호작용 실패와 분리하고, 원본이 증명하지 못한 내용은
-  결과의 한계로 기록한다.
+- 실행·증거 실패는 해당 row의 false로 남겨 상호작용 실패와 분리하고, 원본이 증명하지 못한 내용은 결과의 한계로 기록한다.
 - `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
 
 한 row의 유일한 scored 판정은 다음 conjunction이다.

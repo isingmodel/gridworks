@@ -90,6 +90,11 @@ check(sheet.include?("Generic environment-owned tool name/signature metadata") &
       sheet.include?("other-app contents are forbidden"), "v3 content-source boundary missing")
 check(sheet.include?("Literal wrapper spelling and first-call success are not") &&
       sheet.include?("Any `TechnicalValid=false` launch"), "v3 semantic validity/replacement boundary missing")
+check(sheet.include?("prompt, facilitator and") && sheet.include?("current v3 run-protocol checkpoint"),
+      "v3 prompt authority split missing")
+check(sheet.include?("participant stop/timeout is a TechnicalValid scored failure") &&
+      sheet.include?("before scoring or") && sheet.include?("gameplay answer quality must not affect"),
+      "v3 no-state/anti-selection boundary missing")
 check(sheet.include?("<EVIDENCE_ID>") && sheet.include?("<SESSION_ID>-launch1"), "replacement evidence ID boundary missing")
 check(sheet.include?("## 5. Exact post-measurement evidence export") &&
       sheet.include?("result status/content type") &&

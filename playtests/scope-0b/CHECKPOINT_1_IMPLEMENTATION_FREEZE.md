@@ -12,8 +12,8 @@
 
 The build evidence in this file remains current. v1 and v2 were later blocked by bootstrap provenance rules;
 their frozen evidence remains in [`checkpoint 1B`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md) and
-[`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md). Only the current execution copy is superseded by v3.
-Runtime, fixture and gate did not change.
+[`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md). The current execution copy is the v3 facilitator linked
+from checkpoint 1C. Runtime, fixture and gate did not change.
 
 - active contract: [`docs/scopes/SCOPE_0B_PLAYABLE.md`](../../docs/scopes/SCOPE_0B_PLAYABLE.md)
 - machine fixture: [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json)
@@ -25,8 +25,8 @@ Runtime, fixture and gate did not change.
 - source-manifest build SHA-256:
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
-- prompt-template SHA-256: `4a07e8fdf61cbd2475ba27613e9a89d4fcb254cc54c6d19d5f6a740ca64f2111`
-- facilitator-sheet SHA-256: `0ae5f2379add1fc92418cf3f7446fc2694361bdbcd6d39bcf552fc200fed2b46`
+- historical v1 prompt-template SHA-256: `4a07e8fdf61cbd2475ba27613e9a89d4fcb254cc54c6d19d5f6a740ca64f2111`
+- historical v1 facilitator-sheet SHA-256: `0ae5f2379add1fc92418cf3f7446fc2694361bdbcd6d39bcf552fc200fed2b46`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
 
 The runtime build hash is a deterministic manifest of the runtime source inputs in `game/`,

@@ -54,9 +54,9 @@ Assignment is fixed:
 | `S0B-V3-L05` | `ab` | official v3 slot 5 |
 
 Every log path must not exist before launch; the app fails closed rather than appending. The coordinator
-sets `EVIDENCE_ID=<SESSION_ID>-launch1` for the first launch and increments only the launch number for an
-independently evidenced runner replacement. The logical session ID, variant and participant message hash do
-not change. The runner manifest contains both IDs and the launch-specific trace/transcript paths and hashes.
+sets `EVIDENCE_ID=<SESSION_ID>-launch1` for the first launch and increments the launch number for every
+authorized `TechnicalValid=false` replacement. The logical session ID, variant and participant message hash
+do not change. The runner manifest contains both IDs and the launch-specific trace/transcript paths and hashes.
 The coordinator
 records launch, READY and end with monotonic times and the exact `endReason`/`faultAttribution` pair from the
 active contract. The one-row runner manifest also records the exact model, reasoning, fork and tool policy,
@@ -67,7 +67,9 @@ alone is not evidence.
 The only allowed pairs are `final:none`, `participant_stop:none`, `timeout:none`, `timeout:app`,
 `app_crash:app` and `runner_error:runner`. A frozen-app or participant completion failure on a working target
 is scored. Any `TechnicalValid=false` launch discards its gameplay answer and may be replaced, at most twice;
-L01–L05 and their replacements may total at most seven launches.
+L01–L05 and their replacements may total at most seven launches. After the evidence export, the coordinator
+locks TechnicalValid and replacement status from provenance evidence in launch order before scoring or
+recording any gameplay fields; gameplay answer quality must not affect that classification.
 
 ## 2. Exact participant prompt
 
@@ -109,7 +111,8 @@ action path. Do not start official v3 sessions unless all are true:
 3. Element-index interaction is tried first. Screenshot coordinates or Tab/Return are fallback only.
 4. One complete run reaches `FINAL`; the diagnostic contains the frozen ten-event sequence and the runner
    manifest agrees with it.
-5. The source-manifest, fixture and prompt hashes match the implementation checkpoint.
+5. The source-manifest build and fixture hashes match the implementation checkpoint; prompt, facilitator and
+   assignment hashes match the current v3 run-protocol checkpoint.
 6. An independent protocol review confirms the setup/scored-interaction boundary and that no game context is
    available through bootstrap metadata.
 
@@ -128,8 +131,9 @@ If both AX and screenshot are unavailable, or a real accepted command cannot be 
 - The first readable Gridworks state starts scored interaction. No UI action may precede it. Every Gridworks
   read/action must use the frozen target through `tools.mcp__node_repl__js` and `@oai/sky`.
 - After each Sky UI action, fetch fresh app state in the same dispatch or the next read-only direct-wrapper
-  dispatch before deciding the next action. If setup cannot produce a readable target state, stop with the
-  independently evidenced runner classification; do not inspect repository or unrelated app contents.
+  dispatch before deciding the next action. If no readable target state appears, use independent evidence:
+  host/process/transport failure is `runner_error:runner`, while a working target and transport followed by
+  participant stop/timeout is a TechnicalValid scored failure. Do not inspect repository or unrelated apps.
 - Stop at 15 minutes. A participant stop or timeout on an otherwise working app is a valid scored failure.
 - The final app-state read ends UI interaction, not the evidence boundary. The same tool policy remains in
   force through the scored final report; measurement ends only when that report is submitted.

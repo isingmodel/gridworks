@@ -96,7 +96,7 @@ v2 remain immutable under their own stricter rules.
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - task-message template SHA-256: `34cd25113a33c8aeb3f1ce4e009582f5214db03df6a9d11b2ce8c526505b5391`
-- facilitator-sheet SHA-256: `6e45b8b84faa44b23228e8b6967994b8ac200cbb893152ea51549d62b8ecc411`
+- facilitator-sheet SHA-256: `0a0cd1b941530acae3731332c2cccdefdcd504bcfbc75f1810e2bbcfe8c72654`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
 
 | Session | Variant | Task-message SHA-256 |

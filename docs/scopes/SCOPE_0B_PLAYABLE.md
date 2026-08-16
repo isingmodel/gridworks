@@ -549,6 +549,8 @@ oracle·rubric과 이전 세션은 보지 마세요. Gridworks 화면 읽기와 
 - `TechnicalValid = false` launch는 원인과 무관하게 최대 두 번 새 cold session으로 교체해 총 launch를
   7로 제한한다. 해당 gameplay 답은 집계하지 않는다. 정상 target UI를 본 participant의 stop·timeout과
   frozen app에 귀속되는 crash·무응답은 TechnicalValid인 scored failure이므로 교체하지 않는다.
+- evidence export 뒤 provenance만으로 launch 순서대로 TechnicalValid와 replacement를 먼저 고정한 뒤
+  gameplay field를 채점·기록한다. gameplay 답의 품질은 이 분류에 영향을 주지 않는다.
 - reveal 전 diagnostic의 locked 네 cell이 prediction 권위다. reveal 뒤 수정한 답은 세지 않는다.
 - 최종 화면 뒤 participant는 서비스 권역/실제 공급, 두 사고축, 자신의 선택과 실제 사건결과,
   병원 내부전원/utility 인도·판매 경계와 예상 밖 행동을 짧게 보고한다.

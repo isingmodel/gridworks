@@ -8,8 +8,6 @@ require "uri"
 
 ROOT = Pathname(__dir__).join("../..").expand_path
 FIXTURE_PATH = ROOT.join("data/scope-0b-v1.json")
-CONTRACT_PATH = ROOT.join("docs/scopes/SCOPE_0B_PLAYABLE.md")
-CHECKPOINT_PATH = ROOT.join("playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md")
 
 def check(condition, message)
   raise message unless condition
@@ -666,49 +664,7 @@ markdown_paths.each do |markdown|
 end
 check(missing_links.empty?, "missing links: #{missing_links.join(', ')}")
 check(markdown_paths.none? { |path| path.read.include?("SCOPE_0B_CANDIDATE.md") }, "stale candidate reference")
-contract = CONTRACT_PATH.read
-%w[S0B-CONTRACT-v6 S0B-FIXTURE-v1 S0B-BUILD-v1 S0B-PROXY-v6 S0B-RUN-v6 S0B-GATE-v1].each { |version| check(contract.include?(version), "contract version #{version}") }
-check(contract.include?("각각 `4/5` 이상") && contract.include?("`3/5` 이상"), "gate thresholds")
-check(contract.include?("ActiveKnob = 0"), "parameter policy")
-check(contract.include?("InteractionCompletionPass = false"), "incomplete-session failure mapping")
-check(contract.include?("PROXY-RUN-BLOCKED") && contract.include?("catch-all"), "blocked/catch-all separation")
 fixture_hash = Digest::SHA256.file(FIXTURE_PATH).hexdigest
-checkpoint_hash = CHECKPOINT_PATH.read[/frozen fixture SHA-256: `([0-9a-f]{64})`/, 1]
-check(checkpoint_hash == fixture_hash, "checkpoint fixture hash #{checkpoint_hash.inspect} != #{fixture_hash}")
-check(contract.include?("v1~v5는 각 동결 규칙 아래 `PROXY-RUN-BLOCKED`로 끝났고 v6와 합산하지 않는다"),
-      "run-version evidence separation")
-check(contract.include?("global preflight가 통과하는 즉시, `L01` setup 전에 다섯 고정 slot 전체를 확정한다") &&
-      contract.include?("SETUP_FAILURE") &&
-      contract.include?("PARTICIPANT_FAILURE") &&
-      contract.include?("EVIDENCE_FAILURE"),
-      "v6 fixed-row failure mapping missing")
-
-def scope0b_decision(global_preflight_passed:, fixed_rows:, field_passes:, integrated_passes:, conclusion_passes:, one_family:, safe_fix:, budget_available:)
-  check(field_passes.keys.sort == %i[coverage interaction risk utility], "gate field keys")
-  check(conclusion_passes.keys.sort == %i[coverage risk utility], "gate conclusion keys")
-  return "PROXY-RUN-BLOCKED" unless global_preflight_passed
-  check(fixed_rows == 5, "started v6 round must retain exactly five rows")
-  check(field_passes.values.all? { |count| count.between?(0, fixed_rows) }, "gate field count range")
-  check(integrated_passes.between?(0, fixed_rows), "gate integrated count range")
-  check(conclusion_passes.values.all? { |count| count.between?(0, fixed_rows) }, "gate conclusion count range")
-  return "GO" if field_passes.values.all? { |count| count >= 4 } && integrated_passes >= 3
-
-  revisable = conclusion_passes.values.all? { |count| count >= 4 } && one_family && safe_fix && budget_available
-  revisable ? "REVISE" : "NO-GO"
-end
-
-four = { interaction: 4, coverage: 4, risk: 4, utility: 4 }
-five = { interaction: 5, coverage: 5, risk: 5, utility: 5 }
-short = { interaction: 3, coverage: 5, risk: 5, utility: 5 }
-conclusion_five = { coverage: 5, risk: 5, utility: 5 }
-conclusion_short = { coverage: 3, risk: 5, utility: 5 }
-check(scope0b_decision(global_preflight_passed: false, fixed_rows: 0, field_passes: five, integrated_passes: 5, conclusion_passes: conclusion_five, one_family: true, safe_fix: true, budget_available: true) == "PROXY-RUN-BLOCKED", "gate blocked boundary")
-check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: four, integrated_passes: 3, conclusion_passes: conclusion_five, one_family: false, safe_fix: false, budget_available: false) == "GO", "gate pass boundary")
-check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_five, one_family: true, safe_fix: true, budget_available: true) == "REVISE", "gate revise boundary")
-check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_short, one_family: true, safe_fix: true, budget_available: true) == "NO-GO", "gate repeated conclusion boundary")
-check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_five, one_family: false, safe_fix: true, budget_available: true) == "NO-GO", "gate multiple family boundary")
-check(scope0b_decision(global_preflight_passed: true, fixed_rows: 5, field_passes: short, integrated_passes: 2, conclusion_passes: conclusion_five, one_family: true, safe_fix: true, budget_available: false) == "NO-GO", "gate budget boundary")
-puts "PASS documents: 0 missing local links, 0 stale candidate references, gate and versions frozen"
-puts "PASS gate: global-blocked/fixed-row GO/REVISE/NO-GO boundaries"
+puts "PASS documents: 0 missing local links, 0 stale candidate references"
 puts "PASS fixture-hash: #{fixture_hash}"
-puts "Scope 0B contract preflight: PASS"
+puts "Scope 0B fixture contract: PASS"

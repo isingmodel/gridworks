@@ -11,7 +11,6 @@ PNG_DIR = CARD_DIR.join("png")
 R1_CARD_DIR = ROOT.join("playtests/scope-0a/cards")
 R1_PNG_DIR = R1_CARD_DIR.join("png")
 FACILITATOR = Pathname(__dir__).join("FACILITATOR_SHEET.md")
-ACTIVE_SCOPE = ROOT.join("docs/scopes/SCOPE_0A_R2_CARD_TEST.md")
 
 EXPECTED_STEMS = %w[
   card-01
@@ -281,9 +280,6 @@ facilitator_fragments = [
 check(facilitator_fragments.all? { |fragment| facilitator.include?(fragment) }, "facilitator prompt freeze")
 allocations = ["R2-L01 AB", "R2-L02 BA", "R2-L03 AB", "R2-L04 BA", "R2-L05 AB"]
 check(allocations.all? { |allocation| facilitator.include?(allocation) }, "facilitator allocation freeze")
-active_scope = ACTIVE_SCOPE.read
-check(active_scope.include?("S0A-GATE-v2") && active_scope.include?("각각 4/5 이상") && active_scope.include?("3/5 이상"), "decision rule freeze")
-check(allocations.all? { |allocation| active_scope.include?(allocation) }, "scope allocation freeze")
 record_header = Pathname(__dir__).join("record-template.csv").readlines.first
 expected_record_columns = %w[
   EvidenceType HumanValidationStatus ParticipantId SessionId ModelBuild RunTimestamp CardSetVersion

@@ -1,35 +1,15 @@
-# Scope 0A test kit
+# Scope 0A R1 historical materials
 
-> Archived evidence: `LLM-PROXY-R1 = PROXY-FAIL`, `Scope0State = STOPPED`. There is no active round. Do not rerun or revise these materials without a newly authorized gate.
+This directory preserves the first static-card observation inputs. The round failed its frozen integrated
+criterion and was never retroactively rescored. The aggregate and evidence hashes are summarized in
+[`docs/DEVELOPMENT_HISTORY.md`](../../docs/DEVELOPMENT_HISTORY.md).
 
-This directory contains the participant-facing card set and facilitator materials used by the completed Scope 0A gate. The rules and values remain authoritative only in [`docs/scopes/SCOPE_0A_CARD_TEST.md`](../../docs/scopes/SCOPE_0A_CARD_TEST.md); these files are derived historical test artifacts.
+Keep byte-exact:
 
-## Frozen identifiers
+- `cards/`, `CARD_HASHES.sha256`
+- `FACILITATOR_SHEET.md`
+- `record-template.csv`
+- `verify_scope0a.rb`
+- the Git-ignored `private/` directory and any local originals it still contains
 
-- `CardSetVersion`: `S0A-CARD-v1`
-- Archived round: `LLM-PROXY-R1`
-- Order allocation: `L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
-
-The user instruction permitted five isolated LLM sessions to stand in for the first nonexpert round. The completed result is not evidence about human usability, play time, enjoyment, or accessibility.
-
-## Files
-
-- [`cards/`](cards/): four logical 16:9 cards. SVG is the editable source; [`cards/png/`](cards/png/) contains the exact RGB inputs used in the proxy round. Cards 3 and 4 have `AB` and `BA` order variants. Card 4 also has facilitator-controlled causal and settlement reveal states.
-- [`FACILITATOR_SHEET.md`](FACILITATOR_SHEET.md): fixed neutral script, question order, scoring rubric, and reveal sequence.
-- [`record-template.csv`](record-template.csv): blank per-session record schema. Copy it into `private/` before use.
-- [`RESULT.md`](RESULT.md): aggregate round evidence, decision, and bounded-revision history.
-
-## Archived R1 run order
-
-The following records what was executed; it is not current authorization.
-
-1. Copy `record-template.csv` to `private/LLM-PROXY-R1-responses.csv` and keep all verbatim answers there.
-2. Freeze every participant on the same commit and `CardSetVersion`.
-3. Give a cold session only Card 1 and collect its answer.
-4. Read the fixed transition sentence, then show Card 2, the assigned Card 3 variant, and the matching Card 4 prediction variant.
-5. Record all predictions, reasons, internal-power answers, trade-off explanation, choice, and switching condition before any reveal.
-6. Show the matching causal reveal. Only after that show the matching settlement reveal.
-7. Score with the pre-registered rubric. Do not count a corrected answer after help.
-8. Update only the aggregate, non-identifying [`RESULT.md`](RESULT.md). Do not commit the `private/` file.
-
-Run `ruby verify_scope0a.rb` before freezing a round. The command checks the fixture oracle, units, links, 10 SVG/PNG frames, dimensions, metadata, forbidden participant copy, order variants, and staged information release.
+These files are historical evidence, not current run authorization or product data authority.

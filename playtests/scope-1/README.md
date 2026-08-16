@@ -1,19 +1,16 @@
-# Scope 1 evidence package
+# Scope 1 historical materials
 
-This directory records the completed [Scope 1 manual-line contract](../../docs/scopes/SCOPE_1_INTERACTION.md).
+Scope 1 is complete. Its current implementation rules are in
+[`docs/scopes/SCOPE_1_INTERACTION.md`](../../docs/scopes/SCOPE_1_INTERACTION.md); the single official observation,
+its limits and stable hashes are summarized in
+[`docs/DEVELOPMENT_HISTORY.md`](../../docs/DEVELOPMENT_HISTORY.md).
 
-- [`CHECKPOINT_0_CONTRACT_PREPARATION.md`](CHECKPOINT_0_CONTRACT_PREPARATION.md) preserves the historical
-  pre-authorization preparation.
-- [`CHECKPOINT_1_IMPLEMENTATION_ACTIVATION.md`](CHECKPOINT_1_IMPLEMENTATION_ACTIVATION.md) records the reviewed
-  user authorization for implementation.
-- [`CHECKPOINT_2_FIXTURE_HANDOFF.md`](CHECKPOINT_2_FIXTURE_HANDOFF.md) reviews the nine-field product fixture
-  before Core or Game consumes it. The review is complete and the JSON is the sole machine authority.
-- [`CHECKPOINT_3_IMPLEMENTATION_REVIEW.md`](CHECKPOINT_3_IMPLEMENTATION_REVIEW.md) records the isolated Core,
-  checks and Godot vertical slice. Its source and native review are complete.
-- [`OFFICIAL_OBSERVATION_L01.md`](OFFICIAL_OBSERVATION_L01.md) records the one official cold observation accepted
-  by the user as the Scope 1 completion basis on 2026-08-17.
-- [`verify_contract.rb`](verify_contract.rb) checks only fixture structure, values and the checker oracle. It
-  does not authorize implementation or inspect Git history.
+This directory keeps the fixture checker and the Git-ignored `private/` app and engine logs. It does not
+authorize another observation.
 
-Scope 1 is complete and no further proxy row is authorized. Repository-authored private app logs live under ignored
-`private/`; platform-owned originals are not copied.
+```sh
+ruby verify_contract.rb
+dotnet run --project ../../tools/Gridworks.Scope1Checks/Gridworks.Scope1Checks.csproj -c Release -- ../../data/scope-1-v1.json
+```
+
+Do not delete `private/` recursively.

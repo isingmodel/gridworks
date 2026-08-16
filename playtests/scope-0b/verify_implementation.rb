@@ -82,7 +82,7 @@ check((required - header).empty?, "record template is missing required columns")
 check(sheet.include?("--accessibility always"), "launch command lacks forced accessibility")
 check(sheet.include?("--resolution 1280x720"), "launch command lacks frozen resolution")
 check(sheet.include?("--diagnostic-log"), "launch command lacks separate diagnostic path")
-check(sheet.include?("S0B-L00") && sheet.include?("PENDING"), "L00 gate is not explicit")
+check(sheet.include?("S0B-L00") && sheet.include?("L00Status = PASS"), "L00 pass is not explicit")
 
 game_text = ROOT.glob("game/*.{cs,tscn,godot}").map(&:read).join("\n")
 check(!game_text.include?("verificationOnly"), "Game reads hidden oracle")

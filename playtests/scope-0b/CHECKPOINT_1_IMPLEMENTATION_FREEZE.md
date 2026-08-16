@@ -1,6 +1,6 @@
 # Scope 0B implementation-freeze checkpoint
 
-> Status: **REVIEWED — corrected native title target; L00 may continue, official sessions remain closed**
+> Status: **REVIEW PENDING — L00 passed; official sessions remain closed**
 >
 > `SubGateDecision = PENDING`
 >
@@ -21,7 +21,7 @@
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - prompt-template SHA-256: `4a07e8fdf61cbd2475ba27613e9a89d4fcb254cc54c6d19d5f6a740ca64f2111`
-- facilitator-sheet SHA-256: `1e2e28131fc88126f3f13ad07f07bcb1cc5e3c2fae8ccfa8113a1c7b7b0a520d`
+- facilitator-sheet SHA-256: `ef2d1139c79e99cfffde6f174662d7065ac05abac09bfd3c229e960aeee1e939`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
 
 The runtime build hash is a deterministic manifest of the runtime source inputs in `game/`,
@@ -129,4 +129,8 @@ binary exposed the engine-owned suffix `(DEBUG)` in the window title. The run st
 Only the exact target title and facilitator hash were corrected; runtime source, fixture, participant prompt,
 gate and prior evidence did not change. Initial correction commit `1f759182937473b3b3bf58b53e28ffcf6d9400b8`
 received a bounded independent review from `scope0b_core_review`: direct native AX reproduction confirmed the
-exact `(DEBUG)` title and frozen READY hashes; verifiers passed with `P0=0, P1=0, P2=0`. L00 may continue.
+exact `(DEBUG)` title and frozen READY hashes; verifiers passed with `P0=0, P1=0, P2=0`.
+
+The next L00 attempt completed the full AX element-index path and exact ten-event diagnostic through `FINAL`.
+Its public result and private evidence anchors are in [`L00_RESULT.md`](L00_RESULT.md). Official sessions remain
+closed until that result update receives a bounded independent review.

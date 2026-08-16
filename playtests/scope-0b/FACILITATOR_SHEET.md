@@ -1,6 +1,6 @@
 # Scope 0B LLM UI-proxy facilitator sheet
 
-> Status: **FROZEN FOR L00 — official sessions remain closed until native Computer Use preflight passes**
+> Status: **FROZEN AFTER L00 PASS — official sessions authorized, not yet started**
 >
 > `BuildVersion = S0B-BUILD-v1`
 >
@@ -8,7 +8,7 @@
 >
 > `DecisionRuleVersion = S0B-GATE-v1`
 >
-> `L00Status = PENDING`
+> `L00Status = PASS`
 
 This sheet is an execution copy of the active
 [Scope 0B contract](../../docs/scopes/SCOPE_0B_PLAYABLE.md). It does not add rules, hints, retries or

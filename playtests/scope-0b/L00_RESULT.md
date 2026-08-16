@@ -1,64 +1,57 @@
-# Scope 0B L00 first native preflight result
+# Scope 0B L00 native preflight result
 
-> Historical result: **PROXY-RUN-BLOCKED — Computer Use transport**
+> Result: **PASS — native Computer Use full run**
 >
 > `SubGateDecision = PENDING`
 >
 > `HumanValidationStatus = NOT_COLLECTED`
 
-This is an unscored tool preflight, not a game `GO`, `REVISE` or `NO-GO`. No official L01–L05 session
-started, and no static-card or headless substitute was accepted.
+L00 is an unscored tool rehearsal. It proves that the reviewed native build can be read and operated through
+the frozen Computer Use path; it is not a game `GO`, `REVISE` or `NO-GO` and supplies no human evidence.
 
-## What was proved
+## Successful run
 
-- The reviewed native build launched and emitted `READY` in every attempt.
-- Every `READY` row carried build hash
-  `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd` and fixture hash
-  `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`.
-- After the host was unlocked, `sky.list_apps()` returned and identified the running target as
-  `org.godotengine.godot`.
-- `sky.get_app_state()` did not return an accessibility tree or screenshot within the frozen 20-second
-  limit. Targeting the bundle ID and exact app path, resetting the Node REPL, and a separate cold subagent
-  Computer Use session all reproduced the same transport hang.
-- A Finder control call also hung, so the evidence does not attribute the failure to Gridworks.
+- session/variant: `S0B-L00 / ab`
+- build SHA-256: `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
+- fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
+- native target: `Gridworks — 강변 병원 회랑 (DEBUG)`
+- input path: element-index actions through `node_repl + @oai/sky`; no coordinate or keyboard fallback
+- initial state: two `get_app_state` calls returned within 20 seconds with screenshot/AX state
+- completed path: town feeder order → DAY 1 → four predictions → River order/lock → DAY 3 → spatial event
+  → DAY 9 20:00 recovery/final
+- locked values: River/E1 `remains`, River/OLD `cut`, North/E1 `remains`, North/OLD `remains`
+- final snapshot SHA-256: `9a77be76b9e404331143b1da3c9ef7ac1bf3b0b047c570d329c5b0c7dd34ff5f`
 
-No UI click was accepted, no prediction was locked, no corridor was selected and `FINAL` was not reached.
-The app processes were stopped after each bounded attempt.
+Every action was followed by a fresh AX read. The app diagnostic has the exact ten rows
+`READY, COMMAND, COMMAND, COMMAND, PREDICTION_LOCKED, REVEAL_OPENED, COMMAND, COMMAND, COMMAND, FINAL`,
+all accepted, with monotonic sequence and elapsed time. The final screen reported both utility paths restored,
+event cash `−0.717 M`, current cash `5.712 M`, P0 continuity and 60 minutes of internal power remaining.
 
 ## Private evidence anchors
 
-| Attempt | Evidence | SHA-256 |
-|---|---|---|
-| host locked | Godot engine log | `678be1a5c713f54beb463daf16a33bc57ef6b439cdf48326e1db931eb7842dc0` |
-| host locked | app diagnostic | `20734852c5a39c5641f93902a6928bf7f212d39e95f5c248983939a13a0962c6` |
-| unlocked coordinator retry | Godot engine log | `678be1a5c713f54beb463daf16a33bc57ef6b439cdf48326e1db931eb7842dc0` |
-| unlocked coordinator retry | app diagnostic | `92bd602f8a2b2861e01390383aba0bd8c1b81b264554e57b95e17df992b0ae28` |
-| unlocked cold-subagent retry | Godot engine log | `678be1a5c713f54beb463daf16a33bc57ef6b439cdf48326e1db931eb7842dc0` |
-| unlocked cold-subagent retry | app diagnostic | `2ec095c5d7952f837bf9421f9fccf3ef0234bab6aadbfe0b79b8c76f484eeb7e` |
-| coordinator + cold-subagent transport trace | tool-trace extract | `e02f22b4c145fadbfb7e563342a286382fb8afd33af87a776c1cadb7773cf161` |
+| Evidence | SHA-256 |
+|---|---|
+| app diagnostic JSONL | `3f0c615781ef75b665df4ba7801cf820f250bd2a2c4b0027ecfecb50a260f1d3` |
+| Godot engine log | `678be1a5c713f54beb463daf16a33bc57ef6b439cdf48326e1db931eb7842dc0` |
+| runner preflight manifest | `2608f298b969f82af0c63bf4b954ae6a8792a8f0f189bdf0ffd7de5e33182c00` |
+| successful Computer Use trace | `d703052a9d599bf3c0673d24db4937526374be419907af685a3e35f9c37ce801` |
 
-Each app diagnostic has exactly one `READY` row and no later command. Raw logs remain under the ignored
-`playtests/scope-0b/private/` directory.
+Raw files remain under ignored `playtests/scope-0b/private/`. A deterministic check independently parsed the
+diagnostic order, session/variant, accepted flags, locked values, final hash and runner-to-diagnostic hash.
 
-## Review
+## Earlier blocked attempts
 
-- initial result commit: `247850d8be2d47e0cc21dcaf871c29d0254e01e8`
-- bounded independent reviewer: `scope0b_core_review`
-- initial finding: one `P2` provenance gap because READY logs did not preserve the separate Computer Use
-  timeout evidence
-- minimal fix: one ignored tool-trace extract and its public SHA-256; no runner framework or schema added
-- game result, build, fixture, prompt and gate rule were unchanged
+The first preflight was `PROXY-RUN-BLOCKED`: the reviewed app emitted `READY`, but Computer Use returned no AX
+or screenshot state after host unlock. Bundle-ID/path targeting, a Node REPL reset, a cold subagent retry and a
+Finder control reproduced the transport hang. That result was reviewed at commits `247850d` and `0e66dd0` and
+remains valid historical evidence; it was not a game failure.
 
-## Resume condition
+After the user restarted Codex, AX returned. The first retry then exposed Godot's engine-owned `(DEBUG)` title
+suffix before any click. The exact target-string correction was independently reproduced and reviewed at
+commits `1f75918` and `b74769c`; runtime, fixture, prompt and gate never changed.
 
-Retry L00 only after the external Computer Use state changes. The retry must use the same reviewed build and
-must obtain two `get_app_state` responses within 20 seconds before the first click. A successful full native
-run is still required before official sessions open.
+## Next boundary
 
-## Retry update
-
-After the user restarted Codex and unlocked the host on 2026-08-16, two bounded `get_app_state` calls returned
-the native AX tree. The retry stopped before its first click because the Godot editor build exposed an
-engine-owned `(DEBUG)` title suffix that the frozen target string omitted. Runtime, fixture, prompt and gate
-were unchanged. The target-only correction then received a clean bounded review with direct native AX
-reproduction. L00 remains incomplete and may now continue on the same build.
+L00 now satisfies the native preflight. Official `S0B-L01`–`S0B-L05` may run sequentially on the same frozen
+build only after this evidence/state update receives its bounded independent review. No official session has
+started at this checkpoint.

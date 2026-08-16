@@ -58,7 +58,7 @@ MWh는 매출이 되고, 미공급 MWh는 잃은 판매와 고객등급별 보�
 
 | 축 | 개방 근거 | 첫 최소 범위 |
 |---|---|---|
-| [`Interaction`](SCOPE_1_INTERACTION.md) | Scope 0B 뒤 다음 미검증 위험으로 선정돼 현재 구현 활성 | 고정 endpoint, support type 하나, `MaxSpan` 하나 |
+| [`Interaction`](SCOPE_1_INTERACTION.md) | Scope 0B 뒤 다음 미검증 위험으로 선정돼 구현 완료·공식 관찰 미승인 | 고정 endpoint, support type 하나, `MaxSpan` 하나 |
 | `Substation Siting` | 직접 변전소 배치와 서비스 권역이 1.0 제품 약속에 필요함 | 변전소 하나, 건설 가능 영역 하나, 고정 권역 하나 |
 | `Risk/Economy` | 인과는 이해하지만 비용과 복원력 사이 유효한 비지배 선택이 없음 | 선언 stress, 안전 profile과 비용 비교 하나 |
 | `Active Response` | 사전 건설만으로 위기 구간이 수동적임 | 도착시간·지속시간이 있는 조치 한 종 |

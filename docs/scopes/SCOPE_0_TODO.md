@@ -89,7 +89,7 @@ Scope 0이 묻는 질문은 하나다.
 - [x] 카드의 두 회랑·두 사건 결과가 동결 fixture와 일치하는지 확인한다.
 - [x] 내부 dry run `L00`으로 절차·기록표 누락만 확인하고 본 집계에서 제외한다.
 - [x] dry run은 카드 변경을 요구하지 않았으며 `S0A-CARD-v1`을 그대로 동결했다.
-- [x] 카드·진행자 자료를 동결한 뒤 §11의 작업단위 checkpoint를 마쳐야 LLM proxy 테스트로 넘어간다. 기록: [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a/CHECKPOINT_1_MATERIALS_FREEZE.md)
+- [x] 카드·진행자 자료 동결 checkpoint를 마친 뒤 LLM proxy 테스트로 넘어갔다. 기록: [`CHECKPOINT_1_MATERIALS_FREEZE.md`](../../playtests/scope-0a/CHECKPOINT_1_MATERIALS_FREEZE.md)
 
 ## 5. R1 역사적 Scope 0A LLM proxy 테스트 TODO
 
@@ -116,7 +116,7 @@ R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a
 - [x] `PROXY-FAIL`을 자유 배선·경제·물리 부족으로 해석해 기능을 추가하지 않았다.
 - [x] `PROXY-PASS` 분기는 해당 없음으로 기록하고 사람 증거를 주장하지 않았다.
 - [x] Scope 0B를 시작하지 않고 `SCOPE_0_STOPPED`로 종료했다.
-- [x] 판정과 익명 집계를 기록한 뒤 §11의 작업단위 checkpoint를 완료했다. 기록: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md)
+- [x] 판정과 익명 집계를 기록한 뒤 결과 checkpoint를 완료했다. 기록: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a/CHECKPOINT_2_R1_DECISION.md)
 
 ## 7. Scope 0B 활성화 TODO — R2 `PROXY-PASS`와 결과 checkpoint 뒤
 
@@ -139,7 +139,7 @@ R1 decision checkpoint: [`CHECKPOINT_2_R1_DECISION.md`](../../playtests/scope-0a
 - [x] 공식 지원 상태를 확인하고 Godot .NET·.NET SDK exact patch를 고정했다.
 - [x] 자유 배치·일반 BFS·범용 scheduler 등 통과에 필요하지 않은 항목을 제거했다.
 - [x] 같은 변경에서 루트 README를 Scope 0B 계약 review로 전환하고 Scope 0A 결과를 링크했다.
-- [x] §11의 계약 작업단위 checkpoint를 완료한 뒤에만 구현을 열었다. 기록:
+- [x] 계약 작업단위 checkpoint를 완료한 뒤에만 구현을 열었다. 기록:
   [`CHECKPOINT_0_CONTRACT_FREEZE.md`](../../playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md)
 
 ## 8. Scope 0B 실행 TODO — 활성 계약과 checkpoint 완료 후에만
@@ -154,7 +154,7 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 - [x] fixture 인계검사, 단위·상태전이·보존식·결정론 검사와 대표 smoke를 모두 통과한다.
 - [x] 자유 배치, 상세 물리, 저장·replay, 미래 schema와 placeholder UI가 artifact에 없는지 확인한다.
 - [x] 실행한 명령, 결과와 예상 밖 기술 관찰을 재현 가능하게 기록한다.
-- [x] 자동검사 전체 통과 뒤 §11의 작업단위 checkpoint를 마쳤다. 기록:
+- [x] 자동검사 전체 통과 뒤 구현 checkpoint를 마쳤다. 기록:
   [`CHECKPOINT_1_IMPLEMENTATION_FREEZE.md`](../../playtests/scope-0b/CHECKPOINT_1_IMPLEMENTATION_FREEZE.md)
 
 ### LLM 조작 proxy·판정 단위

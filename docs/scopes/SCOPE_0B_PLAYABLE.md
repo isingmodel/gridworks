@@ -41,7 +41,7 @@ R2에는 통과하지 못한 scored 오해가 없다. 따라서 새 오해를 �
 | 규칙·상태전이·범위·판정 | 이 문서 |
 | 숫자·ID·좌표·경로·oracle | [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json) |
 | Scope 0A 인계 원본 | [종료된 Scope 0A R1 §5](SCOPE_0A_CARD_TEST.md#5-동결-fixture) |
-| participant 실행 절차 | 현재 run-protocol checkpoint가 동결하는 [`playtests/scope-0b/FACILITATOR_SHEET.md`](../../playtests/scope-0b/FACILITATOR_SHEET.md) |
+| participant 실행 절차 | official v6 checkpoint가 동결한 [`playtests/scope-0b/FACILITATOR_SHEET.md`](../../playtests/scope-0b/FACILITATOR_SHEET.md) |
 
 - `ContractVersion = S0B-CONTRACT-v6`
 - `FixtureVersion = S0B-FIXTURE-v1`
@@ -470,7 +470,7 @@ preflight로 넘어간다.
 
 공식 session 전, 집계하지 않는 `S0B-L00` 한 번으로 다음을 확인했다. 구현 freeze checkpoint는
 실제 Godot binary·project·engine log·app diagnostic JSONL의 절대경로를 넣은 아래 command template,
-app target과 두 variant를 exact text와 hash로 동결했다. 현재 v6의 platform 원본 경계와 실행 절차는
+app target과 두 variant를 exact text와 hash로 동결했다. official v6의 platform 원본 경계와 실행 절차는
 facilitator sheet가 추가로 동결한다.
 
 ```text

@@ -41,7 +41,7 @@ App diagnostics and optional engine logs belong in `private/` and stay out of Gi
 participant session JSONL remain in their platform-owned location and are not copied; only paths, SHA-256,
 anonymous aggregate and the reviewed decision may be published here.
 
-`verify_implementation.rb` is the pre-run authorization guard frozen at commit
-`23be035e856e052091c529c14c8552aecc129327`. A later result commit is expected to fail its HEAD guard; do not
-weaken that historical check. Closure uses the contract verifier, build/checks and the independent evidence and
+`verify_implementation.rb` is the pre-run authorization-only guard frozen at commit
+`23be035e856e052091c529c14c8552aecc129327`. A later result commit is expected to fail that historical guard; do not
+weaken it. Closure uses the contract verifier, build/checks and the independent evidence and
 strict-score reviews linked from the result.

@@ -244,7 +244,7 @@ scope를 종료한다.
 - [ ] 중립 지시문·사전 rubric·익명 기록표
 - [ ] 한 페이지 `GO / REVISE / NO-GO` 결과와 예상 밖 관찰
 - [ ] parameter inventory와 각 family의 증거 상태
-- [ ] 구현·자동검사·사람 증거를 이 문서에 기록한다.
+- [ ] 구현·자동검사·LLM proxy 증거와 `HumanValidationStatus`를 이 문서에 기록한다.
 - [ ] 루트 README의 현재 개발 상태를 실제 상태와 일치시킨다.
 - [ ] [오브젝트 카탈로그](../product/OBJECT_CATALOG.md)의 pole·line 가능 상태와 확인된 제한을 갱신한다.
 - [ ] 관찰로 표현 규칙이 바뀐 경우에만 비주얼 명세를 갱신한다.

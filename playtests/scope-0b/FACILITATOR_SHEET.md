@@ -1,6 +1,6 @@
 # Scope 0B LLM UI-proxy facilitator sheet
 
-> Status: **FROZEN AFTER L00 PASS — official sessions authorized, not yet started**
+> Status: **FROZEN AFTER REVIEWED L00 PASS — official sessions authorized, not yet started**
 >
 > `BuildVersion = S0B-BUILD-v1`
 >

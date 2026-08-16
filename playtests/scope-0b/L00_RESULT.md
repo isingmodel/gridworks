@@ -31,7 +31,7 @@ event cash `−0.717 M`, current cash `5.712 M`, P0 continuity and 60 minutes of
 
 | Evidence | SHA-256 |
 |---|---|
-| app diagnostic JSONL | `3f0c615781ef75b665df4ba7801cf820f250bd2a2c4b0027ecfecb50a260f1d3` |
+| app diagnostic JSONL | `3f0c615781ef75b665df7ba7801cf820f250bd2a2c4b0027ecfecb50a260f1d3` |
 | Godot engine log | `678be1a5c713f54beb463daf16a33bc57ef6b439cdf48326e1db931eb7842dc0` |
 | runner preflight manifest | `2608f298b969f82af0c63bf4b954ae6a8792a8f0f189bdf0ffd7de5e33182c00` |
 | successful Computer Use trace | `d703052a9d599bf3c0673d24db4937526374be419907af685a3e35f9c37ce801` |
@@ -52,6 +52,11 @@ commits `1f75918` and `b74769c`; runtime, fixture, prompt and gate never changed
 
 ## Next boundary
 
-L00 now satisfies the native preflight. Official `S0B-L01`–`S0B-L05` may run sequentially on the same frozen
-build only after this evidence/state update receives its bounded independent review. No official session has
-started at this checkpoint.
+L00 satisfies the native preflight. Initial result commit `4a84b55374f2255f36806bc16112cf1f8ebc5fda`
+received a bounded independent review from `scope0b_core_review`. It found and closed two `P1` record defects:
+the facilitator had authorized official sessions before review completion, and one public app-log SHA digit
+was mistyped. Independent parsing then reproduced the AX trace, ten-event diagnostic, runner `final:none`,
+four private hashes and unchanged runtime/prompt/gate with `P0=0, P1=0, P2=0`.
+
+Official `S0B-L01`–`S0B-L05` may now run sequentially on the same frozen build. No official session had started
+when this review closed.

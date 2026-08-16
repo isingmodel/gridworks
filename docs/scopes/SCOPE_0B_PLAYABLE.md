@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — L00 `PASS`, 결과 update review 중, 공식 proxy 미개방**
+> 상태: **ACTIVE — L00 `PASS`·reviewed, 공식 proxy 실행 허용**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -11,7 +11,8 @@ Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review chec
 구현·자동검사와 독립 코드 review는 완료됐다. 첫 L00은 Computer Use transport에서 막혔지만
 재시작 뒤 AX가 복구됐고, editor-build `(DEBUG)` title target 수정도 독립 review로 닫혔다. 이어진
 [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 두 번의 상태 읽기와 실제 element-index full run으로
-`FINAL`까지 통과했다. 결과 update의 bounded review가 끝날 때까지 공식 조작 proxy는 열리지 않는다.
+`FINAL`까지 통과했고, evidence review도 `P0/P1/P2 = 0`으로 닫혔다. 같은 build의 공식 조작 proxy를
+직렬 실행할 수 있다.
 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설

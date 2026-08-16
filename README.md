@@ -44,8 +44,9 @@ R2도 실제 비전문가가 아니라 새 cold LLM session 다섯 개를 사용
 scene 구현, 자동검사, native smoke와 독립 코드 review까지 완료됐다. 첫 L00은 Computer Use
 transport 때문에 막혔지만 재시작 뒤 AX가 복구됐고, Godot editor build의 실제 `(DEBUG)` 창 제목을
 동결 target에 반영한 수정도 독립 review로 닫혔다. 이어진 [L00 네이티브 조작](playtests/scope-0b/L00_RESULT.md)은
-두 상태 읽기와 실제 element-index full run으로 `FINAL`까지 통과했다. 이는 게임 판정이 아니며 공식
-LLM 조작 proxy 다섯 회는 아직 시작하지 않았다.
+두 상태 읽기와 실제 element-index full run으로 `FINAL`까지 통과했다. L00 증거도 독립 review에서
+`P0/P1/P2 = 0`으로 닫혔다. 이는 게임 판정이 아니며 공식 LLM 조작 proxy 다섯 회는 아직 시작하지
+않았다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -53,8 +54,8 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-L00 증거 update의 독립 review 뒤 동일 build로 공식 세션 다섯 회를 직렬 실행한다. 파라미터·문구·
-fixture·판정 기준은 그 사이 바꾸지 않는다.
+동일 build로 공식 세션 다섯 회를 직렬 실행할 수 있다. 파라미터·문구·fixture·판정 기준은 그 사이
+바꾸지 않는다.
 
 ## 문서 구조
 

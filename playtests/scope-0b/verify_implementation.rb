@@ -181,8 +181,9 @@ sheet_reviewed = sheet.match?(
   /\A# Scope 0B LLM UI-proxy facilitator sheet\n\n> Status: \*\*S0B-RUN-v4 REVIEWED — official sessions authorized\*\*/
 )
 review_recorded = run_checkpoint.match?(/- initial v4 reset commit: `[0-9a-f]{40}`/) &&
-                  run_checkpoint.match?(/- bounded independent v4 reviewer: `(?!PENDING`)[^`]+`/) &&
-                  run_checkpoint.include?("final review: `P0=0, P1=0, P2=0`")
+                  run_checkpoint.match?(/- bounded independent v4 reviewers?: `(?!PENDING`)[^`]+`/) &&
+                  run_checkpoint.include?("final review: `P0=0, P1=0, P2=0`") &&
+                  run_checkpoint.match?(/- reviewed protocol commit: `[0-9a-f]{40}`/)
 check(checkpoint_reviewed && sheet_reviewed && review_recorded,
       "v4 checkpoint is not independently reviewed/authorized")
 

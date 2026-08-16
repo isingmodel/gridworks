@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — 구현 승인, 조작 proxy 미개방**
+> 상태: **ACTIVE — reviewed build 완료, 구현 checkpoint review 중, 조작 proxy 미개방**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -8,7 +8,8 @@
 
 이 문서는 카드에서 확인한 인과가 실제 상태변화와 클릭이 있는 화면으로 전이되는지만 검사하는
 Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review checkpoint는 완료됐고, 이 문서의
-구현 TODO만 실행할 수 있다. 공식 조작 proxy는 구현·자동검사 checkpoint 전까지 열리지 않는다.
+구현·자동검사와 독립 코드 review는 완료됐다. 공식 조작 proxy는 구현 동결 checkpoint의 독립 review와
+L00 네이티브 조작 preflight 전까지 열리지 않는다.
 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설
@@ -30,7 +31,7 @@ R2에는 통과하지 못한 scored 오해가 없다. 따라서 새 오해를 �
 | 규칙·상태전이·범위·판정 | 이 문서 |
 | 숫자·ID·좌표·경로·oracle | [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json) |
 | Scope 0A 인계 원본 | [종료된 Scope 0A R1 §5](SCOPE_0A_CARD_TEST.md#5-동결-fixture) |
-| 구현 후 participant 절차 | 구현 checkpoint에서 동결할 `playtests/scope-0b/FACILITATOR_SHEET.md` |
+| 구현 후 participant 절차 | 구현 checkpoint에서 동결하는 [`playtests/scope-0b/FACILITATOR_SHEET.md`](../../playtests/scope-0b/FACILITATOR_SHEET.md) |
 
 - `ContractVersion = S0B-CONTRACT-v1`
 - `FixtureVersion = S0B-FIXTURE-v1`
@@ -370,27 +371,27 @@ version임을 확인한다. 구현 checkpoint에 실제 `dotnet --info`, Godot `
 
 ### Fixture와 Core
 
-- [ ] strict fixture DTO·unknown-field 거부·ID/reference/enum validator
-- [ ] scenario/presentation/oracle을 분리해 transition engine과 Game에 oracle을 넘기지 않는 loader
-- [ ] authored service eligibility와 permitted-path 연속성 validator
-- [ ] project 세 상태, 세 명령과 query 두 개
-- [ ] 반개구간 정산과 고정 boundary 순서
-- [ ] primary 우선, 선택 backup 하나뿐인 route resolver
-- [ ] shared-edge·발전원 capacity validator; 초과 시 fail closed
-- [ ] UPS→diesel 에너지 보존과 utility/P0/internal 계량 분리
-- [ ] checked integer cash ledger와 진단용 LostSales
-- [ ] deterministic snapshot serialization
+- [x] strict fixture DTO·unknown-field 거부·ID/reference/enum validator
+- [x] scenario/presentation/oracle을 분리해 transition engine과 Game에 oracle을 넘기지 않는 loader
+- [x] authored service eligibility와 permitted-path 연속성 validator
+- [x] project 세 상태, 세 명령과 query 두 개
+- [x] 반개구간 정산과 고정 boundary 순서
+- [x] primary 우선, 선택 backup 하나뿐인 route resolver
+- [x] shared-edge·발전원 capacity validator; 초과 시 fail closed
+- [x] UPS→diesel 에너지 보존과 utility/P0/internal 계량 분리
+- [x] checked integer cash ledger와 진단용 LostSales
+- [x] deterministic snapshot serialization
 
 ### Game
 
-- [ ] 한 scene의 지도·원인 panel·timeline과 다섯 화면단계
-- [ ] PresentationDefinition과 Core snapshot만 읽는 renderer, command result만 처리하는 adapter
-- [ ] prediction 4 cell·회랑 1개 입력, atomic lock/order, reveal 차단
-- [ ] 공사·무전압·통전·제거·내부전원의 color-independent 표현
-- [ ] 표준 control 접근성 name·description·focus order
-- [ ] fixed AB/BA layout argument와 session ID diagnostic header
-- [ ] participant에게 보이지 않는 private diagnostic JSONL log
-- [ ] `--smoke`에서 UI handler를 거쳐 한 valid 흐름을 실행하고 종료하는 wiring check
+- [x] 한 scene의 지도·원인 panel·timeline과 다섯 화면단계
+- [x] PresentationDefinition과 Core snapshot만 읽는 renderer, command result만 처리하는 adapter
+- [x] prediction 4 cell·회랑 1개 입력, atomic lock/order, reveal 차단
+- [x] 공사·무전압·통전·제거·내부전원의 color-independent 표현
+- [x] 표준 control 접근성 name·description·focus order
+- [x] fixed AB/BA layout argument와 session ID diagnostic header
+- [x] participant에게 보이지 않는 private diagnostic JSONL log
+- [x] `--smoke`에서 UI handler를 거쳐 한 valid 흐름을 실행하고 종료하는 wiring check
 
 app diagnostic log는 save/replay나 제품 telemetry가 아니다. 각 JSONL row는 `schemaVersion`, monotonic
 `sequence`, process-local `elapsedMs`, `sessionId`, `variant`, `event`, `accepted`, `snapshotHash`와
@@ -414,39 +415,39 @@ SHA-256 lowercase hex다.
 
 ### 10.1 Contract·fixture
 
-- [ ] JSON syntax, strict root/schema와 모든 unique ID·reference
-- [ ] Scope 0A handoff §4.4 전체와 여섯 제거행렬
-- [ ] authored path 연속성, primary/selected-backup 정책, 일반 BFS·역송 부재
-- [ ] OLD 위험 band/edge group 일치와 shared terminal 밖 polyline 교차 0
-- [ ] evaluation oracle의 정확한 `3 designs × 2 cases` pair 집합
-- [ ] 정상 shared capacity와 발전원 여유
-- [ ] 모든 cash numerator exact division, overflow 없음
+- [x] JSON syntax, strict root/schema와 모든 unique ID·reference
+- [x] Scope 0A handoff §4.4 전체와 여섯 제거행렬
+- [x] authored path 연속성, primary/selected-backup 정책, 일반 BFS·역송 부재
+- [x] OLD 위험 band/edge group 일치와 shared terminal 밖 polyline 교차 0
+- [x] evaluation oracle의 정확한 `3 designs × 2 cases` pair 집합
+- [x] 정상 shared capacity와 발전원 여유
+- [x] 모든 cash numerator exact division, overflow 없음
 
 ### 10.2 Core
 
-- [ ] 시작 `town eligible=true/path=false`, hospital path=true
-- [ ] 발주 즉시 비용 한 번 차감, Building edge 공급불가, 완공분 원자 편입
-- [ ] 같은 분 `완공 → 의무`, `event → route → internal source` 순서
-- [ ] 공개 이정표와 강변의 숨은 15분 경계 full snapshot·interval/cumulative settlement exact oracle;
+- [x] 시작 `town eligible=true/path=false`, hospital path=true
+- [x] 발주 즉시 비용 한 번 차감, Building edge 공급불가, 완공분 원자 편입
+- [x] 같은 분 `완공 → 의무`, `event → route → internal source` 순서
+- [x] 공개 이정표와 강변의 숨은 15분 경계 full snapshot·interval/cumulative settlement exact oracle;
   북부 trace에는 숨은 경계 없음
-- [ ] UPS 15분, diesel 285분, 무공백, 사건 뒤 60분 잔여
-- [ ] utility delivered/unserved, internal used, P0 unserved, gas, sales와 compensation 보존
-- [ ] E1 counterfactual query와 snapshot query 무상태
-- [ ] 모든 도달 가능한 거부 code 전후 권위 snapshot 동일
-- [ ] 동일 command script 두 번의 snapshot·ledger exact equality
-- [ ] AdvanceResult는 public target을 trace에 중복하지 않고, 강변 사건 Advance에서만
+- [x] UPS 15분, diesel 285분, 무공백, 사건 뒤 60분 잔여
+- [x] utility delivered/unserved, internal used, P0 unserved, gas, sales와 compensation 보존
+- [x] E1 counterfactual query와 snapshot query 무상태
+- [x] 모든 도달 가능한 거부 code 전후 권위 snapshot 동일
+- [x] 동일 command script 두 번의 snapshot·ledger exact equality
+- [x] AdvanceResult는 public target을 trace에 중복하지 않고, 강변 사건 Advance에서만
   `[UPS_DEPLETED]` transient projection을 반환하며 저장하지 않음
 
 ### 10.3 Game·native smoke
 
-- [ ] managed build, Godot headless import/build/boot, 오류 0과 정확한 `READY`
-- [ ] 단계별 visible/enabled action과 focus order
-- [ ] prediction 네 cell 미완료 시 lock 불가, lock 뒤 immutable, reveal 이전 hidden
-- [ ] 네 prediction 전에는 회랑 control disabled; incomplete confirm은 UI-only이고 Core call 0회
-- [ ] UI signal 한 번이 Core command 한 번만 호출
-- [ ] `--smoke`가 start→order→prediction/plan→event→final을 완료
-- [ ] native `1280×720`에서 clipping·겹침·색 이외 상태구분 수동 QA
-- [ ] source tree에 save/replay, general BFS, future schema와 placeholder UI가 없음
+- [x] managed build, Godot headless import/build/boot, 오류 0과 정확한 `READY`
+- [x] 단계별 visible/enabled action과 focus order
+- [x] prediction 네 cell 미완료 시 lock 불가, lock 뒤 immutable, reveal 이전 hidden
+- [x] 네 prediction 전에는 회랑 control disabled; incomplete confirm은 UI-only이고 Core call 0회
+- [x] UI signal 한 번이 Core command 한 번만 호출
+- [x] `--smoke`가 start→order→prediction/plan→event→final을 완료
+- [x] native `1280×720`에서 clipping·겹침·색 이외 상태구분 수동 QA
+- [x] source tree에 save/replay, general BFS, future schema와 placeholder UI가 없음
 
 검증 명령은 구현 checkpoint에서 exact path와 함께 동결한다. 모든 자동검사가 통과한 뒤 큰 작업단위
 initial commit → 독립 review → scope-valid 수정 → 재검사 → reviewed commit을 완료해야 proxy
@@ -619,10 +620,10 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 
 ### 구현·자동증거 — proxy 전
 
-- [ ] exact toolchain과 archive hash를 재확인한다.
-- [ ] Core·Checks·Game과 automatic/native smoke가 모두 통과한다.
-- [ ] 허용 범위 밖 abstraction·placeholder가 없음을 감사한다.
-- [ ] initial implementation commit, 독립 review, 수정·재검사, reviewed build commit을 기록한다.
+- [x] exact toolchain과 archive hash를 재확인한다.
+- [x] Core·Checks·Game과 automatic/native smoke가 모두 통과한다.
+- [x] 허용 범위 밖 abstraction·placeholder가 없음을 감사한다.
+- [x] initial implementation commit, 독립 review, 수정·재검사, reviewed build commit을 기록한다.
 - [ ] `CHECKPOINT_1_IMPLEMENTATION_FREEZE.md`에 build·fixture·prompt hash와 예상 밖 기술관찰을 남긴다.
 
 ### 조작 proxy·결과

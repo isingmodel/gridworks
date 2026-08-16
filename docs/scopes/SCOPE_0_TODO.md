@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B 계약 checkpoint 완료 — `0B_ACTIVE`**
+> 상태: **Scope 0B reviewed build 완료 — 구현 checkpoint review 중, `0B_ACTIVE`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -11,8 +11,8 @@
 R1은 `PROXY-FAIL`로 끝났지만 [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md)는 네 field와 integrated
 모두 `5/5`로 `PROXY-PASS`했다. [R2 결과](../../playtests/scope-0a-r2/RESULT.md)와 완료된 checkpoint는
 Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 현재 실행 권위는 루트 README가 가리키는
-[Scope 0B 계약](SCOPE_0B_PLAYABLE.md)이다. 계약 checkpoint를 마친 뒤 구현이 활성화됐고,
-구현 checkpoint 전에는 조작 proxy를 시작하지 않는다.
+[Scope 0B 계약](SCOPE_0B_PLAYABLE.md)이다. 계약 checkpoint 뒤 구현·자동검사·독립 코드 review를
+완료했고, 구현 checkpoint의 독립 review와 L00 preflight 전에는 공식 조작 proxy를 시작하지 않는다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 
@@ -163,11 +163,11 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 
 ### 구현·자동 증거 단위
 
-- [ ] 활성 Scope 0B의 TODO만 구현하고 이 색인에서 누락된 기능을 추론해 추가하지 않는다.
-- [ ] 권위 규칙·상태전이·정산과 표현·입력 계층의 경계를 활성 계약대로 지킨다.
-- [ ] fixture 인계검사, 단위·상태전이·보존식·결정론 검사와 대표 smoke를 모두 통과한다.
-- [ ] 자유 배치, 상세 물리, 저장·replay, 미래 schema와 placeholder UI가 artifact에 없는지 확인한다.
-- [ ] 실행한 명령, 결과와 예상 밖 기술 관찰을 재현 가능하게 기록한다.
+- [x] 활성 Scope 0B의 TODO만 구현하고 이 색인에서 누락된 기능을 추론해 추가하지 않는다.
+- [x] 권위 규칙·상태전이·정산과 표현·입력 계층의 경계를 활성 계약대로 지킨다.
+- [x] fixture 인계검사, 단위·상태전이·보존식·결정론 검사와 대표 smoke를 모두 통과한다.
+- [x] 자유 배치, 상세 물리, 저장·replay, 미래 schema와 placeholder UI가 artifact에 없는지 확인한다.
+- [x] 실행한 명령, 결과와 예상 밖 기술 관찰을 재현 가능하게 기록한다.
 - [ ] 자동검사 전체 통과 뒤 §11의 작업단위 checkpoint를 마쳐야 LLM 조작 proxy로 넘어간다.
 
 ### LLM 조작 proxy·판정 단위

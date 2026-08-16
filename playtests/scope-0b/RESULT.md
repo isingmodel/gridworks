@@ -13,12 +13,12 @@
 - authorization/source commit: `23be035e856e052091c529c14c8552aecc129327`
 - versions: `S0B-BUILD-v1`, `S0B-FIXTURE-v1`, `S0B-RUN-v6`, `S0B-GATE-v1`
 - allocation: `L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
-- model: `gpt-5.6-sol`, reasoning `medium`, `fork_turns=none`
+- participant tasks: model `gpt-5.6-sol`, reasoning `medium`, `fork_turns=none`
 - fixed rows: `5`; `COMPLETED = 5`, setup/participant/evidence failure `= 0`
 - replacement, deleted row and coordinator-sent facilitator follow-up: `0`
 - global native preflight and exact Debug rebuild: `PASS`
 
-The five rows were committed immediately after the single global preflight. No result was inspected to decide
+The five rows were fixed immediately after the single global preflight. No result was inspected to decide
 whether a row should be retained. App diagnostics remain under the Git-ignored private directory; platform session
 originals remain in their platform-owned location and are not copied into this repository.
 
@@ -39,6 +39,18 @@ originals remain in their platform-owned location and are not copied into this r
 | L03 | `01a00a01-a2a7-7b30-8327-7cab34b4bb0a` | `dc9476ba307cc749d738408a2904ef3628ca04cd3e1a73dca248e69e5929603f` | `c86ce4adb563cdce11740a490b0538e32094a0fbdf10f96c0f5eed187ad08ee9` |
 | L04 | `01a00a04-84b7-7920-9227-6baafad59c4f` | `d2605f3240df1ac7fc7ad19bc73b22da5220eb5a0c09dd07cbd30a855ff3a813` | `0fcbd70e4d872b9f8f8ecdb76a6d698c085bb8d158fe0780829640cd1a415e39` |
 | L05 | `01a00a07-a073-75f2-b4b6-74859a96827f` | `538ca7317fe63bae8bb207ed34490c49211aa26498b9522b851ba42aadca04e7` | `146880d42590c36380561de9c1989f4e55387e0ec2aeb48533daeb80e756a1cb` |
+
+The exact original paths at the post-round audit were:
+
+- coordinator: `/Users/fred/.codex/sessions/2026/08/16/rollout-2026-08-16T18-48-45-01a009f9-40d4-7590-96e9-b2fc82c44c0c.jsonl`
+- L01 participant: `/Users/fred/.codex/sessions/2026/08/16/rollout-2026-08-16T18-51-31-01a009fb-cc43-7c42-85db-53868d31cb6b.jsonl`
+- L02 participant: `/Users/fred/.codex/sessions/2026/08/16/rollout-2026-08-16T18-54-44-01a009fe-bbf4-7a41-89c2-0b80441b9829.jsonl`
+- L03 participant: `/Users/fred/.codex/sessions/2026/08/16/rollout-2026-08-16T18-57-54-01a00a01-a2a7-7b30-8327-7cab34b4bb0a.jsonl`
+- L04 participant: `/Users/fred/.codex/sessions/2026/08/16/rollout-2026-08-16T19-01-03-01a00a04-84b7-7920-9227-6baafad59c4f.jsonl`
+- L05 participant: `/Users/fred/.codex/sessions/2026/08/16/rollout-2026-08-16T19-04-27-01a00a07-a073-75f2-b4b6-74859a96827f.jsonl`
+- app diagnostics: `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/S0B-V6-PREFLIGHT-app.jsonl` and
+  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/S0B-V6-L01-app.jsonl` through
+  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/S0B-V6-L05-app.jsonl`
 
 Independent evidence audit `s0b_v6_evidence_audit` reproduced all hashes and classified every fixed row as
 `COMPLETED`. It verified the parent/task mapping, frozen model configuration, zero coordinator help, allowed

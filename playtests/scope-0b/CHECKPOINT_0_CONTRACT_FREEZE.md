@@ -1,6 +1,8 @@
 # Scope 0B contract-freeze checkpoint
 
-> Status: **REVIEWED — implementation authorized; proxy remains closed**
+> Current status: **HISTORICAL CONTRACT CHECKPOINT — Scope 0B completed; no new implementation or run is authorized**
+>
+> Historical status at review: **REVIEWED — implementation authorized; proxy remains closed**
 >
 > `SubGateDecision = PENDING`
 >

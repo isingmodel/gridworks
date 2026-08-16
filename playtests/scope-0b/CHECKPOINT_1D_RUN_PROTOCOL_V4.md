@@ -1,9 +1,9 @@
 # Scope 0B v3 protocol result and v4 reset checkpoint
 
-> Status: **REVIEWED — official v4 sessions authorized**
+> Historical status: **REVIEWED — official v4 sessions authorized**
 >
-> Superseded: v4 and v5 later closed `PROXY-RUN-BLOCKED`; current state and any future authorization are owned by
-> [checkpoint 1F](CHECKPOINT_1F_RUN_PROTOCOL_V6.md). This historical banner no longer authorizes a launch.
+> Superseded: v4 and v5 later closed `PROXY-RUN-BLOCKED`; current state is owned by the official
+> [result](RESULT.md) and [decision checkpoint](CHECKPOINT_2_DECISION.md). This banner no longer authorizes a launch.
 >
 > `RoundStatus = PROXY-RUN-BLOCKED` for `S0B-RUN-v3`
 >

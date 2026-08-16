@@ -7,6 +7,8 @@
 > `HumanValidationStatus = NOT_COLLECTED`
 >
 > `NextGate = NOT_SELECTED`
+>
+> `RepositoryClosure = REVIEW_IN_PROGRESS`
 
 ## Evidence
 
@@ -32,9 +34,9 @@ approves implementation.
 
 ## Repository checkpoint
 
-- initial result commit: `PENDING`
-- bounded independent result review: `PENDING`
+- initial result commit: `6135aefa9713608e5e60bdefd3e43f3651fcea87`
+- bounded independent result review: `scope0_result_evidence_review`, `scope0_result_docs_review`,
+  `scope0_result_boundary_review`
 - final review: `PENDING`
 - reviewed result content commit: `PENDING`
 - push/PR: not authorized by the current task
-

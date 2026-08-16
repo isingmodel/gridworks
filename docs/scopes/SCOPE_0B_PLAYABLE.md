@@ -14,7 +14,7 @@ Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review chec
 `FINAL`까지 통과했고, evidence review도 `P0/P1/P2 = 0`으로 닫혔다. 공식 v1~v5는 각자 동결한
 실행 증거 규칙을 충족하지 못해 모두 게임 판정 없이
 `PROXY-RUN-BLOCKED`로 끝났고 서로 합산하지 않는다. 상세 이력은
-[evidence package](../../playtests/scope-0b/README.md)와 각 checkpoint가 소유한다. 현재
+[evidence package](../../playtests/scope-0b/README.md)와 각 checkpoint가 소유한다. reviewed
 [checkpoint 1F](../../playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)의 v6는 build·fixture·UI·rubric·gate를
 그대로 두고 반복 blocker를 만든 별도 runner manifest와 participant provenance export를 제거한다.
 공식 v6는 고정 다섯 row 모두 `COMPLETED`, 모든 scored field와 integrated `5/5`로
@@ -653,8 +653,9 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
   checkpoint 1F가 소유한다.
 - [x] checkpoint 1F가 승인한 v6 task message로 교체 없는 공식 다섯 session을 수행했다.
 - [x] 원자료 hash·독립 strict score·aggregate·판정을 [`RESULT.md`](../../playtests/scope-0b/RESULT.md)에 기록했다.
-- [ ] 결과의 큰 단위 checkpoint에서 문서 최신성과 다음 최대 미검증 위험을 다시 점검한다.
+- [ ] 결과의 큰 단위 checkpoint에서 독립 review와 문서 최신성 점검을 닫는다.
 - [x] `GO`로 Scope 0을 `REVIEWED`로 닫고 Scope 1을 자동 구현하지 않았다.
+- [ ] 별도 적응형 단위에서 다음 최대 미검증 위험을 선정하거나 terminal 상태를 유지한다.
 
 Scope 0B `GO`와 적응형 점검이 수동 pole·`MaxSpan` Interaction을 다음 위험으로 선택하고 현재 사용자
 목표가 그 준비를 계속 승인할 때만, Scope 1 후보를 실제 evidence에 맞는 활성 계약으로 다시 쓴다.

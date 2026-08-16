@@ -10,7 +10,7 @@ that result.
 Current state: the executable build, independent code review and native [L00 result](L00_RESULT.md) are
 complete. Official run v1 then used six launches, including one evidenced runner replacement. Five
 participants reached `FINAL`, but every completed run used a pre-measurement tool-catalog lookup that the
-frozen manifest policy did not allow. The strict result is therefore protocol `PROXY-RUN-BLOCKED`, not a game
+frozen manifest policy did not allow. The strict result was therefore protocol `PROXY-RUN-BLOCKED`, not a game
 decision. The combined [v1 result and v2 protocol-reset checkpoint](CHECKPOINT_1B_RUN_PROTOCOL_V2.md) keeps
 the build, fixture, UI, rubric and gate unchanged while supplying the direct Computer Use callable in the
 exact v2 task message. v2 then used one evidenced runner replacement and one native full run, but the full
@@ -29,8 +29,10 @@ required by that frozen evidence format. [Checkpoint 1E](CHECKPOINT_1E_RUN_PROTO
 as protocol `PROXY-RUN-BLOCKED` with `TechnicalValid = 2/5` and no gameplay score. v5 then stopped after six
 launches because required runner manifests and contemporaneous monotonic samples were not recorded for the
 first completed slots; reconstructed filesystem times are not substituted. [Checkpoint 1F](CHECKPOINT_1F_RUN_PROTOCOL_V6.md)
-closes v5 without a gameplay score and defines v6 around fixed rows plus coordinator, participant and app originals.
-Whether official v6 sessions may start is owned only by checkpoint 1F.
+closes v5 without a gameplay score and defined v6 around fixed rows plus coordinator, participant and app originals.
+At authorization commit `23be035`, checkpoint 1F opened that single official round. The authority was consumed by
+the completed result and does not authorize another launch. `FACILITATOR_SHEET.md` is the byte-frozen historical
+execution copy, not a current run instruction; its hash must not be changed merely to add a completion banner.
 
 [`record-template.csv`](record-template.csv) is the frozen historical v1–v5 schema. v6 does not use a runner
 manifest or that CSV; its five fixed rows are reported only after the reviewed round.

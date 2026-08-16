@@ -201,87 +201,29 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
 - [ ] draft·공사 중 선로가 통전선처럼 빛나지 않는다.
 - [ ] 유효 경로가 최소 pole 수 퍼즐처럼 표현되지 않는다.
 
-## 8. 검증 행위 TODO — 활성화 때 재작성
+## 8. 검증 계약 — 아직 없음
 
-이 미개방 후보의 `사람/비전문가` 문구는 이전 초안이며 현재 실행 권위가 아니다. 현재 사용자
-지시대로 첫 검증은 새 cold LLM proxy로 대체하고 `HumanValidationStatus = NOT_COLLECTED`를 유지해야
-한다. Scope 1을 실제로 열 때 표본·runner·rubric을 한 번만 다시 쓰며, 아래 역사적 사람 절차를
-그대로 실행하지 않는다.
+폐기된 사람 테스트 초안은 제거했다. 이 후보에는 실행 가능한 표본·prompt·rubric·통과선이 없다.
+적응형 점검이 이 축을 선택하더라도 다음을 구현 전에 한 번만 동결해야 한다.
 
-### 운영
+- 새 cold LLM proxy의 고정 row와 원본 경계
+- 도움 없이 수동 지지물을 놓고 완공하는 하나의 통합 판정
+- 모든 인접 span의 `MaxSpan`과 완공 전 무전압을 설명하는지 여부
+- 한 종류의 Interaction/Presentation 수정만 허용하는 bounded revision
+- `HumanValidationStatus = NOT_COLLECTED`와 사람 사용성 claim 금지
 
-- [ ] Scope 0A/0B에 참여하지 않은 비전문가를 활성 계약의 표본만큼 모집한다.
-- [ ] 활성 계약의 세션 상한과 동일 build·fixture·중립 지시문을 사용한다.
-- [ ] 익명 참가자 ID, build/fixture version, 완료시간, undo 횟수, invalid 시도와 진행자 도움만 기록한다.
-- [ ] 지시문은 “완공된 두 terminal을 새 회선으로 연결하세요” 이외의 전기·조작 설명을 하지 않는다.
-- [ ] 진행자 도움 뒤의 성공은 통과로 세지 않는다.
-- [ ] build·정보구조·fixture 기하가 바뀌면 새 version과 신규 참가자로 다시 시작한다.
+선택률, pole 수, 경로 모양, 클릭수와 `Undo` 사용 여부는 진단값일 뿐 통과 목표가 아니다.
+사람 테스트로 전환하려면 그 시점의 별도 사용자 결정과 새 계약이 필요하다.
 
-### 사후 질문과 통과 판정
+## 9. 파라미터 경계 — 후보
 
-- [ ] 두 terminal을 바로 잇는 안은 왜 발주할 수 없는가?
-- [ ] `MaxSpan` 원은 무엇을 뜻하는가?
-- [ ] 어떤 단위 사이의 거리를 모두 만족해야 하는가?
-- [ ] 기존 선로와 교차한 지점에서 두 회선은 접속되었는가?
-- [ ] draft와 공사 중 선로는 언제부터 전기를 전달하는가?
+- `ActiveKnob = 0`
+- 자동 sweep과 Static Balance Lab 없음
+- 목표 성공률을 위한 `MaxSpan`·좌표·tolerance 튜닝 금지
+- 거리, support 수와 conductor 길이는 입력에서 파생하며 독립 조정값으로 만들지 않음
+- fixture나 구조 규칙이 바뀌면 이전 결과와 합산하지 않음
 
-교차 비접속 질문은 표현 문제를 찾는 진단값이다. 이 fixture에서는 잘못 접속해도 목표 terminal의
-최종 통전 여부가 달라지지 않으므로 `IntegratedInteractionPass`에는 넣지 않는다.
-
-같은 참가자가 아래를 모두 만족해야 `IntegratedInteractionPass`다.
-
-- [ ] 진행자 도움 없이 유효한 경로를 발주·완공한다.
-- [ ] 모든 인접 span이 `MaxSpan` 이하여야 함을 설명한다.
-- [ ] 초과한 경로에는 중간 지지물을 직접 추가해야 함을 설명한다.
-- [ ] draft·공사 중 project는 통전되지 않고 전체 완료 후에만 통전된다고 답한다.
-- [ ] `FacilitatorHelp = false`다.
-
-## 9. GO / REVISE / NO-GO
-
-- [ ] 자동검사나 수동 시각 QA 미통과는 사람 테스트 전 preflight blocker이며 revision budget과 사람 증거의 `NO-GO`를 소비하지 않는다.
-- [ ] preflight 통과 뒤 활성 계약의 사람 통합 통과선을 만족하면 `GO`다.
-- [ ] `GO` 미달 원인이 한 표현·입력 규칙·parameter family에 귀속되면 남은 budget 안에서 `REVISE`다.
-- [ ] `GO` 미달인데 단일 수정 원인이 없으면 즉시 `NO-GO`다.
-- [ ] 한 라운드에서는 Presentation, 구조 규칙 또는 parameter family 하나만 바꾼다.
-- [ ] 수정 시 새 build/version과 신규 참가자로 다시 검사한다.
-- [ ] 활성 계약의 revision budget을 소진했는데 통과선 미달이면 `NO-GO`다.
-- [ ] 자동 경로·복수 시스템 없이는 상호작용이 읽히지 않으면 `NO-GO`다.
-- [ ] 통과를 위해 `MaxSpan`이나 fixture 좌표를 미세 조정하지 않는다.
-- [ ] 최소 pole 수, 최단시간, 최저비용과 경로 모양은 통과 기준이 아니다.
-- [ ] Scope 1 `GO`는 변전소·발전소·철거 또는 다음 번호 scope 구현을 자동 승인하지 않는다.
-
-## 10. 파라미터 제한
-
-- `ActiveKnob`: 0개
-- 자동 sweep과 Static Balance Lab: 없음
-- 목표 성공률을 위한 `MaxSpan`·좌표·tolerance 튜닝: 금지
-- `Structural`:
-
-  - terminal-only 접속
-  - ordered polyline과 회선 전용 degree-2 support
-  - 교차 비접속
-  - 전체 경로 검증과 원자 편입
-  - 실제로 인계했거나 이 gate에서 정의한 공사 상태전이
-
-- `Derived`:
-
-  - 각 span 거리
-  - 총 conductor 길이
-  - support 수
-
-- `FrozenFixture` family 상한:
-
-  1. 지도·terminal·기존 교차선 geometry
-  2. support type·line class·`MaxSpan`
-  3. 배치 좌표 양자화·snap
-  4. 비판정 fixed quote·duration 값
-
-결론을 뒤집을 수 있는 `FrozenFixture + ActiveKnob`은 최대 4개 family다. geometry나
-`MaxSpan`을 바꾸면 기존 참가자 결과와 합산하지 않는다.
-
-화면 pick radius는 `Presentation`이며 위 family에 넣지 않는다. 이를 바꿔 통과선을 맞추지 않는다.
-
-## 11. 즉시 중단 조건
+## 10. 즉시 중단 조건
 
 - [ ] 유효 경로를 만들기 위해 terrain, optimizer, 복수 support class가 필요하다.
 - [ ] 기본 조작을 설명하기 위해 변전소·발전소 배치나 철거까지 함께 열어야 한다.
@@ -293,7 +235,7 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
 중단 조건을 만족하면 기능을 추가하지 않고 당시 증거와 실패 원인을 기록한 뒤
 scope를 종료한다.
 
-## 12. 완료 산출물·저장소 checkpoint
+## 11. 완료 산출물·저장소 checkpoint
 
 - [ ] 승인된 Scope 1 실행 계약과 단일 machine-readable fixture
 - [ ] fixture validator와 witness path·경계값 oracle

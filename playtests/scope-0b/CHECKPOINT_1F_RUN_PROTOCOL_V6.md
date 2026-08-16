@@ -1,6 +1,8 @@
 # Scope 0B v5 protocol result and v6 reset checkpoint
 
-> Status: **AUTHORIZED — official v6 sessions may start**
+> Current status: **HISTORICAL AUTHORIZATION — consumed by the completed official v6 `GO`; no new launch is authorized**
+>
+> Historical status at authorization commit `23be035`: **AUTHORIZED — official v6 sessions may start**
 >
 > `SubGateDecision = PENDING`
 >

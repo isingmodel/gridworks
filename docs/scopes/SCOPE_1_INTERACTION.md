@@ -57,7 +57,9 @@ Scope 0B는 service area와 실제 공급, 전기 회로와 공간 회랑, 병�
 
 ## 4. 활성화 때 옮길 단일 fixture와 checker oracle
 
-초기 구현 전 숫자와 JSON 형태의 권위는 아래 skeleton 하나뿐이다. 활성화 뒤 같은 key·값·자료형의 `data/scope-1-v1.json`으로 옮기고, 독립 인계검사를 통과한 reviewed checkpoint부터 그 JSON이 기계 권위가 된다.
+아래 skeleton과 같은 key·값·자료형의 [`data/scope-1-v1.json`](../../data/scope-1-v1.json)이
+[독립 인계검사](../../playtests/scope-1/CHECKPOINT_2_FIXTURE_HANDOFF.md)를 통과했으며, 현재 숫자와
+JSON 형태의 단일 기계 권위다.
 
 ```json
 {

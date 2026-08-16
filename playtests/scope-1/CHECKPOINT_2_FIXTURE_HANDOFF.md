@@ -1,10 +1,10 @@
 # Scope 1 checkpoint 2 — fixture handoff
 
-> `HandoffStatus = REVIEW_IN_PROGRESS`
+> `HandoffStatus = REVIEWED`
 >
-> `MachineAuthority = CONTRACT_SKELETON`
+> `MachineAuthority = REVIEWED_JSON`
 >
-> `CoreGameStart = CLOSED_UNTIL_REVIEW`
+> `CoreGameStart = OPEN`
 >
 > `OfficialProxyAuthorization = NOT_GRANTED`
 
@@ -30,8 +30,8 @@ closed. After review, the JSON becomes the sole machine authority. The checker-o
 - initial fixture commit: `17d76099d1c16974b62d3fa59233e338b5df4a5d`
 - bounded independent reviewer: `development_lessons_audit`
 - initial findings: `P0=0, P1=1, P2=2`; authority wording and redundant checker cases simplified
-- final recheck: `PENDING`
-- reviewed fixture commit: `PENDING`
+- final recheck: `P0=0, P1=0, P2=0`; blockers none
+- reviewed fixture commit: `f1eafadf512ee71138034e3639776973ad09ab39`
 
-No Core, checks project or Game file may begin until this checkpoint records a clean review and
-`MachineAuthority = REVIEWED_JSON`.
+The reviewed JSON is now the sole machine authority. Core and checker work may start; official proxy rows
+remain closed.

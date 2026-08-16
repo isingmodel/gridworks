@@ -33,7 +33,8 @@
 2026-08-16 사용자 지시로 구현을 열었으며, 고정 endpoint 사이에서
 지지물을 직접 놓고 하나의 `MaxSpan`을 지키는 최소 수직 slice만 만든다. 완료된
 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)은 공식 v6에서 `GO`로 끝났고
-`Scope0State = REVIEWED`다.
+`Scope0State = REVIEWED`다. Scope 1의 아홉 field fixture 인계는 독립 검토를 마쳤고,
+[`data/scope-1-v1.json`](data/scope-1-v1.json)이 현재 단일 기계 권위다.
 Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
 [결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.

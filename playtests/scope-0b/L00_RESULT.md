@@ -60,4 +60,5 @@ run is still required before official sessions open.
 After the user restarted Codex and unlocked the host on 2026-08-16, two bounded `get_app_state` calls returned
 the native AX tree. The retry stopped before its first click because the Godot editor build exposed an
 engine-owned `(DEBUG)` title suffix that the frozen target string omitted. Runtime, fixture, prompt and gate
-were unchanged. L00 remains incomplete while that target-only correction receives independent review.
+were unchanged. The target-only correction then received a clean bounded review with direct native AX
+reproduction. L00 remains incomplete and may now continue on the same build.

@@ -5,8 +5,8 @@ This directory holds the public verification and checkpoint artifacts for the ac
 
 Current state: the executable build and independent code review are complete. The first unscored
 [L00 result](L00_RESULT.md) was `PROXY-RUN-BLOCKED` by the external Computer Use transport. After restart,
-AX state became available; the exact native title target is being corrected and independently reviewed.
-No official proxy round is active. Do not create official sessions until L00 passes on the same build.
+AX state became available; the exact native title-target correction passed bounded independent native AX
+review. L00 may continue on the same build. No official proxy round is active until it passes.
 
 Future raw transcripts, native diagnostic logs and screenshots belong in `private/` and stay out of Git.
 Only their hashes, anonymous aggregate and reviewed decision may be published here.

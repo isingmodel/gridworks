@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B L00 title-target 수정 review 중 — 공식 proxy 미개방, `0B_ACTIVE`**
+> 상태: **Scope 0B L00 재개 — 공식 proxy 미개방, `0B_ACTIVE`**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -14,8 +14,8 @@ Scope 0B 계약을 열 수 있게 한 역사적 승인 증거다. 현재 실행 
 [Scope 0B 계약](SCOPE_0B_PLAYABLE.md)이다. 계약 checkpoint 뒤 구현·자동검사·독립 코드 review와
 구현 checkpoint까지 완료했다. 첫 [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 Computer Use
 transport blocker였고 게임 판정이 아니다. 재시작 뒤 AX 읽기는 복구됐으며 editor-build 창 제목의
-target 문자열만 바로잡는 review가 진행 중이다. 같은 build의 L00가 통과하기 전에는 공식 조작 proxy를
-시작하지 않는다.
+target 문자열만 바로잡은 수정도 독립 review로 닫혔다. 같은 build의 L00가 통과하기 전에는 공식
+조작 proxy를 시작하지 않는다.
 
 R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
 

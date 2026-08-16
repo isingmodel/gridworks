@@ -1,6 +1,6 @@
 # Scope 0B implementation-freeze checkpoint
 
-> Status: **REVIEW PENDING — native title-target correction only; official sessions remain closed**
+> Status: **REVIEWED — corrected native title target; L00 may continue, official sessions remain closed**
 >
 > `SubGateDecision = PENDING`
 >
@@ -127,5 +127,6 @@ item in the facilitator sheet.
 On the authorized retry, Computer Use returned the native accessibility tree, but the frozen Godot editor
 binary exposed the engine-owned suffix `(DEBUG)` in the window title. The run stopped before the first click.
 Only the exact target title and facilitator hash were corrected; runtime source, fixture, participant prompt,
-gate and prior evidence did not change. This correction must receive a bounded independent review before L00
-continues.
+gate and prior evidence did not change. Initial correction commit `1f759182937473b3b3bf58b53e28ffcf6d9400b8`
+received a bounded independent review from `scope0b_core_review`: direct native AX reproduction confirmed the
+exact `(DEBUG)` title and frozen READY hashes; verifiers passed with `P0=0, P1=0, P2=0`. L00 may continue.

@@ -11,3 +11,6 @@
 **/.godot/
 **/bin/
 **/obj/
+
+# Local working documents and temporary artifacts.
+/temp/

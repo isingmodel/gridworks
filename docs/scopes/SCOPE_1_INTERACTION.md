@@ -111,9 +111,9 @@ span과 support ID는 저장하지 않는다. source → ordered supports → ta
 
 | 명령 | 성공 | 실패 |
 |---|---|---|
-| `AddSupport(position)` | 유효한 다음 span이면 list 끝에 추가 | `INVALID_POSITION`, `SPAN_TOO_LONG`, `WRONG_PHASE` |
-| `UndoSupport()` | 마지막 support 제거 | `NOTHING_TO_UNDO`, `WRONG_PHASE` |
-| `OrderLine()` | target까지 final span이 유효하면 `building`, 완료시각 `60` | `SPAN_TOO_LONG`, `WRONG_PHASE` |
+| `AddSupport(position)` | 유효한 다음 span이면 list 끝에 추가 | `WRONG_PHASE`, `INVALID_POSITION`, `SPAN_TOO_LONG` |
+| `UndoSupport()` | 마지막 support 제거 | `WRONG_PHASE`, `NOTHING_TO_UNDO` |
+| `OrderLine()` | target까지 final span이 유효하면 `building`, 완료시각 `60` | `WRONG_PHASE`, `SPAN_TOO_LONG` |
 | `AdvanceToCompletion()` | minute `60`, `commissioned`, target 통전 | `WRONG_PHASE` |
 
 `INVALID_POSITION`은 전달된 snapped pair가 지도 밖이거나 source·target 또는 기존 support와 같은 점이다.
@@ -121,10 +121,12 @@ span과 support ID는 저장하지 않는다. source → ordered supports → ta
 `WRONG_PHASE → NOTHING_TO_UNDO`, `OrderLine`과 `AdvanceToCompletion`은 `WRONG_PHASE`를 먼저 검사한다.
 모든 실패는 code만 반환하고 권위 상태를 바꾸지 않는다. `Building`과
 `Commissioned`에서는 support를 편집할 수 없다.
+성공 명령도 성공 칸에 적힌 field만 바꾸고 나머지 권위 field는 유지한다.
 
 `PreviewSpan(position)`과 `PreviewTarget()`은 같은 판정 순서와 거리식을 쓰는 순수 query다. 유효성,
-from/to와 `distanceSquared / maxSpanSquared`만 반환하고 상태를 바꾸지 않는다. Game이 별도 거리
-규칙을 복제하지 않는다.
+`code: null | WRONG_PHASE | INVALID_POSITION | SPAN_TOO_LONG`, from/to와
+`distanceSquared / maxSpanSquared`를 반환하고 상태를 바꾸지 않는다. Game이 별도 거리 규칙이나
+오류 원인을 복제하지 않는다.
 
 ## 6. 화면 계약
 
@@ -162,11 +164,16 @@ from/to와 `distanceSquared / maxSpanSquared`만 반환하고 상태를 바꾸�
 
 1. `AddSupport(5,4)`, `AddSupport(9,4)`, `UndoSupport()` 뒤 phase는 `drafting`, support는
    `[(5,4)]`, minute `0`, completion null이다.
-2. `building` 또는 `commissioned`의 `UndoSupport()`는 `WRONG_PHASE`이고 상태가 변하지 않는다.
-3. 같은 fixture와 명령열은 같은 권위 field와 파생 view를 반환한다.
+2. 새 초기 상태에서 두 support와 `OrderLine()`으로 `building`을 만든 뒤 `UndoSupport()`는
+   `WRONG_PHASE`이고 상태가 변하지 않는다.
+3. 또 다른 새 초기 상태에서 두 support·발주·완공으로 `commissioned`를 만든 뒤 `UndoSupport()`는
+   `WRONG_PHASE`이고 상태가 변하지 않는다.
+4. 같은 fixture와 명령열은 같은 권위 field와 파생 view를 반환한다.
 
 validator는 fixture field exactness, integer 좌표, 유일한 endpoints, direct failure와 witness success를
 검사한다. Core 검사는 네 오류 code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다.
+preview 전후 상태 불변과, 복제한 같은 초기 상태에서 preview의 accepted/code가 실제 명령과
+경계·초과·invalid case마다 일치하는지도 검사한다.
 native smoke는 시작 → 두 support 직접 배치 → 발주 → 완공 → target 통전을 한 번 통과한다.
 
 ## 8. Scope 0B에서 가져오는 것과 버리는 것
@@ -217,12 +224,12 @@ IntegratedPlacementPass =
 만들어도 통과다. pole 수, 클릭수, 경로 모양, 완료시간과 `Undo` 사용은 진단값이다.
 
 - `GO`: `IntegratedPlacementPass >= 2/3`
-- `REVISE`: 모든 false row가 독립 재현되는 같은 UI 결함 하나에 귀속되고, fixture·상태규칙·prompt·
-  rubric·정답 노출을 바꾸지 않은 채 정확히 한 Interaction 또는 Presentation family로 고칠 수 있을 때 한 round만
+- `REVISE`: 모든 false row에서 같은 UI 결함 하나가 독립 재현되고, fixture·상태규칙·prompt·rubric·
+  정답 노출을 바꾸지 않은 bounded UI 수정 하나로 고칠 수 있을 때 한 round만
 - `NO-GO`: 위 `REVISE` 조건이 거짓인 모든 미달 또는 revision 뒤 `2/3` 미달
 - global preflight 실패: participant 관찰 전 `PROXY-RUN-BLOCKED`
 
-revision은 허용된 UI family 하나만 바꾸고 새 build·새 세 session을 쓰며 이전 결과와 합산하지
+revision은 그 UI 결함 하나만 바꾸고 새 build·새 세 session을 쓰며 이전 결과와 합산하지
 않는다. `2/3`은 동일 모델의 작은 실행 가능성 probe이지 모집단 성공률이나 사람 검증이 아니다.
 
 ### 9.1 파라미터 inventory
@@ -234,8 +241,7 @@ revision은 허용된 UI family 하나만 바꾸고 새 build·새 세 session�
 - `Derived`: span 거리, 발주 가능 여부와 `targetEnergized`
 
 fixture 또는 Structural 변경은 `REVISE`가 아니라 reviewed 새 계약·새 version·새 session을 요구한다.
-Presentation 한 family만 위 `REVISE` 후보가 될 수 있다. registry, type catalog와 parameter sweep을
-만들지 않는다.
+registry, type catalog와 parameter sweep을 만들지 않는다.
 
 ## 10. 구현 TODO — 별도 승인 뒤에만
 

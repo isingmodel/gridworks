@@ -172,8 +172,9 @@ query다. 둘 다 유효성, from/to와 `distanceSquared / maxSpanSquared`를 �
    `WRONG_PHASE`이고 상태가 변하지 않는다.
 4. 같은 fixture와 명령열은 같은 권위 field와 파생 view를 반환한다.
 
-validator는 fixture field exactness, integer 좌표, 유일한 endpoints, direct failure와 witness success를
-검사한다. Core 검사는 네 오류 code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다.
+strict loader·validator는 fixture field exactness, integer 좌표, 유일한 endpoints와 direct failure를
+검사하고, 독립 fixture checker만 checker-only witness success를 검사한다. Core 검사는 네 오류
+code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다.
 preview 전후 상태 불변과, 복제한 같은 초기 상태에서 preview의 accepted/code가 실제 명령과
 경계·초과·invalid·`WRONG_PHASE` case마다 일치하는지도 검사한다.
 native smoke는 시작 → 두 support 직접 배치 → 발주 → 완공 → target 통전을 한 번 통과한다.

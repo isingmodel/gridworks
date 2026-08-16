@@ -49,6 +49,12 @@ def git_success?(*arguments)
   status.success?
 end
 
+def git_output(*arguments)
+  output, status = Open3.capture2e("git", "-C", ROOT.to_s, *arguments)
+  check(status.success?, "git #{arguments.join(' ')} failed: #{output.strip}")
+  output
+end
+
 begin
   fixture_bytes = FIXTURE_PATH.binread
   fixture = JSON.parse(fixture_bytes, object_class: DuplicateCheckingHash)
@@ -170,6 +176,6 @@ check(git_success?("merge-base", "--is-ancestor", initial_commit, reviewed_commi
       "reviewed commit does not descend from initial commit")
 check(git_success?("merge-base", "--is-ancestor", reviewed_commit, "HEAD"),
       "reviewed commit is not in HEAD")
-check(`git -C #{ROOT} status --porcelain --untracked-files=all`.empty?, "worktree is not clean")
+check(git_output("status", "--porcelain", "--untracked-files=all").empty?, "worktree is not clean")
 puts "PASS fixture-hash: #{fixture_hash}"
 puts "Scope 1 activation contract: PASS"

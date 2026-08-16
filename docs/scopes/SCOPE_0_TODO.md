@@ -27,23 +27,6 @@ tool trace가 동결된 metadata `exact text` 전체를 보존하지 않아 `Tec
 판정 없이 닫았다. v6는 coordinator·participant platform 원본과 app diagnostic을 사용하되, 별도
 runner evidence schema 없이 다섯 고정 row를 지우지 않는 더 단순한 계약이다.
 
-R2 원답 수집 전, 사용자의 gate 강도 우려를 반영해 `S0A-GATE-v2`를 사전등록했다. 네 field는 각각 4/5 이상, 동일 응답 내 integrated는 3/5 이상이어야 하며 R1을 소급 재채점하지 않는다.
-
-### 재개된 경로
-
-```text
-0A_R2_ACTIVE
-├─ 0A_R2_PROXY_REVISE → evidence review → 새 version의 bounded information-structure round
-├─ 0A_R2_PROXY_FAIL → version 부적합 기록 → 새 evidence-based gate
-└─ 0A_R2_PROXY_PASS → R2_CHECKPOINT → 0B_CONTRACT_AUTHORIZED
-```
-
-각 round는 사전계약·동결 hash·새 다섯 session을 가지며 이전 결과와 합산하지 않는다. 사용자 목표가 반복을 승인했어도 open-ended parameter tuning, 비용·선택률 조정과 사후 rubric 완화는 금지한다.
-
-R2 실제 판정: technically valid `5/5`, Coverage/Risk/Utility/Trade-off 각각 `5/5`, integrated
-`5/5`, `PROXY-PASS`. 원문·채점표는 Git 제외, SHA-256과 비식별 집계는
-[`RESULT.md`](../../playtests/scope-0a-r2/RESULT.md)에 고정했다.
-
 ## 1. Scope 0의 목적과 종료상태
 
 Scope 0이 묻는 질문은 하나다.
@@ -52,17 +35,18 @@ Scope 0이 묻는 질문은 하나다.
 > 비전문가 이해의 임시 proxy인 cold LLM이 카드와 최소 직접 조작에서 일관되게 구분하는가?
 
 ```text
-0A_R2_ACTIVE
-├─ PROXY_REVISE/FAIL → 결과 checkpoint → 새 version의 bounded gate
-└─ PROXY_PASS → 결과 checkpoint → 0B_CONTRACT_AUTHORIZED
-                                      └─ 계약 동결·review → 0B_ACTIVE
-                                                               ├─ 0B_REVISE → 새 build·cold proxy
-                                                               ├─ 0B_NO_GO → SCOPE_0_STOPPED
-                                                               └─ 0B_GO → SCOPE_0_REVIEWED
+0B_ACTIVE
+├─ global preflight 실패 → PROXY-RUN-BLOCKED · 0B_ACTIVE 유지
+├─ 고정 다섯 row → REVISE → 한 번의 승인된 수정 round
+├─ 고정 다섯 row → NO-GO → SCOPE_0_STOPPED
+└─ 고정 다섯 row → GO → SCOPE_0_REVIEWED
 ```
 
 `SCOPE_0_REVIEWED`는 Scope 1 구현 승인이 아니다. 결과 점검에서 다음 위험을 다시 선정하고,
 사용자가 별도로 승인해야 다음 gate를 열 수 있다.
+
+종료된 R1·R2의 경로와 판정은 각각의 계약과 checkpoint가 소유한다. R2는 네 field와 integrated
+모두 `5/5`로 `PROXY-PASS`했으며 Scope 0B의 역사적 승인 근거일 뿐 현재 실행 상태가 아니다.
 
 아래 §2~§6의 완료 체크는 R1 당시의 불변 기록이다. 종료된 R2의 자료·절차·판정은
 [R2 계약](SCOPE_0A_R2_CARD_TEST.md)과 [R2 checkpoint](../../playtests/scope-0a-r2/CHECKPOINT_1_MATERIALS_FREEZE.md)가

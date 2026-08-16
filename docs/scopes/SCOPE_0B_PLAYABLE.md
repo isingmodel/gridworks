@@ -511,16 +511,18 @@ AX와 screenshot을 모두 얻지 못하거나 실제 accepted command를 만들
 
 - 신규 cold session: `S0B-V6-L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
 - model: `gpt-5.6-sol`, reasoning `medium`, `fork_turns = none`
-- 한 coordinator task가 round 전체를 소유한다. `L01` dispatch 전 `S0B-V6-PREFLIGHT/ab` process 하나를
-  띄워 exact `READY` identity와 target title을 확인하고 exact PID만 종료·flush한다. 이 global preflight
-  실패만 참가자 관찰 전 `PROXY-RUN-BLOCKED`다.
-- global preflight 뒤 다섯 고정 slot은 지우거나 교체하지 않는다. 각 row는 새 process 하나의 exact PID와
+- 한 coordinator task가 round 전체를 소유한다. `L01` dispatch 전 `SESSION_ID=S0B-V6-PREFLIGHT`,
+  `VARIANT=ab` process 하나를 띄워 exact `READY` identity와 target title을 확인하고 exact PID만
+  종료·flush한다. 이 global preflight 실패만 참가자 관찰 전 `PROXY-RUN-BLOCKED`다.
+- global preflight가 통과하는 즉시, `L01` setup 전에 다섯 고정 slot 전체를 확정한다. 이후 slot은
+  지우거나 교체하지 않는다. 각 row는 새 process 하나의 exact PID와
   `READY`를 확인하고, setup 실패면 `SETUP_FAILURE`로 두고 참가자를 부르지 않은 채 그 row의 모든
   field·conclusion·integrated를 `false`로 기록한 후 다음 row로 간다.
-- task 전체의 허용 정보 출처는 exact participant message, 지정 skill과 현재 frozen Gridworks UI뿐이다.
-  generic tool metadata와 import·transport error는 setup 정보로 허용한다. repository·source/data,
-  diagnostic/log, web, static card·저장 screenshot, oracle·rubric·이전 session, 앱 목록과 다른 앱 내용은
-  금지한다.
+- participant task의 허용 정보 출처는 exact participant message, 지정 skill과 현재 frozen Gridworks UI뿐이다.
+  generic tool metadata와 import·transport error는 setup 정보로 허용한다. participant가 repository·source/data,
+  diagnostic/log, web, static card·저장 screenshot, oracle·rubric·이전 session, 앱 목록과 다른 앱 내용을 보는
+  것은 금지한다. coordinator는 실행 전 facilitator·verifier와 process/READY/evidence 원본을 읽을 수 있지만,
+  그 내용이나 판정을 participant에게 전달하지 않는다.
 - 첫 readable Gridworks state 전에는 UI action을 하지 않는다. 모든 UI read/action은
   `tools.mcp__node_repl__js` 안의 `@oai/sky`와 frozen target만 쓰며, 각 action 뒤 fresh state를 읽은 뒤
   다음 action을 정한다.
@@ -538,7 +540,14 @@ AX와 screenshot을 모두 얻지 못하거나 실제 accepted command를 만들
   `false`로 둔다. coordinator가 중단되면 미완료 row도 같은 실패로 고정한다. 어느 경우도 앞선 관찰을
   지우거나 대체하지 않는다.
 - 각 participant turn 뒤 follow-up 없이 exact PID를 종료하고 flush한 뒤 app log를 hash해야 다음 row를
-  시작한다. filesystem 시각이나 사후 prose로 누락 원본을 메우지 않는다.
+  시작한다. 15분이 지나도 turn이 끝나지 않을 때는 먼저 해당 child를 한 번 interrupt하고 task 종료를
+  확인한 뒤 exact app PID를 종료·flush한다. 이는 도움이나 교체가 아니라 그 row의
+  `PARTICIPANT_FAILURE` 종료다. filesystem 시각이나 사후 prose로 누락 원본을 메우지 않는다.
+- 세 원본은 participant를 실제 dispatch한 row에만 필요하며, setup 단계에서 끝난 `SETUP_FAILURE`
+  row에 participant 원본이 없는 것은 정상이다.
+- coordinator가 round를 시작한 뒤 끝낼 때까지 바깥 controller도 coordinator나 participant에게 메시지를
+  보내지 않는다. coordinator가 반환한 뒤 별도 evidence auditor가 더는 변하지 않는 coordinator·participant
+  platform 원본의 path와 hash를 확정한다.
 - reveal 전 diagnostic의 locked 네 cell이 prediction 권위다. reveal 뒤 prose로 고칠 수 없다.
 - 15분은 운영 상한일 뿐 validity·score field가 아니며 별도 timestamp 증명을 만들지 않는다.
 - runner manifest, 복사 transcript, participant provenance export, replacement·fault table을 만들지 않는다.
@@ -547,6 +556,8 @@ AX와 screenshot을 모두 얻지 못하거나 실제 accepted command를 만들
 
 v1~v5는 각 동결 규칙 아래 `PROXY-RUN-BLOCKED`로 끝났고 v6와 합산하지 않는다. v6는 global
 preflight 뒤 정확히 다섯 고정 row를 집계하며 setup/evidence 실패도 false row로 남겨 선택하지 않는다.
+따라서 기술·증거 실패가 두 row 이상이면 나머지 gameplay 답이 정확해도 `GO`는 불가능하다. 이는
+재실행 선택 편향을 피하기 위한 보수 규칙이며, 결과는 gameplay 결손과 실행 결손을 따로 보고해야 한다.
 
 ### 11.3 사전 rubric
 

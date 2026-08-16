@@ -39,6 +39,10 @@ def session_assignments
   }
 end
 
+def child_task_names
+  session_assignments.keys.to_h { |session_id| [session_id, session_id.downcase.tr("-", "_")] }
+end
+
 def expected_session_hash(checkpoint, session_id)
   row = checkpoint.lines.find { |line| line.start_with?("| `#{session_id}` |") }
   check(!row.nil?, "checkpoint assignment missing for #{session_id}")
@@ -89,7 +93,9 @@ source_files = [
   ROOT.join("game/Gridworks.Game.csproj"),
   ROOT.join("game/Main.tscn"),
   ROOT.join("game/project.godot")
-] + ROOT.glob("src/Gridworks.Core/*.cs") + ROOT.glob("game/*.cs")
+] + (ROOT.glob("src/Gridworks.Core/**/*.cs") + ROOT.glob("game/**/*.cs")).reject do |path|
+  (path.each_filename.to_a & %w[bin obj .godot]).any?
+end
 
 source_manifest = source_files.uniq.sort_by { |path| path.relative_path_from(ROOT).to_s }.map do |path|
   check(path.file?, "missing build input #{path}")
@@ -123,7 +129,8 @@ session_assignments.each do |session_id, variant|
   sheet_row = sheet.lines.find { |line| line.start_with?("| `#{session_id}` |") }
   check(!checkpoint_row.nil? && checkpoint_row.include?("| `#{variant}` |"),
         "checkpoint assignment #{session_id}/#{variant} missing")
-  check(!sheet_row.nil? && sheet_row.include?("| `#{variant}` |"),
+  check(!sheet_row.nil? && sheet_row.include?("| `#{variant}` |") &&
+        sheet_row.include?("| `#{child_task_names.fetch(session_id)}` |"),
         "facilitator assignment #{session_id}/#{variant} missing")
   expected = expected_session_hash(run_checkpoint, session_id)
   actual = Digest::SHA256.hexdigest(canonical_prompt.sub("<SESSION_ID>", session_id))
@@ -142,11 +149,18 @@ puts "PASS execution-identities: facilitator and computer-use skill"
 check(sheet.start_with?("# Scope 0B LLM UI-proxy facilitator sheet\n\n" \
                        "> Status: **S0B-RUN-v6 FROZEN EXECUTION COPY — use only when checkpoint 1F is AUTHORIZED**"),
       "facilitator must remain a status-neutral frozen execution copy")
+check(sheet.include?("--accessibility always") &&
+      sheet.include?("--resolution 1280x720") &&
+      sheet.include?("--diagnostic-log") &&
+      sheet.include?("tools.mcp__node_repl__js") &&
+      sheet.include?("org.godotengine.godot"),
+      "frozen native launch/transport identity missing")
 check(sheet.include?("new cold `gpt-5.6-sol`, reasoning\n  `medium`, `fork_turns=none`"),
       "frozen model/reasoning/fork identity missing")
-check(sheet.include?("S0B-V6-PREFLIGHT/ab") &&
+check(sheet.include?("`SESSION_ID=S0B-V6-PREFLIGHT` and `VARIANT=ab`") &&
       sheet.include?("Failure here closes the round as `PROXY-RUN-BLOCKED`") &&
-      sheet.match?(/After `L01` dispatch,\s+the round is irrevocable/),
+      sheet.include?("commit all\nfive rows immediately") &&
+      sheet.include?("irrevocable before `L01` setup"),
       "single global-preflight boundary missing")
 check(sheet.include?("SlotStatus = SETUP_FAILURE") &&
       sheet.include?("SlotStatus = PARTICIPANT_FAILURE") &&
@@ -162,9 +176,19 @@ check(sheet.include?("encrypt the spawn-message body") &&
       sheet.include?("not a post-run evidence predicate"),
       "prompt-plaintext claim ceiling missing")
 check(sheet.include?("Send no follow-up or help") &&
-      sheet.include?("terminate only the\n  captured PID") &&
+      sheet.include?("interrupt that exact child once") &&
+      sheet.include?("confirm its task is no longer\n  running. Only then terminate the captured app PID") &&
       sheet.include?("only then start the next row"),
       "serial no-help PID lifecycle missing")
+check(sheet.include?("source restriction applies to participants") &&
+      sheet.include?("must not relay their contents or judgments") &&
+      sheet.include?("outer controller sends no message") &&
+      sheet.include?("separate evidence auditor") &&
+      sheet.include?("post-round auditor first stops any exact recorded child and app PID"),
+      "participant/coordinator/post-round evidence boundary missing")
+check(sheet.include?("For a dispatched row, the three originals are required") &&
+      sheet.include?("SETUP_FAILURE` row intentionally has no participant"),
+      "setup-failure evidence exception missing")
 check(sheet.include?("Do not send a post-measurement export, create a runner manifest or reconstruct a transcript"),
       "removed evidence machinery prohibition missing")
 
@@ -256,12 +280,27 @@ changed_paths = git_output("diff-tree", "--no-commit-id", "--name-only", "-r", h
 check(changed_paths == ["playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md"],
       "authorization commit may change only checkpoint 1F")
 
+reviewed_checkpoint = git_output("show", "#{content_commit}:playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md")
+normalized_checkpoint = run_checkpoint.dup
+normalizations = [
+  ["> Status: **AUTHORIZED — official v6 sessions may start**",
+   "> Status: **DRAFT — official v6 sessions closed**"],
+  [/- bounded independent v6 reviewers?: `[^`]+`/, "- bounded independent v6 reviewers: `PENDING`"],
+  [/- final review: `[^`]+`/, "- final review: `PENDING`"],
+  [/- reviewed v6 content commit: `[^`]+`/, "- reviewed v6 content commit: `PENDING`"]
+]
+normalizations.each do |from, to|
+  check(!normalized_checkpoint.sub!(from, to).nil?, "authorization field normalization failed")
+end
+check(normalized_checkpoint.b == reviewed_checkpoint.b,
+      "authorization commit changed checkpoint content outside four authorization fields")
+
 AUTHORITY_PATHS.each do |path|
   relative = path.relative_path_from(ROOT).to_s
   reviewed_bytes = git_output("show", "#{content_commit}:#{relative}")
-  check(reviewed_bytes == path.binread, "current #{relative} differs from reviewed content commit")
+  check(reviewed_bytes.b == path.binread, "current #{relative} differs from reviewed content commit")
 end
-dirty = git_output("status", "--porcelain", "--", *(AUTHORITY_PATHS + [RUN_CHECKPOINT]).map { |path| path.relative_path_from(ROOT).to_s })
-check(dirty.empty?, "v6 authority files have uncommitted changes")
+dirty = git_output("status", "--porcelain", "--untracked-files=all")
+check(dirty.empty?, "authorization requires a completely clean worktree")
 
 puts "Scope 0B implementation freeze: PASS"

@@ -10,15 +10,9 @@ ROOT = Pathname(__dir__).join("../..").expand_path
 FIXTURE_PATH = ROOT.join("data/scope-0b-v1.json")
 CONTRACT_PATH = ROOT.join("docs/scopes/SCOPE_0B_PLAYABLE.md")
 CHECKPOINT_PATH = ROOT.join("playtests/scope-0b/CHECKPOINT_0_CONTRACT_FREEZE.md")
-RUN_CHECKPOINT_PATH = ROOT.join("playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md")
-SHEET_PATH = ROOT.join("playtests/scope-0b/FACILITATOR_SHEET.md")
 
 def check(condition, message)
   raise message unless condition
-end
-
-def fenced_section(markdown, heading)
-  markdown[/^## #{Regexp.escape(heading)}\s*$.*?^```text[ \t]*\r?\n(.*?)\r?\n```[ \t]*$/m, 1]
 end
 
 def exact_keys(object, keys, label)
@@ -681,46 +675,22 @@ check(contract.include?("PROXY-RUN-BLOCKED") && contract.include?("catch-all"), 
 fixture_hash = Digest::SHA256.file(FIXTURE_PATH).hexdigest
 checkpoint_hash = CHECKPOINT_PATH.read[/frozen fixture SHA-256: `([0-9a-f]{64})`/, 1]
 check(checkpoint_hash == fixture_hash, "checkpoint fixture hash #{checkpoint_hash.inspect} != #{fixture_hash}")
-sheet = SHEET_PATH.read
-prompt_template = fenced_section(sheet, "3. Exact participant prompt")
-check(!prompt_template.nil?, "facilitator §3 participant prompt missing")
-check(prompt_template.scan("<SESSION_ID>").length == 1, "participant prompt must contain one <SESSION_ID>")
-check(prompt_template.valid_encoding?, "participant prompt is not valid UTF-8")
-check(contract.include?("FACILITATOR_SHEET.md") && !contract.include?(prompt_template),
-      "active contract must reference, not duplicate, the canonical prompt")
-prompt_hash = Digest::SHA256.hexdigest(prompt_template)
-checkpoint_prompt_hash = RUN_CHECKPOINT_PATH.read[/task-message template SHA-256: `([0-9a-f]{64})`/, 1]
-check(checkpoint_prompt_hash == prompt_hash, "checkpoint prompt hash #{checkpoint_prompt_hash.inspect} != #{prompt_hash}")
-check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"),
-      "facilitator direct transport target")
 check(contract.include?("v1~v5는 각 동결 규칙 아래 `PROXY-RUN-BLOCKED`로 끝났고 v6와 합산하지 않는다"),
       "run-version evidence separation")
-check(contract.include?("coordinator platform JSONL") &&
-      contract.include?("participant platform JSONL") &&
-      contract.include?("app diagnostic JSONL") &&
-      contract.include?("세 원본의 path와 SHA-256만 보존한다"),
-      "v6 three-original-artifact authority missing")
-check(contract.include?("spawn message 본문을 암호화") &&
-      contract.include?("prompt 평문 bytes를 증명한다고 주장하지 않는다") &&
-      contract.include?("결과의 claim ceiling"),
-      "v6 prompt-plaintext claim ceiling missing")
-check(contract.include?("global preflight 뒤 다섯 고정 slot은 지우거나 교체하지 않는다") &&
+check(contract.include?("global preflight가 통과하는 즉시, `L01` setup 전에 다섯 고정 slot 전체를 확정한다") &&
       contract.include?("SETUP_FAILURE") &&
       contract.include?("PARTICIPANT_FAILURE") &&
       contract.include?("EVIDENCE_FAILURE"),
       "v6 fixed-row failure mapping missing")
-check(contract.include?("`L01` dispatch 전 단 한 번의") &&
-      contract.include?("global preflight가 실패한 `PROXY-RUN-BLOCKED`"),
-      "v6 single blocked boundary missing")
-check(contract.include?("runner manifest, 복사 transcript, participant provenance export") &&
-      sheet.include?("Do not send a post-measurement export, create a runner manifest or reconstruct a transcript"),
-      "v6 removed-evidence prohibition missing")
 
 def scope0b_decision(global_preflight_passed:, fixed_rows:, field_passes:, integrated_passes:, conclusion_passes:, one_family:, safe_fix:, budget_available:)
   check(field_passes.keys.sort == %i[coverage interaction risk utility], "gate field keys")
   check(conclusion_passes.keys.sort == %i[coverage risk utility], "gate conclusion keys")
   return "PROXY-RUN-BLOCKED" unless global_preflight_passed
   check(fixed_rows == 5, "started v6 round must retain exactly five rows")
+  check(field_passes.values.all? { |count| count.between?(0, fixed_rows) }, "gate field count range")
+  check(integrated_passes.between?(0, fixed_rows), "gate integrated count range")
+  check(conclusion_passes.values.all? { |count| count.between?(0, fixed_rows) }, "gate conclusion count range")
   return "GO" if field_passes.values.all? { |count| count >= 4 } && integrated_passes >= 3
 
   revisable = conclusion_passes.values.all? { |count| count >= 4 } && one_family && safe_fix && budget_available

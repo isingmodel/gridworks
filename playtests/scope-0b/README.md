@@ -28,6 +28,9 @@ first completed slots; reconstructed filesystem times are not substituted. [Chec
 closes v5 without a gameplay score and defines v6 around fixed rows plus coordinator, participant and app originals.
 Whether official v6 sessions may start is owned only by checkpoint 1F.
 
+[`record-template.csv`](record-template.csv) is the frozen historical v1–v5 schema. v6 does not use a runner
+manifest or that CSV; its five fixed rows are reported only after the reviewed round.
+
 App diagnostics and optional engine logs belong in `private/` and stay out of Git. Platform coordinator and
 participant session JSONL remain in their platform-owned location and are not copied; only paths, SHA-256,
 anonymous aggregate and the reviewed decision may be published here.

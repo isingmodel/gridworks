@@ -36,18 +36,21 @@ There is no runner manifest, participant-written provenance export or copied tra
 /Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path /Users/fred/dev/electric_simulator/game --windowed --resolution 1280x720 --position 0,40 --single-window --accessibility always --rendering-method gl_compatibility --log-file /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-godot.log -- --session-id <SESSION_ID> --variant <VARIANT> --diagnostic-log /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-app.jsonl
 ```
 
-| Session | Variant |
-|---|---|
-| `S0B-V6-L01` | `ab` |
-| `S0B-V6-L02` | `ba` |
-| `S0B-V6-L03` | `ab` |
-| `S0B-V6-L04` | `ba` |
-| `S0B-V6-L05` | `ab` |
+| Session | Variant | Child task name |
+|---|---|---|
+| `S0B-V6-L01` | `ab` | `s0b_v6_l01` |
+| `S0B-V6-L02` | `ba` | `s0b_v6_l02` |
+| `S0B-V6-L03` | `ab` | `s0b_v6_l03` |
+| `S0B-V6-L04` | `ba` | `s0b_v6_l04` |
+| `S0B-V6-L05` | `ab` | `s0b_v6_l05` |
 
 ## 2. One global preflight
 
 One dedicated coordinator task owns the whole round. Its platform session JSONL must become immutable when it
-returns. Before `L01` is dispatched, it performs one non-scored `S0B-V6-PREFLIGHT/ab` launch:
+returns. Before `L01` is dispatched, it performs one non-scored launch with
+`SESSION_ID=S0B-V6-PREFLIGHT` and `VARIANT=ab`. Replace only the command template's `<SESSION_ID>` and
+`<VARIANT>` placeholders with those literal values. Before using Computer Use, the coordinator reads the frozen
+designated skill completely.
 
 1. Confirm that no Godot process remains and both new log paths do not exist.
 2. Launch the command above, capture its exact PID and confirm exactly one Godot process.
@@ -56,8 +59,9 @@ returns. Before `L01` is dispatched, it performs one non-scored `S0B-V6-PREFLIGH
 4. Confirm the exact title is readable from the target UI. Do not click or advance the game.
 5. Terminate only the captured PID, wait for exit and log flush, then confirm no Godot process remains.
 
-Failure here closes the round as `PROXY-RUN-BLOCKED` before any participant observation. After `L01` dispatch,
-the round is irrevocable: later setup, participant or evidence failures cannot discard earlier slots.
+Failure here closes the round as `PROXY-RUN-BLOCKED` before any participant observation. On success, commit all
+five rows immediately; the round is irrevocable before `L01` setup. Later setup, participant or evidence failures
+cannot discard an earlier row or erase an unfinished one.
 
 ## 3. Exact participant prompt
 
@@ -93,32 +97,43 @@ oracle·rubric과 이전 세션은 보지 마세요. Gridworks 화면 읽기와 
 - A row setup failure gets `SlotStatus = SETUP_FAILURE`; no participant is dispatched and all gameplay fields,
   conclusions and integrated are `false`. Continue with the next row. Never erase an earlier row.
 - After successful row setup, dispatch the exact rendered prompt once to a new cold `gpt-5.6-sol`, reasoning
-  `medium`, `fork_turns=none` task whose agent path maps to that session ID. Send no follow-up or help.
-- When that single participant turn returns or reaches the 15-minute operational timeout, terminate only the
-  captured PID, wait for exit and log flush, hash the closed app log, and only then start the next row.
+  `medium`, `fork_turns=none` task using that row's exact child task name. Send no follow-up or help.
+- When that single participant turn returns, terminate only the captured app PID, wait for exit and log flush,
+  hash the closed app log, and only then start the next row.
+- At the 15-minute operational timeout, first interrupt that exact child once and confirm its task is no longer
+  running. Only then terminate the captured app PID, wait for exit and log flush, and start the next row. This is
+  not help or replacement; it records the row as `PARTICIPANT_FAILURE`. Never interrupt based on its answer.
 - Participant stop, timeout, app crash or incomplete play gets `SlotStatus = PARTICIPANT_FAILURE` and
   `InteractionCompletionPass = false`; other fields use only evidence actually produced. The slot is not replaced.
 - Allowed Gridworks content sources are the exact task message, designated skill and current target UI. Generic
   tool metadata and import/transport errors are allowed setup information. Repository, source/data, web, static
   cards, oracle/rubric, previous sessions, app inventory and other-app content are forbidden.
+- That source restriction applies to participants. The coordinator may read this sheet, the verifier, process state,
+  `READY` diagnostics and evidence originals to run the protocol, but must not relay their contents or judgments to
+  a participant.
 - The first readable Gridworks state must precede every UI action. Each action must be followed by a fresh state
   read before the next action. Use only `tools.mcp__node_repl__js` with `@oai/sky` for UI reads and actions.
 - The immutable coordinator platform JSONL is the authority for session assignment, exact model, reasoning,
   `fork_turns`, dispatch order, zero post-dispatch help, PID lifecycle and child platform IDs.
 - Each immutable participant platform JSONL is the authority for its `session_meta` parent/task mapping, model,
-  tool calls, content sources, UI sequence and final report. Record both platform paths and SHA-256 values after
-  their tasks return; do not copy or rewrite either original.
+  tool calls, content sources, UI sequence and final report.
 - The app diagnostic JSONL is the authority for `READY`, accepted commands, pre-reveal `PREDICTION_LOCKED`,
   selected corridor and `FINAL`. Record its SHA-256.
 - Platform session files encrypt the spawn-message body. They can link the coordinator dispatch ciphertext to the
   child receipt but cannot prove the frozen prompt's plaintext bytes. The prompt hash is a reviewed execution
   procedure, not a post-run evidence predicate; record this limitation in the result.
+- For a dispatched row, the three originals are required. A `SETUP_FAILURE` row intentionally has no participant
+  original; that absence does not relabel it as `EVIDENCE_FAILURE`.
 - Exact model/reasoning/fork, zero help, frozen app identity, no observed forbidden source and native `FINAL` are
   required for `SlotStatus = COMPLETED`. A missing or conflicting original, or an observed forbidden source, gets
   `SlotStatus = EVIDENCE_FAILURE` and every gameplay field, conclusion and integrated is `false`; continue without
   replacement.
-- If the coordinator itself ends early after `L01` dispatch, every unfinished row is `EVIDENCE_FAILURE/false`.
-  This prevents a later infrastructure or evidence problem from selecting away earlier outcomes.
+- If the coordinator itself ends early after global preflight passes, every unfinished row is
+  `EVIDENCE_FAILURE/false`. The post-round auditor first stops any exact recorded child and app PID, then audits the
+  closed originals. This prevents a later infrastructure or evidence problem from selecting away earlier outcomes.
+- From coordinator dispatch until it returns, the outer controller sends no message to the coordinator or any
+  participant. After the coordinator returns, a separate evidence auditor locates and hashes the now-immutable
+  coordinator and participant platform originals. Do not copy or rewrite them.
 - The operational timeout is not a scored field and requires no custom timestamp proof.
 - Do not send a post-measurement export, create a runner manifest or reconstruct a transcript.
 - Do not tune text, layout, values or controls between sessions.
@@ -126,3 +141,6 @@ oracle·rubric과 이전 세션은 보지 마세요. Gridworks 화면 읽기와 
 The frozen gate remains: each of the four gameplay fields at least `4/5`, and their integrated conjunction at
 least `3/5`. Selection ratio, completion time and click count are diagnostic only. Keep
 `HumanValidationStatus = NOT_COLLECTED`.
+
+Two setup/evidence failure rows make `GO` impossible even if the remaining gameplay answers are correct. This is
+the predeclared cost of never replacing a row; report execution failures separately from gameplay deficits.

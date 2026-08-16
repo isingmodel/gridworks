@@ -43,7 +43,8 @@ instead of adding another evidence schema.
 1. Build, fixture, scene, UI, prompt text, model, rubric, gate and AB/BA allocation are unchanged.
 2. One dedicated coordinator performs a single global preflight before `L01`; only that failure can block the
    round before any participant observation.
-3. After `L01` begins, five fixed rows are never erased or replaced. Setup, participant and evidence failures
+3. As soon as preflight passes, five fixed rows are committed before `L01` setup and never erased or replaced.
+   Setup, participant and evidence failures
    remain conservative false rows, so a later fault cannot select away earlier observations.
 4. The immutable coordinator platform JSONL, each immutable participant platform JSONL and each app diagnostic
    JSONL are the required originals. Together they cover dispatch linkage/no-help, model/tools/report and game state.
@@ -55,6 +56,13 @@ instead of adding another evidence schema.
 7. The 15-minute limit remains operational but is not an experimental validity field.
 8. Platform logs encrypt the spawn-message body. The frozen prompt hash is therefore procedural authority, not a
    falsely claimed plaintext evidence check. The result must state this claim ceiling.
+9. Two setup/evidence failure rows make `GO` impossible under the unchanged `4/5` thresholds. The result must
+   separate this conservative execution penalty from observed gameplay misunderstanding.
+10. Participant source restrictions do not prevent the coordinator from reading run/evidence files. The coordinator
+    relays none of that content, the outer controller sends no mid-round message, and a post-round auditor hashes
+    platform originals only after the coordinator log becomes immutable.
+11. On timeout, the exact child is interrupted and confirmed closed before its app PID is terminated. Dispatched
+    rows require three originals; a setup-failure row intentionally has no participant original.
 
 - `ContractVersion = S0B-CONTRACT-v6`
 - `PromptVersion = S0B-PROXY-v6`
@@ -69,7 +77,7 @@ instead of adding another evidence schema.
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - computer-use skill SHA-256: `e0ec667e63fba01381eb889ddbfd44a05b8556b1e502428e8ff0a474750a08d6`
 - task-message template SHA-256: `1625d1a8d2fcb918855d9d9e28bf536bd1a8c0cb9f6d93f25c0c2269831b4869`
-- facilitator-sheet SHA-256: `ce48c0b2c42278952ea3d9dd40b7837f4a5732a84a132dc904fa7d014907dd8d`
+- facilitator-sheet SHA-256: `350dd32aab7cbe607fd950dc2a3a7ae741d348a36cfe6bec73bd1090ef2036ec`
 
 | Session | Variant | Task-message SHA-256 |
 |---|---|---|

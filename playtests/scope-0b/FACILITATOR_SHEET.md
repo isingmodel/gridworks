@@ -25,6 +25,10 @@ placeholder.
 - project: `/Users/fred/dev/electric_simulator/game`
 - window title after READY in this frozen Godot editor-build launch: `Gridworks — 강변 병원 회랑 (DEBUG)`
 - app target: the one Godot process whose visible window has that exact title
+- designated skill: `computer-use:computer-use`
+- skill resource:
+  `/Users/fred/.codex/plugins/cache/openai-bundled/computer-use/1.0.1000717/skills/computer-use/SKILL.md`
+- skill SHA-256: `e0ec667e63fba01381eb889ddbfd44a05b8556b1e502428e8ff0a474750a08d6`
 - engine log:
   `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-godot.log`
 - diagnostic JSONL:
@@ -60,17 +64,22 @@ do not change. The runner manifest contains both IDs and the launch-specific tra
 The coordinator
 records launch, READY and end with monotonic times and the exact `endReason`/`faultAttribution` pair from the
 active contract. The one-row runner manifest also records the exact model, reasoning, fork and tool policy,
-plus the path and SHA-256 of the participant-returned provenance ledger and independent app/launch evidence.
-A non-`none` fault attribution
+plus independent app/launch evidence. A returned provenance ledger has its path and SHA-256; if the participant
+cannot return one after stop, timeout or app failure, both are null and the end reason explains why. Ledger
+absence or prose quality is audit-only and does not itself change TechnicalValid. A non-`none` fault attribution
 must likewise point to a preserved engine, app, host or transport artifact and its SHA-256; a coordinator note
 alone is not evidence.
 
 The only allowed pairs are `final:none`, `participant_stop:none`, `timeout:none`, `timeout:app`,
 `app_crash:app` and `runner_error:runner`. A frozen-app or participant completion failure on a working target
 is scored. Any `TechnicalValid=false` launch discards its gameplay answer and may be replaced, at most twice;
-L01–L05 and their replacements may total at most seven launches. After the evidence export, the coordinator
-locks TechnicalValid and replacement status from provenance evidence in launch order before scoring or
-recording any gameplay fields; gameplay answer quality must not affect that classification.
+L01–L05 and their replacements may total at most seven launches. After measurement end and any available
+export, the coordinator locks TechnicalValid and replacement status from machine provenance and observed
+source violations in launch order before scoring or recording gameplay fields; gameplay answer and ledger
+prose quality must not affect that classification.
+The canonical complete launch ledger is the set of runner manifests sorted by `launchElapsedMs`, then
+`evidenceId`. It includes every invalid launch and replacement; invalid gameplay fields are not entered into
+the score aggregate.
 
 ## 2. Exact participant prompt
 
@@ -117,8 +126,8 @@ of the following are true:
 3. Element-index interaction is tried first. Screenshot coordinates or Tab/Return are fallback only.
 4. One complete run reaches `FINAL`; the diagnostic contains the frozen ten-event sequence and the runner
    manifest agrees with it.
-5. The source-manifest build and fixture hashes match the implementation checkpoint; prompt, facilitator and
-   assignment hashes match the current v5 run-protocol checkpoint.
+5. The source-manifest build, fixture and designated-skill hashes match the implementation/current protocol
+   checkpoints; prompt, facilitator and assignment hashes match the current v5 run-protocol checkpoint.
 6. An independent protocol review confirms the setup/scored-interaction boundary and that no game context is
    available through bootstrap metadata.
 
@@ -142,11 +151,13 @@ If both AX and screenshot are unavailable, or a real accepted command cannot be 
   participant stop/timeout is a TechnicalValid scored failure. Do not inspect repository or unrelated apps.
 - Stop at 15 minutes. A participant stop or timeout on an otherwise working app is a valid scored failure.
 - The final app-state read ends UI interaction, not the evidence boundary. The same tool policy remains in
-  force through the scored final report; measurement ends only when that report is submitted.
+  force through the scored final report. Measurement ends at the final report or, when there is none, at the
+  recorded `participant_stop | timeout | app_crash` runner end.
 - The four `PREDICTION_LOCKED` values are prediction authority; reveal-time prose cannot repair them.
 - Fill [`record-template.csv`](record-template.csv) from transcript, diagnostic and runner evidence.
-- After the final participant report, send the exact export message in §5. Hash its output and verify the
-  closed provenance fields before starting the next session.
+- After measurement end, send the exact export message in §5 if the participant can still respond. Hash a
+  returned ledger; otherwise record it unavailable. The ledger is audit-only: omission or formatting does not
+  invalidate a launch, but a disclosed or independently observed forbidden source does.
 - Do not discuss earlier sessions, scores or expected answers with a later participant.
 - Do not tune text, layout, values or controls between official sessions.
 
@@ -155,38 +166,38 @@ Selection ratio, completion time and click count are diagnostic only.
 
 ## 5. Exact post-measurement provenance export
 
-This is a separate, unscored turn to the same participant after its final report. Send it byte-identically and
-add nothing else. The participant returns Markdown in its response without calling a tool. The coordinator,
-who already satisfied the repository reading rules, stores that response verbatim at the frozen
-`<EVIDENCE_ID>-tool-trace.md` path.
-
-```text
-EvidenceLedger = S0B-CALL-SOURCE-v1
-Coverage = ALL_CALLS_TASK_START_TO_FINAL_REPORT
-EntryFields = ORDER|TOOL|PURPOSE|CONTENT_SOURCE|REQUEST|RESULT|FRESH_STATE_FOR
-MetadataOrErrorRequest = EXACT
-MetadataResult = RETURNED_TOOL_NAMES_AND_USED_SIGNATURE_ONLY
-ErrorResult = EXACT_TEXT
-UiSequence = ACTION_THEN_FRESH_STATE
-UnusedToolDescriptions = OMIT
-FullAxOrScreenshotBody = OMIT
-```
+This is a separate, unscored turn after measurement end when the participant can still respond. Send the one
+block below byte-identically and add nothing else. The participant returns Markdown without calling a tool.
+The coordinator stores a returned response verbatim at `<EVIDENCE_ID>-tool-trace.md`; non-return is recorded
+in the runner manifest and is not itself invalid.
 
 ```text
 측정은 종료됐습니다. Gridworks, @oai/sky, node_repl 또는 다른 도구를 다시 호출하지 마세요. 이번
 세션에 보존된 task/tool history만 사용해 이 응답에 Markdown 본문만 반환하세요.
 
-task 시작부터 final report까지의 모든 tool call을 실제 순서대로 짧은 ledger로 적으세요. 각 행에는
-순서, tool 이름, 목적, content-source 종류와 OK/ERROR가 있어야 합니다.
+EvidenceLedger = S0B-CALL-SOURCE-v1
+Coverage = ALL_CALLS_TASK_START_TO_MEASUREMENT_END
+EntryFields = ORDER|CLASS|TOOL|PURPOSE|CONTENT_SOURCE|REQUEST|RESULT|FRESH_STATE_FOR
+MetadataRequest = EXACT
+MetadataResult = RETURNED_TOOL_NAMES_AND_USED_SIGNATURE_ONLY
+ErrorResult = EXACT_TEXT
+UiSequence = ACTION_THEN_FRESH_STATE
+UnusedToolDescriptions = OMIT
+FullAxOrScreenshotBody = OMIT
 
-- skill read는 등록 skill 이름과 성공 여부를 적으세요.
-- metadata/import/dispatch/error call은 request를 정확히 적으세요. 성공한 metadata 결과는 반환된
-  callable 이름과 실제 사용한 signature만 적고, 모든 ERROR는 오류 원문을 적으세요.
-- Gridworks call은 method/action, result status/content type을 적으세요. 각 UI action 뒤 어느 fresh
-  state read를 했는지 같은 행 또는 바로 다음 행에 표시하고 짧은 stage marker만 적으세요.
-- 첫 readable Gridworks state, final app-state read와 final report 제출 경계를 표시하세요.
-- 금지 source 접근이 있었다면 해당 call과 source를 적고, 없었다면 `ForbiddenContentSources: NONE`이라고
-  적으세요.
+task 시작부터 measurement end까지의 모든 tool call을 실제 순서대로 짧은 ledger로 적으세요. 비해당
+field는 `-`로 적고 다음 class 규칙을 사용하세요.
+
+- SKILL: REQUEST에는 등록 skill 이름, RESULT에는 성공 또는 오류를 적습니다.
+- METADATA_OR_IMPORT: REQUEST는 원문, RESULT는 반환 callable 이름과 실제 사용 signature만 적습니다.
+- GRIDWORKS_READ: REQUEST는 method 이름, RESULT는 status/content type과 짧은 stage marker를 적습니다.
+- GRIDWORKS_ACTION: REQUEST는 method/action만, RESULT는 status/content type을 적고 FRESH_STATE_FOR에는
+  바로 뒤 state-read 순번을 적습니다. 전체 wrapper code는 적지 않습니다.
+- OTHER_OR_ERROR: REQUEST는 원문을 적고 ERROR의 RESULT는 오류 원문을 적습니다.
+
+첫 readable Gridworks state, final app-state read, final report 또는 다른 measurement end를 표시하세요.
+금지 source 접근이 있었다면 해당 call과 source를 적고, 없었다면
+`ForbiddenContentSources: NONE`이라고 적으세요.
 
 사용하지 않은 tool description, 전체 tool-catalog 응답, wrapper 내부 구현, screenshot과 전체 AX 본문은
 요청하지도 보존하지도 않습니다. 이들을 생략해도 증거 누락이 아닙니다. repository나 다른 파일을

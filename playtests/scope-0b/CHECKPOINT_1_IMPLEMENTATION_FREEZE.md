@@ -10,13 +10,14 @@
 
 ## Frozen build authority
 
-The build evidence in this file remains current. Later run-protocol results and resets are preserved in
+The build evidence in this file remains current, but this checkpoint authorizes no run protocol. Later
+run-protocol results and resets are preserved in
 their own checkpoints:
 [`checkpoint 1B`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md),
 [`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md),
 [`checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md) and
-[`checkpoint 1E`](CHECKPOINT_1E_RUN_PROTOCOL_V5.md). The current execution copy is the facilitator linked
-from the latest reviewed checkpoint. Runtime, fixture and gate did not change.
+[`checkpoint 1E`](CHECKPOINT_1E_RUN_PROTOCOL_V5.md). v4 is historical and blocked; checkpoint 1E owns the
+pending v5 draft. Runtime, fixture and gate did not change.
 
 - active contract: [`docs/scopes/SCOPE_0B_PLAYABLE.md`](../../docs/scopes/SCOPE_0B_PLAYABLE.md)
 - machine fixture: [`data/scope-0b-v1.json`](../../data/scope-0b-v1.json)
@@ -144,5 +145,5 @@ Its public result and private evidence anchors are in [`L00_RESULT.md`](L00_RESU
 `4a84b55374f2255f36806bc16112cf1f8ebc5fda` received a bounded independent review from
 `scope0b_core_review`. Two `P1` record defects—premature authorization wording and one mistyped app-log SHA
 digit—were fixed. Independent parsing reproduced the AX trace, all hashes and `final:none`; final review was
-`P0=0, P1=0, P2=0`. Official v1, v2 and v3 later became protocol `PROXY-RUN-BLOCKED`; the unchanged build may
-now be reused under the reviewed v4 execution copy linked above.
+`P0=0, P1=0, P2=0`. Official v1–v4 later became protocol `PROXY-RUN-BLOCKED`. The unchanged build may be
+reused only after the currently pending run protocol receives its own reviewed authorization.

@@ -519,18 +519,22 @@ space로 접고 양끝을 제거한 뒤 계산한 SHA-256이다. 이 규칙은 A
   oracle·rubric·이전 session, 앱 목록과 다른 앱 내용은 task 전체에서 금지한다.
 - 첫 readable Gridworks app state가 scored interaction 시작이다. 첫 state 전에는 UI action을 하지 않고,
   모든 Gridworks UI read/action은 `tools.mcp__node_repl__js` 안의 `@oai/sky`와 frozen target을 사용한다.
-  final app-state read에서 UI interaction은 끝나지만 source-isolation 규칙은 final report까지 유지된다.
+  final app-state read에서 UI interaction은 끝나지만 source-isolation 규칙은 final report 또는
+  `participant_stop | timeout | app_crash`로 runner가 종료될 때까지 유지된다.
   각 UI action 뒤에는 같은 dispatch 또는 다음 read-only direct-wrapper dispatch로 fresh
   `get_app_state`를 얻은 뒤에만 다음 action을 정한다. final 보고 뒤 coordinator는 facilitator sheet의
   exact export message를 같은 participant에게 별도 turn으로 보내 **짧은 provenance report**를 받는다.
   participant는 도구를 다시 호출하지 않으며 coordinator가 응답 원문을 launch별 private trace로
-  저장한다. 이 export는 측정에 합산하지 않고, 다음 session 전에 path·SHA와 필수 의미 field를
-  runner manifest에 대조한다.
-- provenance report는 task 시작부터 final report까지의 call/source ledger다. 각 행은 순서·tool·목적·
+  저장한다. final report 없이 stop·timeout·app failure로 끝났으면 그 종료가 measurement end다.
+  participant가 export를 반환할 수 있으면 같은 message를 보내고, 반환할 수 없으면 runner manifest에
+  provenance unavailable과 이유를 기록한다.
+- provenance report는 task 시작부터 measurement end까지의 call/source ledger다. 각 행은 순서·tool·목적·
   content-source·상태를 가지며, metadata/error call은 정확한 request를, metadata 결과는 반환된 callable
   이름과 실제 사용 signature만, 모든 error는 원문을 보존한다. 각 UI action은 바로 뒤 fresh-state
   read와 짧은 stage marker에 연결한다. 사용하지 않은 tool description, 전체 tool-catalog 응답,
   wrapper 내부구현, screenshot과 전체 AX 본문은 복제하지 않는다. 이 생략은 TechnicalValid 실패가 아니다.
+  ledger는 audit 보조자료이며 완전성·서식·반환 가능 여부 자체를 TechnicalValid 또는 replacement
+  조건으로 쓰지 않는다. 다만 ledger나 독립 증거에서 금지 source 접근이 드러나면 해당 launch는 무효다.
 - logical `sessionId`는 prompt와 app state에 쓰며 replacement에서도 바꾸지 않는다. 각 실제 launch의
   `evidenceId`는 `<sessionId>-launch1`부터 증가하고 engine/app/runner/trace/transcript path에만 쓴다.
   replacement는 실패 slot의 variant·prompt hash를 그대로 상속한다.
@@ -545,27 +549,31 @@ space로 접고 양끝을 제거한 뒤 계산한 SHA-256이다. 이 규칙은 A
 - `TechnicalValid = false` launch는 원인과 무관하게 최대 두 번 새 cold session으로 교체해 총 launch를
   7로 제한한다. 해당 gameplay 답은 집계하지 않는다. 정상 target UI를 본 participant의 stop·timeout과
   frozen app에 귀속되는 crash·무응답은 TechnicalValid인 scored failure이므로 교체하지 않는다.
-- evidence export 뒤 provenance만으로 launch 순서대로 TechnicalValid와 replacement를 먼저 고정한 뒤
-  gameplay field를 채점·기록한다. gameplay 답의 품질은 이 분류에 영향을 주지 않는다.
+- measurement end와 가능한 evidence export 뒤 기계 identity·runner/app evidence와 관찰된 source
+  violation만으로 launch 순서대로 TechnicalValid와 replacement를 먼저 고정한 뒤 gameplay field를
+  채점·기록한다. gameplay 답의 품질과 ledger 문장 품질은 이 분류에 영향을 주지 않는다.
 - reveal 전 diagnostic의 locked 네 cell이 prediction 권위다. reveal 뒤 수정한 답은 세지 않는다.
 - 최종 화면 뒤 participant는 서비스 권역/실제 공급, 두 사고축, 자신의 선택과 실제 사건결과,
   병원 내부전원/utility 인도·판매 경계와 예상 밖 행동을 짧게 보고한다.
 - 원 transcript·diagnostic·screenshot은 `playtests/scope-0b/private/`에 두고 Git 제외한다. 공개에는
   SHA-256, 비식별 aggregate·오해·도구 한계만 남긴다.
+- 실제 launch의 단일 순서 권위는 runner manifest를 `launchElapsedMs`, 그다음 `evidenceId`로 정렬한
+  목록이다. technical-invalid launch의 gameplay field는 score 표에 넣지 않으며 replacement를 포함한
+  전체 launch 수와 이유는 이 목록으로 검산한다.
 
 `TechnicalValid`는 frozen build·fixture·prompt hash, 새 process, exact variant, transcript·runner
-manifest·facilitator §5 필수 field를 채운 provenance ledger가 있고, 허용되지 않은 content source나 첫 readable
-state 전 UI mutation이 없으며, (a) 정상 runner에서 `READY`와 app diagnostic prefix가
+manifest가 있고, 허용되지 않은 content source나 첫 readable state 전 UI mutation이 관찰되지 않았으며,
+(a) 정상 runner에서 `READY`와 app diagnostic prefix가
 확보된 뒤 `faultAttribution != runner`이거나 (b) preflight가 통과한 동일 환경에서 frozen app 귀속
 crash·무응답(`faultAttribution = app`)이 runner manifest로 입증되면 true다. 정상 runner의
 participant stop·timeout과 app failure는 `InteractionCompletionPass = false`인 valid scored failure다.
 host lock·Computer Use transport·process launch를 포함해 독립 증거로 `faultAttribution = runner`인
 오류는 READY 전후와 무관하게 TechnicalValid=false이고 replacement 대상이다. 사후 추측만으로
 app/runner 귀속을 바꾸지 않는다.
-TechnicalValid=false의 증거 형식 사유는 필수 artifact/field 누락, identity 불일치, 금지 source 접근,
+TechnicalValid=false의 증거 형식 사유는 기계 identity artifact 누락, identity 불일치, 관찰된 금지 source 접근,
 첫 state 전 mutation, frozen target·`@oai/sky` 밖 UI 조작, 또는 독립 artifact와 ledger의 모순으로
 닫는다. harmless metadata/import/transport 확인, literal wrapper spelling, 첫 호출 실패와 위에서
-명시적으로 제외한 verbose output 생략은 무효 사유가 아니다.
+명시적으로 제외한 verbose output 생략, ledger의 서식·완전성·미반환은 무효 사유가 아니다.
 각 run protocol version은 독립된 최대 일곱 official launch와 두 번의 technical-invalid replacement 상한을
 갖는다. v1·v2·v3·v4·v5는 합산하지 않는다. v1은 bootstrap, v2는 import, v3는 prompt identity,
 v4는 evidence-format 불일치 때문에 valid 다섯 slot이 불가능해 각각 `PROXY-RUN-BLOCKED`로 닫혔고

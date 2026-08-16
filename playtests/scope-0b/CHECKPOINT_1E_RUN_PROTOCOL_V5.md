@@ -78,8 +78,10 @@ v5 changes only the post-run provenance format. It does not add another wrapper 
 5. Unused tool descriptions, wrapper internals, full AX/screenshot text and every target-state response are
    explicitly neither retained nor required for `TechnicalValid`.
 6. The report is a bounded participant attestation cross-checked against the prompt, app diagnostic, transcript
-   and runner manifest. It is not independent proof that an unreported source was never accessed, so the final
-   claim must remain limited to this same-model proxy.
+   and runner manifest. Its completeness, prose format or non-return after stop/timeout/app failure does not
+   select a launch out; only an observed forbidden source or machine identity failure can do so.
+7. This is not independent proof that an unreported source was never accessed, so the final claim must remain
+   limited to this same-model proxy.
 
 - `ContractVersion = S0B-CONTRACT-v5`
 - `PromptVersion = S0B-PROXY-v5`
@@ -96,8 +98,9 @@ v5 changes only the post-run provenance format. It does not add another wrapper 
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - task-message template SHA-256: `75796ad89829418005a352833c556bd59f8e36f8d442cf2f7735e64fba5cdc74`
-- facilitator-sheet SHA-256: `99457431f277e6d639d3874ad6fa90b172223389498a4c1cb9d9a45479ac5ea2`
+- facilitator-sheet SHA-256: `f674bd9173a00fc4f8f7a22f38946d6868c73f160849549549952cf33584a43e`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
+- computer-use skill SHA-256: `e0ec667e63fba01381eb889ddbfd44a05b8556b1e502428e8ff0a474750a08d6`
 
 | Session | Variant | Task-message SHA-256 |
 |---|---|---|
@@ -109,7 +112,7 @@ v5 changes only the post-run provenance format. It does not add another wrapper 
 
 ## 6. v5 review checkpoint
 
-- initial v5 protocol commit: `PENDING`
+- initial v5 protocol commit: `cada47451b7e8ad0c5f094543fad17915e560937`
 - bounded independent v5 reviewers: `PENDING`
 - review standard: skeptic; simple structure is the default
 - runtime, fixture, UI, rubric or gate change: `NONE`

@@ -201,7 +201,12 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan
 - [ ] draft·공사 중 선로가 통전선처럼 빛나지 않는다.
 - [ ] 유효 경로가 최소 pole 수 퍼즐처럼 표현되지 않는다.
 
-## 8. 사람 검증 TODO
+## 8. 검증 행위 TODO — 활성화 때 재작성
+
+이 미개방 후보의 `사람/비전문가` 문구는 이전 초안이며 현재 실행 권위가 아니다. 현재 사용자
+지시대로 첫 검증은 새 cold LLM proxy로 대체하고 `HumanValidationStatus = NOT_COLLECTED`를 유지해야
+한다. Scope 1을 실제로 열 때 표본·runner·rubric을 한 번만 다시 쓰며, 아래 역사적 사람 절차를
+그대로 실행하지 않는다.
 
 ### 운영
 

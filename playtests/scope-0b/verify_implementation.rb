@@ -12,6 +12,7 @@ RUN_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md"
 SHEET = ROOT.join("playtests/scope-0b/FACILITATOR_SHEET.md")
 RECORD = ROOT.join("playtests/scope-0b/record-template.csv")
 FIXTURE = ROOT.join("data/scope-0b-v1.json")
+COMPUTER_USE_SKILL = Pathname("/Users/fred/.codex/plugins/cache/openai-bundled/computer-use/1.0.1000717/skills/computer-use/SKILL.md")
 
 def check(condition, message)
   raise "FAIL: #{message}" unless condition
@@ -112,6 +113,13 @@ run_fixture_hash = run_checkpoint[/fixture SHA-256: `([0-9a-f]{64})`/, 1]
 check(fixture_hash == run_fixture_hash, "fixture hash #{fixture_hash} != run checkpoint #{run_fixture_hash}")
 puts "PASS fixture-hash: #{fixture_hash}"
 
+check(COMPUTER_USE_SKILL.file?, "designated computer-use skill missing")
+skill_hash = sha(COMPUTER_USE_SKILL)
+expected_skill_hash = run_checkpoint[/computer-use skill SHA-256: `([0-9a-f]{64})`/, 1]
+check(skill_hash == expected_skill_hash, "computer-use skill hash #{skill_hash} != run checkpoint #{expected_skill_hash}")
+check(sheet.include?(skill_hash), "facilitator skill hash drift")
+puts "PASS computer-use-skill-hash: #{skill_hash}"
+
 check(contract.include?("FACILITATOR_SHEET.md") && !contract.include?(canonical_prompt),
       "active contract must reference, not duplicate, facilitator §2 prompt")
 prompt_hash = Digest::SHA256.hexdigest(ascii_whitespace_fold(canonical_prompt))
@@ -156,14 +164,15 @@ check(sheet.include?("Literal wrapper spelling and first-call success are not") 
       sheet.include?("Any `TechnicalValid=false` launch"), "v5 semantic validity/replacement boundary missing")
 check(sheet.include?("ascii-whitespace-fold-v1"), "v5 prompt normalization policy missing")
 check(sheet.include?("participant stop/timeout is a TechnicalValid scored failure") &&
-      sheet.include?("before scoring or") && sheet.include?("gameplay answer quality must not affect"),
+      sheet.include?("before scoring or recording gameplay fields") &&
+      sheet.include?("gameplay answer and ledger") && sheet.include?("prose quality must not affect"),
       "v5 no-state/anti-selection boundary missing")
 check(sheet.include?("<EVIDENCE_ID>") && sheet.include?("<SESSION_ID>-launch1"), "replacement evidence ID boundary missing")
 ledger_policy = %w[
   EvidenceLedger\ =\ S0B-CALL-SOURCE-v1
-  Coverage\ =\ ALL_CALLS_TASK_START_TO_FINAL_REPORT
-  EntryFields\ =\ ORDER|TOOL|PURPOSE|CONTENT_SOURCE|REQUEST|RESULT|FRESH_STATE_FOR
-  MetadataOrErrorRequest\ =\ EXACT
+  Coverage\ =\ ALL_CALLS_TASK_START_TO_MEASUREMENT_END
+  EntryFields\ =\ ORDER|CLASS|TOOL|PURPOSE|CONTENT_SOURCE|REQUEST|RESULT|FRESH_STATE_FOR
+  MetadataRequest\ =\ EXACT
   MetadataResult\ =\ RETURNED_TOOL_NAMES_AND_USED_SIGNATURE_ONLY
   ErrorResult\ =\ EXACT_TEXT
   UiSequence\ =\ ACTION_THEN_FRESH_STATE
@@ -174,6 +183,7 @@ ledger_policy.each { |line| check(sheet.include?(line.tr("\\", "")), "v5 evidenc
 check(sheet.include?("## 5. Exact post-measurement provenance export") &&
       sheet.include?("전체 tool-catalog 응답") &&
       sheet.include?("생략해도 증거 누락이 아닙니다") &&
+      sheet.include?("non-return is recorded") &&
       sheet.include?("도구를 다시 호출하지 마세요"), "v5 provenance export template missing")
 
 game_text = ROOT.glob("game/*.{cs,tscn,godot}").map(&:read).join("\n")
@@ -198,5 +208,14 @@ review_recorded = run_checkpoint.match?(/- initial v5 protocol commit: `[0-9a-f]
                   run_checkpoint.match?(/- reviewed v5 protocol commit: `[0-9a-f]{40}`/)
 check(checkpoint_reviewed && sheet_reviewed && review_recorded,
       "v5 checkpoint is not independently reviewed/authorized")
+
+initial_commit = run_checkpoint[/- initial v5 protocol commit: `([0-9a-f]{40})`/, 1]
+reviewed_commit = run_checkpoint[/- reviewed v5 protocol commit: `([0-9a-f]{40})`/, 1]
+check(system("git", "-C", ROOT.to_s, "cat-file", "-e", "#{initial_commit}^{commit}", out: File::NULL, err: File::NULL),
+      "initial v5 protocol commit does not exist")
+check(system("git", "-C", ROOT.to_s, "cat-file", "-e", "#{reviewed_commit}^{commit}", out: File::NULL, err: File::NULL),
+      "reviewed v5 protocol commit does not exist")
+check(system("git", "-C", ROOT.to_s, "merge-base", "--is-ancestor", initial_commit, reviewed_commit,
+             out: File::NULL, err: File::NULL), "reviewed v5 commit does not descend from initial commit")
 
 puts "Scope 0B implementation freeze: PASS"

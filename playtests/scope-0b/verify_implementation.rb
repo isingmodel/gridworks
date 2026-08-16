@@ -87,6 +87,10 @@ check(sheet.include?("--diagnostic-log"), "launch command lacks separate diagnos
 check(sheet.include?("S0B-L00") && sheet.include?("L00Status = PASS"), "L00 pass is not explicit")
 check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v2 direct transport target missing")
 check(sheet.include?("ALL_TOOLS") && sheet.include?("forbidden"), "v2 catalog lookup prohibition missing")
+check(sheet.include?("<EVIDENCE_ID>") && sheet.include?("<SESSION_ID>-launch1"), "replacement evidence ID boundary missing")
+check(sheet.include?("## 5. Exact post-measurement evidence export") &&
+      sheet.include?("모든 `tools.mcp__node_repl__js` request") &&
+      sheet.include?("도구를 다시 호출하지 마세요"), "tool-trace export template missing")
 
 game_text = ROOT.glob("game/*.{cs,tscn,godot}").map(&:read).join("\n")
 check(!game_text.include?("verificationOnly"), "Game reads hidden oracle")

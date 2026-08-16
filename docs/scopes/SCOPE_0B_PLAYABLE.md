@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — 공식 v1은 protocol `PROXY-RUN-BLOCKED`; v2 실행 계약 review 중**
+> 상태: **ACTIVE — 공식 v1은 protocol `PROXY-RUN-BLOCKED`; reviewed v2 proxy 실행 허용**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -523,12 +523,18 @@ web, 정적 카드와 다른 세션은 보지 마세요. 각 UI action 뒤에는
   `functions.exec`는 `tools.mcp__node_repl__js` dispatch만 할 수 있고, 실제 UI read/action은 그 안의
   `@oai/sky`만 사용한다. 그 외 shell, repository, web, static card, oracle, rubric과 다른 session 답은
   금지한다.
-- 첫 `tools.mcp__node_repl__js` 호출이 측정 시작이고 final app state를 읽은 호출이 측정 끝이다.
-  각 UI action은 하나의 Sky action 뒤 fresh `get_app_state`를 같은 dispatch에서 반환해야 한다.
-  final 보고 뒤 coordinator는 같은 participant의 retained tool history를 별도 turn에서 private trace로
-  내보내게 할 수 있다. 이 export는 앱을 다시 읽거나 조작하지 않고 측정에 합산하지 않으며, 다음
-  session 전에 coordinator가 trace path·SHA와 tool-policy 준수를 runner manifest에 대조한다.
-- 15분 상한. coordinator는 app과 별도인 runner manifest JSONL에 `sessionId`, variant, build/fixture/
+- 첫 `tools.mcp__node_repl__js` 호출이 측정 시작이다. final app-state read에서 UI interaction은 끝나지만
+  scored final report까지 같은 tool policy가 유지되고, final report 제출 뒤에야 측정이 끝난다.
+  각 UI action 뒤에는 같은 dispatch 또는 다음 read-only direct-wrapper dispatch로 fresh
+  `get_app_state`를 얻은 뒤에만 다음 action을 정한다. final 보고 뒤 coordinator는 facilitator sheet의
+  exact export message를 같은 participant에게 별도 turn으로 보내 retained tool history를 Markdown
+  응답으로 받는다. participant는 도구를 다시 호출하지 않으며 coordinator가 응답 원문을 launch별
+  private trace로 저장한다. 이 export는 측정에 합산하지 않고, 다음 session 전에 coordinator가 trace
+  path·SHA와 tool-policy 준수를 runner manifest에 대조한다.
+- logical `sessionId`는 prompt와 app state에 쓰며 replacement에서도 바꾸지 않는다. 각 실제 launch의
+  `evidenceId`는 `<sessionId>-launch1`부터 증가하고 engine/app/runner/trace/transcript path에만 쓴다.
+  replacement는 실패 slot의 variant·prompt hash를 그대로 상속한다.
+- 15분 상한. coordinator는 app과 별도인 runner manifest JSONL에 `sessionId`, `evidenceId`, variant, build/fixture/
   prompt hash, `pid|null`, app target, monotonic `launchElapsedMs`, `readyElapsedMs|null`, `endElapsedMs`,
   `endReason`과 fault attribution을 남긴다. READY 미도달이면 ready 시각은 null이다.
   `endReason`은 `final | participant_stop | timeout | app_crash | runner_error`로 닫는다.

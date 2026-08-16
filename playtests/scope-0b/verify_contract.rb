@@ -684,6 +684,7 @@ checkpoint_prompt_hash = RUN_CHECKPOINT_PATH.read[/task-message template SHA-256
 check(checkpoint_prompt_hash == prompt_hash, "checkpoint prompt hash #{checkpoint_prompt_hash.inspect} != #{prompt_hash}")
 check(contract.include?("tools.mcp__node_repl__js") && contract.include?("org.godotengine.godot"), "direct transport target")
 check(contract.include?("v1과 v2는 합산하지 않는다"), "run-version evidence separation")
+check(contract.include?("`evidenceId`") && contract.include?("<sessionId>-launch1"), "replacement evidence identity")
 
 def scope0b_decision(valid_sessions:, field_passes:, integrated_passes:, conclusion_passes:, one_family:, safe_fix:, budget_available:)
   check(field_passes.keys.sort == %i[coverage interaction risk utility], "gate field keys")

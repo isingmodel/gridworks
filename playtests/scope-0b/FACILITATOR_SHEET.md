@@ -1,6 +1,6 @@
 # Scope 0B LLM UI-proxy facilitator sheet
 
-> Status: **S0B-RUN-v2 FREEZE UNDER REVIEW — official sessions closed**
+> Status: **S0B-RUN-v2 REVIEWED — official v2 sessions authorized, not yet started**
 >
 > `BuildVersion = S0B-BUILD-v1`
 >
@@ -14,8 +14,9 @@
 
 This sheet is an execution copy of the active
 [Scope 0B contract](../../docs/scopes/SCOPE_0B_PLAYABLE.md). It does not add rules, hints, retries or
-scoring discretion. The coordinator may replace only `<SESSION_ID>` and `<VARIANT>` in the frozen command
-and only `<SESSION_ID>` in the participant prompt.
+scoring discretion. The coordinator may replace only `<SESSION_ID>`, `<EVIDENCE_ID>` and `<VARIANT>` in the
+frozen launch command and only `<SESSION_ID>` in the participant prompt. The evidence-export message has no
+placeholder.
 
 ## 1. Frozen native target
 
@@ -25,16 +26,20 @@ and only `<SESSION_ID>` in the participant prompt.
 - window title after READY in this frozen Godot editor-build launch: `Gridworks — 강변 병원 회랑 (DEBUG)`
 - app target: the one Godot process whose visible window has that exact title
 - engine log:
-  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-godot.log`
+  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-godot.log`
 - diagnostic JSONL:
-  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-app.jsonl`
+  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-app.jsonl`
 - runner manifest JSONL:
-  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-runner.jsonl`
+  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-runner.jsonl`
+- retained tool trace:
+  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-tool-trace.md`
+- participant task/final transcript:
+  `/Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-transcript.md`
 
 Run exactly one process and one session at a time:
 
 ```text
-/Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path /Users/fred/dev/electric_simulator/game --windowed --resolution 1280x720 --position 0,40 --single-window --accessibility always --rendering-method gl_compatibility --log-file /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-godot.log -- --session-id <SESSION_ID> --variant <VARIANT> --diagnostic-log /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<SESSION_ID>-app.jsonl
+/Users/fred/dev/electric_simulator/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path /Users/fred/dev/electric_simulator/game --windowed --resolution 1280x720 --position 0,40 --single-window --accessibility always --rendering-method gl_compatibility --log-file /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-godot.log -- --session-id <SESSION_ID> --variant <VARIANT> --diagnostic-log /Users/fred/dev/electric_simulator/playtests/scope-0b/private/<EVIDENCE_ID>-app.jsonl
 ```
 
 Assignment is fixed:
@@ -49,6 +54,10 @@ Assignment is fixed:
 | `S0B-V2-L05` | `ab` | official v2 slot 5 |
 
 Every log path must not exist before launch; the app fails closed rather than appending. The coordinator
+sets `EVIDENCE_ID=<SESSION_ID>-launch1` for the first launch and increments only the launch number for an
+independently evidenced runner replacement. The logical session ID, variant and participant message hash do
+not change. The runner manifest contains both IDs and the launch-specific trace/transcript paths and hashes.
+The coordinator
 records launch, READY and end with monotonic times and the exact `endReason`/`faultAttribution` pair from the
 active contract. The one-row runner manifest also records the exact model, reasoning, fork and tool policy,
 plus the path and SHA-256 of the independent participant-launch/tool evidence. A non-`none` fault attribution
@@ -113,16 +122,37 @@ If both AX and screenshot are unavailable, or a real accepted command cannot be 
   direct wrapper and app target; `ALL_TOOLS`, `list_apps` and every discovery fallback are forbidden.
 - The first `tools.mcp__node_repl__js` dispatch starts measurement. During measurement, the outer
   `functions.exec` may only dispatch that tool and UI access inside it may only use `@oai/sky`.
-- Use one Sky UI action followed by a fresh `get_app_state` in each action dispatch. If the direct wrapper or
-  exact app target fails, stop as `runner_error:runner`; do not search for another tool or app.
+- After each Sky UI action, fetch fresh app state in the same dispatch or the next read-only direct-wrapper
+  dispatch before deciding the next action. If the direct wrapper or exact app target fails, stop as
+  `runner_error:runner`; do not search for another tool or app.
 - Stop at 15 minutes. A participant stop or timeout on an otherwise working app is a valid scored failure.
+- The final app-state read ends UI interaction, not the evidence boundary. The same tool policy remains in
+  force through the scored final report; measurement ends only when that report is submitted.
 - The four `PREDICTION_LOCKED` values are prediction authority; reveal-time prose cannot repair them.
 - Fill [`record-template.csv`](record-template.csv) from transcript, diagnostic and runner evidence.
-- After the final participant report, request one separate retained-history export to the session's ignored
-  `private/*-tool-trace.md`. It must not read or operate the app. Hash it and verify the exact preparation and
-  measured-tool boundary before starting the next session.
+- After the final participant report, send the exact export message in §5. Hash its output and verify the exact
+  preparation and measured-tool boundary before starting the next session.
 - Do not discuss earlier sessions, scores or expected answers with a later participant.
 - Do not tune text, layout, values or controls between official sessions.
 
 The gate is exactly the active contract: each of the four fields at least `4/5`, integrated at least `3/5`.
 Selection ratio, completion time and click count are diagnostic only.
+
+## 5. Exact post-measurement evidence export
+
+This is a separate, unscored turn to the same participant after its final report. Send it byte-identically and
+add nothing else. The participant returns Markdown in its response without calling a tool. The coordinator,
+who already satisfied the repository reading rules, stores that response verbatim at the frozen
+`<EVIDENCE_ID>-tool-trace.md` path.
+
+```text
+측정은 종료됐습니다. Gridworks, @oai/sky, node_repl 또는 다른 도구를 다시 호출하지 마세요. 이번
+세션에 보존된 task/tool history만 사용해 이 응답에 Markdown 본문만 반환하세요.
+
+다음을 실제 순서대로 기록하세요: (1) 측정 전 skill read의 exact wrapper call과 결과, (2) 첫 direct
+wrapper 호출을 measurement start로 표시, (3) 측정 중 모든 `tools.mcp__node_repl__js` request의 code,
+timeout_ms, title과 반환 text 원문 및 image 유무, (4) final app-state read를 UI interaction end로,
+final report 제출을 measurement end로 표시, (5) task 시작부터 final report 제출까지 사용한 다른
+tool call의 전체 목록. ALL_TOOLS, list_apps 또는 금지 도구가 없었다면
+없다고 명시하세요. repository나 다른 파일을 읽지 말고 앱을 조작하지 마세요.
+```

@@ -53,7 +53,8 @@ participant가 동결 절차에 없던 환경 tool-catalog 조회를 측정 전�
 같은 라운드에서 valid 다섯 slot을 확보할 수 없어 [`S0B-RUN-v1`은 protocol
 `PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md)로 닫았다. 게임·fixture·UI·
 rubric·gate는 바꾸지 않고 direct Computer Use wrapper와 app target만 exact task message에 넣은
-`S0B-RUN-v2`를 review 중이다. 이는 gameplay `REVISE/NO-GO`가 아니며 v1 응답을 v2와 합산하지 않는다.
+`S0B-RUN-v2`를 독립 review에서 `P0/P1/P2 = 0`으로 닫았다. 이는 gameplay `REVISE/NO-GO`가 아니며
+v1 응답을 v2와 합산하지 않는다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -61,8 +62,8 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-동일 build의 v2 공식 세션은 protocol-reset checkpoint review가 끝난 뒤에만 직렬 실행한다. 게임
-문구·수치·fixture·판정 기준은 바꾸지 않는다.
+동일 build의 v2 공식 세션 다섯 회를 이제 직렬 실행할 수 있다. 게임 문구·수치·fixture·판정
+기준은 그 사이 바꾸지 않는다.
 
 ## 문서 구조
 

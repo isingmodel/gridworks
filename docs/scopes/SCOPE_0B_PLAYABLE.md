@@ -653,7 +653,7 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 
 - [x] L00 native tool preflight를 동일 reviewed build로 통과했다.
 - [x] v1·v2 protocol blocker를 게임 판정과 분리해 불변 evidence로 닫았다.
-- [x] v3를 prompt identity 불일치로 판정 없이 닫고 content-only 결과를 gameplay 점수로 쓰지 않았다.
+- [x] v3를 prompt identity 불일치로 판정 없이 닫고 기술 무효 답을 채점·집계하지 않았다.
 - [ ] v4의 단일 prompt source와 transcript 검증 경계를 independent review로 닫는다.
 - [ ] reviewed v4 task message로 공식 다섯 valid session을 수행한다.
 - [ ] 원자료 hash·독립 strict score·aggregate·판정을 기록한다.

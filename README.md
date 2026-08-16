@@ -55,7 +55,7 @@ identity를 먼저 적용하면 기술 유효는 `2/5`뿐이므로 gameplay fiel
 보존했다. 세 번 모두 gameplay `REVISE/NO-GO`가 아니며 revision budget을 쓰지 않았다.
 
 현재 `S0B-RUN-v4`는 게임을 건드리지 않고 prompt 전달만 단순화한다. participant 문구는 한 canonical
-source에서 기계적으로 출력하고, 줄바꿈만 정규화한 hash를 실제 transcript와 대조한다. generic tool
+source에서 기계적으로 출력하고, ASCII whitespace 배치만 정규화한 hash를 실제 transcript와 대조한다. generic tool
 metadata·transport error는 setup 진단으로 허용하지만 repository·fixture·web·정답·이전 세션·다른 앱
 내용은 계속 금지한다. build·fixture·UI·rubric과 `4/5 + integrated 3/5` gate는 그대로이며, independent
 protocol review가 끝날 때까지 공식 실행은 닫혀 있다.

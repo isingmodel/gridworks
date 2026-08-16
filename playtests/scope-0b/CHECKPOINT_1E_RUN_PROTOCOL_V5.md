@@ -62,7 +62,8 @@ accepted events and final snapshot `d8d6ac9edf2dd05e45be72dd1d0f2d01d849a8e051d2
   applied the literal frozen exact-text evidence format
 - strict gameplay scorer: `s0b_v4_strict_score`; retained only as unscored diagnostic because valid five slots
   were not established
-- reviewed v4 closure commit: `PENDING`
+- documentation/state review: `s0b_result_docs_audit`; terminal-state and stale-document findings resolved
+- reviewed v4 closure commit: `e031aa70686d7b24035f971141a8586c5c2ab9de`
 
 ## 4. Next boundary
 

@@ -8,7 +8,7 @@ require "pathname"
 ROOT = Pathname(__dir__).join("../..").expand_path
 CONTRACT = ROOT.join("docs/scopes/SCOPE_0B_PLAYABLE.md")
 BUILD_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1_IMPLEMENTATION_FREEZE.md")
-RUN_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md")
+RUN_CHECKPOINT = ROOT.join("playtests/scope-0b/CHECKPOINT_1C_RUN_PROTOCOL_V3.md")
 SHEET = ROOT.join("playtests/scope-0b/FACILITATOR_SHEET.md")
 RECORD = ROOT.join("playtests/scope-0b/record-template.csv")
 FIXTURE = ROOT.join("data/scope-0b-v1.json")
@@ -56,8 +56,8 @@ prompt_hash = Digest::SHA256.hexdigest(contract_prompt)
 expected_prompt_hash = run_checkpoint[/task-message template SHA-256: `([0-9a-f]{64})`/, 1]
 check(prompt_hash == expected_prompt_hash, "prompt-template hash drift")
 
-assignments = { "S0B-V2-L01" => "ab", "S0B-V2-L02" => "ba", "S0B-V2-L03" => "ab",
-                "S0B-V2-L04" => "ba", "S0B-V2-L05" => "ab" }
+assignments = { "S0B-V3-L01" => "ab", "S0B-V3-L02" => "ba", "S0B-V3-L03" => "ab",
+                "S0B-V3-L04" => "ba", "S0B-V3-L05" => "ab" }
 assignments.each do |session_id, variant|
   row = run_checkpoint.lines.find { |line| line.start_with?("| `#{session_id}` |") }
   check(!row.nil? && row.include?("| `#{variant}` |"), "missing assignment #{session_id}/#{variant}")
@@ -85,11 +85,15 @@ check(sheet.include?("--accessibility always"), "launch command lacks forced acc
 check(sheet.include?("--resolution 1280x720"), "launch command lacks frozen resolution")
 check(sheet.include?("--diagnostic-log"), "launch command lacks separate diagnostic path")
 check(sheet.include?("S0B-L00") && sheet.include?("L00Status = PASS"), "L00 pass is not explicit")
-check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v2 direct transport target missing")
-check(sheet.include?("ALL_TOOLS") && sheet.include?("forbidden"), "v2 catalog lookup prohibition missing")
+check(sheet.include?("tools.mcp__node_repl__js") && sheet.include?("org.godotengine.godot"), "v3 direct transport target missing")
+check(sheet.include?("Generic environment-owned tool name/signature metadata") &&
+      sheet.include?("other-app contents are forbidden"), "v3 content-source boundary missing")
+check(sheet.include?("Literal wrapper spelling and first-call success are not") &&
+      sheet.include?("Any `TechnicalValid=false` launch"), "v3 semantic validity/replacement boundary missing")
 check(sheet.include?("<EVIDENCE_ID>") && sheet.include?("<SESSION_ID>-launch1"), "replacement evidence ID boundary missing")
 check(sheet.include?("## 5. Exact post-measurement evidence export") &&
-      sheet.include?("모든 `tools.mcp__node_repl__js` request") &&
+      sheet.include?("result status/content type") &&
+      sheet.include?("전체 AX 본문은 복제하지 마세요") &&
       sheet.include?("도구를 다시 호출하지 마세요"), "tool-trace export template missing")
 
 game_text = ROOT.glob("game/*.{cs,tscn,godot}").map(&:read).join("\n")

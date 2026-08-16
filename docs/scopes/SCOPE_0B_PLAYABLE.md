@@ -1,6 +1,6 @@
 # Gridworks — Scope 0B authored 2D playable
 
-> 상태: **ACTIVE — 공식 v1은 protocol `PROXY-RUN-BLOCKED`; reviewed v2 proxy 실행 허용**
+> 상태: **ACTIVE — 공식 v1·v2는 protocol `PROXY-RUN-BLOCKED`; v3 protocol review 중**
 >
 > 선행 증거: [Scope 0A R2](SCOPE_0A_R2_CARD_TEST.md) `PROXY-PASS`, 네 field와 integrated 모두 `5/5`
 >
@@ -15,8 +15,12 @@ Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review chec
 실제 UI에서 `FINAL`까지 도달했지만, 동결 절차에 없던 participant-side tool-catalog 조회가 매번
 발생해 `TechnicalValid`를 입증하지 못했다. 6/7 launch 뒤 valid 다섯 slot을 채울 수 없으므로
 [`v1 protocol reset checkpoint`](../../playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md)에
-`PROXY-RUN-BLOCKED`로 보존한다. 이는 게임 판정이나 revision이 아니다. v2는 build·fixture·UI·rubric·
-gate를 바꾸지 않고 exact transport 정보와 증거 경계만 participant message 안에 고정한다.
+`PROXY-RUN-BLOCKED`로 보존한다. v2 첫 launch는 host lock으로 교체됐고, 두 번째 launch는 실제 UI를
+완주했지만 첫 direct wrapper 전에 게임과 무관한 import 시도를 한 번 남겨 frozen v2 bootstrap과
+충돌했다. 이 slot은 runner replacement가 아니므로 valid 다섯 slot이 불가능해
+[`v2 result / v3 reset checkpoint`](../../playtests/scope-0b/CHECKPOINT_1C_RUN_PROTOCOL_V3.md)에
+별도 `PROXY-RUN-BLOCKED`로 보존한다. 둘 다 게임 판정이나 revision이 아니다. v3는 build·fixture·UI·
+rubric·gate를 바꾸지 않고 TechnicalValid를 게임 정보 오염 여부에만 맞춘다.
 후보였던 범위보다 이 문서가 더 작으며, 여기에 없는 기능은 현재 backlog가 아니다.
 
 ## 1. 증거와 한 문장 가설
@@ -40,11 +44,11 @@ R2에는 통과하지 못한 scored 오해가 없다. 따라서 새 오해를 �
 | Scope 0A 인계 원본 | [종료된 Scope 0A R1 §5](SCOPE_0A_CARD_TEST.md#5-동결-fixture) |
 | participant 실행 절차 | 현재 run-protocol checkpoint가 동결하는 [`playtests/scope-0b/FACILITATOR_SHEET.md`](../../playtests/scope-0b/FACILITATOR_SHEET.md) |
 
-- `ContractVersion = S0B-CONTRACT-v2`
+- `ContractVersion = S0B-CONTRACT-v3`
 - `FixtureVersion = S0B-FIXTURE-v1`
 - `BuildVersion = S0B-BUILD-v1` — 구현 commit hash와 함께 동결한다.
-- `PromptVersion = S0B-PROXY-v2`
-- `RunProtocolVersion = S0B-RUN-v2`
+- `PromptVersion = S0B-PROXY-v3`
+- `RunProtocolVersion = S0B-RUN-v3`
 - `DecisionRuleVersion = S0B-GATE-v1`
 
 JSON의 `verificationOnly`는 handoff·oracle 검사 전용이다. Core assembly의 경계 loader는 같은
@@ -489,18 +493,19 @@ AX와 screenshot을 모두 얻지 못하거나 실제 accepted command를 만들
 
 ### 11.2 공식 세션
 
-아래 code block이 `S0B-PROXY-v2`의 exact participant task message다. `<SESSION_ID>`만 할당표의
+아래 code block이 `S0B-PROXY-v3`의 exact participant task message다. `<SESSION_ID>`만 할당표의
 값으로 치환할 수 있다. run-protocol checkpoint의 facilitator sheet는 이를 verbatim 복사하고 template와
 치환된 다섯 message hash를 동결하며, 설명·힌트·성공조건을 덧붙이지 않는다.
 
 ```text
 당신은 Gridworks를 처음 플레이하는 전력회사 운영자입니다. 세션 ID는 <SESSION_ID>입니다.
-측정 시작 전에 coordinator가 지정한 computer-use SKILL.md만 한 번 읽으세요. 측정용 Computer Use
-wrapper는 `tools.mcp__node_repl__js`, 앱 target은 `org.godotengine.godot`입니다. 이 transport 정보는
-도구 목록을 찾지 않고 바로 사용하세요. 첫 wrapper 호출부터 측정이 시작되며, 그 뒤에는 wrapper
-안의 @oai/sky로만 이미 열린 Gridworks 창을 조작하세요. ALL_TOOLS, list_apps, repository, shell,
-web, 정적 카드와 다른 세션은 보지 마세요. 각 UI action 뒤에는 fresh app state를 읽은 다음
-현재 element index로 다음 행동을 정하세요.
+먼저 coordinator가 지정한 computer-use SKILL.md를 끝까지 읽으세요. Computer Use wrapper는
+`tools.mcp__node_repl__js`, 앱 target은 `org.godotengine.godot`입니다. 전체 task에서 Gridworks 정보는
+이 안내와 현재 target UI에서만 얻으세요. generic tool name/signature와 import·transport error는
+read-only로 확인할 수 있지만 repository·source/data, web, 앱 목록·다른 앱 내용, 정적 카드,
+oracle·rubric과 이전 세션은 보지 마세요. Gridworks 화면 읽기와 조작은 wrapper 안의 @oai/sky로만
+하세요. 첫 readable 화면 전에는 UI action을 하지 말고, 각 action 뒤에는 fresh app state를 읽은
+다음 현재 element index로 다음 행동을 정하세요.
 
 화면에서 직접 읽을 수 있는 정보만 사용해 처음 상태부터 마지막 복구·결산 화면까지 도움 없이
 진행하세요. 결과가 공개되기 전에 표의 네 병원 utility 공급경로 결과를 모두 예측해 잠그고,
@@ -513,18 +518,17 @@ web, 정적 카드와 다른 세션은 보지 마세요. 각 UI action 뒤에는
 (5) 예상 밖이거나 이해하기 어려웠던 조작.
 ```
 
-- 신규 cold session: `S0B-V2-L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
+- 신규 cold session: `S0B-V3-L01 AB`, `L02 BA`, `L03 AB`, `L04 BA`, `L05 AB`
 - model: `gpt-5.6-sol`, reasoning `medium`, `fork_turns = none`
 - 세션은 직렬 실행하며 매번 새 process·새 in-memory fixture로 시작한다.
-- coordinator가 앱을 시작한 뒤 participant는 exact task message가 제공한 direct wrapper와 app target을
-  그대로 사용한다. 측정 전에는 환경이 제공한 exact `computer-use/SKILL.md`를 한 번 read-only로
-  읽는 것만 허용한다. tool catalog 조회와 app discovery fallback은 허용하지 않는다. direct wrapper
-  자체가 호출되지 않으면 다른 도구를 찾지 않고 `runner_error:runner`로 닫는다. 측정 중 outer
-  `functions.exec`는 `tools.mcp__node_repl__js` dispatch만 할 수 있고, 실제 UI read/action은 그 안의
-  `@oai/sky`만 사용한다. 그 외 shell, repository, web, static card, oracle, rubric과 다른 session 답은
-  금지한다.
-- 첫 `tools.mcp__node_repl__js` 호출이 측정 시작이다. final app-state read에서 UI interaction은 끝나지만
-  scored final report까지 같은 tool policy가 유지되고, final report 제출 뒤에야 측정이 끝난다.
+- task 전체의 허용 정보 출처는 exact participant message, 지정 skill과 현재 frozen Gridworks UI뿐이다.
+  environment-owned tool name/signature metadata, import·dispatch·transport error와 exact-target metadata는
+  game content가 아닌 setup diagnostic으로 허용한다. literal wrapper 문법이나 첫 호출 성공 여부는
+  TechnicalValid 조건이 아니다. repository·source/data·diagnostic/log, web, static card·저장 screenshot,
+  oracle·rubric·이전 session, 앱 목록과 다른 앱 내용은 task 전체에서 금지한다.
+- 첫 readable Gridworks app state가 scored interaction 시작이다. 첫 state 전에는 UI action을 하지 않고,
+  모든 Gridworks UI read/action은 `tools.mcp__node_repl__js` 안의 `@oai/sky`와 frozen target을 사용한다.
+  final app-state read에서 UI interaction은 끝나지만 source-isolation 규칙은 final report까지 유지된다.
   각 UI action 뒤에는 같은 dispatch 또는 다음 read-only direct-wrapper dispatch로 fresh
   `get_app_state`를 얻은 뒤에만 다음 action을 정한다. final 보고 뒤 coordinator는 facilitator sheet의
   exact export message를 같은 participant에게 별도 turn으로 보내 retained tool history를 Markdown
@@ -542,28 +546,29 @@ web, 정적 카드와 다른 세션은 보지 마세요. 각 UI action 뒤에는
   허용 pair는 정확히 `final:none`, `participant_stop:none`, `timeout:none`, `timeout:app`,
   `app_crash:app`, `runner_error:runner`뿐이며 다른 조합의 manifest는 TechnicalValid=false다.
   `timeout:none`은 participant 미완료, `timeout:app`은 독립 로그로 입증된 frozen app hang이다.
-- 독립 증거가 있는 host lock·Computer Use transport·process launch 같은 환경/runner 오류 slot만 최대
-  2번 새 cold session으로 교체해 총 launch를 7로 제한한다. participant가 막히거나 timeout된 실행,
-  또는 frozen app에 귀속되는 crash·무응답은 교체하지 않고 scored failure다.
+- `TechnicalValid = false` launch는 원인과 무관하게 최대 두 번 새 cold session으로 교체해 총 launch를
+  7로 제한한다. 해당 gameplay 답은 집계하지 않는다. 정상 target UI를 본 participant의 stop·timeout과
+  frozen app에 귀속되는 crash·무응답은 TechnicalValid인 scored failure이므로 교체하지 않는다.
 - reveal 전 diagnostic의 locked 네 cell이 prediction 권위다. reveal 뒤 수정한 답은 세지 않는다.
 - 최종 화면 뒤 participant는 서비스 권역/실제 공급, 두 사고축, 자신의 선택과 실제 사건결과,
   병원 내부전원/utility 인도·판매 경계와 예상 밖 행동을 짧게 보고한다.
 - 원 transcript·diagnostic·screenshot은 `playtests/scope-0b/private/`에 두고 Git 제외한다. 공개에는
   SHA-256, 비식별 aggregate·오해·도구 한계만 남긴다.
 
-`TechnicalValid`는 frozen build·fixture·prompt hash, 새 process, exact variant, 허용 bootstrap/tool과
-완전한 transcript·runner manifest가 있고, (a) 정상 runner에서 `READY`와 app diagnostic prefix가
+`TechnicalValid`는 frozen build·fixture·prompt hash, 새 process, exact variant, task 시작부터의 완전한
+tool trace·transcript·runner manifest가 있고, 허용되지 않은 content source나 첫 readable state 전 UI
+mutation이 없으며, (a) 정상 runner에서 `READY`와 app diagnostic prefix가
 확보된 뒤 `faultAttribution != runner`이거나 (b) preflight가 통과한 동일 환경에서 frozen app 귀속
 crash·무응답(`faultAttribution = app`)이 runner manifest로 입증되면 true다. 정상 runner의
 participant stop·timeout과 app failure는 `InteractionCompletionPass = false`인 valid scored failure다.
 host lock·Computer Use transport·process launch를 포함해 독립 증거로 `faultAttribution = runner`인
 오류는 READY 전후와 무관하게 TechnicalValid=false이고 replacement 대상이다. 사후 추측만으로
 app/runner 귀속을 바꾸지 않는다.
-각 run protocol version은 독립된 최대 일곱 official launch와 두 번의 runner replacement 상한을
-갖는다. v1과 v2는 합산하지 않는다. v1은 valid slot을 확보하지 못한 채 6/7 launch를 사용했으므로
-`PROXY-RUN-BLOCKED`로 닫혔고 gameplay revision budget을 쓰지 않았다. v2에서 환경/runner 오류
-replacement 뒤에도 valid 다섯 slot을 확보하지 못하면 `PROXY-RUN-BLOCKED`이고
-판정하지 않는다.
+각 run protocol version은 독립된 최대 일곱 official launch와 두 번의 technical-invalid replacement 상한을
+갖는다. v1·v2·v3는 합산하지 않는다. v1은 6/7 launch 뒤, v2는 L01의 non-replaceable bootstrap
+불일치 뒤 valid 다섯 slot이 불가능해 각각 `PROXY-RUN-BLOCKED`로 닫혔고 gameplay revision budget을
+쓰지 않았다. v3에서 두 번의 허용 replacement 뒤에도 valid 다섯 slot을 확보하지 못하면 같은
+protocol 상태로 닫고 게임을 판정하지 않는다.
 
 ### 11.3 사전 rubric
 
@@ -657,9 +662,10 @@ preflight에서 clipping이나 click target 결함을 고치는 것은 Presentat
 
 ### 조작 proxy·결과
 
-- [x] L00 native tool preflight를 동일 reviewed build로 통과했다. v2는 UI/build를 바꾸지 않고 direct
-  wrapper 호출도 protocol review에서 별도로 확인한다.
-- [ ] reviewed v2 task message로 공식 다섯 valid session을 수행한다.
+- [x] L00 native tool preflight를 동일 reviewed build로 통과했다.
+- [x] v1·v2 protocol blocker를 게임 판정과 분리해 불변 evidence로 닫았다.
+- [ ] v3 task message와 content-source TechnicalValid 경계를 independent review로 닫는다.
+- [ ] reviewed v3 task message로 공식 다섯 valid session을 수행한다.
 - [ ] 원자료 hash·독립 strict score·aggregate·판정을 기록한다.
 - [ ] 결과의 큰 단위 checkpoint에서 문서 최신성과 다음 최대 미검증 위험을 다시 점검한다.
 - [ ] `GO`라면 Scope 0을 `REVIEWED`로 닫되 Scope 1을 자동 구현하지 않는다.

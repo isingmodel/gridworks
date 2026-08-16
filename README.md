@@ -53,8 +53,15 @@ participant가 동결 절차에 없던 환경 tool-catalog 조회를 측정 전�
 같은 라운드에서 valid 다섯 slot을 확보할 수 없어 [`S0B-RUN-v1`은 protocol
 `PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1B_RUN_PROTOCOL_V2.md)로 닫았다. 게임·fixture·UI·
 rubric·gate는 바꾸지 않고 direct Computer Use wrapper와 app target만 exact task message에 넣은
-`S0B-RUN-v2`를 독립 review에서 `P0/P1/P2 = 0`으로 닫았다. 이는 gameplay `REVISE/NO-GO`가 아니며
-v1 응답을 v2와 합산하지 않는다.
+`S0B-RUN-v2`도 동결했다. v2 첫 교체 뒤 실제 UI를 완주한 launch가 게임과 무관한 import 오류 한 번
+때문에 frozen bootstrap과 충돌했고, 이 slot은 교체할 수 없어 valid 다섯 slot이 불가능해졌다.
+따라서 [`v2도 protocol PROXY-RUN-BLOCKED`](playtests/scope-0b/CHECKPOINT_1C_RUN_PROTOCOL_V3.md)로
+조기 종료했다. 둘 다 gameplay `REVISE/NO-GO`가 아니며 서로 합산하거나 소급 재채점하지 않는다.
+
+현재 `S0B-RUN-v3`는 게임 정보 출처만 닫는 더 단순한 TechnicalValid 규칙을 review 중이다. generic
+tool metadata·transport error는 점수와 무관한 setup 진단으로 허용하되 repository·fixture·web·정답·
+이전 세션·다른 앱 내용은 금지한다. 게임 build·fixture·UI·rubric과 `4/5 + integrated 3/5` gate는
+바꾸지 않았다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -62,8 +69,8 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-동일 build의 v2 공식 세션 다섯 회를 이제 직렬 실행할 수 있다. 게임 문구·수치·fixture·판정
-기준은 그 사이 바꾸지 않는다.
+v3 protocol은 initial commit과 독립 review가 끝나기 전까지 실행하지 않는다. review가 닫히면 동일
+build의 신규 cold session 다섯 회만 직렬 실행하며 게임 문구·수치·fixture·판정 기준은 바꾸지 않는다.
 
 ## 문서 구조
 

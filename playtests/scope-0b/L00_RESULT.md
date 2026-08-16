@@ -59,6 +59,7 @@ was mistyped. Independent parsing then reproduced the AX trace, ten-event diagno
 four private hashes and unchanged runtime/prompt/gate with `P0=0, P1=0, P2=0`.
 
 Official `S0B-L01`–`S0B-L05` could then run sequentially on the same frozen build. No official session had
-started when this review closed. Their later bootstrap-protocol block and the current v2 execution copy are
-recorded in [`CHECKPOINT_1B_RUN_PROTOCOL_V2.md`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md); this historical L00
-result remains native UI evidence for the unchanged build.
+started when this review closed. The later v1 block is recorded in
+[`checkpoint 1B`](CHECKPOINT_1B_RUN_PROTOCOL_V2.md), and the v2 block plus current v3 execution copy in
+[`checkpoint 1C`](CHECKPOINT_1C_RUN_PROTOCOL_V3.md). This historical L00 result remains native UI evidence
+for the unchanged build.

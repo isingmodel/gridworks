@@ -11,8 +11,8 @@ Scope 0B의 완전한 실행 계약이다. 계약·fixture의 독립 review chec
 구현·자동검사와 독립 코드 review는 완료됐다. 첫 L00은 Computer Use transport에서 막혔지만
 재시작 뒤 AX가 복구됐고, editor-build `(DEBUG)` title target 수정도 독립 review로 닫혔다. 이어진
 [L00 결과](../../playtests/scope-0b/L00_RESULT.md)는 두 번의 상태 읽기와 실제 element-index full run으로
-`FINAL`까지 통과했고, evidence review도 `P0/P1/P2 = 0`으로 닫혔다. 첫 공식 실행은 다섯 참가자가
-공식 v1~v5는 각자 동결한 실행 증거 규칙을 충족하지 못해 모두 게임 판정 없이
+`FINAL`까지 통과했고, evidence review도 `P0/P1/P2 = 0`으로 닫혔다. 공식 v1~v5는 각자 동결한
+실행 증거 규칙을 충족하지 못해 모두 게임 판정 없이
 `PROXY-RUN-BLOCKED`로 끝났고 서로 합산하지 않는다. 상세 이력은
 [evidence package](../../playtests/scope-0b/README.md)와 각 checkpoint가 소유한다. 현재
 [checkpoint 1F](../../playtests/scope-0b/CHECKPOINT_1F_RUN_PROTOCOL_V6.md)의 v6는 build·fixture·UI·rubric·gate를

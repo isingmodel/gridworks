@@ -29,29 +29,30 @@
 
 ## 현재 개발 상태
 
-Scope 0은 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)의
-`S0B-GATE-v1 = GO`로 끝났다. [v4 결과](playtests/scope-0b/RESULT.md)는 신규 cold LLM session
-다섯 개가 실제 native UI에서 모든 조작을 완료했고, 네 field와 integrated를 모두 `5/5`로 통과했음을
-기록한다. 결과 checkpoint가 review될 때까지 새 구현 gate는 열지 않는다.
+현재 활성 개발단위는 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)다.
+Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
+[결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
+[R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.
 
 1. 서비스 권역과 실제 전력 공급은 다르다.
 2. 전기적으로 다른 두 회로도 같은 공간 회랑을 쓰면 함께 끊길 수 있다.
 3. 병원 내부전원이 환자를 지키는 것과 전력회사가 전기를 공급·판매한 것은 다르다.
 
-이 결과는 실제 비전문가가 아니라 같은 model의 cold LLM 5회를 사용한 bounded proxy다. 따라서
-사람 사용성, 재미, 접근성, 자발적 발견과 자유 배선 품질은 입증하지 않았고
-`HumanValidationStatus = NOT_COLLECTED`다. 다섯 세션 모두 북부 우회선을 골랐으므로 강변 회랑의
-실제 UPS→디젤 분기는 사람이든 proxy든 이번 round에서 조작하지 않았다. 선택률은 밸런스 목표가
-아니며 수치를 조정하지 않는다. 다섯 세션 모두 `남음/끊김` 선택이 라디오 묶음보다 독립 switch처럼
-보였다고 했지만 진행을 막지는 않았다.
+Scope 0B의 계약·machine fixture, Core·검사도구·단일 Godot scene, 자동검사, native smoke와
+독립 코드 review는 완료됐다. [L00 네이티브 조작](playtests/scope-0b/L00_RESULT.md)도 실제 화면에서
+`FINAL`까지 통과했다. 그러나 공식 LLM 조작 proxy v1~v4는 모두 **게임 판정 전 run protocol
+증거 문제**로 `PROXY-RUN-BLOCKED`다.
 
-v1·v2·v3의 protocol blocker는 [v4 reset checkpoint](playtests/scope-0b/CHECKPOINT_1D_RUN_PROTOCOL_V4.md)에
-불변 역사로 남고 v4와 합산하지 않는다. Core·단일 Godot scene·자동검사·native smoke와 독립 코드
-review는 완료됐다. Scope 0의 제작·검증·승인 순서는
-[Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
+v4의 다섯 참가자는 실제 native UI를 끝까지 조작했지만, 세 세션이 동결된 `exact text` 증거 형식을
+완전히 보존하지 않았다. 따라서 `TechnicalValid = 2/5`이고, gameplay field는 채점하지 않는다.
+이는 `GO`, `REVISE`, `NO-GO` 어느 것도 아니며 gameplay revision budget도 쓰지 않는다. 자세한
+판정과 hash는 [v4 종료·v5 준비 checkpoint](playtests/scope-0b/CHECKPOINT_1E_RUN_PROTOCOL_V5.md)에
+고정했다. `HumanValidationStatus = NOT_COLLECTED`도 유지한다.
 
-다음 개발 축은 Scope 번호가 아니라 결과의 남은 위험을 보고 다시 선정한다. 미개방 TODO가 있다는
-사실은 구현 권한이나 확정 roadmap을 만들지 않는다. Scope 1 구현은 별도 사용자 승인 전까지 닫혀 있다.
+현재 실행 승인된 proxy round는 없다. 다음 작업은 build·fixture·UI·rubric·gate를 바꾸지 않고,
+불필요한 전체 metadata/AX 복사를 요구하지 않는 더 짧은 v5 증거 계약을 별도 commit과 독립 review로
+동결하는 것이다. Scope 0의 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리하며,
+Scope 1은 Scope 0B의 실제 `GO`와 별도 적응형 점검 전까지 열리지 않는다.
 
 ## 문서 구조
 
@@ -69,7 +70,7 @@ review는 완료됐다. Scope 0의 제작·검증·승인 순서는
 
 문서 간 충돌이 있으면 현재 개발단위의 scope가 우선한다. 완료된 Scope 0A R2는
 [R2 계약](docs/scopes/SCOPE_0A_R2_CARD_TEST.md)에 따라 [R1 카드 테스트](docs/scopes/SCOPE_0A_CARD_TEST.md)의
-동결 fixture와 oracle을 값 변경 없이 사용했다. 완료된 Scope 0B의 기계 권위 전환 조건과 정확한
+동결 fixture와 oracle을 값 변경 없이 사용했다. 현재 Scope 0B의 기계 권위 전환 조건과 정확한
 fixture는 [활성 계약](docs/scopes/SCOPE_0B_PLAYABLE.md)만 정한다.
 
 ## 개발 방식

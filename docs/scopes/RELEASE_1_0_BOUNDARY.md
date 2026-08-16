@@ -58,7 +58,7 @@ MWh는 매출이 되고, 미공급 MWh는 잃은 판매와 고객등급별 보�
 
 | 축 | 개방 근거 | 첫 최소 범위 |
 |---|---|---|
-| [`Interaction`](SCOPE_1_INTERACTION_TODO.md) | 사용자 결정으로 1.0에 직접 지지물 배치와 거리한계가 필요함 | 고정 endpoint, 회선 전용 support type 하나, `MaxSpan` 하나 |
+| [`Interaction`](SCOPE_1_INTERACTION.md) | Scope 0B 뒤 다음 미검증 위험으로 선정됨; 구현 승인은 별도 | 고정 endpoint, support type 하나, `MaxSpan` 하나 |
 | `Substation Siting` | 직접 변전소 배치와 서비스 권역이 1.0 제품 약속에 필요함 | 변전소 하나, 건설 가능 영역 하나, 고정 권역 하나 |
 | `Risk/Economy` | 인과는 이해하지만 비용과 복원력 사이 유효한 비지배 선택이 없음 | 선언 stress, 안전 profile과 비용 비교 하나 |
 | `Active Response` | 사전 건설만으로 위기 구간이 수동적임 | 도착시간·지속시간이 있는 조치 한 종 |
@@ -92,11 +92,11 @@ MWh는 매출이 되고, 미공급 MWh는 잃은 판매와 고객등급별 보�
 Scope 0A 통과와 별도 승인 뒤에만 연다. 고정 패드, 두 authored 회랑, 이진 공급과 한 고정
 사건만 구현한다. 이 단계는 전체 재미, 경제 밸런스와 simulation 정체성을 승인하지 않는다.
 
-### 미개방 Scope 1 후보
+### 준비된 Scope 1 후보 — 구현 닫힘
 
-Scope 0B 결과가 건설 상호작을 다음 위험으로 가리킬 때만 [Scope 1](SCOPE_1_INTERACTION_TODO.md)에서
-고정 terminal 사이 수동 지지물·`MaxSpan`을 검증한다. 이 TODO는 준비된 조건부
-체크리스트이며 실행 승인이 아니다. Scope 1 뒤의 다음 축은 그 결과와 남은 위험을
+Scope 0B 결과 뒤 적응형 점검은 [Scope 1](SCOPE_1_INTERACTION.md)의 고정 terminal 사이 수동
+지지물·`MaxSpan`을 다음 위험으로 선택했다. 계약은 구현 준비만 끝났으며 실행 승인이 아니다.
+Scope 1 뒤의 다음 축은 그 결과와 남은 위험을
 다시 보고 정하며, 변전소·발전소·철거 순서를 미리 고정하지 않는다.
 
 ### 적응형 단일축 gate

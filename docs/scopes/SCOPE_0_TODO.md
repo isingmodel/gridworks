@@ -207,17 +207,19 @@ Scope 0A 증거를 반영해 활성화된 Scope 0B가 소유한다.
 반복 작업 규칙은 루트 [`AGENTS.md`](../../AGENTS.md)가 소유한다. 이 종료 색인은 새 checkpoint
 절차나 미래 실행 권한을 만들지 않는다.
 
-## 11. 다음 gate 선정과 Scope 1 후보
+## 11. 다음 gate 선정과 Scope 1 준비
 
-Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한다. 그 결과 `Interaction`이 선정됐을 때만 [Scope 1 후보](SCOPE_1_INTERACTION_TODO.md)를 출발점으로 다시 검토한다.
+Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한다. 적응형 점검은 제품의 직접
+건설 약속 중 증거가 없고 독립 가능한 가장 작은 위험인 `Interaction`을 선택했다. 결과는
+[Scope 1 준비 계약](SCOPE_1_INTERACTION.md)에 있다.
 
 - [x] Scope 0B가 조건부 승인·구현됐고 자동검사와 LLM 조작 proxy 기준을 `GO`로 통과했다.
 - [x] Scope 0 결과 문서의 독립 review와 최신성 점검을 완료했다.
-- [ ] Scope 0 후 적응형 점검에서 수동 pole·`MaxSpan` 상호작용이 다음 최대 미검증 위험으로 선정됐다.
-- [ ] 실제 Scope 0B 계약에 존재하는 graph·공사·상태전이만 인계표에 적고, 존재하지 않는 범용 lifecycle은 가정하지 않는다.
-- [ ] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 동결했다.
-- [ ] Scope 0 증거에 맞게 Scope 1 후보의 표본·시간·rubric·범위와 fixture를 다시 썼다.
+- [x] Scope 0 후 적응형 점검에서 수동 pole·`MaxSpan` 상호작용을 다음 최대 미검증 위험으로 선정했다.
+- [x] 실제 Scope 0B의 공사·실패 불변·원자 편입 원칙만 인계하고 범용 lifecycle을 가정하지 않았다.
+- [x] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 제외했다.
+- [x] Scope 0 증거에 맞게 Scope 1의 임시 표본·rubric·범위와 pre-code fixture 표를 다시 썼다.
 - [ ] 사용자가 Scope 1 구현을 별도로 승인했다.
-- [ ] 같은 변경에서 README·Scope 0 결과·Scope 1 활성 계약·문서 링크를 갱신했다.
+- [x] 같은 변경에서 README·Scope 0 종료 색인·Scope 1 준비 계약·문서 링크를 갱신했다.
 
 하나라도 미충족이면 Scope 1을 구현하지 않는다.

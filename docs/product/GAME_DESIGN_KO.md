@@ -445,7 +445,7 @@ Godot scene은 명령을 보내고 반환 상태만 그린다.
 하나의 축만 연다. 아래 `Interaction`, `Substation Siting`, `Generation`, `Decommissioning`은 사용자 결정에 따라
 1.0 필수 제품 능력이지만, 앞 gate 통과와 별도 scope 승인 전에는 구현하지 않는다.
 
-- [`Interaction`](../scopes/SCOPE_1_INTERACTION_TODO.md): 고정 endpoint 사이 pole 직접 배치와 `MaxSpan`이 읽히는가?
+- [`Interaction`](../scopes/SCOPE_1_INTERACTION.md): 고정 endpoint 사이 pole 직접 배치와 `MaxSpan`이 읽히는가?
 - `Substation Siting`: 변전소 부지·권역·상위 연결을 구분해 사용하는가?
 - `Generation`: 직접 지은 발전소 한 종류가 임무 기간 안에 공급·경제 선택을 만드는가?
 - `Decommissioning`: 무전압·연결 검증과 유상 철거가 망 재구성 선택을 만드는가?

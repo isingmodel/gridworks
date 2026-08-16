@@ -293,11 +293,11 @@ capture나 이미지 prompt를 만들지 않는다.
 - N-1과 공간 공통원인을 별도 행으로 보여주는가?
 - 현금, 서비스와 안전을 하나의 추천점수로 숨기지 않는가?
 
-### Interaction 화면 — 해당 gate가 승인된 경우만
+### Scope 1 Interaction 화면 — 구현 승인 뒤에만
 
 - `MaxSpan`을 넘은 span, 실제 거리와 수동으로 지지물을 더 놓아야 한다는 사실이 즉시 읽히는가?
-- 한 지지물에서 전기 분기하거나 다른 회선이 공유되는 것처럼 보이지 않는가?
-- terminal 없는 선로 교차점이 junction처럼 보이지 않는가?
+- source에서 ordered support를 거쳐 target으로 가는 한 경로가 읽히는가?
+- 시스템이 pole 위치·최소 개수·경로를 추천하거나 자동 보정하지 않는가?
 - draft·공사 중 선로가 통전된 선로처럼 보이지 않는가?
 
 ### Decommissioning 화면 — 해당 gate가 승인된 경우만

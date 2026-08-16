@@ -22,8 +22,8 @@
 |---|---|
 | 발전소 직접 건설 | `제품 방향·1.0 필수 능력`. 완료된 Scope 0B에는 기존 가스발전만 사용 |
 | 변전소 직접 건설 | `제품 방향·1.0 필수 능력`. 완료된 Scope 0B에는 설치된 고정 변전소와 피더만 사용 |
-| 전신주·철탑을 하나씩 직접 건설 | `제품 방향·1.0 필수 능력`. `Interaction` gate 전에는 추상 선로만 사용 |
-| 각 오브젝트 사이 전선 길이 hard limit | `제품 방향·1.0 필수 능력`. 인접 endpoint 사이 `MaxSpan`을 초과하면 건설안을 확정할 수 없음 |
+| 전신주·철탑을 하나씩 직접 건설 | `제품 방향·Scope 1 준비 완료`. 구현 승인은 닫혀 있으며 현재는 추상 선로만 사용 |
+| 각 오브젝트 사이 전선 길이 hard limit | `제품 방향·Scope 1 준비 완료`. 인접 endpoint 사이 `MaxSpan` 규칙은 계약만 있고 구현되지 않음 |
 | 발전소·변전소·전신주 철거 | `제품 방향·1.0 필수 능력`. 건설 상호작용 검증 뒤 `Decommissioning` gate에서 개방 |
 | 철거 추가비 | `제품 방향·1.0 필수 능력`. 즉시 삭제가 아니라 비용과 시간이 드는 철거공사로 처리 |
 
@@ -140,8 +140,8 @@ SpanValid = distance(EndpointA, EndpointB) <= MaxSpan(LineClass)
   허용된 terminal에서만 생긴다.
 - 총 선로 길이에는 별도 hard limit을 두지 않는다. pole 수, conductor 길이, 비용과 공기가 자연스러운
   한계가 된다.
-- 첫 `Interaction` prototype은 line class와 support type을 각각 하나만 사용하므로 `MaxSpan`도
-  하나다.
+- 준비된 첫 `Interaction` 계약은 line class와 support type을 각각 하나만 사용하므로 `MaxSpan`도
+  하나다. 구현 전에는 현재 가능한 조작으로 표시하지 않는다.
 - 다회선 공유철탑, 지형별 장력, 처짐, 풍하중, 기초형식과 자동 pole 배치는 계산하지 않는다.
 
 후속 전압 등급이 실제 선택을 만들 때만 line class별 `MaxSpan`을 추가한다. 숫자는 해당 scope의

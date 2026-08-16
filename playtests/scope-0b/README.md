@@ -19,8 +19,8 @@ messages. Those three actual prompt hashes differ from their manifests, so only 
 valid and the round is protocol `PROXY-RUN-BLOCKED`; gameplay fields were not scored.
 [`Checkpoint 1D`](CHECKPOINT_1D_RUN_PROTOCOL_V4.md) preserves that evidence without a game decision and freezes
 a smaller v4 delivery rule: one canonical prompt source, whitespace-only normalization and transcript checking.
-Runtime, fixture, UI, rubric and gate remain unchanged. Official v4 sessions stay closed until its independent
-review finishes.
+Runtime, fixture, UI, rubric and gate remain unchanged. Independent v4 review closed with `P0/P1/P2 = 0`;
+official v4 sessions may now run sequentially.
 
 Future raw transcripts, native diagnostic logs and screenshots belong in `private/` and stay out of Git.
 Only their hashes, anonymous aggregate and reviewed decision may be published here.

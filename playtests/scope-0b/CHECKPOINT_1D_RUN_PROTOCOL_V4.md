@@ -1,6 +1,6 @@
 # Scope 0B v3 protocol result and v4 reset checkpoint
 
-> Status: **DRAFT — v4 independent review pending; official sessions closed**
+> Status: **REVIEWED — official v4 sessions authorized**
 >
 > `RoundStatus = PROXY-RUN-BLOCKED` for `S0B-RUN-v3`
 >
@@ -83,7 +83,7 @@ No general runner framework or gameplay change is added.
   `69b658715a84b4099677b36c7d4fb458d65add59fcff8474865d95bf418e03bd`
 - fixture SHA-256: `e617f7b9163294ca0e72f89bf3cb3a3be634c0de21f1d2736549863f53617e57`
 - task-message template SHA-256: `75796ad89829418005a352833c556bd59f8e36f8d442cf2f7735e64fba5cdc74`
-- facilitator-sheet SHA-256: `0500e8e6c7339d898ebf08a731b55e32d58c12db3777f93fb0a7f38e2db6f6cd`
+- facilitator-sheet SHA-256: `2fa1f53c95c6fab06f6e083857be07333d1f7cfa32bc0b6f4f747931c666beff`
 - record-template SHA-256: `7d9e96313f3a2ba6189ef09267798890b2abd749a1bdb6373afe5d4c955104e1`
 
 | Session | Variant | Task-message SHA-256 |
@@ -106,5 +106,5 @@ No general runner framework or gameplay change is added.
   checking after all invariant checks and bind it to exact top-level status; label implementation-freeze prompt
   hashes as historical v1 evidence
 - rejected expansion: no new runner framework, runtime/UI/fixture/rubric/gate change or retrospective v3 score
-- final review: `PENDING`
-- reviewed protocol commit: `PENDING`
+- final review: `P0=0, P1=0, P2=0`
+- reviewed protocol commit: `c3c5f6d401f279e34737835182e9a496119cba38`

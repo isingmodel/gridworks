@@ -58,7 +58,7 @@ identity를 먼저 적용하면 기술 유효는 `2/5`뿐이므로 gameplay fiel
 source에서 기계적으로 출력하고, ASCII whitespace 배치만 정규화한 hash를 실제 transcript와 대조한다. generic tool
 metadata·transport error는 setup 진단으로 허용하지만 repository·fixture·web·정답·이전 세션·다른 앱
 내용은 계속 금지한다. build·fixture·UI·rubric과 `4/5 + integrated 3/5` gate는 그대로이며, independent
-protocol review가 끝날 때까지 공식 실행은 닫혀 있다.
+protocol review는 `P0/P1/P2 = 0`으로 닫혔다.
 
 Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_TODO.md)가 관리한다.
 그 뒤의 개발 축은 결과를 보고 다시 선정하며, 미개방 TODO가 있다는 사실은 현재 실행 권한이나
@@ -66,8 +66,8 @@ Scope 0의 제작·검증·승인 순서는 [Scope 0 TODO](docs/scopes/SCOPE_0_T
 
 `LLM-PROXY-R2`의 [동결 결과](playtests/scope-0a-r2/RESULT.md)는 기술 유효 `5/5`, 네 field와
 integrated 모두 `5/5`다. 선택은 모두 북부 우회였지만 선택률은 진단값이고 판정에 쓰지 않았다.
-v4 protocol review 뒤에만 동일 build의 신규 cold session 다섯 회를 직렬 실행한다. 게임 문구·수치·
-fixture·판정 기준은 바꾸지 않는다.
+이제 동일 build의 신규 cold session 다섯 회만 직렬 실행한다. 게임 문구·수치·fixture·판정 기준은
+바꾸지 않는다.
 
 ## 문서 구조
 

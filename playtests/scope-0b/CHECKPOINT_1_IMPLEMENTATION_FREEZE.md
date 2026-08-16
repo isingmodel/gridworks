@@ -1,6 +1,6 @@
 # Scope 0B implementation-freeze checkpoint
 
-> Status: **REVIEWED IMPLEMENTATION — runtime unchanged; current execution copy is v4 draft**
+> Status: **REVIEWED IMPLEMENTATION — runtime unchanged; current execution copy is reviewed v4**
 >
 > `SubGateDecision = PENDING`
 >
@@ -143,4 +143,4 @@ Its public result and private evidence anchors are in [`L00_RESULT.md`](L00_RESU
 `scope0b_core_review`. Two `P1` record defects—premature authorization wording and one mistyped app-log SHA
 digit—were fixed. Independent parsing reproduced the AX trace, all hashes and `final:none`; final review was
 `P0=0, P1=0, P2=0`. Official v1, v2 and v3 later became protocol `PROXY-RUN-BLOCKED`; the unchanged build may
-be reused only after the current v4 execution copy linked above completes independent review.
+now be reused under the reviewed v4 execution copy linked above.

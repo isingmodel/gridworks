@@ -1,12 +1,12 @@
 # Scope 1 checkpoint 1 — activation and fixture handoff
 
-> `CheckpointStatus = REVIEW_IN_PROGRESS`
+> `CheckpointStatus = REVIEWED`
 >
 > `ImplementationAuthorization = GRANTED`
 >
 > `OfficialProxyAuthorization = NOT_GRANTED`
 >
-> `FixtureAuthorityStatus = HANDOFF_REVIEW_IN_PROGRESS`
+> `FixtureAuthorityStatus = REVIEWED_MACHINE_AUTHORITY`
 
 ## Authority
 
@@ -52,10 +52,11 @@ Fixture SHA-256: `8c1cd63efe1e6a6d3745db96c4071fd3a264ace07e715883581163f1c98e6a
 - contract verifier checks exact fixture shape, values, integer-distance oracle and document links
 - bounded independent reviewers challenge schema necessity, Core isolation and authorization freshness
 - Scope 0B contract, 3,098 assertions and Scope 0A R2 regression remain green
-- initial activation content commit: `PENDING`
-- reviewers: `PENDING`
-- final review: `PENDING`
-- reviewed activation content commit: `PENDING`
+- initial activation content commit: `608156cc75f64b21c17169df86faee68bcaf6f1d`
+- reviewers: `scope1_contract_skeptical_review`, `scope1_docs_authority_review`,
+  `scope1_gate_parameter_review`
+- final review: `P0=0, P1=0, P2=0`; blockers none
+- reviewed activation content commit: `9119f93f6b3e6623190041ffeeb0d726b573499e`
 
-Until all pending fields are closed and `FixtureAuthorityStatus = REVIEWED_MACHINE_AUTHORITY`, implementation
-source changes remain closed.
+The fixture handoff is reviewed. JSON is now the sole machine authority and Scope 1 source implementation is
+open. Official proxy sessions remain closed until a later reviewed implementation/evidence checkpoint.

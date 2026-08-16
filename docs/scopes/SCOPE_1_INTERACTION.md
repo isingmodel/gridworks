@@ -1,6 +1,6 @@
 # Gridworks — Scope 1 수동 선로 건설 계약
 
-> 상태: **ACTIVE — 구현 승인; fixture 인계 review 전 source와 공식 실행은 CLOSED**
+> 상태: **ACTIVE — fixture 인계 완료·source 구현 OPEN; 공식 proxy CLOSED**
 >
 > 다음 위험 선정: `Interaction — manual supports + one MaxSpan`
 >
@@ -67,10 +67,9 @@ native UI에서 구분하는지 확인했다. 그러나 플레이어는 authored
 
 ## 4. 단일 fixture와 권위 인계
 
-아래 표와 같은 값의 [`data/scope-1-v1.json`](../../data/scope-1-v1.json)을 활성화 변경에서 만들었다.
-[인계 checkpoint](../../playtests/scope-1/CHECKPOINT_1_CONTRACT_FREEZE.md)가 독립 review를 마치기 전에는
-source 구현을 시작하지 않는다. review 뒤 JSON이 유일한 기계 권위이고 이 표는 사람이 읽는
-인계 mirror다. 값이나 항목을 몰래 늘리지 않는다.
+아래 표와 같은 값의 [`data/scope-1-v1.json`](../../data/scope-1-v1.json)을 활성화 변경에서 만들었고,
+[인계 checkpoint](../../playtests/scope-1/CHECKPOINT_1_CONTRACT_FREEZE.md)가 독립 review를 마쳤다.
+JSON이 유일한 기계 권위이고 이 표는 사람이 읽는 인계 mirror다. 값이나 항목을 몰래 늘리지 않는다.
 
 | 항목 | 값 |
 |---|---|
@@ -251,7 +250,7 @@ registry, type catalog와 parameter sweep을 만들지 않는다.
 - [x] 루트 README가 이 문서를 활성 구현 scope로 지목한다.
 - [x] 위 표와 exact한 `data/scope-1-v1.json`을 만든다.
 - [ ] strict loader·validator와 독립 fixture checker를 만든다.
-- [ ] pre-code 표 → JSON 인계검사와 contract-freeze checkpoint를 review한다.
+- [x] pre-code 표 → JSON 인계검사와 contract-freeze checkpoint를 review한다.
 - [ ] scope-local Core state·명령·snapshot과 오류 불변 검사를 구현한다.
 - [ ] 단일 Godot scene의 수동 지도 입력과 범위 피드백을 구현한다.
 - [ ] oracle, build, native smoke와 Scope 0B 회귀검사를 통과한다.

@@ -4,17 +4,19 @@
 >
 > `IntegratedPlacementPass = true`
 >
-> `OfficialSampleProgress = 1/3`
+> `OfficialSampleProgress = 1/1`
 >
-> `GateDecision = INCOMPLETE`
+> `Scope1Status = COMPLETED`
+>
+> `CompletionBasis = USER_ACCEPTED_SINGLE_OBSERVATION`
 >
 > `HumanValidationStatus = NOT_COLLECTED`
 
 ## 실행 경계
 
-2026-08-17 사용자는 공식 LLM 실행을 정확히 한 번만 승인했다. 따라서 이 기록은 기존 계약의 첫 번째
-공식 row만 소유한다. 나머지 두 row, 재시도, 교체와 수정 라운드는 실행하지 않았으며 이 한 결과로
-Scope 1 `GO/NO-GO`를 내리지 않는다.
+2026-08-17 사용자는 공식 LLM 실행을 정확히 한 번만 승인했고, 결과를 확인한 뒤 이 한 번의 pass를
+충분한 Scope 1 종료 근거로 수용했다. 따라서 공식 관찰은 `1/1`로 닫고 Scope 1을 완료로 기록한다.
+추가 row, 재시도, 교체와 수정 라운드는 실행하지 않는다.
 
 직전에 완료한 비공식 전체 실행은 동일 build의 기술 사전점검으로만 사용했다. 그 실행은 build·fixture
 identity, 실제 native 입력, `READY → SUPPORT_ADDED → SUPPORT_ADDED → ORDERED → COMPLETED → FINAL`,
@@ -39,9 +41,10 @@ L01은 이전 참가자를 재사용하지 않은 새 cold agent였다. 좌표�
   약간 예상 밖이었다. 범위 원, 좌표 목록, 남은 거리 문구와 button enabled 상태는 이해에 충분했다고
   보고했다.
 
-따라서 이 row의 유일한 conjunction인 `IntegratedPlacementPass`는 true다. 이는 한 동일-model LLM이
-한 화면에서 과제를 수행했다는 관찰일 뿐, 사람 사용성·재미·성공률·경로 최적화나 다음 gate를 지지하지
-않는다.
+따라서 이 row의 유일한 conjunction인 `IntegratedPlacementPass`는 true다. 사용자는 이를 Scope 1
+완료 근거로 수용했다. 이는 한 동일-model LLM이 한 화면에서 과제를 수행했다는 관찰일 뿐, 과거의
+3-row aggregate를 소급 통과한 결과가 아니며 사람 사용성·재미·성공률·경로 최적화나 다음 gate를
+지지하지 않는다.
 
 ## 앱 증거
 

@@ -1,6 +1,6 @@
 # Gridworks — Scope 1 수동 선로 건설 계약
 
-> 상태: **IMPLEMENTATION COMPLETE — 공식 관찰 1/3, aggregate 판정 INCOMPLETE**
+> 상태: **COMPLETED — 공식 단일 관찰 PASS, 사용자 수용**
 >
 > 다음 위험 선정: `Interaction — manual supports + one MaxSpan`
 >
@@ -8,7 +8,7 @@
 
 이 문서는 Scope 0B `GO` 뒤의 적응형 점검이 선택한 다음 단일 위험을 구현 가능한 크기로 닫는다.
 2026-08-16 사용자는 Scope 1 전체 목표의 구현을 승인했다. [구현 checkpoint](../../playtests/scope-1/CHECKPOINT_3_IMPLEMENTATION_REVIEW.md)는 완료된 구현·자동검사·native 검토를 기록하고, [활성화 checkpoint](../../playtests/scope-1/CHECKPOINT_1_IMPLEMENTATION_ACTIVATION.md)는 이 권한과 구현 시작 상태를 기록한다.
-[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)는 승인 전 계약 준비의 역사 기록으로 남는다. 구현 권한은 이 문서의 fixture·Core·검사·Game·회귀·native 검토에만 한정되며 제외 기능이나 다음 scope를 열지 않는다. 2026-08-17 사용자는 §9의 공식 관찰 중 한 row만 승인했다. [L01 기록](../../playtests/scope-1/OFFICIAL_OBSERVATION_L01.md)은 pass였지만, 원래의 3-row aggregate는 완료되지 않았으므로 Scope 1 `GO/NO-GO`를 내리지 않는다. 나머지 row는 자동으로 열리지 않는다.
+[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)는 승인 전 계약 준비의 역사 기록으로 남는다. 구현 권한은 이 문서의 fixture·Core·검사·Game·회귀·native 검토에만 한정되며 제외 기능이나 다음 scope를 열지 않는다. 2026-08-17 사용자는 [L01 공식 관찰](../../playtests/scope-1/OFFICIAL_OBSERVATION_L01.md) 하나의 pass를 충분한 종료 근거로 수용하고 Scope 1 완료 기록을 요청했다. 과거의 3-row aggregate 계획은 실행하지 않고 종료했으며, 다음 scope나 추가 실험은 자동으로 열리지 않는다.
 
 ## 1. 왜 이 위험이 다음인가
 
@@ -228,11 +228,11 @@ Scope 1 구현 중에도 다음은 계속 통과해야 한다.
 
 ## 9. 임시 LLM proxy 계약
 
-구현 review, 자동검사·headless smoke와 §6의 native 시각검토가 끝난 뒤에도 남는 질문은 “범위 피드백을 보고 직접 경로를 완성하고, 거리 제한과 완공 전 무전압을 설명하는가” 하나뿐이다. 2026-08-17 별도 사용자 승인으로 고정 row 중 L01만 실행했다. 한 row의 판정 구조는 아래와 같고, 3-row aggregate는 미완료 상태로 둔다.
+구현 review, 자동검사·headless smoke와 §6의 native 시각검토가 끝난 뒤에도 남은 질문은 “범위 피드백을 보고 직접 경로를 완성하고, 거리 제한과 완공 전 무전압을 설명하는가” 하나였다. 2026-08-17 별도 사용자 승인으로 cold session L01 하나를 실행했고, 사용자는 이 한 번의 결과를 Scope 1 종료 근거로 수용했다.
 
 §6의 구현단계 native 검토는 고정 화면의 clipping·접근성만, §7의 headless smoke는 scene과 Core의 연결만 확인한다. 아래 global native preflight는 proxy 직전 동일 build에서 실제 창·입력과 원본 기록이 끝까지 동작하는지 한 번 확인한다.
 
-- 전체 gate를 열 경우 세 cold session은 같은 build·fixture·prompt·model 설정을 쓰고 도움·교체가 없다. 현재 승인과 실행은 첫 row 하나로 끝났다.
+- cold session 하나는 reviewed build·fixture에서 실행하며 도움·교체·재시도가 없다.
 - 플랫폼과 앱이 자동 보존하는 원본만 쓰며 별도 transcript·manifest·export를 만들지 않는다.
 - 실행·증거 실패는 해당 row의 false로 남겨 상호작용 실패와 분리하고, 원본이 증명하지 못한 내용은 결과의 한계로 기록한다.
 - `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
@@ -249,15 +249,16 @@ IntegratedPlacementPass =
 
 직접 연결 실패를 일부러 시도할 필요는 없다. 올바른 범위 표시를 보고 처음부터 유효한 경로를 만들어도 통과다. pole 수, 클릭수, 경로 모양, 완료시간과 `Undo` 사용은 진단값이다.
 
-- `GO`: `IntegratedPlacementPass >= 2/3`
-- `NO-GO`: global preflight는 통과했지만 `IntegratedPlacementPass < 2/3`
+- `PASS`: 단일 session의 `IntegratedPlacementPass = true`
+- `FAIL`: 단일 session의 `IntegratedPlacementPass = false`
 - global preflight 실패: participant 관찰 전 `PROXY-RUN-BLOCKED`
 
-현재 공식 상태는 `OfficialSampleProgress = 1/3`, `GateDecision = INCOMPLETE`다. L01 하나의 pass를
-성공률이나 Scope 1 `GO`로 환산하지 않는다. 추가 row, 재시도와 수정 라운드는 별도 사용자 결정 전까지
-열지 않는다.
+실제 L01은 `PASS`였고 사용자가 이 결과를 수용했으므로 `Scope1Status = COMPLETED`다. 이 완료는
+`CompletionBasis = USER_ACCEPTED_SINGLE_OBSERVATION`으로 기록한다. 기존 3-row 규칙을 결과 뒤에 1-row
+통과 규칙으로 소급한 것이 아니며, 모집단 성공률이나 사람 검증을 주장하지 않는다. 추가 row, 재시도와
+수정 라운드는 열지 않는다.
 
-같은 gate에서 revision round나 추가 LLM session을 열지 않는다. 실패 원인은 자동검사로 재현 가능한 제품 결함, 참가자 미완료, 실행·증거 문제로 나눠 기록하고, 수정이나 사람 테스트는 별도 사용자 결정으로 연다. `2/3`은 동일 모델의 작은 실행 가능성 probe이지 모집단 성공률이나 사람 검증이 아니다.
+같은 gate에서 revision round나 추가 LLM session을 열지 않는다. 실패 원인은 자동검사로 재현 가능한 제품 결함, 참가자 미완료, 실행·증거 문제로 나눠 기록하고, 수정이나 사람 테스트는 별도 사용자 결정으로 연다. 단일 관찰은 모집단 성공률이나 사람 검증이 아니다.
 
 ### 9.1 파라미터 inventory
 
@@ -281,7 +282,7 @@ fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. �
 6. Game을 rebuild하고 `--scene res://Scope1Main.tscn` headless smoke를 통과한다.
 7. §8.3의 Scope 0B 회귀를 모두 다시 통과한다.
 8. 고정 화면의 clipping·접근성을 실제 native 창에서 한 번 검토한다. 여기까지 통과하면 구현 증거는 완료되지만 Scope 1 `GO`는 아직 아니다.
-9. §2의 이해·상호작용 질문이 자동검사와 native 화면 검토 뒤에도 남고 사용자가 별도 실행을 승인한 경우에만 global native preflight와 §9의 세 고정 session을 한 번 연다.
+9. §2의 이해·상호작용 질문이 자동검사와 native 화면 검토 뒤에도 남고 사용자가 별도 실행을 승인한 경우에만 global native preflight와 §9의 고정 cold session 하나를 연다.
 10. 관찰 결과와 주장 상한을 기록하고 다음 위험을 다시 선정한다. 공통 framework나 다음 scope를 자동 구현하지 않는다.
 
 ## 11. 즉시 중단 조건
@@ -289,7 +290,7 @@ fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. �
 - terrain, optimizer, 복수 support class나 terminal 선택 없이는 fixture를 완성할 수 없다.
 - invalid 명령이 draft를 바꾸거나 `Building` 중 부분 통전을 만든다.
 - 수동 배치를 설명하려면 변전소·발전소·철거 또는 경제를 함께 열어야 한다.
-- 고정 세 row에서 자동 pole 추천 없이는 완료할 수 없음이 관찰된다.
+- 공식 단일 관찰에서 자동 pole 추천 없이는 완료할 수 없음이 관찰된다.
 - implementation-ready 계약과 실제 코드 사이에 범용 graph refactor가 선행조건이 된다.
 - 기존 `GridworksSession`, `Main`, `GridMapView`의 범용화나 기본 main scene 교체가 필요하다.
 - Scope 1을 통과시키기 위해 Scope 0B fixture·검사·역사 checkpoint를 수정해야 한다.

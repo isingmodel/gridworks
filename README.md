@@ -29,17 +29,18 @@
 
 ## 현재 개발 상태
 
-현재 실행 권위는 [**Scope 1 수동 선로 건설**](docs/scopes/SCOPE_1_INTERACTION.md) 계약이다.
-고정 endpoint 사이에서 지지물을 직접 놓고 하나의 `MaxSpan`을 지키는 최소 수직 slice의 구현 증거를
-완료했으며, 추가 구현 gate는 열려 있지 않다. 완료된
+최근 완료 단위는 [**Scope 1 수동 선로 건설**](docs/scopes/SCOPE_1_INTERACTION.md)이다.
+고정 endpoint 사이에서 지지물을 직접 놓고 하나의 `MaxSpan`을 지키는 최소 수직 slice의 구현과
+공식 단일 관찰을 완료했으며, 다음 구현 gate는 아직 선택하거나 승인하지 않았다. 완료된
 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)은 공식 v6에서 `GO`로 끝났고
 `Scope0State = REVIEWED`다. Scope 1의 아홉 field fixture 인계는 독립 검토를 마쳤고,
 [`data/scope-1-v1.json`](data/scope-1-v1.json)이 현재 단일 기계 권위다. 격리된 Core·자동검사와
 Godot 수동 배치 장면의 구현·headless smoke, native 화면 검토와 독립 source 재검토까지 완료했다.
 기본 실행 장면과 완료된 Scope 0B 구현은 바꾸지 않았다.
-Scope 1의 공식 LLM 관찰은 2026-08-17 사용자가 한 세션만 승인해 `S1-OFFICIAL-L01`을 완료했다.
-이 한 row의 `IntegratedPlacementPass`는 true지만, 계약의 3-row aggregate 중 `1/3`만 수집했으므로
-Scope 1 `GO/NO-GO`는 평가하지 않는다. 추가 공식 세션은 승인되지 않았고
+Scope 1의 공식 LLM 관찰 `S1-OFFICIAL-L01`은 도움 없이 끝까지 완료돼
+`IntegratedPlacementPass = true`였다. 2026-08-17 사용자는 이 한 번의 관찰을 충분한 종료 근거로
+수용하고 Scope 1 완료 기록을 요청했다. 따라서 `Scope1Status = COMPLETED`이며 추가 세션은 실행하지
+않는다. 이는 사전 계획했던 3회 aggregate의 소급 통과나 성공률 추정이 아니고,
 `HumanValidationStatus = NOT_COLLECTED`다. [단일 관찰 기록](playtests/scope-1/OFFICIAL_OBSERVATION_L01.md)이
 증거와 주장 상한을 보존한다.
 
@@ -59,8 +60,8 @@ conclusion이 모두 `5/5`였다. [공식 결과](playtests/scope-0b/RESULT.md)�
 이는 동일-model LLM의 authored UI 조작 전이만 지지한다. 다섯 세션 모두 북부선을 골랐고 모두
 `남음/끊김` control을 독립 switch처럼 보인다고 했으므로 선택 밸런스와 사람 사용성을 주장하지
 않는다. Scope 0B의 `HumanValidationStatus = NOT_COLLECTED`다. Scope 1의 구현·자동검사·native 검토는
-완료됐고, 공식 proxy는 위 한 row까지만 실행됐다. 나머지 두 row나 새 실험은 별도 사용자 승인 없이는
-실행하지 않으며, 사람 증거·성공률·재미·사용성으로 해석하지 않는다.
+완료됐고, 공식 proxy는 위 한 row로 종료됐다. 새 실험은 별도 사용자 승인 없이는 실행하지 않으며,
+사람 증거·성공률·재미·사용성으로 해석하지 않는다.
 
 ## 문서 구조
 
@@ -126,10 +127,10 @@ gate 통과는 다음 작업을 자동 승인하지 않는다. 큰 개발단위 
    작은 playtest로 관찰한다.
 
 비전문가 테스트를 당분간 LLM으로 대체하더라도 LLM play는 모든 gate의 기본 완료조건이 아니다.
-활성 scope가 남은 한 문장 질문에 필요하다고 명시할 때만 **한 번의 사전점검과 최대 세 개의 고정
-cold session**을 사용한다. 나쁜 결과나 실행 실패를 교체하지 않고, 같은 gate 안에서 자동 재실행이나
-수정 라운드를 열지 않는다. 플랫폼과 앱이 이미 보존하는 원본을 사용하며 별도 transcript, manifest,
-runner 체계를 만들지 않는다. 결과는 동일 모델이 그 화면에서 과제를 수행했는지에만 한정하고
+활성 scope가 남은 한 문장 질문에 필요하다고 명시할 때만 **한 번의 사전점검과 한 개의 고정 cold
+session**을 기본으로 사용한다. 나쁜 결과나 실행 실패를 교체하지 않고, 같은 gate 안에서 자동 재실행,
+추가 표본이나 수정 라운드를 열지 않는다. 플랫폼과 앱이 이미 보존하는 원본을 사용하며 별도 transcript,
+manifest, runner 체계를 만들지 않는다. 결과는 그 한 모델 세션이 그 화면에서 과제를 수행했는지에만 한정하고
 `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
 
 자동검사와 LLM proxy는 사람의 이해·재미·공정성을 대신하지 않는다. 사람 테스트 한 라운드에서는 정보

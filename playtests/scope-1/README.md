@@ -10,10 +10,10 @@ This directory records the active [Scope 1 manual-line contract](../../docs/scop
   before Core or Game consumes it. The review is complete and the JSON is the sole machine authority.
 - [`CHECKPOINT_3_IMPLEMENTATION_REVIEW.md`](CHECKPOINT_3_IMPLEMENTATION_REVIEW.md) records the isolated Core,
   checks and Godot vertical slice. Its source and native review are complete.
-- [`OFFICIAL_OBSERVATION_L01.md`](OFFICIAL_OBSERVATION_L01.md) records the one official cold row authorized on
-  2026-08-17. It passed its row criterion, but the three-row aggregate remains incomplete.
+- [`OFFICIAL_OBSERVATION_L01.md`](OFFICIAL_OBSERVATION_L01.md) records the one official cold observation accepted
+  by the user as the Scope 1 completion basis on 2026-08-17.
 - [`verify_contract.rb`](verify_contract.rb) checks only fixture structure, values and the checker oracle. It
   does not authorize implementation or inspect Git history.
 
-No further official proxy row is authorized. Repository-authored private app logs live under ignored `private/`;
-platform-owned originals are not copied.
+Scope 1 is complete and no further proxy row is authorized. Repository-authored private app logs live under ignored
+`private/`; platform-owned originals are not copied.

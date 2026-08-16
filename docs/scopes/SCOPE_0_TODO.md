@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B official v6 `GO` — `Scope0State = REVIEWED`; Scope 1 구현 완료·공식 관찰 미승인**
+> 상태: **Scope 0B official v6 `GO` — `Scope0State = REVIEWED`; Scope 1 구현 완료·공식 관찰 1/3, aggregate 미판정**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -222,7 +222,8 @@ Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한
 - [x] 2026-08-16 사용자가 Scope 1 전체 목표의 구현을 별도로 승인했다.
 - [x] 같은 변경에서 README·Scope 0 종료 색인·Scope 1 준비 계약·문서 링크를 갱신했다.
 - [x] Scope 1 fixture·Core·검사·Game·회귀·native 구현 증거를 독립 검토와 함께 닫았다.
-- [x] Scope 1 공식 proxy 관찰을 구현 완료조건에서 분리하고, 별도 사용자 승인이 없어 실행하지 않았다.
+- [x] Scope 1 공식 proxy 관찰을 구현 완료조건에서 분리했다. 이후 별도 사용자 승인으로 L01 한 row만
+  실행했으며, 3-row aggregate와 다음 gate는 열지 않았다.
 
-위 구현 체크는 모두 완료됐다. 공식 proxy는 구현 전제조건이 아니라 별도 관찰 gate이며, 사용자 승인
-전에는 실행하지 않는다.
+위 구현 체크는 모두 완료됐다. 공식 proxy는 구현 전제조건이 아니라 별도 관찰 gate이며, L01 뒤의
+추가 row는 새 사용자 승인 전에는 실행하지 않는다.

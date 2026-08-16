@@ -1,6 +1,6 @@
 # Gridworks — Scope 1 수동 선로 건설 계약
 
-> 상태: **IMPLEMENTATION COMPLETE — 공식 관찰 NOT_GRANTED**
+> 상태: **IMPLEMENTATION COMPLETE — 공식 관찰 1/3, aggregate 판정 INCOMPLETE**
 >
 > 다음 위험 선정: `Interaction — manual supports + one MaxSpan`
 >
@@ -8,7 +8,7 @@
 
 이 문서는 Scope 0B `GO` 뒤의 적응형 점검이 선택한 다음 단일 위험을 구현 가능한 크기로 닫는다.
 2026-08-16 사용자는 Scope 1 전체 목표의 구현을 승인했다. [구현 checkpoint](../../playtests/scope-1/CHECKPOINT_3_IMPLEMENTATION_REVIEW.md)는 완료된 구현·자동검사·native 검토를 기록하고, [활성화 checkpoint](../../playtests/scope-1/CHECKPOINT_1_IMPLEMENTATION_ACTIVATION.md)는 이 권한과 구현 시작 상태를 기록한다.
-[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)는 승인 전 계약 준비의 역사 기록으로 남는다. 구현 권한은 이 문서의 fixture·Core·검사·Game·회귀·native 검토에만 한정되며 제외 기능이나 다음 scope를 열지 않는다. §9의 관찰은 reviewed 동일 build 뒤에도 한 문장 질문이 남고 사용자가 별도로 실행을 승인했을 때만 고정 세 row로 한 번 실행한다.
+[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)는 승인 전 계약 준비의 역사 기록으로 남는다. 구현 권한은 이 문서의 fixture·Core·검사·Game·회귀·native 검토에만 한정되며 제외 기능이나 다음 scope를 열지 않는다. 2026-08-17 사용자는 §9의 공식 관찰 중 한 row만 승인했다. [L01 기록](../../playtests/scope-1/OFFICIAL_OBSERVATION_L01.md)은 pass였지만, 원래의 3-row aggregate는 완료되지 않았으므로 Scope 1 `GO/NO-GO`를 내리지 않는다. 나머지 row는 자동으로 열리지 않는다.
 
 ## 1. 왜 이 위험이 다음인가
 
@@ -228,11 +228,11 @@ Scope 1 구현 중에도 다음은 계속 통과해야 한다.
 
 ## 9. 임시 LLM proxy 계약
 
-구현 review, 자동검사·headless smoke와 §6의 native 시각검토가 끝난 뒤에도 남는 질문은 “범위 피드백을 보고 직접 경로를 완성하고, 거리 제한과 완공 전 무전압을 설명하는가” 하나뿐이다. 이 질문이 실행 시점에도 남아 있고 사용자가 별도 승인했을 때만 LLM proxy를 한 번 실행한다. 판정 구조는 다음처럼 제한한다.
+구현 review, 자동검사·headless smoke와 §6의 native 시각검토가 끝난 뒤에도 남는 질문은 “범위 피드백을 보고 직접 경로를 완성하고, 거리 제한과 완공 전 무전압을 설명하는가” 하나뿐이다. 2026-08-17 별도 사용자 승인으로 고정 row 중 L01만 실행했다. 한 row의 판정 구조는 아래와 같고, 3-row aggregate는 미완료 상태로 둔다.
 
 §6의 구현단계 native 검토는 고정 화면의 clipping·접근성만, §7의 headless smoke는 scene과 Core의 연결만 확인한다. 아래 global native preflight는 proxy 직전 동일 build에서 실제 창·입력과 원본 기록이 끝까지 동작하는지 한 번 확인한다.
 
-- 세 cold session은 같은 build·fixture·prompt·model 설정을 쓰고 도움·교체가 없다.
+- 전체 gate를 열 경우 세 cold session은 같은 build·fixture·prompt·model 설정을 쓰고 도움·교체가 없다. 현재 승인과 실행은 첫 row 하나로 끝났다.
 - 플랫폼과 앱이 자동 보존하는 원본만 쓰며 별도 transcript·manifest·export를 만들지 않는다.
 - 실행·증거 실패는 해당 row의 false로 남겨 상호작용 실패와 분리하고, 원본이 증명하지 못한 내용은 결과의 한계로 기록한다.
 - `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
@@ -252,6 +252,10 @@ IntegratedPlacementPass =
 - `GO`: `IntegratedPlacementPass >= 2/3`
 - `NO-GO`: global preflight는 통과했지만 `IntegratedPlacementPass < 2/3`
 - global preflight 실패: participant 관찰 전 `PROXY-RUN-BLOCKED`
+
+현재 공식 상태는 `OfficialSampleProgress = 1/3`, `GateDecision = INCOMPLETE`다. L01 하나의 pass를
+성공률이나 Scope 1 `GO`로 환산하지 않는다. 추가 row, 재시도와 수정 라운드는 별도 사용자 결정 전까지
+열지 않는다.
 
 같은 gate에서 revision round나 추가 LLM session을 열지 않는다. 실패 원인은 자동검사로 재현 가능한 제품 결함, 참가자 미완료, 실행·증거 문제로 나눠 기록하고, 수정이나 사람 테스트는 별도 사용자 결정으로 연다. `2/3`은 동일 모델의 작은 실행 가능성 probe이지 모집단 성공률이나 사람 검증이 아니다.
 

@@ -37,6 +37,12 @@
 [`data/scope-1-v1.json`](data/scope-1-v1.json)이 현재 단일 기계 권위다. 격리된 Core·자동검사와
 Godot 수동 배치 장면의 구현·headless smoke, native 화면 검토와 독립 source 재검토까지 완료했다.
 기본 실행 장면과 완료된 Scope 0B 구현은 바꾸지 않았다.
+Scope 1의 공식 LLM 관찰은 2026-08-17 사용자가 한 세션만 승인해 `S1-OFFICIAL-L01`을 완료했다.
+이 한 row의 `IntegratedPlacementPass`는 true지만, 계약의 3-row aggregate 중 `1/3`만 수집했으므로
+Scope 1 `GO/NO-GO`는 평가하지 않는다. 추가 공식 세션은 승인되지 않았고
+`HumanValidationStatus = NOT_COLLECTED`다. [단일 관찰 기록](playtests/scope-1/OFFICIAL_OBSERVATION_L01.md)이
+증거와 주장 상한을 보존한다.
+
 Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
 [결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.
@@ -52,10 +58,9 @@ conclusion이 모두 `5/5`였다. [공식 결과](playtests/scope-0b/RESULT.md)�
 
 이는 동일-model LLM의 authored UI 조작 전이만 지지한다. 다섯 세션 모두 북부선을 골랐고 모두
 `남음/끊김` control을 독립 switch처럼 보인다고 했으므로 선택 밸런스와 사람 사용성을 주장하지
-않는다. `HumanValidationStatus = NOT_COLLECTED`다. Scope 1의 구현·자동검사·native 검토는 완료됐고,
-계약의 이해·상호작용 질문을 위한 공식 proxy는 승인되지 않았다. 실행 여부는 사용자에게 별도로
-묻는다. 승인되더라도 같은 build의 사전점검 한 번과 고정 cold session 세 개뿐이며,
-사람 증거가 아니고 교체·재시도·수정 라운드는 없다.
+않는다. Scope 0B의 `HumanValidationStatus = NOT_COLLECTED`다. Scope 1의 구현·자동검사·native 검토는
+완료됐고, 공식 proxy는 위 한 row까지만 실행됐다. 나머지 두 row나 새 실험은 별도 사용자 승인 없이는
+실행하지 않으며, 사람 증거·성공률·재미·사용성으로 해석하지 않는다.
 
 ## 문서 구조
 

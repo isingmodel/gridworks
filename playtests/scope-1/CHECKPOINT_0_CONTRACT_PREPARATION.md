@@ -1,5 +1,8 @@
 # Scope 1 checkpoint 0 — contract preparation
 
+> 역사 기록: 이 checkpoint의 `NOT_GRANTED`는 준비 당시 상태다. 2026-08-16 구현 승인은
+> [`CHECKPOINT_1_IMPLEMENTATION_ACTIVATION.md`](CHECKPOINT_1_IMPLEMENTATION_ACTIVATION.md)가 소유한다.
+
 > `PreparationStatus = REVIEWED`
 >
 > `ImplementationAuthorization = NOT_GRANTED`

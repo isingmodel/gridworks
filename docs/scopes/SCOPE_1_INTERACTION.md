@@ -1,14 +1,14 @@
 # Gridworks — Scope 1 수동 선로 건설 계약
 
-> 상태: **IMPLEMENTATION-READY CANDIDATE — 구현·fixture 파일·공식 실행은 CLOSED**
+> 상태: **ACTIVE — 구현 승인; 공식 관찰은 reviewed 구현 뒤 조건부**
 >
 > 다음 위험 선정: `Interaction — manual supports + one MaxSpan`
 >
 > 사람 증거: `HumanValidationStatus = NOT_COLLECTED`
 
 이 문서는 Scope 0B `GO` 뒤의 적응형 점검이 선택한 다음 단일 위험을 구현 가능한 크기로 닫는다.
-사용자는 Scope 1의 계획 준비까지 승인했지만 구현을 승인하지 않았다. 따라서 이 문서가 완결돼도 `src/`, `game/`, `tools/`, `data/`를 변경하거나 공식 proxy를 실행할 수 없다. 별도 사용자 승인과 활성화 checkpoint가 있어야 구현이 열린다.
-[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)가 이 문서의 review와 구현 폐쇄 상태를 기록한다.
+2026-08-16 사용자는 Scope 1 전체 목표의 구현을 승인했다. [활성화 checkpoint](../../playtests/scope-1/CHECKPOINT_1_IMPLEMENTATION_ACTIVATION.md)는 이 권한과 구현 시작 상태를 기록하고,
+[준비 checkpoint](../../playtests/scope-1/CHECKPOINT_0_CONTRACT_PREPARATION.md)는 승인 전 계약 준비의 역사 기록으로 남는다. 구현 권한은 이 문서의 fixture·Core·검사·Game·회귀·native 검토에만 한정되며 제외 기능이나 다음 scope를 열지 않는다. §9의 관찰은 reviewed 동일 build 뒤에도 한 문장 질문이 남을 때만 고정 세 row로 한 번 실행한다.
 
 ## 1. 왜 이 위험이 다음인가
 
@@ -57,7 +57,7 @@ Scope 0B는 service area와 실제 공급, 전기 회로와 공간 회랑, 병�
 
 ## 4. 활성화 때 옮길 단일 fixture와 checker oracle
 
-구현 승인 전 숫자와 JSON 형태의 권위는 아래 skeleton 하나뿐이다. 승인되면 같은 key·값·자료형의 `data/scope-1-v1.json`으로 옮기고, 독립 인계검사를 통과한 reviewed checkpoint부터 그 JSON이 기계 권위가 된다.
+초기 구현 전 숫자와 JSON 형태의 권위는 아래 skeleton 하나뿐이다. 활성화 뒤 같은 key·값·자료형의 `data/scope-1-v1.json`으로 옮기고, 독립 인계검사를 통과한 reviewed checkpoint부터 그 JSON이 기계 권위가 된다.
 
 ```json
 {
@@ -180,7 +180,7 @@ Game source와 fixture에는 기본 support 좌표나 경로 계산을 두지 �
 
 Scope 1을 위해 이 파일들에 phase, support, pointer input, 새 schema 분기나 공통 interface를 추가하지 않는다. `game/project.godot`의 기본 scene도 `res://Main.tscn`으로 유지한다. Scope 0B의 scenario/presentation/oracle envelope도 Scope 1에 복제하지 않는다.
 
-### 8.2 별도 승인 뒤 추가할 최소 파일
+### 8.2 이번 활성 gate에서 추가할 최소 파일
 
 ```text
 data/scope-1-v1.json
@@ -263,11 +263,11 @@ IntegratedPlacementPass =
 
 fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. 필요하면 별도 사용자 결정 뒤 reviewed 새 계약으로 연다. registry, type catalog와 parameter sweep을 만들지 않는다.
 
-## 10. 구현 순서 — 별도 승인 뒤에만
+## 10. 구현 순서
 
-1~2는 권위 인계, 3~4는 Core와 Core 검사, 5~8은 Game·회귀·native 화면 검토, 9~10은 별도 승인된 관찰 단위다. 각 단위의 마지막 검사 뒤 문서 최신화·commit·bounded review·scope-valid 수정·재검사를 마치고 다음 단위로 넘어간다.
+1~2는 권위 인계, 3~4는 Core와 Core 검사, 5~8은 Game·회귀·native 화면 검토, 9~10은 reviewed 구현 뒤에도 질문이 남을 때만 여는 조건부 관찰 단위다. 각 단위의 마지막 검사 뒤 문서 최신화·commit·bounded review·scope-valid 수정·재검사를 마치고 다음 단위로 넘어간다.
 
-1. 루트 README와 이 문서를 같은 변경에서 활성 구현 scope로 전환한다. 활성화 checkpoint는 2~8단계만 열며 공식 proxy 실행은 별도 승인으로 남긴다.
+1. 루트 README와 이 문서를 같은 변경에서 활성 구현 scope로 전환하고, 활성화 checkpoint의 독립 review를 닫는다.
 2. `data/scope-1-v1.json`과 Core 비의존 `playtests/scope-1/verify_contract.rb`만 먼저 만들고, checker-only witness로 §4 skeleton에서 JSON으로의 권위 인계를 review한다.
 3. `Scope1Contracts.cs`, `Scope1FixtureLoader.cs`, `Scope1PlacementSession.cs`와 독립 `tools/Gridworks.Scope1Checks/`를 구현한다. 기존 Scope 0B Core 파일은 수정하지 않는다.
 4. §7의 Core oracle, preview parity, 실패 불변, 원자 완공과 결정론 검사를 통과한다.
@@ -275,7 +275,7 @@ fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. �
 6. Game을 rebuild하고 `--scene res://Scope1Main.tscn` headless smoke를 통과한다.
 7. §8.3의 Scope 0B 회귀를 모두 다시 통과한다.
 8. 고정 화면의 clipping·접근성을 실제 native 창에서 한 번 검토한다. 여기까지 통과하면 구현 증거는 완료되지만 Scope 1 `GO`는 아직 아니다.
-9. §2의 이해·상호작용 질문이 남고 사용자가 별도 실행을 승인한 경우에만 global native preflight와 §9의 세 고정 session을 한 번 연다. 승인하지 않으면 여기서 멈춘다.
+9. §2의 이해·상호작용 질문이 자동검사와 native 화면 검토 뒤에도 남으면 global native preflight와 §9의 세 고정 session을 한 번 연다.
 10. 관찰 결과와 주장 상한을 기록하고 다음 위험을 다시 선정한다. 공통 framework나 다음 scope를 자동 구현하지 않는다.
 
 ## 11. 즉시 중단 조건

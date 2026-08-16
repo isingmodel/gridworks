@@ -1,6 +1,6 @@
 # Gridworks — Scope 0 TODO: 핵심 인과 카드 → authored playable
 
-> 상태: **Scope 0B official v6 `GO` — `Scope0State = REVIEWED`; Scope 1 준비 완료·구현 닫힘**
+> 상태: **Scope 0B official v6 `GO` — `Scope0State = REVIEWED`; Scope 1 구현 활성**
 >
 > 실행 권위: 루트 [README](../../README.md)가 지목한 활성 scope
 >
@@ -219,7 +219,7 @@ Scope 0 뒤의 다음 gate는 번호 순서가 아니라 새 증거로 선정한
 - [x] 실제 Scope 0B의 공사·실패 불변·원자 편입 원칙만 인계하고 범용 lifecycle을 가정하지 않았다.
 - [x] Scope 1이 묻지 않을 서비스 권역·경제·사건 시스템을 제외했다.
 - [x] Scope 0 증거에 맞게 Scope 1의 임시 표본·rubric·범위와 pre-code fixture 표를 다시 썼다.
-- [ ] 사용자가 Scope 1 구현을 별도로 승인했다.
+- [x] 2026-08-16 사용자가 Scope 1 전체 목표의 구현을 별도로 승인했다.
 - [x] 같은 변경에서 README·Scope 0 종료 색인·Scope 1 준비 계약·문서 링크를 갱신했다.
 
 하나라도 미충족이면 Scope 1을 구현하지 않는다.

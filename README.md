@@ -29,10 +29,11 @@
 
 ## 현재 개발 상태
 
-현재 활성 구현 gate는 없다. [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)은
-공식 v6에서 `GO`로 끝났고 `Scope0State = REVIEWED`다. 적응형 점검은 다음 단일 위험으로
-[**Scope 1 수동 선로 건설**](docs/scopes/SCOPE_1_INTERACTION.md)을 선택했다. 계약은 구현 가능한
-크기로 준비됐지만 `IMPLEMENTATION-READY CANDIDATE`일 뿐이며 구현 권한은 닫혀 있다.
+현재 활성 구현 gate는 [**Scope 1 수동 선로 건설**](docs/scopes/SCOPE_1_INTERACTION.md)이다.
+2026-08-16 사용자 지시로 구현과 계약 안의 단일 통합 gate까지 열렸으며, 고정 endpoint 사이에서
+지지물을 직접 놓고 하나의 `MaxSpan`을 지키는 최소 수직 slice만 만든다. 완료된
+[**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)은 공식 v6에서 `GO`로 끝났고
+`Scope0State = REVIEWED`다.
 Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
 [결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.
@@ -48,8 +49,9 @@ conclusion이 모두 `5/5`였다. [공식 결과](playtests/scope-0b/RESULT.md)�
 
 이는 동일-model LLM의 authored UI 조작 전이만 지지한다. 다섯 세션 모두 북부선을 골랐고 모두
 `남음/끊김` control을 독립 switch처럼 보인다고 했으므로 선택 밸런스와 사람 사용성을 주장하지
-않는다. `HumanValidationStatus = NOT_COLLECTED`다. 별도 사용자 승인이 있기 전에는 Scope 1의
-코드·fixture 파일·공식 proxy를 만들거나 실행하지 않는다.
+않는다. `HumanValidationStatus = NOT_COLLECTED`다. Scope 1은 구현·자동검사·native 검토를 먼저
+완료하며, 그 뒤에도 계약의 이해·상호작용 질문이 남을 때만 같은 build로 사전점검 한 번과 고정
+cold session 세 개를 실행한다. 이 실행은 사람 증거가 아니며 교체·재시도·수정 라운드는 없다.
 
 ## 문서 구조
 

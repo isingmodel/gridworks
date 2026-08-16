@@ -123,9 +123,10 @@ span과 support ID는 저장하지 않는다. source → ordered supports → ta
 `Commissioned`에서는 support를 편집할 수 없다.
 성공 명령도 성공 칸에 적힌 field만 바꾸고 나머지 권위 field는 유지한다.
 
-`PreviewSpan(position)`과 `PreviewTarget()`은 같은 판정 순서와 거리식을 쓰는 순수 query다. 유효성,
-`code: null | WRONG_PHASE | INVALID_POSITION | SPAN_TOO_LONG`, from/to와
-`distanceSquared / maxSpanSquared`를 반환하고 상태를 바꾸지 않는다. Game이 별도 거리 규칙이나
+`PreviewSpan(position)`과 `PreviewTarget()`은 대응 명령과 같은 판정 순서와 거리식을 쓰는 순수
+query다. 둘 다 유효성, from/to와 `distanceSquared / maxSpanSquared`를 반환하고 상태를 바꾸지
+않는다. `PreviewSpan`의 code는 `null | WRONG_PHASE | INVALID_POSITION | SPAN_TOO_LONG`,
+`PreviewTarget`의 code는 `null | WRONG_PHASE | SPAN_TOO_LONG`이다. Game이 별도 거리 규칙이나
 오류 원인을 복제하지 않는다.
 
 ## 6. 화면 계약
@@ -173,7 +174,7 @@ span과 support ID는 저장하지 않는다. source → ordered supports → ta
 validator는 fixture field exactness, integer 좌표, 유일한 endpoints, direct failure와 witness success를
 검사한다. Core 검사는 네 오류 code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다.
 preview 전후 상태 불변과, 복제한 같은 초기 상태에서 preview의 accepted/code가 실제 명령과
-경계·초과·invalid case마다 일치하는지도 검사한다.
+경계·초과·invalid·`WRONG_PHASE` case마다 일치하는지도 검사한다.
 native smoke는 시작 → 두 support 직접 배치 → 발주 → 완공 → target 통전을 한 번 통과한다.
 
 ## 8. Scope 0B에서 가져오는 것과 버리는 것

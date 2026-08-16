@@ -33,8 +33,9 @@
 지속 목표가 구현과 계약의 단일 Integrated gate 통과, 필요하면 최대 한 번의 bounded UI 수정을
 명시적으로 승인했다. Coverage는 Integrated의 구성요소이지 별도 gate가 아니다.
 [**Scope 0B authored 2D playable**](docs/scopes/SCOPE_0B_PLAYABLE.md)은 공식 v6에서 `GO`로 끝났고
-`Scope0State = REVIEWED`다. Scope 1은 전신주 수동 배치와 하나의 `MaxSpan`만 연다. fixture 인계는
-review됐고 source 구현이 열렸으며, 공식 proxy는 구현·native preflight의 별도 review까지 닫혀 있다.
+`Scope0State = REVIEWED`다. Scope 1은 전신주 수동 배치와 하나의 `MaxSpan`만 연다. fixture 인계와
+초기 수직 slice 구현·headless smoke는 끝났고 독립 코드 review 중이다. 공식 proxy는 구현 review와
+native Computer Use preflight의 별도 완료까지 닫혀 있다.
 Scope 0A R2는 coverage·위험 인과·내부전원 경계·trade-off와 통합을 모두 `5/5`로 통과했고
 [결과 checkpoint](playtests/scope-0a-r2/CHECKPOINT_2_R2_DECISION.md)도 완료했다. 종료된
 [R1](docs/scopes/SCOPE_0A_CARD_TEST.md)은 불변 실패 증거로 남고 R2와 합산하지 않는다.

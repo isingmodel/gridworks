@@ -9,5 +9,9 @@ implementation is open. Official proxy sessions remain closed until a later revi
 checkpoint. [`CHECKPOINT_0_CONTRACT_PREPARATION.md`](CHECKPOINT_0_CONTRACT_PREPARATION.md) is the historical
 pre-authorization preparation record and does not govern the active state.
 
+The initial vertical slice and headless regressions are recorded in
+[`CHECKPOINT_2_IMPLEMENTATION_REVIEW.md`](CHECKPOINT_2_IMPLEMENTATION_REVIEW.md). Its source review and native
+Computer Use preflight are not yet closed, so it grants no official-session authority.
+
 Private app logs created by this repository belong under `private/` and remain ignored. Platform-owned session
 JSONL is not copied; a result may record its immutable path and SHA-256 after the round.

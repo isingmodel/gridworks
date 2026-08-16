@@ -249,11 +249,11 @@ registry, type catalog와 parameter sweep을 만들지 않는다.
 
 - [x] 루트 README가 이 문서를 활성 구현 scope로 지목한다.
 - [x] 위 표와 exact한 `data/scope-1-v1.json`을 만든다.
-- [ ] strict loader·validator와 독립 fixture checker를 만든다.
+- [x] strict loader·validator와 독립 fixture checker를 만든다.
 - [x] pre-code 표 → JSON 인계검사와 contract-freeze checkpoint를 review한다.
-- [ ] scope-local Core state·명령·snapshot과 오류 불변 검사를 구현한다.
-- [ ] 단일 Godot scene의 수동 지도 입력과 범위 피드백을 구현한다.
-- [ ] oracle, build, native smoke와 Scope 0B 회귀검사를 통과한다.
+- [x] scope-local Core state·명령·snapshot과 오류 불변 검사를 구현한다.
+- [x] 단일 Godot scene의 수동 지도 입력과 범위 피드백을 구현한다.
+- [x] oracle, build, headless smoke와 Scope 0B 회귀검사를 통과한다.
 - [ ] 구현 첫 커밋을 bounded independent review하고 scope-valid 지적만 고친다.
 - [ ] exact proxy 자료·원본 경계·실행 승인을 구현 checkpoint에서 동결한다.
 - [ ] 세 고정 session을 실행하고 비식별 결과·claim ceiling을 기록한다.

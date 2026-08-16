@@ -31,7 +31,7 @@ one `MaxSpan`, `Undo`, atomic completion and one integrated proxy criterion.
 ## Validation policy refinement
 
 Later development lessons narrowed the planned proxy without opening implementation or execution. Deterministic
-Core checks, build and native smoke come first. Only the remaining interaction/comprehension question may use one
+Core checks, build and headless smoke come first. Only the remaining interaction/comprehension question may use one
 fixed three-session LLM batch; there is no replacement or revision round and no custom transcript, manifest or
 participant-authored evidence system. A miss closes that proxy result and requires a separate user decision.
 

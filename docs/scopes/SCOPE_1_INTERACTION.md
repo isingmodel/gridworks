@@ -175,7 +175,7 @@ validator는 fixture field exactness, integer 좌표, 유일한 endpoints, direc
 검사한다. Core 검사는 네 오류 code의 도달성, 실패 불변, 경계 `<=`, 원자 완공과 결정론을 검사한다.
 preview 전후 상태 불변과, 복제한 같은 초기 상태에서 preview의 accepted/code가 실제 명령과
 경계·초과·invalid·`WRONG_PHASE` case마다 일치하는지도 검사한다.
-native smoke는 시작 → 두 support 직접 배치 → 발주 → 완공 → target 통전을 한 번 통과한다.
+headless smoke는 시작 → 두 support 직접 배치 → 발주 → 완공 → target 통전을 한 번 통과한다.
 
 ## 8. Scope 0B에서 가져오는 것과 버리는 것
 
@@ -199,7 +199,7 @@ plugin interface나 save schema를 미리 만들지 않는다.
 
 ## 9. 임시 LLM proxy 계약
 
-구현 review와 자동검사·native smoke가 끝난 뒤에도 남는 질문은 “범위 피드백을 보고 직접 경로를
+구현 review와 자동검사·headless smoke가 끝난 뒤에도 남는 질문은 “범위 피드백을 보고 직접 경로를
 완성하고, 거리 제한과 완공 전 무전압을 설명하는가” 하나뿐이다. 이 질문이 실행 시점에도 남아 있고
 사용자가 별도 승인했을 때만 LLM proxy를 한 번 실행한다. 판정 구조는 다음처럼 제한한다.
 
@@ -256,7 +256,7 @@ fixture 또는 Structural 변경은 같은 gate에서 허용하지 않는다. �
 - [ ] pre-code 표 → JSON 인계검사와 contract-freeze checkpoint를 review한다.
 - [ ] scope-local Core state·명령·snapshot과 오류 불변 검사를 구현한다.
 - [ ] 단일 Godot scene의 수동 지도 입력과 범위 피드백을 구현한다.
-- [ ] oracle, build, native smoke와 Scope 0B 회귀검사를 통과한다.
+- [ ] oracle, build, headless smoke와 Scope 0B 회귀검사를 통과한다.
 - [ ] 구현 첫 커밋을 bounded independent review하고 scope-valid 지적만 고친다.
 - [ ] 자동검사로 답할 수 없는 상호작용 질문이 남았는지 확인하고, 남았을 때만 exact proxy 자료·
   원본 경계·실행 승인을 구현 checkpoint에서 동결한다.

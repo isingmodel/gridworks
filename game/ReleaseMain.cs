@@ -594,7 +594,7 @@ public sealed partial class ReleaseMain : Control
                             string.Equals(item.SourceId, source.SourceId, StringComparison.Ordinal));
                     if (sourceUsage is not null)
                     {
-                        return $"{node.DisplayName} · {ReleaseKoreanText.NodeKind(nodeClass.Kind)}\n" +
+                        return $"{node.DisplayName}\n" +
                                $"{availability}{ReleaseKoreanText.Capacity(sourceUsage.UsedKw, sourceUsage.CapacityKw)}\n" +
                                ReleaseKoreanText.Connections(usage.ConnectionCount, usage.MaxConnections);
                     }
@@ -603,7 +603,7 @@ public sealed partial class ReleaseMain : Control
                 string capacity = rating > 0
                     ? ReleaseKoreanText.Capacity(usage.UsedKw, rating)
                     : "이 인입점에는 별도의 전력 통과 정격 제한이 없습니다.";
-                return $"{node.DisplayName} · {ReleaseKoreanText.NodeKind(nodeClass.Kind)}\n" +
+                return $"{node.DisplayName}\n" +
                        $"{availability}{capacity}\n{ReleaseKoreanText.Connections(usage.ConnectionCount, usage.MaxConnections)}";
             }
         }
@@ -979,7 +979,7 @@ public sealed partial class ReleaseMain : Control
         }
         if (File.Exists(_legacyCampaignSavePath))
         {
-            notices.Add("이전 내부 테스트 저장은 새 출시판과 호환되지 않아 원본 파일을 그대로 보존했습니다.");
+            notices.Add("이전 버전의 저장 기록은 현재 게임에서 불러올 수 없어 원본을 그대로 보존했습니다.");
         }
         _titleStatus = string.Join('\n', notices);
     }

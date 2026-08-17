@@ -60,7 +60,7 @@ internal static class ReleaseKoreanText
         string? assetName,
         bool duringMissionSituation = false)
     {
-        string circumstance = duringMissionSituation ? "임무 상황에서는 " : string.Empty;
+        string circumstance = duringMissionSituation ? "예고 상황에서는 " : string.Empty;
         string impact = loadName.EndsWith("전력", StringComparison.Ordinal)
             ? $"{circumstance}{loadName} 공급이 끊겼습니다."
             : $"{circumstance}{loadName}에 전력이 공급되지 않습니다.";

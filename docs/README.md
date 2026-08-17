@@ -24,7 +24,8 @@ docs/
 │   ├── HEATWAVE_MAINTENANCE.md         완료된 폭염·예방정비 구현 기준
 │   ├── CAMPAIGN_SAVE_SETTINGS.md        완료된 캠페인·저장·설정 구현 기준
 │   ├── CAMPAIGN_CONTENT.md              완료된 세 장 콘텐츠 구현 기준
-│   └── RELEASE_2D.md                    완료된 2D 표현·사운드·패키징 구현 기준
+│   ├── RELEASE_2D.md                    완료된 내부 후보의 2D 표현·사운드·패키징 기준
+│   └── RELEASE_REBUILD.md               활성 출시판 재구축 계약
 ├── development/
 │   └── BALANCING_STATIC_SIM.md        조건부 정적 분석 도구
 └── future/
@@ -55,6 +56,7 @@ docs/
 | 완료된 캠페인·저장 흐름은 무엇인가? | [캠페인 골격·저장·기본 설정](scopes/CAMPAIGN_SAVE_SETTINGS.md) | 완료 범위를 콘텐츠·패키징 권한으로 오해하지 않음 |
 | 완료된 세 장 콘텐츠는 무엇을 보장하는가? | [세 장 캠페인 콘텐츠 고정](scopes/CAMPAIGN_CONTENT.md) | 완료 범위를 아트·사운드·패키징 권한으로 오해하지 않음 |
 | 완료된 2D 표현·사운드·package는 어디까지 보장하는가? | [2D 출시 마감](scopes/RELEASE_2D.md) | 외부 테스트·공개 배포를 포함하지 않음 |
+| 지금 재구축하는 출시판은 무엇을 보장하는가? | [출시판 재구축](scopes/RELEASE_REBUILD.md) | 현재 활성 단계와 최종 완료조건을 함께 고정 |
 | 정적 분석 도구는 언제 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 자동 튜닝이나 사람 선택 대체에 쓰지 않음 |
 | 1.0 이후 냉각수·원전 방향은 무엇인가? | [1.0 이후 방향](future/POST_1_0.md) | 1.0 schema·UI를 선결하지 않음 |
 

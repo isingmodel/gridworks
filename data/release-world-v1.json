@@ -177,7 +177,6 @@
   "edges": [
     {
       "edgeId": "EDGE_WEST_TRUNK",
-      "circuitId": "CIRCUIT_WEST_TRUNK",
       "lineClassId": "LINE_REINFORCED",
       "fromNodeId": "WEST_SOURCE_NODE",
       "toNodeId": "CENTRAL_JUNCTION",
@@ -185,7 +184,6 @@
     },
     {
       "edgeId": "EDGE_CENTRAL_NORTH",
-      "circuitId": "CIRCUIT_NORTH_BRANCH",
       "lineClassId": "LINE_REINFORCED",
       "fromNodeId": "CENTRAL_JUNCTION",
       "toNodeId": "NORTH_JUNCTION",
@@ -193,7 +191,6 @@
     },
     {
       "edgeId": "EDGE_CENTRAL_SOUTH",
-      "circuitId": "CIRCUIT_SOUTH_BRANCH",
       "lineClassId": "LINE_REINFORCED",
       "fromNodeId": "CENTRAL_JUNCTION",
       "toNodeId": "SOUTH_JUNCTION",
@@ -201,7 +198,6 @@
     },
     {
       "edgeId": "EDGE_CENTRAL_WATER",
-      "circuitId": "CIRCUIT_WATER",
       "lineClassId": "LINE_STANDARD",
       "fromNodeId": "CENTRAL_JUNCTION",
       "toNodeId": "WATER_TERMINAL",
@@ -209,7 +205,6 @@
     },
     {
       "edgeId": "EDGE_NORTH_MERGE",
-      "circuitId": "CIRCUIT_NORTH_RING",
       "lineClassId": "LINE_REINFORCED",
       "fromNodeId": "NORTH_JUNCTION",
       "toNodeId": "RIVER_MERGE",
@@ -217,7 +212,6 @@
     },
     {
       "edgeId": "EDGE_SOUTH_MERGE",
-      "circuitId": "CIRCUIT_SOUTH_RING",
       "lineClassId": "LINE_REINFORCED",
       "fromNodeId": "SOUTH_JUNCTION",
       "toNodeId": "RIVER_MERGE",
@@ -225,7 +219,6 @@
     },
     {
       "edgeId": "EDGE_NORTH_SUBSTATION",
-      "circuitId": "CIRCUIT_NORTH_SERVICE",
       "lineClassId": "LINE_REINFORCED",
       "fromNodeId": "NORTH_JUNCTION",
       "toNodeId": "NORTH_SUBSTATION",
@@ -233,7 +226,6 @@
     },
     {
       "edgeId": "EDGE_SOUTH_SUBSTATION",
-      "circuitId": "CIRCUIT_SOUTH_SERVICE",
       "lineClassId": "LINE_REINFORCED",
       "fromNodeId": "SOUTH_JUNCTION",
       "toNodeId": "SOUTH_SUBSTATION",
@@ -241,7 +233,6 @@
     },
     {
       "edgeId": "EDGE_MERGE_EAST",
-      "circuitId": "CIRCUIT_EAST_SERVICE",
       "lineClassId": "LINE_REINFORCED",
       "fromNodeId": "RIVER_MERGE",
       "toNodeId": "EAST_SUBSTATION",
@@ -249,7 +240,6 @@
     },
     {
       "edgeId": "EDGE_NORTH_HOSPITAL",
-      "circuitId": "CIRCUIT_HOSPITAL",
       "lineClassId": "LINE_STANDARD",
       "fromNodeId": "NORTH_SUBSTATION",
       "toNodeId": "HOSPITAL_TERMINAL",
@@ -257,7 +247,6 @@
     },
     {
       "edgeId": "EDGE_SOUTH_SOURCE",
-      "circuitId": "CIRCUIT_SOUTH_SOURCE",
       "lineClassId": "LINE_REINFORCED",
       "fromNodeId": "SOUTH_SOURCE_NODE",
       "toNodeId": "SOUTH_SUBSTATION",

@@ -70,7 +70,6 @@ public sealed record ReleaseNodeDefinition(
 
 public sealed record ReleaseEdgeDefinition(
     string EdgeId,
-    string CircuitId,
     string LineClassId,
     string FromNodeId,
     string ToNodeId,

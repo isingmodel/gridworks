@@ -234,6 +234,23 @@ internal sealed class ReleaseChecks
         Equal(50L, evaluation.TotalDeliveredKw, "shared total delivered");
         Equal(evaluation.TotalDeliveredKw, evaluation.TotalGenerationKw, "shared conservation");
 
+        ReleaseWorldDefinition plannedConnection = world with
+        {
+            Nodes = world.Nodes.Append(Node("PLANNED_POLE", Pole3ClassId, 6, 4)).ToArray(),
+            Edges = world.Edges.Append(
+                new ReleaseEdgeDefinition(
+                    "E_PLANNED",
+                    Line100ClassId,
+                    "POLE",
+                    "PLANNED_POLE",
+                    false)).ToArray(),
+        };
+        ReleaseNetworkEvaluation plannedEvaluation = ReleaseNetworkEvaluator.Evaluate(plannedConnection);
+        Equal(3, NodeUsage(plannedEvaluation, "POLE").ConnectionCount,
+            "planned line must reserve a connection slot");
+        Check(!EdgeUsage(plannedEvaluation, "E_PLANNED").Available,
+            "planned line entered the supply graph");
+
         foreach (ReleaseEdgeUsage edge in evaluation.Edges)
         {
             Check(edge.UsedKw <= edge.RatingKw, $"edge {edge.EdgeId} exceeds rating");
@@ -307,6 +324,20 @@ internal sealed class ReleaseChecks
             "unavailable service-area failure");
         Equal(15L, LoadSupply(substationOutage, "DEDICATED").DeliveredKw,
             "substation outage interrupted dedicated load");
+
+        ReleaseWorldDefinition noSubstation = World(
+            "NO_SUBSTATION",
+            nodes: [Node("S", SourceClassId, 0, 0)],
+            edges: [],
+            sources: [Source("SOURCE", "S", 0, 100)],
+            loads: [ServiceLoad("SERVICE", 20, 4, 4)]);
+        ReleaseLoadSupply noEligible = LoadSupply(
+            ReleaseNetworkEvaluator.Evaluate(noSubstation),
+            "SERVICE");
+        Equal(0L, noEligible.DeliveredKw,
+            "service load without a built substation must remain a valid unsupplied state");
+        Equal(ReleaseSupplyFailureKind.NoEligibleSubstation, noEligible.Failure.Kind,
+            "missing service substation failure reason");
     }
 
     private void CheckCrossingIsNotConnection()
@@ -684,7 +715,7 @@ internal sealed class ReleaseChecks
         string from,
         string to,
         string lineClassId = Line100ClassId) =>
-        new(id, id, lineClassId, from, to, true);
+        new(id, lineClassId, from, to, true);
 
     private static ReleaseSourceDefinition Source(
         string id,

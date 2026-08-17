@@ -152,7 +152,6 @@ public static partial class ReleaseWorldLoader
             element,
             path,
             "edgeId",
-            "circuitId",
             "lineClassId",
             "fromNodeId",
             "toNodeId",
@@ -160,7 +159,6 @@ public static partial class ReleaseWorldLoader
 
         return new ReleaseEdgeDefinition(
             String(value, "edgeId", path),
-            String(value, "circuitId", path),
             String(value, "lineClassId", path),
             String(value, "fromNodeId", path),
             String(value, "toNodeId", path),
@@ -307,7 +305,6 @@ public static partial class ReleaseWorldLoader
         foreach (var edge in world.Edges)
         {
             Id(edge.EdgeId, $"edge '{edge.EdgeId}'");
-            Id(edge.CircuitId, $"edge '{edge.EdgeId}'.circuitId");
             Require(lineClasses.TryGetValue(edge.LineClassId, out var lineClass), $"edge '{edge.EdgeId}' references unknown line class '{edge.LineClassId}'.");
             Require(nodes.TryGetValue(edge.FromNodeId, out var from), $"edge '{edge.EdgeId}' references unknown from node '{edge.FromNodeId}'.");
             Require(nodes.TryGetValue(edge.ToNodeId, out var to), $"edge '{edge.EdgeId}' references unknown to node '{edge.ToNodeId}'.");
@@ -358,18 +355,6 @@ public static partial class ReleaseWorldLoader
             else
             {
                 Require(load.DedicatedNodeId is null, $"service-area load '{load.LoadId}' cannot define dedicatedNodeId.");
-                var hasCandidate = world.Nodes.Any(candidate =>
-                {
-                    var candidateClass = nodeClasses[candidate.ClassId];
-                    if (candidateClass.Kind != ReleaseNodeKind.Substation)
-                    {
-                        return false;
-                    }
-
-                    var radius = candidateClass.ServiceRadiusCells!.Value;
-                    return DistanceSquared(candidate.Position, load.Position) <= checked((long)radius * radius);
-                });
-                Require(hasCandidate, $"service-area load '{load.LoadId}' has no eligible substation in the authored world.");
             }
         }
 

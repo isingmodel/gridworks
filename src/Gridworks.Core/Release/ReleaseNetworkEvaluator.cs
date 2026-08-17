@@ -230,7 +230,6 @@ public static class ReleaseNetworkEvaluator
                     nodeUsed[node.NodeId],
                     NodeRating(node, nodeClasses) ?? 0,
                     world.Edges.Count(edge =>
-                        edge.Commissioned &&
                         (string.Equals(edge.FromNodeId, node.NodeId, StringComparison.Ordinal) ||
                          string.Equals(edge.ToNodeId, node.NodeId, StringComparison.Ordinal))),
                     nodeClass.MaxConnections,

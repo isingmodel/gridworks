@@ -305,10 +305,10 @@ data/release-*.json               출시판 machine authority
 - `data/release-world-v1.json`: 33×21 청류시 대표망과 설비 형식의 단일 machine authority
 - `src/Gridworks.Core/Release/`: strict loader, 불변 계약, 결정론적 공급·사고 평가기
 - `tools/Gridworks.ReleaseChecks/`: 분기·합류·경계·병목·우회·불변성 9개 검사 묶음
-- 출시판 검사: 9 suites / 148 assertions 통과
+- 출시판 검사: 9 suites / 152 assertions 통과
 - 과거 회귀: Scope 0B 3,098 assertions, Scope 1 646 assertions, 누적 Product 검사 통과
 - Core·Game build: warning 0 / error 0
-- world SHA-256: `bbeeb26399694a613eff96bc5934526a34dbec41f237fce7016abf31a92bc15c`
+- world SHA-256: `92efadd41b1ec91302d75fe606eb46fe50c368e331da72ec5b1eef58953667d1`
 
 현재 남은 종료 조건은 이 내용을 고정한 변경에 대한 독립 P0/P1 검토다. 그 검토가 끝나기 전에는
 2단계 출시판 장면·건설 UI를 시작하지 않는다.

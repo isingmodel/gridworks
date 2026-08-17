@@ -18,8 +18,8 @@
 | 단계 | 상태 | 계약·데이터 | 자동검사 | native 확인 | 사람 검토 | 독립 검토·종료 |
 |---|---|---|---|---|---|---|
 | 과거 내부 후보 | 보존 | [개발 이력](DEVELOPMENT_HISTORY.md)과 완료 scope | 동결 회귀 | 기존 package 실행 | 소유자 전체 플레이에서 출시 차단 문제 확인 | 출시판으로는 superseded |
-| 1. 분기형 배전망 기초 | **검토 중** | [활성 계약](scopes/RELEASE_REBUILD.md)·[world 데이터](../data/release-world-v1.json) | [9 suites / 152 assertions](../tools/Gridworks.ReleaseChecks/Program.cs), 과거 회귀 통과 | Game 기본 장면 변경 없음 | 해당 없음 | 독립 P0/P1 검토 중 |
-| 2. 출시판 지도와 건설 UX | 미승인 | 1단계 종료 뒤 같은 계약에서 전환 | 대기 | 대기 | 소유자 표현 검토 대기 | 대기 |
+| 1. 분기형 배전망 기초 | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md)·[world 데이터](../data/release-world-v1.json) | [9 suites / 152 assertions](../tools/Gridworks.ReleaseChecks/Program.cs), 과거 회귀 통과 | Game 기본 장면 변경 없음 | 해당 없음 | 독립 P0/P1 0 |
+| 2. 출시판 지도와 건설 UX | **활성** | [활성 계약](scopes/RELEASE_REBUILD.md) | 진행 중 | 대표 공사 흐름 대기 | 소유자 표현 검토 대기 | 대기 |
 | 3. 프롤로그·본편 캠페인 | 미승인 | 2단계 종료 뒤 같은 계약에서 전환 | 대기 | 대기 | 전체 흐름 검토 대기 | 대기 |
 | 4. 출시 마감 | 미승인 | 3단계 종료 뒤 같은 계약에서 전환 | 대기 | 대기 | 한국어 소유자 전체 플레이 대기 | 대기 |
 

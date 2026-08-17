@@ -11,7 +11,6 @@ internal enum FirstLightPanelAction
     Order,
     Advance,
     Settle,
-    Restart,
 }
 
 internal sealed record FirstLightActionPresentation(
@@ -30,8 +29,7 @@ internal sealed record FirstLightTaskPanelModel(
     FirstLightActionPresentation Undo,
     FirstLightActionPresentation Order,
     FirstLightActionPresentation Advance,
-    FirstLightActionPresentation Settle,
-    FirstLightActionPresentation Restart);
+    FirstLightActionPresentation Settle);
 
 internal sealed partial class FirstLightTaskPanel : PanelContainer
 {
@@ -45,7 +43,6 @@ internal sealed partial class FirstLightTaskPanel : PanelContainer
     private Button _orderButton = null!;
     private Button _advanceButton = null!;
     private Button _settleButton = null!;
-    private Button _restartButton = null!;
     private IReadOnlyDictionary<FirstLightPanelAction, Button> _buttons = null!;
 
     public event Action? CancelDraftRequested;
@@ -57,8 +54,6 @@ internal sealed partial class FirstLightTaskPanel : PanelContainer
     public event Action? AdvanceRequested;
 
     public event Action? SettleRequested;
-
-    public event Action? RestartRequested;
 
     public override void _Ready()
     {
@@ -72,7 +67,6 @@ internal sealed partial class FirstLightTaskPanel : PanelContainer
         _orderButton = GetNode<Button>("%OrderButton");
         _advanceButton = GetNode<Button>("%AdvanceButton");
         _settleButton = GetNode<Button>("%SettleButton");
-        _restartButton = GetNode<Button>("%RestartButton");
 
         _buttons = new Dictionary<FirstLightPanelAction, Button>
         {
@@ -81,7 +75,6 @@ internal sealed partial class FirstLightTaskPanel : PanelContainer
             [FirstLightPanelAction.Order] = _orderButton,
             [FirstLightPanelAction.Advance] = _advanceButton,
             [FirstLightPanelAction.Settle] = _settleButton,
-            [FirstLightPanelAction.Restart] = _restartButton,
         };
 
         _previewLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite;
@@ -91,7 +84,6 @@ internal sealed partial class FirstLightTaskPanel : PanelContainer
         _orderButton.Pressed += () => OrderRequested?.Invoke();
         _advanceButton.Pressed += () => AdvanceRequested?.Invoke();
         _settleButton.Pressed += () => SettleRequested?.Invoke();
-        _restartButton.Pressed += () => RestartRequested?.Invoke();
     }
 
     public void SetModel(FirstLightTaskPanelModel model)
@@ -113,7 +105,6 @@ internal sealed partial class FirstLightTaskPanel : PanelContainer
         SetButton(_orderButton, model.Order);
         SetButton(_advanceButton, model.Advance);
         SetButton(_settleButton, model.Settle);
-        SetButton(_restartButton, model.Restart);
         AccessibilityName = $"전력망 작업 패널. {model.Step}. {model.Status}";
     }
 

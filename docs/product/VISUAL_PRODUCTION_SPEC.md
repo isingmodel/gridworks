@@ -73,6 +73,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 | 두 번째 심장 제품 화면 | 누적 `ProductMain` | 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
 | 공장 용량 확장 제품 화면 | 누적 `ProductMain` | 부지·발전소·접속선·급전 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
 | 폭염·예방정비 제품 화면 | 누적 `ProductMain` | 예고·정비·사건·복구 결산 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
+| 캠페인 shell | 누적 `ProductMain`의 overlay | Title·Pause·설정·도움말, 저장·새 process 재개와 장 재시작 확인 완료, 사람 관찰 `NOT_COLLECTED` |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |

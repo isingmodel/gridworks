@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://ProductMain.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://FirstLightMapView.tscn" id="2_map"]
 [ext_resource type="PackedScene" path="res://FirstLightTaskPanel.tscn" id="3_panel"]
+[ext_resource type="PackedScene" path="res://ProductShellOverlay.tscn" id="4_shell"]
 
 [node name="ProductMain" type="Control"]
 layout_mode = 3
@@ -67,6 +68,13 @@ text = "GRIDWORKS · 열돔 아래: 폭염과 정비"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="MenuButton" type="Button" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(104, 36)
+layout_mode = 2
+focus_mode = 2
+text = "메뉴 · Esc"
+
 [node name="PhaseLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -126,3 +134,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 size_flags_stretch_ratio = 0.9
+
+[node name="ProductShellOverlay" parent="." instance=ExtResource("4_shell")]
+unique_name_in_owner = true
+layout_mode = 1

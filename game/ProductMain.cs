@@ -22,12 +22,20 @@ public sealed partial class ProductMain : Control
     private ProductGasPlantProjectDefinition _plantFixture = null!;
     private ProductHeatwaveDefinition _heatwaveFixture = null!;
     private ProductPreventiveMaintenanceDefinition _maintenanceFixture = null!;
-    private ProductSession _session = null!;
+    private ProductCampaignDefinition _campaign = null!;
+    private ProductCampaignRun _run = null!;
+    private ProductCampaignRun? _continuation;
+    private ProductSettings _settings = ProductSettings.Default;
     private ProductSnapshot _snapshot = null!;
     private FirstLightPointerPreview? _pointerPreview;
     private string _fixtureHash = string.Empty;
+    private string _campaignHash = string.Empty;
     private string _buildHash = string.Empty;
+    private string _campaignSavePath = string.Empty;
+    private string _settingsPath = string.Empty;
+    private string _titleStatus = string.Empty;
     private string _lastError = string.Empty;
+    private bool _persistenceEnabled;
     private bool _finalLogged;
 
     private Label _phaseLabel = null!;
@@ -36,6 +44,8 @@ public sealed partial class ProductMain : Control
     private Label _demandLabel = null!;
     private FirstLightMapView _mapView = null!;
     private FirstLightTaskPanel _taskPanel = null!;
+    private Button _menuButton = null!;
+    private ProductShellOverlay _shell = null!;
 
     public override void _Ready()
     {
@@ -44,13 +54,19 @@ public sealed partial class ProductMain : Control
             GetWindow().Title = "Gridworks — 열돔 아래: 폭염과 정비";
             _options = ProductLaunchOptions.Parse(OS.GetCmdlineUserArgs());
 
-            string fixturePath = Path.GetFullPath(Path.Combine(
+            string dataDirectory = Path.GetFullPath(Path.Combine(
                 ProjectSettings.GlobalizePath("res://"),
                 "..",
-                "data",
-                "product-heatwave-v1.json"));
+                "data"));
+            string campaignPath = Path.Combine(dataDirectory, "product-campaign-v1.json");
+            byte[] campaignBytes = File.ReadAllBytes(campaignPath);
+            _campaignHash = ProductContentHash.ComputeSha256(campaignBytes);
+            _campaign = ProductCampaignLoader.Load(campaignBytes);
+            string fixturePath = Path.GetFullPath(Path.Combine(
+                dataDirectory,
+                _campaign.ScenarioFixture));
             byte[] fixtureBytes = File.ReadAllBytes(fixturePath);
-            _fixtureHash = LowerHex(SHA256.HashData(fixtureBytes));
+            _fixtureHash = ProductContentHash.ComputeSha256(fixtureBytes);
             _buildHash = ComputeBuildHash();
             _fixture = ProductFixtureLoader.Load(fixtureBytes);
             _hospitalFixture = _fixture.Hospital
@@ -65,29 +81,54 @@ public sealed partial class ProductMain : Control
                 ?? throw new InvalidOperationException("Heatwave fixture is missing the heatwave.");
             _maintenanceFixture = _fixture.PreventiveMaintenance
                 ?? throw new InvalidOperationException("Heatwave fixture is missing preventive maintenance.");
-            _session = new ProductSession(_fixture);
-            _snapshot = _session.GetSnapshot();
+            _run = new ProductCampaignRun(
+                _campaign,
+                _fixture,
+                _campaignHash,
+                _fixtureHash);
+            _snapshot = _run.GetSnapshot();
+
+            _persistenceEnabled = !_options.Smoke;
+            ConfigurePersistencePaths();
+            if (_persistenceEnabled)
+            {
+                LoadPersistentState();
+            }
 
             BindScene();
+            ApplySettings(_settings);
             _diagnostic = new ProductDiagnosticLog(_options.DiagnosticPath, _options.SessionId);
             Render();
             _diagnostic.WriteReady(new
             {
                 buildHash = _buildHash,
+                campaignHash = _campaignHash,
                 fixtureHash = _fixtureHash,
+                chapterId = _run.CurrentChapterId,
                 phase = Machine(_snapshot.Phase),
             });
 
             if (_options.Smoke)
             {
+                _shell.HideShell();
                 CallDeferred(nameof(RunSmoke));
+            }
+            else
+            {
+                _shell.ShowTitle(_continuation is not null, _titleStatus);
+                if (_options.ShellSmokeLeg != ProductShellSmokeLeg.None)
+                {
+                    CallDeferred(nameof(RunShellSmoke));
+                }
             }
         }
         catch (Exception exception)
         {
             GD.PushError($"Heatwave Maintenance startup failed: {exception}");
             ShowFatalError(exception.Message);
-            if (_options?.Smoke == true || OS.GetCmdlineUserArgs().Contains("--smoke"))
+            if (_options?.Automated == true ||
+                OS.GetCmdlineUserArgs().Contains("--smoke") ||
+                OS.GetCmdlineUserArgs().Contains("--shell-smoke"))
             {
                 GetTree().Quit(1);
             }
@@ -108,6 +149,8 @@ public sealed partial class ProductMain : Control
         _demandLabel = GetNode<Label>("%DemandLabel");
         _mapView = GetNode<FirstLightMapView>("%FirstLightMapView");
         _taskPanel = GetNode<FirstLightTaskPanel>("%FirstLightTaskPanel");
+        _menuButton = GetNode<Button>("%MenuButton");
+        _shell = GetNode<ProductShellOverlay>("%ProductShellOverlay");
 
         _mapView.PointerChanged += OnPointerChanged;
         _mapView.PointRequested += OnPointRequested;
@@ -116,8 +159,251 @@ public sealed partial class ProductMain : Control
         _taskPanel.OrderRequested += OnOrderRequested;
         _taskPanel.AdvanceRequested += OnAdvanceRequested;
         _taskPanel.SettleRequested += OnMilestoneRequested;
-        _taskPanel.RestartRequested += OnRestartRequested;
+        _menuButton.Pressed += OnPauseRequested;
+        _shell.PauseRequested += OnPauseRequested;
+        _shell.NewGameRequested += OnNewGameRequested;
+        _shell.ContinueRequested += OnContinueRequested;
+        _shell.ResumeRequested += _shell.HideShell;
+        _shell.SaveAndQuitRequested += OnSaveAndQuitRequested;
+        _shell.RestartChapterRequested += OnRestartChapterRequested;
+        _shell.FullscreenChanged += OnFullscreenChanged;
+        _shell.UiScalePercentChanged += OnUiScalePercentChanged;
+        _shell.ControlHelpChanged += OnControlHelpChanged;
+        _shell.GameplayFocusRequested += OnGameplayFocusRequested;
     }
+
+    private void OnGameplayFocusRequested() =>
+        _mapView.CallDeferred(Control.MethodName.GrabFocus);
+
+    private void OnPauseRequested() =>
+        _shell.ShowPause(CurrentChapterDisplayName());
+
+    private void OnNewGameRequested()
+    {
+        _continuation = null;
+        _run = new ProductCampaignRun(
+            _campaign,
+            _fixture,
+            _campaignHash,
+            _fixtureHash);
+        _snapshot = _run.GetSnapshot();
+        _pointerPreview = null;
+        _lastError = string.Empty;
+        _finalLogged = false;
+        TrySaveCampaign(out _lastError);
+        Render();
+        _diagnostic?.WriteLifecycle("NEW_GAME", CampaignDiagnosticPayload());
+        EnterGameplay();
+    }
+
+    private void OnContinueRequested()
+    {
+        if (_continuation is null)
+        {
+            _shell.ShowTitle(false, "이어할 수 있는 유효한 저장이 없습니다.");
+            return;
+        }
+
+        _run = _continuation;
+        _continuation = null;
+        _snapshot = _run.GetSnapshot();
+        _pointerPreview = null;
+        _lastError = string.Empty;
+        _finalLogged = false;
+        Render();
+        _diagnostic?.WriteLifecycle("CONTINUE", CampaignDiagnosticPayload());
+        EnterGameplay();
+    }
+
+    private void OnSaveAndQuitRequested()
+    {
+        if (!TrySaveCampaign(out string error))
+        {
+            _lastError = error;
+            _shell.ShowPauseError(error);
+            return;
+        }
+
+        _diagnostic?.WriteLifecycle("SAVE_AND_QUIT", CampaignDiagnosticPayload());
+        if (_options.ShellSmokeLeg == ProductShellSmokeLeg.Save)
+        {
+            RequireSaveLegFinalState();
+            GD.Print(
+                $"PRODUCT_CAMPAIGN_SAVE_LEG_PASS session={_options.SessionId} chapter={_run.CurrentChapterId} commandCount={_run.CommandCount}");
+        }
+        GetTree().Quit(0);
+    }
+
+    private void OnRestartChapterRequested()
+    {
+        _finalLogged = false;
+        ApplyCommand("RESTART_CHAPTER", _run.RestartChapter());
+        _shell.HideShell();
+    }
+
+    private void OnFullscreenChanged(bool fullscreen)
+    {
+        _settings = _settings with
+        {
+            WindowMode = fullscreen
+                ? ProductWindowMode.Fullscreen
+                : ProductWindowMode.Windowed,
+        };
+        ApplySettings(_settings);
+        SaveSettings();
+    }
+
+    private void OnUiScalePercentChanged(int uiScalePercent)
+    {
+        _settings = _settings with { UiScalePercent = uiScalePercent };
+        ApplySettings(_settings);
+        SaveSettings();
+    }
+
+    private void OnControlHelpChanged(bool enabled)
+    {
+        _settings = _settings with { ShowControlHelp = enabled };
+        ApplySettings(_settings);
+        SaveSettings();
+    }
+
+    private void ApplySettings(ProductSettings settings)
+    {
+        GetWindow().Mode = settings.WindowMode == ProductWindowMode.Fullscreen
+            ? Window.ModeEnum.Fullscreen
+            : Window.ModeEnum.Windowed;
+        GetWindow().ContentScaleFactor = settings.UiScalePercent / 100f;
+        _shell.SetSettings(
+            settings.WindowMode == ProductWindowMode.Fullscreen,
+            settings.UiScalePercent,
+            settings.ShowControlHelp);
+    }
+
+    private void ConfigurePersistencePaths()
+    {
+        string storageDirectory = Path.GetFullPath(
+            _options.StorageDirectory ?? ProjectSettings.GlobalizePath("user://"));
+        _campaignSavePath = Path.Combine(
+            storageDirectory,
+            ProductPersistenceStore.CampaignSaveFileName);
+        _settingsPath = Path.Combine(
+            storageDirectory,
+            ProductPersistenceStore.SettingsFileName);
+    }
+
+    private void LoadPersistentState()
+    {
+        var notices = new List<string>();
+        ProductSettingsLoadResult settingsResult =
+            ProductPersistenceStore.LoadSettings(_settingsPath);
+        _settings = settingsResult.Settings;
+        if (settingsResult.Status == ProductDocumentLoadStatus.Invalid)
+        {
+            notices.Add("화면 설정을 읽지 못해 기본값으로 시작합니다.");
+        }
+
+        ProductCampaignSaveLoadResult saveResult =
+            ProductPersistenceStore.LoadCampaignSave(_campaignSavePath);
+        if (saveResult.Status == ProductDocumentLoadStatus.Invalid)
+        {
+            notices.Add("저장 파일이 손상되어 이어하기를 사용할 수 없습니다.");
+        }
+        else if (saveResult.Status == ProductDocumentLoadStatus.Loaded)
+        {
+            try
+            {
+                _continuation = ProductCampaignRun.Restore(
+                    _campaign,
+                    _fixture,
+                    _campaignHash,
+                    _fixtureHash,
+                    saveResult.Save
+                        ?? throw new ProductPersistenceValidationException(
+                            "Loaded campaign save has no payload."));
+            }
+            catch (Exception exception) when (
+                exception is ProductPersistenceValidationException or
+                ArgumentException or InvalidOperationException or OverflowException)
+            {
+                _continuation = null;
+                notices.Add("현재 캠페인과 맞지 않는 저장이라 이어하기를 사용할 수 없습니다.");
+            }
+        }
+        _titleStatus = string.Join('\n', notices);
+    }
+
+    private void EnterGameplay()
+    {
+        if (!string.IsNullOrEmpty(_lastError))
+        {
+            _shell.ShowPause(CurrentChapterDisplayName(), _lastError);
+            return;
+        }
+        if (_settings.ShowControlHelp)
+        {
+            _shell.ShowControlHelpBeforeGameplay();
+        }
+        else
+        {
+            _shell.HideShell();
+        }
+    }
+
+    private bool TrySaveCampaign(out string error)
+    {
+        error = string.Empty;
+        if (!_persistenceEnabled)
+        {
+            return true;
+        }
+        try
+        {
+            ProductPersistenceStore.SaveCampaign(
+                _campaignSavePath,
+                _run.CaptureSave());
+            return true;
+        }
+        catch (Exception exception)
+        {
+            error = $"캠페인을 저장하지 못했습니다. {exception.Message}";
+            GD.PushWarning(error);
+            return false;
+        }
+    }
+
+    private void SaveSettings()
+    {
+        if (!_persistenceEnabled)
+        {
+            return;
+        }
+        try
+        {
+            ProductPersistenceStore.SaveSettings(_settingsPath, _settings);
+        }
+        catch (Exception exception)
+        {
+            string error = $"화면 설정을 저장하지 못했습니다. {exception.Message}";
+            GD.PushWarning(error);
+            _shell.ShowPersistenceError(error);
+        }
+    }
+
+    private object CampaignDiagnosticPayload() => new
+    {
+        campaignId = _campaign.CampaignId,
+        chapterId = _run.CurrentChapterId,
+        chapterStartCommandCount = _run.ChapterStartCommandCount,
+        commandCount = _run.CommandCount,
+        phase = Machine(_snapshot.Phase),
+        minute = _snapshot.Minute,
+        cash = _snapshot.Cash,
+    };
+
+    private string CurrentChapterDisplayName() =>
+        _campaign.Chapters.Single(chapter =>
+            string.Equals(chapter.ChapterId, _run.CurrentChapterId, StringComparison.Ordinal))
+        .DisplayName;
 
     private void OnPointerChanged(FirstLightGridPoint? point)
     {
@@ -132,11 +418,11 @@ public sealed partial class ProductMain : Control
         _pointerPreview = _snapshot.Phase switch
         {
             ProductPhase.SubstationPlanning => ToMapPreview(
-                _session.PreviewSubstationPlacement(productPoint)),
+                _run.PreviewSubstationPlacement(productPoint)),
             ProductPhase.PlantPlanning => ToMapPreview(
-                _session.PreviewPlantPlacement(productPoint)),
+                _run.PreviewPlantPlacement(productPoint)),
             _ when IsLinePlanning(_snapshot.Phase) =>
-                ToMapPreview(_session.PreviewLineSupport(productPoint)),
+                ToMapPreview(_run.PreviewLineSupport(productPoint)),
             _ => null,
         };
         Render();
@@ -144,14 +430,20 @@ public sealed partial class ProductMain : Control
 
     private void OnPointRequested(FirstLightGridPoint point)
     {
-        ProductCommandResult? result = _snapshot.Phase switch
+        ProductCampaignCommand? command = _snapshot.Phase switch
         {
-            ProductPhase.SubstationPlanning => _session.SetSubstationDraft(ToProduct(point)),
-            ProductPhase.PlantPlanning => _session.SetPlantDraft(ToProduct(point)),
-            _ when IsLinePlanning(_snapshot.Phase) => _session.AddLineSupport(ToProduct(point)),
+            ProductPhase.SubstationPlanning => new(
+                ProductCampaignCommandKind.SetSubstationDraft,
+                ToProduct(point)),
+            ProductPhase.PlantPlanning => new(
+                ProductCampaignCommandKind.SetPlantDraft,
+                ToProduct(point)),
+            _ when IsLinePlanning(_snapshot.Phase) => new(
+                ProductCampaignCommandKind.AddLineSupport,
+                ToProduct(point)),
             _ => null,
         };
-        if (result is null)
+        if (command is null)
         {
             return;
         }
@@ -162,19 +454,22 @@ public sealed partial class ProductMain : Control
             ProductPhase.PlantPlanning => "SET_PLANT_DRAFT",
             _ => "ADD_LINE_SUPPORT",
         };
-        ApplyCommand(commandName, result);
+        ApplyCommand(commandName, _run.Execute(command));
     }
 
     private void OnCancelDraftRequested()
     {
-        ProductCommandResult? result = _snapshot.Phase switch
+        ProductCampaignCommand? command = _snapshot.Phase switch
         {
-            ProductPhase.SubstationPlanning => _session.CancelSubstationDraft(),
-            ProductPhase.PlantPlanning => _session.CancelPlantDraft(),
-            _ when IsLinePlanning(_snapshot.Phase) => _session.CancelLineDraft(),
+            ProductPhase.SubstationPlanning => new(
+                ProductCampaignCommandKind.CancelSubstationDraft),
+            ProductPhase.PlantPlanning => new(
+                ProductCampaignCommandKind.CancelPlantDraft),
+            _ when IsLinePlanning(_snapshot.Phase) => new(
+                ProductCampaignCommandKind.CancelLineDraft),
             _ => null,
         };
-        if (result is null)
+        if (command is null)
         {
             return;
         }
@@ -184,23 +479,29 @@ public sealed partial class ProductMain : Control
             ProductPhase.PlantPlanning => "CANCEL_PLANT_DRAFT",
             _ => "CANCEL_LINE_DRAFT",
         };
-        ApplyCommand(commandName, result);
+        ApplyCommand(commandName, _run.Execute(command));
     }
 
     private void OnUndoRequested() =>
-        ApplyCommand("UNDO_LINE_SUPPORT", _session.UndoLineSupport());
+        ApplyCommand(
+            "UNDO_LINE_SUPPORT",
+            _run.Execute(new ProductCampaignCommand(
+                ProductCampaignCommandKind.UndoLineSupport)));
 
     private void OnOrderRequested()
     {
-        ProductCommandResult? result = _snapshot.Phase switch
+        ProductCampaignCommand? command = _snapshot.Phase switch
         {
-            ProductPhase.SubstationPlanning => _session.OrderSubstation(),
-            ProductPhase.PlantPlanning => _session.OrderPlant(),
-            ProductPhase.MaintenanceDecision => _session.OrderPreventiveMaintenance(),
-            _ when IsLinePlanning(_snapshot.Phase) => _session.OrderLine(),
+            ProductPhase.SubstationPlanning => new(
+                ProductCampaignCommandKind.OrderSubstation),
+            ProductPhase.PlantPlanning => new(ProductCampaignCommandKind.OrderPlant),
+            ProductPhase.MaintenanceDecision => new(
+                ProductCampaignCommandKind.OrderPreventiveMaintenance),
+            _ when IsLinePlanning(_snapshot.Phase) => new(
+                ProductCampaignCommandKind.OrderLine),
             _ => null,
         };
-        if (result is null)
+        if (command is null)
         {
             return;
         }
@@ -211,53 +512,59 @@ public sealed partial class ProductMain : Control
             ProductPhase.MaintenanceDecision => "ORDER_PREVENTIVE_MAINTENANCE",
             _ => "ORDER_LINE",
         };
-        ApplyCommand(commandName, result);
+        ApplyCommand(commandName, _run.Execute(command));
     }
 
     private void OnAdvanceRequested() =>
-        ApplyCommand("ADVANCE_TO_CONSTRUCTION_COMPLETION", _session.AdvanceToConstructionCompletion());
+        ApplyCommand(
+            "ADVANCE_TO_CONSTRUCTION_COMPLETION",
+            _run.Execute(new ProductCampaignCommand(
+                ProductCampaignCommandKind.AdvanceToConstructionCompletion)));
 
     private void OnMilestoneRequested()
     {
-        (string Name, ProductCommandResult Result)? command = _snapshot.Phase switch
+        (string Name, ProductCampaignCommand Command)? command = _snapshot.Phase switch
         {
             ProductPhase.SettlementReady =>
-                ("ADVANCE_TO_SETTLEMENT", _session.AdvanceToSettlement()),
+                ("ADVANCE_TO_SETTLEMENT", new(ProductCampaignCommandKind.AdvanceToSettlement)),
             ProductPhase.IncidentReady =>
-                ("ADVANCE_TO_INCIDENT", _session.AdvanceToIncident()),
+                ("ADVANCE_TO_INCIDENT", new(ProductCampaignCommandKind.AdvanceToIncident)),
             ProductPhase.IncidentActive =>
-                ("ADVANCE_TO_RECOVERY_AND_SETTLEMENT", _session.AdvanceToRecoveryAndSettlement()),
+                ("ADVANCE_TO_RECOVERY_AND_SETTLEMENT", new(
+                    ProductCampaignCommandKind.AdvanceToRecoveryAndSettlement)),
             ProductPhase.FactorySettlementReady =>
-                ("ADVANCE_TO_FACTORY_SETTLEMENT", _session.AdvanceToFactorySettlement()),
+                ("ADVANCE_TO_FACTORY_SETTLEMENT", new(
+                    ProductCampaignCommandKind.AdvanceToFactorySettlement)),
             ProductPhase.MaintenanceDecision =>
-                ("SKIP_PREVENTIVE_MAINTENANCE", _session.SkipPreventiveMaintenance()),
+                ("SKIP_PREVENTIVE_MAINTENANCE", new(
+                    ProductCampaignCommandKind.SkipPreventiveMaintenance)),
             ProductPhase.HeatwaveReady =>
-                ("ADVANCE_TO_HEATWAVE", _session.AdvanceToHeatwave()),
+                ("ADVANCE_TO_HEATWAVE", new(
+                    ProductCampaignCommandKind.AdvanceToHeatwave)),
             ProductPhase.HeatwaveActive =>
-                ("ADVANCE_TO_HEATWAVE_SETTLEMENT", _session.AdvanceToHeatwaveSettlement()),
+                ("ADVANCE_TO_HEATWAVE_SETTLEMENT", new(
+                    ProductCampaignCommandKind.AdvanceToHeatwaveSettlement)),
             _ => null,
         };
         if (command.HasValue)
         {
-            ApplyCommand(command.Value.Name, command.Value.Result);
+            ApplyCommand(command.Value.Name, _run.Execute(command.Value.Command));
         }
-    }
-
-    private void OnRestartRequested()
-    {
-        ProductCommandResult result = _session.RestartMission();
-        _finalLogged = false;
-        ApplyCommand("RESTART_MISSION", result);
     }
 
     private void ApplyCommand(string commandName, ProductCommandResult result)
     {
         _snapshot = result.Snapshot;
         _pointerPreview = null;
-        _lastError = result.Accepted ? string.Empty : ErrorText(result.Error);
+        _lastError = result.Accepted
+            ? TrySaveCampaign(out string saveError) ? string.Empty : saveError
+            : ErrorText(result.Error);
         _diagnostic?.WriteCommand(result.Accepted, new
         {
             commandName,
+            chapterId = _run.CurrentChapterId,
+            chapterStartCommandCount = _run.ChapterStartCommandCount,
+            commandCount = _run.CommandCount,
             errorCode = result.Error.HasValue ? Machine(result.Error.Value) : null,
             phase = Machine(_snapshot.Phase),
             activeProjectId = ActiveProjectId(_snapshot),
@@ -312,7 +619,7 @@ public sealed partial class ProductMain : Control
 
     private void Render()
     {
-        _snapshot = _session.GetSnapshot();
+        _snapshot = _run.GetSnapshot();
         ProductHospitalSnapshot hospital = HospitalSnapshot();
         ProductFactorySnapshot factory = FactorySnapshot();
         ProductHeatwaveSnapshot heatwave = HeatwaveSnapshot();
@@ -529,7 +836,7 @@ public sealed partial class ProductMain : Control
         FirstLightTargetPreview? targetPreview = null;
         if (IsLinePlanning(_snapshot.Phase))
         {
-            ProductOrderPreview order = _session.PreviewLineOrder();
+            ProductOrderPreview order = _run.PreviewLineOrder();
             IReadOnlyList<ProductPoint> supports = ActiveSupports(_snapshot);
             ProductPoint from = supports.Count == 0
                 ? ActiveLineStart()
@@ -659,7 +966,7 @@ public sealed partial class ProductMain : Control
         {
             case ProductPhase.SubstationPlanning:
                 {
-                    ProductOrderPreview quote = _session.PreviewSubstationOrder();
+                    ProductOrderPreview quote = _run.PreviewSubstationOrder();
                     instruction =
                         "지도에서 배전 변전소의 초안을 놓으세요. 서비스 권역은 접속 가능 범위이며, 선로가 완공돼야 실제 공급됩니다.";
                     preview = SubstationPreviewText(quote);
@@ -680,7 +987,7 @@ public sealed partial class ProductMain : Control
                 break;
             case ProductPhase.LinePlanning:
                 {
-                    ProductOrderPreview quote = _session.PreviewLineOrder();
+                    ProductOrderPreview quote = _run.PreviewLineOrder();
                     instruction =
                         "기존 발전원에서 완공된 변전소까지 이어지도록 지지물을 순서대로 놓으세요. 마지막 span도 거리 제한 안에 있어야 합니다.";
                     preview = LinePreviewText(quote);
@@ -716,7 +1023,7 @@ public sealed partial class ProductMain : Control
                 {
                     bool primary = _snapshot.Phase == ProductPhase.PrimaryPlanning;
                     string label = primary ? "병원 주회선" : "병원 예비회선";
-                    ProductOrderPreview quote = _session.PreviewLineOrder();
+                    ProductOrderPreview quote = _run.PreviewLineOrder();
                     instruction = primary
                         ? "병원 주회선의 지지물을 순서대로 놓으세요. 위험구역 노출은 발주 전에 표시됩니다."
                         : "주회선과 support를 공유하지 않는 예비회선을 만드세요. 공간 우회는 더 길고 비쌀 수 있습니다.";
@@ -749,7 +1056,7 @@ public sealed partial class ProductMain : Control
             case ProductPhase.IncidentReady:
                 instruction =
                     "두 회선이 완공됐습니다. 각 회선을 하나씩 제거한 결과를 확인하고 고정 공간사건을 시작하세요.";
-                preview = ReliabilityText(_session.PreviewReliability());
+                preview = ReliabilityText(_run.PreviewReliability());
                 settle = Action(true, true, "고정 공간사건 시작", "사건 시작 경계로 진행하고 닿는 회선을 사용불가로 만듭니다.");
                 break;
             case ProductPhase.IncidentActive:
@@ -760,7 +1067,7 @@ public sealed partial class ProductMain : Control
                 break;
             case ProductPhase.PlantPlanning:
                 {
-                    ProductOrderPreview quote = _session.PreviewPlantOrder();
+                    ProductOrderPreview quote = _run.PreviewPlantOrder();
                     instruction =
                         "공장 증설이 이미 발효되어 기존 발전용량만으로는 부족합니다. 지도에 같은 방식으로 표시된 두 허용 부지 중 하나를 선택하세요.";
                     preview = PlantPreviewText(quote, factory);
@@ -782,7 +1089,7 @@ public sealed partial class ProductMain : Control
                 break;
             case ProductPhase.PlantConnectionPlanning:
                 {
-                    ProductOrderPreview quote = _session.PreviewLineOrder();
+                    ProductOrderPreview quote = _run.PreviewLineOrder();
                     instruction =
                         "완공된 가스발전소 terminal에서 기존 계통 접속점까지 지지물을 순서대로 놓으세요. 접속선 완공 전 출력은 0입니다.";
                     preview = LinePreviewText(quote);
@@ -815,7 +1122,7 @@ public sealed partial class ProductMain : Control
                 break;
             case ProductPhase.MaintenanceDecision:
                 {
-                    ProductOrderPreview quote = _session.PreviewPreventiveMaintenanceOrder();
+                    ProductOrderPreview quote = _run.PreviewPreventiveMaintenanceOrder();
                     instruction =
                         "폭염 예보가 확정됐습니다. 공장 노후 feeder를 예방정비하거나 비용 없이 건너뛰세요. 두 선택을 모두 보여주지만 추천하지 않습니다.";
                     preview =
@@ -920,8 +1227,7 @@ public sealed partial class ProductMain : Control
             undo,
             order,
             advance,
-            settle,
-            Action(true, true, "현재 임무 다시 시작", "모든 진행을 지우고 최초 상태로 돌아갑니다."));
+            settle);
     }
 
     private string SubstationPreviewText(ProductOrderPreview quote)
@@ -1216,6 +1522,231 @@ public sealed partial class ProductMain : Control
             description);
     }
 
+    private async void RunShellSmoke()
+    {
+        try
+        {
+            await NextFrame();
+            Require(_shell.Page == ProductShellPage.Title, "shell smoke did not start at Title");
+            if (_options.ShellSmokeLeg == ProductShellSmokeLeg.Save)
+            {
+                await RunShellSaveLeg();
+            }
+            else if (_options.ShellSmokeLeg == ProductShellSmokeLeg.Continue)
+            {
+                await RunShellContinueLeg();
+            }
+            else
+            {
+                throw new InvalidOperationException("Shell smoke leg is missing.");
+            }
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"PRODUCT_CAMPAIGN_SHELL_SMOKE_FAIL: {exception}");
+            GetTree().Quit(1);
+        }
+    }
+
+    private async Task RunShellSaveLeg()
+    {
+        Require(
+            _settings.WindowMode == ProductWindowMode.Windowed &&
+            _settings.UiScalePercent == 100 &&
+            _settings.ShowControlHelp,
+            "save leg did not start with default settings");
+
+        EmitShellAction(ProductShellAction.NewGame, "start New Game");
+        await NextFrame();
+        if (_shell.Page == ProductShellPage.Confirm)
+        {
+            EmitShellAction(ProductShellAction.Confirm, "confirm New Game overwrite");
+            await NextFrame();
+        }
+        Require(_shell.Page == ProductShellPage.Help, "New Game did not show startup control help");
+        EmitShellAction(ProductShellAction.HelpBack, "close startup control help");
+        await NextFrame();
+        Require(_shell.Page == ProductShellPage.Hidden, "startup control help did not return to game");
+        Require(_mapView.HasFocus(), "startup control help did not return keyboard focus to the map");
+
+        FirstLightGridPoint firstSubstation = _options.SmokeSubstations[0];
+        FirstLightGridPoint finalSubstation = _options.SmokeSubstations[1];
+        await ClickMapPoint(firstSubstation);
+        await ClickMapPoint(finalSubstation);
+        Require(
+            _snapshot.Substation.Position == ToProduct(finalSubstation),
+            "save leg substation clicks did not round-trip through the viewport");
+        EmitPanelAction(FirstLightPanelAction.Order, "order first-chapter substation");
+        await NextFrame();
+        EmitPanelAction(FirstLightPanelAction.Advance, "complete first-chapter substation");
+        await NextFrame();
+        await BuildLineThroughUi(
+            _options.SmokeSupports,
+            ProductPhase.LineBuilding,
+            ProductPhase.SettlementReady,
+            "first-chapter town line");
+        EmitPanelAction(FirstLightPanelAction.Settle, "settle first chapter");
+        await NextFrame();
+        RequireSecondChapterStart(finalSubstation);
+
+        EmitButton(_menuButton, "open Pause from header menu");
+        await NextFrame();
+        Require(_shell.Page == ProductShellPage.Pause, "header menu did not open Pause");
+        EmitShellAction(ProductShellAction.PauseSettings, "open Pause settings");
+        await NextFrame();
+        Require(_shell.Page == ProductShellPage.Settings, "Pause settings did not open");
+
+        OptionButton scale = _shell.GetUiScaleOption();
+        scale.Select(1);
+        scale.EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
+        await NextFrame();
+        CheckButton help = _shell.GetControlHelpCheck();
+        help.ButtonPressed = false;
+        if (_settings.ShowControlHelp)
+        {
+            help.EmitSignal(BaseButton.SignalName.Toggled, false);
+        }
+        await NextFrame();
+        Require(
+            _settings.UiScalePercent == 125 && !_settings.ShowControlHelp,
+            "settings controls did not persist the smoke choices in memory");
+
+        EmitShellAction(ProductShellAction.SettingsBack, "return from settings");
+        await NextFrame();
+        Require(_shell.Page == ProductShellPage.Pause, "settings did not return to Pause");
+        EmitShellAction(ProductShellAction.SaveAndQuit, "Save & Quit");
+    }
+
+    private async Task RunShellContinueLeg()
+    {
+        Require(
+            _continuation is not null &&
+            _settings.UiScalePercent == 125 &&
+            !_settings.ShowControlHelp,
+            "fresh continue process did not retain save and settings");
+        EmitShellAction(ProductShellAction.Continue, "Continue saved campaign");
+        await NextFrame();
+        Require(_shell.Page == ProductShellPage.Hidden, "Continue did not enter gameplay");
+        Require(_mapView.HasFocus(), "Continue did not return keyboard focus to the map");
+        FirstLightGridPoint finalSubstation = _options.SmokeSubstations[1];
+        RequireSecondChapterStart(finalSubstation);
+
+        FirstLightGridPoint primarySupport = _options.SmokePrimarySupports.Single();
+        int checkpoint = _run.ChapterStartCommandCount;
+        await ClickMapPoint(primarySupport);
+        Require(
+            HospitalSnapshot().PrimaryLine.SupportPositions.Select(ToGrid)
+                .SequenceEqual(new[] { primarySupport }) &&
+            _run.CommandCount == checkpoint + 1,
+            "second-chapter click was not accepted before restart");
+
+        await PressEscape();
+        Require(_shell.Page == ProductShellPage.Pause, "Escape did not open Pause");
+        EmitShellAction(ProductShellAction.RestartChapter, "request Restart Chapter");
+        await NextFrame();
+        Require(_shell.Page == ProductShellPage.Confirm, "Restart Chapter did not ask for confirmation");
+        EmitShellAction(ProductShellAction.Confirm, "confirm Restart Chapter");
+        await NextFrame();
+
+        Require(
+            _shell.Page == ProductShellPage.Hidden &&
+            _snapshot.Phase == ProductPhase.PrimaryPlanning &&
+            HospitalSnapshot().PrimaryLine.SupportPositions.Count == 0 &&
+            _run.CommandCount == checkpoint &&
+            _run.ChapterStartCommandCount == checkpoint,
+            "Restart Chapter did not restore the second-chapter checkpoint prefix");
+        Require(_mapView.HasFocus(), "Restart Chapter did not return keyboard focus to the map");
+
+        ProductCampaignSaveLoadResult load =
+            ProductPersistenceStore.LoadCampaignSave(_campaignSavePath);
+        Require(
+            load.Status == ProductDocumentLoadStatus.Loaded &&
+            load.Save?.Commands.Count == checkpoint,
+            "Restart Chapter autosave did not replace the journal with its checkpoint prefix");
+        ProductCampaignRun restored = ProductCampaignRun.Restore(
+            _campaign,
+            _fixture,
+            _campaignHash,
+            _fixtureHash,
+            load.Save!);
+        ProductSnapshot restoredSnapshot = restored.GetSnapshot();
+        Require(
+            restored.CurrentChapterId == "SECOND_HEART" &&
+            restored.CommandCount == checkpoint &&
+            restoredSnapshot.Phase == ProductPhase.PrimaryPlanning &&
+            restoredSnapshot.Minute == _snapshot.Minute &&
+            restoredSnapshot.Cash == _snapshot.Cash,
+            "fresh replay after Restart Chapter did not reproduce the checkpoint state");
+
+        GD.Print(
+            $"PRODUCT_CAMPAIGN_CONTINUE_LEG_PASS session={_options.SessionId} chapter={_run.CurrentChapterId} commandCount={_run.CommandCount}");
+        GetTree().Quit(0);
+    }
+
+    private void RequireSaveLegFinalState()
+    {
+        RequireSecondChapterStart(_options.SmokeSubstations[1]);
+        ProductSettingsLoadResult settingsLoad =
+            ProductPersistenceStore.LoadSettings(_settingsPath);
+        ProductCampaignSaveLoadResult saveLoad =
+            ProductPersistenceStore.LoadCampaignSave(_campaignSavePath);
+        Require(
+            settingsLoad.Status == ProductDocumentLoadStatus.Loaded &&
+            settingsLoad.Settings.UiScalePercent == 125 &&
+            !settingsLoad.Settings.ShowControlHelp,
+            "Save & Quit did not retain changed settings");
+        Require(
+            saveLoad.Status == ProductDocumentLoadStatus.Loaded &&
+            saveLoad.Save?.Commands.Count == _run.CommandCount,
+            "Save & Quit did not retain the accepted campaign journal");
+    }
+
+    private void RequireSecondChapterStart(FirstLightGridPoint finalSubstation)
+    {
+        int expectedCommandCount = 7 + _options.SmokeSupports.Count;
+        Require(
+            _snapshot.Phase == ProductPhase.PrimaryPlanning &&
+            _snapshot.Substation.Position == ToProduct(finalSubstation) &&
+            _snapshot.Line.ProjectState == ProductProjectState.Commissioned &&
+            _snapshot.Line.SupportPositions.Select(ToGrid)
+                .SequenceEqual(_options.SmokeSupports) &&
+            _snapshot.Minute == 360 &&
+            _snapshot.Cash == 14_700_000 &&
+            _run.CurrentChapterId == "SECOND_HEART" &&
+            _run.ChapterStartCommandCount == expectedCommandCount &&
+            _run.CommandCount == expectedCommandCount,
+            "campaign did not preserve the exact second-chapter start state");
+    }
+
+    private async Task PressEscape()
+    {
+        GetViewport().PushInput(new InputEventKey
+        {
+            Keycode = Key.Escape,
+            PhysicalKeycode = Key.Escape,
+            Pressed = true,
+        }, true);
+        GetViewport().PushInput(new InputEventKey
+        {
+            Keycode = Key.Escape,
+            PhysicalKeycode = Key.Escape,
+            Pressed = false,
+        }, true);
+        await NextFrame();
+    }
+
+    private void EmitShellAction(ProductShellAction action, string description) =>
+        EmitButton(_shell.GetActionButton(action), description);
+
+    private static void EmitButton(BaseButton button, string description)
+    {
+        if (!button.Visible || button.Disabled)
+        {
+            throw new InvalidOperationException($"Missing enabled UI action for {description}.");
+        }
+        button.EmitSignal(BaseButton.SignalName.Pressed);
+    }
+
     private async void RunSmoke()
     {
         try
@@ -1260,7 +1791,7 @@ public sealed partial class ProductMain : Control
                 ProductPhase.IncidentReady,
                 "hospital backup line");
 
-            ProductReliabilitySnapshot reliability = _session.PreviewReliability();
+            ProductReliabilitySnapshot reliability = _run.PreviewReliability();
             Require(
                 reliability.AllSingleLineRemovalsKeepHospitalUtility,
                 "hospital lines did not survive each single-line removal");

@@ -8,7 +8,7 @@ namespace Gridworks.Game;
 
 internal sealed class ProductDiagnosticLog : IDisposable
 {
-    private const string SchemaVersion = "gridworks.product.heatwave-maintenance.diagnostic.v1";
+    private const string SchemaVersion = "gridworks.product.campaign-save-settings.diagnostic.v1";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = null,
@@ -36,6 +36,8 @@ internal sealed class ProductDiagnosticLog : IDisposable
     public void WriteReady(object payload) => Write("READY", true, payload);
 
     public void WriteCommand(bool accepted, object payload) => Write("COMMAND", accepted, payload);
+
+    public void WriteLifecycle(string eventName, object payload) => Write(eventName, true, payload);
 
     public void WriteFinal(object payload) => Write("FINAL", true, payload);
 

@@ -6,6 +6,13 @@ using Godot;
 
 namespace Gridworks.Game;
 
+internal enum ProductShellSmokeLeg
+{
+    None,
+    Save,
+    Continue,
+}
+
 internal sealed record ProductLaunchOptions(
     string SessionId,
     string DiagnosticPath,
@@ -15,13 +22,19 @@ internal sealed record ProductLaunchOptions(
     IReadOnlyList<FirstLightGridPoint> SmokePrimarySupports,
     IReadOnlyList<FirstLightGridPoint> SmokeBackupSupports,
     FirstLightGridPoint? SmokePlant,
-    IReadOnlyList<FirstLightGridPoint> SmokePlantSupports)
+    IReadOnlyList<FirstLightGridPoint> SmokePlantSupports,
+    ProductShellSmokeLeg ShellSmokeLeg,
+    string? StorageDirectory)
 {
+    public bool Automated => Smoke || ShellSmokeLeg != ProductShellSmokeLeg.None;
+
     public static ProductLaunchOptions Parse(IReadOnlyList<string> arguments)
     {
         string? sessionId = null;
         string? diagnosticPath = null;
         bool smoke = false;
+        ProductShellSmokeLeg shellSmokeLeg = ProductShellSmokeLeg.None;
+        string? storageDirectory = null;
         var substations = new List<FirstLightGridPoint>();
         var supports = new List<FirstLightGridPoint>();
         var primarySupports = new List<FirstLightGridPoint>();
@@ -53,6 +66,30 @@ internal sealed record ProductLaunchOptions(
                         throw new ArgumentException("--smoke may be provided only once.");
                     }
                     smoke = true;
+                    break;
+                case "--shell-smoke":
+                    if (shellSmokeLeg != ProductShellSmokeLeg.None)
+                    {
+                        throw new ArgumentException("--shell-smoke may be provided only once.");
+                    }
+                    shellSmokeLeg = RequiredValue(arguments, ref index, "--shell-smoke") switch
+                    {
+                        "save" => ProductShellSmokeLeg.Save,
+                        "continue" => ProductShellSmokeLeg.Continue,
+                        _ => throw new ArgumentException(
+                            "--shell-smoke must be exactly save or continue."),
+                    };
+                    break;
+                case "--storage-directory":
+                    if (storageDirectory is not null)
+                    {
+                        throw new ArgumentException(
+                            "--storage-directory may be provided only once.");
+                    }
+                    storageDirectory = RequiredValue(
+                        arguments,
+                        ref index,
+                        "--storage-directory");
                     break;
                 case "--smoke-substation":
                     substations.Add(ParsePoint(
@@ -94,7 +131,12 @@ internal sealed record ProductLaunchOptions(
             }
         }
 
-        sessionId ??= "LOCAL-HEATWAVE-MAINTENANCE";
+        if (smoke && shellSmokeLeg != ProductShellSmokeLeg.None)
+        {
+            throw new ArgumentException("--smoke and --shell-smoke cannot be combined.");
+        }
+
+        sessionId ??= "LOCAL-CAMPAIGN";
         if (string.IsNullOrWhiteSpace(sessionId))
         {
             throw new ArgumentException("--session-id cannot be empty.");
@@ -133,6 +175,37 @@ internal sealed record ProductLaunchOptions(
                     "--smoke requires at least one --smoke-plant-support x,y value.");
             }
         }
+        else if (shellSmokeLeg == ProductShellSmokeLeg.Save)
+        {
+            if (substations.Count != 2 || supports.Count == 0)
+            {
+                throw new ArgumentException(
+                    "--shell-smoke save requires exactly two --smoke-substation and at least one --smoke-support value.");
+            }
+            if (primarySupports.Count != 0 ||
+                backupSupports.Count != 0 ||
+                plant.HasValue ||
+                plantSupports.Count != 0)
+            {
+                throw new ArgumentException(
+                    "--shell-smoke save accepts only first-chapter smoke coordinates.");
+            }
+        }
+        else if (shellSmokeLeg == ProductShellSmokeLeg.Continue)
+        {
+            if (substations.Count != 2 || supports.Count == 0 || primarySupports.Count != 1)
+            {
+                throw new ArgumentException(
+                    "--shell-smoke continue requires the two first-chapter substation points, its supports, and exactly one primary support.");
+            }
+            if (backupSupports.Count != 0 ||
+                plant.HasValue ||
+                plantSupports.Count != 0)
+            {
+                throw new ArgumentException(
+                    "--shell-smoke continue accepts only first-chapter coordinates and one second-chapter support coordinate.");
+            }
+        }
         else if (substations.Count != 0 ||
                  supports.Count != 0 ||
                  primarySupports.Count != 0 ||
@@ -144,8 +217,23 @@ internal sealed record ProductLaunchOptions(
                 "Smoke coordinates are valid only when --smoke is present.");
         }
 
+        if (shellSmokeLeg != ProductShellSmokeLeg.None)
+        {
+            if (string.IsNullOrWhiteSpace(storageDirectory))
+            {
+                throw new ArgumentException(
+                    "--shell-smoke requires --storage-directory path.");
+            }
+            storageDirectory = Path.GetFullPath(storageDirectory);
+        }
+        else if (storageDirectory is not null)
+        {
+            throw new ArgumentException(
+                "--storage-directory is valid only with --shell-smoke.");
+        }
+
         diagnosticPath ??= ProjectSettings.GlobalizePath(
-            $"user://product-heatwave-local-{System.Environment.ProcessId}.jsonl");
+            $"user://product-campaign-local-{System.Environment.ProcessId}.jsonl");
         return new ProductLaunchOptions(
             sessionId,
             Path.GetFullPath(diagnosticPath),
@@ -155,7 +243,9 @@ internal sealed record ProductLaunchOptions(
             primarySupports.AsReadOnly(),
             backupSupports.AsReadOnly(),
             plant,
-            plantSupports.AsReadOnly());
+            plantSupports.AsReadOnly(),
+            shellSmokeLeg,
+            storageDirectory);
     }
 
     private static FirstLightGridPoint ParsePoint(string value, string option)

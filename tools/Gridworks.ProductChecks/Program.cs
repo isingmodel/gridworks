@@ -73,6 +73,41 @@ internal static class Program
                     ? new HeatwaveChecks(fixturePath).Run()
                     : factoryExit;
             }
+            if (schemaVersion == "gridworks.campaign.v1")
+            {
+                string firstLightPath = RequiredRegressionFixture(
+                    "product-first-light-v1.json",
+                    "First Light");
+                string secondHeartPath = RequiredRegressionFixture(
+                    "product-second-heart-v1.json",
+                    "Second Heart");
+                string factoryPath = RequiredRegressionFixture(
+                    "product-factory-v1.json",
+                    "Factory Capacity");
+                string heatwavePath = RequiredRegressionFixture(
+                    "product-heatwave-v1.json",
+                    "Heatwave Maintenance");
+
+                int firstLightExit = new FirstLightChecks(firstLightPath).Run();
+                if (firstLightExit != 0)
+                {
+                    return firstLightExit;
+                }
+                int secondHeartExit = new SecondHeartChecks(secondHeartPath).Run();
+                if (secondHeartExit != 0)
+                {
+                    return secondHeartExit;
+                }
+                int factoryExit = new FactoryChecks(factoryPath).Run();
+                if (factoryExit != 0)
+                {
+                    return factoryExit;
+                }
+                int heatwaveExit = new HeatwaveChecks(heatwavePath).Run();
+                return heatwaveExit == 0
+                    ? new CampaignSaveChecks(fixturePath).Run()
+                    : heatwaveExit;
+            }
 
             throw new ArgumentException($"Unsupported product schemaVersion '{schemaVersion}'.");
         }
@@ -96,7 +131,7 @@ internal static class Program
             : Path.Combine(
                 Environment.CurrentDirectory,
                 "data",
-                "product-heatwave-v1.json");
+                "product-campaign-v1.json");
         path = Path.GetFullPath(path);
         if (!File.Exists(path))
         {

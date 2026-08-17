@@ -239,11 +239,11 @@ UI는 이 사슬에서 처음 실패한 원인을 보여준다. `전력 없음` 
 Scope 0은 인과를 먼저 검증하기 위해 고정 패드와 authored 회랑을 사용한다. 완성 제품에서는
 플레이어가 발전소와 변전소를 유효 부지에 직접 놓고, 그 사이의 전신주·철탑을 하나씩 배치해
 인접 오브젝트 사이 거리한계 안에서 선로를 만든다. 초안은 발주 전에 수정·취소할 수 있고, 완공
-뒤 되돌릴 수 없는 설계는 첫 단계부터 제공하는 현재 임무 재시작으로 복구한다. 캠페인 골격이
-생기면 이 동작이 장 시작 checkpoint를 사용하는 재시작이 된다. Scope 1은 고정 terminal 사이
+뒤 되돌릴 수 없는 설계는 장 시작 checkpoint를 사용하는 재시작으로 복구한다. Scope 1은 고정 terminal 사이
 지지물 배치만 검증했다. 현재 제품 경로는 변전소와 마을 선로, 병원 주·예비 회선, 단일회선 제거,
 공간사건과 내부전원 결산에 이어 가스발전소 한 기의 부지 선택·완공·계통접속, 공장 공급,
-예방정비와 고정 폭염 결산까지 구현했다.
+예방정비와 고정 폭염 결산까지 구현했다. 현재 제품 shell은 이 누적 흐름을 세 장으로 나누고,
+Title·Pause, 한 슬롯 저장·재개, 장 재시작과 최소 화면 설정을 제공한다.
 완공 자산의 유상 철거는 1.0 필수가 아니고, 재시작만으로 실제 플레이가 막힌다는 관찰 뒤에만
 다시 검토한다.
 
@@ -426,8 +426,9 @@ simulation은 만들지 않는다. 여러 기술의 발전원 포트폴리오는
 구체적인 시각 구현 기준은 [비주얼 제작 명세](VISUAL_PRODUCTION_SPEC.md)에 둔다. 회귀 prototype의
 규칙·숫자는 [Scope 0B](../scopes/SCOPE_0B_PLAYABLE.md)와
 [Scope 1](../scopes/SCOPE_1_INTERACTION.md), 현재 제품 경로는
-[첫 점등](../scopes/FIRST_LIGHT.md)과 누적 [두 번째 심장](../scopes/SECOND_HEART.md), 각각의
-machine-readable fixture가 정한다. 새 단계가 열리면 그 단계의 fixture가 해당 숫자를 이어받는다.
+[첫 점등](../scopes/FIRST_LIGHT.md), 누적 [두 번째 심장](../scopes/SECOND_HEART.md)과
+[캠페인·저장 골격](../scopes/CAMPAIGN_SAVE_SETTINGS.md), 각각의 machine-readable fixture와 campaign
+root가 정한다. 새 단계가 열리면 그 단계의 data authority가 해당 숫자와 문구를 이어받는다.
 
 ## 14. 기술·데이터 원칙
 
@@ -441,8 +442,8 @@ Godot scene은 명령을 보내고 반환 상태만 그린다.
 - 공사 완료 시 한 번에 그래프 편입
 - 기계 숫자의 단일 데이터 권위
 - 계산 오류를 플레이어 정전이나 벌금으로 위장하지 않고 simulation 정지
-- campaign root, 장 경계와 carry-over를 먼저 정의한 뒤 저장을 1.0 필수 기능으로 구현한다.
-  replay와 제품용 무결성 hash는 실제 필요가 관찰될 때만 별도 검토한다.
+- campaign root, 장 경계와 carry-over를 먼저 정의하고 승인 명령 기록을 재생하는 한 슬롯 저장으로
+  안전 경계를 복원한다. 제품용 replay UI나 범용 migration은 만들지 않는다.
 - 외부 AC solver는 선택된 상태를 감사하는 오프라인 도구일 뿐 런타임 의존성 아님
 
 종료된 카드 단계의 결정과 증거는 [개발 이력](../DEVELOPMENT_HISTORY.md)에 압축했다. 현재 작업의

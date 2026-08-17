@@ -1,8 +1,8 @@
-# 캠페인 골격·저장·기본 설정 — 활성 구현 계약
+# 캠페인 골격·저장·기본 설정 — 완료된 구현 기준
 
-> 상태: `ACTIVE`
+> 상태: `COMPLETED`
 >
-> 구현 권한: `GRANTED`
+> 다음 단계 구현 권한: `NOT_GRANTED`
 >
 > 사람 검증: `NOT_COLLECTED`
 
@@ -79,7 +79,7 @@ fixture에서 처음부터 재생하면 같은 `ProductSnapshot`이 나와야 �
 저장 JSON은 다음 현재 사실만 가진다.
 
 - save schema version
-- campaign ID
+- campaign ID와 campaign root SHA-256
 - scenario fixture ID와 fixture SHA-256
 - 승인된 campaign command의 순서와 command에 필요한 위치 한 점
 
@@ -88,11 +88,11 @@ fixture에서 처음부터 재생하면 같은 `ProductSnapshot`이 나와야 �
 장 재시작은 별도 command를 기록하지 않고 checkpoint prefix로 복원한다. 미래 명령 field,
 diagnostic, 화면 상태와 preview를 저장하지 않는다.
 
-복원은 campaign·fixture identity와 hash를 먼저 확인하고, 빈 session에서 모든 명령을 순서대로
-재생한다. 하나라도 알 수 없거나 거부되면 전체 저장을 유효하지 않은 것으로 처리하며 부분 상태를
-열지 않는다. 잘린 JSON, 알 수 없는 version·field, 잘못된 point와 다른 fixture hash도 같은 방식으로
-거부한다. 유효하지 않은 저장은 `Continue`만 비활성화하고 오류를 짧게 보여주며 `New Game`은 항상
-가능하다.
+복원은 campaign·fixture identity와 두 원본의 hash를 먼저 확인하고, 빈 session에서 모든 명령을
+순서대로 재생한다. 하나라도 알 수 없거나 거부되면 전체 저장을 유효하지 않은 것으로 처리하며
+부분 상태를 열지 않는다. 잘린 JSON, 알 수 없는 version·field, 잘못된 point와 다른 campaign 또는
+fixture hash도 같은 방식으로 거부한다. 유효하지 않은 저장은 `Continue`만 비활성화하고 오류를
+짧게 보여주며 `New Game`은 항상 가능하다.
 
 ## 6. 안전 경계와 파일 쓰기
 
@@ -112,7 +112,7 @@ Settings overlay를 맡고, 전력망 규칙이나 campaign state를 계산하�
 설정은 다음 세 값만 가진다.
 
 - 창 모드: windowed / fullscreen
-- UI scale: 100% / 125% / 150%
+- UI scale: 100% / 125%
 - 조작 도움말 표시: on / off
 
 설정은 변경 즉시 별도 JSON에 원자 저장하고 다음 실행에서 적용한다. 손상되거나 version이 다르면
@@ -126,8 +126,9 @@ key rebinding과 여러 display profile은 열지 않는다. 게임 언어는 �
 - 세 장 경계와 chapter restart, fixture hash mismatch, 잘린·손상·unknown-version 저장의 안전 거부
 - 원자 교체 성공과 남은 임시 파일이 기존 저장을 훼손하지 않는 작은 filesystem 검사
 - 누적 ProductChecks와 Game build
-- 표준 button으로 `Title → New Game → 첫 장 결산 → Save & Quit`, 새 process에서
-  `Continue → 둘째 장 동일 상태 → Restart Chapter`를 확인하는 1280×720 native 시나리오 한 번
+- 표준 button으로 `Title → New Game → 첫 장 결산 → UI scale 또는 도움말 변경 → Save & Quit`, 새
+  process에서 `설정 유지 → Continue → 둘째 장 동일 상태 → Restart Chapter`를 확인하는 1280×720
+  native 시나리오 한 번
 - 눈에 띄는 clipping·focus·상태문장 확인, 미해결 critical·core-flow major 0, 짧은 독립 검토 한 번
 
 모든 phase별 별도 native 실행, 두 번째 해상도, 강제종료 자동화, 전체 접근성, LLM·사람 플레이,
@@ -136,6 +137,24 @@ key rebinding과 여러 display profile은 열지 않는다. 게임 언어는 �
 
 ## 9. 현재 검사와 종료 기록
 
-구현과 검토가 끝날 때 이 절에 campaign/save 검사, Game build, 두 process native 결과, 파일 identity와
-독립 검토 결과를 기록한다. 이 단계 완료는 세 장 콘텐츠 고정이나 출시 표현·패키징을 승인하지
-않는다.
+현재 구현은 다음 경계에서 종료됐다.
+
+- 누적 ProductChecks: 첫 점등 `10 suites / 664 assertions`, 병원 `5 / 124`, 공장 `5 / 378`,
+  폭염 `5 / 243`, 캠페인 저장 `5 / 421` 통과
+- Core Release와 Game Debug rebuild: warning/error `0/0`
+- 두 개의 fresh Godot process로 1280×720 shell 시나리오 통과: 첫 process에서 새 게임·도움말·설정
+  `125% / help off`·첫 장 결산·Save & Quit, 둘째 process에서 설정 유지·Continue·장 재시작 확인
+- 재개 경계: `SECOND_HEART`, minute `360`, cash `14,700,000`, command count와 chapter checkpoint `9`
+- 도움말 닫기, Continue와 Restart 뒤 지도 keyboard focus 복구 확인
+- 기존 전체 제품 native 회귀: 정비 선택 경로가 minute `1845`, cash `4,660,000`으로 종료
+- campaign root SHA-256:
+  `4db2f72775c4740ffbe5134c410d800945791301fbbd654e82cf18f56c161085`
+- scenario fixture SHA-256:
+  `b00b7fc9d657fd355b8741e4326d9a5297ae749de629c1763334bcca4df83f9c`
+- 해당 shell native build SHA-256:
+  `8939759bc182bfb239fd317d28353e47f94abedfba2b874c425741ec4cb56619`
+- 독립 검토 최종 결과: `P0=0, P1=0`
+- 사람·LLM 관찰: `NOT_COLLECTED`
+
+두 번째 해상도, 강제종료, 전체 접근성, 사람·LLM 플레이는 이 단계에서 반복하지 않았다. 이 완료는
+세 장 콘텐츠 고정이나 출시 표현·패키징을 승인하지 않는다.

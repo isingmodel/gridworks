@@ -31,7 +31,7 @@
 |---|---|---|---|---|---|---|
 | 완료된 두 검증용 구현 | 완료 | [Scope 0B](scopes/SCOPE_0B_PLAYABLE.md), [Scope 1](scopes/SCOPE_1_INTERACTION.md) | 각 구현 회귀 | 각 장면 실행 확인 | 사람 증거 없음 | [개발 이력](DEVELOPMENT_HISTORY.md) |
 | 1. 첫 점등 통합 | 완료 | [구현 기준](scopes/FIRST_LIGHT.md), [데이터](../data/product-first-light-v1.json) | [종료 기록](scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록) | [종료 기록](scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록) |
-| 2. 병원 신뢰도·경제 | 미승인 | — | — | — | 필요 | — |
+| 2. 병원 신뢰도·경제 | 활성 | [계약](scopes/SECOND_HEART.md), [데이터](../data/product-second-heart-v1.json) | 진행 중 | 진행 중 | `NOT_COLLECTED` | — |
 | 3. 공장 수요·발전소 용량 | 미승인 | — | — | — | 선택 | — |
 | 4. 예고된 폭염·정비 | 미승인 | — | — | — | 필요 | — |
 | 5. 캠페인 골격·저장·기본 설정 | 미승인 | — | — | — | 선택 | — |
@@ -48,13 +48,14 @@
 활성 단계의 종료 기록은 다음 공통 조건을 모두 확인한다.
 
 - 단계 계약이 정한 기계 불변식이 모두 통과했다.
-- 현재 제품 전체 회귀와 Scope 0B·Scope 1 동결 회귀가 통과했다.
-- 핵심 행동을 실제 native 입력으로 처음부터 끝까지 수행했다.
-- 1280×720·1920×1080 layout, keyboard focus, 핵심 접근성 이름과 색 이외 상태 표현을 확인했다.
+- 현재 단계의 핵심 회귀와 변경한 공용 규칙에 닿는 기존 회귀가 통과했다.
+- 핵심 행동을 대표 native 입력 흐름 하나로 처음부터 끝까지 수행했다.
+- canonical 창에서 눈에 띄는 clipping, 기본 keyboard focus와 색 이외 상태 표현을 확인했다.
 - 미해결 critical과 다음 단계가 의존하는 core-flow major가 0이다.
 - 남은 비핵심 major가 있다면 수용 이유와 다시 볼 조건을 기록했다.
 - 이 단계에 필요한 외부 관찰을 완료했거나, 테스트 전 개발 목표에서는 `NOT_COLLECTED`로 기록했다.
 - README와 영향을 받은 문서를 현재 구현에 맞췄다.
 - 한 번의 독립 검토 후 발견사항을 수정하고 종료 증거를 장부에 연결했다.
 
-출시 후보는 예외 없이 열린 critical, major, softlock과 data-loss가 모두 0이어야 한다.
+두 해상도·접근성·전체 회귀 매트릭스는 중간 단계마다 반복하지 않고 마지막 통합 단계에서 한 번
+수행한다. 출시 후보는 예외 없이 열린 critical, major, softlock과 data-loss가 모두 0이어야 한다.

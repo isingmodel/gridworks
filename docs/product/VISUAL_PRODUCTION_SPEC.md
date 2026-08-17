@@ -71,6 +71,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 | Scope 0B 화면 | 단일 2D scene | 구현·시각 review와 official v6 `GO` 완료 |
 | 첫 점등 제품 화면 | `ProductMain`과 두 child scene | 기술 구현·두 해상도·접근성 검토 완료, 사람 관찰 `NOT_COLLECTED` |
 | 두 번째 심장 제품 화면 | 누적 `ProductMain` | 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
+| 공장 용량 확장 제품 화면 | 누적 `ProductMain` | 부지·발전소·접속선·급전 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |

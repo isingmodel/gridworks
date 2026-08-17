@@ -18,6 +18,8 @@ public sealed partial class ProductMain : Control
     private ProductFixture _fixture = null!;
     private ProductHospital _hospitalFixture = null!;
     private ProductSpatialIncident _incidentFixture = null!;
+    private ProductFactory _factoryFixture = null!;
+    private ProductGasPlantProjectDefinition _plantFixture = null!;
     private ProductSession _session = null!;
     private ProductSnapshot _snapshot = null!;
     private FirstLightPointerPreview? _pointerPreview;
@@ -37,14 +39,14 @@ public sealed partial class ProductMain : Control
     {
         try
         {
-            GetWindow().Title = "Gridworks — 두 번째 심장";
+            GetWindow().Title = "Gridworks — 열돔 아래: 증설";
             _options = ProductLaunchOptions.Parse(OS.GetCmdlineUserArgs());
 
             string fixturePath = Path.GetFullPath(Path.Combine(
                 ProjectSettings.GlobalizePath("res://"),
                 "..",
                 "data",
-                "product-second-heart-v1.json"));
+                "product-factory-v1.json"));
             byte[] fixtureBytes = File.ReadAllBytes(fixturePath);
             _fixtureHash = LowerHex(SHA256.HashData(fixtureBytes));
             _buildHash = ComputeBuildHash();
@@ -52,7 +54,11 @@ public sealed partial class ProductMain : Control
             _hospitalFixture = _fixture.Hospital
                 ?? throw new InvalidOperationException("Second Heart fixture is missing the hospital.");
             _incidentFixture = _fixture.SpatialIncident
-                ?? throw new InvalidOperationException("Second Heart fixture is missing the spatial incident.");
+                ?? throw new InvalidOperationException("Factory fixture is missing the spatial incident.");
+            _factoryFixture = _fixture.Factory
+                ?? throw new InvalidOperationException("Factory fixture is missing the factory.");
+            _plantFixture = _fixture.GasPlantProject
+                ?? throw new InvalidOperationException("Factory fixture is missing the gas plant.");
             _session = new ProductSession(_fixture);
             _snapshot = _session.GetSnapshot();
 
@@ -73,7 +79,7 @@ public sealed partial class ProductMain : Control
         }
         catch (Exception exception)
         {
-            GD.PushError($"Second Heart startup failed: {exception}");
+            GD.PushError($"Factory Capacity startup failed: {exception}");
             ShowFatalError(exception.Message);
             if (_options?.Smoke == true || OS.GetCmdlineUserArgs().Contains("--smoke"))
             {
@@ -121,6 +127,8 @@ public sealed partial class ProductMain : Control
         {
             ProductPhase.SubstationPlanning => ToMapPreview(
                 _session.PreviewSubstationPlacement(productPoint)),
+            ProductPhase.PlantPlanning => ToMapPreview(
+                _session.PreviewPlantPlacement(productPoint)),
             _ when IsLinePlanning(_snapshot.Phase) =>
                 ToMapPreview(_session.PreviewLineSupport(productPoint)),
             _ => null,
@@ -133,6 +141,7 @@ public sealed partial class ProductMain : Control
         ProductCommandResult? result = _snapshot.Phase switch
         {
             ProductPhase.SubstationPlanning => _session.SetSubstationDraft(ToProduct(point)),
+            ProductPhase.PlantPlanning => _session.SetPlantDraft(ToProduct(point)),
             _ when IsLinePlanning(_snapshot.Phase) => _session.AddLineSupport(ToProduct(point)),
             _ => null,
         };
@@ -141,9 +150,12 @@ public sealed partial class ProductMain : Control
             return;
         }
 
-        string commandName = _snapshot.Phase == ProductPhase.SubstationPlanning
-            ? "SET_SUBSTATION_DRAFT"
-            : "ADD_LINE_SUPPORT";
+        string commandName = _snapshot.Phase switch
+        {
+            ProductPhase.SubstationPlanning => "SET_SUBSTATION_DRAFT",
+            ProductPhase.PlantPlanning => "SET_PLANT_DRAFT",
+            _ => "ADD_LINE_SUPPORT",
+        };
         ApplyCommand(commandName, result);
     }
 
@@ -152,6 +164,7 @@ public sealed partial class ProductMain : Control
         ProductCommandResult? result = _snapshot.Phase switch
         {
             ProductPhase.SubstationPlanning => _session.CancelSubstationDraft(),
+            ProductPhase.PlantPlanning => _session.CancelPlantDraft(),
             _ when IsLinePlanning(_snapshot.Phase) => _session.CancelLineDraft(),
             _ => null,
         };
@@ -159,9 +172,12 @@ public sealed partial class ProductMain : Control
         {
             return;
         }
-        string commandName = _snapshot.Phase == ProductPhase.SubstationPlanning
-            ? "CANCEL_SUBSTATION_DRAFT"
-            : "CANCEL_LINE_DRAFT";
+        string commandName = _snapshot.Phase switch
+        {
+            ProductPhase.SubstationPlanning => "CANCEL_SUBSTATION_DRAFT",
+            ProductPhase.PlantPlanning => "CANCEL_PLANT_DRAFT",
+            _ => "CANCEL_LINE_DRAFT",
+        };
         ApplyCommand(commandName, result);
     }
 
@@ -173,6 +189,7 @@ public sealed partial class ProductMain : Control
         ProductCommandResult? result = _snapshot.Phase switch
         {
             ProductPhase.SubstationPlanning => _session.OrderSubstation(),
+            ProductPhase.PlantPlanning => _session.OrderPlant(),
             _ when IsLinePlanning(_snapshot.Phase) => _session.OrderLine(),
             _ => null,
         };
@@ -180,9 +197,12 @@ public sealed partial class ProductMain : Control
         {
             return;
         }
-        string commandName = _snapshot.Phase == ProductPhase.SubstationPlanning
-            ? "ORDER_SUBSTATION"
-            : "ORDER_LINE";
+        string commandName = _snapshot.Phase switch
+        {
+            ProductPhase.SubstationPlanning => "ORDER_SUBSTATION",
+            ProductPhase.PlantPlanning => "ORDER_PLANT",
+            _ => "ORDER_LINE",
+        };
         ApplyCommand(commandName, result);
     }
 
@@ -199,6 +219,8 @@ public sealed partial class ProductMain : Control
                 ("ADVANCE_TO_INCIDENT", _session.AdvanceToIncident()),
             ProductPhase.IncidentActive =>
                 ("ADVANCE_TO_RECOVERY_AND_SETTLEMENT", _session.AdvanceToRecoveryAndSettlement()),
+            ProductPhase.FactorySettlementReady =>
+                ("ADVANCE_TO_FACTORY_SETTLEMENT", _session.AdvanceToFactorySettlement()),
             _ => null,
         };
         if (command.HasValue)
@@ -226,6 +248,18 @@ public sealed partial class ProductMain : Control
             phase = Machine(_snapshot.Phase),
             activeProjectId = ActiveProjectId(_snapshot),
             supportCount = ActiveSupports(_snapshot).Count,
+            factory = _snapshot.Factory is ProductFactorySnapshot factory
+                ? new
+                {
+                    selectedSiteId = factory.SelectedSiteId,
+                    plantOnlineMinute = factory.PlantGridConnected
+                        ? factory.ConnectionLine.CompletionMinute
+                        : null,
+                    factoryDeliveredKw = factory.FactoryDeliveredKw,
+                    existingSourceDispatchKw = factory.ExistingSourceDispatchKw,
+                    gasPlantDispatchKw = factory.GasPlantDispatchKw,
+                }
+                : null,
         });
         Render();
     }
@@ -234,23 +268,81 @@ public sealed partial class ProductMain : Control
     {
         _snapshot = _session.GetSnapshot();
         ProductHospitalSnapshot hospital = HospitalSnapshot();
-        string phaseText = CurrentPhaseText(hospital);
+        ProductFactorySnapshot factory = FactorySnapshot();
+        string phaseText = CurrentPhaseText(hospital, factory);
         _phaseLabel.Text = phaseText;
         _phaseLabel.AccessibilityName = $"현재 단계 {phaseText}";
         _timeLabel.Text = $"시각 {_snapshot.Minute.ToString("N0", CultureInfo.InvariantCulture)}분";
         _cashLabel.Text = $"현금 {CashText(_snapshot.Cash)}";
+        long hospitalUtility = DisplayHospitalUtility(hospital, factory);
+        long townUtility = DisplayTownUtility(hospital, factory);
         _demandLabel.Text =
-            $"마을 {PowerText(DisplayTownUtility(hospital))} / {PowerText(_fixture.Town.DemandKw)} · " +
-            $"병원 {PowerText(hospital.HospitalUtilityKw)} / {PowerText(_hospitalFixture.DemandKw)} · " +
-            $"P0 {PowerText(hospital.HospitalP0DeliveredKw)}";
+            $"마을 {PowerText(townUtility)} / {PowerText(_fixture.Town.DemandKw)} · " +
+            $"병원 {PowerText(hospitalUtility)} / {PowerText(_hospitalFixture.DemandKw)} · " +
+            $"공장 {PowerText(factory.FactoryDeliveredKw)} / {PowerText(_factoryFixture.DemandKw)}";
 
-        _mapView.SetModel(BuildMapModel(hospital));
-        _taskPanel.SetModel(BuildPanelModel(hospital));
+        _mapView.SetModel(BuildMapModel(hospital, factory));
+        _taskPanel.SetModel(BuildPanelModel(hospital, factory));
 
         if (_snapshot.Phase == ProductPhase.Complete && !_finalLogged)
         {
             ProductHospitalSettlementSnapshot ledger = hospital.Settlement;
-            if (!ledger.Completed)
+            ProductFactorySettlementSnapshot factoryLedger = factory.Settlement;
+            if (factoryLedger.Completed)
+            {
+                _diagnostic?.WriteFinal(new
+                {
+                    outcome = Machine(_snapshot.Outcome),
+                    hardConditions = new
+                    {
+                        singleLineRemoval = ledger.SingleLineRemovalConditionMet,
+                        spatialIncidentUtility = ledger.SpatialIncidentUtilityConditionMet,
+                        hospitalP0 = ledger.HospitalP0ConditionMet,
+                        allLoadsFullySupplied = factoryLedger.AllLoadsFullySupplied,
+                    },
+                    plant = new
+                    {
+                        selectedSiteId = factory.SelectedSiteId,
+                        onlineMinute = factory.ConnectionLine.CompletionMinute,
+                        gridConnected = factory.PlantGridConnected,
+                    },
+                    delivery = new
+                    {
+                        hospitalKw = factory.HospitalDeliveredKw,
+                        hospitalSourceAssetId = factory.HospitalSourceAssetId,
+                        townKw = factory.TownDeliveredKw,
+                        townSourceAssetId = factory.TownSourceAssetId,
+                        factoryKw = factory.FactoryDeliveredKw,
+                        factorySourceAssetId = factory.FactorySourceAssetId,
+                    },
+                    dispatch = new
+                    {
+                        existingSourceKw = factory.ExistingSourceDispatchKw,
+                        gasPlantKw = factory.GasPlantDispatchKw,
+                    },
+                    energy = new
+                    {
+                        hospitalDeliveredKwMinute = factoryLedger.HospitalDeliveredEnergyKwMinute,
+                        townDeliveredKwMinute = factoryLedger.TownDeliveredEnergyKwMinute,
+                        factoryDeliveredKwMinute = factoryLedger.FactoryDeliveredEnergyKwMinute,
+                        existingSourceGenerationKwMinute = factoryLedger.ExistingSourceGenerationEnergyKwMinute,
+                        gasPlantGenerationKwMinute = factoryLedger.GasPlantGenerationEnergyKwMinute,
+                        utilityUnservedKwMinute = factoryLedger.UtilityUnservedEnergyKwMinute,
+                    },
+                    cash = new
+                    {
+                        revenueCashUnit = factoryLedger.UtilityRevenueCashUnit,
+                        existingSourceGenerationCostCashUnit =
+                            factoryLedger.ExistingSourceGenerationCostCashUnit,
+                        gasPlantGenerationCostCashUnit = factoryLedger.GasPlantGenerationCostCashUnit,
+                        compensationCashUnit = factoryLedger.UnservedCompensationCashUnit,
+                        lostSalesCashUnit = factoryLedger.LostSalesCashUnit,
+                        changeCashUnit = factoryLedger.CashChangeCashUnit,
+                        endingCashUnit = _snapshot.Cash,
+                    },
+                });
+            }
+            else if (!ledger.Completed)
             {
                 _diagnostic?.WriteFinal(new
                 {
@@ -307,7 +399,9 @@ public sealed partial class ProductMain : Control
         }
     }
 
-    private FirstLightMapModel BuildMapModel(ProductHospitalSnapshot hospital)
+    private FirstLightMapModel BuildMapModel(
+        ProductHospitalSnapshot hospital,
+        ProductFactorySnapshot factory)
     {
         FirstLightTargetPreview? targetPreview = null;
         if (IsLinePlanning(_snapshot.Phase))
@@ -315,7 +409,7 @@ public sealed partial class ProductMain : Control
             ProductOrderPreview order = _session.PreviewLineOrder();
             IReadOnlyList<ProductPoint> supports = ActiveSupports(_snapshot);
             ProductPoint from = supports.Count == 0
-                ? _fixture.ExistingSource.Position
+                ? ActiveLineStart()
                 : supports[^1];
             targetPreview = new FirstLightTargetPreview(
                 ToGrid(from),
@@ -327,8 +421,8 @@ public sealed partial class ProductMain : Control
             hospital.Incident.Active &&
             hospital.Incident.UnavailableProjectIds.Contains(projectId, StringComparer.Ordinal);
 
-        FirstLightLineVisual[] lines =
-        [
+        var lines = new List<FirstLightLineVisual>
+        {
             new(
                 FirstLightLineKind.Town,
                 "마을 회선",
@@ -354,7 +448,19 @@ public sealed partial class ProductMain : Control
                     hospital.BackupLine.ProjectState,
                     IsUnavailable(hospital.BackupLine.ProjectId)),
                 _snapshot.Phase == ProductPhase.BackupPlanning),
-        ];
+        };
+        if (factory.PlantPosition is not null &&
+            factory.PlantProjectState == ProductProjectState.Commissioned)
+        {
+            lines.Add(new FirstLightLineVisual(
+                FirstLightLineKind.PlantConnection,
+                "발전소 접속선",
+                ToGrid(_fixture.ExistingSource.Position),
+                factory.ConnectionLine.SupportPositions.Select(ToGrid).ToArray(),
+                VisualState(factory.ConnectionLine.ProjectState, false),
+                _snapshot.Phase == ProductPhase.PlantConnectionPlanning,
+                ToGrid(factory.PlantPosition)));
+        }
 
         ProductRiskRect risk = _incidentFixture.RiskRect;
 
@@ -367,10 +473,12 @@ public sealed partial class ProductMain : Control
             _fixture.BlockedCells.Select(ToGrid).ToArray(),
             ToGrid(_fixture.ExistingSource.Position),
             ToGrid(_fixture.Town.Position),
-            DisplayTownUtility(hospital),
+            DisplayTownUtility(hospital, factory),
             ToGrid(_hospitalFixture.Position),
-            hospital.HospitalUtilityKw,
-            hospital.HospitalP0DeliveredKw,
+            DisplayHospitalUtility(hospital, factory),
+            IsFactoryDisplayStage(_snapshot.Phase, factory)
+                ? factory.HospitalDeliveredKw
+                : hospital.HospitalP0DeliveredKw,
             new FirstLightRiskRect(
                 new FirstLightGridPoint(risk.MinX, risk.MinY),
                 new FirstLightGridPoint(risk.MaxX, risk.MaxY),
@@ -381,11 +489,31 @@ public sealed partial class ProductMain : Control
             lines,
             _pointerPreview,
             targetPreview,
-            CurrentPhaseText(hospital),
-            StatusText(hospital));
+            CurrentPhaseText(hospital, factory),
+            StatusText(hospital, factory),
+            (_fixture.GasPlantSites ?? Array.Empty<ProductGasPlantSite>())
+                .Select(site => new FirstLightPlantSiteVisual(
+                    site.SiteId,
+                    ToGrid(site.Position),
+                    string.Equals(site.SiteId, factory.SelectedSiteId, StringComparison.Ordinal)))
+                .ToArray(),
+            new FirstLightFactoryVisual(
+                ToGrid(_factoryFixture.Position),
+                ToGrid(_fixture.ExistingSource.Position),
+                factory.FactoryDeliveredKw),
+            factory.PlantPosition is null
+                ? null
+                : new FirstLightGasPlantVisual(
+                    ToGrid(factory.PlantPosition),
+                    VisualState(factory.PlantProjectState, false),
+                    factory.PlantGridConnected,
+                    factory.GasPlantDispatchKw),
+            IsFactoryDisplayStage(_snapshot.Phase, factory));
     }
 
-    private FirstLightTaskPanelModel BuildPanelModel(ProductHospitalSnapshot hospital)
+    private FirstLightTaskPanelModel BuildPanelModel(
+        ProductHospitalSnapshot hospital,
+        ProductFactorySnapshot factory)
     {
         FirstLightActionPresentation hidden = Action(false, false, string.Empty, string.Empty);
         FirstLightActionPresentation cancel = hidden;
@@ -499,6 +627,61 @@ public sealed partial class ProductMain : Control
                 preview = IncidentText(hospital);
                 settle = Action(true, true, "복구·결산까지 진행", "사건을 적분하고 회선을 복구한 뒤 경제를 결산합니다.");
                 break;
+            case ProductPhase.PlantPlanning:
+                {
+                    ProductOrderPreview quote = _session.PreviewPlantOrder();
+                    instruction =
+                        "공장 증설이 이미 발효되어 기존 발전용량만으로는 부족합니다. 지도에 같은 방식으로 표시된 두 허용 부지 중 하나를 선택하세요.";
+                    preview = PlantPreviewText(quote, factory);
+                    cancel = Action(true, true, "발전소 초안 취소", "선택한 발전소 부지 초안을 지웁니다.");
+                    order = Action(
+                        true,
+                        quote.Accepted,
+                        quote.CostCashUnit.HasValue
+                            ? $"발전소 발주 · {CashText(quote.CostCashUnit.Value)}"
+                            : "발전소 발주",
+                        "기본비와 선택 부지비를 지불하고 가스발전소 공사를 발주합니다.");
+                    break;
+                }
+            case ProductPhase.PlantBuilding:
+                instruction =
+                    "가스발전소 공사가 진행 중입니다. 완공 전 출력은 0이며 접속선은 아직 만들 수 없습니다.";
+                preview = $"{CompletionText(factory.PlantCompletionMinute)} · 출력 {PowerText(factory.GasPlantDispatchKw)}";
+                advance = Action(true, true, "발전소 완공까지 진행", "가스발전소의 완공 시각으로 진행합니다.");
+                break;
+            case ProductPhase.PlantConnectionPlanning:
+                {
+                    ProductOrderPreview quote = _session.PreviewLineOrder();
+                    instruction =
+                        "완공된 가스발전소 terminal에서 기존 계통 접속점까지 지지물을 순서대로 놓으세요. 접속선 완공 전 출력은 0입니다.";
+                    preview = LinePreviewText(quote);
+                    cancel = Action(true, true, "접속선 초안 전체 취소", "놓은 접속선 지지물을 모두 지웁니다.");
+                    undo = Action(
+                        true,
+                        factory.ConnectionLine.SupportPositions.Count > 0,
+                        "마지막 지지물 되돌리기",
+                        "가장 마지막에 놓은 접속선 지지물 하나를 지웁니다.");
+                    order = Action(
+                        true,
+                        quote.Accepted,
+                        quote.CostCashUnit.HasValue
+                            ? $"접속선 발주 · {CashText(quote.CostCashUnit.Value)}"
+                            : "접속선 발주",
+                        "현재 지지물 순서로 발전소 접속선 공사를 발주합니다.");
+                    break;
+                }
+            case ProductPhase.PlantConnectionBuilding:
+                instruction =
+                    "발전소 접속선 공사가 진행 중입니다. 선 전체가 완공될 때까지 발전소 출력은 0입니다.";
+                preview = $"{CompletionText(factory.ConnectionLine.CompletionMinute)} · 출력 {PowerText(factory.GasPlantDispatchKw)}";
+                advance = Action(true, true, "접속선 완공까지 진행", "접속선 전체의 완공 시각으로 진행합니다.");
+                break;
+            case ProductPhase.FactorySettlementReady:
+                instruction =
+                    "가스발전소가 계통에 접속됐습니다. 고정 merit order 급전과 세 수요처의 공급을 확인하고 마지막 기간을 결산하세요.";
+                preview = FactoryDispatchText(factory);
+                settle = Action(true, true, "공장 공급기간 결산", "고정 공급기간의 실제 인도·발전비·미공급을 결산합니다.");
+                break;
             case ProductPhase.Complete:
                 if (!hospital.Settlement.Completed)
                 {
@@ -508,12 +691,19 @@ public sealed partial class ProductMain : Control
                         $"첫 결산 · {SupplyText(_snapshot.SupplyFailure)}\n" +
                         $"매출 {CashText(_snapshot.Settlement.RevenueCashUnit)} · 기말 현금 {CashText(_snapshot.Cash)}";
                 }
-                else
+                else if (!factory.Settlement.Completed)
                 {
                     instruction = _snapshot.Outcome == ProductMissionOutcome.Success
                         ? "두 번째 심장 완료. 단일회선 제거, 실제 공간사건 utility, 병원 P0 조건을 모두 지켰습니다."
                         : "두 번째 심장 실패. 세 안전 조건을 각각 확인하고 전체 임무를 다시 시작할 수 있습니다.";
                     preview = FinalLedgerText(hospital.Settlement);
+                }
+                else
+                {
+                    instruction = _snapshot.Outcome == ProductMissionOutcome.Success
+                        ? "공장 용량 확장 완료. 병원·마을·공장을 모두 전량 공급했습니다."
+                        : "공장 용량 확장 실패. 최종 공급과 급전 결과를 확인하고 전체 임무를 다시 시작할 수 있습니다.";
+                    preview = FactoryFinalLedgerText(factory);
                 }
                 break;
             default:
@@ -521,10 +711,10 @@ public sealed partial class ProductMain : Control
         }
 
         return new FirstLightTaskPanelModel(
-            CurrentPhaseText(hospital),
+            CurrentPhaseText(hospital, factory),
             instruction,
             preview,
-            StatusText(hospital),
+            StatusText(hospital, factory),
             _lastError,
             cancel,
             undo,
@@ -554,6 +744,24 @@ public sealed partial class ProductMain : Control
             return _pointerPreview.Description;
         }
         return OrderPreviewText(quote);
+    }
+
+    private string PlantPreviewText(
+        ProductOrderPreview quote,
+        ProductFactorySnapshot factory)
+    {
+        if (_pointerPreview?.Mode == FirstLightPointerMode.GasPlant)
+        {
+            return _pointerPreview.Description;
+        }
+        if (quote.Error == ProductCommandError.NoDraft)
+        {
+            return "두 허용 부지는 추천 없이 같은 방식으로 표시됩니다. 부지를 선택하면 기본비를 포함한 발주 견적을 확인할 수 있습니다.";
+        }
+        string site = factory.SelectedSiteId is null
+            ? string.Empty
+            : $"선택 부지 · {factory.SelectedSiteId}\n";
+        return site + OrderPreviewText(quote);
     }
 
     private string HospitalLinePreviewText(ProductOrderPreview quote)
@@ -602,8 +810,41 @@ public sealed partial class ProductMain : Control
         $"UPS {EnergyText(ledger.UpsEnergyKwMinute)} · 디젤 {EnergyText(ledger.DieselEnergyKwMinute)} · " +
         $"P0 미공급 {EnergyText(ledger.HospitalP0UnservedEnergyKwMinute)}";
 
-    private string StatusText(ProductHospitalSnapshot hospital)
+    private static string FactoryDispatchText(ProductFactorySnapshot factory) =>
+        $"병원 {PowerText(factory.HospitalDeliveredKw)} · 마을 {PowerText(factory.TownDeliveredKw)} · " +
+        $"공장 {PowerText(factory.FactoryDeliveredKw)}\n" +
+        $"기존 발전원 급전 {PowerText(factory.ExistingSourceDispatchKw)} · " +
+        $"새 가스발전소 급전 {PowerText(factory.GasPlantDispatchKw)}";
+
+    private static string FactoryFinalLedgerText(ProductFactorySnapshot factory)
     {
+        ProductFactorySettlementSnapshot ledger = factory.Settlement;
+        return
+            $"세 수요처 전량공급 {YesNo(ledger.AllLoadsFullySupplied)} · " +
+            $"선택 부지 {factory.SelectedSiteId ?? "없음"}\n" +
+            $"기존 발전 {EnergyText(ledger.ExistingSourceGenerationEnergyKwMinute)} · " +
+            $"가스발전 {EnergyText(ledger.GasPlantGenerationEnergyKwMinute)} · " +
+            $"미공급 {EnergyText(ledger.UtilityUnservedEnergyKwMinute)}\n" +
+            $"매출 {CashText(ledger.UtilityRevenueCashUnit)} · " +
+            $"기존 발전비 {CashText(ledger.ExistingSourceGenerationCostCashUnit)} · " +
+            $"가스 발전비 {CashText(ledger.GasPlantGenerationCostCashUnit)}\n" +
+            $"현금 변화 {SignedCashText(ledger.CashChangeCashUnit)} · " +
+            $"LostSales {CashText(ledger.LostSalesCashUnit)} (현금 미반영)";
+    }
+
+    private string StatusText(
+        ProductHospitalSnapshot hospital,
+        ProductFactorySnapshot factory)
+    {
+        if (IsFactoryDisplayStage(_snapshot.Phase, factory))
+        {
+            string connection = factory.PlantGridConnected ? "계통접속" : "계통 미접속";
+            return
+                $"공장 {PowerText(factory.FactoryDeliveredKw)} / {PowerText(_factoryFixture.DemandKw)} · " +
+                $"발전소 {connection}\n" +
+                $"기존 급전 {PowerText(factory.ExistingSourceDispatchKw)} · " +
+                $"가스 급전 {PowerText(factory.GasPlantDispatchKw)}";
+        }
         if (!IsHospitalDisplayStage(_snapshot.Phase, hospital))
         {
             return SupplyText(_snapshot.SupplyFailure);
@@ -653,6 +894,19 @@ public sealed partial class ProductMain : Control
                 : "배치는 가능하지만 마을이 서비스 권역 밖이라 완공 뒤에도 공급되지 않습니다.";
         return new FirstLightPointerPreview(
             FirstLightPointerMode.Substation,
+            ToGrid(preview.Position),
+            null,
+            preview.Accepted,
+            description);
+    }
+
+    private static FirstLightPointerPreview ToMapPreview(ProductPlantPlacementPreview preview)
+    {
+        string description = preview.Accepted
+            ? $"허용 부지 {preview.SiteId} · 부지비 {CashText(preview.SiteCostCashUnit!.Value)}"
+            : ErrorText(preview.Error);
+        return new FirstLightPointerPreview(
+            FirstLightPointerMode.GasPlant,
             ToGrid(preview.Position),
             null,
             preview.Accepted,
@@ -733,18 +987,64 @@ public sealed partial class ProductMain : Control
             EmitPanelAction(FirstLightPanelAction.Settle, "recover and settle incident");
             await NextFrame();
             Require(
+                _snapshot.Phase == ProductPhase.PlantPlanning &&
+                _snapshot.Outcome == ProductMissionOutcome.Pending,
+                "hospital settlement did not open plant planning");
+
+            FirstLightGridPoint plantPoint = _options.SmokePlant
+                ?? throw new InvalidOperationException("Factory smoke plant coordinate is missing.");
+            await ClickMapPoint(plantPoint);
+            ProductFactorySnapshot factory = FactorySnapshot();
+            Require(
+                factory.PlantPosition == ToProduct(plantPoint) &&
+                factory.SelectedSiteId is not null,
+                "plant site click did not round-trip through viewport input");
+            EmitPanelAction(FirstLightPanelAction.Order, "order gas plant");
+            await NextFrame();
+            Require(_snapshot.Phase == ProductPhase.PlantBuilding, "gas plant order failed");
+            EmitPanelAction(FirstLightPanelAction.Advance, "complete gas plant");
+            await NextFrame();
+            factory = FactorySnapshot();
+            Require(
+                _snapshot.Phase == ProductPhase.PlantConnectionPlanning &&
+                factory.PlantProjectState == ProductProjectState.Commissioned &&
+                !factory.PlantGridConnected &&
+                factory.GasPlantDispatchKw == 0,
+                "commissioned but disconnected plant did not remain at zero output");
+
+            await BuildLineThroughUi(
+                _options.SmokePlantSupports,
+                ProductPhase.PlantConnectionBuilding,
+                ProductPhase.FactorySettlementReady,
+                "gas plant connection line");
+            factory = FactorySnapshot();
+            Require(
+                factory.ConnectionLine.SupportPositions.Select(ToGrid)
+                    .SequenceEqual(_options.SmokePlantSupports) &&
+                factory.PlantGridConnected &&
+                factory.FactoryDeliveredKw == _factoryFixture.DemandKw,
+                "commissioned plant connection did not supply the factory");
+
+            EmitPanelAction(FirstLightPanelAction.Settle, "settle factory supply period");
+            await NextFrame();
+            factory = FactorySnapshot();
+            Require(
                 _snapshot.Phase == ProductPhase.Complete &&
                 _snapshot.Outcome == ProductMissionOutcome.Success &&
+                factory.Settlement.Completed &&
+                factory.Settlement.AllLoadsFullySupplied &&
+                _snapshot.Cash == 5_820_000 &&
+                _snapshot.Minute == 1_425 &&
                 _finalLogged,
-                "Second Heart smoke did not reach a logged successful settlement");
+                "Factory Capacity smoke did not reach the exact logged successful settlement");
 
             GD.Print(
-                $"PRODUCT_SECOND_HEART_SMOKE_PASS session={_options.SessionId} endingCash={_snapshot.Cash}");
+                $"PRODUCT_FACTORY_CAPACITY_SMOKE_PASS session={_options.SessionId} endingCash={_snapshot.Cash} minute={_snapshot.Minute}");
             GetTree().Quit(0);
         }
         catch (Exception exception)
         {
-            GD.PushError($"PRODUCT_SECOND_HEART_SMOKE_FAIL: {exception}");
+            GD.PushError($"PRODUCT_FACTORY_CAPACITY_SMOKE_FAIL: {exception}");
             GetTree().Quit(1);
         }
     }
@@ -822,14 +1122,26 @@ public sealed partial class ProductMain : Control
 
     private ProductHospitalSnapshot HospitalSnapshot() =>
         _snapshot.Hospital
-        ?? throw new InvalidOperationException("Second Heart session has no hospital snapshot.");
+        ?? throw new InvalidOperationException("Product session has no hospital snapshot.");
+
+    private ProductFactorySnapshot FactorySnapshot() =>
+        _snapshot.Factory
+        ?? throw new InvalidOperationException("Product session has no factory snapshot.");
 
     private ProductPoint ActiveTarget() => _snapshot.Phase switch
     {
         ProductPhase.LinePlanning => _snapshot.Substation.Position
             ?? throw new InvalidOperationException("Town line target is missing."),
         ProductPhase.PrimaryPlanning or ProductPhase.BackupPlanning => _hospitalFixture.Position,
+        ProductPhase.PlantConnectionPlanning => _fixture.ExistingSource.Position,
         _ => throw new InvalidOperationException("There is no active line target."),
+    };
+
+    private ProductPoint ActiveLineStart() => _snapshot.Phase switch
+    {
+        ProductPhase.PlantConnectionPlanning => FactorySnapshot().PlantPosition
+            ?? throw new InvalidOperationException("Plant connection start is missing."),
+        _ => _fixture.ExistingSource.Position,
     };
 
     private static IReadOnlyList<ProductPoint> ActiveSupports(ProductSnapshot snapshot) =>
@@ -840,6 +1152,8 @@ public sealed partial class ProductMain : Control
                 snapshot.Hospital?.PrimaryLine.SupportPositions ?? Array.Empty<ProductPoint>(),
             ProductPhase.BackupPlanning or ProductPhase.BackupBuilding =>
                 snapshot.Hospital?.BackupLine.SupportPositions ?? Array.Empty<ProductPoint>(),
+            ProductPhase.PlantConnectionPlanning or ProductPhase.PlantConnectionBuilding =>
+                snapshot.Factory?.ConnectionLine.SupportPositions ?? Array.Empty<ProductPoint>(),
             _ => Array.Empty<ProductPoint>(),
         };
 
@@ -848,16 +1162,31 @@ public sealed partial class ProductMain : Control
         ProductPhase.SubstationPlanning or ProductPhase.SubstationBuilding =>
             _fixture.SubstationProject.ProjectId,
         ProductPhase.LinePlanning or ProductPhase.LineBuilding => _fixture.LineProject.ProjectId,
+        ProductPhase.PlantPlanning or ProductPhase.PlantBuilding => _plantFixture.ProjectId,
+        ProductPhase.PlantConnectionPlanning or ProductPhase.PlantConnectionBuilding =>
+            _fixture.PlantConnectionLineProject?.ProjectId,
         _ => snapshot.Hospital?.ActiveProjectId,
     };
 
     private static bool IsLinePlanning(ProductPhase phase) => phase is
-        ProductPhase.LinePlanning or ProductPhase.PrimaryPlanning or ProductPhase.BackupPlanning;
+        ProductPhase.LinePlanning or ProductPhase.PrimaryPlanning or ProductPhase.BackupPlanning or
+        ProductPhase.PlantConnectionPlanning;
 
     private static bool IsHospitalStage(ProductPhase phase) => phase is
         ProductPhase.PrimaryPlanning or ProductPhase.PrimaryBuilding or
         ProductPhase.BackupPlanning or ProductPhase.BackupBuilding or
         ProductPhase.IncidentReady or ProductPhase.IncidentActive;
+
+    private static bool IsFactoryStage(ProductPhase phase) => phase is
+        ProductPhase.PlantPlanning or ProductPhase.PlantBuilding or
+        ProductPhase.PlantConnectionPlanning or ProductPhase.PlantConnectionBuilding or
+        ProductPhase.FactorySettlementReady;
+
+    private static bool IsFactoryDisplayStage(
+        ProductPhase phase,
+        ProductFactorySnapshot factory) =>
+        IsFactoryStage(phase) ||
+        phase == ProductPhase.Complete && factory.Settlement.Completed;
 
     private static bool IsHospitalDisplayStage(
         ProductPhase phase,
@@ -865,15 +1194,32 @@ public sealed partial class ProductMain : Control
         IsHospitalStage(phase) ||
         phase == ProductPhase.Complete && hospital.Settlement.Completed;
 
-    private string CurrentPhaseText(ProductHospitalSnapshot hospital) =>
-        _snapshot.Phase == ProductPhase.Complete && !hospital.Settlement.Completed
-            ? "6 · 첫 결산"
-            : PhaseText(_snapshot.Phase);
+    private string CurrentPhaseText(
+        ProductHospitalSnapshot hospital,
+        ProductFactorySnapshot factory) =>
+        _snapshot.Phase != ProductPhase.Complete
+            ? PhaseText(_snapshot.Phase)
+            : !hospital.Settlement.Completed
+                ? "6 · 첫 결산"
+                : factory.Settlement.Completed
+                    ? "17 · 공장 공급 결산"
+                    : "12 · 복구와 결산";
 
-    private long DisplayTownUtility(ProductHospitalSnapshot hospital) =>
-        IsHospitalDisplayStage(_snapshot.Phase, hospital)
+    private long DisplayTownUtility(
+        ProductHospitalSnapshot hospital,
+        ProductFactorySnapshot factory) =>
+        IsFactoryDisplayStage(_snapshot.Phase, factory)
+            ? factory.TownDeliveredKw
+            : IsHospitalDisplayStage(_snapshot.Phase, hospital)
             ? hospital.TownUtilityKw
             : _snapshot.TownDeliveredKw;
+
+    private long DisplayHospitalUtility(
+        ProductHospitalSnapshot hospital,
+        ProductFactorySnapshot factory) =>
+        IsFactoryDisplayStage(_snapshot.Phase, factory)
+            ? factory.HospitalDeliveredKw
+            : hospital.HospitalUtilityKw;
 
     private static FirstLightProjectVisualState VisualState(
         ProductProjectState state,
@@ -905,7 +1251,12 @@ public sealed partial class ProductMain : Control
         ProductPhase.BackupBuilding => "9 · 병원 예비회선 공사",
         ProductPhase.IncidentReady => "10 · 신뢰도 확인",
         ProductPhase.IncidentActive => "11 · 공간사건",
-        ProductPhase.Complete => "12 · 복구와 결산",
+        ProductPhase.PlantPlanning => "12 · 공장 증설 브리핑",
+        ProductPhase.PlantBuilding => "13 · 가스발전소 공사",
+        ProductPhase.PlantConnectionPlanning => "14 · 발전소 접속선 계획",
+        ProductPhase.PlantConnectionBuilding => "15 · 발전소 접속선 공사",
+        ProductPhase.FactorySettlementReady => "16 · 공장 공급 확인",
+        ProductPhase.Complete => "17 · 공장 공급 결산",
         _ => throw new ArgumentOutOfRangeException(nameof(phase)),
     };
 
@@ -1042,7 +1393,7 @@ public sealed partial class ProductMain : Control
         AddChild(overlay);
         var label = new Label
         {
-            Text = $"두 번째 심장을 시작할 수 없습니다.\n\n{message}",
+            Text = $"공장 용량 확장을 시작할 수 없습니다.\n\n{message}",
             Position = new Vector2(100f, 180f),
             Size = new Vector2(1080f, 280f),
             HorizontalAlignment = HorizontalAlignment.Center,

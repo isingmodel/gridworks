@@ -169,11 +169,21 @@ public sealed partial class ProductSession
         {
             return ProductMissionOutcome.Pending;
         }
-        return _hospitalSettlement.SingleLineRemovalConditionMet &&
-            _hospitalSettlement.SpatialIncidentUtilityConditionMet &&
-            _hospitalSettlement.HospitalP0ConditionMet
-                ? ProductMissionOutcome.Success
-                : ProductMissionOutcome.Failure;
+        if (!HospitalConditionsMet())
+        {
+            return ProductMissionOutcome.Failure;
+        }
+        if (!_fixture.HasFactoryStage)
+        {
+            return ProductMissionOutcome.Success;
+        }
+        if (!_factorySettlement.Completed)
+        {
+            return ProductMissionOutcome.Pending;
+        }
+        return _factorySettlement.AllLoadsFullySupplied
+            ? ProductMissionOutcome.Success
+            : ProductMissionOutcome.Failure;
     }
 
     private ProductHospitalSnapshot? BuildHospitalSnapshot()
@@ -479,7 +489,14 @@ public sealed partial class ProductSession
         position == _substationPosition ||
         _supportPositions.Contains(position) ||
         _primarySupportPositions.Contains(position) ||
-        _backupSupportPositions.Contains(position);
+        _backupSupportPositions.Contains(position) ||
+        IsReservedPlantSite(position);
+
+    private bool HospitalConditionsMet() =>
+        _hospitalSettlement.Completed &&
+        _hospitalSettlement.SingleLineRemovalConditionMet &&
+        _hospitalSettlement.SpatialIncidentUtilityConditionMet &&
+        _hospitalSettlement.HospitalP0ConditionMet;
 
     private bool TownLineSpatialIncidentExposed()
     {

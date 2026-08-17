@@ -1,10 +1,10 @@
-# 공장 수요와 발전소 용량 — 활성 구현 계약
+# 공장 수요와 발전소 용량 — 완료된 구현 기준
 
-> 상태: `ACTIVE`
->
-> 구현 권한: `GRANTED`
+> 상태: `COMPLETED`
 >
 > 사람 검증: `NOT_COLLECTED`
+
+이 완료는 다음 예고된 폭염·정비 단계의 구현을 승인하지 않는다.
 
 이 단계는 완료된 병원 사건 결산 뒤에 공장 수요와 가스발전소 직접 건설만 추가한다. 별도 장면,
 범용 발전소 시스템, 타임라인, 폭염, 정비, 저장과 최종 아트는 열지 않는다.
@@ -107,3 +107,28 @@ Game은 부지, 비용, 급전, 공급과 정산을 계산하지 않는다. 진�
 
 두 번째 해상도, 전체 접근성, LLM·사람 플레이, 밸런스 조정과 다음 단계 placeholder는 만들지 않는다.
 `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
+
+## 8. 현재 검사와 종료 기록
+
+현재 제품 검사는 다음 한 명령으로 첫 점등·병원·공장 규칙을 함께 확인한다.
+
+```sh
+dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj -c Release -- data/product-factory-v1.json
+```
+
+- 첫 점등 회귀: 10 suites / 664 assertions 통과
+- 두 번째 심장 회귀: 5 suites / 124 assertions 통과
+- 공장 용량 확장: 5 suites / 378 assertions 통과
+- Scope 0B·Scope 1 회귀와 Core·Game Debug·Release build: warning 0, error 0
+- 실제 viewport 입력과 표준 button을 사용한 1280×720 대표 흐름: `Success`, 기말 현금 `5.820 M`,
+  종료 시각 `1425분`
+- 발전소 완공·미접속 상태에서 출력 `0`, 접속선 원자 완공 뒤 공장 `2 MW` 공급 확인
+- 진단: `READY → COMMAND × 30 → FINAL`, 선택 부지·온라인 시각·공급원별 급전·현금 ledger 기록,
+  support 좌표 미기록
+- fixture SHA-256: `5c706a17ab45d33118f70b8f0bac6f4fd1bb59a33f13c07bb21bde8c5eae5d14`
+- 대표 실행 build hash: `3d89edf59dd4892a64b2b7d369c458ec1ac1a3d72ef035413aca3255182ee252`
+- 짧은 독립 Core·Game 검토: P0 0, P1 0
+
+대표 smoke는 가까운 부지 하나와 접속 support 하나를 `--smoke-*` 인자로 주입한다. 먼 부지의
+비우월 관계와 실패 경계는 Core 검사만 소유한다. 사람·LLM 플레이는 수행하지 않았고 다음 단계는
+여전히 미승인이다.

@@ -13,7 +13,9 @@ internal sealed record ProductLaunchOptions(
     IReadOnlyList<FirstLightGridPoint> SmokeSubstations,
     IReadOnlyList<FirstLightGridPoint> SmokeSupports,
     IReadOnlyList<FirstLightGridPoint> SmokePrimarySupports,
-    IReadOnlyList<FirstLightGridPoint> SmokeBackupSupports)
+    IReadOnlyList<FirstLightGridPoint> SmokeBackupSupports,
+    FirstLightGridPoint? SmokePlant,
+    IReadOnlyList<FirstLightGridPoint> SmokePlantSupports)
 {
     public static ProductLaunchOptions Parse(IReadOnlyList<string> arguments)
     {
@@ -24,6 +26,8 @@ internal sealed record ProductLaunchOptions(
         var supports = new List<FirstLightGridPoint>();
         var primarySupports = new List<FirstLightGridPoint>();
         var backupSupports = new List<FirstLightGridPoint>();
+        FirstLightGridPoint? plant = null;
+        var plantSupports = new List<FirstLightGridPoint>();
 
         for (int index = 0; index < arguments.Count; index++)
         {
@@ -70,13 +74,27 @@ internal sealed record ProductLaunchOptions(
                         RequiredValue(arguments, ref index, "--smoke-backup-support"),
                         "--smoke-backup-support"));
                     break;
+                case "--smoke-plant":
+                    if (plant.HasValue)
+                    {
+                        throw new ArgumentException("--smoke-plant may be provided only once.");
+                    }
+                    plant = ParsePoint(
+                        RequiredValue(arguments, ref index, "--smoke-plant"),
+                        "--smoke-plant");
+                    break;
+                case "--smoke-plant-support":
+                    plantSupports.Add(ParsePoint(
+                        RequiredValue(arguments, ref index, "--smoke-plant-support"),
+                        "--smoke-plant-support"));
+                    break;
                 default:
                     throw new ArgumentException(
                         $"Unknown product game argument: {arguments[index]}");
             }
         }
 
-        sessionId ??= "LOCAL-SECOND-HEART";
+        sessionId ??= "LOCAL-FACTORY-CAPACITY";
         if (string.IsNullOrWhiteSpace(sessionId))
         {
             throw new ArgumentException("--session-id cannot be empty.");
@@ -104,18 +122,30 @@ internal sealed record ProductLaunchOptions(
                 throw new ArgumentException(
                     "--smoke requires at least one --smoke-backup-support x,y value.");
             }
+            if (!plant.HasValue)
+            {
+                throw new ArgumentException(
+                    "--smoke requires exactly one --smoke-plant x,y value.");
+            }
+            if (plantSupports.Count == 0)
+            {
+                throw new ArgumentException(
+                    "--smoke requires at least one --smoke-plant-support x,y value.");
+            }
         }
         else if (substations.Count != 0 ||
                  supports.Count != 0 ||
                  primarySupports.Count != 0 ||
-                 backupSupports.Count != 0)
+                 backupSupports.Count != 0 ||
+                 plant.HasValue ||
+                 plantSupports.Count != 0)
         {
             throw new ArgumentException(
                 "Smoke coordinates are valid only when --smoke is present.");
         }
 
         diagnosticPath ??= ProjectSettings.GlobalizePath(
-            $"user://product-second-heart-local-{System.Environment.ProcessId}.jsonl");
+            $"user://product-factory-local-{System.Environment.ProcessId}.jsonl");
         return new ProductLaunchOptions(
             sessionId,
             Path.GetFullPath(diagnosticPath),
@@ -123,7 +153,9 @@ internal sealed record ProductLaunchOptions(
             substations.AsReadOnly(),
             supports.AsReadOnly(),
             primarySupports.AsReadOnly(),
-            backupSupports.AsReadOnly());
+            backupSupports.AsReadOnly(),
+            plant,
+            plantSupports.AsReadOnly());
     }
 
     private static FirstLightGridPoint ParsePoint(string value, string option)

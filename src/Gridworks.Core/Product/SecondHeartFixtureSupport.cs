@@ -11,10 +11,23 @@ internal static class SecondHeartFixtureSupport
 
     private static readonly string[] RootFields =
     [
-        "schemaVersion", "fixtureId", "displayName", "units", "mapBounds",
-        "blockedCells", "initialMinute", "settlementMinutes", "economy",
-        "existingSource", "town", "substationProject", "lineProject", "hospital",
-        "hospitalLineProjects", "spatialIncident", "hospitalEconomy",
+        "schemaVersion",
+        "fixtureId",
+        "displayName",
+        "units",
+        "mapBounds",
+        "blockedCells",
+        "initialMinute",
+        "settlementMinutes",
+        "economy",
+        "existingSource",
+        "town",
+        "substationProject",
+        "lineProject",
+        "hospital",
+        "hospitalLineProjects",
+        "spatialIncident",
+        "hospitalEconomy",
     ];
     private static readonly string[] UnitFields =
         ["position", "power", "energy", "time", "cash", "rate"];
@@ -26,24 +39,49 @@ internal static class SecondHeartFixtureSupport
     private static readonly string[] TownFields = ["id", "position", "demandKw", "priority"];
     private static readonly string[] SubstationFields =
     [
-        "projectId", "assetId", "terminalId", "capacityKw", "serviceRadiusGridUnit",
-        "costCashUnit", "buildMinutes",
+        "projectId",
+        "assetId",
+        "terminalId",
+        "capacityKw",
+        "serviceRadiusGridUnit",
+        "costCashUnit",
+        "buildMinutes",
     ];
     private static readonly string[] LineFields =
     [
-        "projectId", "fromTerminalId", "toTerminalId", "ratingKw", "maxSpanGridUnit",
-        "supportCostCashUnit", "spanCostCashUnit", "supportBuildMinutes", "spanBuildMinutes",
+        "projectId",
+        "fromTerminalId",
+        "toTerminalId",
+        "ratingKw",
+        "maxSpanGridUnit",
+        "supportCostCashUnit",
+        "spanCostCashUnit",
+        "supportBuildMinutes",
+        "spanBuildMinutes",
     ];
     private static readonly string[] HospitalFields =
     [
-        "id", "position", "demandKw", "priority", "primaryTerminalId", "backupTerminalId",
-        "upsMinutes", "dieselMinutes",
+        "id",
+        "position",
+        "demandKw",
+        "priority",
+        "primaryTerminalId",
+        "backupTerminalId",
+        "upsMinutes",
+        "dieselMinutes",
     ];
     private static readonly string[] HospitalLineFields =
     [
-        "projectId", "fromTerminalId", "toTerminalId", "routePriority", "ratingKw",
-        "maxSpanGridUnit", "supportCostCashUnit", "spanCostCashUnit",
-        "supportBuildMinutes", "spanBuildMinutes",
+        "projectId",
+        "fromTerminalId",
+        "toTerminalId",
+        "routePriority",
+        "ratingKw",
+        "maxSpanGridUnit",
+        "supportCostCashUnit",
+        "spanCostCashUnit",
+        "supportBuildMinutes",
+        "spanBuildMinutes",
     ];
     private static readonly string[] IncidentFields =
         ["id", "riskRect", "leadMinutes", "durationMinutes"];
@@ -56,7 +94,14 @@ internal static class SecondHeartFixtureSupport
 
     internal static ProductFixture Read(JsonElement root)
     {
-        Exact(root, RootFields, "$");
+        return ReadCumulative(root, RootFields);
+    }
+
+    internal static ProductFixture ReadCumulative(
+        JsonElement root,
+        IReadOnlyCollection<string> rootFields)
+    {
+        Exact(root, rootFields, "$");
         ProductHospital hospital = ReadHospital(root.GetProperty("hospital"), "$.hospital");
         return new ProductFixture(
             Text(root, "schemaVersion", "$"),
@@ -164,11 +209,19 @@ internal static class SecondHeartFixtureSupport
 
         UniqueIds(
         [
-            fixture.ExistingSource.AssetId, fixture.ExistingSource.TerminalId,
-            fixture.Town.Id, fixture.SubstationProject.ProjectId,
-            fixture.SubstationProject.AssetId, fixture.SubstationProject.TerminalId,
-            fixture.LineProject.ProjectId, hospital.Id, hospital.PrimaryTerminalId,
-            hospital.BackupTerminalId, primary[0].ProjectId, backup[0].ProjectId, incident.Id,
+            fixture.ExistingSource.AssetId,
+            fixture.ExistingSource.TerminalId,
+            fixture.Town.Id,
+            fixture.SubstationProject.ProjectId,
+            fixture.SubstationProject.AssetId,
+            fixture.SubstationProject.TerminalId,
+            fixture.LineProject.ProjectId,
+            hospital.Id,
+            hospital.PrimaryTerminalId,
+            hospital.BackupTerminalId,
+            primary[0].ProjectId,
+            backup[0].ProjectId,
+            incident.Id,
         ]);
 
         ProductRiskRect rect = incident.RiskRect

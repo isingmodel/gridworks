@@ -18,21 +18,33 @@ internal static class Program
             }
             if (schemaVersion == "gridworks.product.second-heart.v1")
             {
-                string firstLightPath = Path.GetFullPath(Path.Combine(
-                    Environment.CurrentDirectory,
-                    "data",
-                    "product-first-light-v1.json"));
-                if (!File.Exists(firstLightPath))
-                {
-                    throw new FileNotFoundException(
-                        "Frozen First Light regression fixture not found.",
-                        firstLightPath);
-                }
-
+                string firstLightPath = RequiredRegressionFixture(
+                    "product-first-light-v1.json",
+                    "First Light");
                 int firstLightExit = new FirstLightChecks(firstLightPath).Run();
                 return firstLightExit == 0
                     ? new SecondHeartChecks(fixturePath).Run()
                     : firstLightExit;
+            }
+            if (schemaVersion == "gridworks.product.factory.v1")
+            {
+                string firstLightPath = RequiredRegressionFixture(
+                    "product-first-light-v1.json",
+                    "First Light");
+                string secondHeartPath = RequiredRegressionFixture(
+                    "product-second-heart-v1.json",
+                    "Second Heart");
+
+                int firstLightExit = new FirstLightChecks(firstLightPath).Run();
+                if (firstLightExit != 0)
+                {
+                    return firstLightExit;
+                }
+
+                int secondHeartExit = new SecondHeartChecks(secondHeartPath).Run();
+                return secondHeartExit == 0
+                    ? new FactoryChecks(fixturePath).Run()
+                    : secondHeartExit;
             }
 
             throw new ArgumentException($"Unsupported product schemaVersion '{schemaVersion}'.");
@@ -57,7 +69,7 @@ internal static class Program
             : Path.Combine(
                 Environment.CurrentDirectory,
                 "data",
-                "product-second-heart-v1.json");
+                "product-factory-v1.json");
         path = Path.GetFullPath(path);
         if (!File.Exists(path))
         {
@@ -71,6 +83,21 @@ internal static class Program
         JsonNode? node = JsonNode.Parse(File.ReadAllText(fixturePath, Encoding.UTF8));
         return node?["schemaVersion"]?.GetValue<string>()
             ?? throw new ArgumentException("Product fixture has no string schemaVersion.");
+    }
+
+    private static string RequiredRegressionFixture(string fileName, string displayName)
+    {
+        string path = Path.GetFullPath(Path.Combine(
+            Environment.CurrentDirectory,
+            "data",
+            fileName));
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException(
+                $"Frozen {displayName} regression fixture not found.",
+                path);
+        }
+        return path;
     }
 }
 

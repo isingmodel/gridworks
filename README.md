@@ -11,22 +11,24 @@
 
 ## 현재 상태
 
-현재 활성 구현 단계는 [공장 수요와 발전소 용량](docs/scopes/FACTORY_CAPACITY.md)이다. 완료된 병원
-결산 뒤에 공장 수요 부족, 가스발전소 직접 배치·완공과 계통 접속만 추가한다.
+현재 활성 구현 단계는 없다. [공장 수요와 발전소 용량](docs/scopes/FACTORY_CAPACITY.md)까지 기술
+구현을 완료했고, 다음 예고된 폭염·정비 단계는 아직 승인하지 않았다.
 
-현재 저장소에는 병원 사건 결산까지 이어지는 제품 흐름과 두 개의 완료된 검증용 2D 구현이 있다.
+현재 저장소에는 공장 용량 확장 결산까지 이어지는 제품 흐름과 두 개의 완료된 검증용 2D 구현이 있다.
 
 - [첫 점등 통합](docs/scopes/FIRST_LIGHT.md): 변전소 초안을 직접 놓고 별도로 완공한 뒤 지지물과
   선로를 건설해 마을을 켜고 첫 매출을 결산한다.
 - [두 번째 심장](docs/scopes/SECOND_HEART.md): 같은 기본 실행 흐름에서 병원 주·예비 회선을 직접
-  건설하고 전기 단일회선 제거, 공간사건, 내부전원과 현금을 결산한다. 현재 기본 실행 장면이다.
+  건설하고 전기 단일회선 제거, 공간사건, 내부전원과 현금을 결산한다.
+- [공장 수요와 발전소 용량](docs/scopes/FACTORY_CAPACITY.md): 공장 증설 뒤 두 부지 중 하나에
+  가스발전소를 직접 건설·접속하고 고정 급전과 세 수요처의 공급을 결산한다. 현재 기본 실행 장면이다.
 
 - [강변 병원 회랑](docs/scopes/SCOPE_0B_PLAYABLE.md): 고정된 마을·병원 시나리오에서 서비스 권역,
   경로, 전기 사고와 공간 공통원인, 병원 내부전원과 현금 정산을 검증한다.
 - [수동 선로 건설](docs/scopes/SCOPE_1_INTERACTION.md): 고정 source·target 사이에 지지물을 직접
   놓고 거리 제한, 발주, 공사 중 무전압과 원자 완공을 검증한다. 별도 장면으로 실행한다.
 
-현재 단계 밖의 폭염·정비, 저장과 최종 아트는 각 단계가 별도로 열릴 때까지 구현하지 않는다.
+폭염·정비, 저장과 최종 아트는 각 단계가 별도로 열릴 때까지 구현하지 않는다.
 [2D 완성 로드맵](docs/ROADMAP_2D.md)은 전체 순서, [체크리스트](docs/ROADMAP_2D_CHECKLIST.md)는
 단계 상태와 종료 증거를 소유한다.
 
@@ -116,13 +118,13 @@ ruby playtests/scope-0b/verify_contract.rb
 ruby playtests/scope-1/verify_contract.rb
 dotnet run --project tools/Gridworks.Checks/Gridworks.Checks.csproj -c Release
 dotnet run --project tools/Gridworks.Scope1Checks/Gridworks.Scope1Checks.csproj -c Release -- data/scope-1-v1.json
-dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj -c Release -- data/product-second-heart-v1.json
+dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj -c Release -- data/product-factory-v1.json
 dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild
 ```
 
-Godot 기본 실행은 `game/project.godot`의 `ProductMain.tscn`을 열어 첫 점등부터 병원 사건 결산까지
-진행한다. 완료된 회귀 장면은 `--scene res://Main.tscn` 또는 `--scene res://Scope1Main.tscn`을
-명시해 실행한다. 현재 대표 smoke는 [두 번째 심장 종료 기록](docs/scopes/SECOND_HEART.md#8-현재-검사와-종료-기록),
+Godot 기본 실행은 `game/project.godot`의 `ProductMain.tscn`을 열어 첫 점등부터 공장 용량 확장
+결산까지 진행한다. 완료된 회귀 장면은 `--scene res://Main.tscn` 또는 `--scene res://Scope1Main.tscn`을
+명시해 실행한다. 현재 대표 smoke는 [공장 용량 확장 종료 기록](docs/scopes/FACTORY_CAPACITY.md#8-현재-검사와-종료-기록),
 첫 점등 동결 smoke는 [첫 점등 구현 기준](docs/scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록)이 설명한다. 과거 실행 승인만 검증하던
 `verify_implementation.rb`는 제거했으며, 현재 회귀검사로 사용하지 않는다.
 

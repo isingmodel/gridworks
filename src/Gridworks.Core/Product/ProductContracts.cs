@@ -81,6 +81,28 @@ public sealed record ProductHospitalEconomy(
     long UnservedCompensationCashUnitPerGWh,
     long LostSalesCashUnitPerGWh);
 
+public sealed record ProductFactory(
+    string Id,
+    string TerminalId,
+    ProductPoint Position,
+    long DemandKw,
+    int Priority,
+    long FeederRatingKw);
+
+public sealed record ProductGasPlantProjectDefinition(
+    string ProjectId,
+    string AssetId,
+    string TerminalId,
+    long CapacityKw,
+    long BaseCostCashUnit,
+    int BuildMinutes,
+    long VariableGenerationCostCashUnitPerGWh);
+
+public sealed record ProductGasPlantSite(
+    string SiteId,
+    ProductPoint Position,
+    long SiteCostCashUnit);
+
 public sealed record ProductFixture(
     string SchemaVersion,
     string FixtureId,
@@ -98,9 +120,15 @@ public sealed record ProductFixture(
     ProductHospital? Hospital = null,
     IReadOnlyList<ProductHospitalLineProjectDefinition>? HospitalLineProjects = null,
     ProductSpatialIncident? SpatialIncident = null,
-    ProductHospitalEconomy? HospitalEconomy = null)
+    ProductHospitalEconomy? HospitalEconomy = null,
+    int? FactorySettlementMinutes = null,
+    ProductFactory? Factory = null,
+    ProductGasPlantProjectDefinition? GasPlantProject = null,
+    IReadOnlyList<ProductGasPlantSite>? GasPlantSites = null,
+    ProductLineProjectDefinition? PlantConnectionLineProject = null)
 {
     public bool HasHospitalStage => Hospital is not null;
+    public bool HasFactoryStage => Factory is not null;
 }
 
 public enum ProductProjectState
@@ -124,6 +152,11 @@ public enum ProductPhase
     BackupBuilding,
     IncidentReady,
     IncidentActive,
+    PlantPlanning,
+    PlantBuilding,
+    PlantConnectionPlanning,
+    PlantConnectionBuilding,
+    FactorySettlementReady,
 }
 
 public enum ProductCommandError
@@ -301,6 +334,40 @@ public sealed record ProductHospitalSnapshot(
     ProductIncidentSnapshot Incident,
     ProductHospitalSettlementSnapshot Settlement);
 
+public sealed record ProductFactorySettlementSnapshot(
+    bool Completed,
+    long HospitalDeliveredEnergyKwMinute,
+    long TownDeliveredEnergyKwMinute,
+    long FactoryDeliveredEnergyKwMinute,
+    long ExistingSourceGenerationEnergyKwMinute,
+    long GasPlantGenerationEnergyKwMinute,
+    long UtilityUnservedEnergyKwMinute,
+    long UtilityRevenueCashUnit,
+    long ExistingSourceGenerationCostCashUnit,
+    long GasPlantGenerationCostCashUnit,
+    long UnservedCompensationCashUnit,
+    long LostSalesCashUnit,
+    long CashChangeCashUnit,
+    bool AllLoadsFullySupplied);
+
+public sealed record ProductFactorySnapshot(
+    string Id,
+    string? SelectedSiteId,
+    ProductPoint? PlantPosition,
+    ProductProjectState PlantProjectState,
+    long? PlantCompletionMinute,
+    ProductLineSnapshot ConnectionLine,
+    bool PlantGridConnected,
+    long HospitalDeliveredKw,
+    string? HospitalSourceAssetId,
+    long TownDeliveredKw,
+    string? TownSourceAssetId,
+    long FactoryDeliveredKw,
+    string? FactorySourceAssetId,
+    long ExistingSourceDispatchKw,
+    long GasPlantDispatchKw,
+    ProductFactorySettlementSnapshot Settlement);
+
 public sealed record ProductSnapshot(
     long Minute,
     long Cash,
@@ -312,7 +379,8 @@ public sealed record ProductSnapshot(
     long TownDeliveredKw,
     ProductSettlementSnapshot Settlement,
     ProductMissionOutcome Outcome,
-    ProductHospitalSnapshot? Hospital = null);
+    ProductHospitalSnapshot? Hospital = null,
+    ProductFactorySnapshot? Factory = null);
 
 public sealed record ProductCommandResult(
     bool Accepted,
@@ -325,6 +393,13 @@ public sealed record ProductSubstationPlacementPreview(
     ProductPoint Position,
     bool TownInServiceArea,
     ProductSupplyFailure? ProjectedSupplyFailure);
+
+public sealed record ProductPlantPlacementPreview(
+    bool Accepted,
+    ProductCommandError? Error,
+    ProductPoint Position,
+    string? SiteId,
+    long? SiteCostCashUnit);
 
 public sealed record ProductLineSupportPreview(
     bool Accepted,

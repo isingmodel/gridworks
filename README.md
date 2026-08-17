@@ -46,7 +46,9 @@ macOS 내부 테스트 ZIP으로 실행·저장·재개할 수 있다. 다음 �
 과거 카드 실험, 화면 검증과 시행착오는 [개발 이력 요약](docs/DEVELOPMENT_HISTORY.md)에 압축했다.
 현재까지 사람 플레이 검증은 수집하지 않았으며 `HumanValidationStatus = NOT_COLLECTED`다. 기존 LLM
 관찰은 특정 화면에서 특정 과제를 수행했다는 증거일 뿐 사람 사용성·재미·밸런스나 성공률을
-증명하지 않는다.
+증명하지 않는다. 완성된 내부 후보에서는 [공식 cold LLM 관찰 1회](playtests/release-2d/OFFICIAL_LLM_OBSERVATION_01.md)가
+도움 없이 native 캠페인 성공 종료와 핵심 규칙 설명을 남겼다. 이는 단일 비인간 관찰이며 사람
+검증이나 aggregate gate가 아니다.
 
 ## 1.0 목표
 

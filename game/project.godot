@@ -1,20 +1,18 @@
 ; Engine configuration file.
-; This file is deliberately small: Scope 0B has one fixed Control scene.
+; This file is deliberately small: ProductMain is the single product entry scene.
 
 config_version=5
 
 [application]
 
 config/name="Gridworks"
-run/main_scene="res://Main.tscn"
+run/main_scene="res://ProductMain.tscn"
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
-window/size/window_width_override=1280
-window/size/window_height_override=720
-window/size/resizable=false
+window/size/resizable=true
 window/stretch/mode="canvas_items"
 
 [dotnet]

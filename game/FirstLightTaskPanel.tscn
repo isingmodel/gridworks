@@ -1,0 +1,146 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://FirstLightTaskPanel.cs" id="1_panel"]
+
+[node name="FirstLightTaskPanel" type="PanelContainer"]
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+script = ExtResource("1_panel")
+
+[node name="Scroll" type="ScrollContainer" parent="."]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Margin" type="MarginContainer" parent="Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="Column" type="VBoxContainer" parent="Scroll/Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="KickerLabel" type="Label" parent="Scroll/Margin/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.73, 1)
+theme_override_font_sizes/font_size = 13
+text = "FIRST LIGHT / 첫 점등"
+
+[node name="StepLabel" type="Label" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 23
+text = "준비"
+autowrap_mode = 2
+
+[node name="InstructionLabel" type="Label" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 74)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.92, 0.94, 1)
+theme_override_font_sizes/font_size = 14
+text = "현재 행동 설명"
+autowrap_mode = 2
+
+[node name="Separator1" type="HSeparator" parent="Scroll/Margin/Column"]
+layout_mode = 2
+
+[node name="PreviewTitle" type="Label" parent="Scroll/Margin/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.73, 1)
+theme_override_font_sizes/font_size = 12
+text = "PREVIEW / 견적과 예상 결과"
+
+[node name="PreviewLabel" type="Label" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 86)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.92, 0.94, 1)
+theme_override_font_sizes/font_size = 14
+text = "초안을 배치하면 견적을 확인할 수 있습니다."
+autowrap_mode = 2
+
+[node name="StatusTitle" type="Label" parent="Scroll/Margin/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.73, 1)
+theme_override_font_sizes/font_size = 12
+text = "STATUS / 공급"
+
+[node name="StatusLabel" type="Label" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 66)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.49, 0.78, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "마을 미공급"
+autowrap_mode = 2
+
+[node name="Separator2" type="HSeparator" parent="Scroll/Margin/Column"]
+layout_mode = 2
+
+[node name="CancelDraftButton" type="Button" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 2
+text = "초안 취소"
+
+[node name="UndoButton" type="Button" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 2
+text = "마지막 지지물 되돌리기"
+
+[node name="OrderButton" type="Button" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 2
+text = "발주"
+
+[node name="AdvanceButton" type="Button" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 2
+text = "완공까지 진행"
+
+[node name="SettleButton" type="Button" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+focus_mode = 2
+text = "첫 결산까지 진행"
+
+[node name="ErrorLabel" type="Label" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.43, 0.4, 1)
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="Scroll/Margin/Column"]
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RestartButton" type="Button" parent="Scroll/Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+focus_mode = 2
+text = "현재 임무 다시 시작"

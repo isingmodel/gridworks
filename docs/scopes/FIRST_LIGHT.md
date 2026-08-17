@@ -48,7 +48,7 @@ Loader는 exact field set과 type을 요구한다. 추가·누락·대소문자 
 
 의미 검증은 다음으로 닫는다.
 
-- map bounds 순서와 모든 위치의 inclusive bounds
+- 두 축에서 엄격히 증가하는 map bounds와 모든 위치의 inclusive bounds
 - 비어 있지 않고 서로 고유한 asset·terminal·project·town ID
 - source·town·blocked cell의 중복·충돌과 blocked cell 자체의 중복
 - line의 두 terminal 참조가 source·substation terminal과 정확히 일치함

@@ -44,8 +44,8 @@ runtime에 요구하지 않는다.
   구분한다. 모든 상태는 색뿐 아니라 pattern과 label로도 전달한다.
 - 애니메이션은 느린 통전 흐름과 짧은 상태 강조만 허용한다. 카메라, 날씨 입자, cinematic과 새
   renderer는 만들지 않는다.
-- 1280×720 및 1920×1080의 16:9 화면과 UI 100%·125%에서 핵심 문장, 버튼과 지도 legend가 잘리지
-  않아야 한다.
+- 대표 조합인 1280×720·UI 100%와 1920×1080·UI 125%에서 핵심 문장, 버튼과 지도 legend가 잘리지
+  않아야 한다. 더 작은 화면이나 다른 scale 조합은 외부 테스트 범위다.
 
 기존 `assets/`의 콘셉트 이미지는 권리와 실제 규칙 경계가 다른 참고 자료이므로 runtime에 넣지
 않는다. 새 raster sprite나 외부 font·asset도 도입하지 않는다.
@@ -69,15 +69,17 @@ framework와 공간 음향은 만들지 않는다.
 - SFX volume percent
 
 세 값은 `0 / 25 / 50 / 75 / 100` 중 하나다. 기존 창 모드, UI scale과 도움말 설정을 유지한다.
-기존 v1 설정은 정확히 한 번 읽어 새 음량 기본값을 보충하고, 새 저장은 v2만 쓴다. 손상 설정은
-기존처럼 기본값으로 안전하게 돌아가며 campaign save에는 영향을 주지 않는다.
+기본값과 v1에서 보충하는 값은 master·ambient·SFX 모두 `100`이다. 기존 v1 설정은 정확히 한 번
+읽어 이 값을 보충하고, 새 저장은 v2만 쓴다. 손상 설정은 기존처럼 기본값으로 안전하게 돌아가며
+campaign save에는 영향을 주지 않는다.
 
 ## 5. macOS 내부 테스트 패키지
 
 - 지원 후보는 `macOS arm64` 하나다. 공식 Godot 4.7.1 Mono template이 Universal 2이므로 산출물은
   universal `.app`을 담은 ZIP이지만, 이 단계의 실제 실행 증거와 지원 주장은 arm64에만 한정한다.
-- package minimum은 `.NET 8`의 현재 지원 범위에 맞춘 `macOS 14.0`으로 선언한다. 현재 실제 확인
-  환경은 `macOS 26.6.1 arm64`이며, 다른 버전 호환성은 외부 테스트 전에는 주장하지 않는다.
+- package deployment target은 `.NET 8`의 현재 지원 범위에 맞춘 `macOS 14.0`으로 설정한다. 이는
+  아직 검증하지 않은 하한 후보이지 지원 증거가 아니다. 현재 내부 지원·확인 환경은
+  `macOS 26.6.1 arm64` 하나이며, 더 낮은 버전 호환성은 외부 테스트 전에는 주장하지 않는다.
 - 앱 이름은 `Gridworks`, 내부 버전은 `0.1.0`, bundle identifier는 `com.gridworks.game`으로 고정한다.
 - `export_presets.cfg`와 원본 vector app icon은 추적한다. `/dist/`의 build artifact와 인증정보는
   추적하지 않는다.
@@ -125,11 +127,12 @@ runtime에 넣는 게임 표현과 사운드는 이 저장소에서 생성한 �
 1. 누적 `Gridworks.ProductChecks` 한 번과 Game Release rebuild 한 번이 통과한다.
 2. settings v1→v2, 세 음량 경계, embedded campaign/fixture byte identity를 작은 자동검사로 확인한다.
 3. editor build에서 1280×720 전체 캠페인 대표 native smoke 한 번을 통과한다.
-4. 1920×1080·125%에서 title/settings/gameplay의 clipping, focus, 한국어 text와 색 이외 상태 표현을
-   한 번 눈으로 확인한다.
+4. 1280×720·100%와 1920×1080·125%에서 title/settings/gameplay의 clipping, focus, 한국어 text와
+   색 이외 상태 표현을 한 번씩 눈으로 확인한다.
 5. clean export로 만든 ZIP의 구조, arm64 slice, ad-hoc signature와 declared minimum을 검사한다.
-6. package를 격리된 user data에서 실행해 새 게임→저장 종료와 fresh process 이어하기를 확인하고,
-   대표 package smoke가 FINAL에 도달한다.
+6. package를 격리된 user data에서 실행해 새 게임→음량 하나 변경→저장 종료와 fresh process
+   이어하기를 확인한다. 재실행 뒤 그 음량이 실제 audio bus에 적용됐는지 확인하고, 대표 package
+   smoke가 FINAL에 도달한다.
 7. 한 번의 짧은 독립 검토에서 열린 P0/P1을 닫고 문서·artifact hash를 현재 bytes와 맞춘다.
 
 픽셀 golden, 여러 OS·Mac version matrix, 반복 성능 benchmark, LLM play와 외부 사람 관찰은 하지

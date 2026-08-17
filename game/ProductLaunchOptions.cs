@@ -94,7 +94,7 @@ internal sealed record ProductLaunchOptions(
             }
         }
 
-        sessionId ??= "LOCAL-FACTORY-CAPACITY";
+        sessionId ??= "LOCAL-HEATWAVE-MAINTENANCE";
         if (string.IsNullOrWhiteSpace(sessionId))
         {
             throw new ArgumentException("--session-id cannot be empty.");
@@ -145,7 +145,7 @@ internal sealed record ProductLaunchOptions(
         }
 
         diagnosticPath ??= ProjectSettings.GlobalizePath(
-            $"user://product-factory-local-{System.Environment.ProcessId}.jsonl");
+            $"user://product-heatwave-local-{System.Environment.ProcessId}.jsonl");
         return new ProductLaunchOptions(
             sessionId,
             Path.GetFullPath(diagnosticPath),

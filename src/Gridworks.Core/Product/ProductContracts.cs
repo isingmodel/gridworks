@@ -103,6 +103,20 @@ public sealed record ProductGasPlantSite(
     ProductPoint Position,
     long SiteCostCashUnit);
 
+public sealed record ProductHeatwaveDefinition(
+    string Id,
+    int LeadMinutes,
+    int DurationMinutes,
+    long TownDemandKw,
+    string AgedFactoryFeederId,
+    long AgedFactoryFeederHeatwaveRatingKw);
+
+public sealed record ProductPreventiveMaintenanceDefinition(
+    string ProjectId,
+    string TargetAssetId,
+    long CostCashUnit,
+    int BuildMinutes);
+
 public sealed record ProductFixture(
     string SchemaVersion,
     string FixtureId,
@@ -125,10 +139,13 @@ public sealed record ProductFixture(
     ProductFactory? Factory = null,
     ProductGasPlantProjectDefinition? GasPlantProject = null,
     IReadOnlyList<ProductGasPlantSite>? GasPlantSites = null,
-    ProductLineProjectDefinition? PlantConnectionLineProject = null)
+    ProductLineProjectDefinition? PlantConnectionLineProject = null,
+    ProductHeatwaveDefinition? Heatwave = null,
+    ProductPreventiveMaintenanceDefinition? PreventiveMaintenance = null)
 {
     public bool HasHospitalStage => Hospital is not null;
     public bool HasFactoryStage => Factory is not null;
+    public bool HasHeatwaveStage => Heatwave is not null;
 }
 
 public enum ProductProjectState
@@ -157,6 +174,17 @@ public enum ProductPhase
     PlantConnectionPlanning,
     PlantConnectionBuilding,
     FactorySettlementReady,
+    MaintenanceDecision,
+    MaintenanceBuilding,
+    HeatwaveReady,
+    HeatwaveActive,
+}
+
+public enum ProductMaintenanceChoice
+{
+    Undecided,
+    Ordered,
+    Skipped,
 }
 
 public enum ProductCommandError
@@ -368,6 +396,46 @@ public sealed record ProductFactorySnapshot(
     long GasPlantDispatchKw,
     ProductFactorySettlementSnapshot Settlement);
 
+public sealed record ProductHeatwaveSettlementSnapshot(
+    bool Completed,
+    long HospitalDeliveredEnergyKwMinute,
+    long TownDeliveredEnergyKwMinute,
+    long FactoryDeliveredEnergyKwMinute,
+    long ExistingSourceGenerationEnergyKwMinute,
+    long GasPlantGenerationEnergyKwMinute,
+    long UtilityUnservedEnergyKwMinute,
+    long UtilityRevenueCashUnit,
+    long ExistingSourceGenerationCostCashUnit,
+    long GasPlantGenerationCostCashUnit,
+    long UnservedCompensationCashUnit,
+    long LostSalesCashUnit,
+    long CashChangeCashUnit,
+    bool AllLoadsFullySupplied);
+
+public sealed record ProductHeatwaveSnapshot(
+    string Id,
+    long? StartMinute,
+    long? RecoveryMinute,
+    ProductMaintenanceChoice MaintenanceChoice,
+    ProductProjectState MaintenanceProjectState,
+    long? MaintenanceCompletionMinute,
+    bool Active,
+    bool AgedFactoryFeederCurrentlyUnavailable,
+    bool AgedFactoryFeederUnavailableDuringEvent,
+    long ForecastTownDemandKw,
+    long ForecastFactoryFeederRatingKw,
+    long CurrentTownDemandKw,
+    long CurrentFactoryFeederRatingKw,
+    long HospitalDeliveredKw,
+    string? HospitalSourceAssetId,
+    long TownDeliveredKw,
+    string? TownSourceAssetId,
+    long FactoryDeliveredKw,
+    string? FactorySourceAssetId,
+    long ExistingSourceDispatchKw,
+    long GasPlantDispatchKw,
+    ProductHeatwaveSettlementSnapshot Settlement);
+
 public sealed record ProductSnapshot(
     long Minute,
     long Cash,
@@ -380,7 +448,8 @@ public sealed record ProductSnapshot(
     ProductSettlementSnapshot Settlement,
     ProductMissionOutcome Outcome,
     ProductHospitalSnapshot? Hospital = null,
-    ProductFactorySnapshot? Factory = null);
+    ProductFactorySnapshot? Factory = null,
+    ProductHeatwaveSnapshot? Heatwave = null);
 
 public sealed record ProductCommandResult(
     bool Accepted,

@@ -20,6 +20,8 @@ public sealed partial class ProductMain : Control
     private ProductSpatialIncident _incidentFixture = null!;
     private ProductFactory _factoryFixture = null!;
     private ProductGasPlantProjectDefinition _plantFixture = null!;
+    private ProductHeatwaveDefinition _heatwaveFixture = null!;
+    private ProductPreventiveMaintenanceDefinition _maintenanceFixture = null!;
     private ProductSession _session = null!;
     private ProductSnapshot _snapshot = null!;
     private FirstLightPointerPreview? _pointerPreview;
@@ -39,14 +41,14 @@ public sealed partial class ProductMain : Control
     {
         try
         {
-            GetWindow().Title = "Gridworks — 열돔 아래: 증설";
+            GetWindow().Title = "Gridworks — 열돔 아래: 폭염과 정비";
             _options = ProductLaunchOptions.Parse(OS.GetCmdlineUserArgs());
 
             string fixturePath = Path.GetFullPath(Path.Combine(
                 ProjectSettings.GlobalizePath("res://"),
                 "..",
                 "data",
-                "product-factory-v1.json"));
+                "product-heatwave-v1.json"));
             byte[] fixtureBytes = File.ReadAllBytes(fixturePath);
             _fixtureHash = LowerHex(SHA256.HashData(fixtureBytes));
             _buildHash = ComputeBuildHash();
@@ -59,6 +61,10 @@ public sealed partial class ProductMain : Control
                 ?? throw new InvalidOperationException("Factory fixture is missing the factory.");
             _plantFixture = _fixture.GasPlantProject
                 ?? throw new InvalidOperationException("Factory fixture is missing the gas plant.");
+            _heatwaveFixture = _fixture.Heatwave
+                ?? throw new InvalidOperationException("Heatwave fixture is missing the heatwave.");
+            _maintenanceFixture = _fixture.PreventiveMaintenance
+                ?? throw new InvalidOperationException("Heatwave fixture is missing preventive maintenance.");
             _session = new ProductSession(_fixture);
             _snapshot = _session.GetSnapshot();
 
@@ -79,7 +85,7 @@ public sealed partial class ProductMain : Control
         }
         catch (Exception exception)
         {
-            GD.PushError($"Factory Capacity startup failed: {exception}");
+            GD.PushError($"Heatwave Maintenance startup failed: {exception}");
             ShowFatalError(exception.Message);
             if (_options?.Smoke == true || OS.GetCmdlineUserArgs().Contains("--smoke"))
             {
@@ -190,6 +196,7 @@ public sealed partial class ProductMain : Control
         {
             ProductPhase.SubstationPlanning => _session.OrderSubstation(),
             ProductPhase.PlantPlanning => _session.OrderPlant(),
+            ProductPhase.MaintenanceDecision => _session.OrderPreventiveMaintenance(),
             _ when IsLinePlanning(_snapshot.Phase) => _session.OrderLine(),
             _ => null,
         };
@@ -201,6 +208,7 @@ public sealed partial class ProductMain : Control
         {
             ProductPhase.SubstationPlanning => "ORDER_SUBSTATION",
             ProductPhase.PlantPlanning => "ORDER_PLANT",
+            ProductPhase.MaintenanceDecision => "ORDER_PREVENTIVE_MAINTENANCE",
             _ => "ORDER_LINE",
         };
         ApplyCommand(commandName, result);
@@ -221,6 +229,12 @@ public sealed partial class ProductMain : Control
                 ("ADVANCE_TO_RECOVERY_AND_SETTLEMENT", _session.AdvanceToRecoveryAndSettlement()),
             ProductPhase.FactorySettlementReady =>
                 ("ADVANCE_TO_FACTORY_SETTLEMENT", _session.AdvanceToFactorySettlement()),
+            ProductPhase.MaintenanceDecision =>
+                ("SKIP_PREVENTIVE_MAINTENANCE", _session.SkipPreventiveMaintenance()),
+            ProductPhase.HeatwaveReady =>
+                ("ADVANCE_TO_HEATWAVE", _session.AdvanceToHeatwave()),
+            ProductPhase.HeatwaveActive =>
+                ("ADVANCE_TO_HEATWAVE_SETTLEMENT", _session.AdvanceToHeatwaveSettlement()),
             _ => null,
         };
         if (command.HasValue)
@@ -260,6 +274,38 @@ public sealed partial class ProductMain : Control
                     gasPlantDispatchKw = factory.GasPlantDispatchKw,
                 }
                 : null,
+            heatwave = _snapshot.Heatwave is ProductHeatwaveSnapshot heatwave
+                ? new
+                {
+                    maintenanceChoice = Machine(heatwave.MaintenanceChoice),
+                    maintenanceProjectState = Machine(heatwave.MaintenanceProjectState),
+                    maintenanceCompletionMinute = heatwave.MaintenanceCompletionMinute,
+                    eventId = heatwave.Id,
+                    eventActive = heatwave.Active,
+                    startMinute = heatwave.StartMinute,
+                    recoveryMinute = heatwave.RecoveryMinute,
+                    townDemandKw = heatwave.CurrentTownDemandKw,
+                    effectiveFactoryFeederRatingKw = heatwave.CurrentFactoryFeederRatingKw,
+                    agedFactoryFeederUnavailable =
+                        heatwave.AgedFactoryFeederCurrentlyUnavailable,
+                    delivery = new
+                    {
+                        hospitalKw = heatwave.HospitalDeliveredKw,
+                        townKw = heatwave.TownDeliveredKw,
+                        factoryKw = heatwave.FactoryDeliveredKw,
+                    },
+                    dispatch = new
+                    {
+                        existingSourceKw = heatwave.ExistingSourceDispatchKw,
+                        gasPlantKw = heatwave.GasPlantDispatchKw,
+                    },
+                    settlement = new
+                    {
+                        completed = heatwave.Settlement.Completed,
+                        cashChangeCashUnit = heatwave.Settlement.CashChangeCashUnit,
+                    },
+                }
+                : null,
         });
         Render();
     }
@@ -269,26 +315,102 @@ public sealed partial class ProductMain : Control
         _snapshot = _session.GetSnapshot();
         ProductHospitalSnapshot hospital = HospitalSnapshot();
         ProductFactorySnapshot factory = FactorySnapshot();
-        string phaseText = CurrentPhaseText(hospital, factory);
+        ProductHeatwaveSnapshot heatwave = HeatwaveSnapshot();
+        string phaseText = CurrentPhaseText(hospital, factory, heatwave);
         _phaseLabel.Text = phaseText;
         _phaseLabel.AccessibilityName = $"현재 단계 {phaseText}";
         _timeLabel.Text = $"시각 {_snapshot.Minute.ToString("N0", CultureInfo.InvariantCulture)}분";
         _cashLabel.Text = $"현금 {CashText(_snapshot.Cash)}";
-        long hospitalUtility = DisplayHospitalUtility(hospital, factory);
-        long townUtility = DisplayTownUtility(hospital, factory);
+        long hospitalUtility = DisplayHospitalUtility(hospital, factory, heatwave);
+        long townUtility = DisplayTownUtility(hospital, factory, heatwave);
+        long townDemand = DisplayTownDemand(heatwave);
+        long factoryUtility = DisplayFactoryUtility(factory, heatwave);
         _demandLabel.Text =
-            $"마을 {PowerText(townUtility)} / {PowerText(_fixture.Town.DemandKw)} · " +
+            $"마을 {PowerText(townUtility)} / {PowerText(townDemand)} · " +
             $"병원 {PowerText(hospitalUtility)} / {PowerText(_hospitalFixture.DemandKw)} · " +
-            $"공장 {PowerText(factory.FactoryDeliveredKw)} / {PowerText(_factoryFixture.DemandKw)}";
+            $"공장 {PowerText(factoryUtility)} / {PowerText(_factoryFixture.DemandKw)}";
 
-        _mapView.SetModel(BuildMapModel(hospital, factory));
-        _taskPanel.SetModel(BuildPanelModel(hospital, factory));
+        _mapView.SetModel(BuildMapModel(hospital, factory, heatwave));
+        _taskPanel.SetModel(BuildPanelModel(hospital, factory, heatwave));
 
         if (_snapshot.Phase == ProductPhase.Complete && !_finalLogged)
         {
             ProductHospitalSettlementSnapshot ledger = hospital.Settlement;
             ProductFactorySettlementSnapshot factoryLedger = factory.Settlement;
-            if (factoryLedger.Completed)
+            ProductHeatwaveSettlementSnapshot heatwaveLedger = heatwave.Settlement;
+            if (heatwaveLedger.Completed)
+            {
+                _diagnostic?.WriteFinal(new
+                {
+                    outcome = Machine(_snapshot.Outcome),
+                    hardConditions = new
+                    {
+                        singleLineRemoval = ledger.SingleLineRemovalConditionMet,
+                        spatialIncidentUtility = ledger.SpatialIncidentUtilityConditionMet,
+                        hospitalP0 = ledger.HospitalP0ConditionMet,
+                        allLoadsFullySupplied = heatwaveLedger.AllLoadsFullySupplied,
+                    },
+                    maintenance = new
+                    {
+                        choice = Machine(heatwave.MaintenanceChoice),
+                        projectState = Machine(heatwave.MaintenanceProjectState),
+                        completionMinute = heatwave.MaintenanceCompletionMinute,
+                        costCashUnit = heatwave.MaintenanceChoice == ProductMaintenanceChoice.Ordered
+                            ? _maintenanceFixture.CostCashUnit
+                            : 0,
+                    },
+                    heatwaveEvent = new
+                    {
+                        eventId = heatwave.Id,
+                        startMinute = heatwave.StartMinute,
+                        recoveryMinute = heatwave.RecoveryMinute,
+                        townDemandKw = heatwave.ForecastTownDemandKw,
+                        effectiveFactoryFeederRatingKw =
+                            heatwave.ForecastFactoryFeederRatingKw,
+                        agedFactoryFeederId = _heatwaveFixture.AgedFactoryFeederId,
+                        agedFactoryFeederUnavailableDuringEvent =
+                            heatwave.AgedFactoryFeederUnavailableDuringEvent,
+                    },
+                    delivery = new
+                    {
+                        hospitalKw = heatwave.HospitalDeliveredKw,
+                        hospitalSourceAssetId = heatwave.HospitalSourceAssetId,
+                        townKw = heatwave.TownDeliveredKw,
+                        townSourceAssetId = heatwave.TownSourceAssetId,
+                        factoryKw = heatwave.FactoryDeliveredKw,
+                        factorySourceAssetId = heatwave.FactorySourceAssetId,
+                    },
+                    dispatch = new
+                    {
+                        existingSourceKw = heatwave.ExistingSourceDispatchKw,
+                        gasPlantKw = heatwave.GasPlantDispatchKw,
+                    },
+                    energy = new
+                    {
+                        hospitalDeliveredKwMinute = heatwaveLedger.HospitalDeliveredEnergyKwMinute,
+                        townDeliveredKwMinute = heatwaveLedger.TownDeliveredEnergyKwMinute,
+                        factoryDeliveredKwMinute = heatwaveLedger.FactoryDeliveredEnergyKwMinute,
+                        existingSourceGenerationKwMinute =
+                            heatwaveLedger.ExistingSourceGenerationEnergyKwMinute,
+                        gasPlantGenerationKwMinute =
+                            heatwaveLedger.GasPlantGenerationEnergyKwMinute,
+                        utilityUnservedKwMinute = heatwaveLedger.UtilityUnservedEnergyKwMinute,
+                    },
+                    cash = new
+                    {
+                        revenueCashUnit = heatwaveLedger.UtilityRevenueCashUnit,
+                        existingSourceGenerationCostCashUnit =
+                            heatwaveLedger.ExistingSourceGenerationCostCashUnit,
+                        gasPlantGenerationCostCashUnit =
+                            heatwaveLedger.GasPlantGenerationCostCashUnit,
+                        compensationCashUnit = heatwaveLedger.UnservedCompensationCashUnit,
+                        lostSalesCashUnit = heatwaveLedger.LostSalesCashUnit,
+                        changeCashUnit = heatwaveLedger.CashChangeCashUnit,
+                        endingCashUnit = _snapshot.Cash,
+                    },
+                });
+            }
+            else if (factoryLedger.Completed)
             {
                 _diagnostic?.WriteFinal(new
                 {
@@ -401,7 +523,8 @@ public sealed partial class ProductMain : Control
 
     private FirstLightMapModel BuildMapModel(
         ProductHospitalSnapshot hospital,
-        ProductFactorySnapshot factory)
+        ProductFactorySnapshot factory,
+        ProductHeatwaveSnapshot heatwave)
     {
         FirstLightTargetPreview? targetPreview = null;
         if (IsLinePlanning(_snapshot.Phase))
@@ -473,11 +596,13 @@ public sealed partial class ProductMain : Control
             _fixture.BlockedCells.Select(ToGrid).ToArray(),
             ToGrid(_fixture.ExistingSource.Position),
             ToGrid(_fixture.Town.Position),
-            DisplayTownUtility(hospital, factory),
+            DisplayTownUtility(hospital, factory, heatwave),
             ToGrid(_hospitalFixture.Position),
-            DisplayHospitalUtility(hospital, factory),
-            IsFactoryDisplayStage(_snapshot.Phase, factory)
-                ? factory.HospitalDeliveredKw
+            DisplayHospitalUtility(hospital, factory, heatwave),
+            IsHeatwaveDisplayStage(_snapshot.Phase, heatwave)
+                ? heatwave.HospitalDeliveredKw
+                : IsFactoryDisplayStage(_snapshot.Phase, factory)
+                    ? factory.HospitalDeliveredKw
                 : hospital.HospitalP0DeliveredKw,
             new FirstLightRiskRect(
                 new FirstLightGridPoint(risk.MinX, risk.MinY),
@@ -489,8 +614,8 @@ public sealed partial class ProductMain : Control
             lines,
             _pointerPreview,
             targetPreview,
-            CurrentPhaseText(hospital, factory),
-            StatusText(hospital, factory),
+            CurrentPhaseText(hospital, factory, heatwave),
+            StatusText(hospital, factory, heatwave),
             (_fixture.GasPlantSites ?? Array.Empty<ProductGasPlantSite>())
                 .Select(site => new FirstLightPlantSiteVisual(
                     site.SiteId,
@@ -500,20 +625,26 @@ public sealed partial class ProductMain : Control
             new FirstLightFactoryVisual(
                 ToGrid(_factoryFixture.Position),
                 ToGrid(_fixture.ExistingSource.Position),
-                factory.FactoryDeliveredKw),
+                DisplayFactoryUtility(factory, heatwave),
+                FactoryFeederVisualState(heatwave),
+                DisplayFactoryFeederRating(heatwave)),
             factory.PlantPosition is null
                 ? null
                 : new FirstLightGasPlantVisual(
                     ToGrid(factory.PlantPosition),
                     VisualState(factory.PlantProjectState, false),
                     factory.PlantGridConnected,
-                    factory.GasPlantDispatchKw),
-            IsFactoryDisplayStage(_snapshot.Phase, factory));
+                    IsHeatwaveDisplayStage(_snapshot.Phase, heatwave)
+                        ? heatwave.GasPlantDispatchKw
+                        : factory.GasPlantDispatchKw),
+            IsFactoryDisplayStage(_snapshot.Phase, factory) ||
+                IsHeatwaveDisplayStage(_snapshot.Phase, heatwave));
     }
 
     private FirstLightTaskPanelModel BuildPanelModel(
         ProductHospitalSnapshot hospital,
-        ProductFactorySnapshot factory)
+        ProductFactorySnapshot factory,
+        ProductHeatwaveSnapshot heatwave)
     {
         FirstLightActionPresentation hidden = Action(false, false, string.Empty, string.Empty);
         FirstLightActionPresentation cancel = hidden;
@@ -678,9 +809,71 @@ public sealed partial class ProductMain : Control
                 break;
             case ProductPhase.FactorySettlementReady:
                 instruction =
-                    "가스발전소가 계통에 접속됐습니다. 고정 merit order 급전과 세 수요처의 공급을 확인하고 마지막 기간을 결산하세요.";
+                    "가스발전소가 계통에 접속됐습니다. 고정 merit order 급전과 세 수요처의 공급을 확인하고 다음 운영기간을 결산하세요.";
                 preview = FactoryDispatchText(factory);
-                settle = Action(true, true, "공장 공급기간 결산", "고정 공급기간의 실제 인도·발전비·미공급을 결산합니다.");
+                settle = Action(true, true, "공장 공급기간 결산", "고정 공급기간의 실제 인도·발전비·미공급을 결산하고 폭염 예고를 확인합니다.");
+                break;
+            case ProductPhase.MaintenanceDecision:
+                {
+                    ProductOrderPreview quote = _session.PreviewPreventiveMaintenanceOrder();
+                    instruction =
+                        "폭염 예보가 확정됐습니다. 공장 노후 feeder를 예방정비하거나 비용 없이 건너뛰세요. 두 선택을 모두 보여주지만 추천하지 않습니다.";
+                    preview =
+                        $"{HeatwaveMilestonesText(heatwave)}\n" +
+                        $"예고 · 마을 {PowerText(heatwave.ForecastTownDemandKw)} · " +
+                        $"feeder 유효정격 {PowerText(heatwave.ForecastFactoryFeederRatingKw)}\n" +
+                        MaintenanceQuoteText(quote);
+                    order = Action(
+                        true,
+                        quote.Accepted,
+                        quote.CostCashUnit.HasValue
+                            ? $"예방정비 발주 · {CashText(quote.CostCashUnit.Value)}"
+                            : "예방정비 발주",
+                        "노후 feeder 예방정비 비용을 지불하고 공사를 발주합니다.");
+                    settle = Action(
+                        true,
+                        true,
+                        "정비 없이 진행",
+                        "비용과 시간을 쓰지 않고 예방정비를 생략합니다.");
+                    break;
+                }
+            case ProductPhase.MaintenanceBuilding:
+                instruction =
+                    "공장 노후 feeder 예방정비가 진행 중입니다. 공사 중 상태를 확인한 뒤 완공시각으로 진행하세요.";
+                preview =
+                    $"{HeatwaveMilestonesText(heatwave)}\n" +
+                    CompletionText(heatwave.MaintenanceCompletionMinute);
+                advance = Action(
+                    true,
+                    true,
+                    "예방정비 완공까지 진행",
+                    "예방정비 완공시각으로 진행합니다.");
+                break;
+            case ProductPhase.HeatwaveReady:
+                instruction =
+                    "예방정비 선택이 고정됐습니다. 예고된 폭염 시작시각과 수요·정격 변화를 다시 확인하세요.";
+                preview =
+                    $"{HeatwaveMilestonesText(heatwave)}\n" +
+                    $"선택 · {MaintenanceChoiceText(heatwave.MaintenanceChoice)}\n" +
+                    $"예고 · 마을 {PowerText(heatwave.ForecastTownDemandKw)} · " +
+                    $"feeder 유효정격 {PowerText(heatwave.ForecastFactoryFeederRatingKw)}";
+                settle = Action(
+                    true,
+                    true,
+                    "폭염 시작까지 진행",
+                    "고정된 시작시각으로 진행하고 폭염 수요와 feeder 상태를 적용합니다.");
+                break;
+            case ProductPhase.HeatwaveActive:
+                instruction =
+                    "폭염이 진행 중입니다. 세 수요처 공급, 발전원 급전과 노후 feeder 상태를 확인한 뒤 복구·결산으로 진행하세요.";
+                preview =
+                    $"{HeatwaveMilestonesText(heatwave)}\n" +
+                    HeatwaveDispatchText(heatwave);
+                settle = Action(
+                    true,
+                    true,
+                    "복구·결산까지 진행",
+                    "고정 폭염기간을 결산하고 노후 feeder를 복구합니다.");
                 break;
             case ProductPhase.Complete:
                 if (!hospital.Settlement.Completed)
@@ -698,12 +891,19 @@ public sealed partial class ProductMain : Control
                         : "두 번째 심장 실패. 세 안전 조건을 각각 확인하고 전체 임무를 다시 시작할 수 있습니다.";
                     preview = FinalLedgerText(hospital.Settlement);
                 }
-                else
+                else if (!heatwave.Settlement.Completed)
                 {
                     instruction = _snapshot.Outcome == ProductMissionOutcome.Success
                         ? "공장 용량 확장 완료. 병원·마을·공장을 모두 전량 공급했습니다."
                         : "공장 용량 확장 실패. 최종 공급과 급전 결과를 확인하고 전체 임무를 다시 시작할 수 있습니다.";
                     preview = FactoryFinalLedgerText(factory);
+                }
+                else
+                {
+                    instruction = _snapshot.Outcome == ProductMissionOutcome.Success
+                        ? "폭염 대응 완료. 예방정비를 마친 노후 feeder와 두 발전원으로 세 수요처를 모두 공급했습니다."
+                        : "폭염 대응 실패. 선택, 사건 중 공급과 결산 결과를 확인하고 전체 임무를 다시 시작할 수 있습니다.";
+                    preview = HeatwaveFinalLedgerText(heatwave);
                 }
                 break;
             default:
@@ -711,10 +911,10 @@ public sealed partial class ProductMain : Control
         }
 
         return new FirstLightTaskPanelModel(
-            CurrentPhaseText(hospital, factory),
+            CurrentPhaseText(hospital, factory, heatwave),
             instruction,
             preview,
-            StatusText(hospital, factory),
+            StatusText(hospital, factory, heatwave),
             _lastError,
             cancel,
             undo,
@@ -832,10 +1032,88 @@ public sealed partial class ProductMain : Control
             $"LostSales {CashText(ledger.LostSalesCashUnit)} (현금 미반영)";
     }
 
+    private static string MaintenanceQuoteText(ProductOrderPreview quote)
+    {
+        if (!quote.CostCashUnit.HasValue || !quote.BuildMinutes.HasValue)
+        {
+            return quote.Error.HasValue ? ErrorText(quote.Error) : "예방정비 견적 없음";
+        }
+        string value =
+            $"정비 견적 {CashText(quote.CostCashUnit.Value)} · " +
+            $"공기 {quote.BuildMinutes.Value.ToString("N0", CultureInfo.InvariantCulture)}분";
+        return quote.Error.HasValue ? $"{value}\n{ErrorText(quote.Error)}" : value;
+    }
+
+    private string HeatwaveMilestonesText(ProductHeatwaveSnapshot heatwave) =>
+        $"현재 · {_snapshot.Minute.ToString("N0", CultureInfo.InvariantCulture)}분\n" +
+        $"폭염 시작 · {MinuteText(heatwave.StartMinute)}\n" +
+        $"복구·결산 · {MinuteText(heatwave.RecoveryMinute)}";
+
+    private static string HeatwaveDispatchText(ProductHeatwaveSnapshot heatwave) =>
+        $"노후 feeder {(heatwave.AgedFactoryFeederCurrentlyUnavailable ? "사용불가" : "사용 가능")} · " +
+        $"유효정격 {PowerText(heatwave.CurrentFactoryFeederRatingKw)}\n" +
+        $"병원 {PowerText(heatwave.HospitalDeliveredKw)} · " +
+        $"마을 {PowerText(heatwave.TownDeliveredKw)} · " +
+        $"공장 {PowerText(heatwave.FactoryDeliveredKw)}\n" +
+        $"기존 급전 {PowerText(heatwave.ExistingSourceDispatchKw)} · " +
+        $"가스 급전 {PowerText(heatwave.GasPlantDispatchKw)}";
+
+    private string HeatwaveFinalLedgerText(ProductHeatwaveSnapshot heatwave)
+    {
+        ProductHeatwaveSettlementSnapshot ledger = heatwave.Settlement;
+        return
+            $"폭염 {MinuteText(heatwave.StartMinute)} → 복구·결산 {MinuteText(heatwave.RecoveryMinute)} · " +
+            $"선택 {MaintenanceChoiceText(heatwave.MaintenanceChoice)}\n" +
+            $"세 수요처 전량공급 {YesNo(ledger.AllLoadsFullySupplied)} · " +
+            $"사건 중 feeder {(heatwave.AgedFactoryFeederUnavailableDuringEvent ? "사용불가" : "사용 가능")} · " +
+            $"유효정격 {PowerText(heatwave.ForecastFactoryFeederRatingKw)}\n" +
+            $"기존 발전 {EnergyText(ledger.ExistingSourceGenerationEnergyKwMinute)} · " +
+            $"가스발전 {EnergyText(ledger.GasPlantGenerationEnergyKwMinute)} · " +
+            $"미공급 {EnergyText(ledger.UtilityUnservedEnergyKwMinute)}\n" +
+            $"매출 {CashText(ledger.UtilityRevenueCashUnit)} · " +
+            $"기존 발전비 {CashText(ledger.ExistingSourceGenerationCostCashUnit)} · " +
+            $"가스 발전비 {CashText(ledger.GasPlantGenerationCostCashUnit)} · " +
+            $"보상 {CashText(ledger.UnservedCompensationCashUnit)}\n" +
+            $"현금 변화 {SignedCashText(ledger.CashChangeCashUnit)} · " +
+            $"LostSales {CashText(ledger.LostSalesCashUnit)} (현금 미반영)";
+    }
+
     private string StatusText(
         ProductHospitalSnapshot hospital,
-        ProductFactorySnapshot factory)
+        ProductFactorySnapshot factory,
+        ProductHeatwaveSnapshot heatwave)
     {
+        if (IsFinalHeatwaveResult(heatwave))
+        {
+            string eventFeeder = heatwave.AgedFactoryFeederUnavailableDuringEvent
+                ? "사용불가"
+                : "사용 가능";
+            string recoveredFeeder = heatwave.AgedFactoryFeederCurrentlyUnavailable
+                ? "사용불가"
+                : heatwave.MaintenanceProjectState == ProductProjectState.Commissioned
+                    ? "정비 완료"
+                    : "복구 완료";
+            return
+                $"폭염 결과 · 사건 중 feeder {eventFeeder} · " +
+                $"사건 유효정격 {PowerText(heatwave.ForecastFactoryFeederRatingKw)}\n" +
+                $"복구 후 feeder {recoveredFeeder} · " +
+                $"현재 정격 {PowerText(heatwave.CurrentFactoryFeederRatingKw)}";
+        }
+        if (IsHeatwaveDisplayStage(_snapshot.Phase, heatwave))
+        {
+            string feeder = heatwave.AgedFactoryFeederCurrentlyUnavailable
+                ? "사용불가"
+                : heatwave.MaintenanceProjectState == ProductProjectState.Building
+                    ? "예방정비 중"
+                    : heatwave.MaintenanceProjectState == ProductProjectState.Commissioned
+                        ? "정비 완료"
+                        : "정상";
+            return
+                $"폭염 {(_snapshot.Phase == ProductPhase.HeatwaveActive ? "진행 중" : "예고·결과")} · " +
+                $"노후 feeder {feeder} · 유효정격 {PowerText(heatwave.CurrentFactoryFeederRatingKw)}\n" +
+                $"기존 급전 {PowerText(heatwave.ExistingSourceDispatchKw)} · " +
+                $"가스 급전 {PowerText(heatwave.GasPlantDispatchKw)}";
+        }
         if (IsFactoryDisplayStage(_snapshot.Phase, factory))
         {
             string connection = factory.PlantGridConnected ? "계통접속" : "계통 미접속";
@@ -878,6 +1156,18 @@ public sealed partial class ProductMain : Control
     private static string CompletionText(long? completionMinute) => completionMinute.HasValue
         ? $"예정 완공 · {completionMinute.Value.ToString("N0", CultureInfo.InvariantCulture)}분"
         : "예정 완공시각 없음";
+
+    private static string MinuteText(long? minute) => minute.HasValue
+        ? $"{minute.Value.ToString("N0", CultureInfo.InvariantCulture)}분"
+        : "미정";
+
+    private static string MaintenanceChoiceText(ProductMaintenanceChoice choice) => choice switch
+    {
+        ProductMaintenanceChoice.Undecided => "미정",
+        ProductMaintenanceChoice.Ordered => "예방정비",
+        ProductMaintenanceChoice.Skipped => "정비 생략",
+        _ => throw new ArgumentOutOfRangeException(nameof(choice)),
+    };
 
     private static FirstLightActionPresentation Action(
         bool visible,
@@ -1029,22 +1319,79 @@ public sealed partial class ProductMain : Control
             await NextFrame();
             factory = FactorySnapshot();
             Require(
-                _snapshot.Phase == ProductPhase.Complete &&
-                _snapshot.Outcome == ProductMissionOutcome.Success &&
+                _snapshot.Phase == ProductPhase.MaintenanceDecision &&
+                _snapshot.Outcome == ProductMissionOutcome.Pending &&
                 factory.Settlement.Completed &&
                 factory.Settlement.AllLoadsFullySupplied &&
                 _snapshot.Cash == 5_820_000 &&
-                _snapshot.Minute == 1_425 &&
+                _snapshot.Minute == 1_425,
+                "factory settlement did not open the fixed heatwave forecast");
+
+            ProductHeatwaveSnapshot heatwave = HeatwaveSnapshot();
+            Require(
+                heatwave.StartMinute == 1_605 &&
+                heatwave.RecoveryMinute == 1_845 &&
+                heatwave.MaintenanceChoice == ProductMaintenanceChoice.Undecided,
+                "heatwave forecast milestones were not anchored exactly");
+
+            EmitPanelAction(FirstLightPanelAction.Order, "order preventive maintenance");
+            await NextFrame();
+            heatwave = HeatwaveSnapshot();
+            Require(
+                _snapshot.Phase == ProductPhase.MaintenanceBuilding &&
+                heatwave.MaintenanceChoice == ProductMaintenanceChoice.Ordered &&
+                heatwave.MaintenanceProjectState == ProductProjectState.Building &&
+                heatwave.MaintenanceCompletionMinute == 1_545 &&
+                _snapshot.Cash == 3_820_000,
+                "preventive maintenance order did not preserve the exact cost and completion");
+
+            EmitPanelAction(FirstLightPanelAction.Advance, "complete preventive maintenance");
+            await NextFrame();
+            heatwave = HeatwaveSnapshot();
+            Require(
+                _snapshot.Phase == ProductPhase.HeatwaveReady &&
+                heatwave.MaintenanceProjectState == ProductProjectState.Commissioned &&
+                _snapshot.Minute == 1_545,
+                "preventive maintenance did not complete through the standard advance button");
+
+            EmitPanelAction(FirstLightPanelAction.Settle, "start fixed heatwave");
+            await NextFrame();
+            heatwave = HeatwaveSnapshot();
+            Require(
+                _snapshot.Phase == ProductPhase.HeatwaveActive &&
+                heatwave.Active &&
+                !heatwave.AgedFactoryFeederCurrentlyUnavailable &&
+                heatwave.CurrentTownDemandKw == _heatwaveFixture.TownDemandKw &&
+                heatwave.CurrentFactoryFeederRatingKw ==
+                    _heatwaveFixture.AgedFactoryFeederHeatwaveRatingKw &&
+                heatwave.HospitalDeliveredKw == _hospitalFixture.DemandKw &&
+                heatwave.TownDeliveredKw == _heatwaveFixture.TownDemandKw &&
+                heatwave.FactoryDeliveredKw == _factoryFixture.DemandKw &&
+                _snapshot.Minute == 1_605,
+                "maintained feeder did not preserve full supply during the fixed heatwave");
+
+            EmitPanelAction(FirstLightPanelAction.Settle, "recover and settle heatwave");
+            await NextFrame();
+            heatwave = HeatwaveSnapshot();
+            Require(
+                _snapshot.Phase == ProductPhase.Complete &&
+                _snapshot.Outcome == ProductMissionOutcome.Success &&
+                heatwave.Settlement.Completed &&
+                heatwave.Settlement.AllLoadsFullySupplied &&
+                !heatwave.AgedFactoryFeederUnavailableDuringEvent &&
+                !heatwave.AgedFactoryFeederCurrentlyUnavailable &&
+                _snapshot.Cash == 4_660_000 &&
+                _snapshot.Minute == 1_845 &&
                 _finalLogged,
-                "Factory Capacity smoke did not reach the exact logged successful settlement");
+                "Heatwave Maintenance smoke did not reach the exact maintained settlement");
 
             GD.Print(
-                $"PRODUCT_FACTORY_CAPACITY_SMOKE_PASS session={_options.SessionId} endingCash={_snapshot.Cash} minute={_snapshot.Minute}");
+                $"PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_PASS session={_options.SessionId} endingCash={_snapshot.Cash} minute={_snapshot.Minute}");
             GetTree().Quit(0);
         }
         catch (Exception exception)
         {
-            GD.PushError($"PRODUCT_FACTORY_CAPACITY_SMOKE_FAIL: {exception}");
+            GD.PushError($"PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_FAIL: {exception}");
             GetTree().Quit(1);
         }
     }
@@ -1128,6 +1475,10 @@ public sealed partial class ProductMain : Control
         _snapshot.Factory
         ?? throw new InvalidOperationException("Product session has no factory snapshot.");
 
+    private ProductHeatwaveSnapshot HeatwaveSnapshot() =>
+        _snapshot.Heatwave
+        ?? throw new InvalidOperationException("Product session has no heatwave snapshot.");
+
     private ProductPoint ActiveTarget() => _snapshot.Phase switch
     {
         ProductPhase.LinePlanning => _snapshot.Substation.Position
@@ -1165,6 +1516,8 @@ public sealed partial class ProductMain : Control
         ProductPhase.PlantPlanning or ProductPhase.PlantBuilding => _plantFixture.ProjectId,
         ProductPhase.PlantConnectionPlanning or ProductPhase.PlantConnectionBuilding =>
             _fixture.PlantConnectionLineProject?.ProjectId,
+        ProductPhase.MaintenanceDecision or ProductPhase.MaintenanceBuilding =>
+            _maintenanceFixture.ProjectId,
         _ => snapshot.Hospital?.ActiveProjectId,
     };
 
@@ -1182,11 +1535,21 @@ public sealed partial class ProductMain : Control
         ProductPhase.PlantConnectionPlanning or ProductPhase.PlantConnectionBuilding or
         ProductPhase.FactorySettlementReady;
 
+    private static bool IsHeatwaveStage(ProductPhase phase) => phase is
+        ProductPhase.MaintenanceDecision or ProductPhase.MaintenanceBuilding or
+        ProductPhase.HeatwaveReady or ProductPhase.HeatwaveActive;
+
     private static bool IsFactoryDisplayStage(
         ProductPhase phase,
         ProductFactorySnapshot factory) =>
         IsFactoryStage(phase) ||
         phase == ProductPhase.Complete && factory.Settlement.Completed;
+
+    private static bool IsHeatwaveDisplayStage(
+        ProductPhase phase,
+        ProductHeatwaveSnapshot heatwave) =>
+        IsHeatwaveStage(phase) ||
+        phase == ProductPhase.Complete && heatwave.Settlement.Completed;
 
     private static bool IsHospitalDisplayStage(
         ProductPhase phase,
@@ -1196,19 +1559,25 @@ public sealed partial class ProductMain : Control
 
     private string CurrentPhaseText(
         ProductHospitalSnapshot hospital,
-        ProductFactorySnapshot factory) =>
+        ProductFactorySnapshot factory,
+        ProductHeatwaveSnapshot heatwave) =>
         _snapshot.Phase != ProductPhase.Complete
             ? PhaseText(_snapshot.Phase)
             : !hospital.Settlement.Completed
                 ? "6 · 첫 결산"
-                : factory.Settlement.Completed
-                    ? "17 · 공장 공급 결산"
-                    : "12 · 복구와 결산";
+                : !factory.Settlement.Completed
+                    ? "12 · 복구와 결산"
+                    : heatwave.Settlement.Completed
+                        ? "22 · 폭염 복구·결산"
+                        : "17 · 공장 공급 결산";
 
     private long DisplayTownUtility(
         ProductHospitalSnapshot hospital,
-        ProductFactorySnapshot factory) =>
-        IsFactoryDisplayStage(_snapshot.Phase, factory)
+        ProductFactorySnapshot factory,
+        ProductHeatwaveSnapshot heatwave) =>
+        IsHeatwaveDisplayStage(_snapshot.Phase, heatwave)
+            ? heatwave.TownDeliveredKw
+            : IsFactoryDisplayStage(_snapshot.Phase, factory)
             ? factory.TownDeliveredKw
             : IsHospitalDisplayStage(_snapshot.Phase, hospital)
             ? hospital.TownUtilityKw
@@ -1216,10 +1585,55 @@ public sealed partial class ProductMain : Control
 
     private long DisplayHospitalUtility(
         ProductHospitalSnapshot hospital,
-        ProductFactorySnapshot factory) =>
-        IsFactoryDisplayStage(_snapshot.Phase, factory)
+        ProductFactorySnapshot factory,
+        ProductHeatwaveSnapshot heatwave) =>
+        IsHeatwaveDisplayStage(_snapshot.Phase, heatwave)
+            ? heatwave.HospitalDeliveredKw
+            : IsFactoryDisplayStage(_snapshot.Phase, factory)
             ? factory.HospitalDeliveredKw
             : hospital.HospitalUtilityKw;
+
+    private long DisplayFactoryUtility(
+        ProductFactorySnapshot factory,
+        ProductHeatwaveSnapshot heatwave) =>
+        IsHeatwaveDisplayStage(_snapshot.Phase, heatwave)
+            ? heatwave.FactoryDeliveredKw
+            : factory.FactoryDeliveredKw;
+
+    private long DisplayTownDemand(ProductHeatwaveSnapshot heatwave) =>
+        IsFinalHeatwaveResult(heatwave)
+            ? heatwave.ForecastTownDemandKw
+            : IsHeatwaveDisplayStage(_snapshot.Phase, heatwave)
+            ? heatwave.CurrentTownDemandKw
+            : _fixture.Town.DemandKw;
+
+    private long DisplayFactoryFeederRating(ProductHeatwaveSnapshot heatwave) =>
+        IsFinalHeatwaveResult(heatwave)
+            ? heatwave.ForecastFactoryFeederRatingKw
+            : IsHeatwaveDisplayStage(_snapshot.Phase, heatwave)
+                ? heatwave.CurrentFactoryFeederRatingKw
+                : _factoryFixture.FeederRatingKw;
+
+    private bool IsFinalHeatwaveResult(ProductHeatwaveSnapshot heatwave) =>
+        _snapshot.Phase == ProductPhase.Complete && heatwave.Settlement.Completed;
+
+    private FirstLightFactoryFeederVisualState FactoryFeederVisualState(
+        ProductHeatwaveSnapshot heatwave)
+    {
+        bool unavailable = IsFinalHeatwaveResult(heatwave)
+            ? heatwave.AgedFactoryFeederUnavailableDuringEvent
+            : heatwave.AgedFactoryFeederCurrentlyUnavailable;
+        if (unavailable)
+        {
+            return FirstLightFactoryFeederVisualState.Unavailable;
+        }
+        return heatwave.MaintenanceProjectState switch
+        {
+            ProductProjectState.Building => FirstLightFactoryFeederVisualState.Maintenance,
+            ProductProjectState.Commissioned => FirstLightFactoryFeederVisualState.Maintained,
+            _ => FirstLightFactoryFeederVisualState.Normal,
+        };
+    }
 
     private static FirstLightProjectVisualState VisualState(
         ProductProjectState state,
@@ -1256,7 +1670,11 @@ public sealed partial class ProductMain : Control
         ProductPhase.PlantConnectionPlanning => "14 · 발전소 접속선 계획",
         ProductPhase.PlantConnectionBuilding => "15 · 발전소 접속선 공사",
         ProductPhase.FactorySettlementReady => "16 · 공장 공급 확인",
-        ProductPhase.Complete => "17 · 공장 공급 결산",
+        ProductPhase.MaintenanceDecision => "18 · 폭염 예고와 정비 선택",
+        ProductPhase.MaintenanceBuilding => "19 · 예방정비 공사",
+        ProductPhase.HeatwaveReady => "20 · 폭염 시작 전 확인",
+        ProductPhase.HeatwaveActive => "21 · 폭염 진행",
+        ProductPhase.Complete => "22 · 폭염 복구·결산",
         _ => throw new ArgumentOutOfRangeException(nameof(phase)),
     };
 

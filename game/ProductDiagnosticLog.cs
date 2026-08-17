@@ -8,7 +8,7 @@ namespace Gridworks.Game;
 
 internal sealed class ProductDiagnosticLog : IDisposable
 {
-    private const string SchemaVersion = "gridworks.product.factory-capacity.diagnostic.v1";
+    private const string SchemaVersion = "gridworks.product.heatwave-maintenance.diagnostic.v1";
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = null,

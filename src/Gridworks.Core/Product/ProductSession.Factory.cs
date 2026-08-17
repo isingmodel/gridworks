@@ -163,6 +163,10 @@ public sealed partial class ProductSession
             allSupplied);
         _minute = checked(_minute + duration);
         _cash = checked(_cash + cashChange);
+        if (allSupplied)
+        {
+            AnchorHeatwaveForecast();
+        }
         return Accepted();
     }
 
@@ -335,7 +339,15 @@ public sealed partial class ProductSession
         return Accepted();
     }
 
-    private FactoryDispatch ComputeFactoryDispatch()
+    private FactoryDispatch ComputeFactoryDispatch() => ComputeFactoryDispatch(
+        _fixture.Town.DemandKw,
+        FactoryDefinition().FeederRatingKw,
+        true);
+
+    private FactoryDispatch ComputeFactoryDispatch(
+        long townDemandKw,
+        long factoryFeederRatingKw,
+        bool factoryFeederAvailable)
     {
         if (!_fixture.HasFactoryStage || !HospitalConditionsMet())
         {
@@ -351,9 +363,10 @@ public sealed partial class ProductSession
             _lineState == ProductProjectState.Commissioned &&
             _substationPosition is not null &&
             IsTownInServiceArea(_substationPosition) &&
-            _fixture.LineProject.RatingKw >= _fixture.Town.DemandKw &&
-            _fixture.SubstationProject.CapacityKw >= _fixture.Town.DemandKw;
-        bool factoryPathAvailable = factory.FeederRatingKw >= factory.DemandKw;
+            _fixture.LineProject.RatingKw >= townDemandKw &&
+            _fixture.SubstationProject.CapacityKw >= townDemandKw;
+        bool factoryPathAvailable = factoryFeederAvailable &&
+            factoryFeederRatingKw >= factory.DemandKw;
 
         long existingRemaining = _fixture.ExistingSource.CapacityKw;
         bool gasAvailable = _plantState == ProductProjectState.Commissioned &&
@@ -369,7 +382,7 @@ public sealed partial class ProductSession
         (string Id, int Priority, long Demand, bool PathAvailable)[] loads =
         [
             (hospital.Id, hospital.Priority, hospital.DemandKw, hospitalPathAvailable),
-            (_fixture.Town.Id, _fixture.Town.Priority, _fixture.Town.DemandKw, townPathAvailable),
+            (_fixture.Town.Id, _fixture.Town.Priority, townDemandKw, townPathAvailable),
             (factory.Id, factory.Priority, factory.DemandKw, factoryPathAvailable),
         ];
 

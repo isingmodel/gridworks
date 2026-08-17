@@ -78,6 +78,18 @@ public static class ProductFixtureLoader
             JsonElement root = document.RootElement;
             EnsureNoDuplicateProperties(root, "$");
             if (root.ValueKind == JsonValueKind.Object &&
+                root.TryGetProperty("schemaVersion", out JsonElement heatwaveSchemaElement) &&
+                heatwaveSchemaElement.ValueKind == JsonValueKind.String &&
+                string.Equals(
+                    heatwaveSchemaElement.GetString(),
+                    HeatwaveFixtureSupport.SchemaVersion,
+                    StringComparison.Ordinal))
+            {
+                ProductFixture heatwave = HeatwaveFixtureSupport.Read(root);
+                Validate(heatwave);
+                return heatwave;
+            }
+            if (root.ValueKind == JsonValueKind.Object &&
                 root.TryGetProperty("schemaVersion", out JsonElement factorySchemaElement) &&
                 factorySchemaElement.ValueKind == JsonValueKind.String &&
                 string.Equals(
@@ -140,6 +152,14 @@ public static class ProductFixtureLoader
     internal static void Validate(ProductFixture fixture)
     {
         ArgumentNullException.ThrowIfNull(fixture);
+        if (string.Equals(
+                fixture.SchemaVersion,
+                HeatwaveFixtureSupport.SchemaVersion,
+                StringComparison.Ordinal))
+        {
+            HeatwaveFixtureSupport.Validate(fixture);
+            return;
+        }
         if (string.Equals(
                 fixture.SchemaVersion,
                 FactoryFixtureSupport.SchemaVersion,

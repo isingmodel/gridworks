@@ -61,7 +61,7 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 21
-text = "GRIDWORKS · 열돔 아래: 증설"
+text = "GRIDWORKS · 열돔 아래: 폭염과 정비"
 
 [node name="TitleSpacer" type="Control" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
 layout_mode = 2

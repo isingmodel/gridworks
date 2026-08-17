@@ -40,6 +40,7 @@ public sealed partial class ProductSession
     {
         ProductHospitalSnapshot? hospitalSnapshot = BuildHospitalSnapshot();
         ProductFactorySnapshot? factorySnapshot = BuildFactorySnapshot();
+        ProductHeatwaveSnapshot? heatwaveSnapshot = BuildHeatwaveSnapshot();
         bool townInServiceArea = IsTownInServiceArea(_substationPosition);
         ProductSupplyFailure supplyFailure = CurrentSupplyFailure();
         long deliveredKw = _fixture.HasHospitalStage && _settlementCompleted
@@ -70,7 +71,8 @@ public sealed partial class ProductSession
                 _settledRevenueCashUnit),
             outcome,
             hospitalSnapshot,
-            factorySnapshot);
+            factorySnapshot,
+            heatwaveSnapshot);
     }
 
     public ProductSubstationPlacementPreview PreviewSubstationPlacement(ProductPoint position)
@@ -354,6 +356,10 @@ public sealed partial class ProductSession
         {
             return CompleteFactoryConstruction(phase);
         }
+        if (phase == ProductPhase.MaintenanceBuilding)
+        {
+            return CompletePreventiveMaintenance();
+        }
         return Rejected(ProductCommandError.WrongPhase);
     }
 
@@ -398,7 +404,9 @@ public sealed partial class ProductSession
     {
         if (_factorySettlement.Completed)
         {
-            return ProductPhase.Complete;
+            return _fixture.HasHeatwaveStage && _factorySettlement.AllLoadsFullySupplied
+                ? CurrentHeatwavePhase()
+                : ProductPhase.Complete;
         }
         if (_hospitalSettlement.Completed)
         {
@@ -541,5 +549,6 @@ public sealed partial class ProductSession
         _settledRevenueCashUnit = 0;
         ResetHospitalState();
         ResetFactoryState();
+        ResetHeatwaveState();
     }
 }

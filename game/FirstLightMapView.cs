@@ -64,10 +64,21 @@ internal sealed record FirstLightPlantSiteVisual(
     FirstLightGridPoint Position,
     bool Selected);
 
+internal enum FirstLightFactoryFeederVisualState
+{
+    Normal,
+    Maintenance,
+    Maintained,
+    Unavailable,
+}
+
 internal sealed record FirstLightFactoryVisual(
     FirstLightGridPoint Position,
     FirstLightGridPoint FeederFrom,
-    long DeliveredKw);
+    long DeliveredKw,
+    FirstLightFactoryFeederVisualState FeederState =
+        FirstLightFactoryFeederVisualState.Normal,
+    long EffectiveRatingKw = 0);
 
 internal sealed record FirstLightGasPlantVisual(
     FirstLightGridPoint Position,
@@ -419,13 +430,51 @@ internal sealed partial class FirstLightMapView : Container
 
         Vector2 from = ToCanvas(factory.FeederFrom, model.Bounds, plot);
         Vector2 to = ToCanvas(factory.Position, model.Bounds, plot);
-        Color color = factory.DeliveredKw > 0 ? EnergizedColor : MutedColor;
-        DrawLine(from, to, Color.FromHtml("102b31"), 7f, true);
-        DrawLine(from, to, color, 3f, true);
+        Color color = factory.FeederState switch
+        {
+            FirstLightFactoryFeederVisualState.Normal =>
+                factory.DeliveredKw > 0 ? EnergizedColor : MutedColor,
+            FirstLightFactoryFeederVisualState.Maintenance => BuildingColor,
+            FirstLightFactoryFeederVisualState.Maintained => EnergizedColor,
+            FirstLightFactoryFeederVisualState.Unavailable => InvalidColor,
+            _ => throw new ArgumentOutOfRangeException(nameof(factory.FeederState)),
+        };
+        if (factory.FeederState == FirstLightFactoryFeederVisualState.Unavailable)
+        {
+            DrawLine(from, to, Color.FromHtml("2b171a"), 8f, true);
+            DrawDashedLine(from, to, color, 4f, 12f, true, true);
+            DrawCross((from + to) / 2f, color, 8f);
+        }
+        else if (factory.FeederState == FirstLightFactoryFeederVisualState.Maintenance)
+        {
+            DrawDashedLine(from, to, color, 5f, 10f, true, true);
+            DrawConstructionHatching(from, to);
+        }
+        else
+        {
+            DrawLine(from, to, Color.FromHtml("102b31"), 7f, true);
+            DrawLine(from, to, color, 3f, true);
+            if (factory.FeederState == FirstLightFactoryFeederVisualState.Maintained)
+            {
+                DrawCircle((from + to) / 2f, 6f, MapBackground);
+                DrawCircle((from + to) / 2f, 6f, color, false, 2f, true);
+            }
+        }
+        string state = factory.FeederState switch
+        {
+            FirstLightFactoryFeederVisualState.Normal => "정상",
+            FirstLightFactoryFeederVisualState.Maintenance => "예방정비 중",
+            FirstLightFactoryFeederVisualState.Maintained => "정비 완료",
+            FirstLightFactoryFeederVisualState.Unavailable => "폭염 사용불가",
+            _ => throw new ArgumentOutOfRangeException(nameof(factory.FeederState)),
+        };
+        string rating = factory.EffectiveRatingKw > 0
+            ? $" · 유효정격 {PowerText(factory.EffectiveRatingKw)}"
+            : string.Empty;
         DrawString(
             ThemeDB.FallbackFont,
             ((from + to) / 2f) + new Vector2(7f, -7f),
-            "공장 고정 feeder",
+            $"공장 노후 feeder · {state}{rating}",
             HorizontalAlignment.Left,
             -1f,
             11,
@@ -874,7 +923,9 @@ internal sealed partial class FirstLightMapView : Container
                 : " 공간 위험구역 표시됨.";
         string factory = model.Factory is null
             ? string.Empty
-            : $" 공장 {(model.Factory.DeliveredKw > 0 ? "공급 중" : "미공급")}.";
+            : $" 공장 {(model.Factory.DeliveredKw > 0 ? "공급 중" : "미공급")}, " +
+              $"노후 feeder {FactoryFeederStateText(model.Factory.FeederState)}, " +
+              $"유효정격 {PowerText(model.Factory.EffectiveRatingKw)}.";
         string plant = model.GasPlant is null
             ? string.Empty
             : $" 가스발전소 {(model.GasPlant.Connected ? "계통접속" : LineStateText(model.GasPlant.State))}, 출력 {PowerText(model.GasPlant.DispatchedKw)}.";
@@ -883,6 +934,16 @@ internal sealed partial class FirstLightMapView : Container
 
     private static string PowerText(long kw) =>
         $"{(kw / 1_000d).ToString("0.###", CultureInfo.InvariantCulture)} MW";
+
+    private static string FactoryFeederStateText(FirstLightFactoryFeederVisualState state) =>
+        state switch
+        {
+            FirstLightFactoryFeederVisualState.Normal => "정상",
+            FirstLightFactoryFeederVisualState.Maintenance => "예방정비 중",
+            FirstLightFactoryFeederVisualState.Maintained => "정비 완료",
+            FirstLightFactoryFeederVisualState.Unavailable => "폭염 사용불가",
+            _ => throw new ArgumentOutOfRangeException(nameof(state)),
+        };
 
     private static string LineStateText(FirstLightProjectVisualState state) => state switch
     {

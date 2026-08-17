@@ -46,6 +46,33 @@ internal static class Program
                     ? new FactoryChecks(fixturePath).Run()
                     : secondHeartExit;
             }
+            if (schemaVersion == "gridworks.product.heatwave.v1")
+            {
+                string firstLightPath = RequiredRegressionFixture(
+                    "product-first-light-v1.json",
+                    "First Light");
+                string secondHeartPath = RequiredRegressionFixture(
+                    "product-second-heart-v1.json",
+                    "Second Heart");
+                string factoryPath = RequiredRegressionFixture(
+                    "product-factory-v1.json",
+                    "Factory Capacity");
+
+                int firstLightExit = new FirstLightChecks(firstLightPath).Run();
+                if (firstLightExit != 0)
+                {
+                    return firstLightExit;
+                }
+                int secondHeartExit = new SecondHeartChecks(secondHeartPath).Run();
+                if (secondHeartExit != 0)
+                {
+                    return secondHeartExit;
+                }
+                int factoryExit = new FactoryChecks(factoryPath).Run();
+                return factoryExit == 0
+                    ? new HeatwaveChecks(fixturePath).Run()
+                    : factoryExit;
+            }
 
             throw new ArgumentException($"Unsupported product schemaVersion '{schemaVersion}'.");
         }
@@ -69,7 +96,7 @@ internal static class Program
             : Path.Combine(
                 Environment.CurrentDirectory,
                 "data",
-                "product-factory-v1.json");
+                "product-heatwave-v1.json");
         path = Path.GetFullPath(path);
         if (!File.Exists(path))
         {

@@ -33,7 +33,7 @@
 | 1. 첫 점등 통합 | 완료 | [구현 기준](scopes/FIRST_LIGHT.md), [데이터](../data/product-first-light-v1.json) | [종료 기록](scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록) | [종료 기록](scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록) |
 | 2. 병원 신뢰도·경제 | 완료 | [구현 기준](scopes/SECOND_HEART.md), [데이터](../data/product-second-heart-v1.json) | [종료 기록](scopes/SECOND_HEART.md#8-현재-검사와-종료-기록) | [종료 기록](scopes/SECOND_HEART.md#8-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/SECOND_HEART.md#8-현재-검사와-종료-기록) |
 | 3. 공장 수요·발전소 용량 | 완료 | [구현 기준](scopes/FACTORY_CAPACITY.md), [데이터](../data/product-factory-v1.json) | [종료 기록](scopes/FACTORY_CAPACITY.md#8-현재-검사와-종료-기록) | [종료 기록](scopes/FACTORY_CAPACITY.md#8-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/FACTORY_CAPACITY.md#8-현재-검사와-종료-기록) |
-| 4. 예고된 폭염·정비 | 활성 | [구현 기준](scopes/HEATWAVE_MAINTENANCE.md), [데이터](../data/product-heatwave-v1.json) | 진행 중 | 진행 중 | `NOT_COLLECTED` | 진행 중 |
+| 4. 예고된 폭염·정비 | 완료 | [구현 기준](scopes/HEATWAVE_MAINTENANCE.md), [데이터](../data/product-heatwave-v1.json) | [종료 기록](scopes/HEATWAVE_MAINTENANCE.md#8-현재-검사와-종료-기록) | [종료 기록](scopes/HEATWAVE_MAINTENANCE.md#8-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/HEATWAVE_MAINTENANCE.md#8-현재-검사와-종료-기록) |
 | 5. 캠페인 골격·저장·기본 설정 | 미승인 | — | — | — | 선택 | — |
 | 6. 세 장 콘텐츠 고정 | 미승인 | — | — | — | 필요 | — |
 | 7. 2D 표현·사운드·패키징 | 미승인 | — | — | — | 필요 | — |

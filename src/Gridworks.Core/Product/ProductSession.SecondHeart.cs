@@ -181,7 +181,19 @@ public sealed partial class ProductSession
         {
             return ProductMissionOutcome.Pending;
         }
-        return _factorySettlement.AllLoadsFullySupplied
+        if (!_factorySettlement.AllLoadsFullySupplied)
+        {
+            return ProductMissionOutcome.Failure;
+        }
+        if (!_fixture.HasHeatwaveStage)
+        {
+            return ProductMissionOutcome.Success;
+        }
+        if (!_heatwaveSettlement.Completed)
+        {
+            return ProductMissionOutcome.Pending;
+        }
+        return HeatwaveConditionsMet()
             ? ProductMissionOutcome.Success
             : ProductMissionOutcome.Failure;
     }

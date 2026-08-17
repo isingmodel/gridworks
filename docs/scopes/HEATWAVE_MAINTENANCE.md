@@ -1,10 +1,10 @@
-# 예고된 폭염과 예방정비 — 활성 구현 기준
+# 예고된 폭염과 예방정비 — 완료된 구현 기준
 
-> 상태: `ACTIVE`
->
-> 구현 권한: `GRANTED`
+> 상태: `COMPLETED`
 >
 > 사람 검증: `NOT_COLLECTED`
+
+이 완료는 다음 캠페인 골격·저장·기본 설정 단계의 구현을 승인하지 않는다.
 
 이 단계는 완료된 공장 결산 뒤에 읽기 전용 예고와 예방정비 선택, 고정 폭염 사건만 추가한다.
 별도 장면, 연속 시계, 작업 일정표, 확률 고장, 위기 중 수요감축, 상세 수리와 저장은 열지 않는다.
@@ -92,7 +92,7 @@ HeatwaveReady → HeatwaveActive → Complete
 
 기존 `ProductMain` 하나를 연장한다. 별도 타임라인 화면 대신 기존 작업 패널에 `현재 / 폭염 시작 /
 복구·결산` 세 이정표와 예상 수요·정격 변화를 읽기 전용으로 표시한다. 기존 `Order` button은 정비
-발주, `Settle` button은 정비 생략, `Advance` button은 정비 완공·폭염 시작·복구 결산에 상태별로
+발주, `Advance` button은 정비 완공, `Settle` button은 정비 생략·폭염 시작·복구 결산에 상태별로
 재사용한다. `Restart`는 항상 보인다.
 
 지도는 노후 회선의 정상, 정비 중, 정비 완료, 사건 사용불가를 색 외 점선·반복 사선·상태 문장으로
@@ -114,6 +114,29 @@ HeatwaveReady → HeatwaveActive → Complete
 placeholder는 만들지 않는다. 사람 관찰은 전체 개발 뒤 테스트 단계로 미루고
 `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
 
-## 8. 종료 기록
+## 8. 현재 검사와 종료 기록
 
-구현과 검토가 끝난 뒤 현재 검사 명령, 대표 결과, fixture·build hash와 남은 한계를 이 절에 기록한다.
+현재 제품 검사는 다음 한 명령으로 첫 점등·병원·공장·폭염 규칙을 함께 확인한다.
+
+```sh
+dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj -c Release -- data/product-heatwave-v1.json
+```
+
+- 첫 점등 회귀: 10 suites / 664 assertions 통과
+- 두 번째 심장 회귀: 5 suites / 124 assertions 통과
+- 공장 용량 확장 회귀: 5 suites / 378 assertions 통과
+- 폭염·예방정비: 5 suites / 243 assertions 통과
+- Core·Game Debug·Release build: warning 0, error 0
+- 실제 viewport 입력과 표준 button을 사용한 1280×720 정비 분기: `Success`, 기말 현금 `4.660 M`,
+  종료 시각 `1845분`
+- 폭염 시작 `1605분`, 복구·결산 `1845분`, 폭염 중 마을 `1.5 MW`, 공장 feeder 유효정격
+  `2 MW`, 병원·마을·공장 전량공급 확인
+- 정비 생략 분기는 Core 검사에서 공장 `2 MW` 미공급, 사건 후 feeder 복구와 실패 결산 확인
+- 진단: `READY → COMMAND × 34 → FINAL`, 정비 선택·사건 시각·인도·급전·현금 ledger 기록,
+  support 좌표 미기록
+- fixture SHA-256: `b00b7fc9d657fd355b8741e4326d9a5297ae749de629c1763334bcca4df83f9c`
+- 대표 실행 build hash: `e682ff9f32c1e70d7bca82c0fa1e1a7c4250b1b8741d8101ab8091cc8a553512`
+- 짧은 독립 Core·Game 검토와 두 P1 수정 후 재검토: P0 0, P1 0
+
+두 번째 해상도, 전체 접근성, LLM·사람 플레이와 밸런스 조정은 수행하지 않았다. 최종 결과 화면은
+폭염 당시 수요·인도·feeder 상태와 복구 후 현재 feeder 상태를 구분한다.

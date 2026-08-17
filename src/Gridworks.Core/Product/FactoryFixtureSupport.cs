@@ -63,7 +63,14 @@ internal static class FactoryFixtureSupport
 
     internal static ProductFixture Read(JsonElement root)
     {
-        ProductFixture cumulative = SecondHeartFixtureSupport.ReadCumulative(root, RootFields);
+        return ReadCumulative(root, RootFields);
+    }
+
+    internal static ProductFixture ReadCumulative(
+        JsonElement root,
+        IReadOnlyCollection<string> rootFields)
+    {
+        ProductFixture cumulative = SecondHeartFixtureSupport.ReadCumulative(root, rootFields);
         return cumulative with
         {
             FactorySettlementMinutes = Int32(

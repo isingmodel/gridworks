@@ -72,6 +72,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 | 첫 점등 제품 화면 | `ProductMain`과 두 child scene | 기술 구현·두 해상도·접근성 검토 완료, 사람 관찰 `NOT_COLLECTED` |
 | 두 번째 심장 제품 화면 | 누적 `ProductMain` | 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
 | 공장 용량 확장 제품 화면 | 누적 `ProductMain` | 부지·발전소·접속선·급전 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
+| 폭염·예방정비 제품 화면 | 누적 `ProductMain` | 예고·정비·사건·복구 결산 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |
@@ -174,8 +175,8 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 아래 화면은 관련 시스템이 검증된 뒤의 제작 방향이다. 기존 PNG 안의 숫자와 배치는 구현
 계약이 아니다.
 
-후속 scenario가 폭염이나 공장 증설을 실제로 열면 같은 타임라인 문법에 시작·지속·종료 또는
-요구 MW 발효시각을 추가한다. 관련 로드맵 단계 전에는 Scope 0B 화면에 그 항목이나 빈 slot을 넣지 않는다.
+현재 제품 화면은 같은 패널 문법으로 폭염의 현재·시작·복구 경계와 공장 증설 결과를 표시한다.
+미래 scenario의 추가 사건은 해당 단계가 열리기 전에는 빈 slot으로 미리 만들지 않는다.
 
 ### 6.1 핵심 전력망 건설
 

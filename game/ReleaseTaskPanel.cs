@@ -15,6 +15,7 @@ internal enum ReleasePanelAction
     Undo,
     Order,
     Advance,
+    ToggleEventView,
     Evaluate,
 }
 
@@ -47,8 +48,11 @@ internal sealed record ReleaseTaskPanelModel(
 
     public string Event { get; init; } = string.Empty;
 
+    public ReleaseButtonPresentation EventView { get; init; } =
+        new(false, false, "사고 조건 미리보기", "예고된 설비 사용 불가 조건에서 전력망이 어떻게 동작하는지 미리 확인합니다.");
+
     public ReleaseButtonPresentation Evaluate { get; init; } =
-        new(false, false, "임무 완료 확인하기", "평상시와 비상 상황 모두에서 임무 목표를 충족하는지 확인합니다.");
+        new(false, false, "임무 완료 확인하기", "평상시와 임무에서 예고한 조건 모두에서 목표를 충족하는지 확인합니다.");
 }
 
 internal sealed partial class ReleaseTaskPanel : PanelContainer
@@ -91,6 +95,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
             [ReleasePanelAction.Undo] = GetNode<Button>("%UndoButton"),
             [ReleasePanelAction.Order] = GetNode<Button>("%OrderButton"),
             [ReleasePanelAction.Advance] = GetNode<Button>("%AdvanceButton"),
+            [ReleasePanelAction.ToggleEventView] = GetNode<Button>("%EventViewButton"),
             [ReleasePanelAction.Evaluate] = GetNode<Button>("%EvaluateButton"),
         };
         foreach ((ReleasePanelAction action, Button button) in _buttons)
@@ -134,6 +139,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         Set(ReleasePanelAction.Undo, model.Undo);
         Set(ReleasePanelAction.Order, model.Order);
         Set(ReleasePanelAction.Advance, model.Advance);
+        Set(ReleasePanelAction.ToggleEventView, model.EventView);
         Set(ReleasePanelAction.Evaluate, model.Evaluate);
         AccessibilityName = $"전력망 작업 패널. 현재 작업: {model.Heading}. {model.Network}";
     }

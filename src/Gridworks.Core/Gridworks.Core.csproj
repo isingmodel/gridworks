@@ -6,4 +6,11 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=/_/src/Gridworks.Core</PathMap>
+  </PropertyGroup>
 </Project>

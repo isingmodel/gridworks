@@ -21,6 +21,7 @@ internal enum ReleaseShellAction
     Resume,
     SaveAndQuit,
     RestartChapter,
+    RewindPreviousChapter,
     TitleSettings,
     PauseSettings,
     TitleHelp,
@@ -36,6 +37,7 @@ internal enum ReleaseShellConfirmation
     None,
     NewGame,
     RestartChapter,
+    RewindPreviousChapter,
 }
 
 internal sealed partial class ReleaseShellOverlay : Control
@@ -48,12 +50,14 @@ internal sealed partial class ReleaseShellOverlay : Control
     private Label _titleMessage = null!;
     private Label _pauseChapter = null!;
     private Label _pauseMessage = null!;
+    private Label _settingsMessage = null!;
     private Label _confirmHeading = null!;
     private Label _confirmBody = null!;
     private Button _newGame = null!;
     private Button _continue = null!;
     private Button _quit = null!;
     private Button _resume = null!;
+    private Button _rewindPreviousChapter = null!;
     private Button _confirm = null!;
     private Button _cancelConfirm = null!;
     private OptionButton _windowMode = null!;
@@ -74,6 +78,7 @@ internal sealed partial class ReleaseShellOverlay : Control
     public event Action? ResumeRequested;
     public event Action? SaveAndQuitRequested;
     public event Action? RestartChapterRequested;
+    public event Action? RewindPreviousChapterRequested;
     public event Action<bool>? FullscreenChanged;
     public event Action<int>? UiScalePercentChanged;
     public event Action<int>? MasterVolumePercentChanged;
@@ -95,12 +100,14 @@ internal sealed partial class ReleaseShellOverlay : Control
         _titleMessage = GetNode<Label>("%TitleMessage");
         _pauseChapter = GetNode<Label>("%PauseChapter");
         _pauseMessage = GetNode<Label>("%PauseMessage");
+        _settingsMessage = GetNode<Label>("%SettingsMessage");
         _confirmHeading = GetNode<Label>("%ConfirmHeading");
         _confirmBody = GetNode<Label>("%ConfirmBody");
         _newGame = GetNode<Button>("%NewGameButton");
         _continue = GetNode<Button>("%ContinueButton");
         _quit = GetNode<Button>("%TitleQuitButton");
         _resume = GetNode<Button>("%ResumeButton");
+        _rewindPreviousChapter = GetNode<Button>("%RewindPreviousChapterButton");
         _confirm = GetNode<Button>("%ConfirmButton");
         _cancelConfirm = GetNode<Button>("%CancelConfirmButton");
         _windowMode = GetNode<OptionButton>("%WindowModeOption");
@@ -125,6 +132,7 @@ internal sealed partial class ReleaseShellOverlay : Control
         _resume.Pressed += () => ResumeRequested?.Invoke();
         GetNode<Button>("%SaveAndQuitButton").Pressed += () => SaveAndQuitRequested?.Invoke();
         GetNode<Button>("%RestartChapterButton").Pressed += OnRestartChapterPressed;
+        _rewindPreviousChapter.Pressed += OnRewindPreviousChapterPressed;
         GetNode<Button>("%TitleSettingsButton").Pressed += () => ShowSettings(ReleaseShellPage.Title);
         GetNode<Button>("%PauseSettingsButton").Pressed += () => ShowSettings(ReleaseShellPage.Pause);
         GetNode<Button>("%TitleHelpButton").Pressed += () => ShowHelp(ReleaseShellPage.Title);
@@ -206,12 +214,31 @@ internal sealed partial class ReleaseShellOverlay : Control
         SetPage(ReleaseShellPage.Title, hasSave ? _continue : _newGame);
     }
 
-    public void ShowPause(string chapterName, string message = "")
+    public void ShowPause(
+        string chapterName,
+        string message = "",
+        bool canRewindPreviousChapter = false)
     {
         _pauseChapter.Text = $"현재 임무 · {chapterName}";
         _pauseMessage.Text = message;
+        _pauseMessage.AccessibilityName = string.IsNullOrWhiteSpace(message)
+            ? "알림 없음"
+            : message;
+        _rewindPreviousChapter.Disabled = !canRewindPreviousChapter;
+        _rewindPreviousChapter.AccessibilityDescription = canRewindPreviousChapter
+            ? "현재 임무와 바로 이전 임무의 공사를 되돌리고 이전 임무 시작으로 돌아갑니다."
+            : "첫 임무에서는 이전 임무로 돌아갈 수 없습니다.";
         GetTree().Paused = true;
         SetPage(ReleaseShellPage.Pause, _resume);
+    }
+
+    public void ShowSettingsMessage(string message)
+    {
+        _settingsMessage.Text = message;
+        _settingsMessage.Visible = !string.IsNullOrWhiteSpace(message);
+        _settingsMessage.AccessibilityName = string.IsNullOrWhiteSpace(message)
+            ? "설정 저장 알림 없음"
+            : message;
     }
 
     public void HideShell()
@@ -269,6 +296,7 @@ internal sealed partial class ReleaseShellOverlay : Control
         ReleaseShellAction.Resume => _resume,
         ReleaseShellAction.SaveAndQuit => GetNode<Button>("%SaveAndQuitButton"),
         ReleaseShellAction.RestartChapter => GetNode<Button>("%RestartChapterButton"),
+        ReleaseShellAction.RewindPreviousChapter => _rewindPreviousChapter,
         ReleaseShellAction.TitleSettings => GetNode<Button>("%TitleSettingsButton"),
         ReleaseShellAction.PauseSettings => GetNode<Button>("%PauseSettingsButton"),
         ReleaseShellAction.TitleHelp => GetNode<Button>("%TitleHelpButton"),
@@ -305,6 +333,12 @@ internal sealed partial class ReleaseShellOverlay : Control
         "현재 임무를 다시 시작할까요?",
         "이번 임무에서 진행한 공사와 사용한 자금이 사라지고 임무 시작 시점으로 돌아갑니다.",
         "현재 임무 다시 시작하기");
+
+    private void OnRewindPreviousChapterPressed() => ShowConfirmation(
+        ReleaseShellConfirmation.RewindPreviousChapter,
+        "이전 임무부터 다시 설계할까요?",
+        "현재 임무와 바로 이전 임무에서 진행한 공사와 사용한 자금이 사라지고 이전 임무 시작 시점으로 돌아갑니다.",
+        "이전 임무부터 다시 설계하기");
 
     private void ShowSettings(ReleaseShellPage returnPage)
     {
@@ -346,6 +380,10 @@ internal sealed partial class ReleaseShellOverlay : Control
         else if (confirmation == ReleaseShellConfirmation.RestartChapter)
         {
             RestartChapterRequested?.Invoke();
+        }
+        else if (confirmation == ReleaseShellConfirmation.RewindPreviousChapter)
+        {
+            RewindPreviousChapterRequested?.Invoke();
         }
     }
 

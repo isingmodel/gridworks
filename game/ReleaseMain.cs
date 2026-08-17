@@ -48,7 +48,10 @@ public sealed partial class ReleaseMain : Control
     private ReleaseCampaignError? _campaignError;
     private ReleaseChapterAssessment? _assessment;
     private Action? _storyContinuation;
+    private Action? _afterPauseContinuation;
     private bool _preserveCurrentSaveBeforeWrite;
+    private bool _showEventProjection;
+    private string? _pendingCampaignSaveError;
 
     private Label _phaseLabel = null!;
     private Label _timeLabel = null!;
@@ -152,9 +155,10 @@ public sealed partial class ReleaseMain : Control
         _shell.PauseRequested += ShowPause;
         _shell.NewGameRequested += StartNewCampaign;
         _shell.ContinueRequested += ContinueCampaign;
-        _shell.ResumeRequested += _shell.HideShell;
+        _shell.ResumeRequested += ResumeGameplay;
         _shell.SaveAndQuitRequested += SaveAndReturnToTitle;
         _shell.RestartChapterRequested += RestartChapter;
+        _shell.RewindPreviousChapterRequested += RewindToPreviousChapter;
         _shell.FullscreenChanged += OnFullscreenChanged;
         _shell.UiScalePercentChanged += OnUiScalePercentChanged;
         _shell.MasterVolumePercentChanged += value => UpdateVolume(master: value);
@@ -261,18 +265,22 @@ public sealed partial class ReleaseMain : Control
                 _lastError = null;
                 break;
             case ReleasePanelAction.SmallSubstation:
+                _showEventProjection = false;
                 _tool = Tool.SmallSubstation;
                 _lastError = null;
                 break;
             case ReleasePanelAction.LargeSubstation:
+                _showEventProjection = false;
                 _tool = Tool.LargeSubstation;
                 _lastError = null;
                 break;
             case ReleasePanelAction.StandardLine:
+                _showEventProjection = false;
                 _tool = Tool.StandardLine;
                 _lastError = null;
                 break;
             case ReleasePanelAction.ReinforcedLine:
+                _showEventProjection = false;
                 _tool = Tool.ReinforcedLine;
                 _lastError = null;
                 break;
@@ -339,9 +347,16 @@ public sealed partial class ReleaseMain : Control
                         "공사 결과",
                         "남부 우회선이 연결됐습니다",
                         "동부 지역에 두 번째 공급 경로가 생겼습니다. 남부 분기 전신주는 네 구간을 연결하고, " +
-                        "동부 변전소에는 두 경로가 이어집니다. 설비 사용량과 남은 여유를 확인하세요.",
+                        "동부 변전소에는 두 경로가 이어집니다. 설비 부하와 여유 용량을 확인하세요.",
                         "전력망 확인하기");
                 }
+                break;
+            case ReleasePanelAction.ToggleEventView:
+                _tool = Tool.Inspect;
+                _showEventProjection = !_showEventProjection;
+                _lastError = null;
+                _campaignError = null;
+                _assessment = null;
                 break;
             case ReleasePanelAction.Evaluate:
                 EvaluateCampaignChapter();
@@ -374,6 +389,10 @@ public sealed partial class ReleaseMain : Control
 
         ReleaseCampaignCommandResult campaignResult = _run.Execute(command);
         ApplyCampaignResult(campaignResult, saveAccepted: true);
+        if (_pendingCampaignSaveError is not null)
+        {
+            ShowPendingCampaignSaveError();
+        }
         return campaignResult.Accepted;
     }
 
@@ -389,24 +408,41 @@ public sealed partial class ReleaseMain : Control
         if (result.Accepted)
         {
             _pointerError = null;
+            if (result.CompletedChapter is not null)
+            {
+                _showEventProjection = false;
+            }
             if (saveAccepted && !TrySaveCampaign(out string saveError))
             {
                 _titleStatus = saveError;
+                _pendingCampaignSaveError = saveError;
             }
+            else if (saveAccepted)
+            {
+                _pendingCampaignSaveError = null;
+            }
+        }
+        else if (result.Assessment?.FailedDuringEvent == true)
+        {
+            _showEventProjection = true;
         }
         Render();
     }
 
     private void Render()
     {
+        ReleaseConstructionSnapshot displaySnapshot = DisplaySnapshot();
         _phaseLabel.Text = _campaignSnapshot is null
             ? ReleaseKoreanText.Phase(_snapshot.Phase)
             : $"{_campaignSnapshot.Chapter.ActLabel} · {_campaignSnapshot.Chapter.DisplayName} · " +
-              ReleaseKoreanText.Phase(_snapshot.Phase);
-        _phaseLabel.AccessibilityName = $"현재 작업: {ReleaseKoreanText.Phase(_snapshot.Phase)}";
+              (_showEventProjection ? "사고 조건 미리보기" : ReleaseKoreanText.Phase(_snapshot.Phase));
+        _phaseLabel.AccessibilityName = _showEventProjection
+            ? $"현재 표시: {_campaignSnapshot?.Chapter.DisplayName} 사고 조건 미리보기"
+            : $"현재 작업: {ReleaseKoreanText.Phase(_snapshot.Phase)}";
         _timeLabel.Text = $"현재 시각 · {ReleaseKoreanText.FormatClock(_snapshot.Minute)}";
         _supplyLabel.Text =
-            $"전력 공급 · {ReleaseKoreanText.FormatPower(_snapshot.Evaluation.TotalDeliveredKw)} / " +
+            $"{(_showEventProjection ? "사고 중 공급" : "전력 공급")} · " +
+            $"{ReleaseKoreanText.FormatPower(displaySnapshot.Evaluation.TotalDeliveredKw)} / " +
             $"{ReleaseKoreanText.FormatPower(_snapshot.World.Loads.Sum(item => item.DemandKw))}";
         _assetLabel.Text =
             $"완공 설비 {_snapshot.World.Nodes.Count(item => item.Commissioned)}곳 · " +
@@ -417,16 +453,26 @@ public sealed partial class ReleaseMain : Control
             : $"운영 자금 · {ReleaseKoreanText.FormatCash(_campaignSnapshot.CashUnit)}";
 
         _map.SetPresentation(new ReleaseMapPresentation(
-            _snapshot,
+            displaySnapshot,
             _pointerPoint,
             _pointerAccepted,
             _selectedNodeId,
             _selectedEdgeId,
             ToolDescription()));
-        _panel.SetModel(BuildPanelModel());
+        _panel.SetModel(BuildPanelModel(displaySnapshot));
     }
 
-    private ReleaseTaskPanelModel BuildPanelModel()
+    private ReleaseConstructionSnapshot DisplaySnapshot()
+    {
+        if (!_showEventProjection || _campaignSnapshot?.Chapter.Event is null)
+        {
+            return _snapshot;
+        }
+
+        return _snapshot with { Evaluation = _campaignSnapshot.EventEvaluation };
+    }
+
+    private ReleaseTaskPanelModel BuildPanelModel(ReleaseConstructionSnapshot displaySnapshot)
     {
         bool ready = _snapshot.Phase == ReleaseConstructionPhase.Ready;
         bool nodeDraft = _snapshot.Phase == ReleaseConstructionPhase.NodeDrafting;
@@ -450,15 +496,15 @@ public sealed partial class ReleaseMain : Control
         ReleaseTaskPanelModel model = new(
             ReleaseKoreanText.Phase(_snapshot.Phase),
             Instruction(),
-            SelectionText(),
-            NetworkText(),
+            SelectionText(displaySnapshot),
+            NetworkText(displaySnapshot),
             quoteText,
             error,
-            toolButton("전력망 살펴보기", "설비와 선로의 사용량, 허용량과 남은 여유를 확인합니다."),
+            toolButton("전력망 살펴보기", "설비와 선로의 부하, 정격 용량과 여유 용량을 확인합니다."),
             toolButton("소형 변전소 배치하기", "빈 격자에 소형 배전 변전소를 계획합니다."),
             toolButton("대형 변전소 배치하기", "빈 격자에 대형 배전 변전소를 계획합니다."),
             toolButton("일반 선로 계획하기", "일반 전신주와 배전선으로 완공된 두 설비를 연결합니다."),
-            toolButton("보강 선로 계획하기", "허용량이 큰 전신주와 배전선으로 완공된 두 설비를 연결합니다."),
+            toolButton("보강 선로 계획하기", "정격 용량이 큰 전신주와 배전선으로 완공된 두 설비를 연결합니다."),
             new ReleaseButtonPresentation(nodeDraft || lineDraft, true, "현재 계획 취소하기", "발주하지 않은 현재 계획을 모두 취소합니다."),
             new ReleaseButtonPresentation(lineDraft, _snapshot.LineDraft is { IntermediatePoints.Count: > 0 } || _snapshot.LineDraft?.EndNodeId is not null,
                 "마지막 선택 되돌리기", "선로의 끝 설비 또는 마지막 전신주 선택을 되돌립니다."),
@@ -474,19 +520,32 @@ public sealed partial class ReleaseMain : Control
             Objective = $"임무 목표 · {_campaignSnapshot.Chapter.Objective}",
             Event = _campaignSnapshot.Chapter.Event is null
                 ? string.Empty
-                : $"비상 상황 · {_campaignSnapshot.Chapter.Event.Story.Title}",
+                : _showEventProjection
+                    ? $"표시 중 · {_campaignSnapshot.Chapter.Event.Story.Title}"
+                    : $"대비할 상황 · {_campaignSnapshot.Chapter.Event.Story.Title}",
+            EventView = new ReleaseButtonPresentation(
+                HasEquipmentOutage(_campaignSnapshot.Chapter.Event),
+                ready && _tool == Tool.Inspect,
+                _showEventProjection ? "평상시 전력망 보기" : "사고 조건 미리보기",
+                _showEventProjection
+                    ? "현재 임무의 평상시 공급 상태로 돌아갑니다."
+                    : "예고된 설비 사용 불가 상황의 공급 경로와 용량을 미리 확인합니다."),
             Evaluate = new ReleaseButtonPresentation(
                 ready,
                 ready,
                 _campaignSnapshot.ChapterIndex == _campaignSnapshot.ChapterCount - 1
                     ? "도시 전력망 완성 확인하기"
                     : "임무 완료 확인하기",
-                "평상시와 비상 상황 모두에서 임무 목표를 충족하는지 확인합니다."),
+                "평상시와 임무에서 예고한 조건 모두에서 목표를 충족하는지 확인합니다."),
         };
     }
 
     private string Instruction()
     {
+        if (_showEventProjection)
+        {
+            return "예고된 사고 조건을 미리 적용했습니다. 지도에서 사용 불가 설비와 우회 경로의 용량을 확인하세요.";
+        }
         if (_snapshot.Phase == ReleaseConstructionPhase.NodeBuilding)
         {
             return "변전소가 공사 중이라 아직 전력망에 연결되지 않았습니다. 현재 공사를 완료하세요.";
@@ -509,35 +568,52 @@ public sealed partial class ReleaseMain : Control
         {
             Tool.SmallSubstation or Tool.LargeSubstation => "변전소를 배치할 빈 격자를 선택하세요.",
             Tool.StandardLine or Tool.ReinforcedLine => "선로를 시작할 완공 설비를 먼저 선택하세요.",
-            _ => "지도에서 설비나 선로를 선택해 사용량, 허용량과 남은 여유를 확인하세요.",
+            _ => "지도에서 설비나 선로를 선택해 부하, 정격 용량과 여유 용량을 확인하세요.",
         };
     }
 
-    private string SelectionText()
+    private string SelectionText(ReleaseConstructionSnapshot displaySnapshot)
     {
         if (_selectedNodeId is string nodeId)
         {
-            ReleaseNodeDefinition? node = _snapshot.World.Nodes.SingleOrDefault(item => item.NodeId == nodeId);
+            ReleaseNodeDefinition? node = displaySnapshot.World.Nodes.SingleOrDefault(item => item.NodeId == nodeId);
             if (node is not null)
             {
-                ReleaseNodeClassDefinition nodeClass = _snapshot.World.NodeClasses.Single(item => item.ClassId == node.ClassId);
-                ReleaseNodeUsage usage = _snapshot.Evaluation.Nodes.Single(item => item.NodeId == node.NodeId);
+                ReleaseNodeClassDefinition nodeClass = displaySnapshot.World.NodeClasses.Single(item => item.ClassId == node.ClassId);
+                ReleaseNodeUsage usage = displaySnapshot.Evaluation.Nodes.Single(item => item.NodeId == node.NodeId);
+                string availability = usage.Available ? string.Empty : "현재 사용할 수 없는 설비입니다.\n";
+                if (nodeClass.Kind == ReleaseNodeKind.SourceTerminal)
+                {
+                    ReleaseSourceDefinition? source = displaySnapshot.World.Sources.SingleOrDefault(item =>
+                        string.Equals(item.NodeId, node.NodeId, StringComparison.Ordinal));
+                    ReleaseSourceUsage? sourceUsage = source is null
+                        ? null
+                        : displaySnapshot.Evaluation.Sources.Single(item =>
+                            string.Equals(item.SourceId, source.SourceId, StringComparison.Ordinal));
+                    if (sourceUsage is not null)
+                    {
+                        return $"{node.DisplayName} · {ReleaseKoreanText.NodeKind(nodeClass.Kind)}\n" +
+                               $"{availability}{ReleaseKoreanText.Capacity(sourceUsage.UsedKw, sourceUsage.CapacityKw)}\n" +
+                               ReleaseKoreanText.Connections(usage.ConnectionCount, usage.MaxConnections);
+                    }
+                }
                 long rating = usage.RatingKw;
                 string capacity = rating > 0
                     ? ReleaseKoreanText.Capacity(usage.UsedKw, rating)
-                    : "이 접속점에는 별도의 통과 허용량 제한이 없습니다.";
+                    : "이 접속점에는 별도의 전력 통과 정격 제한이 없습니다.";
                 return $"{node.DisplayName} · {ReleaseKoreanText.NodeKind(nodeClass.Kind)}\n" +
-                       $"{capacity}\n{ReleaseKoreanText.Connections(usage.ConnectionCount, usage.MaxConnections)}";
+                       $"{availability}{capacity}\n{ReleaseKoreanText.Connections(usage.ConnectionCount, usage.MaxConnections)}";
             }
         }
         if (_selectedEdgeId is string edgeId)
         {
-            ReleaseEdgeDefinition? edge = _snapshot.World.Edges.SingleOrDefault(item => item.EdgeId == edgeId);
+            ReleaseEdgeDefinition? edge = displaySnapshot.World.Edges.SingleOrDefault(item => item.EdgeId == edgeId);
             if (edge is not null)
             {
-                ReleaseLineClassDefinition lineClass = _snapshot.World.LineClasses.Single(item => item.ClassId == edge.LineClassId);
-                ReleaseEdgeUsage usage = _snapshot.Evaluation.Edges.Single(item => item.EdgeId == edge.EdgeId);
-                return $"{lineClass.DisplayName}\n{ReleaseKoreanText.Capacity(usage.UsedKw, usage.RatingKw)}";
+                ReleaseLineClassDefinition lineClass = displaySnapshot.World.LineClasses.Single(item => item.ClassId == edge.LineClassId);
+                ReleaseEdgeUsage usage = displaySnapshot.Evaluation.Edges.Single(item => item.EdgeId == edge.EdgeId);
+                string availability = usage.Available ? string.Empty : "현재 사용할 수 없는 선로입니다.\n";
+                return $"{lineClass.DisplayName}\n{availability}{ReleaseKoreanText.Capacity(usage.UsedKw, usage.RatingKw)}";
             }
         }
         if (_pointerPoint is ReleasePoint point)
@@ -547,18 +623,21 @@ public sealed partial class ReleaseMain : Control
         return "지도에서 확인할 설비나 선로를 선택하세요.";
     }
 
-    private string NetworkText()
+    private string NetworkText(ReleaseConstructionSnapshot displaySnapshot)
     {
-        ReleaseLoadSupply? failed = _snapshot.Evaluation.Loads.FirstOrDefault(item => item.DeliveredKw == 0);
+        ReleaseLoadSupply? failed = displaySnapshot.Evaluation.Loads.FirstOrDefault(item => item.DeliveredKw == 0);
         if (failed is null)
         {
-            return "모든 수요처에 필요한 전력을 공급하고 있습니다. 설비 사용량도 허용 범위 안입니다.";
+            return _showEventProjection
+                ? "사고 조건에서도 필요한 전력을 공급하고 있습니다. 모든 설비 부하가 정격 용량 이내입니다."
+                : "모든 수요처에 필요한 전력을 공급하고 있습니다. 모든 설비 부하가 정격 용량 이내입니다.";
         }
         string? assetName = AssetDisplayName(failed.Failure.AssetId);
         return ReleaseKoreanText.SupplyFailure(
-            failed.DisplayName(_snapshot.World),
+            failed.DisplayName(displaySnapshot.World),
             failed.Failure,
-            assetName);
+            assetName,
+            _showEventProjection);
     }
 
     private string ActiveConstructionText()
@@ -575,7 +654,9 @@ public sealed partial class ReleaseMain : Control
         Tool.LargeSubstation => "대형 변전소 위치를 정하고 있습니다.",
         Tool.StandardLine => "일반 선로 경로를 계획하고 있습니다.",
         Tool.ReinforcedLine => "보강 선로 경로를 계획하고 있습니다.",
-        _ => "전력망을 살펴보고 있습니다.",
+        _ => _showEventProjection
+            ? "예고된 사고 조건의 전력망을 미리 살펴보고 있습니다."
+            : "전력망을 살펴보고 있습니다.",
     };
 
     private ReleaseNodePlacementPreview PreviewNodePlacement(
@@ -742,22 +823,46 @@ public sealed partial class ReleaseMain : Control
             _audio.PlayLive(ReleaseAudioCue.Outage);
         }
 
-        Action afterEvent = result.Accepted && result.CompletedChapter is not null
-            ? () => ShowChapterResult(result.CompletedChapter, result.Snapshot.CampaignComplete)
-            : Render;
-        if (attemptedChapter.Event is not null)
+        Action presentOutcome = () =>
         {
-            ShowStory(
-                attemptedChapter.Event.Story.Speaker,
-                attemptedChapter.Event.Story.Title,
-                attemptedChapter.Event.Story.Body,
-                result.Accepted ? "임무 결과 확인하기" : "전력망 보강하기",
-                afterEvent);
-        }
-        else
+            if (!result.Accepted)
+            {
+                string reason = CampaignErrorText();
+                ShowStory(
+                    "대비 점검 결과",
+                    "전력망 보강이 더 필요합니다",
+                    $"사전 점검에서 목표한 공급을 유지하지 못했습니다. {reason}",
+                    "전력망 보강하기",
+                    Render);
+                return;
+            }
+
+            Action afterEvent = result.CompletedChapter is not null
+                ? () => ShowChapterResult(result.CompletedChapter, result.Snapshot.CampaignComplete)
+                : Render;
+            if (attemptedChapter.Event is not null)
+            {
+                ShowStory(
+                    attemptedChapter.Event.Story.Speaker,
+                    attemptedChapter.Event.Story.Title,
+                    attemptedChapter.Event.Story.Body,
+                    "임무 결과 확인하기",
+                    afterEvent);
+            }
+            else
+            {
+                afterEvent();
+            }
+        };
+
+        if (_pendingCampaignSaveError is not null)
         {
-            afterEvent();
+            _afterPauseContinuation = presentOutcome;
+            ShowPendingCampaignSaveError();
+            return;
         }
+
+        presentOutcome();
     }
 
     private void ShowChapterResult(ReleaseCampaignChapter chapter, bool campaignComplete)
@@ -853,6 +958,8 @@ public sealed partial class ReleaseMain : Control
 
     private void StartNewCampaign()
     {
+        _afterPauseContinuation = null;
+        _pendingCampaignSaveError = null;
         _run = new ReleaseCampaignRun(
             _campaign,
             _world,
@@ -882,6 +989,8 @@ public sealed partial class ReleaseMain : Control
         }
         try
         {
+            _afterPauseContinuation = null;
+            _pendingCampaignSaveError = null;
             _run = ReleaseCampaignRun.Restore(
                 _campaign,
                 _world,
@@ -902,6 +1011,7 @@ public sealed partial class ReleaseMain : Control
     {
         _campaignSnapshot = _run!.GetSnapshot();
         _snapshot = _campaignSnapshot.Construction;
+        _showEventProjection = false;
         _lastError = null;
         _campaignError = null;
         _assessment = null;
@@ -914,7 +1024,33 @@ public sealed partial class ReleaseMain : Control
         {
             return;
         }
-        _shell.ShowPause(_run.CurrentChapter.DisplayName, _titleStatus);
+        _shell.ShowPause(
+            _run.CurrentChapter.DisplayName,
+            _titleStatus,
+            _run.CanRewindToPreviousChapter);
+    }
+
+    private void ResumeGameplay()
+    {
+        _shell.HideShell();
+        Action? continuation = _afterPauseContinuation;
+        _afterPauseContinuation = null;
+        continuation?.Invoke();
+    }
+
+    private void ShowPendingCampaignSaveError()
+    {
+        if (_run is null || _pendingCampaignSaveError is null)
+        {
+            return;
+        }
+
+        string message = _pendingCampaignSaveError;
+        _pendingCampaignSaveError = null;
+        _shell.ShowPause(
+            _run.CurrentChapter.DisplayName,
+            message,
+            _run.CanRewindToPreviousChapter);
     }
 
     private void SaveAndReturnToTitle()
@@ -925,6 +1061,7 @@ public sealed partial class ReleaseMain : Control
             return;
         }
         _continuationSave = _run!.CaptureSave();
+        _afterPauseContinuation = null;
         _shell.ShowTitle(true, "현재 진행 상황을 저장했습니다.");
     }
 
@@ -935,13 +1072,46 @@ public sealed partial class ReleaseMain : Control
             return;
         }
         _campaignSnapshot = _run.RestartChapter();
+        _afterPauseContinuation = null;
         _snapshot = _campaignSnapshot.Construction;
+        _showEventProjection = false;
         _lastError = null;
         _campaignError = null;
         _assessment = null;
         if (!TrySaveCampaign(out string error))
         {
-            _shell.ShowPersistenceError(error);
+            _shell.ShowPause(
+                _run.CurrentChapter.DisplayName,
+                error,
+                _run.CanRewindToPreviousChapter);
+            return;
+        }
+        _continuationSave = _run.CaptureSave();
+        _shell.HideShell();
+        Render();
+        ShowCurrentBriefing();
+    }
+
+    private void RewindToPreviousChapter()
+    {
+        if (_run is null || !_run.CanRewindToPreviousChapter)
+        {
+            return;
+        }
+
+        _campaignSnapshot = _run.RewindToPreviousChapterStart();
+        _afterPauseContinuation = null;
+        _snapshot = _campaignSnapshot.Construction;
+        _showEventProjection = false;
+        _lastError = null;
+        _campaignError = null;
+        _assessment = null;
+        if (!TrySaveCampaign(out string error))
+        {
+            _shell.ShowPause(
+                _run.CurrentChapter.DisplayName,
+                error,
+                _run.CanRewindToPreviousChapter);
             return;
         }
         _continuationSave = _run.CaptureSave();
@@ -961,11 +1131,15 @@ public sealed partial class ReleaseMain : Control
         {
             ReleaseCampaignPersistenceStore.Save(_campaignSavePath, _run.CaptureSave());
             _continuationSave = _run.CaptureSave();
+            if (_titleStatus.StartsWith("게임을 저장하지 못했습니다.", StringComparison.Ordinal))
+            {
+                _titleStatus = string.Empty;
+            }
             return true;
         }
         catch (Exception exception)
         {
-            error = "게임을 저장하지 못했습니다. 저장 공간과 파일 권한을 확인하세요.";
+            error = "게임을 저장하지 못했습니다. 마지막으로 저장된 진행 상황은 그대로 보존했습니다. 저장 공간과 파일 권한을 확인하세요.";
             GD.PushWarning($"{error} {exception}");
             return false;
         }
@@ -1081,10 +1255,17 @@ public sealed partial class ReleaseMain : Control
         try
         {
             ProductPersistenceStore.SaveSettings(_settingsPath, _settings);
+            _shell.ShowSettingsMessage(string.Empty);
+            if (_titleStatus.StartsWith("설정을 저장하지 못했습니다.", StringComparison.Ordinal))
+            {
+                _titleStatus = string.Empty;
+            }
         }
         catch (Exception exception)
         {
-            _titleStatus = "설정을 저장하지 못했습니다.";
+            _titleStatus = "설정을 저장하지 못했습니다. 기존 설정 파일은 그대로 보존했습니다.";
+            _shell.ShowSettingsMessage(
+                "설정을 저장하지 못했습니다. 변경 사항은 이번 실행에만 적용되며 기존 설정 파일은 그대로 보존했습니다. 저장 공간과 파일 권한을 확인하세요.");
             GD.PushWarning($"{_titleStatus} {exception}");
         }
     }
@@ -1099,6 +1280,14 @@ public sealed partial class ReleaseMain : Control
             await CloseControlHelpIfShown();
             await CloseStory("첫 임무 브리핑");
 
+            await ClickMap(new ReleasePoint(2, 10));
+            string sourceInspection = SelectionText(DisplaySnapshot());
+            Require(
+                sourceInspection.Contains("부하", StringComparison.Ordinal) &&
+                sourceInspection.Contains("정격 용량", StringComparison.Ordinal) &&
+                sourceInspection.Contains("여유 용량", StringComparison.Ordinal),
+                "발전 접속점에 공급 부하와 여유 용량이 표시되지 않았습니다.");
+
             await BuildCampaignLine("CENTRAL_JUNCTION", false,
                 new ReleasePoint(9, 13));
             await BuildCampaignLine("SOUTH_JUNCTION", false,
@@ -1106,6 +1295,19 @@ public sealed partial class ReleaseMain : Control
             await BuildCampaignLine("RIVER_MERGE", false,
                 new ReleasePoint(17, 10));
             await CompleteCampaignChapter("PROLOGUE_FIRST_LIGHT");
+
+            EmitPanel(ReleasePanelAction.Inspect, "전력망 살펴보기");
+            await NextFrame();
+            EmitPanel(ReleasePanelAction.ToggleEventView, "사고 조건 미리보기");
+            await NextFrame();
+            Require(
+                _showEventProjection &&
+                DisplaySnapshot().Evaluation.Edges.Count(item => !item.Available) >
+                _campaignSnapshot!.NormalEvaluation.Edges.Count(item => !item.Available),
+                "사고 조건 미리보기가 사용 불가 선로를 표시하지 않았습니다.");
+            EmitPanel(ReleasePanelAction.ToggleEventView, "평상시 전력망 보기");
+            await NextFrame();
+            Require(!_showEventProjection, "평상시 전력망 표시로 돌아오지 못했습니다.");
 
             await BuildCampaignLine("EAST_SUBSTATION", false,
                 new ReleasePoint(17, 7),
@@ -1127,6 +1329,14 @@ public sealed partial class ReleaseMain : Control
             await CompleteCampaignChapter("CHAPTER_NORTH_BANK");
 
             EmitButton(_menuButton, "메뉴 열기");
+            await NextFrame();
+            EmitShell(ReleaseShellAction.PauseSettings, "설정 열기");
+            await NextFrame();
+            SelectOptionById(_shell.GetSfxVolumeOption(), 50);
+            await NextFrame();
+            Require(_settings.SfxVolumePercent == 50,
+                "효과음 50% 설정이 현재 상태에 적용되지 않았습니다.");
+            EmitShell(ReleaseShellAction.SettingsBack, "설정 닫기");
             await NextFrame();
             EmitShell(ReleaseShellAction.SaveAndQuit, "저장하고 타이틀로");
             await NextFrame();
@@ -1153,6 +1363,13 @@ public sealed partial class ReleaseMain : Control
             await NextFrame();
             EmitShell(ReleaseShellAction.Continue, "이어하기");
             await NextFrame();
+            int sfxBus = AudioServer.GetBusIndex("SFX");
+            Require(
+                _settings.SfxVolumePercent == 50 &&
+                sfxBus >= 0 &&
+                !AudioServer.IsBusMute(sfxBus) &&
+                Mathf.IsEqualApprox(AudioServer.GetBusVolumeLinear(sfxBus), 0.5f),
+                "새 프로세스에서 효과음 50% 설정과 실제 SFX 버스 음량을 복원하지 못했습니다.");
             await CloseControlHelpIfShown();
             await CloseStory("이어온 임무 브리핑");
             Require(_run!.CurrentChapter.ChapterId == "CHAPTER_SHARED_CORRIDOR",
@@ -1171,8 +1388,9 @@ public sealed partial class ReleaseMain : Control
             Require(_snapshot.World.Edges.Count == openingEdges,
                 "현재 임무 재시작이 이번 장의 공사를 되돌리지 못했습니다.");
 
-            await BuildCampaignLine("NORTH_JUNCTION", false,
-                new ReleasePoint(13, 10));
+            await BuildCampaignLine("WEST_SOURCE_NODE", false,
+                new ReleasePoint(5, 12),
+                new ReleasePoint(9, 13));
             await CompleteCampaignChapter("CHAPTER_SHARED_CORRIDOR");
 
             await BuildCampaignLine("NORTH_SUBSTATION", false,
@@ -1268,6 +1486,14 @@ public sealed partial class ReleaseMain : Control
 
     private void EmitShell(ReleaseShellAction action, string description) =>
         EmitButton(_shell.GetActionButton(action), description);
+
+    private static void SelectOptionById(OptionButton option, int itemId)
+    {
+        int index = Enumerable.Range(0, option.ItemCount)
+            .Single(item => option.GetItemId(item) == itemId);
+        option.Select(index);
+        option.EmitSignal(OptionButton.SignalName.ItemSelected, (long)index);
+    }
 
     private async void RunSmoke()
     {

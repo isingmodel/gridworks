@@ -653,11 +653,20 @@ internal sealed class ReleaseChecks
             "청류의료원 시설책임자 박지현",
             "재난대응관 이도윤",
         };
-        foreach (ReleaseCampaignChapter chapter in _campaign.Chapters)
+        for (int index = 0; index < _campaign.Chapters.Count; index++)
         {
+            ReleaseCampaignChapter chapter = _campaign.Chapters[index];
             Check(chapter.Event is not null, $"{chapter.DisplayName}: event card missing");
-            Check(chapter.ConnectionRequirements.Count != 0,
-                $"{chapter.DisplayName}: meaningful connection requirement missing");
+            if (index < 3)
+            {
+                Check(chapter.ConnectionRequirements.Count != 0,
+                    $"{chapter.DisplayName}: tutorial connection requirement missing");
+            }
+            else
+            {
+                Equal(0, chapter.ConnectionRequirements.Count,
+                    $"{chapter.DisplayName}: main chapter prescribed one exact construction");
+            }
             Check(allowedSpeakers.Contains(chapter.Briefing.Speaker),
                 $"{chapter.DisplayName}: unknown briefing speaker");
             Check(allowedSpeakers.Contains(chapter.Event!.Story.Speaker),
@@ -726,14 +735,28 @@ internal sealed class ReleaseChecks
             new ReleasePoint(9, 13));
         CompleteCampaignChapter(run, "PROLOGUE_HEAT_DOME");
 
+        ReleaseCampaignRun alternateNorthBank = ReleaseCampaignRun.Restore(
+            _campaign,
+            _fixture,
+            _campaignSha256,
+            _worldSha256,
+            run.CaptureSave());
+        AssertCurrentChapterNeedsWork(alternateNorthBank, "CHAPTER_NORTH_BANK");
+        BuildLine(alternateNorthBank, "NORTH_JUNCTION", "LINE_STANDARD", "POLE_STANDARD",
+            new ReleasePoint(6, 6));
+        CompleteCampaignChapter(alternateNorthBank, "CHAPTER_NORTH_BANK");
+        Equal("CHAPTER_SHARED_CORRIDOR", alternateNorthBank.GetSnapshot().Chapter.ChapterId,
+            "alternate north-bank route did not reach the next chapter");
+
         AssertCurrentChapterNeedsWork(run, "CHAPTER_NORTH_BANK");
         BuildLine(run, "CENTRAL_JUNCTION", "LINE_STANDARD", "POLE_STANDARD",
             new ReleasePoint(6, 6));
         CompleteCampaignChapter(run, "CHAPTER_NORTH_BANK");
 
         AssertCurrentChapterNeedsWork(run, "CHAPTER_SHARED_CORRIDOR");
-        BuildLine(run, "NORTH_JUNCTION", "LINE_REINFORCED", "POLE_REINFORCED",
-            new ReleasePoint(13, 10));
+        BuildLine(run, "WEST_SOURCE_NODE", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(5, 12),
+            new ReleasePoint(9, 13));
         CompleteCampaignChapter(run, "CHAPTER_SHARED_CORRIDOR");
 
         AssertCurrentChapterNeedsWork(run, "CHAPTER_FLOOD_FORECAST");
@@ -766,6 +789,22 @@ internal sealed class ReleaseChecks
             "final incident water supply");
         Equal(3, NodeUsage(final.NormalEvaluation, "HOSPITAL_TERMINAL").ConnectionCount,
             "final hospital route count");
+
+        Check(run.CanRewindToPreviousChapter,
+            "completed campaign did not offer previous-chapter recovery");
+        ReleaseCampaignSnapshot previous = run.RewindToPreviousChapterStart();
+        Equal("CHAPTER_PLANNED_OUTAGE", previous.Chapter.ChapterId,
+            "completed campaign recovery did not return to the previous chapter start");
+        Check(!previous.CampaignComplete,
+            "previous-chapter recovery retained campaign completion state");
+        Equal(previous.ChapterStartCommandCount, previous.CommandCount,
+            "previous-chapter recovery retained later commands");
+
+        ReleaseCampaignSnapshot repeated = run.RewindToPreviousChapterStart();
+        Equal("CHAPTER_FLOOD_FORECAST", repeated.Chapter.ChapterId,
+            "previous-chapter recovery could not be repeated");
+        Equal(repeated.ChapterStartCommandCount, repeated.CommandCount,
+            "repeated previous-chapter recovery retained later commands");
     }
 
     private void CheckCampaignSaveAndRestart()
@@ -856,6 +895,20 @@ internal sealed class ReleaseChecks
             "chapter restart did not restore opening cash");
         Equal(ReleaseConstructionPhase.Ready, restarted.Construction.Phase,
             "chapter restart did not restore a safe construction phase");
+
+        Check(restored.CanRewindToPreviousChapter,
+            "second chapter did not offer previous-chapter recovery");
+        ReleaseCampaignSnapshot rewound = restored.RewindToPreviousChapterStart();
+        Equal("PROLOGUE_FIRST_LIGHT", rewound.Chapter.ChapterId,
+            "previous-chapter recovery did not return to the first chapter");
+        Equal(0, rewound.CommandCount,
+            "previous-chapter recovery retained later accepted commands");
+        Equal(2, rewound.Construction.World.Edges.Count,
+            "previous-chapter recovery did not restore the opening network");
+        Equal(4_500_000L, rewound.CashUnit,
+            "previous-chapter recovery did not restore opening cash");
+        Check(!restored.CanRewindToPreviousChapter,
+            "first chapter offered an invalid previous-chapter recovery");
 
         ExpectPersistenceRejected(
             "campaign hash mismatch",

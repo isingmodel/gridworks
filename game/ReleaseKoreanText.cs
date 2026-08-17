@@ -58,9 +58,9 @@ internal static class ReleaseKoreanText
         string loadName,
         ReleaseSupplyFailure failure,
         string? assetName,
-        bool duringEmergency = false)
+        bool duringMissionSituation = false)
     {
-        string circumstance = duringEmergency ? "비상 상황에서 " : string.Empty;
+        string circumstance = duringMissionSituation ? "임무 상황에서는 " : string.Empty;
         string impact = loadName.EndsWith("전력", StringComparison.Ordinal)
             ? $"{circumstance}{loadName} 공급이 끊겼습니다."
             : $"{circumstance}{loadName}에 전력이 공급되지 않습니다.";
@@ -79,19 +79,19 @@ internal static class ReleaseKoreanText
                 $"{impact} 발전 설비부터 이곳까지 이어진 선로가 없습니다. " +
                 "끊긴 구간을 연결하거나 우회선을 추가하세요.",
             ReleaseSupplyFailureKind.SourceCapacity =>
-                $"{impact} {asset}의 공급 여유가 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
+                $"{impact} {asset}의 여유 용량이 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
                 "다른 발전 경로를 연결해 전력을 나누세요.",
             ReleaseSupplyFailureKind.EdgeCapacity =>
-                $"{impact} {asset}의 선로 허용량을 {FormatPower(failure.ShortfallKw)} 초과했습니다. " +
+                $"{impact} {asset}의 정격 용량을 {FormatPower(failure.ShortfallKw)} 초과했습니다. " +
                 "다른 선로를 추가해 전력 흐름을 나누세요.",
             ReleaseSupplyFailureKind.NodeCapacity =>
-                $"{impact} {asset}의 설비 허용량을 {FormatPower(failure.ShortfallKw)} 초과했습니다. " +
+                $"{impact} {asset}의 정격 용량을 {FormatPower(failure.ShortfallKw)} 초과했습니다. " +
                 "다른 분기 경로를 연결해 전력 흐름을 나누세요.",
             ReleaseSupplyFailureKind.TransformerCapacity =>
-                $"{impact} {asset}의 변압 여유가 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
+                $"{impact} {asset}의 변압기 여유 용량이 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
                 "다른 변전소로 수요를 나누거나 연결을 보강하세요.",
             _ =>
-                $"{impact} 공급 경로와 설비 허용량을 확인한 뒤 전력망을 보강하세요.",
+                $"{impact} 공급 경로와 설비 정격 용량을 확인한 뒤 전력망을 보강하세요.",
         };
     }
 
@@ -99,20 +99,20 @@ internal static class ReleaseKoreanText
     {
         long headroomKw = ratingKw - usedKw;
         string headroom = headroomKw >= 0
-            ? $"남은 여유 {FormatPower(headroomKw)}"
-            : $"허용량 초과 {FormatPower(-headroomKw)}";
-        return $"사용량 {FormatPower(usedKw)} · 허용량 {FormatPower(ratingKw)} · {headroom}";
+            ? $"여유 용량 {FormatPower(headroomKw)}"
+            : $"정격 용량 초과 {FormatPower(-headroomKw)}";
+        return $"부하 {FormatPower(usedKw)} · 정격 용량 {FormatPower(ratingKw)} · {headroom}";
     }
 
     public static string Connections(int count, int maximum) =>
-        $"연결 {count}개 · 최대 {maximum}개 · 남은 연결 {maximum - count}개";
+        $"접속 {count}/{maximum}회선 · {maximum - count}회선 여유";
 
     public static string ConnectionRequirement(
         string nodeName,
         int actualConnections,
         int requiredConnections) =>
-        $"수요처에 안정적으로 전력을 보내려면 연결을 더 확보해야 합니다. {nodeName}에는 선로가 " +
-        $"{actualConnections}개 연결돼 있지만 {requiredConnections}개가 필요합니다. " +
+        $"수요처에 안정적으로 전력을 보내려면 접속 회선을 더 확보해야 합니다. {nodeName}에는 현재 " +
+        $"{actualConnections}회선이 연결돼 있으며 {requiredConnections}회선이 필요합니다. " +
         "다른 완공 설비로 이어지는 선로를 추가하세요.";
 
     public static string FormatPower(long kilowatts) => kilowatts % 1_000 == 0

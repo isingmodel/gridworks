@@ -37,6 +37,8 @@ public sealed class ReleaseCampaignRun
 
     public ReleaseCampaignChapter CurrentChapter => _definition.Chapters[_chapterIndex];
 
+    public bool CanRewindToPreviousChapter => _chapterIndex > 0;
+
     public ReleaseCampaignSnapshot GetSnapshot() => BuildSnapshot();
 
     public ReleaseNodePlacementPreview PreviewNodePlacement(
@@ -118,6 +120,44 @@ public sealed class ReleaseCampaignRun
         ReleaseCampaignCommand[] prefix = _commands
             .Take(_chapterStartCommandCount)
             .ToArray();
+        Replay(prefix);
+        return BuildSnapshot();
+    }
+
+    public ReleaseCampaignSnapshot RewindToPreviousChapterStart()
+    {
+        if (!CanRewindToPreviousChapter)
+        {
+            throw new InvalidOperationException("첫 임무보다 이전으로 돌아갈 수 없습니다.");
+        }
+
+        int completedChaptersToKeep = _chapterIndex - 1;
+        int prefixCount = 0;
+        if (completedChaptersToKeep > 0)
+        {
+            int completedChaptersSeen = 0;
+            for (int index = 0; index < _commands.Count; index++)
+            {
+                if (_commands[index].Kind != ReleaseCampaignCommandKind.EvaluateChapter)
+                {
+                    continue;
+                }
+
+                completedChaptersSeen++;
+                if (completedChaptersSeen == completedChaptersToKeep)
+                {
+                    prefixCount = index + 1;
+                    break;
+                }
+            }
+
+            if (prefixCount == 0)
+            {
+                throw new InvalidOperationException("이전 임무의 시작 기록을 찾을 수 없습니다.");
+            }
+        }
+
+        ReleaseCampaignCommand[] prefix = _commands.Take(prefixCount).ToArray();
         Replay(prefix);
         return BuildSnapshot();
     }

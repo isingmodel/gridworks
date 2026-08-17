@@ -7,17 +7,27 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <Deterministic>true</Deterministic>
+    <PathMap>$(MSBuildProjectDirectory)=/_/game</PathMap>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="../src/Gridworks.Core/Gridworks.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
     <EmbeddedResource Include="../data/product-campaign-v1.json"
                       Link="EmbeddedData/product-campaign-v1.json"
                       LogicalName="Gridworks.Game.EmbeddedData.product-campaign-v1.json" />
     <EmbeddedResource Include="../data/product-heatwave-v1.json"
                       Link="EmbeddedData/product-heatwave-v1.json"
                       LogicalName="Gridworks.Game.EmbeddedData.product-heatwave-v1.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <EmbeddedResource Include="../data/release-world-v1.json"
                       Link="EmbeddedData/release-world-v1.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-world-v1.json" />

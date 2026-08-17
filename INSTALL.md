@@ -17,7 +17,7 @@ Developer ID 서명과 Apple 공증은 하지 않았다. 따라서 공개 배포
 
 1. ZIP과 별도로 신뢰할 수 있는 경로로 제공된 release record를 확인한다. 현재 저장소에서는
    `CHANGELOG.md`가 이 기록이며 상태가 `INTERNAL_RC`여야 한다. ZIP 안에는 설치 안내, 라이선스,
-   크레딧과 제3자 고지가 함께 들어 있다.
+   크레딧, 제3자 고지와 `licenses/` 폴더의 버전 고정 라이선스 원문이 함께 들어 있다.
 2. `shasum -a 256 Gridworks-macOS-0.1.0.zip`을 실행해 그 release record의 SHA-256과 비교한다.
 3. ZIP을 풀고 `Gridworks.app`을 `Applications` 또는 쓰기 가능한 로컬 폴더로 옮긴다.
 4. Finder에서 앱을 control-click한 뒤 **열기**를 선택한다.

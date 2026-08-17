@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -5,13 +6,20 @@ namespace Gridworks.Core.Product;
 
 public static class ProductCampaignLoader
 {
-    public const string SupportedSchemaVersion = "gridworks.campaign.v1";
+    public const string SupportedSchemaVersion = "gridworks.campaign.v2";
     public const string SupportedCampaignId = "GRIDWORKS_CAMPAIGN_V1";
     public const string SupportedScenarioFixture = "product-heatwave-v1.json";
 
     private static readonly string[] RootFields =
         ["schemaVersion", "campaignId", "displayName", "scenarioFixture", "chapters"];
-    private static readonly string[] ChapterFields = ["chapterId", "displayName"];
+    private static readonly string[] ChapterFields =
+    [
+        "chapterId",
+        "displayName",
+        "briefing",
+        "objective",
+        "minimumStartingCashUnit",
+    ];
     private static readonly string[] ExpectedChapterIds =
         ["FIRST_LIGHT", "SECOND_HEART", "HEAT_DOME"];
 
@@ -48,7 +56,12 @@ public static class ProductCampaignLoader
                 EnsureExactObject(chapterElement, ChapterFields, $"$.chapters[{index}]");
                 chapters.Add(new ProductCampaignChapter(
                     ReadString(chapterElement.GetProperty("chapterId"), $"$.chapters[{index}].chapterId"),
-                    ReadString(chapterElement.GetProperty("displayName"), $"$.chapters[{index}].displayName")));
+                    ReadString(chapterElement.GetProperty("displayName"), $"$.chapters[{index}].displayName"),
+                    ReadString(chapterElement.GetProperty("briefing"), $"$.chapters[{index}].briefing"),
+                    ReadString(chapterElement.GetProperty("objective"), $"$.chapters[{index}].objective"),
+                    ReadInt64(
+                        chapterElement.GetProperty("minimumStartingCashUnit"),
+                        $"$.chapters[{index}].minimumStartingCashUnit")));
                 index++;
             }
 
@@ -122,6 +135,18 @@ public static class ProductCampaignLoader
                     $"chapters[{index}] cannot be null.");
             RequireNonBlank(chapter.ChapterId, $"chapters[{index}].chapterId");
             RequireNonBlank(chapter.DisplayName, $"chapters[{index}].displayName");
+            RequireKoreanText(chapter.Briefing, $"chapters[{index}].briefing");
+            RequireKoreanText(chapter.Objective, $"chapters[{index}].objective");
+            if (index == 0 && chapter.MinimumStartingCashUnit != 0)
+            {
+                throw new ProductCampaignValidationException(
+                    "chapters[0].minimumStartingCashUnit must be 0.");
+            }
+            if (index > 0 && chapter.MinimumStartingCashUnit <= 0)
+            {
+                throw new ProductCampaignValidationException(
+                    $"chapters[{index}].minimumStartingCashUnit must be positive.");
+            }
             if (!ids.Add(chapter.ChapterId))
             {
                 throw new ProductCampaignValidationException(
@@ -148,11 +173,46 @@ public static class ProductCampaignLoader
             ?? throw new ProductCampaignValidationException($"{path} cannot be null.");
     }
 
+    private static long ReadInt64(JsonElement element, string path)
+    {
+        if (element.ValueKind != JsonValueKind.Number)
+        {
+            throw new ProductCampaignValidationException($"{path} must be an integer.");
+        }
+        string token = element.GetRawText();
+        int start = token.Length > 0 && token[0] == '-' ? 1 : 0;
+        if (start == token.Length ||
+            token[start..].Any(character => character is < '0' or > '9') ||
+            !long.TryParse(
+                token,
+                NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture,
+                out long value))
+        {
+            throw new ProductCampaignValidationException(
+                $"{path} must be a 64-bit integer token.");
+        }
+        return value;
+    }
+
     private static void RequireNonBlank(string value, string path)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
             throw new ProductCampaignValidationException($"{path} cannot be blank.");
+        }
+    }
+
+    private static void RequireKoreanText(string value, string path)
+    {
+        RequireNonBlank(value, path);
+        if (!value.Any(character => character is
+                (>= '\u1100' and <= '\u11ff') or
+                (>= '\u3130' and <= '\u318f') or
+                (>= '\uac00' and <= '\ud7af')))
+        {
+            throw new ProductCampaignValidationException(
+                $"{path} must contain Korean text.");
         }
     }
 

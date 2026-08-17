@@ -38,6 +38,7 @@ public sealed partial class ProductMain : Control
     private bool _persistenceEnabled;
     private bool _finalLogged;
 
+    private Label _titleLabel = null!;
     private Label _phaseLabel = null!;
     private Label _timeLabel = null!;
     private Label _cashLabel = null!;
@@ -51,7 +52,7 @@ public sealed partial class ProductMain : Control
     {
         try
         {
-            GetWindow().Title = "Gridworks — 열돔 아래: 폭염과 정비";
+            GetWindow().Title = "Gridworks";
             _options = ProductLaunchOptions.Parse(OS.GetCmdlineUserArgs());
 
             string dataDirectory = Path.GetFullPath(Path.Combine(
@@ -143,6 +144,7 @@ public sealed partial class ProductMain : Control
 
     private void BindScene()
     {
+        _titleLabel = GetNode<Label>("%TitleLabel");
         _phaseLabel = GetNode<Label>("%PhaseLabel");
         _timeLabel = GetNode<Label>("%TimeLabel");
         _cashLabel = GetNode<Label>("%CashLabel");
@@ -400,10 +402,7 @@ public sealed partial class ProductMain : Control
         cash = _snapshot.Cash,
     };
 
-    private string CurrentChapterDisplayName() =>
-        _campaign.Chapters.Single(chapter =>
-            string.Equals(chapter.ChapterId, _run.CurrentChapterId, StringComparison.Ordinal))
-        .DisplayName;
+    private string CurrentChapterDisplayName() => _run.CurrentChapter.DisplayName;
 
     private void OnPointerChanged(FirstLightGridPoint? point)
     {
@@ -623,6 +622,10 @@ public sealed partial class ProductMain : Control
         ProductHospitalSnapshot hospital = HospitalSnapshot();
         ProductFactorySnapshot factory = FactorySnapshot();
         ProductHeatwaveSnapshot heatwave = HeatwaveSnapshot();
+        string chapterName = CurrentChapterDisplayName();
+        _titleLabel.Text = $"GRIDWORKS · {chapterName}";
+        _titleLabel.AccessibilityName = $"Gridworks 현재 장 {chapterName}";
+        GetWindow().Title = $"Gridworks — {chapterName}";
         string phaseText = CurrentPhaseText(hospital, factory, heatwave);
         _phaseLabel.Text = phaseText;
         _phaseLabel.AccessibilityName = $"현재 단계 {phaseText}";
@@ -1183,7 +1186,19 @@ public sealed partial class ProductMain : Control
                     "고정 폭염기간을 결산하고 노후 feeder를 복구합니다.");
                 break;
             case ProductPhase.Complete:
-                if (!hospital.Settlement.Completed)
+                if (_run.IsChapterBlocked)
+                {
+                    ProductCampaignChapter blockedChapter = _run.BlockedNextChapter
+                        ?? throw new InvalidOperationException(
+                            "Blocked campaign state is missing its target chapter.");
+                    instruction =
+                        $"다음 장 ‘{blockedChapter.DisplayName}’에 진입할 현금이 부족합니다. " +
+                        "메뉴에서 ‘현재 장 다시 시작’을 선택해 이 장의 계획을 다시 진행하세요.";
+                    preview =
+                        $"다음 장 진입 조건 · {CashText(blockedChapter.MinimumStartingCashUnit)}\n" +
+                        $"현재 현금 · {CashText(_snapshot.Cash)}";
+                }
+                else if (!hospital.Settlement.Completed)
                 {
                     instruction =
                         "첫 점등에서 마을 공급 조건을 충족하지 못해 병원 공사를 시작하지 않았습니다. 표시된 원인을 확인하고 임무를 다시 시작할 수 있습니다.";
@@ -1217,6 +1232,11 @@ public sealed partial class ProductMain : Control
                 throw new ArgumentOutOfRangeException();
         }
 
+        if (IsChapterOpeningPhase(_snapshot.Phase))
+        {
+            instruction = ChapterOpeningText(instruction);
+        }
+
         return new FirstLightTaskPanelModel(
             CurrentPhaseText(hospital, factory, heatwave),
             instruction,
@@ -1229,6 +1249,22 @@ public sealed partial class ProductMain : Control
             advance,
             settle);
     }
+
+    private string ChapterOpeningText(string phaseInstruction)
+    {
+        ProductCampaignChapter chapter = _run.CurrentChapter;
+        string nextChapterCondition = _run.NextChapter is ProductCampaignChapter nextChapter
+            ? $"\n다음 장 진입 조건 · {CashText(nextChapter.MinimumStartingCashUnit)}"
+            : string.Empty;
+        return
+            $"{chapter.Briefing}\n목표 · {chapter.Objective}{nextChapterCondition}\n\n" +
+            phaseInstruction;
+    }
+
+    private static bool IsChapterOpeningPhase(ProductPhase phase) => phase is
+        ProductPhase.SubstationPlanning or
+        ProductPhase.PrimaryPlanning or
+        ProductPhase.PlantPlanning;
 
     private string SubstationPreviewText(ProductOrderPreview quote)
     {
@@ -1752,6 +1788,7 @@ public sealed partial class ProductMain : Control
         try
         {
             await NextFrame();
+            RequireChapterOpening("FIRST_LIGHT", "SECOND_HEART");
             FirstLightGridPoint firstSubstation = _options.SmokeSubstations[0];
             FirstLightGridPoint finalSubstation = _options.SmokeSubstations[1];
 
@@ -1779,6 +1816,7 @@ public sealed partial class ProductMain : Control
             EmitPanelAction(FirstLightPanelAction.Settle, "settle first light");
             await NextFrame();
             Require(_snapshot.Phase == ProductPhase.PrimaryPlanning, "first settlement did not open primary planning");
+            RequireChapterOpening("SECOND_HEART", "HEAT_DOME");
 
             await BuildLineThroughUi(
                 _options.SmokePrimarySupports,
@@ -1811,6 +1849,7 @@ public sealed partial class ProductMain : Control
                 _snapshot.Phase == ProductPhase.PlantPlanning &&
                 _snapshot.Outcome == ProductMissionOutcome.Pending,
                 "hospital settlement did not open plant planning");
+            RequireChapterOpening("HEAT_DOME", null);
 
             FirstLightGridPoint plantPoint = _options.SmokePlant
                 ?? throw new InvalidOperationException("Factory smoke plant coordinate is missing.");
@@ -1913,7 +1952,11 @@ public sealed partial class ProductMain : Control
                 !heatwave.AgedFactoryFeederCurrentlyUnavailable &&
                 _snapshot.Cash == 4_660_000 &&
                 _snapshot.Minute == 1_845 &&
-                _finalLogged,
+                _finalLogged &&
+                string.Equals(
+                    _titleLabel.Text,
+                    $"GRIDWORKS · {_run.CurrentChapter.DisplayName}",
+                    StringComparison.Ordinal),
                 "Heatwave Maintenance smoke did not reach the exact maintained settlement");
 
             GD.Print(
@@ -1925,6 +1968,34 @@ public sealed partial class ProductMain : Control
             GD.PushError($"PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_FAIL: {exception}");
             GetTree().Quit(1);
         }
+    }
+
+    private void RequireChapterOpening(string chapterId, string? nextChapterId)
+    {
+        ProductCampaignChapter chapter = _run.CurrentChapter;
+        ProductCampaignChapter? nextChapter = _run.NextChapter;
+        FirstLightTaskPanelModel panel = BuildPanelModel(
+            HospitalSnapshot(),
+            FactorySnapshot(),
+            HeatwaveSnapshot());
+        string opening = $"{chapter.Briefing}\n목표 · {chapter.Objective}";
+        bool nextChapterMatches = nextChapterId is null
+            ? nextChapter is null &&
+                !panel.Instruction.Contains("다음 장 진입 조건", StringComparison.Ordinal)
+            : nextChapter is not null &&
+                string.Equals(nextChapter.ChapterId, nextChapterId, StringComparison.Ordinal) &&
+                panel.Instruction.Contains(
+                    $"다음 장 진입 조건 · {CashText(nextChapter.MinimumStartingCashUnit)}",
+                    StringComparison.Ordinal);
+        Require(
+            string.Equals(chapter.ChapterId, chapterId, StringComparison.Ordinal) &&
+            string.Equals(
+                _titleLabel.Text,
+                $"GRIDWORKS · {chapter.DisplayName}",
+                StringComparison.Ordinal) &&
+            panel.Instruction.StartsWith(opening, StringComparison.Ordinal) &&
+            nextChapterMatches,
+            $"campaign chapter presentation is incomplete for {chapterId}");
     }
 
     private async Task BuildLineThroughUi(

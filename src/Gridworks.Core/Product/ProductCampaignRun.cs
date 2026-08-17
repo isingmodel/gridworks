@@ -12,6 +12,7 @@ public sealed class ProductCampaignRun
     private ProductSession _session;
     private int _currentChapterIndex;
     private int _chapterStartCommandCount;
+    private bool _isChapterBlocked;
 
     public ProductCampaignRun(
         ProductCampaignDefinition definition,
@@ -47,11 +48,24 @@ public sealed class ProductCampaignRun
     public string CurrentChapterId =>
         _definition.Chapters[_currentChapterIndex].ChapterId;
 
+    public ProductCampaignChapter CurrentChapter =>
+        _definition.Chapters[_currentChapterIndex];
+
+    public ProductCampaignChapter? NextChapter =>
+        _currentChapterIndex + 1 < _definition.Chapters.Count
+            ? _definition.Chapters[_currentChapterIndex + 1]
+            : null;
+
+    public bool IsChapterBlocked => _isChapterBlocked;
+
+    public ProductCampaignChapter? BlockedNextChapter =>
+        _isChapterBlocked ? NextChapter : null;
+
     public int ChapterStartCommandCount => _chapterStartCommandCount;
 
     public int CommandCount => _commands.Count;
 
-    public ProductSnapshot GetSnapshot() => _session.GetSnapshot();
+    public ProductSnapshot GetSnapshot() => ProjectSnapshot(_session.GetSnapshot());
 
     public ProductSubstationPlacementPreview PreviewSubstationPlacement(ProductPoint position) =>
         _session.PreviewSubstationPlacement(position);
@@ -81,6 +95,13 @@ public sealed class ProductCampaignRun
     {
         ArgumentNullException.ThrowIfNull(command);
         ValidateCommandShape(command);
+        if (_isChapterBlocked)
+        {
+            return new ProductCommandResult(
+                false,
+                ProductCommandError.WrongPhase,
+                GetSnapshot());
+        }
         if (_commands.Count >= MaximumCommandCount)
         {
             throw new InvalidOperationException(
@@ -93,7 +114,7 @@ public sealed class ProductCampaignRun
             _commands.Add(command);
             UpdateChapterBoundary(result.Snapshot);
         }
-        return result;
+        return result with { Snapshot = GetSnapshot() };
     }
 
     public ProductCommandResult RestartChapter()
@@ -102,7 +123,7 @@ public sealed class ProductCampaignRun
             .Take(_chapterStartCommandCount)
             .ToArray();
         Replay(prefix);
-        return new ProductCommandResult(true, null, _session.GetSnapshot());
+        return new ProductCommandResult(true, null, GetSnapshot());
     }
 
     public ProductCampaignSave CaptureSave() => new(
@@ -161,6 +182,7 @@ public sealed class ProductCampaignRun
         _commands.Clear();
         _currentChapterIndex = 0;
         _chapterStartCommandCount = 0;
+        _isChapterBlocked = false;
         for (int index = 0; index < commands.Count; index++)
         {
             ProductCampaignCommand command = commands[index]
@@ -234,17 +256,39 @@ public sealed class ProductCampaignRun
 
     private void UpdateChapterBoundary(ProductSnapshot snapshot)
     {
+        int nextChapterIndex = -1;
         if (_currentChapterIndex == 0 && snapshot.Phase == ProductPhase.PrimaryPlanning)
         {
-            _currentChapterIndex = 1;
-            _chapterStartCommandCount = _commands.Count;
+            nextChapterIndex = 1;
         }
         else if (_currentChapterIndex == 1 && snapshot.Phase == ProductPhase.PlantPlanning)
         {
-            _currentChapterIndex = 2;
-            _chapterStartCommandCount = _commands.Count;
+            nextChapterIndex = 2;
         }
+        if (nextChapterIndex < 0)
+        {
+            return;
+        }
+
+        ProductCampaignChapter nextChapter = _definition.Chapters[nextChapterIndex];
+        if (snapshot.Cash < nextChapter.MinimumStartingCashUnit)
+        {
+            _isChapterBlocked = true;
+            return;
+        }
+
+        _currentChapterIndex = nextChapterIndex;
+        _chapterStartCommandCount = _commands.Count;
     }
+
+    private ProductSnapshot ProjectSnapshot(ProductSnapshot snapshot) =>
+        _isChapterBlocked
+            ? snapshot with
+            {
+                Phase = ProductPhase.Complete,
+                Outcome = ProductMissionOutcome.Failure,
+            }
+            : snapshot;
 
     private static void ValidateCommandShape(ProductCampaignCommand command)
     {

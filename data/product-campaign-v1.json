@@ -1,11 +1,29 @@
 {
-  "schemaVersion": "gridworks.campaign.v1",
+  "schemaVersion": "gridworks.campaign.v2",
   "campaignId": "GRIDWORKS_CAMPAIGN_V1",
   "displayName": "Gridworks",
   "scenarioFixture": "product-heatwave-v1.json",
   "chapters": [
-    { "chapterId": "FIRST_LIGHT", "displayName": "첫 점등" },
-    { "chapterId": "SECOND_HEART", "displayName": "두 번째 심장" },
-    { "chapterId": "HEAT_DOME", "displayName": "열돔 아래" }
+    {
+      "chapterId": "FIRST_LIGHT",
+      "displayName": "첫 점등",
+      "briefing": "강변의 새 마을이 아직 전력망 밖에 있으므로 기존 발전원에서 첫 배전망을 연결해야 합니다.",
+      "objective": "배전 변전소와 마을 선로를 완공하고 첫 공급기간을 결산하십시오.",
+      "minimumStartingCashUnit": 0
+    },
+    {
+      "chapterId": "SECOND_HEART",
+      "displayName": "두 번째 심장",
+      "briefing": "마을 점등 뒤 강변 병원의 단일 경로 의존이 드러나 서로 다른 회랑으로 병원을 지켜야 합니다.",
+      "objective": "병원 주·예비 회선을 완공하고 단일회선 제거와 공간사건에서 병원 P0 공급을 지키십시오.",
+      "minimumStartingCashUnit": 10880000
+    },
+    {
+      "chapterId": "HEAT_DOME",
+      "displayName": "열돔 아래",
+      "briefing": "병원 의무를 지킨 뒤 공장 증설과 폭염 예보가 겹쳐 발전용량과 노후 회선을 함께 준비해야 합니다.",
+      "objective": "새 가스발전소를 건설·접속하고 예방정비를 결정한 뒤 폭염 결과를 결산하십시오.",
+      "minimumStartingCashUnit": 6220000
+    }
   ]
 }

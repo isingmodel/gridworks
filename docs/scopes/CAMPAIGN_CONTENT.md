@@ -1,8 +1,8 @@
-# 세 장 캠페인 콘텐츠 고정 — 활성 구현 계약
+# 세 장 캠페인 콘텐츠 고정 — 완료된 구현 기준
 
-> 상태: `ACTIVE`
+> 상태: `COMPLETED`
 >
-> 구현 권한: `GRANTED`
+> 다음 단계 구현 권한: `NOT_GRANTED`
 >
 > 사람 검증: `NOT_COLLECTED`
 
@@ -125,5 +125,26 @@ NOT_COLLECTED`를 유지한다.
 
 ## 8. 현재 검사와 종료 기록
 
-구현과 검토가 끝날 때 campaign v2 identity, 누적 검사, full native 결과, blocked/restart 대표 증거와
-독립 검토 결과를 기록한다. 이 단계 완료는 2D 표현·사운드·패키징을 승인하지 않는다.
+현재 구현은 다음 경계에서 종료됐다.
+
+- campaign schema `gridworks.campaign.v2`, 장별 briefing·objective와 authored threshold strict load
+- authored 진입현금: `FIRST_LIGHT 0`, `SECOND_HEART 10,880,000`, `HEAT_DOME 6,220,000 CashUnit`
+- 누적 ProductChecks: 첫 점등 `10 suites / 664 assertions`, 병원 `5 / 124`, 공장 `5 / 378`,
+  폭염 `5 / 243`, campaign v2·save `5 / 562` 통과
+- 두 장 각각에서 고정 reference threshold는 통과하고 `threshold - 1`은 accepted settlement를
+  journal에 남긴 blocked `Complete / Failure`가 됨을 확인
+- blocked save/restore, 후속 `WrongPhase`, checkpoint-prefix `Restart Chapter` 복원 확인
+- Core Release와 Game Debug rebuild: warning/error `0/0`
+- 기존 1280×720 full native 한 번으로 세 장 header·opening briefing·다음 장 조건과 마지막 장 조건
+  생략을 확인하고 final `SUCCESS`, minute `1845`, cash `4,660,000`에 도달
+- campaign root SHA-256:
+  `9e9ec5ea0ee1d8ab5780799f308e5ebd287ccd5da2c0916aa1ec4828a0ccdedb`
+- scenario fixture SHA-256:
+  `b00b7fc9d657fd355b8741e4326d9a5297ae749de629c1763334bcca4df83f9c`
+- 해당 native build SHA-256:
+  `4bf352fcbc467839d743b632caf34bfa5e4ded8e7ec1a8450693e1787cf35b3d`
+- 독립 검토 최종 결과: `P0=0, P1=0`
+- 사람·LLM 관찰: `NOT_COLLECTED`
+
+blocked 실패 화면의 별도 native branch, 두 번째 해상도와 외부 캠페인 관찰은 반복하지 않았다.
+이 단계 완료는 2D 표현·사운드·패키징을 승인하지 않는다.

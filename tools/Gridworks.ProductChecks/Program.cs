@@ -73,7 +73,7 @@ internal static class Program
                     ? new HeatwaveChecks(fixturePath).Run()
                     : factoryExit;
             }
-            if (schemaVersion == "gridworks.campaign.v1")
+            if (schemaVersion == "gridworks.campaign.v2")
             {
                 string firstLightPath = RequiredRegressionFixture(
                     "product-first-light-v1.json",

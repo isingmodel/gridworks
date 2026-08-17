@@ -2,7 +2,10 @@ namespace Gridworks.Core.Product;
 
 public sealed record ProductCampaignChapter(
     string ChapterId,
-    string DisplayName);
+    string DisplayName,
+    string Briefing,
+    string Objective,
+    long MinimumStartingCashUnit);
 
 public sealed record ProductCampaignDefinition(
     string SchemaVersion,

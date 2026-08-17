@@ -19,6 +19,8 @@ internal sealed class CampaignSaveChecks
 
     private const int SecondHeartStartCommandCount = 8;
     private const int HeatDomeStartCommandCount = 22;
+    private const long SecondHeartMinimumCashUnit = 10_880_000;
+    private const long HeatDomeMinimumCashUnit = 6_220_000;
 
     private readonly string _campaignJson;
     private readonly byte[] _campaignBytes;
@@ -49,9 +51,9 @@ internal sealed class CampaignSaveChecks
     {
         (string Name, Action Body)[] suites =
         [
-            ("campaign-save-settings-strict-codecs", CheckStrictCodecs),
+            ("campaign-v2-save-settings-strict-codecs", CheckStrictCodecs),
             ("campaign-all-prefix-save-replay", CheckEveryAcceptedPrefixReplay),
-            ("campaign-chapter-boundaries-restart", CheckChapterBoundariesAndRestart),
+            ("campaign-threshold-boundaries-restart", CheckChapterBoundariesAndRestart),
             ("campaign-invalid-save-safe-rejection", CheckInvalidSaveRejection),
             ("campaign-atomic-store-settings", CheckAtomicStoreAndSettingsPersistence),
         ];
@@ -96,11 +98,27 @@ internal sealed class CampaignSaveChecks
             fromText.Chapters.Select(chapter => chapter.ChapterId),
             "chapter order");
         SequenceEqual(
-            fromText.Chapters.Select(chapter => chapter.DisplayName),
-            fromBytes.Chapters.Select(chapter => chapter.DisplayName),
+            [0L, SecondHeartMinimumCashUnit, HeatDomeMinimumCashUnit],
+            fromText.Chapters.Select(chapter => chapter.MinimumStartingCashUnit),
+            "authored chapter thresholds");
+        True(
+            fromText.Chapters.All(chapter => ContainsHangul(chapter.Briefing)),
+            "campaign briefings are not Korean text");
+        True(
+            fromText.Chapters.All(chapter => ContainsHangul(chapter.Objective)),
+            "campaign objectives are not Korean text");
+        SequenceEqual(
+            fromText.Chapters.Select(chapter =>
+                (chapter.DisplayName, chapter.Briefing, chapter.Objective,
+                    chapter.MinimumStartingCashUnit)),
+            fromBytes.Chapters.Select(chapter =>
+                (chapter.DisplayName, chapter.Briefing, chapter.Objective,
+                    chapter.MinimumStartingCashUnit)),
             "UTF-8 campaign load");
 
         ExpectCampaignRejected("unknown campaign field", root => root["unexpected"] = true);
+        ExpectCampaignRejected("unknown chapter field", root =>
+            Object(Array(root, "chapters"), 0)["unexpected"] = true);
         ExpectCampaignRejected("parent campaign path", root =>
             root["scenarioFixture"] = "../product-heatwave-v1.json");
         ExpectCampaignRejected("wrong chapter order", root =>
@@ -109,6 +127,20 @@ internal sealed class CampaignSaveChecks
             Object(chapters, 0)["chapterId"] = "SECOND_HEART";
             Object(chapters, 1)["chapterId"] = "FIRST_LIGHT";
         });
+        ExpectCampaignRejected("blank briefing", root =>
+            Object(Array(root, "chapters"), 0)["briefing"] = " ");
+        ExpectCampaignRejected("non-Korean objective", root =>
+            Object(Array(root, "chapters"), 1)["objective"] = "Keep both lines available.");
+        ExpectCampaignRejected("objective wrong type", root =>
+            Object(Array(root, "chapters"), 2)["objective"] = 1);
+        ExpectCampaignRejected("threshold wrong type", root =>
+            Object(Array(root, "chapters"), 1)["minimumStartingCashUnit"] = "10880000");
+        ExpectCampaignRejected("first threshold nonzero", root =>
+            Object(Array(root, "chapters"), 0)["minimumStartingCashUnit"] = 1);
+        ExpectCampaignRejected("later threshold zero", root =>
+            Object(Array(root, "chapters"), 1)["minimumStartingCashUnit"] = 0);
+        ExpectCampaignRejected("later threshold negative", root =>
+            Object(Array(root, "chapters"), 2)["minimumStartingCashUnit"] = -1);
 
         ProductCampaignSave fresh = NewRun().CaptureSave();
         byte[] saveBytes = ProductCampaignSaveCodec.Serialize(fresh);
@@ -206,6 +238,95 @@ internal sealed class CampaignSaveChecks
         Equal(ProductMissionOutcome.Failure, firstFailure.GetSnapshot().Outcome, "first failure outcome");
         Equal("FIRST_LIGHT", firstFailure.CurrentChapterId, "first failure chapter");
         Equal(0, firstFailure.ChapterStartCommandCount, "first failure checkpoint");
+
+        CheckFirstBoundaryThresholdMinusOne(commands);
+        CheckSecondBoundaryThresholdMinusOne(commands);
+    }
+
+    private void CheckFirstBoundaryThresholdMinusOne(
+        IReadOnlyList<ProductCampaignCommand> commands)
+    {
+        ProductFixture thresholdFixture = _fixture with
+        {
+            Economy = _fixture.Economy with { InitialCash = 14_179_999 },
+        };
+        ProductCampaignRun blocked = NewRun(_campaign, thresholdFixture);
+        ExecutePrefix(blocked, commands, SecondHeartStartCommandCount, "first threshold-1");
+
+        Equal(true, blocked.IsChapterBlocked, "first threshold block flag");
+        Equal("FIRST_LIGHT", blocked.CurrentChapterId, "first threshold current chapter");
+        Equal("SECOND_HEART", blocked.BlockedNextChapter?.ChapterId, "first threshold target");
+        Equal(10_879_999L, blocked.GetSnapshot().Cash, "first threshold cash");
+        Equal(ProductPhase.Complete, blocked.GetSnapshot().Phase, "first threshold phase");
+        Equal(ProductMissionOutcome.Failure, blocked.GetSnapshot().Outcome, "first threshold outcome");
+        Equal(SecondHeartStartCommandCount, blocked.CommandCount, "first threshold journal count");
+        Equal(0, blocked.ChapterStartCommandCount, "first threshold checkpoint");
+
+        ProductCampaignRun restored = ProductCampaignRun.Restore(
+            _campaign,
+            thresholdFixture,
+            _campaignHash,
+            _fixtureHash,
+            blocked.CaptureSave());
+        Equal(blocked.GetSnapshot(), restored.GetSnapshot(), "first threshold restored snapshot");
+        Equal(true, restored.IsChapterBlocked, "first threshold restored block");
+        ProductCommandResult rejected = restored.Execute(
+            Positioned(ProductCampaignCommandKind.AddLineSupport, PrimarySupports[0]));
+        Equal(false, rejected.Accepted, "first threshold follow-up accepted");
+        Equal(ProductCommandError.WrongPhase, rejected.Error, "first threshold follow-up error");
+        Equal(SecondHeartStartCommandCount, restored.CommandCount, "first threshold follow-up journal");
+
+        AssertAccepted(restored, restored.RestartChapter(), "first threshold restart");
+        Equal(false, restored.IsChapterBlocked, "first threshold restart block");
+        Equal(ProductPhase.SubstationPlanning, restored.GetSnapshot().Phase, "first threshold restart phase");
+        Equal(14_179_999L, restored.GetSnapshot().Cash, "first threshold restart cash");
+        Equal(0, restored.CommandCount, "first threshold restart journal");
+    }
+
+    private void CheckSecondBoundaryThresholdMinusOne(
+        IReadOnlyList<ProductCampaignCommand> commands)
+    {
+        ProductFixture thresholdFixture = _fixture with
+        {
+            Economy = _fixture.Economy with { InitialCash = 14_179_999 },
+        };
+        ProductCampaignChapter[] chapters = _campaign.Chapters.ToArray();
+        chapters[1] = chapters[1] with { MinimumStartingCashUnit = 10_879_999 };
+        ProductCampaignDefinition isolatedCampaign = _campaign with
+        {
+            Chapters = System.Array.AsReadOnly(chapters),
+        };
+        ProductCampaignRun blocked = NewRun(isolatedCampaign, thresholdFixture);
+        ExecutePrefix(blocked, commands, HeatDomeStartCommandCount, "second threshold-1");
+
+        Equal(true, blocked.IsChapterBlocked, "second threshold block flag");
+        Equal("SECOND_HEART", blocked.CurrentChapterId, "second threshold current chapter");
+        Equal("HEAT_DOME", blocked.BlockedNextChapter?.ChapterId, "second threshold target");
+        Equal(6_219_999L, blocked.GetSnapshot().Cash, "second threshold cash");
+        Equal(ProductPhase.Complete, blocked.GetSnapshot().Phase, "second threshold phase");
+        Equal(ProductMissionOutcome.Failure, blocked.GetSnapshot().Outcome, "second threshold outcome");
+        Equal(HeatDomeStartCommandCount, blocked.CommandCount, "second threshold journal count");
+        Equal(SecondHeartStartCommandCount, blocked.ChapterStartCommandCount, "second threshold checkpoint");
+
+        ProductCampaignRun restored = ProductCampaignRun.Restore(
+            isolatedCampaign,
+            thresholdFixture,
+            _campaignHash,
+            _fixtureHash,
+            blocked.CaptureSave());
+        Equal(blocked.GetSnapshot(), restored.GetSnapshot(), "second threshold restored snapshot");
+        ProductCommandResult rejected = restored.Execute(
+            Positioned(ProductCampaignCommandKind.SetPlantDraft, PlantSite));
+        Equal(false, rejected.Accepted, "second threshold follow-up accepted");
+        Equal(ProductCommandError.WrongPhase, rejected.Error, "second threshold follow-up error");
+        Equal(HeatDomeStartCommandCount, restored.CommandCount, "second threshold follow-up journal");
+
+        AssertAccepted(restored, restored.RestartChapter(), "second threshold restart");
+        Equal(false, restored.IsChapterBlocked, "second threshold restart block");
+        Equal("SECOND_HEART", restored.CurrentChapterId, "second threshold restart chapter");
+        Equal(ProductPhase.PrimaryPlanning, restored.GetSnapshot().Phase, "second threshold restart phase");
+        Equal(10_879_999L, restored.GetSnapshot().Cash, "second threshold restart cash");
+        Equal(SecondHeartStartCommandCount, restored.CommandCount, "second threshold restart journal");
     }
 
     private void CheckInvalidSaveRejection()
@@ -312,9 +433,13 @@ internal sealed class CampaignSaveChecks
         }
     }
 
-    private ProductCampaignRun NewRun() => new(
-        _campaign,
-        _fixture,
+    private ProductCampaignRun NewRun() => NewRun(_campaign, _fixture);
+
+    private ProductCampaignRun NewRun(
+        ProductCampaignDefinition campaign,
+        ProductFixture fixture) => new(
+        campaign,
+        fixture,
         _campaignHash,
         _fixtureHash);
 
@@ -454,6 +579,11 @@ internal sealed class CampaignSaveChecks
     private static JsonObject Object(JsonArray parent, int index) =>
         parent[index]?.AsObject()
         ?? throw new InvalidOperationException($"array item {index} is not an object.");
+
+    private static bool ContainsHangul(string value) => value.Any(character => character is
+        (>= '\u1100' and <= '\u11ff') or
+        (>= '\u3130' and <= '\u318f') or
+        (>= '\uac00' and <= '\ud7af'));
 
     private void True(bool condition, string message)
     {

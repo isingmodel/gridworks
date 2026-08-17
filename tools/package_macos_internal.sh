@@ -26,12 +26,12 @@ for relative_document in "${license_relative_documents[@]}"; do
 done
 
 verify_sha256() {
-    local path=$1
+    local file_path=$1
     local expected=$2
     local actual
-    actual=$(shasum -a 256 "$path" | awk '{print $1}')
+    actual=$(shasum -a 256 "$file_path" | awk '{print $1}')
     if [[ $actual != $expected ]]; then
-        print -u2 "Unexpected SHA-256 for $path: $actual"
+        print -u2 "Unexpected SHA-256 for $file_path: $actual"
         return 1
     fi
 }

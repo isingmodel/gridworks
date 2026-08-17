@@ -130,9 +130,14 @@ internal sealed partial class FirstLightMapView : Container
     private static readonly Color RiskColor = Color.FromHtml("d85d62");
     private static readonly Color SiteColor = Color.FromHtml("8e9ba3");
     private static readonly Color FactoryColor = Color.FromHtml("c5a36a");
+    private static readonly Color RiverColor = Color.FromHtml("18303b");
+    private static readonly Color RoadColor = Color.FromHtml("2a302f");
+    private static readonly Color IndustryColor = Color.FromHtml("252d2e");
 
     private FirstLightMapModel? _model;
     private FirstLightGridPoint? _keyboardPoint;
+    private double _flowSeconds;
+    private double _redrawSeconds;
 
     public event Action<FirstLightGridPoint?>? PointerChanged;
 
@@ -158,6 +163,21 @@ internal sealed partial class FirstLightMapView : Container
         _keyboardPoint = Clamp(_keyboardPoint.Value, model.Bounds);
         AccessibilityName = BuildAccessibilitySummary(model, _keyboardPoint);
         QueueRedraw();
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_model is null)
+        {
+            return;
+        }
+        _flowSeconds = (_flowSeconds + delta) % 20d;
+        _redrawSeconds += delta;
+        if (_redrawSeconds >= (1d / 12d))
+        {
+            _redrawSeconds = 0d;
+            QueueRedraw();
+        }
     }
 
     public Vector2 ViewportPointForGridPoint(FirstLightGridPoint point)
@@ -211,6 +231,7 @@ internal sealed partial class FirstLightMapView : Container
 
         Rect2 plot = PlotRect(_model.Bounds);
         DrawRect(new Rect2(Vector2.Zero, Size), MapBackground);
+        DrawTerrain(_model, plot);
         DrawGrid(_model.Bounds, plot);
         DrawBlockedCells(_model, plot);
         DrawRiskRect(_model, plot);
@@ -232,6 +253,52 @@ internal sealed partial class FirstLightMapView : Container
         if (HasFocus())
         {
             DrawRect(new Rect2(Vector2.One * 2f, Size - (Vector2.One * 4f)), FocusColor, false, 2f);
+        }
+    }
+
+    private void DrawTerrain(FirstLightMapModel model, Rect2 plot)
+    {
+        DrawRect(plot, Color.FromHtml("0d1b22"));
+
+        float riverCenterX = ToCanvas(
+            new FirstLightGridPoint(
+                (model.RiskRect.Minimum.X + model.RiskRect.Maximum.X) / 2,
+                model.Bounds.MinY),
+            model.Bounds,
+            plot).X;
+        float riverHalfWidth = Math.Clamp(GridScale(model.Bounds, plot) * 1.15f, 18f, 42f);
+        const int riverSegments = 8;
+        var river = new Vector2[(riverSegments + 1) * 2];
+        for (int index = 0; index <= riverSegments; index++)
+        {
+            float progress = index / (float)riverSegments;
+            float y = plot.Position.Y + (plot.Size.Y * progress);
+            float bend = MathF.Sin((progress * Mathf.Tau) + 0.8f) * riverHalfWidth * 0.28f;
+            river[index] = new Vector2(riverCenterX + bend - riverHalfWidth, y);
+            river[river.Length - 1 - index] =
+                new Vector2(riverCenterX + bend + riverHalfWidth, y);
+        }
+        DrawColoredPolygon(river, RiverColor);
+        DrawPolyline(river, new Color(ServiceStroke, 0.22f), 1.2f, true);
+
+        float roadY = plot.Position.Y + (plot.Size.Y * 0.72f);
+        Vector2 roadFrom = new(plot.Position.X, roadY - 10f);
+        Vector2 roadTo = new(plot.End.X, roadY + 12f);
+        DrawLine(roadFrom, roadTo, RoadColor, 10f, true);
+        DrawLine(roadFrom, roadTo, new Color(MutedColor, 0.14f), 1f, true);
+
+        var industry = new Rect2(
+            plot.Position + new Vector2(plot.Size.X * 0.73f, plot.Size.Y * 0.69f),
+            new Vector2(plot.Size.X * 0.23f, plot.Size.Y * 0.24f));
+        DrawRect(industry, new Color(IndustryColor, 0.72f));
+        for (int index = 1; index < 4; index++)
+        {
+            float x = industry.Position.X + ((industry.Size.X / 4f) * index);
+            DrawLine(
+                new Vector2(x, industry.Position.Y),
+                new Vector2(x, industry.End.Y),
+                new Color(MutedColor, 0.1f),
+                1f);
         }
     }
 
@@ -454,6 +521,10 @@ internal sealed partial class FirstLightMapView : Container
         {
             DrawLine(from, to, Color.FromHtml("102b31"), 7f, true);
             DrawLine(from, to, color, 3f, true);
+            if (factory.DeliveredKw > 0)
+            {
+                DrawFlowMarkers(from, to, color);
+            }
             if (factory.FeederState == FirstLightFactoryFeederVisualState.Maintained)
             {
                 DrawCircle((from + to) / 2f, 6f, MapBackground);
@@ -552,6 +623,7 @@ internal sealed partial class FirstLightMapView : Container
             case FirstLightProjectVisualState.Commissioned:
                 DrawLine(from, to, Color.FromHtml("102b31"), 9f, true);
                 DrawLine(from, to, LineColor(kind), 5f, true);
+                DrawFlowMarkers(from, to, LineColor(kind));
                 break;
             case FirstLightProjectVisualState.Unavailable:
                 DrawLine(from, to, Color.FromHtml("2b171a"), 9f, true);
@@ -566,7 +638,14 @@ internal sealed partial class FirstLightMapView : Container
     private void DrawSource(FirstLightMapModel model, Rect2 plot)
     {
         Vector2 center = ToCanvas(model.Source, model.Bounds, plot);
+        var baseRect = new Rect2(center - new Vector2(18f, 12f), new Vector2(36f, 24f));
+        DrawRect(baseRect, new Color(SourceColor, 0.22f));
+        DrawRect(baseRect, SourceColor, false, 2f);
+        DrawLine(center + new Vector2(-11f, -12f), center + new Vector2(-11f, -27f), SourceColor, 5f);
+        DrawLine(center + new Vector2(10f, -12f), center + new Vector2(10f, -22f), SourceColor, 4f);
         DrawCircle(center, 14f, SourceColor);
+        DrawCircle(center, 7f, MapBackground);
+        DrawLine(center + new Vector2(-7f, 0f), center + new Vector2(7f, 0f), TextColor, 2f);
         DrawCircle(center, 14f, TextColor, false, 2f, true);
         DrawString(
             ThemeDB.FallbackFont,
@@ -582,9 +661,26 @@ internal sealed partial class FirstLightMapView : Container
     {
         Vector2 center = ToCanvas(model.Town, model.Bounds, plot);
         Color color = model.TownDeliveredKw > 0 ? EnergizedColor : MutedColor;
-        var building = new Rect2(center - new Vector2(13f, 11f), new Vector2(26f, 22f));
-        DrawRect(building, model.TownDeliveredKw > 0 ? new Color(color, 0.62f) : MapBackground);
-        DrawRect(building, color, false, 3f);
+        for (int index = -1; index <= 1; index++)
+        {
+            Vector2 home = center + new Vector2(index * 12f, Math.Abs(index) * 4f);
+            var building = new Rect2(home - new Vector2(5f, 3f), new Vector2(10f, 11f));
+            DrawRect(
+                building,
+                model.TownDeliveredKw > 0 ? new Color(color, 0.52f) : MapBackground);
+            DrawRect(building, color, false, 1.7f);
+            Vector2[] roof =
+            [
+                home + new Vector2(-7f, -3f),
+                home + new Vector2(0f, -10f),
+                home + new Vector2(7f, -3f),
+            ];
+            DrawPolyline(roof, color, 1.7f, true);
+            if (model.TownDeliveredKw > 0)
+            {
+                DrawRect(new Rect2(home + new Vector2(-2f, 1f), new Vector2(4f, 4f)), TextColor);
+            }
+        }
         if (model.TownDeliveredKw == 0)
         {
             DrawCross(center, color, 7f);
@@ -604,6 +700,9 @@ internal sealed partial class FirstLightMapView : Container
         Vector2 center = ToCanvas(model.Hospital, model.Bounds, plot);
         Color utilityColor = model.HospitalUtilityKw > 0 ? EnergizedColor : MutedColor;
         var building = new Rect2(center - new Vector2(16f, 14f), new Vector2(32f, 28f));
+        DrawRect(
+            new Rect2(center - new Vector2(24f, 7f), new Vector2(48f, 18f)),
+            new Color(utilityColor, 0.12f));
         DrawRect(building, new Color(utilityColor, 0.22f));
         DrawRect(building, utilityColor, false, 3f);
         DrawLine(center + new Vector2(-8f, 0f), center + new Vector2(8f, 0f), TextColor, 4f);
@@ -651,6 +750,13 @@ internal sealed partial class FirstLightMapView : Container
         {
             DrawConstructionHatching(center + new Vector2(-12f, 0f), center + new Vector2(12f, 0f));
         }
+        else if (model.SubstationState == FirstLightProjectVisualState.Commissioned)
+        {
+            DrawCircle(center + new Vector2(-5f, 0f), 4f, MapBackground);
+            DrawCircle(center + new Vector2(-5f, 0f), 4f, color, false, 1.5f);
+            DrawCircle(center + new Vector2(5f, 0f), 4f, MapBackground);
+            DrawCircle(center + new Vector2(5f, 0f), 4f, color, false, 1.5f);
+        }
         DrawString(
             ThemeDB.FallbackFont,
             center + new Vector2(18f, 19f),
@@ -675,6 +781,16 @@ internal sealed partial class FirstLightMapView : Container
         DrawRect(building, color, false, 3f);
         DrawLine(center + new Vector2(-11f, -13f), center + new Vector2(-4f, -23f), color, 3f);
         DrawLine(center + new Vector2(-4f, -23f), center + new Vector2(3f, -13f), color, 3f);
+        DrawLine(center + new Vector2(10f, -13f), center + new Vector2(10f, -27f), FactoryColor, 5f);
+        if (factory.DeliveredKw > 0)
+        {
+            for (int index = -1; index <= 1; index++)
+            {
+                DrawRect(
+                    new Rect2(center + new Vector2((index * 9f) - 3f, -2f), new Vector2(6f, 6f)),
+                    TextColor);
+            }
+        }
         if (factory.DeliveredKw == 0)
         {
             DrawCross(center, color, 7f);
@@ -722,6 +838,8 @@ internal sealed partial class FirstLightMapView : Container
             DrawRect(building, color, false, 3f);
         }
         DrawLine(center + new Vector2(8f, -16f), center + new Vector2(8f, -30f), color, 5f);
+        DrawLine(center + new Vector2(-7f, -16f), center + new Vector2(-7f, -25f), color, 4f);
+        DrawLine(center + new Vector2(-14f, 7f), center + new Vector2(14f, 7f), color, 2f);
         if (plant.State == FirstLightProjectVisualState.Building)
         {
             DrawConstructionHatching(center + new Vector2(-17f, 0f), center + new Vector2(17f, 0f));
@@ -808,7 +926,7 @@ internal sealed partial class FirstLightMapView : Container
             Vector2 from = ToCanvas(preview.From.Value, model.Bounds, plot);
             if (preview.Accepted)
             {
-                DrawLine(from, point, PlannedColor, 3f, true);
+                DrawDashedLine(from, point, PlannedColor, 3f, 8f, true, true);
                 DrawCircle(point, 7f, PlannedColor, false, 2f, true);
             }
             else
@@ -831,20 +949,74 @@ internal sealed partial class FirstLightMapView : Container
 
     private void DrawLegend(FirstLightMapModel model)
     {
-        string text =
-            $"{model.PhaseDescription}  ·  ┄ 계획  ·  ╱╱ 공사  ·  ━ 통전  ·  --× 사용불가  ·  ◌ 위험구역";
-        if (model.FactoryStageActive)
-        {
-            text += "  ·  ▫ 허용 발전소 부지";
-        }
+        float phaseY = Size.Y - 39f;
         DrawString(
             ThemeDB.FallbackFont,
-            new Vector2(18f, Size.Y - 14f),
-            text,
+            new Vector2(18f, phaseY),
+            model.FactoryStageActive
+                ? $"{model.PhaseDescription} · □ 허용 발전소 부지"
+                : model.PhaseDescription,
             HorizontalAlignment.Left,
             Math.Max(0f, Size.X - 36f),
             12,
             TextColor);
+
+        float y = Size.Y - 15f;
+        float x = 18f;
+        DrawLegendLine(ref x, y, "계획", PlannedColor, FirstLightProjectVisualState.NotOrdered);
+        DrawLegendLine(ref x, y, "공사", BuildingColor, FirstLightProjectVisualState.Building);
+        DrawLegendLine(ref x, y, "통전", EnergizedColor, FirstLightProjectVisualState.Commissioned);
+        DrawLegendLine(ref x, y, "사용불가", InvalidColor, FirstLightProjectVisualState.Unavailable);
+        var risk = new Rect2(new Vector2(x, y - 11f), new Vector2(18f, 12f));
+        DrawRect(risk, new Color(RiskColor, 0.12f));
+        DrawRect(risk, RiskColor, false, 1.5f);
+        DrawString(
+            ThemeDB.FallbackFont,
+            new Vector2(x + 24f, y),
+            "위험구역",
+            HorizontalAlignment.Left,
+            -1f,
+            11,
+            TextColor);
+    }
+
+    private void DrawLegendLine(
+        ref float x,
+        float y,
+        string label,
+        Color color,
+        FirstLightProjectVisualState state)
+    {
+        Vector2 from = new(x, y - 5f);
+        Vector2 to = new(x + 25f, y - 5f);
+        if (state == FirstLightProjectVisualState.NotOrdered)
+        {
+            DrawDashedLine(from, to, color, 2f, 5f, true, true);
+        }
+        else if (state == FirstLightProjectVisualState.Building)
+        {
+            DrawDashedLine(from, to, color, 3f, 6f, true, true);
+            DrawConstructionHatching(from, to);
+        }
+        else if (state == FirstLightProjectVisualState.Commissioned)
+        {
+            DrawLine(from, to, color, 3f, true);
+            DrawCircle((from + to) / 2f, 2.2f, TextColor);
+        }
+        else
+        {
+            DrawDashedLine(from, to, color, 3f, 7f, true, true);
+            DrawCross((from + to) / 2f, color, 4f);
+        }
+        DrawString(
+            ThemeDB.FallbackFont,
+            new Vector2(x + 31f, y),
+            label,
+            HorizontalAlignment.Left,
+            -1f,
+            11,
+            TextColor);
+        x += label == "사용불가" ? 123f : 101f;
     }
 
     private bool TrySnap(
@@ -990,6 +1162,25 @@ internal sealed partial class FirstLightMapView : Container
         {
             Vector2 center = from + (direction * distance);
             DrawLine(center - slash, center + slash, BuildingColor, 3f, true);
+        }
+    }
+
+    private void DrawFlowMarkers(Vector2 from, Vector2 to, Color color)
+    {
+        Vector2 segment = to - from;
+        float length = segment.Length();
+        if (length < 12f)
+        {
+            return;
+        }
+        Vector2 direction = segment / length;
+        const float spacing = 52f;
+        float offset = (float)((_flowSeconds * 14d) % spacing);
+        for (float distance = offset; distance < length; distance += spacing)
+        {
+            Vector2 center = from + (direction * distance);
+            DrawCircle(center, 2.6f, new Color(color, 0.95f));
+            DrawLine(center - (direction * 4f), center, TextColor, 1.5f, true);
         }
     }
 

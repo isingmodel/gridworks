@@ -112,7 +112,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 focus_mode = 2
-text = "화면 설정"
+text = "설정"
 
 [node name="TitleHelpButton" type="Button" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
 unique_name_in_owner = true
@@ -184,7 +184,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 focus_mode = 2
-text = "화면 설정"
+text = "설정"
 
 [node name="PauseHelpButton" type="Button" parent="Center/ShellPanel/Margin/Pages/PausePage"]
 unique_name_in_owner = true
@@ -202,12 +202,12 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 5
 
 [node name="SettingsHeading" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
-text = "화면 설정"
+text = "설정"
 
 [node name="SettingsHint" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
 layout_mode = 2
@@ -215,23 +215,73 @@ theme_override_colors/font_color = Color(0.7, 0.76, 0.8, 1)
 text = "변경사항은 즉시 적용되고 다음 실행에도 유지됩니다."
 autowrap_mode = 2
 
-[node name="WindowModeLabel" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+[node name="WindowModeRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
 layout_mode = 2
+
+[node name="WindowModeLabel" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/WindowModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "창 표시"
 
-[node name="WindowModeOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+[node name="WindowModeOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/WindowModeRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(210, 44)
 layout_mode = 2
 focus_mode = 2
 
-[node name="UiScaleLabel" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+[node name="UiScaleRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
 layout_mode = 2
+
+[node name="UiScaleLabel" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/UiScaleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "UI 크기"
 
-[node name="UiScaleOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+[node name="UiScaleOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/UiScaleRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(210, 44)
+layout_mode = 2
+focus_mode = 2
+
+[node name="MasterVolumeRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+
+[node name="MasterVolumeLabel" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/MasterVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "전체 음량"
+
+[node name="MasterVolumeOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/MasterVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 44)
+layout_mode = 2
+focus_mode = 2
+
+[node name="AmbientVolumeRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+
+[node name="AmbientVolumeLabel" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/AmbientVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "환경음"
+
+[node name="AmbientVolumeOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/AmbientVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 44)
+layout_mode = 2
+focus_mode = 2
+
+[node name="SfxVolumeRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+
+[node name="SfxVolumeLabel" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/SfxVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "효과음"
+
+[node name="SfxVolumeOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/SfxVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 44)
 layout_mode = 2
 focus_mode = 2
 

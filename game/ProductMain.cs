@@ -47,6 +47,7 @@ public sealed partial class ProductMain : Control
     private FirstLightTaskPanel _taskPanel = null!;
     private Button _menuButton = null!;
     private ProductShellOverlay _shell = null!;
+    private ProductAudio _audio = null!;
 
     public override void _Ready()
     {
@@ -55,18 +56,18 @@ public sealed partial class ProductMain : Control
             GetWindow().Title = "Gridworks";
             _options = ProductLaunchOptions.Parse(OS.GetCmdlineUserArgs());
 
-            string dataDirectory = Path.GetFullPath(Path.Combine(
-                ProjectSettings.GlobalizePath("res://"),
-                "..",
-                "data"));
-            string campaignPath = Path.Combine(dataDirectory, "product-campaign-v1.json");
-            byte[] campaignBytes = File.ReadAllBytes(campaignPath);
+            byte[] campaignBytes = ProductEmbeddedData.ReadCampaignBytes();
             _campaignHash = ProductContentHash.ComputeSha256(campaignBytes);
             _campaign = ProductCampaignLoader.Load(campaignBytes);
-            string fixturePath = Path.GetFullPath(Path.Combine(
-                dataDirectory,
-                _campaign.ScenarioFixture));
-            byte[] fixtureBytes = File.ReadAllBytes(fixturePath);
+            if (!string.Equals(
+                    _campaign.ScenarioFixture,
+                    "product-heatwave-v1.json",
+                    StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    $"Campaign scenario fixture '{_campaign.ScenarioFixture}' is not packaged.");
+            }
+            byte[] fixtureBytes = ProductEmbeddedData.ReadHeatwaveBytes();
             _fixtureHash = ProductContentHash.ComputeSha256(fixtureBytes);
             _buildHash = ComputeBuildHash();
             _fixture = ProductFixtureLoader.Load(fixtureBytes);
@@ -153,6 +154,7 @@ public sealed partial class ProductMain : Control
         _taskPanel = GetNode<FirstLightTaskPanel>("%FirstLightTaskPanel");
         _menuButton = GetNode<Button>("%MenuButton");
         _shell = GetNode<ProductShellOverlay>("%ProductShellOverlay");
+        _audio = GetNode<ProductAudio>("%ProductAudio");
 
         _mapView.PointerChanged += OnPointerChanged;
         _mapView.PointRequested += OnPointRequested;
@@ -170,6 +172,9 @@ public sealed partial class ProductMain : Control
         _shell.RestartChapterRequested += OnRestartChapterRequested;
         _shell.FullscreenChanged += OnFullscreenChanged;
         _shell.UiScalePercentChanged += OnUiScalePercentChanged;
+        _shell.MasterVolumePercentChanged += OnMasterVolumePercentChanged;
+        _shell.AmbientVolumePercentChanged += OnAmbientVolumePercentChanged;
+        _shell.SfxVolumePercentChanged += OnSfxVolumePercentChanged;
         _shell.ControlHelpChanged += OnControlHelpChanged;
         _shell.GameplayFocusRequested += OnGameplayFocusRequested;
     }
@@ -269,16 +274,44 @@ public sealed partial class ProductMain : Control
         SaveSettings();
     }
 
+    private void OnMasterVolumePercentChanged(int percent)
+    {
+        _settings = _settings with { MasterVolumePercent = percent };
+        ApplySettings(_settings);
+        SaveSettings();
+    }
+
+    private void OnAmbientVolumePercentChanged(int percent)
+    {
+        _settings = _settings with { AmbientVolumePercent = percent };
+        ApplySettings(_settings);
+        SaveSettings();
+    }
+
+    private void OnSfxVolumePercentChanged(int percent)
+    {
+        _settings = _settings with { SfxVolumePercent = percent };
+        ApplySettings(_settings);
+        SaveSettings();
+    }
+
     private void ApplySettings(ProductSettings settings)
     {
         GetWindow().Mode = settings.WindowMode == ProductWindowMode.Fullscreen
             ? Window.ModeEnum.Fullscreen
             : Window.ModeEnum.Windowed;
         GetWindow().ContentScaleFactor = settings.UiScalePercent / 100f;
+        _audio.ApplyVolumes(
+            settings.MasterVolumePercent,
+            settings.AmbientVolumePercent,
+            settings.SfxVolumePercent);
         _shell.SetSettings(
             settings.WindowMode == ProductWindowMode.Fullscreen,
             settings.UiScalePercent,
-            settings.ShowControlHelp);
+            settings.ShowControlHelp,
+            settings.MasterVolumePercent,
+            settings.AmbientVolumePercent,
+            settings.SfxVolumePercent);
     }
 
     private void ConfigurePersistencePaths()
@@ -614,6 +647,39 @@ public sealed partial class ProductMain : Control
                 : null,
         });
         Render();
+        ProductAudioCue? audioCue = AudioCue(commandName, result);
+        if (audioCue.HasValue)
+        {
+            _audio.Play(audioCue.Value);
+        }
+    }
+
+    private static ProductAudioCue? AudioCue(
+        string commandName,
+        ProductCommandResult result)
+    {
+        if (!result.Accepted)
+        {
+            return null;
+        }
+        bool becameUnavailable = commandName is
+                "ADVANCE_TO_INCIDENT" or "ADVANCE_TO_HEATWAVE" &&
+            (result.Snapshot.Hospital?.Incident.UnavailableProjectIds.Count > 0 ||
+             result.Snapshot.Heatwave?.AgedFactoryFeederCurrentlyUnavailable == true);
+        if (becameUnavailable)
+        {
+            return ProductAudioCue.Outage;
+        }
+        if (string.Equals(
+                commandName,
+                "ADVANCE_TO_CONSTRUCTION_COMPLETION",
+                StringComparison.Ordinal))
+        {
+            return ProductAudioCue.Energize;
+        }
+        return commandName.StartsWith("ORDER_", StringComparison.Ordinal)
+            ? ProductAudioCue.Breaker
+            : null;
     }
 
     private void Render()
@@ -1636,6 +1702,10 @@ public sealed partial class ProductMain : Control
         scale.Select(1);
         scale.EmitSignal(OptionButton.SignalName.ItemSelected, 1L);
         await NextFrame();
+        OptionButton sfx = _shell.GetSfxVolumeOption();
+        sfx.Select(2);
+        sfx.EmitSignal(OptionButton.SignalName.ItemSelected, 2L);
+        await NextFrame();
         CheckButton help = _shell.GetControlHelpCheck();
         help.ButtonPressed = false;
         if (_settings.ShowControlHelp)
@@ -1644,7 +1714,9 @@ public sealed partial class ProductMain : Control
         }
         await NextFrame();
         Require(
-            _settings.UiScalePercent == 125 && !_settings.ShowControlHelp,
+            _settings.UiScalePercent == 125 &&
+            _settings.SfxVolumePercent == 50 &&
+            !_settings.ShowControlHelp,
             "settings controls did not persist the smoke choices in memory");
 
         EmitShellAction(ProductShellAction.SettingsBack, "return from settings");
@@ -1658,6 +1730,11 @@ public sealed partial class ProductMain : Control
         Require(
             _continuation is not null &&
             _settings.UiScalePercent == 125 &&
+            _settings.SfxVolumePercent == 50 &&
+            !AudioServer.IsBusMute(AudioServer.GetBusIndex("SFX")) &&
+            Mathf.IsEqualApprox(
+                AudioServer.GetBusVolumeLinear(AudioServer.GetBusIndex("SFX")),
+                0.5f) &&
             !_settings.ShowControlHelp,
             "fresh continue process did not retain save and settings");
         EmitShellAction(ProductShellAction.Continue, "Continue saved campaign");
@@ -1729,6 +1806,7 @@ public sealed partial class ProductMain : Control
         Require(
             settingsLoad.Status == ProductDocumentLoadStatus.Loaded &&
             settingsLoad.Settings.UiScalePercent == 125 &&
+            settingsLoad.Settings.SfxVolumePercent == 50 &&
             !settingsLoad.Settings.ShowControlHelp,
             "Save & Quit did not retain changed settings");
         Require(
@@ -2352,48 +2430,38 @@ public sealed partial class ProductMain : Control
 
     private static string ComputeBuildHash()
     {
-        string gameDirectory = Path.GetFullPath(ProjectSettings.GlobalizePath("res://"));
-        string repositoryRoot = new DirectoryInfo(gameDirectory).Parent?.FullName
-            ?? throw new InvalidOperationException("Game directory has no repository parent.");
-        string coreDirectory = Path.Combine(repositoryRoot, "src", "Gridworks.Core");
-        var components = new List<string>
+        if (!OS.HasFeature("editor"))
         {
-            Path.Combine(repositoryRoot, "Directory.Build.props"),
-            Path.Combine(repositoryRoot, "global.json"),
-            Path.Combine(coreDirectory, "Gridworks.Core.csproj"),
-            Path.Combine(gameDirectory, "Gridworks.Game.csproj"),
-            Path.Combine(gameDirectory, "project.godot"),
-        };
-        components.AddRange(Directory.EnumerateFiles(coreDirectory, "*.cs", SearchOption.AllDirectories));
-        components.AddRange(Directory.EnumerateFiles(gameDirectory, "*.cs", SearchOption.TopDirectoryOnly));
-        components.AddRange(Directory.EnumerateFiles(gameDirectory, "*.tscn", SearchOption.TopDirectoryOnly));
+            return HashFile(OS.GetExecutablePath());
+        }
 
-        var manifest = new StringBuilder();
-        foreach (string path in components
-                     .Where(path => !GeneratedPath(path))
-                     .Select(Path.GetFullPath)
-                     .Distinct(StringComparer.Ordinal)
-                     .OrderBy(path => Path.GetRelativePath(repositoryRoot, path), StringComparer.Ordinal))
+        var assemblyIdentity = new StringBuilder();
+        System.Reflection.Assembly[] assemblies =
+        [
+            typeof(ProductCampaignRun).Assembly,
+            typeof(ProductMain).Assembly,
+        ];
+        foreach (System.Reflection.Assembly assembly in assemblies.OrderBy(
+                     assembly => assembly.GetName().Name,
+                     StringComparer.Ordinal))
         {
-            string label = Path.GetRelativePath(repositoryRoot, path).Replace('\\', '/');
-            if (!File.Exists(path))
-            {
-                throw new FileNotFoundException($"Build-hash component '{label}' was not found.", path);
-            }
-            manifest.Append(label)
+            assemblyIdentity
+                .Append(assembly.GetName().Name)
                 .Append(':')
-                .Append(LowerHex(SHA256.HashData(File.ReadAllBytes(path))))
+                .Append(assembly.ManifestModule.ModuleVersionId.ToString("D", CultureInfo.InvariantCulture))
                 .Append('\n');
         }
-        return LowerHex(SHA256.HashData(Encoding.UTF8.GetBytes(manifest.ToString())));
+        return LowerHex(SHA256.HashData(Encoding.UTF8.GetBytes(assemblyIdentity.ToString())));
     }
 
-    private static bool GeneratedPath(string path)
+    private static string HashFile(string path)
     {
-        string normalized = path.Replace('\\', '/');
-        return normalized.Contains("/bin/", StringComparison.Ordinal) ||
-               normalized.Contains("/obj/", StringComparison.Ordinal) ||
-               normalized.Contains("/.godot/", StringComparison.Ordinal);
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            throw new FileNotFoundException("Build-hash component was not found.", path);
+        }
+        using FileStream stream = File.OpenRead(path);
+        return LowerHex(SHA256.HashData(stream));
     }
 
     private static string LowerHex(byte[] bytes) => Convert.ToHexString(bytes).ToLowerInvariant();

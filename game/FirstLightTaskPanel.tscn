@@ -35,7 +35,7 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_colors/font_color = Color(0.62, 0.69, 0.73, 1)
 theme_override_font_sizes/font_size = 13
-text = "SECOND HEART / 두 번째 심장"
+text = "FIELD OPERATIONS / 전력망 운영"
 
 [node name="StepLabel" type="Label" parent="Scroll/Margin/Column"]
 unique_name_in_owner = true
@@ -50,7 +50,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 74)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.88, 0.92, 0.94, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 15
 text = "현재 행동 설명"
 autowrap_mode = 2
 

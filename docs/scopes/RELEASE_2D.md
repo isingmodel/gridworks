@@ -1,8 +1,9 @@
 # 2D 표현·사운드·패키징 구현 기준
 
-> 상태: **ACTIVE**
+> 상태: **REVIEW_IN_PROGRESS**
 >
-> 현재 권한: 기존 세 장 캠페인을 외부 테스트 직전의 macOS 내부 테스트 빌드로 마감한다.
+> 현재 권한: 구현과 대표 실행은 동결했다. 독립 검토에서 확인된 범위 안의 P0/P1 수정과 종료 문서만
+> 허용한다.
 >
 > 다음 권한: 외부 사용자 관찰, 배포 서명·공증과 공개 출시는 포함하지 않는다.
 
@@ -85,6 +86,9 @@ campaign save에는 영향을 주지 않는다.
   추적하지 않는다.
 - local internal build는 ad-hoc signing만 허용한다. Developer ID 서명·공증이 없는 ZIP은 공개
   배포물이 아니며 외부 전송 전 별도 권한과 credential이 필요하다.
+- `tools/package_macos_internal.sh`가 Godot export를 만든 뒤 현재 macOS에서 실행 가능한 local ad-hoc
+  signature를 다시 적용하고 설치·법적 문서를 ZIP root에 넣는다. 최종 artifact는 이 한 경로로만
+  만든다.
 
 공식 export template은 다음 파일만 사용한다.
 
@@ -141,7 +145,36 @@ runtime에 넣는 게임 표현과 사운드는 이 저장소에서 생성한 �
 
 ## 9. 종료 상태
 
-종료 전에는 이 절을 `IN_PROGRESS`로 둔다. 완료 뒤 다음만 기록한다.
+현재 종료 검토 전 증거는 다음과 같다.
+
+- 내부 ZIP: `dist/Gridworks-macOS-0.1.0.zip`
+- SHA-256: `1c9f7754b0cbb6d7b69374c9936051f678b423932288cc5307ec0766cb7f656d`
+- 앱: `Gridworks 0.1.0`, bundle `com.gridworks.game`, Universal 2 (`x86_64 arm64`), architecture별
+  deployment target `14.0`, local ad-hoc signature
+- canonical data: package `READY`의 campaign
+  `9e9ec5ea0ee1d8ab5780799f308e5ebd287ccd5da2c0916aa1ec4828a0ccdedb`, fixture
+  `b00b7fc9d657fd355b8741e4326d9a5297ae749de629c1763334bcca4df83f9c`가 저장소 bytes와 일치
+- 누적 검사: First Light `10/664`, Second Heart `5/124`, Factory `5/378`, Heatwave `5/243`,
+  Campaign Save·Settings `5/578`; Game Release rebuild `0 warning / 0 error`
+- editor 대표 흐름: `PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_PASS`, 기말현금 `4.660 M`, minute `1845`
+- package 대표 흐름: `PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_PASS`, `3.14초`, peak RSS
+  `320,684,032 bytes`; package build hash
+  `ba15f04f67e32877944e3540cd1eb9a587e41050b830640bf18803f1dc302794`
+- fresh process 저장·재개: `PRODUCT_CAMPAIGN_SAVE_LEG_PASS` 뒤
+  `PRODUCT_CAMPAIGN_CONTINUE_LEG_PASS`; SFX `50%` 설정이 저장되고 fresh process audio bus에 적용됨
+- 화면 확인: 1280×720 logical canvas에서 title·도움말·settings·초기·중간·최종 gameplay를 확인했다.
+  1920×1080 native window 요청과 UI `125%` 조합은 같은 1280×720 logical canvas로 stretch되며,
+  settings·gameplay text, focus, legend와 의도된 panel scroll을 확인했다.
+
+현재 알려진 minor는 두 가지다.
+
+1. Developer ID 서명·공증이 없어 외부 다운로드 실행은 Gatekeeper에 막힐 수 있다. 이 ZIP은 내부
+   후보이며 공개 배포물이 아니다.
+2. editor/movie가 자동으로 즉시 종료될 때 Godot이 code-generated audio resource `2~4`개의
+   `ObjectDB` 종료 경고를 간헐적으로 남긴다. 정상 package 전체 흐름에서는 재현되지 않았고 실행
+   중 누적·crash·저장 손상은 관찰되지 않았다. 외부 테스트에서 반복 누적이 보일 때 다시 연다.
+
+독립 검토와 최종 상태 전환은 아직 남아 있다. 완료 뒤 다음만 확정한다.
 
 - package 경로·SHA-256·앱 내부 버전과 minimum OS
 - 누적 검사, 두 화면 확인, package save/resume·FINAL 결과

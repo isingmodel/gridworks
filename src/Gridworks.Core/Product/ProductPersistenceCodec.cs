@@ -281,9 +281,20 @@ public static class ProductCampaignSaveCodec
 public static class ProductSettingsCodec
 {
     public const string SupportedSchemaVersion = ProductSettings.SupportedSchemaVersion;
+    private const string PreviousSchemaVersion = "gridworks.settings.v1";
 
-    private static readonly string[] RootFields =
+    private static readonly string[] V1RootFields =
         ["schemaVersion", "windowMode", "uiScalePercent", "showControlHelp"];
+    private static readonly string[] V2RootFields =
+    [
+        "schemaVersion",
+        "windowMode",
+        "uiScalePercent",
+        "showControlHelp",
+        "masterVolumePercent",
+        "ambientVolumePercent",
+        "sfxVolumePercent",
+    ];
 
     public static byte[] Serialize(ProductSettings settings)
     {
@@ -302,6 +313,9 @@ public static class ProductSettingsCodec
                     : "fullscreen");
             writer.WriteNumber("uiScalePercent", settings.UiScalePercent);
             writer.WriteBoolean("showControlHelp", settings.ShowControlHelp);
+            writer.WriteNumber("masterVolumePercent", settings.MasterVolumePercent);
+            writer.WriteNumber("ambientVolumePercent", settings.AmbientVolumePercent);
+            writer.WriteNumber("sfxVolumePercent", settings.SfxVolumePercent);
             writer.WriteEndObject();
         }
         return stream.ToArray();
@@ -320,7 +334,20 @@ public static class ProductSettingsCodec
                     MaxDepth = 8,
                 });
             JsonElement root = document.RootElement;
-            EnsureExactObject(root, RootFields, "$");
+            if (root.ValueKind != JsonValueKind.Object)
+            {
+                throw new ProductPersistenceValidationException("$ must be an object.");
+            }
+            string schemaVersion = ReadSchemaVersion(root);
+            EnsureExactObject(
+                root,
+                string.Equals(schemaVersion, PreviousSchemaVersion, StringComparison.Ordinal)
+                    ? V1RootFields
+                    : string.Equals(schemaVersion, SupportedSchemaVersion, StringComparison.Ordinal)
+                        ? V2RootFields
+                        : throw new ProductPersistenceValidationException(
+                            $"Unsupported settings schemaVersion '{schemaVersion}'."),
+                "$");
             string windowModeName = ReadString(
                 root.GetProperty("windowMode"),
                 "$.windowMode");
@@ -338,10 +365,13 @@ public static class ProductSettingsCodec
                     "$.showControlHelp must be a boolean.");
             }
             ProductSettings settings = new(
-                ReadString(root.GetProperty("schemaVersion"), "$.schemaVersion"),
+                SupportedSchemaVersion,
                 windowMode,
                 ReadInt32(root.GetProperty("uiScalePercent"), "$.uiScalePercent"),
-                helpElement.GetBoolean());
+                helpElement.GetBoolean(),
+                ReadVolumeOrDefault(root, schemaVersion, "masterVolumePercent"),
+                ReadVolumeOrDefault(root, schemaVersion, "ambientVolumePercent"),
+                ReadVolumeOrDefault(root, schemaVersion, "sfxVolumePercent"));
             Validate(settings);
             return settings;
         }
@@ -377,6 +407,49 @@ public static class ProductSettingsCodec
         {
             throw new ProductPersistenceValidationException(
                 "uiScalePercent must be 100 or 125.");
+        }
+        ValidateVolume(settings.MasterVolumePercent, "masterVolumePercent");
+        ValidateVolume(settings.AmbientVolumePercent, "ambientVolumePercent");
+        ValidateVolume(settings.SfxVolumePercent, "sfxVolumePercent");
+    }
+
+    private static string ReadSchemaVersion(JsonElement root)
+    {
+        int count = 0;
+        string? value = null;
+        foreach (JsonProperty property in root.EnumerateObject())
+        {
+            if (!string.Equals(property.Name, "schemaVersion", StringComparison.Ordinal))
+            {
+                continue;
+            }
+            count++;
+            value = ReadString(property.Value, "$.schemaVersion");
+        }
+        if (count != 1)
+        {
+            throw new ProductPersistenceValidationException(
+                count == 0
+                    ? "Missing property 'schemaVersion' at $."
+                    : "Unknown or duplicate property 'schemaVersion' at $.");
+        }
+        return value!;
+    }
+
+    private static int ReadVolumeOrDefault(
+        JsonElement root,
+        string schemaVersion,
+        string propertyName) =>
+        string.Equals(schemaVersion, PreviousSchemaVersion, StringComparison.Ordinal)
+            ? 100
+            : ReadInt32(root.GetProperty(propertyName), $"$.{propertyName}");
+
+    private static void ValidateVolume(int value, string propertyName)
+    {
+        if (value is not (0 or 25 or 50 or 75 or 100))
+        {
+            throw new ProductPersistenceValidationException(
+                $"{propertyName} must be 0, 25, 50, 75, or 100.");
         }
     }
 

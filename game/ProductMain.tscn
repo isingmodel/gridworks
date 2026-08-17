@@ -1,9 +1,11 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://ProductMain.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://FirstLightMapView.tscn" id="2_map"]
 [ext_resource type="PackedScene" path="res://FirstLightTaskPanel.tscn" id="3_panel"]
 [ext_resource type="PackedScene" path="res://ProductShellOverlay.tscn" id="4_shell"]
+[ext_resource type="Theme" path="res://ProductTheme.tres" id="5_theme"]
+[ext_resource type="Script" path="res://ProductAudio.cs" id="6_audio"]
 
 [node name="ProductMain" type="Control"]
 layout_mode = 3
@@ -12,7 +14,12 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("5_theme")
 script = ExtResource("1_main")
+
+[node name="ProductAudio" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("6_audio")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
@@ -22,7 +29,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.027, 0.063, 0.098, 1)
+color = Color(0.022, 0.043, 0.057, 1)
 
 [node name="SafeMargin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -62,7 +69,7 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 21
-text = "GRIDWORKS · 열돔 아래: 폭염과 정비"
+text = "GRIDWORKS"
 
 [node name="TitleSpacer" type="Control" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
 layout_mode = 2

@@ -62,15 +62,21 @@ public sealed record ProductSettings(
     string SchemaVersion,
     ProductWindowMode WindowMode,
     int UiScalePercent,
-    bool ShowControlHelp)
+    bool ShowControlHelp,
+    int MasterVolumePercent,
+    int AmbientVolumePercent,
+    int SfxVolumePercent)
 {
-    public const string SupportedSchemaVersion = "gridworks.settings.v1";
+    public const string SupportedSchemaVersion = "gridworks.settings.v2";
 
     public static ProductSettings Default { get; } = new(
         SupportedSchemaVersion,
         ProductWindowMode.Windowed,
         100,
-        true);
+        true,
+        100,
+        100,
+        100);
 }
 
 public enum ProductDocumentLoadStatus

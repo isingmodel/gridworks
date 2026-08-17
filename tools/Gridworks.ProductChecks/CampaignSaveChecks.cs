@@ -161,10 +161,52 @@ internal sealed class CampaignSaveChecks
             ProductSettings.SupportedSchemaVersion,
             ProductWindowMode.Fullscreen,
             125,
-            false);
+            false,
+            25,
+            50,
+            75);
         byte[] settingsBytes = ProductSettingsCodec.Serialize(settings);
+        Equal("gridworks.settings.v2", ProductSettingsCodec.SupportedSchemaVersion, "settings schema");
         Equal(settings, ProductSettingsCodec.Deserialize(settingsBytes), "settings round-trip");
         SequenceEqual(settingsBytes, ProductSettingsCodec.Serialize(settings), "stable settings bytes");
+
+        ProductSettings legacy = ProductSettingsCodec.Deserialize(
+            Encoding.UTF8.GetBytes(
+                "{\"schemaVersion\":\"gridworks.settings.v1\",\"windowMode\":\"fullscreen\",\"uiScalePercent\":125,\"showControlHelp\":false}"));
+        Equal(ProductSettings.SupportedSchemaVersion, legacy.SchemaVersion, "legacy settings schema");
+        Equal(ProductWindowMode.Fullscreen, legacy.WindowMode, "legacy window mode");
+        Equal(125, legacy.UiScalePercent, "legacy UI scale");
+        Equal(false, legacy.ShowControlHelp, "legacy control help");
+        Equal(100, legacy.MasterVolumePercent, "legacy master default");
+        Equal(100, legacy.AmbientVolumePercent, "legacy ambient default");
+        Equal(100, legacy.SfxVolumePercent, "legacy SFX default");
+
+        foreach (int volume in new[] { 0, 25, 50, 75, 100 })
+        {
+            ProductSettings boundary = settings with
+            {
+                MasterVolumePercent = volume,
+                AmbientVolumePercent = volume,
+                SfxVolumePercent = volume,
+            };
+            Equal(
+                boundary,
+                ProductSettingsCodec.Deserialize(ProductSettingsCodec.Serialize(boundary)),
+                $"volume boundary {volume}");
+        }
+
+        ExpectSettingsMutationRejected(
+            "volume below range",
+            settingsBytes,
+            root => root["masterVolumePercent"] = -1);
+        ExpectSettingsMutationRejected(
+            "volume unsupported step",
+            settingsBytes,
+            root => root["ambientVolumePercent"] = 1);
+        ExpectSettingsMutationRejected(
+            "volume above range",
+            settingsBytes,
+            root => root["sfxVolumePercent"] = 101);
         ExpectSettingsCodecRejected(
             "unsupported UI scale",
             Encoding.UTF8.GetBytes(
@@ -410,7 +452,10 @@ internal sealed class CampaignSaveChecks
                 ProductSettings.SupportedSchemaVersion,
                 ProductWindowMode.Fullscreen,
                 125,
-                false);
+                false,
+                25,
+                50,
+                75);
             ProductPersistenceStore.SaveSettings(settingsPath, settings);
             ProductSettingsLoadResult settingsLoad = ProductPersistenceStore.LoadSettings(settingsPath);
             Equal(ProductDocumentLoadStatus.Loaded, settingsLoad.Status, "settings load status");
@@ -537,6 +582,16 @@ internal sealed class CampaignSaveChecks
         {
             _assertionCount++;
         }
+    }
+
+    private void ExpectSettingsMutationRejected(
+        string label,
+        ReadOnlySpan<byte> validJson,
+        Action<JsonObject> mutation)
+    {
+        JsonObject root = ParseObject(validJson, label);
+        mutation(root);
+        ExpectSettingsCodecRejected(label, Encoding.UTF8.GetBytes(root.ToJsonString()));
     }
 
     private void ExpectRestoreRejected(string label, ProductCampaignSave save)

@@ -10,4 +10,13 @@
   <ItemGroup>
     <ProjectReference Include="../src/Gridworks.Core/Gridworks.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="../data/product-campaign-v1.json"
+                      Link="EmbeddedData/product-campaign-v1.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.product-campaign-v1.json" />
+    <EmbeddedResource Include="../data/product-heatwave-v1.json"
+                      Link="EmbeddedData/product-heatwave-v1.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.product-heatwave-v1.json" />
+  </ItemGroup>
 </Project>

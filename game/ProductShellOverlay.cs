@@ -56,6 +56,9 @@ internal sealed partial class ProductShellOverlay : Control
     private Button _cancelConfirmButton = null!;
     private OptionButton _windowModeOption = null!;
     private OptionButton _uiScaleOption = null!;
+    private OptionButton _masterVolumeOption = null!;
+    private OptionButton _ambientVolumeOption = null!;
+    private OptionButton _sfxVolumeOption = null!;
     private CheckButton _controlHelpCheck = null!;
     private ProductShellPage _page = ProductShellPage.Hidden;
     private ProductShellPage _returnPage = ProductShellPage.Title;
@@ -71,6 +74,9 @@ internal sealed partial class ProductShellOverlay : Control
     public event Action? RestartChapterRequested;
     public event Action<bool>? FullscreenChanged;
     public event Action<int>? UiScalePercentChanged;
+    public event Action<int>? MasterVolumePercentChanged;
+    public event Action<int>? AmbientVolumePercentChanged;
+    public event Action<int>? SfxVolumePercentChanged;
     public event Action<bool>? ControlHelpChanged;
     public event Action? GameplayFocusRequested;
 
@@ -96,6 +102,8 @@ internal sealed partial class ProductShellOverlay : Control
 
     public OptionButton GetUiScaleOption() => _uiScaleOption;
 
+    public OptionButton GetSfxVolumeOption() => _sfxVolumeOption;
+
     public CheckButton GetControlHelpCheck() => _controlHelpCheck;
 
     public override void _Ready()
@@ -118,12 +126,18 @@ internal sealed partial class ProductShellOverlay : Control
         _cancelConfirmButton = GetNode<Button>("%CancelConfirmButton");
         _windowModeOption = GetNode<OptionButton>("%WindowModeOption");
         _uiScaleOption = GetNode<OptionButton>("%UiScaleOption");
+        _masterVolumeOption = GetNode<OptionButton>("%MasterVolumeOption");
+        _ambientVolumeOption = GetNode<OptionButton>("%AmbientVolumeOption");
+        _sfxVolumeOption = GetNode<OptionButton>("%SfxVolumeOption");
         _controlHelpCheck = GetNode<CheckButton>("%ControlHelpCheck");
 
         _windowModeOption.AddItem("창 모드", 0);
         _windowModeOption.AddItem("전체화면", 1);
         _uiScaleOption.AddItem("100%", 100);
         _uiScaleOption.AddItem("125%", 125);
+        AddVolumeItems(_masterVolumeOption);
+        AddVolumeItems(_ambientVolumeOption);
+        AddVolumeItems(_sfxVolumeOption);
 
         _newGameButton.Pressed += OnNewGamePressed;
         _continueButton.Pressed += () => ContinueRequested?.Invoke();
@@ -150,6 +164,29 @@ internal sealed partial class ProductShellOverlay : Control
             if (!_settingControls)
             {
                 UiScalePercentChanged?.Invoke(_uiScaleOption.GetItemId((int)index));
+            }
+        };
+        _masterVolumeOption.ItemSelected += index =>
+        {
+            if (!_settingControls)
+            {
+                MasterVolumePercentChanged?.Invoke(
+                    _masterVolumeOption.GetItemId((int)index));
+            }
+        };
+        _ambientVolumeOption.ItemSelected += index =>
+        {
+            if (!_settingControls)
+            {
+                AmbientVolumePercentChanged?.Invoke(
+                    _ambientVolumeOption.GetItemId((int)index));
+            }
+        };
+        _sfxVolumeOption.ItemSelected += index =>
+        {
+            if (!_settingControls)
+            {
+                SfxVolumePercentChanged?.Invoke(_sfxVolumeOption.GetItemId((int)index));
             }
         };
         _controlHelpCheck.Toggled += enabled =>
@@ -230,7 +267,13 @@ internal sealed partial class ProductShellOverlay : Control
         SetPage(ProductShellPage.Help, GetNode<Button>("%HelpBackButton"));
     }
 
-    public void SetSettings(bool fullscreen, int uiScalePercent, bool controlHelpEnabled)
+    public void SetSettings(
+        bool fullscreen,
+        int uiScalePercent,
+        bool controlHelpEnabled,
+        int masterVolumePercent,
+        int ambientVolumePercent,
+        int sfxVolumePercent)
     {
         if (uiScalePercent is not (100 or 125))
         {
@@ -242,9 +285,30 @@ internal sealed partial class ProductShellOverlay : Control
         _settingControls = true;
         _windowModeOption.Select(fullscreen ? 1 : 0);
         _uiScaleOption.Select(uiScalePercent == 125 ? 1 : 0);
+        _masterVolumeOption.Select(VolumeIndex(masterVolumePercent));
+        _ambientVolumeOption.Select(VolumeIndex(ambientVolumePercent));
+        _sfxVolumeOption.Select(VolumeIndex(sfxVolumePercent));
         _controlHelpCheck.ButtonPressed = controlHelpEnabled;
         _settingControls = false;
     }
+
+    private static void AddVolumeItems(OptionButton option)
+    {
+        foreach (int percent in new[] { 0, 25, 50, 75, 100 })
+        {
+            option.AddItem($"{percent}%", percent);
+        }
+    }
+
+    private static int VolumeIndex(int percent) => percent switch
+    {
+        0 => 0,
+        25 => 1,
+        50 => 2,
+        75 => 3,
+        100 => 4,
+        _ => throw new ArgumentOutOfRangeException(nameof(percent)),
+    };
 
     public void ShowPauseError(string message)
     {
@@ -361,7 +425,7 @@ internal sealed partial class ProductShellOverlay : Control
             ProductShellPage.Hidden => "Gridworks 게임 화면",
             ProductShellPage.Title => "Gridworks 타이틀 메뉴",
             ProductShellPage.Pause => "Gridworks 일시정지 메뉴",
-            ProductShellPage.Settings => "Gridworks 화면 설정",
+            ProductShellPage.Settings => "Gridworks 화면과 소리 설정",
             ProductShellPage.Help => "Gridworks 조작 도움말",
             ProductShellPage.Confirm => "Gridworks 확인",
             _ => throw new ArgumentOutOfRangeException(nameof(page)),

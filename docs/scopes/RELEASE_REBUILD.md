@@ -415,12 +415,13 @@ data/release-*.json               출시판 machine authority
   임무 시작부터 다시 설계할 수 있다.
 - 누적 출시판 검사: 15 suites / 459 assertions 통과
 - Game Release build: warning 0 / error 0
-- 저장소 밖 macOS 패키지: `Gridworks-macOS-0.1.0.zip`, 124,447,543 bytes,
-  SHA-256 `3fb0229a46c2e323d24cd09dc28dab1258715a0b5c9bb86fa005081d75d96b3a`
+- 저장소 밖 macOS 패키지: `Gridworks-macOS-0.1.0.zip`, 124,447,595 bytes,
+  SHA-256 `218bcd436b34d417c19f553b2e748fbcf68f0823eba7bd1fb3862e9e06aa0e2d`
 - world SHA-256: `d1b22271be87ac598d9e7b86123e6a5cc67dde43ef7884fa635bc73a311288e8`
-- campaign SHA-256: `5b64d789bc6f312f81cb49bad2dbbfebf42f4b7efb1f0afb527c8d48a27dbf5a`
+- campaign SHA-256: `32e9f3285b7547c6aa2f1895e294e618106aae02c685cf13337b5eb3da2d65b8`
 - 두 개의 새 프로세스로 저장·이어하기·현재 임무 재시작과 8개 임무 완료를 확인했다.
-- 1280×720·1920×1080에서 UI 100%·125% 네 배치를 확인했다. 125%는 글자가 실제로 확대되며,
+- [화면·입력 증거](../../playtests/release-2d/LAYOUT_EVIDENCE.md)로 1280×720·1920×1080에서 UI
+  100%·125% 네 배치와 저장소 밖 키보드 focus를 보존했다. 125%는 글자가 실제로 확대되며,
   지도·작업 패널·이야기 카드가 잘리지 않고 긴 패널 내용은 세로 스크롤로 접근할 수 있다.
 - 독립 코드·문서 검토의 P0/P1은 0이다. 새 후보의 한국어 소유자 전체 플레이는
   아직 수집하지 않았으므로 4단계와 전체 목표는 검토 중으로 남긴다.

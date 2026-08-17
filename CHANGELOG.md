@@ -22,11 +22,11 @@
 
 - 파일: `Gridworks-macOS-0.1.0.zip`
 - 상태: `INTERNAL_RC`
-- 크기: `124,447,543 bytes`
-- SHA-256: `3fb0229a46c2e323d24cd09dc28dab1258715a0b5c9bb86fa005081d75d96b3a`
+- 크기: `124,447,595 bytes`
+- SHA-256: `218bcd436b34d417c19f553b2e748fbcf68f0823eba7bd1fb3862e9e06aa0e2d`
 - world SHA-256: `d1b22271be87ac598d9e7b86123e6a5cc67dde43ef7884fa635bc73a311288e8`
-- campaign SHA-256: `5b64d789bc6f312f81cb49bad2dbbfebf42f4b7efb1f0afb527c8d48a27dbf5a`
-- 소스 기준 커밋: `e355116`
+- campaign SHA-256: `32e9f3285b7547c6aa2f1895e294e618106aae02c685cf13337b5eb3da2d65b8`
+- 소스 기준 커밋: `1fd78bb`
 - 앱: `Gridworks 0.1.0`, bundle identifier `com.gridworks.game`
 - 실행 파일: Universal 2 (`x86_64 arm64`), architecture별 선언 하한 macOS `14.0`
 - 실제 확인 환경: macOS `26.6.1` arm64
@@ -38,6 +38,9 @@
 프로세스 모두 종료 코드 0과 완료 표식을 남겼다. 즉시 종료하는 headless 확인에서는
 Godot이 코드 생성 오디오 객체의 종료 정리 경고를 남겼지만, 실행 중 오류·저장 손상·미완료는
 관찰되지 않았다.
+
+[화면·입력 증거](playtests/release-2d/LAYOUT_EVIDENCE.md)는 1280×720·1920×1080과 UI
+100%·125%의 대표 화면, 실제 글자 확대와 저장소 밖 패키지의 키보드 focus 확인을 보존한다.
 
 이 기록은 위 ZIP bytes와 확인 환경에만 적용된다. x86_64 실행과 다른 macOS 버전은 검증하지
 않았으며 지원한다고 주장하지 않는다. 빌드 환경에는 유효한 코드 서명 identity가 없으므로

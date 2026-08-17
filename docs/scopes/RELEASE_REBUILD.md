@@ -408,12 +408,17 @@ data/release-*.json               출시판 machine authority
 
 - `ReleaseMain`은 프롤로그 3개와 본편 5개 임무, 자연스러운 한국어 이야기 카드,
   2D 지도·상태 표현, 키보드 focus, 사운드와 설정을 하나의 기본 실행 경로에서 제공한다.
-- 누적 출시판 검사: 15 suites / 433 assertions 통과
+- 본편은 정확한 접속점을 지시하지 않는 공급 결과를 목표로 하며, 북안 확장은 서로 다른 두
+  접속 해법을 자동검사로 확인했다. 사고 조건을 지도에 미리 적용해 사용 불가 설비와 우회 경로의
+  부하·정격·여유를 비교할 수 있다.
+- 완공 설계가 이후 임무를 막으면 현재 임무 재시작뿐 아니라 명령 기록을 안전하게 되감아 이전
+  임무 시작부터 다시 설계할 수 있다.
+- 누적 출시판 검사: 15 suites / 459 assertions 통과
 - Game Release build: warning 0 / error 0
-- 저장소 밖 macOS 패키지: `Gridworks-macOS-0.1.0.zip`, 124,772,081 bytes,
-  SHA-256 `aa3afab3052961b8b8ef177c2e9a1acd9414da077b79b4faeb5269b5750a0d35`
+- 저장소 밖 macOS 패키지: `Gridworks-macOS-0.1.0.zip`, 124,444,657 bytes,
+  SHA-256 `e5c8917928387b8e1d45a0436073a307eb23d1c31e4116e9b4d0407c67d4962d`
 - world SHA-256: `92efadd41b1ec91302d75fe606eb46fe50c368e331da72ec5b1eef58953667d1`
-- campaign SHA-256: `e4b66aaa92514dad7fc3e060d75f770bc300b9aff92d7452f04df39e78419c94`
+- campaign SHA-256: `177464d3db284db239c49115739a391483806e740f324a4c78e8ef0d46150e07`
 - 두 개의 새 프로세스로 저장·이어하기·현재 임무 재시작과 8개 임무 완료를 확인했다.
 - 1280×720·UI 125%의 가장 빡빡한 배치에서 지도와 작업 패널이 잘리지 않음을 확인했다.
   나머지 배치의 최종 확인은 소유자 전체 플레이와 함께 닫는다.
@@ -421,6 +426,8 @@ data/release-*.json               출시판 machine authority
   아직 수집하지 않았으므로 4단계와 전체 목표는 검토 중으로 남긴다.
 - 이 패키지는 Universal 2, ad-hoc 서명의 내부 후보다. Developer ID 서명·Apple 공증과
   다른 macOS 버전 확인이 없으므로 공개 배포로 표시하지 않는다.
+- 패키지는 Godot 4.7.1과 .NET 8.0.29의 버전 고정 라이선스·제3자 고지 원문을 포함하며,
+  디버그 심볼·로컬 빌드 경로와 이전 제품 fixture가 없음을 생성 과정에서 확인했다.
 
 ## 15. 최종 완료조건
 

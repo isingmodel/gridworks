@@ -21,7 +21,8 @@ docs/
 │   ├── FIRST_LIGHT.md                 완료된 첫 제품 단계 기준
 │   ├── SECOND_HEART.md                완료된 병원 신뢰도·경제 구현 기준
 │   ├── FACTORY_CAPACITY.md             완료된 공장 수요·발전소 용량 기준
-│   └── HEATWAVE_MAINTENANCE.md         완료된 폭염·예방정비 구현 기준
+│   ├── HEATWAVE_MAINTENANCE.md         완료된 폭염·예방정비 구현 기준
+│   └── CAMPAIGN_SAVE_SETTINGS.md        활성 캠페인·저장·설정 계약
 ├── development/
 │   └── BALANCING_STATIC_SIM.md        조건부 정적 분석 도구
 └── future/
@@ -49,6 +50,7 @@ docs/
 | 완료된 병원 제품 흐름은 무엇인가? | [두 번째 심장](scopes/SECOND_HEART.md) | 완료 범위를 다음 단계 권한으로 오해하지 않음 |
 | 완료된 공장·발전소 흐름은 무엇인가? | [공장 수요와 발전소 용량](scopes/FACTORY_CAPACITY.md) | 완료 범위를 폭염·정비 권한으로 오해하지 않음 |
 | 완료된 폭염·정비 흐름은 무엇인가? | [예고된 폭염과 예방정비](scopes/HEATWAVE_MAINTENANCE.md) | 완료 범위를 저장·캠페인 권한으로 오해하지 않음 |
+| 지금 캠페인·저장 단계에서 무엇을 구현하는가? | [캠페인 골격·저장·기본 설정](scopes/CAMPAIGN_SAVE_SETTINGS.md) | 콘텐츠·사운드·패키징까지 열지 않음 |
 | 정적 분석 도구는 언제 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 자동 튜닝이나 사람 선택 대체에 쓰지 않음 |
 | 1.0 이후 냉각수·원전 방향은 무엇인가? | [1.0 이후 방향](future/POST_1_0.md) | 1.0 schema·UI를 선결하지 않음 |
 

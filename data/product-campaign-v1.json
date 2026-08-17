@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "gridworks.campaign.v1",
+  "campaignId": "GRIDWORKS_CAMPAIGN_V1",
+  "displayName": "Gridworks",
+  "scenarioFixture": "product-heatwave-v1.json",
+  "chapters": [
+    { "chapterId": "FIRST_LIGHT", "displayName": "첫 점등" },
+    { "chapterId": "SECOND_HEART", "displayName": "두 번째 심장" },
+    { "chapterId": "HEAT_DOME", "displayName": "열돔 아래" }
+  ]
+}

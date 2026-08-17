@@ -375,11 +375,12 @@ data/release-*.json               출시판 machine authority
 - `data/release-campaign-v1.json`: 프롤로그 3개와 본편 5개, 네 명의 반복 인물, 장별 수요·예산·사고·목표
 - `ReleaseCampaignRun`: 활성 수요만 보이는 장 상태, 공사비 차감, 정상·사고 판정, 명령 재실행과 장 재시작
 - `ReleaseCampaignSaveCodec`·store: 콘텐츠 hash를 묶은 한 슬롯 원자 저장
-- 출시판 누적 검사: 15 suites / 429 assertions 통과
+- 3단계 종료 당시 누적 검사: 15 suites / 429 assertions 통과
 - Game Debug build: warning 0 / error 0
 - 1280×720 실제 입력: 첫 process에서 프롤로그 3개와 본편 1장 뒤 저장, 두 번째 process에서 이어하기와
   현재 장 재시작 뒤 본편 5장·마지막 결과까지 통과
-- campaign SHA-256: `8e010d3f2e04e71384a9b760724785dbe2821419ba72b1cc943ac7d85f4e795b`
+- 3단계 종료 당시 campaign SHA-256:
+  `8e010d3f2e04e71384a9b760724785dbe2821419ba72b1cc943ac7d85f4e795b`
 
 기본 실행 장면은 `ReleaseMain`으로 전환했다. 독립 검토 결과 P0/P1은 0이며 3단계는 완료됐다.
 
@@ -402,6 +403,24 @@ data/release-*.json               출시판 machine authority
    구분한다. 검증하지 않은 OS나 Intel 지원을 광고하지 않는다.
 8. 검증은 누적 검사 1회, Game release build 1회, 대표 package 전체 흐름 1회, 네 배치의 짧은
    시각 확인과 독립 P0/P1 검토로 제한한다. 새 mechanic·balance tuning·LLM 반복은 추가하지 않는다.
+
+### 14.1 구현·검사 기록
+
+- `ReleaseMain`은 프롤로그 3개와 본편 5개 임무, 자연스러운 한국어 이야기 카드,
+  2D 지도·상태 표현, 키보드 focus, 사운드와 설정을 하나의 기본 실행 경로에서 제공한다.
+- 누적 출시판 검사: 15 suites / 433 assertions 통과
+- Game Release build: warning 0 / error 0
+- 저장소 밖 macOS 패키지: `Gridworks-macOS-0.1.0.zip`, 124,772,081 bytes,
+  SHA-256 `aa3afab3052961b8b8ef177c2e9a1acd9414da077b79b4faeb5269b5750a0d35`
+- world SHA-256: `92efadd41b1ec91302d75fe606eb46fe50c368e331da72ec5b1eef58953667d1`
+- campaign SHA-256: `e4b66aaa92514dad7fc3e060d75f770bc300b9aff92d7452f04df39e78419c94`
+- 두 개의 새 프로세스로 저장·이어하기·현재 임무 재시작과 8개 임무 완료를 확인했다.
+- 1280×720·UI 125%의 가장 빡빡한 배치에서 지도와 작업 패널이 잘리지 않음을 확인했다.
+  나머지 배치의 최종 확인은 소유자 전체 플레이와 함께 닫는다.
+- 독립 코드·문서 검토의 P0/P1은 0이다. 새 후보의 한국어 소유자 전체 플레이는
+  아직 수집하지 않았으므로 4단계와 전체 목표는 검토 중으로 남긴다.
+- 이 패키지는 Universal 2, ad-hoc 서명의 내부 후보다. Developer ID 서명·Apple 공증과
+  다른 macOS 버전 확인이 없으므로 공개 배포로 표시하지 않는다.
 
 ## 15. 최종 완료조건
 

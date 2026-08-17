@@ -1,23 +1,39 @@
 # Gridworks 변경 기록
 
-## 0.1.0 — macOS 내부 테스트 후보
+## 0.1.0 — macOS 내부 출시 후보
 
-세 장 campaign의 건설·사건·결산 흐름, 한 슬롯 저장·재개, 장 재시작과 기본 화면 설정을 하나의
-제품 실행 장면으로 묶었다. 이번 후보는 기존 규칙과 수치를 바꾸지 않고 다음 release 경계를 더한다.
+33×21 청류시 지도에서 프롤로그 세 임무와 본편 다섯 장을 하나의 전력망으로 이어 플레이하는
+내부 출시 후보다. 발전 접속점에서 수요처까지 선로를 직접 건설하고, 세 갈래 이상의 분기·합류와
+설비별 사용량·정격·여유를 확인하며 예고된 사고에 대비한다.
 
-- code-native 2D theme, 지도 상태 표현과 vector app icon
-- 코드가 생성하는 최소 ambient와 상태 cue
-- master, ambient, SFX 음량 설정과 기존 설정 읽기
-- canonical campaign·heatwave JSON의 byte-identical embedded resource
-- macOS 14.0 minimum, Universal 2, ad-hoc internal export preset
+- 장마다 사람이 겪는 상황, 전력망에 생긴 영향과 다음 행동을 자연스러운 한국어로 전달한다.
+- 건설비와 장별 예산, 공사 시간, 정상 공급과 고정 사고 목표가 여덟 임무 동안 이어진다.
+- 한 슬롯 자동 저장, 새 프로세스 이어하기와 현재 임무 재시작을 제공한다.
+- 도시 지형, 생활권, 설비, 통전·무전압·공사·사용 불가를 색과 선 무늬로 함께 표현한다.
+- 외부 음원 없이 생성하는 낮은 환경음과 차단·통전·정전 알림을 제공하며 Master·Ambient·SFX
+  음량을 저장한다.
+- 패키지에는 `ReleaseMain`과 그 실행 의존성, 기본 오디오 bus layout, 설치 안내, 라이선스,
+  크레딧과 제3자 고지만 포함한다.
 
 ### Artifact record
 
-- 예상 파일: `Gridworks-macOS-0.1.0.zip`
-- 상태: `FINAL`
-- SHA-256: `045ed65f3be85d05417cfb838acaacd08aebccd516cad89aba0a9ca3bddd5771`
-- 실제 확인 환경: macOS 26.6.1 arm64, package 전체 흐름·fresh process 저장 재개 완료
+- 파일: `Gridworks-macOS-0.1.0.zip`
+- 상태: `INTERNAL_RC`
+- SHA-256: `aa3afab3052961b8b8ef177c2e9a1acd9414da077b79b4faeb5269b5750a0d35`
+- world SHA-256: `92efadd41b1ec91302d75fe606eb46fe50c368e331da72ec5b1eef58953667d1`
+- campaign SHA-256: `e4b66aaa92514dad7fc3e060d75f770bc300b9aff92d7452f04df39e78419c94`
+- 앱: `Gridworks 0.1.0`, bundle identifier `com.gridworks.game`
+- 실행 파일: Universal 2 (`x86_64 arm64`), architecture별 선언 하한 macOS `14.0`
+- 실제 확인 환경: macOS `26.6.1` arm64
+- 서명: 로컬 ad-hoc; Developer ID 서명과 Apple 공증 없음
 
-이 release record는 저장소와 별도로 전달되는 위 ZIP bytes에 한정한다. 이 후보는 Developer ID
-서명·공증, 외부 사용자 테스트와 공개 배포를 포함하지 않으며
-`HumanValidationStatus = NOT_COLLECTED`를 유지한다.
+저장소 밖 임시 폴더에서 첫 프로세스가 프롤로그 세 임무와 본편 첫 장을 마치고 저장했다. 두 번째
+프로세스는 그 저장을 읽고, 현재 임무 재시작을 확인한 뒤 남은 본편 네 장과 마지막 결과까지
+완료했다. 두 프로세스 모두 종료 코드 0과 완료 표식을 남겼다. 즉시 종료하는 headless 확인에서는
+Godot이 코드 생성 오디오 객체의 종료 정리 경고를 남겼지만, 실행 중 오류·저장 손상·미완료는
+관찰되지 않았다.
+
+이 기록은 위 ZIP bytes와 확인 환경에만 적용된다. x86_64 실행과 다른 macOS 버전은 검증하지
+않았으며 지원한다고 주장하지 않는다. 빌드 환경에는 유효한 코드 서명 identity가 없으므로
+Developer ID 서명·공증과 공개 배포는 차단된 상태다. 해당 자격증명, 실제 지원 OS 확인과 별도
+배포 승인이 마련되기 전까지 이 파일은 프로젝트 내부 후보로만 사용한다.

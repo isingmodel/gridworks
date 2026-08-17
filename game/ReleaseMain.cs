@@ -40,6 +40,7 @@ public sealed partial class ReleaseMain : Control
     private string _fixtureHash = string.Empty;
     private string _campaignHash = string.Empty;
     private string _campaignSavePath = string.Empty;
+    private string _legacyCampaignSavePath = string.Empty;
     private string _settingsPath = string.Empty;
     private ReleaseCampaignSave? _continuationSave;
     private ProductSettings _settings = ProductSettings.Default;
@@ -47,6 +48,7 @@ public sealed partial class ReleaseMain : Control
     private ReleaseCampaignError? _campaignError;
     private ReleaseChapterAssessment? _assessment;
     private Action? _storyContinuation;
+    private bool _preserveCurrentSaveBeforeWrite;
 
     private Label _phaseLabel = null!;
     private Label _timeLabel = null!;
@@ -159,7 +161,11 @@ public sealed partial class ReleaseMain : Control
         _shell.AmbientVolumePercentChanged += value => UpdateVolume(ambient: value);
         _shell.SfxVolumePercentChanged += value => UpdateVolume(sfx: value);
         _shell.ControlHelpChanged += OnControlHelpChanged;
-        _shell.GameplayFocusRequested += () => _map.CallDeferred(Control.MethodName.GrabFocus);
+        _shell.GameplayFocusRequested += () =>
+        {
+            Control target = _storyOverlay.Visible ? _storyButton : _map;
+            target.CallDeferred(Control.MethodName.GrabFocus);
+        };
     }
 
     private void OnPointerChanged(ReleasePoint? point)
@@ -671,15 +677,29 @@ public sealed partial class ReleaseMain : Control
             .SingleOrDefault(item => item.EdgeId == assetId);
         if (edge is not null)
         {
-            return _snapshot.World.LineClasses
-                .Single(item => item.ClassId == edge.LineClassId)
+            string from = _snapshot.World.Nodes
+                .Single(item => item.NodeId == edge.FromNodeId)
                 .DisplayName;
+            string to = _snapshot.World.Nodes
+                .Single(item => item.NodeId == edge.ToNodeId)
+                .DisplayName;
+            return $"{from}–{to} 선로";
         }
 
-        return _snapshot.World.Sources
-            .SingleOrDefault(item => item.SourceId == assetId)
-            ?.DisplayName;
+        ReleaseSourceDefinition? source = _snapshot.World.Sources
+            .SingleOrDefault(item => item.SourceId == assetId);
+        return source is null
+            ? null
+            : _snapshot.World.Nodes
+                .Single(item => item.NodeId == source.NodeId)
+                .DisplayName;
     }
+
+    private static bool HasEquipmentOutage(ReleaseCampaignEvent? campaignEvent) =>
+        campaignEvent is not null &&
+        (campaignEvent.UnavailableNodeIds.Count > 0 ||
+         campaignEvent.UnavailableEdgeIds.Count > 0 ||
+         campaignEvent.ActiveRiskAreaIds.Count > 0);
 
     private void ShowStory(
         string category,
@@ -717,7 +737,7 @@ public sealed partial class ReleaseMain : Control
         ReleaseCampaignCommandResult result = _run.Execute(
             new ReleaseCampaignCommand(ReleaseCampaignCommandKind.EvaluateChapter));
         ApplyCampaignResult(result, saveAccepted: true);
-        if (result.Accepted && attemptedChapter.Event is not null)
+        if (result.Accepted && HasEquipmentOutage(attemptedChapter.Event))
         {
             _audio.PlayLive(ReleaseAudioCue.Outage);
         }
@@ -780,6 +800,9 @@ public sealed partial class ReleaseMain : Control
         _campaignSavePath = Path.Combine(
             directory,
             ReleaseCampaignPersistenceStore.SaveFileName);
+        _legacyCampaignSavePath = Path.Combine(
+            directory,
+            ProductPersistenceStore.CampaignSaveFileName);
         _settingsPath = Path.Combine(
             directory,
             ProductPersistenceStore.SettingsFileName);
@@ -798,6 +821,7 @@ public sealed partial class ReleaseMain : Control
         ReleaseCampaignSaveLoadResult save = ReleaseCampaignPersistenceStore.Load(_campaignSavePath);
         if (save.Status == ReleaseDocumentLoadStatus.Invalid)
         {
+            _preserveCurrentSaveBeforeWrite = true;
             notices.Add("저장 파일을 읽지 못해 이어하기를 사용할 수 없습니다. 새 게임은 시작할 수 있습니다.");
         }
         else if (save.Status == ReleaseDocumentLoadStatus.Loaded && save.Save is not null)
@@ -816,8 +840,13 @@ public sealed partial class ReleaseMain : Control
                 exception is ReleasePersistenceValidationException or
                 ArgumentException or InvalidOperationException or OverflowException)
             {
+                _preserveCurrentSaveBeforeWrite = true;
                 notices.Add("이 버전과 호환되지 않는 저장 파일입니다. 새 게임은 시작할 수 있습니다.");
             }
+        }
+        if (File.Exists(_legacyCampaignSavePath))
+        {
+            notices.Add("이전 내부 테스트 저장은 새 출시판과 호환되지 않아 원본 파일을 그대로 보존했습니다.");
         }
         _titleStatus = string.Join('\n', notices);
     }
@@ -830,14 +859,18 @@ public sealed partial class ReleaseMain : Control
             _campaignHash,
             _fixtureHash);
         RefreshCampaignSnapshot();
+        if (!TryPreserveUnreadableSave(out string preserveError))
+        {
+            _shell.ShowPersistenceError(preserveError);
+            return;
+        }
         if (!TrySaveCampaign(out string error))
         {
             _shell.ShowPersistenceError(error);
             return;
         }
         _continuationSave = _run.CaptureSave();
-        _shell.HideShell();
-        ShowCurrentBriefing();
+        EnterCampaignGameplay();
     }
 
     private void ContinueCampaign()
@@ -854,10 +887,9 @@ public sealed partial class ReleaseMain : Control
                 _world,
                 _campaignHash,
                 _fixtureHash,
-                _continuationSave);
+            _continuationSave);
             RefreshCampaignSnapshot();
-            _shell.HideShell();
-            ShowCurrentBriefing();
+            EnterCampaignGameplay();
         }
         catch (Exception exception)
         {
@@ -939,6 +971,54 @@ public sealed partial class ReleaseMain : Control
         }
     }
 
+    private bool TryPreserveUnreadableSave(out string error)
+    {
+        error = string.Empty;
+        if (!_preserveCurrentSaveBeforeWrite || !File.Exists(_campaignSavePath))
+        {
+            return true;
+        }
+
+        string backupPath = _campaignSavePath + ".bak";
+        if (File.Exists(backupPath))
+        {
+            backupPath += ".1";
+        }
+        if (File.Exists(backupPath))
+        {
+            error = "기존 저장 파일을 안전하게 보존할 자리를 만들지 못했습니다. 저장 폴더를 확인하세요.";
+            return false;
+        }
+
+        try
+        {
+            File.Copy(_campaignSavePath, backupPath, overwrite: false);
+            _preserveCurrentSaveBeforeWrite = false;
+            _titleStatus = "읽지 못한 저장 파일을 백업한 뒤 새 게임을 시작했습니다.";
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is IOException or UnauthorizedAccessException)
+        {
+            GD.PushWarning(exception.ToString());
+            error = "기존 저장 파일을 백업하지 못했습니다. 저장 공간과 파일 권한을 확인하세요.";
+            return false;
+        }
+    }
+
+    private void EnterCampaignGameplay()
+    {
+        ShowCurrentBriefing();
+        if (_settings.ShowControlHelp)
+        {
+            _shell.ShowControlHelpBeforeGameplay();
+        }
+        else
+        {
+            _shell.HideShell();
+        }
+    }
+
     private void OnFullscreenChanged(bool fullscreen)
     {
         _settings = _settings with
@@ -1016,6 +1096,7 @@ public sealed partial class ReleaseMain : Control
             await NextFrame();
             EmitShell(ReleaseShellAction.NewGame, "새 게임");
             await NextFrame();
+            await CloseControlHelpIfShown();
             await CloseStory("첫 임무 브리핑");
 
             await BuildCampaignLine("CENTRAL_JUNCTION", false,
@@ -1072,6 +1153,7 @@ public sealed partial class ReleaseMain : Control
             await NextFrame();
             EmitShell(ReleaseShellAction.Continue, "이어하기");
             await NextFrame();
+            await CloseControlHelpIfShown();
             await CloseStory("이어온 임무 브리핑");
             Require(_run!.CurrentChapter.ChapterId == "CHAPTER_SHARED_CORRIDOR",
                 "이어하기가 저장된 장을 복원하지 못했습니다.");
@@ -1171,6 +1253,16 @@ public sealed partial class ReleaseMain : Control
     {
         Require(_storyOverlay.Visible, $"{description} 카드가 표시되지 않았습니다.");
         EmitButton(_storyButton, description);
+        await NextFrame();
+    }
+
+    private async Task CloseControlHelpIfShown()
+    {
+        if (_shell.Page != ReleaseShellPage.Help)
+        {
+            return;
+        }
+        EmitShell(ReleaseShellAction.HelpBack, "조작 도움말 닫기");
         await NextFrame();
     }
 

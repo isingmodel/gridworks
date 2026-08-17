@@ -1,0 +1,158 @@
+{
+  "schemaVersion": "gridworks.product.heatwave.v1",
+  "fixtureId": "HEATWAVE_MAINTENANCE_V1",
+  "displayName": "열돔 아래 — 예고와 정비",
+  "units": {
+    "position": "GridUnit",
+    "power": "kW",
+    "energy": "kWMinute",
+    "time": "GameMinute",
+    "cash": "CashUnit",
+    "rate": "CashUnitPerGWh"
+  },
+  "mapBounds": { "minX": 0, "maxX": 20, "minY": 0, "maxY": 12 },
+  "blockedCells": [
+    { "x": 9, "y": 4 },
+    { "x": 10, "y": 4 }
+  ],
+  "initialMinute": 0,
+  "settlementMinutes": 60,
+  "economy": {
+    "initialCash": 18000000,
+    "saleRateCashUnitPerGWh": 100000000
+  },
+  "existingSource": {
+    "assetId": "EXISTING_SOURCE",
+    "terminalId": "EXISTING_SOURCE_TERMINAL",
+    "position": { "x": 2, "y": 6 },
+    "capacityKw": 3000
+  },
+  "town": {
+    "id": "FIRST_TOWN",
+    "position": { "x": 18, "y": 6 },
+    "demandKw": 1000,
+    "priority": 1
+  },
+  "substationProject": {
+    "projectId": "FIRST_SUBSTATION_PROJECT",
+    "assetId": "FIRST_SUBSTATION",
+    "terminalId": "FIRST_SUBSTATION_TERMINAL",
+    "capacityKw": 2000,
+    "serviceRadiusGridUnit": 4,
+    "costCashUnit": 2000000,
+    "buildMinutes": 120
+  },
+  "lineProject": {
+    "projectId": "FIRST_LINE_PROJECT",
+    "fromTerminalId": "EXISTING_SOURCE_TERMINAL",
+    "toTerminalId": "FIRST_SUBSTATION_TERMINAL",
+    "ratingKw": 2000,
+    "maxSpanGridUnit": 4,
+    "supportCostCashUnit": 250000,
+    "spanCostCashUnit": 300000,
+    "supportBuildMinutes": 30,
+    "spanBuildMinutes": 40
+  },
+  "hospital": {
+    "id": "REGIONAL_HOSPITAL",
+    "position": { "x": 18, "y": 3 },
+    "demandKw": 1000,
+    "priority": 0,
+    "primaryTerminalId": "HOSPITAL_PRIMARY_TERMINAL",
+    "backupTerminalId": "HOSPITAL_BACKUP_TERMINAL",
+    "upsMinutes": 15,
+    "dieselMinutes": 285
+  },
+  "hospitalLineProjects": [
+    {
+      "projectId": "HOSPITAL_PRIMARY_LINE",
+      "fromTerminalId": "EXISTING_SOURCE_TERMINAL",
+      "toTerminalId": "HOSPITAL_PRIMARY_TERMINAL",
+      "routePriority": 0,
+      "ratingKw": 2000,
+      "maxSpanGridUnit": 4,
+      "supportCostCashUnit": 200000,
+      "spanCostCashUnit": 250000,
+      "supportBuildMinutes": 20,
+      "spanBuildMinutes": 30
+    },
+    {
+      "projectId": "HOSPITAL_BACKUP_LINE",
+      "fromTerminalId": "EXISTING_SOURCE_TERMINAL",
+      "toTerminalId": "HOSPITAL_BACKUP_TERMINAL",
+      "routePriority": 1,
+      "ratingKw": 2000,
+      "maxSpanGridUnit": 4,
+      "supportCostCashUnit": 200000,
+      "spanCostCashUnit": 250000,
+      "supportBuildMinutes": 20,
+      "spanBuildMinutes": 30
+    }
+  ],
+  "spatialIncident": {
+    "id": "OLD_CORRIDOR_UNAVAILABLE",
+    "riskRect": { "minX": 8, "maxX": 12, "minY": 2, "maxY": 10 },
+    "leadMinutes": 60,
+    "durationMinutes": 240
+  },
+  "hospitalEconomy": {
+    "variableGenerationCostCashUnitPerGWh": 40000000,
+    "unservedCompensationCashUnitPerGWh": 200000000,
+    "lostSalesCashUnitPerGWh": 100000000
+  },
+  "factorySettlementMinutes": 60,
+  "factory": {
+    "id": "RIVER_FACTORY",
+    "terminalId": "RIVER_FACTORY_TERMINAL",
+    "position": { "x": 18, "y": 9 },
+    "demandKw": 2000,
+    "priority": 2,
+    "feederRatingKw": 2500
+  },
+  "gasPlantProject": {
+    "projectId": "NEW_GAS_PLANT_PROJECT",
+    "assetId": "NEW_GAS_PLANT",
+    "terminalId": "NEW_GAS_PLANT_TERMINAL",
+    "capacityKw": 2000,
+    "baseCostCashUnit": 2500000,
+    "buildMinutes": 180,
+    "variableGenerationCostCashUnitPerGWh": 70000000
+  },
+  "gasPlantSites": [
+    {
+      "siteId": "NEAR_EXPENSIVE_SITE",
+      "position": { "x": 6, "y": 10 },
+      "siteCostCashUnit": 1500000
+    },
+    {
+      "siteId": "FAR_CHEAP_SITE",
+      "position": { "x": 18, "y": 11 },
+      "siteCostCashUnit": 100000
+    }
+  ],
+  "plantConnectionLineProject": {
+    "projectId": "NEW_GAS_PLANT_CONNECTION",
+    "fromTerminalId": "NEW_GAS_PLANT_TERMINAL",
+    "toTerminalId": "EXISTING_SOURCE_TERMINAL",
+    "ratingKw": 2500,
+    "maxSpanGridUnit": 4,
+    "supportCostCashUnit": 100000,
+    "spanCostCashUnit": 150000,
+    "supportBuildMinutes": 15,
+    "spanBuildMinutes": 25
+  },
+  "heatwave": {
+    "id": "FIXED_HEAT_DOME",
+    "leadMinutes": 180,
+    "durationMinutes": 240,
+    "townDemandKw": 1500,
+    "agedFactoryFeederId": "RIVER_FACTORY_OLD_FEEDER",
+    "agedFactoryFeederHeatwaveRatingKw": 2000
+  },
+  "preventiveMaintenance": {
+    "projectId": "FACTORY_FEEDER_PREVENTIVE_MAINTENANCE",
+    "targetAssetId": "RIVER_FACTORY_OLD_FEEDER",
+    "costCashUnit": 2000000,
+    "buildMinutes": 120
+  }
+}

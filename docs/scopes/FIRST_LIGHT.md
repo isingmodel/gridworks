@@ -46,6 +46,19 @@ Loader는 exact field set과 type을 요구한다. 추가·누락·대소문자 
 숫자 문자열과 소수형을 거부한다. 위치와 fixture 시간은 32-bit integer, 전력·에너지·현금·rate는
 64-bit integer로 읽고 모든 파생 산술은 checked 연산을 사용한다.
 
+의미 검증은 다음으로 닫는다.
+
+- map bounds 순서와 모든 위치의 inclusive bounds
+- 비어 있지 않고 서로 고유한 asset·terminal·project·town ID
+- source·town·blocked cell의 중복·충돌과 blocked cell 자체의 중복
+- line의 두 terminal 참조가 source·substation terminal과 정확히 일치함
+- 시작시각·시작현금은 0 이상, 수요·정격·반경·최대 span·공기·결산기간·비용·판매단가는 양수
+- map 대각선, 반경·span 제곱, 가능한 최대 견적·완공시각과 결산 산술이 64-bit 범위를 넘지 않음
+- 잠재 매출의 분자가 `60_000_000`으로 정확히 나누어짐
+
+현금이 부족하거나 정격이 수요보다 작은 fixture는 정상 runtime 실패 가지를 검증할 수 있도록
+loader가 거부하지 않는다. 현재 fixture의 성공 가능성은 검사 코드의 reference flow가 증명한다.
+
 ## 3. 이 단계가 고정하는 공간 규칙
 
 변전소 footprint, terminal과 서비스 권역 중심은 한 정수 grid cell이다. 지도 밖, 건설 불가 cell,
@@ -60,9 +73,11 @@ dy = town.y - substation.y
 TownInServiceArea = dx² + dy² <= serviceRadius²
 ```
 
-서비스 권역 밖 변전소도 발주할 수 있다. preview와 화면은 잘못된 위치임을 미리 말하지만 정답
-위치로 자동 보정하지 않는다. 이는 서비스 권역과 실제 공급을 구분하는 의도된 실패 설계이며,
-결산 뒤 임무를 다시 시작할 수 있다.
+서비스 권역 밖 변전소도 발주할 수 있다. placement·order preview는 `Accepted = true`, 오류 없음으로
+유지하고 예상 공급 실패를 별도 경고한다. 화면은 공급에 부적합함을 미리 말하지만 정답 위치로
+자동 보정하지 않는다. 이는 서비스 권역과 실제 공급을 구분하는 의도된 실패 설계이며, 결산 뒤
+임무를 다시 시작할 수 있다. 정격 부족도 같은 방식으로 공사 명령을 막지 않고 예상 공급 실패로
+표시한다.
 
 선로는 다음 순서의 단일 경로다.
 
@@ -138,7 +153,7 @@ revenueCashUnit =
 
 fixture는 나눗셈이 정확히 떨어져야 한다. 실제 인도 전력만 매출이다. 공급에 성공하면 임무
 `Success`, 실패하면 매출 0인 `Failure`로 결산한다. 발전 변동비, 미공급 보상과 LostSales는
-병원·경제 단계 전에는 만들지 않는다. 결산은 한 번만 가능하다.
+병원·경제 단계 전에는 만들지 않는다. 결산은 한 번만 가능하며 그 전의 임무 결과는 `Pending`이다.
 
 ## 6. 권위 상태와 명령
 
@@ -187,8 +202,37 @@ RestartMission
 명령 오류는 `WRONG_PHASE`, `NO_DRAFT`, `OUT_OF_BOUNDS`, `NOT_BUILDABLE`,
 `POSITION_OCCUPIED`, `SPAN_TOO_LONG`, `NOTHING_TO_UNDO`, `INSUFFICIENT_CASH`만 사용한다.
 preview와 실제 명령은 같은 순수 판정 함수를 사용한다. preview와 모든 거부 명령은 상태를 바꾸지
-않으며 반환 snapshot의 collection은 복사본이다. `RestartMission`은 어느 phase에서든 최초
-snapshot과 byte-identical한 권위 상태로 돌아간다. restart 횟수나 replay 기록은 저장하지 않는다.
+않으며 반환 snapshot의 collection은 복사본이다.
+
+명령별 오류 우선순위는 다음으로 닫는다.
+
+- 변전소 배치: `WRONG_PHASE → OUT_OF_BOUNDS → NOT_BUILDABLE → POSITION_OCCUPIED`
+- 변전소 발주: `WRONG_PHASE → NO_DRAFT → INSUFFICIENT_CASH`
+- support 추가: `WRONG_PHASE → OUT_OF_BOUNDS → NOT_BUILDABLE → POSITION_OCCUPIED → SPAN_TOO_LONG`
+- support undo: `WRONG_PHASE → NOTHING_TO_UNDO`
+- 선로 발주: `WRONG_PHASE → SPAN_TOO_LONG → INSUFFICIENT_CASH`
+- 잘못된 phase의 완공·결산: `WRONG_PHASE`
+
+같은 유효 변전소 draft 위치를 다시 지정하는 것은 성공하며 값은 그대로다. 두 cancel은 각 planning
+phase 안에서는 draft가 비어 있어도 성공하는 idempotent clear이고 다른 phase에서는
+`WRONG_PHASE`다. `RestartMission`은 어느 phase에서든 항상 성공해 최초 snapshot과 값이 같은
+권위 상태로 돌아간다. restart 횟수나 replay 기록은 저장하지 않는다.
+
+public snapshot은 다음 값만 가진다.
+
+- `minute`, `cash`, `phase`
+- 변전소 position·project state·completion minute
+- 입력순서 support 목록과 선로 project state·completion minute
+- `townInServiceArea`, typed supply failure, `townDeliveredKw`
+- 결산 완료 여부, 인도 `kW·minute`, 매출과 `Pending/Success/Failure` 결과
+
+명령 결과는 `Accepted`, nullable error와 snapshot을 반환한다. 배치 preview는 위치·서비스 적격성과
+예상 공급 실패, span preview는 from/to·제곱거리·허용 제곱거리, order preview는 견적 비용·공기·
+완공시각과 예상 공급 실패를 반환한다. 저장 단계 전에는 snapshot JSON 형식이나 field 순서를 제품
+계약으로 만들지 않고 record 값 동등성으로 결정론과 restart를 검사한다.
+
+preview의 예상 공급 실패는 선택한 draft를 사용하고 변전소·선로가 모두 완공됐다고 가정한 결과다.
+따라서 현재 snapshot의 `변전소 미완공`·`선로 미완공` 상태와 별개로 권역·정격 문제를 미리 말한다.
 
 ## 7. 코드와 화면 경계
 
@@ -236,14 +280,14 @@ ProductMain
 - 별도 project 생명주기, 공사 중 무전압과 원자 완공
 - 공급 실패 우선순위와 세 정격의 경계
 - 실제 인도분만 매출, 성공·실패 결산과 이중 결산 거부
-- 모든 phase의 restart와 결정론적 snapshot JSON
+- 모든 phase의 restart와 결정론적 snapshot 값
 - 검사 코드만 소유한 성공 reference와 권역 밖 실패 reference
 - 기존 Scope 0B·Scope 1 회귀
 
 ### native 확인
 
 headless smoke도 handler를 직접 호출하지 않고 실제 viewport map click과 표준 button signal을 지난다.
-변전소 초안 이동·취소, 지지물 undo·전체 취소, 별도 발주·완공, 공급·결산을 한 번 수행한다.
+변전소 초안 이동·취소, 지지물 undo·전체 취소, 별도 발주·완공과 성공 공급·결산을 한 번 수행한다.
 1280×720과 1920×1080 실행의 최종 snapshot은 같아야 한다. 좌표 witness는 smoke 명령행과 검사만
 소유하고 runtime fixture·화면·진단에는 기록하지 않는다.
 
@@ -253,7 +297,8 @@ headless smoke도 handler를 직접 호출하지 않고 실제 viewport map clic
 ### 단계 종료
 
 - 제품 fixture, Core, 검사와 기본 장면이 구현됐다.
-- 첫 상태부터 성공·실패 결산과 restart가 한 native 흐름에서 끝난다.
+- 첫 상태부터 성공 결산이 한 native 흐름에서 끝나고, 실패 결산과 모든 phase의 restart는 Core
+  검사에서 닫힌다.
 - 기존 두 prototype의 source·fixture·규칙 결과가 보존됐다.
 - 미해결 critical과 다음 단계가 의존하는 core-flow major가 없다.
 - README, 체크리스트, 오브젝트와 비주얼 문서가 실제 상태와 일치한다.

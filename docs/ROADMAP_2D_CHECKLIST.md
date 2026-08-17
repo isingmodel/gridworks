@@ -20,8 +20,8 @@
 | 과거 내부 후보 | 보존 | [개발 이력](DEVELOPMENT_HISTORY.md)과 완료 scope | 동결 회귀 | 기존 package 실행 | 소유자 전체 플레이에서 출시 차단 문제 확인 | 출시판으로는 superseded |
 | 1. 분기형 배전망 기초 | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md)·[world 데이터](../data/release-world-v1.json) | [9 suites / 152 assertions](../tools/Gridworks.ReleaseChecks/Program.cs), 과거 회귀 통과 | Game 기본 장면 변경 없음 | 해당 없음 | 독립 P0/P1 0 |
 | 2. 출시판 지도와 건설 UX | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md) | 12 suites / 217 assertions | 1280×720 대표 공사 흐름 통과 | 최종 한국어 검토는 4단계 | 독립 P0/P1 0 |
-| 3. 프롤로그·본편 캠페인 | **검토 중** | [활성 계약](scopes/RELEASE_REBUILD.md)·[캠페인 데이터](../data/release-campaign-v1.json) | 15 suites / 429 assertions | 8장·fresh-process 저장·재시작 통과 | 전체 한국어 검토는 4단계 | 독립 검토 진행 중 |
-| 4. 출시 마감 | 미승인 | 3단계 종료 뒤 같은 계약에서 전환 | 대기 | 대기 | 한국어 소유자 전체 플레이 대기 | 대기 |
+| 3. 프롤로그·본편 캠페인 | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md)·[캠페인 데이터](../data/release-campaign-v1.json) | 15 suites / 429 assertions | 8장·fresh-process 저장·재시작 통과 | 전체 한국어 검토는 4단계 | 독립 P0/P1 0 |
+| 4. 출시 마감 | **활성** | [활성 계약](scopes/RELEASE_REBUILD.md) | 진행 중 | package 전체 흐름 대기 | 한국어 소유자 전체 플레이 대기 | 대기 |
 
 ## 단계 활성화 조건
 

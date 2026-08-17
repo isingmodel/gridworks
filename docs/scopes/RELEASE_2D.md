@@ -1,11 +1,10 @@
 # 2D 표현·사운드·패키징 구현 기준
 
-> 상태: **REVIEW_IN_PROGRESS**
+> 상태: **COMPLETED**
 >
-> 현재 권한: 구현과 대표 실행은 동결했다. 독립 검토에서 확인된 범위 안의 P0/P1 수정과 종료 문서만
-> 허용한다.
+> 현재 권한: 이 단계의 구현·대표 실행·종료 검토를 마쳤다. 활성 구현 단계는 없다.
 >
-> 다음 권한: 외부 사용자 관찰, 배포 서명·공증과 공개 출시는 포함하지 않는다.
+> 다음 권한: 외부 사용자 관찰, 배포 서명·공증과 공개 출시는 **NOT_GRANTED**다.
 
 ## 1. 플레이어에게 보이는 결과
 
@@ -145,21 +144,21 @@ runtime에 넣는 게임 표현과 사운드는 이 저장소에서 생성한 �
 
 ## 9. 종료 상태
 
-현재 종료 검토 전 증거는 다음과 같다.
+현재 종료 증거는 다음과 같다.
 
 - 내부 ZIP: `dist/Gridworks-macOS-0.1.0.zip`
-- SHA-256: `1c9f7754b0cbb6d7b69374c9936051f678b423932288cc5307ec0766cb7f656d`
+- SHA-256: `bfe684b19b0930a6252bf68c2d7bee2dbd88eac6a97772baea96c34abcd94c08`
 - 앱: `Gridworks 0.1.0`, bundle `com.gridworks.game`, Universal 2 (`x86_64 arm64`), architecture별
   deployment target `14.0`, local ad-hoc signature
 - canonical data: package `READY`의 campaign
   `9e9ec5ea0ee1d8ab5780799f308e5ebd287ccd5da2c0916aa1ec4828a0ccdedb`, fixture
   `b00b7fc9d657fd355b8741e4326d9a5297ae749de629c1763334bcca4df83f9c`가 저장소 bytes와 일치
 - 누적 검사: First Light `10/664`, Second Heart `5/124`, Factory `5/378`, Heatwave `5/243`,
-  Campaign Save·Settings `5/578`; Game Release rebuild `0 warning / 0 error`
+  Campaign Save·Settings `5/581`; Game Release rebuild `0 warning / 0 error`
 - editor 대표 흐름: `PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_PASS`, 기말현금 `4.660 M`, minute `1845`
-- package 대표 흐름: `PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_PASS`, `3.14초`, peak RSS
-  `320,684,032 bytes`; package build hash
-  `ba15f04f67e32877944e3540cd1eb9a587e41050b830640bf18803f1dc302794`
+- package 대표 흐름: `PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_PASS`, `3.10초`, peak RSS
+  `320,634,880 bytes`; package build hash
+  `336c9ecd430b10c50295cdc633d0a3851689e2ae323d98ebc632c1bb85e7f37e`
 - fresh process 저장·재개: `PRODUCT_CAMPAIGN_SAVE_LEG_PASS` 뒤
   `PRODUCT_CAMPAIGN_CONTINUE_LEG_PASS`; SFX `50%` 설정이 저장되고 fresh process audio bus에 적용됨
 - 화면 확인: 1280×720 logical canvas에서 title·도움말·settings·초기·중간·최종 gameplay를 확인했다.
@@ -174,9 +173,11 @@ runtime에 넣는 게임 표현과 사운드는 이 저장소에서 생성한 �
    `ObjectDB` 종료 경고를 간헐적으로 남긴다. 정상 package 전체 흐름에서는 재현되지 않았고 실행
    중 누적·crash·저장 손상은 관찰되지 않았다. 외부 테스트에서 반복 누적이 보일 때 다시 연다.
 
-독립 검토와 최종 상태 전환은 아직 남아 있다. 완료 뒤 다음만 확정한다.
+독립 검토는 `P0=0, P1=2`를 보고했다. v1 설정이 매 실행마다 다시 변환되던 문제는 첫 읽기 때
+canonical v2를 원자 저장하도록 고쳤고, 설치 안내는 ZIP 자기참조 없이 별도 신뢰 경로의 release
+record와 hash를 대조하도록 고쳤다. 수정 뒤 누적 검사, Game build와 최종 package 흐름을 다시
+확인했으며 열린 P0/P1은 없다.
 
-- package 경로·SHA-256·앱 내부 버전과 minimum OS
-- 누적 검사, 두 화면 확인, package save/resume·FINAL 결과
-- 남은 known issue와 서명·공증·외부 테스트 경계
-- `HumanValidationStatus = NOT_COLLECTED`
+따라서 7단계 2D 개발과 내부 테스트 후보 제작은 완료했다. 이 결론은 위 한 환경과 대표 흐름에만
+한정하며, `HumanValidationStatus = NOT_COLLECTED`다. 사람 사용성·재미·밸런스, macOS 버전 범위,
+외부 설치와 공개 배포는 다음 사용자 승인과 별도 증거가 필요하다.

@@ -461,6 +461,25 @@ internal sealed class CampaignSaveChecks
             Equal(ProductDocumentLoadStatus.Loaded, settingsLoad.Status, "settings load status");
             Equal(settings, settingsLoad.Settings, "settings persisted value");
 
+            File.WriteAllBytes(
+                settingsPath,
+                Encoding.UTF8.GetBytes(
+                    "{\"schemaVersion\":\"gridworks.settings.v1\",\"windowMode\":\"fullscreen\",\"uiScalePercent\":125,\"showControlHelp\":false}"));
+            ProductSettingsLoadResult upgradedSettings =
+                ProductPersistenceStore.LoadSettings(settingsPath);
+            ProductSettings expectedUpgrade = settings with
+            {
+                MasterVolumePercent = 100,
+                AmbientVolumePercent = 100,
+                SfxVolumePercent = 100,
+            };
+            Equal(ProductDocumentLoadStatus.Loaded, upgradedSettings.Status, "legacy settings load status");
+            Equal(expectedUpgrade, upgradedSettings.Settings, "legacy settings upgraded value");
+            SequenceEqual(
+                ProductSettingsCodec.Serialize(expectedUpgrade),
+                File.ReadAllBytes(settingsPath),
+                "legacy settings were not canonically persisted as v2");
+
             File.WriteAllText(settingsPath, "{", Encoding.UTF8);
             ProductSettingsLoadResult corruptSettings = ProductPersistenceStore.LoadSettings(settingsPath);
             Equal(ProductDocumentLoadStatus.Invalid, corruptSettings.Status, "corrupt settings status");

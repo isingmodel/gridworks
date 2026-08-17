@@ -55,8 +55,14 @@ public static class ProductPersistenceStore
         }
         try
         {
+            byte[] storedBytes = File.ReadAllBytes(absolutePath);
             ProductSettings settings = ProductSettingsCodec.Deserialize(
-                File.ReadAllBytes(absolutePath));
+                storedBytes);
+            byte[] canonicalBytes = ProductSettingsCodec.Serialize(settings);
+            if (!storedBytes.AsSpan().SequenceEqual(canonicalBytes))
+            {
+                ProductAtomicFile.Write(absolutePath, canonicalBytes);
+            }
             return new ProductSettingsLoadResult(
                 ProductDocumentLoadStatus.Loaded,
                 settings,

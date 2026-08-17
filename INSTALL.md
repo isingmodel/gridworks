@@ -15,8 +15,9 @@ Apple에 공증하지 않았으므로 공개 배포물이 아니다. 신뢰할 �
 
 ## 설치와 실행
 
-1. `CHANGELOG.md`에 패키지 상태가 `FINAL`로 기록되어 있는지 확인한다.
-2. `shasum -a 256 Gridworks-macOS-0.1.0.zip`을 실행해 기록된 SHA-256과 비교한다.
+1. ZIP과 별도로 신뢰할 수 있는 경로로 제공된 release record를 확인한다. 현재 저장소에서는
+   `CHANGELOG.md`가 이 기록이며 상태가 `FINAL`이어야 한다.
+2. `shasum -a 256 Gridworks-macOS-0.1.0.zip`을 실행해 그 release record의 SHA-256과 비교한다.
 3. ZIP을 풀고 `Gridworks.app`을 `Applications` 또는 쓰기 가능한 로컬 폴더로 옮긴다.
 4. Finder에서 앱을 control-click한 뒤 **열기**를 선택한다.
 

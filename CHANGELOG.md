@@ -14,10 +14,10 @@
 ### Artifact record
 
 - 예상 파일: `Gridworks-macOS-0.1.0.zip`
-- 상태: `REVIEW_IN_PROGRESS`
-- SHA-256: `1c9f7754b0cbb6d7b69374c9936051f678b423932288cc5307ec0766cb7f656d`
+- 상태: `FINAL`
+- SHA-256: `bfe684b19b0930a6252bf68c2d7bee2dbd88eac6a97772baea96c34abcd94c08`
 - 실제 확인 환경: macOS 26.6.1 arm64, package 전체 흐름·fresh process 저장 재개 완료
 
-`FINAL`이 기록되기 전에는 종료 검토를 마친 검증 산출물로 간주하지 않는다. 이 후보는
-Developer ID 서명·공증, 외부 사용자 테스트와 공개 배포를 포함하지 않으며
+이 release record는 저장소와 별도로 전달되는 위 ZIP bytes에 한정한다. 이 후보는 Developer ID
+서명·공증, 외부 사용자 테스트와 공개 배포를 포함하지 않으며
 `HumanValidationStatus = NOT_COLLECTED`를 유지한다.

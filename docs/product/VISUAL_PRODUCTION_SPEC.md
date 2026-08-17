@@ -75,7 +75,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 | 폭염·예방정비 제품 화면 | 누적 `ProductMain` | 예고·정비·사건·복구 결산 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
 | 캠페인 shell | 누적 `ProductMain`의 overlay | Title·Pause·설정·도움말, 저장·새 process 재개와 장 재시작 확인 완료, 사람 관찰 `NOT_COLLECTED` |
 | 세 장 콘텐츠 표시 | 누적 `ProductMain` header·작업 패널 | 현재 장·브리핑·목표·다음 장 조건과 준비금 실패 문구 연결 완료, 사람 관찰 `NOT_COLLECTED` |
-| 2D 내부 테스트 후보 | 누적 `ProductMain`, code-native theme·지도·audio, macOS ZIP | 대표 화면·package 전체 흐름·저장 재개 확인 완료, 독립 종료 검토 중, 사람 관찰 `NOT_COLLECTED` |
+| 2D 내부 테스트 후보 | 누적 `ProductMain`, code-native theme·지도·audio, macOS ZIP | 대표 화면·package 전체 흐름·저장 재개·독립 종료 검토 완료, 사람 관찰 `NOT_COLLECTED` |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |

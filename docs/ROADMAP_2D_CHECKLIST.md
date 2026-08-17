@@ -32,7 +32,7 @@
 | 완료된 두 검증용 구현 | 완료 | [Scope 0B](scopes/SCOPE_0B_PLAYABLE.md), [Scope 1](scopes/SCOPE_1_INTERACTION.md) | 각 구현 회귀 | 각 장면 실행 확인 | 사람 증거 없음 | [개발 이력](DEVELOPMENT_HISTORY.md) |
 | 1. 첫 점등 통합 | 완료 | [구현 기준](scopes/FIRST_LIGHT.md), [데이터](../data/product-first-light-v1.json) | [종료 기록](scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록) | [종료 기록](scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록) |
 | 2. 병원 신뢰도·경제 | 완료 | [구현 기준](scopes/SECOND_HEART.md), [데이터](../data/product-second-heart-v1.json) | [종료 기록](scopes/SECOND_HEART.md#8-현재-검사와-종료-기록) | [종료 기록](scopes/SECOND_HEART.md#8-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/SECOND_HEART.md#8-현재-검사와-종료-기록) |
-| 3. 공장 수요·발전소 용량 | 미승인 | — | — | — | 선택 | — |
+| 3. 공장 수요·발전소 용량 | 활성 | [계약](scopes/FACTORY_CAPACITY.md), [데이터](../data/product-factory-v1.json) | 진행 중 | 진행 중 | `NOT_COLLECTED` | — |
 | 4. 예고된 폭염·정비 | 미승인 | — | — | — | 필요 | — |
 | 5. 캠페인 골격·저장·기본 설정 | 미승인 | — | — | — | 선택 | — |
 | 6. 세 장 콘텐츠 고정 | 미승인 | — | — | — | 필요 | — |

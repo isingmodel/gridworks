@@ -15,21 +15,9 @@
 
 ## 1. 데이터 권위
 
-[`data/scope-1-v1.json`](../../data/scope-1-v1.json)은 정확히 아홉 root field를 가진다.
-
-```json
-{
-  "schemaVersion": "1",
-  "fixtureId": "scope-1-v1",
-  "units": { "position": "GridUnit", "time": "GameMinute" },
-  "mapBounds": { "minX": 0, "maxX": 11, "minY": 0, "maxY": 7 },
-  "source": { "x": 1, "y": 4 },
-  "target": { "x": 11, "y": 4 },
-  "maxSpan": 4,
-  "initialMinute": 0,
-  "buildMinutes": 60
-}
-```
+[`data/scope-1-v1.json`](../../data/scope-1-v1.json)은 schema와 fixture 식별자, 단위, 지도 경계,
+source·target 위치, 최대 구간 길이, 시작시각과 공사기간의 아홉 root field를 가진다. nested object의
+정확한 key와 모든 실행값은 fixture만 소유한다.
 
 현재 SHA-256은
 `f308a739f9e4fcaf9d6f07aacba65af6fdd9ae3600a1e5569254fcb749bb2edc`이다. runtime fixture에는
@@ -126,6 +114,19 @@ Ruby 검사는 아홉 field와 거리 reference oracle을 독립 계산한다. C
 headless wiring smoke는 실제 viewport pointer 경로로 support를 추가하고 standard button signal로
 발주·완공한다. native 1280×720 검토는 clipping, phase·좌표·통전 label과 접근성 tree를 확인했다.
 Scope 0B 검사와 기본 장면 AB/BA smoke도 함께 회귀한다.
+
+저장소 root에서 현재 Scope 1 smoke를 재현하는 명령은 다음과 같다. 두 좌표는 검사 전용 입력이며
+fixture나 일반 플레이의 기본값이 아니다.
+
+```sh
+godot_bin="$PWD/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot"
+smoke_dir="$(mktemp -d /private/tmp/gridworks-s1-smoke.XXXXXX)"
+
+"$godot_bin" --headless --path "$PWD/game" --scene res://Scope1Main.tscn \
+  --log-file "$smoke_dir/engine.log" -- \
+  --session-id S1-SMOKE --diagnostic-log "$smoke_dir/app.jsonl" \
+  --smoke --smoke-support 5,4 --smoke-support 9,4
+```
 
 ## 6. 완료 증거와 한계
 

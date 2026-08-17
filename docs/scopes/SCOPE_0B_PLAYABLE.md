@@ -111,8 +111,9 @@ SnapshotJson.Sha256Hex(...)
 이미 발주됨과 다음 milestone 없음이다. 거부된 명령은 상태·현금·trace를 바꾸지 않는다. snapshot
 JSON은 고정 field 순서와 결정론적 collection 순서를 가진다.
 
-`LoadedFixture`에는 scenario, presentation과 검사 oracle이 함께 있으나, `GridworksSession`과 Game은
-scenario만 사용한다. oracle은 자동검사 밖으로 전달하지 않는다.
+`LoadedFixture`에는 scenario, presentation과 검사 oracle이 함께 있다. `GridworksSession`은
+scenario만 사용하고, Game은 scenario로 만든 snapshot과 presentation data를 표현한다. oracle은
+자동검사 밖으로 전달하지 않는다.
 
 ## 5. Game 경계
 
@@ -150,6 +151,23 @@ oracle을 독립 계산한다. C# 검사는 strict loader, 두 회랑 전체 경
 Godot 회귀는 기본 `Main.tscn`을 AB와 BA layout으로 각각 fresh diagnostic path에서 headless smoke한다.
 두 variant는 선택지 표시 순서만 바꾸며 규칙과 결과는 같다. native 화면·접근성 검토는 과거 완료
 증거이고 매 빌드의 자동검사를 대신하지 않는다.
+
+저장소 root에서 현재 smoke를 재현하는 명령은 다음과 같다. 각 실행에는 새 임시 디렉터리를 쓴다.
+
+```sh
+godot_bin="$PWD/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot"
+smoke_dir="$(mktemp -d /private/tmp/gridworks-s0b-smoke.XXXXXX)"
+
+"$godot_bin" --headless --path "$PWD/game" --scene res://Main.tscn \
+  --log-file "$smoke_dir/ab-engine.log" -- \
+  --session-id S0B-SMOKE-AB --variant ab \
+  --diagnostic-log "$smoke_dir/ab-app.jsonl" --smoke
+
+"$godot_bin" --headless --path "$PWD/game" --scene res://Main.tscn \
+  --log-file "$smoke_dir/ba-engine.log" -- \
+  --session-id S0B-SMOKE-BA --variant ba \
+  --diagnostic-log "$smoke_dir/ba-app.jsonl" --smoke
+```
 
 ## 7. 명시적 한계
 

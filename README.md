@@ -79,6 +79,18 @@ playtests/              동결된 실행 입력과 로컬 증거 위치
 [Static Balance Lab](docs/development/BALANCING_STATIC_SIM.md)이 소유한다. LLM이나 정책 agent가 목표
 점수에 맞춰 숫자를 무제한 조정하는 방식은 사용하지 않는다.
 
+## 개발 도구
+
+[`global.json`](global.json)은 .NET SDK `8.0.129`를 고정하고 roll-forward를 끈다. Godot binary는 Git에
+포함하지 않는다. 현재 검증한 도구는 `Godot 4.7.1.stable.mono.official.a13da4feb`이며 다음 공식
+archive를 사용했다.
+
+- URL: `https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_mono_macos.universal.zip`
+- SHA-256: `92cac516baa8ddc7756eeaa38a6d007778a968bfbf188db7c5d6e6ec21c5d52c`
+- 로컬 binary 경로: `.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot`
+
+`.tools/`는 로컬 설치 경로이며 새 checkout에서는 별도로 준비해야 한다.
+
 ## 현재 확인 명령
 
 먼저 .NET 의존성을 복원한 뒤 다음을 실행한다.
@@ -98,10 +110,10 @@ dotnet run --project tools/Gridworks.Scope1Checks/Gridworks.Scope1Checks.csproj 
 dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild
 ```
 
-Godot 기본 실행은 `game/project.godot`의 Scope 0B 장면을 연다. Scope 1은 저장소에 고정된 Godot
-4.7.1 binary로 `--scene res://Scope1Main.tscn`을 명시해 실행한다. exact smoke 인자와 화면 의미는
-각 구현 기준 문서가 설명한다. 과거 실행 승인만 검증하던 `verify_implementation.rb`는 제거했으며,
-현재 회귀검사로 사용하지 않는다.
+Godot 기본 실행은 `game/project.godot`의 Scope 0B 장면을 연다. Scope 1은 위 로컬 Godot binary에
+`--scene res://Scope1Main.tscn`을 명시해 실행한다. exact smoke 인자와 화면 의미는 각 구현 기준
+문서가 설명한다. 과거 실행 승인만 검증하던 `verify_implementation.rb`는 제거했으며, 현재
+회귀검사로 사용하지 않는다.
 
 ## 콘셉트 이미지
 

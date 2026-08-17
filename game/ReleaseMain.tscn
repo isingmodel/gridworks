@@ -64,7 +64,7 @@ layout_mode = 2
 [node name="Title" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 21
-text = "GRIDWORKS · 청류시 전력운영센터"
+text = "GRIDWORKS · 청류시"
 
 [node name="TitleSpacer" type="Control" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
 layout_mode = 2
@@ -74,17 +74,17 @@ size_flags_horizontal = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
-text = "전력망 살펴보기"
+text = "현황 보기"
 
 [node name="MenuButton" type="Button" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(94, 38)
 layout_mode = 2
-text = "메뉴 열기"
+text = "메뉴"
 
 [node name="Metrics" type="HFlowContainer" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn"]
 layout_mode = 2
-theme_override_constants/h_separation = 24
+theme_override_constants/h_separation = 18
 
 [node name="TimeLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/Metrics"]
 unique_name_in_owner = true

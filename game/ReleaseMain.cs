@@ -435,15 +435,16 @@ public sealed partial class ReleaseMain : Control
         _phaseLabel.Text = _campaignSnapshot is null
             ? ReleaseKoreanText.Phase(_snapshot.Phase)
             : $"{_campaignSnapshot.Chapter.ActLabel} · {_campaignSnapshot.Chapter.DisplayName} · " +
-              (_showEventProjection ? "사고 조건 미리보기" : ReleaseKoreanText.Phase(_snapshot.Phase));
+              (_showEventProjection ? "예고 상황" : ReleaseKoreanText.Phase(_snapshot.Phase));
         _phaseLabel.AccessibilityName = _showEventProjection
-            ? $"현재 표시: {_campaignSnapshot?.Chapter.DisplayName} 사고 조건 미리보기"
+            ? $"현재 표시: {_campaignSnapshot?.Chapter.DisplayName} 예고 상황"
             : $"현재 작업: {ReleaseKoreanText.Phase(_snapshot.Phase)}";
         _timeLabel.Text = $"현재 시각 · {ReleaseKoreanText.FormatClock(_snapshot.Minute)}";
+        IReadOnlyList<ReleaseLoadSupply> displayedLoads = DisplayedSupplyLoads(displaySnapshot);
         _supplyLabel.Text =
-            $"{(_showEventProjection ? "사고 중 공급" : "전력 공급")} · " +
-            $"{ReleaseKoreanText.FormatPower(displaySnapshot.Evaluation.TotalDeliveredKw)} / " +
-            $"{ReleaseKoreanText.FormatPower(_snapshot.World.Loads.Sum(item => item.DemandKw))}";
+            $"{(_showEventProjection ? "예고 상황 필수 공급" : "전력 공급")} · " +
+            $"{ReleaseKoreanText.FormatPower(displayedLoads.Sum(item => item.DeliveredKw))} / " +
+            $"{ReleaseKoreanText.FormatPower(displayedLoads.Sum(item => item.DemandKw))}";
         _assetLabel.Text =
             $"완공 설비 {_snapshot.World.Nodes.Count(item => item.Commissioned)}곳 · " +
             $"선로 {_snapshot.World.Edges.Count(item => item.Commissioned)}구간";
@@ -500,16 +501,16 @@ public sealed partial class ReleaseMain : Control
             NetworkText(displaySnapshot),
             quoteText,
             error,
-            toolButton("전력망 살펴보기", "설비와 선로의 부하, 정격 용량과 여유 용량을 확인합니다."),
-            toolButton("소형 변전소 배치하기", "빈 격자에 소형 배전 변전소를 계획합니다."),
-            toolButton("대형 변전소 배치하기", "빈 격자에 대형 배전 변전소를 계획합니다."),
-            toolButton("일반 선로 계획하기", "일반 전신주와 배전선으로 완공된 두 설비를 연결합니다."),
-            toolButton("보강 선로 계획하기", "정격 용량이 큰 전신주와 배전선으로 완공된 두 설비를 연결합니다."),
-            new ReleaseButtonPresentation(nodeDraft || lineDraft, true, "현재 계획 취소하기", "발주하지 않은 현재 계획을 모두 취소합니다."),
+            toolButton("현황 보기", "설비와 선로의 부하, 정격 용량과 여유 용량을 확인합니다."),
+            toolButton("소형 변전소 놓기", "빈 격자에 소형 배전 변전소를 계획합니다."),
+            toolButton("대형 변전소 놓기", "빈 격자에 대형 배전 변전소를 계획합니다."),
+            toolButton("일반 선로 잇기", "일반 전신주와 배전선으로 완공된 두 설비를 연결합니다."),
+            toolButton("보강 선로 잇기", "정격 용량이 큰 전신주와 배전선으로 완공된 두 설비를 연결합니다."),
+            new ReleaseButtonPresentation(nodeDraft || lineDraft, true, "계획 취소", "발주하지 않은 현재 계획을 모두 취소합니다."),
             new ReleaseButtonPresentation(lineDraft, _snapshot.LineDraft is { IntermediatePoints.Count: > 0 } || _snapshot.LineDraft?.EndNodeId is not null,
-                "마지막 선택 되돌리기", "선로의 끝 설비 또는 마지막 전신주 선택을 되돌립니다."),
-            new ReleaseButtonPresentation(nodeDraft || lineDraft, quote.Accepted, "현재 공사 발주하기", "표시된 비용과 기간으로 현재 계획을 발주합니다."),
-            new ReleaseButtonPresentation(building, building, "현재 공사 완료하기", "완공 예정 시각까지 진행해 현재 공사를 마칩니다."));
+                "한 단계 되돌리기", "선로의 끝 설비 또는 마지막 전신주 선택을 되돌립니다."),
+            new ReleaseButtonPresentation(nodeDraft || lineDraft, quote.Accepted, "공사 발주", "표시된 비용과 기간으로 현재 계획을 발주합니다."),
+            new ReleaseButtonPresentation(building, building, "완공까지 진행", "완공 예정 시각까지 진행해 현재 공사를 마칩니다."));
         if (_campaignSnapshot is null)
         {
             return model;
@@ -522,20 +523,20 @@ public sealed partial class ReleaseMain : Control
                 ? string.Empty
                 : _showEventProjection
                     ? $"표시 중 · {_campaignSnapshot.Chapter.Event.Story.Title}"
-                    : $"대비할 상황 · {_campaignSnapshot.Chapter.Event.Story.Title}",
+                    : $"예고 상황 · {_campaignSnapshot.Chapter.Event.Story.Title}",
             EventView = new ReleaseButtonPresentation(
                 HasEquipmentOutage(_campaignSnapshot.Chapter.Event),
                 ready && _tool == Tool.Inspect,
-                _showEventProjection ? "평상시 전력망 보기" : "사고 조건 미리보기",
+                _showEventProjection ? "평상시 보기" : "예고 상황 보기",
                 _showEventProjection
                     ? "현재 임무의 평상시 공급 상태로 돌아갑니다."
                     : "예고된 설비 사용 불가 상황의 공급 경로와 용량을 미리 확인합니다."),
             Evaluate = new ReleaseButtonPresentation(
-                ready,
-                ready,
+                ready && !_campaignSnapshot.CampaignComplete,
+                ready && !_campaignSnapshot.CampaignComplete,
                 _campaignSnapshot.ChapterIndex == _campaignSnapshot.ChapterCount - 1
-                    ? "도시 전력망 완성 확인하기"
-                    : "임무 완료 확인하기",
+                    ? "전력망 최종 점검"
+                    : "운영 계획 점검",
                 "평상시와 임무에서 예고한 조건 모두에서 목표를 충족하는지 확인합니다."),
         };
     }
@@ -544,7 +545,7 @@ public sealed partial class ReleaseMain : Control
     {
         if (_showEventProjection)
         {
-            return "예고된 사고 조건을 미리 적용했습니다. 지도에서 사용 불가 설비와 우회 경로의 용량을 확인하세요.";
+            return "예고된 상황을 적용한 결과입니다. 사용할 수 없는 설비와 우회 경로의 여유 용량을 확인하세요.";
         }
         if (_snapshot.Phase == ReleaseConstructionPhase.NodeBuilding)
         {
@@ -600,7 +601,7 @@ public sealed partial class ReleaseMain : Control
                 long rating = usage.RatingKw;
                 string capacity = rating > 0
                     ? ReleaseKoreanText.Capacity(usage.UsedKw, rating)
-                    : "이 접속점에는 별도의 전력 통과 정격 제한이 없습니다.";
+                    : "이 인입점에는 별도의 전력 통과 정격 제한이 없습니다.";
                 return $"{node.DisplayName} · {ReleaseKoreanText.NodeKind(nodeClass.Kind)}\n" +
                        $"{availability}{capacity}\n{ReleaseKoreanText.Connections(usage.ConnectionCount, usage.MaxConnections)}";
             }
@@ -625,12 +626,20 @@ public sealed partial class ReleaseMain : Control
 
     private string NetworkText(ReleaseConstructionSnapshot displaySnapshot)
     {
-        ReleaseLoadSupply? failed = displaySnapshot.Evaluation.Loads.FirstOrDefault(item => item.DeliveredKw == 0);
+        IReadOnlyList<ReleaseLoadSupply> requiredLoads = DisplayedSupplyLoads(displaySnapshot);
+        ReleaseLoadSupply? failed = requiredLoads.FirstOrDefault(item => item.DeliveredKw < item.DemandKw);
         if (failed is null)
         {
-            return _showEventProjection
-                ? "사고 조건에서도 필요한 전력을 공급하고 있습니다. 모든 설비 부하가 정격 용량 이내입니다."
-                : "모든 수요처에 필요한 전력을 공급하고 있습니다. 모든 설비 부하가 정격 용량 이내입니다.";
+            if (_showEventProjection)
+            {
+                int restrictedGeneralLoads = displaySnapshot.Evaluation.Loads.Count(item =>
+                    !_campaignSnapshot!.Chapter.RequiredEventLoadIds.Contains(item.LoadId, StringComparer.Ordinal) &&
+                    item.DeliveredKw < item.DemandKw);
+                return restrictedGeneralLoads == 0
+                    ? "예고 상황에서도 임무 필수 공급과 일반 수요를 모두 유지하고 있습니다."
+                    : $"예고 상황에서도 임무 필수 공급을 유지하고 있습니다. 일반 수요 {restrictedGeneralLoads}곳은 공급이 제한됩니다.";
+            }
+            return "모든 수요처에 필요한 전력을 공급하고 있습니다. 모든 설비 부하가 정격 용량 이내입니다.";
         }
         string? assetName = AssetDisplayName(failed.Failure.AssetId);
         return ReleaseKoreanText.SupplyFailure(
@@ -638,6 +647,21 @@ public sealed partial class ReleaseMain : Control
             failed.Failure,
             assetName,
             _showEventProjection);
+    }
+
+    private IReadOnlyList<ReleaseLoadSupply> DisplayedSupplyLoads(
+        ReleaseConstructionSnapshot displaySnapshot)
+    {
+        if (!_showEventProjection || _campaignSnapshot is null)
+        {
+            return displaySnapshot.Evaluation.Loads;
+        }
+
+        HashSet<string> required = _campaignSnapshot.Chapter.RequiredEventLoadIds
+            .ToHashSet(StringComparer.Ordinal);
+        return displaySnapshot.Evaluation.Loads
+            .Where(item => required.Contains(item.LoadId))
+            .ToArray();
     }
 
     private string ActiveConstructionText()
@@ -655,7 +679,7 @@ public sealed partial class ReleaseMain : Control
         Tool.StandardLine => "일반 선로 경로를 계획하고 있습니다.",
         Tool.ReinforcedLine => "보강 선로 경로를 계획하고 있습니다.",
         _ => _showEventProjection
-            ? "예고된 사고 조건의 전력망을 미리 살펴보고 있습니다."
+            ? "예고된 상황의 전력망을 살펴보고 있습니다."
             : "전력망을 살펴보고 있습니다.",
     };
 
@@ -828,11 +852,14 @@ public sealed partial class ReleaseMain : Control
             if (!result.Accepted)
             {
                 string reason = CampaignErrorText();
+                string finding = result.Assessment?.FailedDuringEvent == true
+                    ? "예고 상황에서 필요한 전력을 모두 공급하지 못했습니다."
+                    : "평상시에도 필요한 전력을 모두 공급하지 못했습니다.";
                 ShowStory(
-                    "대비 점검 결과",
-                    "전력망 보강이 더 필요합니다",
-                    $"사전 점검에서 목표한 공급을 유지하지 못했습니다. {reason}",
-                    "전력망 보강하기",
+                    "운영 점검 결과",
+                    "전력망을 더 보강해야 합니다",
+                    $"{finding} {reason}",
+                    "설계로 돌아가기",
                     Render);
                 return;
             }
@@ -846,7 +873,7 @@ public sealed partial class ReleaseMain : Control
                     attemptedChapter.Event.Story.Speaker,
                     attemptedChapter.Event.Story.Title,
                     attemptedChapter.Event.Story.Body,
-                    "임무 결과 확인하기",
+                    "결과 보고 보기",
                     afterEvent);
             }
             else
@@ -1182,6 +1209,13 @@ public sealed partial class ReleaseMain : Control
 
     private void EnterCampaignGameplay()
     {
+        if (_campaignSnapshot?.CampaignComplete == true)
+        {
+            _shell.HideShell();
+            ShowChapterResult(_campaignSnapshot.Chapter, campaignComplete: true);
+            return;
+        }
+
         ShowCurrentBriefing();
         if (_settings.ShowControlHelp)
         {
@@ -1298,14 +1332,14 @@ public sealed partial class ReleaseMain : Control
 
             EmitPanel(ReleasePanelAction.Inspect, "전력망 살펴보기");
             await NextFrame();
-            EmitPanel(ReleasePanelAction.ToggleEventView, "사고 조건 미리보기");
+            EmitPanel(ReleasePanelAction.ToggleEventView, "예고 상황 보기");
             await NextFrame();
             Require(
                 _showEventProjection &&
                 DisplaySnapshot().Evaluation.Edges.Count(item => !item.Available) >
                 _campaignSnapshot!.NormalEvaluation.Edges.Count(item => !item.Available),
-                "사고 조건 미리보기가 사용 불가 선로를 표시하지 않았습니다.");
-            EmitPanel(ReleasePanelAction.ToggleEventView, "평상시 전력망 보기");
+                "예고 상황 보기가 사용 불가 선로를 표시하지 않았습니다.");
+            EmitPanel(ReleasePanelAction.ToggleEventView, "평상시 보기");
             await NextFrame();
             Require(!_showEventProjection, "평상시 전력망 표시로 돌아오지 못했습니다.");
 

@@ -45,6 +45,7 @@ internal sealed partial class ReleaseMapView : Control
     private string? _hoverEdgeId;
     private float _flowPhase;
     private double _redrawAccumulator;
+    private readonly List<Rect2> _mapLabelBounds = [];
 
     public event Action<ReleasePoint?>? PointerChanged;
     public event Action<ReleasePoint>? PointRequested;
@@ -148,6 +149,7 @@ internal sealed partial class ReleaseMapView : Control
         DrawEdges(snapshot, grid, plot);
         DrawNonJunctionCrossings(snapshot, grid, plot);
         DrawLineDraft(snapshot, grid, plot);
+        _mapLabelBounds.Clear();
         DrawLoads(snapshot, grid, plot);
         DrawNodes(snapshot, grid, plot);
         DrawNodeDraft(snapshot, grid, plot);
@@ -597,7 +599,7 @@ internal sealed partial class ReleaseMapView : Control
             {
                 DrawUnavailableMark(center, color, 5f);
             }
-            DrawMapText(center + new Vector2(10f, -10f), MapLoadName(load), 11, Text);
+            DrawMapLabel(center, MapLoadName(load), plot);
         }
     }
 
@@ -643,7 +645,7 @@ internal sealed partial class ReleaseMapView : Control
             }
             if (nodeClass.Kind is ReleaseNodeKind.SourceTerminal or ReleaseNodeKind.Substation)
             {
-                DrawMapText(center + new Vector2(12f, 18f), MapNodeName(node.DisplayName), 11, Text);
+                DrawMapLabel(center, MapNodeName(node.DisplayName), plot);
             }
         }
     }
@@ -827,6 +829,65 @@ internal sealed partial class ReleaseMapView : Control
         DrawString(font, position, value, HorizontalAlignment.Left, -1f, size, color);
     }
 
+    private void DrawMapLabel(Vector2 center, string value, Rect2 plot)
+    {
+        const int fontSize = 11;
+        Font font = GetThemeDefaultFont();
+        Vector2 textSize = font.GetStringSize(
+            value,
+            HorizontalAlignment.Left,
+            -1f,
+            fontSize);
+        Vector2[] candidates =
+        [
+            center + new Vector2(11f, -9f),
+            center + new Vector2(11f, textSize.Y + 13f),
+            center + new Vector2(-textSize.X - 11f, -9f),
+            center + new Vector2(-textSize.X - 11f, textSize.Y + 13f),
+            center + new Vector2(-textSize.X / 2f, -18f),
+            center + new Vector2(-textSize.X / 2f, textSize.Y + 20f),
+        ];
+
+        Rect2 chosen = default;
+        float bestOverlap = float.PositiveInfinity;
+        foreach (Vector2 baseline in candidates)
+        {
+            float x = Math.Clamp(
+                baseline.X,
+                plot.Position.X + 4f,
+                plot.End.X - textSize.X - 4f);
+            float y = Math.Clamp(
+                baseline.Y,
+                plot.Position.Y + textSize.Y + 4f,
+                plot.End.Y - 4f);
+            Rect2 bounds = new(
+                new Vector2(x - 2f, y - textSize.Y - 1f),
+                textSize + new Vector2(4f, 3f));
+            float overlap = _mapLabelBounds.Sum(existing => OverlapArea(bounds, existing));
+            if (overlap <= 0f)
+            {
+                chosen = bounds;
+                bestOverlap = 0f;
+                break;
+            }
+            if (overlap < bestOverlap)
+            {
+                chosen = bounds;
+                bestOverlap = overlap;
+            }
+        }
+
+        _mapLabelBounds.Add(chosen);
+        DrawMapText(new Vector2(chosen.Position.X + 2f, chosen.End.Y - 2f), value, fontSize, Text);
+    }
+
+    private static float OverlapArea(Rect2 first, Rect2 second)
+    {
+        float width = Math.Max(0f, Math.Min(first.End.X, second.End.X) - Math.Max(first.Position.X, second.Position.X));
+        float height = Math.Max(0f, Math.Min(first.End.Y, second.End.Y) - Math.Max(first.Position.Y, second.Position.Y));
+        return width * height;
+    }
+
     private void FindAsset(Vector2 localPoint, out string? nodeId, out string? edgeId)
     {
         nodeId = null;
@@ -1001,9 +1062,14 @@ internal sealed partial class ReleaseMapView : Control
         int commissionedNodes = snapshot.World.Nodes.Count(item => item.Commissioned);
         int commissionedEdges = snapshot.World.Edges.Count(item => item.Commissioned);
         int energizedEdges = snapshot.Evaluation.Edges.Count(item => item.Available && item.UsedKw > 0);
+        string pointer = presentation.PointerPoint is ReleasePoint point
+            ? $"현재 격자 동쪽 {point.X}, 남쪽 {point.Y}. " +
+              $"현재 도구로 {(presentation.PointerAccepted ? "선택할 수 있습니다" : "선택할 수 없습니다")}. "
+            : string.Empty;
         return $"청류시 전력망. {ReleaseKoreanText.Phase(snapshot.Phase)}. " +
                $"완공 설비 {commissionedNodes}곳, 완공 선로 {commissionedEdges}구간, 통전 선로 {energizedEdges}구간. " +
                $"현재 공급 {ReleaseKoreanText.FormatPower(snapshot.Evaluation.TotalDeliveredKw)}. " +
+               pointer +
                presentation.ToolDescription;
     }
 }

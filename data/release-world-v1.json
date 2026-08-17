@@ -12,7 +12,7 @@
   "nodeClasses": [
     {
       "classId": "SOURCE_TERMINAL",
-      "displayName": "발전 접속점",
+      "displayName": "발전소",
       "kind": "sourceTerminal",
       "maxConnections": 6,
       "throughputKw": null,
@@ -67,7 +67,7 @@
     },
     {
       "classId": "LOAD_TERMINAL",
-      "displayName": "전용 수요 접속점",
+      "displayName": "전용 인입점",
       "kind": "dedicatedLoadTerminal",
       "maxConnections": 3,
       "throughputKw": null,
@@ -99,7 +99,7 @@
     {
       "nodeId": "WEST_SOURCE_NODE",
       "classId": "SOURCE_TERMINAL",
-      "displayName": "서부 발전 접속점",
+      "displayName": "서부 발전소",
       "position": { "x": 2, "y": 10 },
       "commissioned": true
     },
@@ -113,7 +113,7 @@
     {
       "nodeId": "NORTH_JUNCTION",
       "classId": "POLE_REINFORCED",
-      "displayName": "북부 분기 전신주",
+      "displayName": "북안 분기 전신주",
       "position": { "x": 9, "y": 7 },
       "commissioned": true
     },
@@ -155,21 +155,21 @@
     {
       "nodeId": "WATER_TERMINAL",
       "classId": "LOAD_TERMINAL",
-      "displayName": "청류 정수장 접속점",
+      "displayName": "청류 정수장 인입점",
       "position": { "x": 6, "y": 6 },
       "commissioned": true
     },
     {
       "nodeId": "HOSPITAL_TERMINAL",
       "classId": "LOAD_TERMINAL",
-      "displayName": "청류의료원 접속점",
+      "displayName": "청류의료원 인입점",
       "position": { "x": 17, "y": 5 },
       "commissioned": true
     },
     {
       "nodeId": "SOUTH_SOURCE_NODE",
       "classId": "SOURCE_TERMINAL",
-      "displayName": "남부 발전 접속점",
+      "displayName": "남부 발전소",
       "position": { "x": 17, "y": 17 },
       "commissioned": true
     }
@@ -257,14 +257,14 @@
     {
       "sourceId": "WEST_GENERATION",
       "nodeId": "WEST_SOURCE_NODE",
-      "displayName": "서부 발전전력",
+      "displayName": "서부 발전소 전력",
       "dispatchOrder": 0,
       "capacityKw": 5000
     },
     {
       "sourceId": "SOUTH_GENERATION",
       "nodeId": "SOUTH_SOURCE_NODE",
-      "displayName": "남부 발전전력",
+      "displayName": "남부 발전소 전력",
       "dispatchOrder": 1,
       "capacityKw": 3000
     }

@@ -8,10 +8,10 @@ internal static class ReleaseKoreanText
 {
     public static string Phase(ReleaseConstructionPhase phase) => phase switch
     {
-        ReleaseConstructionPhase.Ready => "전력망 살펴보기",
-        ReleaseConstructionPhase.NodeDrafting => "변전소 계획하기",
+        ReleaseConstructionPhase.Ready => "현황 보기",
+        ReleaseConstructionPhase.NodeDrafting => "변전소 위치 정하기",
         ReleaseConstructionPhase.NodeBuilding => "변전소 공사 중",
-        ReleaseConstructionPhase.LineDrafting => "선로 계획하기",
+        ReleaseConstructionPhase.LineDrafting => "선로 경로 정하기",
         ReleaseConstructionPhase.LineBuilding => "선로 공사 중",
         _ => "현재 작업",
     };
@@ -34,7 +34,7 @@ internal static class ReleaseKoreanText
         ReleaseConstructionError.PositionOccupied =>
             "이미 설비가 있거나 이번 계획에서 사용한 자리입니다. 빈 격자를 선택하세요.",
         ReleaseConstructionError.EndpointNotFound =>
-            "선로를 시작할 접속점을 찾을 수 없습니다. 완공된 설비를 선택하세요.",
+            "선로를 시작할 설비를 찾을 수 없습니다. 완공된 설비를 선택하세요.",
         ReleaseConstructionError.EndpointNotCommissioned =>
             "아직 완공되지 않은 설비에는 선로를 연결할 수 없습니다.",
         ReleaseConstructionError.SameEndpoint =>
@@ -79,17 +79,17 @@ internal static class ReleaseKoreanText
                 $"{impact} 발전 설비부터 이곳까지 이어진 선로가 없습니다. " +
                 "끊긴 구간을 연결하거나 우회선을 추가하세요.",
             ReleaseSupplyFailureKind.SourceCapacity =>
-                $"{impact} {asset}의 여유 용량이 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
-                "다른 발전 경로를 연결해 전력을 나누세요.",
+                $"{impact} {asset}의 공급 여력이 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
+                "다른 발전원을 연결해 공급을 분담하세요.",
             ReleaseSupplyFailureKind.EdgeCapacity =>
-                $"{impact} {asset}의 정격 용량을 {FormatPower(failure.ShortfallKw)} 초과했습니다. " +
-                "다른 선로를 추가해 전력 흐름을 나누세요.",
+                $"{impact} {asset}의 정격 용량보다 필요한 전력이 {FormatPower(failure.ShortfallKw)} 많습니다. " +
+                "다른 선로를 추가해 흐름을 분산하세요.",
             ReleaseSupplyFailureKind.NodeCapacity =>
-                $"{impact} {asset}의 정격 용량을 {FormatPower(failure.ShortfallKw)} 초과했습니다. " +
-                "다른 분기 경로를 연결해 전력 흐름을 나누세요.",
+                $"{impact} {asset}의 정격 용량보다 필요한 전력이 {FormatPower(failure.ShortfallKw)} 많습니다. " +
+                "이 설비를 우회하는 경로를 추가하세요.",
             ReleaseSupplyFailureKind.TransformerCapacity =>
                 $"{impact} {asset}의 변압기 여유 용량이 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
-                "다른 변전소로 수요를 나누거나 연결을 보강하세요.",
+                "다른 변전소를 연결해 부하를 나누세요.",
             _ =>
                 $"{impact} 공급 경로와 설비 정격 용량을 확인한 뒤 전력망을 보강하세요.",
         };
@@ -105,15 +105,14 @@ internal static class ReleaseKoreanText
     }
 
     public static string Connections(int count, int maximum) =>
-        $"접속 {count}/{maximum}회선 · {maximum - count}회선 여유";
+        $"연결 회선 {count}/{maximum} · {maximum - count}회선 추가 가능";
 
     public static string ConnectionRequirement(
         string nodeName,
         int actualConnections,
         int requiredConnections) =>
-        $"수요처에 안정적으로 전력을 보내려면 접속 회선을 더 확보해야 합니다. {nodeName}에는 현재 " +
-        $"{actualConnections}회선이 연결돼 있으며 {requiredConnections}회선이 필요합니다. " +
-        "다른 완공 설비로 이어지는 선로를 추가하세요.";
+        $"{nodeName}에 연결된 선로가 부족합니다. 안정적인 공급에는 {requiredConnections}회선이 " +
+        $"필요하지만 현재 {actualConnections}회선만 연결돼 있습니다. 다른 완공 설비와 잇는 선로를 추가하세요.";
 
     public static string FormatPower(long kilowatts) => kilowatts % 1_000 == 0
         ? $"{kilowatts / 1_000} MW"
@@ -157,10 +156,10 @@ internal static class ReleaseKoreanText
 
     public static string NodeKind(ReleaseNodeKind kind) => kind switch
     {
-        ReleaseNodeKind.SourceTerminal => "발전 접속점",
+        ReleaseNodeKind.SourceTerminal => "발전소",
         ReleaseNodeKind.Pole => "전신주",
         ReleaseNodeKind.Substation => "배전 변전소",
-        ReleaseNodeKind.DedicatedLoadTerminal => "전용 수요 접속점",
+        ReleaseNodeKind.DedicatedLoadTerminal => "전용 인입점",
         _ => "전력 설비",
     };
 }

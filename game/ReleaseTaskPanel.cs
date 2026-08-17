@@ -49,10 +49,10 @@ internal sealed record ReleaseTaskPanelModel(
     public string Event { get; init; } = string.Empty;
 
     public ReleaseButtonPresentation EventView { get; init; } =
-        new(false, false, "사고 조건 미리보기", "예고된 설비 사용 불가 조건에서 전력망이 어떻게 동작하는지 미리 확인합니다.");
+        new(false, false, "예고 상황 보기", "예고된 상황에서 전력망이 어떻게 동작하는지 미리 확인합니다.");
 
     public ReleaseButtonPresentation Evaluate { get; init; } =
-        new(false, false, "임무 완료 확인하기", "평상시와 임무에서 예고한 조건 모두에서 목표를 충족하는지 확인합니다.");
+        new(false, false, "운영 계획 점검", "평상시와 임무에서 예고한 조건 모두에서 목표를 충족하는지 확인합니다.");
 }
 
 internal sealed partial class ReleaseTaskPanel : PanelContainer

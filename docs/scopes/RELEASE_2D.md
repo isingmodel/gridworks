@@ -2,9 +2,10 @@
 
 > 상태: **COMPLETED**
 >
-> 현재 권한: 이 단계의 구현·대표 실행·종료 검토를 마쳤다. 활성 구현 단계는 없다.
+> 완료 경계: 이 단계의 구현·대표 실행·종료 검토를 마쳤다. 현재 상태와 권한은 루트 README가
+> 소유한다.
 >
-> 다음 권한: 외부 사용자 관찰, 배포 서명·공증과 공개 출시는 **NOT_GRANTED**다.
+> 이 완료가 자동 승인하지 않는 것: 외부 사용자 관찰, 배포 서명·공증과 공개 출시.
 
 ## 1. 플레이어에게 보이는 결과
 
@@ -147,7 +148,7 @@ runtime에 넣는 게임 표현과 사운드는 이 저장소에서 생성한 �
 현재 종료 증거는 다음과 같다.
 
 - 내부 ZIP: `dist/Gridworks-macOS-0.1.0.zip`
-- SHA-256: `bfe684b19b0930a6252bf68c2d7bee2dbd88eac6a97772baea96c34abcd94c08`
+- SHA-256: `045ed65f3be85d05417cfb838acaacd08aebccd516cad89aba0a9ca3bddd5771`
 - 앱: `Gridworks 0.1.0`, bundle `com.gridworks.game`, Universal 2 (`x86_64 arm64`), architecture별
   deployment target `14.0`, local ad-hoc signature
 - canonical data: package `READY`의 campaign
@@ -156,9 +157,9 @@ runtime에 넣는 게임 표현과 사운드는 이 저장소에서 생성한 �
 - 누적 검사: First Light `10/664`, Second Heart `5/124`, Factory `5/378`, Heatwave `5/243`,
   Campaign Save·Settings `5/581`; Game Release rebuild `0 warning / 0 error`
 - editor 대표 흐름: `PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_PASS`, 기말현금 `4.660 M`, minute `1845`
-- package 대표 흐름: `PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_PASS`, `3.10초`, peak RSS
-  `320,634,880 bytes`; package build hash
-  `336c9ecd430b10c50295cdc633d0a3851689e2ae323d98ebc632c1bb85e7f37e`
+- package 대표 흐름: `PRODUCT_HEATWAVE_MAINTENANCE_SMOKE_PASS`, `2.72초`, peak RSS
+  `238,567,424 bytes`; package build hash
+  `5dee2c8ac3bcba8652c2820a1ebecca32fcb55093f55a481627f8c8e3d6cba39`
 - fresh process 저장·재개: `PRODUCT_CAMPAIGN_SAVE_LEG_PASS` 뒤
   `PRODUCT_CAMPAIGN_CONTINUE_LEG_PASS`; SFX `50%` 설정이 저장되고 fresh process audio bus에 적용됨
 - 화면 확인: 1280×720 logical canvas에서 title·도움말·settings·초기·중간·최종 gameplay를 확인했다.
@@ -177,6 +178,11 @@ runtime에 넣는 게임 표현과 사운드는 이 저장소에서 생성한 �
 canonical v2를 원자 저장하도록 고쳤고, 설치 안내는 ZIP 자기참조 없이 별도 신뢰 경로의 release
 record와 hash를 대조하도록 고쳤다. 수정 뒤 누적 검사, Game build와 최종 package 흐름을 다시
 확인했으며 열린 P0/P1은 없다.
+
+최종 목표 감사에서는 PID만 쓰던 기본 진단 파일명이 아주 드물게 과거 파일과 충돌해 시작을 막을
+수 있음을 추가로 발견했다. 기본 이름에 매 실행 고유값을 더하되 명시한 증거 경로의 `CreateNew`
+보호는 유지했고, 재생성한 package의 전체 캠페인 대표 흐름을 다시 통과했다. 완료된 단계의 역사적
+권한 문구와 이 로드맵의 내부 후보 검증 경계도 현재 상태에 맞췄다.
 
 따라서 7단계 2D 개발과 내부 테스트 후보 제작은 완료했다. 이 결론은 위 한 환경과 대표 흐름에만
 한정하며, `HumanValidationStatus = NOT_COLLECTED`다. 사람 사용성·재미·밸런스, macOS 버전 범위,

@@ -2,7 +2,7 @@
 
 > 상태: `COMPLETED`
 >
-> 다음 단계 구현 권한: `NOT_GRANTED`
+> 완료 당시 후속 단계 자동 승인: `NOT_GRANTED`
 >
 > 사람 검증: `NOT_COLLECTED`
 

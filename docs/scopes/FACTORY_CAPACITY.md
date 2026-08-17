@@ -130,5 +130,5 @@ dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.cspro
 - 짧은 독립 Core·Game 검토: P0 0, P1 0
 
 대표 smoke는 가까운 부지 하나와 접속 support 하나를 `--smoke-*` 인자로 주입한다. 먼 부지의
-비우월 관계와 실패 경계는 Core 검사만 소유한다. 사람·LLM 플레이는 수행하지 않았고 다음 단계는
-여전히 미승인이다.
+비우월 관계와 실패 경계는 Core 검사만 소유한다. 사람·LLM 플레이는 수행하지 않았으며, 이 단계의
+완료 자체는 당시 후속 단계를 자동으로 승인하지 않았다.

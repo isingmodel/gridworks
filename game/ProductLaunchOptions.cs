@@ -233,7 +233,7 @@ internal sealed record ProductLaunchOptions(
         }
 
         diagnosticPath ??= ProjectSettings.GlobalizePath(
-            $"user://product-campaign-local-{System.Environment.ProcessId}.jsonl");
+            $"user://product-campaign-local-{System.Environment.ProcessId}-{Guid.NewGuid():N}.jsonl");
         return new ProductLaunchOptions(
             sessionId,
             Path.GetFullPath(diagnosticPath),

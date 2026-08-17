@@ -164,4 +164,5 @@ dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.cspro
 
 대표 smoke는 두 변전소 초안 위치, 마을 support, 위험대에 노출된 주회선 support와 안전한 예비회선
 support를 각각 `--smoke-*` 인자로 주입한다. 이 값은 검사 입력일 뿐 fixture나 참가자 UI의 정답이
-아니다. 사람·LLM 플레이는 수행하지 않았고 다음 단계는 여전히 미승인이다.
+아니다. 사람·LLM 플레이는 수행하지 않았으며, 이 단계의 완료 자체는 당시 후속 단계를 자동으로
+승인하지 않았다.

@@ -15,7 +15,7 @@
 
 - 예상 파일: `Gridworks-macOS-0.1.0.zip`
 - 상태: `FINAL`
-- SHA-256: `bfe684b19b0930a6252bf68c2d7bee2dbd88eac6a97772baea96c34abcd94c08`
+- SHA-256: `045ed65f3be85d05417cfb838acaacd08aebccd516cad89aba0a9ca3bddd5771`
 - 실제 확인 환경: macOS 26.6.1 arm64, package 전체 흐름·fresh process 저장 재개 완료
 
 이 release record는 저장소와 별도로 전달되는 위 ZIP bytes에 한정한다. 이 후보는 Developer ID

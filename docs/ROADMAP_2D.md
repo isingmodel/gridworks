@@ -354,8 +354,9 @@ briefing의 약속과 실제 규칙을 일치시킨다.
 
 ### 플레이어 결과
 
-산업 생존 분위기의 원본 2D 지도·설비·상태 overlay와 최소 VFX·SFX가 적용된다. 지원한다고 명시한
-운영체제의 깨끗한 설치에서 세 장 캠페인을 끝내고 저장·재개할 수 있다.
+산업 생존 분위기의 원본 2D 지도·설비·상태 overlay와 최소 VFX·SFX가 적용된다. 현재 확인 환경의
+저장소 밖 내부 package에서 세 장 캠페인을 끝내고 저장·재개할 수 있다. 지원 운영체제 범위와 외부
+설치 가능성은 이 개발 목표 다음의 사용자 테스트에서 확정한다.
 
 ### 포함
 
@@ -364,17 +365,18 @@ briefing의 약속과 실제 규칙을 일치시킨다.
 - 1280×720과 1920×1080 16:9, UI scale과 한국어 typography
 - 차단기·점등·사용불가와 최소 ambient SFX, master·ambient·SFX 음량 설정
 - credits, 제3자 자산 목록, 라이선스와 설치 안내
-- 실제 지원 플랫폼별 설치 가능한 package
+- macOS arm64 현재 확인 환경용 설치 가능한 내부 테스트 package
 
 카메라 이동, 3D, cinematic, voice-over와 localization framework는 실제 가독성·출시 요구가 없으면
 추가하지 않는다.
 
 ### 검증과 완료
 
-clean checkout build, 전체 회귀, package smoke, 화면 layout, 성능·메모리 예산을 검사한다. 지원하는
-각 운영체제에서 fresh install, save/resume, display/audio/input과 전체 캠페인을 수동으로 확인한다.
-열린 critical, major, softlock과 data-loss가 모두 0이어야 한다. 알려진 minor issue,
-최종 build 식별값, changelog, 라이선스와 설치 지침을 남긴 뒤 소유자가 출시를 수용한다.
+clean checkout build, 전체 회귀, 현재 확인 환경의 저장소 밖 package smoke, 대표 화면 layout과
+성능·메모리 예산을 검사한다. package에서 전체 캠페인과 별도 process 저장·재개, display·audio·input
+대표 흐름을 확인한다. 열린 critical, major, softlock과 data-loss가 모두 0이어야 한다. 알려진 minor
+issue, 최종 build 식별값, changelog, 라이선스와 설치 지침을 남기면 외부 테스트 직전 내부 후보가
+완료된다. 운영체제별 fresh install과 사용자 수동 확인은 다음 외부 테스트 단계의 증거다.
 
 ## 12. 검증과 종료 정책
 

@@ -423,6 +423,12 @@ data/release-*.json               출시판 machine authority
 - [화면·입력 증거](../../playtests/release-2d/LAYOUT_EVIDENCE.md)로 1280×720·1920×1080에서 UI
   100%·125% 네 배치와 저장소 밖 키보드 focus를 보존했다. 125%는 글자가 실제로 확대되며,
   지도·작업 패널·이야기 카드가 잘리지 않고 긴 패널 내용은 세로 스크롤로 접근할 수 있다.
+- 사용자 요청으로 현재 후보의 [공식 cold LLM 관찰 1회](../../playtests/release-2d/OFFICIAL_RELEASE_REBUILD_LLM_OBSERVATION_01.md)를
+  별도로 수행했다. 참가자는 도움·재시작·이전 임무 되감기 없이 첫 일곱 임무를 통과한 뒤 마지막
+  `청류 비상전력`에서 `5 MW / 8 MW`, 남은 현금 `16.4만원` 상태로 `BLOCKED` 종료했다. 연결돼 보이는
+  남부 발전원이 실제 급전에 쓰이지 않는 첫 차단 원인을 화면에서 알기 어렵다는 보고와 action 영역,
+  현재 조작 mode의 가시성 질문을 남겼다. 이는 사람 증거나 aggregate gate가 아니며 자동 수치·UI
+  변경 권한을 만들지 않는다.
 - 독립 코드·문서 검토의 P0/P1은 0이다. 새 후보의 한국어 소유자 전체 플레이는
   아직 수집하지 않았으므로 4단계와 전체 목표는 검토 중으로 남긴다.
 - 이 패키지는 Universal 2, ad-hoc 서명의 내부 후보다. Developer ID 서명·Apple 공증과

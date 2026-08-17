@@ -21,7 +21,7 @@
 | 1. 분기형 배전망 기초 | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md)·[world 데이터](../data/release-world-v1.json) | [9 suites / 152 assertions](../tools/Gridworks.ReleaseChecks/Program.cs), 과거 회귀 통과 | Game 기본 장면 변경 없음 | 해당 없음 | 독립 P0/P1 0 |
 | 2. 출시판 지도와 건설 UX | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md) | 12 suites / 217 assertions | 1280×720 대표 공사 흐름 통과 | 최종 한국어 검토는 4단계 | 독립 P0/P1 0 |
 | 3. 프롤로그·본편 캠페인 | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md)·[캠페인 데이터](../data/release-campaign-v1.json) | 15 suites / 429 assertions | 8장·fresh-process 저장·재시작 통과 | 전체 한국어 검토는 4단계 | 독립 P0/P1 0 |
-| 4. 출시 마감 | **검토 중** | [활성 계약](scopes/RELEASE_REBUILD.md)·[내부 후보 기록](../CHANGELOG.md) | 15 suites / 459 assertions | [예고 상황·네 화면 배치·키보드 focus](../playtests/release-2d/LAYOUT_EVIDENCE.md), 저장·새 프로세스 재개·8개 임무 통과 | 새 후보의 한국어 소유자 전체 플레이 대기 | 독립 P0/P1 0; 소유자 확인 대기 |
+| 4. 출시 마감 | **검토 중** | [활성 계약](scopes/RELEASE_REBUILD.md)·[내부 후보 기록](../CHANGELOG.md) | 15 suites / 459 assertions | [예고 상황·네 화면 배치·키보드 focus](../playtests/release-2d/LAYOUT_EVIDENCE.md), 저장·새 프로세스 재개·8개 임무 통과; [공식 cold LLM 1회](../playtests/release-2d/OFFICIAL_RELEASE_REBUILD_LLM_OBSERVATION_01.md)는 마지막 임무에서 `BLOCKED` | 새 후보의 한국어 소유자 전체 플레이 대기 | 독립 P0/P1 0; 소유자 확인 대기 |
 
 ## 단계 활성화 조건
 

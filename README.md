@@ -14,7 +14,11 @@
 현재 활성 검토 단계는 [출시판 재구축의 4단계 — 출시 마감](docs/scopes/RELEASE_REBUILD.md)이다.
 새 `ReleaseMain`의 프롤로그 세 임무와 본편 다섯 장, 자연스러운 한국어, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 출시 후보 구현은 끝났다. 자동검사와 저장소 밖 두 프로세스 전체
-캠페인도 통과했으며, 새 후보에 대한 한국어 원어민 소유자의 전체 플레이를 기다리고 있다.
+캠페인도 통과했다. 사용자 요청으로 수행한 현재 후보의
+[공식 cold LLM 관찰 1회](playtests/release-2d/OFFICIAL_RELEASE_REBUILD_LLM_OBSERVATION_01.md)는
+첫 일곱 임무를 자력으로 통과한 뒤 마지막 `청류 비상전력`에서 `5 MW / 8 MW` 공급과 남은 현금
+`16.4만원` 상태로 `BLOCKED` 종료했다. 새 후보에 대한 한국어 원어민 소유자의 전체 플레이는 계속
+기다리고 있다.
 사용자는 2026-08-17 전체 내부 후보를 직접 플레이한 뒤 표현, 망 구조, 이야기, 실제 콘텐츠와 지도
 밀도의 근본적인 재작업을 요청했고, 출시 가능한 게임을 끝까지 완성하는 목표를 승인했다.
 
@@ -59,12 +63,14 @@
 (`LegacyOwnerPlayReviewStatus = COLLECTED`). 이 검토에서 출시 차단 수준의 표현·망 모델·콘텐츠
 문제가 확인됐다. 새 출시판 후보의 소유자 전체 플레이는 아직 수집하지 않았고
 (`ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`), 외부 formative test도 수집하지 않았다
-(`ExternalHumanValidationStatus = NOT_COLLECTED`). 기존 LLM 관찰은 특정 화면에서 특정 과제를
-수행했다는 증거일 뿐 사람 사용성·재미·밸런스나 성공률을 증명하지 않는다. 내부 후보에서는
-사용자 승인으로 동일 prompt의
+(`ExternalHumanValidationStatus = NOT_COLLECTED`). LLM 관찰은 특정 build에서 특정 과제를 수행한
+증거일 뿐 사람 사용성·재미·밸런스나 성공률을 증명하지 않는다. 옛 내부 후보에서는 사용자 승인으로
+동일 prompt의
 [공식 cold LLM 관찰 2회](playtests/release-2d/OFFICIAL_LLM_OBSERVATIONS_SUMMARY.md)를 수행했고, 두
-참가자 모두 도움 없이 native 캠페인 성공 종료와 핵심 규칙 설명을 남겼다. 이는 작은 비인간
-관찰이며 사람 검증, 성공률이나 aggregate gate가 아니다.
+참가자 모두 도움 없이 당시 native 캠페인 성공 종료와 핵심 규칙 설명을 남겼다. 재구축한 현재
+후보에서는 별도 [공식 관찰 1회](playtests/release-2d/OFFICIAL_RELEASE_REBUILD_LLM_OBSERVATION_01.md)를
+수행했고 참가자는 도움·재시작 없이 첫 일곱 임무를 통과했지만 마지막 임무에서 막혔다. 세 기록은
+서로 다른 후보를 합산하지 않는 작은 비인간 관찰이며 사람 검증, 성공률이나 aggregate gate가 아니다.
 
 ## 1.0 목표
 

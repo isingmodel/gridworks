@@ -313,7 +313,7 @@ public static partial class ReleaseWorldLoader
                 ? $"{edge.FromNodeId}\0{edge.ToNodeId}"
                 : $"{edge.ToNodeId}\0{edge.FromNodeId}";
             Require(endpointPairs.Add(pair), $"edge '{edge.EdgeId}' duplicates an endpoint pair.");
-            var distanceSquared = DistanceSquared(from!.Position, to!.Position);
+            var distanceSquared = ReleaseGridMath.DistanceSquared(from!.Position, to!.Position);
             var maxSpanSquared = checked((long)lineClass!.MaxSpanCells * lineClass.MaxSpanCells);
             Require(distanceSquared <= maxSpanSquared, $"edge '{edge.EdgeId}' exceeds its line class maximum span.");
             degree[edge.FromNodeId]++;
@@ -371,13 +371,6 @@ public static partial class ReleaseWorldLoader
             Require(area.Polygon.Distinct().Count() >= 3, $"risk area '{area.RiskAreaId}' polygon needs three distinct points.");
             Require(SignedAreaTwice(area.Polygon) != 0, $"risk area '{area.RiskAreaId}' polygon cannot be collinear.");
         }
-    }
-
-    private static long DistanceSquared(ReleasePoint left, ReleasePoint right)
-    {
-        var dx = (long)left.X - right.X;
-        var dy = (long)left.Y - right.Y;
-        return checked((dx * dx) + (dy * dy));
     }
 
     private static long SignedAreaTwice(IReadOnlyList<ReleasePoint> polygon)

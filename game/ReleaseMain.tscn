@@ -1,0 +1,203 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://ReleaseMain.cs" id="1_main"]
+[ext_resource type="PackedScene" path="res://ReleaseMapView.tscn" id="2_map"]
+[ext_resource type="PackedScene" path="res://ReleaseTaskPanel.tscn" id="3_panel"]
+[ext_resource type="Theme" path="res://ProductTheme.tres" id="4_theme"]
+
+[node name="ReleaseMain" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("4_theme")
+script = ExtResource("1_main")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.018, 0.039, 0.052, 1)
+
+[node name="SafeMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="RootColumn" type="VBoxContainer" parent="SafeMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderPanel" type="PanelContainer" parent="SafeMargin/RootColumn"]
+custom_minimum_size = Vector2(0, 78)
+layout_mode = 2
+
+[node name="HeaderMargin" type="MarginContainer" parent="SafeMargin/RootColumn/HeaderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 8
+
+[node name="HeaderColumn" type="VBoxContainer" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TitleRow" type="HBoxContainer" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 21
+text = "GRIDWORKS · 청류시 전력운영센터"
+
+[node name="TitleSpacer" type="Control" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PhaseLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
+text = "망 살펴보기"
+
+[node name="Metrics" type="HFlowContainer" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn"]
+layout_mode = 2
+theme_override_constants/h_separation = 24
+
+[node name="TimeLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/Metrics"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "현재 시각 · 1일차 00:00"
+
+[node name="SupplyLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/Metrics"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "공급 중 · 0 MW"
+
+[node name="AssetLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/Metrics"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "완공 설비 0곳"
+
+[node name="Body" type="HBoxContainer" parent="SafeMargin/RootColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="MapFrame" type="PanelContainer" parent="SafeMargin/RootColumn/Body"]
+custom_minimum_size = Vector2(720, 520)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+size_flags_stretch_ratio = 2.4
+
+[node name="MapMargin" type="MarginContainer" parent="SafeMargin/RootColumn/Body/MapFrame"]
+layout_mode = 2
+theme_override_constants/margin_left = 5
+theme_override_constants/margin_top = 5
+theme_override_constants/margin_right = 5
+theme_override_constants/margin_bottom = 5
+
+[node name="ReleaseMapView" parent="SafeMargin/RootColumn/Body/MapFrame/MapMargin" instance=ExtResource("2_map")]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ReleaseTaskPanel" parent="SafeMargin/RootColumn/Body" instance=ExtResource("3_panel")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StoryOverlay" type="ColorRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.004, 0.012, 0.016, 0.8)
+
+[node name="StoryCenter" type="CenterContainer" parent="StoryOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="StoryPanel" type="PanelContainer" parent="StoryOverlay/StoryCenter"]
+custom_minimum_size = Vector2(620, 330)
+layout_mode = 2
+
+[node name="StoryMargin" type="MarginContainer" parent="StoryOverlay/StoryCenter/StoryPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="StoryColumn" type="VBoxContainer" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="StoryCategoryLabel" type="Label" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin/StoryColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
+text = "운영 브리핑"
+
+[node name="StoryTitleLabel" type="Label" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin/StoryColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "동부권 확장 사전공사"
+
+[node name="StoryBodyLabel" type="Label" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin/StoryColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+autowrap_mode = 2
+text = "운영 상황을 불러오는 중입니다."
+
+[node name="StoryButton" type="Button" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin/StoryColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "지도 확인하기"
+
+[node name="FatalLabel" type="Label" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -40.0
+offset_right = 260.0
+offset_bottom = 40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.95, 0.42, 0.38, 1)
+theme_override_font_sizes/font_size = 18
+text = "게임을 시작하지 못했습니다."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2

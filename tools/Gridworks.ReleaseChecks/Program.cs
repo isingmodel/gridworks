@@ -76,6 +76,9 @@ internal sealed class ReleaseChecks
             ("crossing-is-not-connection", CheckCrossingIsNotConnection),
             ("node-edge-polygon-outage-reroute", CheckOutageRerouting),
             ("immutability-repeat-determinism", CheckImmutabilityAndDeterminism),
+            ("construction-node-lifecycle", CheckConstructionNodeLifecycle),
+            ("construction-line-branch-merge", CheckConstructionLineBranchMerge),
+            ("construction-rejection-atomicity", CheckConstructionRejectionAndAtomicity),
         ];
 
         List<string> failures = [];
@@ -410,6 +413,177 @@ internal sealed class ReleaseChecks
         int copiedCount = copiedWorld.Nodes.Count;
         mutableNodes.Clear();
         Equal(copiedCount, copiedWorld.Nodes.Count, "world retained caller-owned node list");
+    }
+
+    private void CheckConstructionNodeLifecycle()
+    {
+        var session = new ReleaseConstructionSession(_fixture);
+        ReleaseConstructionSnapshot initial = session.GetSnapshot();
+        Equal(ReleaseConstructionPhase.Ready, initial.Phase, "construction initial phase");
+
+        Check(session.PreviewNodePlacement(
+            "SUBSTATION_SMALL",
+            new ReleasePoint(24, 6)).Accepted, "valid substation preview rejected");
+        Check(session.SetNodeDraft(
+            "SUBSTATION_SMALL",
+            new ReleasePoint(24, 6)).Accepted, "substation draft rejected");
+        Check(session.SetNodeDraft(
+            "SUBSTATION_SMALL",
+            new ReleasePoint(25, 6)).Accepted, "substation draft move rejected");
+        Equal(new ReleasePoint(25, 6), session.GetSnapshot().NodeDraft!.Position,
+            "substation draft did not move");
+        Check(session.CancelNodeDraft().Accepted, "substation draft cancel rejected");
+        Equal(ReleaseConstructionPhase.Ready, session.GetSnapshot().Phase,
+            "substation cancel phase");
+        Equal(initial.World.Nodes.Count, session.GetSnapshot().World.Nodes.Count,
+            "substation cancel changed world");
+
+        Check(session.SetNodeDraft(
+            "SUBSTATION_SMALL",
+            new ReleasePoint(25, 6)).Accepted, "final substation draft rejected");
+        ReleaseConstructionQuote quote = session.PreviewNodeOrder();
+        Check(quote.Accepted, "substation quote rejected");
+        Equal(2_200_000L, quote.CostCashUnit, "substation quote cost");
+        Equal(720L, quote.BuildMinutes, "substation quote duration");
+        Equal(720L, quote.CompletionMinute, "substation quote completion");
+
+        Check(session.OrderNode().Accepted, "substation order rejected");
+        ReleaseConstructionSnapshot building = session.GetSnapshot();
+        Equal(ReleaseConstructionPhase.NodeBuilding, building.Phase, "substation building phase");
+        ReleaseNodeDefinition planned = building.World.Nodes.Single(node =>
+            node.Position == new ReleasePoint(25, 6));
+        Check(!planned.Commissioned, "ordered substation commissioned early");
+        Equal(initial.Evaluation.TotalDeliveredKw, building.Evaluation.TotalDeliveredKw,
+            "ordered substation changed supply before completion");
+
+        Check(session.AdvanceToConstructionCompletion().Accepted,
+            "substation completion rejected");
+        ReleaseConstructionSnapshot completed = session.GetSnapshot();
+        Equal(ReleaseConstructionPhase.Ready, completed.Phase, "substation completed phase");
+        Equal(720L, completed.Minute, "substation completion minute");
+        Check(completed.World.Nodes.Single(node => node.NodeId == planned.NodeId).Commissioned,
+            "substation did not commission atomically");
+    }
+
+    private void CheckConstructionLineBranchMerge()
+    {
+        var session = new ReleaseConstructionSession(_fixture);
+        Check(session.StartLineDraft(
+            "SOUTH_JUNCTION",
+            "LINE_REINFORCED",
+            "POLE_STANDARD").Accepted, "line draft start rejected");
+        Check(session.AddLinePoint(new ReleasePoint(13, 13)).Accepted,
+            "first line pole rejected");
+        Check(session.AddLinePoint(new ReleasePoint(16, 12)).Accepted,
+            "second line pole rejected");
+        ReleaseConstructionCommandResult end = session.AddLinePoint(new ReleasePoint(17, 10));
+        Check(end.Accepted, "line endpoint rejected");
+        Equal("EAST_SUBSTATION", session.GetSnapshot().LineDraft!.EndNodeId,
+            "line did not end at existing substation");
+        Check(session.UndoLinePoint().Accepted, "line endpoint undo rejected");
+        Check(session.GetSnapshot().LineDraft!.EndNodeId is null,
+            "line endpoint undo did not reopen draft");
+        Check(session.AddLinePoint(new ReleasePoint(17, 10)).Accepted,
+            "line endpoint re-add rejected");
+
+        ReleaseConstructionQuote quote = session.PreviewLineOrder();
+        Check(quote.Accepted, "line quote rejected");
+        Equal(1_650_000L, quote.CostCashUnit, "line quote cost");
+        Equal(18_980L, quote.BuildMinutes, "line quote duration");
+        Equal(18_980L, quote.CompletionMinute, "line quote completion");
+
+        long deliveredBefore = session.GetSnapshot().Evaluation.TotalDeliveredKw;
+        Check(session.OrderLine().Accepted, "line order rejected");
+        ReleaseConstructionSnapshot building = session.GetSnapshot();
+        Equal(ReleaseConstructionPhase.LineBuilding, building.Phase, "line building phase");
+        Equal(2, building.ActiveConstruction!.NodeIds.Count, "planned pole count");
+        Equal(3, building.ActiveConstruction.EdgeIds.Count, "planned edge count");
+        Check(building.ActiveConstruction.EdgeIds.All(edgeId =>
+            !EdgeUsage(building.Evaluation, edgeId).Available),
+            "ordered line entered supply before atomic completion");
+        Equal(4, NodeUsage(building.Evaluation, "SOUTH_JUNCTION").ConnectionCount,
+            "planned branch did not reserve connection slot");
+        Equal(deliveredBefore, building.Evaluation.TotalDeliveredKw,
+            "planned line changed supply before completion");
+
+        Check(session.AdvanceToConstructionCompletion().Accepted,
+            "line completion rejected");
+        ReleaseConstructionSnapshot completed = session.GetSnapshot();
+        Equal(18_980L, completed.Minute, "line completion minute");
+        Check(completed.ActiveConstruction is null, "line construction remained active");
+        Check(building.ActiveConstruction.EdgeIds.All(edgeId =>
+            EdgeUsage(completed.Evaluation, edgeId).Available),
+            "line edges did not commission atomically");
+        Equal(4, NodeUsage(completed.Evaluation, "SOUTH_JUNCTION").ConnectionCount,
+            "completed branch degree");
+        Equal(2, NodeUsage(completed.Evaluation, "EAST_SUBSTATION").ConnectionCount,
+            "completed merge degree");
+    }
+
+    private void CheckConstructionRejectionAndAtomicity()
+    {
+        var session = new ReleaseConstructionSession(_fixture);
+        string initial = JsonSerializer.Serialize(session.GetSnapshot());
+        ReleaseConstructionCommandResult occupied = session.SetNodeDraft(
+            "SUBSTATION_SMALL",
+            new ReleasePoint(6, 10));
+        Check(!occupied.Accepted, "occupied node placement accepted");
+        Equal(ReleaseConstructionError.PositionOccupied, occupied.Error,
+            "occupied node placement error");
+        Equal(initial, JsonSerializer.Serialize(session.GetSnapshot()),
+            "rejected node placement changed state");
+
+        ReleaseConstructionCommandResult fullStart = session.StartLineDraft(
+            "CENTRAL_JUNCTION",
+            "LINE_REINFORCED",
+            "POLE_STANDARD");
+        Check(!fullStart.Accepted, "full branch node accepted another line");
+        Equal(ReleaseConstructionError.ConnectionLimit, fullStart.Error,
+            "full branch connection error");
+        Equal(initial, JsonSerializer.Serialize(session.GetSnapshot()),
+            "rejected line start changed state");
+
+        Check(session.StartLineDraft(
+            "SOUTH_JUNCTION",
+            "LINE_REINFORCED",
+            "POLE_STANDARD").Accepted, "rejection test line start");
+        Check(session.AddLinePoint(new ReleasePoint(13, 13)).Accepted,
+            "rejection test first point");
+        string beforeRejectedPoint = JsonSerializer.Serialize(session.GetSnapshot());
+        ReleaseConstructionCommandResult duplicate = session.AddLinePoint(new ReleasePoint(13, 13));
+        Check(!duplicate.Accepted, "duplicate line point accepted");
+        Equal(ReleaseConstructionError.PositionOccupied, duplicate.Error,
+            "duplicate line point error");
+        Equal(beforeRejectedPoint, JsonSerializer.Serialize(session.GetSnapshot()),
+            "rejected duplicate point changed state");
+        ReleaseConstructionCommandResult tooFar = session.AddLinePoint(new ReleasePoint(25, 20));
+        Check(!tooFar.Accepted, "overlong line span accepted");
+        Equal(ReleaseConstructionError.SpanTooLong, tooFar.Error,
+            "overlong line span error");
+        Equal(beforeRejectedPoint, JsonSerializer.Serialize(session.GetSnapshot()),
+            "rejected long span changed state");
+        Check(session.CancelLineDraft().Accepted, "line cancel rejected");
+        Equal(initial, JsonSerializer.Serialize(session.GetSnapshot()),
+            "cancelled line draft changed authoritative state");
+
+        var first = new ReleaseConstructionSession(_fixture);
+        var second = new ReleaseConstructionSession(_fixture);
+        CompleteCanonicalLine(first);
+        CompleteCanonicalLine(second);
+        Equal(
+            JsonSerializer.Serialize(first.GetSnapshot()),
+            JsonSerializer.Serialize(second.GetSnapshot()),
+            "identical construction commands were nondeterministic");
+    }
+
+    private static void CompleteCanonicalLine(ReleaseConstructionSession session)
+    {
+        _ = session.StartLineDraft("SOUTH_JUNCTION", "LINE_REINFORCED", "POLE_STANDARD");
+        _ = session.AddLinePoint(new ReleasePoint(13, 13));
+        _ = session.AddLinePoint(new ReleasePoint(16, 12));
+        _ = session.AddLinePoint(new ReleasePoint(17, 10));
+        _ = session.OrderLine();
+        _ = session.AdvanceToConstructionCompletion();
     }
 
     private void AssertLowerReroute(

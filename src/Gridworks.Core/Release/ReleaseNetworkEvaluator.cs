@@ -321,7 +321,7 @@ public static class ReleaseNetworkEvaluator
             StringComparer.Ordinal);
         foreach (ReleaseEdgeDefinition edge in world.Edges)
         {
-            long length = EdgeLengthMilliCells(
+            long length = ReleaseGridMath.EdgeLengthMilliCells(
                 nodes[edge.FromNodeId].Position,
                 nodes[edge.ToNodeId].Position);
             adjacency[edge.FromNodeId].Add(new AdjacentEdge(edge.EdgeId, edge.ToNodeId, length));
@@ -491,24 +491,6 @@ public static class ReleaseNetworkEvaluator
             }
         }
         return string.CompareOrdinal(left.NodeIds[^1], right.NodeIds[^1]);
-    }
-
-    private static long EdgeLengthMilliCells(ReleasePoint from, ReleasePoint to)
-    {
-        long dx = (long)from.X - to.X;
-        long dy = (long)from.Y - to.Y;
-        long scaledSquared = checked(((dx * dx) + (dy * dy)) * 1_000_000L);
-        long root = (long)Math.Sqrt(scaledSquared);
-        while (root < scaledSquared / Math.Max(1, root) || root * root < scaledSquared)
-        {
-            root++;
-        }
-        while (root > 0 && (root - 1) <= scaledSquared / Math.Max(1, root - 1) &&
-               (root - 1) * (root - 1) >= scaledSquared)
-        {
-            root--;
-        }
-        return root;
     }
 
     private static void ValidateContingencyReferences(

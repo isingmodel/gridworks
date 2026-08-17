@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ReleaseMapView.cs" id="1_map"]
+
+[node name="ReleaseMapView" type="Control"]
+custom_minimum_size = Vector2(720, 520)
+mouse_filter = 0
+focus_mode = 2
+script = ExtResource("1_map")

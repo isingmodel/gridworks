@@ -114,7 +114,7 @@ internal sealed partial class FirstLightTaskPanel : PanelContainer
         SetButton(_advanceButton, model.Advance);
         SetButton(_settleButton, model.Settle);
         SetButton(_restartButton, model.Restart);
-        AccessibilityName = $"첫 점등 작업 패널. {model.Step}. {model.Status}";
+        AccessibilityName = $"전력망 작업 패널. {model.Step}. {model.Status}";
     }
 
     public BaseButton GetActionButton(FirstLightPanelAction action)

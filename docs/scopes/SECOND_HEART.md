@@ -1,10 +1,10 @@
-# 두 번째 심장 — 활성 구현 계약
+# 두 번째 심장 — 완료된 구현 기준
 
-> 상태: `ACTIVE`
->
-> 구현 권한: `GRANTED`
+> 상태: `COMPLETED`
 >
 > 사람 검증: `NOT_COLLECTED`
+
+이 완료는 다음 공장 수요·발전소 용량 단계의 구현을 승인하지 않는다.
 
 이 단계는 완료된 첫 점등 제품 흐름을 병원 사건 결산까지 연장한다. 별도 병원 prototype이나 범용
 전력조류 엔진을 만들지 않는다. 공장, 신규 발전소, 연속 타임라인, 저장과 최종 아트는 열지 않는다.
@@ -146,3 +146,22 @@ project ID를 기록하고 `FINAL`은 hard condition, 제거 project, utility/P0
 두 해상도 전체 수동 QA, 세부 접근성 매트릭스, LLM·사람 플레이와 밸런스 조정은 이 단계 종료조건이
 아니다. 눈에 띄는 clipping과 기본 keyboard 접근만 smoke에서 확인하고, 전체 화면·접근성·패키지
 점검은 마지막 통합 단계에서 수행한다. `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
+
+## 8. 현재 검사와 종료 기록
+
+현재 제품 검사는 다음 한 명령으로 첫 점등 회귀와 병원 규칙을 함께 확인한다.
+
+```sh
+dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj -c Release -- data/product-second-heart-v1.json
+```
+
+- 첫 점등 회귀: 10 suites / 664 assertions 통과
+- 두 번째 심장: 5 suites / 124 assertions 통과
+- Core와 Game Debug·Release build: warning 0, error 0
+- 실제 viewport 입력과 표준 button을 사용한 대표 흐름: `Success`, 기말 현금 `2.040 M`
+- 진단: `READY → COMMAND × 23 → FINAL`, hard condition 3개 모두 참, 좌표·정답 경로 미기록
+- 짧은 독립 Core·Game 검토: 미해결 critical·core-flow major 0
+
+대표 smoke는 두 변전소 초안 위치, 마을 support, 위험대에 노출된 주회선 support와 안전한 예비회선
+support를 각각 `--smoke-*` 인자로 주입한다. 이 값은 검사 입력일 뿐 fixture나 참가자 UI의 정답이
+아니다. 사람·LLM 플레이는 수행하지 않았고 다음 단계는 여전히 미승인이다.

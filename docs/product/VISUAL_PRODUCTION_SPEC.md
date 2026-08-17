@@ -58,10 +58,10 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 - 색각 이상 대응 pattern, 키보드 focus, UI scale과 현지화 여유 확보
 - 로고, watermark와 알아볼 수 있는 타 작품 UI 금지
 
-제품용 기본 장면은 첫 통합 단계부터 container·anchor 기반의 가변 layout을 사용한다. 매 단계에서
-1280×720과 1920×1080의 clipping·text overflow, 표준 control의 keyboard focus, 핵심 상태의
-접근성 이름과 색 이외 표현을 회귀 확인한다. 마지막 출시 단계는 이 기초를 새로 만드는 단계가
-아니라 typography, 원본 아트, 사운드와 package 품질을 마감하는 단계다.
+제품용 기본 장면은 첫 통합 단계부터 container·anchor 기반의 가변 layout을 사용한다. 중간 단계는
+대표 창에서 눈에 띄는 clipping, 기본 keyboard focus와 색 이외 상태 표현만 확인한다. 두 해상도와
+전체 접근성 행렬은 마지막 통합 단계에서 한 번 확인한다. 마지막 출시 단계는 이 기초를 새로 만드는
+단계가 아니라 typography, 원본 아트, 사운드와 package 품질을 마감하는 단계다.
 
 ## 3. 산출물 상태
 
@@ -70,11 +70,12 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 | Scope 0A 카드 | 16:9 카드 4장 | 종료된 R1/R2 증거로 동결 |
 | Scope 0B 화면 | 단일 2D scene | 구현·시각 review와 official v6 `GO` 완료 |
 | 첫 점등 제품 화면 | `ProductMain`과 두 child scene | 기술 구현·두 해상도·접근성 검토 완료, 사람 관찰 `NOT_COLLECTED` |
+| 두 번째 심장 제품 화면 | 누적 `ProductMain` | 대표 native 흐름 확인 완료, 사람 관찰 `NOT_COLLECTED` |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |
 | 기존 발전소 입지 구도 | `../../assets/04-plant-siting.png` | 레이아웃 참고 전용 |
-| 병원 자동절체 | 런타임 캡처 후보 | 병원 신뢰도·경제 단계 뒤 |
+| 병원 자동절체 상세 화면 | 런타임 캡처 후보 | 현재 완료 범위 밖의 별도 미승인 확장 |
 | 원전·데이터센터·냉각수 | 새 텍스트 명세부터 시작 | P-A 승인 뒤 |
 
 정식 런타임 캡처를 만들게 되면 16:9 RGB PNG를 사용한다. 정확한 해상도와 golden 상태는 해당
@@ -232,7 +233,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 6. 공간 공통회랑 노출
 
 전기 N-1과 공간 공통원인은 서로 다른 행과 표식을 사용한다. 실제 통전선과 두 계획경로는
-line pattern으로 구분한다. 정확한 숫자는 해당 활성 구현 단계의 machine-readable fixture에서
+line pattern으로 구분한다. 정확한 숫자는 해당 구현 단계의 machine-readable fixture에서
 생성하며 이미지 prompt에 하드코딩하지 않는다.
 
 ### 6.4 병원 자동절체
@@ -310,6 +311,12 @@ capture나 이미지 prompt를 만들지 않는다.
 - 서비스 권역이 공급 자체가 아니라 접속 가능 범위로 보이는가?
 - 지도와 표준 button에 접근성 이름·설명이 있고 Tab, 화살표와 Enter로 핵심 행동이 가능한가?
 - 발주가 막히면 견적과 함께 Core가 반환한 첫 실패 이유가 보이는가?
+
+### 두 번째 심장 제품 화면 — 기술 완료 범위
+
+- 병원 주·예비 회선과 닫힌 위험 사각형이 서로 구분되는가?
+- 계획·공사·통전·사건 사용불가가 선 모양과 문장으로 함께 구분되는가?
+- 세 안전조건과 현금 ledger가 하나의 가중점수로 합쳐지지 않는가?
 
 ### 모든 제작 화면
 

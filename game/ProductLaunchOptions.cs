@@ -11,7 +11,9 @@ internal sealed record ProductLaunchOptions(
     string DiagnosticPath,
     bool Smoke,
     IReadOnlyList<FirstLightGridPoint> SmokeSubstations,
-    IReadOnlyList<FirstLightGridPoint> SmokeSupports)
+    IReadOnlyList<FirstLightGridPoint> SmokeSupports,
+    IReadOnlyList<FirstLightGridPoint> SmokePrimarySupports,
+    IReadOnlyList<FirstLightGridPoint> SmokeBackupSupports)
 {
     public static ProductLaunchOptions Parse(IReadOnlyList<string> arguments)
     {
@@ -20,6 +22,8 @@ internal sealed record ProductLaunchOptions(
         bool smoke = false;
         var substations = new List<FirstLightGridPoint>();
         var supports = new List<FirstLightGridPoint>();
+        var primarySupports = new List<FirstLightGridPoint>();
+        var backupSupports = new List<FirstLightGridPoint>();
 
         for (int index = 0; index < arguments.Count; index++)
         {
@@ -56,13 +60,23 @@ internal sealed record ProductLaunchOptions(
                         RequiredValue(arguments, ref index, "--smoke-support"),
                         "--smoke-support"));
                     break;
+                case "--smoke-primary-support":
+                    primarySupports.Add(ParsePoint(
+                        RequiredValue(arguments, ref index, "--smoke-primary-support"),
+                        "--smoke-primary-support"));
+                    break;
+                case "--smoke-backup-support":
+                    backupSupports.Add(ParsePoint(
+                        RequiredValue(arguments, ref index, "--smoke-backup-support"),
+                        "--smoke-backup-support"));
+                    break;
                 default:
                     throw new ArgumentException(
-                        $"Unknown First Light game argument: {arguments[index]}");
+                        $"Unknown product game argument: {arguments[index]}");
             }
         }
 
-        sessionId ??= "LOCAL-FIRST-LIGHT";
+        sessionId ??= "LOCAL-SECOND-HEART";
         if (string.IsNullOrWhiteSpace(sessionId))
         {
             throw new ArgumentException("--session-id cannot be empty.");
@@ -80,21 +94,36 @@ internal sealed record ProductLaunchOptions(
                 throw new ArgumentException(
                     "--smoke requires at least one --smoke-support x,y value.");
             }
+            if (primarySupports.Count == 0)
+            {
+                throw new ArgumentException(
+                    "--smoke requires at least one --smoke-primary-support x,y value.");
+            }
+            if (backupSupports.Count == 0)
+            {
+                throw new ArgumentException(
+                    "--smoke requires at least one --smoke-backup-support x,y value.");
+            }
         }
-        else if (substations.Count != 0 || supports.Count != 0)
+        else if (substations.Count != 0 ||
+                 supports.Count != 0 ||
+                 primarySupports.Count != 0 ||
+                 backupSupports.Count != 0)
         {
             throw new ArgumentException(
                 "Smoke coordinates are valid only when --smoke is present.");
         }
 
         diagnosticPath ??= ProjectSettings.GlobalizePath(
-            $"user://product-first-light-local-{System.Environment.ProcessId}.jsonl");
+            $"user://product-second-heart-local-{System.Environment.ProcessId}.jsonl");
         return new ProductLaunchOptions(
             sessionId,
             Path.GetFullPath(diagnosticPath),
             smoke,
             substations.AsReadOnly(),
-            supports.AsReadOnly());
+            supports.AsReadOnly(),
+            primarySupports.AsReadOnly(),
+            backupSupports.AsReadOnly());
     }
 
     private static FirstLightGridPoint ParsePoint(string value, string option)

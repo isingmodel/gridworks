@@ -11,7 +11,31 @@ internal static class Program
         try
         {
             string fixturePath = ResolveFixturePath(args);
-            return new FirstLightChecks(fixturePath).Run();
+            string schemaVersion = ReadSchemaVersion(fixturePath);
+            if (schemaVersion == "gridworks.product.first-light.v1")
+            {
+                return new FirstLightChecks(fixturePath).Run();
+            }
+            if (schemaVersion == "gridworks.product.second-heart.v1")
+            {
+                string firstLightPath = Path.GetFullPath(Path.Combine(
+                    Environment.CurrentDirectory,
+                    "data",
+                    "product-first-light-v1.json"));
+                if (!File.Exists(firstLightPath))
+                {
+                    throw new FileNotFoundException(
+                        "Frozen First Light regression fixture not found.",
+                        firstLightPath);
+                }
+
+                int firstLightExit = new FirstLightChecks(firstLightPath).Run();
+                return firstLightExit == 0
+                    ? new SecondHeartChecks(fixturePath).Run()
+                    : firstLightExit;
+            }
+
+            throw new ArgumentException($"Unsupported product schemaVersion '{schemaVersion}'.");
         }
         catch (Exception exception)
         {
@@ -33,13 +57,20 @@ internal static class Program
             : Path.Combine(
                 Environment.CurrentDirectory,
                 "data",
-                "product-first-light-v1.json");
+                "product-second-heart-v1.json");
         path = Path.GetFullPath(path);
         if (!File.Exists(path))
         {
-            throw new FileNotFoundException("First Light product fixture not found.", path);
+            throw new FileNotFoundException("Product fixture not found.", path);
         }
         return path;
+    }
+
+    private static string ReadSchemaVersion(string fixturePath)
+    {
+        JsonNode? node = JsonNode.Parse(File.ReadAllText(fixturePath, Encoding.UTF8));
+        return node?["schemaVersion"]?.GetValue<string>()
+            ?? throw new ArgumentException("Product fixture has no string schemaVersion.");
     }
 }
 

@@ -1,6 +1,6 @@
 namespace Gridworks.Core.Product;
 
-public sealed class ProductSession
+public sealed partial class ProductSession
 {
     private const long RevenueDenominator = 60_000_000;
 
@@ -38,16 +38,15 @@ public sealed class ProductSession
 
     public ProductSnapshot GetSnapshot()
     {
+        ProductHospitalSnapshot? hospitalSnapshot = BuildHospitalSnapshot();
         bool townInServiceArea = IsTownInServiceArea(_substationPosition);
         ProductSupplyFailure supplyFailure = CurrentSupplyFailure();
-        long deliveredKw = supplyFailure == ProductSupplyFailure.None
-            ? _fixture.Town.DemandKw
-            : 0;
-        ProductMissionOutcome outcome = !_settlementCompleted
-            ? ProductMissionOutcome.Pending
-            : _settledDeliveredEnergyKwMinute > 0
-                ? ProductMissionOutcome.Success
-                : ProductMissionOutcome.Failure;
+        long deliveredKw = _fixture.HasHospitalStage && _settlementCompleted
+            ? hospitalSnapshot?.TownUtilityKw ?? 0
+            : supplyFailure == ProductSupplyFailure.None
+                ? _fixture.Town.DemandKw
+                : 0;
+        ProductMissionOutcome outcome = CurrentOutcome();
 
         return new ProductSnapshot(
             _minute,
@@ -68,7 +67,8 @@ public sealed class ProductSession
                 _settlementCompleted,
                 _settledDeliveredEnergyKwMinute,
                 _settledRevenueCashUnit),
-            outcome);
+            outcome,
+            hospitalSnapshot);
     }
 
     public ProductSubstationPlacementPreview PreviewSubstationPlacement(ProductPoint position)
@@ -169,6 +169,11 @@ public sealed class ProductSession
     {
         ArgumentNullException.ThrowIfNull(position);
 
+        if (IsHospitalPlanningPhase())
+        {
+            return PreviewHospitalLineSupport(position);
+        }
+
         ProductPoint from = LastLineEndpoint();
         long distanceSquared = SafeDistanceSquared(from, position);
         ProductCommandError? error = CurrentPhase() != ProductPhase.LinePlanning
@@ -194,6 +199,10 @@ public sealed class ProductSession
 
     public ProductCommandResult AddLineSupport(ProductPoint position)
     {
+        if (IsHospitalPlanningPhase())
+        {
+            return AddHospitalLineSupport(position);
+        }
         ProductLineSupportPreview preview = PreviewLineSupport(position);
         if (!preview.Accepted)
         {
@@ -206,6 +215,10 @@ public sealed class ProductSession
 
     public ProductCommandResult UndoLineSupport()
     {
+        if (IsHospitalPlanningPhase())
+        {
+            return UndoHospitalLineSupport();
+        }
         if (CurrentPhase() != ProductPhase.LinePlanning)
         {
             return Rejected(ProductCommandError.WrongPhase);
@@ -221,6 +234,10 @@ public sealed class ProductSession
 
     public ProductCommandResult CancelLineDraft()
     {
+        if (IsHospitalPlanningPhase())
+        {
+            return CancelHospitalLineDraft();
+        }
         if (CurrentPhase() != ProductPhase.LinePlanning)
         {
             return Rejected(ProductCommandError.WrongPhase);
@@ -232,6 +249,10 @@ public sealed class ProductSession
 
     public ProductOrderPreview PreviewLineOrder()
     {
+        if (IsHospitalPlanningPhase())
+        {
+            return PreviewHospitalLineOrder();
+        }
         if (CurrentPhase() != ProductPhase.LinePlanning)
         {
             return EmptyOrderPreview(ProductCommandError.WrongPhase);
@@ -261,6 +282,10 @@ public sealed class ProductSession
 
     public ProductCommandResult OrderLine()
     {
+        if (IsHospitalPlanningPhase())
+        {
+            return OrderHospitalLine();
+        }
         ProductOrderPreview preview = PreviewLineOrder();
         if (!preview.Accepted)
         {
@@ -294,6 +319,10 @@ public sealed class ProductSession
                 ?? throw new InvalidOperationException("Building line has no completion minute.");
             _lineState = ProductProjectState.Commissioned;
             return Accepted();
+        }
+        if (phase is ProductPhase.PrimaryBuilding or ProductPhase.BackupBuilding)
+        {
+            return CompleteHospitalLineConstruction(phase);
         }
         return Rejected(ProductCommandError.WrongPhase);
     }
@@ -337,6 +366,14 @@ public sealed class ProductSession
 
     private ProductPhase CurrentPhase()
     {
+        if (_hospitalSettlement.Completed)
+        {
+            return ProductPhase.Complete;
+        }
+        if (_settlementCompleted && _fixture.HasHospitalStage)
+        {
+            return CurrentHospitalPhase();
+        }
         if (_settlementCompleted)
         {
             return ProductPhase.Complete;
@@ -405,7 +442,9 @@ public sealed class ProductSession
     }
 
     private bool IsStaticPositionOccupied(ProductPoint position) =>
-        position == _fixture.ExistingSource.Position || position == _fixture.Town.Position;
+        position == _fixture.ExistingSource.Position ||
+        position == _fixture.Town.Position ||
+        position == _fixture.Hospital?.Position;
 
     private bool IsLinePositionOccupied(ProductPoint position) =>
         IsStaticPositionOccupied(position) ||
@@ -462,5 +501,6 @@ public sealed class ProductSession
         _settlementCompleted = false;
         _settledDeliveredEnergyKwMinute = 0;
         _settledRevenueCashUnit = 0;
+        ResetHospitalState();
     }
 }

@@ -15,6 +15,14 @@ internal enum FirstLightProjectVisualState
     NotOrdered,
     Building,
     Commissioned,
+    Unavailable,
+}
+
+internal enum FirstLightLineKind
+{
+    Town,
+    HospitalPrimary,
+    HospitalBackup,
 }
 
 internal enum FirstLightPointerMode
@@ -35,17 +43,33 @@ internal sealed record FirstLightTargetPreview(
     FirstLightGridPoint Target,
     bool Accepted);
 
+internal sealed record FirstLightRiskRect(
+    FirstLightGridPoint Minimum,
+    FirstLightGridPoint Maximum,
+    bool IncidentActive);
+
+internal sealed record FirstLightLineVisual(
+    FirstLightLineKind Kind,
+    string Label,
+    FirstLightGridPoint Target,
+    IReadOnlyList<FirstLightGridPoint> Supports,
+    FirstLightProjectVisualState State,
+    bool IsActiveProject);
+
 internal sealed record FirstLightMapModel(
     FirstLightGridBounds Bounds,
     IReadOnlyList<FirstLightGridPoint> BlockedCells,
     FirstLightGridPoint Source,
     FirstLightGridPoint Town,
     long TownDeliveredKw,
+    FirstLightGridPoint Hospital,
+    long HospitalUtilityKw,
+    long HospitalP0DeliveredKw,
+    FirstLightRiskRect RiskRect,
     FirstLightGridPoint? Substation,
     int ServiceRadius,
     FirstLightProjectVisualState SubstationState,
-    IReadOnlyList<FirstLightGridPoint> Supports,
-    FirstLightProjectVisualState LineState,
+    IReadOnlyList<FirstLightLineVisual> Lines,
     FirstLightPointerPreview? PointerPreview,
     FirstLightTargetPreview? TargetPreview,
     string PhaseDescription,
@@ -67,6 +91,9 @@ internal sealed partial class FirstLightMapView : Container
     private static readonly Color ServiceFill = new(0.35f, 0.58f, 0.72f, 0.12f);
     private static readonly Color BlockedFill = Color.FromHtml("25313a");
     private static readonly Color FocusColor = Color.FromHtml("f0c66d");
+    private static readonly Color PrimaryColor = Color.FromHtml("d6a7e8");
+    private static readonly Color BackupColor = Color.FromHtml("91d58b");
+    private static readonly Color RiskColor = Color.FromHtml("d85d62");
 
     private FirstLightMapModel? _model;
     private FirstLightGridPoint? _keyboardPoint;
@@ -84,7 +111,7 @@ internal sealed partial class FirstLightMapView : Container
         FocusEntered += QueueRedraw;
         FocusExited += QueueRedraw;
         AccessibilityDescription =
-            "첫 점등 지도. 마우스 왼쪽 클릭으로 격자점을 선택합니다. 키보드로는 화살표로 커서를 움직이고 Enter 또는 Space로 선택합니다.";
+            "전력망 지도. 마우스 왼쪽 클릭으로 격자점을 선택합니다. 키보드로는 화살표로 커서를 움직이고 Enter 또는 Space로 선택합니다.";
     }
 
     public void SetModel(FirstLightMapModel model)
@@ -150,10 +177,12 @@ internal sealed partial class FirstLightMapView : Container
         DrawRect(new Rect2(Vector2.Zero, Size), MapBackground);
         DrawGrid(_model.Bounds, plot);
         DrawBlockedCells(_model, plot);
+        DrawRiskRect(_model, plot);
         DrawServiceArea(_model, plot);
-        DrawLineProject(_model, plot);
+        DrawLineProjects(_model, plot);
         DrawSource(_model, plot);
         DrawTown(_model, plot);
+        DrawHospital(_model, plot);
         DrawSubstation(_model, plot);
         DrawSupports(_model, plot);
         DrawPointerPreview(_model, plot);
@@ -286,32 +315,97 @@ internal sealed partial class FirstLightMapView : Container
             ServiceStroke);
     }
 
-    private void DrawLineProject(FirstLightMapModel model, Rect2 plot)
+    private void DrawRiskRect(FirstLightMapModel model, Rect2 plot)
     {
-        var points = new List<FirstLightGridPoint> { model.Source };
-        points.AddRange(model.Supports);
-        if (model.LineState != FirstLightProjectVisualState.NotOrdered && model.Substation.HasValue)
+        Vector2 minimum = ToCanvas(model.RiskRect.Minimum, model.Bounds, plot);
+        Vector2 maximum = ToCanvas(model.RiskRect.Maximum, model.Bounds, plot);
+        var rect = new Rect2(minimum, maximum - minimum);
+        Color fill = model.RiskRect.IncidentActive
+            ? new Color(RiskColor, 0.2f)
+            : new Color(RiskColor, 0.08f);
+        DrawRect(rect, fill);
+        DrawDashedLine(rect.Position, new Vector2(rect.End.X, rect.Position.Y), RiskColor, 2f, 8f);
+        DrawDashedLine(new Vector2(rect.End.X, rect.Position.Y), rect.End, RiskColor, 2f, 8f);
+        DrawDashedLine(rect.End, new Vector2(rect.Position.X, rect.End.Y), RiskColor, 2f, 8f);
+        DrawDashedLine(new Vector2(rect.Position.X, rect.End.Y), rect.Position, RiskColor, 2f, 8f);
+        if (model.RiskRect.IncidentActive)
         {
-            points.Add(model.Substation.Value);
+            for (float x = rect.Position.X - rect.Size.Y; x < rect.End.X; x += 18f)
+            {
+                Vector2 from = new(Math.Max(rect.Position.X, x), rect.End.Y);
+                Vector2 to = new(Math.Min(rect.End.X, x + rect.Size.Y), rect.Position.Y);
+                DrawLine(from, to, new Color(RiskColor, 0.35f), 1.5f);
+            }
         }
+        DrawString(
+            ThemeDB.FallbackFont,
+            rect.Position + new Vector2(6f, -7f),
+            model.RiskRect.IncidentActive
+                ? "공간사건 활성 · 닿는 회선 사용불가"
+                : "공간 위험구역 · 경계 포함",
+            HorizontalAlignment.Left,
+            -1f,
+            12,
+            RiskColor);
+    }
 
-        for (int index = 0; index < points.Count - 1; index++)
+    private void DrawLineProjects(FirstLightMapModel model, Rect2 plot)
+    {
+        foreach (FirstLightLineVisual line in model.Lines)
         {
-            Vector2 from = ToCanvas(points[index], model.Bounds, plot);
-            Vector2 to = ToCanvas(points[index + 1], model.Bounds, plot);
-            DrawProjectSpan(from, to, model.LineState);
-        }
+            var points = new List<FirstLightGridPoint> { model.Source };
+            points.AddRange(line.Supports);
+            if (line.State != FirstLightProjectVisualState.NotOrdered)
+            {
+                points.Add(line.Target);
+            }
 
-        if (model.LineState == FirstLightProjectVisualState.NotOrdered && model.TargetPreview is not null)
-        {
-            Vector2 from = ToCanvas(model.TargetPreview.From, model.Bounds, plot);
-            Vector2 to = ToCanvas(model.TargetPreview.Target, model.Bounds, plot);
-            Color color = model.TargetPreview.Accepted ? PlannedColor : InvalidColor;
-            DrawDashedLine(from, to, color, 2.5f, 8f, true, true);
+            for (int index = 0; index < points.Count - 1; index++)
+            {
+                Vector2 from = ToCanvas(points[index], model.Bounds, plot);
+                Vector2 to = ToCanvas(points[index + 1], model.Bounds, plot);
+                DrawProjectSpan(from, to, line.State, line.Kind);
+            }
+
+            if (points.Count > 1)
+            {
+                Vector2 labelPoint = ToCanvas(points[1], model.Bounds, plot);
+                Vector2 offset = line.Kind switch
+                {
+                    FirstLightLineKind.Town => new Vector2(8f, 19f),
+                    FirstLightLineKind.HospitalPrimary => new Vector2(8f, -13f),
+                    FirstLightLineKind.HospitalBackup => new Vector2(8f, 20f),
+                    _ => Vector2.Zero,
+                };
+                DrawString(
+                    ThemeDB.FallbackFont,
+                    labelPoint + offset,
+                    line.Label,
+                    HorizontalAlignment.Left,
+                    -1f,
+                    11,
+                    line.State == FirstLightProjectVisualState.Unavailable
+                        ? InvalidColor
+                        : LineColor(line.Kind));
+            }
+
+            if (line.IsActiveProject &&
+                line.State == FirstLightProjectVisualState.NotOrdered &&
+                model.TargetPreview is not null)
+            {
+                Vector2 from = ToCanvas(model.TargetPreview.From, model.Bounds, plot);
+                Vector2 to = ToCanvas(model.TargetPreview.Target, model.Bounds, plot);
+                Color color = model.TargetPreview.Accepted ? PlannedColor : InvalidColor;
+                DrawDashedLine(from, to, color, 2.5f, 8f, true, true);
+            }
         }
     }
 
-    private void DrawProjectSpan(Vector2 from, Vector2 to, FirstLightProjectVisualState state)
+    private void DrawProjectSpan(
+        Vector2 from,
+        Vector2 to,
+        FirstLightProjectVisualState state,
+        FirstLightLineKind kind)
     {
         switch (state)
         {
@@ -324,7 +418,12 @@ internal sealed partial class FirstLightMapView : Container
                 break;
             case FirstLightProjectVisualState.Commissioned:
                 DrawLine(from, to, Color.FromHtml("102b31"), 9f, true);
-                DrawLine(from, to, EnergizedColor, 5f, true);
+                DrawLine(from, to, LineColor(kind), 5f, true);
+                break;
+            case FirstLightProjectVisualState.Unavailable:
+                DrawLine(from, to, Color.FromHtml("2b171a"), 9f, true);
+                DrawDashedLine(from, to, InvalidColor, 5f, 12f, true, true);
+                DrawCross((from + to) / 2f, InvalidColor, 8f);
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(state));
@@ -365,6 +464,27 @@ internal sealed partial class FirstLightMapView : Container
             114f,
             13,
             color);
+    }
+
+    private void DrawHospital(FirstLightMapModel model, Rect2 plot)
+    {
+        Vector2 center = ToCanvas(model.Hospital, model.Bounds, plot);
+        Color utilityColor = model.HospitalUtilityKw > 0 ? EnergizedColor : MutedColor;
+        var building = new Rect2(center - new Vector2(16f, 14f), new Vector2(32f, 28f));
+        DrawRect(building, new Color(utilityColor, 0.22f));
+        DrawRect(building, utilityColor, false, 3f);
+        DrawLine(center + new Vector2(-8f, 0f), center + new Vector2(8f, 0f), TextColor, 4f);
+        DrawLine(center + new Vector2(0f, -8f), center + new Vector2(0f, 8f), TextColor, 4f);
+        string utility = model.HospitalUtilityKw > 0 ? "utility 공급" : "utility 미공급";
+        string p0 = model.HospitalP0DeliveredKw > 0 ? "P0 유지" : "P0 미공급";
+        DrawString(
+            ThemeDB.FallbackFont,
+            center + new Vector2(-170f, -21f),
+            $"병원 · {utility} · {p0}",
+            HorizontalAlignment.Right,
+            148f,
+            12,
+            utilityColor);
     }
 
     private void DrawSubstation(FirstLightMapModel model, Rect2 plot)
@@ -410,20 +530,24 @@ internal sealed partial class FirstLightMapView : Container
 
     private void DrawSupports(FirstLightMapModel model, Rect2 plot)
     {
-        Color color = model.LineState switch
+        foreach (FirstLightLineVisual line in model.Lines)
         {
-            FirstLightProjectVisualState.NotOrdered => PlannedColor,
-            FirstLightProjectVisualState.Building => BuildingColor,
-            FirstLightProjectVisualState.Commissioned => EnergizedColor,
-            _ => throw new ArgumentOutOfRangeException(nameof(model.LineState)),
-        };
-        foreach (FirstLightGridPoint support in model.Supports)
-        {
-            Vector2 point = ToCanvas(support, model.Bounds, plot);
-            DrawLine(point + new Vector2(0f, -12f), point + new Vector2(0f, 12f), color, 4f, true);
-            DrawLine(point + new Vector2(-8f, -7f), point + new Vector2(8f, -7f), color, 3f, true);
-            DrawCircle(point, 5f, MapBackground);
-            DrawCircle(point, 5f, color, false, 2f, true);
+            Color color = line.State switch
+            {
+                FirstLightProjectVisualState.NotOrdered => PlannedColor,
+                FirstLightProjectVisualState.Building => BuildingColor,
+                FirstLightProjectVisualState.Commissioned => LineColor(line.Kind),
+                FirstLightProjectVisualState.Unavailable => InvalidColor,
+                _ => throw new ArgumentOutOfRangeException(nameof(line.State)),
+            };
+            foreach (FirstLightGridPoint support in line.Supports)
+            {
+                Vector2 point = ToCanvas(support, model.Bounds, plot);
+                DrawLine(point + new Vector2(0f, -12f), point + new Vector2(0f, 12f), color, 4f, true);
+                DrawLine(point + new Vector2(-8f, -7f), point + new Vector2(8f, -7f), color, 3f, true);
+                DrawCircle(point, 5f, MapBackground);
+                DrawCircle(point, 5f, color, false, 2f, true);
+            }
         }
     }
 
@@ -477,7 +601,7 @@ internal sealed partial class FirstLightMapView : Container
     private void DrawLegend(FirstLightMapModel model)
     {
         string text =
-            $"{model.PhaseDescription}  ·  ┄ 계획  ·  ╱╱ 공사  ·  ━ 통전  ·  ◌ 서비스 권역";
+            $"{model.PhaseDescription}  ·  ┄ 계획  ·  ╱╱ 공사  ·  ━ 통전  ·  --× 사용불가  ·  ◌ 위험구역";
         DrawString(
             ThemeDB.FallbackFont,
             new Vector2(18f, Size.Y - 14f),
@@ -550,18 +674,35 @@ internal sealed partial class FirstLightMapView : Container
         string substation = model.Substation.HasValue
             ? $"{SubstationStateText(model.SubstationState)}."
             : "변전소 초안 없음.";
-        string line = model.LineState switch
-        {
-            FirstLightProjectVisualState.NotOrdered => $"선로 계획 지지물 {model.Supports.Count}개.",
-            FirstLightProjectVisualState.Building => $"선로 공사 중, 지지물 {model.Supports.Count}개.",
-            FirstLightProjectVisualState.Commissioned => $"선로 완공, 지지물 {model.Supports.Count}개.",
-            _ => throw new ArgumentOutOfRangeException(nameof(model.LineState)),
-        };
+        string line = string.Join(
+            " ",
+            model.Lines.Select(item =>
+                $"{item.Label} {LineStateText(item.State)}, 지지물 {item.Supports.Count}개."));
         string cursor = keyboardPoint.HasValue
             ? $" 키보드 커서 {keyboardPoint.Value.X}, {keyboardPoint.Value.Y}."
             : string.Empty;
-        return $"첫 점등 지도. {model.PhaseDescription}. {substation} {line} {model.SupplyDescription}.{cursor}";
+        string incident = model.RiskRect.IncidentActive
+            ? " 공간사건 활성."
+            : " 공간 위험구역 표시됨.";
+        return $"전력망 지도. {model.PhaseDescription}. {substation} {line} {model.SupplyDescription}.{incident}{cursor}";
     }
+
+    private static string LineStateText(FirstLightProjectVisualState state) => state switch
+    {
+        FirstLightProjectVisualState.NotOrdered => "계획",
+        FirstLightProjectVisualState.Building => "공사 중",
+        FirstLightProjectVisualState.Commissioned => "완공",
+        FirstLightProjectVisualState.Unavailable => "사건으로 사용불가",
+        _ => throw new ArgumentOutOfRangeException(nameof(state)),
+    };
+
+    private static Color LineColor(FirstLightLineKind kind) => kind switch
+    {
+        FirstLightLineKind.Town => EnergizedColor,
+        FirstLightLineKind.HospitalPrimary => PrimaryColor,
+        FirstLightLineKind.HospitalBackup => BackupColor,
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
 
     private static string SubstationStateText(FirstLightProjectVisualState state) => state switch
     {

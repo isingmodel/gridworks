@@ -77,6 +77,18 @@ public static class ProductFixtureLoader
 
             JsonElement root = document.RootElement;
             EnsureNoDuplicateProperties(root, "$");
+            if (root.ValueKind == JsonValueKind.Object &&
+                root.TryGetProperty("schemaVersion", out JsonElement schemaElement) &&
+                schemaElement.ValueKind == JsonValueKind.String &&
+                string.Equals(
+                    schemaElement.GetString(),
+                    SecondHeartFixtureSupport.SchemaVersion,
+                    StringComparison.Ordinal))
+            {
+                ProductFixture secondHeart = SecondHeartFixtureSupport.Read(root);
+                Validate(secondHeart);
+                return secondHeart;
+            }
             EnsureExactObject(root, RootFields, "$");
 
             ProductFixture fixture = new(
@@ -116,6 +128,14 @@ public static class ProductFixtureLoader
     internal static void Validate(ProductFixture fixture)
     {
         ArgumentNullException.ThrowIfNull(fixture);
+        if (string.Equals(
+                fixture.SchemaVersion,
+                SecondHeartFixtureSupport.SchemaVersion,
+                StringComparison.Ordinal))
+        {
+            SecondHeartFixtureSupport.Validate(fixture);
+            return;
+        }
         ArgumentNullException.ThrowIfNull(fixture.Units);
         ArgumentNullException.ThrowIfNull(fixture.MapBounds);
         ArgumentNullException.ThrowIfNull(fixture.BlockedCells);

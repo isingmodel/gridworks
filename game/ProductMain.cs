@@ -16,6 +16,8 @@ public sealed partial class ProductMain : Control
     private ProductLaunchOptions _options = null!;
     private ProductDiagnosticLog? _diagnostic;
     private ProductFixture _fixture = null!;
+    private ProductHospital _hospitalFixture = null!;
+    private ProductSpatialIncident _incidentFixture = null!;
     private ProductSession _session = null!;
     private ProductSnapshot _snapshot = null!;
     private FirstLightPointerPreview? _pointerPreview;
@@ -35,18 +37,22 @@ public sealed partial class ProductMain : Control
     {
         try
         {
-            GetWindow().Title = "Gridworks — 첫 점등";
+            GetWindow().Title = "Gridworks — 두 번째 심장";
             _options = ProductLaunchOptions.Parse(OS.GetCmdlineUserArgs());
 
             string fixturePath = Path.GetFullPath(Path.Combine(
                 ProjectSettings.GlobalizePath("res://"),
                 "..",
                 "data",
-                "product-first-light-v1.json"));
+                "product-second-heart-v1.json"));
             byte[] fixtureBytes = File.ReadAllBytes(fixturePath);
             _fixtureHash = LowerHex(SHA256.HashData(fixtureBytes));
             _buildHash = ComputeBuildHash();
             _fixture = ProductFixtureLoader.Load(fixtureBytes);
+            _hospitalFixture = _fixture.Hospital
+                ?? throw new InvalidOperationException("Second Heart fixture is missing the hospital.");
+            _incidentFixture = _fixture.SpatialIncident
+                ?? throw new InvalidOperationException("Second Heart fixture is missing the spatial incident.");
             _session = new ProductSession(_fixture);
             _snapshot = _session.GetSnapshot();
 
@@ -67,7 +73,7 @@ public sealed partial class ProductMain : Control
         }
         catch (Exception exception)
         {
-            GD.PushError($"First Light startup failed: {exception}");
+            GD.PushError($"Second Heart startup failed: {exception}");
             ShowFatalError(exception.Message);
             if (_options?.Smoke == true || OS.GetCmdlineUserArgs().Contains("--smoke"))
             {
@@ -97,7 +103,7 @@ public sealed partial class ProductMain : Control
         _taskPanel.UndoRequested += OnUndoRequested;
         _taskPanel.OrderRequested += OnOrderRequested;
         _taskPanel.AdvanceRequested += OnAdvanceRequested;
-        _taskPanel.SettleRequested += OnSettleRequested;
+        _taskPanel.SettleRequested += OnMilestoneRequested;
         _taskPanel.RestartRequested += OnRestartRequested;
     }
 
@@ -115,7 +121,8 @@ public sealed partial class ProductMain : Control
         {
             ProductPhase.SubstationPlanning => ToMapPreview(
                 _session.PreviewSubstationPlacement(productPoint)),
-            ProductPhase.LinePlanning => ToMapPreview(_session.PreviewLineSupport(productPoint)),
+            _ when IsLinePlanning(_snapshot.Phase) =>
+                ToMapPreview(_session.PreviewLineSupport(productPoint)),
             _ => null,
         };
         Render();
@@ -126,7 +133,7 @@ public sealed partial class ProductMain : Control
         ProductCommandResult? result = _snapshot.Phase switch
         {
             ProductPhase.SubstationPlanning => _session.SetSubstationDraft(ToProduct(point)),
-            ProductPhase.LinePlanning => _session.AddLineSupport(ToProduct(point)),
+            _ when IsLinePlanning(_snapshot.Phase) => _session.AddLineSupport(ToProduct(point)),
             _ => null,
         };
         if (result is null)
@@ -145,16 +152,16 @@ public sealed partial class ProductMain : Control
         ProductCommandResult? result = _snapshot.Phase switch
         {
             ProductPhase.SubstationPlanning => _session.CancelSubstationDraft(),
-            ProductPhase.LinePlanning => _session.CancelLineDraft(),
+            _ when IsLinePlanning(_snapshot.Phase) => _session.CancelLineDraft(),
             _ => null,
         };
         if (result is null)
         {
             return;
         }
-        string commandName = _snapshot.Phase == ProductPhase.LinePlanning
-            ? "CANCEL_LINE_DRAFT"
-            : "CANCEL_SUBSTATION_DRAFT";
+        string commandName = _snapshot.Phase == ProductPhase.SubstationPlanning
+            ? "CANCEL_SUBSTATION_DRAFT"
+            : "CANCEL_LINE_DRAFT";
         ApplyCommand(commandName, result);
     }
 
@@ -166,24 +173,39 @@ public sealed partial class ProductMain : Control
         ProductCommandResult? result = _snapshot.Phase switch
         {
             ProductPhase.SubstationPlanning => _session.OrderSubstation(),
-            ProductPhase.LinePlanning => _session.OrderLine(),
+            _ when IsLinePlanning(_snapshot.Phase) => _session.OrderLine(),
             _ => null,
         };
         if (result is null)
         {
             return;
         }
-        string commandName = _snapshot.Phase == ProductPhase.LinePlanning
-            ? "ORDER_LINE"
-            : "ORDER_SUBSTATION";
+        string commandName = _snapshot.Phase == ProductPhase.SubstationPlanning
+            ? "ORDER_SUBSTATION"
+            : "ORDER_LINE";
         ApplyCommand(commandName, result);
     }
 
     private void OnAdvanceRequested() =>
         ApplyCommand("ADVANCE_TO_CONSTRUCTION_COMPLETION", _session.AdvanceToConstructionCompletion());
 
-    private void OnSettleRequested() =>
-        ApplyCommand("ADVANCE_TO_SETTLEMENT", _session.AdvanceToSettlement());
+    private void OnMilestoneRequested()
+    {
+        (string Name, ProductCommandResult Result)? command = _snapshot.Phase switch
+        {
+            ProductPhase.SettlementReady =>
+                ("ADVANCE_TO_SETTLEMENT", _session.AdvanceToSettlement()),
+            ProductPhase.IncidentReady =>
+                ("ADVANCE_TO_INCIDENT", _session.AdvanceToIncident()),
+            ProductPhase.IncidentActive =>
+                ("ADVANCE_TO_RECOVERY_AND_SETTLEMENT", _session.AdvanceToRecoveryAndSettlement()),
+            _ => null,
+        };
+        if (command.HasValue)
+        {
+            ApplyCommand(command.Value.Name, command.Value.Result);
+        }
+    }
 
     private void OnRestartRequested()
     {
@@ -202,7 +224,8 @@ public sealed partial class ProductMain : Control
             commandName,
             errorCode = result.Error.HasValue ? Machine(result.Error.Value) : null,
             phase = Machine(_snapshot.Phase),
-            supportCount = _snapshot.Line.SupportPositions.Count,
+            activeProjectId = ActiveProjectId(_snapshot),
+            supportCount = ActiveSupports(_snapshot).Count,
         });
         Render();
     }
@@ -210,44 +233,130 @@ public sealed partial class ProductMain : Control
     private void Render()
     {
         _snapshot = _session.GetSnapshot();
-        _phaseLabel.Text = PhaseText(_snapshot.Phase);
-        _phaseLabel.AccessibilityName = $"현재 단계 {PhaseText(_snapshot.Phase)}";
+        ProductHospitalSnapshot hospital = HospitalSnapshot();
+        string phaseText = CurrentPhaseText(hospital);
+        _phaseLabel.Text = phaseText;
+        _phaseLabel.AccessibilityName = $"현재 단계 {phaseText}";
         _timeLabel.Text = $"시각 {_snapshot.Minute.ToString("N0", CultureInfo.InvariantCulture)}분";
         _cashLabel.Text = $"현금 {CashText(_snapshot.Cash)}";
         _demandLabel.Text =
-            $"마을 공급 {PowerText(_snapshot.TownDeliveredKw)} / {PowerText(_fixture.Town.DemandKw)}";
+            $"마을 {PowerText(DisplayTownUtility(hospital))} / {PowerText(_fixture.Town.DemandKw)} · " +
+            $"병원 {PowerText(hospital.HospitalUtilityKw)} / {PowerText(_hospitalFixture.DemandKw)} · " +
+            $"P0 {PowerText(hospital.HospitalP0DeliveredKw)}";
 
-        _mapView.SetModel(BuildMapModel());
-        _taskPanel.SetModel(BuildPanelModel());
+        _mapView.SetModel(BuildMapModel(hospital));
+        _taskPanel.SetModel(BuildPanelModel(hospital));
 
         if (_snapshot.Phase == ProductPhase.Complete && !_finalLogged)
         {
-            _diagnostic?.WriteFinal(new
+            ProductHospitalSettlementSnapshot ledger = hospital.Settlement;
+            if (!ledger.Completed)
             {
-                outcome = Machine(_snapshot.Outcome),
-                endingCash = _snapshot.Cash,
-                deliveredEnergyKwMinute = _snapshot.Settlement.DeliveredEnergyKwMinute,
-                revenueCashUnit = _snapshot.Settlement.RevenueCashUnit,
-                supportCount = _snapshot.Line.SupportPositions.Count,
-            });
+                _diagnostic?.WriteFinal(new
+                {
+                    outcome = Machine(_snapshot.Outcome),
+                    firstLight = new
+                    {
+                        supplyFailure = Machine(_snapshot.SupplyFailure),
+                        deliveredEnergyKwMinute = _snapshot.Settlement.DeliveredEnergyKwMinute,
+                        revenueCashUnit = _snapshot.Settlement.RevenueCashUnit,
+                        endingCashUnit = _snapshot.Cash,
+                    },
+                });
+            }
+            else
+            {
+                _diagnostic?.WriteFinal(new
+                {
+                    outcome = Machine(_snapshot.Outcome),
+                    hardConditions = new
+                    {
+                        singleLineRemoval = ledger.SingleLineRemovalConditionMet,
+                        spatialIncidentUtility = ledger.SpatialIncidentUtilityConditionMet,
+                        hospitalP0 = ledger.HospitalP0ConditionMet,
+                    },
+                    removedProjectIds = hospital.Incident.UnavailableProjectIds,
+                    utility = new
+                    {
+                        hospitalKw = hospital.Incident.HospitalUtilityKw,
+                        townKw = hospital.Incident.TownUtilityKw,
+                        hospitalP0DeliveredKw = hospital.HospitalP0DeliveredKw,
+                    },
+                    energy = new
+                    {
+                        hospitalUtilityKwMinute = ledger.HospitalUtilityEnergyKwMinute,
+                        townUtilityKwMinute = ledger.TownUtilityEnergyKwMinute,
+                        generationKwMinute = ledger.UtilityGenerationEnergyKwMinute,
+                        utilityUnservedKwMinute = ledger.UtilityUnservedEnergyKwMinute,
+                        upsKwMinute = ledger.UpsEnergyKwMinute,
+                        dieselKwMinute = ledger.DieselEnergyKwMinute,
+                        hospitalP0UnservedKwMinute = ledger.HospitalP0UnservedEnergyKwMinute,
+                    },
+                    cash = new
+                    {
+                        revenueCashUnit = ledger.UtilityRevenueCashUnit,
+                        generationCostCashUnit = ledger.GenerationCostCashUnit,
+                        compensationCashUnit = ledger.UnservedCompensationCashUnit,
+                        lostSalesCashUnit = ledger.LostSalesCashUnit,
+                        changeCashUnit = ledger.CashChangeCashUnit,
+                        endingCashUnit = _snapshot.Cash,
+                    },
+                });
+            }
             _finalLogged = true;
         }
     }
 
-    private FirstLightMapModel BuildMapModel()
+    private FirstLightMapModel BuildMapModel(ProductHospitalSnapshot hospital)
     {
         FirstLightTargetPreview? targetPreview = null;
-        if (_snapshot.Phase == ProductPhase.LinePlanning && _snapshot.Substation.Position is not null)
+        if (IsLinePlanning(_snapshot.Phase))
         {
             ProductOrderPreview order = _session.PreviewLineOrder();
-            ProductPoint from = _snapshot.Line.SupportPositions.Count == 0
+            IReadOnlyList<ProductPoint> supports = ActiveSupports(_snapshot);
+            ProductPoint from = supports.Count == 0
                 ? _fixture.ExistingSource.Position
-                : _snapshot.Line.SupportPositions[^1];
+                : supports[^1];
             targetPreview = new FirstLightTargetPreview(
                 ToGrid(from),
-                ToGrid(_snapshot.Substation.Position),
+                ToGrid(ActiveTarget()),
                 order.Error != ProductCommandError.SpanTooLong);
         }
+
+        bool IsUnavailable(string projectId) =>
+            hospital.Incident.Active &&
+            hospital.Incident.UnavailableProjectIds.Contains(projectId, StringComparer.Ordinal);
+
+        FirstLightLineVisual[] lines =
+        [
+            new(
+                FirstLightLineKind.Town,
+                "마을 회선",
+                ToGrid(_snapshot.Substation.Position ?? _fixture.ExistingSource.Position),
+                _snapshot.Line.SupportPositions.Select(ToGrid).ToArray(),
+                VisualState(_snapshot.Line.ProjectState, IsUnavailable(_fixture.LineProject.ProjectId)),
+                _snapshot.Phase == ProductPhase.LinePlanning),
+            new(
+                FirstLightLineKind.HospitalPrimary,
+                "병원 주회선",
+                ToGrid(_hospitalFixture.Position),
+                hospital.PrimaryLine.SupportPositions.Select(ToGrid).ToArray(),
+                VisualState(
+                    hospital.PrimaryLine.ProjectState,
+                    IsUnavailable(hospital.PrimaryLine.ProjectId)),
+                _snapshot.Phase == ProductPhase.PrimaryPlanning),
+            new(
+                FirstLightLineKind.HospitalBackup,
+                "병원 예비회선",
+                ToGrid(_hospitalFixture.Position),
+                hospital.BackupLine.SupportPositions.Select(ToGrid).ToArray(),
+                VisualState(
+                    hospital.BackupLine.ProjectState,
+                    IsUnavailable(hospital.BackupLine.ProjectId)),
+                _snapshot.Phase == ProductPhase.BackupPlanning),
+        ];
+
+        ProductRiskRect risk = _incidentFixture.RiskRect;
 
         return new FirstLightMapModel(
             new FirstLightGridBounds(
@@ -258,19 +367,25 @@ public sealed partial class ProductMain : Control
             _fixture.BlockedCells.Select(ToGrid).ToArray(),
             ToGrid(_fixture.ExistingSource.Position),
             ToGrid(_fixture.Town.Position),
-            _snapshot.TownDeliveredKw,
+            DisplayTownUtility(hospital),
+            ToGrid(_hospitalFixture.Position),
+            hospital.HospitalUtilityKw,
+            hospital.HospitalP0DeliveredKw,
+            new FirstLightRiskRect(
+                new FirstLightGridPoint(risk.MinX, risk.MinY),
+                new FirstLightGridPoint(risk.MaxX, risk.MaxY),
+                hospital.Incident.Active),
             _snapshot.Substation.Position is null ? null : ToGrid(_snapshot.Substation.Position),
             _fixture.SubstationProject.ServiceRadiusGridUnit,
-            VisualState(_snapshot.Substation.ProjectState),
-            _snapshot.Line.SupportPositions.Select(ToGrid).ToArray(),
-            VisualState(_snapshot.Line.ProjectState),
+            VisualState(_snapshot.Substation.ProjectState, false),
+            lines,
             _pointerPreview,
             targetPreview,
-            PhaseText(_snapshot.Phase),
-            SupplyText(_snapshot.SupplyFailure));
+            CurrentPhaseText(hospital),
+            StatusText(hospital));
     }
 
-    private FirstLightTaskPanelModel BuildPanelModel()
+    private FirstLightTaskPanelModel BuildPanelModel(ProductHospitalSnapshot hospital)
     {
         FirstLightActionPresentation hidden = Action(false, false, string.Empty, string.Empty);
         FirstLightActionPresentation cancel = hidden;
@@ -332,27 +447,84 @@ public sealed partial class ProductMain : Control
                 break;
             case ProductPhase.SettlementReady:
                 instruction = _snapshot.SupplyFailure == ProductSupplyFailure.None
-                    ? "변전소와 선로가 완공됐고 마을에 전기가 도착합니다. 첫 공급 기간을 결산하세요."
+                    ? "마을에 전기가 도착했습니다. 첫 결산 뒤 병원 회선 건설로 이어집니다."
                     : "공사는 끝났지만 마을 공급 조건을 충족하지 못했습니다. 결과를 결산한 뒤 임무를 다시 시작할 수 있습니다.";
-                preview = $"예상 결과 · {SupplyText(_snapshot.SupplyFailure)}";
+                preview = $"첫 점등 확인 · {SupplyText(_snapshot.SupplyFailure)}";
                 settle = Action(true, true, "첫 결산까지 진행", "고정된 첫 공급 기간을 진행하고 실제 인도분만 결산합니다.");
                 break;
+            case ProductPhase.PrimaryPlanning:
+            case ProductPhase.BackupPlanning:
+                {
+                    bool primary = _snapshot.Phase == ProductPhase.PrimaryPlanning;
+                    string label = primary ? "병원 주회선" : "병원 예비회선";
+                    ProductOrderPreview quote = _session.PreviewLineOrder();
+                    instruction = primary
+                        ? "병원 주회선의 지지물을 순서대로 놓으세요. 위험구역 노출은 발주 전에 표시됩니다."
+                        : "주회선과 support를 공유하지 않는 예비회선을 만드세요. 공간 우회는 더 길고 비쌀 수 있습니다.";
+                    preview = HospitalLinePreviewText(quote);
+                    cancel = Action(true, true, $"{label} 초안 전체 취소", "놓은 지지물을 모두 지웁니다.");
+                    undo = Action(
+                        true,
+                        ActiveSupports(_snapshot).Count > 0,
+                        "마지막 지지물 되돌리기",
+                        "가장 마지막에 놓은 지지물 하나를 지웁니다.");
+                    order = Action(
+                        true,
+                        quote.Accepted,
+                        quote.CostCashUnit.HasValue
+                            ? $"{label} 발주 · {CashText(quote.CostCashUnit.Value)}"
+                            : $"{label} 발주",
+                        "현재 지지물 순서로 회선 공사를 발주합니다.");
+                    break;
+                }
+            case ProductPhase.PrimaryBuilding:
+                instruction = "병원 주회선 공사가 진행 중입니다. 완공 전에는 병원 경로로 쓸 수 없습니다.";
+                preview = CompletionText(hospital.PrimaryLine.CompletionMinute);
+                advance = Action(true, true, "주회선 완공까지 진행", "주회선 전체의 완공 시각으로 진행합니다.");
+                break;
+            case ProductPhase.BackupBuilding:
+                instruction = "병원 예비회선 공사가 진행 중입니다. 완공 뒤 단일회선 제거 결과를 확인합니다.";
+                preview = CompletionText(hospital.BackupLine.CompletionMinute);
+                advance = Action(true, true, "예비회선 완공까지 진행", "예비회선 전체의 완공 시각으로 진행합니다.");
+                break;
+            case ProductPhase.IncidentReady:
+                instruction =
+                    "두 회선이 완공됐습니다. 각 회선을 하나씩 제거한 결과를 확인하고 고정 공간사건을 시작하세요.";
+                preview = ReliabilityText(_session.PreviewReliability());
+                settle = Action(true, true, "고정 공간사건 시작", "사건 시작 경계로 진행하고 닿는 회선을 사용불가로 만듭니다.");
+                break;
+            case ProductPhase.IncidentActive:
+                instruction =
+                    "공간사건이 진행 중입니다. 사용불가 회선과 병원 utility·P0를 확인하고 복구·결산까지 진행하세요.";
+                preview = IncidentText(hospital);
+                settle = Action(true, true, "복구·결산까지 진행", "사건을 적분하고 회선을 복구한 뒤 경제를 결산합니다.");
+                break;
             case ProductPhase.Complete:
-                instruction = _snapshot.Outcome == ProductMissionOutcome.Success
-                    ? "첫 점등 완료. 발전원에서 마을까지 완공된 경로와 서비스 권역이 함께 성립했습니다."
-                    : "공사는 끝났지만 마을을 공급하지 못했습니다. 표시된 첫 실패 원인을 확인하고 임무를 다시 시작할 수 있습니다.";
-                preview =
-                    $"결산 · 매출 {CashText(_snapshot.Settlement.RevenueCashUnit)} · 기말 현금 {CashText(_snapshot.Cash)}";
+                if (!hospital.Settlement.Completed)
+                {
+                    instruction =
+                        "첫 점등에서 마을 공급 조건을 충족하지 못해 병원 공사를 시작하지 않았습니다. 표시된 원인을 확인하고 임무를 다시 시작할 수 있습니다.";
+                    preview =
+                        $"첫 결산 · {SupplyText(_snapshot.SupplyFailure)}\n" +
+                        $"매출 {CashText(_snapshot.Settlement.RevenueCashUnit)} · 기말 현금 {CashText(_snapshot.Cash)}";
+                }
+                else
+                {
+                    instruction = _snapshot.Outcome == ProductMissionOutcome.Success
+                        ? "두 번째 심장 완료. 단일회선 제거, 실제 공간사건 utility, 병원 P0 조건을 모두 지켰습니다."
+                        : "두 번째 심장 실패. 세 안전 조건을 각각 확인하고 전체 임무를 다시 시작할 수 있습니다.";
+                    preview = FinalLedgerText(hospital.Settlement);
+                }
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
         }
 
         return new FirstLightTaskPanelModel(
-            PhaseText(_snapshot.Phase),
+            CurrentPhaseText(hospital),
             instruction,
             preview,
-            SupplyText(_snapshot.SupplyFailure),
+            StatusText(hospital),
             _lastError,
             cancel,
             undo,
@@ -382,6 +554,67 @@ public sealed partial class ProductMain : Control
             return _pointerPreview.Description;
         }
         return OrderPreviewText(quote);
+    }
+
+    private string HospitalLinePreviewText(ProductOrderPreview quote)
+    {
+        if (_pointerPreview?.Mode == FirstLightPointerMode.LineSupport)
+        {
+            return _pointerPreview.Description;
+        }
+        string quoteText = quote.CostCashUnit.HasValue
+            ? $"견적 {CashText(quote.CostCashUnit.Value)} · 공기 {quote.BuildMinutes!.Value.ToString("N0", CultureInfo.InvariantCulture)}분"
+            : string.Empty;
+        string exposure = quote.SpatialIncidentExposed switch
+        {
+            true => "공간사건 노출 · 있음",
+            false => "공간사건 노출 · 없음",
+            null => "공간사건 노출 · 경로를 완성하면 확인 가능",
+        };
+        string error = quote.Error.HasValue ? ErrorText(quote.Error) : string.Empty;
+        return string.Join("\n", new[] { quoteText, exposure, error }.Where(text => text.Length > 0));
+    }
+
+    private static string ReliabilityText(ProductReliabilitySnapshot reliability) =>
+        reliability.Evaluated
+            ? $"주회선 제거 시 병원 utility · {YesNo(reliability.PrimaryRemovalKeepsHospitalUtility)}\n" +
+              $"예비회선 제거 시 병원 utility · {YesNo(reliability.BackupRemovalKeepsHospitalUtility)}"
+            : "두 회선이 완공되면 단일회선 제거 결과를 확인할 수 있습니다.";
+
+    private static string IncidentText(ProductHospitalSnapshot hospital)
+    {
+        string unavailable = hospital.Incident.UnavailableProjectIds.Count == 0
+            ? "사용불가 회선 · 없음"
+            : $"사용불가 회선 · {string.Join(", ", hospital.Incident.UnavailableProjectIds)}";
+        return
+            $"{unavailable}\n병원 utility {PowerText(hospital.HospitalUtilityKw)} · " +
+            $"P0 {PowerText(hospital.HospitalP0DeliveredKw)}\n" +
+            $"마을 utility {PowerText(hospital.TownUtilityKw)}";
+    }
+
+    private static string FinalLedgerText(ProductHospitalSettlementSnapshot ledger) =>
+        $"단일회선 제거 {YesNo(ledger.SingleLineRemovalConditionMet)} · " +
+        $"공간사건 utility {YesNo(ledger.SpatialIncidentUtilityConditionMet)} · " +
+        $"병원 P0 {YesNo(ledger.HospitalP0ConditionMet)}\n" +
+        $"매출 {CashText(ledger.UtilityRevenueCashUnit)} · 발전비 {CashText(ledger.GenerationCostCashUnit)} · " +
+        $"미공급 보상 {CashText(ledger.UnservedCompensationCashUnit)}\n" +
+        $"현금 변화 {SignedCashText(ledger.CashChangeCashUnit)} · LostSales {CashText(ledger.LostSalesCashUnit)} (현금 미반영)\n" +
+        $"UPS {EnergyText(ledger.UpsEnergyKwMinute)} · 디젤 {EnergyText(ledger.DieselEnergyKwMinute)} · " +
+        $"P0 미공급 {EnergyText(ledger.HospitalP0UnservedEnergyKwMinute)}";
+
+    private string StatusText(ProductHospitalSnapshot hospital)
+    {
+        if (!IsHospitalDisplayStage(_snapshot.Phase, hospital))
+        {
+            return SupplyText(_snapshot.SupplyFailure);
+        }
+        string reliability = hospital.Reliability.Evaluated
+            ? $" · 단일회선 제거 안전 {YesNo(hospital.Reliability.AllSingleLineRemovalsKeepHospitalUtility)}"
+            : string.Empty;
+        return
+            $"병원 utility {PowerText(hospital.HospitalUtilityKw)} / {PowerText(_hospitalFixture.DemandKw)} · " +
+            $"P0 {PowerText(hospital.HospitalP0DeliveredKw)}{reliability}\n" +
+            $"마을 utility {PowerText(hospital.TownUtilityKw)} / {PowerText(_fixture.Town.DemandKw)}";
     }
 
     private static string OrderPreviewText(ProductOrderPreview quote)
@@ -448,94 +681,93 @@ public sealed partial class ProductMain : Control
             FirstLightGridPoint finalSubstation = _options.SmokeSubstations[1];
 
             await ClickMapPoint(firstSubstation);
+            await ClickMapPoint(finalSubstation);
             Require(
                 _snapshot.Phase == ProductPhase.SubstationPlanning &&
-                _snapshot.Substation.Position == ToProduct(firstSubstation),
-                "first substation draft did not round-trip through viewport input");
-
-            await ClickMapPoint(finalSubstation);
-            Require(
                 _snapshot.Substation.Position == ToProduct(finalSubstation),
                 "substation draft move did not round-trip through viewport input");
-
-            EmitPanelAction(FirstLightPanelAction.CancelDraft, "cancel substation draft");
-            await NextFrame();
-            Require(_snapshot.Substation.Position is null, "substation draft cancel failed");
-
-            await ClickMapPoint(finalSubstation);
             EmitPanelAction(FirstLightPanelAction.Order, "order substation");
             await NextFrame();
-            Require(
-                _snapshot.Phase == ProductPhase.SubstationBuilding &&
-                _snapshot.TownDeliveredKw == 0,
-                "substation order must enter building without supply");
-
+            Require(_snapshot.Phase == ProductPhase.SubstationBuilding, "substation order failed");
             EmitPanelAction(FirstLightPanelAction.Advance, "complete substation");
             await NextFrame();
             Require(_snapshot.Phase == ProductPhase.LinePlanning, "substation completion failed");
 
-            foreach (FirstLightGridPoint support in _options.SmokeSupports)
-            {
-                await ClickMapPoint(support);
-            }
+            await BuildLineThroughUi(
+                _options.SmokeSupports,
+                ProductPhase.LineBuilding,
+                ProductPhase.SettlementReady,
+                "town line");
             Require(
-                _snapshot.Line.SupportPositions.Select(ToGrid)
-                    .SequenceEqual(_options.SmokeSupports),
-                "initial support clicks did not round-trip through viewport input");
-
-            EmitPanelAction(FirstLightPanelAction.Undo, "undo line support");
-            await NextFrame();
-            Require(
-                _snapshot.Line.SupportPositions.Select(ToGrid)
-                    .SequenceEqual(_options.SmokeSupports.Take(_options.SmokeSupports.Count - 1)),
-                "line support undo failed");
-
-            await ClickMapPoint(_options.SmokeSupports[^1]);
-            Require(
-                _snapshot.Line.SupportPositions.Select(ToGrid)
-                    .SequenceEqual(_options.SmokeSupports),
-                "re-added support did not preserve exact input positions");
-            EmitPanelAction(FirstLightPanelAction.CancelDraft, "cancel line draft");
-            await NextFrame();
-            Require(_snapshot.Line.SupportPositions.Count == 0, "line draft cancel failed");
-
-            foreach (FirstLightGridPoint support in _options.SmokeSupports)
-            {
-                await ClickMapPoint(support);
-            }
-            EmitPanelAction(FirstLightPanelAction.Order, "order line");
-            await NextFrame();
-            Require(
-                _snapshot.Phase == ProductPhase.LineBuilding &&
-                _snapshot.TownDeliveredKw == 0 &&
-                _snapshot.Line.SupportPositions.Select(ToGrid)
-                    .SequenceEqual(_options.SmokeSupports),
-                "line order must enter building without supply");
-
-            EmitPanelAction(FirstLightPanelAction.Advance, "complete line");
-            await NextFrame();
-            Require(
-                _snapshot.Phase == ProductPhase.SettlementReady &&
                 _snapshot.TownDeliveredKw == _fixture.Town.DemandKw,
                 "commissioned product path did not supply the town");
+            EmitPanelAction(FirstLightPanelAction.Settle, "settle first light");
+            await NextFrame();
+            Require(_snapshot.Phase == ProductPhase.PrimaryPlanning, "first settlement did not open primary planning");
 
-            EmitPanelAction(FirstLightPanelAction.Settle, "settle first supply period");
+            await BuildLineThroughUi(
+                _options.SmokePrimarySupports,
+                ProductPhase.PrimaryBuilding,
+                ProductPhase.BackupPlanning,
+                "hospital primary line");
+            await BuildLineThroughUi(
+                _options.SmokeBackupSupports,
+                ProductPhase.BackupBuilding,
+                ProductPhase.IncidentReady,
+                "hospital backup line");
+
+            ProductReliabilitySnapshot reliability = _session.PreviewReliability();
+            Require(
+                reliability.AllSingleLineRemovalsKeepHospitalUtility,
+                "hospital lines did not survive each single-line removal");
+            EmitPanelAction(FirstLightPanelAction.Settle, "start spatial incident");
+            await NextFrame();
+            ProductHospitalSnapshot incident = HospitalSnapshot();
+            Require(
+                _snapshot.Phase == ProductPhase.IncidentActive &&
+                incident.Incident.Active &&
+                incident.HospitalUtilityKw == _hospitalFixture.DemandKw &&
+                incident.HospitalP0DeliveredKw == _hospitalFixture.DemandKw,
+                "spatial incident did not preserve hospital utility and P0");
+
+            EmitPanelAction(FirstLightPanelAction.Settle, "recover and settle incident");
             await NextFrame();
             Require(
                 _snapshot.Phase == ProductPhase.Complete &&
                 _snapshot.Outcome == ProductMissionOutcome.Success &&
                 _finalLogged,
-                "First Light smoke did not reach a logged successful settlement");
+                "Second Heart smoke did not reach a logged successful settlement");
 
             GD.Print(
-                $"PRODUCT_FIRST_LIGHT_SMOKE_PASS session={_options.SessionId} endingCash={_snapshot.Cash}");
+                $"PRODUCT_SECOND_HEART_SMOKE_PASS session={_options.SessionId} endingCash={_snapshot.Cash}");
             GetTree().Quit(0);
         }
         catch (Exception exception)
         {
-            GD.PushError($"PRODUCT_FIRST_LIGHT_SMOKE_FAIL: {exception}");
+            GD.PushError($"PRODUCT_SECOND_HEART_SMOKE_FAIL: {exception}");
             GetTree().Quit(1);
         }
+    }
+
+    private async Task BuildLineThroughUi(
+        IReadOnlyList<FirstLightGridPoint> supports,
+        ProductPhase buildingPhase,
+        ProductPhase completedPhase,
+        string description)
+    {
+        foreach (FirstLightGridPoint support in supports)
+        {
+            await ClickMapPoint(support);
+        }
+        Require(
+            ActiveSupports(_snapshot).Select(ToGrid).SequenceEqual(supports),
+            $"{description} support clicks did not round-trip through viewport input");
+        EmitPanelAction(FirstLightPanelAction.Order, $"order {description}");
+        await NextFrame();
+        Require(_snapshot.Phase == buildingPhase, $"{description} order failed");
+        EmitPanelAction(FirstLightPanelAction.Advance, $"complete {description}");
+        await NextFrame();
+        Require(_snapshot.Phase == completedPhase, $"{description} completion failed");
     }
 
     private async Task ClickMapPoint(FirstLightGridPoint point)
@@ -588,13 +820,77 @@ public sealed partial class ProductMain : Control
 
     private static FirstLightGridPoint ToGrid(ProductPoint point) => new(point.X, point.Y);
 
-    private static FirstLightProjectVisualState VisualState(ProductProjectState state) => state switch
+    private ProductHospitalSnapshot HospitalSnapshot() =>
+        _snapshot.Hospital
+        ?? throw new InvalidOperationException("Second Heart session has no hospital snapshot.");
+
+    private ProductPoint ActiveTarget() => _snapshot.Phase switch
     {
-        ProductProjectState.NotOrdered => FirstLightProjectVisualState.NotOrdered,
-        ProductProjectState.Building => FirstLightProjectVisualState.Building,
-        ProductProjectState.Commissioned => FirstLightProjectVisualState.Commissioned,
-        _ => throw new ArgumentOutOfRangeException(nameof(state)),
+        ProductPhase.LinePlanning => _snapshot.Substation.Position
+            ?? throw new InvalidOperationException("Town line target is missing."),
+        ProductPhase.PrimaryPlanning or ProductPhase.BackupPlanning => _hospitalFixture.Position,
+        _ => throw new InvalidOperationException("There is no active line target."),
     };
+
+    private static IReadOnlyList<ProductPoint> ActiveSupports(ProductSnapshot snapshot) =>
+        snapshot.Phase switch
+        {
+            ProductPhase.LinePlanning or ProductPhase.LineBuilding => snapshot.Line.SupportPositions,
+            ProductPhase.PrimaryPlanning or ProductPhase.PrimaryBuilding =>
+                snapshot.Hospital?.PrimaryLine.SupportPositions ?? Array.Empty<ProductPoint>(),
+            ProductPhase.BackupPlanning or ProductPhase.BackupBuilding =>
+                snapshot.Hospital?.BackupLine.SupportPositions ?? Array.Empty<ProductPoint>(),
+            _ => Array.Empty<ProductPoint>(),
+        };
+
+    private string? ActiveProjectId(ProductSnapshot snapshot) => snapshot.Phase switch
+    {
+        ProductPhase.SubstationPlanning or ProductPhase.SubstationBuilding =>
+            _fixture.SubstationProject.ProjectId,
+        ProductPhase.LinePlanning or ProductPhase.LineBuilding => _fixture.LineProject.ProjectId,
+        _ => snapshot.Hospital?.ActiveProjectId,
+    };
+
+    private static bool IsLinePlanning(ProductPhase phase) => phase is
+        ProductPhase.LinePlanning or ProductPhase.PrimaryPlanning or ProductPhase.BackupPlanning;
+
+    private static bool IsHospitalStage(ProductPhase phase) => phase is
+        ProductPhase.PrimaryPlanning or ProductPhase.PrimaryBuilding or
+        ProductPhase.BackupPlanning or ProductPhase.BackupBuilding or
+        ProductPhase.IncidentReady or ProductPhase.IncidentActive;
+
+    private static bool IsHospitalDisplayStage(
+        ProductPhase phase,
+        ProductHospitalSnapshot hospital) =>
+        IsHospitalStage(phase) ||
+        phase == ProductPhase.Complete && hospital.Settlement.Completed;
+
+    private string CurrentPhaseText(ProductHospitalSnapshot hospital) =>
+        _snapshot.Phase == ProductPhase.Complete && !hospital.Settlement.Completed
+            ? "6 · 첫 결산"
+            : PhaseText(_snapshot.Phase);
+
+    private long DisplayTownUtility(ProductHospitalSnapshot hospital) =>
+        IsHospitalDisplayStage(_snapshot.Phase, hospital)
+            ? hospital.TownUtilityKw
+            : _snapshot.TownDeliveredKw;
+
+    private static FirstLightProjectVisualState VisualState(
+        ProductProjectState state,
+        bool unavailable)
+    {
+        if (unavailable)
+        {
+            return FirstLightProjectVisualState.Unavailable;
+        }
+        return state switch
+        {
+            ProductProjectState.NotOrdered => FirstLightProjectVisualState.NotOrdered,
+            ProductProjectState.Building => FirstLightProjectVisualState.Building,
+            ProductProjectState.Commissioned => FirstLightProjectVisualState.Commissioned,
+            _ => throw new ArgumentOutOfRangeException(nameof(state)),
+        };
+    }
 
     private static string PhaseText(ProductPhase phase) => phase switch
     {
@@ -603,7 +899,13 @@ public sealed partial class ProductMain : Control
         ProductPhase.LinePlanning => "3 · 선로 계획",
         ProductPhase.LineBuilding => "4 · 선로 공사",
         ProductPhase.SettlementReady => "5 · 공급 확인",
-        ProductPhase.Complete => "6 · 첫 결산",
+        ProductPhase.PrimaryPlanning => "6 · 병원 주회선 계획",
+        ProductPhase.PrimaryBuilding => "7 · 병원 주회선 공사",
+        ProductPhase.BackupPlanning => "8 · 병원 예비회선 계획",
+        ProductPhase.BackupBuilding => "9 · 병원 예비회선 공사",
+        ProductPhase.IncidentReady => "10 · 신뢰도 확인",
+        ProductPhase.IncidentActive => "11 · 공간사건",
+        ProductPhase.Complete => "12 · 복구와 결산",
         _ => throw new ArgumentOutOfRangeException(nameof(phase)),
     };
 
@@ -650,6 +952,14 @@ public sealed partial class ProductMain : Control
 
     private static string PowerText(long kw) =>
         $"{(kw / 1_000d).ToString("0.###", CultureInfo.InvariantCulture)} MW";
+
+    private static string SignedCashText(long cashUnit) =>
+        $"{(cashUnit / 1_000_000d).ToString("+0.000;-0.000;0.000", CultureInfo.InvariantCulture)} M";
+
+    private static string EnergyText(long kwMinute) =>
+        $"{(kwMinute / 60_000d).ToString("0.###", CultureInfo.InvariantCulture)} MWh";
+
+    private static string YesNo(bool value) => value ? "충족" : "미충족";
 
     private static string Machine<T>(T value) where T : struct, Enum
     {
@@ -732,7 +1042,7 @@ public sealed partial class ProductMain : Control
         AddChild(overlay);
         var label = new Label
         {
-            Text = $"첫 점등을 시작할 수 없습니다.\n\n{message}",
+            Text = $"두 번째 심장을 시작할 수 없습니다.\n\n{message}",
             Position = new Vector2(100f, 180f),
             Size = new Vector2(1080f, 280f),
             HorizontalAlignment = HorizontalAlignment.Center,

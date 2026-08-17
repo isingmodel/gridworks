@@ -20,7 +20,11 @@ public sealed record ProductExistingSource(
     ProductPoint Position,
     long CapacityKw);
 
-public sealed record ProductTown(string Id, ProductPoint Position, long DemandKw);
+public sealed record ProductTown(
+    string Id,
+    ProductPoint Position,
+    long DemandKw,
+    int Priority = 0);
 
 public sealed record ProductSubstationProjectDefinition(
     string ProjectId,
@@ -42,6 +46,41 @@ public sealed record ProductLineProjectDefinition(
     int SupportBuildMinutes,
     int SpanBuildMinutes);
 
+public sealed record ProductHospital(
+    string Id,
+    ProductPoint Position,
+    long DemandKw,
+    int Priority,
+    string PrimaryTerminalId,
+    string BackupTerminalId,
+    int UpsMinutes,
+    int DieselMinutes);
+
+public sealed record ProductHospitalLineProjectDefinition(
+    string ProjectId,
+    string FromTerminalId,
+    string ToTerminalId,
+    int RoutePriority,
+    long RatingKw,
+    int MaxSpanGridUnit,
+    long SupportCostCashUnit,
+    long SpanCostCashUnit,
+    int SupportBuildMinutes,
+    int SpanBuildMinutes);
+
+public sealed record ProductRiskRect(int MinX, int MaxX, int MinY, int MaxY);
+
+public sealed record ProductSpatialIncident(
+    string Id,
+    ProductRiskRect RiskRect,
+    int LeadMinutes,
+    int DurationMinutes);
+
+public sealed record ProductHospitalEconomy(
+    long VariableGenerationCostCashUnitPerGWh,
+    long UnservedCompensationCashUnitPerGWh,
+    long LostSalesCashUnitPerGWh);
+
 public sealed record ProductFixture(
     string SchemaVersion,
     string FixtureId,
@@ -55,7 +94,14 @@ public sealed record ProductFixture(
     ProductExistingSource ExistingSource,
     ProductTown Town,
     ProductSubstationProjectDefinition SubstationProject,
-    ProductLineProjectDefinition LineProject);
+    ProductLineProjectDefinition LineProject,
+    ProductHospital? Hospital = null,
+    IReadOnlyList<ProductHospitalLineProjectDefinition>? HospitalLineProjects = null,
+    ProductSpatialIncident? SpatialIncident = null,
+    ProductHospitalEconomy? HospitalEconomy = null)
+{
+    public bool HasHospitalStage => Hospital is not null;
+}
 
 public enum ProductProjectState
 {
@@ -72,6 +118,12 @@ public enum ProductPhase
     LineBuilding,
     SettlementReady,
     Complete,
+    PrimaryPlanning,
+    PrimaryBuilding,
+    BackupPlanning,
+    BackupBuilding,
+    IncidentReady,
+    IncidentActive,
 }
 
 public enum ProductCommandError
@@ -139,6 +191,116 @@ public sealed record ProductSettlementSnapshot(
     long DeliveredEnergyKwMinute,
     long RevenueCashUnit);
 
+public sealed record ProductHospitalLineSnapshot(
+    string ProjectId,
+    IReadOnlyList<ProductPoint> SupportPositions,
+    ProductProjectState ProjectState,
+    long? CompletionMinute,
+    bool SpatialIncidentExposed)
+{
+    public bool Equals(ProductHospitalLineSnapshot? other) =>
+        ReferenceEquals(this, other) ||
+        other is not null &&
+        string.Equals(ProjectId, other.ProjectId, StringComparison.Ordinal) &&
+        ProjectState == other.ProjectState &&
+        CompletionMinute == other.CompletionMinute &&
+        SpatialIncidentExposed == other.SpatialIncidentExposed &&
+        SupportPositions.SequenceEqual(other.SupportPositions);
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+        hash.Add(ProjectId, StringComparer.Ordinal);
+        hash.Add(ProjectState);
+        hash.Add(CompletionMinute);
+        hash.Add(SpatialIncidentExposed);
+        foreach (ProductPoint support in SupportPositions)
+        {
+            hash.Add(support);
+        }
+        return hash.ToHashCode();
+    }
+}
+
+public sealed record ProductReliabilitySnapshot(
+    bool Evaluated,
+    bool PrimaryRemovalKeepsHospitalUtility,
+    bool BackupRemovalKeepsHospitalUtility)
+{
+    public bool AllSingleLineRemovalsKeepHospitalUtility =>
+        Evaluated &&
+        PrimaryRemovalKeepsHospitalUtility &&
+        BackupRemovalKeepsHospitalUtility;
+}
+
+public sealed record ProductIncidentSnapshot(
+    bool Started,
+    bool Active,
+    long? StartMinute,
+    long? RecoveryMinute,
+    IReadOnlyList<string> UnavailableProjectIds,
+    long HospitalUtilityKw,
+    long TownUtilityKw)
+{
+    public bool Equals(ProductIncidentSnapshot? other) =>
+        ReferenceEquals(this, other) ||
+        other is not null &&
+        Started == other.Started &&
+        Active == other.Active &&
+        StartMinute == other.StartMinute &&
+        RecoveryMinute == other.RecoveryMinute &&
+        HospitalUtilityKw == other.HospitalUtilityKw &&
+        TownUtilityKw == other.TownUtilityKw &&
+        UnavailableProjectIds.SequenceEqual(other.UnavailableProjectIds);
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new();
+        hash.Add(Started);
+        hash.Add(Active);
+        hash.Add(StartMinute);
+        hash.Add(RecoveryMinute);
+        hash.Add(HospitalUtilityKw);
+        hash.Add(TownUtilityKw);
+        foreach (string projectId in UnavailableProjectIds)
+        {
+            hash.Add(projectId, StringComparer.Ordinal);
+        }
+        return hash.ToHashCode();
+    }
+}
+
+public sealed record ProductHospitalSettlementSnapshot(
+    bool Completed,
+    long HospitalUtilityEnergyKwMinute,
+    long TownUtilityEnergyKwMinute,
+    long UtilityGenerationEnergyKwMinute,
+    long UtilityUnservedEnergyKwMinute,
+    long UpsEnergyKwMinute,
+    long DieselEnergyKwMinute,
+    long HospitalP0UnservedEnergyKwMinute,
+    long UtilityRevenueCashUnit,
+    long GenerationCostCashUnit,
+    long UnservedCompensationCashUnit,
+    long LostSalesCashUnit,
+    long CashChangeCashUnit,
+    bool SingleLineRemovalConditionMet,
+    bool SpatialIncidentUtilityConditionMet,
+    bool HospitalP0ConditionMet);
+
+public sealed record ProductHospitalSnapshot(
+    string Id,
+    string? ActiveProjectId,
+    ProductHospitalLineSnapshot PrimaryLine,
+    ProductHospitalLineSnapshot BackupLine,
+    string? SelectedHospitalProjectId,
+    long HospitalUtilityKw,
+    long HospitalP0DeliveredKw,
+    long TownUtilityKw,
+    ProductReliabilitySnapshot Reliability,
+    ProductIncidentSnapshot Incident,
+    ProductHospitalSettlementSnapshot Settlement);
+
 public sealed record ProductSnapshot(
     long Minute,
     long Cash,
@@ -149,7 +311,8 @@ public sealed record ProductSnapshot(
     ProductSupplyFailure SupplyFailure,
     long TownDeliveredKw,
     ProductSettlementSnapshot Settlement,
-    ProductMissionOutcome Outcome);
+    ProductMissionOutcome Outcome,
+    ProductHospitalSnapshot? Hospital = null);
 
 public sealed record ProductCommandResult(
     bool Accepted,
@@ -177,7 +340,9 @@ public sealed record ProductOrderPreview(
     long? CostCashUnit,
     long? BuildMinutes,
     long? CompletionMinute,
-    ProductSupplyFailure? ProjectedSupplyFailure);
+    ProductSupplyFailure? ProjectedSupplyFailure,
+    string? ActiveProjectId = null,
+    bool? SpatialIncidentExposed = null);
 
 public sealed class ProductFixtureValidationException : Exception
 {

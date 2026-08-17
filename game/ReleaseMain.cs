@@ -1211,8 +1211,8 @@ public sealed partial class ReleaseMain : Control
     {
         if (_campaignSnapshot?.CampaignComplete == true)
         {
-            _shell.HideShell();
             ShowChapterResult(_campaignSnapshot.Chapter, campaignComplete: true);
+            _shell.HideShell();
             return;
         }
 

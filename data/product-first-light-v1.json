@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "gridworks.product.first-light.v1",
+  "fixtureId": "FIRST_LIGHT_V1",
+  "displayName": "첫 점등",
+  "units": {
+    "position": "GridUnit",
+    "power": "kW",
+    "energy": "kWMinute",
+    "time": "GameMinute",
+    "cash": "CashUnit",
+    "rate": "CashUnitPerGWh"
+  },
+  "mapBounds": {
+    "minX": 0,
+    "maxX": 20,
+    "minY": 0,
+    "maxY": 12
+  },
+  "blockedCells": [
+    { "x": 9, "y": 4 },
+    { "x": 10, "y": 4 }
+  ],
+  "initialMinute": 0,
+  "settlementMinutes": 60,
+  "economy": {
+    "initialCash": 5000000,
+    "saleRateCashUnitPerGWh": 100000000
+  },
+  "existingSource": {
+    "assetId": "EXISTING_SOURCE",
+    "terminalId": "EXISTING_SOURCE_TERMINAL",
+    "position": { "x": 2, "y": 6 },
+    "capacityKw": 3000
+  },
+  "town": {
+    "id": "FIRST_TOWN",
+    "position": { "x": 18, "y": 6 },
+    "demandKw": 1000
+  },
+  "substationProject": {
+    "projectId": "FIRST_SUBSTATION_PROJECT",
+    "assetId": "FIRST_SUBSTATION",
+    "terminalId": "FIRST_SUBSTATION_TERMINAL",
+    "capacityKw": 2000,
+    "serviceRadiusGridUnit": 4,
+    "costCashUnit": 2000000,
+    "buildMinutes": 120
+  },
+  "lineProject": {
+    "projectId": "FIRST_LINE_PROJECT",
+    "fromTerminalId": "EXISTING_SOURCE_TERMINAL",
+    "toTerminalId": "FIRST_SUBSTATION_TERMINAL",
+    "ratingKw": 2000,
+    "maxSpanGridUnit": 4,
+    "supportCostCashUnit": 250000,
+    "spanCostCashUnit": 300000,
+    "supportBuildMinutes": 30,
+    "spanBuildMinutes": 40
+  }
+}

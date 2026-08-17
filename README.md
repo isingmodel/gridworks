@@ -11,7 +11,8 @@
 
 ## 현재 상태
 
-현재 활성 구현 단계는 없다.
+현재 활성 구현 단계는 [첫 점등 통합](docs/scopes/FIRST_LIGHT.md)이다. 사용자가 2D 게임을 외부
+테스트 직전까지 개발하도록 승인했으며, 로드맵을 한 단계씩 닫아 가되 지금은 첫 단계만 구현한다.
 
 현재 저장소에는 두 개의 완료된 검증용 2D 구현이 있다.
 
@@ -20,10 +21,12 @@
 - [수동 선로 건설](docs/scopes/SCOPE_1_INTERACTION.md): 고정 source·target 사이에 지지물을 직접
   놓고 거리 제한, 발주, 공사 중 무전압과 원자 완공을 검증한다. 별도 장면으로 실행한다.
 
-두 구현은 아직 하나의 게임 캠페인으로 통합되지 않았다. 발전소·변전소 직접 건설, 병원
-신뢰도 임무, 폭염·정비, 저장과 최종 아트는 앞으로의 단계다. 다음 제안은 `첫 점등 통합본`이지만,
-[2D 완성 로드맵](docs/ROADMAP_2D.md)과 [체크리스트](docs/ROADMAP_2D_CHECKLIST.md)는 계획일 뿐
-구현 권한이 아니다. 다음 단계는 사용자가 그 범위만 별도로 승인할 때 열린다.
+두 구현은 아직 하나의 게임 캠페인으로 통합되지 않았다. 현재는 별도 제품 fixture와 계약을
+고정하고, 변전소·선로 직접 건설부터 마을 점등·첫 결산까지 이어지는 새 제품 경로를 만드는
+중이다. 기본 실행은 제품 장면이 구현되기 전까지 강변 병원 회랑을 유지한다. 병원 신뢰도,
+발전소 신규 건설, 폭염·정비, 저장과 최종 아트는 현재 단계가 끝나기 전에는 열지 않는다.
+[2D 완성 로드맵](docs/ROADMAP_2D.md)은 전체 순서, [체크리스트](docs/ROADMAP_2D_CHECKLIST.md)는
+단계 상태와 종료 증거를 소유한다.
 
 과거 카드 실험, 화면 검증과 시행착오는 [개발 이력 요약](docs/DEVELOPMENT_HISTORY.md)에 압축했다.
 현재까지 사람 플레이 검증은 수집하지 않았으며 `HumanValidationStatus = NOT_COLLECTED`다. 기존 LLM
@@ -47,10 +50,10 @@
 
 ```text
 assets/                 비권위 콘셉트 이미지
-data/                   현재 두 prototype의 machine-readable fixture
+data/                   두 prototype과 현재 제품 단계의 machine-readable fixture
 docs/
   product/              제품 비전, 오브젝트와 시각 언어
-  scopes/               현재 구현된 두 prototype의 기준
+  scopes/               완료 prototype 기준과 현재 제품 단계 계약
   development/          조건부 검증 도구
   future/               1.0 이후 격리 후보
 game/                   Godot .NET 장면과 화면 adapter

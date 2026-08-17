@@ -17,7 +17,8 @@ docs/
 │   └── VISUAL_PRODUCTION_SPEC.md      규칙을 표현하는 시각 기준
 ├── scopes/
 │   ├── SCOPE_0B_PLAYABLE.md           현재 Scope 0B 구현 기준
-│   └── SCOPE_1_INTERACTION.md         현재 Scope 1 구현 기준
+│   ├── SCOPE_1_INTERACTION.md         현재 Scope 1 구현 기준
+│   └── FIRST_LIGHT.md                 활성 제품 단계 계약
 ├── development/
 │   └── BALANCING_STATIC_SIM.md        조건부 정적 분석 도구
 └── future/
@@ -41,6 +42,7 @@ docs/
 | 규칙을 어떻게 보이게 하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 게임 규칙을 새로 계산하지 않음 |
 | 현재 고정 시나리오는 어떻게 동작하는가? | [Scope 0B 기준](scopes/SCOPE_0B_PLAYABLE.md) | 제품 전체 모델로 일반화하지 않음 |
 | 현재 수동 선로 slice는 어떻게 동작하는가? | [Scope 1 기준](scopes/SCOPE_1_INTERACTION.md) | 고정 endpoint 밖의 기능을 열지 않음 |
+| 현재 제품 구현은 무엇을 만들 수 있는가? | [첫 점등 통합](scopes/FIRST_LIGHT.md) | 이 단계 밖의 제품 기능을 열지 않음 |
 | 정적 분석 도구는 언제 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 자동 튜닝이나 사람 선택 대체에 쓰지 않음 |
 | 1.0 이후 냉각수·원전 방향은 무엇인가? | [1.0 이후 방향](future/POST_1_0.md) | 1.0 schema·UI를 선결하지 않음 |
 

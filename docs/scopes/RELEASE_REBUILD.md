@@ -1,6 +1,6 @@
 # Gridworks 출시판 재구축
 
-> 상태: **ACTIVE**  
+> 상태: **REVIEW_IN_PROGRESS**
 > 구현 권한: **GRANTED**  
 > 현재 작업: **1단계 — 분기형 배전망 기초**  
 > 승인 근거: 2026-08-17 사용자가 전문적인 한국어 표현, 분기·합류와 설비 용량, 이야기와 실제
@@ -296,6 +296,22 @@ data/release-*.json               출시판 machine authority
    검사한다.
 6. 기존 제품·prototype 회귀와 Game build가 깨지지 않는다.
 7. 현재 상태 문서와 체크리스트를 갱신하고 한 번의 독립 검토에서 P0/P1이 없다.
+
+### 11.1 구현·검사 기록
+
+1단계는 출시판 전용 Core 경로와 데이터만 추가했으며 기존 Game 기본 장면과 과거 제품 규칙은
+수정하지 않았다.
+
+- `data/release-world-v1.json`: 33×21 청류시 대표망과 설비 형식의 단일 machine authority
+- `src/Gridworks.Core/Release/`: strict loader, 불변 계약, 결정론적 공급·사고 평가기
+- `tools/Gridworks.ReleaseChecks/`: 분기·합류·경계·병목·우회·불변성 9개 검사 묶음
+- 출시판 검사: 9 suites / 148 assertions 통과
+- 과거 회귀: Scope 0B 3,098 assertions, Scope 1 646 assertions, 누적 Product 검사 통과
+- Core·Game build: warning 0 / error 0
+- world SHA-256: `bbeeb26399694a613eff96bc5934526a34dbec41f237fce7016abf31a92bc15c`
+
+현재 남은 종료 조건은 이 내용을 고정한 변경에 대한 독립 P0/P1 검토다. 그 검토가 끝나기 전에는
+2단계 출시판 장면·건설 UI를 시작하지 않는다.
 
 ## 12. 최종 완료조건
 

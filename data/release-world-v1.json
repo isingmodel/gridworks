@@ -1,0 +1,342 @@
+{
+  "schemaVersion": "gridworks.release.world.v1",
+  "worldId": "CHEONGRYU_RELEASE_V1",
+  "displayName": "청류시 전력운영구역",
+  "grid": {
+    "minX": 0,
+    "minY": 0,
+    "maxX": 32,
+    "maxY": 20,
+    "majorStep": 4
+  },
+  "nodeClasses": [
+    {
+      "classId": "SOURCE_TERMINAL",
+      "displayName": "발전 접속점",
+      "kind": "sourceTerminal",
+      "maxConnections": 6,
+      "throughputKw": null,
+      "transformerRatingKw": null,
+      "serviceRadiusCells": null,
+      "costCashUnit": 0,
+      "buildMinutes": 0
+    },
+    {
+      "classId": "POLE_STANDARD",
+      "displayName": "일반 전신주",
+      "kind": "pole",
+      "maxConnections": 3,
+      "throughputKw": 3000,
+      "transformerRatingKw": null,
+      "serviceRadiusCells": null,
+      "costCashUnit": 120000,
+      "buildMinutes": 90
+    },
+    {
+      "classId": "POLE_REINFORCED",
+      "displayName": "보강 전신주",
+      "kind": "pole",
+      "maxConnections": 4,
+      "throughputKw": 5000,
+      "transformerRatingKw": null,
+      "serviceRadiusCells": null,
+      "costCashUnit": 220000,
+      "buildMinutes": 150
+    },
+    {
+      "classId": "SUBSTATION_SMALL",
+      "displayName": "소형 배전 변전소",
+      "kind": "substation",
+      "maxConnections": 4,
+      "throughputKw": null,
+      "transformerRatingKw": 3000,
+      "serviceRadiusCells": 6,
+      "costCashUnit": 2200000,
+      "buildMinutes": 720
+    },
+    {
+      "classId": "SUBSTATION_LARGE",
+      "displayName": "대형 배전 변전소",
+      "kind": "substation",
+      "maxConnections": 6,
+      "throughputKw": null,
+      "transformerRatingKw": 5000,
+      "serviceRadiusCells": 7,
+      "costCashUnit": 3900000,
+      "buildMinutes": 1080
+    },
+    {
+      "classId": "LOAD_TERMINAL",
+      "displayName": "전용 수요 접속점",
+      "kind": "dedicatedLoadTerminal",
+      "maxConnections": 3,
+      "throughputKw": null,
+      "transformerRatingKw": null,
+      "serviceRadiusCells": null,
+      "costCashUnit": 0,
+      "buildMinutes": 0
+    }
+  ],
+  "lineClasses": [
+    {
+      "classId": "LINE_STANDARD",
+      "displayName": "일반 배전선",
+      "ratingKw": 2500,
+      "maxSpanCells": 4,
+      "costCashUnitPerMilliCell": 90,
+      "buildMinutesPerMilliCell": 1
+    },
+    {
+      "classId": "LINE_REINFORCED",
+      "displayName": "보강 배전선",
+      "ratingKw": 5000,
+      "maxSpanCells": 5,
+      "costCashUnitPerMilliCell": 150,
+      "buildMinutesPerMilliCell": 2
+    }
+  ],
+  "nodes": [
+    {
+      "nodeId": "WEST_SOURCE_NODE",
+      "classId": "SOURCE_TERMINAL",
+      "displayName": "서부 발전 접속점",
+      "position": { "x": 2, "y": 10 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "CENTRAL_JUNCTION",
+      "classId": "POLE_REINFORCED",
+      "displayName": "중앙 분기 전신주",
+      "position": { "x": 6, "y": 10 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "NORTH_JUNCTION",
+      "classId": "POLE_REINFORCED",
+      "displayName": "북부 분기 전신주",
+      "position": { "x": 9, "y": 7 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "SOUTH_JUNCTION",
+      "classId": "POLE_REINFORCED",
+      "displayName": "남부 분기 전신주",
+      "position": { "x": 9, "y": 13 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "RIVER_MERGE",
+      "classId": "POLE_REINFORCED",
+      "displayName": "강변 합류 전신주",
+      "position": { "x": 13, "y": 10 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "NORTH_SUBSTATION",
+      "classId": "SUBSTATION_SMALL",
+      "displayName": "북안 배전 변전소",
+      "position": { "x": 13, "y": 5 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "SOUTH_SUBSTATION",
+      "classId": "SUBSTATION_LARGE",
+      "displayName": "산업단지 배전 변전소",
+      "position": { "x": 13, "y": 15 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "EAST_SUBSTATION",
+      "classId": "SUBSTATION_SMALL",
+      "displayName": "동부 배전 변전소",
+      "position": { "x": 17, "y": 10 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "WATER_TERMINAL",
+      "classId": "LOAD_TERMINAL",
+      "displayName": "청류 정수장 접속점",
+      "position": { "x": 6, "y": 6 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "HOSPITAL_TERMINAL",
+      "classId": "LOAD_TERMINAL",
+      "displayName": "청류의료원 접속점",
+      "position": { "x": 17, "y": 5 },
+      "commissioned": true
+    },
+    {
+      "nodeId": "SOUTH_SOURCE_NODE",
+      "classId": "SOURCE_TERMINAL",
+      "displayName": "남부 발전 접속점",
+      "position": { "x": 17, "y": 17 },
+      "commissioned": true
+    }
+  ],
+  "edges": [
+    {
+      "edgeId": "EDGE_WEST_TRUNK",
+      "circuitId": "CIRCUIT_WEST_TRUNK",
+      "lineClassId": "LINE_REINFORCED",
+      "fromNodeId": "WEST_SOURCE_NODE",
+      "toNodeId": "CENTRAL_JUNCTION",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_CENTRAL_NORTH",
+      "circuitId": "CIRCUIT_NORTH_BRANCH",
+      "lineClassId": "LINE_REINFORCED",
+      "fromNodeId": "CENTRAL_JUNCTION",
+      "toNodeId": "NORTH_JUNCTION",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_CENTRAL_SOUTH",
+      "circuitId": "CIRCUIT_SOUTH_BRANCH",
+      "lineClassId": "LINE_REINFORCED",
+      "fromNodeId": "CENTRAL_JUNCTION",
+      "toNodeId": "SOUTH_JUNCTION",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_CENTRAL_WATER",
+      "circuitId": "CIRCUIT_WATER",
+      "lineClassId": "LINE_STANDARD",
+      "fromNodeId": "CENTRAL_JUNCTION",
+      "toNodeId": "WATER_TERMINAL",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_NORTH_MERGE",
+      "circuitId": "CIRCUIT_NORTH_RING",
+      "lineClassId": "LINE_REINFORCED",
+      "fromNodeId": "NORTH_JUNCTION",
+      "toNodeId": "RIVER_MERGE",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_SOUTH_MERGE",
+      "circuitId": "CIRCUIT_SOUTH_RING",
+      "lineClassId": "LINE_REINFORCED",
+      "fromNodeId": "SOUTH_JUNCTION",
+      "toNodeId": "RIVER_MERGE",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_NORTH_SUBSTATION",
+      "circuitId": "CIRCUIT_NORTH_SERVICE",
+      "lineClassId": "LINE_REINFORCED",
+      "fromNodeId": "NORTH_JUNCTION",
+      "toNodeId": "NORTH_SUBSTATION",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_SOUTH_SUBSTATION",
+      "circuitId": "CIRCUIT_SOUTH_SERVICE",
+      "lineClassId": "LINE_REINFORCED",
+      "fromNodeId": "SOUTH_JUNCTION",
+      "toNodeId": "SOUTH_SUBSTATION",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_MERGE_EAST",
+      "circuitId": "CIRCUIT_EAST_SERVICE",
+      "lineClassId": "LINE_REINFORCED",
+      "fromNodeId": "RIVER_MERGE",
+      "toNodeId": "EAST_SUBSTATION",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_NORTH_HOSPITAL",
+      "circuitId": "CIRCUIT_HOSPITAL",
+      "lineClassId": "LINE_STANDARD",
+      "fromNodeId": "NORTH_SUBSTATION",
+      "toNodeId": "HOSPITAL_TERMINAL",
+      "commissioned": true
+    },
+    {
+      "edgeId": "EDGE_SOUTH_SOURCE",
+      "circuitId": "CIRCUIT_SOUTH_SOURCE",
+      "lineClassId": "LINE_REINFORCED",
+      "fromNodeId": "SOUTH_SOURCE_NODE",
+      "toNodeId": "SOUTH_SUBSTATION",
+      "commissioned": true
+    }
+  ],
+  "sources": [
+    {
+      "sourceId": "WEST_GENERATION",
+      "nodeId": "WEST_SOURCE_NODE",
+      "displayName": "서부 발전전력",
+      "dispatchOrder": 0,
+      "capacityKw": 5000
+    },
+    {
+      "sourceId": "SOUTH_GENERATION",
+      "nodeId": "SOUTH_SOURCE_NODE",
+      "displayName": "남부 발전전력",
+      "dispatchOrder": 1,
+      "capacityKw": 3000
+    }
+  ],
+  "loads": [
+    {
+      "loadId": "HOSPITAL_LIFE_SAFETY",
+      "displayName": "청류의료원 생명 유지 전력",
+      "priority": "lifeSafety",
+      "demandKw": 1000,
+      "connectionKind": "dedicatedNode",
+      "position": { "x": 17, "y": 5 },
+      "dedicatedNodeId": "HOSPITAL_TERMINAL"
+    },
+    {
+      "loadId": "WATER_ESSENTIAL",
+      "displayName": "청류 정수장 필수 전력",
+      "priority": "essentialService",
+      "demandKw": 1200,
+      "connectionKind": "dedicatedNode",
+      "position": { "x": 6, "y": 6 },
+      "dedicatedNodeId": "WATER_TERMINAL"
+    },
+    {
+      "loadId": "NORTH_RESIDENTIAL",
+      "displayName": "북안 주거지",
+      "priority": "residential",
+      "demandKw": 1200,
+      "connectionKind": "serviceArea",
+      "position": { "x": 15, "y": 3 },
+      "dedicatedNodeId": null
+    },
+    {
+      "loadId": "EAST_RESIDENTIAL",
+      "displayName": "동부 주거지",
+      "priority": "residential",
+      "demandKw": 1000,
+      "connectionKind": "serviceArea",
+      "position": { "x": 21, "y": 10 },
+      "dedicatedNodeId": null
+    },
+    {
+      "loadId": "RIVER_FACTORY",
+      "displayName": "강변 산업단지",
+      "priority": "industrial",
+      "demandKw": 2000,
+      "connectionKind": "serviceArea",
+      "position": { "x": 17, "y": 16 },
+      "dedicatedNodeId": null
+    }
+  ],
+  "riskAreas": [
+    {
+      "riskAreaId": "RIVER_FLOOD_ZONE",
+      "displayName": "강변 범람구역",
+      "polygon": [
+        { "x": 11, "y": 8 },
+        { "x": 15, "y": 8 },
+        { "x": 15, "y": 12 },
+        { "x": 11, "y": 12 }
+      ]
+    }
+  ]
+}

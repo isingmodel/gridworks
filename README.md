@@ -11,7 +11,9 @@
 
 ## 현재 상태
 
-현재 활성 구현 단계는 [출시판 재구축의 1단계 — 분기형 배전망 기초](docs/scopes/RELEASE_REBUILD.md)다.
+현재 활성 단계는 [출시판 재구축의 1단계 — 분기형 배전망 기초](docs/scopes/RELEASE_REBUILD.md)의
+종료 검토다. 새 world loader와 공급 평가기, 대표 분기·합류·병목·우회 검사는 구현됐으며, 독립
+검토를 닫기 전에는 2단계 Game 구현을 열지 않는다.
 사용자는 2026-08-17 전체 내부 후보를 직접 플레이한 뒤 표현, 망 구조, 이야기, 실제 콘텐츠와 지도
 밀도의 근본적인 재작업을 요청했고, 출시 가능한 게임을 끝까지 완성하는 목표를 승인했다.
 
@@ -136,6 +138,7 @@ dotnet restore game/Gridworks.Game.csproj
 dotnet restore tools/Gridworks.Checks/Gridworks.Checks.csproj
 dotnet restore tools/Gridworks.Scope1Checks/Gridworks.Scope1Checks.csproj
 dotnet restore tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj
+dotnet restore tools/Gridworks.ReleaseChecks/Gridworks.ReleaseChecks.csproj
 
 ruby playtests/scope-0a/verify_scope0a.rb
 ruby playtests/scope-0a-r2/verify_scope0a_r2.rb
@@ -144,6 +147,7 @@ ruby playtests/scope-1/verify_contract.rb
 dotnet run --project tools/Gridworks.Checks/Gridworks.Checks.csproj -c Release
 dotnet run --project tools/Gridworks.Scope1Checks/Gridworks.Scope1Checks.csproj -c Release -- data/scope-1-v1.json
 dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj -c Release -- data/product-campaign-v1.json
+dotnet run --project tools/Gridworks.ReleaseChecks/Gridworks.ReleaseChecks.csproj -c Release -- data/release-world-v1.json
 dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild
 ```
 

@@ -1,0 +1,850 @@
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Gridworks.Core.Release;
+
+namespace Gridworks.ReleaseChecks;
+
+internal static class Program
+{
+    public static int Main(string[] args)
+    {
+        try
+        {
+            string fixturePath = ResolveFixturePath(args);
+            return new ReleaseChecks(fixturePath).Run();
+        }
+        catch (Exception exception)
+        {
+            Console.Error.WriteLine($"FAIL startup: {exception.Message}");
+            Console.Error.WriteLine(exception);
+            return 1;
+        }
+    }
+
+    private static string ResolveFixturePath(string[] args)
+    {
+        if (args.Length > 1)
+        {
+            throw new ArgumentException("usage: Gridworks.ReleaseChecks [release-world-json]");
+        }
+
+        string path = args.Length == 1
+            ? args[0]
+            : Path.Combine(Environment.CurrentDirectory, "data", "release-world-v1.json");
+        path = Path.GetFullPath(path);
+        if (!File.Exists(path))
+        {
+            throw new FileNotFoundException("Release world fixture not found.", path);
+        }
+
+        return path;
+    }
+}
+
+internal sealed class ReleaseChecks
+{
+    private const string SourceClassId = "CHECK_SOURCE";
+    private const string Pole3ClassId = "CHECK_POLE_3";
+    private const string Pole4ClassId = "CHECK_POLE_4";
+    private const string SubstationClassId = "CHECK_SUBSTATION";
+    private const string DedicatedClassId = "CHECK_DEDICATED";
+    private const string Line100ClassId = "CHECK_LINE_100";
+    private const string Line50ClassId = "CHECK_LINE_50";
+    private const string Line40ClassId = "CHECK_LINE_40";
+
+    private readonly string _fixtureJson;
+    private readonly ReleaseWorldDefinition _fixture;
+    private int _assertionCount;
+
+    public ReleaseChecks(string fixturePath)
+    {
+        _fixtureJson = File.ReadAllText(fixturePath, Encoding.UTF8);
+        _fixture = ReleaseWorldLoader.Load(_fixtureJson);
+    }
+
+    public int Run()
+    {
+        (string Name, Action Body)[] suites =
+        [
+            ("strict-loader-negatives", CheckStrictLoaderNegatives),
+            ("branch-merge-connection-rating-boundaries", CheckBranchMergeAndBoundaries),
+            ("route-tiebreak-cycle-safety", CheckRouteTieBreakAndCycleSafety),
+            ("shared-edge-node-substation-usage", CheckSharedUsage),
+            ("priority-source-order-conservation", CheckPrioritySourceOrderAndConservation),
+            ("service-area-dedicated-loads", CheckServiceAreaAndDedicatedLoads),
+            ("crossing-is-not-connection", CheckCrossingIsNotConnection),
+            ("node-edge-polygon-outage-reroute", CheckOutageRerouting),
+            ("immutability-repeat-determinism", CheckImmutabilityAndDeterminism),
+        ];
+
+        List<string> failures = [];
+        foreach ((string name, Action body) in suites)
+        {
+            try
+            {
+                body();
+                Console.WriteLine($"PASS {name}");
+            }
+            catch (Exception exception)
+            {
+                failures.Add($"{name}: {exception.Message}");
+                Console.Error.WriteLine($"FAIL {name}: {exception.Message}");
+            }
+        }
+
+        if (failures.Count != 0)
+        {
+            Console.Error.WriteLine(
+                $"Gridworks Release checks: FAIL ({failures.Count}/{suites.Length} suites)");
+            return 1;
+        }
+
+        Console.WriteLine(
+            $"Gridworks Release checks: PASS ({suites.Length} suites, {_assertionCount} assertions)");
+        return 0;
+    }
+
+    private void CheckStrictLoaderNegatives()
+    {
+        ReleaseWorldDefinition fromText = ReleaseWorldLoader.Load(_fixtureJson);
+        ReleaseWorldDefinition fromBytes = ReleaseWorldLoader.Load(Encoding.UTF8.GetBytes(_fixtureJson));
+        Equal(_fixture.WorldId, fromText.WorldId, "text loader world ID");
+        Equal(_fixture.WorldId, fromBytes.WorldId, "UTF-8 loader world ID");
+        Equal(0, _fixture.Grid.MinX, "release grid minimum X");
+        Equal(0, _fixture.Grid.MinY, "release grid minimum Y");
+        Equal(32, _fixture.Grid.MaxX, "release grid maximum X");
+        Equal(20, _fixture.Grid.MaxY, "release grid maximum Y");
+
+        string trimmed = _fixtureJson.TrimStart();
+        ExpectLoaderRejected(
+            "duplicate JSON property",
+            $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
+        ExpectLoaderRejectedBytes("invalid UTF-8", [0xff, 0xfe, 0xfd]);
+        ExpectLoaderRejected("unknown root field", root => root["unexpected"] = true);
+        ExpectLoaderRejected(
+            "unknown nested field",
+            root => Object(root, "grid")["unexpected"] = true);
+        ExpectLoaderRejected("missing required field", root => root.Remove("worldId"));
+        ExpectLoaderRejected("null required object", root => root["grid"] = null);
+        ExpectLoaderRejected(
+            "duplicate node ID",
+            root => Array(root, "nodes").Add(Array(root, "nodes")[0]!.DeepClone()));
+        ExpectLoaderRejected(
+            "duplicate node coordinate",
+            root => Object(Array(root, "nodes")[1]!)["position"] =
+                Object(Array(root, "nodes")[0]!, "position").DeepClone());
+        ExpectLoaderRejected(
+            "broken edge reference",
+            root => Object(Array(root, "edges")[0]!)["fromNodeId"] = "MISSING_NODE");
+        ExpectLoaderRejected(
+            "zero line rating",
+            root => Object(Array(root, "lineClasses")[0]!)["ratingKw"] = 0);
+        ExpectLoaderRejected(
+            "zero connection limit",
+            root => Object(Array(root, "nodeClasses")[0]!)["maxConnections"] = 0);
+        ExpectLoaderRejected(
+            "reversed grid bounds",
+            root => Object(root, "grid")["maxX"] = -1);
+    }
+
+    private void CheckBranchMergeAndBoundaries()
+    {
+        ReleaseWorldDefinition world = BranchMergeWorld();
+        ReleaseWorldLoader.Validate(world);
+        ReleaseNetworkEvaluation evaluation = ReleaseNetworkEvaluator.Evaluate(world);
+
+        ReleaseNodeUsage branch = NodeUsage(evaluation, "A");
+        ReleaseNodeUsage merge = NodeUsage(evaluation, "M");
+        Equal(4, branch.ConnectionCount, "reinforced branch degree");
+        Equal(4, branch.MaxConnections, "reinforced branch connection limit");
+        Equal(3, merge.ConnectionCount, "merge degree");
+        Equal(40L, branch.UsedKw, "branch shared usage");
+        Equal(30L, merge.UsedKw, "merge service usage");
+        Equal(40L, evaluation.TotalDeliveredKw, "branch/merge delivered power");
+
+        ReleaseWorldDefinition degreeOverflow = world with
+        {
+            Nodes = world.Nodes.Select(node => node.NodeId == "A"
+                ? node with { ClassId = Pole3ClassId }
+                : node).ToArray(),
+        };
+        ExpectWorldRejected("four connections on three-connection pole", degreeOverflow);
+
+        ReleaseWorldDefinition exactSpan = ExactSpanWorld(new ReleasePoint(3, 4));
+        ReleaseWorldLoader.Validate(exactSpan);
+        Check(LoadSupply(ReleaseNetworkEvaluator.Evaluate(exactSpan), "LOAD").DeliveredKw == 50,
+            "exact span/rating boundary was rejected");
+
+        ReleaseWorldDefinition spanOverflow = ExactSpanWorld(new ReleasePoint(4, 4));
+        ExpectWorldRejected("line longer than maxSpanCells", spanOverflow);
+
+        ReleaseWorldDefinition ratingOverflow = exactSpan with
+        {
+            Loads = exactSpan.Loads.Select(load => load with { DemandKw = 51 }).ToArray(),
+        };
+        ReleaseLoadSupply failed = LoadSupply(
+            ReleaseNetworkEvaluator.Evaluate(ratingOverflow),
+            "LOAD");
+        Equal(0L, failed.DeliveredKw, "rating overflow must be all-or-none");
+        Equal(ReleaseSupplyFailureKind.EdgeCapacity, failed.Failure.Kind, "rating failure kind");
+        Equal("E_DIRECT", failed.Failure.AssetId, "rating failure asset");
+    }
+
+    private void CheckRouteTieBreakAndCycleSafety()
+    {
+        ReleaseWorldDefinition world = TieCycleWorld();
+        ReleaseWorldLoader.Validate(world);
+        ReleaseNetworkEvaluation first = ReleaseNetworkEvaluator.Evaluate(world);
+        ReleaseLoadSupply supply = LoadSupply(first, "LOAD");
+
+        Equal(20L, supply.DeliveredKw, "tie-cycle delivered power");
+        SequenceEqual(
+            ["A_SOURCE_UPPER", "A_UPPER_MERGE", "E_MERGE_LOAD"],
+            supply.PathEdgeIds,
+            "equal-length path must use lexicographically first edge sequence");
+        Equal(supply.PathNodeIds.Count - 1, supply.PathEdgeIds.Count, "path must be simple");
+        Equal(
+            supply.PathNodeIds.Count,
+            supply.PathNodeIds.Distinct(StringComparer.Ordinal).Count(),
+            "cycle leaked into selected path");
+
+        string canonical = JsonSerializer.Serialize(first);
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            Equal(
+                canonical,
+                JsonSerializer.Serialize(ReleaseNetworkEvaluator.Evaluate(world)),
+                $"tie-cycle evaluation changed on iteration {iteration}");
+        }
+    }
+
+    private void CheckSharedUsage()
+    {
+        ReleaseWorldDefinition world = SharedSubstationWorld();
+        ReleaseNetworkEvaluation evaluation = ReleaseNetworkEvaluator.Evaluate(world);
+
+        Equal(20L, LoadSupply(evaluation, "LOAD_A").DeliveredKw, "first service load");
+        Equal(30L, LoadSupply(evaluation, "LOAD_B").DeliveredKw, "second service load");
+        Equal(50L, EdgeUsage(evaluation, "E_SOURCE_POLE").UsedKw, "shared source edge usage");
+        Equal(50L, EdgeUsage(evaluation, "E_POLE_SUB").UsedKw, "shared substation edge usage");
+        Equal(50L, NodeUsage(evaluation, "POLE").UsedKw, "shared pole usage");
+        Equal(50L, NodeUsage(evaluation, "SUB").UsedKw, "transformer usage counted once per load");
+        Equal(50L, SourceUsage(evaluation, "SOURCE").UsedKw, "source usage");
+        Equal(50L, evaluation.TotalDeliveredKw, "shared total delivered");
+        Equal(evaluation.TotalDeliveredKw, evaluation.TotalGenerationKw, "shared conservation");
+
+        foreach (ReleaseEdgeUsage edge in evaluation.Edges)
+        {
+            Check(edge.UsedKw <= edge.RatingKw, $"edge {edge.EdgeId} exceeds rating");
+        }
+        foreach (ReleaseNodeUsage node in evaluation.Nodes)
+        {
+            Check(node.UsedKw <= node.RatingKw, $"node {node.NodeId} exceeds rating");
+        }
+    }
+
+    private void CheckPrioritySourceOrderAndConservation()
+    {
+        ReleaseWorldDefinition priorityWorld = PriorityWorld();
+        ReleaseNetworkEvaluation priority = ReleaseNetworkEvaluator.Evaluate(priorityWorld);
+        ReleaseLoadSupply high = LoadSupply(priority, "Z_HIGH_PRIORITY");
+        ReleaseLoadSupply low = LoadSupply(priority, "A_LOW_PRIORITY");
+        Equal(30L, high.DeliveredKw, "life-safety load must win shared bottleneck");
+        Equal(0L, low.DeliveredKw, "lower-priority load must not take partial supply");
+        Equal(ReleaseSupplyFailureKind.EdgeCapacity, low.Failure.Kind, "priority loser failure");
+        Equal(30L, priority.TotalDeliveredKw, "priority delivered total");
+        Equal(priority.TotalDeliveredKw, priority.TotalGenerationKw, "priority conservation");
+
+        ReleaseWorldDefinition sourceWorld = SourceOrderWorld();
+        ReleaseNetworkEvaluation sourceEvaluation = ReleaseNetworkEvaluator.Evaluate(sourceWorld);
+        ReleaseLoadSupply supplied = LoadSupply(sourceEvaluation, "LOAD");
+        Equal("SOURCE_FIRST", supplied.SourceId, "dispatch order must precede source ID/path order");
+        Equal(40L, SourceUsage(sourceEvaluation, "SOURCE_FIRST").UsedKw, "first source usage");
+        Equal(0L, SourceUsage(sourceEvaluation, "SOURCE_SECOND").UsedKw, "second source usage");
+        Equal(sourceEvaluation.TotalDeliveredKw, sourceEvaluation.TotalGenerationKw, "source conservation");
+        Equal(
+            sourceEvaluation.TotalGenerationKw,
+            sourceEvaluation.Sources.Sum(source => source.UsedKw),
+            "generation usage sum");
+
+        ReleaseLoadSupply connectedFailure = LoadSupply(
+            ReleaseNetworkEvaluator.Evaluate(DisconnectedFirstSourceWorld()),
+            "LOAD");
+        Equal(
+            ReleaseSupplyFailureKind.EdgeCapacity,
+            connectedFailure.Failure.Kind,
+            "disconnected earlier source must not own the failure reason");
+        Equal(
+            "E_CONNECTED",
+            connectedFailure.Failure.AssetId,
+            "failure must identify the first bottleneck on a connected source path");
+    }
+
+    private void CheckServiceAreaAndDedicatedLoads()
+    {
+        ReleaseWorldDefinition world = MixedConnectionWorld();
+        ReleaseNetworkEvaluation evaluation = ReleaseNetworkEvaluator.Evaluate(world);
+        ReleaseLoadSupply service = LoadSupply(evaluation, "SERVICE_INSIDE");
+        ReleaseLoadSupply dedicated = LoadSupply(evaluation, "DEDICATED");
+
+        Equal(20L, service.DeliveredKw, "inside service-area load");
+        Equal("SUB", service.EndpointNodeId, "service-area endpoint");
+        Equal(ReleaseSupplyFailureKind.None, service.Failure.Kind, "inside service failure");
+        Equal(15L, dedicated.DeliveredKw, "dedicated load");
+        Equal("DEDICATED_NODE", dedicated.EndpointNodeId, "dedicated endpoint");
+        Equal(20L, NodeUsage(evaluation, "SUB").UsedKw, "dedicated load must not reserve transformer");
+        Equal(35L, evaluation.TotalDeliveredKw, "mixed connection delivered total");
+
+        ReleaseNetworkEvaluation substationOutage = ReleaseNetworkEvaluator.Evaluate(
+            world,
+            Contingency(nodeIds: Set("SUB")));
+        ReleaseLoadSupply unavailableService = LoadSupply(substationOutage, "SERVICE_INSIDE");
+        Equal(0L, unavailableService.DeliveredKw, "unavailable service-area substation");
+        Equal(
+            ReleaseSupplyFailureKind.NoEligibleSubstation,
+            unavailableService.Failure.Kind,
+            "unavailable service-area failure");
+        Equal(15L, LoadSupply(substationOutage, "DEDICATED").DeliveredKw,
+            "substation outage interrupted dedicated load");
+    }
+
+    private void CheckCrossingIsNotConnection()
+    {
+        ReleaseWorldDefinition world = CrossingWorld();
+        ReleaseWorldLoader.Validate(world);
+        ReleaseNetworkEvaluation evaluation = ReleaseNetworkEvaluator.Evaluate(world);
+        ReleaseLoadSupply supply = LoadSupply(evaluation, "LOAD");
+
+        Equal(0L, supply.DeliveredKw, "geometric crossing energized disconnected load");
+        Equal(ReleaseSupplyFailureKind.Disconnected, supply.Failure.Kind, "crossing failure kind");
+        Equal(0L, evaluation.TotalGenerationKw, "crossing generated power");
+        Check(!supply.PathNodeIds.Contains("SOURCE_END", StringComparer.Ordinal),
+            "crossing fabricated a shared node");
+    }
+
+    private void CheckOutageRerouting()
+    {
+        ReleaseWorldDefinition world = OutageWorld();
+        ReleaseLoadSupply normal = LoadSupply(ReleaseNetworkEvaluator.Evaluate(world), "LOAD");
+        SequenceEqual(
+            ["A_UPPER_IN", "A_UPPER_OUT"],
+            normal.PathEdgeIds,
+            "normal outage-world route");
+
+        ReleaseContingency edgeOutage = Contingency(edgeIds: Set("A_UPPER_IN"));
+        AssertLowerReroute(world, edgeOutage, "single-edge outage");
+
+        ReleaseContingency nodeOutage = Contingency(nodeIds: Set("UPPER"));
+        AssertLowerReroute(world, nodeOutage, "single-node outage");
+
+        ReleaseContingency polygonOutage = Contingency(riskAreaIds: Set("UPPER_CORRIDOR"));
+        ReleaseNetworkEvaluation polygonEvaluation = ReleaseNetworkEvaluator.Evaluate(world, polygonOutage);
+        AssertLowerReroute(world, polygonOutage, "polygon outage");
+        Check(!EdgeUsage(polygonEvaluation, "A_UPPER_IN").Available, "polygon kept intersecting edge available");
+        Check(!NodeUsage(polygonEvaluation, "UPPER").Available, "polygon kept enclosed node available");
+        Check(EdgeUsage(polygonEvaluation, "B_LOWER_IN").Available, "polygon removed safe lower edge");
+    }
+
+    private void CheckImmutabilityAndDeterminism()
+    {
+        string fixtureBefore = JsonSerializer.Serialize(_fixture);
+        ReleaseNetworkEvaluation fixtureEvaluation = ReleaseNetworkEvaluator.Evaluate(_fixture);
+        string fixtureResult = JsonSerializer.Serialize(fixtureEvaluation);
+        Equal(fixtureEvaluation.TotalDeliveredKw, fixtureEvaluation.TotalGenerationKw,
+            "fixture conservation");
+        Check(fixtureEvaluation.Loads.All(load => load.DeliveredKw == 0 || load.DeliveredKw == load.DemandKw),
+            "fixture contains partial load delivery");
+
+        for (int iteration = 0; iteration < 20; iteration++)
+        {
+            Equal(fixtureBefore, JsonSerializer.Serialize(_fixture), "evaluation mutated fixture");
+            Equal(
+                fixtureResult,
+                JsonSerializer.Serialize(ReleaseNetworkEvaluator.Evaluate(_fixture)),
+                $"fixture evaluation changed on iteration {iteration}");
+        }
+
+        var mutableEdges = new HashSet<string>(StringComparer.Ordinal) { "A_UPPER_IN" };
+        ReleaseContingency copied = new(
+            new HashSet<string>(StringComparer.Ordinal),
+            mutableEdges,
+            new HashSet<string>(StringComparer.Ordinal));
+        mutableEdges.Clear();
+        Check(copied.UnavailableEdgeIds.Contains("A_UPPER_IN"), "contingency retained caller-owned set");
+
+        ReleaseWorldDefinition originalWorld = OutageWorld();
+        var mutableNodes = originalWorld.Nodes.ToList();
+        ReleaseWorldDefinition copiedWorld = originalWorld with { Nodes = mutableNodes };
+        int copiedCount = copiedWorld.Nodes.Count;
+        mutableNodes.Clear();
+        Equal(copiedCount, copiedWorld.Nodes.Count, "world retained caller-owned node list");
+    }
+
+    private void AssertLowerReroute(
+        ReleaseWorldDefinition world,
+        ReleaseContingency contingency,
+        string context)
+    {
+        ReleaseLoadSupply rerouted = LoadSupply(
+            ReleaseNetworkEvaluator.Evaluate(world, contingency),
+            "LOAD");
+        Equal(20L, rerouted.DeliveredKw, $"{context}: delivered power");
+        SequenceEqual(
+            ["B_LOWER_IN", "B_LOWER_OUT"],
+            rerouted.PathEdgeIds,
+            $"{context}: lower route");
+    }
+
+    private static ReleaseWorldDefinition BranchMergeWorld()
+    {
+        return World(
+            "BRANCH_MERGE",
+            nodes:
+            [
+                Node("S", SourceClassId, 0, 4),
+                Node("A", Pole4ClassId, 2, 4),
+                Node("B", Pole3ClassId, 4, 2),
+                Node("C", Pole3ClassId, 4, 6),
+                Node("M", Pole3ClassId, 6, 4),
+                Node("SUB", SubstationClassId, 8, 4),
+                Node("D", DedicatedClassId, 4, 4),
+            ],
+            edges:
+            [
+                Edge("E_S_A", "S", "A"),
+                Edge("E_A_B", "A", "B"),
+                Edge("E_A_C", "A", "C"),
+                Edge("E_B_M", "B", "M"),
+                Edge("E_C_M", "C", "M"),
+                Edge("E_M_SUB", "M", "SUB"),
+                Edge("E_A_D", "A", "D"),
+            ],
+            sources: [Source("SOURCE", "S", 0, 100)],
+            loads:
+            [
+                ServiceLoad("SERVICE", 30, 9, 4),
+                DedicatedLoad("DEDICATED", 10, "D", 4, 4),
+            ]);
+    }
+
+    private static ReleaseWorldDefinition ExactSpanWorld(ReleasePoint endpoint)
+    {
+        return World(
+            "EXACT_SPAN",
+            nodes:
+            [
+                Node("S", SourceClassId, 0, 0),
+                Node("D", DedicatedClassId, endpoint.X, endpoint.Y),
+            ],
+            edges: [Edge("E_DIRECT", "S", "D", Line50ClassId)],
+            sources: [Source("SOURCE", "S", 0, 100)],
+            loads: [DedicatedLoad("LOAD", 50, "D", endpoint.X, endpoint.Y)]);
+    }
+
+    private static ReleaseWorldDefinition TieCycleWorld()
+    {
+        return World(
+            "TIE_CYCLE",
+            nodes:
+            [
+                Node("S", SourceClassId, 0, 4),
+                Node("UPPER", Pole3ClassId, 2, 2),
+                Node("LOWER", Pole3ClassId, 2, 6),
+                Node("MERGE", Pole3ClassId, 4, 4),
+                Node("D", DedicatedClassId, 6, 4),
+            ],
+            edges:
+            [
+                Edge("A_SOURCE_UPPER", "S", "UPPER"),
+                Edge("A_UPPER_MERGE", "UPPER", "MERGE"),
+                Edge("B_SOURCE_LOWER", "S", "LOWER"),
+                Edge("B_LOWER_MERGE", "LOWER", "MERGE"),
+                Edge("C_UPPER_LOWER", "UPPER", "LOWER"),
+                Edge("E_MERGE_LOAD", "MERGE", "D"),
+            ],
+            sources: [Source("SOURCE", "S", 0, 100)],
+            loads: [DedicatedLoad("LOAD", 20, "D", 6, 4)]);
+    }
+
+    private static ReleaseWorldDefinition SharedSubstationWorld()
+    {
+        return World(
+            "SHARED_SUBSTATION",
+            nodes:
+            [
+                Node("S", SourceClassId, 0, 4),
+                Node("POLE", Pole3ClassId, 2, 4),
+                Node("SUB", SubstationClassId, 4, 4),
+            ],
+            edges:
+            [
+                Edge("E_SOURCE_POLE", "S", "POLE"),
+                Edge("E_POLE_SUB", "POLE", "SUB"),
+            ],
+            sources: [Source("SOURCE", "S", 0, 100)],
+            loads:
+            [
+                ServiceLoad("LOAD_A", 20, 5, 3),
+                ServiceLoad("LOAD_B", 30, 5, 5),
+            ]);
+    }
+
+    private static ReleaseWorldDefinition PriorityWorld()
+    {
+        return World(
+            "PRIORITY",
+            nodes:
+            [
+                Node("S", SourceClassId, 0, 4),
+                Node("P", Pole3ClassId, 2, 4),
+                Node("HIGH", DedicatedClassId, 4, 2),
+                Node("LOW", DedicatedClassId, 4, 6),
+            ],
+            edges:
+            [
+                Edge("E_SHARED", "S", "P", Line40ClassId),
+                Edge("E_HIGH", "P", "HIGH"),
+                Edge("E_LOW", "P", "LOW"),
+            ],
+            sources: [Source("SOURCE", "S", 0, 100)],
+            loads:
+            [
+                DedicatedLoad("Z_HIGH_PRIORITY", 30, "HIGH", 4, 2, ReleaseLoadPriority.LifeSafety),
+                DedicatedLoad("A_LOW_PRIORITY", 30, "LOW", 4, 6, ReleaseLoadPriority.Residential),
+            ]);
+    }
+
+    private static ReleaseWorldDefinition SourceOrderWorld()
+    {
+        return World(
+            "SOURCE_ORDER",
+            nodes:
+            [
+                Node("S_FIRST", SourceClassId, 0, 2),
+                Node("S_SECOND", SourceClassId, 0, 6),
+                Node("P", Pole3ClassId, 2, 4),
+                Node("D", DedicatedClassId, 4, 4),
+            ],
+            edges:
+            [
+                Edge("Z_FIRST_PATH", "S_FIRST", "P"),
+                Edge("A_SECOND_PATH", "S_SECOND", "P"),
+                Edge("E_LOAD", "P", "D"),
+            ],
+            sources:
+            [
+                Source("SOURCE_FIRST", "S_FIRST", 0, 40),
+                Source("SOURCE_SECOND", "S_SECOND", 1, 40),
+            ],
+            loads: [DedicatedLoad("LOAD", 40, "D", 4, 4)]);
+    }
+
+    private static ReleaseWorldDefinition DisconnectedFirstSourceWorld()
+    {
+        return World(
+            "DISCONNECTED_FIRST_SOURCE",
+            nodes:
+            [
+                Node("S_DISCONNECTED", SourceClassId, 0, 0),
+                Node("S_CONNECTED", SourceClassId, 0, 4),
+                Node("D", DedicatedClassId, 4, 4),
+            ],
+            edges: [Edge("E_CONNECTED", "S_CONNECTED", "D", Line40ClassId)],
+            sources:
+            [
+                Source("SOURCE_DISCONNECTED", "S_DISCONNECTED", 0, 10),
+                Source("SOURCE_CONNECTED", "S_CONNECTED", 1, 100),
+            ],
+            loads: [DedicatedLoad("LOAD", 50, "D", 4, 4)]);
+    }
+
+    private static ReleaseWorldDefinition MixedConnectionWorld()
+    {
+        return World(
+            "MIXED_CONNECTIONS",
+            nodes:
+            [
+                Node("S", SourceClassId, 0, 4),
+                Node("P", Pole3ClassId, 2, 4),
+                Node("SUB", SubstationClassId, 4, 4),
+                Node("DEDICATED_NODE", DedicatedClassId, 4, 8),
+            ],
+            edges:
+            [
+                Edge("E_SOURCE_POLE", "S", "P"),
+                Edge("E_POLE_SUB", "P", "SUB"),
+                Edge("E_POLE_DEDICATED", "P", "DEDICATED_NODE"),
+            ],
+            sources: [Source("SOURCE", "S", 0, 100)],
+            loads:
+            [
+                ServiceLoad("SERVICE_INSIDE", 20, 6, 4),
+                DedicatedLoad("DEDICATED", 15, "DEDICATED_NODE", 4, 8),
+            ]);
+    }
+
+    private static ReleaseWorldDefinition CrossingWorld()
+    {
+        return World(
+            "CROSSING",
+            nodes:
+            [
+                Node("S", SourceClassId, 0, 0),
+                Node("SOURCE_END", Pole3ClassId, 4, 4),
+                Node("ISLAND_START", Pole3ClassId, 0, 4),
+                Node("D", DedicatedClassId, 4, 0),
+            ],
+            edges:
+            [
+                Edge("E_SOURCE_DIAGONAL", "S", "SOURCE_END"),
+                Edge("E_LOAD_DIAGONAL", "ISLAND_START", "D"),
+            ],
+            sources: [Source("SOURCE", "S", 0, 100)],
+            loads: [DedicatedLoad("LOAD", 20, "D", 4, 0)]);
+    }
+
+    private static ReleaseWorldDefinition OutageWorld()
+    {
+        return World(
+            "OUTAGE",
+            nodes:
+            [
+                Node("S", SourceClassId, 0, 4),
+                Node("UPPER", Pole3ClassId, 4, 2),
+                Node("LOWER", Pole3ClassId, 4, 6),
+                Node("D", DedicatedClassId, 8, 4),
+            ],
+            edges:
+            [
+                Edge("A_UPPER_IN", "S", "UPPER"),
+                Edge("A_UPPER_OUT", "UPPER", "D"),
+                Edge("B_LOWER_IN", "S", "LOWER"),
+                Edge("B_LOWER_OUT", "LOWER", "D"),
+            ],
+            sources: [Source("SOURCE", "S", 0, 100)],
+            loads: [DedicatedLoad("LOAD", 20, "D", 8, 4)],
+            riskAreas:
+            [
+                new ReleaseRiskAreaDefinition(
+                    "UPPER_CORRIDOR",
+                    "상부 회랑",
+                    [
+                        new ReleasePoint(1, 1),
+                        new ReleasePoint(5, 1),
+                        new ReleasePoint(5, 3),
+                        new ReleasePoint(1, 3),
+                    ]),
+            ]);
+    }
+
+    private static ReleaseWorldDefinition World(
+        string worldId,
+        IReadOnlyList<ReleaseNodeDefinition> nodes,
+        IReadOnlyList<ReleaseEdgeDefinition> edges,
+        IReadOnlyList<ReleaseSourceDefinition> sources,
+        IReadOnlyList<ReleaseLoadDefinition> loads,
+        IReadOnlyList<ReleaseRiskAreaDefinition>? riskAreas = null)
+    {
+        return new ReleaseWorldDefinition(
+            "gridworks.release.world.v1",
+            worldId,
+            worldId,
+            new ReleaseGridDefinition(0, 0, 32, 20, 4),
+            NodeClasses(),
+            LineClasses(),
+            nodes,
+            edges,
+            sources,
+            loads,
+            riskAreas ?? []);
+    }
+
+    private static IReadOnlyList<ReleaseNodeClassDefinition> NodeClasses() =>
+    [
+        new(SourceClassId, "전원 접속점", ReleaseNodeKind.SourceTerminal, 4, null, null, null, 0, 0),
+        new(Pole3ClassId, "일반 전신주", ReleaseNodeKind.Pole, 3, 100, null, null, 10, 1),
+        new(Pole4ClassId, "보강 전신주", ReleaseNodeKind.Pole, 4, 100, null, null, 20, 1),
+        new(SubstationClassId, "배전 변전소", ReleaseNodeKind.Substation, 4, null, 100, 3, 50, 2),
+        new(DedicatedClassId, "전용 수요 접속점", ReleaseNodeKind.DedicatedLoadTerminal, 4, null, null, null, 0, 0),
+    ];
+
+    private static IReadOnlyList<ReleaseLineClassDefinition> LineClasses() =>
+    [
+        new(Line100ClassId, "보강 배전선", 100, 6, 1, 1),
+        new(Line50ClassId, "일반 배전선", 50, 5, 1, 1),
+        new(Line40ClassId, "제한 배전선", 40, 6, 1, 1),
+    ];
+
+    private static ReleaseNodeDefinition Node(string id, string classId, int x, int y) =>
+        new(id, classId, id, new ReleasePoint(x, y), true);
+
+    private static ReleaseEdgeDefinition Edge(
+        string id,
+        string from,
+        string to,
+        string lineClassId = Line100ClassId) =>
+        new(id, id, lineClassId, from, to, true);
+
+    private static ReleaseSourceDefinition Source(
+        string id,
+        string nodeId,
+        int order,
+        long capacityKw) =>
+        new(id, nodeId, id, order, capacityKw);
+
+    private static ReleaseLoadDefinition ServiceLoad(
+        string id,
+        long demandKw,
+        int x,
+        int y,
+        ReleaseLoadPriority priority = ReleaseLoadPriority.Residential) =>
+        new(
+            id,
+            id,
+            priority,
+            demandKw,
+            ReleaseLoadConnectionKind.ServiceArea,
+            new ReleasePoint(x, y),
+            null);
+
+    private static ReleaseLoadDefinition DedicatedLoad(
+        string id,
+        long demandKw,
+        string nodeId,
+        int x,
+        int y,
+        ReleaseLoadPriority priority = ReleaseLoadPriority.Residential) =>
+        new(
+            id,
+            id,
+            priority,
+            demandKw,
+            ReleaseLoadConnectionKind.DedicatedNode,
+            new ReleasePoint(x, y),
+            nodeId);
+
+    private static ReleaseContingency Contingency(
+        IReadOnlySet<string>? nodeIds = null,
+        IReadOnlySet<string>? edgeIds = null,
+        IReadOnlySet<string>? riskAreaIds = null) =>
+        new(
+            nodeIds ?? new HashSet<string>(StringComparer.Ordinal),
+            edgeIds ?? new HashSet<string>(StringComparer.Ordinal),
+            riskAreaIds ?? new HashSet<string>(StringComparer.Ordinal));
+
+    private static IReadOnlySet<string> Set(params string[] values) =>
+        new HashSet<string>(values, StringComparer.Ordinal);
+
+    private static ReleaseLoadSupply LoadSupply(ReleaseNetworkEvaluation evaluation, string loadId) =>
+        evaluation.Loads.Single(load => string.Equals(load.LoadId, loadId, StringComparison.Ordinal));
+
+    private static ReleaseNodeUsage NodeUsage(ReleaseNetworkEvaluation evaluation, string nodeId) =>
+        evaluation.Nodes.Single(node => string.Equals(node.NodeId, nodeId, StringComparison.Ordinal));
+
+    private static ReleaseEdgeUsage EdgeUsage(ReleaseNetworkEvaluation evaluation, string edgeId) =>
+        evaluation.Edges.Single(edge => string.Equals(edge.EdgeId, edgeId, StringComparison.Ordinal));
+
+    private static ReleaseSourceUsage SourceUsage(ReleaseNetworkEvaluation evaluation, string sourceId) =>
+        evaluation.Sources.Single(source => string.Equals(source.SourceId, sourceId, StringComparison.Ordinal));
+
+    private void ExpectLoaderRejected(string label, Action<JsonObject> mutate)
+    {
+        JsonObject root = ParseObject(_fixtureJson);
+        mutate(root);
+        ExpectLoaderRejected(label, root.ToJsonString());
+    }
+
+    private void ExpectLoaderRejected(string label, string json)
+    {
+        try
+        {
+            _ = ReleaseWorldLoader.Load(json);
+        }
+        catch (ReleaseWorldValidationException)
+        {
+            _assertionCount++;
+            return;
+        }
+
+        throw new InvalidOperationException($"{label}: loader accepted invalid world");
+    }
+
+    private void ExpectLoaderRejectedBytes(string label, byte[] bytes)
+    {
+        try
+        {
+            _ = ReleaseWorldLoader.Load(bytes);
+        }
+        catch (ReleaseWorldValidationException)
+        {
+            _assertionCount++;
+            return;
+        }
+
+        throw new InvalidOperationException($"{label}: loader accepted invalid bytes");
+    }
+
+    private void ExpectWorldRejected(string label, ReleaseWorldDefinition world)
+    {
+        try
+        {
+            ReleaseWorldLoader.Validate(world);
+        }
+        catch (ReleaseWorldValidationException)
+        {
+            _assertionCount++;
+            return;
+        }
+
+        throw new InvalidOperationException($"{label}: validator accepted invalid world");
+    }
+
+    private static JsonObject ParseObject(string json) =>
+        JsonNode.Parse(json) as JsonObject
+        ?? throw new InvalidOperationException("fixture root is not an object");
+
+    private static JsonObject Object(JsonNode node, string propertyName) =>
+        node[propertyName] as JsonObject
+        ?? throw new InvalidOperationException($"{propertyName} is not an object");
+
+    private static JsonObject Object(JsonNode node) =>
+        node as JsonObject
+        ?? throw new InvalidOperationException("node is not an object");
+
+    private static JsonArray Array(JsonNode node, string propertyName) =>
+        node[propertyName] as JsonArray
+        ?? throw new InvalidOperationException($"{propertyName} is not an array");
+
+    private void Check(bool condition, string message)
+    {
+        _assertionCount++;
+        if (!condition)
+        {
+            throw new InvalidOperationException(message);
+        }
+    }
+
+    private void Equal<T>(T expected, T actual, string message)
+    {
+        _assertionCount++;
+        if (!EqualityComparer<T>.Default.Equals(expected, actual))
+        {
+            throw new InvalidOperationException($"{message}: expected {expected}, got {actual}");
+        }
+    }
+
+    private void SequenceEqual<T>(
+        IReadOnlyList<T> expected,
+        IReadOnlyList<T> actual,
+        string message)
+    {
+        _assertionCount++;
+        if (!expected.SequenceEqual(actual))
+        {
+            throw new InvalidOperationException(
+                $"{message}: expected [{string.Join(", ", expected)}], " +
+                $"got [{string.Join(", ", actual)}]");
+        }
+    }
+}

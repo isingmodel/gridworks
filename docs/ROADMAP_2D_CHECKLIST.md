@@ -35,7 +35,7 @@
 | 3. 공장 수요·발전소 용량 | 완료 | [구현 기준](scopes/FACTORY_CAPACITY.md), [데이터](../data/product-factory-v1.json) | [종료 기록](scopes/FACTORY_CAPACITY.md#8-현재-검사와-종료-기록) | [종료 기록](scopes/FACTORY_CAPACITY.md#8-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/FACTORY_CAPACITY.md#8-현재-검사와-종료-기록) |
 | 4. 예고된 폭염·정비 | 완료 | [구현 기준](scopes/HEATWAVE_MAINTENANCE.md), [데이터](../data/product-heatwave-v1.json) | [종료 기록](scopes/HEATWAVE_MAINTENANCE.md#8-현재-검사와-종료-기록) | [종료 기록](scopes/HEATWAVE_MAINTENANCE.md#8-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/HEATWAVE_MAINTENANCE.md#8-현재-검사와-종료-기록) |
 | 5. 캠페인 골격·저장·기본 설정 | 완료 | [구현 기준](scopes/CAMPAIGN_SAVE_SETTINGS.md), [캠페인 데이터](../data/product-campaign-v1.json) | [종료 기록](scopes/CAMPAIGN_SAVE_SETTINGS.md#9-현재-검사와-종료-기록) | [종료 기록](scopes/CAMPAIGN_SAVE_SETTINGS.md#9-현재-검사와-종료-기록) | `NOT_COLLECTED` | [독립 검토 완료](scopes/CAMPAIGN_SAVE_SETTINGS.md#9-현재-검사와-종료-기록) |
-| 6. 세 장 콘텐츠 고정 | 미승인 | — | — | — | 필요 | — |
+| 6. 세 장 콘텐츠 고정 | 활성 | [계약](scopes/CAMPAIGN_CONTENT.md), [캠페인 데이터](../data/product-campaign-v1.json) | 진행 중 | 진행 중 | `NOT_COLLECTED` | — |
 | 7. 2D 표현·사운드·패키징 | 미승인 | — | — | — | 필요 | — |
 
 `필요`는 전체 제품 테스트에서 외부 formative observation을 기록할 지점이라는 뜻이다. 현재의

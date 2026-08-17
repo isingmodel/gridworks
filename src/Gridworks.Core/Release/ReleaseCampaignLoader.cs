@@ -65,6 +65,8 @@ public static class ReleaseCampaignLoader
             Fail("$.initialCashUnit must be nonnegative.");
         }
         RequireUnique(campaign.InitialEdgeIds, "$.initialEdgeIds");
+        HashSet<string> initialEdgeIds = campaign.InitialEdgeIds
+            .ToHashSet(StringComparer.Ordinal);
         HashSet<string> edgeIds = world.Edges.Select(item => item.EdgeId)
             .ToHashSet(StringComparer.Ordinal);
         foreach (string edgeId in campaign.InitialEdgeIds)
@@ -83,6 +85,7 @@ public static class ReleaseCampaignLoader
             .ToDictionary(item => item.NodeId, StringComparer.Ordinal);
         HashSet<string> riskAreaIds = world.RiskAreas.Select(item => item.RiskAreaId)
             .ToHashSet(StringComparer.Ordinal);
+        long cumulativeCash = campaign.InitialCashUnit;
         for (int index = 0; index < campaign.Chapters.Count; index++)
         {
             ReleaseCampaignChapter chapter = campaign.Chapters[index];
@@ -96,6 +99,14 @@ public static class ReleaseCampaignLoader
             if (chapter.BudgetGrantCashUnit < 0)
             {
                 Fail($"{path}.budgetGrantCashUnit must be nonnegative.");
+            }
+            try
+            {
+                cumulativeCash = checked(cumulativeCash + chapter.BudgetGrantCashUnit);
+            }
+            catch (OverflowException)
+            {
+                Fail("Campaign cash grants exceed the supported range.");
             }
             if (chapter.ActiveLoads.Count == 0)
             {
@@ -159,7 +170,7 @@ public static class ReleaseCampaignLoader
                     $"{path}.event.unavailableNodeIds");
                 ValidateReferences(
                     chapter.Event.UnavailableEdgeIds,
-                    edgeIds,
+                    initialEdgeIds,
                     $"{path}.event.unavailableEdgeIds");
                 ValidateReferences(
                     chapter.Event.ActiveRiskAreaIds,
@@ -302,54 +313,54 @@ public static class ReleaseCampaignLoader
 
     private sealed class RawCampaign
     {
-        public string? SchemaVersion { get; set; }
-        public string? CampaignId { get; set; }
-        public string? DisplayName { get; set; }
-        public long InitialCashUnit { get; set; }
-        public string[]? InitialEdgeIds { get; set; }
-        public RawChapter[]? Chapters { get; set; }
+        public required string? SchemaVersion { get; set; }
+        public required string? CampaignId { get; set; }
+        public required string? DisplayName { get; set; }
+        public required long InitialCashUnit { get; set; }
+        public required string[]? InitialEdgeIds { get; set; }
+        public required RawChapter[]? Chapters { get; set; }
     }
 
     private sealed class RawChapter
     {
-        public string? ChapterId { get; set; }
-        public string? ActLabel { get; set; }
-        public string? DisplayName { get; set; }
-        public RawStory? Briefing { get; set; }
-        public string? Objective { get; set; }
-        public RawEvent? Event { get; set; }
-        public RawStory? Result { get; set; }
-        public long BudgetGrantCashUnit { get; set; }
-        public RawLoad[]? ActiveLoads { get; set; }
-        public string[]? RequiredNormalLoadIds { get; set; }
-        public string[]? RequiredEventLoadIds { get; set; }
-        public RawConnectionRequirement[]? ConnectionRequirements { get; set; }
+        public required string? ChapterId { get; set; }
+        public required string? ActLabel { get; set; }
+        public required string? DisplayName { get; set; }
+        public required RawStory? Briefing { get; set; }
+        public required string? Objective { get; set; }
+        public required RawEvent? Event { get; set; }
+        public required RawStory? Result { get; set; }
+        public required long BudgetGrantCashUnit { get; set; }
+        public required RawLoad[]? ActiveLoads { get; set; }
+        public required string[]? RequiredNormalLoadIds { get; set; }
+        public required string[]? RequiredEventLoadIds { get; set; }
+        public required RawConnectionRequirement[]? ConnectionRequirements { get; set; }
     }
 
     private sealed class RawStory
     {
-        public string? Speaker { get; set; }
-        public string? Title { get; set; }
-        public string? Body { get; set; }
+        public required string? Speaker { get; set; }
+        public required string? Title { get; set; }
+        public required string? Body { get; set; }
     }
 
     private sealed class RawEvent
     {
-        public RawStory? Story { get; set; }
-        public string[]? UnavailableNodeIds { get; set; }
-        public string[]? UnavailableEdgeIds { get; set; }
-        public string[]? ActiveRiskAreaIds { get; set; }
+        public required RawStory? Story { get; set; }
+        public required string[]? UnavailableNodeIds { get; set; }
+        public required string[]? UnavailableEdgeIds { get; set; }
+        public required string[]? ActiveRiskAreaIds { get; set; }
     }
 
     private sealed class RawLoad
     {
-        public string? LoadId { get; set; }
-        public long DemandKw { get; set; }
+        public required string? LoadId { get; set; }
+        public required long DemandKw { get; set; }
     }
 
     private sealed class RawConnectionRequirement
     {
-        public string? NodeId { get; set; }
-        public int MinimumConnections { get; set; }
+        public required string? NodeId { get; set; }
+        public required int MinimumConnections { get; set; }
     }
 }

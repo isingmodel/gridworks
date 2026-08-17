@@ -683,6 +683,16 @@ internal sealed class ReleaseChecks
             root => Array(
                 Object(Array(root, "chapters")[1]!, "event"),
                 "unavailableNodeIds").Add("MISSING_NODE"));
+        ExpectCampaignRejected(
+            "missing required campaign array",
+            root => Object(Array(root, "chapters")[0]!).Remove("requiredEventLoadIds"));
+        ExpectCampaignRejected(
+            "incident edge absent from opening network",
+            root => Object(Array(root, "chapters")[0]!, "event")["unavailableEdgeIds"] =
+                new JsonArray("EDGE_CENTRAL_NORTH"));
+        ExpectCampaignRejected(
+            "cumulative campaign grant overflow",
+            root => root["initialCashUnit"] = long.MaxValue);
     }
 
     private void CheckCampaignEightChapterWitness()
@@ -803,6 +813,14 @@ internal sealed class ReleaseChecks
                 "campaign persisted command count");
             Check(!File.Exists(savePath + ".tmp"),
                 "campaign persisted temporary file remained after replacement");
+
+            JsonObject missingCommands = ParseObject(Encoding.UTF8.GetString(encoded));
+            missingCommands.Remove("commands");
+            File.WriteAllText(savePath, missingCommands.ToJsonString());
+            ReleaseCampaignSaveLoadResult invalid =
+                ReleaseCampaignPersistenceStore.Load(savePath);
+            Equal(ReleaseDocumentLoadStatus.Invalid, invalid.Status,
+                "missing commands must be an invalid save, not a startup exception");
         }
         finally
         {

@@ -192,13 +192,16 @@ public sealed record ReleaseCampaignSave(
 {
     public const string SupportedSchemaVersion = "gridworks.release.campaign-save.v2";
 
-    private IReadOnlyList<ReleaseCampaignCommand> _commands =
-        Array.AsReadOnly(Commands.ToArray());
+    private IReadOnlyList<ReleaseCampaignCommand> _commands = Commands is null
+        ? throw new ReleasePersistenceValidationException("commands가 비어 있습니다.")
+        : Array.AsReadOnly(Commands.ToArray());
 
     public IReadOnlyList<ReleaseCampaignCommand> Commands
     {
         get => _commands;
-        init => _commands = Array.AsReadOnly(value.ToArray());
+        init => _commands = value is null
+            ? throw new ReleasePersistenceValidationException("commands가 비어 있습니다.")
+            : Array.AsReadOnly(value.ToArray());
     }
 }
 

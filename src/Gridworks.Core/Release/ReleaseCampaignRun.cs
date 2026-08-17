@@ -61,6 +61,10 @@ public sealed class ReleaseCampaignRun
         {
             return Rejected(ReleaseCampaignError.CampaignComplete);
         }
+        if (_commands.Count >= MaximumCommandCount)
+        {
+            return Rejected(ReleaseCampaignError.InvalidCommand);
+        }
 
         if (command.Kind == ReleaseCampaignCommandKind.EvaluateChapter)
         {
@@ -181,16 +185,20 @@ public sealed class ReleaseCampaignRun
         }
 
         ReleaseCampaignChapter completedChapter = CurrentChapter;
+        bool completesCampaign = _chapterIndex == _definition.Chapters.Count - 1;
+        long nextCash = completesCampaign
+            ? _cashUnit
+            : checked(
+                _cashUnit + _definition.Chapters[_chapterIndex + 1].BudgetGrantCashUnit);
         _commands.Add(command);
-        if (_chapterIndex == _definition.Chapters.Count - 1)
+        if (completesCampaign)
         {
             _campaignComplete = true;
         }
         else
         {
             _chapterIndex++;
-            _cashUnit = checked(
-                _cashUnit + _definition.Chapters[_chapterIndex].BudgetGrantCashUnit);
+            _cashUnit = nextCash;
             _chapterStartCommandCount = _commands.Count;
         }
 

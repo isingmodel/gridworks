@@ -69,6 +69,7 @@ public sealed partial class ReleaseMain : Control
     private Label _storyBody = null!;
     private Button _storyButton = null!;
     private Label _fatalLabel = null!;
+    private readonly Dictionary<Control, int> _baseFontSizes = [];
 
     public override void _Ready()
     {
@@ -1267,10 +1268,8 @@ public sealed partial class ReleaseMain : Control
         GetWindow().Mode = settings.WindowMode == ProductWindowMode.Fullscreen
             ? Window.ModeEnum.Fullscreen
             : Window.ModeEnum.Windowed;
-        // Scale theme metrics so containers can reflow at the same viewport size.
-        // Scaling the window canvas itself crops the map and task panel at 1280×720.
         GetWindow().ContentScaleFactor = 1f;
-        Theme.DefaultBaseScale = settings.UiScalePercent / 100f;
+        ApplyUiScale(this, settings.UiScalePercent / 100f);
         _audio.ApplyVolumes(
             settings.MasterVolumePercent,
             settings.AmbientVolumePercent,
@@ -1282,6 +1281,29 @@ public sealed partial class ReleaseMain : Control
             settings.MasterVolumePercent,
             settings.AmbientVolumePercent,
             settings.SfxVolumePercent);
+    }
+
+    private void ApplyUiScale(Node node, float scale)
+    {
+        if (node is Control control && (control is Label || control is BaseButton))
+        {
+            if (!_baseFontSizes.TryGetValue(control, out int baseFontSize))
+            {
+                baseFontSize = control.GetThemeFontSize("font_size");
+                _baseFontSizes.Add(control, baseFontSize);
+            }
+            if (baseFontSize > 0)
+            {
+                control.AddThemeFontSizeOverride(
+                    "font_size",
+                    Math.Max(1, (int)MathF.Round(baseFontSize * scale)));
+            }
+        }
+
+        foreach (Node child in node.GetChildren())
+        {
+            ApplyUiScale(child, scale);
+        }
     }
 
     private void SaveSettings()

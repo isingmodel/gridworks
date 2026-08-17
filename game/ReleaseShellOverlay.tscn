@@ -1,0 +1,328 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://ReleaseShellOverlay.cs" id="1_shell"]
+
+[node name="ReleaseShellOverlay" type="Control"]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_shell")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.012, 0.027, 0.043, 0.95)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="ShellPanel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(540, 500)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/ShellPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="Pages" type="Control" parent="Center/ShellPanel/Margin"]
+custom_minimum_size = Vector2(484, 452)
+layout_mode = 2
+
+[node name="TitlePage" type="VBoxContainer" parent="Center/ShellPanel/Margin/Pages"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Kicker" type="Label" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.69, 0.73, 1)
+theme_override_font_sizes/font_size = 13
+text = "청류시 전력운영 전략"
+horizontal_alignment = 1
+
+[node name="Heading" type="Label" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 34
+text = "GRIDWORKS"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.49, 0.78, 0.8, 1)
+theme_override_font_sizes/font_size = 16
+text = "도시의 전력망을 잇고 위기에 대비하세요"
+horizontal_alignment = 1
+
+[node name="TitleMessage" type="Label" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.64, 0.34, 1)
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TitleSpacer" type="Control" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="NewGameButton" type="Button" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "새 게임"
+
+[node name="ContinueButton" type="Button" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "이어하기"
+
+[node name="TitleSettingsButton" type="Button" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "설정 열기"
+
+[node name="TitleHelpButton" type="Button" parent="Center/ShellPanel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "조작 도움말 보기"
+
+[node name="PausePage" type="VBoxContainer" parent="Center/ShellPanel/Margin/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 11
+
+[node name="PauseHeading" type="Label" parent="Center/ShellPanel/Margin/Pages/PausePage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "일시정지"
+horizontal_alignment = 1
+
+[node name="PauseChapter" type="Label" parent="Center/ShellPanel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.49, 0.78, 0.8, 1)
+horizontal_alignment = 1
+
+[node name="PauseMessage" type="Label" parent="Center/ShellPanel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.43, 0.4, 1)
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="PauseSpacer" type="Control" parent="Center/ShellPanel/Margin/Pages/PausePage"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResumeButton" type="Button" parent="Center/ShellPanel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "게임으로 돌아가기"
+
+[node name="SaveAndQuitButton" type="Button" parent="Center/ShellPanel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "저장하고 타이틀로"
+
+[node name="RestartChapterButton" type="Button" parent="Center/ShellPanel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "현재 임무 다시 시작"
+
+[node name="PauseSettingsButton" type="Button" parent="Center/ShellPanel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "설정 열기"
+
+[node name="PauseHelpButton" type="Button" parent="Center/ShellPanel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "조작 도움말 보기"
+
+[node name="SettingsPage" type="VBoxContainer" parent="Center/ShellPanel/Margin/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 6
+
+[node name="SettingsHeading" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "설정"
+
+[node name="SettingsHint" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+text = "변경사항은 즉시 적용되고 다음 실행에도 유지됩니다."
+autowrap_mode = 2
+
+[node name="WindowModeRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/WindowModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "창 표시"
+[node name="WindowModeOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/WindowModeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="UiScaleRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/UiScaleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "화면 글자 크기"
+[node name="UiScaleOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/UiScaleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="MasterVolumeRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/MasterVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "전체 음량"
+[node name="MasterVolumeOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/MasterVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="AmbientVolumeRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/AmbientVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "환경음"
+[node name="AmbientVolumeOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/AmbientVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="SfxVolumeRow" type="HBoxContainer" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/ShellPanel/Margin/Pages/SettingsPage/SfxVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "효과음"
+[node name="SfxVolumeOption" type="OptionButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage/SfxVolumeRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="ControlHelpCheck" type="CheckButton" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "게임 시작 시 조작 도움말 보기"
+
+[node name="SettingsSpacer" type="Control" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+size_flags_vertical = 3
+[node name="SettingsBackButton" type="Button" parent="Center/ShellPanel/Margin/Pages/SettingsPage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "이전 화면으로"
+
+[node name="HelpPage" type="VBoxContainer" parent="Center/ShellPanel/Margin/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="HelpHeading" type="Label" parent="Center/ShellPanel/Margin/Pages/HelpPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "조작 도움말"
+
+[node name="HelpBody" type="Label" parent="Center/ShellPanel/Margin/Pages/HelpPage"]
+layout_mode = 2
+size_flags_vertical = 3
+text = "지도\n• 마우스 왼쪽 클릭으로 격자점을 선택합니다.\n• 화살표로 한 칸, Shift와 화살표로 네 칸 이동합니다. Enter 또는 Space로 선택합니다.\n\n작업 패널\n• 변전소나 선로 도구를 고른 뒤 지도에서 계획합니다.\n• 발주 전에는 계획을 취소하거나 마지막 전신주를 되돌릴 수 있습니다.\n• 임무 결과 확인은 현재 공급 상태와 예고된 사고를 함께 판정합니다.\n\n메뉴와 저장\n• Esc로 일시정지 메뉴를 열거나 닫습니다.\n• 승인된 행동은 자동 저장됩니다."
+autowrap_mode = 2
+
+[node name="HelpBackButton" type="Button" parent="Center/ShellPanel/Margin/Pages/HelpPage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "이전 화면으로"
+
+[node name="ConfirmPage" type="VBoxContainer" parent="Center/ShellPanel/Margin/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+
+[node name="ConfirmHeading" type="Label" parent="Center/ShellPanel/Margin/Pages/ConfirmPage"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 27
+text = "확인"
+horizontal_alignment = 1
+
+[node name="ConfirmBody" type="Label" parent="Center/ShellPanel/Margin/Pages/ConfirmPage"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+text = "진행 상태를 확인하세요."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="CancelConfirmButton" type="Button" parent="Center/ShellPanel/Margin/Pages/ConfirmPage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "취소"
+
+[node name="ConfirmButton" type="Button" parent="Center/ShellPanel/Margin/Pages/ConfirmPage"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "확인"

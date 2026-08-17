@@ -15,6 +15,7 @@ internal enum ReleasePanelAction
     Undo,
     Order,
     Advance,
+    Evaluate,
 }
 
 internal sealed record ReleaseButtonPresentation(
@@ -38,7 +39,17 @@ internal sealed record ReleaseTaskPanelModel(
     ReleaseButtonPresentation Cancel,
     ReleaseButtonPresentation Undo,
     ReleaseButtonPresentation Order,
-    ReleaseButtonPresentation Advance);
+    ReleaseButtonPresentation Advance)
+{
+    public string Campaign { get; init; } = string.Empty;
+
+    public string Objective { get; init; } = string.Empty;
+
+    public string Event { get; init; } = string.Empty;
+
+    public ReleaseButtonPresentation Evaluate { get; init; } =
+        new(false, false, "임무 결과 확인", "현재 임무의 공급 목표와 사고 대비 결과를 확인합니다.");
+}
 
 internal sealed partial class ReleaseTaskPanel : PanelContainer
 {
@@ -48,6 +59,9 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
     private Label _network = null!;
     private Label _quote = null!;
     private Label _error = null!;
+    private Label _campaign = null!;
+    private Label _objective = null!;
+    private Label _event = null!;
     private IReadOnlyDictionary<ReleasePanelAction, Button> _buttons = null!;
 
     public event Action<ReleasePanelAction>? ActionRequested;
@@ -60,6 +74,9 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         _network = GetNode<Label>("%NetworkLabel");
         _quote = GetNode<Label>("%QuoteLabel");
         _error = GetNode<Label>("%ErrorLabel");
+        _campaign = GetNode<Label>("%CampaignLabel");
+        _objective = GetNode<Label>("%ObjectiveLabel");
+        _event = GetNode<Label>("%EventLabel");
         _error.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Assertive;
         _quote.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite;
 
@@ -74,6 +91,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
             [ReleasePanelAction.Undo] = GetNode<Button>("%UndoButton"),
             [ReleasePanelAction.Order] = GetNode<Button>("%OrderButton"),
             [ReleasePanelAction.Advance] = GetNode<Button>("%AdvanceButton"),
+            [ReleasePanelAction.Evaluate] = GetNode<Button>("%EvaluateButton"),
         };
         foreach ((ReleasePanelAction action, Button button) in _buttons)
         {
@@ -89,6 +107,12 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         _network.Text = model.Network;
         _quote.Text = model.Quote;
         _error.Text = model.Error;
+        _campaign.Text = model.Campaign;
+        _objective.Text = model.Objective;
+        _event.Text = model.Event;
+        _campaign.Visible = !string.IsNullOrWhiteSpace(model.Campaign);
+        _objective.Visible = !string.IsNullOrWhiteSpace(model.Objective);
+        _event.Visible = !string.IsNullOrWhiteSpace(model.Event);
         _heading.AccessibilityName = model.Heading;
         _instruction.AccessibilityName = model.Instruction;
         _selection.AccessibilityName = model.Selection;
@@ -97,6 +121,9 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         _error.AccessibilityName = string.IsNullOrWhiteSpace(model.Error)
             ? "작업 오류 없음"
             : model.Error;
+        _campaign.AccessibilityName = model.Campaign;
+        _objective.AccessibilityName = model.Objective;
+        _event.AccessibilityName = model.Event;
 
         Set(ReleasePanelAction.Inspect, model.Inspect);
         Set(ReleasePanelAction.SmallSubstation, model.SmallSubstation);
@@ -107,6 +134,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         Set(ReleasePanelAction.Undo, model.Undo);
         Set(ReleasePanelAction.Order, model.Order);
         Set(ReleasePanelAction.Advance, model.Advance);
+        Set(ReleasePanelAction.Evaluate, model.Evaluate);
         AccessibilityName = $"전력망 작업 패널. {model.Heading}. {model.Network}";
     }
 

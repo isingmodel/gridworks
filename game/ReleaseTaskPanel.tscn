@@ -34,6 +34,26 @@ layout_mode = 2
 autowrap_mode = 2
 text = "지도에서 설비를 선택하세요."
 
+[node name="CampaignLabel" type="Label" parent="Margin/Scroll/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
+autowrap_mode = 2
+
+[node name="ObjectiveLabel" type="Label" parent="Margin/Scroll/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+autowrap_mode = 2
+
+[node name="EventLabel" type="Label" parent="Margin/Scroll/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
+autowrap_mode = 2
+
 [node name="ToolTitle" type="Label" parent="Margin/Scroll/Column"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
@@ -125,3 +145,9 @@ text = "공사 발주"
 unique_name_in_owner = true
 layout_mode = 2
 text = "공사 마치기"
+
+[node name="EvaluateButton" type="Button" parent="Margin/Scroll/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "임무 결과 확인"

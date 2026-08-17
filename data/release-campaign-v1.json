@@ -1,0 +1,384 @@
+{
+  "schemaVersion": "gridworks.release.campaign.v1",
+  "campaignId": "CHEONGRYU_CAMPAIGN_V1",
+  "displayName": "청류시 전력망 재건",
+  "initialCashUnit": 0,
+  "initialEdgeIds": [
+    "EDGE_WEST_TRUNK",
+    "EDGE_NORTH_HOSPITAL"
+  ],
+  "chapters": [
+    {
+      "chapterId": "PROLOGUE_FIRST_LIGHT",
+      "actLabel": "프롤로그 1",
+      "displayName": "첫 불빛",
+      "briefing": {
+        "speaker": "운영센터장 윤서진",
+        "title": "동부에 불을 켤 시간입니다",
+        "body": "동부 새 주거지의 입주가 오늘 시작됩니다. 서부 발전 접속점에서 동부 배전 변전소까지 선로를 이어 주민들이 첫날부터 전기를 쓸 수 있게 해주세요."
+      },
+      "objective": "동부 배전 변전소를 전력망에 잇고 동부 주거지에 전력을 공급하세요.",
+      "event": {
+        "story": {
+          "speaker": "계통운영관 강민호",
+          "title": "첫 입주가 시작됐습니다",
+          "body": "동부 주거지의 전력 사용이 시작됐습니다. 새로 이은 경로가 정격 안에서 전력을 보내는지 확인하겠습니다."
+        },
+        "unavailableNodeIds": [],
+        "unavailableEdgeIds": [],
+        "activeRiskAreaIds": []
+      },
+      "result": {
+        "speaker": "운영센터장 윤서진",
+        "title": "동부 주거지가 밝아졌습니다",
+        "body": "첫 입주 세대에 전력이 안정적으로 들어왔습니다. 오늘 만든 동부 회랑은 다음 임무에서 청류의료원으로 이어집니다."
+      },
+      "budgetGrantCashUnit": 4500000,
+      "activeLoads": [
+        { "loadId": "EAST_RESIDENTIAL", "demandKw": 800 }
+      ],
+      "requiredNormalLoadIds": ["EAST_RESIDENTIAL"],
+      "requiredEventLoadIds": ["EAST_RESIDENTIAL"],
+      "connectionRequirements": [
+        { "nodeId": "EAST_SUBSTATION", "minimumConnections": 1 }
+      ]
+    },
+    {
+      "chapterId": "PROLOGUE_SECOND_HEART",
+      "actLabel": "프롤로그 2",
+      "displayName": "두 번째 심장",
+      "briefing": {
+        "speaker": "청류의료원 시설책임자 박지현",
+        "title": "수술실에 두 번째 길이 필요합니다",
+        "body": "청류의료원은 정전 중에도 수술실과 중환자실을 멈출 수 없습니다. 강변 회랑과 떨어진 북쪽 경로를 마련하고 의료원 접속점까지 두 길을 이어주세요."
+      },
+      "objective": "의료원 접속점에 두 경로를 연결하고 강변 침수 때도 생명 유지 전력을 공급하세요.",
+      "event": {
+        "story": {
+          "speaker": "재난대응관 이도윤",
+          "title": "강변 배수로 수위가 올랐습니다",
+          "body": "집중호우로 강변 회랑의 여러 설비가 함께 멈췄습니다. 의료원의 생명 유지 전력이 북쪽 경로로 이어지는지 확인하세요."
+        },
+        "unavailableNodeIds": [],
+        "unavailableEdgeIds": [],
+        "activeRiskAreaIds": ["RIVER_FLOOD_ZONE"]
+      },
+      "result": {
+        "speaker": "청류의료원 시설책임자 박지현",
+        "title": "의료원 필수 전력을 지켰습니다",
+        "body": "강변 설비가 멈춘 동안에도 수술실과 중환자실에 전력이 들어왔습니다. 서로 떨어진 두 경로가 같은 사고에 함께 끊기지 않는다는 점을 확인했습니다."
+      },
+      "budgetGrantCashUnit": 4500000,
+      "activeLoads": [
+        { "loadId": "HOSPITAL_LIFE_SAFETY", "demandKw": 1000 },
+        { "loadId": "EAST_RESIDENTIAL", "demandKw": 800 }
+      ],
+      "requiredNormalLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "EAST_RESIDENTIAL"
+      ],
+      "requiredEventLoadIds": ["HOSPITAL_LIFE_SAFETY"],
+      "connectionRequirements": [
+        { "nodeId": "HOSPITAL_TERMINAL", "minimumConnections": 2 },
+        { "nodeId": "NORTH_JUNCTION", "minimumConnections": 2 }
+      ]
+    },
+    {
+      "chapterId": "PROLOGUE_HEAT_DOME",
+      "actLabel": "프롤로그 3",
+      "displayName": "열돔 아래",
+      "briefing": {
+        "speaker": "계통운영관 강민호",
+        "title": "남부 전원을 연결해야 합니다",
+        "body": "폭염 속에서 산업단지 수요가 빠르게 늘고 서부 주간선에는 과열 징후가 보입니다. 남부 발전 접속점을 산업단지 변전소와 망에 이어 서부 선로가 멈춰도 필수 전력을 지켜주세요."
+      },
+      "objective": "남부 발전 접속점을 망에 연결하고 서부 주간선 정지 때 의료원과 산업단지에 전력을 공급하세요.",
+      "event": {
+        "story": {
+          "speaker": "계통운영관 강민호",
+          "title": "서부 주간선을 잠시 끊었습니다",
+          "body": "과열 징후가 커져 서부 주간선을 보호 정지했습니다. 남부 전원이 의료원과 산업단지의 필요한 전력을 맡아야 합니다."
+        },
+        "unavailableNodeIds": [],
+        "unavailableEdgeIds": ["EDGE_WEST_TRUNK"],
+        "activeRiskAreaIds": []
+      },
+      "result": {
+        "speaker": "운영센터장 윤서진",
+        "title": "두 전원이 도시를 나눠 지켰습니다",
+        "body": "서부 주간선을 비운 동안에도 의료원과 산업단지는 멈추지 않았습니다. 남부 전원과 새 분기 덕분에 한 선로에만 기대지 않는 망이 됐습니다."
+      },
+      "budgetGrantCashUnit": 3200000,
+      "activeLoads": [
+        { "loadId": "HOSPITAL_LIFE_SAFETY", "demandKw": 1000 },
+        { "loadId": "EAST_RESIDENTIAL", "demandKw": 800 },
+        { "loadId": "RIVER_FACTORY", "demandKw": 1200 }
+      ],
+      "requiredNormalLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "EAST_RESIDENTIAL",
+        "RIVER_FACTORY"
+      ],
+      "requiredEventLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "RIVER_FACTORY"
+      ],
+      "connectionRequirements": [
+        { "nodeId": "SOUTH_JUNCTION", "minimumConnections": 3 },
+        { "nodeId": "SOUTH_SUBSTATION", "minimumConnections": 2 }
+      ]
+    },
+    {
+      "chapterId": "CHAPTER_NORTH_BANK",
+      "actLabel": "본편 1장",
+      "displayName": "북안 확장",
+      "briefing": {
+        "speaker": "운영센터장 윤서진",
+        "title": "북안 생활권이 커집니다",
+        "body": "북안 주거지 입주와 정수장 증설이 같은 날 시작됩니다. 중앙 분기점에서 정수장으로 새 선로를 내고, 북안과 필수 급수 전력을 함께 지켜주세요."
+      },
+      "objective": "중앙 분기점에서 정수장으로 분기해 현재 수요처 다섯 곳에 전력을 공급하세요.",
+      "event": {
+        "story": {
+          "speaker": "재난대응관 이도윤",
+          "title": "저녁 급수 수요가 시작됐습니다",
+          "body": "퇴근 시간과 함께 북안 전력 사용과 정수장 가동이 겹쳤습니다. 주간선과 분기점이 모든 수요를 정격 안에서 감당하는지 확인하세요."
+        },
+        "unavailableNodeIds": [],
+        "unavailableEdgeIds": [],
+        "activeRiskAreaIds": []
+      },
+      "result": {
+        "speaker": "재난대응관 이도윤",
+        "title": "북안의 밤과 급수를 지켰습니다",
+        "body": "새 주거지의 불이 켜지고 정수장도 계획한 양의 물을 보냈습니다. 중앙 분기점은 이제 주거와 필수서비스를 함께 받치는 핵심 설비가 됐습니다."
+      },
+      "budgetGrantCashUnit": 2400000,
+      "activeLoads": [
+        { "loadId": "HOSPITAL_LIFE_SAFETY", "demandKw": 1000 },
+        { "loadId": "WATER_ESSENTIAL", "demandKw": 1000 },
+        { "loadId": "NORTH_RESIDENTIAL", "demandKw": 900 },
+        { "loadId": "EAST_RESIDENTIAL", "demandKw": 800 },
+        { "loadId": "RIVER_FACTORY", "demandKw": 1800 }
+      ],
+      "requiredNormalLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL",
+        "NORTH_RESIDENTIAL",
+        "EAST_RESIDENTIAL",
+        "RIVER_FACTORY"
+      ],
+      "requiredEventLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL",
+        "NORTH_RESIDENTIAL",
+        "EAST_RESIDENTIAL",
+        "RIVER_FACTORY"
+      ],
+      "connectionRequirements": [
+        { "nodeId": "CENTRAL_JUNCTION", "minimumConnections": 4 }
+      ]
+    },
+    {
+      "chapterId": "CHAPTER_SHARED_CORRIDOR",
+      "actLabel": "본편 2장",
+      "displayName": "공유 구간",
+      "briefing": {
+        "speaker": "계통운영관 강민호",
+        "title": "강변 합류점의 여유가 줄었습니다",
+        "body": "산업단지 증산과 동부 물류 수요가 같은 시간대에 몰립니다. 북쪽 경로를 강변 합류점에 더 이어 부하를 나누고, 공유 설비의 정격을 넘지 않게 해주세요."
+      },
+      "objective": "강변 합류점에 세 번째 선로를 연결하고 모든 수요를 정격 안에서 공급하세요.",
+      "event": {
+        "story": {
+          "speaker": "계통운영관 강민호",
+          "title": "산업단지 야간조가 가동됐습니다",
+          "body": "공장 설비와 동부 물류 냉동창고가 함께 전력을 쓰기 시작했습니다. 공유 선로와 합류점의 사용량이 정격을 넘지 않는지 확인하세요."
+        },
+        "unavailableNodeIds": [],
+        "unavailableEdgeIds": [],
+        "activeRiskAreaIds": []
+      },
+      "result": {
+        "speaker": "운영센터장 윤서진",
+        "title": "공유 구간의 숨통이 트였습니다",
+        "body": "산업단지 증산 중에도 주거지와 필수서비스의 전력이 흔들리지 않았습니다. 새 합류선이 한 구간에 몰리던 사용량을 나눠 다음 재난에 대비할 여유를 만들었습니다."
+      },
+      "budgetGrantCashUnit": 3000000,
+      "activeLoads": [
+        { "loadId": "HOSPITAL_LIFE_SAFETY", "demandKw": 1000 },
+        { "loadId": "WATER_ESSENTIAL", "demandKw": 1200 },
+        { "loadId": "NORTH_RESIDENTIAL", "demandKw": 1100 },
+        { "loadId": "EAST_RESIDENTIAL", "demandKw": 1200 },
+        { "loadId": "RIVER_FACTORY", "demandKw": 2000 }
+      ],
+      "requiredNormalLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL",
+        "NORTH_RESIDENTIAL",
+        "EAST_RESIDENTIAL",
+        "RIVER_FACTORY"
+      ],
+      "requiredEventLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL",
+        "NORTH_RESIDENTIAL",
+        "EAST_RESIDENTIAL",
+        "RIVER_FACTORY"
+      ],
+      "connectionRequirements": [
+        { "nodeId": "RIVER_MERGE", "minimumConnections": 3 }
+      ]
+    },
+    {
+      "chapterId": "CHAPTER_FLOOD_FORECAST",
+      "actLabel": "본편 3장",
+      "displayName": "범람 예보",
+      "briefing": {
+        "speaker": "재난대응관 이도윤",
+        "title": "강변 회랑을 비울 준비가 필요합니다",
+        "body": "이틀 뒤 큰비가 오면 강변 합류점 주변 설비가 함께 멈출 수 있습니다. 북안 변전소에서 동부 변전소로 고지대 우회선을 이어 의료원과 정수장, 동부 주거지를 지켜주세요."
+      },
+      "objective": "강변 범람구역 밖에 동부 우회선을 만들고 필수서비스와 동부 주거지에 전력을 공급하세요.",
+      "event": {
+        "story": {
+          "speaker": "재난대응관 이도윤",
+          "title": "강변 도로가 잠겼습니다",
+          "body": "범람구역 안의 접속점과 선로가 안전을 위해 멈췄습니다. 고지대 우회선이 의료원과 정수장, 동부 주거지까지 전력을 보내야 합니다."
+        },
+        "unavailableNodeIds": [],
+        "unavailableEdgeIds": [],
+        "activeRiskAreaIds": ["RIVER_FLOOD_ZONE"]
+      },
+      "result": {
+        "speaker": "청류의료원 시설책임자 박지현",
+        "title": "침수 중에도 필수서비스가 이어졌습니다",
+        "body": "강변 도로가 잠긴 동안 의료원과 정수장, 동부 주거지에 전력이 들어왔습니다. 고지대 우회선은 평소에는 여유를 만들고 재난 때는 도시의 생명선이 됩니다."
+      },
+      "budgetGrantCashUnit": 3600000,
+      "activeLoads": [
+        { "loadId": "HOSPITAL_LIFE_SAFETY", "demandKw": 1000 },
+        { "loadId": "WATER_ESSENTIAL", "demandKw": 1200 },
+        { "loadId": "NORTH_RESIDENTIAL", "demandKw": 1100 },
+        { "loadId": "EAST_RESIDENTIAL", "demandKw": 1200 },
+        { "loadId": "RIVER_FACTORY", "demandKw": 2000 }
+      ],
+      "requiredNormalLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL",
+        "NORTH_RESIDENTIAL",
+        "EAST_RESIDENTIAL",
+        "RIVER_FACTORY"
+      ],
+      "requiredEventLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL",
+        "EAST_RESIDENTIAL"
+      ],
+      "connectionRequirements": [
+        { "nodeId": "EAST_SUBSTATION", "minimumConnections": 3 }
+      ]
+    },
+    {
+      "chapterId": "CHAPTER_PLANNED_OUTAGE",
+      "actLabel": "본편 4장",
+      "displayName": "계획 정지",
+      "briefing": {
+        "speaker": "운영센터장 윤서진",
+        "title": "서부 전원을 하루 비워야 합니다",
+        "body": "서부 발전 설비의 정기점검을 더 미룰 수 없습니다. 산업단지 변전소에서 동부 변전소로 남부 연계선을 더해 서부 전원이 멈춘 동안 필수서비스를 지켜주세요."
+      },
+      "objective": "산업단지 변전소에 세 번째 선로를 연결하고 서부 전원 정지 때 필수 수요를 공급하세요.",
+      "event": {
+        "story": {
+          "speaker": "계통운영관 강민호",
+          "title": "서부 발전 설비 점검을 시작했습니다",
+          "body": "서부 발전 접속점의 공급이 하루 동안 멈춥니다. 남부 전원과 합류망이 의료원, 정수장과 동부 주거지의 전력을 맡아야 합니다."
+        },
+        "unavailableNodeIds": ["WEST_SOURCE_NODE"],
+        "unavailableEdgeIds": [],
+        "activeRiskAreaIds": []
+      },
+      "result": {
+        "speaker": "운영센터장 윤서진",
+        "title": "도시를 켠 채 점검을 마쳤습니다",
+        "body": "서부 전원을 비운 동안에도 의료원과 정수장, 동부 주거지는 평소처럼 움직였습니다. 남부 연계선이 두 전원을 한쪽에 치우치지 않게 이어줬습니다."
+      },
+      "budgetGrantCashUnit": 3600000,
+      "activeLoads": [
+        { "loadId": "HOSPITAL_LIFE_SAFETY", "demandKw": 1000 },
+        { "loadId": "WATER_ESSENTIAL", "demandKw": 1000 },
+        { "loadId": "NORTH_RESIDENTIAL", "demandKw": 1200 },
+        { "loadId": "EAST_RESIDENTIAL", "demandKw": 800 },
+        { "loadId": "RIVER_FACTORY", "demandKw": 2000 }
+      ],
+      "requiredNormalLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL",
+        "NORTH_RESIDENTIAL",
+        "EAST_RESIDENTIAL",
+        "RIVER_FACTORY"
+      ],
+      "requiredEventLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL",
+        "EAST_RESIDENTIAL"
+      ],
+      "connectionRequirements": [
+        { "nodeId": "SOUTH_SUBSTATION", "minimumConnections": 3 }
+      ]
+    },
+    {
+      "chapterId": "CHAPTER_EMERGENCY_POWER",
+      "actLabel": "본편 5장",
+      "displayName": "청류 비상전력",
+      "briefing": {
+        "speaker": "재난대응관 이도윤",
+        "title": "기록적인 폭염이 청류시에 닿았습니다",
+        "body": "도시 전력 사용이 공급 한계에 닿고 여러 핵심 설비가 한꺼번에 멈출 수 있습니다. 의료원에 남부 직결 경로를 하나 더 마련하고 지금까지 만든 망으로 도시의 필수 전력을 지켜주세요."
+      },
+      "objective": "의료원 접속점에 세 번째 경로를 연결하고 복합 사고 때 의료원과 정수장 전력을 공급하세요.",
+      "event": {
+        "story": {
+          "speaker": "계통운영관 강민호",
+          "title": "세 곳에서 보호 정지가 일어났습니다",
+          "body": "서부 발전 접속점과 북안·동부 변전소가 폭염 속에서 멈췄고 강변 회랑도 사용할 수 없습니다. 남부 전원에서 의료원과 정수장으로 이어 둔 경로가 마지막 버팀목입니다."
+        },
+        "unavailableNodeIds": [
+          "WEST_SOURCE_NODE",
+          "NORTH_SUBSTATION",
+          "EAST_SUBSTATION"
+        ],
+        "unavailableEdgeIds": [],
+        "activeRiskAreaIds": ["RIVER_FLOOD_ZONE"]
+      },
+      "result": {
+        "speaker": "운영센터장 윤서진",
+        "title": "청류시의 밤을 지켰습니다",
+        "body": "의료원과 정수장은 가장 힘든 시간에도 멈추지 않았습니다. 한 줄에 기대던 낡은 망은 여러 길이 서로 받쳐주는 청류시의 전력망으로 바뀌었습니다."
+      },
+      "budgetGrantCashUnit": 4800000,
+      "activeLoads": [
+        { "loadId": "HOSPITAL_LIFE_SAFETY", "demandKw": 1200 },
+        { "loadId": "WATER_ESSENTIAL", "demandKw": 900 },
+        { "loadId": "NORTH_RESIDENTIAL", "demandKw": 1800 },
+        { "loadId": "EAST_RESIDENTIAL", "demandKw": 1100 },
+        { "loadId": "RIVER_FACTORY", "demandKw": 3000 }
+      ],
+      "requiredNormalLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL",
+        "NORTH_RESIDENTIAL",
+        "EAST_RESIDENTIAL",
+        "RIVER_FACTORY"
+      ],
+      "requiredEventLoadIds": [
+        "HOSPITAL_LIFE_SAFETY",
+        "WATER_ESSENTIAL"
+      ],
+      "connectionRequirements": [
+        { "nodeId": "HOSPITAL_TERMINAL", "minimumConnections": 3 }
+      ]
+    }
+  ]
+}

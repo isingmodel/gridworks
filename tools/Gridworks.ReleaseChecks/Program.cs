@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Security.Cryptography;
 using Gridworks.Core.Release;
 
 namespace Gridworks.ReleaseChecks;
@@ -11,8 +12,8 @@ internal static class Program
     {
         try
         {
-            string fixturePath = ResolveFixturePath(args);
-            return new ReleaseChecks(fixturePath).Run();
+            (string worldPath, string campaignPath) = ResolveFixturePaths(args);
+            return new ReleaseChecks(worldPath, campaignPath).Run();
         }
         catch (Exception exception)
         {
@@ -22,23 +23,34 @@ internal static class Program
         }
     }
 
-    private static string ResolveFixturePath(string[] args)
+    private static (string WorldPath, string CampaignPath) ResolveFixturePaths(string[] args)
     {
-        if (args.Length > 1)
+        if (args.Length > 2)
         {
-            throw new ArgumentException("usage: Gridworks.ReleaseChecks [release-world-json]");
+            throw new ArgumentException(
+                "usage: Gridworks.ReleaseChecks [release-world-json] [release-campaign-json]");
         }
 
-        string path = args.Length == 1
+        string worldPath = args.Length >= 1
             ? args[0]
             : Path.Combine(Environment.CurrentDirectory, "data", "release-world-v1.json");
-        path = Path.GetFullPath(path);
-        if (!File.Exists(path))
+        string campaignPath = args.Length == 2
+            ? args[1]
+            : Path.Combine(
+                Path.GetDirectoryName(Path.GetFullPath(worldPath))!,
+                "release-campaign-v1.json");
+        worldPath = Path.GetFullPath(worldPath);
+        campaignPath = Path.GetFullPath(campaignPath);
+        if (!File.Exists(worldPath))
         {
-            throw new FileNotFoundException("Release world fixture not found.", path);
+            throw new FileNotFoundException("Release world fixture not found.", worldPath);
+        }
+        if (!File.Exists(campaignPath))
+        {
+            throw new FileNotFoundException("Release campaign fixture not found.", campaignPath);
         }
 
-        return path;
+        return (worldPath, campaignPath);
     }
 }
 
@@ -55,12 +67,22 @@ internal sealed class ReleaseChecks
 
     private readonly string _fixtureJson;
     private readonly ReleaseWorldDefinition _fixture;
+    private readonly string _campaignJson;
+    private readonly ReleaseCampaignDefinition _campaign;
+    private readonly string _worldSha256;
+    private readonly string _campaignSha256;
     private int _assertionCount;
 
-    public ReleaseChecks(string fixturePath)
+    public ReleaseChecks(string fixturePath, string campaignPath)
     {
-        _fixtureJson = File.ReadAllText(fixturePath, Encoding.UTF8);
-        _fixture = ReleaseWorldLoader.Load(_fixtureJson);
+        byte[] worldBytes = File.ReadAllBytes(fixturePath);
+        byte[] campaignBytes = File.ReadAllBytes(campaignPath);
+        _fixtureJson = Encoding.UTF8.GetString(worldBytes);
+        _fixture = ReleaseWorldLoader.Load(worldBytes);
+        _campaignJson = Encoding.UTF8.GetString(campaignBytes);
+        _campaign = ReleaseCampaignLoader.Load(campaignBytes, _fixture);
+        _worldSha256 = Convert.ToHexString(SHA256.HashData(worldBytes)).ToLowerInvariant();
+        _campaignSha256 = Convert.ToHexString(SHA256.HashData(campaignBytes)).ToLowerInvariant();
     }
 
     public int Run()
@@ -79,6 +101,9 @@ internal sealed class ReleaseChecks
             ("construction-node-lifecycle", CheckConstructionNodeLifecycle),
             ("construction-line-branch-merge", CheckConstructionLineBranchMerge),
             ("construction-rejection-atomicity", CheckConstructionRejectionAndAtomicity),
+            ("campaign-loader-content", CheckCampaignLoaderAndContent),
+            ("campaign-eight-chapter-witness", CheckCampaignEightChapterWitness),
+            ("campaign-save-restart", CheckCampaignSaveAndRestart),
         ];
 
         List<string> failures = [];
@@ -588,6 +613,352 @@ internal sealed class ReleaseChecks
         _ = session.AddLinePoint(new ReleasePoint(17, 10));
         _ = session.OrderLine();
         _ = session.AdvanceToConstructionCompletion();
+    }
+
+    private void CheckCampaignLoaderAndContent()
+    {
+        ReleaseCampaignDefinition fromText = ReleaseCampaignLoader.Load(_campaignJson, _fixture);
+        ReleaseCampaignDefinition fromBytes = ReleaseCampaignLoader.Load(
+            Encoding.UTF8.GetBytes(_campaignJson),
+            _fixture);
+        Equal(_campaign.CampaignId, fromText.CampaignId, "campaign text loader ID");
+        Equal(_campaign.CampaignId, fromBytes.CampaignId, "campaign UTF-8 loader ID");
+        Equal(8, _campaign.Chapters.Count, "campaign chapter count");
+        SequenceEqual(
+            [
+                "첫 불빛",
+                "두 번째 심장",
+                "열돔 아래",
+                "북안 확장",
+                "공유 구간",
+                "범람 예보",
+                "계획 정지",
+                "청류 비상전력",
+            ],
+            _campaign.Chapters.Select(chapter => chapter.DisplayName).ToArray(),
+            "campaign chapter order");
+        SequenceEqual(
+            [1, 2, 3, 5, 5, 5, 5, 5],
+            _campaign.Chapters.Select(chapter => chapter.ActiveLoads.Count).ToArray(),
+            "future loads must stay hidden until introduced");
+        SequenceEqual(
+            ["EDGE_WEST_TRUNK", "EDGE_NORTH_HOSPITAL"],
+            _campaign.InitialEdgeIds,
+            "campaign sparse initial edge set");
+
+        HashSet<string> allowedSpeakers = new(StringComparer.Ordinal)
+        {
+            "운영센터장 윤서진",
+            "계통운영관 강민호",
+            "청류의료원 시설책임자 박지현",
+            "재난대응관 이도윤",
+        };
+        foreach (ReleaseCampaignChapter chapter in _campaign.Chapters)
+        {
+            Check(chapter.Event is not null, $"{chapter.DisplayName}: event card missing");
+            Check(chapter.ConnectionRequirements.Count != 0,
+                $"{chapter.DisplayName}: meaningful connection requirement missing");
+            Check(allowedSpeakers.Contains(chapter.Briefing.Speaker),
+                $"{chapter.DisplayName}: unknown briefing speaker");
+            Check(allowedSpeakers.Contains(chapter.Event!.Story.Speaker),
+                $"{chapter.DisplayName}: unknown event speaker");
+            Check(allowedSpeakers.Contains(chapter.Result.Speaker),
+                $"{chapter.DisplayName}: unknown result speaker");
+        }
+
+        ReleaseCampaignSnapshot initial = NewCampaignRun().GetSnapshot();
+        Equal(2, initial.Construction.World.Edges.Count, "campaign initial edge count");
+        Equal(1, initial.Construction.World.Loads.Count, "campaign initial visible load count");
+        Equal("EAST_RESIDENTIAL", initial.Construction.World.Loads[0].LoadId,
+            "campaign first visible load");
+
+        ExpectCampaignRejected(
+            "unknown campaign root field",
+            root => root["unexpected"] = true);
+        ExpectCampaignRejected(
+            "campaign must contain eight chapters",
+            root => Array(root, "chapters").RemoveAt(7));
+        ExpectCampaignRejected(
+            "unknown campaign event asset",
+            root => Array(
+                Object(Array(root, "chapters")[1]!, "event"),
+                "unavailableNodeIds").Add("MISSING_NODE"));
+    }
+
+    private void CheckCampaignEightChapterWitness()
+    {
+        ReleaseCampaignRun run = NewCampaignRun();
+        Equal(4_500_000L, run.GetSnapshot().CashUnit, "first chapter opening cash");
+
+        AssertCurrentChapterNeedsWork(run, "PROLOGUE_FIRST_LIGHT");
+        BuildLine(run, "CENTRAL_JUNCTION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(9, 13));
+        BuildLine(run, "SOUTH_JUNCTION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(13, 10));
+        BuildLine(run, "RIVER_MERGE", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(17, 10));
+        CompleteCampaignChapter(run, "PROLOGUE_FIRST_LIGHT");
+
+        AssertCurrentChapterNeedsWork(run, "PROLOGUE_SECOND_HEART");
+        BuildLine(run, "EAST_SUBSTATION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(17, 7),
+            new ReleasePoint(17, 5));
+        BuildLine(run, "CENTRAL_JUNCTION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(9, 7));
+        BuildLine(run, "NORTH_JUNCTION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(13, 5));
+        CompleteCampaignChapter(run, "PROLOGUE_SECOND_HEART");
+
+        AssertCurrentChapterNeedsWork(run, "PROLOGUE_HEAT_DOME");
+        BuildLine(run, "SOUTH_SOURCE_NODE", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(13, 15));
+        BuildLine(run, "SOUTH_SUBSTATION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(9, 13));
+        CompleteCampaignChapter(run, "PROLOGUE_HEAT_DOME");
+
+        AssertCurrentChapterNeedsWork(run, "CHAPTER_NORTH_BANK");
+        BuildLine(run, "CENTRAL_JUNCTION", "LINE_STANDARD", "POLE_STANDARD",
+            new ReleasePoint(6, 6));
+        CompleteCampaignChapter(run, "CHAPTER_NORTH_BANK");
+
+        AssertCurrentChapterNeedsWork(run, "CHAPTER_SHARED_CORRIDOR");
+        BuildLine(run, "NORTH_JUNCTION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(13, 10));
+        CompleteCampaignChapter(run, "CHAPTER_SHARED_CORRIDOR");
+
+        AssertCurrentChapterNeedsWork(run, "CHAPTER_FLOOD_FORECAST");
+        BuildLine(run, "NORTH_SUBSTATION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(16, 6),
+            new ReleasePoint(17, 10));
+        CompleteCampaignChapter(run, "CHAPTER_FLOOD_FORECAST");
+
+        AssertCurrentChapterNeedsWork(run, "CHAPTER_PLANNED_OUTAGE");
+        BuildLine(run, "SOUTH_SUBSTATION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(16, 14),
+            new ReleasePoint(17, 10));
+        CompleteCampaignChapter(run, "CHAPTER_PLANNED_OUTAGE");
+
+        AssertCurrentChapterNeedsWork(run, "CHAPTER_EMERGENCY_POWER");
+        BuildLine(run, "SOUTH_SUBSTATION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(17, 13),
+            new ReleasePoint(19, 9),
+            new ReleasePoint(17, 5));
+        CompleteCampaignChapter(run, "CHAPTER_EMERGENCY_POWER");
+
+        ReleaseCampaignSnapshot final = run.GetSnapshot();
+        Check(final.CampaignComplete, "campaign witness did not reach the epilogue boundary");
+        Check(final.CashUnit >= 0, "campaign witness ended with negative cash");
+        Equal(8_000L, final.NormalEvaluation.TotalDeliveredKw,
+            "final maximum-demand normal supply");
+        Equal(1_200L, LoadSupply(final.EventEvaluation, "HOSPITAL_LIFE_SAFETY").DeliveredKw,
+            "final incident hospital supply");
+        Equal(900L, LoadSupply(final.EventEvaluation, "WATER_ESSENTIAL").DeliveredKw,
+            "final incident water supply");
+        Equal(3, NodeUsage(final.NormalEvaluation, "HOSPITAL_TERMINAL").ConnectionCount,
+            "final hospital route count");
+    }
+
+    private void CheckCampaignSaveAndRestart()
+    {
+        ReleaseCampaignRun run = NewCampaignRun();
+        ExecuteCampaign(run, new ReleaseCampaignCommand(
+            ReleaseCampaignCommandKind.StartLineDraft,
+            StartNodeId: "CENTRAL_JUNCTION",
+            LineClassId: "LINE_REINFORCED",
+            PoleClassId: "POLE_REINFORCED"), "save witness line start");
+        ExecuteCampaign(run, new ReleaseCampaignCommand(
+            ReleaseCampaignCommandKind.AddLinePoint,
+            Position: new ReleasePoint(9, 13)), "save witness line endpoint");
+
+        ReleaseCampaignSave captured = run.CaptureSave();
+        byte[] encoded = ReleaseCampaignSaveCodec.Serialize(captured);
+        ReleaseCampaignSave decoded = ReleaseCampaignSaveCodec.Deserialize(encoded);
+        ReleaseCampaignRun restored = ReleaseCampaignRun.Restore(
+            _campaign,
+            _fixture,
+            _campaignSha256,
+            _worldSha256,
+            decoded);
+        Equal(
+            JsonSerializer.Serialize(run.GetSnapshot()),
+            JsonSerializer.Serialize(restored.GetSnapshot()),
+            "campaign fresh replay snapshot");
+        SequenceEqual(encoded, ReleaseCampaignSaveCodec.Serialize(decoded),
+            "campaign save codec determinism");
+
+        string temporaryDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"gridworks-release-checks-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temporaryDirectory);
+        try
+        {
+            string savePath = Path.Combine(
+                temporaryDirectory,
+                ReleaseCampaignPersistenceStore.SaveFileName);
+            ReleaseCampaignPersistenceStore.Save(savePath, captured);
+            ReleaseCampaignSaveLoadResult loaded = ReleaseCampaignPersistenceStore.Load(savePath);
+            Equal(ReleaseDocumentLoadStatus.Loaded, loaded.Status,
+                "campaign persisted save status");
+            Equal(captured.Commands.Count, loaded.Save!.Commands.Count,
+                "campaign persisted command count");
+            Check(!File.Exists(savePath + ".tmp"),
+                "campaign persisted temporary file remained after replacement");
+        }
+        finally
+        {
+            Directory.Delete(temporaryDirectory, recursive: true);
+        }
+
+        ExecuteCampaign(restored, new ReleaseCampaignCommand(ReleaseCampaignCommandKind.OrderLine),
+            "restored line order");
+        ExecuteCampaign(restored, new ReleaseCampaignCommand(ReleaseCampaignCommandKind.AdvanceConstruction),
+            "restored line completion");
+        BuildLine(restored, "SOUTH_JUNCTION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(13, 10));
+        BuildLine(restored, "RIVER_MERGE", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(17, 10));
+        CompleteCampaignChapter(restored, "PROLOGUE_FIRST_LIGHT");
+
+        ReleaseCampaignSnapshot chapterStart = restored.GetSnapshot();
+        int inheritedEdgeCount = chapterStart.Construction.World.Edges.Count;
+        long chapterStartCash = chapterStart.CashUnit;
+        BuildLine(restored, "EAST_SUBSTATION", "LINE_REINFORCED", "POLE_REINFORCED",
+            new ReleasePoint(17, 7),
+            new ReleasePoint(17, 5));
+        Check(restored.GetSnapshot().Construction.World.Edges.Count > inheritedEdgeCount,
+            "second chapter construction did not change carried world");
+        ReleaseCampaignSnapshot restarted = restored.RestartChapter();
+        Equal("PROLOGUE_SECOND_HEART", restarted.Chapter.ChapterId,
+            "chapter restart changed chapter");
+        Equal(restarted.ChapterStartCommandCount, restarted.CommandCount,
+            "chapter restart did not trim accepted journal");
+        Equal(inheritedEdgeCount, restarted.Construction.World.Edges.Count,
+            "chapter restart did not remove current-chapter assets");
+        Equal(chapterStartCash, restarted.CashUnit,
+            "chapter restart did not restore opening cash");
+        Equal(ReleaseConstructionPhase.Ready, restarted.Construction.Phase,
+            "chapter restart did not restore a safe construction phase");
+
+        ExpectPersistenceRejected(
+            "campaign hash mismatch",
+            () => ReleaseCampaignRun.Restore(
+                _campaign,
+                _fixture,
+                new string('0', 64),
+                _worldSha256,
+                decoded));
+    }
+
+    private ReleaseCampaignRun NewCampaignRun() => new(
+        _campaign,
+        _fixture,
+        _campaignSha256,
+        _worldSha256);
+
+    private void AssertCurrentChapterNeedsWork(ReleaseCampaignRun run, string chapterId)
+    {
+        ReleaseCampaignSnapshot before = run.GetSnapshot();
+        Equal(chapterId, before.Chapter.ChapterId, $"{chapterId}: current chapter");
+        ReleaseCampaignCommandResult result = run.Execute(
+            new ReleaseCampaignCommand(ReleaseCampaignCommandKind.EvaluateChapter));
+        Check(!result.Accepted, $"{chapterId}: chapter passed without new work");
+        Equal(ReleaseCampaignError.ObjectiveNotMet, result.Error,
+            $"{chapterId}: initial chapter rejection");
+        Check(result.Assessment is not null && !result.Assessment.Passed,
+            $"{chapterId}: missing failed assessment");
+        Equal(before.CommandCount, run.GetSnapshot().CommandCount,
+            $"{chapterId}: rejected assessment entered journal");
+    }
+
+    private void CompleteCampaignChapter(ReleaseCampaignRun run, string chapterId)
+    {
+        ReleaseCampaignCommandResult result = run.Execute(
+            new ReleaseCampaignCommand(ReleaseCampaignCommandKind.EvaluateChapter));
+        if (!result.Accepted)
+        {
+            string detail = result.Assessment is null
+                ? result.Error?.ToString() ?? "unknown"
+                : $"load={result.Assessment.FailedLoadId}, " +
+                  $"event={result.Assessment.FailedDuringEvent}, " +
+                  $"connection={result.Assessment.FailedConnectionNodeId}, " +
+                  $"failure={result.Assessment.SupplyFailure?.Kind}";
+            throw new InvalidOperationException($"{chapterId}: completion rejected ({detail})");
+        }
+        Check(result.Assessment?.Passed == true, $"{chapterId}: passing assessment missing");
+        Equal(chapterId, result.CompletedChapter?.ChapterId,
+            $"{chapterId}: completed chapter identity");
+        Check(result.Snapshot.CashUnit >= 0, $"{chapterId}: negative carry-over cash");
+    }
+
+    private void BuildLine(
+        ReleaseCampaignRun run,
+        string startNodeId,
+        string lineClassId,
+        string poleClassId,
+        params ReleasePoint[] points)
+    {
+        ExecuteCampaign(run, new ReleaseCampaignCommand(
+            ReleaseCampaignCommandKind.StartLineDraft,
+            StartNodeId: startNodeId,
+            LineClassId: lineClassId,
+            PoleClassId: poleClassId), $"line from {startNodeId}: start");
+        foreach (ReleasePoint point in points)
+        {
+            ExecuteCampaign(run, new ReleaseCampaignCommand(
+                ReleaseCampaignCommandKind.AddLinePoint,
+                Position: point), $"line from {startNodeId}: add {point}");
+        }
+        ExecuteCampaign(run, new ReleaseCampaignCommand(ReleaseCampaignCommandKind.OrderLine),
+            $"line from {startNodeId}: order");
+        ExecuteCampaign(run, new ReleaseCampaignCommand(
+            ReleaseCampaignCommandKind.AdvanceConstruction),
+            $"line from {startNodeId}: complete");
+    }
+
+    private void ExecuteCampaign(
+        ReleaseCampaignRun run,
+        ReleaseCampaignCommand command,
+        string context)
+    {
+        ReleaseCampaignCommandResult result = run.Execute(command);
+        if (!result.Accepted)
+        {
+            throw new InvalidOperationException(
+                $"{context}: rejected ({result.Error}, {result.ConstructionError})");
+        }
+        _assertionCount++;
+    }
+
+    private void ExpectCampaignRejected(string label, Action<JsonObject> mutate)
+    {
+        JsonObject root = ParseObject(_campaignJson);
+        mutate(root);
+        try
+        {
+            _ = ReleaseCampaignLoader.Load(root.ToJsonString(), _fixture);
+        }
+        catch (ReleaseCampaignValidationException)
+        {
+            _assertionCount++;
+            return;
+        }
+
+        throw new InvalidOperationException($"{label}: loader accepted invalid campaign");
+    }
+
+    private void ExpectPersistenceRejected(string label, Action action)
+    {
+        try
+        {
+            action();
+        }
+        catch (ReleasePersistenceValidationException)
+        {
+            _assertionCount++;
+            return;
+        }
+
+        throw new InvalidOperationException($"{label}: persistence accepted invalid content");
     }
 
     private void AssertLowerReroute(

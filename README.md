@@ -12,17 +12,15 @@
 ## 현재 상태
 
 현재 활성 구현 단계는 [출시판 재구축의 3단계 — 프롤로그·본편 캠페인](docs/scopes/RELEASE_REBUILD.md)이다.
-새 `ReleaseMain`의 33×21 지도에서 변전소와 분기·합류 선로를 실제 입력으로 계획·발주·완공하는
-2단계는 독립 검토까지 끝났다. 이제 같은 망을 이어 쓰는 프롤로그 세 임무와 본편 다섯 장,
-장별 예산·사건·완료 판정, 저장·재개와 장 재시작을 출시판 경로에 연결한다.
+새 `ReleaseMain`에서 프롤로그 세 임무와 본편 다섯 장, 장별 예산·사건·완료 판정, 저장·재개와
+장 재시작을 한 흐름으로 연결했고 현재 독립 검토를 진행한다.
 사용자는 2026-08-17 전체 내부 후보를 직접 플레이한 뒤 표현, 망 구조, 이야기, 실제 콘텐츠와 지도
 밀도의 근본적인 재작업을 요청했고, 출시 가능한 게임을 끝까지 완성하는 목표를 승인했다.
 
-현재 기본 실행 장면은 여전히 이전 세 장 내부 후보다. 이 후보는 macOS ZIP에서 실행·저장·재개할
-수 있고 규칙 검증에는 유용하지만, 출시판으로 인정하지 않는다. 선로가 고정된 한 경로라 전신주와
-변전소의 일반적인 분기·합류와 공유용량을 표현하지 못하고, 사용자 문구에는 개발 용어와 어색한
-번역투가 남으며, 세 장은 실제 본편보다 긴 튜토리얼에 가깝다. 새 출시판 기본 장면은 분기형 Core,
-촘촘한 지도와 새 캠페인이 함께 준비될 때만 교체한다.
+현재 기본 실행 장면은 새 `ReleaseMain`이다. 33×21 지도에서 변전소와 선로를 직접 건설하고,
+분기·합류 설비의 사용량·정격·접속 여유를 보면서 같은 청류시 망을 8개 임무 동안 이어 쓴다.
+두 fresh process 대표 흐름에서 본편 중간 저장·이어하기·장 재시작과 마지막 임무 완료까지 확인했다.
+이전 세 장 내부 후보는 규칙 회귀용으로만 보존한다.
 
 현재 저장소에는 예방정비와 고정 폭염 결산까지 이어지는 제품 흐름, Title·Pause, 한 슬롯
 저장·재개, 장 재시작과 기본 화면 설정이 있으며 두 개의 완료된 검증용 2D 구현도 보존한다.
@@ -36,7 +34,7 @@
 - [예고된 폭염과 예방정비](docs/scopes/HEATWAVE_MAINTENANCE.md): 같은 기본 실행 흐름에 읽기 전용
   예고, 예방정비 선택과 고정 폭염 사건을 추가한다.
 - [캠페인 골격·저장·기본 설정](docs/scopes/CAMPAIGN_SAVE_SETTINGS.md): 세 장 경계와 carry-over,
-  Title·Pause, 안전 경계 저장·재개, 장 재시작과 최소 화면 설정을 제공한다. 현재 기본 실행 장면이다.
+  Title·Pause, 안전 경계 저장·재개, 장 재시작과 최소 화면 설정을 제공한 내부 후보 기록이다.
 - [세 장 캠페인 콘텐츠 고정](docs/scopes/CAMPAIGN_CONTENT.md): 세 장의 브리핑·목표를 현재 화면에
   연결하고, 다음 장 reference 흐름에 필요한 진입현금을 검사해 복구 불가능한 진행을 막는다.
 - [2D 표현·사운드·패키징](docs/scopes/RELEASE_2D.md): 공통 2D 화면 언어, 최소 사운드, 음량 설정과
@@ -152,9 +150,10 @@ dotnet run --project tools/Gridworks.ReleaseChecks/Gridworks.ReleaseChecks.cspro
 dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild
 ```
 
-Godot 기본 실행은 `game/project.godot`의 `ProductMain.tscn`을 열어 Title에서 새 게임 또는 이어하기를
-선택하고 첫 점등부터 예방정비·폭염 결산까지 진행한다. 완료된 회귀 장면은
-`--scene res://Main.tscn` 또는 `--scene res://Scope1Main.tscn`을 명시해 실행한다. 현재 대표 shell
+Godot 기본 실행은 `game/project.godot`의 `ReleaseMain.tscn`을 열어 Title에서 새 게임 또는 이어하기를
+선택하고 프롤로그 첫 임무부터 본편 마지막 임무까지 진행한다. 완료된 회귀 장면은
+`--scene res://ProductMain.tscn`, `--scene res://Main.tscn` 또는 `--scene res://Scope1Main.tscn`을
+명시해 실행한다. 이전 내부 후보의 대표 shell
 smoke는 [캠페인·저장 종료 기록](docs/scopes/CAMPAIGN_SAVE_SETTINGS.md#9-현재-검사와-종료-기록), 전체
 제품 흐름은 [폭염·정비 종료 기록](docs/scopes/HEATWAVE_MAINTENANCE.md#8-현재-검사와-종료-기록),
 첫 점등 동결 smoke는 [첫 점등 구현 기준](docs/scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록)이 설명한다. 과거 실행 승인만 검증하던

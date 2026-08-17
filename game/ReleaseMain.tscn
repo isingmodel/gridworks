@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://ReleaseMain.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://ReleaseMapView.tscn" id="2_map"]
 [ext_resource type="PackedScene" path="res://ReleaseTaskPanel.tscn" id="3_panel"]
 [ext_resource type="Theme" path="res://ProductTheme.tres" id="4_theme"]
+[ext_resource type="PackedScene" path="res://ReleaseShellOverlay.tscn" id="5_shell"]
 
 [node name="ReleaseMain" type="Control"]
 layout_mode = 3
@@ -74,6 +75,12 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
 text = "망 살펴보기"
 
+[node name="MenuButton" type="Button" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(94, 38)
+layout_mode = 2
+text = "메뉴 열기"
+
 [node name="Metrics" type="HFlowContainer" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn"]
 layout_mode = 2
 theme_override_constants/h_separation = 24
@@ -92,6 +99,11 @@ text = "공급 중 · 0 MW"
 unique_name_in_owner = true
 layout_mode = 2
 text = "완공 설비 0곳"
+
+[node name="CashLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/Metrics"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "운영 자금 · 0원"
 
 [node name="Body" type="HBoxContainer" parent="SafeMargin/RootColumn"]
 layout_mode = 2
@@ -201,3 +213,6 @@ text = "게임을 시작하지 못했습니다."
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
+
+[node name="ReleaseShellOverlay" parent="." instance=ExtResource("5_shell")]
+unique_name_in_owner = true

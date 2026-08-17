@@ -1,9 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using Gridworks.Core.Release;
 
 namespace Gridworks.Game;
+
+internal enum ReleaseCampaignSmokeLeg
+{
+    None,
+    Save,
+    Continue,
+}
 
 internal sealed record ReleaseLaunchOptions(
     bool Smoke,
@@ -11,8 +19,12 @@ internal sealed record ReleaseLaunchOptions(
     ReleasePoint? SmokeSubstation,
     ReleasePoint? SmokeLineStart,
     IReadOnlyList<ReleasePoint> SmokeLinePoints,
-    ReleasePoint? SmokeLineEnd)
+    ReleasePoint? SmokeLineEnd,
+    ReleaseCampaignSmokeLeg CampaignSmokeLeg,
+    string? StorageDirectory)
 {
+    public bool Automated => Smoke || CampaignSmokeLeg != ReleaseCampaignSmokeLeg.None;
+
     public static ReleaseLaunchOptions Parse(IReadOnlyList<string> args)
     {
         bool smoke = false;
@@ -21,6 +33,8 @@ internal sealed record ReleaseLaunchOptions(
         ReleasePoint? lineStart = null;
         ReleasePoint? lineEnd = null;
         var linePoints = new List<ReleasePoint>();
+        ReleaseCampaignSmokeLeg campaignSmokeLeg = ReleaseCampaignSmokeLeg.None;
+        string? storageDirectory = null;
 
         for (int index = 0; index < args.Count; index++)
         {
@@ -33,6 +47,18 @@ internal sealed record ReleaseLaunchOptions(
                 case "--smoke-line-start": lineStart = Point(Value(args, ref index, arg), arg); break;
                 case "--smoke-line-point": linePoints.Add(Point(Value(args, ref index, arg), arg)); break;
                 case "--smoke-line-end": lineEnd = Point(Value(args, ref index, arg), arg); break;
+                case "--release-campaign-smoke":
+                    campaignSmokeLeg = Value(args, ref index, arg) switch
+                    {
+                        "save" => ReleaseCampaignSmokeLeg.Save,
+                        "continue" => ReleaseCampaignSmokeLeg.Continue,
+                        _ => throw new ArgumentException(
+                            "출시판 캠페인 확인 단계는 save 또는 continue여야 합니다."),
+                    };
+                    break;
+                case "--storage-directory":
+                    storageDirectory = Value(args, ref index, arg);
+                    break;
                 default: throw new ArgumentException($"지원하지 않는 출시판 실행 인자입니다: {arg}");
             }
         }
@@ -46,7 +72,32 @@ internal sealed record ReleaseLaunchOptions(
             throw new ArgumentException("smoke 좌표는 --release-smoke와 함께 사용하세요.");
         }
 
-        return new ReleaseLaunchOptions(smoke, sessionId, substation, lineStart, linePoints.ToArray(), lineEnd);
+        if (smoke && campaignSmokeLeg != ReleaseCampaignSmokeLeg.None)
+        {
+            throw new ArgumentException("두 출시판 확인 흐름을 한 실행에서 함께 사용할 수 없습니다.");
+        }
+        if (campaignSmokeLeg != ReleaseCampaignSmokeLeg.None)
+        {
+            if (string.IsNullOrWhiteSpace(storageDirectory))
+            {
+                throw new ArgumentException("캠페인 저장 확인에는 저장 폴더가 필요합니다.");
+            }
+            storageDirectory = Path.GetFullPath(storageDirectory);
+        }
+        else if (storageDirectory is not null)
+        {
+            throw new ArgumentException("저장 폴더는 캠페인 저장 확인에서만 지정할 수 있습니다.");
+        }
+
+        return new ReleaseLaunchOptions(
+            smoke,
+            sessionId,
+            substation,
+            lineStart,
+            linePoints.ToArray(),
+            lineEnd,
+            campaignSmokeLeg,
+            storageDirectory);
     }
 
     private static string Value(IReadOnlyList<string> args, ref int index, string option)

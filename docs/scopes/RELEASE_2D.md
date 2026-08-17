@@ -142,7 +142,8 @@ runtime에 넣는 게임 표현과 사운드는 이 저장소에서 생성한 �
 픽셀 golden, 여러 OS·Mac version matrix, 반복 성능 benchmark, LLM play와 외부 사람 관찰은 이 단계의
 완료 기준에 포함하지 않는다. 한 번의 package 실행에서 crash가 없고 peak memory가 512 MiB 이하이며
 전체 대표 smoke가 60초 안에 끝나는지만 내부 test budget으로 기록한다. 단계 완료 뒤 사용자 승인으로
-실행한 cold LLM 관찰 1회는 §9에 별도 후속 증거로 기록하며 aggregate gate나 사람 증거로 바꾸지 않는다.
+실행한 동일 prompt의 cold LLM 관찰 2회는 §9에 별도 후속 증거로 기록하며 aggregate gate나 사람
+증거로 바꾸지 않는다.
 
 ## 9. 종료 상태
 
@@ -166,12 +167,13 @@ runtime에 넣는 게임 표현과 사운드는 이 저장소에서 생성한 �
 - 화면 확인: 1280×720 logical canvas에서 title·도움말·settings·초기·중간·최종 gameplay를 확인했다.
   1920×1080 native window 요청과 UI `125%` 조합은 같은 1280×720 logical canvas로 stretch되며,
   settings·gameplay text, focus, legend와 의도된 panel scroll을 확인했다.
-- 후속 [공식 cold LLM 관찰 1회](../../playtests/release-2d/OFFICIAL_LLM_OBSERVATION_01.md): 처음 보는
-  `gpt-5.6-sol` 참가자가 follow-up·도움·재시작 없이 native 캠페인을 `SUCCESS`로 끝내고 핵심
-  건설·신뢰도·발전소 부지·예방정비 인과를 설명했다. 단일 관찰이므로 aggregate 판정은 없고
-  `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
+- 후속 [공식 cold LLM 관찰 2회](../../playtests/release-2d/OFFICIAL_LLM_OBSERVATIONS_SUMMARY.md): 처음
+  보는 `gpt-5.6-sol` 참가자 둘이 동일 prompt에서 각각 follow-up·도움·재시작 없이 native 캠페인을
+  `SUCCESS`로 끝내고 핵심 건설·신뢰도·발전소 부지·예방정비 인과를 설명했다. 두 관찰은 성공률이나
+  aggregate 판정이 아니며 `HumanValidationStatus = NOT_COLLECTED`를 유지한다.
 
-현재 알려진 minor는 두 가지다.
+완료 검사로 확인된 기술 minor는 두 가지다. 후속 LLM 관찰의 표현·상호작용 개선 후보는 위 요약이
+별도로 소유한다.
 
 1. Developer ID 서명·공증이 없어 외부 다운로드 실행은 Gatekeeper에 막힐 수 있다. 이 ZIP은 내부
    후보이며 공개 배포물이 아니다.

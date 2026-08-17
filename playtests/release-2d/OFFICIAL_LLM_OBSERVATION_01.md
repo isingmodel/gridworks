@@ -71,11 +71,12 @@ When you stop, report only:
 - `NativeCompletion = true`
 - `AppEvidenceValid = true`
 - `FacilitatorHelp = false`
-- `OfficialObservationsExecuted = 1`
+- `OfficialObservationsExecutedThisRound = 1`
+- `OfficialObservationsExecutedTotalAtClosure = 1`
 - `AggregateDecision = NOT_APPLICABLE`
 - `HumanValidationStatus = NOT_COLLECTED`
 
-참가자는 타이틀에서 시작해 재시작·reload·교체 없이 app `READY` 기준 `736,618 ms` 뒤 최종 화면에
+참가자는 타이틀에서 시작해 재시작·reload·교체 없이 app `FINAL.elapsedMs = 736,618`에 최종 화면에
 도달했다. 최종 화면은 예방정비를 마친 노후 feeder와 두 발전원으로 병원·마을·공장을 모두
 공급했다고 알렸고, 더 실행할 action control은 남지 않았다.
 

@@ -10,7 +10,7 @@ docs/
 ├── README.md                         문서 지도와 질문별 소유권
 ├── DEVELOPMENT_HISTORY.md            압축된 과거 결정·증거·교훈
 ├── ROADMAP_2D.md                     2D 1.0까지의 단계와 범위
-├── ROADMAP_2D_CHECKLIST.md           단계별 진행·종료 체크리스트
+├── ROADMAP_2D_CHECKLIST.md           단계 상태와 최소 종료 증거 장부
 ├── product/
 │   ├── GAME_DESIGN_KO.md             제품 비전과 안정된 게임 원칙
 │   ├── OBJECT_CATALOG.md             오브젝트 정의와 기능 상태
@@ -34,7 +34,7 @@ docs/
 |---|---|---|
 | 지금 무엇을 구현할 수 있는가? | [루트 README](../README.md) | 로드맵·후보가 구현을 승인하지 않음 |
 | 무엇을 어떤 순서로 완성하려는가? | [2D 완성 로드맵](ROADMAP_2D.md) | 현재 단계의 정확한 계약을 대신하지 않음 |
-| 진행과 종료 증거는 어디에 기록하는가? | [로드맵 체크리스트](ROADMAP_2D_CHECKLIST.md) | 상세 규칙·숫자를 복제하지 않음 |
+| 진행과 종료 증거는 어디에 기록하는가? | [로드맵 체크리스트](ROADMAP_2D_CHECKLIST.md) | 기능 명세·숫자를 복제하지 않음 |
 | 과거에 무엇을 확인하고 왜 바꿨는가? | [개발 이력](DEVELOPMENT_HISTORY.md) | 현재 권한이나 규칙을 소유하지 않음 |
 | 게임의 경험과 장기 원칙은 무엇인가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 단계별 숫자·절차를 만들지 않음 |
 | 오브젝트와 가능한 동작은 무엇인가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 미래 기능을 현재 가능으로 표시하지 않음 |

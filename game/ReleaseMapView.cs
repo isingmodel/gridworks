@@ -143,6 +143,7 @@ internal sealed partial class ReleaseMapView : Control
         {
             _keyboardPoint = Clamp(next, grid);
             PointerChanged?.Invoke(_keyboardPoint);
+            UpdateHoveredAssetAt(_keyboardPoint, grid);
             QueueRedraw();
             AcceptEvent();
             return;
@@ -150,9 +151,19 @@ internal sealed partial class ReleaseMapView : Control
         if (key.Keycode is Key.Enter or Key.KpEnter or Key.Space)
         {
             PointerChanged?.Invoke(_keyboardPoint);
+            UpdateHoveredAssetAt(_keyboardPoint, grid);
             PointRequested?.Invoke(_keyboardPoint);
             AcceptEvent();
         }
+    }
+
+    private void UpdateHoveredAssetAt(ReleasePoint point, ReleaseGridDefinition grid)
+    {
+        FindAsset(
+            ToCanvas(point, grid, PlotRect(grid)),
+            out string? nodeId,
+            out string? edgeId);
+        UpdateHoveredAsset(nodeId, edgeId);
     }
 
     private void DrawTerrain(ReleaseGridDefinition grid, Rect2 plot)

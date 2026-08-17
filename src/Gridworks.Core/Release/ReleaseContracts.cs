@@ -96,12 +96,12 @@ public sealed record ReleaseRiskAreaDefinition(
     string DisplayName,
     IReadOnlyList<ReleasePoint> Polygon)
 {
-    private IReadOnlyList<ReleasePoint> _polygon = Polygon.ToArray();
+    private IReadOnlyList<ReleasePoint> _polygon = Array.AsReadOnly(Polygon.ToArray());
 
     public IReadOnlyList<ReleasePoint> Polygon
     {
         get => _polygon;
-        init => _polygon = value.ToArray();
+        init => _polygon = Array.AsReadOnly(value.ToArray());
     }
 }
 
@@ -118,54 +118,54 @@ public sealed record ReleaseWorldDefinition(
     IReadOnlyList<ReleaseLoadDefinition> Loads,
     IReadOnlyList<ReleaseRiskAreaDefinition> RiskAreas)
 {
-    private IReadOnlyList<ReleaseNodeClassDefinition> _nodeClasses = NodeClasses.ToArray();
-    private IReadOnlyList<ReleaseLineClassDefinition> _lineClasses = LineClasses.ToArray();
-    private IReadOnlyList<ReleaseNodeDefinition> _nodes = Nodes.ToArray();
-    private IReadOnlyList<ReleaseEdgeDefinition> _edges = Edges.ToArray();
-    private IReadOnlyList<ReleaseSourceDefinition> _sources = Sources.ToArray();
-    private IReadOnlyList<ReleaseLoadDefinition> _loads = Loads.ToArray();
-    private IReadOnlyList<ReleaseRiskAreaDefinition> _riskAreas = RiskAreas.ToArray();
+    private IReadOnlyList<ReleaseNodeClassDefinition> _nodeClasses = Array.AsReadOnly(NodeClasses.ToArray());
+    private IReadOnlyList<ReleaseLineClassDefinition> _lineClasses = Array.AsReadOnly(LineClasses.ToArray());
+    private IReadOnlyList<ReleaseNodeDefinition> _nodes = Array.AsReadOnly(Nodes.ToArray());
+    private IReadOnlyList<ReleaseEdgeDefinition> _edges = Array.AsReadOnly(Edges.ToArray());
+    private IReadOnlyList<ReleaseSourceDefinition> _sources = Array.AsReadOnly(Sources.ToArray());
+    private IReadOnlyList<ReleaseLoadDefinition> _loads = Array.AsReadOnly(Loads.ToArray());
+    private IReadOnlyList<ReleaseRiskAreaDefinition> _riskAreas = Array.AsReadOnly(RiskAreas.ToArray());
 
     public IReadOnlyList<ReleaseNodeClassDefinition> NodeClasses
     {
         get => _nodeClasses;
-        init => _nodeClasses = value.ToArray();
+        init => _nodeClasses = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<ReleaseLineClassDefinition> LineClasses
     {
         get => _lineClasses;
-        init => _lineClasses = value.ToArray();
+        init => _lineClasses = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<ReleaseNodeDefinition> Nodes
     {
         get => _nodes;
-        init => _nodes = value.ToArray();
+        init => _nodes = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<ReleaseEdgeDefinition> Edges
     {
         get => _edges;
-        init => _edges = value.ToArray();
+        init => _edges = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<ReleaseSourceDefinition> Sources
     {
         get => _sources;
-        init => _sources = value.ToArray();
+        init => _sources = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<ReleaseLoadDefinition> Loads
     {
         get => _loads;
-        init => _loads = value.ToArray();
+        init => _loads = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<ReleaseRiskAreaDefinition> RiskAreas
     {
         get => _riskAreas;
-        init => _riskAreas = value.ToArray();
+        init => _riskAreas = Array.AsReadOnly(value.ToArray());
     }
 }
 
@@ -220,19 +220,19 @@ public sealed record ReleaseLoadSupply(
     IReadOnlyList<string> PathEdgeIds,
     ReleaseSupplyFailure Failure)
 {
-    private IReadOnlyList<string> _pathNodeIds = PathNodeIds.ToArray();
-    private IReadOnlyList<string> _pathEdgeIds = PathEdgeIds.ToArray();
+    private IReadOnlyList<string> _pathNodeIds = Array.AsReadOnly(PathNodeIds.ToArray());
+    private IReadOnlyList<string> _pathEdgeIds = Array.AsReadOnly(PathEdgeIds.ToArray());
 
     public IReadOnlyList<string> PathNodeIds
     {
         get => _pathNodeIds;
-        init => _pathNodeIds = value.ToArray();
+        init => _pathNodeIds = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<string> PathEdgeIds
     {
         get => _pathEdgeIds;
-        init => _pathEdgeIds = value.ToArray();
+        init => _pathEdgeIds = Array.AsReadOnly(value.ToArray());
     }
 }
 
@@ -264,33 +264,33 @@ public sealed record ReleaseNetworkEvaluation(
     long TotalDeliveredKw,
     long TotalGenerationKw)
 {
-    private IReadOnlyList<ReleaseLoadSupply> _loads = Loads.ToArray();
-    private IReadOnlyList<ReleaseNodeUsage> _nodes = Nodes.ToArray();
-    private IReadOnlyList<ReleaseEdgeUsage> _edges = Edges.ToArray();
-    private IReadOnlyList<ReleaseSourceUsage> _sources = Sources.ToArray();
+    private IReadOnlyList<ReleaseLoadSupply> _loads = Array.AsReadOnly(Loads.ToArray());
+    private IReadOnlyList<ReleaseNodeUsage> _nodes = Array.AsReadOnly(Nodes.ToArray());
+    private IReadOnlyList<ReleaseEdgeUsage> _edges = Array.AsReadOnly(Edges.ToArray());
+    private IReadOnlyList<ReleaseSourceUsage> _sources = Array.AsReadOnly(Sources.ToArray());
 
     public IReadOnlyList<ReleaseLoadSupply> Loads
     {
         get => _loads;
-        init => _loads = value.ToArray();
+        init => _loads = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<ReleaseNodeUsage> Nodes
     {
         get => _nodes;
-        init => _nodes = value.ToArray();
+        init => _nodes = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<ReleaseEdgeUsage> Edges
     {
         get => _edges;
-        init => _edges = value.ToArray();
+        init => _edges = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<ReleaseSourceUsage> Sources
     {
         get => _sources;
-        init => _sources = value.ToArray();
+        init => _sources = Array.AsReadOnly(value.ToArray());
     }
 }
 

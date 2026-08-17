@@ -559,6 +559,10 @@ public sealed partial class ReleaseMain : Control
             Require(_storyOverlay.Visible, "공사 결과 카드가 표시되지 않았습니다.");
             EmitButton(_storyButton, "공사 결과 닫기");
             await NextFrame();
+            await PressMapKey(Key.Right);
+            await PressMapKey(Key.Enter);
+            Require(_selectedNodeId is null && _selectedEdgeId is null,
+                "키보드 선택이 이전 마우스 hover 설비를 다시 선택했습니다.");
 
             GD.Print(
                 $"RELEASE_CONSTRUCTION_SMOKE_PASS session={_options.SessionId} " +
@@ -592,6 +596,21 @@ public sealed partial class ReleaseMain : Control
             Position = viewportPoint,
             GlobalPosition = viewportPoint,
             ButtonIndex = MouseButton.Left,
+            Pressed = false,
+        }, true);
+        await NextFrame();
+    }
+
+    private async Task PressMapKey(Key key)
+    {
+        GetViewport().PushInput(new InputEventKey
+        {
+            Keycode = key,
+            Pressed = true,
+        }, true);
+        GetViewport().PushInput(new InputEventKey
+        {
+            Keycode = key,
             Pressed = false,
         }, true);
         await NextFrame();

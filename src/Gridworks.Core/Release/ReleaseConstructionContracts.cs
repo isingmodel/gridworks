@@ -46,12 +46,12 @@ public sealed record ReleaseLineDraftSnapshot(
     IReadOnlyList<ReleasePoint> IntermediatePoints,
     string? EndNodeId)
 {
-    private IReadOnlyList<ReleasePoint> _intermediatePoints = IntermediatePoints.ToArray();
+    private IReadOnlyList<ReleasePoint> _intermediatePoints = Array.AsReadOnly(IntermediatePoints.ToArray());
 
     public IReadOnlyList<ReleasePoint> IntermediatePoints
     {
         get => _intermediatePoints;
-        init => _intermediatePoints = value.ToArray();
+        init => _intermediatePoints = Array.AsReadOnly(value.ToArray());
     }
 }
 
@@ -62,19 +62,19 @@ public sealed record ReleaseActiveConstructionSnapshot(
     IReadOnlyList<string> NodeIds,
     IReadOnlyList<string> EdgeIds)
 {
-    private IReadOnlyList<string> _nodeIds = NodeIds.ToArray();
-    private IReadOnlyList<string> _edgeIds = EdgeIds.ToArray();
+    private IReadOnlyList<string> _nodeIds = Array.AsReadOnly(NodeIds.ToArray());
+    private IReadOnlyList<string> _edgeIds = Array.AsReadOnly(EdgeIds.ToArray());
 
     public IReadOnlyList<string> NodeIds
     {
         get => _nodeIds;
-        init => _nodeIds = value.ToArray();
+        init => _nodeIds = Array.AsReadOnly(value.ToArray());
     }
 
     public IReadOnlyList<string> EdgeIds
     {
         get => _edgeIds;
-        init => _edgeIds = value.ToArray();
+        init => _edgeIds = Array.AsReadOnly(value.ToArray());
     }
 }
 

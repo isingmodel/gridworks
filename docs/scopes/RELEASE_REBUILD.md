@@ -336,7 +336,7 @@ data/release-*.json               출시판 machine authority
 
 - `ReleaseConstructionSession`: 변전소와 선로 계획, 견적, 발주, 원자 완공
 - `ReleaseMain`: 33×21 지도, 마우스·키보드 입력, 작업 패널과 짧은 이야기 카드
-- 출시판 검사: 12 suites / 215 assertions 통과
+- 출시판 검사: 12 suites / 217 assertions 통과
 - Game Debug build: warning 0 / error 0
 - 1280×720 대표 실행: 실제 지도 입력과 표준 버튼으로 변전소 완공 뒤 남부 분기점과 동부
   변전소를 잇는 보강선 완공, 분기점 4연결·변전소 2연결 확인

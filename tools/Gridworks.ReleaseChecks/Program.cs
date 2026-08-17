@@ -450,6 +450,10 @@ internal sealed class ReleaseChecks
         Check(session.OrderNode().Accepted, "substation order rejected");
         ReleaseConstructionSnapshot building = session.GetSnapshot();
         Equal(ReleaseConstructionPhase.NodeBuilding, building.Phase, "substation building phase");
+        Check(building.World.Nodes is System.Collections.IList { IsReadOnly: true },
+            "snapshot world nodes are externally mutable");
+        Check(building.ActiveConstruction!.NodeIds is System.Collections.IList { IsReadOnly: true },
+            "snapshot construction targets are externally mutable");
         ReleaseNodeDefinition planned = building.World.Nodes.Single(node =>
             node.Position == new ReleasePoint(25, 6));
         Check(!planned.Commissioned, "ordered substation commissioned early");

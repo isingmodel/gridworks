@@ -16,9 +16,9 @@ docs/
 │   ├── OBJECT_CATALOG.md             오브젝트 정의와 기능 상태
 │   └── VISUAL_PRODUCTION_SPEC.md      규칙을 표현하는 시각 기준
 ├── scopes/
-│   ├── SCOPE_0B_PLAYABLE.md           현재 Scope 0B 구현 기준
-│   ├── SCOPE_1_INTERACTION.md         현재 Scope 1 구현 기준
-│   └── FIRST_LIGHT.md                 활성 제품 단계 계약
+│   ├── SCOPE_0B_PLAYABLE.md           완료된 Scope 0B 구현 기준
+│   ├── SCOPE_1_INTERACTION.md         완료된 Scope 1 구현 기준
+│   └── FIRST_LIGHT.md                 완료된 첫 제품 단계 기준
 ├── development/
 │   └── BALANCING_STATIC_SIM.md        조건부 정적 분석 도구
 └── future/

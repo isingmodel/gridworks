@@ -96,7 +96,7 @@ headless smoke의 두 support 위치는 명령행의 `--smoke-support`로만 주
 거친다. Game source, fixture와 참가자 화면에는 기본 정답 좌표가 없다. JSONL 진단은 좌표를 기록하지
 않고 `READY → SUPPORT_ADDED → SUPPORT_ADDED → ORDERED → COMPLETED → FINAL`의 상태 hash만 남긴다.
 
-기본 `project.godot`은 Scope 0B를 유지한다. Scope 1은 `--scene res://Scope1Main.tscn`을 명시해 연다.
+기본 `project.godot`은 현재 제품 장면을 연다. Scope 1은 `--scene res://Scope1Main.tscn`을 명시해 연다.
 
 ## 5. 현재 검사
 
@@ -113,7 +113,7 @@ Ruby 검사는 아홉 field와 거리 reference oracle을 독립 계산한다. C
 
 headless wiring smoke는 실제 viewport pointer 경로로 support를 추가하고 standard button signal로
 발주·완공한다. native 1280×720 검토는 clipping, phase·좌표·통전 label과 접근성 tree를 확인했다.
-Scope 0B 검사와 기본 장면 AB/BA smoke도 함께 회귀한다.
+Scope 0B 검사와 명시적 `Main.tscn` AB/BA smoke도 함께 회귀한다.
 
 저장소 root에서 현재 Scope 1 smoke를 재현하는 명령은 다음과 같다. 두 좌표는 검사 전용 입력이며
 fixture나 일반 플레이의 기본값이 아니다.
@@ -136,4 +136,4 @@ smoke_dir="$(mktemp -d /private/tmp/gridworks-s1-smoke.XXXXXX)"
 
 이 구현에는 임의 terminal 선택, 분기·합류, 교차 접속, 비용, 여러 line class, 발전소·변전소 건설,
 철거, save와 캠페인이 없다. 사람 검증도 수집하지 않았다. 다음 제품 단계는 이 타입을 범용화하지
-않고 [2D 완성 로드맵](../ROADMAP_2D.md)의 첫 통합본에서 별도 제품 경로로 시작한다.
+않는다. 별도 제품 경로는 [첫 점등 구현](FIRST_LIGHT.md)에서 이 원칙을 필요한 부분만 다시 구현했다.

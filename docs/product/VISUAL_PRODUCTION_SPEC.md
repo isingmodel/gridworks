@@ -69,6 +69,7 @@ machine-readable fixture를 도입해도 승인된 인계검사를 통과한 시
 |---|---|---|
 | Scope 0A 카드 | 16:9 카드 4장 | 종료된 R1/R2 증거로 동결 |
 | Scope 0B 화면 | 단일 2D scene | 구현·시각 review와 official v6 `GO` 완료 |
+| 첫 점등 제품 화면 | `ProductMain`과 두 child scene | 기술 구현·두 해상도·접근성 검토 완료, 사람 관찰 `NOT_COLLECTED` |
 | 핵심 건설 콘셉트 | `../../assets/01-grid-construction.png` | 비권위 참고 |
 | 폭염·사용불가 콘셉트 | `../../assets/02-heatwave-outage.png` | 비권위 참고 |
 | 경로 비교 콘셉트 | `../../assets/03-route-comparison.png` | 비권위 참고 |
@@ -301,6 +302,14 @@ capture나 이미지 prompt를 만들지 않는다.
 - source에서 ordered support를 거쳐 target으로 가는 한 경로가 읽히는가?
 - 시스템이 pole 위치·최소 개수·경로를 추천하거나 자동 보정하지 않는가?
 - draft·공사 중 선로가 통전된 선로처럼 보이지 않는가?
+
+### 첫 점등 제품 화면 — 기술 완료 범위
+
+- 1280×720과 1920×1080에서 지도와 작업 panel이 겹치거나 text가 잘리지 않는가?
+- 변전소 초안·공사, 선로 계획·공사와 통전 상태가 점선·반복 사선·실선과 문장으로 구분되는가?
+- 서비스 권역이 공급 자체가 아니라 접속 가능 범위로 보이는가?
+- 지도와 표준 button에 접근성 이름·설명이 있고 Tab, 화살표와 Enter로 핵심 행동이 가능한가?
+- 발주가 막히면 견적과 함께 Core가 반환한 첫 실패 이유가 보이는가?
 
 ### 모든 제작 화면
 

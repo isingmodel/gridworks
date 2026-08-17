@@ -11,20 +11,22 @@
 
 ## 현재 상태
 
-현재 활성 구현 단계는 [첫 점등 통합](docs/scopes/FIRST_LIGHT.md)이다. 사용자가 2D 게임을 외부
-테스트 직전까지 개발하도록 승인했으며, 로드맵을 한 단계씩 닫아 가되 지금은 첫 단계만 구현한다.
+현재 활성 구현 단계는 없다. [첫 점등 통합](docs/scopes/FIRST_LIGHT.md)은 외부 테스트 전 기술
+구현과 검토를 마쳤고, 다음 단계인 병원 신뢰도·경제는 아직 열지 않았다.
 
-현재 저장소에는 두 개의 완료된 검증용 2D 구현이 있다.
+현재 저장소에는 제품의 첫 흐름과 두 개의 완료된 검증용 2D 구현이 있다.
+
+- [첫 점등 통합](docs/scopes/FIRST_LIGHT.md): 변전소 초안을 직접 놓고 별도로 완공한 뒤 지지물과
+  선로를 건설해 마을을 켜고 첫 매출을 결산한다. 현재 기본 실행 장면이다.
 
 - [강변 병원 회랑](docs/scopes/SCOPE_0B_PLAYABLE.md): 고정된 마을·병원 시나리오에서 서비스 권역,
-  경로, 전기 사고와 공간 공통원인, 병원 내부전원과 현금 정산을 검증한다. 기본 실행 장면이다.
+  경로, 전기 사고와 공간 공통원인, 병원 내부전원과 현금 정산을 검증한다.
 - [수동 선로 건설](docs/scopes/SCOPE_1_INTERACTION.md): 고정 source·target 사이에 지지물을 직접
   놓고 거리 제한, 발주, 공사 중 무전압과 원자 완공을 검증한다. 별도 장면으로 실행한다.
 
-두 구현은 아직 하나의 게임 캠페인으로 통합되지 않았다. 현재는 별도 제품 fixture와 계약을
-고정하고, 변전소·선로 직접 건설부터 마을 점등·첫 결산까지 이어지는 새 제품 경로를 만드는
-중이다. 기본 실행은 제품 장면이 구현되기 전까지 강변 병원 회랑을 유지한다. 병원 신뢰도,
-발전소 신규 건설, 폭염·정비, 저장과 최종 아트는 현재 단계가 끝나기 전에는 열지 않는다.
+첫 점등은 독립 제품 경로를 시작했지만 아직 병원·공장·위기와 캠페인으로 이어지지 않는다.
+병원 신뢰도, 발전소 신규 건설, 폭염·정비, 저장과 최종 아트는 각 단계가 별도로 열릴 때까지
+구현하지 않는다.
 [2D 완성 로드맵](docs/ROADMAP_2D.md)은 전체 순서, [체크리스트](docs/ROADMAP_2D_CHECKLIST.md)는
 단계 상태와 종료 증거를 소유한다.
 
@@ -106,6 +108,7 @@ dotnet restore src/Gridworks.Core/Gridworks.Core.csproj
 dotnet restore game/Gridworks.Game.csproj
 dotnet restore tools/Gridworks.Checks/Gridworks.Checks.csproj
 dotnet restore tools/Gridworks.Scope1Checks/Gridworks.Scope1Checks.csproj
+dotnet restore tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj
 
 ruby playtests/scope-0a/verify_scope0a.rb
 ruby playtests/scope-0a-r2/verify_scope0a_r2.rb
@@ -113,13 +116,15 @@ ruby playtests/scope-0b/verify_contract.rb
 ruby playtests/scope-1/verify_contract.rb
 dotnet run --project tools/Gridworks.Checks/Gridworks.Checks.csproj -c Release
 dotnet run --project tools/Gridworks.Scope1Checks/Gridworks.Scope1Checks.csproj -c Release -- data/scope-1-v1.json
+dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj -c Release -- data/product-first-light-v1.json
 dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild
 ```
 
-Godot 기본 실행은 `game/project.godot`의 Scope 0B 장면을 연다. Scope 1은 위 로컬 Godot binary에
-`--scene res://Scope1Main.tscn`을 명시해 실행한다. exact smoke 인자와 화면 의미는 각 구현 기준
-문서가 설명한다. 과거 실행 승인만 검증하던 `verify_implementation.rb`는 제거했으며, 현재
-회귀검사로 사용하지 않는다.
+Godot 기본 실행은 `game/project.godot`의 `ProductMain.tscn`을 연다. 완료된 회귀 장면은
+`--scene res://Main.tscn` 또는 `--scene res://Scope1Main.tscn`을 명시해 실행한다. 첫 점등의 두
+해상도 smoke와 exact 입력은 [구현 기준](docs/scopes/FIRST_LIGHT.md#10-현재-검사와-종료-기록),
+두 회귀 장면의 smoke는 각 구현 기준이 설명한다. 과거 실행 승인만 검증하던
+`verify_implementation.rb`는 제거했으며, 현재 회귀검사로 사용하지 않는다.
 
 ## 콘셉트 이미지
 

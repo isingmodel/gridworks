@@ -2,7 +2,7 @@
 
 > 상태: `COMPLETED`
 >
-> 기본 장면: `game/Main.tscn`
+> 장면: `game/Main.tscn`
 >
 > 기계 권위: `data/scope-0b-v1.json`
 

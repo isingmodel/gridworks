@@ -126,8 +126,6 @@ internal sealed partial class FirstLightTaskPanel : PanelContainer
         return button;
     }
 
-    public IEnumerable<BaseButton> AllActionButtons => _buttons.Values;
-
     private static void SetButton(Button button, FirstLightActionPresentation presentation)
     {
         button.Visible = presentation.Visible;

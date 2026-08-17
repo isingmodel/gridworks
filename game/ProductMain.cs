@@ -258,7 +258,6 @@ public sealed partial class ProductMain : Control
             _fixture.BlockedCells.Select(ToGrid).ToArray(),
             ToGrid(_fixture.ExistingSource.Position),
             ToGrid(_fixture.Town.Position),
-            _fixture.Town.DemandKw,
             _snapshot.TownDeliveredKw,
             _snapshot.Substation.Position is null ? null : ToGrid(_snapshot.Substation.Position),
             _fixture.SubstationProject.ServiceRadiusGridUnit,
@@ -388,14 +387,18 @@ public sealed partial class ProductMain : Control
     private static string OrderPreviewText(ProductOrderPreview quote)
     {
         string projected = quote.ProjectedSupplyFailure.HasValue
-            ? SupplyText(quote.ProjectedSupplyFailure.Value)
+            ? ProjectedSupplyText(quote.ProjectedSupplyFailure.Value)
             : "예상 공급을 계산할 수 없음";
+        string error = quote.Error.HasValue ? ErrorText(quote.Error) : string.Empty;
         if (!quote.CostCashUnit.HasValue)
         {
-            return quote.Error.HasValue ? ErrorText(quote.Error) : projected;
+            return error.Length > 0 ? error : projected;
         }
-        return
-            $"견적 {CashText(quote.CostCashUnit.Value)} · 공기 {quote.BuildMinutes!.Value.ToString("N0", CultureInfo.InvariantCulture)}분\n{projected}";
+        string quoteText =
+            $"견적 {CashText(quote.CostCashUnit.Value)} · 공기 {quote.BuildMinutes!.Value.ToString("N0", CultureInfo.InvariantCulture)}분";
+        return error.Length > 0
+            ? $"{quoteText}\n{error}\n{projected}"
+            : $"{quoteText}\n{projected}";
     }
 
     private static string CompletionText(long? completionMinute) => completionMinute.HasValue
@@ -420,8 +423,6 @@ public sealed partial class ProductMain : Control
             ToGrid(preview.Position),
             null,
             preview.Accepted,
-            0,
-            0,
             description);
     }
 
@@ -435,8 +436,6 @@ public sealed partial class ProductMain : Control
             ToGrid(preview.To),
             ToGrid(preview.From),
             preview.Accepted,
-            preview.DistanceSquared,
-            preview.MaxSpanSquared,
             description);
     }
 
@@ -480,16 +479,22 @@ public sealed partial class ProductMain : Control
                 await ClickMapPoint(support);
             }
             Require(
-                _snapshot.Line.SupportPositions.Count == _options.SmokeSupports.Count,
+                _snapshot.Line.SupportPositions.Select(ToGrid)
+                    .SequenceEqual(_options.SmokeSupports),
                 "initial support clicks did not round-trip through viewport input");
 
             EmitPanelAction(FirstLightPanelAction.Undo, "undo line support");
             await NextFrame();
             Require(
-                _snapshot.Line.SupportPositions.Count == _options.SmokeSupports.Count - 1,
+                _snapshot.Line.SupportPositions.Select(ToGrid)
+                    .SequenceEqual(_options.SmokeSupports.Take(_options.SmokeSupports.Count - 1)),
                 "line support undo failed");
 
             await ClickMapPoint(_options.SmokeSupports[^1]);
+            Require(
+                _snapshot.Line.SupportPositions.Select(ToGrid)
+                    .SequenceEqual(_options.SmokeSupports),
+                "re-added support did not preserve exact input positions");
             EmitPanelAction(FirstLightPanelAction.CancelDraft, "cancel line draft");
             await NextFrame();
             Require(_snapshot.Line.SupportPositions.Count == 0, "line draft cancel failed");
@@ -502,7 +507,9 @@ public sealed partial class ProductMain : Control
             await NextFrame();
             Require(
                 _snapshot.Phase == ProductPhase.LineBuilding &&
-                _snapshot.TownDeliveredKw == 0,
+                _snapshot.TownDeliveredKw == 0 &&
+                _snapshot.Line.SupportPositions.Select(ToGrid)
+                    .SequenceEqual(_options.SmokeSupports),
                 "line order must enter building without supply");
 
             EmitPanelAction(FirstLightPanelAction.Advance, "complete line");
@@ -612,6 +619,18 @@ public sealed partial class ProductMain : Control
         _ => throw new ArgumentOutOfRangeException(nameof(failure)),
     };
 
+    private static string ProjectedSupplyText(ProductSupplyFailure failure) => failure switch
+    {
+        ProductSupplyFailure.OutsideServiceArea => "완공 후 예상 미공급 · 서비스 권역 밖",
+        ProductSupplyFailure.SourceCapacityInsufficient => "완공 후 예상 미공급 · 발전원 정격 부족",
+        ProductSupplyFailure.LineCapacityInsufficient => "완공 후 예상 미공급 · 선로 정격 부족",
+        ProductSupplyFailure.SubstationCapacityInsufficient => "완공 후 예상 미공급 · 변전소 정격 부족",
+        ProductSupplyFailure.None => "완공 후 예상 공급 가능 · 경로와 서비스 권역 성립",
+        ProductSupplyFailure.SubstationNotCommissioned => "완공 후 예상 미공급 · 변전소 조건 미충족",
+        ProductSupplyFailure.LineNotCommissioned => "완공 후 예상 미공급 · 선로 조건 미충족",
+        _ => throw new ArgumentOutOfRangeException(nameof(failure)),
+    };
+
     private static string ErrorText(ProductCommandError? error) => error switch
     {
         ProductCommandError.WrongPhase => "WRONG_PHASE · 현재 단계에서는 실행할 수 없습니다.",
@@ -632,8 +651,23 @@ public sealed partial class ProductMain : Control
     private static string PowerText(long kw) =>
         $"{(kw / 1_000d).ToString("0.###", CultureInfo.InvariantCulture)} MW";
 
-    private static string Machine<T>(T value) where T : struct, Enum =>
-        value.ToString().ToUpperInvariant();
+    private static string Machine<T>(T value) where T : struct, Enum
+    {
+        string source = value.ToString();
+        var result = new StringBuilder(source.Length + 8);
+        for (int index = 0; index < source.Length; index++)
+        {
+            char current = source[index];
+            if (index > 0 && char.IsUpper(current) &&
+                (char.IsLower(source[index - 1]) ||
+                 (index + 1 < source.Length && char.IsLower(source[index + 1]))))
+            {
+                result.Append('_');
+            }
+            result.Append(char.ToUpperInvariant(current));
+        }
+        return result.ToString();
+    }
 
     private static string ComputeBuildHash()
     {

@@ -1,15 +1,12 @@
-# 첫 점등 통합 — 활성 구현 계약
+# 첫 점등 통합 — 완료된 구현 기준
 
-> 상태: `ACTIVE`
+> 상태: `COMPLETED`
 >
-> 구현 권한: `GRANTED`
->
-> 외부 플레이 테스트: `CLOSED`
+> 사람 검증: `NOT_COLLECTED`
 
-사용자는 2D 게임을 외부 테스트 직전 상태까지 개발하도록 요청했다. 이 목표는 전체 로드맵을
-순서대로 진행할 권한이지만, 현재 구현할 수 있는 범위는 이 첫 단계 하나뿐이다. 이 단계가 자동검사,
-native 확인과 독립 검토를 마치기 전에는 병원, 발전소 신규 건설, 사건, 캠페인과 저장을 구현하지
-않는다.
+이 문서는 제품의 첫 기술 단계를 설명한다. fixture, Core, 화면, 자동검사와 native 확인은 완료됐다.
+외부 사람 관찰은 수집하지 않았으며, 이 완료가 병원·발전소·사건·캠페인·저장 구현을 자동으로
+허가하지 않는다.
 
 ## 1. 플레이어 결과
 
@@ -306,3 +303,41 @@ headless smoke도 handler를 직접 호출하지 않고 실제 viewport map clic
 
 외부 사람 관찰은 이 구현이 기술적으로 닫힌 뒤 별도 테스트 단계에서 수행한다. 현재 목표의 종료점은
 그 관찰을 시작하기 직전이다.
+
+## 10. 현재 검사와 종료 기록
+
+저장소 root에서 기계 검사를 실행한다.
+
+```sh
+dotnet run --project tools/Gridworks.ProductChecks/Gridworks.ProductChecks.csproj -c Release -- data/product-first-light-v1.json
+dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild
+```
+
+다음 smoke는 map handler를 직접 호출하지 않고 실제 viewport 입력과 표준 button signal을 거친다.
+좌표는 재현용 검사 입력일 뿐 fixture, 일반 플레이와 진단 기록의 기본값이 아니다.
+
+```sh
+godot_bin="$PWD/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot"
+smoke_dir="$(mktemp -d /private/tmp/gridworks-first-light-smoke.XXXXXX)"
+
+"$godot_bin" --headless --path "$PWD/game" --scene res://ProductMain.tscn \
+  --resolution 1280x720 --log-file "$smoke_dir/engine-1280.log" -- \
+  --session-id FIRST-LIGHT-1280 --diagnostic-log "$smoke_dir/app-1280.jsonl" \
+  --smoke --smoke-substation 13,6 --smoke-substation 14,6 \
+  --smoke-support 6,6 --smoke-support 10,6
+
+"$godot_bin" --headless --path "$PWD/game" --scene res://ProductMain.tscn \
+  --resolution 1920x1080 --log-file "$smoke_dir/engine-1920.log" -- \
+  --session-id FIRST-LIGHT-1920 --diagnostic-log "$smoke_dir/app-1920.jsonl" \
+  --smoke --smoke-substation 13,6 --smoke-substation 14,6 \
+  --smoke-support 6,6 --smoke-support 10,6
+```
+
+종료 시 Product 검사는 10개 묶음, 664개 assertion을 통과했다. Scope 0B·Scope 1 회귀, Game
+rebuild와 두 해상도 viewport smoke도 통과했고 두 실행은 같은 성공 결산에 도달했다. 별도 native
+검토에서 clipping·text overflow가 없고 계획·공사·통전이 색 이외의 선 모양과 문장으로 구분됨을
+확인했다. 지도와 표준 버튼의 접근성 이름·설명, Tab focus와 화살표·Enter 지도 입력도 확인했다.
+독립 코드·화면·문서 검토 뒤 남은 critical과 core-flow major는 없다.
+
+`HumanValidationStatus = NOT_COLLECTED`다. 이 기록은 사람 사용성·재미·밸런스를 통과했다는 뜻이
+아니며 다음 로드맵 단계를 열지 않는다.

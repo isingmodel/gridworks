@@ -19,7 +19,6 @@ internal enum FirstLightProjectVisualState
 
 internal enum FirstLightPointerMode
 {
-    None,
     Substation,
     LineSupport,
 }
@@ -29,8 +28,6 @@ internal sealed record FirstLightPointerPreview(
     FirstLightGridPoint Point,
     FirstLightGridPoint? From,
     bool Accepted,
-    long DistanceSquared,
-    long MaxDistanceSquared,
     string Description);
 
 internal sealed record FirstLightTargetPreview(
@@ -43,7 +40,6 @@ internal sealed record FirstLightMapModel(
     IReadOnlyList<FirstLightGridPoint> BlockedCells,
     FirstLightGridPoint Source,
     FirstLightGridPoint Town,
-    long TownDemandKw,
     long TownDeliveredKw,
     FirstLightGridPoint? Substation,
     int ServiceRadius,
@@ -118,9 +114,11 @@ internal sealed partial class FirstLightMapView : Container
 
         switch (inputEvent)
         {
-            case InputEventMouseMotion motion when
-                TrySnap(motion.Position, _model.Bounds, out FirstLightGridPoint hover):
-                PointerChanged?.Invoke(hover);
+            case InputEventMouseMotion motion:
+                PointerChanged?.Invoke(
+                    TrySnap(motion.Position, _model.Bounds, out FirstLightGridPoint hover)
+                        ? hover
+                        : null);
                 AcceptEvent();
                 return;
 
@@ -322,7 +320,7 @@ internal sealed partial class FirstLightMapView : Container
                 break;
             case FirstLightProjectVisualState.Building:
                 DrawDashedLine(from, to, BuildingColor, 5f, 10f, true, true);
-                DrawConstructionTick(from, to);
+                DrawConstructionHatching(from, to);
                 break;
             case FirstLightProjectVisualState.Commissioned:
                 DrawLine(from, to, Color.FromHtml("102b31"), 9f, true);
@@ -398,7 +396,7 @@ internal sealed partial class FirstLightMapView : Container
         }
         if (model.SubstationState == FirstLightProjectVisualState.Building)
         {
-            DrawConstructionTick(center + new Vector2(-12f, 0f), center + new Vector2(12f, 0f));
+            DrawConstructionHatching(center + new Vector2(-12f, 0f), center + new Vector2(12f, 0f));
         }
         DrawString(
             ThemeDB.FallbackFont,
@@ -432,7 +430,7 @@ internal sealed partial class FirstLightMapView : Container
     private void DrawPointerPreview(FirstLightMapModel model, Rect2 plot)
     {
         FirstLightPointerPreview? preview = model.PointerPreview;
-        if (preview is null || preview.Mode == FirstLightPointerMode.None)
+        if (preview is null)
         {
             return;
         }
@@ -479,7 +477,7 @@ internal sealed partial class FirstLightMapView : Container
     private void DrawLegend(FirstLightMapModel model)
     {
         string text =
-            $"{model.PhaseDescription}  ·  ┄ 계획  ·  ┅| 공사  ·  ━ 통전  ·  ◌ 서비스 권역";
+            $"{model.PhaseDescription}  ·  ┄ 계획  ·  ╱╱ 공사  ·  ━ 통전  ·  ◌ 서비스 권역";
         DrawString(
             ThemeDB.FallbackFont,
             new Vector2(18f, Size.Y - 14f),
@@ -575,12 +573,24 @@ internal sealed partial class FirstLightMapView : Container
 
     private void OnMouseExited() => PointerChanged?.Invoke(null);
 
-    private void DrawConstructionTick(Vector2 from, Vector2 to)
+    private void DrawConstructionHatching(Vector2 from, Vector2 to)
     {
-        Vector2 center = (from + to) / 2f;
-        Vector2 direction = (to - from).Normalized();
+        Vector2 segment = to - from;
+        float length = segment.Length();
+        if (length <= 0f)
+        {
+            return;
+        }
+        Vector2 direction = segment / length;
         Vector2 normal = new(-direction.Y, direction.X);
-        DrawLine(center - (normal * 7f), center + (normal * 7f), BuildingColor, 3f, true);
+        Vector2 slash = (direction + normal).Normalized() * 6f;
+        float spacing = 16f;
+        float start = Math.Min(spacing / 2f, length / 2f);
+        for (float distance = start; distance < length; distance += spacing)
+        {
+            Vector2 center = from + (direction * distance);
+            DrawLine(center - slash, center + slash, BuildingColor, 3f, true);
+        }
     }
 
     private void DrawCross(Vector2 center, Color color, float radius)

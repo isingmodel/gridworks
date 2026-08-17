@@ -3,15 +3,15 @@
 [ext_resource type="Script" path="res://ReleaseTaskPanel.cs" id="1_panel"]
 
 [node name="ReleaseTaskPanel" type="PanelContainer"]
-custom_minimum_size = Vector2(330, 0)
+custom_minimum_size = Vector2(390, 0)
 script = ExtResource("1_panel")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
 
 [node name="Scroll" type="ScrollContainer" parent="Margin"]
 layout_mode = 2
@@ -20,13 +20,13 @@ horizontal_scroll_mode = 0
 [node name="Column" type="VBoxContainer" parent="Margin/Scroll"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 9
+theme_override_constants/separation = 11
 
 [node name="HeadingLabel" type="Label" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "망 살펴보기"
+theme_override_font_sizes/font_size = 22
+text = "전력망 살펴보기"
 
 [node name="InstructionLabel" type="Label" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
@@ -57,12 +57,13 @@ autowrap_mode = 2
 [node name="ToolTitle" type="Label" parent="Margin/Scroll/Column"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
-text = "작업 선택"
+text = "공사 계획"
 
 [node name="InspectButton" type="Button" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "망 살펴보기"
+custom_minimum_size = Vector2(0, 40)
+text = "전력망 살펴보기"
 
 [node name="SubstationRow" type="HBoxContainer" parent="Margin/Scroll/Column"]
 layout_mode = 2
@@ -72,13 +73,15 @@ theme_override_constants/separation = 6
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "소형 변전소 놓기"
+custom_minimum_size = Vector2(0, 40)
+text = "소형 변전소 배치하기"
 
 [node name="LargeSubstationButton" type="Button" parent="Margin/Scroll/Column/SubstationRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "대형 변전소 놓기"
+custom_minimum_size = Vector2(0, 40)
+text = "대형 변전소 배치하기"
 
 [node name="LineRow" type="HBoxContainer" parent="Margin/Scroll/Column"]
 layout_mode = 2
@@ -88,13 +91,15 @@ theme_override_constants/separation = 6
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "일반 선로 잇기"
+custom_minimum_size = Vector2(0, 40)
+text = "일반 선로 계획하기"
 
 [node name="ReinforcedLineButton" type="Button" parent="Margin/Scroll/Column/LineRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-text = "보강 선로 잇기"
+custom_minimum_size = Vector2(0, 40)
+text = "보강 선로 계획하기"
 
 [node name="Separator1" type="HSeparator" parent="Margin/Scroll/Column"]
 layout_mode = 2
@@ -103,13 +108,13 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 2
-text = "선택한 설비가 없습니다."
+text = "지도에서 확인할 설비나 선로를 선택하세요."
 
 [node name="NetworkLabel" type="Label" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 2
-text = "공급 결과를 불러오는 중입니다."
+text = "전력 공급 상태를 확인하고 있습니다."
 
 [node name="QuoteLabel" type="Label" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
@@ -129,25 +134,30 @@ layout_mode = 2
 [node name="CancelButton" type="Button" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "계획 취소"
+custom_minimum_size = Vector2(0, 40)
+text = "현재 계획 취소하기"
 
 [node name="UndoButton" type="Button" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "마지막 전신주 되돌리기"
+custom_minimum_size = Vector2(0, 40)
+text = "마지막 선택 되돌리기"
 
 [node name="OrderButton" type="Button" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "공사 발주"
+custom_minimum_size = Vector2(0, 40)
+text = "현재 공사 발주하기"
 
 [node name="AdvanceButton" type="Button" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "공사 마치기"
+custom_minimum_size = Vector2(0, 40)
+text = "현재 공사 완료하기"
 
 [node name="EvaluateButton" type="Button" parent="Margin/Scroll/Column"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
-text = "임무 결과 확인"
+custom_minimum_size = Vector2(0, 42)
+text = "임무 완료 확인하기"

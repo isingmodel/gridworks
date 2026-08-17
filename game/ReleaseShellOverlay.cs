@@ -17,6 +17,7 @@ internal enum ReleaseShellAction
 {
     NewGame,
     Continue,
+    Quit,
     Resume,
     SaveAndQuit,
     RestartChapter,
@@ -51,6 +52,7 @@ internal sealed partial class ReleaseShellOverlay : Control
     private Label _confirmBody = null!;
     private Button _newGame = null!;
     private Button _continue = null!;
+    private Button _quit = null!;
     private Button _resume = null!;
     private Button _confirm = null!;
     private Button _cancelConfirm = null!;
@@ -97,6 +99,7 @@ internal sealed partial class ReleaseShellOverlay : Control
         _confirmBody = GetNode<Label>("%ConfirmBody");
         _newGame = GetNode<Button>("%NewGameButton");
         _continue = GetNode<Button>("%ContinueButton");
+        _quit = GetNode<Button>("%TitleQuitButton");
         _resume = GetNode<Button>("%ResumeButton");
         _confirm = GetNode<Button>("%ConfirmButton");
         _cancelConfirm = GetNode<Button>("%CancelConfirmButton");
@@ -117,6 +120,8 @@ internal sealed partial class ReleaseShellOverlay : Control
 
         _newGame.Pressed += OnNewGamePressed;
         _continue.Pressed += () => ContinueRequested?.Invoke();
+        _quit.Pressed += () => GetTree().Quit(0);
+        _quit.AccessibilityDescription = "게임을 종료하고 바탕 화면으로 돌아갑니다.";
         _resume.Pressed += () => ResumeRequested?.Invoke();
         GetNode<Button>("%SaveAndQuitButton").Pressed += () => SaveAndQuitRequested?.Invoke();
         GetNode<Button>("%RestartChapterButton").Pressed += OnRestartChapterPressed;
@@ -154,7 +159,7 @@ internal sealed partial class ReleaseShellOverlay : Control
             }
         };
 
-        AccessibilityName = "Gridworks 타이틀과 일시정지 메뉴";
+        AccessibilityName = "Gridworks 제목 화면 및 일시정지 메뉴";
         SetPage(ReleaseShellPage.Hidden);
     }
 
@@ -191,11 +196,11 @@ internal sealed partial class ReleaseShellOverlay : Control
         _hasSave = hasSave;
         _continue.Disabled = !hasSave;
         _continue.AccessibilityDescription = hasSave
-            ? "저장된 캠페인을 이어서 시작합니다."
-            : "이어할 수 있는 저장이 없습니다.";
+            ? "마지막으로 저장한 게임을 이어서 시작합니다."
+            : "이어할 저장 파일이 없습니다.";
         _titleMessage.Text = message;
         _titleMessage.AccessibilityName = string.IsNullOrWhiteSpace(message)
-            ? "저장 상태 이상 없음"
+            ? "알림 없음"
             : message;
         GetTree().Paused = true;
         SetPage(ReleaseShellPage.Title, hasSave ? _continue : _newGame);
@@ -260,6 +265,7 @@ internal sealed partial class ReleaseShellOverlay : Control
     {
         ReleaseShellAction.NewGame => _newGame,
         ReleaseShellAction.Continue => _continue,
+        ReleaseShellAction.Quit => _quit,
         ReleaseShellAction.Resume => _resume,
         ReleaseShellAction.SaveAndQuit => GetNode<Button>("%SaveAndQuitButton"),
         ReleaseShellAction.RestartChapter => GetNode<Button>("%RestartChapterButton"),
@@ -290,15 +296,15 @@ internal sealed partial class ReleaseShellOverlay : Control
         ShowConfirmation(
             ReleaseShellConfirmation.NewGame,
             "새 게임을 시작할까요?",
-            "현재 저장을 새 게임으로 덮어씁니다. 이 작업은 되돌릴 수 없습니다.",
-            "저장을 덮어쓰고 새 게임");
+            "지금까지 저장한 진행 상황이 사라집니다. 이 작업은 되돌릴 수 없습니다.",
+            "저장 삭제 후 새 게임 시작하기");
     }
 
     private void OnRestartChapterPressed() => ShowConfirmation(
         ReleaseShellConfirmation.RestartChapter,
         "현재 임무를 다시 시작할까요?",
-        "이번 임무에서 진행한 공사와 자금 변화가 사라지고 시작 시점으로 돌아갑니다.",
-        "현재 임무 다시 시작");
+        "이번 임무에서 진행한 공사와 사용한 자금이 사라지고 임무 시작 시점으로 돌아갑니다.",
+        "현재 임무 다시 시작하기");
 
     private void ShowSettings(ReleaseShellPage returnPage)
     {

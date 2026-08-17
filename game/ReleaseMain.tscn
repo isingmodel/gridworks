@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://ReleaseMain.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://ReleaseMapView.tscn" id="2_map"]
 [ext_resource type="PackedScene" path="res://ReleaseTaskPanel.tscn" id="3_panel"]
-[ext_resource type="Theme" path="res://ProductTheme.tres" id="4_theme"]
+[ext_resource type="Theme" path="res://ReleaseTheme.tres" id="4_theme"]
 [ext_resource type="PackedScene" path="res://ReleaseShellOverlay.tscn" id="5_shell"]
+[ext_resource type="PackedScene" path="res://ReleaseAudio.tscn" id="6_audio"]
 
 [node name="ReleaseMain" type="Control"]
 layout_mode = 3
@@ -73,7 +74,7 @@ size_flags_horizontal = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
-text = "망 살펴보기"
+text = "전력망 살펴보기"
 
 [node name="MenuButton" type="Button" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
 unique_name_in_owner = true
@@ -93,7 +94,7 @@ text = "현재 시각 · 1일차 00:00"
 [node name="SupplyLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/Metrics"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "공급 중 · 0 MW"
+text = "전력 공급 · 0 MW"
 
 [node name="AssetLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/Metrics"]
 unique_name_in_owner = true
@@ -153,44 +154,47 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="StoryPanel" type="PanelContainer" parent="StoryOverlay/StoryCenter"]
-custom_minimum_size = Vector2(620, 330)
+custom_minimum_size = Vector2(800, 420)
 layout_mode = 2
 
 [node name="StoryMargin" type="MarginContainer" parent="StoryOverlay/StoryCenter/StoryPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 32
 
 [node name="StoryColumn" type="VBoxContainer" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 18
 
 [node name="StoryCategoryLabel" type="Label" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin/StoryColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
+theme_override_font_sizes/font_size = 15
 text = "운영 브리핑"
 
 [node name="StoryTitleLabel" type="Label" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin/StoryColumn"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
-text = "동부권 확장 사전공사"
+theme_override_font_sizes/font_size = 30
+text = "동부 공급 경로를 준비합니다"
 
 [node name="StoryBodyLabel" type="Label" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin/StoryColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/line_spacing = 6
+theme_override_font_sizes/font_size = 18
 autowrap_mode = 2
-text = "운영 상황을 불러오는 중입니다."
+text = "청류시 전력망 상황을 불러오고 있습니다."
 
 [node name="StoryButton" type="Button" parent="StoryOverlay/StoryCenter/StoryPanel/StoryMargin/StoryColumn"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-text = "지도 확인하기"
+text = "공사 시작하기"
 
 [node name="FatalLabel" type="Label" parent="."]
 unique_name_in_owner = true
@@ -213,6 +217,9 @@ text = "게임을 시작하지 못했습니다."
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 2
+
+[node name="ReleaseAudio" parent="." instance=ExtResource("6_audio")]
+unique_name_in_owner = true
 
 [node name="ReleaseShellOverlay" parent="." instance=ExtResource("5_shell")]
 unique_name_in_owner = true

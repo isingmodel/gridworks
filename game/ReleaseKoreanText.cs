@@ -8,11 +8,11 @@ internal static class ReleaseKoreanText
 {
     public static string Phase(ReleaseConstructionPhase phase) => phase switch
     {
-        ReleaseConstructionPhase.Ready => "망 살펴보기",
-        ReleaseConstructionPhase.NodeDrafting => "변전소 계획",
-        ReleaseConstructionPhase.NodeBuilding => "변전소 공사",
-        ReleaseConstructionPhase.LineDrafting => "선로 계획",
-        ReleaseConstructionPhase.LineBuilding => "선로 공사",
+        ReleaseConstructionPhase.Ready => "전력망 살펴보기",
+        ReleaseConstructionPhase.NodeDrafting => "변전소 계획하기",
+        ReleaseConstructionPhase.NodeBuilding => "변전소 공사 중",
+        ReleaseConstructionPhase.LineDrafting => "선로 계획하기",
+        ReleaseConstructionPhase.LineBuilding => "선로 공사 중",
         _ => "현재 작업",
     };
 
@@ -22,17 +22,17 @@ internal static class ReleaseKoreanText
         ReleaseConstructionError.WrongPhase =>
             "지금은 이 작업을 할 수 없습니다. 진행 중인 계획이나 공사를 먼저 마치세요.",
         ReleaseConstructionError.UnknownClass =>
-            "선택한 설비 형식을 찾을 수 없습니다. 다른 설비를 선택하세요.",
+            "선택한 설비 종류를 찾을 수 없습니다. 다른 설비를 선택하세요.",
         ReleaseConstructionError.InvalidNodeClass =>
-            "이 도구로는 해당 설비를 놓을 수 없습니다. 변전소 형식을 선택하세요.",
+            "이 도구로는 해당 설비를 배치할 수 없습니다. 변전소 종류를 선택하세요.",
         ReleaseConstructionError.InvalidLineClass =>
-            "선택한 선로 형식을 사용할 수 없습니다. 다른 선로를 선택하세요.",
+            "선택한 선로 종류를 사용할 수 없습니다. 다른 선로를 선택하세요.",
         ReleaseConstructionError.InvalidPoleClass =>
-            "이 선로에 맞는 전신주 형식이 아닙니다. 다른 선로를 선택하세요.",
+            "선택한 선로를 사용할 수 없습니다. 다른 선로를 선택하세요.",
         ReleaseConstructionError.OutsideGrid =>
-            "공사 구역 밖입니다. 지도 안의 격자점을 선택하세요.",
+            "공사 구역 밖입니다. 지도 안의 격자를 선택하세요.",
         ReleaseConstructionError.PositionOccupied =>
-            "이미 설비가 있거나 이번 계획에서 사용한 자리입니다. 빈 격자점을 선택하세요.",
+            "이미 설비가 있거나 이번 계획에서 사용한 자리입니다. 빈 격자를 선택하세요.",
         ReleaseConstructionError.EndpointNotFound =>
             "선로를 시작할 접속점을 찾을 수 없습니다. 완공된 설비를 선택하세요.",
         ReleaseConstructionError.EndpointNotCommissioned =>
@@ -40,38 +40,80 @@ internal static class ReleaseKoreanText
         ReleaseConstructionError.SameEndpoint =>
             "선로를 시작한 설비로 되돌아갈 수 없습니다. 다른 완공 설비를 선택하세요.",
         ReleaseConstructionError.ConnectionLimit =>
-            "이 설비에는 새 선로를 연결할 여유가 없습니다. 접속 여유가 있는 설비를 선택하세요.",
+            "이 설비에는 새 선로를 연결할 여유가 없습니다. 남은 연결이 있는 설비를 선택하세요.",
         ReleaseConstructionError.SpanTooLong =>
-            "두 접속점 사이가 너무 멉니다. 사이에 전신주를 하나 더 놓으세요.",
+            "선택한 두 지점 사이가 너무 멉니다. 사이에 전신주를 하나 더 배치하세요.",
         ReleaseConstructionError.DuplicateSegment =>
             "두 설비 사이는 이미 직접 연결돼 있습니다. 다른 경로를 선택하세요.",
         ReleaseConstructionError.DraftIncomplete =>
-            "선로가 아직 다른 완공 설비에 닿지 않았습니다. 끝 접속점을 선택하세요.",
+            "선로가 아직 다른 완공 설비에 닿지 않았습니다. 선로를 연결할 끝 설비를 선택하세요.",
         ReleaseConstructionError.NothingToUndo =>
-            "되돌릴 전신주가 없습니다.",
+            "되돌릴 선택이 없습니다.",
         ReleaseConstructionError.ArithmeticOverflow =>
-            "이 계획의 견적을 계산할 수 없습니다. 더 짧은 계획으로 나누세요.",
+            "이 계획의 공사비와 기간을 계산할 수 없습니다. 선로를 여러 짧은 구간으로 나눠 계획하세요.",
         _ => "작업을 마칠 수 없습니다. 계획을 다시 확인하세요.",
     };
 
-    public static string SupplyFailure(ReleaseSupplyFailure failure, string? assetName) =>
-        failure.Kind switch
+    public static string SupplyFailure(
+        string loadName,
+        ReleaseSupplyFailure failure,
+        string? assetName,
+        bool duringEmergency = false)
+    {
+        string circumstance = duringEmergency ? "비상 상황에서 " : string.Empty;
+        string impact = loadName.EndsWith("전력", StringComparison.Ordinal)
+            ? $"{circumstance}{loadName} 공급이 끊겼습니다."
+            : $"{circumstance}{loadName}에 전력이 공급되지 않습니다.";
+        string success = loadName.EndsWith("전력", StringComparison.Ordinal)
+            ? $"{loadName}이 정상적으로 공급되고 있습니다."
+            : $"{loadName}에 필요한 전력이 공급되고 있습니다.";
+        string asset = string.IsNullOrWhiteSpace(assetName) ? "해당 설비" : assetName;
+        return failure.Kind switch
         {
-            ReleaseSupplyFailureKind.None => "공급 경로가 정상입니다.",
+            ReleaseSupplyFailureKind.None =>
+                success,
             ReleaseSupplyFailureKind.NoEligibleSubstation =>
-                "서비스 구역 안에 사용 가능한 변전소가 없습니다.",
+                $"{impact} 연결 범위 안에 가동 중인 변전소가 없습니다. " +
+                "가까운 변전소를 전력망에 연결하세요.",
             ReleaseSupplyFailureKind.Disconnected =>
-                "발전 접속점에서 수요처까지 이어진 경로가 없습니다.",
+                $"{impact} 발전 설비부터 이곳까지 이어진 선로가 없습니다. " +
+                "끊긴 구간을 연결하거나 우회선을 추가하세요.",
             ReleaseSupplyFailureKind.SourceCapacity =>
-                $"{NameOrAsset(assetName)}의 공급 여유가 {FormatPower(failure.ShortfallKw)} 부족합니다.",
+                $"{impact} {asset}의 공급 여유가 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
+                "다른 발전 경로를 연결해 전력을 나누세요.",
             ReleaseSupplyFailureKind.EdgeCapacity =>
-                $"{NameOrAsset(assetName)}의 선로 여유가 {FormatPower(failure.ShortfallKw)} 부족합니다.",
+                $"{impact} {asset}의 선로 허용량을 {FormatPower(failure.ShortfallKw)} 초과했습니다. " +
+                "다른 선로를 추가해 전력 흐름을 나누세요.",
             ReleaseSupplyFailureKind.NodeCapacity =>
-                $"{NameOrAsset(assetName)}의 통과 여유가 {FormatPower(failure.ShortfallKw)} 부족합니다.",
+                $"{impact} {asset}의 설비 허용량을 {FormatPower(failure.ShortfallKw)} 초과했습니다. " +
+                "다른 분기 경로를 연결해 전력 흐름을 나누세요.",
             ReleaseSupplyFailureKind.TransformerCapacity =>
-                $"{NameOrAsset(assetName)}의 변압 여유가 {FormatPower(failure.ShortfallKw)} 부족합니다.",
-            _ => "공급할 수 없는 이유를 확인하세요.",
+                $"{impact} {asset}의 변압 여유가 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
+                "다른 변전소로 수요를 나누거나 연결을 보강하세요.",
+            _ =>
+                $"{impact} 공급 경로와 설비 허용량을 확인한 뒤 전력망을 보강하세요.",
         };
+    }
+
+    public static string Capacity(long usedKw, long ratingKw)
+    {
+        long headroomKw = ratingKw - usedKw;
+        string headroom = headroomKw >= 0
+            ? $"남은 여유 {FormatPower(headroomKw)}"
+            : $"허용량 초과 {FormatPower(-headroomKw)}";
+        return $"사용량 {FormatPower(usedKw)} · 허용량 {FormatPower(ratingKw)} · {headroom}";
+    }
+
+    public static string Connections(int count, int maximum) =>
+        $"연결 {count}개 · 최대 {maximum}개 · 남은 연결 {maximum - count}개";
+
+    public static string ConnectionRequirement(
+        string nodeName,
+        int actualConnections,
+        int requiredConnections) =>
+        $"수요처에 안정적으로 전력을 보내려면 연결을 더 확보해야 합니다. {nodeName}에는 선로가 " +
+        $"{actualConnections}개 연결돼 있지만 {requiredConnections}개가 필요합니다. " +
+        "다른 완공 설비로 이어지는 선로를 추가하세요.";
 
     public static string FormatPower(long kilowatts) => kilowatts % 1_000 == 0
         ? $"{kilowatts / 1_000} MW"
@@ -81,8 +123,8 @@ internal static class ReleaseKoreanText
     {
         decimal tenThousands = cashUnit / 10_000m;
         return tenThousands == decimal.Truncate(tenThousands)
-            ? $"{tenThousands:0}만"
-            : $"{tenThousands:0.#}만";
+            ? $"{tenThousands:0}만 원"
+            : $"{tenThousands:0.#}만 원";
     }
 
     public static string FormatDuration(long minutes)
@@ -121,7 +163,4 @@ internal static class ReleaseKoreanText
         ReleaseNodeKind.DedicatedLoadTerminal => "전용 수요 접속점",
         _ => "전력 설비",
     };
-
-    private static string NameOrAsset(string? assetName) =>
-        string.IsNullOrWhiteSpace(assetName) ? "선택한 설비" : assetName;
 }

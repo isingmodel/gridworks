@@ -48,7 +48,7 @@ internal sealed record ReleaseTaskPanelModel(
     public string Event { get; init; } = string.Empty;
 
     public ReleaseButtonPresentation Evaluate { get; init; } =
-        new(false, false, "임무 결과 확인", "현재 임무의 공급 목표와 사고 대비 결과를 확인합니다.");
+        new(false, false, "임무 완료 확인하기", "평상시와 비상 상황 모두에서 임무 목표를 충족하는지 확인합니다.");
 }
 
 internal sealed partial class ReleaseTaskPanel : PanelContainer
@@ -119,7 +119,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         _network.AccessibilityName = model.Network;
         _quote.AccessibilityName = model.Quote;
         _error.AccessibilityName = string.IsNullOrWhiteSpace(model.Error)
-            ? "작업 오류 없음"
+            ? "현재 안내할 오류가 없습니다."
             : model.Error;
         _campaign.AccessibilityName = model.Campaign;
         _objective.AccessibilityName = model.Objective;
@@ -135,7 +135,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         Set(ReleasePanelAction.Order, model.Order);
         Set(ReleasePanelAction.Advance, model.Advance);
         Set(ReleasePanelAction.Evaluate, model.Evaluate);
-        AccessibilityName = $"전력망 작업 패널. {model.Heading}. {model.Network}";
+        AccessibilityName = $"전력망 작업 패널. 현재 작업: {model.Heading}. {model.Network}";
     }
 
     public BaseButton GetActionButton(ReleasePanelAction action) => _buttons[action];

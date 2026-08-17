@@ -7,6 +7,8 @@
 !/playtests/scope-0b/private/.gitignore
 /playtests/scope-1/private/*
 !/playtests/scope-1/private/.gitignore
+/playtests/release-2d/private/*
+!/playtests/release-2d/private/.gitignore
 
 # Local SDK/editor and generated implementation artifacts.
 /.tools/

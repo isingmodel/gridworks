@@ -146,6 +146,7 @@ internal sealed partial class ReleaseMapView : Control
         DrawGrid(grid, plot);
         DrawFacilityFootprints(snapshot.World, grid, plot);
         DrawRiskAreas(snapshot.World, grid, plot);
+        DrawWaterSupports(snapshot.World, grid, plot);
         DrawEdges(snapshot, grid, plot);
         DrawNonJunctionCrossings(snapshot, grid, plot);
         DrawLineDraft(snapshot, grid, plot);
@@ -210,21 +211,14 @@ internal sealed partial class ReleaseMapView : Control
         DrawTerrainContour(grid, plot,
             new ReleasePoint(22, 18), new ReleasePoint(27, 17), new ReleasePoint(32, 19));
 
-        Vector2[] river =
-        [
-            ToCanvas(new ReleasePoint(10, grid.MinY), grid, plot),
-            ToCanvas(new ReleasePoint(14, grid.MinY), grid, plot),
-            ToCanvas(new ReleasePoint(17, grid.MaxY), grid, plot),
-            ToCanvas(new ReleasePoint(12, grid.MaxY), grid, plot),
-        ];
-        DrawColoredPolygon(river, River);
-        DrawPolyline(new[] { river[0], river[3] }, RiverLine, 1.5f, true);
-        DrawPolyline(new[] { river[1], river[2] }, RiverLine, 1.5f, true);
-        for (int y = 2; y <= 18; y += 4)
+        if (world.WaterPolygon.Count >= 3)
         {
-            Vector2 from = ToCanvas(new Vector2(11.1f + (y * 0.08f), y), grid, plot);
-            Vector2 to = ToCanvas(new Vector2(13.3f + (y * 0.13f), y + 0.7f), grid, plot);
-            DrawLine(from, to, new Color(RiverLine, 0.72f), 1.2f, true);
+            Vector2[] river = world.WaterPolygon
+                .Select(point => ToCanvas(point, grid, plot))
+                .ToArray();
+            DrawColoredPolygon(river, River);
+            DrawPolyline(river.Append(river[0]).ToArray(), RiverLine, 1.5f, true);
+            DrawWaterPattern(world.WaterPolygon, grid, plot);
         }
 
         DrawRoad(grid, plot,
@@ -243,6 +237,34 @@ internal sealed partial class ReleaseMapView : Control
             DrawPowerYard(ToCanvas(node.Position, grid, plot));
         }
         DrawRect(plot, MajorGrid, false, 1.25f);
+    }
+
+    private void DrawWaterPattern(
+        IReadOnlyList<ReleasePoint> waterPolygon,
+        ReleaseGridDefinition grid,
+        Rect2 plot)
+    {
+        int minX = Math.Max(grid.MinX, waterPolygon.Min(point => point.X));
+        int maxX = Math.Min(grid.MaxX, waterPolygon.Max(point => point.X));
+        int minY = Math.Max(grid.MinY, waterPolygon.Min(point => point.Y));
+        int maxY = Math.Min(grid.MaxY, waterPolygon.Max(point => point.Y));
+        Vector2[] polygon = waterPolygon
+            .Select(point => new Vector2(point.X, point.Y))
+            .ToArray();
+        for (int x = minX; x < maxX; x++)
+        {
+            for (int y = minY; y < maxY; y++)
+            {
+                Vector2 center = new(x + 0.5f, y + 0.5f);
+                if ((x + (y * 2)) % 3 != 0 || !PointInsidePolygon(center, polygon))
+                {
+                    continue;
+                }
+                Vector2 from = ToCanvas(center + new Vector2(-0.3f, 0.12f), grid, plot);
+                Vector2 to = ToCanvas(center + new Vector2(0.3f, -0.12f), grid, plot);
+                DrawLine(from, to, new Color(RiverLine, 0.72f), 1.2f, true);
+            }
+        }
     }
 
     private void DrawDistrict(
@@ -442,6 +464,52 @@ internal sealed partial class ReleaseMapView : Control
                         new Color(Risk, 0.48f), 1.2f, true);
                 }
             }
+        }
+    }
+
+    private void DrawWaterSupports(
+        ReleaseWorldDefinition world,
+        ReleaseGridDefinition grid,
+        Rect2 plot)
+    {
+        if (world.WaterPolygon.Count < 3)
+        {
+            return;
+        }
+
+        Vector2[] water = world.WaterPolygon
+            .Select(point => new Vector2(point.X, point.Y))
+            .ToArray();
+        Dictionary<string, ReleaseNodeClassDefinition> classes =
+            world.NodeClasses.ToDictionary(item => item.ClassId);
+        foreach (ReleaseNodeDefinition node in world.Nodes)
+        {
+            Vector2 position = new(node.Position.X, node.Position.Y);
+            if (!PointInsidePolygon(position, water))
+            {
+                continue;
+            }
+
+            ReleaseNodeKind kind = classes[node.ClassId].Kind;
+            Vector2 center = ToCanvas(node.Position, grid, plot);
+            Vector2 halfSize = kind is ReleaseNodeKind.Substation or ReleaseNodeKind.SourceTerminal
+                ? new Vector2(15f, 11f)
+                : new Vector2(9f, 8f);
+            Rect2 platform = new(center - halfSize, halfSize * 2f);
+            DrawRect(platform, new Color(Road, 0.96f));
+            DrawRect(platform, new Color(Facility, 0.72f), false, 1.4f);
+            DrawLine(
+                center + new Vector2(-halfSize.X + 3f, -halfSize.Y),
+                center + new Vector2(-halfSize.X + 3f, halfSize.Y),
+                new Color(Facility, 0.55f),
+                1.2f,
+                true);
+            DrawLine(
+                center + new Vector2(halfSize.X - 3f, -halfSize.Y),
+                center + new Vector2(halfSize.X - 3f, halfSize.Y),
+                new Color(Facility, 0.55f),
+                1.2f,
+                true);
         }
     }
 
@@ -745,10 +813,10 @@ internal sealed partial class ReleaseMapView : Control
         DrawRect(new Rect2(8f, 6f, legendWidth, 29f), new Color(Background, 0.94f));
         DrawRect(new Rect2(8f, 6f, legendWidth, 29f), new Color(MajorGrid, 0.8f), false, 1f);
         DrawLegendLine(18f, "통전", Energized, false, true);
-        DrawLegendLine(102f, "완공·무전압", Idle, false, false);
-        DrawLegendLine(231f, "계획·공사", Planned, true, false);
-        DrawLegendLine(340f, "사용 불가", Invalid, true, false, true);
-        DrawRiskLegend(460f);
+        DrawLegendLine(92f, "완공·현재 미사용", Idle, false, false);
+        DrawLegendLine(252f, "계획·공사", Planned, true, false);
+        DrawLegendLine(363f, "사용 불가", Invalid, true, false, true);
+        DrawRiskLegend(480f);
     }
 
     private void DrawLegendLine(

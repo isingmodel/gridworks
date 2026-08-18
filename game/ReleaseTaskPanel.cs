@@ -66,6 +66,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
     private Label _campaign = null!;
     private Label _objective = null!;
     private Label _event = null!;
+    private Label _toolTitle = null!;
     private IReadOnlyDictionary<ReleasePanelAction, Button> _buttons = null!;
 
     public event Action<ReleasePanelAction>? ActionRequested;
@@ -81,6 +82,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         _campaign = GetNode<Label>("%CampaignLabel");
         _objective = GetNode<Label>("%ObjectiveLabel");
         _event = GetNode<Label>("%EventLabel");
+        _toolTitle = GetNode<Label>("%ToolTitle");
         _error.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Assertive;
         _quote.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite;
 
@@ -115,6 +117,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         _campaign.Text = model.Campaign;
         _objective.Text = model.Objective;
         _event.Text = model.Event;
+        _toolTitle.Text = $"현재 작업 · {model.Heading}";
         _campaign.Visible = !string.IsNullOrWhiteSpace(model.Campaign);
         _objective.Visible = !string.IsNullOrWhiteSpace(model.Objective);
         _event.Visible = !string.IsNullOrWhiteSpace(model.Event);
@@ -129,6 +132,7 @@ internal sealed partial class ReleaseTaskPanel : PanelContainer
         _campaign.AccessibilityName = model.Campaign;
         _objective.AccessibilityName = model.Objective;
         _event.AccessibilityName = model.Event;
+        _toolTitle.AccessibilityName = _toolTitle.Text;
 
         Set(ReleasePanelAction.Inspect, model.Inspect);
         Set(ReleasePanelAction.SmallSubstation, model.SmallSubstation);

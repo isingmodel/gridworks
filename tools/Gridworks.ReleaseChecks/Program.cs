@@ -143,6 +143,7 @@ internal sealed class ReleaseChecks
         Equal(0, _fixture.Grid.MinY, "release grid minimum Y");
         Equal(32, _fixture.Grid.MaxX, "release grid maximum X");
         Equal(20, _fixture.Grid.MaxY, "release grid maximum Y");
+        Equal(4, _fixture.WaterPolygon.Count, "release water polygon point count");
 
         string trimmed = _fixtureJson.TrimStart();
         ExpectLoaderRejected(
@@ -150,6 +151,37 @@ internal sealed class ReleaseChecks
             $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
         ExpectLoaderRejectedBytes("invalid UTF-8", [0xff, 0xfe, 0xfd]);
         ExpectLoaderRejected("unknown root field", root => root["unexpected"] = true);
+        ExpectLoaderRejected("missing water polygon", root => root.Remove("waterPolygon"));
+        ExpectLoaderRejected(
+            "water polygon with fewer than three points",
+            root =>
+            {
+                JsonArray polygon = Array(root, "waterPolygon");
+                polygon.RemoveAt(3);
+                polygon.RemoveAt(2);
+            });
+        ExpectLoaderRejected(
+            "water polygon point outside grid",
+            root => Object(Array(root, "waterPolygon")[0]!)["x"] = -1);
+        ExpectLoaderRejected(
+            "water polygon with fewer than three distinct points",
+            root =>
+            {
+                JsonArray polygon = Array(root, "waterPolygon");
+                polygon[2] = polygon[0]!.DeepClone();
+                polygon[3] = polygon[1]!.DeepClone();
+            });
+        ExpectLoaderRejected(
+            "collinear water polygon",
+            root =>
+            {
+                JsonArray polygon = Array(root, "waterPolygon");
+                for (int index = 0; index < polygon.Count; index++)
+                {
+                    Object(polygon[index]!)["x"] = 10 + index;
+                    Object(polygon[index]!)["y"] = 0;
+                }
+            });
         ExpectLoaderRejected(
             "unknown nested field",
             root => Object(root, "grid")["unexpected"] = true);
@@ -324,6 +356,24 @@ internal sealed class ReleaseChecks
             "E_CONNECTED",
             connectedFailure.Failure.AssetId,
             "failure must identify the first bottleneck on a connected source path");
+
+        ReleaseLoadSupply exhaustedFirstFailure = LoadSupply(
+            ReleaseNetworkEvaluator.Evaluate(ExhaustedFirstSourceBottleneckWorld()),
+            "Z_TARGET");
+        Equal(
+            ReleaseSupplyFailureKind.EdgeCapacity,
+            exhaustedFirstFailure.Failure.Kind,
+            "later adequate source path bottleneck must outrank earlier exhausted source");
+        Equal(
+            "E_SECOND_TARGET",
+            exhaustedFirstFailure.Failure.AssetId,
+            "later source failure must identify its exact path bottleneck");
+        Equal(
+            "SOURCE_SECOND",
+            exhaustedFirstFailure.Failure.AttemptedSourceId,
+            "path bottleneck must identify the attempted source");
+        Equal(10L, exhaustedFirstFailure.Failure.ShortfallKw,
+            "later source path bottleneck shortfall");
     }
 
     private void CheckServiceAreaAndDedicatedLoads()
@@ -446,6 +496,27 @@ internal sealed class ReleaseChecks
         ReleaseConstructionSnapshot initial = session.GetSnapshot();
         Equal(ReleaseConstructionPhase.Ready, initial.Phase, "construction initial phase");
 
+        ReleaseNodePlacementPreview waterPreview = session.PreviewNodePlacement(
+            "SUBSTATION_SMALL",
+            new ReleasePoint(12, 10));
+        Check(!waterPreview.Accepted, "water substation preview accepted");
+        Equal(ReleaseConstructionError.WaterSurface, waterPreview.Error,
+            "water substation preview error");
+        ReleaseNodePlacementPreview waterBoundary = session.PreviewNodePlacement(
+            "SUBSTATION_SMALL",
+            new ReleasePoint(10, 0));
+        Check(!waterBoundary.Accepted, "water polygon boundary accepted");
+        Equal(ReleaseConstructionError.WaterSurface, waterBoundary.Error,
+            "water polygon boundary error");
+        ReleaseConstructionCommandResult waterPlacement = session.SetNodeDraft(
+            "SUBSTATION_SMALL",
+            new ReleasePoint(12, 10));
+        Check(!waterPlacement.Accepted, "water substation placement accepted");
+        Equal(ReleaseConstructionError.WaterSurface, waterPlacement.Error,
+            "water substation placement error");
+        Equal(JsonSerializer.Serialize(initial), JsonSerializer.Serialize(session.GetSnapshot()),
+            "rejected water substation changed state");
+
         Check(session.PreviewNodePlacement(
             "SUBSTATION_SMALL",
             new ReleasePoint(24, 6)).Accepted, "valid substation preview rejected");
@@ -498,13 +569,11 @@ internal sealed class ReleaseChecks
     {
         var session = new ReleaseConstructionSession(_fixture);
         Check(session.StartLineDraft(
-            "SOUTH_JUNCTION",
+            "SOUTH_SUBSTATION",
             "LINE_REINFORCED",
             "POLE_STANDARD").Accepted, "line draft start rejected");
-        Check(session.AddLinePoint(new ReleasePoint(13, 13)).Accepted,
+        Check(session.AddLinePoint(new ReleasePoint(17, 14)).Accepted,
             "first line pole rejected");
-        Check(session.AddLinePoint(new ReleasePoint(16, 12)).Accepted,
-            "second line pole rejected");
         ReleaseConstructionCommandResult end = session.AddLinePoint(new ReleasePoint(17, 10));
         Check(end.Accepted, "line endpoint rejected");
         Equal("EAST_SUBSTATION", session.GetSnapshot().LineDraft!.EndNodeId,
@@ -517,20 +586,20 @@ internal sealed class ReleaseChecks
 
         ReleaseConstructionQuote quote = session.PreviewLineOrder();
         Check(quote.Accepted, "line quote rejected");
-        Equal(1_650_000L, quote.CostCashUnit, "line quote cost");
-        Equal(18_980L, quote.BuildMinutes, "line quote duration");
-        Equal(18_980L, quote.CompletionMinute, "line quote completion");
+        Equal(1_338_600L, quote.CostCashUnit, "line quote cost");
+        Equal(16_338L, quote.BuildMinutes, "line quote duration");
+        Equal(16_338L, quote.CompletionMinute, "line quote completion");
 
         long deliveredBefore = session.GetSnapshot().Evaluation.TotalDeliveredKw;
         Check(session.OrderLine().Accepted, "line order rejected");
         ReleaseConstructionSnapshot building = session.GetSnapshot();
         Equal(ReleaseConstructionPhase.LineBuilding, building.Phase, "line building phase");
-        Equal(2, building.ActiveConstruction!.NodeIds.Count, "planned pole count");
-        Equal(3, building.ActiveConstruction.EdgeIds.Count, "planned edge count");
+        Equal(1, building.ActiveConstruction!.NodeIds.Count, "planned pole count");
+        Equal(2, building.ActiveConstruction.EdgeIds.Count, "planned edge count");
         Check(building.ActiveConstruction.EdgeIds.All(edgeId =>
             !EdgeUsage(building.Evaluation, edgeId).Available),
             "ordered line entered supply before atomic completion");
-        Equal(4, NodeUsage(building.Evaluation, "SOUTH_JUNCTION").ConnectionCount,
+        Equal(3, NodeUsage(building.Evaluation, "SOUTH_SUBSTATION").ConnectionCount,
             "planned branch did not reserve connection slot");
         Equal(deliveredBefore, building.Evaluation.TotalDeliveredKw,
             "planned line changed supply before completion");
@@ -538,12 +607,12 @@ internal sealed class ReleaseChecks
         Check(session.AdvanceToConstructionCompletion().Accepted,
             "line completion rejected");
         ReleaseConstructionSnapshot completed = session.GetSnapshot();
-        Equal(18_980L, completed.Minute, "line completion minute");
+        Equal(16_338L, completed.Minute, "line completion minute");
         Check(completed.ActiveConstruction is null, "line construction remained active");
         Check(building.ActiveConstruction.EdgeIds.All(edgeId =>
             EdgeUsage(completed.Evaluation, edgeId).Available),
             "line edges did not commission atomically");
-        Equal(4, NodeUsage(completed.Evaluation, "SOUTH_JUNCTION").ConnectionCount,
+        Equal(3, NodeUsage(completed.Evaluation, "SOUTH_SUBSTATION").ConnectionCount,
             "completed branch degree");
         Equal(2, NodeUsage(completed.Evaluation, "EAST_SUBSTATION").ConnectionCount,
             "completed merge degree");
@@ -572,14 +641,32 @@ internal sealed class ReleaseChecks
         Equal(initial, JsonSerializer.Serialize(session.GetSnapshot()),
             "rejected line start changed state");
 
+        ReleaseLineStartPreview fullStartPreview = session.PreviewLineStart(
+            "CENTRAL_JUNCTION",
+            "LINE_REINFORCED",
+            "POLE_STANDARD");
+        Check(!fullStartPreview.Accepted, "full branch start preview accepted");
+        Equal(ReleaseConstructionError.ConnectionLimit, fullStartPreview.Error,
+            "full branch start preview error");
+        Equal(initial, JsonSerializer.Serialize(session.GetSnapshot()),
+            "rejected line start preview changed state");
+
         Check(session.StartLineDraft(
             "SOUTH_JUNCTION",
             "LINE_REINFORCED",
             "POLE_STANDARD").Accepted, "rejection test line start");
-        Check(session.AddLinePoint(new ReleasePoint(13, 13)).Accepted,
+        string beforeWaterPoint = JsonSerializer.Serialize(session.GetSnapshot());
+        ReleaseConstructionCommandResult waterPoint = session.AddLinePoint(
+            new ReleasePoint(12, 13));
+        Check(!waterPoint.Accepted, "water intermediate pole accepted");
+        Equal(ReleaseConstructionError.WaterSurface, waterPoint.Error,
+            "water intermediate pole error");
+        Equal(beforeWaterPoint, JsonSerializer.Serialize(session.GetSnapshot()),
+            "rejected water intermediate pole changed state");
+        Check(session.AddLinePoint(new ReleasePoint(10, 14)).Accepted,
             "rejection test first point");
         string beforeRejectedPoint = JsonSerializer.Serialize(session.GetSnapshot());
-        ReleaseConstructionCommandResult duplicate = session.AddLinePoint(new ReleasePoint(13, 13));
+        ReleaseConstructionCommandResult duplicate = session.AddLinePoint(new ReleasePoint(10, 14));
         Check(!duplicate.Accepted, "duplicate line point accepted");
         Equal(ReleaseConstructionError.PositionOccupied, duplicate.Error,
             "duplicate line point error");
@@ -607,9 +694,8 @@ internal sealed class ReleaseChecks
 
     private static void CompleteCanonicalLine(ReleaseConstructionSession session)
     {
-        _ = session.StartLineDraft("SOUTH_JUNCTION", "LINE_REINFORCED", "POLE_STANDARD");
-        _ = session.AddLinePoint(new ReleasePoint(13, 13));
-        _ = session.AddLinePoint(new ReleasePoint(16, 12));
+        _ = session.StartLineDraft("SOUTH_SUBSTATION", "LINE_REINFORCED", "POLE_STANDARD");
+        _ = session.AddLinePoint(new ReleasePoint(17, 14));
         _ = session.AddLinePoint(new ReleasePoint(17, 10));
         _ = session.OrderLine();
         _ = session.AdvanceToConstructionCompletion();
@@ -767,7 +853,7 @@ internal sealed class ReleaseChecks
 
         AssertCurrentChapterNeedsWork(run, "CHAPTER_PLANNED_OUTAGE");
         BuildLine(run, "SOUTH_SUBSTATION", "LINE_REINFORCED", "POLE_REINFORCED",
-            new ReleasePoint(16, 14),
+            new ReleasePoint(17, 14),
             new ReleasePoint(17, 10));
         CompleteCampaignChapter(run, "CHAPTER_PLANNED_OUTAGE");
 
@@ -1208,6 +1294,47 @@ internal sealed class ReleaseChecks
                 Source("SOURCE_CONNECTED", "S_CONNECTED", 1, 100),
             ],
             loads: [DedicatedLoad("LOAD", 50, "D", 4, 4)]);
+    }
+
+    private static ReleaseWorldDefinition ExhaustedFirstSourceBottleneckWorld()
+    {
+        return World(
+            "EXHAUSTED_FIRST_SOURCE_BOTTLENECK",
+            nodes:
+            [
+                Node("S_FIRST", SourceClassId, 0, 2),
+                Node("S_SECOND", SourceClassId, 0, 6),
+                Node("D_PRIORITY", DedicatedClassId, 4, 2),
+                Node("D_TARGET", DedicatedClassId, 4, 6),
+            ],
+            edges:
+            [
+                Edge("E_FIRST_PRIORITY", "S_FIRST", "D_PRIORITY"),
+                Edge("E_FIRST_TARGET", "S_FIRST", "D_TARGET"),
+                Edge("E_SECOND_TARGET", "S_SECOND", "D_TARGET", Line40ClassId),
+            ],
+            sources:
+            [
+                Source("SOURCE_FIRST", "S_FIRST", 0, 100),
+                Source("SOURCE_SECOND", "S_SECOND", 1, 50),
+            ],
+            loads:
+            [
+                DedicatedLoad(
+                    "A_PRIORITY",
+                    100,
+                    "D_PRIORITY",
+                    4,
+                    2,
+                    ReleaseLoadPriority.LifeSafety),
+                DedicatedLoad(
+                    "Z_TARGET",
+                    50,
+                    "D_TARGET",
+                    4,
+                    6,
+                    ReleaseLoadPriority.Industrial),
+            ]);
     }
 
     private static ReleaseWorldDefinition MixedConnectionWorld()

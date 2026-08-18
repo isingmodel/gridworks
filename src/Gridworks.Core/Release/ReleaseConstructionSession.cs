@@ -57,6 +57,11 @@ public sealed class ReleaseConstructionSession
             return NodePreview(false, ReleaseConstructionError.PositionOccupied, nodeClassId, position);
         }
 
+        if (OnWater(position))
+        {
+            return NodePreview(false, ReleaseConstructionError.WaterSurface, nodeClassId, position);
+        }
+
         return NodePreview(true, null, nodeClassId, position);
     }
 
@@ -159,39 +164,83 @@ public sealed class ReleaseConstructionSession
         return Accepted();
     }
 
-    public ReleaseConstructionCommandResult StartLineDraft(
+    public ReleaseLineStartPreview PreviewLineStart(
         string startNodeId,
         string lineClassId,
         string poleClassId)
     {
         if (_phase != ReleaseConstructionPhase.Ready)
         {
-            return Rejected(ReleaseConstructionError.WrongPhase);
+            return LineStartPreview(
+                false,
+                ReleaseConstructionError.WrongPhase,
+                startNodeId,
+                lineClassId,
+                poleClassId);
         }
 
         ReleaseNodeDefinition? start = NodeById(startNodeId);
         if (start is null)
         {
-            return Rejected(ReleaseConstructionError.EndpointNotFound);
+            return LineStartPreview(
+                false,
+                ReleaseConstructionError.EndpointNotFound,
+                startNodeId,
+                lineClassId,
+                poleClassId);
         }
         if (!start.Commissioned)
         {
-            return Rejected(ReleaseConstructionError.EndpointNotCommissioned);
+            return LineStartPreview(
+                false,
+                ReleaseConstructionError.EndpointNotCommissioned,
+                startNodeId,
+                lineClassId,
+                poleClassId);
         }
         if (!TryLineClass(lineClassId, out _))
         {
-            return Rejected(ReleaseConstructionError.InvalidLineClass);
+            return LineStartPreview(
+                false,
+                ReleaseConstructionError.InvalidLineClass,
+                startNodeId,
+                lineClassId,
+                poleClassId);
         }
         if (!TryNodeClass(poleClassId, out ReleaseNodeClassDefinition? poleClass) ||
             poleClass is null ||
             poleClass.Kind != ReleaseNodeKind.Pole ||
             poleClass.MaxConnections < 2)
         {
-            return Rejected(ReleaseConstructionError.InvalidPoleClass);
+            return LineStartPreview(
+                false,
+                ReleaseConstructionError.InvalidPoleClass,
+                startNodeId,
+                lineClassId,
+                poleClassId);
         }
         if (ConnectionCount(startNodeId) >= NodeClass(start.ClassId).MaxConnections)
         {
-            return Rejected(ReleaseConstructionError.ConnectionLimit);
+            return LineStartPreview(
+                false,
+                ReleaseConstructionError.ConnectionLimit,
+                startNodeId,
+                lineClassId,
+                poleClassId);
+        }
+
+        return LineStartPreview(true, null, startNodeId, lineClassId, poleClassId);
+    }
+
+    public ReleaseConstructionCommandResult StartLineDraft(
+        string startNodeId,
+        string lineClassId,
+        string poleClassId)
+    {
+        ReleaseLineStartPreview preview = PreviewLineStart(startNodeId, lineClassId, poleClassId);
+        if (!preview.Accepted)
+        {
+            return Rejected(preview.Error!.Value);
         }
 
         _lineDraft = new LineDraftState(startNodeId, lineClassId, poleClassId);
@@ -245,6 +294,10 @@ public sealed class ReleaseConstructionSession
             {
                 return LinePreview(false, ReleaseConstructionError.DuplicateSegment, position);
             }
+        }
+        else if (OnWater(position))
+        {
+            return LinePreview(false, ReleaseConstructionError.WaterSurface, position);
         }
 
         ReleaseLineClassDefinition lineClass = LineClass(_lineDraft.LineClassId);
@@ -492,6 +545,14 @@ public sealed class ReleaseConstructionSession
         ReleaseConstructionError error,
         ReleasePoint position) => new(false, error, position, false, null, null, null);
 
+    private static ReleaseLineStartPreview LineStartPreview(
+        bool accepted,
+        ReleaseConstructionError? error,
+        string startNodeId,
+        string lineClassId,
+        string poleClassId) =>
+        new(accepted, error, startNodeId, lineClassId, poleClassId);
+
     private static ReleaseConstructionQuote QuoteRejected(ReleaseConstructionError error) =>
         new(false, error, null, null, null);
 
@@ -534,6 +595,10 @@ public sealed class ReleaseConstructionSession
     private bool InGrid(ReleasePoint point) =>
         point.X >= _world.Grid.MinX && point.X <= _world.Grid.MaxX &&
         point.Y >= _world.Grid.MinY && point.Y <= _world.Grid.MaxY;
+
+    private bool OnWater(ReleasePoint point) =>
+        _world.WaterPolygon.Count != 0 &&
+        ReleaseGridMath.PointInPolygon(point, _world.WaterPolygon);
 
     private static string NextAvailableId(
         string prefix,

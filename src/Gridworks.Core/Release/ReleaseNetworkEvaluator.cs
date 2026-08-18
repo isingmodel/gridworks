@@ -25,7 +25,7 @@ public static class ReleaseNetworkEvaluator
             ReleaseRiskAreaDefinition area = riskAreas[riskAreaId];
             foreach (ReleaseNodeDefinition node in world.Nodes)
             {
-                if (PointInPolygon(node.Position, area.Polygon))
+                if (ReleaseGridMath.PointInPolygon(node.Position, area.Polygon))
                 {
                     unavailableNodes.Add(node.NodeId);
                 }
@@ -113,7 +113,8 @@ public static class ReleaseNetworkEvaluator
             }
             PathSnapshot? selectedPath = null;
             ReleaseSourceDefinition? selectedSource = null;
-            ReleaseSupplyFailure? firstCapacityFailure = null;
+            ReleaseSupplyFailure? firstSourceCapacityFailure = null;
+            ReleaseSupplyFailure? firstPathCapacityFailure = null;
 
             foreach (ReleaseSourceDefinition source in orderedSources)
             {
@@ -144,10 +145,11 @@ public static class ReleaseNetworkEvaluator
                 long sourceRemaining = source.CapacityKw - sourceUsed[source.SourceId];
                 if (sourceRemaining < load.DemandKw)
                 {
-                    firstCapacityFailure ??= new ReleaseSupplyFailure(
+                    firstSourceCapacityFailure ??= new ReleaseSupplyFailure(
                         ReleaseSupplyFailureKind.SourceCapacity,
                         source.SourceId,
-                        load.DemandKw - sourceRemaining);
+                        load.DemandKw - sourceRemaining,
+                        source.SourceId);
                     continue;
                 }
 
@@ -172,9 +174,8 @@ public static class ReleaseNetworkEvaluator
                     break;
                 }
 
-                if (firstCapacityFailure is null)
-                {
-                    firstCapacityFailure = FirstCapacityFailure(
+                if (firstPathCapacityFailure is null &&
+                    FirstCapacityFailure(
                         topologyPath,
                         load.DemandKw,
                         nodes,
@@ -182,17 +183,24 @@ public static class ReleaseNetworkEvaluator
                         nodeClasses,
                         lineClasses,
                         nodeUsed,
-                        edgeUsed);
+                        edgeUsed) is ReleaseSupplyFailure pathFailure)
+                {
+                    firstPathCapacityFailure = pathFailure with
+                    {
+                        AttemptedSourceId = source.SourceId,
+                    };
                 }
             }
 
             if (selectedPath is null || selectedSource is null)
             {
-                ReleaseSupplyFailure failure = firstCapacityFailure ?? new ReleaseSupplyFailure(
-                    ReleaseSupplyFailureKind.Disconnected,
-                    null,
-                    load.DemandKw);
-                loadResults.Add(FailedLoad(load, failure.Kind, failure.AssetId, failure.ShortfallKw));
+                ReleaseSupplyFailure failure = firstPathCapacityFailure ??
+                    firstSourceCapacityFailure ??
+                    new ReleaseSupplyFailure(
+                        ReleaseSupplyFailureKind.Disconnected,
+                        null,
+                        load.DemandKw);
+                loadResults.Add(FailedLoad(load, failure));
                 continue;
             }
 
@@ -275,6 +283,18 @@ public static class ReleaseNetworkEvaluator
         Array.Empty<string>(),
         Array.Empty<string>(),
         new ReleaseSupplyFailure(kind, assetId, shortfallKw));
+
+    private static ReleaseLoadSupply FailedLoad(
+        ReleaseLoadDefinition load,
+        ReleaseSupplyFailure failure) => new(
+        load.LoadId,
+        load.DemandKw,
+        0,
+        null,
+        null,
+        Array.Empty<string>(),
+        Array.Empty<string>(),
+        failure);
 
     private static string[] EligibleEndpoints(
         ReleaseLoadDefinition load,
@@ -516,7 +536,8 @@ public static class ReleaseNetworkEvaluator
         ReleasePoint to,
         IReadOnlyList<ReleasePoint> polygon)
     {
-        if (PointInPolygon(from, polygon) || PointInPolygon(to, polygon))
+        if (ReleaseGridMath.PointInPolygon(from, polygon) ||
+            ReleaseGridMath.PointInPolygon(to, polygon))
         {
             return true;
         }
@@ -528,29 +549,6 @@ public static class ReleaseNetworkEvaluator
             }
         }
         return false;
-    }
-
-    private static bool PointInPolygon(ReleasePoint point, IReadOnlyList<ReleasePoint> polygon)
-    {
-        bool inside = false;
-        for (int index = 0, previous = polygon.Count - 1; index < polygon.Count; previous = index++)
-        {
-            ReleasePoint a = polygon[previous];
-            ReleasePoint b = polygon[index];
-            if (Orientation(a, b, point) == 0 && OnSegment(a, point, b))
-            {
-                return true;
-            }
-            if ((a.Y > point.Y) != (b.Y > point.Y))
-            {
-                double crossingX = a.X + ((double)(b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y));
-                if (point.X < crossingX)
-                {
-                    inside = !inside;
-                }
-            }
-        }
-        return inside;
     }
 
     private static bool SegmentsIntersect(

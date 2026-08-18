@@ -189,6 +189,14 @@ public sealed partial class ReleaseMain : Control
                 _pointerAccepted = preview.Accepted;
                 _pointerError = preview.Error;
             }
+            else if (_tool is Tool.StandardLine or Tool.ReinforcedLine &&
+                     _snapshot.Phase == ReleaseConstructionPhase.Ready)
+            {
+                string startNodeId = NodeAt(actual)?.NodeId ?? string.Empty;
+                ReleaseLineStartPreview preview = PreviewLineStart(startNodeId);
+                _pointerAccepted = preview.Accepted;
+                _pointerError = preview.Error;
+            }
             else if (_snapshot.Phase == ReleaseConstructionPhase.LineDrafting)
             {
                 ReleaseLinePointPreview preview = PreviewLinePoint(actual);
@@ -264,6 +272,7 @@ public sealed partial class ReleaseMain : Control
             case ReleasePanelAction.Inspect:
                 _tool = Tool.Inspect;
                 _lastError = null;
+                _pointerError = null;
                 break;
             case ReleasePanelAction.SmallSubstation:
                 _showEventProjection = false;
@@ -325,10 +334,14 @@ public sealed partial class ReleaseMain : Control
                 if (advanced)
                 {
                     _audio.PlayLive(ReleaseAudioCue.Energize);
+                    _tool = Tool.Inspect;
+                    if (_run is not null)
+                    {
+                        _map.CallDeferred(Control.MethodName.GrabFocus);
+                    }
                 }
                 if (_run is null && _lastError is null && kind == ReleaseConstructionKind.Node)
                 {
-                    _tool = Tool.Inspect;
                     ShowStory(
                         "공사 상황",
                         "변전소 공사가 끝났습니다",
@@ -343,7 +356,6 @@ public sealed partial class ReleaseMain : Control
                 }
                 else if (_run is null && _lastError is null && kind == ReleaseConstructionKind.Line)
                 {
-                    _tool = Tool.Inspect;
                     ShowStory(
                         "공사 결과",
                         "남부 우회선이 연결됐습니다",
@@ -427,19 +439,24 @@ public sealed partial class ReleaseMain : Control
         {
             _showEventProjection = true;
         }
+        if (!result.Accepted && result.Assessment?.SupplyFailure is ReleaseSupplyFailure failure)
+        {
+            SelectFailureAsset(failure.AssetId);
+        }
         Render();
     }
 
     private void Render()
     {
         ReleaseConstructionSnapshot displaySnapshot = DisplaySnapshot();
+        string currentWork = CurrentWorkName();
         _phaseLabel.Text = _campaignSnapshot is null
-            ? ReleaseKoreanText.Phase(_snapshot.Phase)
+            ? currentWork
             : $"{_campaignSnapshot.Chapter.ActLabel} · {_campaignSnapshot.Chapter.DisplayName} · " +
-              (_showEventProjection ? "예고 상황" : ReleaseKoreanText.Phase(_snapshot.Phase));
+              (_showEventProjection ? "예고 상황" : currentWork);
         _phaseLabel.AccessibilityName = _showEventProjection
             ? $"현재 표시: {_campaignSnapshot?.Chapter.DisplayName} 예고 상황"
-            : $"현재 작업: {ReleaseKoreanText.Phase(_snapshot.Phase)}";
+            : $"현재 작업: {currentWork}";
         _timeLabel.Text = $"현재 시각 · {ReleaseKoreanText.FormatClock(_snapshot.Minute)}";
         IReadOnlyList<ReleaseLoadSupply> displayedLoads = DisplayedSupplyLoads(displaySnapshot);
         _supplyLabel.Text =
@@ -494,9 +511,9 @@ public sealed partial class ReleaseMain : Control
                 : string.Empty;
         string error = CampaignErrorText();
         ReleaseButtonPresentation toolButton(string text, string description) =>
-            new(true, ready || nodeDraft, text, description);
+            new(ready, ready, text, description);
         ReleaseTaskPanelModel model = new(
-            ReleaseKoreanText.Phase(_snapshot.Phase),
+            CurrentWorkName(),
             Instruction(),
             SelectionText(displaySnapshot),
             NetworkText(displaySnapshot),
@@ -533,8 +550,8 @@ public sealed partial class ReleaseMain : Control
                     ? "현재 임무의 평상시 공급 상태로 돌아갑니다."
                     : "예고된 설비 사용 불가 상황의 공급 경로와 용량을 미리 확인합니다."),
             Evaluate = new ReleaseButtonPresentation(
-                ready && !_campaignSnapshot.CampaignComplete,
-                ready && !_campaignSnapshot.CampaignComplete,
+                ready && _tool == Tool.Inspect && !_campaignSnapshot.CampaignComplete,
+                ready && _tool == Tool.Inspect && !_campaignSnapshot.CampaignComplete,
                 _campaignSnapshot.ChapterIndex == _campaignSnapshot.ChapterCount - 1
                     ? "전력망 최종 점검"
                     : "운영 계획 점검",
@@ -576,6 +593,15 @@ public sealed partial class ReleaseMain : Control
 
     private string SelectionText(ReleaseConstructionSnapshot displaySnapshot)
     {
+        if (_tool is Tool.StandardLine or Tool.ReinforcedLine &&
+            _pointerPoint is ReleasePoint linePoint &&
+            NodeAt(linePoint) is ReleaseNodeDefinition prospectiveEndpoint)
+        {
+            ReleaseNodeUsage usage = displaySnapshot.Evaluation.Nodes.Single(item =>
+                string.Equals(item.NodeId, prospectiveEndpoint.NodeId, StringComparison.Ordinal));
+            return $"{prospectiveEndpoint.DisplayName}\n" +
+                   ReleaseKoreanText.ConnectionPreview(usage.ConnectionCount, usage.MaxConnections);
+        }
         if (_selectedNodeId is string nodeId)
         {
             ReleaseNodeDefinition? node = displaySnapshot.World.Nodes.SingleOrDefault(item => item.NodeId == nodeId);
@@ -645,8 +671,10 @@ public sealed partial class ReleaseMain : Control
         string? assetName = AssetDisplayName(failed.Failure.AssetId);
         return ReleaseKoreanText.SupplyFailure(
             failed.DisplayName(displaySnapshot.World),
+            failed.DemandKw,
             failed.Failure,
             assetName,
+            AssetDisplayName(failed.Failure.AttemptedSourceId),
             _showEventProjection);
     }
 
@@ -684,6 +712,28 @@ public sealed partial class ReleaseMain : Control
             : "전력망을 살펴보고 있습니다.",
     };
 
+    private string CurrentWorkName()
+    {
+        if (_snapshot.Phase == ReleaseConstructionPhase.Ready)
+        {
+            return _tool switch
+            {
+                Tool.SmallSubstation => "소형 변전소 · 위치 선택",
+                Tool.LargeSubstation => "대형 변전소 · 위치 선택",
+                Tool.StandardLine => "일반 선로 · 시작 설비 선택",
+                Tool.ReinforcedLine => "보강 선로 · 시작 설비 선택",
+                _ => "현황 보기",
+            };
+        }
+        if (_snapshot.Phase == ReleaseConstructionPhase.LineDrafting)
+        {
+            return _tool == Tool.StandardLine
+                ? "일반 선로 · 경로 정하기"
+                : "보강 선로 · 경로 정하기";
+        }
+        return ReleaseKoreanText.Phase(_snapshot.Phase);
+    }
+
     private ReleaseNodePlacementPreview PreviewNodePlacement(
         string nodeClassId,
         ReleasePoint point) =>
@@ -693,6 +743,10 @@ public sealed partial class ReleaseMain : Control
     private ReleaseLinePointPreview PreviewLinePoint(ReleasePoint point) =>
         _run?.PreviewLinePoint(point)
         ?? _session!.PreviewLinePoint(point);
+
+    private ReleaseLineStartPreview PreviewLineStart(string startNodeId) =>
+        _run?.PreviewLineStart(startNodeId, LineClassForTool(), PoleClassForTool())
+        ?? _session!.PreviewLineStart(startNodeId, LineClassForTool(), PoleClassForTool());
 
     private ReleaseConstructionQuote PreviewNodeOrder() =>
         _run?.PreviewNodeOrder()
@@ -725,11 +779,13 @@ public sealed partial class ReleaseMain : Control
         {
             if (_assessment.FailedLoadId is string loadId)
             {
-                string loadName = _world.Loads.Single(item => item.LoadId == loadId).DisplayName;
+                ReleaseLoadDefinition load = _world.Loads.Single(item => item.LoadId == loadId);
                 return ReleaseKoreanText.SupplyFailure(
-                    loadName,
+                    load.DisplayName,
+                    load.DemandKw,
                     _assessment.SupplyFailure!,
                     AssetDisplayName(_assessment.SupplyFailure?.AssetId),
+                    AssetDisplayName(_assessment.SupplyFailure?.AttemptedSourceId),
                     _assessment.FailedDuringEvent);
             }
             if (_assessment.FailedConnectionNodeId is string nodeId)
@@ -799,6 +855,31 @@ public sealed partial class ReleaseMain : Control
             : _snapshot.World.Nodes
                 .Single(item => item.NodeId == source.NodeId)
                 .DisplayName;
+    }
+
+    private void SelectFailureAsset(string? assetId)
+    {
+        _selectedNodeId = null;
+        _selectedEdgeId = null;
+        if (assetId is null)
+        {
+            return;
+        }
+        if (_snapshot.World.Nodes.Any(item =>
+                string.Equals(item.NodeId, assetId, StringComparison.Ordinal)))
+        {
+            _selectedNodeId = assetId;
+            return;
+        }
+        if (_snapshot.World.Edges.Any(item =>
+                string.Equals(item.EdgeId, assetId, StringComparison.Ordinal)))
+        {
+            _selectedEdgeId = assetId;
+            return;
+        }
+        _selectedNodeId = _snapshot.World.Sources.SingleOrDefault(item =>
+                string.Equals(item.SourceId, assetId, StringComparison.Ordinal))
+            ?.NodeId;
     }
 
     private static bool HasEquipmentOutage(ReleaseCampaignEvent? campaignEvent) =>
@@ -1455,7 +1536,7 @@ public sealed partial class ReleaseMain : Control
             await CompleteCampaignChapter("CHAPTER_FLOOD_FORECAST");
 
             await BuildCampaignLine("SOUTH_SUBSTATION", false,
-                new ReleasePoint(16, 14),
+                new ReleasePoint(17, 14),
                 new ReleasePoint(17, 10));
             await CompleteCampaignChapter("CHAPTER_PLANNED_OUTAGE");
 
@@ -1500,10 +1581,19 @@ public sealed partial class ReleaseMain : Control
             $"{start.DisplayName}에서 시작한 선로가 완공 설비에 닿지 않았습니다.");
         EmitPanel(ReleasePanelAction.Order, "선로 공사 발주");
         await NextFrame();
+        _panel.GetActionButton(ReleasePanelAction.Advance).GrabFocus();
         EmitPanel(ReleasePanelAction.Advance, "선로 공사 마치기");
         await NextFrame();
-        Require(_snapshot.Phase == ReleaseConstructionPhase.Ready,
-            "선로 공사가 완료되지 않았습니다.");
+        await NextFrame();
+        Require(
+            _snapshot.Phase == ReleaseConstructionPhase.Ready && _tool == Tool.Inspect,
+            "선로 공사를 마친 뒤 현황 보기로 돌아오지 않았습니다.");
+        Require(_map.HasFocus(),
+            "선로 공사를 마친 뒤 지도에 입력 초점이 돌아오지 않았습니다.");
+        BaseButton evaluate = _panel.GetActionButton(ReleasePanelAction.Evaluate);
+        Require(
+            evaluate.Visible && ControlInside(_panel, evaluate),
+            "현황 보기의 운영 계획 점검 버튼이 작업 패널 안에 완전히 표시되지 않았습니다.");
     }
 
     private async Task CompleteCampaignChapter(string chapterId)
@@ -1556,12 +1646,35 @@ public sealed partial class ReleaseMain : Control
         try
         {
             await NextFrame();
+            _settings = ProductSettings.Default with { UiScalePercent = 125 };
+            ApplySettings(_settings);
+            GetWindow().Size = new Vector2I(1280, 720);
+            await NextFrame();
             EmitButton(_storyButton, "브리핑 닫기");
             await NextFrame();
+            BaseButton lineTool = _panel.GetActionButton(ReleasePanelAction.ReinforcedLine);
+            Require(
+                GetWindow().Size == new Vector2I(1280, 720) &&
+                lineTool.Visible &&
+                ControlInside(_panel, lineTool),
+                "1280×720·UI 125%에서 공사 도구가 작업 패널 밖으로 잘렸습니다.");
 
             ReleasePoint substation = _options.SmokeSubstation!.Value;
             EmitPanel(ReleasePanelAction.SmallSubstation, "소형 변전소 도구");
             await NextFrame();
+            ReleasePoint waterPoint = new(12, 10);
+            int initialNodeCount = _snapshot.World.Nodes.Count;
+            await MovePointerToMap(waterPoint);
+            Require(
+                !_pointerAccepted && _pointerError == ReleaseConstructionError.WaterSurface,
+                "강물 위 변전소 배치를 클릭 전에 막지 못했습니다.");
+            await ClickMap(waterPoint);
+            Require(
+                _snapshot.NodeDraft is null &&
+                _snapshot.World.Nodes.Count == initialNodeCount &&
+                _lastError == ReleaseConstructionError.WaterSurface &&
+                CampaignErrorText().Contains("강물 위", StringComparison.Ordinal),
+                "강물 위 변전소 배치가 거부되거나 한국어 안내로 설명되지 않았습니다.");
             await ClickMap(new ReleasePoint(substation.X - 1, substation.Y));
             await ClickMap(substation);
             Require(_snapshot.NodeDraft?.Position == substation, "변전소 계획 좌표가 입력과 다릅니다.");
@@ -1611,6 +1724,20 @@ public sealed partial class ReleaseMain : Control
             Require(_storyOverlay.Visible, "공사 결과 카드가 표시되지 않았습니다.");
             EmitButton(_storyButton, "공사 결과 닫기");
             await NextFrame();
+            Require(_tool == Tool.Inspect,
+                "선로 공사를 마친 뒤 현황 보기로 돌아오지 않았습니다.");
+            EmitPanel(ReleasePanelAction.ReinforcedLine, "연결 한도 사전 확인용 보강 선로 도구");
+            await NextFrame();
+            ReleaseNodeDefinition fullEndpoint = _snapshot.World.Nodes.Single(item =>
+                string.Equals(item.NodeId, "SOUTH_JUNCTION", StringComparison.Ordinal));
+            await MovePointerToMap(fullEndpoint.Position);
+            Require(
+                !_pointerAccepted &&
+                _pointerError == ReleaseConstructionError.ConnectionLimit &&
+                SelectionText(DisplaySnapshot()).Contains("연결 회선 4/4", StringComparison.Ordinal),
+                "연결 한도가 찬 설비를 클릭 전에 회선 수와 함께 안내하지 않았습니다.");
+            EmitPanel(ReleasePanelAction.Inspect, "연결 한도 확인 뒤 현황 보기");
+            await NextFrame();
             await PressMapKey(Key.Right);
             await PressMapKey(Key.Enter);
             Require(_selectedNodeId is null && _selectedEdgeId is null,
@@ -1653,6 +1780,17 @@ public sealed partial class ReleaseMain : Control
         await NextFrame();
     }
 
+    private async Task MovePointerToMap(ReleasePoint point)
+    {
+        Vector2 viewportPoint = _map.ViewportPointForGridPoint(point);
+        GetViewport().PushInput(new InputEventMouseMotion
+        {
+            Position = viewportPoint,
+            GlobalPosition = viewportPoint,
+        }, true);
+        await NextFrame();
+    }
+
     private async Task PressMapKey(Key key)
     {
         GetViewport().PushInput(new InputEventKey
@@ -1678,6 +1816,16 @@ public sealed partial class ReleaseMain : Control
             throw new InvalidOperationException($"필요한 버튼을 사용할 수 없습니다: {description}");
         }
         button.EmitSignal(BaseButton.SignalName.Pressed);
+    }
+
+    private static bool ControlInside(Control outer, Control inner)
+    {
+        Rect2 outerRect = outer.GetGlobalRect();
+        Rect2 innerRect = inner.GetGlobalRect();
+        return innerRect.Position.X >= outerRect.Position.X - 0.5f &&
+               innerRect.Position.Y >= outerRect.Position.Y - 0.5f &&
+               innerRect.End.X <= outerRect.End.X + 0.5f &&
+               innerRect.End.Y <= outerRect.End.Y + 0.5f;
     }
 
     private async Task NextFrame() =>

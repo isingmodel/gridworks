@@ -125,6 +125,7 @@ public sealed record ReleaseWorldDefinition(
     private IReadOnlyList<ReleaseSourceDefinition> _sources = Array.AsReadOnly(Sources.ToArray());
     private IReadOnlyList<ReleaseLoadDefinition> _loads = Array.AsReadOnly(Loads.ToArray());
     private IReadOnlyList<ReleaseRiskAreaDefinition> _riskAreas = Array.AsReadOnly(RiskAreas.ToArray());
+    private IReadOnlyList<ReleasePoint> _waterPolygon = Array.AsReadOnly(Array.Empty<ReleasePoint>());
 
     public IReadOnlyList<ReleaseNodeClassDefinition> NodeClasses
     {
@@ -167,6 +168,12 @@ public sealed record ReleaseWorldDefinition(
         get => _riskAreas;
         init => _riskAreas = Array.AsReadOnly(value.ToArray());
     }
+
+    public IReadOnlyList<ReleasePoint> WaterPolygon
+    {
+        get => _waterPolygon;
+        init => _waterPolygon = Array.AsReadOnly(value.ToArray());
+    }
 }
 
 public sealed record ReleaseContingency(
@@ -208,7 +215,8 @@ public sealed record ReleaseContingency(
 public sealed record ReleaseSupplyFailure(
     ReleaseSupplyFailureKind Kind,
     string? AssetId,
-    long ShortfallKw);
+    long ShortfallKw,
+    string? AttemptedSourceId = null);
 
 public sealed record ReleaseLoadSupply(
     string LoadId,

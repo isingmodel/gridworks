@@ -23,6 +23,7 @@ public enum ReleaseConstructionError
     InvalidLineClass,
     InvalidPoleClass,
     OutsideGrid,
+    WaterSurface,
     PositionOccupied,
     EndpointNotFound,
     EndpointNotCommissioned,
@@ -106,6 +107,13 @@ public sealed record ReleaseLinePointPreview(
     string? EndpointNodeId,
     long? DistanceSquared,
     long? MaxSpanSquared);
+
+public sealed record ReleaseLineStartPreview(
+    bool Accepted,
+    ReleaseConstructionError? Error,
+    string StartNodeId,
+    string LineClassId,
+    string PoleClassId);
 
 public sealed record ReleaseConstructionQuote(
     bool Accepted,

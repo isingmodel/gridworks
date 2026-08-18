@@ -49,6 +49,12 @@ public sealed class ReleaseCampaignRun
     public ReleaseLinePointPreview PreviewLinePoint(ReleasePoint position) =>
         _session.PreviewLinePoint(position);
 
+    public ReleaseLineStartPreview PreviewLineStart(
+        string startNodeId,
+        string lineClassId,
+        string poleClassId) =>
+        _session.PreviewLineStart(startNodeId, lineClassId, poleClassId);
+
     public ReleaseConstructionQuote PreviewNodeOrder() =>
         _session.PreviewNodeOrder();
 

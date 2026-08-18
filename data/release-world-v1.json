@@ -316,6 +316,12 @@
       "dedicatedNodeId": null
     }
   ],
+  "waterPolygon": [
+    { "x": 10, "y": 0 },
+    { "x": 14, "y": 0 },
+    { "x": 17, "y": 20 },
+    { "x": 12, "y": 20 }
+  ],
   "riskAreas": [
     {
       "riskAreaId": "RIVER_FLOOD_ZONE",

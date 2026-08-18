@@ -31,6 +31,8 @@ internal static class ReleaseKoreanText
             "선택한 선로를 사용할 수 없습니다. 다른 선로를 선택하세요.",
         ReleaseConstructionError.OutsideGrid =>
             "공사 구역 밖입니다. 지도 안의 격자를 선택하세요.",
+        ReleaseConstructionError.WaterSurface =>
+            "강물 위에는 변전소나 전신주를 놓을 수 없습니다. 육지 격자를 선택하세요. 선로는 강을 가로질러 연결할 수 있습니다.",
         ReleaseConstructionError.PositionOccupied =>
             "이미 설비가 있거나 이번 계획에서 사용한 자리입니다. 빈 격자를 선택하세요.",
         ReleaseConstructionError.EndpointNotFound =>
@@ -56,8 +58,10 @@ internal static class ReleaseKoreanText
 
     public static string SupplyFailure(
         string loadName,
+        long demandKw,
         ReleaseSupplyFailure failure,
         string? assetName,
+        string? attemptedSourceName,
         bool duringMissionSituation = false)
     {
         string circumstance = duringMissionSituation ? "예고 상황에서는 " : string.Empty;
@@ -68,6 +72,12 @@ internal static class ReleaseKoreanText
             ? $"{loadName}이 정상적으로 공급되고 있습니다."
             : $"{loadName}에 필요한 전력이 공급되고 있습니다.";
         string asset = string.IsNullOrWhiteSpace(assetName) ? "해당 설비" : assetName;
+        string source = string.IsNullOrWhiteSpace(attemptedSourceName)
+            ? "연결된 발전원"
+            : attemptedSourceName;
+        long remainingKw = Math.Max(0L, demandKw - failure.ShortfallKw);
+        string demand = FormatPower(demandKw);
+        string remaining = FormatPower(remainingKw);
         return failure.Kind switch
         {
             ReleaseSupplyFailureKind.None =>
@@ -79,17 +89,24 @@ internal static class ReleaseKoreanText
                 $"{impact} 발전 설비부터 이곳까지 이어진 선로가 없습니다. " +
                 "끊긴 구간을 연결하거나 우회선을 추가하세요.",
             ReleaseSupplyFailureKind.SourceCapacity =>
-                $"{impact} {asset}의 공급 여력이 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
-                "다른 발전원을 연결해 공급을 분담하세요.",
+                $"{impact} {asset}의 남은 공급 가능 전력은 {remaining}로, 이 수요처에 필요한 {demand}보다 작습니다. " +
+                "각 수요처는 단일 발전원에서 단일 경로를 통해 필요한 전력을 전량 공급받아야 합니다. " +
+                $"다른 발전원에서 이 수요처까지, 전 구간에 {demand} 이상의 남은 용량이 있는 경로를 연결하세요.",
             ReleaseSupplyFailureKind.EdgeCapacity =>
-                $"{impact} {asset}의 정격 용량보다 필요한 전력이 {FormatPower(failure.ShortfallKw)} 많습니다. " +
-                "다른 선로를 추가해 흐름을 분산하세요.",
+                $"{impact} {source}에서 이어지는 경로의 첫 병목은 {asset}입니다. " +
+                $"남은 용량은 {remaining}로, 이 수요처에 필요한 {demand}보다 작습니다. " +
+                "각 수요처는 단일 발전원에서 단일 경로를 통해 필요한 전력을 전량 공급받아야 합니다. " +
+                $"병목 선로를 우회하거나 전 구간에 {demand} 이상의 남은 용량이 있는 경로를 연결하세요.",
             ReleaseSupplyFailureKind.NodeCapacity =>
-                $"{impact} {asset}의 정격 용량보다 필요한 전력이 {FormatPower(failure.ShortfallKw)} 많습니다. " +
-                "이 설비를 우회하는 경로를 추가하세요.",
+                $"{impact} {source}에서 이어지는 경로의 첫 병목은 {asset}입니다. " +
+                $"남은 용량은 {remaining}로, 이 수요처에 필요한 {demand}보다 작습니다. " +
+                "각 수요처는 단일 발전원에서 단일 경로를 통해 필요한 전력을 전량 공급받아야 합니다. " +
+                $"병목 설비를 우회하거나 전 구간에 {demand} 이상의 남은 용량이 있는 경로를 연결하세요.",
             ReleaseSupplyFailureKind.TransformerCapacity =>
-                $"{impact} {asset}의 변압기 여유 용량이 {FormatPower(failure.ShortfallKw)} 부족합니다. " +
-                "다른 변전소를 연결해 부하를 나누세요.",
+                $"{impact} {source}에서 이어지는 경로의 첫 병목은 {asset}입니다. " +
+                $"변압기의 남은 용량은 {remaining}로, 이 수요처에 필요한 {demand}보다 작습니다. " +
+                "각 수요처는 단일 발전원에서 단일 경로를 통해 필요한 전력을 전량 공급받아야 합니다. " +
+                $"다른 변전소를 거쳐 전 구간에 {demand} 이상의 남은 용량이 있는 경로를 연결하세요.",
             _ =>
                 $"{impact} 공급 경로와 설비 정격 용량을 확인한 뒤 전력망을 보강하세요.",
         };
@@ -106,6 +123,20 @@ internal static class ReleaseKoreanText
 
     public static string Connections(int count, int maximum) =>
         $"연결 회선 {count}/{maximum} · {maximum - count}회선 추가 가능";
+
+    public static string ConnectionPreview(int count, int maximum)
+    {
+        if (count >= maximum)
+        {
+            return $"연결 회선 {count}/{maximum} · 새 선로를 연결할 수 없습니다.";
+        }
+
+        int afterConnection = count + 1;
+        int remaining = maximum - afterConnection;
+        return remaining == 0
+            ? $"현재 연결 회선 {count}/{maximum} · 연결 후 {afterConnection}/{maximum} · 이후 추가 연결 없음"
+            : $"현재 연결 회선 {count}/{maximum} · 연결 후 {afterConnection}/{maximum} · 이후 {remaining}회선 추가 가능";
+    }
 
     public static string ConnectionRequirement(
         string nodeName,

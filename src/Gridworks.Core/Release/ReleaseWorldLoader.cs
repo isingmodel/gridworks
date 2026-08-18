@@ -39,6 +39,7 @@ public static partial class ReleaseWorldLoader
                 "edges",
                 "sources",
                 "loads",
+                "waterPolygon",
                 "riskAreas");
 
             var world = new ReleaseWorldDefinition(
@@ -52,8 +53,18 @@ public static partial class ReleaseWorldLoader
                 Array(root, "edges", "$", ParseEdge),
                 Array(root, "sources", "$", ParseSource),
                 Array(root, "loads", "$", ParseLoad),
-                Array(root, "riskAreas", "$", ParseRiskArea));
+                Array(root, "riskAreas", "$", ParseRiskArea))
+            {
+                WaterPolygon = Array(
+                    root,
+                    "waterPolygon",
+                    "$",
+                    (point, pointIndex) => ParsePoint(
+                        point,
+                        $"$.waterPolygon[{pointIndex}]")),
+            };
 
+            Require(world.WaterPolygon.Count >= 3, "$.waterPolygon needs at least three points.");
             Validate(world);
             return world;
         }
@@ -231,6 +242,20 @@ public static partial class ReleaseWorldLoader
         Require(world.Nodes.Count > 0, "$.nodes must not be empty.");
         Require(world.Sources.Count > 0, "$.sources must not be empty.");
         Require(world.Loads.Count > 0, "$.loads must not be empty.");
+
+        if (world.WaterPolygon.Count != 0)
+        {
+            Require(world.WaterPolygon.Count >= 3, "$.waterPolygon needs at least three points.");
+            foreach (ReleasePoint point in world.WaterPolygon)
+            {
+                InGrid(point, world.Grid, "$.waterPolygon");
+            }
+
+            Require(world.WaterPolygon.Distinct().Count() >= 3,
+                "$.waterPolygon needs three distinct points.");
+            Require(SignedAreaTwice(world.WaterPolygon) != 0,
+                "$.waterPolygon cannot be collinear.");
+        }
 
         Unique(world.NodeClasses.Select(item => item.ClassId), "$.nodeClasses[].classId");
         Unique(world.LineClasses.Select(item => item.ClassId), "$.lineClasses[].classId");

@@ -3,13 +3,26 @@ using System.Collections.Generic;
 
 namespace Gridworks.Game;
 
-internal sealed record CommercialLaunchOptions(bool PlacementSmoke, bool ThermalSmoke)
+internal enum CommercialCoreSmokeLeg
+{
+    None,
+    First,
+    Second,
+}
+
+internal sealed record CommercialLaunchOptions(
+    bool PlacementSmoke,
+    bool ThermalSmoke,
+    CommercialCoreSmokeLeg CoreSmokeLeg,
+    string? SmokeSavePath)
 {
     public static CommercialLaunchOptions Parse(IReadOnlyList<string> arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);
         bool placementSmoke = false;
         bool thermalSmoke = false;
+        CommercialCoreSmokeLeg coreSmokeLeg = CommercialCoreSmokeLeg.None;
+        string? smokeSavePath = null;
         foreach (string argument in arguments)
         {
             switch (argument)
@@ -27,15 +40,52 @@ internal sealed record CommercialLaunchOptions(bool PlacementSmoke, bool Thermal
                 case "--commercial-thermal-smoke":
                     throw new ArgumentException(
                         "열 운전 확인 인자는 한 번만 사용할 수 있습니다.");
+                case "--commercial-core-smoke=first" when
+                    coreSmokeLeg == CommercialCoreSmokeLeg.None:
+                    coreSmokeLeg = CommercialCoreSmokeLeg.First;
+                    break;
+                case "--commercial-core-smoke=second" when
+                    coreSmokeLeg == CommercialCoreSmokeLeg.None:
+                    coreSmokeLeg = CommercialCoreSmokeLeg.Second;
+                    break;
+                case "--commercial-core-smoke=first" or "--commercial-core-smoke=second":
+                    throw new ArgumentException(
+                        "상용 핵심 흐름 확인 단계는 한 번만 지정할 수 있습니다.");
+                case string value when value.StartsWith(
+                    "--commercial-smoke-save-path=",
+                    StringComparison.Ordinal):
+                    if (smokeSavePath is not null)
+                    {
+                        throw new ArgumentException(
+                            "상용 핵심 흐름 확인 저장 경로는 한 번만 지정할 수 있습니다.");
+                    }
+                    smokeSavePath = value["--commercial-smoke-save-path=".Length..];
+                    if (!System.IO.Path.IsPathFullyQualified(smokeSavePath))
+                    {
+                        throw new ArgumentException(
+                            "상용 핵심 흐름 확인 저장 경로는 절대경로여야 합니다.");
+                    }
+                    break;
 #endif
                 default:
                     throw new ArgumentException($"지원하지 않는 상용 게임 실행 인자입니다: {argument}");
             }
         }
-        if (placementSmoke && thermalSmoke)
+        int smokeCount = (placementSmoke ? 1 : 0) + (thermalSmoke ? 1 : 0) +
+            (coreSmokeLeg == CommercialCoreSmokeLeg.None ? 0 : 1);
+        if (smokeCount > 1)
         {
-            throw new ArgumentException("자유 배치 확인과 열 운전 확인을 함께 실행할 수 없습니다.");
+            throw new ArgumentException("상용 게임 확인 흐름은 한 번에 하나만 실행할 수 있습니다.");
         }
-        return new CommercialLaunchOptions(placementSmoke, thermalSmoke);
+        if ((coreSmokeLeg == CommercialCoreSmokeLeg.None) != (smokeSavePath is null))
+        {
+            throw new ArgumentException(
+                "상용 핵심 흐름 확인에는 전용 절대 저장 경로와 실행 단계가 함께 필요합니다.");
+        }
+        return new CommercialLaunchOptions(
+            placementSmoke,
+            thermalSmoke,
+            coreSmokeLeg,
+            smokeSavePath);
     }
 }

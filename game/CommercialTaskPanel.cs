@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Gridworks.Core.Release.V2;
 using Godot;
 
 namespace Gridworks.Game;
@@ -7,10 +9,19 @@ namespace Gridworks.Game;
 internal enum CommercialPanelAction
 {
     PlaceSubstation,
+    StartStandardLine,
     StartLine,
     UndoPoint,
     CancelDraft,
     Commission,
+}
+
+internal enum CommercialProductAction
+{
+    ApproveWindow,
+    RollbackRecentConstruction,
+    RestartWindow,
+    RestartChapter,
 }
 
 internal sealed record CommercialActionPresentation(
@@ -22,6 +33,25 @@ internal sealed record CommercialProjectionPresentation(
     string Label,
     bool PreviousEnabled,
     bool NextEnabled);
+
+internal sealed record CommercialObligationPresentation(string Label, string Status);
+
+internal sealed record CommercialPromisePresentation(
+    string Heading,
+    string Status,
+    string KeepLabel,
+    string DeferLabel,
+    bool CanChoose);
+
+internal sealed record CommercialProductPanelPresentation(
+    string Objective,
+    IReadOnlyList<CommercialObligationPresentation> Obligations,
+    string Deadline,
+    CommercialPromisePresentation? Promise,
+    CommercialActionPresentation ApproveWindow,
+    CommercialActionPresentation RollbackRecentConstruction,
+    CommercialActionPresentation RestartWindow,
+    CommercialActionPresentation RestartChapter);
 
 internal sealed record CommercialTaskPanelModel(
     string Heading,
@@ -35,7 +65,10 @@ internal sealed record CommercialTaskPanelModel(
     CommercialActionPresentation UndoPoint,
     CommercialActionPresentation CancelDraft,
     CommercialActionPresentation Commission,
-    CommercialProjectionPresentation? Projection = null);
+    CommercialProjectionPresentation? Projection = null,
+    bool ShowConstructionActions = true,
+    CommercialProductPanelPresentation? Product = null,
+    CommercialActionPresentation? StandardLine = null);
 
 internal sealed partial class CommercialTaskPanel : PanelContainer
 {
@@ -51,11 +84,24 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     private Label _projectionLabel = null!;
     private Button _previousProjectionButton = null!;
     private Button _nextProjectionButton = null!;
+    private Control _productSections = null!;
+    private Label _objectiveLabel = null!;
+    private Label _obligationsLabel = null!;
+    private Label _deadlineLabel = null!;
+    private Control _promiseControls = null!;
+    private Label _promiseHeading = null!;
+    private Label _promiseStatus = null!;
+    private Button _keepPromiseButton = null!;
+    private Button _deferPromiseButton = null!;
+    private Control _productActions = null!;
+    private IReadOnlyDictionary<CommercialProductAction, Button> _productButtons = null!;
     private IReadOnlyDictionary<CommercialPanelAction, Button> _buttons = null!;
 
     public event Action<CommercialPanelAction>? ActionRequested;
 
     public event Action<int>? ProjectionDeltaRequested;
+    public event Action<CommercialPromiseDecision>? PromiseRequested;
+    public event Action<CommercialProductAction>? ProductActionRequested;
 
     public override void _Ready()
     {
@@ -71,13 +117,33 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _projectionLabel = GetNode<Label>("%ProjectionLabel");
         _previousProjectionButton = GetNode<Button>("%PreviousProjectionButton");
         _nextProjectionButton = GetNode<Button>("%NextProjectionButton");
+        _productSections = GetNode<Control>("%ProductSections");
+        _objectiveLabel = GetNode<Label>("%ObjectiveLabel");
+        _obligationsLabel = GetNode<Label>("%ObligationsLabel");
+        _deadlineLabel = GetNode<Label>("%DeadlineLabel");
+        _promiseControls = GetNode<Control>("%PromiseControls");
+        _promiseHeading = GetNode<Label>("%PromiseHeading");
+        _promiseStatus = GetNode<Label>("%PromiseStatus");
+        _keepPromiseButton = GetNode<Button>("%KeepPromiseButton");
+        _deferPromiseButton = GetNode<Button>("%DeferPromiseButton");
+        _productActions = GetNode<Control>("%ProductActions");
         _buttons = new Dictionary<CommercialPanelAction, Button>
         {
             [CommercialPanelAction.PlaceSubstation] = GetNode<Button>("%PlaceSubstationButton"),
+            [CommercialPanelAction.StartStandardLine] =
+                GetNode<Button>("%StartStandardLineButton"),
             [CommercialPanelAction.StartLine] = GetNode<Button>("%StartLineButton"),
             [CommercialPanelAction.UndoPoint] = GetNode<Button>("%UndoPointButton"),
             [CommercialPanelAction.CancelDraft] = GetNode<Button>("%CancelDraftButton"),
             [CommercialPanelAction.Commission] = GetNode<Button>("%CommissionButton"),
+        };
+        _productButtons = new Dictionary<CommercialProductAction, Button>
+        {
+            [CommercialProductAction.ApproveWindow] = GetNode<Button>("%ApproveWindowButton"),
+            [CommercialProductAction.RollbackRecentConstruction] =
+                GetNode<Button>("%RollbackRecentButton"),
+            [CommercialProductAction.RestartWindow] = GetNode<Button>("%RestartWindowButton"),
+            [CommercialProductAction.RestartChapter] = GetNode<Button>("%RestartChapterButton"),
         };
 
         foreach ((CommercialPanelAction action, Button button) in _buttons)
@@ -86,6 +152,14 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         }
         _previousProjectionButton.Pressed += () => ProjectionDeltaRequested?.Invoke(-1);
         _nextProjectionButton.Pressed += () => ProjectionDeltaRequested?.Invoke(1);
+        _keepPromiseButton.Pressed += () =>
+            PromiseRequested?.Invoke(CommercialPromiseDecision.Keep);
+        _deferPromiseButton.Pressed += () =>
+            PromiseRequested?.Invoke(CommercialPromiseDecision.Defer);
+        foreach ((CommercialProductAction action, Button button) in _productButtons)
+        {
+            button.Pressed += () => ProductActionRequested?.Invoke(action);
+        }
         _statusLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite;
         _errorLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Assertive;
     }
@@ -100,15 +174,19 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _statusLabel.Text = model.Status;
         _errorLabel.Text = model.Error;
         SetButton(CommercialPanelAction.PlaceSubstation, model.PlaceSubstation);
+        SetButton(
+            CommercialPanelAction.StartStandardLine,
+            model.StandardLine ?? new CommercialActionPresentation(false, string.Empty, string.Empty));
         SetButton(CommercialPanelAction.StartLine, model.StartLine);
         SetButton(CommercialPanelAction.UndoPoint, model.UndoPoint);
         SetButton(CommercialPanelAction.CancelDraft, model.CancelDraft);
         SetButton(CommercialPanelAction.Commission, model.Commission);
-        bool thermal = model.Projection is not null;
-        _toolRow.Visible = !thermal;
-        _editRow.Visible = !thermal;
-        _buttons[CommercialPanelAction.Commission].Visible = !thermal;
-        _thermalControls.Visible = thermal;
+        bool projectionVisible = model.Projection is not null;
+        _toolRow.Visible = model.ShowConstructionActions;
+        _buttons[CommercialPanelAction.StartStandardLine].Visible = model.StandardLine is not null;
+        _editRow.Visible = model.ShowConstructionActions;
+        _buttons[CommercialPanelAction.Commission].Visible = model.ShowConstructionActions;
+        _thermalControls.Visible = projectionVisible;
         if (model.Projection is CommercialProjectionPresentation projection)
         {
             _projectionLabel.Text = projection.Label;
@@ -119,7 +197,32 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             _nextProjectionButton.AccessibilityDescription =
                 "다음 열 운전 국면의 계산 결과를 표시합니다.";
         }
-        AccessibilityName = thermal
+        _productSections.Visible = model.Product is not null;
+        _promiseControls.Visible = model.Product?.Promise is not null;
+        _productActions.Visible = model.Product is not null;
+        if (model.Product is CommercialProductPanelPresentation product)
+        {
+            _objectiveLabel.Text = product.Objective;
+            _obligationsLabel.Text = string.Join("\n", product.Obligations.Select(item =>
+                $"{item.Status} · {item.Label}"));
+            _deadlineLabel.Text = product.Deadline;
+            if (product.Promise is CommercialPromisePresentation promise)
+            {
+                _promiseHeading.Text = promise.Heading;
+                _promiseStatus.Text = promise.Status;
+                _keepPromiseButton.Text = promise.KeepLabel;
+                _deferPromiseButton.Text = promise.DeferLabel;
+                _keepPromiseButton.Disabled = !promise.CanChoose;
+                _deferPromiseButton.Disabled = !promise.CanChoose;
+            }
+            SetProductButton(CommercialProductAction.ApproveWindow, product.ApproveWindow);
+            SetProductButton(
+                CommercialProductAction.RollbackRecentConstruction,
+                product.RollbackRecentConstruction);
+            SetProductButton(CommercialProductAction.RestartWindow, product.RestartWindow);
+            SetProductButton(CommercialProductAction.RestartChapter, product.RestartChapter);
+        }
+        AccessibilityName = projectionVisible || model.Product is not null
             ? $"열 운전 확인 패널. {model.Heading}. {model.Status}"
             : $"공사 작업 패널. {model.Heading}. {model.Status}";
     }
@@ -138,11 +241,32 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
 
     public string ProjectionText => _projectionLabel.Text;
 
+    public BaseButton GetProductActionButton(CommercialProductAction action) =>
+        _productButtons[action];
+
+    public BaseButton GetPromiseButton(CommercialPromiseDecision decision) => decision switch
+    {
+        CommercialPromiseDecision.Keep => _keepPromiseButton,
+        CommercialPromiseDecision.Defer => _deferPromiseButton,
+        _ => throw new ArgumentOutOfRangeException(nameof(decision)),
+    };
+
     private void SetButton(
         CommercialPanelAction action,
         CommercialActionPresentation presentation)
     {
         Button button = _buttons[action];
+        button.Disabled = !presentation.Enabled;
+        button.Text = presentation.Text;
+        button.AccessibilityName = presentation.Text;
+        button.AccessibilityDescription = presentation.Description;
+    }
+
+    private void SetProductButton(
+        CommercialProductAction action,
+        CommercialActionPresentation presentation)
+    {
+        Button button = _productButtons[action];
         button.Disabled = !presentation.Enabled;
         button.Text = presentation.Text;
         button.AccessibilityName = presentation.Text;

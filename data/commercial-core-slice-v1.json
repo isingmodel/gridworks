@@ -1,0 +1,245 @@
+{
+  "schemaVersion": "gridworks.commercial.core-slice.v1",
+  "sliceId": "CHEONGRYU_COMMERCIAL_CORE_SLICE",
+  "displayName": "청류시 상용 핵심 구간",
+  "prelude": {
+    "segmentId": "FIRST_LIGHT_PRELUDE_SEGMENT",
+    "seed": {
+      "seedId": "FIRST_LIGHT_PRELUDE_SEED",
+      "startMinute": 1020,
+      "initialCashUnit": 1000000,
+      "baseNodeIds": [
+        "EAST_RESIDENTIAL_TERMINAL",
+        "FACTORY_TERMINAL",
+        "HOSPITAL_TERMINAL",
+        "SOUTH_SOURCE_NODE",
+        "WATER_TERMINAL",
+        "WEST_SOURCE_NODE"
+      ],
+      "baseEdgeIds": [],
+      "constructedNodes": [],
+      "constructedEdges": [],
+      "coolingAssetIds": []
+    },
+    "chapter": {
+      "chapterId": "FIRST_LIGHT_PRELUDE",
+      "displayName": "첫 불빛",
+      "briefing": {
+        "speaker": "운영센터장 윤서진",
+        "title": "첫 입주가 오늘 저녁 시작됩니다",
+        "body": "동부 생활권의 첫 연결을 직접 확인할 시간입니다. 수면에는 설비를 세울 수 없지만, 양쪽 접속점 사이로 선로를 건널 수 있습니다. 비용 차감 없이 최근 공사를 되돌릴 수 있으니 위치와 경로를 비교해 보세요."
+      },
+      "objective": "동부 생활권의 시험 공급 경로를 확인하고 첫 운영안을 승인하세요.",
+      "budgetGrantCashUnit": 0,
+      "cityPromise": null,
+      "decisionWindows": [
+        {
+          "windowId": "FIRST_LIGHT_BUILD_WINDOW",
+          "beforePhaseId": "FIRST_LIGHT_SUPPLY",
+          "story": null,
+          "buildMinutesAvailable": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "FIRST_LIGHT_SUPPLY",
+          "displayName": "첫 공급 확인",
+          "thermalPolicy": "continuousOnly",
+          "story": null,
+          "loads": [
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 800,
+              "obligation": "safetyDuty"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        }
+      ],
+      "resultCards": {
+        "standard": {
+          "speaker": "계통운영관 강민호",
+          "title": "첫 운영 기록을 남겼습니다",
+          "body": "승인한 공급원과 실제 경로, 첫 병목을 운영 기록에 남겼습니다. 이제 같은 지도를 몇 해 뒤의 상태로 이어서 살펴봅니다."
+        },
+        "kept": null,
+        "deferred": null
+      }
+    }
+  },
+  "main": {
+    "segmentId": "CHAPTER_FIVE_SEGMENT",
+    "seed": {
+      "seedId": "AFTER_CHAPTER_FOUR_SEED",
+      "startMinute": 6840,
+      "initialCashUnit": 700000,
+      "baseNodeIds": [
+        "BRIDGE_NORTH",
+        "BRIDGE_SOUTH",
+        "EAST_HUB",
+        "EAST_NORTH_POLE",
+        "EAST_RESIDENTIAL_TERMINAL",
+        "EAST_SOUTH_POLE",
+        "EAST_SUBSTATION",
+        "FACTORY_TERMINAL",
+        "HOSPITAL_TERMINAL",
+        "NORTH_SUBSTATION",
+        "SOUTH_HUB",
+        "SOUTH_POLE",
+        "SOUTH_SOURCE_NODE",
+        "SOUTH_SUBSTATION",
+        "WATER_TERMINAL",
+        "WEST_HUB",
+        "WEST_POLE",
+        "WEST_SOURCE_NODE"
+      ],
+      "baseEdgeIds": [
+        "EDGE_BRIDGE_NORTH",
+        "EDGE_BRIDGE_SOUTH",
+        "EDGE_EAST_RESIDENTIAL",
+        "EDGE_EAST_SUBSTATION",
+        "EDGE_FACTORY",
+        "EDGE_HOSPITAL",
+        "EDGE_NORTH_HUB",
+        "EDGE_NORTH_SUBSTATION",
+        "EDGE_SOUTH_BRIDGE",
+        "EDGE_SOUTH_HUB",
+        "EDGE_SOUTH_NETWORK",
+        "EDGE_SOUTH_SOURCE",
+        "EDGE_SOUTH_SUBSTATION",
+        "EDGE_WATER",
+        "EDGE_WEST_BRIDGE",
+        "EDGE_WEST_HUB",
+        "EDGE_WEST_SOURCE"
+      ],
+      "constructedNodes": [],
+      "constructedEdges": [],
+      "coolingAssetIds": []
+    },
+    "chapter": {
+      "chapterId": "WHOSE_MARGIN",
+      "displayName": "누구의 여유인가",
+      "briefing": {
+        "speaker": "운영센터장 윤서진",
+        "title": "산업단지가 야간 증산을 요청했습니다",
+        "body": "의료원과 정수장 공급은 반드시 지켜야 합니다. 산업단지의 기존 인입선은 점검으로 사용할 수 없습니다. 200분 안에 우회 회랑을 만들면 증산 약속을 지킬 수 있지만, 비상 열여유를 쓰면 다음 국면에 해당 설비가 보호정지됩니다."
+      },
+      "objective": "의료원과 정수장 공급을 지키면서 산업 야간 증산을 지킬지 미룰지 결정하세요.",
+      "budgetGrantCashUnit": 0,
+      "cityPromise": {
+        "promiseId": "FACTORY_NIGHT_SHIFT_PROMISE",
+        "displayName": "산업단지 야간 증산",
+        "loadId": "RIVER_FACTORY",
+        "keepLabel": "야간 증산을 지킨다",
+        "deferLabel": "야간 증산을 이번에는 미룬다"
+      },
+      "decisionWindows": [
+        {
+          "windowId": "BEFORE_HOT_EVENING",
+          "beforePhaseId": "HOT_EVENING",
+          "story": {
+            "speaker": "계통운영관 강민호",
+            "title": "짧은 회랑과 별도 회랑의 여유가 다릅니다",
+            "body": "기존 남부 회랑에서 짧게 분기하면 공사비와 시간이 줄지만 일반선 접속부가 비상 운전에 들어갑니다. 남부 발전 접속점에서 별도 보강 회랑을 내면 더 오래 걸리는 대신 이 국면을 연속 한계 안에서 통과할 수 있습니다."
+          },
+          "buildMinutesAvailable": 200
+        },
+        {
+          "windowId": "BEFORE_NIGHT_RECOVERY",
+          "beforePhaseId": "NIGHT_RECOVERY",
+          "story": {
+            "speaker": "의료원 시설책임자 박지현",
+            "title": "다음 국면에도 필수 설비가 남아야 합니다",
+            "body": "더운 저녁을 넘기는 것만으로는 충분하지 않습니다. 다음 국면에 보호정지될 설비를 빼고도 의료원과 정수장 공급 경로가 남는지 확인해 주세요."
+          },
+          "buildMinutesAvailable": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "HOT_EVENING",
+          "displayName": "더운 저녁 최대수요",
+          "thermalPolicy": "safetyEmergencyAllowed",
+          "story": {
+            "speaker": "계통운영관 강민호",
+            "title": "비상 운전 설비는 다음 국면에 멈춥니다",
+            "body": "산업단지 우회 경로가 연속 한계를 넘으면 현재 공급은 유지하지만, 해당 선로와 접속부는 다음 국면 전체에서 보호정지됩니다."
+          },
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 400,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 400,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "RIVER_FACTORY",
+              "demandKw": 2700,
+              "obligation": "cityPromise"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 600,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [
+            "EDGE_FACTORY"
+          ],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        },
+        {
+          "phaseId": "NIGHT_RECOVERY",
+          "displayName": "야간 필수 공급",
+          "thermalPolicy": "continuousOnly",
+          "story": null,
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 400,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 400,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 600,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [
+            "EDGE_FACTORY"
+          ],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        }
+      ],
+      "resultCards": {
+        "standard": null,
+        "kept": {
+          "speaker": "운영센터장 윤서진",
+          "title": "증산 약속과 다음 국면을 함께 확인했습니다",
+          "body": "산업단지 공급원과 실제 우회 경로, 비상 운전 설비와 보호정지 결과를 기록했습니다. 의료원과 정수장 공급 여부도 같은 운영 기록에서 확인합니다."
+        },
+        "deferred": {
+          "speaker": "운영센터장 윤서진",
+          "title": "증산 약속을 이번에는 미뤘습니다",
+          "body": "산업단지 수요를 이번 운영안에서 제외했습니다. 의료원과 정수장의 실제 공급 경로와 남은 열여유를 기록하고, 약속을 미룬 사실을 후일 기록에 남깁니다."
+        }
+      }
+    }
+  }
+}

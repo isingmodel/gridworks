@@ -15,6 +15,7 @@ internal sealed record CommercialMapPresentation(
     string ToolLabel,
     int? PointerFootprintRadiusUnit,
     bool NodeSnapEnabled,
+    bool ConstructionInputEnabled,
     CommercialThermalMapPresentation? Thermal = null);
 
 internal sealed record CommercialThermalMapPresentation(
@@ -160,8 +161,14 @@ internal sealed partial class CommercialMapView : Control
         {
             _pointerPoint = presentedPointer;
         }
+        if (!presentation.ConstructionInputEnabled && _draggingDraftPoint)
+        {
+            _draggingDraftPoint = false;
+            _draggedDraftPointIndex = -1;
+            DraftPointDragPreviewChanged?.Invoke(null);
+        }
         RefreshCandidates(notify: false);
-        AccessibilityDescription = presentation.Thermal is null
+        AccessibilityDescription = presentation.ConstructionInputEnabled
             ? "청류시 자유 배치 지도. 방향키로 커서를 움직이고 Enter로 선택합니다. Q와 E로 가까운 접속점을 바꿉니다."
             : "청류시 고정 전력망 열 운전 지도. 마우스 또는 방향키와 Enter로 설비를 선택하고 오른쪽 패널에서 현재 사용과 한계를 확인합니다.";
         AccessibilityName = BuildAccessibilityName(presentation);
@@ -241,6 +248,7 @@ internal sealed partial class CommercialMapView : Control
             case InputEventMouseButton button when
                 button.ButtonIndex == MouseButton.Left &&
                 button.Pressed &&
+                _presentation.ConstructionInputEnabled &&
                 TryBeginDraftPointDrag(button.Position):
                 AcceptEvent();
                 return;
@@ -263,7 +271,7 @@ internal sealed partial class CommercialMapView : Control
 
             case InputEventMouseButton button when
                 button.ButtonIndex == MouseButton.Right && button.Pressed:
-                if (_presentation.Thermal is null)
+                if (_presentation.ConstructionInputEnabled)
                 {
                     UndoRequested?.Invoke();
                 }
@@ -277,16 +285,16 @@ internal sealed partial class CommercialMapView : Control
                     GrabFocus();
                     _keyboardPoint = clicked;
                     SetPointer(clicked);
-                    if (_presentation.Thermal is not null)
+                    if (_presentation.ConstructionInputEnabled)
+                    {
+                        PointRequested?.Invoke(clicked, SelectedCandidateId);
+                    }
+                    else if (_presentation.Thermal is not null)
                     {
                         if (TryThermalAssetAt(button.Position, out string assetId))
                         {
                             ThermalAssetRequested?.Invoke(assetId);
                         }
-                    }
-                    else
-                    {
-                        PointRequested?.Invoke(clicked, SelectedCandidateId);
                     }
                 }
                 AcceptEvent();
@@ -346,7 +354,8 @@ internal sealed partial class CommercialMapView : Control
         }
 
         Key physical = key.PhysicalKeycode;
-        if (_presentation!.Thermal is null && (physical == Key.Q || physical == Key.E))
+        if (_presentation!.ConstructionInputEnabled &&
+            (physical == Key.Q || physical == Key.E))
         {
             CycleCandidate(physical == Key.Q ? -1 : 1);
             AcceptEvent();
@@ -375,7 +384,7 @@ internal sealed partial class CommercialMapView : Control
         }
         if (key.Keycode == Key.Backspace)
         {
-            if (_presentation!.Thermal is null)
+            if (_presentation!.ConstructionInputEnabled)
             {
                 UndoRequested?.Invoke();
             }
@@ -391,16 +400,16 @@ internal sealed partial class CommercialMapView : Control
         if (key.Keycode is Key.Enter or Key.KpEnter)
         {
             SetPointer(_keyboardPoint);
-            if (_presentation!.Thermal is not null)
+            if (_presentation!.ConstructionInputEnabled)
+            {
+                PointRequested?.Invoke(_keyboardPoint, SelectedCandidateId);
+            }
+            else if (_presentation.Thermal is not null)
             {
                 if (TryThermalAssetAt(KeyboardAnchor(), out string assetId))
                 {
                     ThermalAssetRequested?.Invoke(assetId);
                 }
-            }
-            else
-            {
-                PointRequested?.Invoke(_keyboardPoint, SelectedCandidateId);
             }
             AcceptEvent();
         }
@@ -1036,10 +1045,13 @@ internal sealed partial class CommercialMapView : Control
     {
         if (_presentation?.Thermal is CommercialThermalMapPresentation thermal)
         {
+            string instruction = _presentation.ConstructionInputEnabled
+                ? "열 상태 표시 유지 · 현재 선택한 공사 위치를 지도에서 확정합니다."
+                : "설비를 선택하면 현재 사용과 다음 상태를 확인합니다.";
             DrawString(
                 GetThemeDefaultFont(),
                 new Vector2(18f, Size.Y - 28f),
-                $"{thermal.ProjectionLabel} · 설비를 선택하면 현재 사용과 다음 상태를 확인합니다.",
+                $"{thermal.ProjectionLabel} · {instruction}",
                 HorizontalAlignment.Left,
                 -1f,
                 11,
@@ -1138,15 +1150,22 @@ internal sealed partial class CommercialMapView : Control
 
     private string BuildAccessibilityName(CommercialMapPresentation presentation)
     {
+        if (presentation.ConstructionInputEnabled)
+        {
+            string pointer = _pointerPoint is CoreMapPoint
+                ? CandidateLabel(presentation.Snapshot.World) ?? presentation.PointerMessage
+                : "지도 밖";
+            string thermalContext = presentation.Thermal is CommercialThermalMapPresentation overlay
+                ? $" {overlay.ProjectionLabel} 열 상태 표시 중."
+                : string.Empty;
+            return $"청류시 자유 배치 지도. {presentation.ToolLabel}. {pointer}.{thermalContext} 지도 {ZoomLabel}.";
+        }
         if (presentation.Thermal is CommercialThermalMapPresentation thermal)
         {
             return $"청류시 고정 전력망 열 운전 지도. {thermal.ProjectionLabel}. " +
                    $"{thermal.AccessibilitySummary}. 지도 {ZoomLabel}.";
         }
-        string pointer = _pointerPoint is CoreMapPoint
-            ? CandidateLabel(presentation.Snapshot.World) ?? presentation.PointerMessage
-            : "지도 밖";
-        return $"청류시 자유 배치 지도. {presentation.ToolLabel}. {pointer}. 지도 {ZoomLabel}.";
+        return $"청류시 지도. 선택 가능한 설비가 없습니다. 지도 {ZoomLabel}.";
     }
 
     private Vector2 KeyboardAnchor() => RequireTransform().WorldToCanvas(

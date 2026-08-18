@@ -22,8 +22,8 @@
 | 동결 release v1 기술 기준선 | **완료** | [과거 계약](scopes/RELEASE_REBUILD.md)·[world](../data/release-world-v1.json)·[campaign](../data/release-campaign-v1.json) | 15 suites / 481 assertions | 건설·두 프로세스 8임무·내부 package 통과 | 공식 cold LLM은 마지막 장 `BLOCKED`; v2 증거로 합산하지 않음 | 후속 기술 수정 P0/P1 0 |
 | B. 자유 좌표 기반 | **완료** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)·Stage-B spatial fixture | CommercialChecks 7 suites / 238 assertions | 1280×720·UI 125% 자유 배치 흐름 통과 | 해당 없음 | exact-tree P0/P1 0 |
 | C. 이산 열 국면 기반 | **완료** | final world v2와 같은 활성 계약 | CommercialChecks 13 suites / 350 assertions | 열 projection·설비 선택·비상→정지→복귀 통과 | 해당 없음 | P1 2건 수정 뒤 exact-tree P0/P1 0 |
-| D. 상용 핵심 흐름 | **활성** | core slice와 같은 활성 계약의 현재 gate | 구현 중 | 미실행 | 사람 관찰은 구현 뒤 `NOT_COLLECTED` | 구현 중 |
-| E. 첫 네 임무·공통 UX | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 구현 중 수집하지 않음 | D 종료 뒤 자동 활성화 |
+| D. 상용 핵심 흐름 | **완료** | core slice SHA `8d09a0…0842`와 같은 활성 계약 | CommercialChecks 19 suites / 1,312 assertions | 두 fresh process로 첫 불빛 저장→본편 복원→5장 완료 | `CommercialSliceHumanStatus = NOT_COLLECTED` | 입력·저장 P0/P1 수정 뒤 exact-tree P0/P1 0 |
+| E. 첫 네 임무·공통 UX | **활성** | final campaign v2를 여는 현재 gate | 구현 전 | 미실행 | 구현 중 수집하지 않음 | D 종료 뒤 자동 활성화 |
 | F. 후반 네 임무·에필로그 | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 구현 중 수집하지 않음 | E 종료 뒤 자동 활성화 |
 | G. 시청각·접근성·package | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 전체 사람 검토 `NOT_COLLECTED` | F 종료 뒤 자동 활성화 |
 | H. 외부 검증·공개 후보 | **미승인** | 별도 사용자·자격증명 gate | 자동증거로 대체하지 않음 | 공개 bytes 확정 전 미실행 | 소유자·외부·전문 교정 필요 | Developer ID·공증·배포 결정 필요 |

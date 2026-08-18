@@ -1,0 +1,377 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://CommercialShell.cs" id="1_shell"]
+
+[node name="CommercialShell" type="Control"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_shell")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.004, 0.012, 0.016, 0.92)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(580, 520)
+layout_mode = 2
+
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 26
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 26
+
+[node name="Pages" type="Control" parent="Center/Panel/Margin"]
+custom_minimum_size = Vector2(520, 468)
+layout_mode = 2
+
+[node name="TitlePage" type="VBoxContainer" parent="Center/Panel/Margin/Pages"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Brand" type="Label" parent="Center/Panel/Margin/Pages/TitlePage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+text = "GRIDWORKS"
+horizontal_alignment = 1
+
+[node name="TitleSubtitle" type="Label" parent="Center/Panel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.49, 0.78, 0.8, 1)
+theme_override_font_sizes/font_size = 17
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TitleStatus" type="Label" parent="Center/Panel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="Center/Panel/Margin/Pages/TitlePage"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="NewGameButton" type="Button" parent="Center/Panel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "새 게임"
+
+[node name="ContinueButton" type="Button" parent="Center/Panel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "이어하기"
+
+[node name="TitleSettingsButton" type="Button" parent="Center/Panel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "설정"
+
+[node name="TitleHelpButton" type="Button" parent="Center/Panel/Margin/Pages/TitlePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "조작 안내"
+
+[node name="PausePage" type="VBoxContainer" parent="Center/Panel/Margin/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Center/Panel/Margin/Pages/PausePage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "일시정지"
+horizontal_alignment = 1
+
+[node name="PauseContext" type="Label" parent="Center/Panel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.49, 0.78, 0.8, 1)
+theme_override_font_sizes/font_size = 17
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="PauseStatus" type="Label" parent="Center/Panel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Spacer" type="Control" parent="Center/Panel/Margin/Pages/PausePage"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResumeButton" type="Button" parent="Center/Panel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "계속하기"
+
+[node name="SaveAndQuitButton" type="Button" parent="Center/Panel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "저장하고 제목 화면으로"
+
+[node name="ReturnToTitleButton" type="Button" parent="Center/Panel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "제목 화면으로"
+
+[node name="PauseSettingsButton" type="Button" parent="Center/Panel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "설정"
+
+[node name="PauseHelpButton" type="Button" parent="Center/Panel/Margin/Pages/PausePage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "조작 안내"
+
+[node name="SettingsPage" type="VBoxContainer" parent="Center/Panel/Margin/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 7
+
+[node name="Heading" type="Label" parent="Center/Panel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "설정"
+
+[node name="FullscreenRow" type="HBoxContainer" parent="Center/Panel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/Panel/Margin/Pages/SettingsPage/FullscreenRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "화면 표시"
+[node name="FullscreenOption" type="OptionButton" parent="Center/Panel/Margin/Pages/SettingsPage/FullscreenRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="UiScaleRow" type="HBoxContainer" parent="Center/Panel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/Panel/Margin/Pages/SettingsPage/UiScaleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "UI 크기"
+[node name="UiScaleOption" type="OptionButton" parent="Center/Panel/Margin/Pages/SettingsPage/UiScaleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="MasterRow" type="HBoxContainer" parent="Center/Panel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/Panel/Margin/Pages/SettingsPage/MasterRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "전체 음량"
+[node name="MasterVolumeOption" type="OptionButton" parent="Center/Panel/Margin/Pages/SettingsPage/MasterRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="AmbientRow" type="HBoxContainer" parent="Center/Panel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/Panel/Margin/Pages/SettingsPage/AmbientRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "환경음"
+[node name="AmbientVolumeOption" type="OptionButton" parent="Center/Panel/Margin/Pages/SettingsPage/AmbientRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="SfxRow" type="HBoxContainer" parent="Center/Panel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+[node name="Label" type="Label" parent="Center/Panel/Margin/Pages/SettingsPage/SfxRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "효과음"
+[node name="SfxVolumeOption" type="OptionButton" parent="Center/Panel/Margin/Pages/SettingsPage/SfxRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(210, 42)
+layout_mode = 2
+
+[node name="ReduceMotionCheck" type="CheckButton" parent="Center/Panel/Margin/Pages/SettingsPage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "움직임 줄이기"
+
+[node name="Spacer" type="Control" parent="Center/Panel/Margin/Pages/SettingsPage"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="SettingsBackButton" type="Button" parent="Center/Panel/Margin/Pages/SettingsPage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "뒤로"
+
+[node name="HelpPage" type="VBoxContainer" parent="Center/Panel/Margin/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 14
+
+[node name="Heading" type="Label" parent="Center/Panel/Margin/Pages/HelpPage"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "조작 안내"
+
+[node name="HelpBody" type="Label" parent="Center/Panel/Margin/Pages/HelpPage"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 16
+autowrap_mode = 2
+
+[node name="HelpBackButton" type="Button" parent="Center/Panel/Margin/Pages/HelpPage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "뒤로"
+
+[node name="ConfirmPage" type="VBoxContainer" parent="Center/Panel/Margin/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+
+[node name="ConfirmHeading" type="Label" parent="Center/Panel/Margin/Pages/ConfirmPage"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "확인"
+horizontal_alignment = 1
+
+[node name="ConfirmBody" type="Label" parent="Center/Panel/Margin/Pages/ConfirmPage"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 17
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="CancelConfirmButton" type="Button" parent="Center/Panel/Margin/Pages/ConfirmPage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "취소"
+
+[node name="ConfirmActionButton" type="Button" parent="Center/Panel/Margin/Pages/ConfirmPage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 46)
+layout_mode = 2
+text = "확인"
+
+[node name="StoryPage" type="VBoxContainer" parent="Center/Panel/Margin/Pages"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="StoryKindLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
+text = "이야기"
+
+[node name="StorySpeakerLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.49, 0.78, 0.8, 1)
+theme_override_font_sizes/font_size = 17
+
+[node name="StoryTitleLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+autowrap_mode = 2
+
+[node name="StoryBodyLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 17
+autowrap_mode = 2
+
+[node name="StoryContinueButton" type="Button" parent="Center/Panel/Margin/Pages/StoryPage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "계속"

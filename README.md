@@ -12,7 +12,7 @@
 ## 현재 상태
 
 현재 활성 구현 단계는 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-**단계 D — 상용 핵심 흐름**이다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
+**단계 E — 첫 네 임무와 공통 UX**다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
 주기기·전신주 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도
 v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대로 만든다. 기존 `ReleaseMain`과
 33×21 후보는 기술 회귀 기준선이며 새 규칙의 실행 권위가 아니다.
@@ -20,13 +20,19 @@ v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대
 단계 B의 명시 실행 장면은 고정소수점 자유 좌표, 원형 점유영역, 수면·건물·위험구역, 교차 비접속
 선로, 초안 전신주 이동과 세 단계 카메라를 구현했다. CommercialChecks 7개 묶음 238 assertions,
 Game Debug·Release build와 1280×720·UI 125% native 자유 배치 흐름을 통과했고 독립 검토에서
-P0/P1이 없었다. 이 경로는 단계 D cut-over 전까지 명시 scene으로만 실행한다.
+P0/P1이 없었다. 이 기반은 단계 D 제품 장면에 통합됐다.
 
 단계 C는 같은 v2 지도에 선로 도체·변전소 주기기·전신주 접속부의 연속·비상 한계, 공유 사용량,
 모든 발전원·경로의 결정론적 선택과 `비상 운전 → 보호정지 → 한 국면 냉각 뒤 복귀`를 연결했다.
 CommercialChecks 13개 묶음 350 assertions와 Debug 전용 native 열 화면을 통과했고, Release 제품
-assembly에는 검사 국면과 대표 해법을 넣지 않았다. 실제 도시 약속·공사 경계·저장 흐름은 현재
-단계 D에서 연결한다.
+assembly에는 검사 국면과 대표 해법을 넣지 않았다.
+
+단계 D는 짧은 `첫 불빛` prelude와 4장 완료 상태의 `누구의 여유인가`를 실제 제품 장면에 연결했다.
+안전 의무·도시 약속·운영 기록, 두 선종, 작성 기한, 공개 국면 preview, 최근 공사 복구, 실제 결과
+사실과 save v3를 같은 command journal로 처리한다. CommercialChecks 19개 묶음 1,312 assertions와
+서로 다른 두 Godot 프로세스의 저장·복원·완료 흐름을 통과했고, 독립 검토의 P0/P1을 모두 닫았다.
+새 `CommercialMain`이 이제 기본 장면이며 단계 E는 같은 runner를 여덟 임무용 final campaign v2로
+확장한다.
 
 직전 기준선의 `ReleaseMain`은 프롤로그 세 임무와 본편 다섯 장, 한국어 화면, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 후보까지 구현했다. 사용자 요청으로 수행한
@@ -40,7 +46,7 @@ assembly에는 검사 국면과 대표 해법을 넣지 않았다. 실제 도시
 기준은 보이는 격자 없는 자유 배치와 선로·변압기·전신주 접속부의 국면별 열 한계, 실제 상태를
 기억하는 여덟 임무를 새 기반으로 삼는다. 정확한 구현 경계와 순서는 활성 계약이 소유한다.
 
-현재 기본 실행 장면은 새 `ReleaseMain`이다. 33×21 지도에서 변전소와 선로를 직접 건설하고,
+동결 기준선 `ReleaseMain`은 33×21 지도에서 변전소와 선로를 직접 건설하고,
 분기·합류 설비의 사용량·정격·접속 여유를 보면서 같은 청류시 망을 8개 임무 동안 이어 쓴다.
 예고 상황을 지도에 미리 적용해 사용 불가 설비와 우회 경로를 비교할 수 있고, 과거 설계가 뒤의
 임무를 막으면 이전 임무 시작부터 다시 설계할 수 있다. 두 fresh process 대표 흐름에서 본편 중간
@@ -183,9 +189,8 @@ dotnet run --project tools/Gridworks.CommercialChecks/Gridworks.CommercialChecks
 dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild
 ```
 
-단계 D의 제품 cut-over 전까지 Godot 기본 실행은 `game/project.godot`의 `ReleaseMain.tscn`이다.
-단계 B·C의 새 `CommercialMain.tscn`은 명시 scene smoke로 실행하고, 단계 D 종료 커밋에서 기본 장면을
-전환한다. 완료된 회귀 장면은
+Godot 기본 실행은 `game/project.godot`의 `CommercialMain.tscn`이다. 단계 D 종료에서 제품 장면을
+전환했으며 동결된 회귀 장면은
 `--scene res://ProductMain.tscn`, `--scene res://Main.tscn` 또는 `--scene res://Scope1Main.tscn`을
 명시해 실행한다. 이전 내부 후보의 대표 shell
 smoke는 [캠페인·저장 종료 기록](docs/scopes/CAMPAIGN_SAVE_SETTINGS.md#9-현재-검사와-종료-기록), 전체

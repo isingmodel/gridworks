@@ -2,7 +2,7 @@
 
 > 상태: **ACTIVE**
 > 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 D — 상용 핵심 흐름**
+> 현재 작업: **단계 E — 첫 네 임무와 공통 UX**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -251,6 +251,25 @@ V2 운영 명령은 건설 명령 외 `SetPromiseDecision(Keep|Defer)`와 `Appro
 단계 B·C에서는 `CommercialMain.tscn`을 명시 scene으로만 실행하고 `project.godot`의 기본 장면은
 동결 기준선 `ReleaseMain.tscn`으로 유지한다. 단계 D 핵심 흐름의 자동·native 증거가 닫히는 커밋에서
 기본 장면을 `CommercialMain.tscn`으로 전환하고, 이후 `ReleaseMain`은 명시 scene 회귀로만 실행한다.
+
+### 5.1 단계 D 종료 기록 — 2026-08-18
+
+- final world v2 SHA-256:
+  `c838ce789b44f29eff916d909c6864d76ffe2e135d4635aa7b8e8c7bde1682c4`
+- core slice SHA-256:
+  `8d09a0745cf560246ac54b5a9774dfb98a2c0aab61f7c19d7b3316140f700842`
+- CommercialChecks: **19 suites / 1,312 assertions PASS**
+- Game Debug·Release·ExportRelease build: **0 warnings / 0 errors**
+- 서로 다른 Godot 프로세스가 같은 v3 저장을 사용한 1280×720·UI 125% native 흐름:
+  `COMMERCIAL_CORE_SMOKE_LEG1_PASS segment=CHAPTER_FIVE_SEGMENT commands=9`,
+  `COMMERCIAL_CORE_SMOKE_LEG2_PASS complete=True commands=17 outcome=WHOSE_MARGIN`
+- 첫 프로세스는 자유 좌표 `첫 불빛`을 끝내고 본편 시작점에 저장했다. 두 번째 프로세스는 그 저장을
+  복원해 산업 약속, 일반 회랑의 비상 운전, 다음 보호정지와 실제 결과 카드까지 완료했다.
+- Core와 Game 독립 exact-tree 검토에서 입력·저장 실패 P0/P1을 수정한 뒤 **P0 0 / P1 0**이었다.
+- 빠른 smoke 종료 뒤 Godot가 오디오 객체 4개의 종료 정리 경고를 남겼지만 두 프로세스 모두 exit 0,
+  저장·복원 marker는 PASS였다. 정상 종료와 package 경계는 단계 G에서 다시 확인한다.
+- `CommercialSliceHumanStatus = NOT_COLLECTED`. 재미·이해를 자동 증거로 주장하지 않는다.
+- `project.godot` 기본 장면을 `CommercialMain.tscn`으로 전환하고 단계 E로 승격했다.
 
 ## 6. 단계 E·F — 여덟 임무 전체 캠페인
 

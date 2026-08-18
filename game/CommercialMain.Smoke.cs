@@ -94,9 +94,9 @@ internal sealed partial class CommercialMain
                 _panel.StatusText.Contains("다음 상태 · 보호정지", StringComparison.Ordinal),
                 "선택 설비의 typed 열 결과를 전문 용어로 표시하지 못했습니다.");
             Require(
-                _helpBodyLabel.Text.Contains("이중선과 사선", StringComparison.Ordinal) &&
-                _helpBodyLabel.Text.Contains("점선", StringComparison.Ordinal) &&
-                _helpBodyLabel.Text.Contains("교차선", StringComparison.Ordinal) &&
+                _shell.HelpText.Contains("이중선과 사선", StringComparison.Ordinal) &&
+                _shell.HelpText.Contains("점선", StringComparison.Ordinal) &&
+                _shell.HelpText.Contains("교차선", StringComparison.Ordinal) &&
                 _map.AccessibilityName.Contains("비상 운전", StringComparison.Ordinal),
                 "열 overlay의 색 독립 패턴·아이콘·문장 안내가 빠졌습니다.");
 
@@ -334,6 +334,239 @@ internal sealed partial class CommercialMain
             GD.PushError($"상용 자유 배치 smoke 실패: {exception}");
             GetTree().Quit(1);
         }
+    }
+
+    private async void RunCommercialCoreSmoke()
+    {
+        try
+        {
+            await NextFrame();
+            GetWindow().Size = new Vector2I(1280, 720);
+            await NextFrame();
+            ApplyUiScale(this, 1.25f);
+            await NextFrame();
+            if (_options.CoreSmokeLeg == CommercialCoreSmokeLeg.First)
+            {
+                await RunCommercialCoreSmokeFirstLeg();
+            }
+            else if (_options.CoreSmokeLeg == CommercialCoreSmokeLeg.Second)
+            {
+                await RunCommercialCoreSmokeSecondLeg();
+            }
+            else
+            {
+                throw new InvalidOperationException("상용 핵심 흐름 확인 단계가 없습니다.");
+            }
+            GetTree().Quit(0);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"상용 핵심 흐름 smoke 실패: {exception}");
+            GetTree().Quit(1);
+        }
+    }
+
+    private async Task RunCommercialCoreSmokeFirstLeg()
+    {
+        Require(
+            _shell.Surface == CommercialShellSurface.Title &&
+            _shell.GetActionButton(CommercialShellAction.Continue).Disabled,
+            "첫 실행의 제목 화면에서 빈 저장 상태를 표시하지 못했습니다.");
+        EmitShell(CommercialShellAction.NewGame, "새 게임");
+        await NextFrame();
+        await DismissStorySequence();
+        Require(
+            _coreSnapshot!.SegmentId == "FIRST_LIGHT_PRELUDE_SEGMENT" &&
+            _coreSnapshot.CommandCount == 0,
+            "새 게임이 첫 불빛 시작 상태를 열지 못했습니다.");
+
+        EmitPanel(CommercialPanelAction.StartStandardLine, "일반 선로 선택");
+        await NextFrame();
+        CoreMapPoint[] preludePath =
+        [
+            new(800, 650),
+            new(1050, 650),
+            new(1600, 650),
+            new(2100, 650),
+        ];
+        await SelectAndClickCandidate(new CoreMapPoint(250, 650), "WEST_SOURCE_NODE");
+        foreach (CoreMapPoint point in preludePath)
+        {
+            await ClickMap(point);
+        }
+        await SelectAndClickCandidate(
+            new CoreMapPoint(2580, 725),
+            "EAST_RESIDENTIAL_TERMINAL");
+        Require(
+            _snapshot.LineDraft?.LineClassId == "STANDARD_LINE" &&
+            _snapshot.LineDraft.IntermediatePoints.SequenceEqual(preludePath) &&
+            _coreRun!.PreviewLineOrder().Accepted,
+            "첫 불빛의 일반 선로 자유 좌표와 견적을 화면 흐름으로 확정하지 못했습니다.");
+        EmitPanel(CommercialPanelAction.Commission, "첫 불빛 선로 발주");
+        await NextFrame();
+        EmitPanel(CommercialPanelAction.Commission, "첫 불빛 선로 완공");
+        await NextFrame();
+        EmitProduct(CommercialProductAction.ApproveWindow, "첫 공급 운영안 승인");
+        await NextFrame();
+        Require(
+            _coreSnapshot.SegmentId == "CHAPTER_FIVE_SEGMENT" &&
+            _coreSnapshot.LastOutcome?.ChapterId == "FIRST_LIGHT_PRELUDE" &&
+            _shell.Surface == CommercialShellSurface.Result,
+            "첫 불빛 결과와 본편 시작 상태를 같은 제품 흐름으로 열지 못했습니다.");
+        await DismissStorySequence();
+        await PressKey(Key.Escape);
+        Require(_shell.Surface == CommercialShellSurface.Pause,
+            "첫 실행에서 Esc로 일시정지 메뉴를 열지 못했습니다.");
+        EmitShell(CommercialShellAction.SaveAndQuit, "저장하고 제목 화면으로");
+        await NextFrame();
+        Require(
+            _shell.Surface == CommercialShellSurface.Title &&
+            !_shell.GetActionButton(CommercialShellAction.Continue).Disabled,
+            "첫 실행을 저장한 뒤 이어하기가 활성화되지 않았습니다.");
+        RequirePersistedSnapshot(campaignComplete: false);
+        GD.Print(
+            "COMMERCIAL_CORE_SMOKE_LEG1_PASS " +
+            $"segment={_coreSnapshot.SegmentId} commands={_coreSnapshot.CommandCount} " +
+            $"save={_options.SmokeSavePath}");
+    }
+
+    private async Task RunCommercialCoreSmokeSecondLeg()
+    {
+        Require(
+            _shell.Surface == CommercialShellSurface.Title &&
+            !_shell.GetActionButton(CommercialShellAction.Continue).Disabled,
+            "새 프로세스의 제목 화면에서 유효한 저장을 찾지 못했습니다.");
+        EmitShell(CommercialShellAction.Continue, "이어하기");
+        await NextFrame();
+        await DismissStorySequence();
+        Require(
+            _coreSnapshot!.SegmentId == "CHAPTER_FIVE_SEGMENT" &&
+            _coreSnapshot.PromiseDecision == CommercialPromiseDecision.Unset,
+            "이어하기가 본편 결정 상태를 정확히 복원하지 못했습니다.");
+        Require(
+            _panel.GetActionButton(CommercialPanelAction.PlaceSubstation).Disabled &&
+            !_panel.GetActionButton(CommercialPanelAction.StartStandardLine).Disabled &&
+            !_panel.GetActionButton(CommercialPanelAction.StartLine).Disabled &&
+            ControlInside(
+                _panel,
+                _panel.GetProductActionButton(CommercialProductAction.ApproveWindow)),
+            "상용 핵심 구간의 기존 변전소·일반 선로·보강 선로 선택이 화면에 맞게 열리지 않았습니다.");
+
+        EmitPromise(CommercialPromiseDecision.Keep, "도시 약속 지키기");
+        await NextFrame();
+        EmitPanel(CommercialPanelAction.StartStandardLine, "짧은 일반 회랑 선택");
+        await NextFrame();
+        await SelectAndClickCandidate(new CoreMapPoint(1450, 1500), "BRIDGE_SOUTH");
+        await ClickMap(new CoreMapPoint(1950, 1750));
+        await SelectAndClickCandidate(new CoreMapPoint(2500, 1800), "FACTORY_TERMINAL");
+        Require(
+            _snapshot.LineDraft?.LineClassId == "STANDARD_LINE" &&
+            _coreRun!.PreviewLineOrder().Accepted,
+            "이어온 본편에서 짧은 일반 회랑을 실제 지도 입력으로 계획하지 못했습니다.");
+        EmitPanel(CommercialPanelAction.Commission, "본편 일반 선로 발주");
+        await NextFrame();
+        EmitPanel(CommercialPanelAction.Commission, "본편 일반 선로 완공");
+        await NextFrame();
+        EmitProduct(CommercialProductAction.ApproveWindow, "더운 저녁 운영안 승인");
+        await NextFrame();
+        Require(
+            _coreSnapshot.CommittedPhases.Count == 1 &&
+            _coreSnapshot.CurrentWindow?.WindowId == "BEFORE_NIGHT_RECOVERY" &&
+            _thermalProjectionIndex == 0,
+            "첫 운영 승인 뒤 다음 결정 경계와 projection을 갱신하지 못했습니다.");
+        await DismissStorySequence();
+        EmitProduct(CommercialProductAction.ApproveWindow, "야간 필수 공급 승인");
+        await NextFrame();
+        Require(
+            _coreSnapshot.CampaignComplete &&
+            _coreSnapshot.LastOutcome?.PromiseDecision == CommercialPromiseDecision.Keep &&
+            _shell.Surface == CommercialShellSurface.Result &&
+            _shell.StoryBodyText.Contains("안전 의무", StringComparison.Ordinal) &&
+            _shell.StoryBodyText.Contains("보호정지", StringComparison.Ordinal),
+            "완료 결과 카드가 실제 의무·비상 운전·다음 보호정지 사실을 회수하지 못했습니다.");
+        RequirePersistedSnapshot(campaignComplete: true);
+        await DismissStorySequence();
+        await PressKey(Key.Escape);
+        EmitShell(CommercialShellAction.SaveAndQuit, "완료 저장하고 제목 화면으로");
+        await NextFrame();
+        Require(_shell.Surface == CommercialShellSurface.Title,
+            "완료 저장 뒤 제목 화면으로 돌아오지 못했습니다.");
+        GD.Print(
+            "COMMERCIAL_CORE_SMOKE_LEG2_PASS " +
+            $"complete={_coreSnapshot.CampaignComplete} commands={_coreSnapshot.CommandCount} " +
+            $"outcome={_coreSnapshot.LastOutcome!.ChapterId}");
+    }
+
+    private async Task DismissStorySequence()
+    {
+        int guard = 0;
+        while (_shell.Surface is CommercialShellSurface.Story or CommercialShellSurface.Result)
+        {
+            if (++guard > 8)
+            {
+                throw new InvalidOperationException("이야기 카드 흐름이 종료되지 않습니다.");
+            }
+            _shell.StoryContinueButton.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+        }
+    }
+
+    private void RequirePersistedSnapshot(bool campaignComplete)
+    {
+        CommercialCoreSaveLoadResult load = CommercialCoreSaveStore.Load(
+            _options.SmokeSavePath!);
+        Require(
+            load.Status == CommercialCoreSaveLoadStatus.Loaded && load.Save is not null,
+            "상용 저장 파일을 원자 저장 뒤 다시 읽지 못했습니다.");
+        CommercialCoreSliceRun restored = CommercialCoreSaveCodec.Restore(
+            _productData!.Slice,
+            _productData.World,
+            _productData.SliceSha256,
+            _productData.WorldSha256,
+            load.Save!);
+        CommercialCoreSnapshot restoredSnapshot = restored.GetSnapshot();
+        Require(
+            restored.Commands.SequenceEqual(_coreRun!.Commands) &&
+            restoredSnapshot.SegmentId == _coreSnapshot!.SegmentId &&
+            restoredSnapshot.CashUnit == _coreSnapshot.CashUnit &&
+            restoredSnapshot.Minute == _coreSnapshot.Minute &&
+            restoredSnapshot.PromiseDecision == _coreSnapshot.PromiseDecision &&
+            restoredSnapshot.CampaignComplete == campaignComplete &&
+            restoredSnapshot.Construction.World.Nodes.SequenceEqual(
+                _coreSnapshot.Construction.World.Nodes) &&
+            restoredSnapshot.Construction.World.Edges.SequenceEqual(
+                _coreSnapshot.Construction.World.Edges),
+            "fresh restore가 명령·좌표·자금·시각·약속·완료 상태를 보존하지 못했습니다.");
+    }
+
+    private void EmitShell(CommercialShellAction action, string description)
+    {
+        BaseButton button = _shell.GetActionButton(action);
+        if (!button.Visible || button.Disabled)
+        {
+            throw new InvalidOperationException($"필요한 shell 행동을 사용할 수 없습니다: {description}");
+        }
+        button.EmitSignal(BaseButton.SignalName.Pressed);
+    }
+
+    private void EmitPromise(CommercialPromiseDecision decision, string description)
+    {
+        BaseButton button = _panel.GetPromiseButton(decision);
+        if (!button.Visible || button.Disabled)
+        {
+            throw new InvalidOperationException($"필요한 약속 선택을 사용할 수 없습니다: {description}");
+        }
+        button.EmitSignal(BaseButton.SignalName.Pressed);
+    }
+
+    private void EmitProduct(CommercialProductAction action, string description)
+    {
+        BaseButton button = _panel.GetProductActionButton(action);
+        if (!button.Visible || button.Disabled)
+        {
+            throw new InvalidOperationException($"필요한 제품 행동을 사용할 수 없습니다: {description}");
+        }
+        button.EmitSignal(BaseButton.SignalName.Pressed);
     }
 
     private async Task RequireRejectedPlacement(

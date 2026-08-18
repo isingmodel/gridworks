@@ -23,28 +23,54 @@ internal sealed partial class CommercialMain : Control
     private const string FixtureResource =
         "Gridworks.Game.EmbeddedData.commercial-free-placement-slice-v1.json";
     private const string SubstationClassId = "SMALL_SUBSTATION";
+    private const string StandardLineClassId = "STANDARD_LINE";
+    private const string StandardPoleClassId = "STANDARD_POLE";
     private const string LineClassId = "REINFORCED_LINE";
     private const string PoleClassId = "REINFORCED_POLE";
+    private const string ProductSaveUri = "user://release-campaign-save-v3.json";
+    private const string LegacySaveUri = "user://release-campaign-save-v2.json";
+    private const string PlacementHelpText =
+        "지도 확대: 마우스 휠 또는 + / −\n" +
+        "지도 이동: 가운데 버튼 드래그 또는 Space+드래그\n" +
+        "전체 보기: Home\n" +
+        "키보드 커서: 방향키, 크게 이동: Shift+방향키\n" +
+        "가까운 접속점 선택: Q / E, 확정: Enter\n" +
+        "작성 중 전신주: 드래그로 이동, 마지막 점은 Backspace 또는 오른쪽 클릭으로 되돌리기\n\n" +
+        "Esc는 작성 중인 계획을 먼저 취소합니다. 계획이 없으면 일시정지 메뉴를 엽니다.";
+    private const string ProductHelpText = PlacementHelpText +
+        "\n\n일반 선로는 짧고 저렴하지만 열여유가 작고, 보강 선로는 더 긴 별도 회랑에 적합합니다." +
+        "\n운영 국면을 바꾸며 의무 공급과 설비의 현재 사용·연속 한계·비상 한계·다음 상태를 확인하세요." +
+        "\n비상 운전은 이중선과 사선, 보호정지는 점선과 × 기호로도 표시합니다." +
+        "\n승인한 행동은 한 슬롯에 자동 저장됩니다.";
 
     private CommercialLaunchOptions _options = null!;
     private ConstructionSession _session = null!;
     private ConstructionSnapshot _snapshot = null!;
     private CommercialWorldDefinition? _thermalWorld = null;
     private ThermalSequenceEvaluation? _thermalEvaluation = null;
+    private CommercialProductData? _productData;
+    private CommercialCoreSliceRun? _coreRun;
+    private CommercialCoreSnapshot? _coreSnapshot;
+    private CommercialCoreSave? _loadedSave;
+    private string? _productSavePath;
+    private bool _canContinue;
+    private string _persistenceStatus = string.Empty;
+    private bool _persistenceFailurePending;
     private int _thermalProjectionIndex;
     private string? _selectedThermalAssetId;
     private CommercialMapView _map = null!;
     private CommercialTaskPanel _panel = null!;
+    private CommercialShell _shell = null!;
+    private CommercialAudio _audio = null!;
     private Label _zoomLabel = null!;
     private Label _summaryLabel = null!;
     private Label _controlHelpLabel = null!;
-    private Label _helpBodyLabel = null!;
     private Button _helpButton = null!;
-    private Control _helpOverlay = null!;
-    private Button _closeHelpButton = null!;
     private Label _fatalLabel = null!;
 
     private CommercialTool _tool;
+    private string _activeLineClassId = LineClassId;
+    private string _activePoleClassId = PoleClassId;
     private CoreMapPoint? _pointerPoint;
     private string? _candidateNodeId;
     private bool _pointerAccepted = true;
@@ -53,6 +79,7 @@ internal sealed partial class CommercialMain : Control
     private IReadOnlyList<string> _pointerRiskAreaIds = Array.Empty<string>();
     private string _lastStatus = "아직 발주한 공사가 없습니다.";
     private string _lastError = string.Empty;
+    private readonly Queue<CommercialStoryPresentation> _storyQueue = new();
 
     public override void _Ready()
     {
@@ -60,18 +87,29 @@ internal sealed partial class CommercialMain : Control
         {
             _options = CommercialLaunchOptions.Parse(OS.GetCmdlineUserArgs());
 #if DEBUG
-            if (_options.ThermalSmoke)
+            if (_options.PlacementSmoke)
+            {
+                InitializePlacementMode();
+            }
+            else if (_options.ThermalSmoke)
             {
                 InitializeThermalSmokeMode();
             }
             else
 #endif
             {
-                InitializePlacementMode();
+                InitializeProductMode();
             }
             BindScene();
             Render();
-            _map.CallDeferred(Control.MethodName.GrabFocus);
+            if (IsProductMode)
+            {
+                ShowProductTitle();
+            }
+            if (!IsProductMode)
+            {
+                _map.CallDeferred(Control.MethodName.GrabFocus);
+            }
 #if DEBUG
             if (_options.PlacementSmoke)
             {
@@ -81,6 +119,10 @@ internal sealed partial class CommercialMain : Control
             {
                 CallDeferred(nameof(RunThermalSmoke));
             }
+            else if (_options.CoreSmokeLeg != CommercialCoreSmokeLeg.None)
+            {
+                CallDeferred(nameof(RunCommercialCoreSmoke));
+            }
 #endif
         }
         catch (Exception exception)
@@ -88,8 +130,9 @@ internal sealed partial class CommercialMain : Control
             GD.PushError($"상용 자유 배치 화면을 시작하지 못했습니다: {exception}");
             ShowFatal(exception.Message);
 #if DEBUG
-            if (OS.GetCmdlineUserArgs().Any(argument => argument is
-                    "--commercial-placement-smoke" or "--commercial-thermal-smoke"))
+            if (OS.GetCmdlineUserArgs().Any(argument =>
+                (argument is "--commercial-placement-smoke" or "--commercial-thermal-smoke") ||
+                argument.StartsWith("--commercial-core-smoke=", StringComparison.Ordinal)))
             {
                 GetTree().Quit(1);
             }
@@ -104,6 +147,142 @@ internal sealed partial class CommercialMain : Control
             ReadEmbeddedResourceBytes(FixtureResource));
         _session = new ConstructionSession(world);
         _snapshot = _session.GetSnapshot();
+    }
+
+    private void InitializeProductMode()
+    {
+        _productData = CommercialProductResources.Load(Assembly.GetExecutingAssembly());
+        _coreRun = new CommercialCoreSliceRun(_productData.Slice, _productData.World);
+        _coreSnapshot = _coreRun.GetSnapshot();
+        _snapshot = _coreSnapshot.Construction;
+        _thermalWorld = _productData.World;
+        _productSavePath = ProjectSettings.GlobalizePath(ProductSaveUri);
+#if DEBUG
+        if (_options.CoreSmokeLeg != CommercialCoreSmokeLeg.None)
+        {
+            _productSavePath = _options.SmokeSavePath!;
+        }
+#endif
+        RefreshContinueState();
+        GetWindow().Title = "Gridworks";
+    }
+
+    private bool IsProductMode => _coreRun is not null;
+
+    private void RefreshContinueState()
+    {
+        if (_productData is null || _productSavePath is null)
+        {
+            return;
+        }
+        _loadedSave = null;
+        _canContinue = false;
+        CommercialCoreSaveLoadResult load = CommercialCoreSaveStore.Load(_productSavePath);
+        switch (load.Status)
+        {
+            case CommercialCoreSaveLoadStatus.Missing:
+                string legacyPath = ProjectSettings.GlobalizePath(LegacySaveUri);
+                _persistenceStatus = File.Exists(legacyPath)
+                    ? "이전 출시 후보의 저장 기록은 이 버전과 호환되지 않아 원본을 그대로 보존했습니다."
+                    : "이어할 저장 기록이 없습니다.";
+                return;
+            case CommercialCoreSaveLoadStatus.Invalid:
+                _persistenceStatus =
+                    "저장 기록을 읽지 못해 이어하기를 사용할 수 없습니다. 새 게임은 시작할 수 있습니다.";
+                return;
+            case CommercialCoreSaveLoadStatus.Loaded:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
+        }
+
+        try
+        {
+            _ = CommercialCoreSaveCodec.Restore(
+                _productData.Slice,
+                _productData.World,
+                _productData.SliceSha256,
+                _productData.WorldSha256,
+                load.Save!);
+            _loadedSave = load.Save;
+            _canContinue = true;
+            _persistenceStatus = "저장된 진행 상황을 이어갈 수 있습니다.";
+        }
+        catch (CommercialCorePersistenceException)
+        {
+            _persistenceStatus =
+                "저장 기록이 현재 게임 데이터와 맞지 않아 이어하기를 사용할 수 없습니다. 원본은 그대로 보존했습니다.";
+        }
+    }
+
+    private void ShowProductTitle(string? status = null)
+    {
+        _shell.ShowTitle(new CommercialTitlePresentation(
+            _productData!.Slice.DisplayName,
+            _canContinue,
+            status ?? _persistenceStatus));
+    }
+
+    private bool SaveProductRun()
+    {
+        if (_productData is null || _coreRun is null || _productSavePath is null)
+        {
+            return false;
+        }
+        try
+        {
+            CommercialCoreSave save = CommercialCoreSaveCodec.Capture(
+                _productData.Slice,
+                _productData.World,
+                _productData.SliceSha256,
+                _productData.WorldSha256,
+                _coreRun);
+            CommercialCoreSaveStore.Save(_productSavePath, save);
+            _loadedSave = save;
+            _canContinue = true;
+            _persistenceStatus = "현재 진행 상황을 저장했습니다.";
+            _persistenceFailurePending = false;
+            return true;
+        }
+        catch (Exception exception) when (
+            exception is CommercialCorePersistenceException or IOException or
+            UnauthorizedAccessException or ArgumentException)
+        {
+            _lastError =
+                "게임을 저장하지 못했습니다. 마지막으로 완성된 저장은 그대로 두었습니다. 저장 공간과 파일 권한을 확인하세요.";
+            _persistenceStatus = _lastError;
+            _persistenceFailurePending = true;
+            GD.PushError($"상용 게임 저장 실패: {exception.Message}");
+            return false;
+        }
+    }
+
+    private void ReplaceProductRun(CommercialCoreSliceRun run)
+    {
+        _coreRun = run;
+        _coreSnapshot = run.GetSnapshot();
+        _snapshot = _coreSnapshot.Construction;
+        if (_snapshot.LineDraft is LineDraftSnapshot lineDraft)
+        {
+            _activeLineClassId = lineDraft.LineClassId;
+            _activePoleClassId = lineDraft.PoleClassId;
+        }
+        else
+        {
+            _activeLineClassId = LineClassId;
+            _activePoleClassId = PoleClassId;
+        }
+        _tool = CommercialTool.None;
+        _pointerPoint = null;
+        _candidateNodeId = null;
+        _thermalProjectionIndex = 0;
+        _selectedThermalAssetId = null;
+        _storyQueue.Clear();
+        _persistenceFailurePending = false;
+        _lastError = string.Empty;
+        _lastStatus = "운영안을 검토하고 필요한 공사를 계획하세요.";
+        RefreshPointerPreview();
+        Render();
     }
 
     public override void _UnhandledKeyInput(InputEvent inputEvent)
@@ -122,13 +301,15 @@ internal sealed partial class CommercialMain : Control
         {
             CancelDraft();
         }
-        else if (_helpOverlay.Visible)
+        else if (!_shell.HandleEscape())
         {
-            HideHelp();
-        }
-        else
-        {
-            ShowHelp();
+            _shell.ShowPause(new CommercialPausePresentation(
+                IsProductMode ? _coreSnapshot!.Chapter.DisplayName : "현재 게임",
+                IsProductMode
+                    ? "승인한 행동은 자동 저장됩니다."
+                    : "지도와 계획은 그대로 유지됩니다.",
+                IsProductMode,
+                IsProductMode));
         }
         GetViewport().SetInputAsHandled();
     }
@@ -137,19 +318,21 @@ internal sealed partial class CommercialMain : Control
     {
         _map = GetNode<CommercialMapView>("%CommercialMapView");
         _panel = GetNode<CommercialTaskPanel>("%CommercialTaskPanel");
+        _shell = GetNode<CommercialShell>("%CommercialShell");
+        _audio = GetNode<CommercialAudio>("%CommercialAudio");
         _zoomLabel = GetNode<Label>("%ZoomLabel");
         _summaryLabel = GetNode<Label>("%SummaryLabel");
         _controlHelpLabel = GetNode<Label>("%ControlHelp");
-        _helpBodyLabel = GetNode<Label>("%HelpBody");
         _helpButton = GetNode<Button>("%HelpButton");
-        _helpOverlay = GetNode<Control>("%HelpOverlay");
-        _closeHelpButton = GetNode<Button>("%CloseHelpButton");
         _fatalLabel = GetNode<Label>("%FatalLabel");
 
         _map.PointerChanged += OnPointerChanged;
         _map.PointRequested += OnPointRequested;
         _map.UndoRequested += () =>
-            Apply(_session.UndoLinePoint(), "마지막 선로 지점을 되돌렸습니다.");
+            ExecuteConstruction(
+                CommercialCoreCommand.UndoLinePoint(),
+                () => _session.UndoLinePoint(),
+                "마지막 선로 지점을 되돌렸습니다.");
         _map.DraftPointMoveRequested += MoveDraftPoint;
         _map.DraftPointDragPreviewChanged += OnDraftPointDragPreviewChanged;
         _map.ThermalAssetRequested += SelectThermalAsset;
@@ -159,8 +342,17 @@ internal sealed partial class CommercialMain : Control
         };
         _panel.ActionRequested += OnPanelAction;
         _panel.ProjectionDeltaRequested += ChangeThermalProjection;
+        _panel.PromiseRequested += decision => ApplyCore(
+            _coreRun!.Execute(CommercialCoreCommand.SetPromiseDecision(decision)),
+            decision == CommercialPromiseDecision.Keep
+                ? "도시 약속을 지키기로 선택했습니다."
+                : "도시 약속을 미루기로 선택했습니다.");
+        _panel.ProductActionRequested += OnProductAction;
+        _shell.GameplayFocusRequested += () => _map.CallDeferred(Control.MethodName.GrabFocus);
+        _shell.ActionRequested += OnShellAction;
+        _shell.StoryAcknowledged += OnStoryAcknowledged;
         _helpButton.Pressed += ShowHelp;
-        _closeHelpButton.Pressed += HideHelp;
+        _shell.SetHelpText(PlacementHelpText);
     }
 
     private void OnPointerChanged(CoreMapPoint? point, string? candidateNodeId)
@@ -179,7 +371,9 @@ internal sealed partial class CommercialMain : Control
         {
             case CommercialTool.Substation when
                 _snapshot.Phase is ConstructionPhase.Ready or ConstructionPhase.NodeDrafting:
-                Apply(_session.SetNodeDraft(SubstationClassId, point),
+                ExecuteConstruction(
+                    CommercialCoreCommand.SetNodeDraft(SubstationClassId, point),
+                    () => _session.SetNodeDraft(SubstationClassId, point),
                     "변전소 계획 위치를 정했습니다.");
                 return;
 
@@ -189,17 +383,29 @@ internal sealed partial class CommercialMain : Control
                     RejectLocally("선로를 시작할 접속점 가까이에서 선택하세요.");
                     return;
                 }
-                Apply(_session.StartLineDraft(candidateNodeId, LineClassId, PoleClassId),
+                ExecuteConstruction(
+                    CommercialCoreCommand.StartLineDraft(
+                        candidateNodeId,
+                        _activeLineClassId,
+                        _activePoleClassId),
+                    () => _session.StartLineDraft(
+                        candidateNodeId,
+                        _activeLineClassId,
+                        _activePoleClassId),
                     "첫 접속점을 정했습니다. 다음 전신주 위치를 이어서 선택하세요.");
                 return;
 
             case CommercialTool.Line when
                 _snapshot.Phase == ConstructionPhase.LineDrafting &&
                 _snapshot.LineDraft?.EndNodeId is null:
-                ConstructionCommandResult result = candidateNodeId is null
-                    ? _session.AddLinePoint(point)
-                    : _session.FinishLineDraft(candidateNodeId);
-                Apply(result, candidateNodeId is null
+                ExecuteConstruction(
+                    candidateNodeId is null
+                        ? CommercialCoreCommand.AddLinePoint(point)
+                        : CommercialCoreCommand.FinishLineDraft(candidateNodeId),
+                    () => candidateNodeId is null
+                        ? _session.AddLinePoint(point)
+                        : _session.FinishLineDraft(candidateNodeId),
+                    candidateNodeId is null
                     ? "전신주 위치를 계획에 더했습니다."
                     : "마지막 접속점을 정했습니다. 견적을 확인하고 발주하세요.");
                 return;
@@ -217,11 +423,17 @@ internal sealed partial class CommercialMain : Control
             case CommercialPanelAction.PlaceSubstation:
                 SelectTool(CommercialTool.Substation);
                 break;
+            case CommercialPanelAction.StartStandardLine:
+                SelectLineTool(StandardLineClassId, StandardPoleClassId);
+                break;
             case CommercialPanelAction.StartLine:
-                SelectTool(CommercialTool.Line);
+                SelectLineTool(LineClassId, PoleClassId);
                 break;
             case CommercialPanelAction.UndoPoint:
-                Apply(_session.UndoLinePoint(), "마지막 선로 지점을 되돌렸습니다.");
+                ExecuteConstruction(
+                    CommercialCoreCommand.UndoLinePoint(),
+                    () => _session.UndoLinePoint(),
+                    "마지막 선로 지점을 되돌렸습니다.");
                 break;
             case CommercialPanelAction.CancelDraft:
                 CancelDraft();
@@ -232,6 +444,433 @@ internal sealed partial class CommercialMain : Control
             default:
                 throw new ArgumentOutOfRangeException(nameof(action));
         }
+    }
+
+    private void OnProductAction(CommercialProductAction action)
+    {
+        if (!IsProductMode)
+        {
+            return;
+        }
+        switch (action)
+        {
+            case CommercialProductAction.ApproveWindow:
+                {
+                    CommercialCoreSnapshot before = _coreSnapshot!;
+                    CommercialCoreCommandResult result = _coreRun!.Execute(
+                        CommercialCoreCommand.ApproveDecisionWindow());
+                    ApplyCore(result, "현재 결정 경계의 운영안을 승인했습니다.");
+                    if (result.Accepted)
+                    {
+                        PlayApprovalCue(before, result.Snapshot);
+                        PresentApprovalStories(before, result.Snapshot);
+                    }
+                    break;
+                }
+            case CommercialProductAction.RollbackRecentConstruction:
+                ApplyJournalRewind(
+                    _coreRun!.UndoRecentConstruction(),
+                    "최근 완공 공사 직전 상태로 복구했습니다.",
+                    null);
+                break;
+            case CommercialProductAction.RestartWindow:
+                ApplyJournalRewind(
+                    _coreRun!.RestartDecisionWindow(),
+                    "현재 결정 경계를 다시 시작했습니다.",
+                    () => WindowStoryPresentations(_coreRun.GetSnapshot()));
+                break;
+            case CommercialProductAction.RestartChapter:
+                ApplyJournalRewind(
+                    _coreRun!.RestartChapter(),
+                    "현재 장을 처음부터 다시 시작했습니다.",
+                    () => ChapterOpeningPresentations(_coreRun.GetSnapshot()));
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(action));
+        }
+    }
+
+    private void ApplyJournalRewind(
+        bool accepted,
+        string success,
+        Func<IReadOnlyList<CommercialStoryPresentation>>? stories)
+    {
+        if (!accepted)
+        {
+            _lastError = "현재 상태에서는 해당 복구 지점으로 돌아갈 수 없습니다.";
+            Render();
+            return;
+        }
+        RefreshCoreSnapshot(resetProjection: true);
+        _lastStatus = success;
+        _lastError = string.Empty;
+        _tool = CommercialTool.None;
+        _ = SaveProductRun();
+        Render();
+        if (stories is not null)
+        {
+            PresentStories(stories());
+        }
+    }
+
+    private void OnShellAction(CommercialShellAction action)
+    {
+        if (!IsProductMode)
+        {
+            return;
+        }
+        switch (action)
+        {
+            case CommercialShellAction.NewGame:
+                if (_canContinue && _shell.Surface != CommercialShellSurface.Confirm)
+                {
+                    _shell.ShowConfirmation(
+                        CommercialShellAction.NewGame,
+                        "새 게임 시작",
+                        "현재 한 슬롯 저장을 새 진행으로 바꿉니다. 기존 진행은 되돌릴 수 없습니다.",
+                        "새 게임 시작");
+                    return;
+                }
+                ReplaceProductRun(new CommercialCoreSliceRun(
+                    _productData!.Slice,
+                    _productData.World));
+                if (!SaveProductRun())
+                {
+                    Render();
+                    _shell.ShowPause(new CommercialPausePresentation(
+                        _coreSnapshot!.Chapter.DisplayName,
+                        "새 게임은 메모리에서 시작됐지만 첫 저장을 만들지 못했습니다. " +
+                        "저장 공간과 파일 권한을 확인한 뒤 ‘저장하고 제목 화면으로’를 다시 시도하세요.",
+                        true,
+                        false));
+                    return;
+                }
+                PresentStories(ChapterOpeningPresentations(_coreSnapshot!));
+                break;
+            case CommercialShellAction.Continue:
+                ContinueProductRun();
+                break;
+            case CommercialShellAction.SaveAndQuit:
+                if (SaveProductRun())
+                {
+                    ShowProductTitle("현재 진행 상황을 저장하고 제목 화면으로 돌아왔습니다.");
+                }
+                else
+                {
+                    _shell.ShowPause(new CommercialPausePresentation(
+                        _coreSnapshot!.Chapter.DisplayName,
+                        _lastError,
+                        true,
+                        true));
+                    Render();
+                }
+                break;
+            case CommercialShellAction.ReturnToTitle:
+                ShowProductTitle();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(action));
+        }
+    }
+
+    private void ContinueProductRun()
+    {
+        if (!_canContinue || _loadedSave is null)
+        {
+            ShowProductTitle("이어할 수 있는 저장 기록이 없습니다. 새 게임을 시작하세요.");
+            return;
+        }
+        try
+        {
+            CommercialCoreSliceRun restored = CommercialCoreSaveCodec.Restore(
+                _productData!.Slice,
+                _productData.World,
+                _productData.SliceSha256,
+                _productData.WorldSha256,
+                _loadedSave);
+            ReplaceProductRun(restored);
+            CommercialCoreSnapshot snapshot = _coreSnapshot!;
+            if (snapshot.CampaignComplete && snapshot.LastOutcome is not null)
+            {
+                PresentStories([BuildResultPresentation(snapshot.LastOutcome)]);
+            }
+            else if (snapshot.CommandCount == snapshot.ChapterStartCommandCount)
+            {
+                PresentStories(ChapterOpeningPresentations(snapshot));
+            }
+            else if (snapshot.CommandCount == snapshot.WindowStartCommandCount)
+            {
+                PresentStories(WindowStoryPresentations(snapshot));
+            }
+            else
+            {
+                _shell.HideShell();
+            }
+        }
+        catch (CommercialCorePersistenceException)
+        {
+            _loadedSave = null;
+            _canContinue = false;
+            _persistenceStatus =
+                "저장 기록을 복원하지 못해 이어하기를 사용할 수 없습니다. 새 게임은 시작할 수 있습니다.";
+            ShowProductTitle();
+        }
+    }
+
+    private void OnStoryAcknowledged()
+    {
+        if (_storyQueue.Count > 0)
+        {
+            _shell.ShowStory(_storyQueue.Dequeue());
+            return;
+        }
+        _shell.HideShell();
+    }
+
+    private void PresentApprovalStories(
+        CommercialCoreSnapshot before,
+        CommercialCoreSnapshot after)
+    {
+        if (after.LastOutcome is CommercialChapterOutcome outcome &&
+            !string.Equals(
+                before.LastOutcome?.ChapterId,
+                outcome.ChapterId,
+                StringComparison.Ordinal))
+        {
+            var cards = new List<CommercialStoryPresentation>
+            {
+                BuildResultPresentation(outcome),
+            };
+            if (!after.CampaignComplete)
+            {
+                cards.AddRange(ChapterOpeningPresentations(after));
+            }
+            PresentStories(cards);
+            return;
+        }
+        if (!string.Equals(
+                before.CurrentWindow?.WindowId,
+                after.CurrentWindow?.WindowId,
+                StringComparison.Ordinal))
+        {
+            PresentStories(WindowStoryPresentations(after));
+        }
+    }
+
+    private IReadOnlyList<CommercialStoryPresentation> ChapterOpeningPresentations(
+        CommercialCoreSnapshot snapshot)
+    {
+        var cards = new List<CommercialStoryPresentation>
+        {
+            new(snapshot.Chapter.Briefing, false, "예고 확인"),
+        };
+        cards.AddRange(WindowStoryPresentations(snapshot));
+        return cards;
+    }
+
+    private static IReadOnlyList<CommercialStoryPresentation> WindowStoryPresentations(
+        CommercialCoreSnapshot snapshot)
+    {
+        var cards = new List<CommercialStoryPresentation>();
+        if (snapshot.CurrentWindow?.Story is CommercialStoryCard windowStory)
+        {
+            cards.Add(new CommercialStoryPresentation(windowStory, false, "계속"));
+        }
+        CommercialStoryCard? phaseStory = snapshot.Projections
+            .FirstOrDefault(item => item.IsInCurrentWindow)
+            ?.Phase.Story;
+        if (phaseStory is not null)
+        {
+            cards.Add(new CommercialStoryPresentation(phaseStory, false, "운영안 보기"));
+        }
+        return cards;
+    }
+
+    private void PresentStories(IReadOnlyList<CommercialStoryPresentation> stories)
+    {
+        _storyQueue.Clear();
+        if (stories.Count == 0)
+        {
+            _shell.HideShell();
+            return;
+        }
+        IReadOnlyList<CommercialStoryPresentation> presented = stories;
+        if (_persistenceFailurePending)
+        {
+            _persistenceFailurePending = false;
+            var warning = new CommercialStoryPresentation(
+                new CommercialStoryCard(
+                    "시스템",
+                    "진행 상황을 저장하지 못했습니다",
+                    "방금 선택한 결과는 현재 실행의 메모리에 반영됐지만 저장 파일에는 기록하지 못했습니다. " +
+                    "마지막으로 완성된 저장은 그대로 보존했습니다. 저장 공간과 파일 권한을 확인하세요."),
+                false,
+                "결과 계속 보기",
+                true);
+            presented = new[] { warning }.Concat(stories).ToArray();
+        }
+        for (int index = 1; index < presented.Count; index++)
+        {
+            _storyQueue.Enqueue(presented[index]);
+        }
+        _shell.ShowStory(presented[0]);
+    }
+
+    private CommercialStoryPresentation BuildResultPresentation(
+        CommercialChapterOutcome outcome)
+    {
+        CommercialStoryCard authored = outcome.ResultCard;
+        string facts = string.Join(" ", BuildOutcomeFacts(outcome));
+        var card = authored with
+        {
+            Body = string.IsNullOrWhiteSpace(facts)
+                ? authored.Body
+                : authored.Body + "\n\n" + facts,
+        };
+        return new CommercialStoryPresentation(card, true, "계속");
+    }
+
+    private IReadOnlyList<string> BuildOutcomeFacts(CommercialChapterOutcome outcome)
+    {
+        CommercialCoreChapterDefinition chapter =
+            _productData!.Slice.Prelude.Chapter.ChapterId == outcome.ChapterId
+                ? _productData.Slice.Prelude.Chapter
+                : _productData.Slice.Main.Chapter;
+        var supplied = new List<(CommercialLoadBundleDefinition Bundle, ThermalLoadSupply Supply)>();
+        int safetyTotal = 0;
+        int safetyDelivered = 0;
+        int promiseTotal = 0;
+        int promiseDelivered = 0;
+        foreach (CommercialCommittedPhaseResult phaseResult in outcome.Phases)
+        {
+            CommercialOperatingPhaseDefinition phase = chapter.OperatingPhases.Single(
+                item => item.PhaseId == phaseResult.PhaseId);
+            foreach (CommercialLoadBundleDefinition bundle in phase.Loads)
+            {
+                ThermalLoadSupply? supply = phaseResult.Evaluation.Loads.FirstOrDefault(
+                    item => item.LoadId == bundle.LoadId);
+                bool delivered = supply?.DeliveredKw == bundle.DemandKw;
+                if (bundle.Obligation == CommercialObligationKind.SafetyDuty)
+                {
+                    safetyTotal++;
+                    safetyDelivered += delivered ? 1 : 0;
+                }
+                if (bundle.Obligation == CommercialObligationKind.CityPromise &&
+                    outcome.PromiseDecision == CommercialPromiseDecision.Keep)
+                {
+                    promiseTotal++;
+                    promiseDelivered += delivered ? 1 : 0;
+                }
+                if (delivered && supply is not null)
+                {
+                    supplied.Add((bundle, supply));
+                }
+            }
+        }
+
+        var facts = new List<string>();
+        string obligationFact = safetyTotal > 0
+            ? $"안전 의무 {safetyTotal}건 중 {safetyDelivered}건을 공급했습니다."
+            : "이 장에는 별도의 안전 의무가 없었습니다.";
+        if (promiseTotal > 0)
+        {
+            obligationFact = obligationFact.TrimEnd('.') +
+                $", 도시 약속 수요 {promiseTotal}건 중 {promiseDelivered}건도 공급했습니다.";
+        }
+        else if (chapter.CityPromise is not null &&
+                 outcome.PromiseDecision == CommercialPromiseDecision.Defer)
+        {
+            obligationFact = obligationFact.TrimEnd('.') +
+                ", 도시 약속은 미루기로 한 결정에 따라 이번 공급 대상에서 제외했습니다.";
+        }
+        facts.Add(obligationFact);
+
+        (CommercialLoadBundleDefinition Bundle, ThermalLoadSupply Supply) route = supplied
+            .FirstOrDefault(item => item.Bundle.Obligation == CommercialObligationKind.CityPromise);
+        if (route.Supply is null)
+        {
+            route = supplied.FirstOrDefault(item =>
+                item.Bundle.Obligation == CommercialObligationKind.SafetyDuty);
+        }
+        if (route.Supply is null)
+        {
+            route = supplied.FirstOrDefault();
+        }
+        int protectiveStops = outcome.Phases
+            .SelectMany(item => item.Evaluation.Assets)
+            .Where(item => item.State == ThermalOperatingState.Emergency &&
+                item.NextState == ThermalOperatingState.ProtectiveOutage)
+            .Select(item => item.AssetId)
+            .Distinct(StringComparer.Ordinal)
+            .Count();
+        var routeParts = new List<string>();
+        if (route.Supply is not null && route.Supply.SourceId is string sourceId)
+        {
+            string loadName = _productData.World.Loads.Single(
+                item => item.LoadId == route.Bundle.LoadId).DisplayName;
+            string sourceName = _productData.World.Sources.Single(
+                item => item.SourceId == sourceId).DisplayName;
+            routeParts.Add(
+                $"{loadName}에는 {sourceName}에서 선로 {route.Supply.PathEdgeIds.Count}구간을 거쳐 " +
+                $"{FormatPower(route.Supply.DeliveredKw)}를 공급했습니다");
+        }
+        if (protectiveStops > 0)
+        {
+            routeParts.Add(
+                $"비상 운전 설비 {protectiveStops}곳은 다음 국면 보호정지로 넘어갔습니다");
+        }
+        if (routeParts.Count > 0)
+        {
+            facts.Add(string.Join("; ", routeParts).TrimEnd('.') + ".");
+        }
+        return facts;
+    }
+
+    private void PlayApprovalCue(
+        CommercialCoreSnapshot before,
+        CommercialCoreSnapshot after)
+    {
+        IEnumerable<ThermalIntervalEvaluation> evaluations;
+        if (after.LastOutcome is CommercialChapterOutcome outcome &&
+            !string.Equals(
+                before.LastOutcome?.ChapterId,
+                outcome.ChapterId,
+                StringComparison.Ordinal))
+        {
+            evaluations = outcome.Phases.Select(item => item.Evaluation);
+        }
+        else
+        {
+            evaluations = after.CommittedPhases
+                .Skip(before.CommittedPhases.Count)
+                .Select(item => item.Evaluation);
+        }
+        bool protectiveStop = evaluations
+            .SelectMany(item => item.Assets)
+            .Any(item => item.State == ThermalOperatingState.Emergency &&
+                item.NextState == ThermalOperatingState.ProtectiveOutage);
+        _audio.PlayLive(protectiveStop
+            ? CommercialAudioCue.ProtectiveStop
+            : CommercialAudioCue.Energize);
+    }
+
+    private void RefreshCoreSnapshot(bool resetProjection)
+    {
+        _coreSnapshot = _coreRun!.GetSnapshot();
+        _snapshot = _coreSnapshot.Construction;
+        if (resetProjection)
+        {
+            _thermalProjectionIndex = 0;
+            _selectedThermalAssetId = null;
+        }
+        RefreshPointerPreview();
+    }
+
+    private void SelectLineTool(string lineClassId, string poleClassId)
+    {
+        _activeLineClassId = lineClassId;
+        _activePoleClassId = poleClassId;
+        SelectTool(CommercialTool.Line);
     }
 
     private void SelectTool(CommercialTool tool)
@@ -245,7 +884,7 @@ internal sealed partial class CommercialMain : Control
         _lastError = string.Empty;
         _lastStatus = tool == CommercialTool.Substation
             ? "지도에서 변전소 원 전체가 들어갈 위치를 선택하세요."
-            : "완공된 접속점에서 선로를 시작하세요.";
+            : $"{ActiveLineDisplayName()}로 이을 첫 접속점을 선택하세요.";
         RefreshPointerPreview();
         Render();
         _map.GrabFocus();
@@ -253,6 +892,24 @@ internal sealed partial class CommercialMain : Control
 
     private void CancelDraft()
     {
+        if (IsProductMode)
+        {
+            CommercialCoreCommand command = _snapshot.Phase switch
+            {
+                ConstructionPhase.NodeDrafting => CommercialCoreCommand.CancelNodeDraft(),
+                ConstructionPhase.LineDrafting => CommercialCoreCommand.CancelLineDraft(),
+                _ => CommercialCoreCommand.CancelNodeDraft(),
+            };
+            CommercialCoreCommandResult coreResult = _coreRun!.Execute(command);
+            ApplyCore(coreResult, "작성 중인 계획을 취소했습니다.");
+            if (coreResult.Accepted)
+            {
+                _tool = CommercialTool.None;
+                RefreshPointerPreview();
+                Render();
+            }
+            return;
+        }
         ConstructionCommandResult result = _snapshot.Phase switch
         {
             ConstructionPhase.NodeDrafting => _session.CancelNodeDraft(),
@@ -273,6 +930,34 @@ internal sealed partial class CommercialMain : Control
 
     private void OrderOrComplete()
     {
+        if (IsProductMode)
+        {
+            CommercialCoreCommand command = _snapshot.Phase switch
+            {
+                ConstructionPhase.NodeDrafting => CommercialCoreCommand.OrderNode(),
+                ConstructionPhase.LineDrafting => CommercialCoreCommand.OrderLine(),
+                ConstructionPhase.NodeBuilding or ConstructionPhase.LineBuilding =>
+                    CommercialCoreCommand.AdvanceConstruction(),
+                _ => CommercialCoreCommand.OrderNode(),
+            };
+            string productSuccess = _snapshot.Phase switch
+            {
+                ConstructionPhase.NodeDrafting => "변전소 공사를 발주했습니다.",
+                ConstructionPhase.LineDrafting => "선로 공사를 발주했습니다.",
+                ConstructionPhase.NodeBuilding or ConstructionPhase.LineBuilding =>
+                    "공사가 끝났습니다.",
+                _ => string.Empty,
+            };
+            CommercialCoreCommandResult coreResult = _coreRun!.Execute(command);
+            ApplyCore(coreResult, productSuccess);
+            if (coreResult.Accepted && _snapshot.Phase == ConstructionPhase.Ready)
+            {
+                _tool = CommercialTool.None;
+                RefreshPointerPreview();
+                Render();
+            }
+            return;
+        }
         ConstructionCommandResult result;
         string success;
         switch (_snapshot.Phase)
@@ -323,6 +1008,64 @@ internal sealed partial class CommercialMain : Control
         Render();
     }
 
+    private void ExecuteConstruction(
+        CommercialCoreCommand productCommand,
+        Func<ConstructionCommandResult> legacyCommand,
+        string success)
+    {
+        if (IsProductMode)
+        {
+            ApplyCore(_coreRun!.Execute(productCommand), success);
+            return;
+        }
+        Apply(legacyCommand(), success);
+    }
+
+    private void ApplyCore(CommercialCoreCommandResult result, string success)
+    {
+        CommercialCoreSnapshot? before = _coreSnapshot;
+        _coreSnapshot = result.Snapshot;
+        _snapshot = result.Snapshot.Construction;
+        if (result.Accepted)
+        {
+            _lastStatus = success;
+            _lastError = string.Empty;
+            bool boundaryChanged = before is not null &&
+                (!string.Equals(before.SegmentId, result.Snapshot.SegmentId, StringComparison.Ordinal) ||
+                 !string.Equals(
+                     before.CurrentWindow?.WindowId,
+                     result.Snapshot.CurrentWindow?.WindowId,
+                     StringComparison.Ordinal));
+            if (boundaryChanged)
+            {
+                _thermalProjectionIndex = 0;
+                _selectedThermalAssetId = null;
+            }
+            if (before is not null &&
+                before.Construction.Phase is ConstructionPhase.NodeDrafting or
+                    ConstructionPhase.LineDrafting &&
+                result.Snapshot.Construction.Phase is ConstructionPhase.NodeBuilding or
+                    ConstructionPhase.LineBuilding)
+            {
+                _audio.PlayLive(CommercialAudioCue.Construction);
+            }
+            else if (before is not null &&
+                     before.Construction.Phase is ConstructionPhase.NodeBuilding or
+                         ConstructionPhase.LineBuilding &&
+                     result.Snapshot.Construction.Phase == ConstructionPhase.Ready)
+            {
+                _audio.PlayLive(CommercialAudioCue.Energize);
+            }
+            _ = SaveProductRun();
+        }
+        else
+        {
+            _lastError = CoreErrorText(result.Error, result.ConstructionError);
+        }
+        RefreshPointerPreview();
+        Render();
+    }
+
     private void MoveDraftPoint(CommercialDraftPointDrag drag)
     {
         if (_snapshot.Phase != ConstructionPhase.LineDrafting ||
@@ -334,7 +1077,10 @@ internal sealed partial class CommercialMain : Control
             return;
         }
 
-        Apply(_session.MoveLinePoint(drag.PointIndex, drag.Position), "작성 중인 전신주 위치를 옮겼습니다.");
+        ExecuteConstruction(
+            CommercialCoreCommand.MoveLinePoint(drag.PointIndex, drag.Position),
+            () => _session.MoveLinePoint(drag.PointIndex, drag.Position),
+            "작성 중인 전신주 위치를 옮겼습니다.");
     }
 
     private void OnDraftPointDragPreviewChanged(CommercialDraftPointDrag? drag)
@@ -351,7 +1097,7 @@ internal sealed partial class CommercialMain : Control
         }
 
         _pointerPoint = actual.Position;
-        LinePointMovePreview preview = _session.PreviewMoveLinePoint(
+        LinePointMovePreview preview = PreviewMoveLinePoint(
             actual.PointIndex,
             actual.Position);
         string lengths = preview.NextSegmentLengthUnit is long next
@@ -387,7 +1133,7 @@ internal sealed partial class CommercialMain : Control
         if (_tool == CommercialTool.Substation &&
             _snapshot.Phase is ConstructionPhase.Ready or ConstructionPhase.NodeDrafting)
         {
-            NodePlacementPreview preview = _session.PreviewNodePlacement(SubstationClassId, point);
+            NodePlacementPreview preview = PreviewNodePlacement(SubstationClassId, point);
             SetPreview(
                 preview.Accepted,
                 preview.Error,
@@ -404,10 +1150,10 @@ internal sealed partial class CommercialMain : Control
                 _pointerMessage = "선로를 시작할 접속점 가까이로 이동하세요.";
                 return;
             }
-            LineStartPreview preview = _session.PreviewLineStart(
+            LineStartPreview preview = PreviewLineStart(
                 _candidateNodeId,
-                LineClassId,
-                PoleClassId);
+                _activeLineClassId,
+                _activePoleClassId);
             SetPreview(preview.Accepted, preview.Error, Array.Empty<string>(),
                 preview.Accepted ? "연결 시작 가능 · 클릭하여 확정" : null);
             _pointerMessage += $" · {ConnectionChangeText(_candidateNodeId)}";
@@ -420,7 +1166,7 @@ internal sealed partial class CommercialMain : Control
         {
             if (_candidateNodeId is string candidate)
             {
-                LineFinishPreview preview = _session.PreviewLineFinish(candidate);
+                LineFinishPreview preview = PreviewLineFinish(candidate);
                 SetPreview(
                     preview.Accepted,
                     preview.Error,
@@ -432,7 +1178,7 @@ internal sealed partial class CommercialMain : Control
             }
             else
             {
-                LinePointPreview preview = _session.PreviewLinePoint(point);
+                LinePointPreview preview = PreviewLinePoint(point);
                 SetPreview(
                     preview.Accepted,
                     preview.Error,
@@ -443,6 +1189,31 @@ internal sealed partial class CommercialMain : Control
             }
         }
     }
+
+    private NodePlacementPreview PreviewNodePlacement(string classId, CoreMapPoint point) =>
+        IsProductMode
+            ? _coreRun!.PreviewNodePlacement(classId, point)
+            : _session.PreviewNodePlacement(classId, point);
+
+    private LineStartPreview PreviewLineStart(
+        string nodeId,
+        string lineClassId,
+        string poleClassId) => IsProductMode
+            ? _coreRun!.PreviewLineStart(nodeId, lineClassId, poleClassId)
+            : _session.PreviewLineStart(nodeId, lineClassId, poleClassId);
+
+    private LinePointPreview PreviewLinePoint(CoreMapPoint point) => IsProductMode
+        ? _coreRun!.PreviewLinePoint(point)
+        : _session.PreviewLinePoint(point);
+
+    private LinePointMovePreview PreviewMoveLinePoint(int pointIndex, CoreMapPoint point) =>
+        IsProductMode
+            ? _coreRun!.PreviewMoveLinePoint(pointIndex, point)
+            : _session.PreviewMoveLinePoint(pointIndex, point);
+
+    private LineFinishPreview PreviewLineFinish(string nodeId) => IsProductMode
+        ? _coreRun!.PreviewLineFinish(nodeId)
+        : _session.PreviewLineFinish(nodeId);
 
     private void SetPreview(
         bool accepted,
@@ -464,6 +1235,11 @@ internal sealed partial class CommercialMain : Control
         {
             return;
         }
+        if (IsProductMode)
+        {
+            RenderProductMode();
+            return;
+        }
         if (_thermalEvaluation is not null)
         {
             RenderThermalMode();
@@ -476,13 +1252,67 @@ internal sealed partial class CommercialMain : Control
             _pointerMessage,
             ToolName(),
             PointerFootprintRadius(),
-            _tool == CommercialTool.Line));
+            _tool == CommercialTool.Line,
+            true));
         _panel.SetModel(BuildPanelModel());
         _zoomLabel.Text = $"지도 · {_map.ZoomLabel}";
         int commissionedEdges = _snapshot.World.Edges.Count(edge => edge.Commissioned);
         _summaryLabel.Text = commissionedEdges == 0
             ? "무벌점 연습 · 발전소와 마을 사이에 첫 선로를 완성하세요."
             : $"자유 배치 연습 · 완공 선로 {commissionedEdges}구간 · 다른 경로도 계속 시험할 수 있습니다.";
+    }
+
+    private void RenderProductMode()
+    {
+        CommercialCoreSnapshot snapshot = _coreSnapshot!;
+        if (snapshot.Projections.Count > 0)
+        {
+            _thermalProjectionIndex = Math.Clamp(
+                _thermalProjectionIndex,
+                0,
+                snapshot.Projections.Count - 1);
+        }
+        CommercialPhaseProjection? projection = snapshot.Projections.Count == 0
+            ? null
+            : snapshot.Projections[_thermalProjectionIndex];
+        if (projection is not null)
+        {
+            EnsureThermalSelection(projection.Evaluation);
+        }
+        string projectionLabel = projection is null
+            ? "운영 결과"
+            : $"{projection.Phase.DisplayName} · {_thermalProjectionIndex + 1}/{snapshot.Projections.Count}";
+        CommercialThermalMapPresentation? thermal = projection is null
+            ? null
+            : new CommercialThermalMapPresentation(
+                projectionLabel,
+                projection.Evaluation.Assets,
+                _selectedThermalAssetId,
+                ThermalSelectionText(projection.Evaluation).Replace('\n', ' '));
+        bool constructionInput =
+            _snapshot.Phase is ConstructionPhase.NodeDrafting or ConstructionPhase.LineDrafting ||
+            (_snapshot.Phase == ConstructionPhase.Ready && _tool != CommercialTool.None);
+        _map.SetPresentation(new CommercialMapPresentation(
+            _snapshot,
+            _pointerPoint,
+            _pointerAccepted,
+            string.IsNullOrWhiteSpace(_pointerMessage) ? "지도에서 설비를 선택하세요." : _pointerMessage,
+            ToolName(),
+            PointerFootprintRadius(),
+            _tool == CommercialTool.Line,
+            constructionInput,
+            thermal));
+        _panel.SetModel(BuildProductPanelModel(snapshot, projection));
+        _zoomLabel.Text = $"지도 · {_map.ZoomLabel}";
+        string boundary = snapshot.CurrentWindow is null
+            ? "핵심 구간 완료"
+            : projection?.Phase.DisplayName ?? "운영 확인";
+        _summaryLabel.Text =
+            $"{snapshot.Chapter.DisplayName} · 다음 경계 {boundary} · " +
+            $"운영 자금 {FormatWon(snapshot.CashUnit)}";
+        _controlHelpLabel.Text =
+            "휠/+/− 확대 · 가운데/Space+드래그 이동 · Home 전체 보기 · 클릭/방향키+Enter 설비 선택 · Esc 일시정지";
+        _shell.SetHelpText(ProductHelpText);
     }
 
     private void RenderThermalMode()
@@ -499,6 +1329,7 @@ internal sealed partial class CommercialMain : Control
             "열 설비 선택",
             null,
             false,
+            false,
             new CommercialThermalMapPresentation(
                 projection,
                 interval.Assets,
@@ -510,7 +1341,7 @@ internal sealed partial class CommercialMain : Control
             $"작성된 고정 전력망 · {projection} · 선택 설비의 사용량과 다음 상태를 확인하세요.";
         _controlHelpLabel.Text =
             "휠/+/− 확대 · 가운데/Space+드래그 이동 · Home 전체 보기 · 클릭/방향키+Enter 설비 선택 · 오른쪽 패널 국면 전환";
-        _helpBodyLabel.Text =
+        string thermalHelp =
             "지도 확대: 마우스 휠 또는 + / −\n" +
             "지도 이동: 가운데 버튼 드래그 또는 Space+드래그\n" +
             "전체 보기: Home\n" +
@@ -518,6 +1349,7 @@ internal sealed partial class CommercialMain : Control
             "열 운전 국면: 오른쪽 패널의 이전 국면 / 다음 국면\n\n" +
             "✓ 연속 운전은 실선, ! 비상 운전은 이중선과 사선, × 보호정지는 점선, !! 비상 한계 초과는 교차선으로 표시합니다.\n" +
             "색을 구분하기 어려워도 패턴·아이콘·오른쪽 상태 문장으로 같은 정보를 확인할 수 있습니다.";
+        _shell.SetHelpText(thermalHelp);
         GetWindow().Title = "Gridworks — 열 운전 확인";
     }
 
@@ -576,6 +1408,125 @@ internal sealed partial class CommercialMain : Control
                     : "현재 계획과 견적을 확정하고 공사를 시작합니다."));
     }
 
+    private CommercialTaskPanelModel BuildProductPanelModel(
+        CommercialCoreSnapshot snapshot,
+        CommercialPhaseProjection? projection)
+    {
+        CommercialCoreProjectQuote? quote = _snapshot.Phase switch
+        {
+            ConstructionPhase.NodeDrafting => _coreRun!.PreviewNodeOrder(),
+            ConstructionPhase.LineDrafting => _coreRun!.PreviewLineOrder(),
+            _ => null,
+        };
+        bool draft = _snapshot.Phase is ConstructionPhase.NodeDrafting or
+            ConstructionPhase.LineDrafting;
+        bool building = _snapshot.Phase is ConstructionPhase.NodeBuilding or
+            ConstructionPhase.LineBuilding;
+        string quoteText = quote?.Accepted == true
+            ? $"예상 공사비 {FormatWon(quote.CostCashUnit!.Value)} · " +
+              $"완공 시각 {FormatCampaignMinute(quote.CompletionMinute!.Value)}"
+            : quote is null
+                ? "설비를 선택하면 비용과 완공 경계를 확인합니다."
+                : CoreErrorText(quote.Error, quote.ConstructionError);
+        string selection = projection is null
+            ? "운영 결과를 확인하세요."
+            : ThermalSelectionText(projection.Evaluation);
+        var obligations = projection?.Phase.Loads.Select(load =>
+        {
+            CommercialLoadDefinition loadDefinition = _productData!.World.Loads.Single(
+                item => item.LoadId == load.LoadId);
+            ThermalLoadSupply? supply = projection.Evaluation.Loads.FirstOrDefault(
+                item => item.LoadId == load.LoadId);
+            string status = load.Obligation == CommercialObligationKind.CityPromise &&
+                            snapshot.PromiseDecision == CommercialPromiseDecision.Defer
+                ? "미룸"
+                : supply?.DeliveredKw == load.DemandKw
+                    ? "충족"
+                    : "미충족";
+            return new CommercialObligationPresentation(
+                $"{ObligationText(load.Obligation)} · {loadDefinition.DisplayName} · " +
+                FormatPower(load.DemandKw),
+                status);
+        }).ToArray() ?? Array.Empty<CommercialObligationPresentation>();
+        CommercialCityPromiseDefinition? promise = snapshot.Chapter.CityPromise;
+        CommercialPromisePresentation? promisePresentation = promise is null
+            ? null
+            : new CommercialPromisePresentation(
+                promise.DisplayName,
+                PromiseText(snapshot.PromiseDecision),
+                promise.KeepLabel,
+                promise.DeferLabel,
+                !snapshot.CampaignComplete &&
+                snapshot.CommittedPhases.Count == 0 &&
+                _snapshot.Phase == ConstructionPhase.Ready);
+        string deadline = snapshot.CurrentWindow?.BuildMinutesAvailable is int minutes
+            ? $"공사 경계 · 이 결정에서 {minutes}분 이내"
+            : "공사 경계 · 별도 제한 없음";
+        var product = new CommercialProductPanelPresentation(
+            snapshot.Chapter.Objective,
+            obligations,
+            deadline,
+            promisePresentation,
+            new CommercialActionPresentation(
+                snapshot.CanApprove,
+                "운영안 승인",
+                "현재 결정 경계의 공개 국면을 순서대로 확정합니다."),
+            new CommercialActionPresentation(
+                snapshot.CanRollbackRecentProject,
+                "최근 공사 복구",
+                "현재 장에서 마지막으로 완공한 공사 직전으로 복구합니다."),
+            new CommercialActionPresentation(
+                snapshot.CanRestartWindow,
+                "결정 경계 다시 시작",
+                "현재 결정 경계에서 실행한 명령을 되돌립니다."),
+            new CommercialActionPresentation(
+                snapshot.CommandCount > snapshot.ChapterStartCommandCount,
+                "현재 장 다시 시작",
+                "현재 장의 시작 상태로 돌아갑니다."));
+        string error = !string.IsNullOrEmpty(_lastError)
+            ? _lastError
+            : snapshot.FirstBlockingFailure is null
+                ? string.Empty
+                : SupplyFailureText(snapshot.FirstBlockingFailure);
+        var hidden = new CommercialActionPresentation(false, string.Empty, string.Empty);
+        return new CommercialTaskPanelModel(
+            snapshot.Chapter.DisplayName,
+            snapshot.Chapter.Objective,
+            selection,
+            quoteText,
+            $"현재 시각 {FormatCampaignMinute(snapshot.Minute)} · {_lastStatus}",
+            error,
+            new CommercialActionPresentation(
+                false,
+                "기존 변전소 사용",
+                "이 핵심 구간에서는 작성된 변전소를 사용합니다."),
+            new CommercialActionPresentation(
+                !snapshot.CampaignComplete && _snapshot.Phase == ConstructionPhase.Ready,
+                "보강 선로",
+                "긴 별도 회랑에 적합한 보강 선로와 전신주를 계획합니다."),
+            new CommercialActionPresentation(
+                _snapshot.Phase == ConstructionPhase.LineDrafting,
+                "마지막 점 되돌리기",
+                "계획한 마지막 전신주를 되돌립니다."),
+            new CommercialActionPresentation(draft, "계획 취소", "작성 중인 계획을 취소합니다."),
+            new CommercialActionPresentation(
+                building || quote?.Accepted == true,
+                building ? "완공까지 진행" : "공사 발주",
+                building ? "완공 경계까지 진행합니다." : "현재 공사를 확정합니다."),
+            projection is null
+                ? null
+                : new CommercialProjectionPresentation(
+                    $"{projection.Phase.DisplayName} · {_thermalProjectionIndex + 1}/{snapshot.Projections.Count}",
+                    _thermalProjectionIndex > 0,
+                    _thermalProjectionIndex + 1 < snapshot.Projections.Count),
+            !snapshot.CampaignComplete,
+            product,
+            new CommercialActionPresentation(
+                !snapshot.CampaignComplete && _snapshot.Phase == ConstructionPhase.Ready,
+                "일반 선로",
+                "짧고 저렴하지만 열여유가 작은 일반 선로와 전신주를 계획합니다."));
+    }
+
     private CommercialTaskPanelModel BuildThermalPanelModel(
         ThermalIntervalEvaluation interval)
     {
@@ -611,13 +1562,19 @@ internal sealed partial class CommercialMain : Control
             new CommercialProjectionPresentation(
                 ThermalProjectionLabel(),
                 _thermalProjectionIndex > 0,
-                _thermalProjectionIndex + 1 < count));
+                _thermalProjectionIndex + 1 < count),
+            false);
     }
 
     private void SelectThermalAsset(string assetId)
     {
-        if (_thermalEvaluation is null ||
-            !CurrentThermalInterval().Assets.Any(item =>
+        ThermalIntervalEvaluation? interval = IsProductMode
+            ? CurrentProductThermalInterval()
+            : _thermalEvaluation is null
+                ? null
+                : CurrentThermalInterval();
+        if (interval is null ||
+            !interval.Assets.Any(item =>
                 string.Equals(item.AssetId, assetId, StringComparison.Ordinal)))
         {
             return;
@@ -628,21 +1585,40 @@ internal sealed partial class CommercialMain : Control
 
     private void ChangeThermalProjection(int delta)
     {
-        if (_thermalEvaluation is null || delta == 0)
+        int count = IsProductMode
+            ? _coreSnapshot!.Projections.Count
+            : _thermalEvaluation?.Intervals.Count ?? 0;
+        if (count == 0 || delta == 0)
         {
             return;
         }
         int next = Math.Clamp(
             _thermalProjectionIndex + Math.Sign(delta),
             0,
-            _thermalEvaluation.Intervals.Count - 1);
+            count - 1);
         if (next == _thermalProjectionIndex)
         {
             return;
         }
         _thermalProjectionIndex = next;
-        EnsureThermalSelection(CurrentThermalInterval());
+        ThermalIntervalEvaluation interval = IsProductMode
+            ? _coreSnapshot!.Projections[_thermalProjectionIndex].Evaluation
+            : CurrentThermalInterval();
+        EnsureThermalSelection(interval);
         Render();
+    }
+
+    private ThermalIntervalEvaluation? CurrentProductThermalInterval()
+    {
+        if (_coreSnapshot is null || _coreSnapshot.Projections.Count == 0)
+        {
+            return null;
+        }
+        _thermalProjectionIndex = Math.Clamp(
+            _thermalProjectionIndex,
+            0,
+            _coreSnapshot.Projections.Count - 1);
+        return _coreSnapshot.Projections[_thermalProjectionIndex].Evaluation;
     }
 
     private ThermalIntervalEvaluation CurrentThermalInterval()
@@ -685,12 +1661,24 @@ internal sealed partial class CommercialMain : Control
 
     private string ThermalAssetName(ThermalAssetUsage usage)
     {
-        CommercialWorldDefinition world = _thermalWorld ??
+        CommercialWorldDefinition thermalWorld = _thermalWorld ??
             throw new InvalidOperationException("열 운전 전력망이 준비되지 않았습니다.");
+        SpatialWorldDefinition spatialWorld = _snapshot.World;
         if (usage.AssetKind == ThermalAssetKind.Node)
         {
-            SpatialNodeDefinition node = world.Nodes.Single(item => item.NodeId == usage.AssetId);
-            CommercialNodeClassDefinition nodeClass = world.NodeClasses.Single(
+            SpatialNodeDefinition? node = spatialWorld.Nodes.FirstOrDefault(
+                item => item.NodeId == usage.AssetId);
+            if (node is null)
+            {
+                string? draftClassId = _snapshot.LineDraft?.PoleClassId ??
+                    _snapshot.NodeDraft?.NodeClassId;
+                CommercialNodeClassDefinition? draftClass = thermalWorld.NodeClasses
+                    .FirstOrDefault(item => item.ClassId == draftClassId);
+                return draftClass is null
+                    ? "계획 중인 접속 설비"
+                    : $"계획 중인 {draftClass.DisplayName} 접속부";
+            }
+            CommercialNodeClassDefinition nodeClass = thermalWorld.NodeClasses.Single(
                 item => item.ClassId == node.ClassId);
             string equipment = nodeClass.Kind switch
             {
@@ -701,10 +1689,21 @@ internal sealed partial class CommercialMain : Control
             return $"{node.DisplayName} · {equipment}";
         }
 
-        SpatialEdgeDefinition edge = world.Edges.Single(item => item.EdgeId == usage.AssetId);
-        SpatialNodeDefinition from = world.Nodes.Single(item => item.NodeId == edge.FromNodeId);
-        SpatialNodeDefinition to = world.Nodes.Single(item => item.NodeId == edge.ToNodeId);
-        CommercialLineClassDefinition lineClass = world.LineClasses.Single(
+        SpatialEdgeDefinition? edge = spatialWorld.Edges.FirstOrDefault(
+            item => item.EdgeId == usage.AssetId);
+        if (edge is null)
+        {
+            CommercialLineClassDefinition? draftClass = thermalWorld.LineClasses
+                .FirstOrDefault(item => item.ClassId == _snapshot.LineDraft?.LineClassId);
+            return draftClass is null
+                ? "계획 중인 선로 도체"
+                : $"계획 중인 {draftClass.DisplayName} 도체";
+        }
+        SpatialNodeDefinition from = spatialWorld.Nodes.Single(
+            item => item.NodeId == edge.FromNodeId);
+        SpatialNodeDefinition to = spatialWorld.Nodes.Single(
+            item => item.NodeId == edge.ToNodeId);
+        CommercialLineClassDefinition lineClass = thermalWorld.LineClasses.Single(
             item => item.ClassId == edge.LineClassId);
         return $"{from.DisplayName}–{to.DisplayName} · {lineClass.DisplayName} 도체";
     }
@@ -717,6 +1716,70 @@ internal sealed partial class CommercialMain : Control
         ThermalOperatingState.OverLimit => "비상 한계 초과",
         _ => throw new ArgumentOutOfRangeException(nameof(state)),
     };
+
+    private string CoreErrorText(
+        CommercialCoreRunError? error,
+        ConstructionError? constructionError) => error switch
+        {
+            CommercialCoreRunError.ConstructionRejected => ErrorText(constructionError),
+            CommercialCoreRunError.InsufficientCash => "현재 운영 자금으로 이 공사를 발주할 수 없습니다.",
+            CommercialCoreRunError.DeadlineExceeded => "이 공사는 현재 결정 경계의 공사 기한을 넘깁니다.",
+            CommercialCoreRunError.PromiseDecisionRequired =>
+                "운영안을 승인하기 전에 도시 약속을 지킬지 미룰지 선택하세요.",
+            CommercialCoreRunError.SafetyDutyUnserved =>
+                "현재 결정 경계에서 필수 안전 수요를 공급하지 못합니다.",
+            CommercialCoreRunError.KeptPromiseUnserved =>
+                "지키기로 한 도시 약속의 수요를 현재 운영안으로 공급하지 못합니다.",
+            CommercialCoreRunError.FutureSafetyAtRisk =>
+                "현재 운전 뒤 보호정지 때문에 다음 공개 국면의 필수 공급이 끊깁니다.",
+            CommercialCoreRunError.NothingToRollback => "최근에 복구할 완공 공사가 없습니다.",
+            CommercialCoreRunError.NothingToRestart => "현재 경계에서 되돌릴 진행이 없습니다.",
+            CommercialCoreRunError.CommandLimit =>
+                "이 저장에서 처리할 수 있는 작업 수를 넘었습니다. 현재 진행을 저장하고 다시 시작하세요.",
+            CommercialCoreRunError.WrongState or CommercialCoreRunError.InvalidCommandShape =>
+                "현재 진행 상태에서는 이 작업을 실행할 수 없습니다.",
+            null when constructionError is not null => ErrorText(constructionError),
+            _ => "현재 작업을 완료하지 못했습니다. 계획 상태를 다시 확인하세요.",
+        };
+
+    private static string SupplyFailureText(ThermalSupplyFailure failure)
+    {
+        long shortage = Math.Max(0, failure.RequiredKw - failure.AvailableKw);
+        string amount = shortage == 0 ? string.Empty : $" {FormatPower(shortage)}가 부족합니다.";
+        return failure.Kind switch
+        {
+            ThermalFailureKind.NoTopologyPath => "수요처까지 이어지는 공급 경로가 없습니다.",
+            ThermalFailureKind.SourceCapacity => "발전원 출력 여유가 부족합니다." + amount,
+            ThermalFailureKind.AssetUnavailable => "현재 국면에 사용할 수 없는 설비가 경로를 막습니다.",
+            ThermalFailureKind.ContinuousLimit => "경로의 연속 운전 여유가 부족합니다." + amount,
+            ThermalFailureKind.EmergencyLimit => "경로의 비상 운전 여유도 부족합니다." + amount,
+            _ => throw new ArgumentOutOfRangeException(nameof(failure)),
+        };
+    }
+
+    private static string ObligationText(CommercialObligationKind obligation) => obligation switch
+    {
+        CommercialObligationKind.SafetyDuty => "안전 의무",
+        CommercialObligationKind.CityPromise => "도시 약속",
+        CommercialObligationKind.OperatingRecord => "운영 기록",
+        _ => throw new ArgumentOutOfRangeException(nameof(obligation)),
+    };
+
+    private static string PromiseText(CommercialPromiseDecision decision) => decision switch
+    {
+        CommercialPromiseDecision.Unset => "아직 선택하지 않았습니다.",
+        CommercialPromiseDecision.Keep => "이번 약속을 지킵니다.",
+        CommercialPromiseDecision.Defer => "이번 약속을 미룹니다.",
+        _ => throw new ArgumentOutOfRangeException(nameof(decision)),
+    };
+
+    private static string FormatCampaignMinute(long minute)
+    {
+        long day = Math.DivRem(minute, 24L * 60L, out long minuteOfDay) + 1L;
+        long hour = minuteOfDay / 60L;
+        long minutePart = minuteOfDay % 60L;
+        return $"{day}일차 {hour:00}:{minutePart:00}";
+    }
 
     private static string FormatPower(long kilowatts) =>
         kilowatts.ToString("N0", CultureInfo.GetCultureInfo("ko-KR")) + " kW";
@@ -741,17 +1804,21 @@ internal sealed partial class CommercialMain : Control
         _ => "보이는 격자 없이 지형을 읽고, 발전 접속점과 생활권을 직접 이어 보세요.",
     };
 
+    private string ActiveLineDisplayName() => _snapshot.World.LineClasses
+        .Single(item => item.ClassId == _activeLineClassId)
+        .DisplayName;
+
     private string ToolInstruction() => _tool switch
     {
         CommercialTool.Substation => "변전소 위치를 선택하세요.",
-        CommercialTool.Line => "선로 경로를 선택하세요.",
+        CommercialTool.Line => $"{ActiveLineDisplayName()} 경로를 선택하세요.",
         _ => "오른쪽에서 시작할 작업을 선택하세요.",
     };
 
     private string ToolName() => _tool switch
     {
         CommercialTool.Substation => "변전소 배치",
-        CommercialTool.Line => "선로 계획",
+        CommercialTool.Line => ActiveLineDisplayName() + " 계획",
         _ => "작업 선택",
     };
 
@@ -768,7 +1835,7 @@ internal sealed partial class CommercialMain : Control
             _candidateNodeId is null &&
             _snapshot.LineDraft?.EndNodeId is null)
         {
-            return _snapshot.World.NodeClasses.Single(item => item.ClassId == PoleClassId)
+            return _snapshot.World.NodeClasses.Single(item => item.ClassId == _activePoleClassId)
                 .FootprintRadiusUnit;
         }
         return null;
@@ -864,14 +1931,7 @@ internal sealed partial class CommercialMain : Control
 
     private void ShowHelp()
     {
-        _helpOverlay.Visible = true;
-        _closeHelpButton.CallDeferred(Control.MethodName.GrabFocus);
-    }
-
-    private void HideHelp()
-    {
-        _helpOverlay.Visible = false;
-        _map.CallDeferred(Control.MethodName.GrabFocus);
+        _shell.ShowHelp();
     }
 
     private void ShowFatal(string message)

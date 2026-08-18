@@ -25,9 +25,14 @@
 | C. 이산 열 국면 기반 | **완료** | final world v2와 같은 상용 구현 기록 | CommercialChecks 13 suites / 350 assertions | 열 projection·설비 선택·비상→정지→복귀 통과 | 해당 없음 | P1 2건 수정 뒤 exact-tree P0/P1 0 |
 | D. 상용 핵심 흐름 | **완료** | core slice SHA `8d09a0…0842`와 같은 상용 구현 기록 | CommercialChecks 19 suites / 1,312 assertions | 두 fresh process로 첫 불빛 저장→본편 복원→5장 완료 | `CommercialSliceHumanStatus = NOT_COLLECTED` | 입력·저장 P0/P1 수정 뒤 exact-tree P0/P1 0 |
 | E. 첫 네 임무·공통 UX | **완료** | final world/campaign v2와 [상용 구현 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md) | CommercialChecks 26 suites / 2,402 assertions | Game 3구성 0/0, 두 fresh process로 4장 완료 | `NOT_COLLECTED` | exact-tree P0/P1 0 |
-| F. 후반 네 임무·에필로그 | **완료** | world SHA `c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14` / campaign SHA `078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a` | CommercialChecks 29 suites / 4,486 assertions | Game 3구성 0/0, 1280×720·UI 125% 두 process로 4장 fresh 재개→8장·에필로그, 같은 두 번째 process의 완료 재개·5장 replay와 완료 bytes load/restore 통과 | 전체 플레이·전문 교정 `NOT_COLLECTED` | M6 witness 수정 뒤 exact-tree P0/P1 0, 사용자 종료 지점 |
-| G. 시청각·접근성·package | **계획·미개방** | 최종 자산·settings v3·네 layout/keyboard evidence·package gate | 미실행(미개방) | 미실행(미개방) | 전체 사람 검토 `NOT_COLLECTED` | 이번 실행 미승인, 새 사용자 지시 필요 |
+| F. 후반 네 임무·에필로그 | **완료** | world SHA `c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14` / campaign SHA `078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a` | CommercialChecks 29 suites / 4,486 assertions | Game 3구성 0/0, 1280×720·UI 125% 두 process 전체 흐름 통과 | 사람 전체 플레이·전문 교정 `NOT_COLLECTED`; 공식 cold LLM은 8장 폭염 정점 2/3에서 `USER_STOPPED`, 중단 후 리뷰만 수집 | Stage F 계약 exact-tree P0/P1 0; 관찰 backlog는 별도 독립 미검증·미승인 |
+| G. 시청각·접근성·package | **계획·미개방** | 최종 자산·settings v3·네 layout/keyboard evidence·package gate와 [관찰 기반 backlog](ROADMAP_2D.md#관찰-기반-선행-보정-backlog--계획미개방) | 미실행(미개방) | 미실행(미개방) | 전체 사람 검토 `NOT_COLLECTED` | P0 3 / P1 5 / P2 3 모두 관찰 기반·독립 미검증·미승인, 새 사용자 지시 필요 |
 | H. 외부 검증·공개 후보 | **미승인** | 별도 사용자·자격증명 gate | 자동증거로 대체하지 않음 | 공개 bytes 확정 전 미실행 | 소유자·외부·전문 교정 필요 | Developer ID·공증·배포 결정 필요 |
+
+`USER_STOPPED`는 native 완료, 실패 또는 막힘 판정이 아니다. 참가자는 `가장 긴 밤`의 `폭염 정점
+2/3`에서 500 kW 비상 열여유 부족을 보고 있었고 완료·에필로그는 확인하지 못했다. 사용자 중단 뒤
+같은 참가자에게 리뷰를 요청해 원래 no-follow-up 완주 관찰 protocol은 `INVALIDATED`됐다. 별도 중단
+후 리뷰의 강점과 과제는 정성 입력일 뿐 사람 검토나 Stage F 자동·native 증거에 합산하지 않는다.
 
 ## 단계 활성화 조건
 

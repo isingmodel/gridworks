@@ -13,7 +13,7 @@ docs/
 ├── ROADMAP_2D_CHECKLIST.md           단계 상태와 최소 종료 증거 장부
 ├── product/
 │   ├── GAME_DESIGN_KO.md             제품 비전과 안정된 게임 원칙
-│   ├── COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md 상용 2D 게임 재기획 제안
+│   ├── COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md 채택된 상용 2D 제품 기준
 │   ├── OBJECT_CATALOG.md             오브젝트 정의와 기능 상태
 │   └── VISUAL_PRODUCTION_SPEC.md      규칙을 표현하는 시각 기준
 ├── scopes/
@@ -44,14 +44,15 @@ docs/
 |---|---|---|
 | 지금 무엇을 구현할 수 있는가? | [루트 README](../README.md) | 로드맵·후보가 구현을 승인하지 않음 |
 | 무엇을 어떤 순서로 완성하려는가? | [2D 완성 로드맵](ROADMAP_2D.md) | 현재 단계의 정확한 계약을 대신하지 않음 |
+| 중단된 Stage F 관찰에서 나온 후속 task와 수용 기준은 무엇인가? | [2D 완성 로드맵](ROADMAP_2D.md#관찰-기반-선행-보정-backlog--계획미개방) | 관찰 기반·독립 미검증·미승인이며 단계 G를 열지 않음 |
 | 진행과 종료 증거는 어디에 기록하는가? | [로드맵 체크리스트](ROADMAP_2D_CHECKLIST.md) | 기능 명세·숫자를 복제하지 않음 |
 | 과거에 무엇을 확인하고 왜 바꿨는가? | [개발 이력](DEVELOPMENT_HISTORY.md) | 현재 권한이나 규칙을 소유하지 않음 |
 | 게임의 경험과 장기 원칙은 무엇인가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 단계별 숫자·절차를 만들지 않음 |
 | 자유 배치·열 한계를 포함한 상용 2D 게임의 제품 기준은 무엇인가? | [상용 2D 게임 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md) | 경험·콘텐츠·표현 원칙을 소유하고 열린 구현 단계만 구현 계약이 소유 |
 | 오브젝트와 가능한 동작은 무엇인가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 미래 기능을 현재 가능으로 표시하지 않음 |
 | 규칙을 어떻게 보이게 하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 게임 규칙을 새로 계산하지 않음 |
-| 현재 고정 시나리오는 어떻게 동작하는가? | [Scope 0B 기준](scopes/SCOPE_0B_PLAYABLE.md) | 제품 전체 모델로 일반화하지 않음 |
-| 현재 수동 선로 slice는 어떻게 동작하는가? | [Scope 1 기준](scopes/SCOPE_1_INTERACTION.md) | 고정 endpoint 밖의 기능을 열지 않음 |
+| 동결된 고정 시나리오는 어떻게 동작했는가? | [Scope 0B 기준](scopes/SCOPE_0B_PLAYABLE.md) | 제품 전체 모델로 일반화하지 않음 |
+| 동결된 수동 선로 slice는 어떻게 동작했는가? | [Scope 1 기준](scopes/SCOPE_1_INTERACTION.md) | 고정 endpoint 밖의 기능을 열지 않음 |
 | 완료된 첫 제품 구현은 무엇을 만들 수 있는가? | [첫 점등 통합](scopes/FIRST_LIGHT.md) | 완료 범위를 현재 권한으로 오해하지 않음 |
 | 완료된 병원 제품 흐름은 무엇인가? | [두 번째 심장](scopes/SECOND_HEART.md) | 완료 범위를 다음 단계 권한으로 오해하지 않음 |
 | 완료된 공장·발전소 흐름은 무엇인가? | [공장 수요와 발전소 용량](scopes/FACTORY_CAPACITY.md) | 완료 범위를 폭염·정비 권한으로 오해하지 않음 |

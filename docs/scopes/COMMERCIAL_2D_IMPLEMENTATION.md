@@ -48,7 +48,7 @@
 | 실제 제품 장면과 화면 adapter | `game/CommercialMain.tscn`, `game/Commercial*.cs/.tscn` |
 | 결정론적 독립 검사 | `tools/Gridworks.CommercialChecks/` |
 | 캠페인 저장 | `user://release-campaign-save-v3.json` |
-| 화면·음량·움직임 설정 | `user://settings.json`, strict settings v3 |
+| 화면·음량·움직임 설정 — 단계 G 계획·미개방 | `user://settings.json`, strict settings v3 |
 
 world와 campaign의 실행 숫자·문구를 문서, scene 또는 Game 코드에 복제하지 않는다. 검사기의 대표
 해법 좌표는 런타임 데이터에 넣지 않는다. Core는 Godot, 화면 픽셀, 카메라와 로케일을 참조하지
@@ -366,6 +366,53 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 - 사용자 종료 조건에 따라 전체 감사 뒤 목표 추구를 멈췄다. 단계 G는 자동 활성화하지 않았으며,
   새 명시적 사용자 지시 전에는 구현 권한이 없다.
 
+### 6.6 사용자 중단 공식 LLM 관찰과 사후 리뷰 — 2026-08-18
+
+사용자 요청으로 commit `36038a90d74708a4bebd9dbc5b2a5ea6907d44aa`의 기본 제품 장면을
+빈 사용자 저장, 1280×720 native 창에서 처음 보는 LLM 한 명이 한 번 조작했다. 참가자는 저장소·
+source·data·로그·web과 기존 대화를 보지 않고 Computer Use만 사용했다. 약 62분 동안 1~7장을
+통과했으며, 8장 `가장 긴 밤`의 `폭염 정점 · 2/3`에서 화면에 표시된 일반 오류
+`비상 운전 여유도 500 kW 부족`의 구체적인 병목을 찾던 중 사용자가 실행을 중단했다. 에필로그와
+완료 화면에는 도달하지 않았고, 앱 재실행·두 번째 새 게임·장 되감기는 사용하지 않았다. 초안 취소
+두 번과 도시 약속 변경 한 번은 게임 안의 정상 복구로 사용했다.
+
+이 candidate에는 단계 F 뒤 사용자가 직접 보고한 오른쪽 패널 축소 문제의 bounded 수정이 포함된다.
+정보 scroll은 최소 200 px을 유지하고 약속·국면·도구·편집 조작은 keyboard focus를 따라 드러나며,
+`운영안 승인`과 `공사 발주`만 고정 footer에 남는다. exact-tree 검토의 P0/P1은 0이었지만 네 Stage G
+화면 조합 증거는 아직 수집하지 않았다.
+
+따라서 플레이 관찰의 종료 상태는 `USER_STOPPED`다. 캠페인 `SUCCESS`, 게임 규칙 `FAILURE`, 자력
+진행 `BLOCKED` 중 어느 것으로도 재분류하지 않는다. 중단 뒤 사용자가 같은 참가자에게 별도 사후
+리뷰를 요청했으므로, 무후속을 요구한 원래 공식 cold **완료 검증 protocol은 `INVALIDATED`** 됐다.
+중단 전 플레이 구간과 중단 후 리뷰의 출처는 보존하되 둘을 완료 검증으로 합산하지 않는다. 아래
+증거는 특정 build의 비인간 관찰이며 사람 사용성·재미·밸런스, 성공률, 출시 준비 또는 단계 G 완료
+증거가 아니다.
+
+- candidate, world와 campaign hash는 §6.5의 동결 실행물과 일치했다.
+- 공식 v3 save SHA-256:
+  `30c65457d5552816dfe1437664cfe538d40d0c14872d365a4b0089a10c7d249e`
+  저장 전후 bytes가 동일한 상태에서 exact Core API로 strict restore했다. 복원 결과는 111 commands,
+  7개 장 완료, `LONGEST_NIGHT`의 `FINAL_OPERATING_PLAN_WINDOW`, `CampaignComplete = false`,
+  `CanApprove = false`, 현금 12,505,000원이었다. 화면에서 선택돼 있던 `폭염 정점 · 2/3` tab은
+  저장하지 않는 view 상태이므로 복원된 Core 상태와 구분한다.
+- engine log SHA-256:
+  `678be1a5c713f54beb463daf16a33bc57ef6b439cdf48326e1db931eb7842dc0`.
+  Godot 4.7.1/OpenGL 시작 기록만 있고 오류·crash는 없었다.
+- 참가자 platform session ID: `01a014c6-66e5-7073-bdbc-a33e737b4446`, transcript SHA-256:
+  `a250255c6ca59a8397010fb4351cb9361bef1747e5810aaeab459727d61dcd6c`.
+- 격리한 공식 user data를 보존한 뒤 원래 user data를 복원했다. 사본과 session transcript는 Git에
+  넣지 않는 기존 private evidence 위치에 남긴다.
+
+참가자는 한 도시와 망을 계속 쓰는 구조, 도시 약속과 전기 규칙의 결합, 다국면 예고, 자유 배치,
+서비스 권역과 실제 전력 경로의 구분, 복구 수단과 실제 결과 fact를 강점으로 보았다. 반면 최종 종합
+문제에서는 일반 부족량만으로 병목을 찾아야 했고, 배치 입력의 성공·거부 상태, 승인 전 필수 조건과
+조밀한 지도 선택, 누적 공사 기한을 읽는 비용이 컸다고 보고했다. 이는 한 참가자의 관찰·추론이며
+독립 재현된 결함이나 수치 조정 근거가 아니다. 상세 후속 항목과 수용 경계는
+[로드맵의 관찰 기반 backlog](../ROADMAP_2D.md#관찰-기반-선행-보정-backlog--계획미개방)가 소유하고,
+[상용 2D 게임 재기획서](../product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)는 제품 원칙만 소유한다.
+모든 항목은 `OBSERVATION_INFORMED / NOT_VALIDATED / NOT_AUTHORIZED`이며, 이 문서 변경은 구현 단계나
+단계 G를 열지 않는다.
+
 ## 7. 단계 G — 시청각·접근성·패키징 마감 — 계획·미개방
 
 단계 G는 현재 활성 단계가 아니다. 아래 항목은 남은 계획을 정확히 보존할 뿐, 이번 실행에서 구현·
@@ -379,7 +426,9 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 ### 7.1 화면과 접근성
 
 - 상단은 장·다음 경계·현금·필수 공급, 중앙은 도시와 망, 오른쪽은 의무·약속·선택 경로·열여유,
-  하단 고정 영역은 현재 도구와 행동만 표시한다.
+  오른쪽 하단 고정 우선 행동 영역은 현재 결정 경계의 승인·완공만 표시한다. 약속·국면·도구·편집
+  같은 보조 조작은 정보와 함께 하나의 focus-follow scroll에 두고, 정보 viewport 높이를 최소
+  200 px로 유지한다.
 - 선택 수요의 발전원→전체 경로→최소 용량·열여유→수요처를 지도에서 강조한다.
 - `평상/작성 국면` projection을 전환하면 사용불가, 실제 경로, 보호정지와 지킨 의무가 함께 바뀐다.
 - 연속/비상/정지/복귀는 색 외에 선 모양, 패턴, 아이콘과 접근성 문장을 사용한다.
@@ -434,13 +483,18 @@ StageGStatus = PLANNED_NOT_OPENED
 CommercialSliceHumanStatus = NOT_COLLECTED
 FullCampaignHumanStatus = NOT_COLLECTED
 KoreanProfessionalProofStatus = NOT_COLLECTED
-NewCandidateLlmObservationStatus = NOT_REQUESTED
+OfficialCommercialLlmObservationStatus = USER_STOPPED_REVIEW_COLLECTED
+OfficialCommercialCompletionProtocolStatus = INVALIDATED_BY_USER_FOLLOWUP
+OfficialCommercialNativeCompletion = NOT_CONFIRMED
+OfficialCommercialFollowUpCount = 1
+OfficialCommercialHumanEvidence = NOT_APPLICABLE
 CommercialReleaseReadyStatus = NO
 PublicDistributionStatus = BLOCKED_UNTIL_SIGNING_NOTARIZATION_AND_OWNER_RELEASE_DECISION
 ```
 
-사람 관찰은 단계 H의 외부 증거이고 LLM 관찰은 사용자가 별도로 요청할 때만 수행한다. 어느 쪽도
-자동 완료 수치에 합산하지 않는다.
+사람 관찰은 단계 H의 외부 증거다. §6.6의 사용자 요청 LLM 관찰과 사후 리뷰는 그 사람 증거를
+대체하지 않으며 자동 완료 수치에 합산하지 않는다. 추가 LLM 실행도 새 사용자 지시 없이는 수행하지
+않는다.
 
 ## 9. 명시적 제외
 

@@ -24,8 +24,11 @@ theme_override_font_sizes/font_size = 22
 text = "첫 불빛"
 
 [node name="InfoScroll" type="ScrollContainer" parent="Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_vertical = 3
+follow_focus = true
 horizontal_scroll_mode = 0
 
 [node name="InfoColumn" type="VBoxContainer" parent="Margin/Column/InfoScroll"]
@@ -166,76 +169,79 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.93, 0.43, 0.4, 1)
 autowrap_mode = 2
 
-[node name="Separator2" type="HSeparator" parent="Margin/Column"]
+[node name="InfoActionSeparator" type="HSeparator" parent="Margin/Column/InfoScroll/InfoColumn"]
 layout_mode = 2
 
-[node name="PromiseControls" type="VBoxContainer" parent="Margin/Column"]
+[node name="PromiseControls" type="VBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="PromiseHeading" type="Label" parent="Margin/Column/PromiseControls"]
+[node name="PromiseHeading" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/PromiseControls"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
 
-[node name="PromiseStatus" type="Label" parent="Margin/Column/PromiseControls"]
+[node name="PromiseStatus" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/PromiseControls"]
 unique_name_in_owner = true
 layout_mode = 2
 autowrap_mode = 2
 
-[node name="PromiseRow" type="HBoxContainer" parent="Margin/Column/PromiseControls"]
+[node name="PromiseRow" type="HBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn/PromiseControls"]
 layout_mode = 2
 theme_override_constants/separation = 7
 
-[node name="KeepPromiseButton" type="Button" parent="Margin/Column/PromiseControls/PromiseRow"]
+[node name="KeepPromiseButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/PromiseControls/PromiseRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="DeferPromiseButton" type="Button" parent="Margin/Column/PromiseControls/PromiseRow"]
+[node name="DeferPromiseButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/PromiseControls/PromiseRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ThermalControls" type="VBoxContainer" parent="Margin/Column"]
+[node name="ThermalControls" type="VBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 7
 
-[node name="ProjectionHeading" type="Label" parent="Margin/Column/ThermalControls"]
+[node name="ProjectionHeading" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/ThermalControls"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
 text = "운영 국면"
 
-[node name="ProjectionLabel" type="Label" parent="Margin/Column/ThermalControls"]
+[node name="ProjectionLabel" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/ThermalControls"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "국면 1 / 1"
 autowrap_mode = 2
 
-[node name="ProjectionRow" type="HBoxContainer" parent="Margin/Column/ThermalControls"]
+[node name="ProjectionRow" type="HBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn/ThermalControls"]
 layout_mode = 2
 theme_override_constants/separation = 7
 
-[node name="PreviousProjectionButton" type="Button" parent="Margin/Column/ThermalControls/ProjectionRow"]
+[node name="PreviousProjectionButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ThermalControls/ProjectionRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "이전 국면"
 
-[node name="NextProjectionButton" type="Button" parent="Margin/Column/ThermalControls/ProjectionRow"]
+[node name="NextProjectionButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ThermalControls/ProjectionRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "다음 국면"
+
+[node name="FooterSeparator" type="HSeparator" parent="Margin/Column"]
+layout_mode = 2
 
 [node name="ProductActions" type="VBoxContainer" parent="Margin/Column"]
 unique_name_in_owner = true
@@ -249,19 +255,19 @@ custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "운영안 승인"
 
-[node name="ToolRow" type="VBoxContainer" parent="Margin/Column"]
+[node name="ToolRow" type="VBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 7
 
-[node name="PlaceSubstationButton" type="Button" parent="Margin/Column/ToolRow"]
+[node name="PlaceSubstationButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ToolRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "변전소 놓기"
 
-[node name="PlaceLargeSubstationButton" type="Button" parent="Margin/Column/ToolRow"]
+[node name="PlaceLargeSubstationButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ToolRow"]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(0, 42)
@@ -269,11 +275,11 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "대형 변전소"
 
-[node name="LineRow" type="HBoxContainer" parent="Margin/Column/ToolRow"]
+[node name="LineRow" type="HBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn/ToolRow"]
 layout_mode = 2
 theme_override_constants/separation = 7
 
-[node name="StartStandardLineButton" type="Button" parent="Margin/Column/ToolRow/LineRow"]
+[node name="StartStandardLineButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ToolRow/LineRow"]
 unique_name_in_owner = true
 visible = false
 custom_minimum_size = Vector2(0, 42)
@@ -281,26 +287,26 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "일반 선로"
 
-[node name="StartLineButton" type="Button" parent="Margin/Column/ToolRow/LineRow"]
+[node name="StartLineButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ToolRow/LineRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "선로 잇기"
 
-[node name="EditRow" type="HBoxContainer" parent="Margin/Column"]
+[node name="EditRow" type="HBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 7
 
-[node name="UndoPointButton" type="Button" parent="Margin/Column/EditRow"]
+[node name="UndoPointButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/EditRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "마지막 점 되돌리기"
 
-[node name="CancelDraftButton" type="Button" parent="Margin/Column/EditRow"]
+[node name="CancelDraftButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/EditRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2

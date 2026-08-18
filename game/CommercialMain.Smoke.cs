@@ -577,39 +577,44 @@ internal sealed partial class CommercialMain
             _shell.StoryBodyText.Contains("이전 열 상태가 모두 해제", StringComparison.Ordinal),
             "장간 시간 경과와 열 상태 초기화 사실을 네 번째 장 시작 전에 알리지 못했습니다.");
         await DismissStorySequence();
+        ScrollContainer infoScroll = _panel.GetNode<ScrollContainer>("%InfoScroll");
+        Control instructionLabel = _panel.GetNode<Control>("%InstructionLabel");
+        Control objectiveLabel = _panel.GetNode<Control>("%ObjectiveLabel");
+        BaseButton startLineButton =
+            _panel.GetActionButton(CommercialPanelAction.StartLine);
+        infoScroll.ScrollVertical = 0;
+        await NextFrame();
         Require(
             ControlInside(this, _panel) &&
+            infoScroll.Size.Y >= 200f &&
+            ControlInside(_panel, infoScroll) &&
+            ControlInside(this, infoScroll) &&
+            ControlInside(infoScroll, instructionLabel) &&
+            ControlInside(infoScroll, objectiveLabel) &&
             ControlInside(
                 _panel,
                 _panel.GetProductActionButton(CommercialProductAction.ApproveWindow)) &&
             ControlInside(
                 this,
                 _panel.GetProductActionButton(CommercialProductAction.ApproveWindow)) &&
-            ControlInside(
-                _panel,
-                _panel.GetActionButton(CommercialPanelAction.PlaceLargeSubstation)) &&
-            ControlInside(
-                this,
-                _panel.GetActionButton(CommercialPanelAction.PlaceLargeSubstation)) &&
-            ControlInside(
-                _panel,
-                _panel.GetActionButton(CommercialPanelAction.StartStandardLine)) &&
-            ControlInside(
-                this,
-                _panel.GetActionButton(CommercialPanelAction.StartStandardLine)) &&
-            ControlInside(
-                _panel,
-                _panel.GetActionButton(CommercialPanelAction.StartLine)) &&
-            ControlInside(
-                this,
-                _panel.GetActionButton(CommercialPanelAction.StartLine)) &&
             ControlInside(
                 _panel,
                 _panel.GetActionButton(CommercialPanelAction.Commission)) &&
             ControlInside(
                 this,
                 _panel.GetActionButton(CommercialPanelAction.Commission)),
-            "1280×720·UI 125%에서 네 번째 장의 승인·공사 도구·완공 행동이 패널 밖으로 잘렸습니다.");
+            "1280×720·UI 125%에서 네 번째 장의 안내 영역이나 고정 승인·발주 행동이 패널 밖으로 잘렸습니다.");
+        startLineButton.GrabFocus();
+        await NextFrame();
+        Require(
+            infoScroll.ScrollVertical > 0 &&
+            ControlInside(infoScroll, startLineButton) &&
+            ControlInside(_panel, startLineButton) &&
+            ControlInside(this, startLineButton),
+            "1280×720·UI 125%에서 스크롤된 공사 도구를 키보드 focus로 표시하지 못했습니다.");
+        infoScroll.ScrollVertical = 0;
+        _map.GrabFocus();
+        await NextFrame();
 
         EmitPromise(CommercialPromiseDecision.Keep, "북안 입주 약속 지키기");
         await NextFrame();
@@ -971,11 +976,21 @@ internal sealed partial class CommercialMain
         Require(
             _panel.ChapterReplayOptionCount == 8 &&
             _panel.ChapterReplayButton.Visible &&
-            !_panel.ChapterReplayButton.Disabled &&
+            !_panel.ChapterReplayButton.Disabled,
+            "완료 화면에서 여덟 장 시작 선택을 사용할 수 없습니다.");
+        ScrollContainer completedInfoScroll =
+            _panel.GetNode<ScrollContainer>("%InfoScroll");
+        completedInfoScroll.ScrollVertical = 0;
+        await NextFrame();
+        _panel.ChapterReplayButton.GrabFocus();
+        await NextFrame();
+        Require(
+            completedInfoScroll.ScrollVertical > 0 &&
             ControlInside(this, _panel) &&
+            ControlInside(completedInfoScroll, _panel.ChapterReplayButton) &&
             ControlInside(_panel, _panel.ChapterReplayButton) &&
             ControlInside(this, _panel.ChapterReplayButton),
-            "완료 화면의 여덟 장 시작 선택이 1280×720·UI 125% 안에 표시되지 않았습니다.");
+            "완료 화면의 장 시작 선택을 패널 스크롤과 키보드 focus로 표시하지 못했습니다.");
         RequireCampaignPersistedSnapshot(
             expectedChapterId: "LONGEST_NIGHT",
             campaignComplete: true);

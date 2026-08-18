@@ -3,7 +3,7 @@
 > 한 줄 소개: **성장하는 도시의 전기를 지킬 수 있는, 설명 가능하고 여유 있는 망을 건설하라.**
 
 이 문서는 Gridworks의 안정된 제품 경험을 정의한다. 현재 상태와 구현 권한은 루트
-[README](../../README.md), 정확한 출시판 규칙은 [활성 계약](../scopes/RELEASE_REBUILD.md), 단계 순서는
+[README](../../README.md), 정확한 출시판 규칙은 [활성 계약](../scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 단계 순서는
 [로드맵](../ROADMAP_2D.md), 오브젝트의 현재 능력은 [카탈로그](OBJECT_CATALOG.md)가 소유한다.
 
 ## 1. 제품 개요

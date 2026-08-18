@@ -1,13 +1,14 @@
 # Gridworks — 출시판 진행 체크리스트
 
 > 이 문서는 단계 상태와 최소 종료 증거만 기록한다. 상세 규칙은
-> [로드맵](ROADMAP_2D.md)과 현재 [활성 계약](scopes/RELEASE_REBUILD.md)이 소유한다.
+> [로드맵](ROADMAP_2D.md)과 현재 [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다.
 
 현재 활성 단계는 루트 [README](../README.md)만 선언한다.
 
 ## 사용 규칙
 
-- 상태는 `미승인 → 활성 → 검토 중 → 완료`만 사용한다.
+- 승인된 구현 단계는 `승인·대기 → 활성 → 검토 중 → 완료`, 별도 권한이 필요한 외부 단계는
+  `미승인`을 사용한다.
 - 한 번에 한 단계만 활성으로 둔다.
 - 단계가 완료될 때 증거 링크를 채운다. 수치와 긴 로그를 이 표에 복사하지 않는다.
 - 기계 검증, native 확인, 소유자 플레이와 독립 검토는 서로 대신하지 않는다.
@@ -18,10 +19,14 @@
 | 단계 | 상태 | 계약·데이터 | 자동검사 | native 확인 | 사람 검토 | 독립 검토·종료 |
 |---|---|---|---|---|---|---|
 | 과거 내부 후보 | 보존 | [개발 이력](DEVELOPMENT_HISTORY.md)과 완료 scope | 동결 회귀 | 기존 package 실행 | 소유자 전체 플레이에서 출시 차단 문제 확인 | 출시판으로는 superseded |
-| 1. 분기형 배전망 기초 | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md)·[world 데이터](../data/release-world-v1.json) | [9 suites / 152 assertions](../tools/Gridworks.ReleaseChecks/Program.cs), 과거 회귀 통과 | Game 기본 장면 변경 없음 | 해당 없음 | 독립 P0/P1 0 |
-| 2. 출시판 지도와 건설 UX | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md) | 12 suites / 217 assertions | 1280×720 대표 공사 흐름 통과 | 최종 한국어 검토는 4단계 | 독립 P0/P1 0 |
-| 3. 프롤로그·본편 캠페인 | **완료** | [활성 계약](scopes/RELEASE_REBUILD.md)·[캠페인 데이터](../data/release-campaign-v1.json) | 15 suites / 429 assertions | 8장·fresh-process 저장·재시작 통과 | 전체 한국어 검토는 4단계 | 독립 P0/P1 0 |
-| 4. 출시 마감 | **검토 중** | [활성 계약](scopes/RELEASE_REBUILD.md)·[내부 후보 기록](../CHANGELOG.md) | 15 suites / 481 assertions | 직전 후보의 [공식 cold LLM 1회](../playtests/release-2d/OFFICIAL_RELEASE_REBUILD_LLM_OBSERVATION_01.md) `BLOCKED` 원인을 반영한 뒤, [1280×720·UI 125% 영향 구간](../playtests/release-2d/LAYOUT_EVIDENCE.md)과 저장·새 프로세스 재개·8개 임무를 후속 후보에서 통과 | 후속 후보의 한국어 소유자 전체 플레이 대기 | 후속 수정 독립 P0/P1 0; 소유자 확인 대기 |
+| 동결 release v1 기술 기준선 | **완료** | [과거 계약](scopes/RELEASE_REBUILD.md)·[world](../data/release-world-v1.json)·[campaign](../data/release-campaign-v1.json) | 15 suites / 481 assertions | 건설·두 프로세스 8임무·내부 package 통과 | 공식 cold LLM은 마지막 장 `BLOCKED`; v2 증거로 합산하지 않음 | 후속 기술 수정 P0/P1 0 |
+| B. 자유 좌표 기반 | **활성** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md) | 구현 전 | 구현 전 | 해당 없음 | 구현 전 |
+| C. 이산 열 국면 기반 | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 해당 없음 | B 종료 뒤 자동 활성화 |
+| D. 상용 핵심 흐름 | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 사람 관찰은 구현 뒤 `NOT_COLLECTED` | C 종료 뒤 자동 활성화 |
+| E. 첫 네 임무·공통 UX | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 구현 중 수집하지 않음 | D 종료 뒤 자동 활성화 |
+| F. 후반 네 임무·에필로그 | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 구현 중 수집하지 않음 | E 종료 뒤 자동 활성화 |
+| G. 시청각·접근성·package | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 전체 사람 검토 `NOT_COLLECTED` | F 종료 뒤 자동 활성화 |
+| H. 외부 검증·공개 후보 | **미승인** | 별도 사용자·자격증명 gate | 자동증거로 대체하지 않음 | 공개 bytes 확정 전 미실행 | 소유자·외부·전문 교정 필요 | Developer ID·공증·배포 결정 필요 |
 
 ## 단계 활성화 조건
 
@@ -30,8 +35,9 @@
 - 해당 단계가 사용할 데이터·코드 경계와 플레이어 결과가 활성 계약에 적혀 있다.
 - 다음 단계의 schema, interface와 빈 UI를 미리 만들지 않는다.
 
-전체 목표는 2026-08-17 사용자 요청으로 승인됐다. 따라서 각 단계는 이전 단계 종료와 문서 전환
-뒤 같은 목표 안에서 이어갈 수 있지만, 동시에 둘을 구현하지 않는다.
+단계 B부터 G까지의 전체 구현 목표는 2026-08-18 사용자 요청으로 승인됐다. 따라서 각 단계는 이전
+단계 종료와 문서 전환 뒤 같은 목표 안에서 이어갈 수 있지만, 동시에 둘을 구현하지 않는다. 단계 H의
+사람 관찰·전문 교정·공개 배포 자격은 별도 외부 gate다.
 
 ## 공통 종료조건
 

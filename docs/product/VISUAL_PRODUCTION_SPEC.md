@@ -1,7 +1,7 @@
 # Gridworks — 출시판 시각·표현 명세
 
 이 문서는 전력망 규칙과 청류시의 이야기를 어떻게 보이게 할지 정의한다. 규칙과 수치는
-[활성 계약](../scopes/RELEASE_REBUILD.md)과 출시판 데이터, 오브젝트 능력은
+[활성 계약](../scopes/COMMERCIAL_2D_IMPLEMENTATION.md)과 출시판 데이터, 오브젝트 능력은
 [카탈로그](OBJECT_CATALOG.md)가 소유한다.
 
 기존 `ProductMain` 화면은 내부 후보의 기술 증거로 보존하지만 출시판 시각 기준이 아니다.

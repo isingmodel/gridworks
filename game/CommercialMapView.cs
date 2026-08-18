@@ -14,7 +14,14 @@ internal sealed record CommercialMapPresentation(
     string PointerMessage,
     string ToolLabel,
     int? PointerFootprintRadiusUnit,
-    bool NodeSnapEnabled);
+    bool NodeSnapEnabled,
+    CommercialThermalMapPresentation? Thermal = null);
+
+internal sealed record CommercialThermalMapPresentation(
+    string ProjectionLabel,
+    IReadOnlyList<ThermalAssetUsage> Assets,
+    string? SelectedAssetId,
+    string AccessibilitySummary);
 
 internal readonly record struct CommercialDraftPointDrag(int PointIndex, CoreMapPoint Position);
 
@@ -35,6 +42,10 @@ internal sealed partial class CommercialMapView : Control
     private static readonly Color Text = Color.FromHtml("e6eff0");
     private static readonly Color Muted = Color.FromHtml("91a3a1");
     private static readonly Color Focus = Color.FromHtml("f4d27c");
+    private static readonly Color ThermalContinuous = Color.FromHtml("79d5c9");
+    private static readonly Color ThermalEmergency = Color.FromHtml("f0b54f");
+    private static readonly Color ThermalOutage = Color.FromHtml("a4adb2");
+    private static readonly Color ThermalOverLimit = Color.FromHtml("ef706a");
     private const float CandidateRadiusPixel = 24f;
     private const float KeyboardFollowMarginPixel = 72f;
     private const int KeyboardSmallStepUnit = 100;
@@ -63,6 +74,8 @@ internal sealed partial class CommercialMapView : Control
 
     public event Action<CommercialDraftPointDrag?>? DraftPointDragPreviewChanged;
 
+    public event Action<string>? ThermalAssetRequested;
+
     public event Action? CameraChanged;
 
     public int ZoomIndex => _transform?.ZoomIndex ?? 0;
@@ -82,6 +95,22 @@ internal sealed partial class CommercialMapView : Control
     public bool IsDraggingDraftPoint => _draggingDraftPoint;
 
     public int DraggedDraftPointIndex => _draggedDraftPointIndex;
+
+    public string? SelectedThermalAssetId => _presentation?.Thermal?.SelectedAssetId;
+
+    public ThermalOperatingState? SelectedThermalState
+    {
+        get
+        {
+            CommercialThermalMapPresentation? thermal = _presentation?.Thermal;
+            return thermal?.SelectedAssetId is string assetId
+                ? thermal.Assets.FirstOrDefault(item => string.Equals(
+                    item.AssetId,
+                    assetId,
+                    StringComparison.Ordinal))?.State
+                : null;
+        }
+    }
 
     public override void _Ready()
     {
@@ -132,6 +161,9 @@ internal sealed partial class CommercialMapView : Control
             _pointerPoint = presentedPointer;
         }
         RefreshCandidates(notify: false);
+        AccessibilityDescription = presentation.Thermal is null
+            ? "청류시 자유 배치 지도. 방향키로 커서를 움직이고 Enter로 선택합니다. Q와 E로 가까운 접속점을 바꿉니다."
+            : "청류시 고정 전력망 열 운전 지도. 마우스 또는 방향키와 Enter로 설비를 선택하고 오른쪽 패널에서 현재 사용과 한계를 확인합니다.";
         AccessibilityName = BuildAccessibilityName(presentation);
         QueueRedraw();
     }
@@ -231,7 +263,10 @@ internal sealed partial class CommercialMapView : Control
 
             case InputEventMouseButton button when
                 button.ButtonIndex == MouseButton.Right && button.Pressed:
-                UndoRequested?.Invoke();
+                if (_presentation.Thermal is null)
+                {
+                    UndoRequested?.Invoke();
+                }
                 AcceptEvent();
                 return;
 
@@ -242,7 +277,17 @@ internal sealed partial class CommercialMapView : Control
                     GrabFocus();
                     _keyboardPoint = clicked;
                     SetPointer(clicked);
-                    PointRequested?.Invoke(clicked, SelectedCandidateId);
+                    if (_presentation.Thermal is not null)
+                    {
+                        if (TryThermalAssetAt(button.Position, out string assetId))
+                        {
+                            ThermalAssetRequested?.Invoke(assetId);
+                        }
+                    }
+                    else
+                    {
+                        PointRequested?.Invoke(clicked, SelectedCandidateId);
+                    }
                 }
                 AcceptEvent();
                 return;
@@ -270,6 +315,10 @@ internal sealed partial class CommercialMapView : Control
         DrawLineDraft(snapshot);
         DrawNodes(snapshot.World);
         DrawNodeDraft(snapshot);
+        if (_presentation.Thermal is CommercialThermalMapPresentation thermal)
+        {
+            DrawThermalOverlays(snapshot.World, thermal);
+        }
         DrawPointer(_presentation);
         DrawMapLegend();
         if (HasFocus())
@@ -297,7 +346,7 @@ internal sealed partial class CommercialMapView : Control
         }
 
         Key physical = key.PhysicalKeycode;
-        if (physical == Key.Q || physical == Key.E)
+        if (_presentation!.Thermal is null && (physical == Key.Q || physical == Key.E))
         {
             CycleCandidate(physical == Key.Q ? -1 : 1);
             AcceptEvent();
@@ -326,7 +375,10 @@ internal sealed partial class CommercialMapView : Control
         }
         if (key.Keycode == Key.Backspace)
         {
-            UndoRequested?.Invoke();
+            if (_presentation!.Thermal is null)
+            {
+                UndoRequested?.Invoke();
+            }
             AcceptEvent();
             return;
         }
@@ -339,7 +391,17 @@ internal sealed partial class CommercialMapView : Control
         if (key.Keycode is Key.Enter or Key.KpEnter)
         {
             SetPointer(_keyboardPoint);
-            PointRequested?.Invoke(_keyboardPoint, SelectedCandidateId);
+            if (_presentation!.Thermal is not null)
+            {
+                if (TryThermalAssetAt(KeyboardAnchor(), out string assetId))
+                {
+                    ThermalAssetRequested?.Invoke(assetId);
+                }
+            }
+            else
+            {
+                PointRequested?.Invoke(_keyboardPoint, SelectedCandidateId);
+            }
             AcceptEvent();
         }
     }
@@ -426,6 +488,72 @@ internal sealed partial class CommercialMapView : Control
             _candidateNodeIds.Count;
         PointerChanged?.Invoke(_pointerPoint, SelectedCandidateId);
         QueueRedraw();
+    }
+
+    private bool TryThermalAssetAt(Vector2 canvasPoint, out string assetId)
+    {
+        assetId = string.Empty;
+        if (_presentation?.Thermal is not CommercialThermalMapPresentation thermal)
+        {
+            return false;
+        }
+        SpatialWorldDefinition world = _presentation.Snapshot.World;
+        Dictionary<string, SpatialNodeDefinition> nodes = world.Nodes.ToDictionary(
+            item => item.NodeId,
+            StringComparer.Ordinal);
+        Dictionary<string, SpatialEdgeDefinition> edges = world.Edges.ToDictionary(
+            item => item.EdgeId,
+            StringComparer.Ordinal);
+        var hits = new List<(float Distance, int KindOrder, string AssetId)>();
+        foreach (ThermalAssetUsage usage in thermal.Assets)
+        {
+            if (usage.AssetKind == ThermalAssetKind.Node &&
+                nodes.TryGetValue(usage.AssetId, out SpatialNodeDefinition? node))
+            {
+                float distance = ToCanvas(node.Position).DistanceSquaredTo(canvasPoint);
+                if (distance <= 18f * 18f)
+                {
+                    hits.Add((distance, 0, usage.AssetId));
+                }
+            }
+            else if (usage.AssetKind == ThermalAssetKind.Edge &&
+                     edges.TryGetValue(usage.AssetId, out SpatialEdgeDefinition? edge) &&
+                     nodes.TryGetValue(edge.FromNodeId, out SpatialNodeDefinition? from) &&
+                     nodes.TryGetValue(edge.ToNodeId, out SpatialNodeDefinition? to))
+            {
+                float distance = DistanceSquaredToSegment(
+                    canvasPoint,
+                    ToCanvas(from.Position),
+                    ToCanvas(to.Position));
+                if (distance <= 13f * 13f)
+                {
+                    hits.Add((distance, 1, usage.AssetId));
+                }
+            }
+        }
+        if (hits.Count == 0)
+        {
+            return false;
+        }
+        assetId = hits
+            .OrderBy(item => item.Distance)
+            .ThenBy(item => item.KindOrder)
+            .ThenBy(item => item.AssetId, StringComparer.Ordinal)
+            .First()
+            .AssetId;
+        return true;
+    }
+
+    private static float DistanceSquaredToSegment(Vector2 point, Vector2 start, Vector2 end)
+    {
+        Vector2 segment = end - start;
+        float lengthSquared = segment.LengthSquared();
+        if (lengthSquared <= 0.001f)
+        {
+            return point.DistanceSquaredTo(start);
+        }
+        float ratio = Mathf.Clamp((point - start).Dot(segment) / lengthSquared, 0f, 1f);
+        return point.DistanceSquaredTo(start + segment * ratio);
     }
 
     private bool TryMapPoint(Vector2 canvasPoint, out CoreMapPoint point)
@@ -617,6 +745,249 @@ internal sealed partial class CommercialMapView : Control
         DrawCircle(ToCanvas(draft.Position), 6f, Planned);
     }
 
+    private void DrawThermalOverlays(
+        SpatialWorldDefinition world,
+        CommercialThermalMapPresentation thermal)
+    {
+        Dictionary<string, SpatialNodeDefinition> nodes = world.Nodes.ToDictionary(
+            item => item.NodeId,
+            StringComparer.Ordinal);
+        Dictionary<string, SpatialEdgeDefinition> edges = world.Edges.ToDictionary(
+            item => item.EdgeId,
+            StringComparer.Ordinal);
+        foreach (ThermalAssetUsage usage in thermal.Assets.OrderBy(
+                     item => item.AssetId,
+                     StringComparer.Ordinal))
+        {
+            bool selected = string.Equals(
+                usage.AssetId,
+                thermal.SelectedAssetId,
+                StringComparison.Ordinal);
+            if (usage.AssetKind == ThermalAssetKind.Node &&
+                nodes.TryGetValue(usage.AssetId, out SpatialNodeDefinition? node))
+            {
+                DrawThermalNode(ToCanvas(node.Position), usage.State, selected);
+            }
+            else if (usage.AssetKind == ThermalAssetKind.Edge &&
+                     edges.TryGetValue(usage.AssetId, out SpatialEdgeDefinition? edge) &&
+                     nodes.TryGetValue(edge.FromNodeId, out SpatialNodeDefinition? from) &&
+                     nodes.TryGetValue(edge.ToNodeId, out SpatialNodeDefinition? to))
+            {
+                DrawThermalEdge(ToCanvas(from.Position), ToCanvas(to.Position), usage.State, selected);
+            }
+        }
+    }
+
+    private void DrawThermalEdge(
+        Vector2 start,
+        Vector2 end,
+        ThermalOperatingState state,
+        bool selected)
+    {
+        Color color = ThermalStateColor(state);
+        Vector2 delta = end - start;
+        Vector2 direction = delta.LengthSquared() <= 0.001f
+            ? Vector2.Right
+            : delta.Normalized();
+        Vector2 normal = new(-direction.Y, direction.X);
+        if (selected)
+        {
+            DrawLine(start, end, new Color(Focus, 0.9f), 11f, true);
+        }
+
+        switch (state)
+        {
+            case ThermalOperatingState.Continuous:
+                DrawLine(start, end, color, 4f, true);
+                break;
+            case ThermalOperatingState.Emergency:
+                DrawLine(start + normal * 3f, end + normal * 3f, color, 2.2f, true);
+                DrawLine(start - normal * 3f, end - normal * 3f, color, 2.2f, true);
+                DrawThermalTicks(start, end, color, crossed: false);
+                break;
+            case ThermalOperatingState.ProtectiveOutage:
+                DrawDashedSegment(start, end, color, 3f, 11f, 8f);
+                DrawThermalTicks(start, end, color, crossed: true);
+                break;
+            case ThermalOperatingState.OverLimit:
+                DrawLine(start + normal * 3.5f, end + normal * 3.5f, color, 2.5f, true);
+                DrawLine(start - normal * 3.5f, end - normal * 3.5f, color, 2.5f, true);
+                DrawThermalTicks(start, end, color, crossed: true);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(state));
+        }
+        if (selected || state != ThermalOperatingState.Continuous)
+        {
+            DrawThermalIcon((start + end) / 2f, ThermalStateIcon(state), color);
+        }
+    }
+
+    private void DrawThermalNode(
+        Vector2 center,
+        ThermalOperatingState state,
+        bool selected)
+    {
+        Color color = ThermalStateColor(state);
+        if (selected)
+        {
+            DrawArc(center, 18f, 0f, Mathf.Tau, 48, Focus, 3f, true);
+        }
+        switch (state)
+        {
+            case ThermalOperatingState.Continuous:
+                DrawArc(center, 12f, 0f, Mathf.Tau, 40, color, 3f, true);
+                break;
+            case ThermalOperatingState.Emergency:
+                DrawArc(center, 10f, 0f, Mathf.Tau, 40, color, 2f, true);
+                DrawArc(center, 14f, 0f, Mathf.Tau, 40, color, 2f, true);
+                DrawRadialTicks(center, 17f, color);
+                break;
+            case ThermalOperatingState.ProtectiveOutage:
+                DrawDashedArc(center, 13f, color);
+                DrawLine(center + new Vector2(-7f, -7f), center + new Vector2(7f, 7f), color, 2.5f);
+                DrawLine(center + new Vector2(-7f, 7f), center + new Vector2(7f, -7f), color, 2.5f);
+                break;
+            case ThermalOperatingState.OverLimit:
+                DrawArc(center, 10f, 0f, Mathf.Tau, 40, color, 2f, true);
+                DrawArc(center, 15f, 0f, Mathf.Tau, 40, color, 2.5f, true);
+                DrawLine(center + new Vector2(-9f, -9f), center + new Vector2(9f, 9f), color, 3f);
+                DrawLine(center + new Vector2(-9f, 9f), center + new Vector2(9f, -9f), color, 3f);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(state));
+        }
+        if (selected || state != ThermalOperatingState.Continuous)
+        {
+            DrawThermalIcon(center + new Vector2(15f, -15f), ThermalStateIcon(state), color);
+        }
+    }
+
+    private void DrawThermalTicks(
+        Vector2 start,
+        Vector2 end,
+        Color color,
+        bool crossed)
+    {
+        Vector2 delta = end - start;
+        float length = delta.Length();
+        if (length < 8f)
+        {
+            return;
+        }
+        Vector2 direction = delta / length;
+        Vector2 normal = new(-direction.Y, direction.X);
+        for (float offset = 18f; offset < length - 8f; offset += 28f)
+        {
+            Vector2 center = start + direction * offset;
+            DrawLine(
+                center - normal * 6f - direction * 3f,
+                center + normal * 6f + direction * 3f,
+                color,
+                1.5f,
+                true);
+            if (crossed)
+            {
+                DrawLine(
+                    center - normal * 6f + direction * 3f,
+                    center + normal * 6f - direction * 3f,
+                    color,
+                    1.5f,
+                    true);
+            }
+        }
+    }
+
+    private void DrawDashedSegment(
+        Vector2 start,
+        Vector2 end,
+        Color color,
+        float width,
+        float dashLength,
+        float gapLength)
+    {
+        Vector2 delta = end - start;
+        float length = delta.Length();
+        if (length <= 0.001f)
+        {
+            return;
+        }
+        Vector2 direction = delta / length;
+        for (float offset = 0f; offset < length; offset += dashLength + gapLength)
+        {
+            DrawLine(
+                start + direction * offset,
+                start + direction * Math.Min(length, offset + dashLength),
+                color,
+                width,
+                true);
+        }
+    }
+
+    private void DrawDashedArc(Vector2 center, float radius, Color color)
+    {
+        const int segmentCount = 12;
+        for (int index = 0; index < segmentCount; index += 2)
+        {
+            float from = Mathf.Tau * index / segmentCount;
+            float to = Mathf.Tau * (index + 1) / segmentCount;
+            DrawArc(center, radius, from, to, 5, color, 2.5f, true);
+        }
+    }
+
+    private void DrawRadialTicks(Vector2 center, float radius, Color color)
+    {
+        for (int index = 0; index < 8; index++)
+        {
+            float angle = Mathf.Tau * index / 8f;
+            Vector2 direction = Vector2.FromAngle(angle);
+            DrawLine(
+                center + direction * (radius - 3f),
+                center + direction * (radius + 3f),
+                color,
+                1.5f,
+                true);
+        }
+    }
+
+    private void DrawThermalIcon(Vector2 center, string icon, Color color)
+    {
+        Vector2 size = GetThemeDefaultFont().GetStringSize(
+            icon,
+            HorizontalAlignment.Center,
+            -1f,
+            12);
+        DrawRect(
+            new Rect2(center - size / 2f - new Vector2(3f, 2f), size + new Vector2(6f, 4f)),
+            new Color(Background, 0.94f));
+        DrawString(
+            GetThemeDefaultFont(),
+            center + new Vector2(-size.X / 2f, size.Y / 3f),
+            icon,
+            HorizontalAlignment.Left,
+            -1f,
+            12,
+            color);
+    }
+
+    private static Color ThermalStateColor(ThermalOperatingState state) => state switch
+    {
+        ThermalOperatingState.Continuous => ThermalContinuous,
+        ThermalOperatingState.Emergency => ThermalEmergency,
+        ThermalOperatingState.ProtectiveOutage => ThermalOutage,
+        ThermalOperatingState.OverLimit => ThermalOverLimit,
+        _ => throw new ArgumentOutOfRangeException(nameof(state)),
+    };
+
+    private static string ThermalStateIcon(ThermalOperatingState state) => state switch
+    {
+        ThermalOperatingState.Continuous => "✓",
+        ThermalOperatingState.Emergency => "!",
+        ThermalOperatingState.ProtectiveOutage => "×",
+        ThermalOperatingState.OverLimit => "!!",
+        _ => throw new ArgumentOutOfRangeException(nameof(state)),
+    };
+
     private void DrawPointer(CommercialMapPresentation presentation)
     {
         if (_pointerPoint is not CoreMapPoint point)
@@ -663,6 +1034,26 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawMapLegend()
     {
+        if (_presentation?.Thermal is CommercialThermalMapPresentation thermal)
+        {
+            DrawString(
+                GetThemeDefaultFont(),
+                new Vector2(18f, Size.Y - 28f),
+                $"{thermal.ProjectionLabel} · 설비를 선택하면 현재 사용과 다음 상태를 확인합니다.",
+                HorizontalAlignment.Left,
+                -1f,
+                11,
+                Muted);
+            DrawString(
+                GetThemeDefaultFont(),
+                new Vector2(18f, Size.Y - 12f),
+                "✓ 연속 실선 · ! 비상 이중선/사선 · × 보호정지 점선 · !! 한계초과 교차선",
+                HorizontalAlignment.Left,
+                -1f,
+                11,
+                Muted);
+            return;
+        }
         string label = $"지도 {ZoomLabel}  ·  격자 맞춤 없음  ·  설계 거리 1 = 내부 100단위";
         DrawString(GetThemeDefaultFont(), new Vector2(18f, Size.Y - 13f), label,
             HorizontalAlignment.Left, -1f, 11, Muted);
@@ -747,6 +1138,11 @@ internal sealed partial class CommercialMapView : Control
 
     private string BuildAccessibilityName(CommercialMapPresentation presentation)
     {
+        if (presentation.Thermal is CommercialThermalMapPresentation thermal)
+        {
+            return $"청류시 고정 전력망 열 운전 지도. {thermal.ProjectionLabel}. " +
+                   $"{thermal.AccessibilitySummary}. 지도 {ZoomLabel}.";
+        }
         string pointer = _pointerPoint is CoreMapPoint
             ? CandidateLabel(presentation.Snapshot.World) ?? presentation.PointerMessage
             : "지도 밖";

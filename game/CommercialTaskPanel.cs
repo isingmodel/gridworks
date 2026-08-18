@@ -18,6 +18,11 @@ internal sealed record CommercialActionPresentation(
     string Text,
     string Description);
 
+internal sealed record CommercialProjectionPresentation(
+    string Label,
+    bool PreviousEnabled,
+    bool NextEnabled);
+
 internal sealed record CommercialTaskPanelModel(
     string Heading,
     string Instruction,
@@ -29,7 +34,8 @@ internal sealed record CommercialTaskPanelModel(
     CommercialActionPresentation StartLine,
     CommercialActionPresentation UndoPoint,
     CommercialActionPresentation CancelDraft,
-    CommercialActionPresentation Commission);
+    CommercialActionPresentation Commission,
+    CommercialProjectionPresentation? Projection = null);
 
 internal sealed partial class CommercialTaskPanel : PanelContainer
 {
@@ -39,9 +45,17 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     private Label _quoteLabel = null!;
     private Label _statusLabel = null!;
     private Label _errorLabel = null!;
+    private Control _toolRow = null!;
+    private Control _editRow = null!;
+    private Control _thermalControls = null!;
+    private Label _projectionLabel = null!;
+    private Button _previousProjectionButton = null!;
+    private Button _nextProjectionButton = null!;
     private IReadOnlyDictionary<CommercialPanelAction, Button> _buttons = null!;
 
     public event Action<CommercialPanelAction>? ActionRequested;
+
+    public event Action<int>? ProjectionDeltaRequested;
 
     public override void _Ready()
     {
@@ -51,6 +65,12 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _quoteLabel = GetNode<Label>("%QuoteLabel");
         _statusLabel = GetNode<Label>("%StatusLabel");
         _errorLabel = GetNode<Label>("%ErrorLabel");
+        _toolRow = GetNode<Control>("%ToolRow");
+        _editRow = GetNode<Control>("%EditRow");
+        _thermalControls = GetNode<Control>("%ThermalControls");
+        _projectionLabel = GetNode<Label>("%ProjectionLabel");
+        _previousProjectionButton = GetNode<Button>("%PreviousProjectionButton");
+        _nextProjectionButton = GetNode<Button>("%NextProjectionButton");
         _buttons = new Dictionary<CommercialPanelAction, Button>
         {
             [CommercialPanelAction.PlaceSubstation] = GetNode<Button>("%PlaceSubstationButton"),
@@ -64,6 +84,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         {
             button.Pressed += () => ActionRequested?.Invoke(action);
         }
+        _previousProjectionButton.Pressed += () => ProjectionDeltaRequested?.Invoke(-1);
+        _nextProjectionButton.Pressed += () => ProjectionDeltaRequested?.Invoke(1);
         _statusLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite;
         _errorLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Assertive;
     }
@@ -82,10 +104,39 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         SetButton(CommercialPanelAction.UndoPoint, model.UndoPoint);
         SetButton(CommercialPanelAction.CancelDraft, model.CancelDraft);
         SetButton(CommercialPanelAction.Commission, model.Commission);
-        AccessibilityName = $"공사 작업 패널. {model.Heading}. {model.Status}";
+        bool thermal = model.Projection is not null;
+        _toolRow.Visible = !thermal;
+        _editRow.Visible = !thermal;
+        _buttons[CommercialPanelAction.Commission].Visible = !thermal;
+        _thermalControls.Visible = thermal;
+        if (model.Projection is CommercialProjectionPresentation projection)
+        {
+            _projectionLabel.Text = projection.Label;
+            _previousProjectionButton.Disabled = !projection.PreviousEnabled;
+            _nextProjectionButton.Disabled = !projection.NextEnabled;
+            _previousProjectionButton.AccessibilityDescription =
+                "이전 열 운전 국면의 계산 결과를 표시합니다.";
+            _nextProjectionButton.AccessibilityDescription =
+                "다음 열 운전 국면의 계산 결과를 표시합니다.";
+        }
+        AccessibilityName = thermal
+            ? $"열 운전 확인 패널. {model.Heading}. {model.Status}"
+            : $"공사 작업 패널. {model.Heading}. {model.Status}";
     }
 
     public BaseButton GetActionButton(CommercialPanelAction action) => _buttons[action];
+
+    public BaseButton GetProjectionButton(int direction) => direction < 0
+        ? _previousProjectionButton
+        : _nextProjectionButton;
+
+    public string SelectionText => _selectionLabel.Text;
+
+    public string LimitsText => _quoteLabel.Text;
+
+    public string StatusText => _statusLabel.Text;
+
+    public string ProjectionText => _projectionLabel.Text;
 
     private void SetButton(
         CommercialPanelAction action,

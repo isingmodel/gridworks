@@ -69,7 +69,44 @@ autowrap_mode = 2
 [node name="Separator2" type="HSeparator" parent="Margin/Column"]
 layout_mode = 2
 
+[node name="ThermalControls" type="VBoxContainer" parent="Margin/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="ProjectionHeading" type="Label" parent="Margin/Column/ThermalControls"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
+text = "열 운전 국면"
+
+[node name="ProjectionLabel" type="Label" parent="Margin/Column/ThermalControls"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "국면 1 / 1"
+autowrap_mode = 2
+
+[node name="ProjectionRow" type="HBoxContainer" parent="Margin/Column/ThermalControls"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="PreviousProjectionButton" type="Button" parent="Margin/Column/ThermalControls/ProjectionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "이전 국면"
+
+[node name="NextProjectionButton" type="Button" parent="Margin/Column/ThermalControls/ProjectionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "다음 국면"
+
 [node name="ToolRow" type="HBoxContainer" parent="Margin/Column"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 7
 
@@ -88,6 +125,7 @@ size_flags_horizontal = 3
 text = "선로 잇기"
 
 [node name="EditRow" type="HBoxContainer" parent="Margin/Column"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 7
 

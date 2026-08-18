@@ -11,6 +11,136 @@ namespace Gridworks.Game;
 
 internal sealed partial class CommercialMain
 {
+    private const string ThermalWorldResource =
+        "Gridworks.Game.EmbeddedData.release-world-v2.json";
+
+    private void InitializeThermalSmokeMode()
+    {
+        _thermalWorld = CommercialWorldLoader.Load(
+            ReadEmbeddedResourceBytes(ThermalWorldResource));
+        var sequence = new ThermalSequenceRequest(
+        [
+            new ThermalIntervalRequest(
+                "THERMAL_WITNESS_EMERGENCY",
+                [new ThermalLoadRequest("WATERWORKS", 2800, ThermalPermission.EmergencyAllowed)],
+                Array.Empty<string>(),
+                Array.Empty<string>(),
+                Array.Empty<ThermalLimitOverride>()),
+            new ThermalIntervalRequest(
+                "THERMAL_WITNESS_COOLING",
+                [new ThermalLoadRequest("WATERWORKS", 2800, ThermalPermission.EmergencyAllowed)],
+                Array.Empty<string>(),
+                Array.Empty<string>(),
+                Array.Empty<ThermalLimitOverride>()),
+            new ThermalIntervalRequest(
+                "THERMAL_WITNESS_RECOVERED",
+                [new ThermalLoadRequest("WATERWORKS", 2000, ThermalPermission.ContinuousOnly)],
+                Array.Empty<string>(),
+                Array.Empty<string>(),
+                Array.Empty<ThermalLimitOverride>()),
+        ]);
+        _thermalEvaluation = ThermalNetworkEvaluator.EvaluateSequence(
+            _thermalWorld,
+            sequence,
+            ThermalState.Empty);
+        _thermalProjectionIndex = 0;
+        _selectedThermalAssetId = null;
+        _session = new ConstructionSession(_thermalWorld.ToSpatialWorld());
+        _snapshot = _session.GetSnapshot();
+    }
+
+    private async void RunThermalSmoke()
+    {
+        try
+        {
+            await NextFrame();
+            GetWindow().Size = new Vector2I(1280, 720);
+            await NextFrame();
+            ApplyUiScale(this, 1.25f);
+            await NextFrame();
+            Require(
+                GetWindow().Size == new Vector2I(1280, 720) &&
+                ControlInside(_panel, _panel.GetProjectionButton(1)),
+                "1280×720·UI 125%에서 열 국면 선택이 패널 밖으로 잘렸습니다.");
+            Require(
+                _thermalEvaluation?.Intervals.Count == 3 &&
+                _panel.ProjectionText == "국면 1 / 3" &&
+                _panel.GetProjectionButton(-1).Disabled &&
+                !_panel.GetProjectionButton(1).Disabled,
+                "첫 열 국면의 중립 표기와 이동 경계를 표시하지 못했습니다.");
+
+            CoreMapPoint edgeSelectionPoint = new(2200, 525);
+            await ClickMap(edgeSelectionPoint);
+            ThermalAssetUsage emergency = CurrentThermalInterval().Assets.Single(item =>
+                item.AssetId == "EDGE_WATER");
+            Require(
+                _selectedThermalAssetId == "EDGE_WATER" &&
+                _map.SelectedThermalAssetId == "EDGE_WATER" &&
+                _map.SelectedThermalState == ThermalOperatingState.Emergency,
+                "실제 지도 클릭으로 열 선로를 선택하지 못했습니다.");
+            Require(
+                emergency.UsedKw == 2800 &&
+                emergency.ContinuousKw == 2500 &&
+                emergency.EmergencyKw == 3200 &&
+                emergency.State == ThermalOperatingState.Emergency &&
+                emergency.NextState == ThermalOperatingState.ProtectiveOutage,
+                "첫 국면의 typed 사용·연속·비상·다음 상태가 예상과 다릅니다.");
+            Require(
+                _panel.SelectionText.Contains("도체", StringComparison.Ordinal) &&
+                _panel.LimitsText.Contains("현재 사용 2,800 kW", StringComparison.Ordinal) &&
+                _panel.LimitsText.Contains("연속 한계 2,500 kW", StringComparison.Ordinal) &&
+                _panel.LimitsText.Contains("비상 한계 3,200 kW", StringComparison.Ordinal) &&
+                _panel.StatusText.Contains("현재 상태 · 비상 운전", StringComparison.Ordinal) &&
+                _panel.StatusText.Contains("다음 상태 · 보호정지", StringComparison.Ordinal),
+                "선택 설비의 typed 열 결과를 전문 용어로 표시하지 못했습니다.");
+            Require(
+                _helpBodyLabel.Text.Contains("이중선과 사선", StringComparison.Ordinal) &&
+                _helpBodyLabel.Text.Contains("점선", StringComparison.Ordinal) &&
+                _helpBodyLabel.Text.Contains("교차선", StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains("비상 운전", StringComparison.Ordinal),
+                "열 overlay의 색 독립 패턴·아이콘·문장 안내가 빠졌습니다.");
+
+            EmitProjection(1);
+            await NextFrame();
+            ThermalAssetUsage cooling = CurrentThermalInterval().Assets.Single(item =>
+                item.AssetId == "EDGE_WATER");
+            Require(
+                _thermalProjectionIndex == 1 &&
+                _panel.ProjectionText == "국면 2 / 3" &&
+                _selectedThermalAssetId == "EDGE_WATER" &&
+                cooling.UsedKw == 0 &&
+                cooling.State == ThermalOperatingState.ProtectiveOutage &&
+                cooling.NextState == ThermalOperatingState.Continuous &&
+                _map.SelectedThermalState == ThermalOperatingState.ProtectiveOutage &&
+                _panel.StatusText.Contains("현재 상태 · 보호정지", StringComparison.Ordinal),
+                "국면 변경 뒤 보호정지와 다음 자동 복귀를 그대로 표시하지 못했습니다.");
+
+            EmitProjection(1);
+            await NextFrame();
+            ThermalAssetUsage recovered = CurrentThermalInterval().Assets.Single(item =>
+                item.AssetId == "EDGE_WATER");
+            Require(
+                _thermalProjectionIndex == 2 &&
+                _panel.ProjectionText == "국면 3 / 3" &&
+                recovered.UsedKw == 2000 &&
+                recovered.State == ThermalOperatingState.Continuous &&
+                recovered.NextState == ThermalOperatingState.Continuous &&
+                _map.SelectedThermalState == ThermalOperatingState.Continuous &&
+                _panel.GetProjectionButton(1).Disabled,
+                "냉각 다음 국면의 연속 운전 복귀와 마지막 이동 경계를 표시하지 못했습니다.");
+
+            GD.Print(
+                "COMMERCIAL_THERMAL_SMOKE_PASS projections=3 " +
+                $"asset={_selectedThermalAssetId} states=Emergency>ProtectiveOutage>Continuous");
+            GetTree().Quit(0);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"상용 열 운전 smoke 실패: {exception}");
+            GetTree().Quit(1);
+        }
+    }
+
     private async void RunPlacementSmoke()
     {
         try
@@ -380,6 +510,16 @@ internal sealed partial class CommercialMain
         if (!button.Visible || button.Disabled)
         {
             throw new InvalidOperationException($"필요한 화면 행동을 사용할 수 없습니다: {description}");
+        }
+        button.EmitSignal(BaseButton.SignalName.Pressed);
+    }
+
+    private void EmitProjection(int direction)
+    {
+        BaseButton button = _panel.GetProjectionButton(direction);
+        if (!button.Visible || button.Disabled)
+        {
+            throw new InvalidOperationException("요청한 열 국면으로 이동할 수 없습니다.");
         }
         button.EmitSignal(BaseButton.SignalName.Pressed);
     }

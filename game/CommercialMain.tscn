@@ -114,6 +114,7 @@ layout_mode = 2
 size_flags_vertical = 3
 
 [node name="ControlHelp" type="Label" parent="SafeMargin/RootColumn"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.58, 0.66, 0.68, 1)
 text = "휠 또는 +/− 확대 · 가운데 버튼 또는 Space+드래그 이동 · Home 전체 보기 · Q/E 접속점 · Enter 확정 · Backspace/오른쪽 클릭 되돌리기"
@@ -160,6 +161,7 @@ theme_override_font_sizes/font_size = 26
 text = "잠시 멈춤 · 조작 안내"
 
 [node name="HelpBody" type="Label" parent="HelpOverlay/Center/Panel/Margin/Column"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/line_spacing = 6

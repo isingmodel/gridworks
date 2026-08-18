@@ -11,8 +11,8 @@ internal static class Program
     {
         try
         {
-            string fixturePath = ResolveFixturePath(args);
-            return new CommercialChecks(fixturePath).Run();
+            (string spatialPath, string worldPath) = ResolveFixturePaths(args);
+            return new CommercialChecks(spatialPath, worldPath).Run();
         }
         catch (Exception exception)
         {
@@ -22,26 +22,35 @@ internal static class Program
         }
     }
 
-    private static string ResolveFixturePath(string[] args)
+    private static (string SpatialPath, string WorldPath) ResolveFixturePaths(string[] args)
     {
-        if (args.Length > 1)
+        if (args.Length > 2)
         {
             throw new ArgumentException(
-                "usage: Gridworks.CommercialChecks [commercial-spatial-json]");
+                "usage: Gridworks.CommercialChecks [commercial-spatial-json] [release-world-v2-json]");
         }
 
-        string path = args.Length == 1
+        string spatialPath = args.Length >= 1
             ? args[0]
             : Path.Combine(
                 Environment.CurrentDirectory,
                 "data",
                 "commercial-free-placement-slice-v1.json");
-        path = Path.GetFullPath(path);
-        if (!File.Exists(path))
+        spatialPath = Path.GetFullPath(spatialPath);
+        string worldPath = args.Length == 2
+            ? Path.GetFullPath(args[1])
+            : Path.Combine(
+                Path.GetDirectoryName(spatialPath)!,
+                "release-world-v2.json");
+        if (!File.Exists(spatialPath))
         {
-            throw new FileNotFoundException("Commercial spatial fixture not found.", path);
+            throw new FileNotFoundException("Commercial spatial fixture not found.", spatialPath);
         }
-        return path;
+        if (!File.Exists(worldPath))
+        {
+            throw new FileNotFoundException("Commercial world v2 fixture not found.", worldPath);
+        }
+        return (spatialPath, worldPath);
     }
 }
 
@@ -56,13 +65,19 @@ internal sealed class CommercialChecks
     private readonly byte[] _fixtureBytes;
     private readonly string _fixtureJson;
     private readonly SpatialWorldDefinition _fixture;
+    private readonly byte[] _worldBytes;
+    private readonly string _worldJson;
+    private readonly CommercialWorldDefinition _commercialWorld;
     private int _assertionCount;
 
-    public CommercialChecks(string fixturePath)
+    public CommercialChecks(string fixturePath, string worldPath)
     {
         _fixtureBytes = File.ReadAllBytes(fixturePath);
         _fixtureJson = Encoding.UTF8.GetString(_fixtureBytes);
         _fixture = SpatialWorldLoader.Load(_fixtureBytes);
+        _worldBytes = File.ReadAllBytes(worldPath);
+        _worldJson = Encoding.UTF8.GetString(_worldBytes);
+        _commercialWorld = CommercialWorldLoader.Load(_worldBytes);
     }
 
     public int Run()
@@ -76,6 +91,12 @@ internal sealed class CommercialChecks
             ("construction-lifecycle-quote-atomicity", CheckConstructionLifecycle),
             ("rejected-invariance-and-determinism", CheckRejectedInvarianceAndDeterminism),
             ("crossing-nonconnection-and-replay", CheckCrossingNonConnectionAndReplay),
+            ("strict-commercial-world-loader", CheckStrictCommercialWorldLoader),
+            ("thermal-boundaries-permission-shared-sum", CheckThermalBoundariesPermissionAndSharedSum),
+            ("thermal-all-candidates-and-tiebreak", CheckThermalAllCandidatesAndTieBreak),
+            ("thermal-unavailable-and-overrides", CheckThermalUnavailableAndOverrides),
+            ("thermal-protective-outage-sequence", CheckThermalProtectiveOutageSequence),
+            ("thermal-repeat-value-equality", CheckThermalRepeatValueEquality),
         ];
 
         List<string> failures = [];
@@ -247,6 +268,497 @@ internal sealed class CommercialChecks
                 new MapPoint(100, 0),
                 new MapPoint(150, 0)),
             "endpoint-only contact became positive overlap");
+    }
+
+    private void CheckStrictCommercialWorldLoader()
+    {
+        CommercialWorldDefinition fromText = CommercialWorldLoader.Load(_worldJson);
+        CommercialWorldDefinition fromBytes = CommercialWorldLoader.Load(_worldBytes);
+        Equal(_commercialWorld.WorldId, fromText.WorldId, "commercial text loader world ID");
+        Equal(_commercialWorld.WorldId, fromBytes.WorldId, "commercial byte loader world ID");
+        Equal(2, _commercialWorld.Sources.Count, "commercial authored source count");
+        Equal(4, _commercialWorld.Loads.Count, "commercial authored load count");
+        Check(_commercialWorld.NodeClasses
+                .Where(item => item.Kind is SpatialNodeKind.Pole or SpatialNodeKind.Substation)
+                .All(item => item.ThermalLimit is not null),
+            "thermal node class lacks a limit");
+        Check(_commercialWorld.NodeClasses
+                .Where(item => item.Kind is SpatialNodeKind.SourceTerminal or
+                    SpatialNodeKind.DedicatedLoadTerminal)
+                .All(item => item.ThermalLimit is null),
+            "terminal class owns a thermal limit");
+
+        string trimmed = _worldJson.TrimStart();
+        ExpectCommercialLoaderRejected(
+            "commercial duplicate JSON property",
+            $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
+        ExpectCommercialLoaderRejected(
+            "commercial unknown root field",
+            root => root["unexpected"] = true);
+        ExpectCommercialLoaderRejected(
+            "commercial wrong schema",
+            root => root["schemaVersion"] = "gridworks.commercial.world.future");
+        ExpectCommercialLoaderRejected(
+            "source identifier surrounding whitespace",
+            root => Object(JsonArrayProperty(root, "sources")[0]!)["sourceId"] =
+                " SOURCE_WITH_SPACES ");
+        ExpectCommercialLoaderRejected(
+            "load identifier surrounding whitespace",
+            root => Object(JsonArrayProperty(root, "loads")[0]!)["loadId"] =
+                " LOAD_WITH_SPACES ");
+        ExpectCommercialLoaderRejected(
+            "source terminal thermal limit",
+            root => Object(JsonArrayProperty(root, "nodeClasses")[0]!)["thermalLimit"] =
+                ThermalLimitJson(100, 120));
+        ExpectCommercialLoaderRejected(
+            "pole missing thermal limit",
+            root => Object(JsonArrayProperty(root, "nodeClasses")[2]!)["thermalLimit"] = null);
+        ExpectCommercialLoaderRejected(
+            "nonpositive continuous limit",
+            root => Object(
+                Object(JsonArrayProperty(root, "lineClasses")[0]!)["thermalLimit"]!)[
+                    "continuousKw"] = 0);
+        ExpectCommercialLoaderRejected(
+            "emergency limit below continuous",
+            root => Object(
+                Object(JsonArrayProperty(root, "lineClasses")[0]!)["thermalLimit"]!)[
+                    "emergencyKw"] = 1);
+        ExpectCommercialLoaderRejected(
+            "source references load terminal",
+            root => Object(JsonArrayProperty(root, "sources")[0]!)["nodeId"] =
+                "HOSPITAL_TERMINAL");
+        ExpectCommercialLoaderRejected(
+            "load references source terminal",
+            root => Object(JsonArrayProperty(root, "loads")[0]!)["nodeId"] =
+                "WEST_SOURCE_NODE");
+        ExpectCommercialLoaderRejected(
+            "duplicate source dispatch order",
+            root => Object(JsonArrayProperty(root, "sources")[1]!)["dispatchOrder"] = 0);
+        ExpectCommercialLoaderRejected(
+            "node-edge asset identifier collision",
+            root => Object(JsonArrayProperty(root, "edges")[0]!)["edgeId"] =
+                "WEST_SOURCE_NODE");
+    }
+
+    private void CheckThermalBoundariesPermissionAndSharedSum()
+    {
+        CommercialWorldDefinition direct = ThermalWorld(
+            [Node("S", 100, 100), Node("L", 500, 100, LoadClassId)],
+            [ThermalEdge("E", LineClassId, "S", "L")],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")]);
+
+        ThermalIntervalEvaluation exactContinuous = ThermalNetworkEvaluator.EvaluateInterval(
+            direct,
+            Interval("C", [LoadRequest("LOAD", 100, ThermalPermission.ContinuousOnly)]),
+            ThermalState.Empty);
+        ThermalLoadSupply continuousSupply = Supply(exactContinuous, "LOAD");
+        Equal(100L, continuousSupply.DeliveredKw, "exact continuous delivery");
+        Equal(0L, continuousSupply.MinimumRemainingKw, "exact continuous remaining limit");
+        ThermalAssetUsage continuousEdge = Asset(exactContinuous, "E");
+        Equal(ThermalOperatingState.Continuous, continuousEdge.State,
+            "exact continuous state");
+        Equal(ThermalOperatingState.Continuous, continuousEdge.NextState,
+            "exact continuous next state");
+        Equal(100L, continuousEdge.UsedKw, "exact continuous edge use");
+
+        ThermalIntervalEvaluation exactEmergency = ThermalNetworkEvaluator.EvaluateInterval(
+            direct,
+            Interval("E", [LoadRequest("LOAD", 150, ThermalPermission.EmergencyAllowed)]),
+            ThermalState.Empty);
+        Equal(150L, Supply(exactEmergency, "LOAD").DeliveredKw,
+            "exact emergency delivery");
+        ThermalAssetUsage emergencyEdge = Asset(exactEmergency, "E");
+        Equal(ThermalOperatingState.Emergency, emergencyEdge.State,
+            "exact emergency state");
+        Equal(ThermalOperatingState.ProtectiveOutage, emergencyEdge.NextState,
+            "emergency next state");
+        SequenceEqual(["E"], exactEmergency.NextThermalState.CoolingAssetIds,
+            "emergency cooling state");
+
+        ThermalIntervalEvaluation overEmergency = ThermalNetworkEvaluator.EvaluateInterval(
+            direct,
+            Interval("E_PLUS_ONE", [LoadRequest("LOAD", 151, ThermalPermission.EmergencyAllowed)]),
+            ThermalState.Empty);
+        ThermalLoadSupply overEmergencySupply = Supply(overEmergency, "LOAD");
+        Equal(0L, overEmergencySupply.DeliveredKw, "emergency plus one must not deliver");
+        Failure(
+            overEmergencySupply,
+            ThermalFailureKind.EmergencyLimit,
+            "E",
+            151,
+            150,
+            "emergency plus one failure");
+
+        ThermalIntervalEvaluation continuousOnly = ThermalNetworkEvaluator.EvaluateInterval(
+            direct,
+            Interval("CONTINUOUS_ONLY", [LoadRequest("LOAD", 101, ThermalPermission.ContinuousOnly)]),
+            ThermalState.Empty);
+        Failure(
+            Supply(continuousOnly, "LOAD"),
+            ThermalFailureKind.ContinuousLimit,
+            "E",
+            101,
+            100,
+            "continuous-only permission");
+        ThermalIntervalEvaluation emergencyAllowed = ThermalNetworkEvaluator.EvaluateInterval(
+            direct,
+            Interval("EMERGENCY_ALLOWED", [LoadRequest("LOAD", 101, ThermalPermission.EmergencyAllowed)]),
+            ThermalState.Empty);
+        Equal(101L, Supply(emergencyAllowed, "LOAD").DeliveredKw,
+            "emergency permission did not admit demand above continuous");
+
+        CommercialWorldDefinition shared = ThermalWorld(
+        [
+            Node("S", 100, 500),
+            Node("P", 400, 500, PoleClassId),
+            Node("T", 700, 500, SubstationClassId),
+            Node("L1", 1000, 300, LoadClassId),
+            Node("L2", 1000, 700, LoadClassId),
+        ],
+        [
+            ThermalEdge("SHARED_A", LineClassId, "S", "P"),
+            ThermalEdge("SHARED_B", LineClassId, "P", "T"),
+            ThermalEdge("BRANCH_A", LineClassId, "T", "L1"),
+            ThermalEdge("BRANCH_B", LineClassId, "T", "L2"),
+        ],
+        [ThermalSource("SOURCE", "S", 1000, 0)],
+        [ThermalLoad("LOAD_1", "L1"), ThermalLoad("LOAD_2", "L2")]);
+        ThermalIntervalEvaluation sharedEvaluation = ThermalNetworkEvaluator.EvaluateInterval(
+            shared,
+            Interval(
+                "SHARED",
+                [
+                    LoadRequest("LOAD_1", 60, ThermalPermission.ContinuousOnly),
+                    LoadRequest("LOAD_2", 40, ThermalPermission.ContinuousOnly),
+                ]),
+            ThermalState.Empty);
+        Equal(60L, Supply(sharedEvaluation, "LOAD_1").DeliveredKw, "first shared load");
+        Equal(40L, Supply(sharedEvaluation, "LOAD_2").DeliveredKw, "second shared load");
+        Equal(100L, Asset(sharedEvaluation, "SHARED_A").UsedKw, "shared line A sum");
+        Equal(100L, Asset(sharedEvaluation, "SHARED_B").UsedKw, "shared line B sum");
+        Equal(100L, Asset(sharedEvaluation, "P").UsedKw, "shared pole sum");
+        Equal(100L, Asset(sharedEvaluation, "T").UsedKw, "shared substation sum");
+        Equal(60L, Asset(sharedEvaluation, "BRANCH_A").UsedKw, "first branch use");
+        Equal(40L, Asset(sharedEvaluation, "BRANCH_B").UsedKw, "second branch use");
+    }
+
+    private void CheckThermalAllCandidatesAndTieBreak()
+    {
+        CommercialLineClassDefinition hot = ThermalLineClass("HOT_LINE", 50, 200);
+        CommercialLineClassDefinition cool = ThermalLineClass("COOL_LINE", 200, 250);
+        CommercialWorldDefinition allSources = ThermalWorld(
+        [
+            Node("S_PRIMARY", 500, 500),
+            Node("S_SECONDARY", 100, 100),
+            Node("P_SECONDARY", 100, 900, PoleClassId),
+            Node("L", 900, 500, LoadClassId),
+        ],
+        [
+            ThermalEdge("HOT_SHORT", "HOT_LINE", "S_PRIMARY", "L"),
+            ThermalEdge("COOL_LONG_A", "COOL_LINE", "S_SECONDARY", "P_SECONDARY"),
+            ThermalEdge("COOL_LONG_B", "COOL_LINE", "P_SECONDARY", "L"),
+        ],
+        [
+            ThermalSource("PRIMARY", "S_PRIMARY", 500, 0),
+            ThermalSource("SECONDARY", "S_SECONDARY", 500, 1),
+        ],
+        [ThermalLoad("LOAD", "L")],
+        lineClasses: [hot, cool]);
+        ThermalLoadSupply allSourceSupply = Supply(
+            ThermalNetworkEvaluator.EvaluateInterval(
+                allSources,
+                Interval("ALL_SOURCES", [LoadRequest("LOAD", 100, ThermalPermission.EmergencyAllowed)]),
+                ThermalState.Empty),
+            "LOAD");
+        Equal("SECONDARY", allSourceSupply.SourceId,
+            "later source continuous path must beat first source emergency path");
+        SequenceEqual(["COOL_LONG_A", "COOL_LONG_B"], allSourceSupply.PathEdgeIds,
+            "all-source continuous route");
+
+        CommercialWorldDefinition allPaths = ThermalWorld(
+        [
+            Node("S", 100, 500),
+            Node("P", 500, 300, PoleClassId),
+            Node("L", 900, 500, LoadClassId),
+        ],
+        [
+            ThermalEdge("HOT_DIRECT", "HOT_LINE", "S", "L"),
+            ThermalEdge("COOL_A", "COOL_LINE", "S", "P"),
+            ThermalEdge("COOL_B", "COOL_LINE", "P", "L"),
+        ],
+        [ThermalSource("SOURCE", "S", 500, 0)],
+        [ThermalLoad("LOAD", "L")],
+        lineClasses: [hot, cool]);
+        ThermalLoadSupply allPathSupply = Supply(
+            ThermalNetworkEvaluator.EvaluateInterval(
+                allPaths,
+                Interval("ALL_PATHS", [LoadRequest("LOAD", 100, ThermalPermission.EmergencyAllowed)]),
+                ThermalState.Empty),
+            "LOAD");
+        SequenceEqual(["COOL_A", "COOL_B"], allPathSupply.PathEdgeIds,
+            "long continuous path must beat short emergency path");
+
+        CommercialWorldDefinition tie = ThermalWorld(
+        [
+            Node("S", 100, 500),
+            Node("P_A", 500, 300, PoleClassId),
+            Node("P_B", 500, 700, PoleClassId),
+            Node("L", 900, 500, LoadClassId),
+        ],
+        [
+            ThermalEdge("A_1", LineClassId, "S", "P_A"),
+            ThermalEdge("A_2", LineClassId, "P_A", "L"),
+            ThermalEdge("B_1", LineClassId, "S", "P_B"),
+            ThermalEdge("B_2", LineClassId, "P_B", "L"),
+        ],
+        [ThermalSource("SOURCE", "S", 500, 0)],
+        [ThermalLoad("LOAD", "L")]);
+        ThermalLoadSupply tieSupply = Supply(
+            ThermalNetworkEvaluator.EvaluateInterval(
+                tie,
+                Interval("TIE", [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)]),
+                ThermalState.Empty),
+            "LOAD");
+        SequenceEqual(["A_1", "A_2"], tieSupply.PathEdgeIds,
+            "edge-ID deterministic tie-break");
+        SequenceEqual(["S", "P_A", "L"], tieSupply.PathNodeIds,
+            "node path for deterministic tie-break");
+    }
+
+    private void CheckThermalUnavailableAndOverrides()
+    {
+        CommercialWorldDefinition direct = ThermalWorld(
+            [Node("S", 100, 100), Node("L", 500, 100, LoadClassId)],
+            [ThermalEdge("E", LineClassId, "S", "L")],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")]);
+        ThermalLoadSupply unavailable = Supply(
+            ThermalNetworkEvaluator.EvaluateInterval(
+                direct,
+                Interval(
+                    "UNAVAILABLE",
+                    [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)],
+                    unavailableEdges: ["E"]),
+                ThermalState.Empty),
+            "LOAD");
+        Failure(
+            unavailable,
+            ThermalFailureKind.AssetUnavailable,
+            "E",
+            50,
+            0,
+            "authored unavailable edge");
+
+        CommercialWorldDefinition nodePath = ThermalWorld(
+            [
+                Node("S", 100, 300),
+                Node("P", 400, 300, PoleClassId),
+                Node("L", 700, 300, LoadClassId),
+            ],
+            [
+                ThermalEdge("E1", "COOL_LINE", "S", "P"),
+                ThermalEdge("E2", "COOL_LINE", "P", "L"),
+            ],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")],
+            lineClasses: [ThermalLineClass("COOL_LINE", 200, 250)]);
+        ThermalLoadSupply unavailableNode = Supply(
+            ThermalNetworkEvaluator.EvaluateInterval(
+                nodePath,
+                Interval(
+                    "UNAVAILABLE_NODE",
+                    [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)],
+                    unavailableNodes: ["P"]),
+                ThermalState.Empty),
+            "LOAD");
+        Failure(
+            unavailableNode,
+            ThermalFailureKind.AssetUnavailable,
+            "P",
+            50,
+            0,
+            "authored unavailable node");
+
+        var lowered = new ThermalLimitOverride(
+            ThermalAssetKind.Edge,
+            LineClassId,
+            80,
+            90);
+        ThermalIntervalEvaluation overridden = ThermalNetworkEvaluator.EvaluateInterval(
+            direct,
+            Interval(
+                "OVERRIDE",
+                [LoadRequest("LOAD", 100, ThermalPermission.EmergencyAllowed)],
+                overrides: [lowered]),
+            ThermalState.Empty);
+        Failure(
+            Supply(overridden, "LOAD"),
+            ThermalFailureKind.EmergencyLimit,
+            "E",
+            100,
+            90,
+            "lowered authored class limit");
+        Equal(80L, Asset(overridden, "E").ContinuousKw, "applied continuous override");
+        Equal(90L, Asset(overridden, "E").EmergencyKw, "applied emergency override");
+
+        ThermalIntervalEvaluation nodeOverride = ThermalNetworkEvaluator.EvaluateInterval(
+            nodePath,
+            Interval(
+                "NODE_OVERRIDE",
+                [LoadRequest("LOAD", 100, ThermalPermission.EmergencyAllowed)],
+                overrides:
+                [
+                    new ThermalLimitOverride(
+                        ThermalAssetKind.Node,
+                        PoleClassId,
+                        80,
+                        90),
+                ]),
+            ThermalState.Empty);
+        Failure(
+            Supply(nodeOverride, "LOAD"),
+            ThermalFailureKind.EmergencyLimit,
+            "P",
+            100,
+            90,
+            "lowered authored node-class limit");
+        Equal(80L, Asset(nodeOverride, "P").ContinuousKw,
+            "applied node continuous override");
+        Equal(90L, Asset(nodeOverride, "P").EmergencyKw,
+            "applied node emergency override");
+
+        ThermalIntervalEvaluation cooling = ThermalNetworkEvaluator.EvaluateInterval(
+            direct,
+            Interval("COOLING", [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)]),
+            new ThermalState(["E"]));
+        Failure(
+            Supply(cooling, "LOAD"),
+            ThermalFailureKind.AssetUnavailable,
+            "E",
+            50,
+            0,
+            "protective-outage path");
+        Equal(ThermalOperatingState.ProtectiveOutage, Asset(cooling, "E").State,
+            "cooling asset current state");
+        Equal(ThermalOperatingState.Continuous, Asset(cooling, "E").NextState,
+            "cooling asset next state");
+
+        CommercialWorldDefinition competingFailures = ThermalWorld(
+            [
+                Node("S", 100, 100),
+                Node("P", 300, 500, PoleClassId),
+                Node("L", 500, 100, LoadClassId),
+            ],
+            [
+                ThermalEdge("SHORT_UNAVAILABLE", "HIGH_LINE", "S", "L"),
+                ThermalEdge("LONG_LIMIT_A", "LOW_LINE", "S", "P"),
+                ThermalEdge("LONG_LIMIT_B", "LOW_LINE", "P", "L"),
+            ],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")],
+            lineClasses:
+            [
+                ThermalLineClass("HIGH_LINE", 200, 250),
+                ThermalLineClass("LOW_LINE", 80, 90),
+            ]);
+        ThermalLoadSupply competingFailure = Supply(
+            ThermalNetworkEvaluator.EvaluateInterval(
+                competingFailures,
+                Interval(
+                    "COMPETING_FAILURES",
+                    [LoadRequest("LOAD", 100, ThermalPermission.EmergencyAllowed)],
+                    unavailableEdges: ["SHORT_UNAVAILABLE"]),
+                ThermalState.Empty),
+            "LOAD");
+        Failure(
+            competingFailure,
+            ThermalFailureKind.EmergencyLimit,
+            "LONG_LIMIT_A",
+            100,
+            90,
+            "longer thermal failure outranks short unavailable path");
+        SequenceEqual(["LONG_LIMIT_A", "LONG_LIMIT_B"], competingFailure.PathEdgeIds,
+            "failure diagnostic selects the relevant longer path");
+
+        ExpectThrows<ArgumentException>(
+            () => ThermalNetworkEvaluator.EvaluateInterval(
+                direct,
+                Interval(
+                    "RAISED_OVERRIDE",
+                    [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)],
+                    overrides:
+                    [
+                        new ThermalLimitOverride(
+                            ThermalAssetKind.Edge,
+                            LineClassId,
+                            101,
+                            151),
+                    ]),
+                ThermalState.Empty),
+            "limit override may not raise authored limits");
+    }
+
+    private void CheckThermalProtectiveOutageSequence()
+    {
+        CommercialWorldDefinition world = ThermalWorld(
+            [Node("S", 100, 100), Node("L", 500, 100, LoadClassId)],
+            [ThermalEdge("E", LineClassId, "S", "L")],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")]);
+        ThermalSequenceRequest request = CoolingSequence();
+        ThermalSequenceEvaluation sequence = ThermalNetworkEvaluator.EvaluateSequence(
+            world,
+            request,
+            ThermalState.Empty);
+        Equal(3, sequence.Intervals.Count, "thermal transition interval count");
+
+        ThermalIntervalEvaluation emergency = sequence.Intervals[0];
+        Equal(120L, Supply(emergency, "LOAD").DeliveredKw,
+            "emergency interval delivery");
+        Equal(ThermalOperatingState.Emergency, Asset(emergency, "E").State,
+            "emergency interval state");
+        SequenceEqual(["E"], emergency.NextThermalState.CoolingAssetIds,
+            "emergency schedules cooling");
+
+        ThermalIntervalEvaluation outage = sequence.Intervals[1];
+        Equal(0L, Supply(outage, "LOAD").DeliveredKw,
+            "protective-outage interval delivery");
+        Equal(ThermalOperatingState.ProtectiveOutage, Asset(outage, "E").State,
+            "next interval protective outage");
+        Equal(0, outage.NextThermalState.CoolingAssetIds.Count,
+            "protective outage lasts exactly one interval");
+
+        ThermalIntervalEvaluation returned = sequence.Intervals[2];
+        Equal(100L, Supply(returned, "LOAD").DeliveredKw,
+            "asset did not return after one cooling interval");
+        Equal(ThermalOperatingState.Continuous, Asset(returned, "E").State,
+            "returned asset state");
+        Equal(0, sequence.FinalThermalState.CoolingAssetIds.Count,
+            "final thermal state must be cooled");
+    }
+
+    private void CheckThermalRepeatValueEquality()
+    {
+        CommercialWorldDefinition world = ThermalWorld(
+            [Node("S", 100, 100), Node("L", 500, 100, LoadClassId)],
+            [ThermalEdge("E", LineClassId, "S", "L")],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")]);
+        ThermalSequenceRequest request = CoolingSequence();
+        ThermalSequenceEvaluation first = ThermalNetworkEvaluator.EvaluateSequence(
+            world,
+            request,
+            ThermalState.Empty);
+        ThermalSequenceEvaluation second = ThermalNetworkEvaluator.EvaluateSequence(
+            world,
+            request,
+            ThermalState.Empty);
+        Equal(first, second, "repeated thermal sequence literal value equality");
+        Equal(first.FinalThermalState, second.FinalThermalState,
+            "repeated next thermal state literal value equality");
+        Equal(first.GetHashCode(), second.GetHashCode(),
+            "equal thermal sequence hash code");
     }
 
     private void CheckNodePlacementAndRisk()
@@ -666,6 +1178,135 @@ internal sealed class CommercialChecks
             $"{label}: session state changed");
     }
 
+    private static CommercialWorldDefinition ThermalWorld(
+        IReadOnlyList<SpatialNodeDefinition> nodes,
+        IReadOnlyList<SpatialEdgeDefinition> edges,
+        IReadOnlyList<CommercialSourceDefinition> sources,
+        IReadOnlyList<CommercialLoadDefinition> loads,
+        IReadOnlyList<CommercialNodeClassDefinition>? nodeClasses = null,
+        IReadOnlyList<CommercialLineClassDefinition>? lineClasses = null)
+    {
+        var world = new CommercialWorldDefinition(
+            CommercialWorldLoader.SupportedSchemaVersion,
+            "THERMAL_CHECK_WORLD",
+            "열 검사 세계",
+            100,
+            new MapBounds(0, 0, 2200, 2200),
+            10000,
+            nodeClasses ?? ThermalNodeClasses(),
+            lineClasses ?? [ThermalLineClass(LineClassId, 100, 150)],
+            Array.Empty<TerrainPolygonDefinition>(),
+            Array.Empty<SpatialRiskAreaDefinition>(),
+            nodes,
+            edges,
+            sources,
+            loads);
+        CommercialWorldLoader.Validate(world);
+        return world;
+    }
+
+    private static IReadOnlyList<CommercialNodeClassDefinition> ThermalNodeClasses() =>
+    [
+        new(SourceClassId, "검사 발전 접속점", SpatialNodeKind.SourceTerminal,
+            10, 6, 0, 0, null),
+        new(LoadClassId, "검사 부하 접속점", SpatialNodeKind.DedicatedLoadTerminal,
+            10, 6, 0, 0, null),
+        new(PoleClassId, "검사 전신주 접속부", SpatialNodeKind.Pole,
+            10, 6, 50, 3, new ThermalLimit(100, 150)),
+        new(SubstationClassId, "검사 변전소", SpatialNodeKind.Substation,
+            20, 6, 100, 10, new ThermalLimit(100, 150)),
+    ];
+
+    private static CommercialLineClassDefinition ThermalLineClass(
+        string classId,
+        long continuousKw,
+        long emergencyKw) =>
+        new(
+            classId,
+            classId,
+            2000,
+            5,
+            2,
+            new ThermalLimit(continuousKw, emergencyKw));
+
+    private static SpatialEdgeDefinition ThermalEdge(
+        string edgeId,
+        string lineClassId,
+        string fromNodeId,
+        string toNodeId) =>
+        new(edgeId, lineClassId, fromNodeId, toNodeId, true);
+
+    private static CommercialSourceDefinition ThermalSource(
+        string sourceId,
+        string nodeId,
+        long capacityKw,
+        int dispatchOrder) =>
+        new(sourceId, sourceId, nodeId, capacityKw, dispatchOrder);
+
+    private static CommercialLoadDefinition ThermalLoad(string loadId, string nodeId) =>
+        new(loadId, loadId, nodeId);
+
+    private static ThermalLoadRequest LoadRequest(
+        string loadId,
+        long demandKw,
+        ThermalPermission permission) =>
+        new(loadId, demandKw, permission);
+
+    private static ThermalIntervalRequest Interval(
+        string intervalId,
+        IReadOnlyList<ThermalLoadRequest> loads,
+        IReadOnlyList<string>? unavailableNodes = null,
+        IReadOnlyList<string>? unavailableEdges = null,
+        IReadOnlyList<ThermalLimitOverride>? overrides = null) =>
+        new(
+            intervalId,
+            loads,
+            unavailableNodes ?? Array.Empty<string>(),
+            unavailableEdges ?? Array.Empty<string>(),
+            overrides ?? Array.Empty<ThermalLimitOverride>());
+
+    private static ThermalSequenceRequest CoolingSequence() =>
+        new(
+        [
+            Interval(
+                "EMERGENCY",
+                [LoadRequest("LOAD", 120, ThermalPermission.EmergencyAllowed)]),
+            Interval(
+                "PROTECTIVE_OUTAGE",
+                [LoadRequest("LOAD", 100, ThermalPermission.ContinuousOnly)]),
+            Interval(
+                "RETURN",
+                [LoadRequest("LOAD", 100, ThermalPermission.ContinuousOnly)]),
+        ]);
+
+    private static ThermalLoadSupply Supply(
+        ThermalIntervalEvaluation evaluation,
+        string loadId) =>
+        evaluation.Loads.Single(item =>
+            string.Equals(item.LoadId, loadId, StringComparison.Ordinal));
+
+    private static ThermalAssetUsage Asset(
+        ThermalIntervalEvaluation evaluation,
+        string assetId) =>
+        evaluation.Assets.Single(item =>
+            string.Equals(item.AssetId, assetId, StringComparison.Ordinal));
+
+    private void Failure(
+        ThermalLoadSupply supply,
+        ThermalFailureKind kind,
+        string? assetId,
+        long requiredKw,
+        long availableKw,
+        string label)
+    {
+        Equal(0L, supply.DeliveredKw, $"{label}: delivered power");
+        Check(supply.Failure is not null, $"{label}: missing typed failure");
+        Equal(kind, supply.Failure!.Kind, $"{label}: failure kind");
+        Equal(assetId, supply.Failure.AssetId, $"{label}: failure asset");
+        Equal(requiredKw, supply.Failure.RequiredKw, $"{label}: required power");
+        Equal(availableKw, supply.Failure.AvailableKw, $"{label}: available power");
+    }
+
     private static SpatialWorldDefinition World(
         IReadOnlyList<SpatialNodeDefinition> nodes,
         IReadOnlyList<SpatialEdgeDefinition>? edges = null,
@@ -782,6 +1423,18 @@ internal sealed class CommercialChecks
             () => SpatialWorldLoader.Load(bytes),
             label);
 
+    private void ExpectCommercialLoaderRejected(string label, Action<JsonObject> mutate)
+    {
+        JsonObject root = JsonNode.Parse(_worldJson)!.AsObject();
+        mutate(root);
+        ExpectCommercialLoaderRejected(label, root.ToJsonString());
+    }
+
+    private void ExpectCommercialLoaderRejected(string label, string json) =>
+        ExpectThrows<CommercialWorldValidationException>(
+            () => CommercialWorldLoader.Load(json),
+            label);
+
     private void ExpectThrows<T>(Action body, string label)
         where T : Exception
     {
@@ -804,6 +1457,9 @@ internal sealed class CommercialChecks
 
     private static JsonObject PointJson(int x, int y) =>
         new() { ["xUnit"] = x, ["yUnit"] = y };
+
+    private static JsonObject ThermalLimitJson(long continuousKw, long emergencyKw) =>
+        new() { ["continuousKw"] = continuousKw, ["emergencyKw"] = emergencyKw };
 
     private static JsonObject NodeJson(
         string id,

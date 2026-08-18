@@ -27,6 +27,12 @@
                       LogicalName="Gridworks.Game.EmbeddedData.product-heatwave-v1.json" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <EmbeddedResource Include="../data/release-world-v2.json"
+                      Link="EmbeddedData/release-world-v2.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.release-world-v2.json" />
+  </ItemGroup>
+
   <ItemGroup>
     <EmbeddedResource Include="../data/commercial-free-placement-slice-v1.json"
                       Link="EmbeddedData/commercial-free-placement-slice-v1.json"

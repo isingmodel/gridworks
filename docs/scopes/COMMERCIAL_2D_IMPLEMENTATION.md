@@ -2,7 +2,7 @@
 
 > 상태: **ACTIVE**
 > 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 C — 이산 열 국면 기반**
+> 현재 작업: **단계 D — 상용 핵심 흐름**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -194,6 +194,19 @@ thermal evaluator는 작성된 고정망과 interval sequence를 순수 계산�
 - 작은 작성망 native smoke에서 선택 설비의 사용/연속/비상/다음 상태, 열 overlay와 projection 변경을
   색 외 패턴·아이콘·문장으로 확인한다.
 - 0~100 열 게이지, 범용 scheduler와 수동 급전은 열지 않는다.
+
+### 4.5 단계 C 종료 기록 — 2026-08-18
+
+- final world v2 SHA-256:
+  `c838ce789b44f29eff916d909c6864d76ffe2e135d4635aa7b8e8c7bde1682c4`
+- CommercialChecks: **13 suites / 350 assertions PASS**
+- Core와 Game Debug·Release·ExportRelease build: **0 warnings / 0 errors**
+- 명시 `CommercialMain.tscn` native 열 화면:
+  `COMMERCIAL_THERMAL_SMOKE_PASS projections=3 asset=EDGE_WATER states=Emergency>ProtectiveOutage>Continuous`
+- 독립 검토가 찾은 실패 진단 경로와 strict ID P1 두 건을 집중 반례로 수정한 뒤 재검토:
+  **P0 0 / P1 0**
+- 실제 온도·연속 축열·범용 scheduler·수동 급전과 campaign placeholder 없이 이산 열 기반만 닫고
+  단계 D로 승격했다.
 
 ## 5. 단계 D — 상용 핵심 흐름
 

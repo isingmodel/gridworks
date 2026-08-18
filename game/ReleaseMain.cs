@@ -779,13 +779,9 @@ public sealed partial class ReleaseMain : Control
         {
             if (_assessment.FailedLoadId is string loadId)
             {
-                ReleaseLoadDefinition load = _world.Loads.Single(item => item.LoadId == loadId);
-                return ReleaseKoreanText.SupplyFailure(
-                    load.DisplayName,
-                    load.DemandKw,
+                return SupplyFailureTextForLoad(
+                    loadId,
                     _assessment.SupplyFailure!,
-                    AssetDisplayName(_assessment.SupplyFailure?.AssetId),
-                    AssetDisplayName(_assessment.SupplyFailure?.AttemptedSourceId),
                     _assessment.FailedDuringEvent);
             }
             if (_assessment.FailedConnectionNodeId is string nodeId)
@@ -800,6 +796,21 @@ public sealed partial class ReleaseMain : Control
         return _campaignError == ReleaseCampaignError.CampaignComplete
             ? "모든 임무를 마쳤습니다."
             : "이 작업을 마치지 못했습니다. 진행 중인 계획과 임무 목표를 확인한 뒤 다시 시도하세요.";
+    }
+
+    private string SupplyFailureTextForLoad(
+        string loadId,
+        ReleaseSupplyFailure failure,
+        bool duringMissionSituation)
+    {
+        ReleaseLoadDefinition load = _snapshot.World.Loads.Single(item => item.LoadId == loadId);
+        return ReleaseKoreanText.SupplyFailure(
+            load.DisplayName,
+            load.DemandKw,
+            failure,
+            AssetDisplayName(failure.AssetId),
+            AssetDisplayName(failure.AttemptedSourceId),
+            duringMissionSituation);
     }
 
     private string NodeClassForTool() => _tool switch
@@ -1539,6 +1550,19 @@ public sealed partial class ReleaseMain : Control
                 new ReleasePoint(17, 14),
                 new ReleasePoint(17, 10));
             await CompleteCampaignChapter("CHAPTER_PLANNED_OUTAGE");
+
+            string activeDemandCopy = SupplyFailureTextForLoad(
+                "RIVER_FACTORY",
+                new ReleaseSupplyFailure(
+                    ReleaseSupplyFailureKind.EdgeCapacity,
+                    null,
+                    500,
+                    "SOUTH_GENERATION"),
+                duringMissionSituation: false);
+            Require(
+                activeDemandCopy.Contains("3 MW", StringComparison.Ordinal) &&
+                activeDemandCopy.Contains("2.5 MW", StringComparison.Ordinal),
+                "임무에서 바뀐 산업단지 수요가 병목 설명에 반영되지 않았습니다.");
 
             await BuildCampaignLine("SOUTH_SUBSTATION", false,
                 new ReleasePoint(17, 13),

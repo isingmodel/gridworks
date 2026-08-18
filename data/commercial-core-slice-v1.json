@@ -10,13 +10,17 @@
       "initialCashUnit": 1000000,
       "baseNodeIds": [
         "EAST_RESIDENTIAL_TERMINAL",
+        "EAST_SUBSTATION",
         "FACTORY_TERMINAL",
         "HOSPITAL_TERMINAL",
+        "NORTH_RESIDENTIAL_TERMINAL",
         "SOUTH_SOURCE_NODE",
         "WATER_TERMINAL",
         "WEST_SOURCE_NODE"
       ],
-      "baseEdgeIds": [],
+      "baseEdgeIds": [
+        "EDGE_EAST_RESIDENTIAL"
+      ],
       "constructedNodes": [],
       "constructedEdges": [],
       "coolingAssetIds": []
@@ -86,6 +90,7 @@
         "EAST_SUBSTATION",
         "FACTORY_TERMINAL",
         "HOSPITAL_TERMINAL",
+        "NORTH_RESIDENTIAL_TERMINAL",
         "NORTH_SUBSTATION",
         "SOUTH_HUB",
         "SOUTH_POLE",
@@ -116,7 +121,15 @@
         "EDGE_WEST_SOURCE"
       ],
       "constructedNodes": [],
-      "constructedEdges": [],
+      "constructedEdges": [
+        {
+          "edgeId": "SEED_EDGE_EAST_HOSPITAL",
+          "lineClassId": "STANDARD_LINE",
+          "fromNodeId": "EAST_SUBSTATION",
+          "toNodeId": "HOSPITAL_TERMINAL",
+          "commissioned": true
+        }
+      ],
       "coolingAssetIds": []
     },
     "chapter": {
@@ -192,7 +205,7 @@
           ],
           "unavailableNodeIds": [],
           "unavailableEdgeIds": [
-            "EDGE_FACTORY"
+            "EDGE_SOUTH_SUBSTATION"
           ],
           "activeRiskAreaIds": [],
           "thermalLimitOverrides": []
@@ -221,7 +234,7 @@
           ],
           "unavailableNodeIds": [],
           "unavailableEdgeIds": [
-            "EDGE_FACTORY"
+            "EDGE_SOUTH_SUBSTATION"
           ],
           "activeRiskAreaIds": [],
           "thermalLimitOverrides": []

@@ -1,0 +1,456 @@
+{
+  "schemaVersion": "gridworks.release.campaign.v2",
+  "campaignId": "CHEONGRYU_RELEASE_CAMPAIGN",
+  "displayName": "청류시 운영 인수",
+  "initialSeed": {
+    "seedId": "FIRST_LIGHT_CAMPAIGN_SEED",
+    "startMinute": 1020,
+    "initialCashUnit": 8500000,
+    "baseNodeIds": [
+      "EAST_RESIDENTIAL_TERMINAL",
+      "FACTORY_TERMINAL",
+      "HOSPITAL_TERMINAL",
+      "NORTH_RESIDENTIAL_TERMINAL",
+      "SOUTH_SOURCE_NODE",
+      "WATER_TERMINAL",
+      "WEST_SOURCE_NODE"
+    ],
+    "baseEdgeIds": [],
+    "constructedNodes": [],
+    "constructedEdges": [],
+    "coolingAssetIds": []
+  },
+  "chapters": [
+    {
+      "chapterId": "FIRST_LIGHT",
+      "displayName": "첫 불빛",
+      "briefing": {
+        "speaker": "운영센터장 윤서진",
+        "title": "첫 입주가 오늘 저녁 시작됩니다",
+        "body": "동부 생활권에는 아직 배전 변전소가 없습니다. 해가 지기 전 변전소를 세우고 첫 전기를 넣어야 합니다. 오늘 만든 길은 앞으로도 이 도시에 남습니다."
+      },
+      "objective": "소형 배전 변전소와 실제 공급 경로를 건설해 동부 생활권에 800 kW를 공급하세요.",
+      "timeAdvanceBeforeChapterMinutes": 0,
+      "resetThermalStateBeforeChapter": false,
+      "budgetGrantCashUnit": 0,
+      "availableNodeClassIds": [
+        "SMALL_SUBSTATION"
+      ],
+      "availableLinePlans": [
+        {
+          "lineClassId": "STANDARD_LINE",
+          "poleClassId": "STANDARD_POLE"
+        }
+      ],
+      "connectionRequirements": [],
+      "cityPromise": null,
+      "decisionWindows": [
+        {
+          "windowId": "FIRST_LIGHT_BUILD_WINDOW",
+          "beforePhaseId": "FIRST_LIGHT_SUPPLY",
+          "story": null,
+          "buildMinutesAvailable": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "FIRST_LIGHT_SUPPLY",
+          "displayName": "동부 첫 공급",
+          "thermalPolicy": "continuousOnly",
+          "story": null,
+          "loads": [
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 800,
+              "obligation": "safetyDuty"
+            }
+          ],
+          "unavailableNodeIds": [
+            "SOUTH_SOURCE_NODE"
+          ],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        }
+      ],
+      "resultCards": {
+        "standard": {
+          "speaker": "계통운영관 강민호",
+          "title": "동부 첫 구간을 인계받았습니다",
+          "body": "동부 생활권의 실제 공급원과 경로를 확인했습니다. 변전소 위치와 경로의 최소 열여유, 남은 운영 자금은 다음 공사에서도 그대로 이어집니다."
+        },
+        "kept": null,
+        "deferred": null
+      },
+      "resultFactTemplates": {
+        "suppliedLoad": "{phase}: {load}에 {source}에서 {demandKw} kW 공급 · 경로 최소 열여유 {minimumRemainingKw} kW",
+        "unservedLoad": "{phase}: {load} 수요 {demandKw} kW 중 {deliveredKw} kW 공급",
+        "keptPromise": null,
+        "deferredPromise": null,
+        "remainingCash": "남은 운영 자금 {cashUnit}원"
+      }
+    },
+    {
+      "chapterId": "SECOND_HEART",
+      "displayName": "두 번째 심장",
+      "briefing": {
+        "speaker": "의료원 시설책임자 박지현",
+        "title": "수술실 전환시험에는 두 접속 회선이 필요합니다",
+        "body": "같은 강변을 나란히 지난 두 선은 범람 차단시험에서 함께 빠질 수 있습니다. 병원 접속점에 두 회선을 연결하고, 적어도 한 회랑은 예고구역 밖에 두어 시험 부하를 유지해 주세요."
+      },
+      "objective": "청류의료원 접속점에 두 회선을 연결하고 범람 안전 차단시험에서도 900 kW 공급을 유지하세요.",
+      "timeAdvanceBeforeChapterMinutes": 0,
+      "resetThermalStateBeforeChapter": false,
+      "budgetGrantCashUnit": 2000000,
+      "availableNodeClassIds": [
+        "SMALL_SUBSTATION"
+      ],
+      "availableLinePlans": [
+        {
+          "lineClassId": "STANDARD_LINE",
+          "poleClassId": "STANDARD_POLE"
+        }
+      ],
+      "connectionRequirements": [
+        {
+          "nodeId": "HOSPITAL_TERMINAL",
+          "minimumConnections": 2
+        }
+      ],
+      "cityPromise": null,
+      "decisionWindows": [
+        {
+          "windowId": "HOSPITAL_CORRIDOR_WINDOW",
+          "beforePhaseId": "HOSPITAL_TRANSFER_TEST",
+          "story": null,
+          "buildMinutesAvailable": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "HOSPITAL_TRANSFER_TEST",
+          "displayName": "의료원 절체시험",
+          "thermalPolicy": "continuousOnly",
+          "story": null,
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 800,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [
+            "SOUTH_SOURCE_NODE"
+          ],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        },
+        {
+          "phaseId": "FLOOD_ISOLATION_TEST",
+          "displayName": "범람 안전 차단시험",
+          "thermalPolicy": "continuousOnly",
+          "story": {
+            "speaker": "재난대응관 이도윤",
+            "title": "강변 예고구역의 설비를 시험에서 분리합니다",
+            "body": "표시된 범람 예고구역과 닿은 설비를 사용 불가로 두고 공급 경로를 다시 확인합니다. 실제 침수는 아니며, 차단 뒤 남은 회랑만 시험에 참여합니다."
+          },
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 800,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [
+            "SOUTH_SOURCE_NODE"
+          ],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [
+            "RIVER_FLOOD_ZONE"
+          ],
+          "thermalLimitOverrides": []
+        }
+      ],
+      "resultCards": {
+        "standard": {
+          "speaker": "의료원 시설책임자 박지현",
+          "title": "범람 안전 차단시험을 마쳤습니다",
+          "body": "범람 예고구역과 겹친 설비를 차단한 뒤에도 청류의료원 시험 부하가 유지됐습니다. 병원 접속점의 두 회선과 실제 공급 경로를 시험 기록에 남겼습니다."
+        },
+        "kept": null,
+        "deferred": null
+      },
+      "resultFactTemplates": {
+        "suppliedLoad": "{phase}: {load}에 {source}에서 {demandKw} kW 공급 · 경로 최소 열여유 {minimumRemainingKw} kW",
+        "unservedLoad": "{phase}: {load} 수요 {demandKw} kW 중 {deliveredKw} kW 공급",
+        "keptPromise": null,
+        "deferredPromise": null,
+        "remainingCash": "남은 운영 자금 {cashUnit}원"
+      }
+    },
+    {
+      "chapterId": "SECOND_SOURCE",
+      "displayName": "두 번째 전원",
+      "briefing": {
+        "speaker": "계통운영관 강민호",
+        "title": "발전량보다 먼저 경로 전체를 확인합니다",
+        "body": "남부 발전소를 연결해도 선로, 변전소 주기기, 전신주 접속부 가운데 하나가 먼저 연속 한계에 닿으면 계획대로 인수할 수 없습니다. 일반 회랑과 보강 회랑의 비용, 공사기간, 열여유를 비교해 주세요."
+      },
+      "objective": "서부 주간선 시험을 통과한 뒤 남부 전원을 연결하고 두 시험 국면을 연속 한계 안에서 승인하세요.",
+      "timeAdvanceBeforeChapterMinutes": 0,
+      "resetThermalStateBeforeChapter": false,
+      "budgetGrantCashUnit": 1800000,
+      "availableNodeClassIds": [
+        "LARGE_SUBSTATION",
+        "SMALL_SUBSTATION"
+      ],
+      "availableLinePlans": [
+        {
+          "lineClassId": "REINFORCED_LINE",
+          "poleClassId": "REINFORCED_POLE"
+        },
+        {
+          "lineClassId": "STANDARD_LINE",
+          "poleClassId": "STANDARD_POLE"
+        }
+      ],
+      "connectionRequirements": [],
+      "cityPromise": null,
+      "decisionWindows": [
+        {
+          "windowId": "SECOND_SOURCE_COMMISSIONING_WINDOW",
+          "beforePhaseId": "WEST_MAIN_COMMISSIONING_TEST",
+          "story": null,
+          "buildMinutesAvailable": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "WEST_MAIN_COMMISSIONING_TEST",
+          "displayName": "서부 주간선 인수시험",
+          "thermalPolicy": "continuousOnly",
+          "story": null,
+          "loads": [
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 800,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [
+            "SOUTH_SOURCE_NODE"
+          ],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        },
+        {
+          "phaseId": "SOUTH_SOURCE_COMMISSIONING_TEST",
+          "displayName": "남부 전원 인수시험",
+          "thermalPolicy": "continuousOnly",
+          "story": {
+            "speaker": "계통운영관 강민호",
+            "title": "이번에는 남부 전원만 투입합니다",
+            "body": "서부 발전 접속점을 시험에서 빼고 같은 수요를 다시 확인합니다. 선택한 남부 회랑의 모든 선로와 접속 설비가 연속 한계 안에 있어야 합니다."
+          },
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 800,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [
+            "WEST_SOURCE_NODE"
+          ],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        }
+      ],
+      "resultCards": {
+        "standard": {
+          "speaker": "운영센터장 윤서진",
+          "title": "청류시 계통 운영을 인수합니다",
+          "body": "서부 주간선과 남부 전원을 차례로 시험했습니다. 실제 공급 경로와 경로 최소 열여유를 인수 기록에 남겼습니다. 다음 운영 검토는 6개월 후 북안에서 이어집니다."
+        },
+        "kept": null,
+        "deferred": null
+      },
+      "resultFactTemplates": {
+        "suppliedLoad": "{phase}: {load}에 {source}에서 {demandKw} kW 공급 · 경로 최소 열여유 {minimumRemainingKw} kW",
+        "unservedLoad": "{phase}: {load} 수요 {demandKw} kW 중 {deliveredKw} kW 공급",
+        "keptPromise": null,
+        "deferredPromise": null,
+        "remainingCash": "남은 운영 자금 {cashUnit}원"
+      }
+    },
+    {
+      "chapterId": "NORTH_BANK_PROMISE",
+      "displayName": "북안의 약속",
+      "briefing": {
+        "speaker": "운영센터장 윤서진",
+        "title": "북안 입주 일정을 오늘 확정해야 합니다",
+        "body": "정수장 공급은 지켜야 합니다. 북안 입주를 예정대로 열려면 서비스권역 안의 변전소와 실제 공급 경로가 모두 필요합니다. 기존 분기를 함께 쓸지, 다음 공사를 놓을 공간까지 남길지 결정해 주세요."
+      },
+      "objective": "정수장에 전량 공급하고 북안 입주 일정을 지킬지 미룰지 정한 뒤 다음 더운 저녁 예측을 확인하세요.",
+      "timeAdvanceBeforeChapterMinutes": 262800,
+      "resetThermalStateBeforeChapter": true,
+      "budgetGrantCashUnit": 2000000,
+      "availableNodeClassIds": [
+        "LARGE_SUBSTATION",
+        "SMALL_SUBSTATION"
+      ],
+      "availableLinePlans": [
+        {
+          "lineClassId": "REINFORCED_LINE",
+          "poleClassId": "REINFORCED_POLE"
+        },
+        {
+          "lineClassId": "STANDARD_LINE",
+          "poleClassId": "STANDARD_POLE"
+        }
+      ],
+      "connectionRequirements": [],
+      "cityPromise": {
+        "promiseId": "NORTH_BANK_MOVE_IN_PROMISE",
+        "displayName": "북안 입주 일정",
+        "loadId": "NORTH_RESIDENTIAL",
+        "keepLabel": "입주 일정을 지킨다",
+        "deferLabel": "입주 일정을 이번에는 미룬다"
+      },
+      "decisionWindows": [
+        {
+          "windowId": "NORTH_BANK_PLANNING_WINDOW",
+          "beforePhaseId": "NORTH_BANK_COMMISSIONING",
+          "story": {
+            "speaker": "계통운영관 강민호",
+            "title": "서비스권역만으로는 전기가 공급되지 않습니다",
+            "body": "수요처가 변전소의 서비스권역 안에 있고, 발전소에서 그 변전소를 거쳐 수요처까지 실제 경로가 이어져야 합니다. 작은 변전소 여러 곳과 큰 변전소 한 곳은 비용, 열여유, 다음 분기 공간이 다릅니다."
+          },
+          "buildMinutesAvailable": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "NORTH_BANK_COMMISSIONING",
+          "displayName": "북안 공급 인수시험",
+          "thermalPolicy": "continuousOnly",
+          "story": null,
+          "loads": [
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 700,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "NORTH_RESIDENTIAL",
+              "demandKw": 900,
+              "obligation": "cityPromise"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 800,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        },
+        {
+          "phaseId": "NEXT_HOT_EVENING_FORECAST",
+          "displayName": "다음 더운 저녁 예측",
+          "thermalPolicy": "continuousOnly",
+          "story": {
+            "speaker": "재난대응관 이도윤",
+            "title": "다음 주 더위 예보를 운영안에 반영합니다",
+            "body": "아직 폭염이나 사고가 시작된 것은 아닙니다. 더운 저녁의 수요 전망과 낮아질 연속 한계를 적용해 어느 경로가 먼저 부족해지는지 확인합니다."
+          },
+          "loads": [
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "NORTH_RESIDENTIAL",
+              "demandKw": 1100,
+              "obligation": "cityPromise"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 900,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": [
+            {
+              "assetKind": "edge",
+              "classId": "STANDARD_LINE",
+              "continuousKw": 2200,
+              "emergencyKw": 3200
+            },
+            {
+              "assetKind": "node",
+              "classId": "SMALL_SUBSTATION",
+              "continuousKw": 2600,
+              "emergencyKw": 3800
+            },
+            {
+              "assetKind": "node",
+              "classId": "STANDARD_POLE",
+              "continuousKw": 2200,
+              "emergencyKw": 3200
+            }
+          ]
+        }
+      ],
+      "resultCards": {
+        "standard": null,
+        "kept": {
+          "speaker": "운영센터장 윤서진",
+          "title": "북안 입주 일정을 유지합니다",
+          "body": "정수장과 북안의 실제 공급 경로를 다음 더운 저녁 예측에서 확인했습니다. 일정 유지에 사용한 공사비와 경로 최소 열여유를 다음 운영 기록으로 넘깁니다."
+        },
+        "deferred": {
+          "speaker": "운영센터장 윤서진",
+          "title": "북안 입주 일정을 이번에는 미룹니다",
+          "body": "정수장 공급을 먼저 확인하고 북안 수요는 이번 운영안에서 제외했습니다. 남은 운영 자금과 현재 망은 다음 검토에 그대로 이어집니다."
+        }
+      },
+      "resultFactTemplates": {
+        "suppliedLoad": "{phase}: {load}에 {source}에서 {demandKw} kW 공급 · 경로 최소 열여유 {minimumRemainingKw} kW",
+        "unservedLoad": "{phase}: {load} 수요 {demandKw} kW 중 {deliveredKw} kW 공급",
+        "keptPromise": "{promise}: 지킴",
+        "deferredPromise": "{promise}: 미룸",
+        "remainingCash": "남은 운영 자금 {cashUnit}원"
+      }
+    }
+  ]
+}

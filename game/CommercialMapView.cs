@@ -16,13 +16,23 @@ internal sealed record CommercialMapPresentation(
     int? PointerFootprintRadiusUnit,
     bool NodeSnapEnabled,
     bool ConstructionInputEnabled,
-    CommercialThermalMapPresentation? Thermal = null);
+    CommercialThermalMapPresentation? Thermal = null,
+    int? PointerServiceRadiusUnit = null,
+    int? DraftServiceRadiusUnit = null,
+    CommercialServiceAreaPresentation? SelectedServiceArea = null);
+
+internal sealed record CommercialServiceAreaPresentation(
+    CoreMapPoint Center,
+    int RadiusUnit,
+    string Label);
 
 internal sealed record CommercialThermalMapPresentation(
     string ProjectionLabel,
     IReadOnlyList<ThermalAssetUsage> Assets,
     string? SelectedAssetId,
-    string AccessibilitySummary);
+    string AccessibilitySummary,
+    bool ContinuousOnly = false,
+    IReadOnlyList<string>? ActiveRiskAreaIds = null);
 
 internal readonly record struct CommercialDraftPointDrag(int PointIndex, CoreMapPoint Position);
 
@@ -97,6 +107,16 @@ internal sealed partial class CommercialMapView : Control
 
     public int DraggedDraftPointIndex => _draggedDraftPointIndex;
 
+    public int? PointerServiceRadiusUnit => _presentation?.PointerServiceRadiusUnit;
+
+    public int? DraftServiceRadiusUnit => _presentation?.DraftServiceRadiusUnit;
+
+    public CommercialServiceAreaPresentation? SelectedServiceArea =>
+        _presentation?.SelectedServiceArea;
+
+    public IReadOnlyList<string> ActiveRiskAreaIds =>
+        _presentation?.Thermal?.ActiveRiskAreaIds ?? Array.Empty<string>();
+
     public string? SelectedThermalAssetId => _presentation?.Thermal?.SelectedAssetId;
 
     public ThermalOperatingState? SelectedThermalState
@@ -170,7 +190,7 @@ internal sealed partial class CommercialMapView : Control
         RefreshCandidates(notify: false);
         AccessibilityDescription = presentation.ConstructionInputEnabled
             ? "청류시 자유 배치 지도. 방향키로 커서를 움직이고 Enter로 선택합니다. Q와 E로 가까운 접속점을 바꿉니다."
-            : "청류시 고정 전력망 열 운전 지도. 마우스 또는 방향키와 Enter로 설비를 선택하고 오른쪽 패널에서 현재 사용과 한계를 확인합니다.";
+            : "청류시 전력망 운영 지도. 마우스 또는 방향키와 Enter로 설비를 선택하고 오른쪽 패널에서 현재 사용과 한계를 확인합니다.";
         AccessibilityName = BuildAccessibilityName(presentation);
         QueueRedraw();
     }
@@ -318,11 +338,20 @@ internal sealed partial class CommercialMapView : Control
         DrawRect(new Rect2(Vector2.Zero, Size), Background);
         DrawMapGround();
         DrawTerrain(snapshot.World);
-        DrawRiskAreas(snapshot.World);
+        DrawRiskAreas(snapshot.World, _presentation.Thermal?.ActiveRiskAreaIds);
         DrawEdges(snapshot.World);
         DrawLineDraft(snapshot);
         DrawNodes(snapshot.World);
         DrawNodeDraft(snapshot);
+        if (_presentation.SelectedServiceArea is CommercialServiceAreaPresentation serviceArea)
+        {
+            DrawServiceRadius(
+                serviceArea.Center,
+                serviceArea.RadiusUnit,
+                serviceArea.Label,
+                Focus,
+                0.58f);
+        }
         if (_presentation.Thermal is CommercialThermalMapPresentation thermal)
         {
             DrawThermalOverlays(snapshot.World, thermal);
@@ -621,15 +650,32 @@ internal sealed partial class CommercialMapView : Control
         }
     }
 
-    private void DrawRiskAreas(SpatialWorldDefinition world)
+    private void DrawRiskAreas(
+        SpatialWorldDefinition world,
+        IReadOnlyList<string>? activeRiskAreaIds)
     {
+        IReadOnlySet<string> active = activeRiskAreaIds is null
+            ? new HashSet<string>(StringComparer.Ordinal)
+            : activeRiskAreaIds.ToHashSet(StringComparer.Ordinal);
         foreach (SpatialRiskAreaDefinition area in world.RiskAreas)
         {
+            bool isActive = active.Contains(area.RiskAreaId);
             Vector2[] polygon = area.Polygon.Select(ToCanvas).ToArray();
-            DrawColoredPolygon(polygon, new Color(Risk, 0.10f));
-            DrawPolyline(polygon.Append(polygon[0]).ToArray(), new Color(Risk, 0.85f), 1.5f, true);
-            DrawPolygonHatching(polygon, Risk, 18f, 0.32f);
-            DrawAreaLabel(polygon, area.DisplayName, Risk);
+            DrawColoredPolygon(polygon, new Color(Risk, isActive ? 0.20f : 0.10f));
+            DrawPolyline(
+                polygon.Append(polygon[0]).ToArray(),
+                new Color(Risk, isActive ? 1f : 0.85f),
+                isActive ? 2.5f : 1.5f,
+                true);
+            DrawPolygonHatching(
+                polygon,
+                Risk,
+                isActive ? 12f : 18f,
+                isActive ? 0.52f : 0.32f);
+            DrawAreaLabel(
+                polygon,
+                isActive ? area.DisplayName + " · 현재 시험 적용" : area.DisplayName,
+                Risk);
         }
     }
 
@@ -751,6 +797,15 @@ internal sealed partial class CommercialMapView : Control
         SpatialNodeClassDefinition nodeClass = snapshot.World.NodeClasses.Single(
             item => string.Equals(item.ClassId, draft.NodeClassId, StringComparison.Ordinal));
         DrawFootprint(draft.Position, nodeClass.FootprintRadiusUnit, Planned, 0.16f);
+        if (_presentation?.DraftServiceRadiusUnit is int serviceRadius)
+        {
+            DrawServiceRadius(
+                draft.Position,
+                serviceRadius,
+                "서비스 권역",
+                Planned,
+                0.45f);
+        }
         DrawCircle(ToCanvas(draft.Position), 6f, Planned);
     }
 
@@ -1012,6 +1067,15 @@ internal sealed partial class CommercialMapView : Control
         {
             DrawFootprint(displayPoint, radius, color, 0.12f);
         }
+        if (presentation.PointerServiceRadiusUnit is int serviceRadius)
+        {
+            DrawServiceRadius(
+                displayPoint,
+                serviceRadius,
+                "서비스 권역",
+                color,
+                0.45f);
+        }
         DrawArc(center, 10f, 0f, Mathf.Tau, 32, color, 2f, true);
         DrawLine(center + new Vector2(-14f, 0f), center + new Vector2(14f, 0f), color, 1f);
         DrawLine(center + new Vector2(0f, -14f), center + new Vector2(0f, 14f), color, 1f);
@@ -1041,13 +1105,37 @@ internal sealed partial class CommercialMapView : Control
         DrawArc(center, radiusPixel + 6f, 0f, Mathf.Tau, 48, new Color(color, 0.22f), 1f, true);
     }
 
+    private void DrawServiceRadius(
+        CoreMapPoint point,
+        int radiusUnit,
+        string label,
+        Color color,
+        float alpha)
+    {
+        Vector2 center = ToCanvas(point);
+        float radiusPixel = Math.Max(3f, (float)(radiusUnit * RequireTransform().Scale));
+        DrawDashedArc(center, radiusPixel, new Color(color, alpha));
+        float labelOffset = Math.Max(10f, Math.Min(radiusPixel - 12f, 70f));
+        Vector2 labelPosition = center + new Vector2(10f, -labelOffset);
+        DrawString(
+            GetThemeDefaultFont(),
+            labelPosition,
+            label,
+            HorizontalAlignment.Left,
+            -1f,
+            11,
+            new Color(color, Math.Min(1f, alpha + 0.3f)));
+    }
+
     private void DrawMapLegend()
     {
         if (_presentation?.Thermal is CommercialThermalMapPresentation thermal)
         {
             string instruction = _presentation.ConstructionInputEnabled
-                ? "열 상태 표시 유지 · 현재 선택한 공사 위치를 지도에서 확정합니다."
-                : "설비를 선택하면 현재 사용과 다음 상태를 확인합니다.";
+                ? "운영 상태 표시 유지 · 현재 선택한 공사 위치를 지도에서 확정합니다."
+                : thermal.ContinuousOnly
+                    ? "설비를 선택하면 현재 사용과 연속 한계를 확인합니다."
+                    : "설비를 선택하면 현재 사용과 다음 상태를 확인합니다.";
             DrawString(
                 GetThemeDefaultFont(),
                 new Vector2(18f, Size.Y - 28f),
@@ -1059,7 +1147,9 @@ internal sealed partial class CommercialMapView : Control
             DrawString(
                 GetThemeDefaultFont(),
                 new Vector2(18f, Size.Y - 12f),
-                "✓ 연속 실선 · ! 비상 이중선/사선 · × 보호정지 점선 · !! 한계초과 교차선",
+                thermal.ContinuousOnly
+                    ? "✓ 연속 운전 실선 · 서비스 권역 점선 · 색 없이도 오른쪽 상태 문장으로 확인"
+                    : "✓ 연속 실선 · ! 비상 이중선/사선 · × 보호정지 점선 · !! 한계초과 교차선",
                 HorizontalAlignment.Left,
                 -1f,
                 11,
@@ -1156,13 +1246,16 @@ internal sealed partial class CommercialMapView : Control
                 ? CandidateLabel(presentation.Snapshot.World) ?? presentation.PointerMessage
                 : "지도 밖";
             string thermalContext = presentation.Thermal is CommercialThermalMapPresentation overlay
-                ? $" {overlay.ProjectionLabel} 열 상태 표시 중."
+                ? overlay.ContinuousOnly
+                    ? $" {overlay.ProjectionLabel} 연속 운전 상태 표시 중."
+                    : $" {overlay.ProjectionLabel} 열 상태 표시 중."
                 : string.Empty;
             return $"청류시 자유 배치 지도. {presentation.ToolLabel}. {pointer}.{thermalContext} 지도 {ZoomLabel}.";
         }
         if (presentation.Thermal is CommercialThermalMapPresentation thermal)
         {
-            return $"청류시 고정 전력망 열 운전 지도. {thermal.ProjectionLabel}. " +
+            string mode = thermal.ContinuousOnly ? "연속 운전 지도" : "열 운전 지도";
+            return $"청류시 전력망 {mode}. {thermal.ProjectionLabel}. " +
                    $"{thermal.AccessibilitySummary}. 지도 {ZoomLabel}.";
         }
         return $"청류시 지도. 선택 가능한 설비가 없습니다. 지도 {ZoomLabel}.";

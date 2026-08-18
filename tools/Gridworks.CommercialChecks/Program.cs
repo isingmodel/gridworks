@@ -12,9 +12,13 @@ internal static class Program
     {
         try
         {
-            (string spatialPath, string worldPath, string coreSlicePath) =
+            (string spatialPath, string worldPath, string coreSlicePath, string campaignPath) =
                 ResolveFixturePaths(args);
-            return new CommercialChecks(spatialPath, worldPath, coreSlicePath).Run();
+            return new CommercialChecks(
+                spatialPath,
+                worldPath,
+                coreSlicePath,
+                campaignPath).Run();
         }
         catch (Exception exception)
         {
@@ -24,14 +28,19 @@ internal static class Program
         }
     }
 
-    private static (string SpatialPath, string WorldPath, string CoreSlicePath)
+    private static (
+        string SpatialPath,
+        string WorldPath,
+        string CoreSlicePath,
+        string CampaignPath)
         ResolveFixturePaths(string[] args)
     {
-        if (args.Length > 3)
+        if (args.Length > 4)
         {
             throw new ArgumentException(
                 "usage: Gridworks.CommercialChecks [commercial-spatial-json] " +
-                "[release-world-v2-json] [commercial-core-slice-v1-json]");
+                "[release-world-v2-json] [commercial-core-slice-v1-json] " +
+                "[release-campaign-v2-json]");
         }
 
         string spatialPath = args.Length >= 1
@@ -46,11 +55,16 @@ internal static class Program
             : Path.Combine(
                 Path.GetDirectoryName(spatialPath)!,
                 "release-world-v2.json");
-        string coreSlicePath = args.Length == 3
+        string coreSlicePath = args.Length >= 3
             ? Path.GetFullPath(args[2])
             : Path.Combine(
                 Path.GetDirectoryName(worldPath)!,
                 "commercial-core-slice-v1.json");
+        string campaignPath = args.Length == 4
+            ? Path.GetFullPath(args[3])
+            : Path.Combine(
+                Path.GetDirectoryName(worldPath)!,
+                "release-campaign-v2.json");
         if (!File.Exists(spatialPath))
         {
             throw new FileNotFoundException("Commercial spatial fixture not found.", spatialPath);
@@ -65,7 +79,13 @@ internal static class Program
                 "Commercial core slice fixture not found.",
                 coreSlicePath);
         }
-        return (spatialPath, worldPath, coreSlicePath);
+        if (!File.Exists(campaignPath))
+        {
+            throw new FileNotFoundException(
+                "Commercial campaign v2 fixture not found.",
+                campaignPath);
+        }
+        return (spatialPath, worldPath, coreSlicePath, campaignPath);
     }
 }
 
@@ -76,6 +96,7 @@ internal sealed class CommercialChecks
     private const string PoleClassId = "CHECK_POLE";
     private const string SubstationClassId = "CHECK_SUBSTATION";
     private const string LineClassId = "CHECK_LINE";
+    private const string ServiceLineClassId = "CHECK_SERVICE_LINE";
 
     private readonly byte[] _fixtureBytes;
     private readonly string _fixtureJson;
@@ -86,9 +107,16 @@ internal sealed class CommercialChecks
     private readonly byte[] _coreSliceBytes;
     private readonly string _coreSliceJson;
     private readonly CommercialCoreSliceDefinition _coreSlice;
+    private readonly byte[] _campaignBytes;
+    private readonly string _campaignJson;
+    private readonly CommercialCampaignDefinition _campaign;
     private int _assertionCount;
 
-    public CommercialChecks(string fixturePath, string worldPath, string coreSlicePath)
+    public CommercialChecks(
+        string fixturePath,
+        string worldPath,
+        string coreSlicePath,
+        string campaignPath)
     {
         _fixtureBytes = File.ReadAllBytes(fixturePath);
         _fixtureJson = Encoding.UTF8.GetString(_fixtureBytes);
@@ -99,6 +127,9 @@ internal sealed class CommercialChecks
         _coreSliceBytes = File.ReadAllBytes(coreSlicePath);
         _coreSliceJson = Encoding.UTF8.GetString(_coreSliceBytes);
         _coreSlice = CommercialCoreSliceLoader.Load(_coreSliceBytes, _commercialWorld);
+        _campaignBytes = File.ReadAllBytes(campaignPath);
+        _campaignJson = Encoding.UTF8.GetString(_campaignBytes);
+        _campaign = CommercialCampaignLoader.Load(_campaignBytes, _commercialWorld);
     }
 
     public int Run()
@@ -124,6 +155,13 @@ internal sealed class CommercialChecks
             ("commercial-core-rejections-and-recovery", CheckCommercialCoreRejectionsAndRecovery),
             ("commercial-core-replay-determinism", CheckCommercialCoreReplayDeterminism),
             ("commercial-core-save-v3", CheckCommercialCoreSaveV3),
+            ("commercial-service-radius", CheckCommercialServiceRadius),
+            ("strict-commercial-campaign-loader", CheckStrictCommercialCampaignLoader),
+            ("commercial-campaign-canonical-four-run", CheckCommercialCampaignCanonicalRun),
+            ("commercial-campaign-archetypes-recovery", CheckCommercialCampaignArchetypesAndRecovery),
+            ("commercial-campaign-rewind-replay", CheckCommercialCampaignRewindAndReplay),
+            ("commercial-campaign-window-safety", CheckCommercialCampaignWindowSafety),
+            ("commercial-campaign-save-v3", CheckCommercialCampaignSaveV3),
         ];
 
         List<string> failures = [];
@@ -304,7 +342,7 @@ internal sealed class CommercialChecks
         Equal(_commercialWorld.WorldId, fromText.WorldId, "commercial text loader world ID");
         Equal(_commercialWorld.WorldId, fromBytes.WorldId, "commercial byte loader world ID");
         Equal(2, _commercialWorld.Sources.Count, "commercial authored source count");
-        Equal(4, _commercialWorld.Loads.Count, "commercial authored load count");
+        Equal(5, _commercialWorld.Loads.Count, "commercial authored load count");
         Check(_commercialWorld.NodeClasses
                 .Where(item => item.Kind is SpatialNodeKind.Pole or SpatialNodeKind.Substation)
                 .All(item => item.ThermalLimit is not null),
@@ -314,6 +352,19 @@ internal sealed class CommercialChecks
                     SpatialNodeKind.DedicatedLoadTerminal)
                 .All(item => item.ThermalLimit is null),
             "terminal class owns a thermal limit");
+        Equal(550, _commercialWorld.NodeClasses.Single(item =>
+                item.ClassId == "SMALL_SUBSTATION").ServiceRadiusUnit,
+            "small substation service radius");
+        Equal(850, _commercialWorld.NodeClasses.Single(item =>
+                item.ClassId == "LARGE_SUBSTATION").ServiceRadiusUnit,
+            "large substation service radius");
+        Check(_commercialWorld.NodeClasses
+                .Where(item => item.Kind != SpatialNodeKind.Substation)
+                .All(item => item.ServiceRadiusUnit is null),
+            "non-substation class owns a service radius");
+        Equal("NORTH_RESIDENTIAL_TERMINAL", _commercialWorld.Loads.Single(item =>
+                item.LoadId == "NORTH_RESIDENTIAL").NodeId,
+            "north-bank load terminal identity");
 
         string trimmed = _worldJson.TrimStart();
         ExpectCommercialLoaderRejected(
@@ -340,6 +391,18 @@ internal sealed class CommercialChecks
         ExpectCommercialLoaderRejected(
             "pole missing thermal limit",
             root => Object(JsonArrayProperty(root, "nodeClasses")[2]!)["thermalLimit"] = null);
+        ExpectCommercialLoaderRejected(
+            "substation missing service radius",
+            root => Object(JsonArrayProperty(root, "nodeClasses")[4]!).Remove(
+                "serviceRadiusUnit"));
+        ExpectCommercialLoaderRejected(
+            "substation null service radius",
+            root => Object(JsonArrayProperty(root, "nodeClasses")[4]!)[
+                "serviceRadiusUnit"] = null);
+        ExpectCommercialLoaderRejected(
+            "pole owns service radius",
+            root => Object(JsonArrayProperty(root, "nodeClasses")[2]!)[
+                "serviceRadiusUnit"] = 550);
         ExpectCommercialLoaderRejected(
             "nonpositive continuous limit",
             root => Object(
@@ -400,14 +463,21 @@ internal sealed class CommercialChecks
         CommercialWorldDefinition mainWorld = CommercialCoreSliceLoader.BuildSeedWorld(
             _commercialWorld,
             _coreSlice.Main.Seed);
-        Equal(6, preludeWorld.Nodes.Count,
-            "prelude seed retains fixed terminals only");
-        Equal(0, preludeWorld.Edges.Count,
-            "prelude seed must not inherit the complete main network");
+        Equal(8, preludeWorld.Nodes.Count,
+            "prelude seed retains fixed terminals and east substation only");
+        Equal(1, preludeWorld.Edges.Count,
+            "prelude seed retains only the east service edge");
         Equal(_commercialWorld.Nodes.Count, mainWorld.Nodes.Count,
             "main seed world node count");
-        Equal(_commercialWorld.Edges.Count, mainWorld.Edges.Count,
-            "main seed retains the four-chapter-complete graph");
+        Equal(_commercialWorld.Edges.Count + 1, mainWorld.Edges.Count,
+            "main seed retains the four-chapter-complete graph and hospital bypass");
+        SpatialEdgeDefinition hospitalBypass = mainWorld.Edges.Single(item =>
+            item.EdgeId == "SEED_EDGE_EAST_HOSPITAL");
+        Check(hospitalBypass.Commissioned &&
+                hospitalBypass.LineClassId == "STANDARD_LINE" &&
+                hospitalBypass.FromNodeId == "EAST_SUBSTATION" &&
+                hospitalBypass.ToNodeId == "HOSPITAL_TERMINAL",
+            "main seed hospital bypass identity");
         Equal(1000000L, preludeWorld.InitialCashUnit,
             "prelude seed independent cash");
         Equal(700000L, mainWorld.InitialCashUnit,
@@ -524,8 +594,15 @@ internal sealed class CommercialChecks
     private void CheckThermalBoundariesPermissionAndSharedSum()
     {
         CommercialWorldDefinition direct = ThermalWorld(
-            [Node("S", 100, 100), Node("L", 500, 100, LoadClassId)],
-            [ThermalEdge("E", LineClassId, "S", "L")],
+            [
+                Node("S", 100, 100),
+                Node("T", 300, 100, SubstationClassId),
+                Node("L", 500, 100, LoadClassId),
+            ],
+            [
+                ThermalEdge("SERVICE", ServiceLineClassId, "S", "T"),
+                ThermalEdge("E", LineClassId, "T", "L"),
+            ],
             [ThermalSource("SOURCE", "S", 1000, 0)],
             [ThermalLoad("LOAD", "L")]);
 
@@ -632,12 +709,16 @@ internal sealed class CommercialChecks
         [
             Node("S_PRIMARY", 500, 500),
             Node("S_SECONDARY", 100, 100),
+            Node("T_PRIMARY", 650, 500, SubstationClassId),
+            Node("T_SECONDARY", 300, 300, SubstationClassId),
             Node("P_SECONDARY", 100, 900, PoleClassId),
             Node("L", 900, 500, LoadClassId),
         ],
         [
-            ThermalEdge("HOT_SHORT", "HOT_LINE", "S_PRIMARY", "L"),
-            ThermalEdge("COOL_LONG_A", "COOL_LINE", "S_SECONDARY", "P_SECONDARY"),
+            ThermalEdge("SERVICE_PRIMARY", ServiceLineClassId, "S_PRIMARY", "T_PRIMARY"),
+            ThermalEdge("HOT_SHORT", "HOT_LINE", "T_PRIMARY", "L"),
+            ThermalEdge("SERVICE_SECONDARY", ServiceLineClassId, "S_SECONDARY", "T_SECONDARY"),
+            ThermalEdge("COOL_LONG_A", "COOL_LINE", "T_SECONDARY", "P_SECONDARY"),
             ThermalEdge("COOL_LONG_B", "COOL_LINE", "P_SECONDARY", "L"),
         ],
         [
@@ -654,18 +735,22 @@ internal sealed class CommercialChecks
             "LOAD");
         Equal("SECONDARY", allSourceSupply.SourceId,
             "later source continuous path must beat first source emergency path");
-        SequenceEqual(["COOL_LONG_A", "COOL_LONG_B"], allSourceSupply.PathEdgeIds,
+        SequenceEqual(
+            ["SERVICE_SECONDARY", "COOL_LONG_A", "COOL_LONG_B"],
+            allSourceSupply.PathEdgeIds,
             "all-source continuous route");
 
         CommercialWorldDefinition allPaths = ThermalWorld(
         [
             Node("S", 100, 500),
+            Node("T", 300, 500, SubstationClassId),
             Node("P", 500, 300, PoleClassId),
             Node("L", 900, 500, LoadClassId),
         ],
         [
-            ThermalEdge("HOT_DIRECT", "HOT_LINE", "S", "L"),
-            ThermalEdge("COOL_A", "COOL_LINE", "S", "P"),
+            ThermalEdge("SERVICE", ServiceLineClassId, "S", "T"),
+            ThermalEdge("HOT_DIRECT", "HOT_LINE", "T", "L"),
+            ThermalEdge("COOL_A", "COOL_LINE", "T", "P"),
             ThermalEdge("COOL_B", "COOL_LINE", "P", "L"),
         ],
         [ThermalSource("SOURCE", "S", 500, 0)],
@@ -677,20 +762,22 @@ internal sealed class CommercialChecks
                 Interval("ALL_PATHS", [LoadRequest("LOAD", 100, ThermalPermission.EmergencyAllowed)]),
                 ThermalState.Empty),
             "LOAD");
-        SequenceEqual(["COOL_A", "COOL_B"], allPathSupply.PathEdgeIds,
+        SequenceEqual(["SERVICE", "COOL_A", "COOL_B"], allPathSupply.PathEdgeIds,
             "long continuous path must beat short emergency path");
 
         CommercialWorldDefinition tie = ThermalWorld(
         [
             Node("S", 100, 500),
+            Node("T", 300, 500, SubstationClassId),
             Node("P_A", 500, 300, PoleClassId),
             Node("P_B", 500, 700, PoleClassId),
             Node("L", 900, 500, LoadClassId),
         ],
         [
-            ThermalEdge("A_1", LineClassId, "S", "P_A"),
+            ThermalEdge("SERVICE", ServiceLineClassId, "S", "T"),
+            ThermalEdge("A_1", LineClassId, "T", "P_A"),
             ThermalEdge("A_2", LineClassId, "P_A", "L"),
-            ThermalEdge("B_1", LineClassId, "S", "P_B"),
+            ThermalEdge("B_1", LineClassId, "T", "P_B"),
             ThermalEdge("B_2", LineClassId, "P_B", "L"),
         ],
         [ThermalSource("SOURCE", "S", 500, 0)],
@@ -701,17 +788,24 @@ internal sealed class CommercialChecks
                 Interval("TIE", [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)]),
                 ThermalState.Empty),
             "LOAD");
-        SequenceEqual(["A_1", "A_2"], tieSupply.PathEdgeIds,
+        SequenceEqual(["SERVICE", "A_1", "A_2"], tieSupply.PathEdgeIds,
             "edge-ID deterministic tie-break");
-        SequenceEqual(["S", "P_A", "L"], tieSupply.PathNodeIds,
+        SequenceEqual(["S", "T", "P_A", "L"], tieSupply.PathNodeIds,
             "node path for deterministic tie-break");
     }
 
     private void CheckThermalUnavailableAndOverrides()
     {
         CommercialWorldDefinition direct = ThermalWorld(
-            [Node("S", 100, 100), Node("L", 500, 100, LoadClassId)],
-            [ThermalEdge("E", LineClassId, "S", "L")],
+            [
+                Node("S", 100, 100),
+                Node("T", 300, 100, SubstationClassId),
+                Node("L", 500, 100, LoadClassId),
+            ],
+            [
+                ThermalEdge("SERVICE", ServiceLineClassId, "S", "T"),
+                ThermalEdge("E", LineClassId, "T", "L"),
+            ],
             [ThermalSource("SOURCE", "S", 1000, 0)],
             [ThermalLoad("LOAD", "L")]);
         ThermalLoadSupply unavailable = Supply(
@@ -735,11 +829,13 @@ internal sealed class CommercialChecks
             [
                 Node("S", 100, 300),
                 Node("P", 400, 300, PoleClassId),
+                Node("T", 550, 300, SubstationClassId),
                 Node("L", 700, 300, LoadClassId),
             ],
             [
                 ThermalEdge("E1", "COOL_LINE", "S", "P"),
-                ThermalEdge("E2", "COOL_LINE", "P", "L"),
+                ThermalEdge("E2", "COOL_LINE", "P", "T"),
+                ThermalEdge("SERVICE_OUT", ServiceLineClassId, "T", "L"),
             ],
             [ThermalSource("SOURCE", "S", 1000, 0)],
             [ThermalLoad("LOAD", "L")],
@@ -828,12 +924,14 @@ internal sealed class CommercialChecks
         CommercialWorldDefinition competingFailures = ThermalWorld(
             [
                 Node("S", 100, 100),
+                Node("T", 250, 100, SubstationClassId),
                 Node("P", 300, 500, PoleClassId),
                 Node("L", 500, 100, LoadClassId),
             ],
             [
-                ThermalEdge("SHORT_UNAVAILABLE", "HIGH_LINE", "S", "L"),
-                ThermalEdge("LONG_LIMIT_A", "LOW_LINE", "S", "P"),
+                ThermalEdge("SERVICE", ServiceLineClassId, "S", "T"),
+                ThermalEdge("SHORT_UNAVAILABLE", "HIGH_LINE", "T", "L"),
+                ThermalEdge("LONG_LIMIT_A", "LOW_LINE", "T", "P"),
                 ThermalEdge("LONG_LIMIT_B", "LOW_LINE", "P", "L"),
             ],
             [ThermalSource("SOURCE", "S", 1000, 0)],
@@ -859,7 +957,9 @@ internal sealed class CommercialChecks
             100,
             90,
             "longer thermal failure outranks short unavailable path");
-        SequenceEqual(["LONG_LIMIT_A", "LONG_LIMIT_B"], competingFailure.PathEdgeIds,
+        SequenceEqual(
+            ["SERVICE", "LONG_LIMIT_A", "LONG_LIMIT_B"],
+            competingFailure.PathEdgeIds,
             "failure diagnostic selects the relevant longer path");
 
         ExpectThrows<ArgumentException>(
@@ -883,8 +983,15 @@ internal sealed class CommercialChecks
     private void CheckThermalProtectiveOutageSequence()
     {
         CommercialWorldDefinition world = ThermalWorld(
-            [Node("S", 100, 100), Node("L", 500, 100, LoadClassId)],
-            [ThermalEdge("E", LineClassId, "S", "L")],
+            [
+                Node("S", 100, 100),
+                Node("T", 300, 100, SubstationClassId),
+                Node("L", 500, 100, LoadClassId),
+            ],
+            [
+                ThermalEdge("SERVICE", ServiceLineClassId, "S", "T"),
+                ThermalEdge("E", LineClassId, "T", "L"),
+            ],
             [ThermalSource("SOURCE", "S", 1000, 0)],
             [ThermalLoad("LOAD", "L")]);
         ThermalSequenceRequest request = CoolingSequence();
@@ -922,8 +1029,15 @@ internal sealed class CommercialChecks
     private void CheckThermalRepeatValueEquality()
     {
         CommercialWorldDefinition world = ThermalWorld(
-            [Node("S", 100, 100), Node("L", 500, 100, LoadClassId)],
-            [ThermalEdge("E", LineClassId, "S", "L")],
+            [
+                Node("S", 100, 100),
+                Node("T", 300, 100, SubstationClassId),
+                Node("L", 500, 100, LoadClassId),
+            ],
+            [
+                ThermalEdge("SERVICE", ServiceLineClassId, "S", "T"),
+                ThermalEdge("E", LineClassId, "T", "L"),
+            ],
             [ThermalSource("SOURCE", "S", 1000, 0)],
             [ThermalLoad("LOAD", "L")]);
         ThermalSequenceRequest request = CoolingSequence();
@@ -942,6 +1056,1576 @@ internal sealed class CommercialChecks
             "equal thermal sequence hash code");
     }
 
+    private void CheckCommercialServiceRadius()
+    {
+        CommercialWorldDefinition direct = ThermalWorld(
+            [Node("S", 100, 100), Node("L", 500, 100, LoadClassId)],
+            [ThermalEdge("DIRECT", LineClassId, "S", "L")],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")]);
+        Failure(
+            Supply(
+                ThermalNetworkEvaluator.EvaluateInterval(
+                    direct,
+                    Interval(
+                        "DIRECT_WITHOUT_SUBSTATION",
+                        [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)]),
+                    ThermalState.Empty),
+                "LOAD"),
+            ThermalFailureKind.NoEligibleSubstation,
+            null,
+            50,
+            0,
+            "direct source-to-load service rejection");
+
+        IReadOnlyList<CommercialNodeClassDefinition> serviceClasses =
+        [
+            new(SourceClassId, "검사 발전 접속점", SpatialNodeKind.SourceTerminal,
+                10, 6, 0, 0, null),
+            new(LoadClassId, "검사 부하 접속점", SpatialNodeKind.DedicatedLoadTerminal,
+                10, 6, 0, 0, null),
+            new("CHECK_SMALL_SUBSTATION", "검사 소형 변전소", SpatialNodeKind.Substation,
+                20, 6, 100, 10, new ThermalLimit(1000, 1500), 299),
+            new("CHECK_LARGE_SUBSTATION", "검사 대형 변전소", SpatialNodeKind.Substation,
+                20, 6, 100, 10, new ThermalLimit(1000, 1500), 300),
+        ];
+        CommercialWorldDefinition small = ThermalWorld(
+            [
+                Node("S", 100, 100),
+                Node("T", 300, 100, "CHECK_SMALL_SUBSTATION"),
+                Node("L", 600, 100, LoadClassId),
+            ],
+            [
+                ThermalEdge("SERVICE_IN", ServiceLineClassId, "S", "T"),
+                ThermalEdge("SERVICE_OUT", ServiceLineClassId, "T", "L"),
+            ],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")],
+            nodeClasses: serviceClasses,
+            lineClasses: Array.Empty<CommercialLineClassDefinition>());
+        Failure(
+            Supply(
+                ThermalNetworkEvaluator.EvaluateInterval(
+                    small,
+                    Interval(
+                        "OUTSIDE_SMALL_RADIUS",
+                        [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)]),
+                    ThermalState.Empty),
+                "LOAD"),
+            ThermalFailureKind.NoEligibleSubstation,
+            null,
+            50,
+            0,
+            "small substation service boundary");
+
+        CommercialWorldDefinition large = ThermalWorld(
+            [
+                Node("S", 100, 100),
+                Node("T", 300, 100, "CHECK_LARGE_SUBSTATION"),
+                Node("L", 600, 100, LoadClassId),
+            ],
+            [
+                ThermalEdge("SERVICE_IN", ServiceLineClassId, "S", "T"),
+                ThermalEdge("SERVICE_OUT", ServiceLineClassId, "T", "L"),
+            ],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")],
+            nodeClasses: serviceClasses,
+            lineClasses: Array.Empty<CommercialLineClassDefinition>());
+        ThermalLoadSupply eligible = Supply(
+            ThermalNetworkEvaluator.EvaluateInterval(
+                large,
+                Interval(
+                    "AT_LARGE_RADIUS",
+                    [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)]),
+                ThermalState.Empty),
+            "LOAD");
+        Equal(50L, eligible.DeliveredKw,
+            "large substation exact-radius service delivery");
+        SequenceEqual(["S", "T", "L"], eligible.PathNodeIds,
+            "eligible substation remains on the actual supply path");
+
+        CommercialWorldDefinition simpleService = ThermalWorld(
+            [
+                Node("S", 100, 100),
+                Node("J", 250, 100, PoleClassId),
+                Node("L", 700, 100, LoadClassId),
+                Node("DANGLING_SUB", 250, 300, SubstationClassId),
+                Node("A", 100, 500, PoleClassId),
+                Node("VALID_SUB", 400, 500, SubstationClassId),
+                Node("B", 700, 500, PoleClassId),
+            ],
+            [
+                ThermalEdge("SHORT_A", ServiceLineClassId, "S", "J"),
+                ThermalEdge("SHORT_B", ServiceLineClassId, "J", "L"),
+                ThermalEdge("DANGLING_SPUR", ServiceLineClassId, "J", "DANGLING_SUB"),
+                ThermalEdge("LONG_A", ServiceLineClassId, "S", "A"),
+                ThermalEdge("LONG_B", ServiceLineClassId, "A", "VALID_SUB"),
+                ThermalEdge("LONG_C", ServiceLineClassId, "VALID_SUB", "B"),
+                ThermalEdge("LONG_D", ServiceLineClassId, "B", "L"),
+            ],
+            [ThermalSource("SOURCE", "S", 1000, 0)],
+            [ThermalLoad("LOAD", "L")]);
+        ThermalIntervalRequest simpleRequest = Interval(
+            "SIMPLE_SERVICE_ROUTE",
+            [LoadRequest("LOAD", 50, ThermalPermission.ContinuousOnly)]);
+        ThermalIntervalEvaluation firstSimple = ThermalNetworkEvaluator.EvaluateInterval(
+            simpleService,
+            simpleRequest,
+            ThermalState.Empty);
+        ThermalLoadSupply simpleSupply = Supply(firstSimple, "LOAD");
+        Equal(50L, simpleSupply.DeliveredKw,
+            "longer valid simple service route delivery");
+        SequenceEqual(
+            ["S", "A", "VALID_SUB", "B", "L"],
+            simpleSupply.PathNodeIds,
+            "dangling-substation walk must not beat a valid simple route");
+        SequenceEqual(
+            ["LONG_A", "LONG_B", "LONG_C", "LONG_D"],
+            simpleSupply.PathEdgeIds,
+            "longer valid simple service route edges");
+        Equal(
+            0,
+            simpleSupply.PathNodeIds.Count - simpleSupply.PathNodeIds
+                .Distinct(StringComparer.Ordinal).Count(),
+            "accepted service route repeated a node");
+        Equal(
+            0,
+            simpleSupply.PathEdgeIds.Count - simpleSupply.PathEdgeIds
+                .Distinct(StringComparer.Ordinal).Count(),
+            "accepted service route repeated an edge");
+        Check(!simpleSupply.PathNodeIds.Contains("DANGLING_SUB", StringComparer.Ordinal),
+            "dangling substation spur qualified the short source/load route");
+        Equal(
+            firstSimple,
+            ThermalNetworkEvaluator.EvaluateInterval(
+                simpleService,
+                simpleRequest,
+                ThermalState.Empty),
+            "simple service path repeat value equality");
+    }
+
+    private void CheckStrictCommercialCampaignLoader()
+    {
+        CommercialCampaignDefinition fromText = CommercialCampaignLoader.Load(
+            _campaignJson,
+            _commercialWorld);
+        CommercialCampaignDefinition fromBytes = CommercialCampaignLoader.Load(
+            _campaignBytes,
+            _commercialWorld);
+        Equal(_campaign.CampaignId, fromText.CampaignId,
+            "campaign text loader identity");
+        Equal(_campaign.CampaignId, fromBytes.CampaignId,
+            "campaign byte loader identity");
+        SequenceEqual(
+            ["FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE", "NORTH_BANK_PROMISE"],
+            _campaign.Chapters.Select(item => item.ChapterId).ToArray(),
+            "canonical Stage-E chapter identities");
+        SequenceEqual(
+            ["첫 불빛", "두 번째 심장", "두 번째 전원", "북안의 약속"],
+            _campaign.Chapters.Select(item => item.DisplayName).ToArray(),
+            "canonical Stage-E chapter titles");
+
+        CommercialWorldDefinition initial = CommercialCampaignLoader.BuildInitialWorld(
+            _commercialWorld,
+            _campaign.InitialSeed);
+        Equal(7, initial.Nodes.Count,
+            "campaign starts with fixed source/load terminals only");
+        Equal(0, initial.Edges.Count,
+            "campaign starts without an inherited network");
+        Check(!initial.Nodes.Any(node => _commercialWorld.NodeClasses.Single(item =>
+                    item.ClassId == node.ClassId).Kind == SpatialNodeKind.Substation),
+            "campaign initial seed inherited a substation");
+
+        CommercialCampaignChapterDefinition firstLight = _campaign.Chapters[0];
+        SequenceEqual(["SMALL_SUBSTATION"], firstLight.AvailableNodeClassIds,
+            "first-light substation tools");
+        Equal(
+            new CommercialCampaignLinePlanDefinition("STANDARD_LINE", "STANDARD_POLE"),
+            firstLight.AvailableLinePlans.Single(),
+            "first-light line plan");
+        Equal(0, firstLight.ConnectionRequirements.Count,
+            "first-light connection requirements");
+
+        CommercialCampaignChapterDefinition secondHeart = _campaign.Chapters[1];
+        Equal(
+            new CommercialCampaignConnectionRequirement("HOSPITAL_TERMINAL", 2),
+            secondHeart.ConnectionRequirements.Single(),
+            "hospital two-connection gate");
+        Equal(2, secondHeart.OperatingPhases.Count,
+            "hospital transfer and flood-test phases");
+        SequenceEqual(
+            ["RIVER_FLOOD_ZONE"],
+            secondHeart.OperatingPhases[1].ActiveRiskAreaIds,
+            "hospital flood-test risk activation");
+
+        CommercialCampaignChapterDefinition secondSource = _campaign.Chapters[2];
+        Check(secondSource.TimeAdvanceBeforeChapterMinutes == 0 &&
+                !secondSource.ResetThermalStateBeforeChapter,
+            "six-month reset happened before the second-source chapter");
+        SequenceEqual(
+            ["LARGE_SUBSTATION", "SMALL_SUBSTATION"],
+            secondSource.AvailableNodeClassIds,
+            "second-source substation tools");
+        SequenceEqual(
+            [
+                new CommercialCampaignLinePlanDefinition(
+                    "REINFORCED_LINE",
+                    "REINFORCED_POLE"),
+                new CommercialCampaignLinePlanDefinition(
+                    "STANDARD_LINE",
+                    "STANDARD_POLE"),
+            ],
+            secondSource.AvailableLinePlans,
+            "second-source standard and reinforced plans");
+
+        CommercialCampaignChapterDefinition northBank = _campaign.Chapters[3];
+        Equal(262800, northBank.TimeAdvanceBeforeChapterMinutes,
+            "six-month transition before north-bank chapter");
+        Check(northBank.ResetThermalStateBeforeChapter,
+            "north-bank transition did not reset thermal state");
+        Equal("NORTH_RESIDENTIAL", northBank.CityPromise!.LoadId,
+            "north-bank city-promise identity");
+        Check(northBank.OperatingPhases.All(phase =>
+                phase.ThermalPolicy == CommercialPhaseThermalPolicy.ContinuousOnly),
+            "Stage-E chapter opened emergency operation");
+        Equal("NEXT_HOT_EVENING_FORECAST", northBank.OperatingPhases[1].PhaseId,
+            "chapter-five heat is forecast only");
+        Equal(3, northBank.OperatingPhases[1].ThermalLimitOverrides.Count,
+            "bounded heat-forecast override count");
+        Check(_campaign.Chapters.Take(3).All(chapter =>
+                chapter.CityPromise is null &&
+                chapter.ResultCards.Standard is not null &&
+                chapter.ResultCards.Kept is null &&
+                chapter.ResultCards.Deferred is null &&
+                chapter.ResultFactTemplates.KeptPromise is null &&
+                chapter.ResultFactTemplates.DeferredPromise is null),
+            "chapters one through three gained promise-only content");
+        Check(northBank.ResultCards.Standard is null &&
+                northBank.ResultCards.Kept is not null &&
+                northBank.ResultCards.Deferred is not null &&
+                northBank.ResultFactTemplates.KeptPromise is not null &&
+                northBank.ResultFactTemplates.DeferredPromise is not null,
+            "north-bank promise result shape");
+        string[] resultBodies = _campaign.Chapters
+            .SelectMany(chapter => new[]
+            {
+                chapter.ResultCards.Standard,
+                chapter.ResultCards.Kept,
+                chapter.ResultCards.Deferred,
+            })
+            .Where(card => card is not null)
+            .Select(card => card!.Body)
+            .ToArray();
+        Check(resultBodies.All(body =>
+                !body.Contains("남긴 공간", StringComparison.Ordinal) &&
+                !body.Contains("비워 둔 분기 공간", StringComparison.Ordinal)),
+            "result card claims unmeasured future branch space");
+
+        var speakers = new HashSet<string>(StringComparer.Ordinal);
+        foreach (CommercialCampaignChapterDefinition chapter in _campaign.Chapters)
+        {
+            speakers.Add(chapter.Briefing.Speaker);
+            foreach (CommercialDecisionWindowDefinition window in chapter.DecisionWindows)
+            {
+                if (window.Story is not null)
+                {
+                    speakers.Add(window.Story.Speaker);
+                }
+            }
+            foreach (CommercialOperatingPhaseDefinition phase in chapter.OperatingPhases)
+            {
+                if (phase.Story is not null)
+                {
+                    speakers.Add(phase.Story.Speaker);
+                }
+            }
+            foreach (CommercialStoryCard? card in new[]
+                     {
+                         chapter.ResultCards.Standard,
+                         chapter.ResultCards.Kept,
+                         chapter.ResultCards.Deferred,
+                     })
+            {
+                if (card is not null)
+                {
+                    speakers.Add(card.Speaker);
+                }
+            }
+        }
+        Check(speakers.SetEquals(
+            [
+                "운영센터장 윤서진",
+                "계통운영관 강민호",
+                "의료원 시설책임자 박지현",
+                "재난대응관 이도윤",
+            ]),
+            "campaign speakers differ from the fixed four characters");
+
+        string trimmed = _campaignJson.TrimStart();
+        ExpectCampaignLoaderRejected(
+            "campaign duplicate JSON property",
+            $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
+        ExpectCampaignLoaderRejected(
+            "campaign unknown root field",
+            root => root["epilogue"] = new JsonObject());
+        ExpectCampaignLoaderRejected(
+            "campaign wrong schema",
+            root => root["schemaVersion"] = "gridworks.release.campaign.future");
+        ExpectCampaignLoaderRejected(
+            "campaign omits canonical fourth chapter",
+            root => JsonArrayProperty(root, "chapters").RemoveAt(3));
+        ExpectCampaignLoaderRejected(
+            "campaign canonical chapter order",
+            root =>
+            {
+                JsonArray chapters = JsonArrayProperty(root, "chapters");
+                JsonNode first = chapters[0]!.DeepClone();
+                chapters[0] = chapters[1]!.DeepClone();
+                chapters[1] = first;
+            });
+        ExpectCampaignLoaderRejected(
+            "campaign seed drops a fixed terminal",
+            root => JsonArrayProperty(Object(root["initialSeed"]!), "baseNodeIds")
+                .RemoveAt(0));
+        ExpectCampaignLoaderRejected(
+            "campaign node tool references a pole class",
+            root => JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[0]!),
+                "availableNodeClassIds")[0] = "STANDARD_POLE");
+        ExpectCampaignLoaderRejected(
+            "campaign node tools out of ordinal order",
+            root =>
+            {
+                JsonArray ids = JsonArrayProperty(
+                    Object(JsonArrayProperty(root, "chapters")[2]!),
+                    "availableNodeClassIds");
+                JsonNode first = ids[0]!.DeepClone();
+                ids[0] = ids[1]!.DeepClone();
+                ids[1] = first;
+            });
+        ExpectCampaignLoaderRejected(
+            "campaign line plan references a non-pole class",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[0]!),
+                "availableLinePlans")[0]!)["poleClassId"] = "SMALL_SUBSTATION");
+        ExpectCampaignLoaderRejected(
+            "campaign duplicate line plan",
+            root =>
+            {
+                JsonArray plans = JsonArrayProperty(
+                    Object(JsonArrayProperty(root, "chapters")[2]!),
+                    "availableLinePlans");
+                plans.Add(plans[0]!.DeepClone());
+            });
+        ExpectCampaignLoaderRejected(
+            "campaign invalid connection minimum",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[1]!),
+                "connectionRequirements")[0]!)["minimumConnections"] = 1);
+        ExpectCampaignLoaderRejected(
+            "campaign removes canonical hospital connection gate",
+            root => JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[1]!),
+                "connectionRequirements").Clear());
+        ExpectCampaignLoaderRejected(
+            "campaign adds connection gate to another chapter",
+            root => JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[0]!),
+                "connectionRequirements").Add(new JsonObject
+                {
+                    ["nodeId"] = "EAST_RESIDENTIAL_TERMINAL",
+                    ["minimumConnections"] = 2,
+                }));
+        ExpectCampaignLoaderRejected(
+            "campaign cumulative grant overflow",
+            root => Object(root["initialSeed"]!)["initialCashUnit"] =
+                long.MaxValue - 2000000L);
+        ExpectCampaignLoaderRejected(
+            "campaign emergency policy before chapter five",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[0]!),
+                "operatingPhases")[0]!)["thermalPolicy"] = "safetyEmergencyAllowed");
+        ExpectCampaignLoaderRejected(
+            "campaign phase without a safety duty",
+            root => Object(JsonArrayProperty(Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[0]!),
+                "operatingPhases")[0]!), "loads")[0]!)["obligation"] =
+                "operatingRecord");
+        ExpectCampaignLoaderRejected(
+            "campaign null decision windows",
+            root => Object(JsonArrayProperty(root, "chapters")[1]!)[
+                "decisionWindows"] = null);
+        ExpectCampaignLoaderRejected(
+            "campaign inert emergency fact template",
+            root => Object(Object(JsonArrayProperty(root, "chapters")[0]!)[
+                "resultFactTemplates"]!)["emergencyAsset"] = "unused");
+        ExpectCampaignLoaderRejected(
+            "campaign supplied fact token order",
+            root => Object(Object(JsonArrayProperty(root, "chapters")[0]!)[
+                "resultFactTemplates"]!)["suppliedLoad"] =
+                "{load} {phase} {source} {demandKw} {minimumRemainingKw}");
+        ExpectCampaignLoaderRejected(
+            "campaign promise fact in non-promise chapter",
+            root => Object(Object(JsonArrayProperty(root, "chapters")[0]!)[
+                "resultFactTemplates"]!)["keptPromise"] = "{promise}: 지킴");
+    }
+
+    private void CheckCommercialCampaignCanonicalRun()
+    {
+        var run = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CampaignRouteState routes = CompleteCampaignFirstLight(
+            run,
+            "canonical campaign");
+        routes = CompleteCampaignSecondHeart(
+            run,
+            routes,
+            secondCorridorSafe: false,
+            "canonical campaign");
+        routes = CompleteCampaignSecondSource(
+            run,
+            routes,
+            reinforced: true,
+            "canonical campaign");
+        CompleteCampaignNorthBank(
+            run,
+            routes,
+            CommercialPromiseDecision.Keep,
+            "canonical campaign");
+
+        CommercialCampaignSnapshot completed = run.GetSnapshot();
+        Check(completed.CampaignComplete,
+            "canonical campaign did not complete four chapters");
+        Equal(4, completed.CompletedChapterOutcomes.Count,
+            "canonical campaign outcome count");
+        SequenceEqual(
+            ["FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE", "NORTH_BANK_PROMISE"],
+            completed.CompletedChapterOutcomes.Select(item => item.ChapterId).ToArray(),
+            "canonical campaign outcome order");
+        Check(completed.CompletedChapterOutcomes.All(outcome =>
+                outcome.RenderedFacts.Count > 0 &&
+                outcome.RenderedFacts.All(fact =>
+                    !fact.Contains('{', StringComparison.Ordinal) &&
+                    !fact.Contains('}', StringComparison.Ordinal))),
+            "campaign outcome retained an unresolved fact token");
+        Equal(
+            CommercialPromiseDecision.Keep,
+            completed.CompletedChapterOutcomes[^1].PromiseDecision,
+            "canonical north-bank promise outcome");
+        Check(completed.CompletedChapterOutcomes[^1].RenderedFacts.Any(fact =>
+                fact == "북안 입주 일정: 지킴"),
+            "canonical outcome omitted kept promise fact");
+        Check(completed.CompletedChapterOutcomes[^1].Facts.Loads.Any(fact =>
+                fact.LoadId == "NORTH_RESIDENTIAL" &&
+                fact.DeliveredKw == fact.DemandKw),
+            "canonical outcome omitted actual north-bank delivery");
+    }
+
+    private CampaignRouteState CompleteCampaignFirstLight(
+        CommercialCampaignRun run,
+        string label)
+    {
+        CommercialCampaignSnapshot start = run.GetSnapshot();
+        Equal("FIRST_LIGHT", start.Chapter.ChapterId,
+            $"{label}: first-light chapter");
+        Equal(7, start.Construction.World.Nodes.Count,
+            $"{label}: first-light initial node count");
+        Equal(0, start.Construction.World.Edges.Count,
+            $"{label}: first-light initial edge count");
+        Check(!start.CanApprove && start.FirstBlockingFailure is not null,
+            $"{label}: first light did not require construction");
+        Equal(ThermalFailureKind.NoTopologyPath, start.FirstBlockingFailure!.Kind,
+            $"{label}: first-light initial failure");
+        CampaignRejectedPreserves(
+            run,
+            CommercialCoreCommand.SetNodeDraft(
+                "LARGE_SUBSTATION",
+                new MapPoint(2250, 700)),
+            CommercialCampaignRunError.ToolUnavailable,
+            null,
+            $"{label}: unavailable large substation");
+
+        string eastSubstationId = BuildCampaignNode(
+            run,
+            "SMALL_SUBSTATION",
+            new MapPoint(2250, 700),
+            $"{label}: east substation");
+        BuildCampaignLine(
+            run,
+            "WEST_SOURCE_NODE",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [
+                new MapPoint(750, 650),
+                new MapPoint(1050, 650),
+                new MapPoint(1600, 650),
+                new MapPoint(2050, 650),
+            ],
+            eastSubstationId,
+            $"{label}: west-to-east corridor");
+
+        DraftCampaignLine(
+            run,
+            eastSubstationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "EAST_RESIDENTIAL_TERMINAL",
+            $"{label}: east service line");
+        CommercialCampaignSnapshot draft = run.GetSnapshot();
+        Check(draft.ProjectionIncludesCurrentConstruction,
+            $"{label}: first-light draft omitted from projection");
+        ThermalIntervalEvaluation preview = CampaignProjection(
+            draft,
+            "FIRST_LIGHT_SUPPLY").Evaluation;
+        Equal(800L, Supply(preview, "EAST_RESIDENTIAL").DeliveredKw,
+            $"{label}: first-light draft delivery");
+        FinishCampaignLine(run, $"{label}: east service line");
+        Equal(
+            preview,
+            CampaignProjection(run.GetSnapshot(), "FIRST_LIGHT_SUPPLY").Evaluation,
+            $"{label}: first-light draft/complete projection equality");
+        Check(run.CommandCount > start.ChapterStartCommandCount,
+            $"{label}: first-light completed without work");
+        string carry = CampaignWorldSignature(run.GetSnapshot().Construction.World);
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            $"{label}: approve first light");
+        CommercialCampaignSnapshot secondHeart = run.GetSnapshot();
+        Equal("SECOND_HEART", secondHeart.Chapter.ChapterId,
+            $"{label}: second-heart transition");
+        Equal(carry, CampaignWorldSignature(secondHeart.Construction.World),
+            $"{label}: first-light network carry identity");
+        Equal(preview, secondHeart.LastOutcome!.Phases.Single().Evaluation,
+            $"{label}: first-light preview/approved result equality");
+        return new CampaignRouteState(eastSubstationId, null, null);
+    }
+
+    private CampaignRouteState CompleteCampaignSecondHeart(
+        CommercialCampaignRun run,
+        CampaignRouteState routes,
+        bool secondCorridorSafe,
+        string label)
+    {
+        CommercialCampaignSnapshot start = run.GetSnapshot();
+        Equal("SECOND_HEART", start.Chapter.ChapterId,
+            $"{label}: second-heart chapter");
+        Equal(
+            new CommercialCampaignConnectionFailure("HOSPITAL_TERMINAL", 0, 2),
+            start.ConnectionFailures.Single(),
+            $"{label}: hospital initial connection failure");
+        Check(!start.CanApprove && start.FirstBlockingFailure is not null,
+            $"{label}: second heart did not require construction");
+
+        string highSubstationId = BuildCampaignNode(
+            run,
+            "SMALL_SUBSTATION",
+            new MapPoint(2200, 1250),
+            $"{label}: high hospital substation");
+        string secondSubstationId = BuildCampaignNode(
+            run,
+            "SMALL_SUBSTATION",
+            new MapPoint(2300, 1550),
+            $"{label}: second hospital substation");
+        BuildCampaignLine(
+            run,
+            "WEST_SOURCE_NODE",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [
+                new MapPoint(650, 900),
+                new MapPoint(1050, 900),
+                new MapPoint(1650, 900),
+                new MapPoint(2050, 900),
+            ],
+            highSubstationId,
+            $"{label}: high hospital corridor",
+            quote => Equal(0, quote.RiskAreaIds.Count,
+                $"{label}: high corridor risk exposure"));
+
+        IReadOnlyList<MapPoint> secondPoints = secondCorridorSafe
+            ? [
+                new MapPoint(650, 750),
+                new MapPoint(1050, 750),
+                new MapPoint(1650, 750),
+                new MapPoint(1950, 750),
+                new MapPoint(2450, 1000),
+            ]
+            : [
+                new MapPoint(650, 1080),
+                new MapPoint(1050, 1200),
+                new MapPoint(1150, 1500),
+                new MapPoint(1725, 1500),
+                new MapPoint(2050, 1550),
+            ];
+        BuildCampaignLine(
+            run,
+            "WEST_SOURCE_NODE",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            secondPoints,
+            secondSubstationId,
+            $"{label}: second hospital corridor",
+            quote =>
+            {
+                if (secondCorridorSafe)
+                {
+                    Equal(0, quote.RiskAreaIds.Count,
+                        $"{label}: two-safe corridor risk exposure");
+                }
+                else
+                {
+                    SequenceEqual(["RIVER_FLOOD_ZONE"], quote.RiskAreaIds,
+                        $"{label}: cheap corridor risk exposure");
+                }
+            });
+
+        BuildCampaignLine(
+            run,
+            highSubstationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "HOSPITAL_TERMINAL",
+            $"{label}: high hospital service line");
+        CommercialCampaignSnapshot oneConnection = run.GetSnapshot();
+        Equal(
+            new CommercialCampaignConnectionFailure("HOSPITAL_TERMINAL", 1, 2),
+            oneConnection.ConnectionFailures.Single(),
+            $"{label}: one hospital connection detail");
+        CampaignRejectedPreserves(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            CommercialCampaignRunError.ConnectionRequirementUnmet,
+            new CommercialCampaignConnectionFailure("HOSPITAL_TERMINAL", 1, 2),
+            $"{label}: hospital two-connection approval gate");
+
+        DraftCampaignLine(
+            run,
+            secondSubstationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "HOSPITAL_TERMINAL",
+            $"{label}: second hospital service line");
+        CommercialCampaignSnapshot draft = run.GetSnapshot();
+        Check(draft.ProjectionIncludesCurrentConstruction,
+            $"{label}: second hospital line omitted from projection");
+        Equal(0, draft.ConnectionFailures.Count,
+            $"{label}: projected second connection not counted");
+        ThermalIntervalEvaluation[] previews = draft.Projections
+            .Select(item => item.Evaluation)
+            .ToArray();
+        Equal(900L, Supply(previews[0], "HOSPITAL").DeliveredKw,
+            $"{label}: hospital transfer-test preview");
+        Equal(900L, Supply(previews[1], "HOSPITAL").DeliveredKw,
+            $"{label}: hospital flood-test preview");
+        FinishCampaignLine(run, $"{label}: second hospital service line");
+        Check(run.CommandCount > start.ChapterStartCommandCount,
+            $"{label}: second heart completed without work");
+        string carry = CampaignWorldSignature(run.GetSnapshot().Construction.World);
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            $"{label}: approve second heart");
+        CommercialCampaignSnapshot secondSource = run.GetSnapshot();
+        Equal("SECOND_SOURCE", secondSource.Chapter.ChapterId,
+            $"{label}: second-source transition");
+        Equal(carry, CampaignWorldSignature(secondSource.Construction.World),
+            $"{label}: second-heart network carry identity");
+        SequenceEqual(
+            previews,
+            secondSource.LastOutcome!.Phases.Select(item => item.Evaluation).ToArray(),
+            $"{label}: second-heart preview/approved result equality");
+        return routes with
+        {
+            HospitalHighSubstationId = highSubstationId,
+            HospitalSecondSubstationId = secondSubstationId,
+        };
+    }
+
+    private CampaignRouteState CompleteCampaignSecondSource(
+        CommercialCampaignRun run,
+        CampaignRouteState routes,
+        bool reinforced,
+        string label)
+    {
+        CommercialCampaignSnapshot start = run.GetSnapshot();
+        Equal("SECOND_SOURCE", start.Chapter.ChapterId,
+            $"{label}: second-source chapter");
+        Check(!start.CanApprove && start.FirstBlockingFailure is not null,
+            $"{label}: second source did not require construction");
+        string lineClassId = reinforced ? "REINFORCED_LINE" : "STANDARD_LINE";
+        string poleClassId = reinforced ? "REINFORCED_POLE" : "STANDARD_POLE";
+        BuildCampaignLine(
+            run,
+            "SOUTH_SOURCE_NODE",
+            lineClassId,
+            poleClassId,
+            [
+                new MapPoint(700, 1650),
+                new MapPoint(1150, 1650),
+                new MapPoint(1750, 1650),
+                new MapPoint(2050, 1450),
+            ],
+            routes.HospitalHighSubstationId!,
+            $"{label}: south-source main corridor");
+        DraftCampaignLine(
+            run,
+            routes.HospitalHighSubstationId!,
+            lineClassId,
+            poleClassId,
+            Array.Empty<MapPoint>(),
+            routes.EastSubstationId,
+            $"{label}: south-to-east tie");
+        CommercialCampaignSnapshot draft = run.GetSnapshot();
+        Check(draft.ProjectionIncludesCurrentConstruction,
+            $"{label}: south-to-east tie omitted from projection");
+        ThermalIntervalEvaluation[] previews = draft.Projections
+            .Select(item => item.Evaluation)
+            .ToArray();
+        Equal("WEST_GENERATION", Supply(previews[0], "EAST_RESIDENTIAL").SourceId,
+            $"{label}: west-main test source");
+        Equal("SOUTH_GENERATION", Supply(previews[1], "HOSPITAL").SourceId,
+            $"{label}: south-source test source");
+        Equal(800L, Supply(previews[1], "EAST_RESIDENTIAL").DeliveredKw,
+            $"{label}: south-source east delivery");
+        FinishCampaignLine(run, $"{label}: south-to-east tie");
+        Check(run.CommandCount > start.ChapterStartCommandCount,
+            $"{label}: second source completed without work");
+        long beforeTransitionMinute = run.GetSnapshot().Minute;
+        string carry = CampaignWorldSignature(run.GetSnapshot().Construction.World);
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            $"{label}: approve second source");
+        CommercialCampaignSnapshot northBank = run.GetSnapshot();
+        Equal("NORTH_BANK_PROMISE", northBank.Chapter.ChapterId,
+            $"{label}: north-bank transition");
+        Equal(carry, CampaignWorldSignature(northBank.Construction.World),
+            $"{label}: second-source network carry identity");
+        Equal(checked(beforeTransitionMinute + 262800L), northBank.Minute,
+            $"{label}: six-month transition minute");
+        Equal(ThermalState.Empty, northBank.ThermalState,
+            $"{label}: six-month thermal reset");
+        SequenceEqual(
+            previews,
+            northBank.LastOutcome!.Phases.Select(item => item.Evaluation).ToArray(),
+            $"{label}: second-source preview/approved result equality");
+        return routes;
+    }
+
+    private void CompleteCampaignNorthBank(
+        CommercialCampaignRun run,
+        CampaignRouteState routes,
+        CommercialPromiseDecision decision,
+        string label)
+    {
+        CommercialCampaignSnapshot start = run.GetSnapshot();
+        Equal("NORTH_BANK_PROMISE", start.Chapter.ChapterId,
+            $"{label}: north-bank chapter");
+        Check(!start.CanApprove,
+            $"{label}: north bank approved without promise/work");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetPromiseDecision(decision),
+            $"{label}: set north-bank promise");
+
+        if (decision == CommercialPromiseDecision.Defer)
+        {
+            DraftCampaignLine(
+                run,
+                routes.EastSubstationId,
+                "STANDARD_LINE",
+                "STANDARD_POLE",
+                Array.Empty<MapPoint>(),
+                "WATER_TERMINAL",
+                $"{label}: deferred water service line");
+        }
+        else
+        {
+            string northLargeSubstationId = BuildCampaignNode(
+                run,
+                "LARGE_SUBSTATION",
+                new MapPoint(2050, 400),
+                $"{label}: north-bank large substation");
+            BuildCampaignLine(
+                run,
+                routes.EastSubstationId,
+                "REINFORCED_LINE",
+                "REINFORCED_POLE",
+                Array.Empty<MapPoint>(),
+                northLargeSubstationId,
+                $"{label}: north-bank reinforced feed");
+            BuildCampaignLine(
+                run,
+                northLargeSubstationId,
+                "REINFORCED_LINE",
+                "REINFORCED_POLE",
+                [
+                    new MapPoint(2100, 600),
+                    new MapPoint(2500, 460),
+                ],
+                "NORTH_RESIDENTIAL_TERMINAL",
+                $"{label}: north residential service line");
+            DraftCampaignLine(
+                run,
+                northLargeSubstationId,
+                "STANDARD_LINE",
+                "STANDARD_POLE",
+                Array.Empty<MapPoint>(),
+                "WATER_TERMINAL",
+                $"{label}: north-bank water service line");
+        }
+
+        CommercialCampaignSnapshot draft = run.GetSnapshot();
+        Check(draft.ProjectionIncludesCurrentConstruction,
+            $"{label}: north-bank final draft omitted from projection");
+        ThermalIntervalEvaluation[] previews = draft.Projections
+            .Select(item => item.Evaluation)
+            .ToArray();
+        Equal(900L, Supply(previews[1], "WATERWORKS").DeliveredKw,
+            $"{label}: heat-forecast water delivery");
+        if (decision == CommercialPromiseDecision.Keep)
+        {
+            Equal(1100L, Supply(previews[1], "NORTH_RESIDENTIAL").DeliveredKw,
+                $"{label}: heat-forecast north delivery");
+        }
+        else
+        {
+            Check(!previews[1].Loads.Any(item => item.LoadId == "NORTH_RESIDENTIAL"),
+                $"{label}: deferred north load entered dispatch");
+        }
+        FinishCampaignLine(run, $"{label}: north-bank final line");
+        Check(run.CommandCount > start.ChapterStartCommandCount,
+            $"{label}: north bank completed without work");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            $"{label}: approve north bank");
+        CommercialCampaignSnapshot complete = run.GetSnapshot();
+        Check(complete.CampaignComplete,
+            $"{label}: north-bank approval did not complete campaign");
+        Equal(decision, complete.LastOutcome!.PromiseDecision,
+            $"{label}: north-bank promise outcome");
+        SequenceEqual(
+            previews,
+            complete.LastOutcome.Phases.Select(item => item.Evaluation).ToArray(),
+            $"{label}: north-bank preview/approved result equality");
+    }
+
+    private void CheckCommercialCampaignArchetypesAndRecovery()
+    {
+        var twoSafe = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CampaignRouteState routes = CompleteCampaignFirstLight(
+            twoSafe,
+            "two-safe archetype");
+        routes = CompleteCampaignSecondHeart(
+            twoSafe,
+            routes,
+            secondCorridorSafe: true,
+            "two-safe archetype");
+        Equal("SECOND_SOURCE", twoSafe.GetSnapshot().Chapter.ChapterId,
+            "two-safe hospital design did not clear the flood test");
+        Equal(900L, twoSafe.GetSnapshot().LastOutcome!.Facts.Loads.Single(fact =>
+                fact.PhaseId == "FLOOD_ISOLATION_TEST" &&
+                fact.LoadId == "HOSPITAL").DeliveredKw,
+            "two-safe hospital flood-test outcome");
+
+        var reinforced = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            twoSafe.Commands);
+        CampaignRouteState standardRoutes = CompleteCampaignSecondSource(
+            twoSafe,
+            routes,
+            reinforced: false,
+            "standard second-source archetype");
+        CompleteCampaignSecondSource(
+            reinforced,
+            routes,
+            reinforced: true,
+            "reinforced second-source archetype");
+        CommercialCampaignSnapshot standardStart = twoSafe.GetSnapshot();
+        CommercialCampaignSnapshot reinforcedStart = reinforced.GetSnapshot();
+        Check(standardStart.CashUnit > reinforcedStart.CashUnit,
+            "standard second-source corridor did not preserve more cash");
+        long standardMargin = standardStart.LastOutcome!.Facts.Loads.Single(fact =>
+            fact.PhaseId == "SOUTH_SOURCE_COMMISSIONING_TEST" &&
+            fact.LoadId == "EAST_RESIDENTIAL").MinimumRemainingKw!.Value;
+        long reinforcedMargin = reinforcedStart.LastOutcome!.Facts.Loads.Single(fact =>
+            fact.PhaseId == "SOUTH_SOURCE_COMMISSIONING_TEST" &&
+            fact.LoadId == "EAST_RESIDENTIAL").MinimumRemainingKw!.Value;
+        Check(reinforcedMargin > standardMargin,
+            "reinforced second-source corridor did not buy more heat margin");
+
+        CampaignAccepted(
+            twoSafe,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Keep),
+            "promise recovery: keep north-bank promise");
+        BuildCampaignLine(
+            twoSafe,
+            standardRoutes.EastSubstationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "WATER_TERMINAL",
+            "promise recovery: water-only construction");
+        CommercialCampaignSnapshot keptFailure = twoSafe.GetSnapshot();
+        Equal(ThermalFailureKind.NoTopologyPath, keptFailure.FirstBlockingFailure!.Kind,
+            "promise recovery: missing north-bank path diagnostic");
+        CampaignRejectedPreserves(
+            twoSafe,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            CommercialCampaignRunError.KeptPromiseUnserved,
+            null,
+            "promise recovery: kept promise without north route");
+        CampaignAccepted(
+            twoSafe,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Defer),
+            "promise recovery: defer north-bank promise");
+        ThermalIntervalEvaluation[] deferredPreview = twoSafe.GetSnapshot().Projections
+            .Select(item => item.Evaluation)
+            .ToArray();
+        CampaignAccepted(
+            twoSafe,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "promise recovery: approve deferred north-bank plan");
+        CommercialCampaignSnapshot deferred = twoSafe.GetSnapshot();
+        Check(deferred.CampaignComplete,
+            "deferred north-bank recovery did not complete campaign");
+        Equal(CommercialPromiseDecision.Defer, deferred.LastOutcome!.PromiseDecision,
+            "deferred north-bank recovery outcome");
+        Check(deferred.LastOutcome.RenderedFacts.Contains("북안 입주 일정: 미룸"),
+            "deferred promise fact missing");
+        Check(!deferred.LastOutcome.Facts.Loads.Any(fact =>
+                fact.LoadId == "NORTH_RESIDENTIAL"),
+            "deferred north load entered committed facts");
+        SequenceEqual(
+            deferredPreview,
+            deferred.LastOutcome.Phases.Select(item => item.Evaluation).ToArray(),
+            "deferred north-bank preview/approved result equality");
+    }
+
+    private void CheckCommercialCampaignRewindAndReplay()
+    {
+        var recent = new CommercialCampaignRun(_campaign, _commercialWorld);
+        string recentStart = CampaignStateJson(recent.GetSnapshot());
+        BuildCampaignNode(
+            recent,
+            "SMALL_SUBSTATION",
+            new MapPoint(2250, 700),
+            "campaign recent rollback node");
+        Check(recent.GetSnapshot().CanRollbackRecentProject,
+            "campaign recent project rollback unavailable");
+        Check(recent.UndoRecentConstruction(),
+            "campaign recent project rollback rejected");
+        Equal(recentStart, CampaignStateJson(recent.GetSnapshot()),
+            "campaign recent project rollback state");
+        Equal(0, recent.CommandCount,
+            "campaign recent project rollback journal prefix");
+
+        var window = new CommercialCampaignRun(_campaign, _commercialWorld);
+        string windowStart = CampaignStateJson(window.GetSnapshot());
+        BuildCampaignNode(
+            window,
+            "SMALL_SUBSTATION",
+            new MapPoint(2250, 700),
+            "campaign window restart node");
+        Check(window.RestartDecisionWindow(),
+            "campaign decision-window restart rejected");
+        Equal(windowStart, CampaignStateJson(window.GetSnapshot()),
+            "campaign decision-window restart state");
+
+        var chapter = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CampaignRouteState routes = CompleteCampaignFirstLight(
+            chapter,
+            "campaign chapter restart setup");
+        string secondHeartStart = CampaignStateJson(chapter.GetSnapshot());
+        BuildCampaignNode(
+            chapter,
+            "SMALL_SUBSTATION",
+            new MapPoint(2200, 1250),
+            "campaign chapter restart node");
+        Check(chapter.RestartChapter(), "campaign chapter restart rejected");
+        Equal(secondHeartStart, CampaignStateJson(chapter.GetSnapshot()),
+            "campaign chapter restart state");
+
+        routes = CompleteCampaignSecondHeart(
+            chapter,
+            routes,
+            secondCorridorSafe: false,
+            "campaign previous rewind setup");
+        CommercialCampaignCommandResult acceptedDraft = chapter.Execute(
+            CommercialCoreCommand.SetNodeDraft(
+                "LARGE_SUBSTATION",
+                new MapPoint(2050, 400)));
+        Check(acceptedDraft.Accepted,
+            "campaign previous rewind current-chapter mutation rejected");
+        Check(chapter.RewindToPreviousChapter(),
+            "campaign previous-chapter rewind rejected");
+        CommercialCampaignSnapshot rewound = chapter.GetSnapshot();
+        Equal("SECOND_HEART", rewound.Chapter.ChapterId,
+            "campaign previous-chapter rewind target");
+        Equal(secondHeartStart, CampaignStateJson(rewound),
+            "campaign previous-chapter rewind state");
+        Equal(1, rewound.CompletedChapterOutcomes.Count,
+            "campaign previous-chapter rewind outcome prefix");
+
+        CommercialCampaignRun replayed = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            chapter.Commands);
+        Equal(CampaignStateJson(chapter.GetSnapshot()), CampaignStateJson(replayed.GetSnapshot()),
+            "campaign fresh replay state equality");
+        SequenceEqual(chapter.Commands, replayed.Commands,
+            "campaign fresh replay journal equality");
+    }
+
+    private void CheckCommercialCampaignWindowSafety()
+    {
+        CommercialCoreSeedDefinition fullSeed = new(
+            "WINDOW_SAFETY_FULL_SEED",
+            1020,
+            8500000,
+            _commercialWorld.Nodes.Select(item => item.NodeId)
+                .OrderBy(item => item, StringComparer.Ordinal)
+                .ToArray(),
+            _commercialWorld.Edges.Select(item => item.EdgeId)
+                .OrderBy(item => item, StringComparer.Ordinal)
+                .ToArray(),
+            Array.Empty<SpatialNodeDefinition>(),
+            Array.Empty<SpatialEdgeDefinition>(),
+            Array.Empty<string>());
+        CommercialOperatingPhaseDefinition currentPhase =
+            _campaign.Chapters[0].OperatingPhases[0];
+        CommercialOperatingPhaseDefinition futurePhase = currentPhase with
+        {
+            PhaseId = "FUTURE_NORTH_SUPPLY",
+            DisplayName = "다음 경계 북안 공급",
+            Story = null,
+            Loads =
+            [
+                new CommercialLoadBundleDefinition(
+                    "NORTH_RESIDENTIAL",
+                    500,
+                    CommercialObligationKind.SafetyDuty),
+            ],
+            UnavailableNodeIds = Array.Empty<string>(),
+        };
+        CommercialCampaignChapterDefinition first = _campaign.Chapters[0] with
+        {
+            DecisionWindows =
+            [
+                new CommercialDecisionWindowDefinition(
+                    "CURRENT_SUPPLY_WINDOW",
+                    currentPhase.PhaseId,
+                    null,
+                    null),
+                new CommercialDecisionWindowDefinition(
+                    "FUTURE_NORTH_BUILD_WINDOW",
+                    futurePhase.PhaseId,
+                    null,
+                    null),
+            ],
+            OperatingPhases = [currentPhase, futurePhase],
+        };
+        var definition = _campaign with
+        {
+            InitialSeed = fullSeed,
+            Chapters = [first, .. _campaign.Chapters.Skip(1)],
+        };
+        CommercialCampaignLoader.Validate(definition, _commercialWorld);
+        var run = new CommercialCampaignRun(definition, _commercialWorld);
+        CommercialCampaignSnapshot firstWindow = run.GetSnapshot();
+        Equal(800L, Supply(
+                CampaignProjection(firstWindow, "FIRST_LIGHT_SUPPLY").Evaluation,
+                "EAST_RESIDENTIAL").DeliveredKw,
+            "window safety current delivery");
+        Equal(0L, Supply(
+                CampaignProjection(firstWindow, "FUTURE_NORTH_SUPPLY").Evaluation,
+                "NORTH_RESIDENTIAL").DeliveredKw,
+            "window safety future disconnected delivery");
+        Check(firstWindow.FirstBlockingFailure is null && firstWindow.CanApprove,
+            "future topology work incorrectly blocked the current window");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "window safety approve current phase");
+        CommercialCampaignSnapshot futureWindow = run.GetSnapshot();
+        Equal("FUTURE_NORTH_BUILD_WINDOW", futureWindow.CurrentWindow!.WindowId,
+            "window safety second decision boundary");
+        Check(!futureWindow.CanApprove &&
+                futureWindow.FirstBlockingFailure?.Kind == ThermalFailureKind.NoTopologyPath,
+            "window safety missing second-window construction requirement");
+        BuildCampaignLine(
+            run,
+            "EAST_SUBSTATION",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [new MapPoint(2550, 450)],
+            "NORTH_RESIDENTIAL_TERMINAL",
+            "window safety future north line");
+        Check(run.GetSnapshot().CanApprove,
+            "window safety future construction did not clear approval");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "window safety approve future phase");
+        Equal("SECOND_HEART", run.GetSnapshot().Chapter.ChapterId,
+            "window safety did not finish the two-window chapter");
+        Equal(2, run.GetSnapshot().LastOutcome!.Phases.Count,
+            "window safety committed phase count");
+    }
+
+    private void CheckCommercialCampaignSaveV3()
+    {
+        var run = new CommercialCampaignRun(_campaign, _commercialWorld);
+        _ = CompleteCampaignFirstLight(run, "campaign save setup");
+        string campaignSha256 = LowerSha256(_campaignBytes);
+        string worldSha256 = LowerSha256(_worldBytes);
+        CommercialCampaignSave save = CommercialCampaignSaveCodec.Capture(
+            _campaign,
+            _commercialWorld,
+            campaignSha256,
+            worldSha256,
+            run);
+        Equal(CommercialCampaignSave.SupportedSchemaVersion, save.SchemaVersion,
+            "campaign save schema");
+        Equal(_campaign.CampaignId, save.CampaignId,
+            "campaign save campaign identity");
+        Equal(campaignSha256, save.CampaignSha256,
+            "campaign save campaign hash");
+        Equal(_commercialWorld.WorldId, save.WorldId,
+            "campaign save world identity");
+        Equal(worldSha256, save.WorldSha256,
+            "campaign save world hash");
+        SequenceEqual(run.Commands, save.Commands,
+            "campaign save command journal");
+
+        byte[] firstBytes = CommercialCampaignSaveCodec.Serialize(save);
+        byte[] secondBytes = CommercialCampaignSaveCodec.Serialize(save);
+        void ExpectCampaignSaveRejected(string label, Action<JsonObject> mutate)
+        {
+            JsonObject candidate = JsonNode.Parse(firstBytes)!.AsObject();
+            mutate(candidate);
+            ExpectThrows<CommercialCampaignPersistenceException>(
+                () => CommercialCampaignSaveCodec.Deserialize(candidate.ToJsonString()),
+                label);
+        }
+        Check(firstBytes.SequenceEqual(secondBytes),
+            "campaign save serialization is not deterministic");
+        Equal(save, CommercialCampaignSaveCodec.Deserialize(firstBytes),
+            "campaign save byte round trip");
+        Equal(
+            save,
+            CommercialCampaignSaveCodec.Deserialize(Encoding.UTF8.GetString(firstBytes)),
+            "campaign save text round trip");
+        using (JsonDocument document = JsonDocument.Parse(firstBytes))
+        {
+            HashSet<string> fields = document.RootElement.EnumerateObject()
+                .Select(item => item.Name)
+                .ToHashSet(StringComparer.Ordinal);
+            Check(fields.SetEquals(
+                [
+                    "schemaVersion",
+                    "campaignId",
+                    "campaignSha256",
+                    "worldId",
+                    "worldSha256",
+                    "commands",
+                ]),
+                "campaign save root is not the exact six-field shape");
+        }
+
+        CommercialCampaignRun restored = CommercialCampaignSaveCodec.Restore(
+            _campaign,
+            _commercialWorld,
+            campaignSha256,
+            worldSha256,
+            save);
+        Equal(CampaignStateJson(run.GetSnapshot()), CampaignStateJson(restored.GetSnapshot()),
+            "campaign save fresh restore snapshot");
+        SequenceEqual(run.Commands, restored.Commands,
+            "campaign save fresh restore journal");
+        ExpectThrows<CommercialCampaignPersistenceException>(
+            () => CommercialCampaignSaveCodec.Restore(
+                _campaign,
+                _commercialWorld,
+                new string('0', 64),
+                worldSha256,
+                save),
+            "campaign save hash mismatch");
+        ExpectThrows<CommercialCampaignPersistenceException>(
+            () => CommercialCampaignSaveCodec.Restore(
+                _campaign,
+                _commercialWorld,
+                campaignSha256,
+                worldSha256,
+                save with { CampaignId = "OTHER_CAMPAIGN" }),
+            "campaign save campaign identity mismatch");
+        ExpectThrows<CommercialCampaignPersistenceException>(
+            () => CommercialCampaignSaveCodec.Restore(
+                _campaign,
+                _commercialWorld,
+                campaignSha256,
+                worldSha256,
+                save with { WorldId = "OTHER_WORLD" }),
+            "campaign save world identity mismatch");
+
+        string firstText = Encoding.UTF8.GetString(firstBytes);
+        ExpectThrows<CommercialCampaignPersistenceException>(
+            () =>
+            {
+                string trimmed = firstText.TrimStart();
+                _ = CommercialCampaignSaveCodec.Deserialize(
+                    $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
+            },
+            "campaign save duplicate root property");
+        ExpectCampaignSaveRejected(
+            "campaign save unknown root field",
+            root => root["unexpected"] = true);
+        ExpectCampaignSaveRejected(
+            "campaign save missing root field",
+            root => root.Remove("campaignId"));
+        ExpectCampaignSaveRejected(
+            "campaign save null command journal",
+            root => root["commands"] = null);
+        ExpectCampaignSaveRejected(
+            "campaign save unknown command kind",
+            root => Object(JsonArrayProperty(root, "commands")[0]!)["kind"] =
+                "futureCommand");
+        ExpectCampaignSaveRejected(
+            "campaign save extra command field",
+            root => Object(JsonArrayProperty(root, "commands")[0]!)["unexpected"] = true);
+        ExpectThrows<CommercialCampaignPersistenceException>(
+            () =>
+            {
+                JsonObject candidate = JsonNode.Parse(firstBytes)!.AsObject();
+                Object(JsonArrayProperty(candidate, "commands")[0]!)["firstId"] =
+                    "UNKNOWN_NODE_CLASS";
+                CommercialCampaignSave invalidReplay =
+                    CommercialCampaignSaveCodec.Deserialize(candidate.ToJsonString());
+                _ = CommercialCampaignSaveCodec.Restore(
+                    _campaign,
+                    _commercialWorld,
+                    campaignSha256,
+                    worldSha256,
+                    invalidReplay);
+            },
+            "campaign save invalid replay command");
+
+        string coreSliceSha256 = LowerSha256(_coreSliceBytes);
+        var stageDRun = new CommercialCoreSliceRun(_coreSlice, _commercialWorld);
+        CommercialCoreSave stageDSave = CommercialCoreSaveCodec.Capture(
+            _coreSlice,
+            _commercialWorld,
+            coreSliceSha256,
+            worldSha256,
+            stageDRun);
+        byte[] stageDBytes = CommercialCoreSaveCodec.Serialize(stageDSave);
+        ExpectThrows<CommercialCampaignPersistenceException>(
+            () => CommercialCampaignSaveCodec.Deserialize(stageDBytes),
+            "Stage-D save decoded as final campaign save");
+
+        string temporaryDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"gridworks-campaign-save-check-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temporaryDirectory);
+        try
+        {
+            string savePath = Path.Combine(
+                temporaryDirectory,
+                "release-campaign-save-v3.json");
+            Equal(
+                CommercialCampaignSaveLoadStatus.Missing,
+                CommercialCampaignSaveStore.Load(savePath).Status,
+                "campaign store missing status");
+
+            File.WriteAllBytes(savePath, stageDBytes);
+            Equal(
+                CommercialCampaignSaveLoadStatus.RecognizedStageD,
+                CommercialCampaignSaveStore.Load(savePath).Status,
+                "campaign store Stage-D recognition");
+            string digest12 = LowerSha256(stageDBytes)[..12];
+            string expectedBackupPath = Path.Combine(
+                temporaryDirectory,
+                $"release-campaign-save-v3.stage-d.{digest12}.bak.json");
+            CommercialCampaignSaveWriteResult migrated =
+                CommercialCampaignSaveStore.SaveWithStageDBackup(savePath, save);
+            Equal(
+                CommercialCampaignSaveWriteStatus.SavedAfterStageDBackup,
+                migrated.Status,
+                "campaign Stage-D migration status");
+            Equal(expectedBackupPath, migrated.StageDBackupPath,
+                "campaign deterministic Stage-D backup path");
+            Check(File.ReadAllBytes(expectedBackupPath).SequenceEqual(stageDBytes),
+                "campaign Stage-D backup bytes");
+            Equal(
+                CommercialCampaignSaveLoadStatus.Loaded,
+                CommercialCampaignSaveStore.Load(savePath).Status,
+                "campaign migrated active save status");
+
+            File.WriteAllBytes(savePath, stageDBytes);
+            CommercialCampaignSaveWriteResult repeated =
+                CommercialCampaignSaveStore.SaveWithStageDBackup(savePath, save);
+            Equal(
+                CommercialCampaignSaveWriteStatus.SavedAfterStageDBackup,
+                repeated.Status,
+                "campaign idempotent Stage-D preservation status");
+            Equal(expectedBackupPath, repeated.StageDBackupPath,
+                "campaign idempotent Stage-D backup path");
+            Check(File.ReadAllBytes(expectedBackupPath).SequenceEqual(stageDBytes),
+                "campaign idempotent Stage-D backup bytes");
+
+            string conflictDirectory = Path.Combine(temporaryDirectory, "conflict");
+            Directory.CreateDirectory(conflictDirectory);
+            string conflictPath = Path.Combine(conflictDirectory, "save.json");
+            File.WriteAllBytes(conflictPath, stageDBytes);
+            string conflictBackup = Path.Combine(
+                conflictDirectory,
+                $"save.stage-d.{digest12}.bak.json");
+            File.WriteAllText(conflictBackup, "different preserved bytes");
+            CommercialCampaignSaveWriteResult conflict =
+                CommercialCampaignSaveStore.SaveWithStageDBackup(conflictPath, save);
+            Equal(CommercialCampaignSaveWriteStatus.Failed, conflict.Status,
+                "campaign Stage-D backup conflict status");
+            Equal(CommercialCampaignSaveWriteError.StageDBackupConflict, conflict.Error,
+                "campaign Stage-D backup conflict error");
+            Check(File.ReadAllBytes(conflictPath).SequenceEqual(stageDBytes),
+                "campaign backup conflict overwrote active Stage-D save");
+
+            string blockedDirectory = Path.Combine(temporaryDirectory, "blocked");
+            Directory.CreateDirectory(blockedDirectory);
+            string blockedPath = Path.Combine(blockedDirectory, "save.json");
+            File.WriteAllBytes(blockedPath, stageDBytes);
+            string blockedBackup = Path.Combine(
+                blockedDirectory,
+                $"save.stage-d.{digest12}.bak.json");
+            Directory.CreateDirectory(blockedBackup);
+            CommercialCampaignSaveWriteResult blocked =
+                CommercialCampaignSaveStore.SaveWithStageDBackup(blockedPath, save);
+            Equal(CommercialCampaignSaveWriteStatus.Failed, blocked.Status,
+                "campaign Stage-D preservation failure status");
+            Equal(CommercialCampaignSaveWriteError.StageDBackupFailed, blocked.Error,
+                "campaign Stage-D preservation failure error");
+            Check(File.ReadAllBytes(blockedPath).SequenceEqual(stageDBytes),
+                "campaign preservation failure overwrote active Stage-D save");
+
+            string malformedPath = Path.Combine(temporaryDirectory, "malformed.json");
+            byte[] malformedStageD = Encoding.UTF8.GetBytes(
+                $"{{\"schemaVersion\":\"{CommercialCoreSave.SupportedSchemaVersion}\"}}");
+            File.WriteAllBytes(malformedPath, malformedStageD);
+            Equal(
+                CommercialCampaignSaveLoadStatus.Invalid,
+                CommercialCampaignSaveStore.Load(malformedPath).Status,
+                "campaign malformed Stage-D status");
+            CommercialCampaignSaveWriteResult malformed =
+                CommercialCampaignSaveStore.SaveWithStageDBackup(malformedPath, save);
+            Equal(CommercialCampaignSaveWriteStatus.Failed, malformed.Status,
+                "campaign malformed Stage-D write status");
+            Equal(CommercialCampaignSaveWriteError.InvalidExistingSave, malformed.Error,
+                "campaign malformed Stage-D write error");
+            Check(File.ReadAllBytes(malformedPath).SequenceEqual(malformedStageD),
+                "campaign malformed Stage-D save was overwritten");
+
+            string freshPath = Path.Combine(temporaryDirectory, "fresh.json");
+            File.WriteAllText(freshPath + ".tmp", "stale campaign temporary save");
+            CommercialCampaignSaveWriteResult fresh =
+                CommercialCampaignSaveStore.SaveWithStageDBackup(freshPath, save);
+            Equal(CommercialCampaignSaveWriteStatus.Saved, fresh.Status,
+                "campaign fresh save status");
+            Check(!File.Exists(freshPath + ".tmp"),
+                "campaign stale temporary file survived atomic save");
+            Equal(save, CommercialCampaignSaveStore.Load(freshPath).Save,
+                "campaign fresh stored value");
+            var emptyRun = new CommercialCampaignRun(_campaign, _commercialWorld);
+            CommercialCampaignSave emptySave = CommercialCampaignSaveCodec.Capture(
+                _campaign,
+                _commercialWorld,
+                campaignSha256,
+                worldSha256,
+                emptyRun);
+            CommercialCampaignSaveWriteResult overwritten =
+                CommercialCampaignSaveStore.SaveWithStageDBackup(freshPath, emptySave);
+            Equal(CommercialCampaignSaveWriteStatus.Saved, overwritten.Status,
+                "campaign overwrite status");
+            Equal(emptySave, CommercialCampaignSaveStore.Load(freshPath).Save,
+                "campaign overwrite value");
+        }
+        finally
+        {
+            Directory.Delete(temporaryDirectory, recursive: true);
+        }
+    }
+
+    private string BuildCampaignNode(
+        CommercialCampaignRun run,
+        string nodeClassId,
+        MapPoint position,
+        string label)
+    {
+        HashSet<string> before = run.GetSnapshot().Construction.World.Nodes
+            .Select(item => item.NodeId)
+            .ToHashSet(StringComparer.Ordinal);
+        NodePlacementPreview preview = run.PreviewNodePlacement(nodeClassId, position);
+        Check(preview.Accepted,
+            $"{label}: preview rejected with {preview.Error}");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetNodeDraft(nodeClassId, position),
+            $"{label}: set draft");
+        CommercialCampaignProjectQuote quote = run.PreviewNodeOrder();
+        Check(quote.Accepted && quote.Error is null && quote.ConstructionError is null,
+            $"{label}: quote rejected with {quote.Error}/{quote.ConstructionError}");
+        Check(quote.CostCashUnit is > 0 && quote.BuildMinutes is > 0,
+            $"{label}: node quote lacks positive cost/time");
+        CampaignAccepted(run, CommercialCoreCommand.OrderNode(), $"{label}: order");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.AdvanceConstruction(),
+            $"{label}: complete");
+        SpatialNodeDefinition node = run.GetSnapshot().Construction.World.Nodes.Single(item =>
+            !before.Contains(item.NodeId));
+        Equal(nodeClassId, node.ClassId, $"{label}: completed node class");
+        Equal(position, node.Position, $"{label}: completed node position");
+        Check(node.Commissioned, $"{label}: completed node remains uncommissioned");
+        return node.NodeId;
+    }
+
+    private CommercialCampaignProjectQuote DraftCampaignLine(
+        CommercialCampaignRun run,
+        string startNodeId,
+        string lineClassId,
+        string poleClassId,
+        IReadOnlyList<MapPoint> points,
+        string endNodeId,
+        string label)
+    {
+        LineStartPreview start = run.PreviewLineStart(
+            startNodeId,
+            lineClassId,
+            poleClassId);
+        Check(start.Accepted, $"{label}: start preview rejected with {start.Error}");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.StartLineDraft(
+                startNodeId,
+                lineClassId,
+                poleClassId),
+            $"{label}: start draft");
+        for (int index = 0; index < points.Count; index++)
+        {
+            LinePointPreview preview = run.PreviewLinePoint(points[index]);
+            Check(preview.Accepted,
+                $"{label}: point {index} preview rejected with {preview.Error}");
+            CampaignAccepted(
+                run,
+                CommercialCoreCommand.AddLinePoint(points[index]),
+                $"{label}: add point {index}");
+        }
+        LineFinishPreview finish = run.PreviewLineFinish(endNodeId);
+        Check(finish.Accepted,
+            $"{label}: finish preview rejected with {finish.Error}");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.FinishLineDraft(endNodeId),
+            $"{label}: finish draft");
+        CommercialCampaignProjectQuote quote = run.PreviewLineOrder();
+        Check(quote.Accepted && quote.Error is null && quote.ConstructionError is null,
+            $"{label}: quote rejected with {quote.Error}/{quote.ConstructionError}");
+        Check(quote.CostCashUnit is > 0 && quote.BuildMinutes is > 0,
+            $"{label}: line quote lacks positive cost/time");
+        return quote;
+    }
+
+    private CommercialCampaignProjectQuote BuildCampaignLine(
+        CommercialCampaignRun run,
+        string startNodeId,
+        string lineClassId,
+        string poleClassId,
+        IReadOnlyList<MapPoint> points,
+        string endNodeId,
+        string label,
+        Action<CommercialCampaignProjectQuote>? inspectQuote = null)
+    {
+        CommercialCampaignProjectQuote quote = DraftCampaignLine(
+            run,
+            startNodeId,
+            lineClassId,
+            poleClassId,
+            points,
+            endNodeId,
+            label);
+        inspectQuote?.Invoke(quote);
+        FinishCampaignLine(run, label);
+        return quote;
+    }
+
+    private void FinishCampaignLine(CommercialCampaignRun run, string label)
+    {
+        CampaignAccepted(run, CommercialCoreCommand.OrderLine(), $"{label}: order");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.AdvanceConstruction(),
+            $"{label}: complete");
+    }
+
+    private void CampaignAccepted(
+        CommercialCampaignRun run,
+        CommercialCoreCommand command,
+        string label)
+    {
+        CommercialCampaignCommandResult result = run.Execute(command);
+        Check(result.Accepted,
+            $"{label}: rejected with {result.Error}/{result.ConstructionError}");
+        Check(result.Error is null && result.ConstructionError is null &&
+                result.ConnectionFailure is null,
+            $"{label}: accepted command retained an error");
+    }
+
+    private void CampaignRejectedPreserves(
+        CommercialCampaignRun run,
+        CommercialCoreCommand command,
+        CommercialCampaignRunError expectedError,
+        CommercialCampaignConnectionFailure? expectedConnectionFailure,
+        string label)
+    {
+        string before = CampaignStateJson(run.GetSnapshot());
+        int commandCount = run.CommandCount;
+        CommercialCampaignCommandResult result = run.Execute(command);
+        Check(!result.Accepted, $"{label}: command was accepted");
+        Equal(expectedError, result.Error, $"{label}: typed error");
+        Equal(expectedConnectionFailure, result.ConnectionFailure,
+            $"{label}: connection failure detail");
+        Equal(commandCount, run.CommandCount, $"{label}: rejected command was journaled");
+        Equal(before, CampaignStateJson(result.Snapshot),
+            $"{label}: returned snapshot changed");
+        Equal(before, CampaignStateJson(run.GetSnapshot()),
+            $"{label}: live snapshot changed");
+    }
+
+    private static CommercialPhaseProjection CampaignProjection(
+        CommercialCampaignSnapshot snapshot,
+        string phaseId) =>
+        snapshot.Projections.Single(item => item.Phase.PhaseId == phaseId);
+
+    private static string CampaignStateJson(CommercialCampaignSnapshot snapshot) =>
+        JsonSerializer.Serialize(snapshot);
+
+    private static string CampaignWorldSignature(SpatialWorldDefinition world) =>
+        JsonSerializer.Serialize(new
+        {
+            world.Nodes,
+            world.Edges,
+        });
+
+    private sealed record CampaignRouteState(
+        string EastSubstationId,
+        string? HospitalHighSubstationId,
+        string? HospitalSecondSubstationId);
+
     private void CheckCommercialCoreDesignsPreviewAndOutcomes()
     {
         CommercialCoreSliceRun shortRun = EnterCommercialMain("short shared design");
@@ -950,7 +2634,7 @@ internal sealed class CommercialChecks
             CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Keep),
             "keep promise for short shared design");
         CommercialCoreProjectQuote shortQuote = DraftShortSharedFactoryLine(shortRun);
-        CoreQuote(shortQuote, 110000, 44, 6884, "short shared design quote");
+        CoreQuote(shortQuote, 100000, 40, 6880, "short shared design quote");
         SequenceEqual(["RIVER_FLOOD_ZONE"], shortQuote.RiskAreaIds,
             "short shared design risk exposure");
         CommercialCoreSnapshot shortDraft = shortRun.GetSnapshot();
@@ -963,8 +2647,8 @@ internal sealed class CommercialChecks
         CoreAccepted(shortRun, CommercialCoreCommand.OrderLine(), "order short shared design");
         CoreAccepted(shortRun, CommercialCoreCommand.AdvanceConstruction(),
             "complete short shared design");
-        Equal(590000L, shortRun.GetSnapshot().CashUnit, "short design remaining cash");
-        Equal(6884L, shortRun.GetSnapshot().Minute, "short design completion minute");
+        Equal(600000L, shortRun.GetSnapshot().CashUnit, "short design remaining cash");
+        Equal(6880L, shortRun.GetSnapshot().Minute, "short design completion minute");
         CoreAccepted(shortRun, CommercialCoreCommand.ApproveDecisionWindow(),
             "approve short design hot evening");
 
@@ -977,7 +2661,7 @@ internal sealed class CommercialChecks
         Equal(2700L, shortFactory.DeliveredKw, "short design factory delivery");
         Equal("SOUTH_GENERATION", shortFactory.SourceId,
             "short design factory source");
-        Equal(500L, shortFactory.MinimumRemainingKw,
+        Equal(300L, shortFactory.MinimumRemainingKw,
             "short design representative shared bottleneck margin");
         Check(shortFactory.PathEdgeIds.Contains("PLAYER_EDGE_1", StringComparer.Ordinal) &&
                 shortFactory.PathEdgeIds.Contains("PLAYER_EDGE_2", StringComparer.Ordinal),
@@ -1021,7 +2705,7 @@ internal sealed class CommercialChecks
             CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Keep),
             "keep promise for long separate design");
         CommercialCoreProjectQuote longQuote = DraftLongSeparateFactoryLine(longRun);
-        CoreQuote(longQuote, 552000, 192, 7032, "long separate design quote");
+        CoreQuote(longQuote, 568000, 198, 7038, "long separate design quote");
         SequenceEqual(["RIVER_FLOOD_ZONE"], longQuote.RiskAreaIds,
             "long separate design risk exposure");
         CommercialCoreSnapshot longDraft = longRun.GetSnapshot();
@@ -1034,10 +2718,17 @@ internal sealed class CommercialChecks
         ThermalLoadSupply longFactoryPreview = Supply(longPreview, "RIVER_FACTORY");
         Equal("SOUTH_GENERATION", longFactoryPreview.SourceId,
             "long design factory source");
-        Equal(1800L, longFactoryPreview.MinimumRemainingKw,
+        Equal(300L, longFactoryPreview.MinimumRemainingKw,
             "long design continuous corridor margin");
         Check(longFactoryPreview.PathEdgeIds.SequenceEqual(
-                ["PLAYER_EDGE_1", "PLAYER_EDGE_2", "PLAYER_EDGE_3", "PLAYER_EDGE_4", "PLAYER_EDGE_5"]),
+                [
+                    "PLAYER_EDGE_1",
+                    "PLAYER_EDGE_2",
+                    "PLAYER_EDGE_3",
+                    "PLAYER_EDGE_4",
+                    "PLAYER_EDGE_5",
+                    "EDGE_FACTORY",
+                ]),
             "long design did not use its separate corridor");
         Check(longFactoryPreview.PathEdgeIds.All(id =>
                 Asset(longPreview, id).State == ThermalOperatingState.Continuous),
@@ -1059,9 +2750,9 @@ internal sealed class CommercialChecks
         Check(longComplete.CampaignComplete, "long design did not complete the slice");
         Equal(CommercialPromiseDecision.Keep, longComplete.LastOutcome!.PromiseDecision,
             "long design kept outcome");
-        Equal(148000L, longComplete.LastOutcome.EndingCashUnit,
+        Equal(132000L, longComplete.LastOutcome.EndingCashUnit,
             "long design ending cash fact");
-        Equal(7032L, longComplete.LastOutcome.EndingMinute,
+        Equal(7038L, longComplete.LastOutcome.EndingMinute,
             "long design ending minute fact");
 
         CommercialCoreSliceRun deferredRun = EnterCommercialMain("deferred promise");
@@ -1235,20 +2926,31 @@ internal sealed class CommercialChecks
             "cancel unaffordable substation");
 
         CommercialCoreSliceRun deadlineRun = EnterCommercialMain("deadline rejection");
-        CoreQuote(DraftShortSharedFactoryLine(deadlineRun), 110000, 44, 6884,
-            "deadline setup shared-line quote");
+        CoreQuote(
+            DraftCoreLine(
+                deadlineRun,
+                "NORTH_SUBSTATION",
+                "STANDARD_LINE",
+                "STANDARD_POLE",
+                Array.Empty<MapPoint>(),
+                "EAST_SUBSTATION",
+                "deadline setup tie"),
+            20000,
+            8,
+            6848,
+            "deadline setup tie quote");
         CoreAccepted(deadlineRun, CommercialCoreCommand.OrderLine(),
-            "order deadline setup shared line");
+            "order deadline setup tie");
         CoreAccepted(deadlineRun, CommercialCoreCommand.AdvanceConstruction(),
-            "complete deadline setup shared line");
+            "complete deadline setup tie");
         DraftLongSeparateFactoryLine(deadlineRun);
         CommercialCoreProjectQuote deadlineQuote = deadlineRun.PreviewLineOrder();
         Check(!deadlineQuote.Accepted, "over-deadline long route quote was accepted");
         Equal(CommercialCoreRunError.DeadlineExceeded, deadlineQuote.Error,
             "over-deadline route error");
-        Equal(552000L, deadlineQuote.CostCashUnit,
+        Equal(568000L, deadlineQuote.CostCashUnit,
             "deadline rejection must preserve the valid project cost");
-        Equal(192L, deadlineQuote.BuildMinutes,
+        Equal(198L, deadlineQuote.BuildMinutes,
             "deadline rejection must preserve the valid project duration");
         int deadlineCommands = deadlineRun.CommandCount;
         CoreRejected(deadlineRun, CommercialCoreCommand.OrderLine(),
@@ -1960,10 +3662,10 @@ internal sealed class CommercialChecks
         CommercialCoreSnapshot preludeStart = run.GetSnapshot();
         Equal("FIRST_LIGHT_PRELUDE_SEGMENT", preludeStart.SegmentId,
             $"{label}: prelude segment");
-        Equal(6, preludeStart.Construction.World.Nodes.Count,
-            $"{label}: sparse prelude terminal count");
-        Equal(0, preludeStart.Construction.World.Edges.Count,
-            $"{label}: prelude inherited main edges");
+        Equal(8, preludeStart.Construction.World.Nodes.Count,
+            $"{label}: sparse prelude terminal and substation count");
+        Equal(1, preludeStart.Construction.World.Edges.Count,
+            $"{label}: sparse prelude service edge count");
         Check(!preludeStart.CanApprove,
             $"{label}: prelude approved without construction work");
         Equal(ThermalFailureKind.NoTopologyPath, preludeStart.FirstBlockingFailure!.Kind,
@@ -1978,9 +3680,9 @@ internal sealed class CommercialChecks
                 new MapPoint(800, 650),
                 new MapPoint(1050, 650),
                 new MapPoint(1600, 650),
-                new MapPoint(2100, 650),
+                new MapPoint(2050, 500),
             ],
-            "EAST_RESIDENTIAL_TERMINAL",
+            "EAST_SUBSTATION",
             $"{label}: first-light line");
         CoreQuote(preludeQuote, 320000, 128, 1148,
             $"{label}: first-light quote");
@@ -2006,9 +3708,9 @@ internal sealed class CommercialChecks
             $"{label}: main segment transition");
         Equal("WHOSE_MARGIN", main.Chapter.ChapterId,
             $"{label}: main chapter transition");
-        Equal(18, main.Construction.World.Nodes.Count,
+        Equal(19, main.Construction.World.Nodes.Count,
             $"{label}: independent main seed node count");
-        Equal(17, main.Construction.World.Edges.Count,
+        Equal(_commercialWorld.Edges.Count + 1, main.Construction.World.Edges.Count,
             $"{label}: independent main seed edge count");
         Check(!main.Construction.World.Nodes.Any(item =>
                 item.NodeId.StartsWith("PLAYER_", StringComparison.Ordinal)),
@@ -2041,7 +3743,7 @@ internal sealed class CommercialChecks
             "STANDARD_LINE",
             "STANDARD_POLE",
             [new MapPoint(1950, 1750)],
-            "FACTORY_TERMINAL",
+            "SOUTH_SUBSTATION",
             "short shared factory line");
 
     private CommercialCoreProjectQuote DraftLongSeparateFactoryLine(
@@ -2057,7 +3759,7 @@ internal sealed class CommercialChecks
                 new MapPoint(1780, 1900),
                 new MapPoint(2250, 1950),
             ],
-            "FACTORY_TERMINAL",
+            "SOUTH_SUBSTATION",
             "long separate factory line");
 
     private CommercialCoreProjectQuote DraftUnsafeSharedFactoryLine(
@@ -2168,7 +3870,15 @@ internal sealed class CommercialChecks
             new MapBounds(0, 0, 2200, 2200),
             10000,
             nodeClasses ?? ThermalNodeClasses(),
-            lineClasses ?? [ThermalLineClass(LineClassId, 100, 150)],
+            lineClasses is null
+                ? [
+                    ThermalLineClass(LineClassId, 100, 150),
+                    ThermalLineClass(ServiceLineClassId, 1000, 1500),
+                ]
+                : [
+                    .. lineClasses,
+                    ThermalLineClass(ServiceLineClassId, 1000, 1500),
+                ],
             Array.Empty<TerrainPolygonDefinition>(),
             Array.Empty<SpatialRiskAreaDefinition>(),
             nodes,
@@ -2188,7 +3898,7 @@ internal sealed class CommercialChecks
         new(PoleClassId, "검사 전신주 접속부", SpatialNodeKind.Pole,
             10, 6, 50, 3, new ThermalLimit(100, 150)),
         new(SubstationClassId, "검사 변전소", SpatialNodeKind.Substation,
-            20, 6, 100, 10, new ThermalLimit(100, 150)),
+            20, 6, 100, 10, new ThermalLimit(1000, 1500), 5000),
     ];
 
     private static CommercialLineClassDefinition ThermalLineClass(
@@ -2419,6 +4129,18 @@ internal sealed class CommercialChecks
     private void ExpectCoreSliceLoaderRejected(string label, string json) =>
         ExpectThrows<CommercialCoreSliceValidationException>(
             () => CommercialCoreSliceLoader.Load(json, _commercialWorld),
+            label);
+
+    private void ExpectCampaignLoaderRejected(string label, Action<JsonObject> mutate)
+    {
+        JsonObject root = JsonNode.Parse(_campaignJson)!.AsObject();
+        mutate(root);
+        ExpectCampaignLoaderRejected(label, root.ToJsonString());
+    }
+
+    private void ExpectCampaignLoaderRejected(string label, string json) =>
+        ExpectThrows<CommercialCampaignValidationException>(
+            () => CommercialCampaignLoader.Load(json, _commercialWorld),
             label);
 
     private void ExpectThrows<T>(Action body, string label)

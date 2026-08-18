@@ -9,6 +9,7 @@ namespace Gridworks.Game;
 internal enum CommercialPanelAction
 {
     PlaceSubstation,
+    PlaceLargeSubstation,
     StartStandardLine,
     StartLine,
     UndoPoint,
@@ -22,12 +23,14 @@ internal enum CommercialProductAction
     RollbackRecentConstruction,
     RestartWindow,
     RestartChapter,
+    RewindPreviousChapter,
 }
 
 internal sealed record CommercialActionPresentation(
     bool Enabled,
     string Text,
-    string Description);
+    string Description,
+    bool Visible = true);
 
 internal sealed record CommercialProjectionPresentation(
     string Label,
@@ -51,7 +54,8 @@ internal sealed record CommercialProductPanelPresentation(
     CommercialActionPresentation ApproveWindow,
     CommercialActionPresentation RollbackRecentConstruction,
     CommercialActionPresentation RestartWindow,
-    CommercialActionPresentation RestartChapter);
+    CommercialActionPresentation RestartChapter,
+    CommercialActionPresentation RewindPreviousChapter);
 
 internal sealed record CommercialTaskPanelModel(
     string Heading,
@@ -68,7 +72,8 @@ internal sealed record CommercialTaskPanelModel(
     CommercialProjectionPresentation? Projection = null,
     bool ShowConstructionActions = true,
     CommercialProductPanelPresentation? Product = null,
-    CommercialActionPresentation? StandardLine = null);
+    CommercialActionPresentation? StandardLine = null,
+    CommercialActionPresentation? LargeSubstation = null);
 
 internal sealed partial class CommercialTaskPanel : PanelContainer
 {
@@ -130,6 +135,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _buttons = new Dictionary<CommercialPanelAction, Button>
         {
             [CommercialPanelAction.PlaceSubstation] = GetNode<Button>("%PlaceSubstationButton"),
+            [CommercialPanelAction.PlaceLargeSubstation] =
+                GetNode<Button>("%PlaceLargeSubstationButton"),
             [CommercialPanelAction.StartStandardLine] =
                 GetNode<Button>("%StartStandardLineButton"),
             [CommercialPanelAction.StartLine] = GetNode<Button>("%StartLineButton"),
@@ -144,6 +151,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
                 GetNode<Button>("%RollbackRecentButton"),
             [CommercialProductAction.RestartWindow] = GetNode<Button>("%RestartWindowButton"),
             [CommercialProductAction.RestartChapter] = GetNode<Button>("%RestartChapterButton"),
+            [CommercialProductAction.RewindPreviousChapter] =
+                GetNode<Button>("%RewindPreviousChapterButton"),
         };
 
         foreach ((CommercialPanelAction action, Button button) in _buttons)
@@ -175,16 +184,31 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _errorLabel.Text = model.Error;
         SetButton(CommercialPanelAction.PlaceSubstation, model.PlaceSubstation);
         SetButton(
+            CommercialPanelAction.PlaceLargeSubstation,
+            model.LargeSubstation ?? new CommercialActionPresentation(
+                false,
+                string.Empty,
+                string.Empty,
+                false));
+        SetButton(
             CommercialPanelAction.StartStandardLine,
-            model.StandardLine ?? new CommercialActionPresentation(false, string.Empty, string.Empty));
+            model.StandardLine ?? new CommercialActionPresentation(
+                false,
+                string.Empty,
+                string.Empty,
+                false));
         SetButton(CommercialPanelAction.StartLine, model.StartLine);
         SetButton(CommercialPanelAction.UndoPoint, model.UndoPoint);
         SetButton(CommercialPanelAction.CancelDraft, model.CancelDraft);
         SetButton(CommercialPanelAction.Commission, model.Commission);
         bool projectionVisible = model.Projection is not null;
-        _toolRow.Visible = model.ShowConstructionActions;
-        _buttons[CommercialPanelAction.StartStandardLine].Visible = model.StandardLine is not null;
-        _editRow.Visible = model.ShowConstructionActions;
+        bool toolSelectionAvailable = model.PlaceSubstation.Enabled ||
+            model.LargeSubstation?.Enabled == true ||
+            model.StandardLine?.Enabled == true ||
+            model.StartLine.Enabled;
+        bool draftEditingAvailable = model.UndoPoint.Enabled || model.CancelDraft.Enabled;
+        _toolRow.Visible = model.ShowConstructionActions && toolSelectionAvailable;
+        _editRow.Visible = model.ShowConstructionActions && draftEditingAvailable;
         _buttons[CommercialPanelAction.Commission].Visible = model.ShowConstructionActions;
         _thermalControls.Visible = projectionVisible;
         if (model.Projection is CommercialProjectionPresentation projection)
@@ -193,9 +217,9 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             _previousProjectionButton.Disabled = !projection.PreviousEnabled;
             _nextProjectionButton.Disabled = !projection.NextEnabled;
             _previousProjectionButton.AccessibilityDescription =
-                "이전 열 운전 국면의 계산 결과를 표시합니다.";
+                "이전 운영 국면의 계산 결과를 표시합니다.";
             _nextProjectionButton.AccessibilityDescription =
-                "다음 열 운전 국면의 계산 결과를 표시합니다.";
+                "다음 운영 국면의 계산 결과를 표시합니다.";
         }
         _productSections.Visible = model.Product is not null;
         _promiseControls.Visible = model.Product?.Promise is not null;
@@ -221,10 +245,15 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
                 product.RollbackRecentConstruction);
             SetProductButton(CommercialProductAction.RestartWindow, product.RestartWindow);
             SetProductButton(CommercialProductAction.RestartChapter, product.RestartChapter);
+            SetProductButton(
+                CommercialProductAction.RewindPreviousChapter,
+                product.RewindPreviousChapter);
         }
-        AccessibilityName = projectionVisible || model.Product is not null
-            ? $"열 운전 확인 패널. {model.Heading}. {model.Status}"
-            : $"공사 작업 패널. {model.Heading}. {model.Status}";
+        AccessibilityName = model.Product is not null
+            ? $"운영안 작업 패널. {model.Heading}. {model.Status}"
+            : projectionVisible
+                ? $"열 운전 확인 패널. {model.Heading}. {model.Status}"
+                : $"공사 작업 패널. {model.Heading}. {model.Status}";
     }
 
     public BaseButton GetActionButton(CommercialPanelAction action) => _buttons[action];
@@ -241,6 +270,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
 
     public string ProjectionText => _projectionLabel.Text;
 
+    public string ObligationsText => _obligationsLabel.Text;
+
     public BaseButton GetProductActionButton(CommercialProductAction action) =>
         _productButtons[action];
 
@@ -256,6 +287,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         CommercialActionPresentation presentation)
     {
         Button button = _buttons[action];
+        button.Visible = presentation.Visible;
         button.Disabled = !presentation.Enabled;
         button.Text = presentation.Text;
         button.AccessibilityName = presentation.Text;
@@ -267,6 +299,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         CommercialActionPresentation presentation)
     {
         Button button = _productButtons[action];
+        button.Visible = presentation.Visible;
         button.Disabled = !presentation.Enabled;
         button.Text = presentation.Text;
         button.AccessibilityName = presentation.Text;

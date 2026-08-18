@@ -10,7 +10,8 @@ public sealed record CommercialNodeClassDefinition(
     int MaxConnections,
     long CostCashUnit,
     int BuildMinutes,
-    ThermalLimit? ThermalLimit);
+    ThermalLimit? ThermalLimit,
+    int? ServiceRadiusUnit = null);
 
 public sealed record CommercialLineClassDefinition(
     string ClassId,
@@ -163,6 +164,7 @@ public enum ThermalOperatingState
 public enum ThermalFailureKind
 {
     NoTopologyPath,
+    NoEligibleSubstation,
     SourceCapacity,
     AssetUnavailable,
     ContinuousLimit,

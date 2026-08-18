@@ -71,6 +71,44 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
 autowrap_mode = 2
 
+[node name="RecoverySeparator" type="HSeparator" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+layout_mode = 2
+
+[node name="RecoveryHeading" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
+text = "설계 복구"
+
+[node name="RecoveryRow" type="HBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="RollbackRecentButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/RecoveryRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "최근 공사 복구"
+
+[node name="RestartWindowButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/RecoveryRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "이번 운영 단계 다시 시작"
+
+[node name="RestartChapterButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "현재 장 다시 시작"
+
+[node name="RewindPreviousChapterButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "이전 장부터 다시 설계"
+
 [node name="Separator1" type="HSeparator" parent="Margin/Column/InfoScroll/InfoColumn"]
 layout_mode = 2
 
@@ -142,7 +180,7 @@ theme_override_constants/separation = 7
 [node name="ProjectionHeading" type="Label" parent="Margin/Column/ThermalControls"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
-text = "열 운전 국면"
+text = "운영 국면"
 
 [node name="ProjectionLabel" type="Label" parent="Margin/Column/ThermalControls"]
 unique_name_in_owner = true
@@ -181,30 +219,6 @@ custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "운영안 승인"
 
-[node name="RecoveryRow" type="HBoxContainer" parent="Margin/Column/ProductActions"]
-layout_mode = 2
-theme_override_constants/separation = 7
-
-[node name="RollbackRecentButton" type="Button" parent="Margin/Column/ProductActions/RecoveryRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "최근 공사 복구"
-
-[node name="RestartWindowButton" type="Button" parent="Margin/Column/ProductActions/RecoveryRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "결정 경계 다시 시작"
-
-[node name="RestartChapterButton" type="Button" parent="Margin/Column/ProductActions"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-text = "현재 장 다시 시작"
-
 [node name="ToolRow" type="VBoxContainer" parent="Margin/Column"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -216,6 +230,14 @@ custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "변전소 놓기"
+
+[node name="PlaceLargeSubstationButton" type="Button" parent="Margin/Column/ToolRow"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "대형 변전소"
 
 [node name="LineRow" type="HBoxContainer" parent="Margin/Column/ToolRow"]
 layout_mode = 2

@@ -72,6 +72,11 @@ public static class CommercialWorldLoader
             bool thermalAsset = item.Kind is SpatialNodeKind.Pole or SpatialNodeKind.Substation;
             Require(thermalAsset == (item.ThermalLimit is not null),
                 $"Node class '{item.ClassId}' has the wrong thermal-limit shape.");
+            Require(
+                item.Kind == SpatialNodeKind.Substation
+                    ? item.ServiceRadiusUnit is > 0
+                    : item.ServiceRadiusUnit is null,
+                $"Node class '{item.ClassId}' has the wrong service-radius shape.");
             if (item.ThermalLimit is not null)
             {
                 ValidateLimit(item.ThermalLimit, $"nodeClasses[{item.ClassId}].thermalLimit");
@@ -165,7 +170,8 @@ public static class CommercialWorldLoader
                 ? null
                 : new ThermalLimit(
                     item.ThermalLimit.ContinuousKw,
-                    item.ThermalLimit.EmergencyKw))).ToArray(),
+                    item.ThermalLimit.EmergencyKw),
+            item.ServiceRadiusUnit)).ToArray(),
         raw.LineClasses.Select(item => new CommercialLineClassDefinition(
             item.ClassId,
             item.DisplayName,
@@ -312,6 +318,7 @@ public static class CommercialWorldLoader
         [JsonRequired] public long CostCashUnit { get; init; }
         [JsonRequired] public int BuildMinutes { get; init; }
         [JsonRequired] public RawThermalLimit? ThermalLimit { get; init; }
+        [JsonRequired] public int? ServiceRadiusUnit { get; init; }
     }
 
     private sealed class RawLineClass

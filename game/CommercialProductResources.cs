@@ -8,31 +8,31 @@ namespace Gridworks.Game;
 
 internal sealed record CommercialProductData(
     CommercialWorldDefinition World,
-    CommercialCoreSliceDefinition Slice,
+    CommercialCampaignDefinition Campaign,
     string WorldSha256,
-    string SliceSha256);
+    string CampaignSha256);
 
 internal static class CommercialProductResources
 {
     public const string WorldResource =
         "Gridworks.Game.EmbeddedData.release-world-v2.json";
-    public const string CoreSliceResource =
-        "Gridworks.Game.EmbeddedData.commercial-core-slice-v1.json";
+    public const string CampaignResource =
+        "Gridworks.Game.EmbeddedData.release-campaign-v2.json";
 
     public static CommercialProductData Load(Assembly assembly)
     {
         ArgumentNullException.ThrowIfNull(assembly);
         byte[] worldBytes = Read(assembly, WorldResource);
-        byte[] sliceBytes = Read(assembly, CoreSliceResource);
+        byte[] campaignBytes = Read(assembly, CampaignResource);
         CommercialWorldDefinition world = CommercialWorldLoader.Load(worldBytes);
-        CommercialCoreSliceDefinition slice = CommercialCoreSliceLoader.Load(
-            sliceBytes,
+        CommercialCampaignDefinition campaign = CommercialCampaignLoader.Load(
+            campaignBytes,
             world);
         return new CommercialProductData(
             world,
-            slice,
+            campaign,
             Sha256(worldBytes),
-            Sha256(sliceBytes));
+            Sha256(campaignBytes));
     }
 
     private static string Sha256(ReadOnlySpan<byte> bytes) =>

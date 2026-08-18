@@ -2,7 +2,7 @@
 
 > 상태: **ACTIVE**
 > 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 E — 첫 네 임무와 공통 UX**
+> 현재 작업: **단계 F — 후반 네 임무와 에필로그**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -280,7 +280,7 @@ V2 운영 명령은 건설 명령 외 `SetPromiseDecision(Keep|Defer)`와 `Appro
 | 순서 | 임무 | 새로운 핵심 질문 |
 |---|---|---|
 | 1 | 첫 불빛 | 자유 배치로 첫 생활권을 어떻게 연결할까? |
-| 2 | 두 번째 심장 | 두 회선을 실제로 다른 위험 회랑에 놓을 수 있는가? |
+| 2 | 두 번째 심장 | 두 접속 회선을 갖추고 범람 차단시험 때 공급을 유지할 수 있는가? |
 | 3 | 두 번째 전원 | 경로 전체의 연속 한도와 공유 접속부를 읽을 수 있는가? |
 | 4 | 북안의 약속 | 서비스권역과 미래 분기 공간 중 무엇을 남길 것인가? |
 | 5 | 누구의 여유인가 | 도시 약속을 위해 비상 열여유와 다음 보호정지를 감수할 것인가? |
@@ -288,14 +288,16 @@ V2 운영 명령은 건설 명령 외 `SetPromiseDecision(Keep|Defer)`와 `Appro
 | 7 | 꺼야 지킬 수 있다 | 계획정지 중 남은 경로의 열여유로 무엇을 지킬 수 있는가? |
 | 8 | 가장 긴 밤 | 열·보호정지·범람이 이어질 때 앞선 망과 약속이 누구를 지키는가? |
 
-1~4장은 안내를 단계적으로 줄이고, 5장 뒤 새 건설·열 규칙을 추가하지 않는다. 6~8장은 같은 동사를
+1~4장은 단계 E에서 닫았고, 5~8장은 단계 F의 현재 범위다. 1~4장은 안내를 단계적으로 줄이고,
+5장 뒤 새 건설·열 규칙을 추가하지 않는다. 6~8장은 같은 동사를
 지형, 기한, 정지 순서와 이전 열 상태의 다른 조합으로 사용한다. 모든 본편 장은 장단점이 다른
 checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 가진다.
 
 ### 6.2 콘텐츠와 결과
 
 - 장별 데이터는 briefing, objective, operating phases, deadline, active loads, contingency,
-  obligations, optional promise, result fact templates와 visual/audio cue key만 가진다.
+  obligations, optional promise와 result fact templates까지만 가진다. visual/audio cue key와 실제 자산
+  연결은 단계 G에서 연다.
 - 네 명의 고정 인물과 시작·사건·결과 카드만 사용한다. 대화 선택지·호감도·분기 결말 엔진은 없다.
 - 결과 fact는 실제 공급·경로·열·약속 상태에서만 채운다. 판정하지 않은 `모두`, `완전히`, `안전하게`를
   쓰지 않는다.
@@ -305,7 +307,28 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 - 캠페인 완료 뒤 에필로그와 장 시작 상태 선택을 제공한다. 종합 점수나 별점은 만들지 않고 각 장의
   지킨 의무, 약속, 사용한 비상 운전과 남은 자금을 사실 기록으로 비교한다.
 
-### 6.3 단계 E·F 종료
+### 6.3 단계 E 종료 기록 — 2026-08-18
+
+- final world v2 SHA-256:
+  `c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14`
+- final campaign v2 SHA-256:
+  `d8290bb41ef0b9f284e75c951cbb259f41d39d12cc550f8281dfc6b14025815f`
+- `첫 불빛`부터 `북안의 약속`까지 같은 world·network·현금·시간을 이어 쓴다. 실제 변전소를 놓고
+  서비스 권역 안의 수요를 발전원 경로로 공급하며, 2장은 병원 접속 수 2와 범람 차단시험 중 공급을
+  검사한다. 이 gate는 두 회선의 완전한 전기·공간 독립성을 증명하지 않는다.
+- 4장 진입 직전 6개월을 경과시키고 열 상태를 초기화하며, 카드가 두 사실을 알린다. 결과는 typed
+  공급·미공급·남은 자금과 4장 약속 지킴/미룸만 렌더링한다.
+- 최근 완공 project, 현재 장과 이전 장 복구, 실패 상태 재개, final campaign save v3 fresh restore를
+  닫았다. 같은 저장 URI의 단계 D save는 첫 final write 전에 SHA-12가 붙은 결정론적 백업으로 한 번만
+  보존하며 백업 실패 시 final save를 덮어쓰지 않는다.
+- CommercialChecks: **26 suites / 2,402 assertions PASS**
+- Game Debug·Release·ExportRelease build: **0 warnings / 0 errors**
+- 서로 다른 fresh Godot 프로세스 marker:
+  `COMMERCIAL_CAMPAIGN_SMOKE_LEG1_PASS chapter=SECOND_SOURCE commands=48`,
+  `COMMERCIAL_CAMPAIGN_SMOKE_LEG2_PASS complete=True chapters=4 commands=80`
+- exact-tree Game 검토: **P0 0 / P1 0**. 사람 검토: `NOT_COLLECTED`.
+
+### 6.4 단계 F 종료
 
 - 대표 full run은 모든 장에서 한 번 이상 의미 있는 공사를 하고 여덟 결과를 거쳐 에필로그에 도달한다.
 - 각 본편 장의 두 원형이 hard obligation을 만족하고 전면 우월한 하나의 해법이 아님을 bounded

@@ -1,6 +1,6 @@
 namespace Gridworks.Core.Release.V2;
 
-public static class ThermalNetworkEvaluator
+public static partial class ThermalNetworkEvaluator
 {
     public static ThermalIntervalEvaluation EvaluateInterval(
         CommercialWorldDefinition world,
@@ -94,13 +94,23 @@ public static class ThermalNetworkEvaluator
 
             foreach (CommercialSourceDefinition source in context.OrderedSources)
             {
+                PathCandidate? topologyDiagnosticPath = FindStaticShortestPath(
+                    context,
+                    source,
+                    load.NodeId,
+                    requireEligibleSubstation: false);
+                if (topologyDiagnosticPath is not null)
+                {
+                    topologyPathFound = true;
+                }
+
                 PathCandidate? diagnosticPath = FindStaticShortestPath(
                     context,
                     source,
-                    load.NodeId);
+                    load.NodeId,
+                    requireEligibleSubstation: true);
                 if (diagnosticPath is not null)
                 {
-                    topologyPathFound = true;
                     FailedCandidate? failure = AssessFailure(
                         context,
                         interval,
@@ -116,13 +126,30 @@ public static class ThermalNetworkEvaluator
                         bestFailure = failure;
                     }
                 }
+                else if (topologyDiagnosticPath is not null)
+                {
+                    var failure = new FailedCandidate(
+                        topologyDiagnosticPath,
+                        source,
+                        new ThermalSupplyFailure(
+                            ThermalFailureKind.NoEligibleSubstation,
+                            source.SourceId,
+                            null,
+                            loadRequest.DemandKw,
+                            0));
+                    if (bestFailure is null || CompareFailed(failure, bestFailure) < 0)
+                    {
+                        bestFailure = failure;
+                    }
+                }
 
                 PathCandidate? availableDiagnosticPath = FindStaticShortestPath(
                     context,
                     source,
                     load.NodeId,
                     interval,
-                    cooling);
+                    cooling,
+                    requireEligibleSubstation: true);
                 if (availableDiagnosticPath is not null)
                 {
                     FailedCandidate? failure = AssessFailure(
@@ -407,71 +434,16 @@ public static class ThermalNetworkEvaluator
         bool allowEmergency,
         long? minimumMarginKw)
     {
-        if (!IsNodeAllowed(
-                context,
-                interval,
-                cooling,
-                prospectiveAssets,
-                sourceNodeId,
-                allowEmergency,
-                minimumMarginKw))
-        {
-            return null;
-        }
-
-        int initialCount = EmergencyContribution(sourceNodeId, prospectiveAssets);
-        var best = new Dictionary<string, int>(StringComparer.Ordinal)
-        {
-            [sourceNodeId] = initialCount,
-        };
-        var queue = new PriorityQueue<string, int>();
-        queue.Enqueue(sourceNodeId, initialCount);
-        while (queue.TryDequeue(out string? nodeId, out int currentCount))
-        {
-            if (best[nodeId] != currentCount)
-            {
-                continue;
-            }
-            if (string.Equals(nodeId, endNodeId, StringComparison.Ordinal))
-            {
-                return currentCount;
-            }
-
-            foreach (GraphArc arc in context.Adjacency[nodeId])
-            {
-                if (!IsEdgeAllowed(
-                        context,
-                        interval,
-                        cooling,
-                        prospectiveAssets,
-                        arc.EdgeId,
-                        allowEmergency,
-                        minimumMarginKw) ||
-                    !IsNodeAllowed(
-                        context,
-                        interval,
-                        cooling,
-                        prospectiveAssets,
-                        arc.OtherNodeId,
-                        allowEmergency,
-                        minimumMarginKw))
-                {
-                    continue;
-                }
-                int nextCount = checked(
-                    currentCount +
-                    EmergencyContribution(arc.EdgeId, prospectiveAssets) +
-                    EmergencyContribution(arc.OtherNodeId, prospectiveAssets));
-                if (best.TryGetValue(arc.OtherNodeId, out int previous) &&
-                    previous <= nextCount)
-                {
-                    continue;
-                }
-                best[arc.OtherNodeId] = nextCount;
-                queue.Enqueue(arc.OtherNodeId, nextCount);
-            }
-        }
-        return null;
+        ServiceRouteCost? cost = FindAcceptedServiceCost(
+            context,
+            interval,
+            cooling,
+            prospectiveAssets,
+            sourceNodeId,
+            endNodeId,
+            allowEmergency,
+            minimumMarginKw);
+        return cost is null ? null : checked((int)cost.Value.EmergencyCount);
     }
 
     private static RouteLabel? FindBestQualifiedPath(
@@ -484,81 +456,15 @@ public static class ThermalNetworkEvaluator
         bool allowEmergency,
         long minimumMarginKw)
     {
-        if (!IsNodeAllowed(
-                context,
-                interval,
-                cooling,
-                prospectiveAssets,
-                sourceNodeId,
-                allowEmergency,
-                minimumMarginKw))
-        {
-            return null;
-        }
-
-        var first = new RouteLabel(
+        return FindAcceptedServiceRoute(
+            context,
+            interval,
+            cooling,
+            prospectiveAssets,
             sourceNodeId,
-            EmergencyContribution(sourceNodeId, prospectiveAssets),
-            0,
-            Array.AsReadOnly(new[] { sourceNodeId }),
-            Array.Empty<string>());
-        var best = new Dictionary<string, RouteLabel>(StringComparer.Ordinal)
-        {
-            [sourceNodeId] = first,
-        };
-        var queue = new PriorityQueue<RouteLabel, RouteLabel>(RouteLabelComparer.Instance);
-        queue.Enqueue(first, first);
-        while (queue.TryDequeue(out RouteLabel? current, out _))
-        {
-            if (!ReferenceEquals(best[current.NodeId], current))
-            {
-                continue;
-            }
-            if (string.Equals(current.NodeId, endNodeId, StringComparison.Ordinal))
-            {
-                return current;
-            }
-
-            foreach (GraphArc arc in context.Adjacency[current.NodeId])
-            {
-                if (!IsEdgeAllowed(
-                        context,
-                        interval,
-                        cooling,
-                        prospectiveAssets,
-                        arc.EdgeId,
-                        allowEmergency,
-                        minimumMarginKw) ||
-                    !IsNodeAllowed(
-                        context,
-                        interval,
-                        cooling,
-                        prospectiveAssets,
-                        arc.OtherNodeId,
-                        allowEmergency,
-                        minimumMarginKw))
-                {
-                    continue;
-                }
-                var next = new RouteLabel(
-                    arc.OtherNodeId,
-                    checked(
-                        current.EmergencyAssetCount +
-                        EmergencyContribution(arc.EdgeId, prospectiveAssets) +
-                        EmergencyContribution(arc.OtherNodeId, prospectiveAssets)),
-                    checked(current.LengthUnit + arc.LengthUnit),
-                    Append(current.NodeIds, arc.OtherNodeId),
-                    Append(current.EdgeIds, arc.EdgeId));
-                if (best.TryGetValue(arc.OtherNodeId, out RouteLabel? previous) &&
-                    RouteLabelComparer.Instance.Compare(previous, next) <= 0)
-                {
-                    continue;
-                }
-                best[arc.OtherNodeId] = next;
-                queue.Enqueue(next, next);
-            }
-        }
-        return null;
+            endNodeId,
+            allowEmergency,
+            minimumMarginKw);
     }
 
     private static PathCandidate? FindStaticShortestPath(
@@ -566,7 +472,8 @@ public static class ThermalNetworkEvaluator
         CommercialSourceDefinition source,
         string endNodeId,
         ValidatedInterval? availableInterval = null,
-        IReadOnlySet<string>? cooling = null)
+        IReadOnlySet<string>? cooling = null,
+        bool requireEligibleSubstation = false)
     {
         if ((availableInterval is null) != (cooling is null))
         {
@@ -579,6 +486,16 @@ public static class ThermalNetworkEvaluator
             return null;
         }
 
+        if (requireEligibleSubstation)
+        {
+            return FindDiagnosticServicePath(
+                context,
+                source.NodeId,
+                endNodeId,
+                availableInterval,
+                cooling);
+        }
+
         var first = new StaticRouteLabel(
             source.NodeId,
             0,
@@ -586,7 +503,7 @@ public static class ThermalNetworkEvaluator
             Array.Empty<string>());
         var best = new Dictionary<string, StaticRouteLabel>(StringComparer.Ordinal)
         {
-            [source.NodeId] = first,
+            [first.NodeId] = first,
         };
         var queue = new PriorityQueue<StaticRouteLabel, StaticRouteLabel>(
             StaticRouteLabelComparer.Instance);
@@ -623,12 +540,12 @@ public static class ThermalNetworkEvaluator
                     checked(current.LengthUnit + arc.LengthUnit),
                     Append(current.NodeIds, arc.OtherNodeId),
                     Append(current.EdgeIds, arc.EdgeId));
-                if (best.TryGetValue(arc.OtherNodeId, out StaticRouteLabel? previous) &&
+                if (best.TryGetValue(next.NodeId, out StaticRouteLabel? previous) &&
                     StaticRouteLabelComparer.Instance.Compare(previous, next) <= 0)
                 {
                     continue;
                 }
-                best[arc.OtherNodeId] = next;
+                best[next.NodeId] = next;
                 queue.Enqueue(next, next);
             }
         }
@@ -767,6 +684,24 @@ public static class ThermalNetworkEvaluator
             : new FailedCandidate(path, source, assessment.Failure!);
     }
 
+    private static bool PathHasEligibleSubstation(
+        EvaluationContext context,
+        PathCandidate path,
+        string loadNodeId) =>
+        path.NodeIds.Any(nodeId => IsEligibleSubstation(context, nodeId, loadNodeId));
+
+    private static bool IsEligibleSubstation(
+        EvaluationContext context,
+        string nodeId,
+        string loadNodeId)
+    {
+        SpatialNodeDefinition node = context.Nodes[nodeId];
+        CommercialNodeClassDefinition nodeClass = context.NodeClasses[node.ClassId];
+        return nodeClass.Kind == SpatialNodeKind.Substation &&
+            nodeClass.ServiceRadiusUnit is int radius &&
+            FixedGeometry.CeilDistance(node.Position, context.Nodes[loadNodeId].Position) <= radius;
+    }
+
     private static CandidateAssessment Assess(
         EvaluationContext context,
         ValidatedInterval interval,
@@ -777,6 +712,19 @@ public static class ThermalNetworkEvaluator
         PathCandidate path,
         ThermalLoadRequest load)
     {
+        if (!PathHasEligibleSubstation(context, path, context.Loads[load.LoadId].NodeId))
+        {
+            return CandidateAssessment.Rejected(
+                source,
+                path,
+                new ThermalSupplyFailure(
+                    ThermalFailureKind.NoEligibleSubstation,
+                    source.SourceId,
+                    null,
+                    load.DemandKw,
+                    0));
+        }
+
         foreach (PathStep step in path.Steps)
         {
             bool unavailable = step.AssetKind switch
@@ -921,7 +869,8 @@ public static class ThermalNetworkEvaluator
         ThermalFailureKind.EmergencyLimit => 0,
         ThermalFailureKind.AssetUnavailable => 1,
         ThermalFailureKind.SourceCapacity => 2,
-        ThermalFailureKind.NoTopologyPath => 3,
+        ThermalFailureKind.NoEligibleSubstation => 3,
+        ThermalFailureKind.NoTopologyPath => 4,
         _ => throw new InvalidOperationException("Unknown thermal failure kind."),
     };
 
@@ -1447,4 +1396,5 @@ public static class ThermalNetworkEvaluator
         IReadOnlySet<string> UnavailableNodeIds,
         IReadOnlySet<string> UnavailableEdgeIds,
         IReadOnlyDictionary<string, ThermalLimit> Limits);
+
 }

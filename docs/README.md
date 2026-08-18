@@ -46,7 +46,7 @@ docs/
 | 진행과 종료 증거는 어디에 기록하는가? | [로드맵 체크리스트](ROADMAP_2D_CHECKLIST.md) | 기능 명세·숫자를 복제하지 않음 |
 | 과거에 무엇을 확인하고 왜 바꿨는가? | [개발 이력](DEVELOPMENT_HISTORY.md) | 현재 권한이나 규칙을 소유하지 않음 |
 | 게임의 경험과 장기 원칙은 무엇인가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 단계별 숫자·절차를 만들지 않음 |
-| 현재 후보를 상용 2D 게임으로 발전시키는 재기획은 무엇인가? | [상용 2D 게임 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md) | 채택 전에는 현재 규칙·구현 권한을 바꾸지 않음 |
+| 현재 후보를 자유 배치·열 한계를 포함한 상용 2D 게임으로 발전시키는 재기획은 무엇인가? | [상용 2D 게임 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md) | 채택 전에는 현재 규칙·구현 권한을 바꾸지 않음 |
 | 오브젝트와 가능한 동작은 무엇인가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 미래 기능을 현재 가능으로 표시하지 않음 |
 | 규칙을 어떻게 보이게 하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 게임 규칙을 새로 계산하지 않음 |
 | 현재 고정 시나리오는 어떻게 동작하는가? | [Scope 0B 기준](scopes/SCOPE_0B_PLAYABLE.md) | 제품 전체 모델로 일반화하지 않음 |

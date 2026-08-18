@@ -1,14 +1,15 @@
 # Gridworks 상용 2D 게임 구현
 
-> 상태: **단계 F 완료·전체 감사 종료**
-> 구현 권한: **이번 실행 종료 — 단계 G 미개방**
-> 현재 작업: **없음**
+> 상태: **단계 F 완료·단계 G 활성**
+> 구현 권한: **단계 G와 관찰 기반 선행 보정 backlog**
+> 현재 작업: **선행 보정 → 최종 표현·settings v3 → 네 화면·키보드 증거 → 내부 package**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고 상용 재기획서 구현을 지시했다. 단계 F 전체 감사 뒤 사용자 종료 조건에 따라
-> 목표 추구를 멈췄으며, 단계 G는 계획일 뿐 이번 실행에서 승인되지 않았다.
+> 목표 추구를 멈췄다. 사용자가 2026-08-19 단계 G와 관찰 기반 선행 보정 backlog 구현을 새로
+> 명시적으로 승인했다. 단계 H 사람 검증과 공개 배포는 승인하지 않았다.
 
-이 문서는 [상용 2D 게임 재기획서](../product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)의 단계 B~F 구현
-계약과 완료 기록이며, 미개방 단계 G의 계획 경계를 보존한다. 재기획서가 경험·콘텐츠·표현 원칙을,
+이 문서는 [상용 2D 게임 재기획서](../product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)의 단계 B~F 완료
+기록과 활성 단계 G 계약이다. 재기획서가 경험·콘텐츠·표현 원칙을,
 이 문서가 실행 권위·단계 순서와 완료 증거를 소유한다.
 
 기존 `release v1` 경로와 macOS 내부 후보는 기술 기준선으로 동결한다. 새 게임은 그 타입과 저장을
@@ -48,7 +49,7 @@
 | 실제 제품 장면과 화면 adapter | `game/CommercialMain.tscn`, `game/Commercial*.cs/.tscn` |
 | 결정론적 독립 검사 | `tools/Gridworks.CommercialChecks/` |
 | 캠페인 저장 | `user://release-campaign-save-v3.json` |
-| 화면·음량·움직임 설정 — 단계 G 계획·미개방 | `user://settings.json`, strict settings v3 |
+| 화면·음량·움직임 설정 — 단계 G 활성 | `user://settings.json`, strict settings v3 |
 
 world와 campaign의 실행 숫자·문구를 문서, scene 또는 Game 코드에 복제하지 않는다. 검사기의 대표
 해법 좌표는 런타임 데이터에 넣지 않는다. Core는 Godot, 화면 픽셀, 카메라와 로케일을 참조하지
@@ -363,8 +364,8 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 - M6 witness 수정 뒤 독립 exact-tree 최종 감사: **P0 0 / P1 0**
 - `FullCampaignHumanStatus = NOT_COLLECTED`, `KoreanProfessionalProofStatus = NOT_COLLECTED`.
   자동증거는 사람의 이해·재미·문체 승인이나 상용 출시 준비 완료를 뜻하지 않는다.
-- 사용자 종료 조건에 따라 전체 감사 뒤 목표 추구를 멈췄다. 단계 G는 자동 활성화하지 않았으며,
-  새 명시적 사용자 지시 전에는 구현 권한이 없다.
+- 사용자 종료 조건에 따라 전체 감사 뒤 목표 추구를 멈췄고 당시 단계 G를 자동 활성화하지 않았다.
+  이후 2026-08-19의 별도 사용자 지시가 단계 G를 열었다.
 
 ### 6.6 사용자 중단 공식 LLM 관찰과 사후 리뷰 — 2026-08-18
 
@@ -408,15 +409,15 @@ source·data·로그·web과 기존 대화를 보지 않고 Computer Use만 사�
 문제에서는 일반 부족량만으로 병목을 찾아야 했고, 배치 입력의 성공·거부 상태, 승인 전 필수 조건과
 조밀한 지도 선택, 누적 공사 기한을 읽는 비용이 컸다고 보고했다. 이는 한 참가자의 관찰·추론이며
 독립 재현된 결함이나 수치 조정 근거가 아니다. 상세 후속 항목과 수용 경계는
-[로드맵의 관찰 기반 backlog](../ROADMAP_2D.md#관찰-기반-선행-보정-backlog--계획미개방)가 소유하고,
+[로드맵의 관찰 기반 backlog](../ROADMAP_2D.md#관찰-기반-선행-보정-backlog--단계-g-활성)가 소유하고,
 [상용 2D 게임 재기획서](../product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)는 제품 원칙만 소유한다.
-모든 항목은 `OBSERVATION_INFORMED / NOT_VALIDATED / NOT_AUTHORIZED`이며, 이 문서 변경은 구현 단계나
-단계 G를 열지 않는다.
+모든 항목은 `OBSERVATION_INFORMED / AUTHORIZED / VALIDATION_REQUIRED`이며, 재현 결과와 구현 증거를
+분리해 기록한다. 이것은 사람 사용성·재미 증거나 Stage H 활성화를 뜻하지 않는다.
 
-## 7. 단계 G — 시청각·접근성·패키징 마감 — 계획·미개방
+## 7. 단계 G — 시청각·접근성·패키징 마감 — 활성
 
-단계 G는 현재 활성 단계가 아니다. 아래 항목은 남은 계획을 정확히 보존할 뿐, 이번 실행에서 구현·
-검사하거나 완료로 주장하지 않는다.
+단계 G는 현재 활성 단계다. §6.6 관찰 backlog를 먼저 재현·보정하고 아래 항목을 구현·검증한다.
+단계 F 규칙·콘텐츠를 다시 설계하거나 Stage H 사람 검증을 시작하지 않는다.
 
 - 최종 도시 아트, 장별 날씨, 네 인물 초상과 audio cue 자산
 - settings v3와 움직임 줄이기
@@ -457,9 +458,9 @@ source·data·로그·web과 기존 대화를 보지 않고 Computer Use만 사�
 - Developer ID와 notarization 자격증명이 없으면 ad-hoc 내부 후보로만 기록한다. 공개 배포 가능이라고
   표현하지 않는다.
 
-## 8. 전체 완료 증거 — 단계 G 포함 미래 gate
+## 8. 전체 완료 증거 — 단계 G gate
 
-다음은 단계 G까지 열어 전체 내부 출시 후보를 만들 때 필요한 gate다. 단계 F 종료 시점에는 6.5의
+다음은 단계 G에서 전체 내부 출시 후보를 만들 때 필요한 gate다. 단계 F 종료 시점에는 6.5의
 캠페인 검사·build·native·감사 증거만 닫혔고, 네 화면 evidence·패키지·새 설치 전체 실행은 수집하지
 않았다. 검증은 간결하게 유지하고 같은 사실을 여러 runner에서 반복하지 않는다.
 
@@ -478,8 +479,8 @@ source·data·로그·web과 기존 대화를 보지 않고 Computer Use만 사�
 
 ```text
 StageFImplementationStatus = COMPLETE
-GoalSeekingStatus = STOPPED_AFTER_STAGE_F_AUDIT
-StageGStatus = PLANNED_NOT_OPENED
+GoalSeekingStatus = ACTIVE_STAGE_G
+StageGStatus = ACTIVE
 CommercialSliceHumanStatus = NOT_COLLECTED
 FullCampaignHumanStatus = NOT_COLLECTED
 KoreanProfessionalProofStatus = NOT_COLLECTED
@@ -522,5 +523,5 @@ PublicDistributionStatus = BLOCKED_UNTIL_SIGNING_NOTARIZATION_AND_OWNER_RELEASE_
 검사 수를 늘려 불확실성을 숨기지 않는다. 기계 규칙·상태·빌드·저장·wiring은 자동화하고,
 이해·재미·문체·가치는 단계 H 외부 증거로 정직하게 남긴다.
 
-단계 F 완료는 단계 G를 자동으로 열지 않는다. 현재 사용자 종료 조건에서는 새 명시적 지시가
-README의 활성 단계를 G로 바꾸기 전까지 계획만 보존하고 어떤 G 구현·검사도 시작하지 않는다.
+단계 G는 2026-08-19 사용자 지시로 열렸다. 단계 G gate와 clean commit이 닫히기 전에는 Stage H 사람
+검증·전문 교정·공개 배포를 시작하지 않는다.

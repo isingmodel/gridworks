@@ -2,8 +2,8 @@
 
 이 문서는 전력망 규칙과 청류시의 이야기를 어떻게 보이게 할지 정의한다. 규칙과 수치는
 [상용 구현 계약](../scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 오브젝트 능력은
-[카탈로그](OBJECT_CATALOG.md)가 소유한다. 현재 단계 F는 code-native 표현과 기본 화면을 갖췄지만,
-최종 도시 아트·날씨·초상·audio cue와 네 화면 조합 증거는 단계 G의 계획·미개방 범위다.
+[카탈로그](OBJECT_CATALOG.md)가 소유한다. 단계 F는 code-native 표현과 기본 화면을 갖췄고, 현재
+활성 단계 G가 최종 도시 아트·날씨·초상·audio cue와 네 화면 조합 증거를 닫는다.
 
 기존 `ProductMain`·`ReleaseMain` 화면은 기술 회귀 자료이며 상용 v2 시각 기준이 아니다.
 

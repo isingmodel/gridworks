@@ -11,9 +11,11 @@
 
 ## 현재 상태
 
-현재 활성 구현 단계는 없다. [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-**단계 F — 후반 네 임무와 에필로그**까지 완료했고, 사용자 종료 조건에 따라 목표 추구를 멈췄다.
-**단계 G는 계획·미개방 상태**며 새 명시적 지시 전에는 구현하거나 검증하지 않는다.
+현재 활성 구현 단계는 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
+**단계 G — 시청각·접근성·패키징 마감**이다. 사용자가 2026-08-19 단계 G와 관찰 기반 선행 보정
+backlog 구현을 명시적으로 승인했다. 단계 F까지의 규칙·캠페인은 동결하고, 관찰 task를 먼저
+재현·보정한 뒤 최종 표현·settings v3·화면 증거·내부 package gate를 닫는다. 단계 H 사람 검증과
+공개 배포는 열지 않는다.
 
 현재 기본 장면은 `CommercialMain`이다. 별도 v2 world·campaign·Core에서 보이는 격자 없는 자유
 배치, 수면·건물·설비 점유영역, 서비스 권역과 실제 발전원 경로의 분리, 선로 도체·변전소 주기기·
@@ -41,16 +43,16 @@ follow-up 회고를 요청했으므로 원래의 `follow-up 없음` cold complet
 `INVALIDATED_BY_USER_FOLLOWUP`이다. 그 회고에서 이름 붙은 병목 경로, 배치 단위의 즉시 성공·거부 피드백,
 국면별 승인 조건 체크리스트를 우선 후속 과제로 남겼다. 정확한 관찰 상한은
 [상용 구현 계약·완료 기록](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md), task와 수용 기준은
-[로드맵의 관찰 기반 backlog](docs/ROADMAP_2D.md#관찰-기반-선행-보정-backlog--계획미개방)가 소유한다.
+[로드맵의 관찰 기반 backlog](docs/ROADMAP_2D.md#관찰-기반-선행-보정-backlog--단계-g-활성)가 소유한다.
 
 `FullCampaignHumanStatus = NOT_COLLECTED`, `ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`,
 `ExternalHumanValidationStatus = NOT_COLLECTED`,
 `KoreanProfessionalProofStatus = NOT_COLLECTED`다. LLM 관찰은 특정 build에서 보인 행동과
 혼란을 기록할 뿐 사람 사용성·재미·밸런스, 성공률이나 한국어 품질을 증명하지 않는다.
 
-단계 G에는 최종 도시 아트·날씨·인물 초상·audio cue, settings v3와 움직임 줄이기, 두 해상도·
-두 UI 배율의 화면·키보드 동등성, 패키징·서명·법적 정리와 새 설치 전체 실행이 남아 있다.
-관찰에서 나온 후속 과제도 계획일 뿐 단계 G를 자동으로 열지 않는다.
+단계 G에서 최종 도시 아트·날씨·인물 초상·audio cue, settings v3와 움직임 줄이기, 두 해상도·
+두 UI 배율의 화면·키보드 동등성, 패키징·서명·법적 정리와 새 설치 전체 실행을 구현·검증한다.
+관찰에서 나온 후속 과제는 관찰 한 건의 결함률 주장이 아니라, 독립 재현 뒤 닫는 선행 작업 목록이다.
 
 기존 `ReleaseMain`·`ProductMain`과 33×21 격자 후보, Scope 0/1 실험은 회귀·역사 자료로만
 보존한다. 과거 카드 실험, prototype, 소유자 전체 플레이와 이전 LLM 관찰의 핵심 결과는

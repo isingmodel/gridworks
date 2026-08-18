@@ -93,7 +93,7 @@
 이 목록은 한 LLM의 후보별 관찰에서 나온 미래 작업이며 사람 검증이나 확정 우선순위가 아니다.
 단계 G나 다른 구현 범위를 자동으로 열지 않는다. 공식 상태·해석 상한은
 [상용 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md), task와 수용 기준은
-[로드맵의 관찰 기반 backlog](ROADMAP_2D.md#관찰-기반-선행-보정-backlog--계획미개방)가 소유한다.
+[로드맵의 관찰 기반 backlog](ROADMAP_2D.md#관찰-기반-선행-보정-backlog--단계-g-활성)가 소유한다.
 
 ## 5. 유지할 교훈과 현재 증거 상한
 

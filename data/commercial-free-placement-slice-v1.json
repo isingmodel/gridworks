@@ -1,0 +1,174 @@
+{
+  "schemaVersion": "gridworks.commercial.free-placement-slice.v1",
+  "worldId": "CHEONGRYU_FREE_PLACEMENT_SLICE",
+  "displayName": "청류시 자유 배치 작업구역",
+  "unitsPerDesignUnit": 100,
+  "bounds": {
+    "minXUnit": 0,
+    "minYUnit": 0,
+    "maxXUnit": 3200,
+    "maxYUnit": 2000
+  },
+  "initialCashUnit": 8000000,
+  "nodeClasses": [
+    {
+      "classId": "SOURCE_TERMINAL",
+      "displayName": "발전 접속점",
+      "kind": "SourceTerminal",
+      "footprintRadiusUnit": 45,
+      "maxConnections": 6,
+      "costCashUnit": 0,
+      "buildMinutes": 0
+    },
+    {
+      "classId": "LOAD_TERMINAL",
+      "displayName": "시설 접속점",
+      "kind": "DedicatedLoadTerminal",
+      "footprintRadiusUnit": 45,
+      "maxConnections": 4,
+      "costCashUnit": 0,
+      "buildMinutes": 0
+    },
+    {
+      "classId": "STANDARD_POLE",
+      "displayName": "일반 전신주",
+      "kind": "Pole",
+      "footprintRadiusUnit": 25,
+      "maxConnections": 3,
+      "costCashUnit": 50000,
+      "buildMinutes": 20
+    },
+    {
+      "classId": "REINFORCED_POLE",
+      "displayName": "보강 전신주",
+      "kind": "Pole",
+      "footprintRadiusUnit": 30,
+      "maxConnections": 4,
+      "costCashUnit": 90000,
+      "buildMinutes": 30
+    },
+    {
+      "classId": "SMALL_SUBSTATION",
+      "displayName": "소형 배전 변전소",
+      "kind": "Substation",
+      "footprintRadiusUnit": 80,
+      "maxConnections": 4,
+      "costCashUnit": 1200000,
+      "buildMinutes": 120
+    }
+  ],
+  "lineClasses": [
+    {
+      "classId": "STANDARD_LINE",
+      "displayName": "일반 배전선",
+      "maxSpanUnit": 500,
+      "costCashUnitPerDesignUnit": 5000,
+      "buildMinutesPerDesignUnit": 2
+    },
+    {
+      "classId": "REINFORCED_LINE",
+      "displayName": "보강 배전선",
+      "maxSpanUnit": 600,
+      "costCashUnitPerDesignUnit": 8000,
+      "buildMinutesPerDesignUnit": 3
+    }
+  ],
+  "terrain": [
+    {
+      "terrainId": "CHEONGRYU_RIVER",
+      "displayName": "청류강",
+      "kind": "Water",
+      "polygon": [
+        { "xUnit": 1000, "yUnit": 0 },
+        { "xUnit": 1450, "yUnit": 0 },
+        { "xUnit": 1750, "yUnit": 2000 },
+        { "xUnit": 1250, "yUnit": 2000 }
+      ]
+    },
+    {
+      "terrainId": "EAST_RESIDENTIAL_BLOCK",
+      "displayName": "동부 생활권 건물",
+      "kind": "Building",
+      "polygon": [
+        { "xUnit": 2660, "yUnit": 560 },
+        { "xUnit": 3140, "yUnit": 560 },
+        { "xUnit": 3140, "yUnit": 1040 },
+        { "xUnit": 2660, "yUnit": 1040 }
+      ]
+    },
+    {
+      "terrainId": "HOSPITAL_BLOCK",
+      "displayName": "청류의료원 건물",
+      "kind": "Building",
+      "polygon": [
+        { "xUnit": 2340, "yUnit": 1280 },
+        { "xUnit": 3060, "yUnit": 1280 },
+        { "xUnit": 3060, "yUnit": 1760 },
+        { "xUnit": 2340, "yUnit": 1760 }
+      ]
+    }
+  ],
+  "riskAreas": [
+    {
+      "riskAreaId": "RIVER_FLOOD_ZONE",
+      "displayName": "강변 범람 예고구역",
+      "polygon": [
+        { "xUnit": 820, "yUnit": 1120 },
+        { "xUnit": 1960, "yUnit": 1120 },
+        { "xUnit": 1960, "yUnit": 1940 },
+        { "xUnit": 820, "yUnit": 1940 }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "nodeId": "WEST_SOURCE",
+      "classId": "SOURCE_TERMINAL",
+      "displayName": "서부 발전 접속점",
+      "position": { "xUnit": 300, "yUnit": 950 },
+      "commissioned": true,
+      "authoredFoundation": false
+    },
+    {
+      "nodeId": "WEST_AUXILIARY",
+      "classId": "SOURCE_TERMINAL",
+      "displayName": "서부 예비 접속점",
+      "position": { "xUnit": 300, "yUnit": 1050 },
+      "commissioned": true,
+      "authoredFoundation": false
+    },
+    {
+      "nodeId": "BRIDGE_NORTH_FOUNDATION",
+      "classId": "REINFORCED_POLE",
+      "displayName": "북쪽 교량 보호기초",
+      "position": { "xUnit": 1300, "yUnit": 500 },
+      "commissioned": true,
+      "authoredFoundation": true
+    },
+    {
+      "nodeId": "BRIDGE_SOUTH_FOUNDATION",
+      "classId": "REINFORCED_POLE",
+      "displayName": "남쪽 교량 보호기초",
+      "position": { "xUnit": 1450, "yUnit": 1500 },
+      "commissioned": true,
+      "authoredFoundation": true
+    },
+    {
+      "nodeId": "EAST_RESIDENTIAL_TERMINAL",
+      "classId": "LOAD_TERMINAL",
+      "displayName": "동부 생활권 접속점",
+      "position": { "xUnit": 2600, "yUnit": 800 },
+      "commissioned": true,
+      "authoredFoundation": false
+    },
+    {
+      "nodeId": "HOSPITAL_TERMINAL",
+      "classId": "LOAD_TERMINAL",
+      "displayName": "청류의료원 접속점",
+      "position": { "xUnit": 2280, "yUnit": 1500 },
+      "commissioned": true,
+      "authoredFoundation": false
+    }
+  ],
+  "edges": []
+}

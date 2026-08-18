@@ -2,7 +2,7 @@
 
 > 상태: **ACTIVE**
 > 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 B — 자유 좌표 기반**
+> 현재 작업: **단계 C — 이산 열 국면 기반**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -125,6 +125,17 @@ ID/hash를 저장한다. 단계 E 전환 때 D 개발 저장은 읽지 않고 �
 - 1280×720·UI 125%의 실제 viewport smoke에서 자유 배치, 자석 맞춤, 세 줌, pan, Home, 키보드
   cursor-follow와 Tab focus를 한 흐름으로 확인한다.
 - 열 schema, 열 UI와 전체 캠페인은 이 단계에 선제 구현하지 않는다.
+
+### 3.6 단계 B 종료 기록 — 2026-08-18
+
+- spatial fixture SHA-256:
+  `34d9db83449b696c52a9548c6dffcd267bab51f936c86e89024a20fe441667cb`
+- CommercialChecks: **7 suites / 238 assertions PASS**
+- Game Debug·Release build: **0 warnings / 0 errors**
+- 명시 `CommercialMain.tscn`, 1280×720·UI 125% native 흐름:
+  `COMMERCIAL_PLACEMENT_SMOKE_PASS minute=192 nodes=10 edges=5 zoom=전체 보기`
+- 독립 exact-tree 검토: **P0 0 / P1 0**
+- 열 field·열 UI·campaign placeholder 없이 자유 좌표 기반만 닫고 단계 C로 승격했다.
 
 ## 4. 단계 C — 이산 열 국면 기반
 

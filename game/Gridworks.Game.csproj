@@ -28,6 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="../data/commercial-free-placement-slice-v1.json"
+                      Link="EmbeddedData/commercial-free-placement-slice-v1.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.commercial-free-placement-slice-v1.json" />
     <EmbeddedResource Include="../data/release-world-v1.json"
                       Link="EmbeddedData/release-world-v1.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-world-v1.json" />

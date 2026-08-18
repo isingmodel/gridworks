@@ -11,11 +11,11 @@
 
 ## 현재 상태
 
-현재 활성 구현 단계는 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-**단계 F — 후반 네 임무와 에필로그**다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
-주기기·전신주 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도
-v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대로 만든다. 기존 `ReleaseMain`과
-33×21 후보는 기술 회귀 기준선이며 새 규칙의 실행 권위가 아니다.
+현재 활성 구현 단계는 없다. [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
+**단계 F — 후반 네 임무와 에필로그**까지 완료하고 전체 감사를 닫은 뒤, 사용자 종료 조건에 따라
+이번 목표 추구를 멈췄다. **단계 G는 계획 상태이며 열지 않았고 이번 실행에 구현 권한이 없다.**
+새 제품은 별도 v2 world·campaign·Core와 기본 장면에서 단계 B부터 F까지 구현됐다. 기존
+`ReleaseMain`과 33×21 후보는 기술 회귀 기준선이며 새 규칙의 실행 권위가 아니다.
 
 단계 B의 명시 실행 장면은 고정소수점 자유 좌표, 원형 점유영역, 수면·건물·위험구역, 교차 비접속
 선로, 초안 전신주 이동과 세 단계 카메라를 구현했다. CommercialChecks 7개 묶음 238 assertions,
@@ -40,8 +40,24 @@ assembly에는 검사 국면과 대표 해법을 넣지 않았다.
 실제 공급·미공급·남은 자금·약속 결과만 보고한다. 최근 공사·현재 장·이전 장 복구, final campaign
 save v3와 기존 단계 D 저장의 결정론적 백업까지 같은 command journal로 닫았다. CommercialChecks
 26개 묶음 2,402 assertions, Game 세 구성 build, 서로 다른 두 Godot 프로세스의 4장 완료와 exact-tree
-검토를 통과했다. 사람 이해·재미 증거는 `NOT_COLLECTED`이며, 단계 F는 같은 망을 이어 후반 5~8장과
-에필로그를 구현한다.
+검토를 통과했다.
+
+단계 F는 같은 망을 이어 `누구의 여유인가`부터 `가장 긴 밤`까지 후반 네 임무와 실제 장별 결과,
+세 도시 약속의 회수, 에필로그, 두 번째 process 제목 화면의 완료 저장 재개·별도 bytes 복원과 장 시작
+재도전을 구현했다. 최종 world SHA-256은
+`c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14`, campaign SHA-256은
+`078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a`다. CommercialChecks
+**29 suites / 4,486 assertions**와 Game Debug·Release·ExportRelease **0 warnings / 0 errors**를
+통과했다. 1280×720·UI 125%의 서로 다른 fresh Godot 프로세스 marker는
+`COMMERCIAL_CAMPAIGN_SMOKE_LEG1_PASS chapter=WHOSE_MARGIN commands=82`(뒤에는 실행별 저장 경로),
+`COMMERCIAL_CAMPAIGN_SMOKE_LEG2_PASS completedResume=True replay=WHOSE_MARGIN completedCommands=136 replayCommands=82`다.
+M6 설계 원형 witness를 바로잡은 뒤 독립 exact-tree 감사는 **P0 0 / P1 0**이었다. 새 출시판 후보의
+사람 전체 플레이와 이해·재미·한국어 전문 교정은 모두 `NOT_COLLECTED`다. 따라서 이는 단계 F 구현
+완료 증거이지 상용 출시 준비 완료나 공개 배포 승인 증거가 아니다.
+
+계획만 남아 있는 단계 G에는 최종 도시 아트·날씨·인물 초상·audio cue 자산, settings v3와
+움직임 줄이기, 네 화면 조합과 키보드 동등성 증거, 패키징·서명·법적 정리와 새 설치 전체 완주가
+남아 있다. 새 사용자 지시로 단계 G를 명시적으로 열기 전에는 이 항목을 구현하거나 검증하지 않는다.
 
 직전 기준선의 `ReleaseMain`은 프롤로그 세 임무와 본편 다섯 장, 한국어 화면, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 후보까지 구현했다. 사용자 요청으로 수행한
@@ -53,7 +69,8 @@ save v3와 기존 단계 D 저장의 결정론적 백업까지 같은 command jo
 후속 내부 후보도 상용 2D 게임으로는 선택·리듬·이야기 회수가 부족하다는 판단에 따라
 [상용 2D 게임 재기획서](docs/product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)를 채택했다. 이 제품
 기준은 보이는 격자 없는 자유 배치와 선로·변압기·전신주 접속부의 국면별 열 한계, 실제 상태를
-기억하는 여덟 임무를 새 기반으로 삼는다. 정확한 구현 경계와 순서는 활성 계약이 소유한다.
+기억하는 여덟 임무를 새 기반으로 삼는다. 정확한 구현 경계·완료 증거와 남은 계획은
+[상용 구현 계약·완료 기록](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다.
 
 동결 기준선 `ReleaseMain`은 33×21 지도에서 변전소와 선로를 직접 건설하고,
 분기·합류 설비의 사용량·정격·접속 여유를 보면서 같은 청류시 망을 8개 임무 동안 이어 쓴다.
@@ -90,7 +107,7 @@ save v3와 기존 단계 D 저장의 결정론적 백업까지 같은 command jo
 
 [2D 완성 로드맵](docs/ROADMAP_2D.md)은 현재 재구축 순서,
 [체크리스트](docs/ROADMAP_2D_CHECKLIST.md)는 단계 상태와 종료 증거를 소유한다. 과거 완료 범위는
-새 출시판 기능을 구현했다는 뜻이 아니며, 활성 상용 2D 계약에 없는 구현을 승인하지 않는다.
+새 출시판 기능을 구현했다는 뜻이 아니며, README가 명시적으로 열지 않은 단계를 승인하지 않는다.
 
 과거 카드 실험, 화면 검증과 시행착오는 [개발 이력 요약](docs/DEVELOPMENT_HISTORY.md)에 압축했다.
 옛 내부 후보에 대한 소유자 전체 플레이 피드백은 2026-08-17 수집했다
@@ -121,7 +138,8 @@ save v3와 기존 단계 D 저장의 결정론적 백업까지 같은 command jo
 최소 출시판에는 22.9 kV급 계획 모델, 분기·합류, 고정소수점 자유 배치, 점유영역·지형,
 연속·비상 열 한계와 국면 상태, 결정론적 공급·우회, 전문적인 한국어 UX, 실제 망을 기억하는
 이야기, 저장·설정과 설치 가능한 2D 빌드가 포함된다. 상세 범위와 현실성의 상한은
-[활성 계약](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다.
+[상용 구현 계약과 완료 기록](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다. 단계 F
+종료 시점에는 설정·최종 자산·패키징이 남아 있어 이 최소 출시판 목표 전체를 달성했다고 보지 않는다.
 
 ## 저장소 구조
 

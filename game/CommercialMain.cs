@@ -42,7 +42,8 @@ internal sealed partial class CommercialMain : Control
         "\n\n일반 선로는 짧고 저렴하지만 열여유가 작고, 보강 선로는 더 긴 별도 회랑에 적합합니다." +
         "\n변전소의 서비스 권역은 접속 가능 범위이며, 발전원에서 이어진 실제 경로가 있어야 공급됩니다." +
         "\n운영 국면을 바꾸며 의무 공급과 설비의 현재 사용·연속 한계를 확인하세요." +
-        "\n승인한 행동은 한 슬롯에 자동 저장됩니다.";
+        "\n승인한 행동은 한 슬롯에 자동 저장됩니다." +
+        "\n캠페인을 마치면 완료한 장의 시작 상태를 골라 다시 설계할 수 있습니다.";
 
     private CommercialLaunchOptions _options = null!;
     private ConstructionSession _session = null!;
@@ -388,6 +389,7 @@ internal sealed partial class CommercialMain : Control
                 ? "도시 약속을 지키기로 선택했습니다."
                 : "도시 약속을 미루기로 선택했습니다.");
         _panel.ProductActionRequested += OnProductAction;
+        _panel.ChapterReplayRequested += ReplayCompletedChapter;
         _shell.GameplayFocusRequested += OnGameplayFocusRequested;
         _shell.ActionRequested += OnShellAction;
         _shell.StoryAcknowledged += OnStoryAcknowledged;
@@ -562,6 +564,29 @@ internal sealed partial class CommercialMain : Control
         }
     }
 
+    private void ReplayCompletedChapter(string chapterId)
+    {
+        if (!IsProductMode || !_coreSnapshot!.CampaignComplete)
+        {
+            return;
+        }
+        CommercialCampaignChapterReplayOption? option = _coreSnapshot.ChapterReplayOptions
+            .FirstOrDefault(item => string.Equals(
+                item.ChapterId,
+                chapterId,
+                StringComparison.Ordinal));
+        if (option is null)
+        {
+            _lastError = "선택한 장의 시작 기록을 찾을 수 없습니다.";
+            Render();
+            return;
+        }
+        ApplyJournalRewind(
+            _coreRun!.ReplayCompletedChapterStart(option.ChapterId),
+            $"{option.DisplayName} 시작 상태로 돌아갔습니다.",
+            () => ChapterOpeningPresentations(_coreRun.GetSnapshot()));
+    }
+
     private void OnShellAction(CommercialShellAction action)
     {
         if (!IsProductMode)
@@ -644,9 +669,9 @@ internal sealed partial class CommercialMain : Control
                 _loadedSave);
             ReplaceProductRun(restored);
             CommercialCampaignSnapshot snapshot = _coreSnapshot!;
-            if (snapshot.CampaignComplete && snapshot.LastOutcome is not null)
+            if (snapshot.CampaignComplete)
             {
-                PresentStories([BuildResultPresentation(snapshot.LastOutcome)]);
+                PresentStories(BuildEpiloguePresentations(snapshot));
             }
             else if (snapshot.CommandCount == snapshot.ChapterStartCommandCount)
             {
@@ -710,6 +735,10 @@ internal sealed partial class CommercialMain : Control
             if (!after.CampaignComplete)
             {
                 cards.AddRange(ChapterOpeningPresentations(after));
+            }
+            else
+            {
+                cards.AddRange(BuildEpiloguePresentations(after));
             }
             PresentStories(cards);
             return;
@@ -812,6 +841,61 @@ internal sealed partial class CommercialMain : Control
                 : authored.Body + "\n\n" + facts,
         };
         return new CommercialStoryPresentation(card, true, "계속");
+    }
+
+    private static IReadOnlyList<CommercialStoryPresentation> BuildEpiloguePresentations(
+        CommercialCampaignSnapshot snapshot)
+    {
+        if (!snapshot.CampaignComplete || snapshot.Epilogue is null)
+        {
+            throw new InvalidOperationException(
+                "완료한 캠페인의 에필로그 기록을 불러올 수 없습니다.");
+        }
+        CommercialCampaignEpiloguePresentation epilogue = snapshot.Epilogue;
+        var cards = new List<CommercialStoryPresentation>
+        {
+            new(epilogue.CityReport, false, "운영 기록 보기", KindLabel: "에필로그"),
+        };
+        const int FactsPerCard = 2;
+        for (int start = 0; start < epilogue.ChapterFacts.Count; start += FactsPerCard)
+        {
+            CommercialCampaignEpilogueChapterFact[] facts = epilogue.ChapterFacts
+                .Skip(start)
+                .Take(FactsPerCard)
+                .ToArray();
+            string title = string.Join(" · ", facts.Select(fact => fact.DisplayName));
+            string body = string.Join("\n\n", facts.Select(fact =>
+                $"{fact.DisplayName}\n" +
+                string.Join("\n", fact.SummaryLines.Select(line => $"• {line}"))));
+            cards.Add(new CommercialStoryPresentation(
+                new CommercialStoryCard("운영 기록", title, body),
+                false,
+                "다음 기록",
+                KindLabel: "에필로그"));
+        }
+        var decisionLines = epilogue.PromiseFacts
+            .Select(fact => $"• {fact.Line}")
+            .ToList();
+        decisionLines.Add($"• 완료 시 남은 운영 자금 {FormatWon(epilogue.RemainingCashUnit)}");
+        cards.Add(new CommercialStoryPresentation(
+            new CommercialStoryCard(
+                "운영 기록",
+                "도시와의 약속",
+                string.Join("\n", decisionLines)),
+            false,
+            "현장 기록 보기",
+            KindLabel: "에필로그"));
+        cards.Add(new CommercialStoryPresentation(
+            epilogue.MedicalWitness,
+            false,
+            "마지막 기록 보기",
+            KindLabel: "에필로그"));
+        cards.Add(new CommercialStoryPresentation(
+            epilogue.Closing,
+            true,
+            "완료 화면으로",
+            KindLabel: "에필로그"));
+        return cards;
     }
 
     private IReadOnlyList<string> BuildOutcomeFacts(CommercialCampaignChapterOutcome outcome)
@@ -1296,7 +1380,10 @@ internal sealed partial class CommercialMain : Control
     private void RenderProductMode()
     {
         CommercialCampaignSnapshot snapshot = _coreSnapshot!;
-        _titleLabel.Text = $"GRIDWORKS · {snapshot.Chapter.DisplayName}";
+        string displayName = snapshot.CampaignComplete
+            ? snapshot.Epilogue?.DisplayName ?? snapshot.Chapter.DisplayName
+            : snapshot.Chapter.DisplayName;
+        _titleLabel.Text = $"GRIDWORKS · {displayName}";
         if (snapshot.Projections.Count > 0)
         {
             _thermalProjectionIndex = Math.Clamp(
@@ -1349,7 +1436,7 @@ internal sealed partial class CommercialMain : Control
             ? "캠페인 완료"
             : $"다음 확인 · {projection?.Phase.DisplayName ?? "운영 확인"}";
         _summaryLabel.Text =
-            $"{snapshot.Chapter.DisplayName} · {progress} · " +
+            $"{displayName} · {progress} · " +
             $"운영 자금 {FormatWon(snapshot.CashUnit)}";
         _controlHelpLabel.Text =
             "휠/+/− 확대 · 가운데/Space+드래그 이동 · Home 전체 보기 · 클릭/방향키+Enter 설비 선택 · Esc 일시정지";
@@ -1506,8 +1593,19 @@ internal sealed partial class CommercialMain : Control
                 $"접속 회선 {current}/{requirement.MinimumConnections} · {node.DisplayName}",
                 current >= requirement.MinimumConnections ? "충족" : "미충족"));
         }
+        if (snapshot.CampaignComplete)
+        {
+            quoteText = $"완료 시 남은 운영 자금 " +
+                FormatWon(snapshot.Epilogue!.RemainingCashUnit);
+            selection = "에필로그에서 각 장의 실제 공급·열 상태·약속 결과를 확인했습니다.";
+            obligations.Clear();
+            obligations.Add(new CommercialObligationPresentation(
+                "완료한 장의 시작 상태를 선택해 이후 도시망을 다시 설계할 수 있습니다.",
+                "기록"));
+        }
         CommercialCityPromiseDefinition? promise = snapshot.Chapter.CityPromise;
-        CommercialPromisePresentation? promisePresentation = promise is null
+        CommercialPromisePresentation? promisePresentation =
+            promise is null || snapshot.CampaignComplete
             ? null
             : new CommercialPromisePresentation(
                 promise.DisplayName,
@@ -1520,31 +1618,44 @@ internal sealed partial class CommercialMain : Control
         string deadline = snapshot.CurrentWindow?.BuildMinutesAvailable is int minutes
             ? $"공사 기한 · 이번 단계에서 {minutes}분 이내"
             : "공사 기한 · 별도 제한 없음";
+        if (snapshot.CampaignComplete)
+        {
+            deadline = "완료 기록 · 선택한 장부터 다시 시작하면 이후 진행을 새로 저장합니다.";
+        }
+        string objective = snapshot.CampaignComplete
+            ? snapshot.Epilogue!.DisplayName
+            : snapshot.Chapter.Objective;
         var product = new CommercialProductPanelPresentation(
-            snapshot.Chapter.Objective,
+            objective,
             obligations,
             deadline,
             promisePresentation,
             new CommercialActionPresentation(
                 snapshot.CanApprove,
                 "운영안 승인",
-                "현재 화면에 공개된 운영 국면을 순서대로 확정합니다."),
+                "현재 화면에 공개된 운영 국면을 순서대로 확정합니다.",
+                !snapshot.CampaignComplete),
             new CommercialActionPresentation(
                 snapshot.CanRollbackRecentProject,
                 "최근 공사 복구",
-                "현재 장에서 마지막으로 완공한 공사 직전으로 복구합니다."),
+                "현재 장에서 마지막으로 완공한 공사 직전으로 복구합니다.",
+                !snapshot.CampaignComplete),
             new CommercialActionPresentation(
                 snapshot.CanRestartWindow,
                 "이번 운영 단계 다시 시작",
-                "이번 운영 단계에서 실행한 작업을 되돌립니다."),
+                "이번 운영 단계에서 실행한 작업을 되돌립니다.",
+                !snapshot.CampaignComplete),
             new CommercialActionPresentation(
                 snapshot.CanRestartChapter,
                 "현재 장 다시 시작",
-                "현재 장의 시작 상태로 돌아갑니다."),
+                "현재 장의 시작 상태로 돌아갑니다.",
+                !snapshot.CampaignComplete),
             new CommercialActionPresentation(
                 snapshot.CanRewindPreviousChapter,
                 "이전 장부터 다시 설계",
-                "직전 장의 시작 상태로 돌아가 이후 망을 다시 설계합니다."));
+                "직전 장의 시작 상태로 돌아가 이후 망을 다시 설계합니다.",
+                !snapshot.CampaignComplete),
+            snapshot.ChapterReplayOptions);
         string error = !string.IsNullOrEmpty(_lastError)
             ? _lastError
             : snapshot.ConnectionFailures.FirstOrDefault() is
@@ -1574,8 +1685,10 @@ internal sealed partial class CommercialMain : Control
             PoleClassId,
             ready);
         return new CommercialTaskPanelModel(
-            snapshot.Chapter.DisplayName,
-            snapshot.Chapter.Objective,
+            snapshot.CampaignComplete
+                ? snapshot.Epilogue!.DisplayName
+                : snapshot.Chapter.DisplayName,
+            objective,
             selection,
             quoteText,
             $"현재 시각 {FormatCampaignMinute(snapshot.Minute)} · {_lastStatus}",

@@ -451,6 +451,704 @@
         "deferredPromise": "{promise}: 미룸",
         "remainingCash": "남은 운영 자금 {cashUnit}원"
       }
+    },
+    {
+      "chapterId": "WHOSE_MARGIN",
+      "displayName": "누구의 여유인가",
+      "briefing": {
+        "speaker": "운영센터장 윤서진",
+        "title": "산업단지의 야간 증산 요청을 검토합니다",
+        "body": "의료원과 정수장 공급은 연속 한계 안에 남겨야 합니다. 산업단지 약속에 비상 열여유를 쓰면 해당 설비는 다음 국면에 보호정지됩니다. 별도 회랑을 만들거나 이번 증산을 미룰 수 있습니다."
+      },
+      "objective": "의료원과 정수장 공급을 지키면서 산업 야간 증산을 지킬지 미룰지 결정하고 늦은 밤 복구 국면을 확인하세요.",
+      "timeAdvanceBeforeChapterMinutes": 0,
+      "resetThermalStateBeforeChapter": false,
+      "budgetGrantCashUnit": 1200000,
+      "availableNodeClassIds": [
+        "LARGE_SUBSTATION",
+        "SMALL_SUBSTATION"
+      ],
+      "availableLinePlans": [
+        {
+          "lineClassId": "REINFORCED_LINE",
+          "poleClassId": "REINFORCED_POLE"
+        },
+        {
+          "lineClassId": "STANDARD_LINE",
+          "poleClassId": "STANDARD_POLE"
+        }
+      ],
+      "connectionRequirements": [],
+      "cityPromise": {
+        "promiseId": "FACTORY_NIGHT_SHIFT_PROMISE",
+        "displayName": "산업 야간 증산",
+        "loadId": "RIVER_FACTORY",
+        "keepLabel": "야간 증산 약속을 지킨다",
+        "deferLabel": "야간 증산을 이번에는 미룬다"
+      },
+      "decisionWindows": [
+        {
+          "windowId": "HOT_EVENING_PLANNING_WINDOW",
+          "beforePhaseId": "HOT_BASE",
+          "story": {
+            "speaker": "계통운영관 강민호",
+            "title": "같은 2,700 kW도 경로가 다르면 다음 상태가 달라집니다",
+            "body": "일반 회랑은 증산 수요를 비상 한계 안에서 맡을 수 있지만 다음 국면에는 멈춥니다. 보강 회랑은 비용이 더 들고, 대신 연속 한계 안에서 공급할 수 있습니다."
+          },
+          "buildMinutesAvailable": 200
+        },
+        {
+          "windowId": "LATE_NIGHT_RECOVERY_WINDOW",
+          "beforePhaseId": "LATE_NIGHT",
+          "story": {
+            "speaker": "의료원 시설책임자 박지현",
+            "title": "증산 뒤의 필수 공급도 확인해 주세요",
+            "body": "비상 운전에 들어간 설비가 멈춘 뒤에도 의료원과 정수장으로 이어지는 실제 경로가 남아야 합니다. 늦은 밤 국면까지 검토한 뒤 운영안을 확정해 주세요."
+          },
+          "buildMinutesAvailable": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "HOT_BASE",
+          "displayName": "더운 저녁 기본수요",
+          "thermalPolicy": "continuousOnly",
+          "story": null,
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 800,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        },
+        {
+          "phaseId": "NIGHT_SHIFT",
+          "displayName": "산업 야간 증산",
+          "thermalPolicy": "continuousOnly",
+          "story": {
+            "speaker": "계통운영관 강민호",
+            "title": "산업 수요만 비상 열여유를 사용할 수 있습니다",
+            "body": "의료원과 정수장은 연속 한계 안에 남깁니다. 지키기로 한 증산 약속의 경로만 비상 한계까지 비교하고, 다음 국면 보호정지 설비를 함께 표시합니다."
+          },
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "RIVER_FACTORY",
+              "demandKw": 2700,
+              "obligation": "cityPromise"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 600,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        },
+        {
+          "phaseId": "LATE_NIGHT",
+          "displayName": "늦은 밤 필수 공급",
+          "thermalPolicy": "continuousOnly",
+          "story": null,
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 600,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        }
+      ],
+      "resultCards": {
+        "standard": null,
+        "kept": {
+          "speaker": "운영센터장 윤서진",
+          "title": "증산 약속과 늦은 밤 공급을 함께 기록했습니다",
+          "body": "산업단지의 실제 공급원과 경로, 비상 운전 설비와 다음 국면 상태를 기록했습니다. 의료원과 정수장 공급 결과도 같은 운영 기록에 남깁니다."
+        },
+        "deferred": {
+          "speaker": "운영센터장 윤서진",
+          "title": "산업 야간 증산을 이번에는 미룹니다",
+          "body": "산업 수요를 이번 운영안에서 제외했습니다. 의료원과 정수장의 실제 공급 결과, 현재 망과 남은 운영 자금은 다음 검토로 이어집니다."
+        }
+      },
+      "resultFactTemplates": {
+        "suppliedLoad": "{phase}: {load}에 {source}에서 {demandKw} kW 공급 · 경로 최소 열여유 {minimumRemainingKw} kW",
+        "unservedLoad": "{phase}: {load} 수요 {demandKw} kW 중 {deliveredKw} kW 공급",
+        "keptPromise": "{promise}: 지킴",
+        "deferredPromise": "{promise}: 미룸",
+        "remainingCash": "남은 운영 자금 {cashUnit}원"
+      }
+    },
+    {
+      "chapterId": "BEFORE_WATER_RISE",
+      "displayName": "물이 닿기 전에",
+      "briefing": {
+        "speaker": "재난대응관 이도윤",
+        "title": "범람 경계까지 공사할 수 있는 시간은 300분입니다",
+        "body": "서부 발전 접속은 범람 대응을 위해 분리합니다. 기존 남부 회랑 가운데 예고구역과 겹친 설비도 사용할 수 없습니다. 필수시설을 먼저 지키고, 동부 생활권 공급 약속을 어디까지 맡을지 정해 주세요."
+      },
+      "objective": "동부 생활권 접속점에 두 번째 회선을 연결하고 범람 국면의 의료원·정수장 공급을 지킨 뒤 동부 공급 유지 약속을 결정하세요.",
+      "timeAdvanceBeforeChapterMinutes": 0,
+      "resetThermalStateBeforeChapter": false,
+      "budgetGrantCashUnit": 1400000,
+      "availableNodeClassIds": [
+        "LARGE_SUBSTATION",
+        "SMALL_SUBSTATION"
+      ],
+      "availableLinePlans": [
+        {
+          "lineClassId": "REINFORCED_LINE",
+          "poleClassId": "REINFORCED_POLE"
+        },
+        {
+          "lineClassId": "STANDARD_LINE",
+          "poleClassId": "STANDARD_POLE"
+        }
+      ],
+      "connectionRequirements": [
+        {
+          "nodeId": "EAST_RESIDENTIAL_TERMINAL",
+          "minimumConnections": 2
+        }
+      ],
+      "cityPromise": {
+        "promiseId": "EAST_CONTINUITY_PROMISE",
+        "displayName": "동부 생활권 공급 유지",
+        "loadId": "EAST_RESIDENTIAL",
+        "keepLabel": "동부 생활권 공급을 유지한다",
+        "deferLabel": "이번 범람에는 동부 공급 약속을 미룬다"
+      },
+      "decisionWindows": [
+        {
+          "windowId": "BEFORE_FLOOD_WINDOW",
+          "beforePhaseId": "FLOOD_ARRIVAL",
+          "story": {
+            "speaker": "재난대응관 이도윤",
+            "title": "짧은 강변 보완선은 범람 때 함께 분리됩니다",
+            "body": "예고구역을 벗어난 두 번째 접속과 실제 발전 경로가 필요합니다. 공사시간 안에서 일반 회랑과 보강 회랑의 비용, 열여유를 비교해 주세요."
+          },
+          "buildMinutesAvailable": 300
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "FLOOD_ARRIVAL",
+          "displayName": "범람 도달",
+          "thermalPolicy": "continuousOnly",
+          "story": {
+            "speaker": "재난대응관 이도윤",
+            "title": "범람 예고구역의 설비를 운영에서 분리합니다",
+            "body": "표시된 구역과 닿은 전신주, 변전소와 선로를 제외하고 남은 실제 경로를 확인합니다. 두 접속 회선이 있다는 사실만으로 완전한 독립을 뜻하지는 않습니다."
+          },
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 1200,
+              "obligation": "cityPromise"
+            }
+          ],
+          "unavailableNodeIds": [
+            "WEST_SOURCE_NODE"
+          ],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [
+            "RIVER_FLOOD_ZONE"
+          ],
+          "thermalLimitOverrides": []
+        }
+      ],
+      "resultCards": {
+        "standard": null,
+        "kept": {
+          "speaker": "재난대응관 이도윤",
+          "title": "범람 구역을 제외한 공급 결과를 확인했습니다",
+          "body": "의료원·정수장과 동부 생활권의 실제 공급 결과를 기록했습니다. 동부 접속점의 두 회선과 범람 때 선택된 경로는 별도 사실로 남깁니다."
+        },
+        "deferred": {
+          "speaker": "재난대응관 이도윤",
+          "title": "필수시설 공급을 먼저 확인했습니다",
+          "body": "의료원과 정수장의 실제 공급 결과를 기록하고 동부 생활권 약속은 이번 범람에 미뤘습니다. 현재 망과 남은 운영 자금은 그대로 이어집니다."
+        }
+      },
+      "resultFactTemplates": {
+        "suppliedLoad": "{phase}: {load}에 {source}에서 {demandKw} kW 공급 · 경로 최소 열여유 {minimumRemainingKw} kW",
+        "unservedLoad": "{phase}: {load} 수요 {demandKw} kW 중 {deliveredKw} kW 공급",
+        "keptPromise": "{promise}: 지킴",
+        "deferredPromise": "{promise}: 미룸",
+        "remainingCash": "남은 운영 자금 {cashUnit}원"
+      }
+    },
+    {
+      "chapterId": "SWITCH_OFF_TO_PROTECT",
+      "displayName": "꺼야 지킬 수 있다",
+      "briefing": {
+        "speaker": "계통운영관 강민호",
+        "title": "서부 발전 접속을 계획정지하겠습니다",
+        "body": "범람 뒤 점검에서 서부 전원 계통의 결함을 확인했습니다. 지금 정비를 마치면 가장 긴 밤에는 다시 사용할 수 있습니다. 정수장 접속점에 두 번째 회선을 마련한 뒤, 정지 중에는 남부 전원과 남은 경로만으로 의료원과 정수장을 맡아야 합니다."
+      },
+      "objective": "정수장 접속점에 두 번째 회선을 연결하고, 서부 발전 접속 계획정지 중 의료원·정수장을 공급한 뒤 복귀 국면도 연속 한계 안에서 통과하세요.",
+      "timeAdvanceBeforeChapterMinutes": 0,
+      "resetThermalStateBeforeChapter": false,
+      "budgetGrantCashUnit": 1600000,
+      "availableNodeClassIds": [
+        "LARGE_SUBSTATION",
+        "SMALL_SUBSTATION"
+      ],
+      "availableLinePlans": [
+        {
+          "lineClassId": "REINFORCED_LINE",
+          "poleClassId": "REINFORCED_POLE"
+        },
+        {
+          "lineClassId": "STANDARD_LINE",
+          "poleClassId": "STANDARD_POLE"
+        }
+      ],
+      "connectionRequirements": [
+        {
+          "nodeId": "WATER_TERMINAL",
+          "minimumConnections": 2
+        }
+      ],
+      "cityPromise": null,
+      "decisionWindows": [
+        {
+          "windowId": "BEFORE_PLANNED_OUTAGE_WINDOW",
+          "beforePhaseId": "WEST_SOURCE_PLANNED_OUTAGE",
+          "story": {
+            "speaker": "계통운영관 강민호",
+            "title": "정지 중 경로와 복귀 뒤 경로를 함께 봅니다",
+            "body": "정수장 두 번째 접속을 어디에서 가져올지 결정하세요. 남부 경로가 비상 한계 안에서 현재 수요를 맡는지, 그 설비가 다음 국면에 멈춘 뒤 서부 전원으로 돌아갈 연속 경로가 남는지도 함께 확인합니다."
+          },
+          "buildMinutesAvailable": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "WEST_SOURCE_PLANNED_OUTAGE",
+          "displayName": "서부 전원 계획정지",
+          "thermalPolicy": "safetyEmergencyAllowed",
+          "story": {
+            "speaker": "운영센터장 윤서진",
+            "title": "계획정지를 승인합니다",
+            "body": "고장을 기다리지 않고 서부 발전 접속을 정비에서 분리합니다. 화면에 표시된 남부 공급 경로와 다음 보호정지 상태를 운영 기록으로 남깁니다."
+          },
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 1800,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 1400,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 700,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [
+            "WEST_SOURCE_NODE"
+          ],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        },
+        {
+          "phaseId": "WEST_SOURCE_RETURN_SERVICE",
+          "displayName": "서부 전원 복귀",
+          "thermalPolicy": "continuousOnly",
+          "story": {
+            "speaker": "계통운영관 강민호",
+            "title": "정비를 마친 서부 전원을 다시 투입합니다",
+            "body": "직전 국면에 비상 운전한 설비는 보호정지 상태입니다. 그 설비를 제외하고 서부 전원에서 필수시설까지 이어지는 연속 경로를 확인합니다."
+          },
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 700,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        }
+      ],
+      "resultCards": {
+        "standard": {
+          "speaker": "계통운영관 강민호",
+          "title": "계획정지와 복귀 경로를 확인했습니다",
+          "body": "서부 발전 접속을 뺀 국면의 실제 공급원·경로와 비상 운전 설비를 기록했습니다. 다음 국면에는 보호정지 설비를 제외한 복귀 경로와 최소 열여유를 남겼습니다."
+        },
+        "kept": null,
+        "deferred": null
+      },
+      "resultFactTemplates": {
+        "suppliedLoad": "{phase}: {load}에 {source}에서 {demandKw} kW 공급 · 경로 최소 열여유 {minimumRemainingKw} kW",
+        "unservedLoad": "{phase}: {load} 수요 {demandKw} kW 중 {deliveredKw} kW 공급",
+        "keptPromise": null,
+        "deferredPromise": null,
+        "remainingCash": "남은 운영 자금 {cashUnit}원"
+      }
+    },
+    {
+      "chapterId": "LONGEST_NIGHT",
+      "displayName": "가장 긴 밤",
+      "briefing": {
+        "speaker": "운영센터장 윤서진",
+        "title": "마지막 운영안은 세 국면을 연속으로 견뎌야 합니다",
+        "body": "최대수요 뒤 폭염 한계가 낮아지고, 비상 운전 설비가 멈춘 상태에서 범람이 도달합니다. 새 도구는 없습니다. 지금까지 만든 망을 살피고 마지막 공사 창구에서 필요한 보완을 마쳐 주세요."
+      },
+      "objective": "최대수요, 폭염 정점, 보호정지와 범람 국면을 한 번에 검토해 의료원·정수장 공급을 모두 유지하세요.",
+      "timeAdvanceBeforeChapterMinutes": 0,
+      "resetThermalStateBeforeChapter": false,
+      "budgetGrantCashUnit": 1800000,
+      "availableNodeClassIds": [
+        "LARGE_SUBSTATION",
+        "SMALL_SUBSTATION"
+      ],
+      "availableLinePlans": [
+        {
+          "lineClassId": "REINFORCED_LINE",
+          "poleClassId": "REINFORCED_POLE"
+        },
+        {
+          "lineClassId": "STANDARD_LINE",
+          "poleClassId": "STANDARD_POLE"
+        }
+      ],
+      "connectionRequirements": [],
+      "cityPromise": null,
+      "decisionWindows": [
+        {
+          "windowId": "FINAL_OPERATING_PLAN_WINDOW",
+          "beforePhaseId": "MAX_DEMAND",
+          "story": {
+            "speaker": "재난대응관 이도윤",
+            "title": "세 상태를 미리 본 뒤 한 번만 승인합니다",
+            "body": "폭염에서 사용한 비상 설비는 마지막 국면에 멈추고, 범람 예고구역과 겹친 설비도 빠집니다. 각 국면의 실제 경로를 비교한 뒤 최종 운영안을 승인해 주세요."
+          },
+          "buildMinutesAvailable": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "MAX_DEMAND",
+          "displayName": "야간 최대수요",
+          "thermalPolicy": "continuousOnly",
+          "story": null,
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 1000,
+              "obligation": "operatingRecord"
+            },
+            {
+              "loadId": "NORTH_RESIDENTIAL",
+              "demandKw": 900,
+              "obligation": "operatingRecord"
+            },
+            {
+              "loadId": "RIVER_FACTORY",
+              "demandKw": 1200,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": []
+        },
+        {
+          "phaseId": "HEATWAVE_PEAK",
+          "displayName": "폭염 정점",
+          "thermalPolicy": "safetyEmergencyAllowed",
+          "story": {
+            "speaker": "계통운영관 강민호",
+            "title": "낮아진 한계에서 비상 운전 설비를 계산합니다",
+            "body": "폭염 국면의 한계와 현재 사용량으로 비상 운전 설비를 정합니다. 표시된 설비는 다음 범람 국면 전체에서 보호정지됩니다."
+          },
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 1600,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 1400,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 900,
+              "obligation": "operatingRecord"
+            },
+            {
+              "loadId": "NORTH_RESIDENTIAL",
+              "demandKw": 900,
+              "obligation": "operatingRecord"
+            },
+            {
+              "loadId": "RIVER_FACTORY",
+              "demandKw": 1800,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [],
+          "thermalLimitOverrides": [
+            {
+              "assetKind": "edge",
+              "classId": "REINFORCED_LINE",
+              "continuousKw": 3200,
+              "emergencyKw": 4500
+            },
+            {
+              "assetKind": "edge",
+              "classId": "STANDARD_LINE",
+              "continuousKw": 1200,
+              "emergencyKw": 2500
+            },
+            {
+              "assetKind": "node",
+              "classId": "LARGE_SUBSTATION",
+              "continuousKw": 4000,
+              "emergencyKw": 5200
+            },
+            {
+              "assetKind": "node",
+              "classId": "REINFORCED_POLE",
+              "continuousKw": 3200,
+              "emergencyKw": 4500
+            },
+            {
+              "assetKind": "node",
+              "classId": "SMALL_SUBSTATION",
+              "continuousKw": 1800,
+              "emergencyKw": 3000
+            },
+            {
+              "assetKind": "node",
+              "classId": "STANDARD_POLE",
+              "continuousKw": 1200,
+              "emergencyKw": 2500
+            }
+          ]
+        },
+        {
+          "phaseId": "PROTECTIVE_STOP_FLOOD",
+          "displayName": "보호정지와 범람",
+          "thermalPolicy": "safetyEmergencyAllowed",
+          "story": {
+            "speaker": "재난대응관 이도윤",
+            "title": "보호정지 설비와 범람 구역을 함께 제외합니다",
+            "body": "직전 국면에 비상 운전한 설비와 범람 예고구역에 닿은 설비를 운영에서 분리했습니다. 남은 실제 경로가 의료원과 정수장에 닿는지 확인합니다."
+          },
+          "loads": [
+            {
+              "loadId": "HOSPITAL",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "WATERWORKS",
+              "demandKw": 900,
+              "obligation": "safetyDuty"
+            },
+            {
+              "loadId": "EAST_RESIDENTIAL",
+              "demandKw": 700,
+              "obligation": "operatingRecord"
+            },
+            {
+              "loadId": "NORTH_RESIDENTIAL",
+              "demandKw": 700,
+              "obligation": "operatingRecord"
+            },
+            {
+              "loadId": "RIVER_FACTORY",
+              "demandKw": 800,
+              "obligation": "operatingRecord"
+            }
+          ],
+          "unavailableNodeIds": [],
+          "unavailableEdgeIds": [],
+          "activeRiskAreaIds": [
+            "RIVER_FLOOD_ZONE"
+          ],
+          "thermalLimitOverrides": [
+            {
+              "assetKind": "edge",
+              "classId": "REINFORCED_LINE",
+              "continuousKw": 3200,
+              "emergencyKw": 4500
+            },
+            {
+              "assetKind": "edge",
+              "classId": "STANDARD_LINE",
+              "continuousKw": 1200,
+              "emergencyKw": 2500
+            },
+            {
+              "assetKind": "node",
+              "classId": "LARGE_SUBSTATION",
+              "continuousKw": 4000,
+              "emergencyKw": 5200
+            },
+            {
+              "assetKind": "node",
+              "classId": "REINFORCED_POLE",
+              "continuousKw": 3200,
+              "emergencyKw": 4500
+            },
+            {
+              "assetKind": "node",
+              "classId": "SMALL_SUBSTATION",
+              "continuousKw": 1800,
+              "emergencyKw": 3000
+            },
+            {
+              "assetKind": "node",
+              "classId": "STANDARD_POLE",
+              "continuousKw": 1200,
+              "emergencyKw": 2500
+            }
+          ]
+        }
+      ],
+      "resultCards": {
+        "standard": {
+          "speaker": "재난대응관 이도윤",
+          "title": "가장 긴 밤의 운영 기록을 인계합니다",
+          "body": "세 국면에서 지킨 수요와 공급하지 못한 일반 수요, 실제 공급원·경로와 비상 운전 설비를 기록했습니다. 마지막 망과 남은 운영 자금은 에필로그에서 그대로 확인할 수 있습니다."
+        },
+        "kept": null,
+        "deferred": null
+      },
+      "resultFactTemplates": {
+        "suppliedLoad": "{phase}: {load}에 {source}에서 {demandKw} kW 공급 · 경로 최소 열여유 {minimumRemainingKw} kW",
+        "unservedLoad": "{phase}: {load} 수요 {demandKw} kW 중 {deliveredKw} kW 공급",
+        "keptPromise": null,
+        "deferredPromise": null,
+        "remainingCash": "남은 운영 자금 {cashUnit}원"
+      }
     }
-  ]
+  ],
+  "epilogue": {
+    "displayName": "청류의 남은 불빛",
+    "cityReport": {
+      "speaker": "재난대응관 이도윤",
+      "title": "도시의 마지막 상태를 보고합니다",
+      "body": "지킨 곳과 멈춘 곳은 마지막 국면의 실제 공급 결과로 확인합니다. 범람 구역, 보호정지 설비와 남은 경로를 같은 기록에 남겼습니다."
+    },
+    "medicalWitness": {
+      "speaker": "의료원 시설책임자 박지현",
+      "title": "의료 현장 결과를 인계합니다",
+      "body": "가장 긴 밤의 의료원 공급 결과를 수술실과 중환자실 인계 기록에 반영했습니다. 현장 기록과 계통 운영 기록을 함께 보관합니다."
+    },
+    "closing": {
+      "speaker": "운영센터장 윤서진",
+      "title": "지킨 약속과 미룬 약속까지 인수합니다",
+      "body": "첫 연결선부터 지금의 전체 망, 남은 운영 자금과 세 번의 약속 결과를 그대로 다음 운영에 인계합니다. 여유를 어디에 남겼는지는 플레이어가 만든 지도에 기록되어 있습니다."
+    },
+    "promiseLines": [
+      {
+        "chapterId": "NORTH_BANK_PROMISE",
+        "promiseId": "NORTH_BANK_MOVE_IN_PROMISE",
+        "kept": "북안 입주 일정을 지켰습니다.",
+        "deferred": "북안 입주 일정을 미뤘습니다."
+      },
+      {
+        "chapterId": "WHOSE_MARGIN",
+        "promiseId": "FACTORY_NIGHT_SHIFT_PROMISE",
+        "kept": "산업 야간 증산 약속을 지켰습니다.",
+        "deferred": "산업 야간 증산을 미뤘습니다."
+      },
+      {
+        "chapterId": "BEFORE_WATER_RISE",
+        "promiseId": "EAST_CONTINUITY_PROMISE",
+        "kept": "범람 국면에도 동부 생활권 공급 약속을 지켰습니다.",
+        "deferred": "범람 국면의 동부 생활권 공급 약속을 미뤘습니다."
+      }
+    ]
+  }
 }

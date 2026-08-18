@@ -32,6 +32,8 @@ public sealed record CommercialCampaignSnapshot(
     IReadOnlyList<CommercialCampaignLinePlanDefinition> AvailableLinePlans,
     IReadOnlyList<CommercialCampaignConnectionFailure> ConnectionFailures,
     IReadOnlyList<CommercialCampaignChapterOutcome> CompletedChapterOutcomes,
+    IReadOnlyList<CommercialCampaignChapterReplayOption> ChapterReplayOptions,
+    CommercialCampaignEpiloguePresentation? Epilogue,
     bool ProjectionIncludesCurrentConstruction,
     bool CanApprove,
     bool CanRollbackRecentProject,
@@ -55,6 +57,8 @@ public sealed record CommercialCampaignSnapshot(
         Freeze(ConnectionFailures);
     private IReadOnlyList<CommercialCampaignChapterOutcome> _completedChapterOutcomes =
         Freeze(CompletedChapterOutcomes);
+    private IReadOnlyList<CommercialCampaignChapterReplayOption> _chapterReplayOptions =
+        Freeze(ChapterReplayOptions);
 
     public IReadOnlyList<CommercialPhaseProjection> Projections
     {
@@ -90,6 +94,12 @@ public sealed record CommercialCampaignSnapshot(
     {
         get => _completedChapterOutcomes;
         init => _completedChapterOutcomes = Freeze(value);
+    }
+
+    public IReadOnlyList<CommercialCampaignChapterReplayOption> ChapterReplayOptions
+    {
+        get => _chapterReplayOptions;
+        init => _chapterReplayOptions = Freeze(value);
     }
 
     private static IReadOnlyList<T> Freeze<T>(IReadOnlyList<T> values)
@@ -219,6 +229,8 @@ public sealed class CommercialCampaignRun
             _chapter.AvailableLinePlans,
             connectionFailures,
             _completedOutcomes.ToArray(),
+            GetCompletedCampaignReplayOptions(),
+            GetEpiloguePresentation(),
             includesConstruction,
             canApprove,
             CanRollbackRecentProject,
@@ -354,6 +366,117 @@ public sealed class CommercialCampaignRun
         }
         ReplayPrefix(_chapterStartCommandCounts[chapterIndex]);
         return true;
+    }
+
+    public IReadOnlyList<CommercialCampaignChapterReplayOption>
+        GetCompletedCampaignReplayOptions()
+    {
+        if (!_campaignComplete)
+        {
+            return Array.Empty<CommercialCampaignChapterReplayOption>();
+        }
+        if (_chapterStartCommandCounts.Count != _definition.Chapters.Count)
+        {
+            throw new InvalidOperationException(
+                "Completed campaign chapter checkpoints are incomplete.");
+        }
+        return _definition.Chapters.Select((chapter, index) =>
+            new CommercialCampaignChapterReplayOption(
+                index,
+                chapter.ChapterId,
+                chapter.DisplayName,
+                _chapterStartCommandCounts[index])).ToArray();
+    }
+
+    public bool ReplayCompletedChapterStart(string chapterId)
+    {
+        if (!_campaignComplete || string.IsNullOrWhiteSpace(chapterId))
+        {
+            return false;
+        }
+        int chapterIndex = _definition.Chapters.ToList().FindIndex(chapter =>
+            string.Equals(chapter.ChapterId, chapterId, StringComparison.Ordinal));
+        if (chapterIndex < 0)
+        {
+            return false;
+        }
+        ReplayPrefix(_chapterStartCommandCounts[chapterIndex]);
+        return true;
+    }
+
+    public CommercialCampaignEpiloguePresentation? GetEpiloguePresentation()
+    {
+        if (!_campaignComplete)
+        {
+            return null;
+        }
+        if (_completedOutcomes.Count != _definition.Chapters.Count)
+        {
+            throw new InvalidOperationException(
+                "Completed campaign outcomes are incomplete.");
+        }
+
+        CommercialWorldDefinition finalWorld = WorldFromSnapshot(
+            _construction.GetSnapshot().World);
+        CommercialCampaignEpilogueChapterFact[] chapterFacts =
+            _completedOutcomes.Select((outcome, index) =>
+            {
+                CommercialCampaignChapterDefinition chapter = _definition.Chapters[index];
+                CommercialCampaignThermalFact[] emergencyAssets = outcome.Facts.ThermalAssets
+                    .Where(asset => asset.State == ThermalOperatingState.Emergency)
+                    .ToArray();
+                CommercialCampaignThermalFact[] protectiveOutageAssets =
+                    outcome.Facts.ThermalAssets
+                        .Where(asset => asset.State == ThermalOperatingState.ProtectiveOutage)
+                        .ToArray();
+                return new CommercialCampaignEpilogueChapterFact(
+                    outcome.ChapterId,
+                    chapter.DisplayName,
+                    outcome.Facts.Loads,
+                    emergencyAssets,
+                    protectiveOutageAssets,
+                    BuildEpilogueSummaryLines(
+                        chapter,
+                        outcome,
+                        emergencyAssets,
+                        protectiveOutageAssets,
+                        finalWorld),
+                    outcome.PromiseDecision,
+                    outcome.EndingCashUnit);
+            }).ToArray();
+
+        Dictionary<string, CommercialCampaignChapterOutcome> outcomes = _completedOutcomes
+            .ToDictionary(outcome => outcome.ChapterId, StringComparer.Ordinal);
+        Dictionary<string, CommercialCampaignChapterDefinition> chapters = _definition.Chapters
+            .ToDictionary(chapter => chapter.ChapterId, StringComparer.Ordinal);
+        CommercialCampaignEpiloguePromiseFact[] promiseFacts = _definition.Epilogue.PromiseLines
+            .Select(line =>
+            {
+                CommercialCampaignChapterDefinition chapter = chapters[line.ChapterId];
+                CommercialCampaignChapterOutcome outcome = outcomes[line.ChapterId];
+                string rendered = outcome.PromiseDecision switch
+                {
+                    CommercialPromiseDecision.Keep => line.Kept,
+                    CommercialPromiseDecision.Defer => line.Deferred,
+                    _ => throw new InvalidOperationException(
+                        "Completed promise outcome has no decision."),
+                };
+                return new CommercialCampaignEpiloguePromiseFact(
+                    line.ChapterId,
+                    line.PromiseId,
+                    chapter.CityPromise!.DisplayName,
+                    outcome.PromiseDecision,
+                    rendered);
+            }).ToArray();
+        CommercialCampaignEpilogueDefinition epilogue = _definition.Epilogue;
+        return new CommercialCampaignEpiloguePresentation(
+            epilogue.DisplayName,
+            epilogue.CityReport,
+            epilogue.MedicalWitness,
+            epilogue.Closing,
+            chapterFacts,
+            promiseFacts,
+            _cashUnit);
     }
 
     public static CommercialCampaignRun Restore(
@@ -1200,6 +1323,119 @@ public sealed class CommercialCampaignRun
             Invariant(_cashUnit),
             StringComparison.Ordinal));
         return result;
+    }
+
+    private static IReadOnlyList<string> BuildEpilogueSummaryLines(
+        CommercialCampaignChapterDefinition chapter,
+        CommercialCampaignChapterOutcome outcome,
+        IReadOnlyList<CommercialCampaignThermalFact> emergencyAssets,
+        IReadOnlyList<CommercialCampaignThermalFact> protectiveOutageAssets,
+        CommercialWorldDefinition world)
+    {
+        Dictionary<string, string> loadNames = world.Loads.ToDictionary(
+            load => load.LoadId,
+            load => load.DisplayName,
+            StringComparer.Ordinal);
+        string[] suppliedSafetyLoads = outcome.Facts.Loads
+            .Where(fact => fact.Obligation == CommercialObligationKind.SafetyDuty &&
+                fact.DeliveredKw == fact.DemandKw)
+            .Select(fact => loadNames[fact.LoadId])
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] unservedSafetyLoads = outcome.Facts.Loads
+            .Where(fact => fact.Obligation == CommercialObligationKind.SafetyDuty &&
+                fact.DeliveredKw != fact.DemandKw)
+            .Select(fact => loadNames[fact.LoadId])
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        var result = new List<string>
+        {
+            unservedSafetyLoads.Length == 0
+                ? $"{chapter.DisplayName}: 안전 의무 공급 · {SummarizeNames(suppliedSafetyLoads)}"
+                : $"{chapter.DisplayName}: 안전 의무 미공급 · {SummarizeNames(unservedSafetyLoads)}",
+        };
+
+        CommercialCampaignLoadFact[] operatingRecords = outcome.Facts.Loads
+            .Where(fact => fact.Obligation == CommercialObligationKind.OperatingRecord)
+            .ToArray();
+        if (operatingRecords.Length > 0)
+        {
+            IGrouping<string, CommercialCampaignLoadFact>[] recordsByLoad = operatingRecords
+                .GroupBy(fact => fact.LoadId, StringComparer.Ordinal)
+                .ToArray();
+            string[] supplied = recordsByLoad
+                .Where(group => group.All(fact => fact.DeliveredKw == fact.DemandKw))
+                .Select(group => loadNames[group.Key])
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            string[] unserved = recordsByLoad
+                .Where(group => group.Any(fact => fact.DeliveredKw != fact.DemandKw))
+                .Select(group => loadNames[group.Key])
+                .OrderBy(value => value, StringComparer.Ordinal)
+                .ToArray();
+            result.Add(unserved.Length == 0
+                ? $"{chapter.DisplayName}: 운영 기록 공급 · {SummarizeNames(supplied)}"
+                : $"{chapter.DisplayName}: 운영 기록 유지 · {SummarizeNames(supplied)} · 중단 기록 · {SummarizeNames(unserved)}");
+        }
+
+        string[] assetNames = emergencyAssets
+            .Select(asset => EpilogueAssetDisplayName(asset, world))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string[] protectiveNames = protectiveOutageAssets
+            .Select(asset => EpilogueAssetDisplayName(asset, world))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        string finalPhaseId = chapter.OperatingPhases[^1].PhaseId;
+        string[] nextProtectiveNames = emergencyAssets
+            .Where(asset =>
+                asset.PhaseId == finalPhaseId &&
+                asset.NextState == ThermalOperatingState.ProtectiveOutage)
+            .Select(asset => EpilogueAssetDisplayName(asset, world))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray();
+        result.Add(
+            $"{chapter.DisplayName}: 비상 운전 · {SummarizeNames(assetNames)} · 보호정지 · {SummarizeNames(protectiveNames)} · 다음 보호정지 · {SummarizeNames(nextProtectiveNames)} · 종료 자금 {Invariant(outcome.EndingCashUnit)}원");
+        return result;
+    }
+
+    private static string SummarizeNames(IReadOnlyList<string> names) => names.Count switch
+    {
+        0 => "없음",
+        1 => names[0],
+        2 => $"{names[0]}, {names[1]}",
+        _ => $"{names[0]}, {names[1]} 외 {Invariant(names.Count - 2)}개",
+    };
+
+    private static string EpilogueAssetDisplayName(
+        CommercialCampaignThermalFact asset,
+        CommercialWorldDefinition world)
+    {
+        if (asset.AssetKind == ThermalAssetKind.Node)
+        {
+            return world.Nodes.FirstOrDefault(node =>
+                    string.Equals(node.NodeId, asset.AssetId, StringComparison.Ordinal))
+                ?.DisplayName ?? "접속 설비";
+        }
+
+        SpatialEdgeDefinition? edge = world.Edges.FirstOrDefault(item =>
+            string.Equals(item.EdgeId, asset.AssetId, StringComparison.Ordinal));
+        if (edge is null)
+        {
+            return "선로 설비";
+        }
+        string lineName = world.LineClasses.First(item =>
+            string.Equals(item.ClassId, edge.LineClassId, StringComparison.Ordinal)).DisplayName;
+        Dictionary<string, string> nodeNames = world.Nodes.ToDictionary(
+            node => node.NodeId,
+            node => node.DisplayName,
+            StringComparer.Ordinal);
+        return $"{lineName} · {nodeNames[edge.FromNodeId]}–{nodeNames[edge.ToNodeId]}";
     }
 
     private static string Invariant(long value) => value.ToString(

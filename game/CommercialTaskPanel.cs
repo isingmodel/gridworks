@@ -55,7 +55,8 @@ internal sealed record CommercialProductPanelPresentation(
     CommercialActionPresentation RollbackRecentConstruction,
     CommercialActionPresentation RestartWindow,
     CommercialActionPresentation RestartChapter,
-    CommercialActionPresentation RewindPreviousChapter);
+    CommercialActionPresentation RewindPreviousChapter,
+    IReadOnlyList<CommercialCampaignChapterReplayOption> ChapterReplayOptions);
 
 internal sealed record CommercialTaskPanelModel(
     string Heading,
@@ -99,6 +100,11 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     private Button _keepPromiseButton = null!;
     private Button _deferPromiseButton = null!;
     private Control _productActions = null!;
+    private Control _chapterReplaySection = null!;
+    private OptionButton _chapterReplayOption = null!;
+    private Button _chapterReplayButton = null!;
+    private IReadOnlyList<CommercialCampaignChapterReplayOption> _chapterReplayOptions =
+        Array.Empty<CommercialCampaignChapterReplayOption>();
     private IReadOnlyDictionary<CommercialProductAction, Button> _productButtons = null!;
     private IReadOnlyDictionary<CommercialPanelAction, Button> _buttons = null!;
 
@@ -107,6 +113,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     public event Action<int>? ProjectionDeltaRequested;
     public event Action<CommercialPromiseDecision>? PromiseRequested;
     public event Action<CommercialProductAction>? ProductActionRequested;
+    public event Action<string>? ChapterReplayRequested;
 
     public override void _Ready()
     {
@@ -132,6 +139,9 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _keepPromiseButton = GetNode<Button>("%KeepPromiseButton");
         _deferPromiseButton = GetNode<Button>("%DeferPromiseButton");
         _productActions = GetNode<Control>("%ProductActions");
+        _chapterReplaySection = GetNode<Control>("%ChapterReplaySection");
+        _chapterReplayOption = GetNode<OptionButton>("%ChapterReplayOption");
+        _chapterReplayButton = GetNode<Button>("%ChapterReplayButton");
         _buttons = new Dictionary<CommercialPanelAction, Button>
         {
             [CommercialPanelAction.PlaceSubstation] = GetNode<Button>("%PlaceSubstationButton"),
@@ -169,6 +179,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         {
             button.Pressed += () => ProductActionRequested?.Invoke(action);
         }
+        _chapterReplayButton.Pressed += RequestSelectedChapterReplay;
         _statusLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite;
         _errorLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Assertive;
     }
@@ -248,6 +259,11 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             SetProductButton(
                 CommercialProductAction.RewindPreviousChapter,
                 product.RewindPreviousChapter);
+            SetChapterReplayOptions(product.ChapterReplayOptions);
+        }
+        else
+        {
+            SetChapterReplayOptions(Array.Empty<CommercialCampaignChapterReplayOption>());
         }
         AccessibilityName = model.Product is not null
             ? $"운영안 작업 패널. {model.Heading}. {model.Status}"
@@ -282,6 +298,28 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _ => throw new ArgumentOutOfRangeException(nameof(decision)),
     };
 
+    public BaseButton ChapterReplayButton => _chapterReplayButton;
+
+    public int ChapterReplayOptionCount => _chapterReplayOptions.Count;
+
+    public string? SelectedChapterReplayId =>
+        _chapterReplayOption.Selected >= 0 &&
+        _chapterReplayOption.Selected < _chapterReplayOptions.Count
+            ? _chapterReplayOptions[_chapterReplayOption.Selected].ChapterId
+            : null;
+
+    public bool SelectChapterReplayOption(string chapterId)
+    {
+        int index = _chapterReplayOptions.ToList().FindIndex(option =>
+            string.Equals(option.ChapterId, chapterId, StringComparison.Ordinal));
+        if (index < 0)
+        {
+            return false;
+        }
+        _chapterReplayOption.Select(index);
+        return true;
+    }
+
     private void SetButton(
         CommercialPanelAction action,
         CommercialActionPresentation presentation)
@@ -304,5 +342,41 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         button.Text = presentation.Text;
         button.AccessibilityName = presentation.Text;
         button.AccessibilityDescription = presentation.Description;
+    }
+
+    private void SetChapterReplayOptions(
+        IReadOnlyList<CommercialCampaignChapterReplayOption> options)
+    {
+        string? previouslySelected = SelectedChapterReplayId;
+        _chapterReplayOptions = options.ToArray();
+        _chapterReplayOption.Clear();
+        foreach (CommercialCampaignChapterReplayOption option in _chapterReplayOptions)
+        {
+            _chapterReplayOption.AddItem($"{option.ChapterIndex + 1}장 · {option.DisplayName}");
+        }
+        int selectedIndex = previouslySelected is null
+            ? 0
+            : _chapterReplayOptions.ToList().FindIndex(option => string.Equals(
+                option.ChapterId,
+                previouslySelected,
+                StringComparison.Ordinal));
+        if (_chapterReplayOptions.Count > 0)
+        {
+            _chapterReplayOption.Select(Math.Max(0, selectedIndex));
+        }
+        bool visible = _chapterReplayOptions.Count > 0;
+        _chapterReplaySection.Visible = visible;
+        _chapterReplayButton.Disabled = !visible;
+        _chapterReplayOption.AccessibilityName = "다시 시작할 완료 장";
+        _chapterReplayButton.AccessibilityDescription =
+            "선택한 장의 시작 상태로 돌아가 이후 도시망을 다시 설계합니다.";
+    }
+
+    private void RequestSelectedChapterReplay()
+    {
+        if (SelectedChapterReplayId is string chapterId)
+        {
+            ChapterReplayRequested?.Invoke(chapterId);
+        }
     }
 }

@@ -1,14 +1,15 @@
 # Gridworks 상용 2D 게임 구현
 
-> 상태: **ACTIVE**
-> 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 F — 후반 네 임무와 에필로그**
+> 상태: **단계 F 완료·전체 감사 종료**
+> 구현 권한: **이번 실행 종료 — 단계 G 미개방**
+> 현재 작업: **없음**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
-> 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
+> 열 한계를 채택했고 상용 재기획서 구현을 지시했다. 단계 F 전체 감사 뒤 사용자 종료 조건에 따라
+> 목표 추구를 멈췄으며, 단계 G는 계획일 뿐 이번 실행에서 승인되지 않았다.
 
-이 문서는 [상용 2D 게임 재기획서](../product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)를 실제 제품으로
-만드는 현재 구현 계약이다. 재기획서가 경험·콘텐츠·표현 원칙을, 이 문서가 실행 권위·단계 순서와
-완료 증거를 소유한다.
+이 문서는 [상용 2D 게임 재기획서](../product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)의 단계 B~F 구현
+계약과 완료 기록이며, 미개방 단계 G의 계획 경계를 보존한다. 재기획서가 경험·콘텐츠·표현 원칙을,
+이 문서가 실행 권위·단계 순서와 완료 증거를 소유한다.
 
 기존 `release v1` 경로와 macOS 내부 후보는 기술 기준선으로 동결한다. 새 게임은 그 타입과 저장을
 점진적으로 일반화하지 않고 별도 v2 규칙·데이터·기본 장면을 사용한다. 각 단계는 구현, 결정론적
@@ -16,7 +17,8 @@
 
 ## 1. 최종 결과
 
-완료 시 Gridworks는 한 도시를 끝까지 책임지는 소형 싱글 플레이 2D 전력망 전략·퍼즐 게임이다.
+전체 계획 완료 시 Gridworks는 한 도시를 끝까지 책임지는 소형 싱글 플레이 2D 전력망 전략·퍼즐
+게임이다. 현재 증거는 아래 목표 가운데 단계 F까지의 캠페인·규칙·제품 흐름만 완료했음을 뜻한다.
 
 - 보이는 셀과 격자 맞춤 없이 지형 위에 전신주와 변전소를 자유롭게 놓는다.
 - 수면·건물·설비 점유영역을 피하면서 직선 선로로 분기·합류망을 만든다.
@@ -28,9 +30,9 @@
 - 실제 망 상태에 맞는 브리핑·사건·결과·에필로그, 2D 도시 반응과 최종 사운드를 제공한다.
 - Title, 저장·재개, 설정, 접근성과 저장소 밖 macOS 내부 패키지를 새 제품 경로에서 사용한다.
 
-구현 완료는 재미·문체·시장성에 대한 사람 승인이나 공개 배포 승인을 뜻하지 않는다. 단계 H의
-사람 관찰, 한국어 전문 교정, Developer ID 서명·공증과 공개 상점 절차는 이 구현 뒤 별도 외부
-게이트다.
+단계 F 완료는 재미·문체·시장성에 대한 사람 승인이나 공개 배포 승인을 뜻하지 않는다. 단계 G의
+최종 표현·접근성·패키징과 단계 H의 사람 관찰, 한국어 전문 교정, Developer ID 서명·공증 및 공개
+상점 절차는 아직 수행하지 않은 별도 게이트다.
 
 ## 2. 단일 권위와 동결 경계
 
@@ -288,8 +290,8 @@ V2 운영 명령은 건설 명령 외 `SetPromiseDecision(Keep|Defer)`와 `Appro
 | 7 | 꺼야 지킬 수 있다 | 계획정지 중 남은 경로의 열여유로 무엇을 지킬 수 있는가? |
 | 8 | 가장 긴 밤 | 열·보호정지·범람이 이어질 때 앞선 망과 약속이 누구를 지키는가? |
 
-1~4장은 단계 E에서 닫았고, 5~8장은 단계 F의 현재 범위다. 1~4장은 안내를 단계적으로 줄이고,
-5장 뒤 새 건설·열 규칙을 추가하지 않는다. 6~8장은 같은 동사를
+1~4장은 단계 E에서, 5~8장은 단계 F에서 닫았다. 1~4장은 안내를 단계적으로 줄이고,
+5장 뒤 새 건설·열 규칙을 추가하지 않았다. 6~8장은 같은 동사를
 지형, 기한, 정지 순서와 이전 열 상태의 다른 조합으로 사용한다. 모든 본편 장은 장단점이 다른
 checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 가진다.
 
@@ -328,18 +330,51 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
   `COMMERCIAL_CAMPAIGN_SMOKE_LEG2_PASS complete=True chapters=4 commands=80`
 - exact-tree Game 검토: **P0 0 / P1 0**. 사람 검토: `NOT_COLLECTED`.
 
-### 6.4 단계 F 종료
+### 6.4 단계 F 종료 조건
 
 - 대표 full run은 모든 장에서 한 번 이상 의미 있는 공사를 하고 여덟 결과를 거쳐 에필로그에 도달한다.
 - 각 본편 장의 두 원형이 hard obligation을 만족하고 전면 우월한 하나의 해법이 아님을 bounded
   witness로 확인한다.
 - 장별 failure→recent rollback 또는 chapter restart가 복구 가능하며 이전 성공이 미래 장을 영구
   softlock하지 않는다.
-- 두 fresh process native 흐름에서 4장 뒤 저장·종료, 새 실행 재개, 5~8장·에필로그, 완료 저장 재개와
-  장 선택을 확인한다.
+- 두 process native 흐름에서 4장 뒤 저장·종료, 새 실행 재개, 5~8장·에필로그, 두 번째 process의
+  제목 화면에서 완료 저장 재개와 장 선택을 확인한다. 완료 bytes의 별도 load/restore도 검사한다.
 - 임무별 Game 코드 분기와 임무별 별도 native runner는 만들지 않는다.
 
-## 7. 단계 G — 시청각·접근성·패키징 마감
+### 6.5 단계 F 종료 기록 — 2026-08-18
+
+- final world v2 SHA-256:
+  `c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14`
+- final campaign v2 SHA-256:
+  `078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a`
+- 5~8장은 같은 world·network·현금·시간·열 상태를 이어 쓴다. 산업·동부 생활권 약속, 범람 밖 공사,
+  서부 전원 계획정지, 최대수요·폭염·계산형 보호정지와 범람을 실제 typed 결과로 처리하고 세 약속을
+  에필로그에서 회수한다.
+- 각 장의 의미 있는 공사, 두 설계 원형, 대표 실패와 최근 공사·현재 장 복구를 bounded witness로
+  고정했다. M6의 실제 보강 원형 witness를 바로잡은 뒤 전체 run에서 미래 softlock이 없음을 확인했다.
+- CommercialChecks: **29 suites / 4,486 assertions PASS**
+- Game Debug·Release·ExportRelease build: **0 warnings / 0 errors**
+- 1280×720·UI 125%의 서로 다른 fresh Godot 프로세스 marker:
+  `COMMERCIAL_CAMPAIGN_SMOKE_LEG1_PASS chapter=WHOSE_MARGIN commands=82`(뒤에는 실행별 저장 경로),
+  `COMMERCIAL_CAMPAIGN_SMOKE_LEG2_PASS completedResume=True replay=WHOSE_MARGIN completedCommands=136 replayCommands=82`
+- 두 번째 프로세스는 5~8장과 에필로그를 완료하고 같은 프로세스의 제목 화면에서 완료 저장을
+  재개한 뒤 `누구의 여유인가` 시작 checkpoint를 선택했다. 별도 store load/restore assertion으로
+  디스크에 기록된 완료 저장 bytes도 확인했다.
+- M6 witness 수정 뒤 독립 exact-tree 최종 감사: **P0 0 / P1 0**
+- `FullCampaignHumanStatus = NOT_COLLECTED`, `KoreanProfessionalProofStatus = NOT_COLLECTED`.
+  자동증거는 사람의 이해·재미·문체 승인이나 상용 출시 준비 완료를 뜻하지 않는다.
+- 사용자 종료 조건에 따라 전체 감사 뒤 목표 추구를 멈췄다. 단계 G는 자동 활성화하지 않았으며,
+  새 명시적 사용자 지시 전에는 구현 권한이 없다.
+
+## 7. 단계 G — 시청각·접근성·패키징 마감 — 계획·미개방
+
+단계 G는 현재 활성 단계가 아니다. 아래 항목은 남은 계획을 정확히 보존할 뿐, 이번 실행에서 구현·
+검사하거나 완료로 주장하지 않는다.
+
+- 최종 도시 아트, 장별 날씨, 네 인물 초상과 audio cue 자산
+- settings v3와 움직임 줄이기
+- 1280×720·1920×1080 × UI 100/125 네 조합과 키보드 동등성 evidence
+- 패키징·서명·법적·license 정리와 새 설치 user-data에서의 전체 캠페인 실행
 
 ### 7.1 화면과 접근성
 
@@ -373,9 +408,11 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 - Developer ID와 notarization 자격증명이 없으면 ad-hoc 내부 후보로만 기록한다. 공개 배포 가능이라고
   표현하지 않는다.
 
-## 8. 전체 완료 증거
+## 8. 전체 완료 증거 — 단계 G 포함 미래 gate
 
-검증은 간결하게 유지하고 같은 사실을 여러 runner에서 반복하지 않는다.
+다음은 단계 G까지 열어 전체 내부 출시 후보를 만들 때 필요한 gate다. 단계 F 종료 시점에는 6.5의
+캠페인 검사·build·native·감사 증거만 닫혔고, 네 화면 evidence·패키지·새 설치 전체 실행은 수집하지
+않았다. 검증은 간결하게 유지하고 같은 사실을 여러 runner에서 반복하지 않는다.
 
 1. v1 release·product 회귀는 기존 frozen runner로 한 번 통과한다.
 2. CommercialChecks 한 번이 strict v2 loader, 자유 기하, 건설 원자성, 열 경계·routing·상태전이,
@@ -388,14 +425,17 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
    license, PDB·로컬경로·prototype 부재를 기록한다.
 7. exact commit을 대상으로 독립 검토에서 P0/P1이 0이고 worktree가 clean하다.
 
-종료 상태는 다음과 같다.
+현재 종료 상태는 다음과 같다.
 
 ```text
-ImplementationStatus = COMPLETE
+StageFImplementationStatus = COMPLETE
+GoalSeekingStatus = STOPPED_AFTER_STAGE_F_AUDIT
+StageGStatus = PLANNED_NOT_OPENED
 CommercialSliceHumanStatus = NOT_COLLECTED
 FullCampaignHumanStatus = NOT_COLLECTED
 KoreanProfessionalProofStatus = NOT_COLLECTED
 NewCandidateLlmObservationStatus = NOT_REQUESTED
+CommercialReleaseReadyStatus = NO
 PublicDistributionStatus = BLOCKED_UNTIL_SIGNING_NOTARIZATION_AND_OWNER_RELEASE_DECISION
 ```
 
@@ -427,3 +467,6 @@ PublicDistributionStatus = BLOCKED_UNTIL_SIGNING_NOTARIZATION_AND_OWNER_RELEASE_
 
 검사 수를 늘려 불확실성을 숨기지 않는다. 기계 규칙·상태·빌드·저장·wiring은 자동화하고,
 이해·재미·문체·가치는 단계 H 외부 증거로 정직하게 남긴다.
+
+단계 F 완료는 단계 G를 자동으로 열지 않는다. 현재 사용자 종료 조건에서는 새 명시적 지시가
+README의 활성 단계를 G로 바꾸기 전까지 계획만 보존하고 어떤 G 구현·검사도 시작하지 않는다.

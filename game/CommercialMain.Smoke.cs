@@ -336,18 +336,21 @@ internal sealed partial class CommercialMain
         }
     }
 
-    private async Task DismissStorySequence()
+    private async Task<IReadOnlyList<string>> DismissStorySequence()
     {
+        var frames = new List<string>();
         int guard = 0;
         while (_shell.Surface is CommercialShellSurface.Story or CommercialShellSurface.Result)
         {
-            if (++guard > 8)
+            if (++guard > 24)
             {
                 throw new InvalidOperationException("이야기 카드 흐름이 종료되지 않습니다.");
             }
+            frames.Add($"{_shell.StoryKindText}\n{_shell.StoryBodyText}");
             _shell.StoryContinueButton.EmitSignal(BaseButton.SignalName.Pressed);
             await NextFrame();
         }
+        return frames;
     }
 
     private async void RunCommercialCampaignSmoke()
@@ -504,11 +507,17 @@ internal sealed partial class CommercialMain
             _coreSnapshot.CommandCount == _coreSnapshot.ChapterStartCommandCount,
             "두 번째 심장 승인 뒤 세 번째 장 시작 checkpoint로 전환하지 못했습니다.");
         await DismissStorySequence();
+        await CompleteCampaignChaptersThreeAndFourThroughUi();
+        Require(
+            _coreSnapshot.Chapter.ChapterId == "WHOSE_MARGIN" &&
+            _coreSnapshot.CompletedChapterOutcomes.Count == 4 &&
+            _coreSnapshot.CommandCount == _coreSnapshot.ChapterStartCommandCount,
+            "첫 프로세스가 네 장 결과를 거쳐 다섯 번째 장 시작 checkpoint에 도달하지 못했습니다.");
         RequireCampaignPersistedSnapshot(
-            expectedChapterId: "SECOND_SOURCE",
+            expectedChapterId: "WHOSE_MARGIN",
             campaignComplete: false);
         await PressKey(Key.Escape);
-        EmitShell(CommercialShellAction.SaveAndQuit, "두 장 완료 저장");
+        EmitShell(CommercialShellAction.SaveAndQuit, "네 장 완료 저장");
         await NextFrame();
         Require(_shell.Surface == CommercialShellSurface.Title,
             "첫 캠페인 프로세스가 저장 뒤 제목 화면으로 돌아오지 못했습니다.");
@@ -518,26 +527,10 @@ internal sealed partial class CommercialMain
             $"save={_options.SmokeSavePath}");
     }
 
-    private async Task RunCommercialCampaignSmokeSecondLeg()
+    private async Task CompleteCampaignChaptersThreeAndFourThroughUi()
     {
         Require(
-            _shell.Surface == CommercialShellSurface.Title &&
-            !_shell.GetActionButton(CommercialShellAction.Continue).Disabled,
-            "두 번째 캠페인 프로세스가 첫 프로세스의 저장을 찾지 못했습니다.");
-        EmitShell(CommercialShellAction.Continue, "캠페인 이어하기");
-        await NextFrame();
-        await DismissStorySequence();
-        Require(
             _coreSnapshot!.Chapter.ChapterId == "SECOND_SOURCE" &&
-            _titleLabel.Text.Contains(
-                _coreSnapshot.Chapter.DisplayName,
-                StringComparison.Ordinal) &&
-            _coreSnapshot.CommandCount == _coreSnapshot.ChapterStartCommandCount,
-            "fresh process restore가 세 번째 장 시작 checkpoint를 보존하지 못했습니다.");
-        RequireCampaignPersistedSnapshot(
-            expectedChapterId: "SECOND_SOURCE",
-            campaignComplete: false);
-        Require(
             _panel.GetActionButton(CommercialPanelAction.StartStandardLine).Visible &&
             !_panel.GetActionButton(CommercialPanelAction.StartStandardLine).Disabled &&
             _panel.GetActionButton(CommercialPanelAction.StartLine).Visible &&
@@ -558,11 +551,15 @@ internal sealed partial class CommercialMain
             highSubstationId,
             "남부 전원 주회랑");
         await BuildCampaignLineThroughUi(
-            highSubstationId,
+            "HOSPITAL_TERMINAL",
             "REINFORCED_LINE",
-            Array.Empty<CoreMapPoint>(),
+            [
+                new CoreMapPoint(2550, 1050),
+                new CoreMapPoint(2550, 800),
+            ],
             eastSubstationId,
-            "남부-동부 연계선");
+            "의료원-동부 연계선",
+            zoomPointIndex: 1);
         EmitProduct(CommercialProductAction.ApproveWindow, "두 번째 전원 운영안 승인");
         await NextFrame();
         Require(
@@ -631,11 +628,12 @@ internal sealed partial class CommercialMain
             northSubstationId,
             "REINFORCED_LINE",
             [
-                new CoreMapPoint(1900, 550),
-                new CoreMapPoint(2450, 480),
+                new CoreMapPoint(2100, 600),
+                new CoreMapPoint(2500, 460),
             ],
             "NORTH_RESIDENTIAL_TERMINAL",
-            "북안 생활권 인입선");
+            "북안 생활권 인입선",
+            zoomPointIndex: 0);
         Require(
             _snapshot.World.Edges.Count(edge =>
                 edge.Commissioned &&
@@ -668,30 +666,383 @@ internal sealed partial class CommercialMain
         EmitProduct(CommercialProductAction.ApproveWindow, "북안의 약속 운영안 승인");
         await NextFrame();
         Require(
-            _coreSnapshot.CampaignComplete &&
+            !_coreSnapshot.CampaignComplete &&
+            _coreSnapshot.Chapter.ChapterId == "WHOSE_MARGIN" &&
             _coreSnapshot.CompletedChapterOutcomes.Count == 4 &&
             _coreSnapshot.LastOutcome?.PromiseDecision == CommercialPromiseDecision.Keep &&
             _shell.Surface == CommercialShellSurface.Result &&
             _coreSnapshot.LastOutcome.RenderedFacts.Count > 0 &&
             _coreSnapshot.LastOutcome.RenderedFacts.All(fact =>
                 _shell.StoryBodyText.Contains(fact, StringComparison.Ordinal)),
-            "네 번째 장 완료 결과가 실제 약속·공급 facts를 회수하지 못했습니다.");
-        RequireCampaignPersistedSnapshot(
-            expectedChapterId: "NORTH_BANK_PROMISE",
-            campaignComplete: true);
+            "네 번째 장 결과가 실제 약속·공급 facts를 회수하거나 다섯 번째 장으로 전환하지 못했습니다.");
         await DismissStorySequence();
+    }
+
+    private async Task RunCommercialCampaignSmokeSecondLeg()
+    {
+        Require(
+            _shell.Surface == CommercialShellSurface.Title &&
+            !_shell.GetActionButton(CommercialShellAction.Continue).Disabled,
+            "두 번째 캠페인 프로세스가 첫 프로세스의 저장을 찾지 못했습니다.");
+        EmitShell(CommercialShellAction.Continue, "캠페인 이어하기");
+        await NextFrame();
+        await DismissStorySequence();
+        Require(
+            _coreSnapshot!.Chapter.ChapterId == "WHOSE_MARGIN" &&
+            _titleLabel.Text.Contains(
+                _coreSnapshot.Chapter.DisplayName,
+                StringComparison.Ordinal) &&
+            _coreSnapshot.CompletedChapterOutcomes.Count == 4 &&
+            _coreSnapshot.CommandCount == _coreSnapshot.ChapterStartCommandCount,
+            "fresh process restore가 다섯 번째 장 시작 checkpoint를 보존하지 못했습니다.");
+        RequireCampaignPersistedSnapshot(
+            expectedChapterId: "WHOSE_MARGIN",
+            campaignComplete: false);
+        Require(
+            _panel.GetActionButton(CommercialPanelAction.StartStandardLine).Visible &&
+            !_panel.GetActionButton(CommercialPanelAction.StartStandardLine).Disabled &&
+            _panel.GetActionButton(CommercialPanelAction.StartLine).Visible &&
+            !_panel.GetActionButton(CommercialPanelAction.StartLine).Disabled,
+            "다섯 번째 장에서 일반선과 보강선의 typed 도구를 함께 표시하지 못했습니다.");
+
+        string hospitalSecondSubstationId = NodeIdAt(
+            new CoreMapPoint(2300, 1550),
+            "SMALL_SUBSTATION");
+        string hospitalHighSubstationId = NodeIdAt(
+            new CoreMapPoint(2200, 1250),
+            "SMALL_SUBSTATION");
+        string northLargeSubstationId = NodeIdAt(
+            new CoreMapPoint(2050, 400),
+            "LARGE_SUBSTATION");
+
+        EmitPromise(CommercialPromiseDecision.Keep, "산업 야간 증산 약속 지키기");
+        await NextFrame();
+        await BuildCampaignLineThroughUi(
+            hospitalSecondSubstationId,
+            "STANDARD_LINE",
+            Array.Empty<CoreMapPoint>(),
+            "FACTORY_TERMINAL",
+            "산업단지 일반 회랑");
+        await SelectCampaignProjectionThroughUi("NIGHT_SHIFT");
+        CommercialPhaseProjection nightShift = _coreSnapshot.Projections.Single(item =>
+            item.Phase.PhaseId == "NIGHT_SHIFT");
+        Require(
+            nightShift.Evaluation.Loads.Single(item =>
+                item.LoadId == "RIVER_FACTORY").DeliveredKw == 2700 &&
+            nightShift.Evaluation.Assets.Any(item =>
+                item.State == ThermalOperatingState.Emergency &&
+                item.NextState == ThermalOperatingState.ProtectiveOutage),
+            "야간 증산 projection이 실제 2,700 kW 공급과 다음 보호정지 설비를 표시하지 못했습니다.");
+        EmitProduct(CommercialProductAction.ApproveWindow, "더운 저녁 운영안 승인");
+        await NextFrame();
+        Require(
+            _coreSnapshot.Chapter.ChapterId == "WHOSE_MARGIN" &&
+            _coreSnapshot.CurrentWindow?.WindowId == "LATE_NIGHT_RECOVERY_WINDOW",
+            "야간 증산 승인 뒤 늦은 밤 복구 운영 단계로 전환하지 못했습니다.");
+        await DismissStorySequence();
+        CommercialPhaseProjection lateNight = _coreSnapshot.Projections.Single(item =>
+            item.Phase.PhaseId == "LATE_NIGHT");
+        Require(
+            lateNight.Evaluation.Loads.Single(item =>
+                item.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+            lateNight.Evaluation.Loads.Single(item =>
+                item.LoadId == "WATERWORKS").DeliveredKw == 900,
+            "보호정지 이후 늦은 밤의 의료원·정수장 공급을 표시하지 못했습니다.");
+        EmitProduct(CommercialProductAction.ApproveWindow, "늦은 밤 복구 운영안 승인");
+        await NextFrame();
+        Require(
+            _coreSnapshot.Chapter.ChapterId == "BEFORE_WATER_RISE" &&
+            _coreSnapshot.LastOutcome?.ChapterId == "WHOSE_MARGIN" &&
+            _coreSnapshot.LastOutcome.PromiseDecision == CommercialPromiseDecision.Keep,
+            "다섯 번째 장의 약속·열 결과를 회수하고 여섯 번째 장으로 전환하지 못했습니다.");
+        await DismissStorySequence();
+
+        EmitPromise(CommercialPromiseDecision.Defer, "동부 연속공급 약속 미루기");
+        await NextFrame();
+        await BuildCampaignLineThroughUi(
+            "SOUTH_SOURCE_NODE",
+            "STANDARD_LINE",
+            [
+                new CoreMapPoint(450, 1200),
+                new CoreMapPoint(650, 750),
+                new CoreMapPoint(1040, 750),
+                new CoreMapPoint(1620, 750),
+                new CoreMapPoint(1900, 800),
+            ],
+            hospitalHighSubstationId,
+            "남부-고지대 일반 회랑",
+            zoomEveryPoint: true);
+        await BuildCampaignLineThroughUi(
+            northLargeSubstationId,
+            "STANDARD_LINE",
+            [
+                new CoreMapPoint(1950, 500),
+                new CoreMapPoint(2500, 600),
+            ],
+            "EAST_RESIDENTIAL_TERMINAL",
+            "동부 두 번째 접속 회선",
+            zoomEveryPoint: true);
+        await SelectCampaignProjectionThroughUi("FLOOD_ARRIVAL");
+        CommercialPhaseProjection flood = _coreSnapshot.Projections.Single(item =>
+            item.Phase.PhaseId == "FLOOD_ARRIVAL");
+        Require(
+            _snapshot.World.Edges.Count(edge => edge.Commissioned &&
+                (edge.FromNodeId == "EAST_RESIDENTIAL_TERMINAL" ||
+                 edge.ToNodeId == "EAST_RESIDENTIAL_TERMINAL")) == 2 &&
+            _panel.ObligationsText.Contains("접속 회선 2/2", StringComparison.Ordinal) &&
+            flood.Phase.ActiveRiskAreaIds.Contains(
+                "RIVER_FLOOD_ZONE",
+                StringComparer.Ordinal) &&
+            _map.ActiveRiskAreaIds.Contains(
+                "RIVER_FLOOD_ZONE",
+                StringComparer.Ordinal) &&
+            flood.Evaluation.Loads.Single(item =>
+                item.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+            flood.Evaluation.Loads.Single(item =>
+                item.LoadId == "WATERWORKS").DeliveredKw == 900,
+            "범람 도달 projection에서 두 접속 회선·위험구역·필수 공급을 함께 표시하지 못했습니다.");
+        EmitProduct(CommercialProductAction.ApproveWindow, "물이 닿기 전 운영안 승인");
+        await NextFrame();
+        Require(
+            _coreSnapshot.Chapter.ChapterId == "SWITCH_OFF_TO_PROTECT" &&
+            _coreSnapshot.LastOutcome?.ChapterId == "BEFORE_WATER_RISE" &&
+            _coreSnapshot.LastOutcome.PromiseDecision == CommercialPromiseDecision.Defer,
+            "여섯 번째 장의 미룬 약속과 범람 결과를 회수하지 못했습니다.");
+        await DismissStorySequence();
+
+        Require(
+            !_coreSnapshot.CanApprove &&
+            _coreSnapshot.ConnectionFailures.Count == 1 &&
+            _coreSnapshot.ConnectionFailures[0].NodeId == "WATER_TERMINAL" &&
+            _coreSnapshot.ConnectionFailures[0].CurrentConnections == 1 &&
+            _coreSnapshot.ConnectionFailures[0].RequiredConnections == 2 &&
+            _panel.ObligationsText.Contains("접속 회선 1/2", StringComparison.Ordinal),
+            "일곱 번째 장 시작에서 정수장 두 번째 접속 회선 의무를 표시하고 승인을 막지 못했습니다.");
+        await BuildCampaignLineThroughUi(
+            hospitalSecondSubstationId,
+            "STANDARD_LINE",
+            [
+                new CoreMapPoint(1900, 1250),
+                new CoreMapPoint(1800, 1050),
+                new CoreMapPoint(1800, 700),
+            ],
+            "WATER_TERMINAL",
+            "계획정지 대비 정수장 공유 회선");
+        Require(
+            _coreSnapshot.ConnectionFailures.Count == 0 &&
+            _coreSnapshot.CanApprove &&
+            _panel.ObligationsText.Contains("접속 회선 2/2", StringComparison.Ordinal),
+            "정수장 두 번째 회선 완공 뒤 2/2 의무와 승인 가능 상태를 표시하지 못했습니다.");
+        await SelectCampaignProjectionThroughUi("WEST_SOURCE_PLANNED_OUTAGE");
+        CommercialPhaseProjection plannedOutage = _coreSnapshot.Projections.Single(item =>
+            item.Phase.PhaseId == "WEST_SOURCE_PLANNED_OUTAGE");
+        Require(
+            plannedOutage.Evaluation.Loads.Single(item =>
+                item.LoadId == "HOSPITAL").DeliveredKw == 1800 &&
+            plannedOutage.Evaluation.Loads.Single(item =>
+                item.LoadId == "WATERWORKS").DeliveredKw == 1400 &&
+            plannedOutage.Evaluation.Assets.Any(item =>
+                item.State == ThermalOperatingState.Emergency),
+            "서부 전원 계획정지에서 필수 공급과 공유 회랑의 비상 운전을 표시하지 못했습니다.");
+        await SelectCampaignProjectionThroughUi("WEST_SOURCE_RETURN_SERVICE");
+        CommercialPhaseProjection returnedService = _coreSnapshot.Projections.Single(item =>
+            item.Phase.PhaseId == "WEST_SOURCE_RETURN_SERVICE");
+        Require(
+            returnedService.Evaluation.Loads.Single(item =>
+                item.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+            returnedService.Evaluation.Loads.Single(item =>
+                item.LoadId == "WATERWORKS").DeliveredKw == 900,
+            "서부 전원 복귀 국면의 의료원·정수장 900 kW를 표시하지 못했습니다.");
+        EmitProduct(CommercialProductAction.ApproveWindow, "계획정지 운영안 승인");
+        await NextFrame();
+        Require(
+            _coreSnapshot.Chapter.ChapterId == "LONGEST_NIGHT" &&
+            _coreSnapshot.LastOutcome?.ChapterId == "SWITCH_OFF_TO_PROTECT",
+            "일곱 번째 장 결과를 회수하고 마지막 장으로 전환하지 못했습니다.");
+        await DismissStorySequence();
+
+        string refugeSubstationId = await BuildCampaignNodeThroughUi(
+            "SMALL_SUBSTATION",
+            new CoreMapPoint(2400, 900),
+            550,
+            "야간 피난 소형 변전소");
+        await BuildCampaignLineThroughUi(
+            "WEST_SOURCE_NODE",
+            "STANDARD_LINE",
+            [
+                new CoreMapPoint(650, 450),
+                new CoreMapPoint(990, 400),
+                new CoreMapPoint(1570, 400),
+                new CoreMapPoint(1700, 850),
+                new CoreMapPoint(1950, 1000),
+            ],
+            refugeSubstationId,
+            "야간 피난 전원 회랑",
+            zoomEveryPoint: true);
+        await BuildCampaignLineThroughUi(
+            refugeSubstationId,
+            "STANDARD_LINE",
+            Array.Empty<CoreMapPoint>(),
+            "HOSPITAL_TERMINAL",
+            "야간 피난 의료원 회선");
+        await BuildCampaignLineThroughUi(
+            refugeSubstationId,
+            "STANDARD_LINE",
+            [new CoreMapPoint(2350, 450)],
+            "WATER_TERMINAL",
+            "야간 피난 정수장 회선");
+        await ClickMap(new CoreMapPoint(2400, 900));
+        Require(
+            _selectedThermalAssetId == refugeSubstationId &&
+            _map.SelectedServiceArea?.RadiusUnit == 550 &&
+            _map.SelectedServiceArea.Label.Contains("연결 회선 3/", StringComparison.Ordinal),
+            "마지막 장의 소형 변전소 서비스 권역과 세 접속 회선을 표시하지 못했습니다.");
+
+        await SelectCampaignProjectionThroughUi("MAX_DEMAND");
+        CommercialPhaseProjection maxDemand = _coreSnapshot.Projections.Single(item =>
+            item.Phase.PhaseId == "MAX_DEMAND");
+        Require(
+            maxDemand.Evaluation.Loads.Single(item =>
+                item.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+            maxDemand.Evaluation.Loads.Single(item =>
+                item.LoadId == "WATERWORKS").DeliveredKw == 900,
+            "마지막 장 최대수요에서 의료원·정수장 공급을 표시하지 못했습니다.");
+        await SelectCampaignProjectionThroughUi("HEATWAVE_PEAK");
+        CommercialPhaseProjection heatwave = _coreSnapshot.Projections.Single(item =>
+            item.Phase.PhaseId == "HEATWAVE_PEAK");
+        Require(
+            heatwave.Evaluation.Loads.Single(item =>
+                item.LoadId == "HOSPITAL").DeliveredKw == 1600 &&
+            heatwave.Evaluation.Loads.Single(item =>
+                item.LoadId == "WATERWORKS").DeliveredKw == 1400 &&
+            heatwave.Evaluation.Assets.Any(item =>
+                item.State == ThermalOperatingState.Emergency &&
+                item.NextState == ThermalOperatingState.ProtectiveOutage),
+            "폭염 정점의 실제 필수 공급과 비상→보호정지 설비를 표시하지 못했습니다.");
+        await SelectCampaignProjectionThroughUi("PROTECTIVE_STOP_FLOOD");
+        CommercialPhaseProjection protectiveFlood = _coreSnapshot.Projections.Single(item =>
+            item.Phase.PhaseId == "PROTECTIVE_STOP_FLOOD");
+        Require(
+            protectiveFlood.Phase.ActiveRiskAreaIds.Contains(
+                "RIVER_FLOOD_ZONE",
+                StringComparer.Ordinal) &&
+            protectiveFlood.Evaluation.Loads.Single(item =>
+                item.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+            protectiveFlood.Evaluation.Loads.Single(item =>
+                item.LoadId == "WATERWORKS").DeliveredKw == 900 &&
+            protectiveFlood.Evaluation.Assets.Any(item =>
+                item.State == ThermalOperatingState.ProtectiveOutage),
+            "보호정지와 범람 국면의 위험·필수 공급·보호정지 설비를 표시하지 못했습니다.");
+        EmitProduct(CommercialProductAction.ApproveWindow, "마지막 운영안 승인");
+        await NextFrame();
+        Require(
+            _coreSnapshot.CampaignComplete &&
+            _coreSnapshot.CompletedChapterOutcomes.Count == 8 &&
+            _coreSnapshot.LastOutcome?.ChapterId == "LONGEST_NIGHT" &&
+            _coreSnapshot.Epilogue is not null &&
+            _coreSnapshot.ChapterReplayOptions.Count == 8 &&
+            _shell.Surface == CommercialShellSurface.Result &&
+            _coreSnapshot.LastOutcome.RenderedFacts.Count > 0 &&
+            _coreSnapshot.LastOutcome.RenderedFacts.All(fact =>
+                _shell.StoryBodyText.Contains(fact, StringComparison.Ordinal)),
+            "여덟 장 완료 결과와 typed 에필로그·재시작 지점을 함께 열지 못했습니다.");
+        CommercialCampaignEpiloguePresentation epilogue = _coreSnapshot.Epilogue ??
+            throw new InvalidOperationException("완료 smoke의 typed 에필로그가 없습니다.");
+        int completedCommandCount = _coreSnapshot.CommandCount;
+        IReadOnlyList<string> completionFrames = await DismissStorySequence();
+        Require(
+            completionFrames.Any(frame => frame.StartsWith(
+                "에필로그\n",
+                StringComparison.Ordinal)) &&
+            completionFrames.Any(frame => frame.Contains(
+                epilogue.CityReport.Body,
+                StringComparison.Ordinal)) &&
+            completionFrames.Any(frame => frame.Contains(
+                epilogue.MedicalWitness.Body,
+                StringComparison.Ordinal)) &&
+            completionFrames.Any(frame => frame.Contains(
+                epilogue.Closing.Body,
+                StringComparison.Ordinal)) &&
+            epilogue.ChapterFacts.SelectMany(fact => fact.SummaryLines).All(line =>
+                completionFrames.Any(frame => frame.Contains(line, StringComparison.Ordinal))) &&
+            epilogue.PromiseFacts.All(fact => completionFrames.Any(frame =>
+                frame.Contains(fact.Line, StringComparison.Ordinal))),
+            "에필로그가 Core의 장별 실제 facts·약속 문장과 고정 시작·현장·마감 카드를 모두 표시하지 못했습니다.");
+        Require(
+            _panel.ChapterReplayOptionCount == 8 &&
+            _panel.ChapterReplayButton.Visible &&
+            !_panel.ChapterReplayButton.Disabled &&
+            ControlInside(this, _panel) &&
+            ControlInside(_panel, _panel.ChapterReplayButton) &&
+            ControlInside(this, _panel.ChapterReplayButton),
+            "완료 화면의 여덟 장 시작 선택이 1280×720·UI 125% 안에 표시되지 않았습니다.");
+        RequireCampaignPersistedSnapshot(
+            expectedChapterId: "LONGEST_NIGHT",
+            campaignComplete: true);
         await PressKey(Key.Escape);
-        EmitShell(CommercialShellAction.SaveAndQuit, "네 장 완료 저장");
+        EmitShell(CommercialShellAction.SaveAndQuit, "여덟 장 완료 저장");
         await NextFrame();
         Require(_shell.Surface == CommercialShellSurface.Title,
             "완료 저장 뒤 제목 화면으로 돌아오지 못했습니다.");
         RequireCampaignPersistedSnapshot(
-            expectedChapterId: "NORTH_BANK_PROMISE",
+            expectedChapterId: "LONGEST_NIGHT",
             campaignComplete: true);
+
+        EmitShell(CommercialShellAction.Continue, "완료 저장 이어하기");
+        await NextFrame();
+        Require(
+            _coreSnapshot.CampaignComplete &&
+            _coreSnapshot.ChapterReplayOptions.Count == 8 &&
+            _shell.Surface == CommercialShellSurface.Story &&
+            _shell.StoryKindText == "에필로그",
+            "fresh 완료 저장 이어하기가 에필로그 첫 카드와 장 재시작 권한을 복원하지 못했습니다.");
+        await DismissStorySequence();
+        Require(
+            _panel.SelectChapterReplayOption("WHOSE_MARGIN") &&
+            _panel.SelectedChapterReplayId == "WHOSE_MARGIN",
+            "완료 후 대표 다섯 번째 장 시작 지점을 선택하지 못했습니다.");
+        _panel.ChapterReplayButton.EmitSignal(BaseButton.SignalName.Pressed);
+        await NextFrame();
+        Require(
+            !_coreSnapshot.CampaignComplete &&
+            _coreSnapshot.Chapter.ChapterId == "WHOSE_MARGIN" &&
+            _coreSnapshot.CompletedChapterOutcomes.Count == 4 &&
+            _coreSnapshot.CommandCount == _coreSnapshot.ChapterStartCommandCount &&
+            _coreSnapshot.ChapterReplayOptions.Count == 0 &&
+            _shell.Surface == CommercialShellSurface.Story &&
+            _shell.StoryKindText != "에필로그",
+            "완료한 장 선택이 다섯 번째 장 시작 checkpoint로만 되돌아가지 못했습니다.");
+        await DismissStorySequence();
+        RequireCampaignPersistedSnapshot(
+            expectedChapterId: "WHOSE_MARGIN",
+            campaignComplete: false);
         GD.Print(
             "COMMERCIAL_CAMPAIGN_SMOKE_LEG2_PASS " +
-            $"complete={_coreSnapshot.CampaignComplete} chapters=" +
-            $"{_coreSnapshot.CompletedChapterOutcomes.Count} commands={_coreSnapshot.CommandCount}");
+            $"completedResume=True replay=WHOSE_MARGIN " +
+            $"completedCommands={completedCommandCount} replayCommands={_coreSnapshot.CommandCount}");
+    }
+
+    private async Task SelectCampaignProjectionThroughUi(string phaseId)
+    {
+        int targetIndex = _coreSnapshot!.Projections.ToList().FindIndex(item =>
+            string.Equals(item.Phase.PhaseId, phaseId, StringComparison.Ordinal));
+        Require(targetIndex >= 0, $"요청한 운영 국면을 찾을 수 없습니다: {phaseId}");
+        while (_thermalProjectionIndex < targetIndex)
+        {
+            EmitProjection(1);
+            await NextFrame();
+        }
+        while (_thermalProjectionIndex > targetIndex)
+        {
+            EmitProjection(-1);
+            await NextFrame();
+        }
+        Require(
+            _coreSnapshot.Projections[_thermalProjectionIndex].Phase.PhaseId == phaseId &&
+            _panel.ProjectionText.Contains(
+                _coreSnapshot.Projections[targetIndex].Phase.DisplayName,
+                StringComparison.Ordinal),
+            $"요청한 운영 국면을 UI에 표시하지 못했습니다: {phaseId}");
     }
 
     private async Task<string> BuildCampaignNodeThroughUi(
@@ -738,7 +1089,9 @@ internal sealed partial class CommercialMain
         string lineClassId,
         IReadOnlyList<CoreMapPoint> points,
         string endNodeId,
-        string description)
+        string description,
+        int zoomPointIndex = -1,
+        bool zoomEveryPoint = false)
     {
         CommercialPanelAction action = lineClassId switch
         {
@@ -754,8 +1107,16 @@ internal sealed partial class CommercialMain
             _snapshot.LineDraft?.StartNodeId == startNodeId,
             $"{description}: 시작 접속점을 초안에 반영하지 못했습니다. " +
             CampaignLineDraftDiagnostics());
-        foreach (CoreMapPoint point in points)
+        for (int pointIndex = 0; pointIndex < points.Count; pointIndex++)
         {
+            CoreMapPoint point = points[pointIndex];
+            bool zoomPoint = zoomEveryPoint || pointIndex == zoomPointIndex;
+            if (zoomPoint)
+            {
+                Vector2 anchor = _map.ViewportPointForWorld(point);
+                await WheelAt(anchor, MouseButton.WheelUp);
+                await WheelAt(anchor, MouseButton.WheelUp);
+            }
             int expectedPointCount =
                 (_snapshot.LineDraft?.IntermediatePoints.Count ?? 0) + 1;
             await ClickMap(point);
@@ -767,6 +1128,10 @@ internal sealed partial class CommercialMain
                 pointDraft.IntermediatePoints[^1] == point,
                 $"{description}: 전신주 위치 ({point.XUnit},{point.YUnit})를 초안에 더하지 못했습니다. " +
                 CampaignLineDraftDiagnostics());
+            if (zoomPoint)
+            {
+                await PressMapKey(Key.Home);
+            }
         }
         await SelectAndClickCandidate(NodePosition(endNodeId), endNodeId);
         Require(

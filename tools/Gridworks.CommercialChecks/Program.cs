@@ -162,6 +162,9 @@ internal sealed class CommercialChecks
             ("commercial-campaign-rewind-replay", CheckCommercialCampaignRewindAndReplay),
             ("commercial-campaign-window-safety", CheckCommercialCampaignWindowSafety),
             ("commercial-campaign-save-v3", CheckCommercialCampaignSaveV3),
+            ("commercial-campaign-canonical-eight-run", CheckCommercialCampaignCanonicalEightRun),
+            ("commercial-campaign-stage-f-archetypes-recovery", CheckCommercialCampaignStageFArchetypesAndRecovery),
+            ("commercial-campaign-completed-save-replay", CheckCommercialCampaignCompletedSaveAndReplay),
         ];
 
         List<string> failures = [];
@@ -1218,13 +1221,31 @@ internal sealed class CommercialChecks
         Equal(_campaign.CampaignId, fromBytes.CampaignId,
             "campaign byte loader identity");
         SequenceEqual(
-            ["FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE", "NORTH_BANK_PROMISE"],
+            [
+                "FIRST_LIGHT",
+                "SECOND_HEART",
+                "SECOND_SOURCE",
+                "NORTH_BANK_PROMISE",
+                "WHOSE_MARGIN",
+                "BEFORE_WATER_RISE",
+                "SWITCH_OFF_TO_PROTECT",
+                "LONGEST_NIGHT",
+            ],
             _campaign.Chapters.Select(item => item.ChapterId).ToArray(),
-            "canonical Stage-E chapter identities");
+            "canonical final campaign chapter identities");
         SequenceEqual(
-            ["첫 불빛", "두 번째 심장", "두 번째 전원", "북안의 약속"],
+            [
+                "첫 불빛",
+                "두 번째 심장",
+                "두 번째 전원",
+                "북안의 약속",
+                "누구의 여유인가",
+                "물이 닿기 전에",
+                "꺼야 지킬 수 있다",
+                "가장 긴 밤",
+            ],
             _campaign.Chapters.Select(item => item.DisplayName).ToArray(),
-            "canonical Stage-E chapter titles");
+            "canonical final campaign chapter titles");
 
         CommercialWorldDefinition initial = CommercialCampaignLoader.BuildInitialWorld(
             _commercialWorld,
@@ -1307,6 +1328,93 @@ internal sealed class CommercialChecks
                 northBank.ResultFactTemplates.KeptPromise is not null &&
                 northBank.ResultFactTemplates.DeferredPromise is not null,
             "north-bank promise result shape");
+
+        CommercialCampaignChapterDefinition whoseMargin = _campaign.Chapters[4];
+        SequenceEqual(
+            ["HOT_BASE", "NIGHT_SHIFT", "LATE_NIGHT"],
+            whoseMargin.OperatingPhases.Select(phase => phase.PhaseId).ToArray(),
+            "whose-margin operating sequence");
+        Check(whoseMargin.OperatingPhases.All(phase =>
+                phase.ThermalPolicy == CommercialPhaseThermalPolicy.ContinuousOnly),
+            "whose-margin authored policy changed safety emergency permission");
+        Equal("RIVER_FACTORY", whoseMargin.CityPromise!.LoadId,
+            "whose-margin factory promise load");
+
+        CommercialCampaignChapterDefinition beforeWaterRise = _campaign.Chapters[5];
+        Equal(300, beforeWaterRise.DecisionWindows.Single().BuildMinutesAvailable,
+            "before-water-rise deadline");
+        Equal(
+            new CommercialCampaignConnectionRequirement(
+                "EAST_RESIDENTIAL_TERMINAL",
+                2),
+            beforeWaterRise.ConnectionRequirements.Single(),
+            "before-water-rise east connection gate");
+        CommercialOperatingPhaseDefinition floodArrival =
+            beforeWaterRise.OperatingPhases.Single();
+        Equal("FLOOD_ARRIVAL", floodArrival.PhaseId,
+            "before-water-rise phase identity");
+        SequenceEqual(["RIVER_FLOOD_ZONE"], floodArrival.ActiveRiskAreaIds,
+            "before-water-rise flood activation");
+
+        CommercialCampaignChapterDefinition switchOff = _campaign.Chapters[6];
+        Equal(
+            new CommercialCampaignConnectionRequirement("WATER_TERMINAL", 2),
+            switchOff.ConnectionRequirements.Single(),
+            "planned-outage water connection gate");
+        SequenceEqual(
+            ["WEST_SOURCE_PLANNED_OUTAGE", "WEST_SOURCE_RETURN_SERVICE"],
+            switchOff.OperatingPhases.Select(phase => phase.PhaseId).ToArray(),
+            "planned-outage operating sequence");
+        Equal(
+            CommercialPhaseThermalPolicy.SafetyEmergencyAllowed,
+            switchOff.OperatingPhases[0].ThermalPolicy,
+            "planned-outage emergency policy");
+        SequenceEqual(
+            ["WEST_SOURCE_NODE"],
+            switchOff.OperatingPhases[0].UnavailableNodeIds,
+            "planned-outage west-source isolation");
+        Equal(
+            CommercialPhaseThermalPolicy.ContinuousOnly,
+            switchOff.OperatingPhases[1].ThermalPolicy,
+            "return-service continuous policy");
+        Check(!switchOff.OperatingPhases[1].UnavailableNodeIds.Contains(
+                "WEST_SOURCE_NODE",
+                StringComparer.Ordinal),
+            "return-service retained the west-source outage");
+
+        CommercialCampaignChapterDefinition longestNight = _campaign.Chapters[7];
+        Equal(1, longestNight.DecisionWindows.Count,
+            "longest-night decision-window count");
+        SequenceEqual(
+            ["MAX_DEMAND", "HEATWAVE_PEAK", "PROTECTIVE_STOP_FLOOD"],
+            longestNight.OperatingPhases.Select(phase => phase.PhaseId).ToArray(),
+            "longest-night operating sequence");
+        Equal(
+            CommercialPhaseThermalPolicy.ContinuousOnly,
+            longestNight.OperatingPhases[0].ThermalPolicy,
+            "maximum-demand continuous policy");
+        Check(longestNight.OperatingPhases.Skip(1).All(phase =>
+                phase.ThermalPolicy ==
+                    CommercialPhaseThermalPolicy.SafetyEmergencyAllowed),
+            "longest-night peak/final emergency policy");
+        Check(longestNight.OperatingPhases[1].ThermalLimitOverrides.Count > 0 &&
+                longestNight.OperatingPhases[2].ThermalLimitOverrides.Count > 0,
+            "longest-night heat limits are not present in both stressed phases");
+        SequenceEqual(
+            longestNight.OperatingPhases[1].ThermalLimitOverrides,
+            longestNight.OperatingPhases[2].ThermalLimitOverrides,
+            "longest-night final heat limits differ from the heatwave");
+        SequenceEqual(
+            ["RIVER_FLOOD_ZONE"],
+            longestNight.OperatingPhases[2].ActiveRiskAreaIds,
+            "longest-night final flood activation");
+
+        Equal(3, _campaign.Epilogue.PromiseLines.Count,
+            "epilogue promise-line count");
+        SequenceEqual(
+            ["NORTH_BANK_PROMISE", "WHOSE_MARGIN", "BEFORE_WATER_RISE"],
+            _campaign.Epilogue.PromiseLines.Select(line => line.ChapterId).ToArray(),
+            "epilogue promise-line chapter order");
         string[] resultBodies = _campaign.Chapters
             .SelectMany(chapter => new[]
             {
@@ -1368,13 +1476,13 @@ internal sealed class CommercialChecks
             $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
         ExpectCampaignLoaderRejected(
             "campaign unknown root field",
-            root => root["epilogue"] = new JsonObject());
+            root => root["unexpected"] = true);
         ExpectCampaignLoaderRejected(
             "campaign wrong schema",
             root => root["schemaVersion"] = "gridworks.release.campaign.future");
         ExpectCampaignLoaderRejected(
-            "campaign omits canonical fourth chapter",
-            root => JsonArrayProperty(root, "chapters").RemoveAt(3));
+            "campaign omits canonical eighth chapter",
+            root => JsonArrayProperty(root, "chapters").RemoveAt(7));
         ExpectCampaignLoaderRejected(
             "campaign canonical chapter order",
             root =>
@@ -1469,6 +1577,69 @@ internal sealed class CommercialChecks
             "campaign promise fact in non-promise chapter",
             root => Object(Object(JsonArrayProperty(root, "chapters")[0]!)[
                 "resultFactTemplates"]!)["keptPromise"] = "{promise}: 지킴");
+        ExpectCampaignLoaderRejected(
+            "campaign missing epilogue",
+            root => root.Remove("epilogue"));
+        ExpectCampaignLoaderRejected(
+            "campaign epilogue promise order",
+            root =>
+            {
+                JsonArray lines = JsonArrayProperty(Object(root["epilogue"]!), "promiseLines");
+                JsonNode first = lines[0]!.DeepClone();
+                lines[0] = lines[1]!.DeepClone();
+                lines[1] = first;
+            });
+        ExpectCampaignLoaderRejected(
+            "campaign whose-margin phase order",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[4]!),
+                "operatingPhases")[0]!)["phaseId"] = "NIGHT_SHIFT");
+        ExpectCampaignLoaderRejected(
+            "campaign before-water-rise missing deadline",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[5]!),
+                "decisionWindows")[0]!)["buildMinutesAvailable"] = null);
+        ExpectCampaignLoaderRejected(
+            "campaign before-water-rise missing east gate",
+            root => JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[5]!),
+                "connectionRequirements").Clear());
+        ExpectCampaignLoaderRejected(
+            "campaign return-service emergency policy",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[6]!),
+                "operatingPhases")[1]!)["thermalPolicy"] =
+                    "safetyEmergencyAllowed");
+        ExpectCampaignLoaderRejected(
+            "campaign planned-outage missing water gate",
+            root => JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[6]!),
+                "connectionRequirements").Clear());
+        ExpectCampaignLoaderRejected(
+            "campaign return-service keeps west unavailable",
+            root => JsonArrayProperty(Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[6]!),
+                "operatingPhases")[1]!), "unavailableNodeIds").Add(
+                    "WEST_SOURCE_NODE"));
+        ExpectCampaignLoaderRejected(
+            "campaign longest-night extra window",
+            root =>
+            {
+                JsonArray windows = JsonArrayProperty(
+                    Object(JsonArrayProperty(root, "chapters")[7]!),
+                    "decisionWindows");
+                windows.Add(windows[0]!.DeepClone());
+            });
+        ExpectCampaignLoaderRejected(
+            "campaign longest-night final heat limits missing",
+            root => JsonArrayProperty(Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[7]!),
+                "operatingPhases")[2]!), "thermalLimitOverrides").Clear());
+        ExpectCampaignLoaderRejected(
+            "campaign longest-night final flood missing",
+            root => JsonArrayProperty(Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[7]!),
+                "operatingPhases")[2]!), "activeRiskAreaIds").Clear());
     }
 
     private void CheckCommercialCampaignCanonicalRun()
@@ -1487,15 +1658,15 @@ internal sealed class CommercialChecks
             routes,
             reinforced: true,
             "canonical campaign");
-        CompleteCampaignNorthBank(
+        routes = CompleteCampaignNorthBank(
             run,
             routes,
             CommercialPromiseDecision.Keep,
             "canonical campaign");
 
         CommercialCampaignSnapshot completed = run.GetSnapshot();
-        Check(completed.CampaignComplete,
-            "canonical campaign did not complete four chapters");
+        Check(!completed.CampaignComplete && completed.Chapter.ChapterId == "WHOSE_MARGIN",
+            "canonical first-four run did not enter chapter five");
         Equal(4, completed.CompletedChapterOutcomes.Count,
             "canonical campaign outcome count");
         SequenceEqual(
@@ -1773,10 +1944,13 @@ internal sealed class CommercialChecks
             $"{label}: south-source main corridor");
         DraftCampaignLine(
             run,
-            routes.HospitalHighSubstationId!,
+            "HOSPITAL_TERMINAL",
             lineClassId,
             poleClassId,
-            Array.Empty<MapPoint>(),
+            [
+                new MapPoint(2550, 1050),
+                new MapPoint(2550, 800),
+            ],
             routes.EastSubstationId,
             $"{label}: south-to-east tie");
         CommercialCampaignSnapshot draft = run.GetSnapshot();
@@ -1816,7 +1990,7 @@ internal sealed class CommercialChecks
         return routes;
     }
 
-    private void CompleteCampaignNorthBank(
+    private CampaignRouteState CompleteCampaignNorthBank(
         CommercialCampaignRun run,
         CampaignRouteState routes,
         CommercialPromiseDecision decision,
@@ -1832,6 +2006,7 @@ internal sealed class CommercialChecks
             CommercialCoreCommand.SetPromiseDecision(decision),
             $"{label}: set north-bank promise");
 
+        string? northLargeSubstationId = null;
         if (decision == CommercialPromiseDecision.Defer)
         {
             DraftCampaignLine(
@@ -1845,7 +2020,7 @@ internal sealed class CommercialChecks
         }
         else
         {
-            string northLargeSubstationId = BuildCampaignNode(
+            northLargeSubstationId = BuildCampaignNode(
                 run,
                 "LARGE_SUBSTATION",
                 new MapPoint(2050, 400),
@@ -1905,14 +2080,15 @@ internal sealed class CommercialChecks
             CommercialCoreCommand.ApproveDecisionWindow(),
             $"{label}: approve north bank");
         CommercialCampaignSnapshot complete = run.GetSnapshot();
-        Check(complete.CampaignComplete,
-            $"{label}: north-bank approval did not complete campaign");
+        Check(!complete.CampaignComplete && complete.Chapter.ChapterId == "WHOSE_MARGIN",
+            $"{label}: north-bank approval did not enter chapter five");
         Equal(decision, complete.LastOutcome!.PromiseDecision,
             $"{label}: north-bank promise outcome");
         SequenceEqual(
             previews,
             complete.LastOutcome.Phases.Select(item => item.Evaluation).ToArray(),
             $"{label}: north-bank preview/approved result equality");
+        return routes with { NorthLargeSubstationId = northLargeSubstationId };
     }
 
     private void CheckCommercialCampaignArchetypesAndRecovery()
@@ -1957,8 +2133,18 @@ internal sealed class CommercialChecks
         long reinforcedMargin = reinforcedStart.LastOutcome!.Facts.Loads.Single(fact =>
             fact.PhaseId == "SOUTH_SOURCE_COMMISSIONING_TEST" &&
             fact.LoadId == "EAST_RESIDENTIAL").MinimumRemainingKw!.Value;
-        Check(reinforcedMargin > standardMargin,
-            "reinforced second-source corridor did not buy more heat margin");
+        Equal(standardMargin, reinforcedMargin,
+            "second-source shared downstream bottleneck changed by line class");
+        long standardLargestUsedLimit = standardStart.LastOutcome.Facts.ThermalAssets
+            .Where(asset => asset.PhaseId == "SOUTH_SOURCE_COMMISSIONING_TEST" &&
+                asset.UsedKw > 0)
+            .Max(asset => asset.ContinuousLimitKw);
+        long reinforcedLargestUsedLimit = reinforcedStart.LastOutcome.Facts.ThermalAssets
+            .Where(asset => asset.PhaseId == "SOUTH_SOURCE_COMMISSIONING_TEST" &&
+                asset.UsedKw > 0)
+            .Max(asset => asset.ContinuousLimitKw);
+        Check(reinforcedLargestUsedLimit > standardLargestUsedLimit,
+            "reinforced second-source corridor omitted its higher local line limit");
 
         CampaignAccepted(
             twoSafe,
@@ -1993,8 +2179,8 @@ internal sealed class CommercialChecks
             CommercialCoreCommand.ApproveDecisionWindow(),
             "promise recovery: approve deferred north-bank plan");
         CommercialCampaignSnapshot deferred = twoSafe.GetSnapshot();
-        Check(deferred.CampaignComplete,
-            "deferred north-bank recovery did not complete campaign");
+        Check(!deferred.CampaignComplete && deferred.Chapter.ChapterId == "WHOSE_MARGIN",
+            "deferred north-bank recovery did not enter chapter five");
         Equal(CommercialPromiseDecision.Defer, deferred.LastOutcome!.PromiseDecision,
             "deferred north-bank recovery outcome");
         Check(deferred.LastOutcome.RenderedFacts.Contains("북안 입주 일정: 미룸"),
@@ -2177,6 +2363,913 @@ internal sealed class CommercialChecks
             "window safety did not finish the two-window chapter");
         Equal(2, run.GetSnapshot().LastOutcome!.Phases.Count,
             "window safety committed phase count");
+    }
+
+    private void CheckCommercialCampaignCanonicalEightRun()
+    {
+        var run = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CampaignRouteState routes = CompleteCampaignFirstFour(
+            run,
+            "canonical eight-run");
+        CompleteCampaignWhoseMargin(
+            run,
+            routes,
+            reinforcedFactoryRoute: false,
+            CommercialPromiseDecision.Keep,
+            "canonical eight-run");
+        CompleteCampaignBeforeWaterRise(
+            run,
+            routes,
+            reinforcedHighlandRoute: false,
+            CommercialPromiseDecision.Defer,
+            "canonical eight-run");
+        CompleteCampaignSwitchOffToProtect(
+            run,
+            routes,
+            continuousSplit: false,
+            "canonical eight-run");
+        CompleteCampaignLongestNight(
+            run,
+            routes,
+            useLargeRefuge: false,
+            "canonical eight-run");
+
+        CommercialCampaignSnapshot completed = run.GetSnapshot();
+        Check(completed.CampaignComplete,
+            "canonical eight-run did not complete the campaign");
+        Equal(8, completed.CompletedChapterOutcomes.Count,
+            "canonical eight-run outcome count");
+        SequenceEqual(
+            CommercialCampaignLoader.CanonicalChapterIds,
+            completed.CompletedChapterOutcomes.Select(item => item.ChapterId).ToArray(),
+            "canonical eight-run outcome order");
+        Check(completed.Epilogue is not null,
+            "canonical eight-run omitted the epilogue");
+        Equal(8, completed.Epilogue!.ChapterFacts.Count,
+            "canonical epilogue chapter-fact count");
+        Equal(3, completed.Epilogue.PromiseFacts.Count,
+            "canonical epilogue promise-fact count");
+        SequenceEqual(
+            [
+                "NORTH_BANK_MOVE_IN_PROMISE",
+                "FACTORY_NIGHT_SHIFT_PROMISE",
+                "EAST_CONTINUITY_PROMISE",
+            ],
+            completed.Epilogue.PromiseFacts.Select(item => item.PromiseId).ToArray(),
+            "canonical epilogue promise order");
+        Check(completed.CompletedChapterOutcomes.All(outcome =>
+                outcome.RenderedFacts.Count > 0 &&
+                outcome.RenderedFacts.All(fact =>
+                    !fact.Contains('{', StringComparison.Ordinal) &&
+                    !fact.Contains('}', StringComparison.Ordinal))),
+            "canonical eight-run retained unresolved fact tokens");
+    }
+
+    private CampaignRouteState CompleteCampaignFirstFour(
+        CommercialCampaignRun run,
+        string label)
+    {
+        CampaignRouteState routes = CompleteCampaignFirstLight(run, label);
+        routes = CompleteCampaignSecondHeart(
+            run,
+            routes,
+            secondCorridorSafe: false,
+            label);
+        routes = CompleteCampaignSecondSource(
+            run,
+            routes,
+            reinforced: true,
+            label);
+        return CompleteCampaignNorthBank(
+            run,
+            routes,
+            CommercialPromiseDecision.Keep,
+            label);
+    }
+
+    private void CheckCommercialCampaignStageFArchetypesAndRecovery()
+    {
+        var firstFour = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CampaignRouteState routes = CompleteCampaignFirstFour(
+            firstFour,
+            "Stage-F archetype seed");
+        CommercialCoreCommand[] chapterFiveStart = firstFour.Commands.ToArray();
+        string chapterFiveState = CampaignStateJson(firstFour.GetSnapshot());
+
+        var missingFactory = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            chapterFiveStart);
+        CampaignAccepted(
+            missingFactory,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Keep),
+            "Stage-F missing factory: keep promise");
+        Check(!missingFactory.GetSnapshot().CanApprove &&
+                missingFactory.GetSnapshot().FirstBlockingFailure?.Kind ==
+                    ThermalFailureKind.NoTopologyPath,
+            "Stage-F missing factory was not diagnosed before approval");
+        CampaignRejectedPreserves(
+            missingFactory,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            CommercialCampaignRunError.KeptPromiseUnserved,
+            null,
+            "Stage-F missing factory rejection");
+        Check(missingFactory.RestartChapter(),
+            "Stage-F missing factory chapter restart rejected");
+        Equal(chapterFiveState, CampaignStateJson(missingFactory.GetSnapshot()),
+            "Stage-F missing factory chapter restart state");
+
+        var cheapLineage = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            chapterFiveStart);
+        var reinforcedFactory = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            chapterFiveStart);
+        CompleteCampaignWhoseMargin(
+            cheapLineage,
+            routes,
+            reinforcedFactoryRoute: false,
+            CommercialPromiseDecision.Keep,
+            "Stage-F short factory archetype");
+        CompleteCampaignWhoseMargin(
+            reinforcedFactory,
+            routes,
+            reinforcedFactoryRoute: true,
+            CommercialPromiseDecision.Keep,
+            "Stage-F reinforced factory archetype");
+        CommercialCampaignChapterOutcome shortFactory = cheapLineage
+            .GetSnapshot().LastOutcome!;
+        CommercialCampaignChapterOutcome strongFactory = reinforcedFactory
+            .GetSnapshot().LastOutcome!;
+        Check(shortFactory.Facts.ThermalAssets.Any(asset =>
+                asset.PhaseId == "NIGHT_SHIFT" &&
+                asset.State == ThermalOperatingState.Emergency),
+            "Stage-F short factory archetype omitted its emergency tradeoff");
+        Check(!strongFactory.Facts.ThermalAssets.Any(asset =>
+                asset.PhaseId == "NIGHT_SHIFT" &&
+                asset.State == ThermalOperatingState.Emergency),
+            "Stage-F reinforced factory archetype did not remain continuous");
+        Check(shortFactory.EndingCashUnit > strongFactory.EndingCashUnit,
+            "Stage-F short factory archetype did not preserve more cash");
+
+        CommercialCoreCommand[] chapterSixCheapStart = cheapLineage.Commands.ToArray();
+        var floodRecovery = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            chapterSixCheapStart);
+        string floodChapterStart = CampaignStateJson(floodRecovery.GetSnapshot());
+        CampaignAccepted(
+            floodRecovery,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Defer),
+            "Stage-F flood recovery: defer promise");
+        var eastFailure = new CommercialCampaignConnectionFailure(
+            "EAST_RESIDENTIAL_TERMINAL",
+            1,
+            2);
+        Equal(eastFailure, floodRecovery.GetSnapshot().ConnectionFailures.Single(),
+            "Stage-F flood recovery east gate detail");
+        CampaignRejectedPreserves(
+            floodRecovery,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            CommercialCampaignRunError.ConnectionRequirementUnmet,
+            eastFailure,
+            "Stage-F flood recovery connection rejection");
+        string beforeRecentProject = CampaignStateJson(floodRecovery.GetSnapshot());
+        int beforeRecentProjectCommands = floodRecovery.CommandCount;
+        BuildCampaignLine(
+            floodRecovery,
+            "SOUTH_SOURCE_NODE",
+            "REINFORCED_LINE",
+            "REINFORCED_POLE",
+            [
+                new MapPoint(550, 1100),
+                new MapPoint(990, 750),
+                new MapPoint(1640, 750),
+                new MapPoint(1950, 850),
+            ],
+            routes.HospitalHighSubstationId!,
+            "Stage-F flood recovery recent project");
+        CampaignAccepted(
+            floodRecovery,
+            CommercialCoreCommand.StartLineDraft(
+                routes.NorthLargeSubstationId!,
+                "REINFORCED_LINE",
+                "REINFORCED_POLE"),
+            "Stage-F flood recovery long line start");
+        foreach (MapPoint point in new[]
+                 {
+                     new MapPoint(1900, 300),
+                     new MapPoint(1850, 50),
+                     new MapPoint(2200, 30),
+                     new MapPoint(2280, 500),
+                 })
+        {
+            LinePointPreview pointPreview = floodRecovery.PreviewLinePoint(point);
+            Check(pointPreview.Accepted,
+                $"Stage-F flood recovery long line point {point} preview: " +
+                pointPreview.Error);
+            CampaignAccepted(
+                floodRecovery,
+                CommercialCoreCommand.AddLinePoint(point),
+                $"Stage-F flood recovery long line point {point}");
+        }
+        Check(floodRecovery.PreviewLineFinish("EAST_RESIDENTIAL_TERMINAL").Accepted,
+            "Stage-F flood recovery long line finish preview");
+        CampaignAccepted(
+            floodRecovery,
+            CommercialCoreCommand.FinishLineDraft("EAST_RESIDENTIAL_TERMINAL"),
+            "Stage-F flood recovery long line finish");
+        CommercialCampaignProjectQuote deadlineQuote =
+            floodRecovery.PreviewLineOrder();
+        Check(!deadlineQuote.Accepted &&
+                deadlineQuote.Error == CommercialCampaignRunError.DeadlineExceeded &&
+                deadlineQuote.BuildMinutes is > 0,
+            "Stage-F flood recovery long line did not expose deadline rejection");
+        CampaignRejectedPreserves(
+            floodRecovery,
+            CommercialCoreCommand.OrderLine(),
+            CommercialCampaignRunError.DeadlineExceeded,
+            null,
+            "Stage-F flood recovery deadline rejection");
+        CampaignAccepted(
+            floodRecovery,
+            CommercialCoreCommand.CancelLineDraft(),
+            "Stage-F flood recovery cancel rejected line");
+        Check(floodRecovery.GetSnapshot().CanRollbackRecentProject &&
+                floodRecovery.UndoRecentConstruction(),
+            "Stage-F flood recovery recent rollback rejected");
+        Equal(beforeRecentProject, CampaignStateJson(floodRecovery.GetSnapshot()),
+            "Stage-F flood recovery recent rollback state");
+        Equal(beforeRecentProjectCommands, floodRecovery.CommandCount,
+            "Stage-F flood recovery recent rollback journal");
+        Check(floodRecovery.RestartChapter(),
+            "Stage-F flood recovery chapter restart rejected");
+        Equal(floodChapterStart, CampaignStateJson(floodRecovery.GetSnapshot()),
+            "Stage-F flood recovery chapter restart state");
+
+        var keptFlood = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            chapterSixCheapStart);
+        CommercialCampaignSnapshot standardFloodStart = cheapLineage.GetSnapshot();
+        CommercialCampaignSnapshot reinforcedFloodStart = keptFlood.GetSnapshot();
+        CompleteCampaignBeforeWaterRise(
+            cheapLineage,
+            routes,
+            reinforcedHighlandRoute: false,
+            CommercialPromiseDecision.Defer,
+            "Stage-F deferred flood archetype");
+        CompleteCampaignBeforeWaterRise(
+            keptFlood,
+            routes,
+            reinforcedHighlandRoute: true,
+            CommercialPromiseDecision.Keep,
+            "Stage-F kept flood archetype");
+        CommercialCampaignChapterOutcome standardFlood =
+            cheapLineage.GetSnapshot().LastOutcome!;
+        CommercialCampaignChapterOutcome reinforcedFlood =
+            keptFlood.GetSnapshot().LastOutcome!;
+        long standardFloodCost = checked(
+            standardFloodStart.CashUnit - standardFlood.EndingCashUnit);
+        long reinforcedFloodCost = checked(
+            reinforcedFloodStart.CashUnit - reinforcedFlood.EndingCashUnit);
+        long standardFloodMinutes = checked(
+            standardFlood.EndingMinute - standardFloodStart.Minute);
+        long reinforcedFloodMinutes = checked(
+            reinforcedFlood.EndingMinute - reinforcedFloodStart.Minute);
+        Check(standardFloodCost < reinforcedFloodCost,
+            "Stage-F standard flood archetype did not cost less");
+        Check(standardFloodMinutes < reinforcedFloodMinutes &&
+                reinforcedFloodMinutes <= 300,
+            "Stage-F reinforced flood archetype missed its bounded time tradeoff");
+        Check(new[] { standardFlood, reinforcedFlood }.All(outcome =>
+                outcome.Facts.Loads.Where(fact =>
+                    fact.PhaseId == "FLOOD_ARRIVAL" &&
+                    (fact.LoadId == "HOSPITAL" || fact.LoadId == "WATERWORKS"))
+                    .All(fact => fact.DeliveredKw == fact.DemandKw)),
+            "Stage-F flood archetype failed a hard safety duty");
+        Equal(
+            CommercialPromiseDecision.Defer,
+            standardFlood.PromiseDecision,
+            "Stage-F deferred flood decision outcome");
+        Equal(
+            CommercialPromiseDecision.Keep,
+            reinforcedFlood.PromiseDecision,
+            "Stage-F kept flood decision outcome");
+        Equal(
+            1200L,
+            reinforcedFlood.Facts.Loads.Single(fact =>
+                fact.PhaseId == "FLOOD_ARRIVAL" &&
+                fact.LoadId == "EAST_RESIDENTIAL").DeliveredKw,
+            "Stage-F kept flood promise delivery");
+
+        CommercialCoreCommand[] chapterSixStrongStart =
+            reinforcedFactory.Commands.ToArray();
+        var continuousLineage = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            chapterSixStrongStart);
+        CompleteCampaignBeforeWaterRise(
+            continuousLineage,
+            routes,
+            reinforcedHighlandRoute: false,
+            CommercialPromiseDecision.Defer,
+            "Stage-F continuous lineage flood plan");
+
+        var cheapOutage = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            cheapLineage.Commands);
+        CommercialCampaignSnapshot outageStart = cheapOutage.GetSnapshot();
+        var waterFailure = new CommercialCampaignConnectionFailure(
+            "WATER_TERMINAL",
+            1,
+            2);
+        Equal(waterFailure, outageStart.ConnectionFailures.Single(),
+            "Stage-F planned-outage initial water gate");
+        Check(!outageStart.CanApprove,
+            "Stage-F planned outage auto-approved without work");
+        CampaignRejectedPreserves(
+            cheapOutage,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            CommercialCampaignRunError.ConnectionRequirementUnmet,
+            waterFailure,
+            "Stage-F planned-outage connection rejection");
+
+        string? cheapRefuge = CompleteCampaignSwitchOffToProtect(
+            cheapOutage,
+            routes,
+            continuousSplit: false,
+            "Stage-F shared-emergency outage archetype");
+        string? continuousRefuge = CompleteCampaignSwitchOffToProtect(
+            continuousLineage,
+            routes,
+            continuousSplit: true,
+            "Stage-F continuous-split outage archetype");
+        Check(cheapRefuge is null && continuousRefuge is not null,
+            "Stage-F outage archetype refuge identity");
+        CommercialCampaignChapterOutcome sharedOutage =
+            cheapOutage.GetSnapshot().LastOutcome!;
+        CommercialCampaignChapterOutcome splitOutage =
+            continuousLineage.GetSnapshot().LastOutcome!;
+        Check(sharedOutage.Facts.ThermalAssets.Any(asset =>
+                asset.PhaseId == "WEST_SOURCE_PLANNED_OUTAGE" &&
+                asset.State == ThermalOperatingState.Emergency),
+            "Stage-F shared outage omitted emergency operation");
+        Check(!splitOutage.Facts.ThermalAssets.Any(asset =>
+                asset.PhaseId == "WEST_SOURCE_PLANNED_OUTAGE" &&
+                asset.State == ThermalOperatingState.Emergency),
+            "Stage-F continuous split entered emergency operation");
+        Check(sharedOutage.EndingCashUnit > splitOutage.EndingCashUnit,
+            "Stage-F shared outage did not preserve more cash");
+        Check(new[] { sharedOutage, splitOutage }.All(outcome =>
+                outcome.Facts.Loads.Where(fact =>
+                    fact.PhaseId == "WEST_SOURCE_RETURN_SERVICE" &&
+                    (fact.LoadId == "HOSPITAL" || fact.LoadId == "WATERWORKS"))
+                    .All(fact => fact.DeliveredKw == fact.DemandKw)),
+            "Stage-F outage archetype failed return-service safety");
+
+        CommercialCampaignSnapshot longestNightStart = cheapOutage.GetSnapshot();
+        Check(!longestNightStart.CanApprove &&
+                longestNightStart.FirstBlockingFailure is not null,
+            "Stage-F longest night passed without final work");
+        CampaignRejectedPreserves(
+            cheapOutage,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            CommercialCampaignRunError.SafetyDutyUnserved,
+            null,
+            "Stage-F longest-night missing-refuge rejection");
+        var cheapFinal = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            cheapOutage.Commands);
+        CompleteCampaignLongestNight(
+            cheapFinal,
+            routes,
+            useLargeRefuge: false,
+            "Stage-F delayed refuge archetype");
+        CompleteCampaignLongestNight(
+            continuousLineage,
+            routes,
+            useLargeRefuge: false,
+            "Stage-F prepared refuge archetype",
+            continuousRefuge);
+        CommercialCampaignChapterOutcome delayedFinal =
+            cheapFinal.GetSnapshot().LastOutcome!;
+        CommercialCampaignChapterOutcome preparedFinal =
+            continuousLineage.GetSnapshot().LastOutcome!;
+        Check(delayedFinal.Facts.ThermalAssets.Any(asset =>
+                asset.PhaseId == "PROTECTIVE_STOP_FLOOD" &&
+                asset.State == ThermalOperatingState.Emergency),
+            "Stage-F delayed refuge omitted final emergency operation");
+        Check(!preparedFinal.Facts.ThermalAssets.Any(asset =>
+                asset.PhaseId == "PROTECTIVE_STOP_FLOOD" &&
+                asset.State == ThermalOperatingState.Emergency),
+            "Stage-F prepared refuge did not remain continuous in the final phase");
+        Check(delayedFinal.EndingCashUnit > preparedFinal.EndingCashUnit,
+            "Stage-F delayed refuge did not preserve more cash");
+        Check(cheapFinal.GetSnapshot().CampaignComplete &&
+                continuousLineage.GetSnapshot().CampaignComplete,
+            "Stage-F final archetypes did not complete the campaign");
+
+        CommercialCampaignSnapshot keptSoftlock = keptFlood.GetSnapshot();
+        Check(!keptSoftlock.CanApprove &&
+                keptSoftlock.ThermalState.CoolingAssetIds.Count > 0,
+            "Stage-F kept flood consequence did not carry into the next chapter");
+        Check(keptFlood.RewindToPreviousChapter(),
+            "Stage-F kept flood consequence could not rewind");
+        CommercialCampaignSnapshot recoveredFloodStart = keptFlood.GetSnapshot();
+        Equal("BEFORE_WATER_RISE", recoveredFloodStart.Chapter.ChapterId,
+            "Stage-F kept flood rewind target");
+        Equal(5, recoveredFloodStart.CompletedChapterOutcomes.Count,
+            "Stage-F kept flood rewind outcome prefix");
+        CompleteCampaignBeforeWaterRise(
+            keptFlood,
+            routes,
+            reinforcedHighlandRoute: false,
+            CommercialPromiseDecision.Defer,
+            "Stage-F kept flood rewind recovery");
+        _ = CompleteCampaignSwitchOffToProtect(
+            keptFlood,
+            routes,
+            continuousSplit: false,
+            "Stage-F kept flood recovered outage");
+        Equal("LONGEST_NIGHT", keptFlood.GetSnapshot().Chapter.ChapterId,
+            "Stage-F kept flood recovery remained softlocked");
+    }
+
+    private void CheckCommercialCampaignCompletedSaveAndReplay()
+    {
+        var run = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CampaignRouteState routes = CompleteCampaignFirstFour(
+            run,
+            "completed save");
+        CompleteCampaignWhoseMargin(
+            run,
+            routes,
+            reinforcedFactoryRoute: false,
+            CommercialPromiseDecision.Keep,
+            "completed save");
+        CompleteCampaignBeforeWaterRise(
+            run,
+            routes,
+            reinforcedHighlandRoute: false,
+            CommercialPromiseDecision.Defer,
+            "completed save");
+        CompleteCampaignSwitchOffToProtect(
+            run,
+            routes,
+            continuousSplit: false,
+            "completed save");
+        CompleteCampaignLongestNight(
+            run,
+            routes,
+            useLargeRefuge: false,
+            "completed save");
+
+        CommercialCampaignSnapshot completed = run.GetSnapshot();
+        Check(completed.CampaignComplete && completed.Epilogue is not null,
+            "completed save setup did not reach the epilogue");
+        Equal(8, completed.ChapterReplayOptions.Count,
+            "completed campaign replay-option count");
+        SequenceEqual(
+            CommercialCampaignLoader.CanonicalChapterIds,
+            completed.ChapterReplayOptions.Select(option => option.ChapterId).ToArray(),
+            "completed campaign replay-option order");
+        Check(completed.ChapterReplayOptions.Zip(
+                completed.ChapterReplayOptions.Skip(1),
+                (left, right) => left.ChapterStartCommandCount <
+                    right.ChapterStartCommandCount).All(value => value),
+            "completed campaign replay checkpoints are not increasing");
+        SequenceEqual(
+            [
+                CommercialPromiseDecision.Keep,
+                CommercialPromiseDecision.Keep,
+                CommercialPromiseDecision.Defer,
+            ],
+            completed.Epilogue!.PromiseFacts.Select(fact => fact.Decision).ToArray(),
+            "completed campaign epilogue promise decisions");
+        Check(completed.Epilogue.ChapterFacts.All(fact =>
+                fact.SummaryLines.Count > 0 &&
+                fact.SummaryLines.All(line =>
+                    !line.Contains('{', StringComparison.Ordinal) &&
+                    !line.Contains('}', StringComparison.Ordinal))),
+            "completed campaign epilogue retained unresolved summary tokens");
+
+        string campaignSha256 = LowerSha256(_campaignBytes);
+        string worldSha256 = LowerSha256(_worldBytes);
+        CommercialCampaignSave save = CommercialCampaignSaveCodec.Capture(
+            _campaign,
+            _commercialWorld,
+            campaignSha256,
+            worldSha256,
+            run);
+        CommercialCampaignRun restored = CommercialCampaignSaveCodec.Restore(
+            _campaign,
+            _commercialWorld,
+            campaignSha256,
+            worldSha256,
+            CommercialCampaignSaveCodec.Deserialize(
+                CommercialCampaignSaveCodec.Serialize(save)));
+        Equal(CampaignStateJson(completed), CampaignStateJson(restored.GetSnapshot()),
+            "completed campaign save fresh restore snapshot");
+        SequenceEqual(run.Commands, restored.Commands,
+            "completed campaign save fresh restore journal");
+
+        string beforeInvalidReplay = CampaignStateJson(restored.GetSnapshot());
+        int beforeInvalidReplayCommands = restored.CommandCount;
+        Check(!restored.ReplayCompletedChapterStart("UNKNOWN_CHAPTER"),
+            "completed campaign accepted an unknown replay option");
+        Equal(beforeInvalidReplay, CampaignStateJson(restored.GetSnapshot()),
+            "invalid completed replay changed state");
+        Equal(beforeInvalidReplayCommands, restored.CommandCount,
+            "invalid completed replay changed the journal");
+
+        CommercialCampaignChapterReplayOption chapterFive = restored
+            .GetSnapshot().ChapterReplayOptions.Single(option =>
+                option.ChapterId == "WHOSE_MARGIN");
+        Check(restored.ReplayCompletedChapterStart(chapterFive.ChapterId),
+            "completed campaign rejected a canonical chapter replay");
+        CommercialCampaignSnapshot replay = restored.GetSnapshot();
+        Check(!replay.CampaignComplete && replay.Epilogue is null,
+            "chapter replay retained completed presentation state");
+        Equal("WHOSE_MARGIN", replay.Chapter.ChapterId,
+            "chapter replay target identity");
+        Equal(4, replay.CompletedChapterOutcomes.Count,
+            "chapter replay outcome prefix");
+        Equal(chapterFive.ChapterStartCommandCount, replay.CommandCount,
+            "chapter replay journal checkpoint");
+    }
+
+    private void CompleteCampaignWhoseMargin(
+        CommercialCampaignRun run,
+        CampaignRouteState routes,
+        bool reinforcedFactoryRoute,
+        CommercialPromiseDecision decision,
+        string label)
+    {
+        CommercialCampaignSnapshot start = run.GetSnapshot();
+        Equal("WHOSE_MARGIN", start.Chapter.ChapterId,
+            $"{label}: whose-margin chapter");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetPromiseDecision(decision),
+            $"{label}: set factory promise");
+        if (decision == CommercialPromiseDecision.Keep)
+        {
+            if (reinforcedFactoryRoute)
+            {
+                BuildCampaignLine(
+                    run,
+                    "SOUTH_SOURCE_NODE",
+                    "REINFORCED_LINE",
+                    "REINFORCED_POLE",
+                    [
+                        new MapPoint(700, 1750),
+                        new MapPoint(1150, 1750),
+                        new MapPoint(1760, 1750),
+                    ],
+                    routes.HospitalSecondSubstationId!,
+                    $"{label}: separate reinforced factory feed");
+            }
+            BuildCampaignLine(
+                run,
+                routes.HospitalSecondSubstationId!,
+                reinforcedFactoryRoute ? "REINFORCED_LINE" : "STANDARD_LINE",
+                reinforcedFactoryRoute ? "REINFORCED_POLE" : "STANDARD_POLE",
+                Array.Empty<MapPoint>(),
+                "FACTORY_TERMINAL",
+                $"{label}: factory service");
+        }
+        else
+        {
+            BuildCampaignLine(
+                run,
+                routes.HospitalSecondSubstationId!,
+                "STANDARD_LINE",
+                "STANDARD_POLE",
+                Array.Empty<MapPoint>(),
+                "FACTORY_TERMINAL",
+                $"{label}: deferred factory-ready connection");
+        }
+
+        CommercialCampaignSnapshot planned = run.GetSnapshot();
+        Check(run.CommandCount > start.ChapterStartCommandCount,
+            $"{label}: whose-margin completed without work");
+        ThermalIntervalEvaluation hotBase =
+            CampaignProjection(planned, "HOT_BASE").Evaluation;
+        ThermalIntervalEvaluation nightShift =
+            CampaignProjection(planned, "NIGHT_SHIFT").Evaluation;
+        Equal(900L, Supply(hotBase, "HOSPITAL").DeliveredKw,
+            $"{label}: hot-base hospital supply");
+        if (decision == CommercialPromiseDecision.Keep)
+        {
+            Equal(2700L, Supply(nightShift, "RIVER_FACTORY").DeliveredKw,
+                $"{label}: night-shift factory supply");
+            bool factoryEmergency = nightShift.Assets.Any(asset =>
+                asset.State == ThermalOperatingState.Emergency &&
+                Supply(nightShift, "RIVER_FACTORY").PathEdgeIds.Contains(
+                    asset.AssetId,
+                    StringComparer.Ordinal));
+            Equal(!reinforcedFactoryRoute, factoryEmergency,
+                $"{label}: factory route emergency character");
+        }
+        else
+        {
+            Check(!nightShift.Loads.Any(load => load.LoadId == "RIVER_FACTORY"),
+                $"{label}: deferred factory entered dispatch");
+        }
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            $"{label}: approve hot base and night shift");
+        CommercialCampaignSnapshot recovery = run.GetSnapshot();
+        Equal("LATE_NIGHT_RECOVERY_WINDOW", recovery.CurrentWindow!.WindowId,
+            $"{label}: late-night recovery window");
+        ThermalIntervalEvaluation lateNight =
+            CampaignProjection(recovery, "LATE_NIGHT").Evaluation;
+        Equal(900L, Supply(lateNight, "HOSPITAL").DeliveredKw,
+            $"{label}: late-night hospital supply");
+        Equal(900L, Supply(lateNight, "WATERWORKS").DeliveredKw,
+            $"{label}: late-night water supply");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            $"{label}: approve late-night recovery");
+        Equal("BEFORE_WATER_RISE", run.GetSnapshot().Chapter.ChapterId,
+            $"{label}: transition to flood chapter");
+    }
+
+    private void CompleteCampaignBeforeWaterRise(
+        CommercialCampaignRun run,
+        CampaignRouteState routes,
+        bool reinforcedHighlandRoute,
+        CommercialPromiseDecision decision,
+        string label)
+    {
+        CommercialCampaignSnapshot start = run.GetSnapshot();
+        Equal("BEFORE_WATER_RISE", start.Chapter.ChapterId,
+            $"{label}: before-water-rise chapter");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetPromiseDecision(decision),
+            $"{label}: set east-continuity promise");
+        string lineClassId = reinforcedHighlandRoute
+            ? "REINFORCED_LINE"
+            : "STANDARD_LINE";
+        string poleClassId = reinforcedHighlandRoute
+            ? "REINFORCED_POLE"
+            : "STANDARD_POLE";
+        IReadOnlyList<MapPoint> highlandPoints = reinforcedHighlandRoute
+            ? [
+                new MapPoint(550, 1100),
+                new MapPoint(990, 750),
+                new MapPoint(1640, 750),
+                new MapPoint(1950, 850),
+            ]
+            : [
+                new MapPoint(450, 1200),
+                new MapPoint(650, 750),
+                new MapPoint(1040, 750),
+                new MapPoint(1620, 750),
+                new MapPoint(1900, 800),
+            ];
+        BuildCampaignLine(
+            run,
+            "SOUTH_SOURCE_NODE",
+            lineClassId,
+            poleClassId,
+            highlandPoints,
+            routes.HospitalHighSubstationId!,
+            $"{label}: flood-safe parallel hospital route",
+            quote => Equal(0, quote.RiskAreaIds.Count,
+                $"{label}: highland route risk exposure"));
+        BuildCampaignLine(
+            run,
+            routes.NorthLargeSubstationId!,
+            reinforcedHighlandRoute ? "REINFORCED_LINE" : "STANDARD_LINE",
+            reinforcedHighlandRoute ? "REINFORCED_POLE" : "STANDARD_POLE",
+            [
+                new MapPoint(1950, 500),
+                new MapPoint(2500, 600),
+            ],
+            "EAST_RESIDENTIAL_TERMINAL",
+            $"{label}: second east connection",
+            quote => Equal(0, quote.RiskAreaIds.Count,
+                $"{label}: east connection risk exposure"));
+        CommercialCampaignSnapshot planned = run.GetSnapshot();
+        Check(run.CommandCount > start.ChapterStartCommandCount,
+            $"{label}: flood chapter completed without work");
+        Equal(0, planned.ConnectionFailures.Count,
+            $"{label}: east two-connection gate");
+        ThermalIntervalEvaluation flood =
+            CampaignProjection(planned, "FLOOD_ARRIVAL").Evaluation;
+        Equal(900L, Supply(flood, "HOSPITAL").DeliveredKw,
+            $"{label}: flood hospital supply");
+        Equal(900L, Supply(flood, "WATERWORKS").DeliveredKw,
+            $"{label}: flood water supply");
+        if (decision == CommercialPromiseDecision.Keep)
+        {
+            Equal(1200L, Supply(flood, "EAST_RESIDENTIAL").DeliveredKw,
+                $"{label}: flood east-continuity supply");
+        }
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            $"{label}: approve flood chapter");
+        Equal("SWITCH_OFF_TO_PROTECT", run.GetSnapshot().Chapter.ChapterId,
+            $"{label}: transition to planned outage");
+    }
+
+    private string? CompleteCampaignSwitchOffToProtect(
+        CommercialCampaignRun run,
+        CampaignRouteState routes,
+        bool continuousSplit,
+        string label)
+    {
+        CommercialCampaignSnapshot start = run.GetSnapshot();
+        Equal("SWITCH_OFF_TO_PROTECT", start.Chapter.ChapterId,
+            $"{label}: switch-off chapter");
+        Equal(
+            new CommercialCampaignConnectionFailure("WATER_TERMINAL", 1, 2),
+            start.ConnectionFailures.Single(),
+            $"{label}: initial water connection gate");
+        Check(!start.CanApprove,
+            $"{label}: planned outage approved without construction");
+        string? continuousSubstationId = null;
+        if (continuousSplit)
+        {
+            continuousSubstationId = BuildCampaignNode(
+                run,
+                "SMALL_SUBSTATION",
+                new MapPoint(2300, 900),
+                $"{label}: continuous split substation");
+            BuildCampaignLine(
+                run,
+                "SOUTH_SOURCE_NODE",
+                "REINFORCED_LINE",
+                "REINFORCED_POLE",
+                [
+                    new MapPoint(700, 1850),
+                    new MapPoint(1150, 1900),
+                    new MapPoint(1780, 1900),
+                    new MapPoint(1900, 1750),
+                    new MapPoint(1850, 1350),
+                    new MapPoint(1800, 1150),
+                ],
+                continuousSubstationId,
+                $"{label}: split reinforced water feed");
+            BuildCampaignLine(
+                run,
+                continuousSubstationId,
+                "REINFORCED_LINE",
+                "REINFORCED_POLE",
+                [
+                    new MapPoint(2400, 650),
+                    new MapPoint(2350, 450),
+                ],
+                "WATER_TERMINAL",
+                $"{label}: split reinforced water service");
+        }
+        else
+        {
+            BuildCampaignLine(
+                run,
+                routes.HospitalSecondSubstationId!,
+                "STANDARD_LINE",
+                "STANDARD_POLE",
+                [
+                    new MapPoint(1900, 1250),
+                    new MapPoint(1800, 1050),
+                    new MapPoint(1800, 700),
+                ],
+                "WATER_TERMINAL",
+                $"{label}: shared hospital-to-water tie");
+        }
+        CommercialCampaignSnapshot planned = run.GetSnapshot();
+        Check(run.CommandCount > start.ChapterStartCommandCount,
+            $"{label}: planned-outage chapter completed without work");
+        Equal(0, planned.ConnectionFailures.Count,
+            $"{label}: water two-connection gate");
+        ThermalIntervalEvaluation outage =
+            CampaignProjection(planned, "WEST_SOURCE_PLANNED_OUTAGE").Evaluation;
+        ThermalIntervalEvaluation returned =
+            CampaignProjection(planned, "WEST_SOURCE_RETURN_SERVICE").Evaluation;
+        Equal(1800L, Supply(outage, "HOSPITAL").DeliveredKw,
+            $"{label}: outage hospital supply");
+        Equal(1400L, Supply(outage, "WATERWORKS").DeliveredKw,
+            $"{label}: outage water supply");
+        Equal(!continuousSplit,
+            outage.Assets.Any(asset => asset.State == ThermalOperatingState.Emergency),
+            $"{label}: planned-outage thermal character");
+        Equal(900L, Supply(returned, "HOSPITAL").DeliveredKw,
+            $"{label}: return-service hospital supply");
+        Equal(900L, Supply(returned, "WATERWORKS").DeliveredKw,
+            $"{label}: return-service water supply");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            $"{label}: approve planned outage and return");
+        Equal("LONGEST_NIGHT", run.GetSnapshot().Chapter.ChapterId,
+            $"{label}: transition to longest night");
+        return continuousSubstationId;
+    }
+
+    private void CompleteCampaignLongestNight(
+        CommercialCampaignRun run,
+        CampaignRouteState routes,
+        bool useLargeRefuge,
+        string label,
+        string? existingRefugeId = null)
+    {
+        CommercialCampaignSnapshot start = run.GetSnapshot();
+        Equal("LONGEST_NIGHT", start.Chapter.ChapterId,
+            $"{label}: longest-night chapter");
+        bool reinforcedRefuge = useLargeRefuge || existingRefugeId is not null;
+        string refugeId = existingRefugeId ?? BuildCampaignNode(
+            run,
+            useLargeRefuge ? "LARGE_SUBSTATION" : "SMALL_SUBSTATION",
+            new MapPoint(2400, 900),
+            $"{label}: final refuge substation");
+        BuildCampaignLine(
+            run,
+            "WEST_SOURCE_NODE",
+            reinforcedRefuge ? "REINFORCED_LINE" : "STANDARD_LINE",
+            reinforcedRefuge ? "REINFORCED_POLE" : "STANDARD_POLE",
+            [
+                new MapPoint(650, 450),
+                new MapPoint(990, 400),
+                new MapPoint(1570, 400),
+                new MapPoint(1700, 850),
+                new MapPoint(1950, 1000),
+            ],
+            refugeId,
+            $"{label}: final flood-safe feed",
+            quote => Equal(0, quote.RiskAreaIds.Count,
+                $"{label}: final feed risk exposure"));
+        BuildCampaignLine(
+            run,
+            refugeId,
+            existingRefugeId is not null ? "REINFORCED_LINE" : "STANDARD_LINE",
+            existingRefugeId is not null ? "REINFORCED_POLE" : "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "HOSPITAL_TERMINAL",
+            $"{label}: final hospital service");
+        if (existingRefugeId is null)
+        {
+            BuildCampaignLine(
+                run,
+                refugeId,
+                "STANDARD_LINE",
+                "STANDARD_POLE",
+                [new MapPoint(2350, 450)],
+                "WATER_TERMINAL",
+                $"{label}: final water service");
+        }
+        if (useLargeRefuge)
+        {
+            BuildCampaignLine(
+                run,
+                refugeId,
+                "STANDARD_LINE",
+                "STANDARD_POLE",
+                Array.Empty<MapPoint>(),
+                "EAST_RESIDENTIAL_TERMINAL",
+                $"{label}: large-refuge east service");
+        }
+
+        CommercialCampaignSnapshot planned = run.GetSnapshot();
+        Check(run.CommandCount > start.ChapterStartCommandCount,
+            $"{label}: longest night completed without work");
+        ThermalIntervalEvaluation maximum =
+            CampaignProjection(planned, "MAX_DEMAND").Evaluation;
+        ThermalIntervalEvaluation heatwave =
+            CampaignProjection(planned, "HEATWAVE_PEAK").Evaluation;
+        ThermalIntervalEvaluation final =
+            CampaignProjection(planned, "PROTECTIVE_STOP_FLOOD").Evaluation;
+        Equal(900L, Supply(maximum, "HOSPITAL").DeliveredKw,
+            $"{label}: maximum-demand hospital supply");
+        Check(heatwave.Assets.Any(asset => asset.State == ThermalOperatingState.Emergency),
+            $"{label}: heatwave omitted emergency operation");
+        Equal(900L, Supply(final, "HOSPITAL").DeliveredKw,
+            $"{label}: final hospital supply");
+        Equal(900L, Supply(final, "WATERWORKS").DeliveredKw,
+            $"{label}: final water supply");
+        ThermalIntervalEvaluation[] preview =
+            planned.Projections.Select(item => item.Evaluation).ToArray();
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            $"{label}: approve longest night");
+        CommercialCampaignSnapshot completed = run.GetSnapshot();
+        Check(completed.CampaignComplete,
+            $"{label}: longest-night approval did not complete campaign");
+        SequenceEqual(
+            preview,
+            completed.LastOutcome!.Phases.Select(item => item.Evaluation).ToArray(),
+            $"{label}: longest-night preview/commit equality");
     }
 
     private void CheckCommercialCampaignSaveV3()
@@ -2624,7 +3717,8 @@ internal sealed class CommercialChecks
     private sealed record CampaignRouteState(
         string EastSubstationId,
         string? HospitalHighSubstationId,
-        string? HospitalSecondSubstationId);
+        string? HospitalSecondSubstationId,
+        string? NorthLargeSubstationId = null);
 
     private void CheckCommercialCoreDesignsPreviewAndOutcomes()
     {

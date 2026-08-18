@@ -109,6 +109,36 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 text = "이전 장부터 다시 설계"
 
+[node name="ChapterReplaySection" type="VBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="Separator" type="HSeparator" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/ChapterReplaySection"]
+layout_mode = 2
+
+[node name="Heading" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/ChapterReplaySection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
+text = "완료한 장 다시 시작"
+
+[node name="Description" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/ChapterReplaySection"]
+layout_mode = 2
+autowrap_mode = 2
+text = "선택한 장의 시작 상태로 돌아가 이후 도시망을 다시 설계합니다."
+
+[node name="ChapterReplayOption" type="OptionButton" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/ChapterReplaySection"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+
+[node name="ChapterReplayButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/ChapterReplaySection"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+text = "선택한 장부터 다시 설계"
+
 [node name="Separator1" type="HSeparator" parent="Margin/Column/InfoScroll/InfoColumn"]
 layout_mode = 2
 

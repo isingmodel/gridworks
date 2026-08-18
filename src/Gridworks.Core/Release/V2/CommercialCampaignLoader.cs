@@ -14,6 +14,10 @@ public static class CommercialCampaignLoader
             "SECOND_HEART",
             "SECOND_SOURCE",
             "NORTH_BANK_PROMISE",
+            "WHOSE_MARGIN",
+            "BEFORE_WATER_RISE",
+            "SWITCH_OFF_TO_PROTECT",
+            "LONGEST_NIGHT",
         });
 
     private static readonly string[] CanonicalChapterNames =
@@ -22,6 +26,23 @@ public static class CommercialCampaignLoader
         "두 번째 심장",
         "두 번째 전원",
         "북안의 약속",
+        "누구의 여유인가",
+        "물이 닿기 전에",
+        "꺼야 지킬 수 있다",
+        "가장 긴 밤",
+    ];
+
+    private static readonly (string PromiseId, string DisplayName, string LoadId)?[]
+        CanonicalPromises =
+    [
+        null,
+        null,
+        null,
+        ("NORTH_BANK_MOVE_IN_PROMISE", "북안 입주 일정", "NORTH_RESIDENTIAL"),
+        ("FACTORY_NIGHT_SHIFT_PROMISE", "산업 야간 증산", "RIVER_FACTORY"),
+        ("EAST_CONTINUITY_PROMISE", "동부 생활권 공급 유지", "EAST_RESIDENTIAL"),
+        null,
+        null,
     ];
 
     private static readonly JsonSerializerOptions Options = new()
@@ -90,7 +111,7 @@ public static class CommercialCampaignLoader
         CommercialWorldDefinition seedWorld = ValidateSeed(seed, world, "initialSeed");
 
         Require(campaign.Chapters.Count == CanonicalChapterIds.Count,
-            "Stage E campaign must contain exactly the canonical first four chapters.");
+            "Final campaign v2 must contain exactly the canonical eight chapters.");
         long authoredMinute = seed.StartMinute;
         long authoredCash = seed.InitialCashUnit;
         for (int index = 0; index < campaign.Chapters.Count; index++)
@@ -101,8 +122,15 @@ public static class CommercialCampaignLoader
                 $"chapters[{index}].chapterId must equal '{CanonicalChapterIds[index]}'.");
             Require(chapter.DisplayName == CanonicalChapterNames[index],
                 $"chapters[{index}].displayName must equal '{CanonicalChapterNames[index]}'.");
-            ValidateChapter(chapter, seedWorld, expectsPromise: index == 3, $"chapters[{index}]");
+            ValidateChapter(
+                chapter,
+                seedWorld,
+                expectsPromise: CanonicalPromises[index].HasValue,
+                allowsEmergencyPolicy: index >= 4,
+                $"chapters[{index}]");
+            ValidateCanonicalPromise(chapter, index, $"chapters[{index}]");
             ValidateCanonicalConnectionRequirements(chapter, index, $"chapters[{index}]");
+            ValidateCanonicalChapterShape(chapter, index, $"chapters[{index}]");
             if (index == 0)
             {
                 Require(chapter.TimeAdvanceBeforeChapterMinutes == 0 &&
@@ -117,6 +145,11 @@ public static class CommercialCampaignLoader
         }
         _ = authoredMinute;
         _ = authoredCash;
+        ValidateEpilogue(
+            campaign.Epilogue ?? throw new CommercialCampaignValidationException(
+                "epilogue is required."),
+            campaign.Chapters,
+            "epilogue");
     }
 
     public static CommercialWorldDefinition BuildInitialWorld(
@@ -192,6 +225,7 @@ public static class CommercialCampaignLoader
         CommercialCampaignChapterDefinition chapter,
         CommercialWorldDefinition world,
         bool expectsPromise,
+        bool allowsEmergencyPolicy,
         string path)
     {
         RequireId(chapter.ChapterId, $"{path}.chapterId");
@@ -239,7 +273,7 @@ public static class CommercialCampaignLoader
             RequireId(phase.PhaseId, $"{path}.operatingPhases[{index}].phaseId");
             Require(phaseIds.TryAdd(phase.PhaseId, index),
                 $"{path} duplicates phase ID '{phase.PhaseId}'.");
-            ValidatePhase(phase, chapter.CityPromise, world,
+            ValidatePhase(phase, chapter.CityPromise, world, allowsEmergencyPolicy,
                 $"{path}.operatingPhases[{index}]");
         }
         Require(chapter.OperatingPhases.All(phase => phase.Loads.Any(
@@ -381,6 +415,21 @@ public static class CommercialCampaignLoader
                     chapter.ConnectionRequirements[0].MinimumConnections == 2,
                 $"{path}.connectionRequirements must require HOSPITAL_TERMINAL >= 2.");
         }
+        else if (chapterIndex == 5)
+        {
+            Require(chapter.ConnectionRequirements.Count == 1 &&
+                    chapter.ConnectionRequirements[0].NodeId ==
+                        "EAST_RESIDENTIAL_TERMINAL" &&
+                    chapter.ConnectionRequirements[0].MinimumConnections == 2,
+                $"{path}.connectionRequirements must require EAST_RESIDENTIAL_TERMINAL >= 2.");
+        }
+        else if (chapterIndex == 6)
+        {
+            Require(chapter.ConnectionRequirements.Count == 1 &&
+                    chapter.ConnectionRequirements[0].NodeId == "WATER_TERMINAL" &&
+                    chapter.ConnectionRequirements[0].MinimumConnections == 2,
+                $"{path}.connectionRequirements must require WATER_TERMINAL >= 2.");
+        }
         else
         {
             Require(chapter.ConnectionRequirements.Count == 0,
@@ -388,14 +437,154 @@ public static class CommercialCampaignLoader
         }
     }
 
+    private static void ValidateCanonicalPromise(
+        CommercialCampaignChapterDefinition chapter,
+        int chapterIndex,
+        string path)
+    {
+        (string PromiseId, string DisplayName, string LoadId)? expected =
+            CanonicalPromises[chapterIndex];
+        if (!expected.HasValue)
+        {
+            Require(chapter.CityPromise is null,
+                $"{path}.cityPromise must be null.");
+            return;
+        }
+
+        CommercialCityPromiseDefinition promise = chapter.CityPromise!;
+        Require(
+            promise.PromiseId == expected.Value.PromiseId &&
+            promise.DisplayName == expected.Value.DisplayName &&
+            promise.LoadId == expected.Value.LoadId,
+            $"{path}.cityPromise must match the canonical chapter promise.");
+    }
+
+    private static void ValidateCanonicalChapterShape(
+        CommercialCampaignChapterDefinition chapter,
+        int chapterIndex,
+        string path)
+    {
+        if (chapterIndex == 4)
+        {
+            Require(chapter.OperatingPhases.Count == 3,
+                $"{path} must contain hot base, night-shift promise, and late-night recovery.");
+            Require(
+                chapter.OperatingPhases[0].PhaseId == "HOT_BASE" &&
+                chapter.OperatingPhases[0].ThermalPolicy ==
+                    CommercialPhaseThermalPolicy.ContinuousOnly &&
+                chapter.OperatingPhases[0].Loads.All(load =>
+                    load.Obligation != CommercialObligationKind.CityPromise) &&
+                chapter.OperatingPhases[1].PhaseId == "NIGHT_SHIFT" &&
+                chapter.OperatingPhases[1].ThermalPolicy ==
+                    CommercialPhaseThermalPolicy.ContinuousOnly &&
+                chapter.OperatingPhases[1].Loads.Any(load =>
+                    load.Obligation == CommercialObligationKind.CityPromise) &&
+                chapter.OperatingPhases[2].PhaseId == "LATE_NIGHT" &&
+                chapter.OperatingPhases[2].ThermalPolicy ==
+                    CommercialPhaseThermalPolicy.ContinuousOnly &&
+                chapter.OperatingPhases[2].Loads.All(load =>
+                    load.Obligation != CommercialObligationKind.CityPromise),
+                $"{path} must keep safety duties continuous while the night-shift promise alone may use emergency headroom before recovery.");
+        }
+
+        if (chapterIndex == 5)
+        {
+            Require(chapter.DecisionWindows.Count == 1 &&
+                    chapter.DecisionWindows[0].BuildMinutesAvailable.HasValue &&
+                    chapter.OperatingPhases.Count == 1 &&
+                    chapter.OperatingPhases[0].PhaseId == "FLOOD_ARRIVAL" &&
+                    chapter.OperatingPhases[0].ActiveRiskAreaIds.Count > 0 &&
+                    chapter.OperatingPhases[0].Loads.Any(load =>
+                        load.Obligation == CommercialObligationKind.CityPromise),
+                $"{path} must exercise the east continuity promise under a bounded build deadline and active flood risk.");
+        }
+
+        if (chapterIndex == 6)
+        {
+            Require(chapter.OperatingPhases.Count == 2 &&
+                    chapter.OperatingPhases[0].PhaseId ==
+                        "WEST_SOURCE_PLANNED_OUTAGE" &&
+                    chapter.OperatingPhases[1].PhaseId ==
+                        "WEST_SOURCE_RETURN_SERVICE" &&
+                    chapter.OperatingPhases[0].ThermalPolicy ==
+                        CommercialPhaseThermalPolicy.SafetyEmergencyAllowed &&
+                    chapter.OperatingPhases[1].ThermalPolicy ==
+                        CommercialPhaseThermalPolicy.ContinuousOnly &&
+                    chapter.OperatingPhases[0].UnavailableNodeIds.Contains(
+                        "WEST_SOURCE_NODE",
+                        StringComparer.Ordinal) &&
+                    !chapter.OperatingPhases[1].UnavailableNodeIds.Contains(
+                        "WEST_SOURCE_NODE",
+                        StringComparer.Ordinal),
+                $"{path} must contain the planned source outage and return-service phases.");
+        }
+
+        if (chapterIndex == 7)
+        {
+            Require(chapter.OperatingPhases.Count == 3 &&
+                    chapter.DecisionWindows.Count == 1 &&
+                    chapter.OperatingPhases[0].PhaseId == "MAX_DEMAND" &&
+                    chapter.OperatingPhases[0].ThermalPolicy ==
+                        CommercialPhaseThermalPolicy.ContinuousOnly &&
+                    chapter.OperatingPhases[1].PhaseId == "HEATWAVE_PEAK" &&
+                    chapter.OperatingPhases[1].ThermalPolicy ==
+                        CommercialPhaseThermalPolicy.SafetyEmergencyAllowed &&
+                    chapter.OperatingPhases[1].ThermalLimitOverrides.Count > 0 &&
+                    chapter.OperatingPhases[2].PhaseId == "PROTECTIVE_STOP_FLOOD" &&
+                    chapter.OperatingPhases[2].ThermalPolicy ==
+                        CommercialPhaseThermalPolicy.SafetyEmergencyAllowed &&
+                    chapter.OperatingPhases[2].ThermalLimitOverrides.Count > 0 &&
+                    chapter.OperatingPhases[2].ActiveRiskAreaIds.Count > 0,
+                $"{path} must contain three locked operating phases behind one decision window.");
+        }
+    }
+
+    private static void ValidateEpilogue(
+        CommercialCampaignEpilogueDefinition epilogue,
+        IReadOnlyList<CommercialCampaignChapterDefinition> chapters,
+        string path)
+    {
+        RequireText(epilogue.DisplayName, $"{path}.displayName");
+        ValidateStory(epilogue.CityReport, $"{path}.cityReport");
+        ValidateStory(epilogue.MedicalWitness, $"{path}.medicalWitness");
+        ValidateStory(epilogue.Closing, $"{path}.closing");
+
+        int[] promiseChapterIndices = [3, 4, 5];
+        Require(epilogue.PromiseLines.Count == promiseChapterIndices.Length,
+            $"{path}.promiseLines must contain exactly the three campaign promises.");
+        for (int index = 0; index < promiseChapterIndices.Length; index++)
+        {
+            CommercialCampaignChapterDefinition chapter = chapters[promiseChapterIndices[index]];
+            CommercialCampaignEpiloguePromiseLineDefinition line =
+                epilogue.PromiseLines[index] ??
+                throw new CommercialCampaignValidationException(
+                    $"{path}.promiseLines[{index}] is null.");
+            Require(
+                line.ChapterId == chapter.ChapterId &&
+                line.PromiseId == chapter.CityPromise!.PromiseId,
+                $"{path}.promiseLines[{index}] must match chapter '{chapter.ChapterId}'.");
+            RequireText(line.Kept, $"{path}.promiseLines[{index}].kept");
+            RequireText(line.Deferred, $"{path}.promiseLines[{index}].deferred");
+            Require(!line.Kept.Contains('{', StringComparison.Ordinal) &&
+                    !line.Kept.Contains('}', StringComparison.Ordinal) &&
+                    !line.Deferred.Contains('{', StringComparison.Ordinal) &&
+                    !line.Deferred.Contains('}', StringComparison.Ordinal),
+                $"{path}.promiseLines[{index}] must be authored text, not templates.");
+        }
+    }
+
     private static void ValidatePhase(
         CommercialOperatingPhaseDefinition phase,
         CommercialCityPromiseDefinition? promise,
         CommercialWorldDefinition world,
+        bool allowsEmergencyPolicy,
         string path)
     {
         RequireText(phase.DisplayName, $"{path}.displayName");
-        Require(phase.ThermalPolicy == CommercialPhaseThermalPolicy.ContinuousOnly,
+        Require(Enum.IsDefined(phase.ThermalPolicy),
+            $"{path}.thermalPolicy is unknown.");
+        Require(allowsEmergencyPolicy ||
+                phase.ThermalPolicy == CommercialPhaseThermalPolicy.ContinuousOnly,
             $"{path}.thermalPolicy must remain continuousOnly in the first four chapters.");
         if (phase.Story is not null)
         {
@@ -561,7 +750,20 @@ public static class CommercialCampaignLoader
         raw.CampaignId,
         raw.DisplayName,
         Seed(raw.InitialSeed),
-        raw.Chapters.Select(Chapter).ToArray());
+        raw.Chapters.Select(Chapter).ToArray(),
+        Epilogue(raw.Epilogue));
+
+    private static CommercialCampaignEpilogueDefinition Epilogue(RawEpilogue raw) => new(
+        raw.DisplayName,
+        Story(raw.CityReport),
+        Story(raw.MedicalWitness),
+        Story(raw.Closing),
+        raw.PromiseLines.Select(item =>
+            new CommercialCampaignEpiloguePromiseLineDefinition(
+                item.ChapterId,
+                item.PromiseId,
+                item.Kept,
+                item.Deferred)).ToArray());
 
     private static CommercialCoreSeedDefinition Seed(RawSeed raw) => new(
         raw.SeedId,
@@ -693,6 +895,24 @@ public static class CommercialCampaignLoader
         [JsonRequired] public string DisplayName { get; init; } = null!;
         [JsonRequired] public RawSeed InitialSeed { get; init; } = null!;
         [JsonRequired] public RawChapter[] Chapters { get; init; } = null!;
+        [JsonRequired] public RawEpilogue Epilogue { get; init; } = null!;
+    }
+
+    private sealed class RawEpilogue
+    {
+        [JsonRequired] public string DisplayName { get; init; } = null!;
+        [JsonRequired] public RawStory CityReport { get; init; } = null!;
+        [JsonRequired] public RawStory MedicalWitness { get; init; } = null!;
+        [JsonRequired] public RawStory Closing { get; init; } = null!;
+        [JsonRequired] public RawEpiloguePromiseLine[] PromiseLines { get; init; } = null!;
+    }
+
+    private sealed class RawEpiloguePromiseLine
+    {
+        [JsonRequired] public string ChapterId { get; init; } = null!;
+        [JsonRequired] public string PromiseId { get; init; } = null!;
+        [JsonRequired] public string Kept { get; init; } = null!;
+        [JsonRequired] public string Deferred { get; init; } = null!;
     }
 
     private sealed class RawSeed

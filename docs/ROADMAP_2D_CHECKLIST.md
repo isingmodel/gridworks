@@ -1,14 +1,15 @@
 # Gridworks — 출시판 진행 체크리스트
 
 > 이 문서는 단계 상태와 최소 종료 증거만 기록한다. 상세 규칙은
-> [로드맵](ROADMAP_2D.md)과 현재 [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다.
+> [로드맵](ROADMAP_2D.md)과 [상용 구현 계약·완료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이
+> 소유한다.
 
-현재 활성 단계는 루트 [README](../README.md)만 선언한다.
+현재 활성 단계는 없다. 루트 [README](../README.md)가 단계 F 종료와 단계 G 미개방 경계를 선언한다.
 
 ## 사용 규칙
 
-- 승인된 구현 단계는 `승인·대기 → 활성 → 검토 중 → 완료`, 별도 권한이 필요한 외부 단계는
-  `미승인`을 사용한다.
+- 승인된 구현 단계는 `계획·미개방 → 활성 → 검토 중 → 완료`, 별도 권한이 필요한 외부 단계는
+  `미승인`을 사용한다. 계획은 현재 구현 권한을 뜻하지 않는다.
 - 한 번에 한 단계만 활성으로 둔다.
 - 단계가 완료될 때 증거 링크를 채운다. 수치와 긴 로그를 이 표에 복사하지 않는다.
 - 기계 검증, native 확인, 소유자 플레이와 독립 검토는 서로 대신하지 않는다.
@@ -20,24 +21,26 @@
 |---|---|---|---|---|---|---|
 | 과거 내부 후보 | 보존 | [개발 이력](DEVELOPMENT_HISTORY.md)과 완료 scope | 동결 회귀 | 기존 package 실행 | 소유자 전체 플레이에서 출시 차단 문제 확인 | 출시판으로는 superseded |
 | 동결 release v1 기술 기준선 | **완료** | [과거 계약](scopes/RELEASE_REBUILD.md)·[world](../data/release-world-v1.json)·[campaign](../data/release-campaign-v1.json) | 15 suites / 481 assertions | 건설·두 프로세스 8임무·내부 package 통과 | 공식 cold LLM은 마지막 장 `BLOCKED`; v2 증거로 합산하지 않음 | 후속 기술 수정 P0/P1 0 |
-| B. 자유 좌표 기반 | **완료** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)·Stage-B spatial fixture | CommercialChecks 7 suites / 238 assertions | 1280×720·UI 125% 자유 배치 흐름 통과 | 해당 없음 | exact-tree P0/P1 0 |
-| C. 이산 열 국면 기반 | **완료** | final world v2와 같은 활성 계약 | CommercialChecks 13 suites / 350 assertions | 열 projection·설비 선택·비상→정지→복귀 통과 | 해당 없음 | P1 2건 수정 뒤 exact-tree P0/P1 0 |
-| D. 상용 핵심 흐름 | **완료** | core slice SHA `8d09a0…0842`와 같은 활성 계약 | CommercialChecks 19 suites / 1,312 assertions | 두 fresh process로 첫 불빛 저장→본편 복원→5장 완료 | `CommercialSliceHumanStatus = NOT_COLLECTED` | 입력·저장 P0/P1 수정 뒤 exact-tree P0/P1 0 |
-| E. 첫 네 임무·공통 UX | **완료** | final world/campaign v2와 [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md) | CommercialChecks 26 suites / 2,402 assertions | Game 3구성 0/0, 두 fresh process로 4장 완료 | `NOT_COLLECTED` | exact-tree P0/P1 0 |
-| F. 후반 네 임무·에필로그 | **활성** | 같은 final campaign v2의 후반 5~8장 gate | 미실행 | 미실행 | 구현 중 수집하지 않음 | E 종료 뒤 자동 활성화 |
-| G. 시청각·접근성·package | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 전체 사람 검토 `NOT_COLLECTED` | F 종료 뒤 자동 활성화 |
+| B. 자유 좌표 기반 | **완료** | [상용 구현 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)·Stage-B spatial fixture | CommercialChecks 7 suites / 238 assertions | 1280×720·UI 125% 자유 배치 흐름 통과 | 해당 없음 | exact-tree P0/P1 0 |
+| C. 이산 열 국면 기반 | **완료** | final world v2와 같은 상용 구현 기록 | CommercialChecks 13 suites / 350 assertions | 열 projection·설비 선택·비상→정지→복귀 통과 | 해당 없음 | P1 2건 수정 뒤 exact-tree P0/P1 0 |
+| D. 상용 핵심 흐름 | **완료** | core slice SHA `8d09a0…0842`와 같은 상용 구현 기록 | CommercialChecks 19 suites / 1,312 assertions | 두 fresh process로 첫 불빛 저장→본편 복원→5장 완료 | `CommercialSliceHumanStatus = NOT_COLLECTED` | 입력·저장 P0/P1 수정 뒤 exact-tree P0/P1 0 |
+| E. 첫 네 임무·공통 UX | **완료** | final world/campaign v2와 [상용 구현 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md) | CommercialChecks 26 suites / 2,402 assertions | Game 3구성 0/0, 두 fresh process로 4장 완료 | `NOT_COLLECTED` | exact-tree P0/P1 0 |
+| F. 후반 네 임무·에필로그 | **완료** | world SHA `c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14` / campaign SHA `078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a` | CommercialChecks 29 suites / 4,486 assertions | Game 3구성 0/0, 1280×720·UI 125% 두 process로 4장 fresh 재개→8장·에필로그, 같은 두 번째 process의 완료 재개·5장 replay와 완료 bytes load/restore 통과 | 전체 플레이·전문 교정 `NOT_COLLECTED` | M6 witness 수정 뒤 exact-tree P0/P1 0, 사용자 종료 지점 |
+| G. 시청각·접근성·package | **계획·미개방** | 최종 자산·settings v3·네 layout/keyboard evidence·package gate | 미실행(미개방) | 미실행(미개방) | 전체 사람 검토 `NOT_COLLECTED` | 이번 실행 미승인, 새 사용자 지시 필요 |
 | H. 외부 검증·공개 후보 | **미승인** | 별도 사용자·자격증명 gate | 자동증거로 대체하지 않음 | 공개 bytes 확정 전 미실행 | 소유자·외부·전문 교정 필요 | Developer ID·공증·배포 결정 필요 |
 
 ## 단계 활성화 조건
 
 - 이전 단계가 완료됐거나 사용자가 명시적으로 삭제했다.
 - README가 현재 단계 하나만 가리킨다.
-- 해당 단계가 사용할 데이터·코드 경계와 플레이어 결과가 활성 계약에 적혀 있다.
+- 해당 단계가 사용할 데이터·코드 경계와 플레이어 결과가 구현 계약에 적혀 있다.
 - 다음 단계의 schema, interface와 빈 UI를 미리 만들지 않는다.
 
-단계 B부터 G까지의 전체 구현 목표는 2026-08-18 사용자 요청으로 승인됐다. 따라서 각 단계는 이전
-단계 종료와 문서 전환 뒤 같은 목표 안에서 이어갈 수 있지만, 동시에 둘을 구현하지 않는다. 단계 H의
-사람 관찰·전문 교정·공개 배포 자격은 별도 외부 gate다.
+단계 B부터 F까지는 2026-08-18 시작된 구현 목표 안에서 완료했다. 사용자 종료 조건은 F 전체 감사
+뒤 목표 추구를 멈추도록 했으므로 G는 자동 활성화하지 않는다. README가 새 사용자 지시에 따라 G를
+명시적으로 열기 전에는 최종 아트·날씨·초상·audio cue, settings v3·움직임 줄이기, 네 화면과
+keyboard evidence, packaging·signing·legal·새 설치 전체 실행을 시작하지 않는다. 단계 H의 사람
+관찰·전문 교정·공개 배포 자격도 별도 외부 gate다.
 
 ## 공통 종료조건
 

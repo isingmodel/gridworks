@@ -47,7 +47,8 @@ internal sealed record CommercialStoryPresentation(
     CommercialStoryCard Card,
     bool IsResult,
     string ContinueLabel,
-    bool IsSystemWarning = false);
+    bool IsSystemWarning = false,
+    string? KindLabel = null);
 
 internal sealed partial class CommercialShell : Control
 {
@@ -92,6 +93,7 @@ internal sealed partial class CommercialShell : Control
 
     public CommercialShellSurface Surface => _surface;
     public string HelpText => _helpBody.Text;
+    public string StoryKindText => _storyKind.Text;
     public string StoryBodyText => _storyBody.Text;
     public string TitleStatusText => _titleStatus.Text;
     public BaseButton StoryContinueButton => _storyContinue;
@@ -207,11 +209,11 @@ internal sealed partial class CommercialShell : Control
     public void ShowStory(CommercialStoryPresentation model)
     {
         ArgumentNullException.ThrowIfNull(model);
-        _storyKind.Text = model.IsSystemWarning
+        _storyKind.Text = model.KindLabel ?? (model.IsSystemWarning
             ? "저장 경고"
             : model.IsResult
                 ? "결과"
-                : "이야기";
+                : "이야기");
         _storySpeaker.Text = model.Card.Speaker;
         _storyTitle.Text = model.Card.Title;
         _storyBody.Text = model.Card.Body;

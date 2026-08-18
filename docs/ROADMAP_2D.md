@@ -1,12 +1,15 @@
 # Gridworks — 상용 2D 게임 완성 로드맵
 
-> 문서 상태: 현재 계획
+> 문서 상태: 단계 F 완료, 단계 G 계획·미개방
 
 이 로드맵은 기술 기준선을 보이는 격자 없는 상용 2D 전력망 게임으로 교체하는 제작 순서를 정한다.
 현재 단계와 구현 권한은 루트 [README](../README.md), 정확한 규칙과 종료조건은
 [상용 2D 게임 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 제품 경험은
 [상용 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md), 증거 상태는
 [체크리스트](ROADMAP_2D_CHECKLIST.md)가 소유한다.
+
+현재 활성 구현 단계는 없다. 단계 F 전체 감사를 닫은 뒤 사용자 종료 조건에 따라 목표 추구를
+멈췄다. 단계 G는 다음 계획을 보존할 뿐 자동으로 열리지 않으며 이번 실행에 구현 권한이 없다.
 
 ## 1. 출발점
 
@@ -116,7 +119,7 @@ final campaign save v3, 단계 D 저장의 결정론적 백업, 최근 공사·�
 CommercialChecks **26 suites / 2,402 assertions**, Game Debug·Release·ExportRelease 0/0과 두 fresh
 process 4장 완료를 통과했다. exact-tree 검토는 P0/P1 0이며 사람 검토는 `NOT_COLLECTED`다.
 
-## 7. 단계 F — 후반 네 임무와 에필로그 — 활성
+## 7. 단계 F — 후반 네 임무와 에필로그 — 완료
 
 5. `누구의 여유인가`: 더운 저녁, 산업 야간 증산과 다음 국면 보호정지
 6. `물이 닿기 전에`: 기한, 범람 밖 회랑과 동부 생활권 약속
@@ -125,9 +128,24 @@ process 4장 완료를 통과했다. exact-tree 검토는 P0/P1 0이며 사람 �
 
 5장 뒤 새 rule enum이나 조작을 추가하지 않는다. 각 본편 장은 checker-owned 유효 설계 원형 두 개,
 대표 실패와 현재 장 또는 최근 공사 복구를 가진다. 실제 장별 약속 결과와 마지막 망 상태를 에필로그에
-최대 세 줄의 사실로 회수한다. 전체 저장·fresh resume·완료 저장 재개와 장 시작 재도전을 닫는다.
+최대 세 줄의 사실로 회수한다. 4장 저장의 fresh-process resume, 두 번째 process 제목 화면의 완료
+저장 재개, 완료 bytes의 별도 load/restore와 장 시작 재도전을 닫는다.
 
-## 8. 단계 G — 시청각·접근성·패키징 마감
+final world SHA-256은
+`c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14`, final campaign SHA-256은
+`078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a`다. CommercialChecks
+**29 suites / 4,486 assertions**, Game Debug·Release·ExportRelease **0 warnings / 0 errors**와
+1280×720·UI 125%의 두 fresh process를 통과했다. marker는
+`COMMERCIAL_CAMPAIGN_SMOKE_LEG1_PASS chapter=WHOSE_MARGIN commands=82`(실행별 저장 경로 생략),
+`COMMERCIAL_CAMPAIGN_SMOKE_LEG2_PASS completedResume=True replay=WHOSE_MARGIN completedCommands=136 replayCommands=82`다.
+M6 witness 수정 뒤 독립 exact-tree 감사는 P0/P1 0이었다. 사람 전체 플레이와 한국어 전문 교정은
+`NOT_COLLECTED`이므로 상용 출시 준비 완료를 주장하지 않는다.
+
+## 8. 단계 G — 시청각·접근성·패키징 마감 — 계획·미개방
+
+새 명시적 사용자 지시 전에는 이 단계를 구현하거나 검증하지 않는다. 남은 범위는 최종 도시 아트·
+날씨·인물 초상·audio cue 자산, settings v3와 움직임 줄이기, 네 화면 조합과 키보드 동등성 evidence,
+패키징·서명·법적 정리와 새 설치 전체 실행이다.
 
 ### 표현
 
@@ -158,8 +176,9 @@ Universal binary와 서명 경계를 기록한다. Developer ID·공증·실제 
 - 실제 지원 환경 확인, Developer ID 서명·공증과 공개 배포 결정
 - 새 설치에서 사람이 완주한 bytes와 동일한 공개 후보
 
-이 단계의 사람·LLM 결과는 자동 증거에 합산하지 않는다. 현재 구현 작업은 G까지 완료하고 H 상태를
-정직하게 `NOT_COLLECTED` 또는 외부 자격증명 차단으로 남긴다.
+이 단계의 사람·LLM 결과는 자동 증거에 합산하지 않는다. 이번 구현 작업은 F 전체 감사에서 끝났고
+G와 H는 열지 않았다. 사람 전체 플레이·전문 교정은 `NOT_COLLECTED`, 외부 자격증명과 공개 배포는
+차단 상태로 남긴다.
 
 ## 10. 전역 제외
 

@@ -397,10 +397,27 @@ size_flags_vertical = 3
 theme_override_font_sizes/font_size = 28
 autowrap_mode = 2
 
-[node name="StoryBodyLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage"]
+[node name="StoryBodyScroll" type="ScrollContainer" parent="Center/Panel/Margin/Pages/StoryPage"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
+focus_neighbor_left = NodePath("../StoryContinueButton")
+focus_neighbor_top = NodePath("../StoryContinueButton")
+focus_neighbor_right = NodePath("../StoryContinueButton")
+focus_neighbor_bottom = NodePath("../StoryContinueButton")
+focus_next = NodePath("../StoryContinueButton")
+focus_previous = NodePath("../StoryContinueButton")
+focus_mode = 2
+draw_focus_border = true
+follow_focus = true
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 1
+
+[node name="StoryBodyLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage/StoryBodyScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
 theme_override_font_sizes/font_size = 17
 autowrap_mode = 2
 
@@ -408,4 +425,10 @@ autowrap_mode = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+focus_neighbor_left = NodePath("../StoryBodyScroll")
+focus_neighbor_top = NodePath("../StoryBodyScroll")
+focus_neighbor_right = NodePath("../StoryBodyScroll")
+focus_neighbor_bottom = NodePath("../StoryBodyScroll")
+focus_next = NodePath("../StoryBodyScroll")
+focus_previous = NodePath("../StoryBodyScroll")
 text = "계속"

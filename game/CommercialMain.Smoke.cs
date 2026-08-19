@@ -963,6 +963,136 @@ internal sealed partial class CommercialMain
         return frames;
     }
 
+    private async Task<IReadOnlyList<string>>
+        DismissCompletedStorySequenceWithLayoutAssertions()
+    {
+        Require(
+            GetWindow().Size == new Vector2I(1280, 720),
+            "완료 이야기 레이아웃 검사는 1280×720 창에서 실행해야 합니다.");
+
+        var frames = new List<string>();
+        Control shellPanel = _shell.GetNode<Control>("Center/Panel");
+        Control storyPage = _shell.GetNode<Control>("%StoryPage");
+        Control storyKind = _shell.GetNode<Control>("%StoryKindLabel");
+        Control storyHeader = storyPage.GetNode<Control>("StoryHeader");
+        Label storyBody = _shell.GetNode<Label>("%StoryBodyLabel");
+        ScrollContainer storyScroll = _shell.StoryBodyScroll;
+        BaseButton storyContinue = _shell.StoryContinueButton;
+        bool sawScrollableResult = false;
+        bool sawScrollableEpilogue = false;
+        float longestBodyHeight = 0f;
+        double longestBodyScrollRange = 0d;
+        bool longestBodyBottomReachable = false;
+        int guard = 0;
+
+        while (_shell.Surface is CommercialShellSurface.Story or CommercialShellSurface.Result)
+        {
+            if (++guard > 24)
+            {
+                throw new InvalidOperationException("완료 이야기 카드 흐름이 종료되지 않습니다.");
+            }
+
+            await NextFrame();
+            storyScroll.ScrollVertical = 0;
+            await NextFrame();
+
+            Rect2 scrollRect = storyScroll.GetGlobalRect();
+            Rect2 bodyTopRect = storyBody.GetGlobalRect();
+            Rect2 continueRectBeforeScroll = storyContinue.GetGlobalRect();
+            bool bodyTopVisible =
+                bodyTopRect.Position.Y >= scrollRect.Position.Y - 1f &&
+                bodyTopRect.Position.Y < scrollRect.End.Y;
+            Require(
+                ControlInside(_shell, shellPanel) &&
+                ControlInside(shellPanel, storyPage) &&
+                ControlInside(storyPage, storyKind) &&
+                ControlInside(storyPage, storyHeader) &&
+                ControlInside(storyPage, storyScroll) &&
+                ControlInside(storyPage, storyContinue) &&
+                storyScroll.Size.Y > 0f &&
+                !storyScroll.IsAncestorOf(storyKind) &&
+                !storyScroll.IsAncestorOf(storyHeader) &&
+                !storyScroll.IsAncestorOf(storyContinue) &&
+                storyScroll.ScrollVertical == 0 &&
+                storyBody.GetThemeFontSize("font_size") == 21 &&
+                bodyTopVisible,
+                "1280×720·UI 125% 완료 카드의 고정 머리말·본문 viewport·진행 버튼이 shell 안에 유지되지 않았습니다.");
+            Require(
+                storyContinue.GetNodeOrNull<Control>(storyContinue.FocusNext) == storyScroll &&
+                storyContinue.GetNodeOrNull<Control>(storyContinue.FocusPrevious) == storyScroll &&
+                storyScroll.GetNodeOrNull<Control>(storyScroll.FocusNext) == storyContinue &&
+                storyScroll.GetNodeOrNull<Control>(storyScroll.FocusPrevious) == storyContinue &&
+                GetViewport().GuiGetFocusOwner() == storyContinue,
+                "완료 카드의 본문 스크롤과 고정 진행 버튼 사이에서 keyboard focus를 순환하지 못했습니다.");
+            await PressKey(Key.Tab);
+            Require(
+                GetViewport().GuiGetFocusOwner() == storyScroll,
+                "완료 카드에서 Tab이 배경 UI 대신 본문 스크롤로 이동하지 않았습니다.");
+            await PressKey(Key.Tab);
+            Require(
+                GetViewport().GuiGetFocusOwner() == storyContinue,
+                "완료 카드에서 Tab이 본문과 고정 진행 버튼 안에서 순환하지 않았습니다.");
+
+            VScrollBar verticalScrollBar = storyScroll.GetVScrollBar();
+            double maximumScroll = Math.Max(
+                0d,
+                verticalScrollBar.MaxValue - verticalScrollBar.Page);
+            bool scrollable = maximumScroll > 0.5d;
+            bool isResult =
+                _shell.Surface == CommercialShellSurface.Result &&
+                string.Equals(_shell.StoryKindText, "결과", StringComparison.Ordinal);
+            bool isEpilogue = string.Equals(
+                _shell.StoryKindText,
+                "에필로그",
+                StringComparison.Ordinal);
+            sawScrollableResult |= isResult && scrollable;
+            sawScrollableEpilogue |= isEpilogue && scrollable;
+
+            storyScroll.GrabFocus();
+            await NextFrame();
+            await PressKey(Key.End);
+            await NextFrame();
+            Rect2 bodyBottomRect = storyBody.GetGlobalRect();
+            Rect2 continueRectAfterScroll = storyContinue.GetGlobalRect();
+            bool bodyBottomReachable =
+                bodyBottomRect.End.Y <= storyScroll.GetGlobalRect().End.Y + 2f &&
+                (!scrollable || storyScroll.ScrollVertical > 0) &&
+                Math.Abs(verticalScrollBar.Value - maximumScroll) <= 2d &&
+                continueRectBeforeScroll.Position.DistanceSquaredTo(
+                    continueRectAfterScroll.Position) <= 0.01f &&
+                continueRectBeforeScroll.Size.DistanceSquaredTo(
+                    continueRectAfterScroll.Size) <= 0.01f;
+            Require(
+                bodyBottomReachable &&
+                ControlInside(storyPage, storyContinue),
+                "완료 카드 본문의 마지막 줄까지 스크롤하거나 고정 진행 버튼을 유지하지 못했습니다.");
+
+            if (storyBody.Size.Y > longestBodyHeight)
+            {
+                longestBodyHeight = storyBody.Size.Y;
+                longestBodyScrollRange = maximumScroll;
+                longestBodyBottomReachable = bodyBottomReachable;
+            }
+
+            frames.Add($"{_shell.StoryKindText}\n{_shell.StoryBodyText}");
+            storyContinue.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+        }
+
+        Require(
+            sawScrollableResult &&
+            sawScrollableEpilogue &&
+            longestBodyHeight > 0f &&
+            longestBodyScrollRange > 0.5d &&
+            longestBodyBottomReachable,
+            "실제 최종 결과와 에필로그의 긴 본문을 scrollable completion 카드로 검증하지 못했습니다.");
+        GD.Print(
+            "COMMERCIAL_COMPLETION_STORY_LAYOUT_PASS size=1280x720 ui=125 " +
+            $"longest_body={longestBodyHeight:0} max_scroll={longestBodyScrollRange:0} " +
+            "header=fixed continue=fixed body=top-to-bottom focus=contained");
+        return frames;
+    }
+
     private async void RunCommercialCampaignSmoke()
     {
         try
@@ -1664,7 +1794,8 @@ internal sealed partial class CommercialMain
         CommercialCampaignEpiloguePresentation epilogue = _coreSnapshot.Epilogue ??
             throw new InvalidOperationException("완료 smoke의 typed 에필로그가 없습니다.");
         int completedCommandCount = _coreSnapshot.CommandCount;
-        IReadOnlyList<string> completionFrames = await DismissStorySequence();
+        IReadOnlyList<string> completionFrames =
+            await DismissCompletedStorySequenceWithLayoutAssertions();
         Require(
             completionFrames.Any(frame => frame.StartsWith(
                 "에필로그\n",

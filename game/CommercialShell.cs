@@ -79,6 +79,7 @@ internal sealed partial class CommercialShell : Control
     private TextureRect _storyPortrait = null!;
     private Label _storySpeaker = null!;
     private Label _storyTitle = null!;
+    private ScrollContainer _storyBodyScroll = null!;
     private Label _storyBody = null!;
     private Button _storyContinue = null!;
     private OptionButton _fullscreen = null!;
@@ -107,6 +108,7 @@ internal sealed partial class CommercialShell : Control
     public string StoryKindText => _storyKind.Text;
     public string StoryBodyText => _storyBody.Text;
     public string TitleStatusText => _titleStatus.Text;
+    public ScrollContainer StoryBodyScroll => _storyBodyScroll;
     public BaseButton StoryContinueButton => _storyContinue;
 
     public BaseButton GetActionButton(CommercialShellAction action) => action switch
@@ -144,6 +146,7 @@ internal sealed partial class CommercialShell : Control
         _storyPortrait = GetNode<TextureRect>("%StoryPortrait");
         _storySpeaker = GetNode<Label>("%StorySpeakerLabel");
         _storyTitle = GetNode<Label>("%StoryTitleLabel");
+        _storyBodyScroll = GetNode<ScrollContainer>("%StoryBodyScroll");
         _storyBody = GetNode<Label>("%StoryBodyLabel");
         _storyContinue = GetNode<Button>("%StoryContinueButton");
         _fullscreen = GetNode<OptionButton>("%FullscreenOption");
@@ -178,6 +181,7 @@ internal sealed partial class CommercialShell : Control
         GetNode<Button>("%CancelConfirmButton").Pressed += ReturnFromSubpage;
         _confirmAction.Pressed += Confirm;
         _storyContinue.Pressed += () => StoryAcknowledged?.Invoke();
+        _storyBodyScroll.GuiInput += OnStoryBodyScrollGuiInput;
         _fullscreen.ItemSelected += _ => EmitSettings();
         _uiScale.ItemSelected += _ => EmitSettings();
         _master.ValueChanged += _ => EmitSettings();
@@ -246,6 +250,8 @@ internal sealed partial class CommercialShell : Control
         _storySpeaker.Text = model.Card.Speaker;
         _storyTitle.Text = model.Card.Title;
         _storyBody.Text = model.Card.Body;
+        _storyBodyScroll.ScrollVertical = 0;
+        _storyBodyScroll.SetDeferred(ScrollContainer.PropertyName.ScrollVertical, 0);
         _storyContinue.Text = model.ContinueLabel;
         _story.AccessibilityDescription = model.Portrait is null
             ? $"{_storyKind.Text}. {model.Card.Speaker}. {model.Card.Title}."
@@ -424,6 +430,33 @@ internal sealed partial class CommercialShell : Control
             (int)_ambient.Value,
             (int)_sfx.Value,
             _reduceMotion.ButtonPressed));
+    }
+
+    private void OnStoryBodyScrollGuiInput(InputEvent inputEvent)
+    {
+        if (inputEvent is not InputEventKey { Pressed: true, Echo: false } key)
+        {
+            return;
+        }
+
+        int page = Math.Max(32, (int)MathF.Round(_storyBodyScroll.Size.Y * 0.8f));
+        int next = key.Keycode switch
+        {
+            Key.Up => _storyBodyScroll.ScrollVertical - 32,
+            Key.Down => _storyBodyScroll.ScrollVertical + 32,
+            Key.Pageup => _storyBodyScroll.ScrollVertical - page,
+            Key.Pagedown => _storyBodyScroll.ScrollVertical + page,
+            Key.Home => 0,
+            Key.End => int.MaxValue,
+            _ => _storyBodyScroll.ScrollVertical,
+        };
+        if (next == _storyBodyScroll.ScrollVertical &&
+            key.Keycode is not Key.Home and not Key.End)
+        {
+            return;
+        }
+        _storyBodyScroll.ScrollVertical = next;
+        _storyBodyScroll.AcceptEvent();
     }
 
     private void SetSurface(CommercialShellSurface surface, Control? focus = null)

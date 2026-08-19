@@ -48,7 +48,7 @@
 서로 다른 후보에서 수행한 이전 LLM 관찰을 합산하지 않는다. 어떤 관찰도 사람 검증, 성공률,
 밸런스나 출시 승인으로 해석하지 않는다.
 
-## 3. 상용 v2 재기획과 단계 B–F
+## 3. 상용 v2 재기획과 단계 B–G
 
 소유자 검토와 기술 기준선의 한계를 바탕으로
 [상용 2D 게임 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)를 채택했다. v1을 계속
@@ -59,11 +59,13 @@
 - 단계 D: 안전 의무·도시 약속·공사 기한·국면 preview·최근 공사 복구와 save v3
 - 단계 E: 같은 망을 이어 쓰는 첫 네 임무와 공통 UX
 - 단계 F: 후반 네 임무, 장별 실제 결과, 약속 회수, 에필로그와 완료 저장 재개·장 재도전
+- 단계 G: 관찰 기반 UX 보정, 최종 날씨·초상·사운드, settings v3·접근성과 macOS 내부 package
 
-단계 F는 CommercialChecks 29 suites / 4,486 assertions, Game 세 구성 0 warnings / 0 errors,
-두 fresh process 캠페인 smoke와 독립 exact-tree 기술 감사 P0/P1 0으로 닫았다. exact hash와 marker는
-[상용 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)에만 둔다. 이는 기계 규칙·저장·wiring의
-증거이며 사람의 이해·재미·문체나 상용 출시 준비 증거가 아니다.
+단계 F는 여덟 임무·에필로그를, 단계 G는 관찰 backlog와 최종 내부 후보 gate를 닫았다. G 후보는
+clean commit에서 package하고 저장소 밖 빈 user-data의 두 fresh process로 전체 캠페인·완료 저장
+재개·장 재설계까지 확인했다. exact 수치·hash와 marker는
+[상용 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)에만 둔다.
+이는 기계 규칙·저장·wiring과 내부 실행 증거이며 사람의 이해·재미·문체나 공개 출시 준비 증거가 아니다.
 
 ## 4. 단계 F 뒤 패널 수정과 공식 LLM 관찰
 
@@ -90,10 +92,10 @@
   접근성을 함께 다듬는다.
 - 이후: modal을 줄이고 용어 범례를 유지하며 복구 전에 잃는 공사·시간·자금을 미리 보여준다.
 
-이 목록은 한 LLM의 후보별 관찰에서 나온 미래 작업이며 사람 검증이나 확정 우선순위가 아니다.
-단계 G나 다른 구현 범위를 자동으로 열지 않는다. 공식 상태·해석 상한은
+이 목록은 한 LLM의 후보별 관찰에서 나온 작업 입력이며 사람 검증이나 확정 결함률이 아니다.
+사용자가 별도로 연 단계 G에서 재현·보정했지만 원 관찰의 의미를 바꾸지 않는다. 공식 상태·해석 상한은
 [상용 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md), task와 수용 기준은
-[로드맵의 관찰 기반 backlog](ROADMAP_2D.md#관찰-기반-선행-보정-backlog--단계-g-활성)가 소유한다.
+[로드맵의 관찰 기반 backlog](ROADMAP_2D.md#관찰-기반-선행-보정-backlog--완료)가 소유한다.
 
 ## 5. 유지할 교훈과 현재 증거 상한
 
@@ -115,5 +117,5 @@
 현재 상용 v2에 대해 `FullCampaignHumanStatus = NOT_COLLECTED`,
 `ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`,
 `ExternalHumanValidationStatus = NOT_COLLECTED`,
-`KoreanProfessionalProofStatus = NOT_COLLECTED`다. 단계 G는 계획·미개방이고 목표 추구는 단계 F
-감사 뒤 중단된 상태다.
+`KoreanProfessionalProofStatus = NOT_COLLECTED`다. 단계 G와 관찰 backlog는 완료했고 goal seeking을
+중단했다. 단계 H 사람 검증·전문 교정·Developer ID 서명·공증·공개 배포는 미개방 상태다.

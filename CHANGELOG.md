@@ -1,22 +1,26 @@
 # Gridworks 변경 기록
 
-## Unreleased — 상용 v2 단계 F source 후보
+## Unreleased — 상용 v2 단계 G 내부 후보
 
 현재 기본 `CommercialMain`은 별도 v2 world·campaign·Core에서 보이는 격자 없는 자유 배치,
 수면·건물·설비 점유영역, 선로 도체·변전소 주기기·전신주 접속부의 연속·비상 열 한계,
 보호정지·냉각, 안전 의무·도시 약속·최근 공사 복구와 여덟 임무·에필로그를 연결한다.
-단계 F의 정확한 해시·검사·native 증거는
-[상용 구현 계약](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다.
+단계 G의 정확한 해시·검사·native·package·새 설치 증거는
+[상용 구현 계약](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)이 소유한다.
 
-- 오른쪽 패널의 동적 버튼이 정보 영역을 누르던 문제를 커밋 `36038a9`에서 수정했다.
-- 정보 viewport는 최소 200px을 유지하고, 보조 조작은 focus-follow scroll에, 운영안 승인과
-  공사 발주는 고정 하단에 둔다.
-- 공식 cold LLM game run은 8장 폭염 국면 2/3에서 `USER_STOPPED`로 끝났고
-  에필로그에 도달하지 않았다. 사용자의 중단 뒤 follow-up으로 초기 cold completion protocol은
-  무효화됐다. 성공·실패·block이나 사람 검증으로 판정하지 않는다.
+- 이름 붙은 발전원→수요 병목 경로, 원자적 배치 feedback, 고정 승인 checklist, 국면 비교 표,
+  누적 공사 forecast와 실행 전 복구 결과를 추가했다.
+- 정보 viewport 200px, focus-follow 보조 조작, 고정 승인·발주 CTA를 유지하면서 조밀한 후보 선택과
+  hover 합법성, 접근성 이름·키보드 focus를 보강했다.
+- strict settings v3·v2 one-step import, UI 배율·세 음량·움직임 줄이기, 장별 날씨·도시 반응,
+  네 인물 초상, event cue·motif와 긴 결과·에필로그 카드의 scroll/keyboard 처리를 추가했다.
+- ExportRelease는 final v2 world·campaign·build identity만 포함하고 prototype·v1·PDB·DEBUG witness·
+  로컬 경로를 제외한다. Universal macOS 내부 ZIP과 audit·asset/legal manifest를 추가했다.
 
-이 후보는 저장소에서 실행하는 source 후보이며 설치 ZIP이 아니다. 단계 G 자산·설정·
-패키징과 사람 전체 플레이·한국어 전문 교정은 미개방·`NOT_COLLECTED`다.
+내부 후보는 `Gridworks-macOS-1.0.0-internal.zip`, source commit
+`78ff78889ed2c21aad43d1d285ea1a5e8d01442a`, 상태 `INTERNAL_ADHOC / NOT_AUTHORIZED`다. 저장소 밖
+새 설치 전체 캠페인 gate는 통과했지만, 사람 전체 플레이·한국어 전문 교정·Developer ID 서명·공증과
+공개 배포는 미수집·미승인이다.
 
 ## 0.1.0 — 동결된 macOS 내부 출시 후보
 

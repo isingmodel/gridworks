@@ -2,7 +2,7 @@
 
 ## 저장과 설정 파일
 
-현재 상용 v2 단계 G 게임은 다음 Godot 사용자 폴더의 v3 파일을 사용한다.
+현재 상용 v2 단계 G 완료 게임은 다음 Godot 사용자 폴더의 v3 파일을 사용한다.
 
 ```text
 ~/Library/Application Support/Godot/app_userdata/Gridworks/
@@ -20,7 +20,7 @@
 
 ## 저장소에서 실행
 
-현재 기본 장면은 Stage G의 `CommercialMain`이다. 저장소 루트에서 다음과 같이 실행한다.
+현재 기본 장면은 단계 G 완료본의 `CommercialMain`이다. 저장소 루트에서 다음과 같이 실행한다.
 
 ```sh
 ./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path game
@@ -38,7 +38,7 @@ dotnet build game/Gridworks.Game.csproj -c Debug
 
 ## macOS 1.0.0 내부 후보
 
-Stage G의 패키징 스크립트는 clean commit에서만
+단계 G의 패키징 스크립트는 clean commit에서만
 `dist/Gridworks-macOS-1.0.0-internal/` 후보 세트를 만든다.
 이 후보는 내부 검증용이며 로컬 ad-hoc 서명만 사용한다. Developer ID 서명과 Apple 공증은 하지
 않았고 공개 배포는 승인되지 않았다.
@@ -67,7 +67,10 @@ Finder에서 control-click하고 **열기**를 선택한다. macOS가 막으면 
 
 패키저는 새 설치 전체 캠페인 실행을 대신하지 않는다. manifest의
 `new_install_full_campaign=NOT_RUN_BY_PACKAGER`는 같은 ZIP bytes를 별도의 빈 user-data에서
-처음부터 끝까지 실행해 Stage G gate를 닫아야 한다는 뜻이다.
+처음부터 끝까지 실행하는 별도 gate라는 뜻이다. 단계 G 완료 후보는 이 외부 UI gate에서 새 게임→
+저장→fresh continue→전체 캠페인·에필로그→완료 저장 재개→장 재설계를 통과했다. 정확한 실행 범위와
+후보 identity는 [단계 G 완료 증거](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)가
+소유한다.
 
 ## 0.1.0 역사 기록
 

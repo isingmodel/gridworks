@@ -2,8 +2,8 @@
 
 이 문서는 전력망 규칙과 청류시의 이야기를 어떻게 보이게 할지 정의한다. 규칙과 수치는
 [상용 구현 계약](../scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 오브젝트 능력은
-[카탈로그](OBJECT_CATALOG.md)가 소유한다. 단계 F는 code-native 표현과 기본 화면을 갖췄고, 현재
-활성 단계 G가 최종 도시 아트·날씨·초상·audio cue와 네 화면 조합 증거를 닫는다.
+[카탈로그](OBJECT_CATALOG.md)가 소유한다. 단계 G 내부 후보는 code-native 도시 표현, 장별 날씨,
+네 인물 초상·audio cue와 네 화면 조합의 접근성 증거를 닫았다.
 
 기존 `ProductMain`·`ReleaseMain` 화면은 기술 회귀 자료이며 상용 v2 시각 기준이 아니다.
 
@@ -43,8 +43,9 @@
 - 긴 브리핑·사건·결과는 중앙 story card를 재사용한다.
 - Title, Pause, Settings, Help와 확인창은 서로 겹치지 않는 shell overlay로 연다.
 
-현재 200px·focus-follow·고정 CTA 규칙은 패널 핫픽스 `36038a9`에 반영됐다. 네 해상도·UI 배율의
-최종 배치와 접근성 증거는 단계 G를 명시적으로 열기 전에는 완료로 주장하지 않는다.
+200px·focus-follow·고정 CTA 규칙은 패널 핫픽스 `36038a9`에서 시작해 단계 G의 고정 승인
+체크리스트·compact 상태·국면 표와 함께 네 화면 조합에서 검증됐다. 정확한 증거는
+[단계 G 완료 기록](../scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)이 소유한다.
 
 ## 3. 자유 배치 지도와 카메라
 
@@ -157,13 +158,14 @@ runtime 화면이나 수치 권위가 아니다.
 - 색뿐 아니라 선 모양·패턴·아이콘·문장으로 상태를 구분한다.
 - 반복 flash를 사용하지 않고 소리만으로 필수 상태를 전달하지 않는다.
 - 1280×720·1920×1080 × UI 100%·125%에서 clipping, panel hierarchy와 focus를 확인한다.
-- 움직임 줄이기와 네 화면 조합의 최종 증거는 단계 G 계획이다.
+- 움직임 줄이기와 1280×720·1920×1080 × UI 100%·125% 조합을 단계 G에서 확인했다.
 
 ## 10. 사운드
 
 사운드는 정보를 보강하지만 규칙을 새로 만들지 않는다. 환경음, 발주·완공·통전·차단·경고·결과
 cue와 짧은 motif만 사용하고 필수 상태를 소리로만 전달하지 않는다. Master·Ambient·SFX 세 음량을
-유지한다. 최종 날씨 layer·audio cue 자산과 권리 기록은 단계 G를 열 때 확정한다.
+유지한다. 최종 날씨 layer·audio cue와 두 motif, 자체 제작 자산의 provenance·hash·권리 기록은
+단계 G에서 `ASSET_MANIFEST.md`, credits와 package audit에 고정했다.
 
 ## 11. 제작 검수표
 

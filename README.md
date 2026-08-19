@@ -11,48 +11,34 @@
 
 ## 현재 상태
 
-현재 활성 구현 단계는 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-**단계 G — 시청각·접근성·패키징 마감**이다. 사용자가 2026-08-19 단계 G와 관찰 기반 선행 보정
-backlog 구현을 명시적으로 승인했다. 단계 F까지의 규칙·캠페인은 동결하고, 관찰 task를 먼저
-재현·보정한 뒤 최종 표현·settings v3·화면 증거·내부 package gate를 닫는다. 단계 H 사람 검증과
-공개 배포는 열지 않는다.
+현재 활성 구현 단계는 없다. [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
+단계 B~G와 관찰 기반 선행 보정 backlog를 완료했고, 사용자 종료 조건에 따라 goal seeking을
+중단했다. 단계 H 사람 검증·전문 교정·공개 배포는 열지 않았으며 별도 승인 없이는 시작하지 않는다.
 
 현재 기본 장면은 `CommercialMain`이다. 별도 v2 world·campaign·Core에서 보이는 격자 없는 자유
 배치, 수면·건물·설비 점유영역, 서비스 권역과 실제 발전원 경로의 분리, 선로 도체·변전소 주기기·
 전신주 접속부의 연속·비상 열 한계와 보호정지, 안전 의무·도시 약속·최근 공사 복구, 같은 망을
-이어 쓰는 여덟 임무와 에필로그·save v3가 연결돼 있다.
+이어 쓰는 여덟 임무와 에필로그·save v3가 연결돼 있다. 단계 G는 이름 붙은 병목 경로, 원자적
+배치 피드백, 승인 체크리스트와 국면 표, 누적 공사 예측·복구 미리보기, settings v3·움직임 줄이기,
+날씨·초상·사운드와 네 화면 조합의 접근성 표현을 더했다.
 
-단계 F 기준은 final world SHA-256
-`c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14`, campaign SHA-256
-`078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a`를 사용한다.
-CommercialChecks **29 suites / 4,486 assertions**, Game Debug·Release·ExportRelease
-**0 warnings / 0 errors**, 1280×720·UI 125%의 두 fresh process 전체 캠페인 smoke와 독립
-exact-tree 기술 감사 **P0 0 / P1 0**을 통과했다. 이 수치는 규칙·저장·wiring 증거이지 재미나
-상용 출시 준비 증거가 아니다.
+macOS 1.0.0 내부 ad-hoc 후보를 clean commit에서 만들고 저장소 밖의 빈 user-data로 새 게임→저장→
+fresh process 이어하기→8장·에필로그→완료 저장 재개→장 재설계를 한 번 끝까지 확인했다. 이 후보는
+Developer ID 서명·공증을 거치지 않았고 공개 배포가 승인되지 않았다. 자동검사·native marker·
+archive identity와 독립 감사의 정확한 기록은
+[단계 G 완료 증거](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)가
+한 곳에서 소유한다.
 
-오른쪽 패널에 동적 버튼이 늘며 상단 정보가 보이지 않던 문제는 커밋 `36038a9`에서 바로잡았다.
-정보 영역은 최소 200px을 유지하고, 보조 조작은 keyboard focus를 따라가는 스크롤 영역에 두며,
-`운영안 승인`과 `공사 발주`는 하단에 고정했다.
-
-같은 후보로 수행한 공식 cold LLM 관찰은 한 번의 새 게임으로 앞선 임무를 통과한 뒤 8장
-`가장 긴 밤`의 폭염 국면 2/3에서 사용자가 중단했다. 화면에는 비상 운전 500 kW 부족이
-표시됐고, 참가자는 초안 취소 두 번과 약속 변경을 사용했으며 reload·두 번째 새 게임·장 되감기는
-사용하지 않았다. 게임플레이 종료 상태는 `USER_STOPPED`이며 성공·실패·`BLOCKED`가 아니다.
-에필로그에 도달하지 않았으므로 전체 완주 가능성을 판정하지 않는다. 사용자 중단 뒤 같은 참가자에게
-follow-up 회고를 요청했으므로 원래의 `follow-up 없음` cold completion protocol은
-`INVALIDATED_BY_USER_FOLLOWUP`이다. 그 회고에서 이름 붙은 병목 경로, 배치 단위의 즉시 성공·거부 피드백,
-국면별 승인 조건 체크리스트를 우선 후속 과제로 남겼다. 정확한 관찰 상한은
-[상용 구현 계약·완료 기록](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md), task와 수용 기준은
-[로드맵의 관찰 기반 backlog](docs/ROADMAP_2D.md#관찰-기반-선행-보정-backlog--단계-g-활성)가 소유한다.
+단계 F 뒤의 공식 cold LLM 관찰은 8장 도중 사용자가 중단했고, 뒤이어 같은 참가자에게 회고를
+요청해 원래의 no-follow-up 완료 protocol이 무효화됐다. 관찰에서 나온 후속 task는 단계 G에서
+재현·보정했지만 그 한 실행을 사람 사용성·재미·밸런스 증거로 승격하지 않는다. 자세한 과거 경과는
+[개발 이력 요약](docs/DEVELOPMENT_HISTORY.md), 완료된 수용 기준은
+[로드맵 backlog](docs/ROADMAP_2D.md#관찰-기반-선행-보정-backlog--완료)가 소유한다.
 
 `FullCampaignHumanStatus = NOT_COLLECTED`, `ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`,
 `ExternalHumanValidationStatus = NOT_COLLECTED`,
 `KoreanProfessionalProofStatus = NOT_COLLECTED`다. LLM 관찰은 특정 build에서 보인 행동과
 혼란을 기록할 뿐 사람 사용성·재미·밸런스, 성공률이나 한국어 품질을 증명하지 않는다.
-
-단계 G에서 최종 도시 아트·날씨·인물 초상·audio cue, settings v3와 움직임 줄이기, 두 해상도·
-두 UI 배율의 화면·키보드 동등성, 패키징·서명·법적 정리와 새 설치 전체 실행을 구현·검증한다.
-관찰에서 나온 후속 과제는 관찰 한 건의 결함률 주장이 아니라, 독립 재현 뒤 닫는 선행 작업 목록이다.
 
 기존 `ReleaseMain`·`ProductMain`과 33×21 격자 후보, Scope 0/1 실험은 회귀·역사 자료로만
 보존한다. 과거 카드 실험, prototype, 소유자 전체 플레이와 이전 LLM 관찰의 핵심 결과는
@@ -74,8 +60,10 @@ follow-up 회고를 요청했으므로 원래의 `follow-up 없음` cold complet
 최소 출시판에는 22.9 kV급 계획 모델, 분기·합류, 고정소수점 자유 배치, 점유영역·지형,
 연속·비상 열 한계와 국면 상태, 결정론적 공급·우회, 전문적인 한국어 UX, 실제 망을 기억하는
 이야기, 저장·설정과 설치 가능한 2D 빌드가 포함된다. 상세 범위와 현실성의 상한은
-[상용 구현 계약과 완료 기록](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다. 단계 F
-종료 시점에는 설정·최종 자산·패키징이 남아 있어 이 최소 출시판 목표 전체를 달성했다고 보지 않는다.
+[상용 구현 계약과 완료 기록](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다. 단계 G
+종료 시점에는 이 기술·제품 범위와 내부 후보 gate를 닫았다. 다만 사람 전체 플레이, 전문 한국어
+교정, 실제 지원 환경, Developer ID 서명·공증과 공개 배포 결정은 단계 H의 미수집·미승인 항목이므로
+상용 release-ready라고 부르지 않는다.
 
 ## 저장소 구조
 

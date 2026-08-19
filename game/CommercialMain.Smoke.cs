@@ -980,6 +980,8 @@ internal sealed partial class CommercialMain
         BaseButton storyContinue = _shell.StoryContinueButton;
         bool sawScrollableResult = false;
         bool sawScrollableEpilogue = false;
+        bool sawKeyboardBoundariesResult = false;
+        bool sawKeyboardBoundariesEpilogue = false;
         float longestBodyHeight = 0f;
         double longestBodyScrollRange = 0d;
         bool longestBodyBottomReachable = false;
@@ -993,7 +995,6 @@ internal sealed partial class CommercialMain
             }
 
             await NextFrame();
-            storyScroll.ScrollVertical = 0;
             await NextFrame();
 
             Rect2 scrollRect = storyScroll.GetGlobalRect();
@@ -1002,21 +1003,47 @@ internal sealed partial class CommercialMain
             bool bodyTopVisible =
                 bodyTopRect.Position.Y >= scrollRect.Position.Y - 1f &&
                 bodyTopRect.Position.Y < scrollRect.End.Y;
-            Require(
-                ControlInside(_shell, shellPanel) &&
-                ControlInside(shellPanel, storyPage) &&
-                ControlInside(storyPage, storyKind) &&
-                ControlInside(storyPage, storyHeader) &&
-                ControlInside(storyPage, storyScroll) &&
-                ControlInside(storyPage, storyContinue) &&
-                storyScroll.Size.Y > 0f &&
+            bool panelInsideShell = ControlInside(_shell, shellPanel);
+            bool pageInsidePanel = ControlInside(shellPanel, storyPage);
+            bool kindInsidePage = ControlInside(storyPage, storyKind);
+            bool headerInsidePage = ControlInside(storyPage, storyHeader);
+            bool scrollInsidePage = ControlInside(storyPage, storyScroll);
+            bool continueInsidePage = ControlInside(storyPage, storyContinue);
+            bool fixedSiblings =
                 !storyScroll.IsAncestorOf(storyKind) &&
                 !storyScroll.IsAncestorOf(storyHeader) &&
-                !storyScroll.IsAncestorOf(storyContinue) &&
+                !storyScroll.IsAncestorOf(storyContinue);
+            Require(
+                panelInsideShell &&
+                pageInsidePanel &&
+                kindInsidePage &&
+                headerInsidePage &&
+                scrollInsidePage &&
+                continueInsidePage &&
+                storyScroll.Size.Y > 0f &&
+                fixedSiblings &&
                 storyScroll.ScrollVertical == 0 &&
                 storyBody.GetThemeFontSize("font_size") == 21 &&
                 bodyTopVisible,
-                "1280×720·UI 125% 완료 카드의 고정 머리말·본문 viewport·진행 버튼이 shell 안에 유지되지 않았습니다.");
+                "1280×720·UI 125% 완료 카드의 고정 머리말·본문 viewport·진행 버튼이 shell 안에 유지되지 않았습니다. " +
+                $"panel={panelInsideShell} page={pageInsidePanel} kind={kindInsidePage} " +
+                $"header={headerInsidePage} scroll={scrollInsidePage} " +
+                $"continue={continueInsidePage} scroll_height={storyScroll.Size.Y:0.##} " +
+                $"siblings={fixedSiblings} scroll_top={storyScroll.ScrollVertical} " +
+                $"font={storyBody.GetThemeFontSize("font_size")} body_top={bodyTopVisible} " +
+                $"shell_rect={_shell.GetGlobalRect()} panel_rect={shellPanel.GetGlobalRect()} " +
+                $"page_rect={storyPage.GetGlobalRect()} kind_rect={storyKind.GetGlobalRect()} " +
+                $"header_rect={storyHeader.GetGlobalRect()} scroll_rect={scrollRect} " +
+                $"body_rect={bodyTopRect} continue_rect={continueRectBeforeScroll}");
+            Require(
+                !string.IsNullOrWhiteSpace(storyScroll.AccessibilityName) &&
+                storyScroll.AccessibilityName.Contains("본문", StringComparison.Ordinal) &&
+                !string.IsNullOrWhiteSpace(storyScroll.AccessibilityDescription) &&
+                storyScroll.AccessibilityDescription.Contains("방향키", StringComparison.Ordinal) &&
+                storyScroll.AccessibilityDescription.Contains("Page Down", StringComparison.Ordinal) &&
+                storyScroll.AccessibilityDescription.Contains("Home", StringComparison.Ordinal) &&
+                storyScroll.AccessibilityDescription.Contains("End", StringComparison.Ordinal),
+                "완료 카드 본문 스크롤의 한국어 접근성 이름·키 안내가 비어 있습니다.");
             Require(
                 storyContinue.GetNodeOrNull<Control>(storyContinue.FocusNext) == storyScroll &&
                 storyContinue.GetNodeOrNull<Control>(storyContinue.FocusPrevious) == storyScroll &&
@@ -1050,6 +1077,37 @@ internal sealed partial class CommercialMain
 
             storyScroll.GrabFocus();
             await NextFrame();
+            if (scrollable && (isResult || isEpilogue))
+            {
+                await PressKey(Key.Down);
+                double afterDown = verticalScrollBar.Value;
+                await PressKey(Key.Home);
+                double afterHome = verticalScrollBar.Value;
+                await PressKey(Key.Pagedown);
+                double afterPageDown = verticalScrollBar.Value;
+                await PressKey(Key.Up);
+                double afterUp = verticalScrollBar.Value;
+                await PressKey(Key.End);
+                double afterEnd = verticalScrollBar.Value;
+                await PressKey(Key.Pageup);
+                double afterPageUp = verticalScrollBar.Value;
+                bool keyboardBoundaries =
+                    afterDown > 0d &&
+                    Math.Abs(afterHome) <= 0.5d &&
+                    afterPageDown > 0d &&
+                    afterUp < afterPageDown &&
+                    Math.Abs(afterEnd - maximumScroll) <= 2d &&
+                    afterPageUp < afterEnd;
+                Require(
+                    keyboardBoundaries,
+                    "완료 카드 본문이 방향키·Page Up/Down·Home/End 경계를 따르지 않았습니다. " +
+                    $"down={afterDown:0.##} home={afterHome:0.##} " +
+                    $"page_down={afterPageDown:0.##} up={afterUp:0.##} " +
+                    $"end={afterEnd:0.##} page_up={afterPageUp:0.##} " +
+                    $"maximum={maximumScroll:0.##}");
+                sawKeyboardBoundariesResult |= isResult;
+                sawKeyboardBoundariesEpilogue |= isEpilogue;
+            }
             await PressKey(Key.End);
             await NextFrame();
             Rect2 bodyBottomRect = storyBody.GetGlobalRect();
@@ -1082,6 +1140,8 @@ internal sealed partial class CommercialMain
         Require(
             sawScrollableResult &&
             sawScrollableEpilogue &&
+            sawKeyboardBoundariesResult &&
+            sawKeyboardBoundariesEpilogue &&
             longestBodyHeight > 0f &&
             longestBodyScrollRange > 0.5d &&
             longestBodyBottomReachable,
@@ -1794,6 +1854,16 @@ internal sealed partial class CommercialMain
         CommercialCampaignEpiloguePresentation epilogue = _coreSnapshot.Epilogue ??
             throw new InvalidOperationException("완료 smoke의 typed 에필로그가 없습니다.");
         int completedCommandCount = _coreSnapshot.CommandCount;
+        _settings = _settings with
+        {
+            Fullscreen = false,
+            UiScalePercent = 125,
+        };
+        _shell.SetSettings(SettingsPresentation(_settings));
+        ApplyProductSettings(_settings);
+        GetWindow().Size = new Vector2I(1280, 720);
+        await NextFrame();
+        await NextFrame();
         IReadOnlyList<string> completionFrames =
             await DismissCompletedStorySequenceWithLayoutAssertions();
         Require(

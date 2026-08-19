@@ -252,6 +252,9 @@ internal sealed partial class CommercialShell : Control
         _storyBody.Text = model.Card.Body;
         _storyBodyScroll.ScrollVertical = 0;
         _storyBodyScroll.SetDeferred(ScrollContainer.PropertyName.ScrollVertical, 0);
+        _storyBodyScroll.AccessibilityName = $"{_storyKind.Text} 본문";
+        _storyBodyScroll.AccessibilityDescription =
+            "위·아래 방향키 또는 Page Up, Page Down, Home, End 키로 전체 본문을 스크롤할 수 있습니다.";
         _storyContinue.Text = model.ContinueLabel;
         _story.AccessibilityDescription = model.Portrait is null
             ? $"{_storyKind.Text}. {model.Card.Speaker}. {model.Card.Title}."

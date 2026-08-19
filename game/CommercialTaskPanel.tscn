@@ -23,6 +23,25 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 22
 text = "첫 불빛"
 
+[node name="ToolStatusRow" type="HBoxContainer" parent="Margin/Column"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="ToolStatusLabel" type="Label" parent="Margin/Column/ToolStatusRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "현재 도구 · 작업 선택"
+text_overrun_behavior = 3
+
+[node name="ToolPaletteButton" type="Button" parent="Margin/Column/ToolStatusRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(76, 36)
+layout_mode = 2
+text = "도구로"
+tooltip_text = "정보 스크롤 안의 사용 가능한 첫 공사 도구로 이동합니다."
+
 [node name="InfoScroll" type="ScrollContainer" parent="Margin/Column"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 200)
@@ -74,6 +93,62 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
 autowrap_mode = 2
 
+[node name="NextComparisonRow" type="HBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="StoreNextComparisonButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/NextComparisonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "초안을 다음 비교에 보관"
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="ClearNextComparisonButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/NextComparisonRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "다음 비교 지우기"
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="PhaseComparisonSection" type="VBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 5
+
+[node name="Heading" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/PhaseComparisonSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
+text = "수요 × 운영 국면 비교"
+
+[node name="Header" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/PhaseComparisonSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
+text = "수요 | 국면 | 공급원 | 공급 | 최소 여유 | 현재→다음"
+autowrap_mode = 2
+
+[node name="PhaseComparisonRows" type="VBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/PhaseComparisonSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="LegendToggleButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "운전 상태 범례 열기"
+
+[node name="LegendLabel" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+autowrap_mode = 2
+text = "✓ 연속 운전 · 평소 한계 안에서 사용합니다.\n! 비상 운전 · 지금은 공급하지만 다음 국면에 보호정지할 수 있습니다.\n× 보호정지 · 앞선 비상 사용 뒤 이번 국면에는 사용할 수 없습니다.\n— 현재 미사용 · 연결돼 있지만 이번 경로에는 쓰이지 않습니다.\n끊김 · 발전원에서 수요까지 사용할 수 있는 경로가 없습니다."
+
 [node name="RecoverySeparator" type="HSeparator" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
 layout_mode = 2
 
@@ -81,6 +156,13 @@ layout_mode = 2
 layout_mode = 2
 theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
 text = "설계 복구"
+
+[node name="RecoveryPreviewLabel" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
+autowrap_mode = 2
+text = "복구 작업을 선택하면 지워질 공사와 복원 상태를 확인한 뒤 실행합니다."
 
 [node name="RecoveryRow" type="HBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
 layout_mode = 2
@@ -92,6 +174,8 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "최근 공사 복구"
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="RestartWindowButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections/RecoveryRow"]
 unique_name_in_owner = true
@@ -99,6 +183,8 @@ custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "이번 운영 단계 다시 시작"
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="RestartChapterButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ProductSections"]
 unique_name_in_owner = true
@@ -243,6 +329,32 @@ text = "다음 국면"
 [node name="FooterSeparator" type="HSeparator" parent="Margin/Column"]
 layout_mode = 2
 
+[node name="ApprovalChecklistSection" type="VBoxContainer" parent="Margin/Column"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 92)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ApprovalChecklistHeading" type="Label" parent="Margin/Column/ApprovalChecklistSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
+text = "승인 조건 · 국면 1/1"
+text_overrun_behavior = 3
+
+[node name="GateScroll" type="ScrollContainer" parent="Margin/Column/ApprovalChecklistSection"]
+custom_minimum_size = Vector2(0, 66)
+layout_mode = 2
+horizontal_scroll_mode = 0
+follow_focus = true
+
+[node name="ApprovalChecklistRows" type="VBoxContainer" parent="Margin/Column/ApprovalChecklistSection/GateScroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 1
+
 [node name="ProductActions" type="VBoxContainer" parent="Margin/Column"]
 unique_name_in_owner = true
 visible = false
@@ -286,6 +398,8 @@ custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "일반 선로"
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="StartLineButton" type="Button" parent="Margin/Column/InfoScroll/InfoColumn/ToolRow/LineRow"]
 unique_name_in_owner = true
@@ -293,6 +407,8 @@ custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "선로 잇기"
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="EditRow" type="HBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn"]
 unique_name_in_owner = true

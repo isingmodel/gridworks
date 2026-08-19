@@ -33,6 +33,7 @@ Copyright (c) .NET Foundation and Contributors.
 
 ## Gridworks 자체 저작물
 
-Gridworks 자체 코드·문서·문구·시각 표현·아이콘과 생성 사운드의 법적 상태는
+Gridworks 자체 코드·문서·문구·시각 표현·아이콘·프로젝트 지시 생성 초상과 생성 사운드의 법적 상태는
 [LICENSE.md](LICENSE.md)가 설명한다. 위 제3자 라이선스는 Gridworks 자체 저작물에 공개
-라이선스를 부여하지 않는다.
+라이선스를 부여하지 않는다. 초상 생성에 사용한 OpenAI imagegen은 package에 포함되는 runtime
+구성요소가 아니며, 이 문서는 해당 초상을 외부 재배포 라이선스 자산이라고 주장하지 않는다.

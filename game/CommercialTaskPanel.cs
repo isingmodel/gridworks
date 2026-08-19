@@ -20,6 +20,8 @@ internal enum CommercialPanelAction
 internal enum CommercialProductAction
 {
     ApproveWindow,
+    StoreNextProjectComparison,
+    ClearNextProjectComparison,
     RollbackRecentConstruction,
     RestartWindow,
     RestartChapter,
@@ -39,6 +41,19 @@ internal sealed record CommercialProjectionPresentation(
 
 internal sealed record CommercialObligationPresentation(string Label, string Status);
 
+internal sealed record CommercialApprovalChecklistPresentation(
+    string Id,
+    bool Passed,
+    string Label,
+    string Description,
+    bool CanInspect);
+
+internal sealed record CommercialPhaseComparisonPresentation(
+    string Id,
+    string Cells,
+    string Description,
+    bool CanInspect);
+
 internal sealed record CommercialPromisePresentation(
     string Heading,
     string Status,
@@ -50,6 +65,12 @@ internal sealed record CommercialProductPanelPresentation(
     string Objective,
     IReadOnlyList<CommercialObligationPresentation> Obligations,
     string Deadline,
+    string ApprovalHeading,
+    IReadOnlyList<CommercialApprovalChecklistPresentation> ApprovalChecklist,
+    IReadOnlyList<CommercialPhaseComparisonPresentation> PhaseComparisons,
+    string RecoveryPreview,
+    CommercialActionPresentation StoreNextProjectComparison,
+    CommercialActionPresentation ClearNextProjectComparison,
     CommercialPromisePresentation? Promise,
     CommercialActionPresentation ApproveWindow,
     CommercialActionPresentation RollbackRecentConstruction,
@@ -65,6 +86,7 @@ internal sealed record CommercialTaskPanelModel(
     string Quote,
     string Status,
     string Error,
+    string ToolStatus,
     CommercialActionPresentation PlaceSubstation,
     CommercialActionPresentation StartLine,
     CommercialActionPresentation UndoPoint,
@@ -79,6 +101,9 @@ internal sealed record CommercialTaskPanelModel(
 internal sealed partial class CommercialTaskPanel : PanelContainer
 {
     private Label _headingLabel = null!;
+    private Label _toolStatusLabel = null!;
+    private Button _toolPaletteButton = null!;
+    private ScrollContainer _infoScroll = null!;
     private Label _instructionLabel = null!;
     private Label _selectionLabel = null!;
     private Label _quoteLabel = null!;
@@ -94,12 +119,20 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     private Label _objectiveLabel = null!;
     private Label _obligationsLabel = null!;
     private Label _deadlineLabel = null!;
+    private Control _phaseComparisonSection = null!;
+    private Control _phaseComparisonRows = null!;
+    private Button _legendToggleButton = null!;
+    private Label _legendLabel = null!;
+    private Label _recoveryPreviewLabel = null!;
     private Control _promiseControls = null!;
     private Label _promiseHeading = null!;
     private Label _promiseStatus = null!;
     private Button _keepPromiseButton = null!;
     private Button _deferPromiseButton = null!;
     private Control _productActions = null!;
+    private Control _approvalChecklistSection = null!;
+    private Label _approvalChecklistHeading = null!;
+    private Control _approvalChecklistRows = null!;
     private Control _chapterReplaySection = null!;
     private OptionButton _chapterReplayOption = null!;
     private Button _chapterReplayButton = null!;
@@ -107,6 +140,10 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         Array.Empty<CommercialCampaignChapterReplayOption>();
     private IReadOnlyDictionary<CommercialProductAction, Button> _productButtons = null!;
     private IReadOnlyDictionary<CommercialPanelAction, Button> _buttons = null!;
+    private readonly Dictionary<string, Button> _approvalRowButtons =
+        new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Button> _phaseRowButtons =
+        new(StringComparer.Ordinal);
 
     public event Action<CommercialPanelAction>? ActionRequested;
 
@@ -114,10 +151,15 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     public event Action<CommercialPromiseDecision>? PromiseRequested;
     public event Action<CommercialProductAction>? ProductActionRequested;
     public event Action<string>? ChapterReplayRequested;
+    public event Action<string>? ApprovalChecklistRequested;
+    public event Action<string>? PhaseComparisonRequested;
 
     public override void _Ready()
     {
         _headingLabel = GetNode<Label>("%HeadingLabel");
+        _toolStatusLabel = GetNode<Label>("%ToolStatusLabel");
+        _toolPaletteButton = GetNode<Button>("%ToolPaletteButton");
+        _infoScroll = GetNode<ScrollContainer>("%InfoScroll");
         _instructionLabel = GetNode<Label>("%InstructionLabel");
         _selectionLabel = GetNode<Label>("%SelectionLabel");
         _quoteLabel = GetNode<Label>("%QuoteLabel");
@@ -133,12 +175,20 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _objectiveLabel = GetNode<Label>("%ObjectiveLabel");
         _obligationsLabel = GetNode<Label>("%ObligationsLabel");
         _deadlineLabel = GetNode<Label>("%DeadlineLabel");
+        _phaseComparisonSection = GetNode<Control>("%PhaseComparisonSection");
+        _phaseComparisonRows = GetNode<Control>("%PhaseComparisonRows");
+        _legendToggleButton = GetNode<Button>("%LegendToggleButton");
+        _legendLabel = GetNode<Label>("%LegendLabel");
+        _recoveryPreviewLabel = GetNode<Label>("%RecoveryPreviewLabel");
         _promiseControls = GetNode<Control>("%PromiseControls");
         _promiseHeading = GetNode<Label>("%PromiseHeading");
         _promiseStatus = GetNode<Label>("%PromiseStatus");
         _keepPromiseButton = GetNode<Button>("%KeepPromiseButton");
         _deferPromiseButton = GetNode<Button>("%DeferPromiseButton");
         _productActions = GetNode<Control>("%ProductActions");
+        _approvalChecklistSection = GetNode<Control>("%ApprovalChecklistSection");
+        _approvalChecklistHeading = GetNode<Label>("%ApprovalChecklistHeading");
+        _approvalChecklistRows = GetNode<Control>("%ApprovalChecklistRows");
         _chapterReplaySection = GetNode<Control>("%ChapterReplaySection");
         _chapterReplayOption = GetNode<OptionButton>("%ChapterReplayOption");
         _chapterReplayButton = GetNode<Button>("%ChapterReplayButton");
@@ -157,6 +207,10 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _productButtons = new Dictionary<CommercialProductAction, Button>
         {
             [CommercialProductAction.ApproveWindow] = GetNode<Button>("%ApproveWindowButton"),
+            [CommercialProductAction.StoreNextProjectComparison] =
+                GetNode<Button>("%StoreNextComparisonButton"),
+            [CommercialProductAction.ClearNextProjectComparison] =
+                GetNode<Button>("%ClearNextComparisonButton"),
             [CommercialProductAction.RollbackRecentConstruction] =
                 GetNode<Button>("%RollbackRecentButton"),
             [CommercialProductAction.RestartWindow] = GetNode<Button>("%RestartWindowButton"),
@@ -180,8 +234,11 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             button.Pressed += () => ProductActionRequested?.Invoke(action);
         }
         _chapterReplayButton.Pressed += RequestSelectedChapterReplay;
+        _toolPaletteButton.Pressed += FocusToolPalette;
+        _legendToggleButton.Pressed += ToggleLegend;
         _statusLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite;
         _errorLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Assertive;
+        _toolStatusLabel.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite;
     }
 
     public void SetModel(CommercialTaskPanelModel model)
@@ -193,6 +250,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _quoteLabel.Text = model.Quote;
         _statusLabel.Text = model.Status;
         _errorLabel.Text = model.Error;
+        _toolStatusLabel.Text = model.ToolStatus;
+        _toolStatusLabel.AccessibilityName = $"현재 도구와 상태. {model.ToolStatus}";
         SetButton(CommercialPanelAction.PlaceSubstation, model.PlaceSubstation);
         SetButton(
             CommercialPanelAction.PlaceLargeSubstation,
@@ -235,12 +294,25 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _productSections.Visible = model.Product is not null;
         _promiseControls.Visible = model.Product?.Promise is not null;
         _productActions.Visible = model.Product is not null;
+        _approvalChecklistSection.Visible = model.Product?.ApprovalChecklist.Count > 0;
         if (model.Product is CommercialProductPanelPresentation product)
         {
             _objectiveLabel.Text = product.Objective;
             _obligationsLabel.Text = string.Join("\n", product.Obligations.Select(item =>
                 $"{item.Status} · {item.Label}"));
             _deadlineLabel.Text = product.Deadline;
+            _approvalChecklistHeading.Text = product.ApprovalHeading;
+            SetApprovalChecklist(product.ApprovalChecklist);
+            SetPhaseComparisons(product.PhaseComparisons);
+            _phaseComparisonSection.Visible = product.PhaseComparisons.Count > 0;
+            _recoveryPreviewLabel.Text = product.RecoveryPreview;
+            _recoveryPreviewLabel.AccessibilityName = product.RecoveryPreview;
+            SetProductButton(
+                CommercialProductAction.StoreNextProjectComparison,
+                product.StoreNextProjectComparison);
+            SetProductButton(
+                CommercialProductAction.ClearNextProjectComparison,
+                product.ClearNextProjectComparison);
             if (product.Promise is CommercialPromisePresentation promise)
             {
                 _promiseHeading.Text = promise.Heading;
@@ -264,6 +336,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         else
         {
             SetChapterReplayOptions(Array.Empty<CommercialCampaignChapterReplayOption>());
+            SetApprovalChecklist(Array.Empty<CommercialApprovalChecklistPresentation>());
+            SetPhaseComparisons(Array.Empty<CommercialPhaseComparisonPresentation>());
         }
         AccessibilityName = model.Product is not null
             ? $"운영안 작업 패널. {model.Heading}. {model.Status}"
@@ -272,6 +346,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
                 : $"공사 작업 패널. {model.Heading}. {model.Status}";
     }
 
+#if DEBUG
     public BaseButton GetActionButton(CommercialPanelAction action) => _buttons[action];
 
     public BaseButton GetProjectionButton(int direction) => direction < 0
@@ -288,6 +363,28 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
 
     public string ObligationsText => _obligationsLabel.Text;
 
+    public string ToolStatusText => _toolStatusLabel.Text;
+
+    public string ApprovalChecklistHeadingText => _approvalChecklistHeading.Text;
+
+    public string ApprovalChecklistText => string.Join("\n", _approvalChecklistRows
+        .GetChildren()
+        .OfType<Button>()
+        .Select(button => button.Text));
+
+    public string PhaseComparisonText => string.Join("\n", _phaseComparisonRows
+        .GetChildren()
+        .OfType<Button>()
+        .Select(button => button.Text));
+
+    public float InfoViewportMinimumHeight => _infoScroll.CustomMinimumSize.Y;
+
+    public BaseButton GetApprovalChecklistButton(string itemId) =>
+        _approvalRowButtons[itemId];
+
+    public BaseButton GetPhaseComparisonButton(string rowId) =>
+        _phaseRowButtons[rowId];
+
     public BaseButton GetProductActionButton(CommercialProductAction action) =>
         _productButtons[action];
 
@@ -302,11 +399,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
 
     public int ChapterReplayOptionCount => _chapterReplayOptions.Count;
 
-    public string? SelectedChapterReplayId =>
-        _chapterReplayOption.Selected >= 0 &&
-        _chapterReplayOption.Selected < _chapterReplayOptions.Count
-            ? _chapterReplayOptions[_chapterReplayOption.Selected].ChapterId
-            : null;
+    public string? SelectedChapterReplayId => CurrentSelectedChapterReplayId();
 
     public bool SelectChapterReplayOption(string chapterId)
     {
@@ -318,6 +411,43 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         }
         _chapterReplayOption.Select(index);
         return true;
+    }
+#endif
+
+    private string? CurrentSelectedChapterReplayId() =>
+        _chapterReplayOption.Selected >= 0 &&
+        _chapterReplayOption.Selected < _chapterReplayOptions.Count
+            ? _chapterReplayOptions[_chapterReplayOption.Selected].ChapterId
+            : null;
+
+    public void FocusPromiseDecision()
+    {
+        Button target = !_keepPromiseButton.Disabled
+            ? _keepPromiseButton
+            : _deferPromiseButton;
+        target.CallDeferred(Control.MethodName.GrabFocus);
+    }
+
+    public void FocusConstructionResolution()
+    {
+        Button target = !_buttons[CommercialPanelAction.Commission].Disabled
+            ? _buttons[CommercialPanelAction.Commission]
+            : !_buttons[CommercialPanelAction.CancelDraft].Disabled
+                ? _buttons[CommercialPanelAction.CancelDraft]
+                : _toolPaletteButton;
+        target.CallDeferred(Control.MethodName.GrabFocus);
+    }
+
+    public void FocusRecoveryResolution()
+    {
+        Button target = !_productButtons[CommercialProductAction.RollbackRecentConstruction].Disabled
+            ? _productButtons[CommercialProductAction.RollbackRecentConstruction]
+            : !_productButtons[CommercialProductAction.RestartWindow].Disabled
+                ? _productButtons[CommercialProductAction.RestartWindow]
+                : !_productButtons[CommercialProductAction.RestartChapter].Disabled
+                    ? _productButtons[CommercialProductAction.RestartChapter]
+                    : _toolPaletteButton;
+        target.CallDeferred(Control.MethodName.GrabFocus);
     }
 
     private void SetButton(
@@ -347,12 +477,17 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     private void SetChapterReplayOptions(
         IReadOnlyList<CommercialCampaignChapterReplayOption> options)
     {
-        string? previouslySelected = SelectedChapterReplayId;
-        _chapterReplayOptions = options.ToArray();
-        _chapterReplayOption.Clear();
-        foreach (CommercialCampaignChapterReplayOption option in _chapterReplayOptions)
+        string? previouslySelected = CurrentSelectedChapterReplayId();
+        CommercialCampaignChapterReplayOption[] incoming = options.ToArray();
+        bool sameOptions = _chapterReplayOptions.SequenceEqual(incoming);
+        _chapterReplayOptions = incoming;
+        if (!sameOptions)
         {
-            _chapterReplayOption.AddItem($"{option.ChapterIndex + 1}장 · {option.DisplayName}");
+            _chapterReplayOption.Clear();
+            foreach (CommercialCampaignChapterReplayOption option in _chapterReplayOptions)
+            {
+                _chapterReplayOption.AddItem($"{option.ChapterIndex + 1}장 · {option.DisplayName}");
+            }
         }
         int selectedIndex = previouslySelected is null
             ? 0
@@ -360,7 +495,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
                 option.ChapterId,
                 previouslySelected,
                 StringComparison.Ordinal));
-        if (_chapterReplayOptions.Count > 0)
+        if (!sameOptions && _chapterReplayOptions.Count > 0)
         {
             _chapterReplayOption.Select(Math.Max(0, selectedIndex));
         }
@@ -372,9 +507,125 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             "선택한 장의 시작 상태로 돌아가 이후 도시망을 다시 설계합니다.";
     }
 
+    private void SetApprovalChecklist(
+        IReadOnlyList<CommercialApprovalChecklistPresentation> items)
+    {
+        RemoveStaleRows(
+            _approvalChecklistRows,
+            _approvalRowButtons,
+            items.Select(item => item.Id));
+        for (int index = 0; index < items.Count; index++)
+        {
+            CommercialApprovalChecklistPresentation item = items[index];
+            if (!_approvalRowButtons.TryGetValue(item.Id, out Button? button))
+            {
+                button = new Button
+                {
+                    Flat = true,
+                    Alignment = HorizontalAlignment.Left,
+                    FocusMode = FocusModeEnum.All,
+                    ClipText = true,
+                    TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
+                };
+                string id = item.Id;
+                button.Pressed += () => ApprovalChecklistRequested?.Invoke(id);
+                _approvalRowButtons.Add(id, button);
+                _approvalChecklistRows.AddChild(button);
+            }
+            button.Text = $"{(item.Passed ? "✓" : "×")} {item.Label}";
+            button.Disabled = !item.CanInspect;
+            button.AccessibilityName =
+                $"{(item.Passed ? "통과" : "미통과")}. {item.Label}";
+            button.AccessibilityDescription = item.Description;
+            button.TooltipText = item.Description;
+            button.CustomMinimumSize = new Vector2(0f, 30f);
+            _approvalChecklistRows.MoveChild(button, index);
+        }
+        _approvalChecklistSection.AccessibilityName =
+            _approvalChecklistHeading.Text + ". " +
+            string.Join(". ", items.Select(item =>
+                $"{(item.Passed ? "통과" : "미통과")} {item.Label}"));
+    }
+
+    private void SetPhaseComparisons(
+        IReadOnlyList<CommercialPhaseComparisonPresentation> rows)
+    {
+        RemoveStaleRows(
+            _phaseComparisonRows,
+            _phaseRowButtons,
+            rows.Select(row => row.Id));
+        for (int index = 0; index < rows.Count; index++)
+        {
+            CommercialPhaseComparisonPresentation row = rows[index];
+            if (!_phaseRowButtons.TryGetValue(row.Id, out Button? button))
+            {
+                button = new Button
+                {
+                    Flat = true,
+                    Alignment = HorizontalAlignment.Left,
+                    FocusMode = FocusModeEnum.All,
+                    ClipText = true,
+                    TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
+                };
+                string id = row.Id;
+                button.Pressed += () => PhaseComparisonRequested?.Invoke(id);
+                _phaseRowButtons.Add(id, button);
+                _phaseComparisonRows.AddChild(button);
+            }
+            button.Text = row.Cells;
+            button.Disabled = !row.CanInspect;
+            button.AccessibilityName = row.Description;
+            button.AccessibilityDescription =
+                "이 행을 선택하면 같은 경로와 제한 설비를 지도에서 확인합니다.";
+            button.TooltipText = row.Description;
+            button.CustomMinimumSize = new Vector2(0f, 36f);
+            _phaseComparisonRows.MoveChild(button, index);
+        }
+        _phaseComparisonSection.AccessibilityName =
+            "수요와 운영 국면 비교 표. 열 제목: 수요, 국면, 공급원, 공급, 최소 여유, 현재와 다음 상태. " +
+            string.Join(". ", rows.Select(row => row.Description));
+    }
+
+    private static void RemoveStaleRows(
+        Control parent,
+        IDictionary<string, Button> buttons,
+        IEnumerable<string> retainedIds)
+    {
+        HashSet<string> retained = retainedIds.ToHashSet(StringComparer.Ordinal);
+        foreach (string id in buttons.Keys.Where(id => !retained.Contains(id)).ToArray())
+        {
+            Button button = buttons[id];
+            parent.RemoveChild(button);
+            button.QueueFree();
+            buttons.Remove(id);
+        }
+    }
+
+    private void FocusToolPalette()
+    {
+        Button? firstAvailable = _buttons
+            .Where(pair => pair.Key is CommercialPanelAction.PlaceSubstation or
+                CommercialPanelAction.PlaceLargeSubstation or
+                CommercialPanelAction.StartStandardLine or CommercialPanelAction.StartLine)
+            .Select(pair => pair.Value)
+            .FirstOrDefault(button => button.Visible && !button.Disabled);
+        firstAvailable?.CallDeferred(Control.MethodName.GrabFocus);
+    }
+
+    private void ToggleLegend()
+    {
+        _legendLabel.Visible = !_legendLabel.Visible;
+        _legendToggleButton.Text = _legendLabel.Visible
+            ? "운전 상태 범례 닫기"
+            : "운전 상태 범례 열기";
+        _legendToggleButton.AccessibilityDescription = _legendLabel.Visible
+            ? "일반어 운전 상태 범례가 아래에 열려 있습니다."
+            : "연속 운전, 비상 운전, 보호정지, 현재 미사용과 단절의 뜻을 엽니다.";
+    }
+
     private void RequestSelectedChapterReplay()
     {
-        if (SelectedChapterReplayId is string chapterId)
+        if (CurrentSelectedChapterReplayId() is string chapterId)
         {
             ChapterReplayRequested?.Invoke(chapterId);
         }

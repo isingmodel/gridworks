@@ -90,7 +90,170 @@ public sealed record CommercialPhaseProjection(
     ThermalIntervalEvaluation Evaluation,
     bool IsInCurrentWindow,
     bool SafetySatisfied,
-    bool PromiseSatisfied);
+    bool PromiseSatisfied)
+{
+    private IReadOnlyList<string> _effectiveUnavailableNodeIds = Array.Empty<string>();
+    private IReadOnlyList<string> _effectiveUnavailableEdgeIds = Array.Empty<string>();
+
+    public SpatialWorldDefinition? ProjectedWorld { get; init; }
+
+    public IReadOnlyList<string> EffectiveUnavailableNodeIds
+    {
+        get => _effectiveUnavailableNodeIds;
+        init => _effectiveUnavailableNodeIds = FreezeSorted(value);
+    }
+
+    public IReadOnlyList<string> EffectiveUnavailableEdgeIds
+    {
+        get => _effectiveUnavailableEdgeIds;
+        init => _effectiveUnavailableEdgeIds = FreezeSorted(value);
+    }
+
+    public bool Equals(CommercialPhaseProjection? other) => other is not null &&
+        Equals(Phase, other.Phase) &&
+        Equals(Evaluation, other.Evaluation) &&
+        IsInCurrentWindow == other.IsInCurrentWindow &&
+        SafetySatisfied == other.SafetySatisfied &&
+        PromiseSatisfied == other.PromiseSatisfied &&
+        ProjectedWorldEquals(ProjectedWorld, other.ProjectedWorld) &&
+        EffectiveUnavailableNodeIds.SequenceEqual(
+            other.EffectiveUnavailableNodeIds,
+            StringComparer.Ordinal) &&
+        EffectiveUnavailableEdgeIds.SequenceEqual(
+            other.EffectiveUnavailableEdgeIds,
+            StringComparer.Ordinal);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Phase);
+        hash.Add(Evaluation);
+        hash.Add(IsInCurrentWindow);
+        hash.Add(SafetySatisfied);
+        hash.Add(PromiseSatisfied);
+        AddProjectedWorld(ref hash, ProjectedWorld);
+        AddSequence(ref hash, EffectiveUnavailableNodeIds);
+        AddSequence(ref hash, EffectiveUnavailableEdgeIds);
+        return hash.ToHashCode();
+    }
+
+    private static IReadOnlyList<string> FreezeSorted(IReadOnlyList<string> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        return Array.AsReadOnly(values
+            .OrderBy(value => value, StringComparer.Ordinal)
+            .ToArray());
+    }
+
+    private static void AddSequence(ref HashCode hash, IEnumerable<string> values)
+    {
+        foreach (string value in values)
+        {
+            hash.Add(value, StringComparer.Ordinal);
+        }
+    }
+
+    private static bool ProjectedWorldEquals(
+        SpatialWorldDefinition? first,
+        SpatialWorldDefinition? second) =>
+        ReferenceEquals(first, second) ||
+        first is not null &&
+        second is not null &&
+        string.Equals(first.SchemaVersion, second.SchemaVersion, StringComparison.Ordinal) &&
+        string.Equals(first.WorldId, second.WorldId, StringComparison.Ordinal) &&
+        string.Equals(first.DisplayName, second.DisplayName, StringComparison.Ordinal) &&
+        first.UnitsPerDesignUnit == second.UnitsPerDesignUnit &&
+        first.Bounds == second.Bounds &&
+        first.InitialCashUnit == second.InitialCashUnit &&
+        first.NodeClasses.SequenceEqual(second.NodeClasses) &&
+        first.LineClasses.SequenceEqual(second.LineClasses) &&
+        TerrainEquals(first.Terrain, second.Terrain) &&
+        RiskAreasEqual(first.RiskAreas, second.RiskAreas) &&
+        first.Nodes.SequenceEqual(second.Nodes) &&
+        first.Edges.SequenceEqual(second.Edges);
+
+    private static bool TerrainEquals(
+        IReadOnlyList<TerrainPolygonDefinition> first,
+        IReadOnlyList<TerrainPolygonDefinition> second) =>
+        first.Count == second.Count && first.Zip(second).All(pair =>
+            string.Equals(
+                pair.First.TerrainId,
+                pair.Second.TerrainId,
+                StringComparison.Ordinal) &&
+            string.Equals(
+                pair.First.DisplayName,
+                pair.Second.DisplayName,
+                StringComparison.Ordinal) &&
+            pair.First.Kind == pair.Second.Kind &&
+            pair.First.Polygon.SequenceEqual(pair.Second.Polygon));
+
+    private static bool RiskAreasEqual(
+        IReadOnlyList<SpatialRiskAreaDefinition> first,
+        IReadOnlyList<SpatialRiskAreaDefinition> second) =>
+        first.Count == second.Count && first.Zip(second).All(pair =>
+            string.Equals(
+                pair.First.RiskAreaId,
+                pair.Second.RiskAreaId,
+                StringComparison.Ordinal) &&
+            string.Equals(
+                pair.First.DisplayName,
+                pair.Second.DisplayName,
+                StringComparison.Ordinal) &&
+            pair.First.Polygon.SequenceEqual(pair.Second.Polygon));
+
+    private static void AddProjectedWorld(
+        ref HashCode hash,
+        SpatialWorldDefinition? world)
+    {
+        if (world is null)
+        {
+            hash.Add(false);
+            return;
+        }
+        hash.Add(true);
+        hash.Add(world.SchemaVersion, StringComparer.Ordinal);
+        hash.Add(world.WorldId, StringComparer.Ordinal);
+        hash.Add(world.DisplayName, StringComparer.Ordinal);
+        hash.Add(world.UnitsPerDesignUnit);
+        hash.Add(world.Bounds);
+        hash.Add(world.InitialCashUnit);
+        foreach (SpatialNodeClassDefinition nodeClass in world.NodeClasses)
+        {
+            hash.Add(nodeClass);
+        }
+        foreach (SpatialLineClassDefinition lineClass in world.LineClasses)
+        {
+            hash.Add(lineClass);
+        }
+        foreach (TerrainPolygonDefinition terrain in world.Terrain)
+        {
+            hash.Add(terrain.TerrainId, StringComparer.Ordinal);
+            hash.Add(terrain.DisplayName, StringComparer.Ordinal);
+            hash.Add(terrain.Kind);
+            foreach (MapPoint point in terrain.Polygon)
+            {
+                hash.Add(point);
+            }
+        }
+        foreach (SpatialRiskAreaDefinition riskArea in world.RiskAreas)
+        {
+            hash.Add(riskArea.RiskAreaId, StringComparer.Ordinal);
+            hash.Add(riskArea.DisplayName, StringComparer.Ordinal);
+            foreach (MapPoint point in riskArea.Polygon)
+            {
+                hash.Add(point);
+            }
+        }
+        foreach (SpatialNodeDefinition node in world.Nodes)
+        {
+            hash.Add(node);
+        }
+        foreach (SpatialEdgeDefinition edge in world.Edges)
+        {
+            hash.Add(edge);
+        }
+    }
+}
 
 public sealed record CommercialCommittedPhaseResult(
     string PhaseId,
@@ -646,6 +809,7 @@ public sealed class CommercialCoreSliceRun
             return (Array.Empty<CommercialPhaseProjection>(), false);
         }
         (CommercialWorldDefinition world, bool includesConstruction) = ProjectedWorld();
+        SpatialWorldDefinition projectedSpatialWorld = world.ToSpatialWorld();
         int startIndex = CurrentWindowStartPhaseIndex();
         int currentEndIndex = CurrentWindowEndPhaseIndex();
         ThermalState state = _thermalState;
@@ -666,7 +830,12 @@ public sealed class CommercialCoreSliceRun
                 index < currentEndIndex,
                 RequiredLoadsDelivered(phase, evaluation, CommercialObligationKind.SafetyDuty),
                 _promiseDecision != CommercialPromiseDecision.Keep ||
-                RequiredLoadsDelivered(phase, evaluation, CommercialObligationKind.CityPromise)));
+                RequiredLoadsDelivered(phase, evaluation, CommercialObligationKind.CityPromise))
+            {
+                ProjectedWorld = projectedSpatialWorld,
+                EffectiveUnavailableNodeIds = request.UnavailableNodeIds,
+                EffectiveUnavailableEdgeIds = request.UnavailableEdgeIds,
+            });
         }
         return (result, includesConstruction);
     }

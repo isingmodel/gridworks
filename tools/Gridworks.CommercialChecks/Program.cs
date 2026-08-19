@@ -165,8 +165,8 @@ internal sealed class CommercialChecks
             ("commercial-campaign-canonical-eight-run", CheckCommercialCampaignCanonicalEightRun),
             ("commercial-campaign-stage-f-archetypes-recovery", CheckCommercialCampaignStageFArchetypesAndRecovery),
             ("commercial-campaign-completed-save-replay", CheckCommercialCampaignCompletedSaveAndReplay),
+            ("stage-g-typed-ux-and-settings-v3", CheckStageGTypedUxAndSettingsV3),
         ];
-
         List<string> failures = [];
         foreach ((string name, Action body) in suites)
         {
@@ -2455,6 +2455,12 @@ internal sealed class CommercialChecks
             "Stage-F archetype seed");
         CommercialCoreCommand[] chapterFiveStart = firstFour.Commands.ToArray();
         string chapterFiveState = CampaignStateJson(firstFour.GetSnapshot());
+        CommercialApprovalChecklistItem promiseDecisionGate = firstFour.GetSnapshot()
+            .ApprovalChecklist.Items.Single(item =>
+                item.Kind == CommercialApprovalGateKind.PromiseDecision);
+        Check(!promiseDecisionGate.Passed &&
+                promiseDecisionGate.LoadId == "RIVER_FACTORY",
+            "Stage-G promise-decision checklist gate was not persistent");
 
         var missingFactory = CommercialCampaignRun.Restore(
             _campaign,
@@ -2464,6 +2470,13 @@ internal sealed class CommercialChecks
             missingFactory,
             CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Keep),
             "Stage-F missing factory: keep promise");
+        CommercialApprovalChecklistItem promiseSupplyGate = missingFactory.GetSnapshot()
+            .ApprovalChecklist.Items.Single(item =>
+                item.Kind == CommercialApprovalGateKind.KeptPromiseDemand);
+        Check(!promiseSupplyGate.Passed &&
+                promiseSupplyGate.LoadId == "RIVER_FACTORY" &&
+                promiseSupplyGate.FailureDiagnostic is not null,
+            "Stage-G kept-promise supply checklist gate was not typed");
         Check(!missingFactory.GetSnapshot().CanApprove &&
                 missingFactory.GetSnapshot().FirstBlockingFailure?.Kind ==
                     ThermalFailureKind.NoTopologyPath,
@@ -2530,6 +2543,14 @@ internal sealed class CommercialChecks
             2);
         Equal(eastFailure, floodRecovery.GetSnapshot().ConnectionFailures.Single(),
             "Stage-F flood recovery east gate detail");
+        CommercialApprovalChecklistItem connectionGate = floodRecovery.GetSnapshot()
+            .ApprovalChecklist.Items.Single(item =>
+                item.Kind == CommercialApprovalGateKind.ConnectionRequirement);
+        Check(!connectionGate.Passed &&
+                connectionGate.NodeId == eastFailure.NodeId &&
+                connectionGate.Current == eastFailure.CurrentConnections &&
+                connectionGate.Required == eastFailure.RequiredConnections,
+            "Stage-G connection checklist gate lost its typed target/counts");
         CampaignRejectedPreserves(
             floodRecovery,
             CommercialCoreCommand.ApproveDecisionWindow(),
@@ -2587,6 +2608,31 @@ internal sealed class CommercialChecks
                 deadlineQuote.Error == CommercialCampaignRunError.DeadlineExceeded &&
                 deadlineQuote.BuildMinutes is > 0,
             "Stage-F flood recovery long line did not expose deadline rejection");
+        CommercialConstructionWindowForecast deadlineForecast =
+            floodRecovery.PreviewConstructionWindowForecast(
+                new CommercialNextNodeProjectPlan(
+                    "SMALL_SUBSTATION",
+                    new MapPoint(2400, 900)));
+        Equal(2, deadlineForecast.Steps.Count,
+            "Stage-G deadline current-plus-next forecast count");
+        Check(deadlineForecast.Steps[0].Kind == ConstructionKind.Line &&
+                deadlineForecast.Steps[0].StepRole ==
+                    CommercialConstructionForecastStepRole.CurrentDraft &&
+                deadlineForecast.Steps[0].Error ==
+                    CommercialCampaignRunError.DeadlineExceeded &&
+                deadlineForecast.Steps[0].BuildMinutes is > 0 &&
+                deadlineForecast.Steps[0].CompletionMinute is > 0,
+            "Stage-G deadline current forecast lost its typed quote");
+        Check(deadlineForecast.Steps[1].Kind == ConstructionKind.Node &&
+                deadlineForecast.Steps[1].StepRole ==
+                    CommercialConstructionForecastStepRole.ExplicitNextPlan &&
+                deadlineForecast.Steps[1].Error ==
+                    CommercialCampaignRunError.WrongState &&
+                deadlineForecast.Steps[1].ConstructionError is null &&
+                deadlineForecast.Steps[1].BuildMinutes is null &&
+                deadlineForecast.Steps[1].CompletionMinute is null &&
+                deadlineForecast.Steps[1].RemainingMinutesAfterCompletion is null,
+            "Stage-G deadline next forecast reused or mislabeled the current quote");
         CampaignRejectedPreserves(
             floodRecovery,
             CommercialCoreCommand.OrderLine(),
@@ -2735,6 +2781,176 @@ internal sealed class CommercialChecks
         Check(!longestNightStart.CanApprove &&
                 longestNightStart.FirstBlockingFailure is not null,
             "Stage-F longest night passed without final work");
+        CommercialCampaignRun m8WitnessRun = BuildStageGM8DiagnosticWitness();
+        CommercialCampaignSnapshot m8Witness = m8WitnessRun.GetSnapshot();
+        CommercialSupplyDiagnostic m8Diagnostic =
+            m8Witness.FirstBlockingDiagnostic ??
+            throw new InvalidOperationException(
+                "Stage-G M8 omitted its named blocking diagnostic.");
+        Equal("HEATWAVE_PEAK", m8Diagnostic.PhaseId,
+            "Stage-G M8 diagnostic phase");
+        Equal("폭염 정점", m8Diagnostic.PhaseDisplayName,
+            "Stage-G M8 diagnostic phase display name");
+        Equal(2, m8Diagnostic.PhaseNumber,
+            "Stage-G M8 diagnostic phase number");
+        Equal(3, m8Diagnostic.PhaseCount,
+            "Stage-G M8 diagnostic phase count");
+        Equal("WATERWORKS", m8Diagnostic.LoadId,
+            "Stage-G M8 diagnostic load");
+        Equal("청류 정수장", m8Diagnostic.LoadDisplayName,
+            "Stage-G M8 diagnostic load display name");
+        Equal(CommercialObligationKind.SafetyDuty, m8Diagnostic.Obligation,
+            "Stage-G M8 diagnostic obligation");
+        Equal(ThermalFailureKind.EmergencyLimit, m8Diagnostic.FailureKind,
+            "Stage-G M8 diagnostic failure kind");
+        Equal("WEST_GENERATION", m8Diagnostic.AttemptedSourceId,
+            "Stage-G M8 diagnostic attempted source");
+        Equal("서부 발전소", m8Diagnostic.AttemptedSourceDisplayName,
+            "Stage-G M8 diagnostic attempted source display name");
+        Equal(ThermalAssetKind.Edge, m8Diagnostic.LimitingAssetKind,
+            "Stage-G M8 diagnostic limiter kind");
+        Equal("PLAYER_EDGE_22", m8Diagnostic.LimitingAssetId,
+            "Stage-G M8 diagnostic limiter ID");
+        Equal("일반 배전선 · 소형 배전 변전소 5–정수장 접속점",
+            m8Diagnostic.LimitingAssetDisplayName,
+            "Stage-G M8 diagnostic limiter display name");
+        Equal(3000L, m8Diagnostic.RequiredKw,
+            "Stage-G M8 diagnostic required load");
+        Equal(2500L, m8Diagnostic.AvailableKw,
+            "Stage-G M8 diagnostic available capacity");
+        Equal(500L, m8Diagnostic.ShortfallKw,
+            "Stage-G M8 exact shortfall");
+        SequenceEqual(
+            [
+                "WEST_SOURCE_NODE",
+                "PLAYER_POLE_1",
+                "PLAYER_POLE_2",
+                "PLAYER_POLE_3",
+                "PLAYER_POLE_4",
+                "PLAYER_SUBSTATION_5",
+                "WATER_TERMINAL",
+            ],
+            m8Diagnostic.PathNodeIds,
+            "Stage-G M8 diagnostic ordered node path");
+        SequenceEqual(
+            [
+                "서부 발전 접속점",
+                "일반 전신주 접속부 1",
+                "일반 전신주 접속부 2",
+                "일반 전신주 접속부 3",
+                "일반 전신주 접속부 4",
+                "소형 배전 변전소 5",
+                "정수장 접속점",
+            ],
+            m8Diagnostic.PathNodeDisplayNames,
+            "Stage-G M8 diagnostic ordered node display path");
+        SequenceEqual(
+            [
+                "PLAYER_EDGE_1",
+                "PLAYER_EDGE_2",
+                "PLAYER_EDGE_3",
+                "PLAYER_EDGE_4",
+                "PLAYER_EDGE_23",
+                "PLAYER_EDGE_22",
+            ],
+            m8Diagnostic.PathEdgeIds,
+            "Stage-G M8 diagnostic ordered edge path");
+        SequenceEqual(
+            [
+                "일반 배전선 · 서부 발전 접속점–일반 전신주 접속부 1",
+                "일반 배전선 · 일반 전신주 접속부 1–일반 전신주 접속부 2",
+                "일반 배전선 · 일반 전신주 접속부 2–일반 전신주 접속부 3",
+                "일반 배전선 · 일반 전신주 접속부 3–일반 전신주 접속부 4",
+                "일반 배전선 · 소형 배전 변전소 5–일반 전신주 접속부 4",
+                "일반 배전선 · 소형 배전 변전소 5–정수장 접속점",
+            ],
+            m8Diagnostic.PathEdgeDisplayNames,
+            "Stage-G M8 diagnostic ordered edge display path");
+        Check(m8Diagnostic.LimitingAssetKind switch
+            {
+                ThermalAssetKind.Node => m8Diagnostic.PathNodeIds.Contains(
+                    m8Diagnostic.LimitingAssetId!,
+                    StringComparer.Ordinal),
+                ThermalAssetKind.Edge => m8Diagnostic.PathEdgeIds.Contains(
+                    m8Diagnostic.LimitingAssetId!,
+                    StringComparer.Ordinal),
+                _ => false,
+            },
+            "Stage-G M8 limiter is not an asset on its exact path");
+        CommercialCampaignSnapshot repeatedM8Witness =
+            BuildStageGM8DiagnosticWitness().GetSnapshot();
+        CommercialPhaseProjection m8Projection = CampaignProjection(
+            m8Witness,
+            "HEATWAVE_PEAK");
+        CommercialPhaseProjection repeatedM8Projection = CampaignProjection(
+            repeatedM8Witness,
+            "HEATWAVE_PEAK");
+        Equal(m8Projection, repeatedM8Projection,
+            "Stage-G M8 independent projection structural equality");
+        Equal(m8Projection.GetHashCode(), repeatedM8Projection.GetHashCode(),
+            "Stage-G M8 independent projection structural hash");
+        Check(
+            m8Projection.ProjectedWorld is not null &&
+            repeatedM8Projection.ProjectedWorld is not null &&
+            m8Projection.ProjectedWorld.Nodes.SequenceEqual(
+                repeatedM8Projection.ProjectedWorld.Nodes) &&
+            m8Projection.ProjectedWorld.Edges.SequenceEqual(
+                repeatedM8Projection.ProjectedWorld.Edges),
+            "Stage-G independent projection omitted structural projected geometry");
+        Equal(m8Diagnostic, repeatedM8Witness.FirstBlockingDiagnostic,
+            "Stage-G M8 independent diagnostic structural equality");
+        CommercialPhaseProjection floodProjection = CampaignProjection(
+            m8Witness,
+            "PROTECTIVE_STOP_FLOOD");
+        (IReadOnlyList<string> expectedUnavailableNodes,
+            IReadOnlyList<string> expectedUnavailableEdges) =
+            ExpectedEffectiveUnavailableAssets(
+                floodProjection.Phase,
+                m8Witness.Construction.World);
+        SequenceEqual(
+            expectedUnavailableNodes,
+            floodProjection.EffectiveUnavailableNodeIds,
+            "Stage-G effective unavailable node IDs");
+        SequenceEqual(
+            expectedUnavailableEdges,
+            floodProjection.EffectiveUnavailableEdgeIds,
+            "Stage-G effective unavailable edge IDs");
+        Check(floodProjection.EffectiveUnavailableNodeIds.SequenceEqual(
+                    floodProjection.EffectiveUnavailableNodeIds.OrderBy(
+                        id => id,
+                        StringComparer.Ordinal),
+                    StringComparer.Ordinal) &&
+                floodProjection.EffectiveUnavailableEdgeIds.SequenceEqual(
+                    floodProjection.EffectiveUnavailableEdgeIds.OrderBy(
+                        id => id,
+                        StringComparer.Ordinal),
+                    StringComparer.Ordinal) &&
+                ((IList<string>)floodProjection.EffectiveUnavailableNodeIds).IsReadOnly &&
+                ((IList<string>)floodProjection.EffectiveUnavailableEdgeIds).IsReadOnly,
+            "Stage-G effective unavailable IDs were not sorted and frozen");
+        var riskDraftPosition = new MapPoint(1900, 1800);
+        CampaignAccepted(
+            m8WitnessRun,
+            CommercialCoreCommand.SetNodeDraft("SMALL_SUBSTATION", riskDraftPosition),
+            "Stage-G risk-derived projected node draft");
+        CommercialCampaignSnapshot riskDraftSnapshot = m8WitnessRun.GetSnapshot();
+        CommercialPhaseProjection riskDraftFlood = CampaignProjection(
+            riskDraftSnapshot,
+            "PROTECTIVE_STOP_FLOOD");
+        SpatialWorldDefinition riskDraftWorld = riskDraftFlood.ProjectedWorld ??
+            throw new InvalidOperationException(
+                "Stage-G risk draft projection omitted projected geometry.");
+        SpatialNodeDefinition projectedRiskNode = riskDraftWorld.Nodes.Single(node =>
+            node.Position == riskDraftPosition &&
+            !riskDraftSnapshot.Construction.World.Nodes.Any(live =>
+                live.NodeId == node.NodeId));
+        Check(
+            riskDraftFlood.EffectiveUnavailableNodeIds.Contains(
+                projectedRiskNode.NodeId,
+                StringComparer.Ordinal) &&
+            riskDraftFlood.EffectiveUnavailableNodeIds.Count >
+                riskDraftFlood.Phase.UnavailableNodeIds.Count,
+            "Stage-G effective unavailable IDs omitted a risk-derived projected asset");
         CampaignRejectedPreserves(
             cheapOutage,
             CommercialCoreCommand.ApproveDecisionWindow(),
@@ -2798,6 +3014,325 @@ internal sealed class CommercialChecks
             "Stage-F kept flood recovered outage");
         Equal("LONGEST_NIGHT", keptFlood.GetSnapshot().Chapter.ChapterId,
             "Stage-F kept flood recovery remained softlocked");
+    }
+
+    private CommercialCampaignRun BuildStageGM8DiagnosticWitness()
+    {
+        var run = new CommercialCampaignRun(_campaign, _commercialWorld);
+        string substation1 = BuildCampaignNode(
+            run,
+            "SMALL_SUBSTATION",
+            new MapPoint(2282, 729),
+            "Stage-G M8 observed substation 1");
+        Equal("PLAYER_SUBSTATION_1", substation1,
+            "Stage-G M8 observed substation 1 ID");
+        BuildCampaignLine(
+            run,
+            "WEST_SOURCE_NODE",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [
+                new MapPoint(810, 548),
+                new MapPoint(1015, 548),
+                new MapPoint(1573, 548),
+                new MapPoint(2000, 629),
+            ],
+            substation1,
+            "Stage-G M8 observed west feed");
+        BuildCampaignLine(
+            run,
+            substation1,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "EAST_RESIDENTIAL_TERMINAL",
+            "Stage-G M8 observed east service");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "Stage-G M8 observed chapter 1");
+
+        BuildCampaignLine(
+            run,
+            substation1,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [new MapPoint(2343, 1032)],
+            "HOSPITAL_TERMINAL",
+            "Stage-G M8 observed hospital route 1");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.StartLineDraft(
+                substation1,
+                "STANDARD_LINE",
+                "STANDARD_POLE"),
+            "Stage-G M8 observed canceled hospital route start");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.AddLinePoint(new MapPoint(2120, 912)),
+            "Stage-G M8 observed canceled hospital route point 1");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.AddLinePoint(new MapPoint(2120, 1234)),
+            "Stage-G M8 observed canceled hospital route point 2");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.FinishLineDraft("HOSPITAL_TERMINAL"),
+            "Stage-G M8 observed canceled hospital route finish");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.CancelLineDraft(),
+            "Stage-G M8 observed canceled hospital route cancel");
+        string substation2 = BuildCampaignNode(
+            run,
+            "SMALL_SUBSTATION",
+            new MapPoint(2201, 1275),
+            "Stage-G M8 observed substation 2");
+        Equal("PLAYER_SUBSTATION_2", substation2,
+            "Stage-G M8 observed substation 2 ID");
+        BuildCampaignLine(
+            run,
+            substation1,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            substation2,
+            "Stage-G M8 observed substation tie");
+        BuildCampaignLine(
+            run,
+            substation2,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "HOSPITAL_TERMINAL",
+            "Stage-G M8 observed hospital route 2");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "Stage-G M8 observed chapter 2");
+
+        BuildCampaignLine(
+            run,
+            "SOUTH_SOURCE_NODE",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [
+                new MapPoint(709, 1435),
+                new MapPoint(769, 1032),
+                new MapPoint(1051, 1032),
+                new MapPoint(1637, 991),
+                new MapPoint(1919, 951),
+            ],
+            substation2,
+            "Stage-G M8 observed south feed");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "Stage-G M8 observed chapter 3");
+
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Keep),
+            "Stage-G M8 observed north promise");
+        string substation3 = BuildCampaignNode(
+            run,
+            "SMALL_SUBSTATION",
+            new MapPoint(2527, 909),
+            "Stage-G M8 observed substation 3");
+        Equal("PLAYER_SUBSTATION_3", substation3,
+            "Stage-G M8 observed substation 3 ID");
+        BuildCampaignLine(
+            run,
+            substation2,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            substation3,
+            "Stage-G M8 observed east tie");
+        BuildCampaignLine(
+            run,
+            substation3,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "WATER_TERMINAL",
+            "Stage-G M8 observed water service");
+        BuildCampaignLine(
+            run,
+            substation3,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [new MapPoint(2527, 450)],
+            "NORTH_RESIDENTIAL_TERMINAL",
+            "Stage-G M8 observed north service");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "Stage-G M8 observed chapter 4");
+
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Keep),
+            "Stage-G M8 observed factory promise");
+        string substation4 = BuildCampaignNode(
+            run,
+            "SMALL_SUBSTATION",
+            new MapPoint(2322, 1554),
+            "Stage-G M8 observed substation 4");
+        Equal("PLAYER_SUBSTATION_4", substation4,
+            "Stage-G M8 observed substation 4 ID");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.StartLineDraft(
+                "SOUTH_SOURCE_NODE",
+                "REINFORCED_LINE",
+                "REINFORCED_POLE"),
+            "Stage-G M8 observed canceled highland route start");
+        foreach (MapPoint point in new[]
+                 {
+                     new MapPoint(522, 1381),
+                     new MapPoint(761, 905),
+                     new MapPoint(1042, 883),
+                     new MapPoint(1641, 883),
+                     new MapPoint(1974, 731),
+                     new MapPoint(2148, 1035),
+                     new MapPoint(2061, 1425),
+                 })
+        {
+            CampaignAccepted(
+                run,
+                CommercialCoreCommand.AddLinePoint(point),
+                $"Stage-G M8 observed canceled highland route point {point}");
+        }
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.FinishLineDraft(substation4),
+            "Stage-G M8 observed canceled highland route finish");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.CancelLineDraft(),
+            "Stage-G M8 observed canceled highland route cancel");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Defer),
+            "Stage-G M8 observed deferred factory promise");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "Stage-G M8 observed chapter 5");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "Stage-G M8 observed chapter 6");
+
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Keep),
+            "Stage-G M8 observed continuity promise");
+        BuildCampaignLine(
+            run,
+            substation3,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "EAST_RESIDENTIAL_TERMINAL",
+            "Stage-G M8 observed continuity service");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "Stage-G M8 observed chapter 7");
+
+        string substation5 = BuildCampaignNode(
+            run,
+            "SMALL_SUBSTATION",
+            new MapPoint(1919, 345),
+            "Stage-G M8 observed substation 5");
+        Equal("PLAYER_SUBSTATION_5", substation5,
+            "Stage-G M8 observed substation 5 ID");
+        BuildCampaignLine(
+            run,
+            substation5,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "WATER_TERMINAL",
+            "Stage-G M8 observed water emergency service");
+        BuildCampaignLine(
+            run,
+            substation5,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            Array.Empty<MapPoint>(),
+            "PLAYER_POLE_4",
+            "Stage-G M8 observed west tie");
+        BuildCampaignLine(
+            run,
+            "SOUTH_SOURCE_NODE",
+            "REINFORCED_LINE",
+            "REINFORCED_POLE",
+            [
+                new MapPoint(528, 1354),
+                new MapPoint(709, 891),
+                new MapPoint(1032, 891),
+                new MapPoint(951, 387),
+                new MapPoint(951, 185),
+                new MapPoint(1516, 185),
+            ],
+            substation5,
+            "Stage-G M8 observed reinforced emergency feed");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "Stage-G M8 observed chapter 8 entry");
+        Equal("LONGEST_NIGHT", run.CurrentChapterId,
+            "Stage-G M8 observed witness chapter");
+        Equal(111, run.CommandCount,
+            "Stage-G M8 observed witness command count");
+        return run;
+    }
+
+    private static (IReadOnlyList<string> Nodes, IReadOnlyList<string> Edges)
+        ExpectedEffectiveUnavailableAssets(
+            CommercialOperatingPhaseDefinition phase,
+            SpatialWorldDefinition world)
+    {
+        var nodes = new SortedSet<string>(
+            phase.UnavailableNodeIds,
+            StringComparer.Ordinal);
+        var edges = new SortedSet<string>(
+            phase.UnavailableEdgeIds,
+            StringComparer.Ordinal);
+        Dictionary<string, SpatialRiskAreaDefinition> riskAreas = world.RiskAreas
+            .ToDictionary(item => item.RiskAreaId, StringComparer.Ordinal);
+        SpatialRiskAreaDefinition[] activeRiskAreas = phase.ActiveRiskAreaIds
+            .Select(id => riskAreas[id])
+            .ToArray();
+        Dictionary<string, SpatialNodeClassDefinition> nodeClasses = world.NodeClasses
+            .ToDictionary(item => item.ClassId, StringComparer.Ordinal);
+        Dictionary<string, SpatialNodeDefinition> worldNodes = world.Nodes
+            .ToDictionary(item => item.NodeId, StringComparer.Ordinal);
+
+        foreach (SpatialNodeDefinition node in world.Nodes)
+        {
+            if (activeRiskAreas.Any(area => FixedGeometry.CircleIntersectsPolygon(
+                    node.Position,
+                    nodeClasses[node.ClassId].FootprintRadiusUnit,
+                    area.Polygon)))
+            {
+                nodes.Add(node.NodeId);
+            }
+        }
+        foreach (SpatialEdgeDefinition edge in world.Edges)
+        {
+            if (activeRiskAreas.Any(area => FixedGeometry.SegmentIntersectsPolygon(
+                    worldNodes[edge.FromNodeId].Position,
+                    worldNodes[edge.ToNodeId].Position,
+                    area.Polygon)))
+            {
+                edges.Add(edge.EdgeId);
+            }
+        }
+        return (Array.AsReadOnly(nodes.ToArray()), Array.AsReadOnly(edges.ToArray()));
     }
 
     private void CheckCommercialCampaignCompletedSaveAndReplay()
@@ -2903,6 +3438,824 @@ internal sealed class CommercialChecks
             "chapter replay journal checkpoint");
     }
 
+    private void CheckStageGTypedUxAndSettingsV3()
+    {
+        var run = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CommercialCampaignSnapshot start = run.GetSnapshot();
+        CommercialSupplyDiagnostic diagnostic = start.FirstBlockingDiagnostic ??
+            throw new InvalidOperationException("Stage-G start omitted blocking diagnostic.");
+        Equal("FIRST_LIGHT_SUPPLY", diagnostic.PhaseId,
+            "Stage-G diagnostic phase ID");
+        Equal("동부 첫 공급", diagnostic.PhaseDisplayName,
+            "Stage-G diagnostic phase name");
+        Equal(1, diagnostic.PhaseNumber, "Stage-G diagnostic phase number");
+        Equal(start.Chapter.OperatingPhases.Count, diagnostic.PhaseCount,
+            "Stage-G diagnostic phase count");
+        Equal("EAST_RESIDENTIAL", diagnostic.LoadId,
+            "Stage-G diagnostic load ID");
+        Check(!string.IsNullOrWhiteSpace(diagnostic.LoadDisplayName),
+            "Stage-G diagnostic omitted load display name");
+        Equal(CommercialObligationKind.SafetyDuty, diagnostic.Obligation,
+            "Stage-G diagnostic obligation");
+        Equal(start.FirstBlockingFailure!.Kind, diagnostic.FailureKind,
+            "Stage-G diagnostic failure kind");
+        Equal(
+            checked(diagnostic.RequiredKw - diagnostic.AvailableKw),
+            diagnostic.ShortfallKw,
+            "Stage-G diagnostic shortfall");
+        Equal(diagnostic.PathNodeIds.Count, diagnostic.PathNodeDisplayNames.Count,
+            "Stage-G diagnostic named path nodes");
+        Equal(diagnostic.PathEdgeIds.Count, diagnostic.PathEdgeDisplayNames.Count,
+            "Stage-G diagnostic named path edges");
+
+        CommercialApprovalChecklist checklist = start.ApprovalChecklist;
+        Equal(start.CanApprove, checklist.CanApprove,
+            "Stage-G checklist approval authority");
+        Equal(1, checklist.WindowNumber, "Stage-G checklist window number");
+        Equal(start.Chapter.DecisionWindows.Count, checklist.WindowCount,
+            "Stage-G checklist window count");
+        Equal(1, checklist.FirstPhaseNumber, "Stage-G checklist first phase");
+        Check(checklist.RemainingBlockerCount > 0 &&
+                checklist.RemainingBlockerCount == checklist.Items.Count(item => !item.Passed),
+            "Stage-G checklist blocker count");
+        CommercialApprovalChecklistItem failedDemand = checklist.Items.Single(item =>
+            item.Kind == CommercialApprovalGateKind.SafetyDemand && !item.Passed);
+        Equal(diagnostic.LoadId, failedDemand.LoadId,
+            "Stage-G checklist clickable failed load");
+        Equal(diagnostic.FailureKind, failedDemand.FailureDiagnostic!.FailureKind,
+            "Stage-G checklist shared failure authority");
+
+        int expectedRows = start.Projections.Sum(item => item.Phase.Loads.Count);
+        Equal(expectedRows, start.PhaseComparisonRows.Count,
+            "Stage-G demand-by-phase row count");
+        CommercialPhaseComparisonRow firstRow = start.PhaseComparisonRows.Single(item =>
+            item.PhaseId == "FIRST_LIGHT_SUPPLY" &&
+            item.LoadId == "EAST_RESIDENTIAL");
+        Equal(CommercialPhaseComparisonApplicability.Evaluated, firstRow.Applicability,
+            "Stage-G phase comparison applicability");
+        Equal(diagnostic.LoadDisplayName, firstRow.LoadDisplayName,
+            "Stage-G phase comparison load name");
+        Equal(diagnostic.FailureKind, firstRow.FailureDiagnostic!.FailureKind,
+            "Stage-G phase comparison failure authority");
+
+        CommercialCampaignSnapshot repeatedStart = run.GetSnapshot();
+        Equal(diagnostic, repeatedStart.FirstBlockingDiagnostic,
+            "Stage-G repeated diagnostic structural equality");
+        Equal(diagnostic.GetHashCode(), repeatedStart.FirstBlockingDiagnostic!.GetHashCode(),
+            "Stage-G repeated diagnostic structural hash");
+        Equal(checklist, repeatedStart.ApprovalChecklist,
+            "Stage-G repeated checklist structural equality");
+        Equal(checklist.GetHashCode(), repeatedStart.ApprovalChecklist.GetHashCode(),
+            "Stage-G repeated checklist structural hash");
+        SequenceEqual(start.PhaseComparisonRows, repeatedStart.PhaseComparisonRows,
+            "Stage-G repeated phase-row structural equality");
+        Equal(
+            start.ConstructionWindowForecast,
+            repeatedStart.ConstructionWindowForecast,
+            "Stage-G repeated construction forecast structural equality");
+
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetNodeDraft(
+                "SMALL_SUBSTATION",
+                new MapPoint(2250, 700)),
+            "Stage-G construction forecast draft");
+        CommercialConstructionWindowForecast currentForecast =
+            run.PreviewConstructionWindowForecast();
+        Equal("FIRST_LIGHT_BUILD_WINDOW", currentForecast.WindowId,
+            "Stage-G construction forecast window");
+        Equal(0L, currentForecast.AlreadySpentMinutes,
+            "Stage-G construction forecast spent minutes");
+        Equal(1, currentForecast.Steps.Count,
+            "Stage-G current construction forecast count");
+        Check(currentForecast.Steps[0].Accepted &&
+                currentForecast.Steps[0].BuildMinutes is > 0,
+            "Stage-G current construction forecast rejected");
+        int commandCountBeforeSequence = run.CommandCount;
+        string stateBeforeSequence = CampaignStateJson(run.GetSnapshot());
+        CommercialConstructionWindowForecast sequence =
+            run.PreviewConstructionWindowForecast(new CommercialNextNodeProjectPlan(
+                "SMALL_SUBSTATION",
+                new MapPoint(2200, 1250)));
+        Equal(2, sequence.Steps.Count,
+            "Stage-G current-plus-next construction forecast count");
+        Check(sequence.Steps.All(item => item.Accepted),
+            "Stage-G current-plus-next construction forecast rejection");
+        Check(sequence.Steps[0].StepRole ==
+                CommercialConstructionForecastStepRole.CurrentDraft &&
+                sequence.Steps[1].StepRole ==
+                CommercialConstructionForecastStepRole.ExplicitNextPlan,
+            "Stage-G current-plus-next forecast roles");
+        Check(sequence.Steps[1].CompletionMinute > sequence.Steps[0].CompletionMinute,
+            "Stage-G construction forecast was not cumulative");
+        Equal(commandCountBeforeSequence, run.CommandCount,
+            "Stage-G construction forecast changed the journal");
+        Equal(stateBeforeSequence, CampaignStateJson(run.GetSnapshot()),
+            "Stage-G construction forecast changed the state");
+        var linePlanA = new CommercialNextLineProjectPlan(
+            "WEST_SOURCE_NODE",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [new MapPoint(750, 650), new MapPoint(1050, 650)],
+            "EAST_RESIDENTIAL_TERMINAL");
+        var linePlanB = new CommercialNextLineProjectPlan(
+            "WEST_SOURCE_NODE",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [new MapPoint(750, 650), new MapPoint(1050, 650)],
+            "EAST_RESIDENTIAL_TERMINAL");
+        Equal(linePlanA, linePlanB,
+            "Stage-G next-line plan structural equality");
+        Equal(linePlanA.GetHashCode(), linePlanB.GetHashCode(),
+            "Stage-G next-line plan structural hash");
+
+        CampaignAccepted(run, CommercialCoreCommand.OrderNode(),
+            "Stage-G recovery ordered node");
+        CampaignAccepted(run, CommercialCoreCommand.AdvanceConstruction(),
+            "Stage-G recovery completed node");
+        CommercialRecoveryPreview recent = run.PreviewRecovery(
+            CommercialRecoveryKind.RecentProject);
+        Check(recent.Enabled && recent.TargetCommandCount == 0,
+            "Stage-G recent recovery preview unavailable");
+        Equal(ConstructionKind.Node, recent.RemovedProjectKind,
+            "Stage-G recent recovery project kind");
+        Equal(1, recent.RemovedNodeIds.Count,
+            "Stage-G recent recovery removed node count");
+        Equal(0, recent.RemovedEdgeIds.Count,
+            "Stage-G recent recovery removed edge count");
+        Equal(0, recent.RemovedRoutePointCount,
+            "Stage-G recent recovery route-point count");
+        Equal(1, recent.RemovedCompletedNodeProjectCount,
+            "Stage-G recent recovery completed-node count");
+        Equal(0, recent.RemovedCompletedLineProjectCount,
+            "Stage-G recent recovery completed-line count");
+        Equal(start.CashUnit, recent.RestoredCashUnit,
+            "Stage-G recent recovery restored cash");
+        Equal(start.Minute, recent.RestoredMinute,
+            "Stage-G recent recovery restored minute");
+        SequenceEqual(start.ThermalState.CoolingAssetIds, recent.RestoredCoolingAssetIds,
+            "Stage-G recent recovery thermal state");
+
+        string eastSubstationId = recent.RemovedNodeIds.Single();
+        BuildCampaignLine(
+            run,
+            "WEST_SOURCE_NODE",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [
+                new MapPoint(750, 650),
+                new MapPoint(1050, 650),
+                new MapPoint(1600, 650),
+                new MapPoint(2050, 650),
+            ],
+            eastSubstationId,
+            "Stage-G mixed recovery completed line");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.StartLineDraft(
+                eastSubstationId,
+                "STANDARD_LINE",
+                "STANDARD_POLE"),
+            "Stage-G mixed recovery line draft start");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.AddLinePoint(new MapPoint(2400, 700)),
+            "Stage-G mixed recovery line draft point");
+        CommercialRecoveryPreview mixed = run.PreviewRecovery(
+            CommercialRecoveryKind.Chapter);
+        Check(mixed.Enabled && mixed.TargetCommandCount == 0,
+            "Stage-G mixed chapter recovery preview unavailable");
+        Equal(null, mixed.RemovedProjectKind,
+            "Stage-G mixed recovery falsely claimed one project kind");
+        Equal(1, mixed.RemovedCompletedNodeProjectCount,
+            "Stage-G mixed recovery completed-node count");
+        Equal(1, mixed.RemovedCompletedLineProjectCount,
+            "Stage-G mixed recovery completed-line count");
+        Equal(6, mixed.RemovedCompletedLineRoutePointCount,
+            "Stage-G mixed recovery completed-line route points");
+        Equal(ConstructionKind.Line, mixed.DiscardedDraftKind,
+            "Stage-G mixed recovery discarded draft kind");
+        Equal(2, mixed.DiscardedDraftRoutePointCount,
+            "Stage-G mixed recovery discarded draft route points");
+        Equal(null, mixed.DiscardedActiveConstructionKind,
+            "Stage-G mixed recovery falsely claimed active construction");
+        Equal(0, mixed.DiscardedActiveLineRoutePointCount,
+            "Stage-G mixed recovery falsely claimed an active line route");
+        Equal(5, mixed.RemovedNodeCount,
+            "Stage-G mixed recovery exact removed node count");
+        Equal(5, mixed.RemovedEdgeCount,
+            "Stage-G mixed recovery exact removed edge count");
+        Equal(8, mixed.RemovedRoutePointCount,
+            "Stage-G mixed recovery aggregate route points");
+        IReadOnlyList<CommercialRecoveryPreview> repeatedRecoveries =
+            run.GetRecoveryPreviews();
+        SequenceEqual(repeatedRecoveries, run.GetRecoveryPreviews(),
+            "Stage-G repeated recovery structural equality");
+        Check(ReferenceEquals(repeatedRecoveries, run.GetRecoveryPreviews()),
+            "Stage-G recovery preview lazy cache was not reused");
+        CommercialRecoveryPreview mixedCopy = mixed with
+        {
+            RemovedNodeIds = mixed.RemovedNodeIds.ToArray(),
+            RemovedEdgeIds = mixed.RemovedEdgeIds.ToArray(),
+            RestoredCoolingAssetIds = mixed.RestoredCoolingAssetIds.ToArray(),
+        };
+        Equal(mixed, mixedCopy,
+            "Stage-G copied recovery structural equality");
+        Equal(mixed.GetHashCode(), mixedCopy.GetHashCode(),
+            "Stage-G copied recovery structural hash");
+
+        CheckStageGRecoveryPhasePreviewsAndCache();
+        CheckStageGForecastDependencyBlocking();
+        CheckStageGFutureSafetyGate();
+        CheckStageGCommandCapacity();
+
+        CheckCommercialSettingsV3();
+    }
+
+    private void CheckStageGRecoveryPhasePreviewsAndCache()
+    {
+        var nodeDraftRun = new CommercialCampaignRun(_campaign, _commercialWorld);
+        IReadOnlyList<CommercialRecoveryPreview> initialCache =
+            nodeDraftRun.GetRecoveryPreviews();
+        CampaignAccepted(
+            nodeDraftRun,
+            CommercialCoreCommand.SetNodeDraft(
+                "SMALL_SUBSTATION",
+                new MapPoint(2250, 700)),
+            "Stage-G node-draft recovery setup");
+        IReadOnlyList<CommercialRecoveryPreview> nodeDraftCache =
+            nodeDraftRun.GetRecoveryPreviews();
+        Check(!ReferenceEquals(initialCache, nodeDraftCache),
+            "Stage-G recovery cache survived an accepted command");
+        CommercialRecoveryPreview nodeDraft = nodeDraftCache.Single(item =>
+            item.Kind == CommercialRecoveryKind.Chapter);
+        Check(nodeDraft.Enabled &&
+                nodeDraft.RemovedProjectKind == ConstructionKind.Node &&
+                nodeDraft.DiscardedDraftKind == ConstructionKind.Node &&
+                nodeDraft.DiscardedDraftRoutePointCount == 0 &&
+                nodeDraft.DiscardedActiveConstructionKind is null &&
+                nodeDraft.DiscardedActiveLineRoutePointCount == 0 &&
+                nodeDraft.RemovedNodeCount == 0 &&
+                nodeDraft.RemovedEdgeCount == 0,
+            "Stage-G node-draft recovery consequence was not exact");
+        Check(nodeDraftRun.RestartChapter(),
+            "Stage-G node-draft recovery replay failed");
+        IReadOnlyList<CommercialRecoveryPreview> replayedCache =
+            nodeDraftRun.GetRecoveryPreviews();
+        Check(!ReferenceEquals(nodeDraftCache, replayedCache) &&
+                replayedCache.All(item => !item.Enabled),
+            "Stage-G recovery cache survived replay or retained stale actions");
+
+        var nodeBuildingRun = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CampaignAccepted(
+            nodeBuildingRun,
+            CommercialCoreCommand.SetNodeDraft(
+                "SMALL_SUBSTATION",
+                new MapPoint(2250, 700)),
+            "Stage-G node-building recovery draft");
+        CampaignAccepted(
+            nodeBuildingRun,
+            CommercialCoreCommand.OrderNode(),
+            "Stage-G node-building recovery order");
+        CommercialRecoveryPreview nodeBuilding = nodeBuildingRun.PreviewRecovery(
+            CommercialRecoveryKind.Chapter);
+        Check(nodeBuilding.RemovedProjectKind == ConstructionKind.Node &&
+                nodeBuilding.DiscardedDraftKind is null &&
+                nodeBuilding.DiscardedActiveConstructionKind == ConstructionKind.Node &&
+                nodeBuilding.RemovedCompletedNodeProjectCount == 0 &&
+                nodeBuilding.RemovedNodeCount == 1 &&
+                nodeBuilding.RemovedEdgeCount == 0 &&
+                nodeBuilding.DiscardedActiveLineRoutePointCount == 0 &&
+                nodeBuilding.RemovedRoutePointCount == 0,
+            "Stage-G node-building recovery consequence was not exact");
+
+        var lineDraftRun = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CampaignAccepted(
+            lineDraftRun,
+            CommercialCoreCommand.StartLineDraft(
+                "WEST_SOURCE_NODE",
+                "STANDARD_LINE",
+                "STANDARD_POLE"),
+            "Stage-G line-draft recovery start");
+        CampaignAccepted(
+            lineDraftRun,
+            CommercialCoreCommand.AddLinePoint(new MapPoint(750, 650)),
+            "Stage-G line-draft recovery point");
+        CommercialRecoveryPreview lineDraft = lineDraftRun.PreviewRecovery(
+            CommercialRecoveryKind.Chapter);
+        Check(lineDraft.RemovedProjectKind == ConstructionKind.Line &&
+                lineDraft.DiscardedDraftKind == ConstructionKind.Line &&
+                lineDraft.DiscardedDraftRoutePointCount == 2 &&
+                lineDraft.DiscardedActiveConstructionKind is null &&
+                lineDraft.DiscardedActiveLineRoutePointCount == 0 &&
+                lineDraft.RemovedNodeCount == 0 &&
+                lineDraft.RemovedEdgeCount == 0 &&
+                lineDraft.RemovedRoutePointCount == 2,
+            "Stage-G line-draft recovery consequence was not exact");
+
+        var lineBuildingRun = new CommercialCampaignRun(_campaign, _commercialWorld);
+        string substationId = BuildCampaignNode(
+            lineBuildingRun,
+            "SMALL_SUBSTATION",
+            new MapPoint(2250, 700),
+            "Stage-G line-building recovery substation");
+        CampaignAccepted(
+            lineBuildingRun,
+            CommercialCoreCommand.StartLineDraft(
+                "WEST_SOURCE_NODE",
+                "STANDARD_LINE",
+                "STANDARD_POLE"),
+            "Stage-G endpoint-undo line start");
+        foreach (MapPoint point in new[]
+                 {
+                     new MapPoint(750, 650),
+                     new MapPoint(1050, 650),
+                     new MapPoint(1600, 650),
+                     new MapPoint(2050, 650),
+                 })
+        {
+            CampaignAccepted(
+                lineBuildingRun,
+                CommercialCoreCommand.AddLinePoint(point),
+                $"Stage-G endpoint-undo line point {point}");
+        }
+        CampaignAccepted(
+            lineBuildingRun,
+            CommercialCoreCommand.FinishLineDraft(substationId),
+            "Stage-G endpoint-undo first finish");
+        CampaignAccepted(
+            lineBuildingRun,
+            CommercialCoreCommand.UndoLinePoint(),
+            "Stage-G endpoint-undo remove endpoint");
+        LineDraftSnapshot undone = lineBuildingRun.GetSnapshot().Construction.LineDraft ??
+            throw new InvalidOperationException(
+                "Stage-G endpoint undo discarded the line draft.");
+        Check(undone.EndNodeId is null && undone.IntermediatePoints.Count == 4,
+            "Stage-G endpoint undo removed an intermediate route point");
+        CampaignAccepted(
+            lineBuildingRun,
+            CommercialCoreCommand.FinishLineDraft(substationId),
+            "Stage-G endpoint-undo second finish");
+        CampaignAccepted(
+            lineBuildingRun,
+            CommercialCoreCommand.OrderLine(),
+            "Stage-G line-building recovery order");
+        CommercialRecoveryPreview lineBuilding = lineBuildingRun.PreviewRecovery(
+            CommercialRecoveryKind.Chapter);
+        Check(lineBuilding.RemovedProjectKind is null &&
+                lineBuilding.RemovedCompletedNodeProjectCount == 1 &&
+                lineBuilding.RemovedCompletedLineProjectCount == 0 &&
+                lineBuilding.DiscardedActiveConstructionKind == ConstructionKind.Line &&
+                lineBuilding.DiscardedActiveLineRoutePointCount == 6 &&
+                lineBuilding.RemovedNodeCount == 5 &&
+                lineBuilding.RemovedEdgeCount == 5 &&
+                lineBuilding.RemovedRoutePointCount == 6,
+            "Stage-G line-building recovery consequence was not exact");
+        CampaignAccepted(
+            lineBuildingRun,
+            CommercialCoreCommand.AdvanceConstruction(),
+            "Stage-G endpoint-undo line completion");
+        CommercialRecoveryPreview completedLine = lineBuildingRun.PreviewRecovery(
+            CommercialRecoveryKind.Chapter);
+        Check(completedLine.RemovedCompletedNodeProjectCount == 1 &&
+                completedLine.RemovedCompletedLineProjectCount == 1 &&
+                completedLine.RemovedCompletedLineRoutePointCount == 6 &&
+                completedLine.DiscardedActiveConstructionKind is null &&
+                completedLine.DiscardedActiveLineRoutePointCount == 0 &&
+                completedLine.RemovedRoutePointCount == 6,
+            "Stage-G endpoint undo corrupted completed-line recovery counts");
+    }
+
+    private void CheckStageGForecastDependencyBlocking()
+    {
+        var run = new CommercialCampaignRun(_campaign, _commercialWorld);
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.StartLineDraft(
+                "WEST_SOURCE_NODE",
+                "STANDARD_LINE",
+                "STANDARD_POLE"),
+            "Stage-G incomplete-line forecast start");
+        int commandCount = run.CommandCount;
+        string state = CampaignStateJson(run.GetSnapshot());
+        CommercialConstructionWindowForecast forecast =
+            run.PreviewConstructionWindowForecast(
+                new CommercialNextNodeProjectPlan(
+                    "SMALL_SUBSTATION",
+                    new MapPoint(2250, 700)));
+        Equal(2, forecast.Steps.Count,
+            "Stage-G incomplete-line current-plus-next forecast count");
+        CommercialConstructionForecastStep current = forecast.Steps[0];
+        Check(current.SequenceNumber == 1 &&
+                current.StepRole ==
+                    CommercialConstructionForecastStepRole.CurrentDraft &&
+                current.Kind == ConstructionKind.Line &&
+                !current.Accepted &&
+                current.Error == CommercialCampaignRunError.ConstructionRejected &&
+                current.ConstructionError == ConstructionError.DraftIncomplete &&
+                current.BuildMinutes is null &&
+                current.CompletionMinute is null &&
+                current.RemainingMinutesAfterCompletion is null,
+            "Stage-G incomplete line was not the typed first forecast step");
+        CommercialConstructionForecastStep next = forecast.Steps[1];
+        Check(next.SequenceNumber == 2 &&
+                next.StepRole ==
+                    CommercialConstructionForecastStepRole.ExplicitNextPlan &&
+                next.Kind == ConstructionKind.Node &&
+                !next.Accepted &&
+                next.Error == CommercialCampaignRunError.WrongState &&
+                next.ConstructionError is null &&
+                next.BuildMinutes is null &&
+                next.CompletionMinute is null &&
+                next.RemainingMinutesAfterCompletion is null,
+            "Stage-G next project reused or mislabeled a rejected current quote");
+        Equal(commandCount, run.CommandCount,
+            "Stage-G incomplete-line forecast changed the journal");
+        Equal(state, CampaignStateJson(run.GetSnapshot()),
+            "Stage-G incomplete-line forecast changed state");
+    }
+
+    private void CheckStageGFutureSafetyGate()
+    {
+        CommercialCampaignChapterDefinition[] chapters = _campaign.Chapters.ToArray();
+        for (int index = 0; index < 4; index++)
+        {
+            CommercialCampaignChapterDefinition chapter = chapters[index];
+            CommercialOperatingPhaseDefinition originalPhase = chapter.OperatingPhases[0];
+            CommercialLoadBundleDefinition[] loads = index == 3
+                ?
+                [
+                    new CommercialLoadBundleDefinition(
+                        "HOSPITAL",
+                        1,
+                        CommercialObligationKind.SafetyDuty),
+                    new CommercialLoadBundleDefinition(
+                        "NORTH_RESIDENTIAL",
+                        1,
+                        CommercialObligationKind.CityPromise),
+                ]
+                :
+                [
+                    new CommercialLoadBundleDefinition(
+                        "HOSPITAL",
+                        1,
+                        CommercialObligationKind.SafetyDuty),
+                ];
+            CommercialOperatingPhaseDefinition phase = originalPhase with
+            {
+                ThermalPolicy = CommercialPhaseThermalPolicy.ContinuousOnly,
+                Loads = loads,
+                UnavailableNodeIds = Array.Empty<string>(),
+                UnavailableEdgeIds = Array.Empty<string>(),
+                ActiveRiskAreaIds = Array.Empty<string>(),
+                ThermalLimitOverrides = Array.Empty<ThermalLimitOverride>(),
+            };
+            chapters[index] = chapter with
+            {
+                DecisionWindows =
+                [
+                    chapter.DecisionWindows[0] with
+                    {
+                        BeforePhaseId = phase.PhaseId,
+                        BuildMinutesAvailable = null,
+                    },
+                ],
+                OperatingPhases = [phase],
+            };
+        }
+
+        CommercialOperatingPhaseDefinition coreHot = _coreSlice.Main.Chapter
+            .OperatingPhases.Single(phase => phase.PhaseId == "HOT_EVENING");
+        CommercialOperatingPhaseDefinition coreRecovery = _coreSlice.Main.Chapter
+            .OperatingPhases.Single(phase => phase.PhaseId == "NIGHT_RECOVERY");
+        CommercialOperatingPhaseDefinition hotBase = coreHot with
+        {
+            PhaseId = "HOT_BASE",
+            DisplayName = "Stage-G future gate base",
+            ThermalPolicy = CommercialPhaseThermalPolicy.ContinuousOnly,
+            Story = null,
+            Loads = coreHot.Loads.Where(load =>
+                load.Obligation != CommercialObligationKind.CityPromise).ToArray(),
+        };
+        CommercialOperatingPhaseDefinition nightShift = coreHot with
+        {
+            PhaseId = "NIGHT_SHIFT",
+            DisplayName = "Stage-G future gate emergency promise",
+            ThermalPolicy = CommercialPhaseThermalPolicy.ContinuousOnly,
+            Story = null,
+        };
+        CommercialOperatingPhaseDefinition lateNight = coreRecovery with
+        {
+            PhaseId = "LATE_NIGHT",
+            DisplayName = "Stage-G future gate recovery",
+            ThermalPolicy = CommercialPhaseThermalPolicy.ContinuousOnly,
+            Story = null,
+        };
+        chapters[4] = chapters[4] with
+        {
+            OperatingPhases = [hotBase, nightShift, lateNight],
+        };
+        CommercialCampaignDefinition campaign = _campaign with
+        {
+            InitialSeed = _coreSlice.Main.Seed,
+            Chapters = chapters,
+        };
+        CommercialCampaignLoader.Validate(campaign, _commercialWorld);
+
+        var run = new CommercialCampaignRun(campaign, _commercialWorld);
+        for (int chapterIndex = 0; chapterIndex < 3; chapterIndex++)
+        {
+            CampaignAccepted(
+                run,
+                CommercialCoreCommand.ApproveDecisionWindow(),
+                $"Stage-G future-gate seed chapter {chapterIndex + 1}");
+        }
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Defer),
+            "Stage-G future-gate seed promise");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            "Stage-G future-gate seed chapter 4");
+        Equal("WHOSE_MARGIN", run.CurrentChapterId,
+            "Stage-G future-gate chapter entry");
+        CampaignAccepted(
+            run,
+            CommercialCoreCommand.SetPromiseDecision(CommercialPromiseDecision.Keep),
+            "Stage-G future-gate keep promise");
+        BuildCampaignLine(
+            run,
+            "SOUTH_SUBSTATION",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            [new MapPoint(2100, 1800)],
+            "FACTORY_TERMINAL",
+            "Stage-G future-gate unsafe shared line");
+
+        CommercialCampaignSnapshot preview = run.GetSnapshot();
+        Check(CampaignProjection(preview, "HOT_BASE").SafetySatisfied &&
+                CampaignProjection(preview, "NIGHT_SHIFT").SafetySatisfied &&
+                CampaignProjection(preview, "NIGHT_SHIFT").PromiseSatisfied &&
+                !CampaignProjection(preview, "LATE_NIGHT").SafetySatisfied,
+            "Stage-G future-gate witness did not isolate thermal carryover");
+        CommercialApprovalChecklistItem failedGate = preview.ApprovalChecklist.Items
+            .First(item =>
+                item.Kind == CommercialApprovalGateKind.FutureSafety && !item.Passed);
+        Check(!preview.CanApprove &&
+                failedGate.PhaseId == "LATE_NIGHT" &&
+                failedGate.Obligation == CommercialObligationKind.SafetyDuty &&
+                failedGate.FailureDiagnostic is not null,
+            "Stage-G failing future-safety checklist gate was not typed");
+        int commandCount = run.CommandCount;
+        string state = CampaignStateJson(preview);
+        CommercialCampaignCommandResult rejected = run.Execute(
+            CommercialCoreCommand.ApproveDecisionWindow());
+        Check(!rejected.Accepted &&
+                rejected.Error == CommercialCampaignRunError.FutureSafetyAtRisk,
+            "Stage-G checklist/apply future-safety authority diverged");
+        Equal(commandCount, run.CommandCount,
+            "Stage-G future-safety rejection changed the journal");
+        Equal(state, CampaignStateJson(rejected.Snapshot),
+            "Stage-G future-safety rejection changed state");
+    }
+
+    private void CheckStageGCommandCapacity()
+    {
+        var seed = new CommercialCampaignRun(_campaign, _commercialWorld);
+        _ = CompleteCampaignFirstFour(seed, "Stage-G command-capacity seed");
+        var saturatedJournal = seed.Commands.ToList();
+        while (saturatedJournal.Count < CommercialCampaignRun.MaximumAcceptedCommands)
+        {
+            saturatedJournal.Add(CommercialCoreCommand.SetPromiseDecision(
+                CommercialPromiseDecision.Defer));
+        }
+        CommercialCampaignRun saturated = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            saturatedJournal);
+        CommercialCampaignSnapshot saturatedSnapshot = saturated.GetSnapshot();
+        CommercialApprovalChecklistItem capacityGate = saturatedSnapshot
+            .ApprovalChecklist.Items.Single(item =>
+                item.Kind == CommercialApprovalGateKind.CommandCapacity);
+        Check(!saturatedSnapshot.CanApprove &&
+                !capacityGate.Passed &&
+                capacityGate.Current == 0 &&
+                capacityGate.Shortfall == 1,
+            "Stage-G saturated approval checklist omitted command capacity");
+        CampaignRejectedPreserves(
+            saturated,
+            CommercialCoreCommand.ApproveDecisionWindow(),
+            CommercialCampaignRunError.CommandLimit,
+            null,
+            "Stage-G saturated approval command limit");
+        CommercialConstructionWindowForecast saturatedForecast =
+            saturated.PreviewConstructionWindowForecast(
+                new CommercialNextNodeProjectPlan(
+                    "SMALL_SUBSTATION",
+                    new MapPoint(2400, 900)));
+        Equal(1, saturatedForecast.Steps.Count,
+            "Stage-G saturated next-plan forecast count");
+        Check(!saturatedForecast.Steps[0].Accepted &&
+                saturatedForecast.Steps[0].StepRole ==
+                    CommercialConstructionForecastStepRole.ExplicitNextPlan &&
+                saturatedForecast.Steps[0].Error ==
+                    CommercialCampaignRunError.CommandLimit,
+            "Stage-G saturated forecast ignored draft/order/advance slots");
+
+        CommercialCoreCommand[] nearLimitJournal = saturatedJournal
+            .Take(CommercialCampaignRun.MaximumAcceptedCommands - 2)
+            .Append(CommercialCoreCommand.SetNodeDraft(
+                "SMALL_SUBSTATION",
+                new MapPoint(2400, 900)))
+            .ToArray();
+        CommercialCampaignRun nearLimit = CommercialCampaignRun.Restore(
+            _campaign,
+            _commercialWorld,
+            nearLimitJournal);
+        Equal(
+            CommercialCampaignRun.MaximumAcceptedCommands - 1,
+            nearLimit.CommandCount,
+            "Stage-G near-limit draft journal count");
+        CommercialCampaignProjectQuote strandedQuote = nearLimit.PreviewNodeOrder();
+        Check(!strandedQuote.Accepted &&
+                strandedQuote.Error == CommercialCampaignRunError.CommandLimit,
+            "Stage-G near-limit quote would strand an ordered project");
+        CampaignRejectedPreserves(
+            nearLimit,
+            CommercialCoreCommand.OrderNode(),
+            CommercialCampaignRunError.CommandLimit,
+            null,
+            "Stage-G near-limit order stranded-building prevention");
+        Equal(ConstructionPhase.NodeDrafting, nearLimit.GetSnapshot().Construction.Phase,
+            "Stage-G rejected near-limit order changed the draft");
+        CommercialConstructionWindowForecast nearLimitForecast =
+            nearLimit.PreviewConstructionWindowForecast(
+                new CommercialNextLineProjectPlan(
+                    "WEST_SOURCE_NODE",
+                    "STANDARD_LINE",
+                    "STANDARD_POLE",
+                    Array.Empty<MapPoint>(),
+                    "EAST_RESIDENTIAL_TERMINAL"));
+        Equal(2, nearLimitForecast.Steps.Count,
+            "Stage-G near-limit current-plus-next forecast count");
+        Check(nearLimitForecast.Steps[0].Kind == ConstructionKind.Node &&
+                nearLimitForecast.Steps[0].StepRole ==
+                    CommercialConstructionForecastStepRole.CurrentDraft &&
+                nearLimitForecast.Steps[0].Error ==
+                    CommercialCampaignRunError.CommandLimit,
+            "Stage-G near-limit current forecast lost command-limit authority");
+        Check(nearLimitForecast.Steps[1].Kind == ConstructionKind.Line &&
+                nearLimitForecast.Steps[1].StepRole ==
+                    CommercialConstructionForecastStepRole.ExplicitNextPlan &&
+                nearLimitForecast.Steps[1].Error ==
+                    CommercialCampaignRunError.WrongState &&
+                nearLimitForecast.Steps[1].ConstructionError is null &&
+                nearLimitForecast.Steps[1].BuildMinutes is null &&
+                nearLimitForecast.Steps[1].CompletionMinute is null &&
+                nearLimitForecast.Steps[1].RemainingMinutesAfterCompletion is null,
+            "Stage-G near-limit next forecast reused or mislabeled the current quote");
+    }
+
+    private void CheckCommercialSettingsV3()
+    {
+        CommercialSettings settings = new(
+            CommercialSettings.SupportedSchemaVersion,
+            true,
+            125,
+            0,
+            50,
+            100,
+            true);
+        byte[] bytes = CommercialSettingsCodec.Serialize(settings);
+        Equal(settings, CommercialSettingsCodec.DeserializeV3(bytes),
+            "commercial settings v3 round trip");
+        SequenceEqual(bytes, CommercialSettingsCodec.Serialize(settings),
+            "commercial settings v3 canonical bytes");
+        Equal(CommercialSettingsDocumentKind.Version3,
+            CommercialSettingsCodec.Decode(bytes).Kind,
+            "commercial settings v3 document kind");
+
+        byte[] version2 = Encoding.UTF8.GetBytes(
+            "{\"schemaVersion\":\"gridworks.settings.v2\",\"windowMode\":\"fullscreen\",\"uiScalePercent\":125,\"showControlHelp\":false,\"masterVolumePercent\":25,\"ambientVolumePercent\":50,\"sfxVolumePercent\":75}");
+        CommercialSettingsDecodeResult imported = CommercialSettingsCodec.Decode(version2);
+        Equal(CommercialSettingsDocumentKind.ImportedVersion2, imported.Kind,
+            "commercial settings v2 import kind");
+        Check(imported.Settings.Fullscreen &&
+                imported.Settings.UiScalePercent == 125 &&
+                imported.Settings.MasterVolumePercent == 25 &&
+                imported.Settings.AmbientVolumePercent == 50 &&
+                imported.Settings.SfxVolumePercent == 75 &&
+                !imported.Settings.ReduceMotion,
+            "commercial settings v2 fields were not preserved");
+        Equal(imported.Settings, CommercialSettingsCodec.ImportV2(version2),
+            "commercial settings explicit v2 import");
+
+        foreach ((string label, byte[] invalid) in new[]
+                 {
+                     ("unknown v3 field", Encoding.UTF8.GetBytes(
+                         "{\"schemaVersion\":\"gridworks.settings.v3\",\"fullscreen\":false,\"uiScalePercent\":100,\"masterVolumePercent\":100,\"ambientVolumePercent\":100,\"sfxVolumePercent\":100,\"reduceMotion\":false,\"extra\":true}")),
+                     ("duplicate v3 field", Encoding.UTF8.GetBytes(
+                         "{\"schemaVersion\":\"gridworks.settings.v3\",\"fullscreen\":false,\"fullscreen\":true,\"uiScalePercent\":100,\"masterVolumePercent\":100,\"ambientVolumePercent\":100,\"sfxVolumePercent\":100,\"reduceMotion\":false}")),
+                     ("negative v3 volume", Encoding.UTF8.GetBytes(
+                         "{\"schemaVersion\":\"gridworks.settings.v3\",\"fullscreen\":false,\"uiScalePercent\":100,\"masterVolumePercent\":-1,\"ambientVolumePercent\":100,\"sfxVolumePercent\":100,\"reduceMotion\":false}")),
+                     ("unsupported v3 volume step", Encoding.UTF8.GetBytes(
+                         "{\"schemaVersion\":\"gridworks.settings.v3\",\"fullscreen\":false,\"uiScalePercent\":100,\"masterVolumePercent\":100,\"ambientVolumePercent\":33,\"sfxVolumePercent\":100,\"reduceMotion\":false}")),
+                     ("invalid v2 volume", Encoding.UTF8.GetBytes(
+                         "{\"schemaVersion\":\"gridworks.settings.v2\",\"windowMode\":\"windowed\",\"uiScalePercent\":100,\"showControlHelp\":true,\"masterVolumePercent\":100,\"ambientVolumePercent\":33,\"sfxVolumePercent\":100}")),
+                     ("unsupported v1", Encoding.UTF8.GetBytes(
+                         "{\"schemaVersion\":\"gridworks.settings.v1\"}")),
+                 })
+        {
+            ExpectThrows<CommercialSettingsValidationException>(
+                () => _ = CommercialSettingsCodec.Decode(invalid),
+                label);
+        }
+
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            $"gridworks-commercial-settings-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, CommercialSettingsStore.SettingsFileName);
+        try
+        {
+            Equal(CommercialSettingsLoadStatus.Missing,
+                CommercialSettingsStore.Load(path).Status,
+                "commercial settings missing status");
+            CommercialSettingsWriteResult write = CommercialSettingsStore.Save(path, settings);
+            Equal(CommercialSettingsWriteStatus.Saved, write.Status,
+                "commercial settings atomic write status");
+            Check(!File.Exists(path + ".tmp"),
+                "commercial settings write left a temp file");
+            Equal(settings, CommercialSettingsStore.Load(path).Settings,
+                "commercial settings stored value");
+
+            File.WriteAllBytes(path, version2);
+            CommercialSettingsLoadResult migration = CommercialSettingsStore.Load(path);
+            Equal(CommercialSettingsLoadStatus.MigratedFromVersion2, migration.Status,
+                "commercial settings v2 migration status");
+            Equal(imported.Settings, migration.Settings,
+                "commercial settings v2 migration value");
+            Equal(CommercialSettingsDocumentKind.Version3,
+                CommercialSettingsCodec.Decode(File.ReadAllBytes(path)).Kind,
+                "commercial settings migration did not write v3");
+
+            File.WriteAllBytes(path, version2);
+            Directory.CreateDirectory(path + ".tmp");
+            CommercialSettingsLoadResult failedMigration =
+                CommercialSettingsStore.Load(path);
+            Equal(
+                CommercialSettingsLoadStatus.MigrationWriteFailed,
+                failedMigration.Status,
+                "commercial settings migration write-failure status");
+            Equal(
+                CommercialSettingsLoadError.MigrationWriteFailed,
+                failedMigration.Error,
+                "commercial settings migration write-failure typed error");
+            Equal(imported.Settings, failedMigration.Settings,
+                "commercial settings failed migration lost imported settings");
+            SequenceEqual(version2, File.ReadAllBytes(path),
+                "commercial settings failed migration replaced legacy bytes");
+            Directory.Delete(path + ".tmp");
+
+            byte[] invalidV3 = Encoding.UTF8.GetBytes(
+                "{\"schemaVersion\":\"gridworks.settings.v3\",\"fullscreen\":false}");
+            File.WriteAllBytes(path, invalidV3);
+            CommercialSettingsLoadResult invalidLoad = CommercialSettingsStore.Load(path);
+            Equal(CommercialSettingsLoadStatus.Invalid, invalidLoad.Status,
+                "commercial settings invalid v3 load status");
+            Equal(CommercialSettingsLoadError.InvalidDocument, invalidLoad.Error,
+                "commercial settings invalid v3 typed error");
+            SequenceEqual(invalidV3, File.ReadAllBytes(path),
+                "commercial settings invalid v3 was overwritten");
+
+            byte[] invalidV2 = Encoding.UTF8.GetBytes(
+                "{\"schemaVersion\":\"gridworks.settings.v2\",\"windowMode\":\"windowed\"}");
+            File.WriteAllBytes(path, invalidV2);
+            invalidLoad = CommercialSettingsStore.Load(path);
+            Equal(CommercialSettingsLoadStatus.Invalid, invalidLoad.Status,
+                "commercial settings invalid v2 load status");
+            SequenceEqual(invalidV2, File.ReadAllBytes(path),
+                "commercial settings invalid v2 was overwritten");
+
+            byte[] committed = CommercialSettingsCodec.Serialize(settings);
+            File.WriteAllBytes(path, committed);
+            CommercialSettingsWriteResult invalidWrite = CommercialSettingsStore.Save(
+                path,
+                settings with { UiScalePercent = 150 });
+            Equal(CommercialSettingsWriteStatus.Failed, invalidWrite.Status,
+                "commercial settings invalid write status");
+            Equal(CommercialSettingsWriteError.InvalidSettings, invalidWrite.Error,
+                "commercial settings invalid write error");
+            SequenceEqual(committed, File.ReadAllBytes(path),
+                "commercial settings invalid write replaced committed bytes");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private void CompleteCampaignWhoseMargin(
         CommercialCampaignRun run,
         CampaignRouteState routes,
@@ -2958,6 +4311,14 @@ internal sealed class CommercialChecks
         CommercialCampaignSnapshot planned = run.GetSnapshot();
         Check(run.CommandCount > start.ChapterStartCommandCount,
             $"{label}: whose-margin completed without work");
+        CommercialApprovalChecklistItem[] futureSafetyGates = planned.ApprovalChecklist.Items
+            .Where(item => item.Kind == CommercialApprovalGateKind.FutureSafety)
+            .ToArray();
+        Check(futureSafetyGates.Length >= 2 && futureSafetyGates.All(item =>
+                item.Passed &&
+                item.PhaseId == "LATE_NIGHT" &&
+                item.Obligation == CommercialObligationKind.SafetyDuty),
+            $"{label}: future thermal checklist gates were absent or inconsistent");
         ThermalIntervalEvaluation hotBase =
             CampaignProjection(planned, "HOT_BASE").Evaluation;
         ThermalIntervalEvaluation nightShift =
@@ -3737,6 +5098,13 @@ internal sealed class CommercialChecks
         CommercialPhaseProjection shortHotProjection = Projection(shortDraft, "HOT_EVENING");
         Check(shortHotProjection.SafetySatisfied && shortHotProjection.PromiseSatisfied,
             "short design preview did not satisfy current obligations");
+        Check(
+            shortHotProjection.ProjectedWorld is SpatialWorldDefinition shortProjectedWorld &&
+            shortProjectedWorld.Edges.Any(edge => edge.EdgeId == "PLAYER_EDGE_1") &&
+            shortProjectedWorld.Nodes.Any(node => node.NodeId == "PLAYER_POLE_1") &&
+            ((IList<SpatialNodeDefinition>)shortProjectedWorld.Nodes).IsReadOnly &&
+            ((IList<SpatialEdgeDefinition>)shortProjectedWorld.Edges).IsReadOnly,
+            "short design projection did not expose its exact frozen projected geometry");
         ThermalIntervalEvaluation shortPreview = shortHotProjection.Evaluation;
         CoreAccepted(shortRun, CommercialCoreCommand.OrderLine(), "order short shared design");
         CoreAccepted(shortRun, CommercialCoreCommand.AdvanceConstruction(),

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace Gridworks.Game;
 
+#if DEBUG
 internal enum CommercialCampaignSmokeLeg
 {
     None,
@@ -13,21 +14,26 @@ internal enum CommercialCampaignSmokeLeg
 internal sealed record CommercialLaunchOptions(
     bool PlacementSmoke,
     bool ThermalSmoke,
+    bool StageGLayoutSmoke,
     CommercialCampaignSmokeLeg CampaignSmokeLeg,
     string? SmokeSavePath)
+#else
+internal sealed record CommercialLaunchOptions
+#endif
 {
     public static CommercialLaunchOptions Parse(IReadOnlyList<string> arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);
+#if DEBUG
         bool placementSmoke = false;
         bool thermalSmoke = false;
+        bool stageGLayoutSmoke = false;
         CommercialCampaignSmokeLeg campaignSmokeLeg = CommercialCampaignSmokeLeg.None;
         string? smokeSavePath = null;
         foreach (string argument in arguments)
         {
             switch (argument)
             {
-#if DEBUG
                 case "--commercial-placement-smoke" when !placementSmoke:
                     placementSmoke = true;
                     break;
@@ -40,6 +46,12 @@ internal sealed record CommercialLaunchOptions(
                 case "--commercial-thermal-smoke":
                     throw new ArgumentException(
                         "열 운전 확인 인자는 한 번만 사용할 수 있습니다.");
+                case "--commercial-stage-g-layout-smoke" when !stageGLayoutSmoke:
+                    stageGLayoutSmoke = true;
+                    break;
+                case "--commercial-stage-g-layout-smoke":
+                    throw new ArgumentException(
+                        "단계 G 화면 확인 인자는 한 번만 사용할 수 있습니다.");
                 case "--commercial-campaign-smoke=first" when
                     campaignSmokeLeg == CommercialCampaignSmokeLeg.None:
                     campaignSmokeLeg = CommercialCampaignSmokeLeg.First;
@@ -67,12 +79,12 @@ internal sealed record CommercialLaunchOptions(
                             "상용 캠페인 확인 저장 경로는 절대경로여야 합니다.");
                     }
                     break;
-#endif
                 default:
                     throw new ArgumentException($"지원하지 않는 상용 게임 실행 인자입니다: {argument}");
             }
         }
         int smokeCount = (placementSmoke ? 1 : 0) + (thermalSmoke ? 1 : 0) +
+            (stageGLayoutSmoke ? 1 : 0) +
             (campaignSmokeLeg == CommercialCampaignSmokeLeg.None ? 0 : 1);
         if (smokeCount > 1)
         {
@@ -86,7 +98,16 @@ internal sealed record CommercialLaunchOptions(
         return new CommercialLaunchOptions(
             placementSmoke,
             thermalSmoke,
+            stageGLayoutSmoke,
             campaignSmokeLeg,
             smokeSavePath);
+#else
+        if (arguments.Count > 0)
+        {
+            throw new ArgumentException(
+                $"지원하지 않는 상용 게임 실행 인자입니다: {arguments[0]}");
+        }
+        return new CommercialLaunchOptions();
+#endif
     }
 }

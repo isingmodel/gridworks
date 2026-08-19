@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://CommercialMain.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://CommercialMapView.tscn" id="2_map"]
 [ext_resource type="PackedScene" path="res://CommercialTaskPanel.tscn" id="3_panel"]
-[ext_resource type="Theme" path="res://ReleaseTheme.tres" id="4_theme"]
+[ext_resource type="Theme" path="res://CommercialTheme.tres" id="4_theme"]
 [ext_resource type="PackedScene" path="res://CommercialShell.tscn" id="5_shell"]
 [ext_resource type="Script" path="res://CommercialAudio.cs" id="6_audio"]
 

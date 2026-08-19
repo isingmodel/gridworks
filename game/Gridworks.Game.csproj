@@ -12,6 +12,8 @@
     <DebugSymbols>false</DebugSymbols>
     <Deterministic>true</Deterministic>
     <PathMap>$(MSBuildProjectDirectory)=/_/game</PathMap>
+    <CommercialProductVersion Condition="'$(CommercialProductVersion)' == ''">1.0.0</CommercialProductVersion>
+    <CommercialBuildIdentityFile>$(IntermediateOutputPath)commercial-build-identity-v1.json</CommercialBuildIdentityFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,6 +29,39 @@
                       LogicalName="Gridworks.Game.EmbeddedData.product-heatwave-v1.json" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <!-- The internal candidate contains only the CommercialMain product graph. -->
+    <Compile Remove="CommercialMain.Smoke.cs" />
+    <Compile Remove="DiagnosticLog.cs" />
+    <Compile Remove="FirstLightMapView.cs" />
+    <Compile Remove="FirstLightTaskPanel.cs" />
+    <Compile Remove="GridMapView.cs" />
+    <Compile Remove="LaunchOptions.cs" />
+    <Compile Remove="Main.cs" />
+    <Compile Remove="ProductAudio.cs" />
+    <Compile Remove="ProductDiagnosticLog.cs" />
+    <Compile Remove="ProductEmbeddedData.cs" />
+    <Compile Remove="ProductLaunchOptions.cs" />
+    <Compile Remove="ProductMain.cs" />
+    <Compile Remove="ProductShellOverlay.cs" />
+    <Compile Remove="ReleaseAudio.cs" />
+    <Compile Remove="ReleaseEmbeddedData.cs" />
+    <Compile Remove="ReleaseKoreanText.cs" />
+    <Compile Remove="ReleaseLaunchOptions.cs" />
+    <Compile Remove="ReleaseMain.cs" />
+    <Compile Remove="ReleaseMapView.cs" />
+    <Compile Remove="ReleaseShellOverlay.cs" />
+    <Compile Remove="ReleaseTaskPanel.cs" />
+    <Compile Remove="Scope1Main.cs" />
+    <Compile Remove="Scope1PlacementMapView.cs" />
+    <Compile Remove="TimelineView.cs" />
+    <Compile Remove="VisualModels.cs" />
+
+    <EmbeddedResource Include="$(CommercialBuildIdentityFile)"
+                      Link="EmbeddedData/commercial-build-identity-v1.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.commercial-build-identity-v1.json" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
     <EmbeddedResource Include="../data/commercial-free-placement-slice-v1.json"
                       Link="EmbeddedData/commercial-free-placement-slice-v1.json"
@@ -40,6 +75,9 @@
     <EmbeddedResource Include="../data/release-campaign-v2.json"
                       Link="EmbeddedData/release-campaign-v2.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-campaign-v2.json" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
     <EmbeddedResource Include="../data/release-world-v1.json"
                       Link="EmbeddedData/release-world-v1.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-world-v1.json" />
@@ -47,4 +85,38 @@
                       Link="EmbeddedData/release-campaign-v1.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-campaign-v1.json" />
   </ItemGroup>
+
+  <Target Name="GenerateCommercialBuildIdentity"
+          BeforeTargets="PrepareResourceNames"
+          Condition="'$(Configuration)' == 'ExportRelease'">
+    <Exec Command="git -C &quot;$(MSBuildProjectDirectory)/..&quot; rev-parse --verify HEAD"
+          ConsoleToMSBuild="true"
+          StandardOutputImportance="Low">
+      <Output TaskParameter="ConsoleOutput" ItemName="_CommercialSourceCommitLine" />
+    </Exec>
+    <GetFileHash Files="$(MSBuildProjectDirectory)/../data/release-world-v2.json"
+                 Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_CommercialWorldHash" />
+    </GetFileHash>
+    <GetFileHash Files="$(MSBuildProjectDirectory)/../data/release-campaign-v2.json"
+                 Algorithm="SHA256">
+      <Output TaskParameter="Items" ItemName="_CommercialCampaignHash" />
+    </GetFileHash>
+    <PropertyGroup>
+      <_CommercialSourceCommit>@(_CommercialSourceCommitLine)</_CommercialSourceCommit>
+      <_CommercialWorldSha256Raw>@(_CommercialWorldHash-&gt;'%(FileHash)')</_CommercialWorldSha256Raw>
+      <_CommercialCampaignSha256Raw>@(_CommercialCampaignHash-&gt;'%(FileHash)')</_CommercialCampaignSha256Raw>
+      <_CommercialWorldSha256>$(_CommercialWorldSha256Raw.ToLowerInvariant())</_CommercialWorldSha256>
+      <_CommercialCampaignSha256>$(_CommercialCampaignSha256Raw.ToLowerInvariant())</_CommercialCampaignSha256>
+      <_CommercialBuildIdentity>{&quot;schemaVersion&quot;:&quot;gridworks.commercial-build-identity.v1&quot;,&quot;sourceCommit&quot;:&quot;$(_CommercialSourceCommit)&quot;,&quot;productVersion&quot;:&quot;$(CommercialProductVersion)&quot;,&quot;configuration&quot;:&quot;ExportRelease&quot;,&quot;worldSha256&quot;:&quot;$(_CommercialWorldSha256)&quot;,&quot;campaignSha256&quot;:&quot;$(_CommercialCampaignSha256)&quot;}</_CommercialBuildIdentity>
+    </PropertyGroup>
+    <Error Condition="'$(_CommercialSourceCommit)' == ''"
+           Text="Commercial build identity requires the repository HEAD commit." />
+    <Error Condition="'$(CommercialProductVersion)' == ''"
+           Text="Commercial build identity requires CommercialProductVersion." />
+    <WriteLinesToFile File="$(CommercialBuildIdentityFile)"
+                      Lines="$(_CommercialBuildIdentity)"
+                      Overwrite="true"
+                      Encoding="ASCII" />
+  </Target>
 </Project>

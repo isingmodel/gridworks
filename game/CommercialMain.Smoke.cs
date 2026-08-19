@@ -141,6 +141,597 @@ internal sealed partial class CommercialMain
         }
     }
 
+    private async void RunStageGLayoutSmoke()
+    {
+        try
+        {
+            await NextFrame();
+            _productSavePath = System.IO.Path.Combine(
+                System.IO.Path.GetTempPath(),
+                $"commercial-stage-g-layout-smoke-{Guid.NewGuid():N}.json");
+            ReplaceProductRun(new CommercialCampaignRun(
+                _productData!.Campaign,
+                _productData.World));
+            ShowProductTitle("단계 G modal focus 확인");
+            await NextFrame();
+            Button titleSettings = _shell.GetNode<Button>("%TitleSettingsButton");
+            titleSettings.GrabFocus();
+            titleSettings.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            Require(_shell.Surface == CommercialShellSurface.Settings,
+                "제목 화면 설정 modal을 열지 못했습니다.");
+            _shell.GetNode<Button>("%SettingsBackButton")
+                .EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            Require(
+                _shell.Surface == CommercialShellSurface.Title &&
+                GetViewport().GuiGetFocusOwner() == titleSettings,
+                "설정 취소가 제목 화면의 opener focus를 복원하지 못했습니다.");
+            titleSettings.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            titleSettings.Disabled = true;
+            _shell.GetNode<Button>("%SettingsBackButton")
+                .EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            BaseButton stableTitleFocus = _shell.GetActionButton(
+                CommercialShellAction.Continue);
+            if (stableTitleFocus.Disabled)
+            {
+                stableTitleFocus = _shell.GetActionButton(CommercialShellAction.NewGame);
+            }
+            Require(
+                _shell.Surface == CommercialShellSurface.Title &&
+                GetViewport().GuiGetFocusOwner() == stableTitleFocus,
+                "설정 opener가 비활성화되면 제목 화면의 stable focus를 복원하지 못했습니다.");
+            titleSettings.Disabled = false;
+
+            _shell.HideShell();
+            await NextFrame();
+            _shell.ShowPause(new CommercialPausePresentation(
+                _coreSnapshot!.Chapter.DisplayName,
+                "단계 G modal focus 확인",
+                true,
+                true));
+            await NextFrame();
+            Button pauseHelp = _shell.GetNode<Button>("%PauseHelpButton");
+            pauseHelp.GrabFocus();
+            pauseHelp.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            _shell.GetNode<Button>("%HelpBackButton")
+                .EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            Require(
+                _shell.Surface == CommercialShellSurface.Pause &&
+                GetViewport().GuiGetFocusOwner() == pauseHelp,
+                "도움말 취소가 일시정지 화면의 opener focus를 복원하지 못했습니다.");
+            pauseHelp.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            pauseHelp.Disabled = true;
+            _shell.GetNode<Button>("%HelpBackButton")
+                .EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            Button stablePauseFocus = _shell.GetNode<Button>("%ResumeButton");
+            Require(
+                _shell.Surface == CommercialShellSurface.Pause &&
+                GetViewport().GuiGetFocusOwner() == stablePauseFocus,
+                "도움말 opener가 비활성화되면 일시정지 화면의 stable focus를 복원하지 못했습니다.");
+            pauseHelp.Disabled = false;
+            BaseButton returnToTitle = _shell.GetActionButton(
+                CommercialShellAction.ReturnToTitle);
+            returnToTitle.GrabFocus();
+            returnToTitle.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            _shell.GetNode<Button>("%CancelConfirmButton")
+                .EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            Require(
+                _shell.Surface == CommercialShellSurface.Pause &&
+                GetViewport().GuiGetFocusOwner() == returnToTitle,
+                "확인 취소가 일시정지 화면의 opener focus를 복원하지 못했습니다.");
+            _shell.HideShell();
+            await NextFrame();
+
+            _helpButton.GrabFocus();
+            _helpButton.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            _shell.GetNode<Button>("%HelpBackButton")
+                .EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            Require(
+                _shell.Surface == CommercialShellSurface.Hidden &&
+                GetViewport().GuiGetFocusOwner() == _helpButton,
+                "게임 화면 도움말 취소가 바깥 opener focus를 복원하지 못했습니다.");
+            _helpButton.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            _helpButton.Disabled = true;
+            _shell.GetNode<Button>("%HelpBackButton")
+                .EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+            Require(
+                _shell.Surface == CommercialShellSurface.Hidden &&
+                GetViewport().GuiGetFocusOwner() == _map,
+                "게임 화면 opener가 비활성화되면 지도에 안정적으로 focus를 돌려주지 못했습니다.");
+            _helpButton.Disabled = false;
+
+            _settings = CommercialSettings.Default with
+            {
+                Fullscreen = false,
+                ReduceMotion = true,
+            };
+            _shell.SetSettings(SettingsPresentation(_settings));
+            ApplyProductSettings(_settings);
+            Render();
+            await NextFrame();
+
+            CommercialCampaignCommandResult rejectedApproval = _coreRun!.Execute(
+                CommercialCoreCommand.ApproveDecisionWindow());
+            CommercialSupplyDiagnostic rejectedDiagnostic =
+                rejectedApproval.Snapshot.FirstBlockingDiagnostic ??
+                throw new InvalidOperationException("초기 승인 blocker 진단이 없습니다.");
+            string rejectedApprovalDetail = FormatSupplyDiagnostic(rejectedDiagnostic);
+            ApplyCore(
+                rejectedApproval,
+                "현재 운영안을 승인했습니다.",
+                ApprovalRejectionDiagnostic(rejectedApproval));
+            string terminalNodeId = _productData.World.Loads.Single(load =>
+                load.LoadId == rejectedDiagnostic.LoadId).NodeId;
+            Require(
+                !rejectedApproval.Accepted &&
+                (rejectedApproval.Error is CommercialCampaignRunError.SafetyDutyUnserved or
+                    CommercialCampaignRunError.KeptPromiseUnserved or
+                    CommercialCampaignRunError.FutureSafetyAtRisk) &&
+                rejectedDiagnostic.FailureKind == ThermalFailureKind.NoTopologyPath &&
+                _lastError == rejectedApprovalDetail &&
+                !_lastError.Contains("배치 입력", StringComparison.Ordinal) &&
+                _map.HighlightedLimitingAssetId is null &&
+                _map.HighlightedNodeIds.Contains(terminalNodeId, StringComparer.Ordinal) &&
+                _map.HighlightAccessibilitySummary.Contains(
+                    rejectedDiagnostic.LoadDisplayName,
+                    StringComparison.Ordinal),
+                "승인 거부가 typed blocker 상세·NoTopology 수요 terminal 강조로 직접 이어지지 않았습니다.");
+            CommercialPhaseComparisonRow noTopologyRow =
+                _coreSnapshot.PhaseComparisonRows.Single(row =>
+                    row.PhaseId == rejectedDiagnostic.PhaseId &&
+                    row.LoadId == rejectedDiagnostic.LoadId);
+            BaseButton noTopologyRowButton = _panel.GetPhaseComparisonButton(
+                $"{noTopologyRow.PhaseId}:{noTopologyRow.LoadId}");
+            noTopologyRowButton.GrabFocus();
+            await PressKey(Key.Enter);
+            Require(
+                _selectedPhaseComparisonId ==
+                    $"{noTopologyRow.PhaseId}:{noTopologyRow.LoadId}" &&
+                noTopologyRow.FailureDiagnostic?.FailureKind ==
+                    ThermalFailureKind.NoTopologyPath &&
+                _map.HighlightedLimitingAssetId is null &&
+                _map.HighlightedNodeIds.Contains(terminalNodeId, StringComparer.Ordinal) &&
+                GetViewport().GuiGetFocusOwner() == noTopologyRowButton,
+                "NoTopology 국면 행이 LoadId의 authoritative 수요 terminal을 강조하거나 행 focus를 유지하지 못했습니다.");
+
+            CommercialPanelAction lineAction =
+                _panel.GetActionButton(CommercialPanelAction.StartStandardLine).Visible
+                    ? CommercialPanelAction.StartStandardLine
+                    : CommercialPanelAction.StartLine;
+            EmitPanel(lineAction, "단계 G 접속 후보 확인용 선로 도구");
+            await NextFrame();
+            CoreMapPoint sourcePoint = NodePosition("WEST_SOURCE_NODE");
+            await MovePointer(sourcePoint);
+            string candidateSummary = _map.SelectedCandidateSummary ?? string.Empty;
+            Require(
+                candidateSummary.Contains("후보", StringComparison.Ordinal) &&
+                candidateSummary.Contains("발전 접속점", StringComparison.Ordinal) &&
+                candidateSummary.Contains("위치", StringComparison.Ordinal) &&
+                candidateSummary.Contains("Enter", StringComparison.Ordinal) &&
+                _panel.SelectionText.Contains("후보", StringComparison.Ordinal),
+                "단계 G 접속 후보가 종류·이름·위치·순서·Q/E/Enter 안내를 함께 표시하지 못했습니다.");
+
+            long acceptedInputId = _placementInputSequence + 1;
+            int acceptedOutcomesBefore = _placementOutcomePresentationCount;
+            await SelectAndClickCandidate(sourcePoint, "WEST_SOURCE_NODE");
+            Require(
+                _snapshot.LineDraft?.StartNodeId == "WEST_SOURCE_NODE" &&
+                _placementInputSequence == acceptedInputId &&
+                _placementOutcomePresentationCount == acceptedOutcomesBefore + 1 &&
+                _lastStatus.Contains($"배치 입력 #{acceptedInputId}", StringComparison.Ordinal) &&
+                _lastStatus.Contains("적용", StringComparison.Ordinal) &&
+                _lastStatus.Contains("현재 경로점 1곳", StringComparison.Ordinal) &&
+                string.IsNullOrEmpty(_lastError) &&
+                _map.SelectedCandidateSummary is null,
+                "단계 G의 수락된 배치 입력 하나가 경로점 수를 포함한 결과 하나로 끝나지 않았습니다.");
+
+            ConstructionSnapshot beforeRejectedInput = _snapshot;
+            long rejectedInputId = _placementInputSequence + 1;
+            int rejectedOutcomesBefore = _placementOutcomePresentationCount;
+            await MovePointer(sourcePoint);
+            Require(
+                !_pointerAccepted &&
+                _pointerError is ConstructionError &&
+                _panel.SelectionText.Contains(_pointerMessage, StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains(_pointerMessage, StringComparison.Ordinal),
+                "이미 선택한 시작점의 typed 거부 판정을 클릭 전에 표시하지 못했습니다.");
+            ConstructionError rejectedPlacementCause = _pointerError!.Value;
+            await ClickMap(sourcePoint);
+            Label errorLabel = _panel.GetNode<Label>("%ErrorLabel");
+            Require(
+                Equals(_snapshot, beforeRejectedInput) &&
+                _placementInputSequence == rejectedInputId &&
+                _placementOutcomePresentationCount == rejectedOutcomesBefore + 1 &&
+                _lastError.Contains($"배치 입력 #{rejectedInputId}", StringComparison.Ordinal) &&
+                _lastError.Contains("거부", StringComparison.Ordinal) &&
+                _lastError.Contains(ErrorText(rejectedPlacementCause), StringComparison.Ordinal) &&
+                _lastError.Contains("도시망·경로·초안은 바뀌지 않았습니다", StringComparison.Ordinal) &&
+                !_lastError.Contains($"배치 입력 #{acceptedInputId}", StringComparison.Ordinal) &&
+                !_lastStatus.Contains("적용", StringComparison.Ordinal) &&
+                errorLabel.Text == _lastError,
+                "거부된 배치 입력이 이전 성공과 섞였거나 UI 결과를 한 번보다 많이 만들었습니다.");
+
+            CommercialApprovalChecklistItem constructionGate =
+                _coreSnapshot!.ApprovalChecklist.Items.Single(item =>
+                    item.Kind == CommercialApprovalGateKind.ConstructionReady);
+            Require(!constructionGate.Passed,
+                "작성 중 초안을 승인 체크리스트의 공사 blocker로 표시하지 못했습니다.");
+            BaseButton constructionGateButton =
+                _panel.GetApprovalChecklistButton(constructionGate.ItemId);
+            constructionGateButton.GrabFocus();
+            await PressKey(Key.Enter);
+            Require(
+                GetViewport().GuiGetFocusOwner() ==
+                    _panel.GetActionButton(CommercialPanelAction.CancelDraft) &&
+                _selectedApprovalChecklistId == constructionGate.ItemId &&
+                _map.HighlightedNodeIds.Count == 0 &&
+                _map.HighlightedEdgeIds.Count == 0 &&
+                _map.HighlightedLimitingAssetId is null &&
+                string.IsNullOrEmpty(_map.HighlightAccessibilitySummary),
+                "비경로 공사 blocker를 눌렀을 때 발주·취소 행동으로 focus가 이어지지 않았습니다.");
+
+            CommercialApprovalChecklistItem diagnosticGate =
+                _coreSnapshot.ApprovalChecklist.Items.First(item =>
+                    item.FailureDiagnostic is not null);
+            CommercialSupplyDiagnostic diagnostic = diagnosticGate.FailureDiagnostic!;
+            string? expectedDiagnosticAsset = diagnostic.LimitingAssetId;
+            string? expectedDiagnosticTerminal =
+                diagnostic.FailureKind == ThermalFailureKind.NoTopologyPath
+                    ? _productData.World.Loads.Single(load =>
+                        load.LoadId == diagnostic.LoadId).NodeId
+                    : null;
+            BaseButton diagnosticButton =
+                _panel.GetApprovalChecklistButton(diagnosticGate.ItemId);
+            diagnosticButton.GrabFocus();
+            await PressKey(Key.Enter);
+            int diagnosticProjection = ProjectionIndexForPhase(
+                _coreSnapshot,
+                diagnostic.PhaseId);
+            Require(
+                diagnosticProjection >= 0 &&
+                _thermalProjectionIndex == diagnosticProjection &&
+                GetViewport().GuiGetFocusOwner() == diagnosticButton &&
+                _map.HighlightAccessibilitySummary.Contains(
+                    diagnostic.LoadDisplayName,
+                    StringComparison.Ordinal) &&
+                _map.HighlightedLimitingAssetId == expectedDiagnosticAsset &&
+                (expectedDiagnosticTerminal is null ||
+                 _map.HighlightedNodeIds.Contains(
+                     expectedDiagnosticTerminal,
+                     StringComparer.Ordinal)),
+                "승인 blocker를 눌렀을 때 정확한 국면·수요·첫 제한 설비를 표시하거나 행 focus를 유지하지 못했습니다.");
+
+            CoreMapPoint[] linePoints =
+            [
+                new(750, 650),
+                new(1050, 650),
+                new(1600, 650),
+                new(2050, 650),
+            ];
+            foreach (CoreMapPoint point in linePoints)
+            {
+                await ClickMap(point);
+            }
+            await SelectAndClickCandidate(
+                NodePosition("EAST_RESIDENTIAL_TERMINAL"),
+                "EAST_RESIDENTIAL_TERMINAL");
+
+            const string projectedDraftEdgeId = "PLAYER_EDGE_2";
+            CommercialPhaseComparisonRow projectedDraftRow =
+                _coreSnapshot!.PhaseComparisonRows.FirstOrDefault(row =>
+                    row.PathEdgeIds.Contains(
+                        projectedDraftEdgeId,
+                        StringComparer.Ordinal))
+                ?? throw new InvalidOperationException(
+                    "완성된 현재 선로 초안이 실제 공급 경로에 들어간 국면 행이 없습니다.");
+            CommercialPhaseProjection projectedDraftPhase =
+                _coreSnapshot.Projections.Single(item =>
+                    item.Phase.PhaseId == projectedDraftRow.PhaseId);
+            SpatialWorldDefinition projectedDraftWorld =
+                projectedDraftPhase.ProjectedWorld ??
+                throw new InvalidOperationException(
+                    "현재 선로 초안을 포함한 projected spatial world가 없습니다.");
+            SpatialEdgeDefinition projectedDraftEdge =
+                projectedDraftWorld.Edges.Single(edge =>
+                    edge.EdgeId == projectedDraftEdgeId);
+            Require(
+                !_snapshot.World.Edges.Any(edge =>
+                    edge.EdgeId == projectedDraftEdgeId) &&
+                projectedDraftPhase.Evaluation.Assets.Any(asset =>
+                    asset.AssetId == projectedDraftEdgeId),
+                "완성된 현재 초안의 PLAYER 선로가 live 편집 world와 분리된 projected 열 계산에 없습니다.");
+
+            BaseButton projectedDraftRowButton = _panel.GetPhaseComparisonButton(
+                $"{projectedDraftRow.PhaseId}:{projectedDraftRow.LoadId}");
+            projectedDraftRowButton.GrabFocus();
+            await PressKey(Key.Enter);
+            Require(
+                _map.ProjectionWorld?.Edges.Any(edge =>
+                    edge.EdgeId == projectedDraftEdgeId) == true &&
+                _map.HighlightedEdgeIds.Contains(
+                    projectedDraftEdgeId,
+                    StringComparer.Ordinal) &&
+                _map.HighlightAccessibilitySummary.Contains(
+                    projectedDraftRow.LoadDisplayName,
+                    StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains(
+                    projectedDraftRow.LoadDisplayName,
+                    StringComparison.Ordinal) &&
+                (!projectedDraftPhase.EffectiveUnavailableEdgeIds.Contains(
+                    projectedDraftEdgeId,
+                    StringComparer.Ordinal) ||
+                 _map.UnavailableEdgeIds.Contains(
+                     projectedDraftEdgeId,
+                     StringComparer.Ordinal)),
+                "완성된 초안의 projected PLAYER 선로를 선택 국면의 지도 경로·사용불가 overlay 권위로 쓰지 못했습니다.");
+
+            SpatialNodeDefinition projectedFrom = projectedDraftWorld.Nodes.Single(node =>
+                node.NodeId == projectedDraftEdge.FromNodeId);
+            SpatialNodeDefinition projectedTo = projectedDraftWorld.Nodes.Single(node =>
+                node.NodeId == projectedDraftEdge.ToNodeId);
+            CoreMapPoint projectedEdgeMidpoint = new(
+                (projectedFrom.Position.XUnit + projectedTo.Position.XUnit) / 2,
+                (projectedFrom.Position.YUnit + projectedTo.Position.YUnit) / 2);
+            ConstructionSnapshot completedDraftBeforeThermalSelection = _snapshot;
+            long placementSequenceBeforeThermalSelection = _placementInputSequence;
+            await ClickMap(projectedEdgeMidpoint);
+            Require(
+                Equals(_snapshot, completedDraftBeforeThermalSelection) &&
+                _placementInputSequence == placementSequenceBeforeThermalSelection &&
+                _selectedThermalAssetId == projectedDraftEdgeId &&
+                _map.SelectedThermalAssetId == projectedDraftEdgeId,
+                "completed draft 편집 상태를 바꾸지 않고 projected PLAYER 선로를 지도에서 열 설비로 선택하지 못했습니다.");
+
+            BaseButton restartWindow = _panel.GetProductActionButton(
+                CommercialProductAction.RestartWindow);
+            restartWindow.GrabFocus();
+            EmitProduct(CommercialProductAction.RestartWindow, "복구 확인 미리보기");
+            await NextFrame();
+            Label confirmationBody = _shell.GetNode<Label>("%ConfirmBody");
+            Require(
+                _shell.Surface == CommercialShellSurface.Confirm &&
+                confirmationBody.Text.Contains("작성 중 선로 초안", StringComparison.Ordinal) &&
+                confirmationBody.Text.Contains("경로점", StringComparison.Ordinal) &&
+                confirmationBody.Text.Contains("운영 자금", StringComparison.Ordinal) &&
+                confirmationBody.Text.Contains("열 상태", StringComparison.Ordinal),
+                "복구 확인이 폐기할 초안과 복원될 자금·시각·열 상태를 먼저 공개하지 못했습니다.");
+            await PressKey(Key.Escape);
+            Require(
+                _shell.Surface == CommercialShellSurface.Hidden &&
+                _snapshot.LineDraft?.EndNodeId == "EAST_RESIDENTIAL_TERMINAL" &&
+                GetViewport().GuiGetFocusOwner() == restartWindow,
+                "복구 확인 Esc가 배경 초안을 유지하고 게임 화면 opener focus로 돌아가지 못했습니다.");
+
+            BaseButton storeNext = _panel.GetProductActionButton(
+                CommercialProductAction.StoreNextProjectComparison);
+            Require(!storeNext.Disabled,
+                "끝 접속점까지 완성한 초안을 다음 계획 비교에 보관할 수 없습니다.");
+            EmitProduct(
+                CommercialProductAction.StoreNextProjectComparison,
+                "명시적 다음 계획 비교 보관");
+            await NextFrame();
+            EmitPanel(CommercialPanelAction.CancelDraft, "보관한 다음 계획과 현재 초안 분리");
+            await NextFrame();
+            EmitPanel(CommercialPanelAction.PlaceSubstation, "현재 계획 비교용 변전소 초안");
+            await NextFrame();
+            await ClickMap(new CoreMapPoint(2250, 700));
+            CommercialConstructionWindowForecast storedForecast =
+                _coreRun!.PreviewConstructionWindowForecast(_nextProjectComparison);
+            Label deadlineLabel = _panel.GetNode<Label>("%DeadlineLabel");
+            Require(
+                _nextProjectComparison is CommercialNextLineProjectPlan &&
+                storedForecast.Steps.Count == 2 &&
+                storedForecast.Steps[0].SequenceNumber == 1 &&
+                storedForecast.Steps[1].SequenceNumber == 2 &&
+                storedForecast.Steps[0].StepRole ==
+                    CommercialConstructionForecastStepRole.CurrentDraft &&
+                storedForecast.Steps[1].StepRole ==
+                    CommercialConstructionForecastStepRole.ExplicitNextPlan &&
+                storedForecast.Steps[0].Kind == ConstructionKind.Node &&
+                storedForecast.Steps[1].Kind == ConstructionKind.Line &&
+                deadlineLabel.Text.Contains("현재 공사", StringComparison.Ordinal) &&
+                deadlineLabel.Text.Contains("다음 계획", StringComparison.Ordinal),
+                "현재 공사와 명시적으로 보관한 다음 한 건의 누적 완료 경계를 표시하지 못했습니다.");
+            EmitPanel(
+                CommercialPanelAction.CancelDraft,
+                "현재 초안을 취소해 보관한 다음 계획만 비교");
+            await NextFrame();
+            CommercialConstructionWindowForecast nextOnlyForecast =
+                _coreRun.PreviewConstructionWindowForecast(_nextProjectComparison);
+            Require(
+                nextOnlyForecast.Steps.Count == 1 &&
+                nextOnlyForecast.Steps[0].SequenceNumber == 1 &&
+                nextOnlyForecast.Steps[0].StepRole ==
+                    CommercialConstructionForecastStepRole.ExplicitNextPlan &&
+                deadlineLabel.Text.Contains("1. 다음 계획", StringComparison.Ordinal) &&
+                deadlineLabel.Text.Contains(
+                    _nextProjectComparisonLabel,
+                    StringComparison.Ordinal),
+                "현재 공사가 없어 sequence 1인 명시적 다음 계획을 현재 공사로 오표시했습니다.");
+            EmitProduct(
+                CommercialProductAction.ClearNextProjectComparison,
+                "다음 계획 비교 비우기");
+            await NextFrame();
+            Require(
+                _nextProjectComparison is null &&
+                _coreRun.PreviewConstructionWindowForecast().Steps.Count == 0 &&
+                deadlineLabel.Text.Contains("다음 계획 · 비어 있음", StringComparison.Ordinal),
+                "휘발성 다음 계획 비교 칸을 도시망과 분리해 명시적으로 비우지 못했습니다.");
+
+            EmitPanel(lineAction, "단계 G 레이아웃 접속 후보 재확인");
+            await NextFrame();
+            await MovePointer(sourcePoint);
+
+            (Vector2I Size, int UiScalePercent)[] layouts =
+            [
+                (new Vector2I(1280, 720), 100),
+                (new Vector2I(1280, 720), 125),
+                (new Vector2I(1920, 1080), 100),
+                (new Vector2I(1920, 1080), 125),
+            ];
+            foreach ((Vector2I size, int uiScalePercent) in layouts)
+            {
+                GetWindow().Size = size;
+                _settings = _settings with
+                {
+                    Fullscreen = false,
+                    UiScalePercent = uiScalePercent,
+                    ReduceMotion = true,
+                };
+                _shell.SetSettings(SettingsPresentation(_settings));
+                ApplyProductSettings(_settings);
+                Render();
+                await NextFrame();
+                await NextFrame();
+
+                ScrollContainer infoScroll =
+                    _panel.GetNode<ScrollContainer>("%InfoScroll");
+                Control approvalSection =
+                    _panel.GetNode<Control>("%ApprovalChecklistSection");
+                BaseButton approve = _panel.GetProductActionButton(
+                    CommercialProductAction.ApproveWindow);
+                BaseButton commission = _panel.GetActionButton(
+                    CommercialPanelAction.Commission);
+                BaseButton focusTarget = _panel.GetActionButton(lineAction);
+                approve.GrabFocus();
+                await NextFrame();
+                infoScroll.ScrollVertical = 0;
+                await NextFrame();
+                focusTarget.GrabFocus();
+                await NextFrame();
+
+                CommercialPhaseProjection projection =
+                    _coreSnapshot!.Projections[_thermalProjectionIndex];
+                double staticWeatherPhase = _map.WeatherAnimationPhase;
+                await NextFrame();
+                Require(
+                    GetWindow().Size == size &&
+                    ControlInside(this, _panel) &&
+                    _panel.InfoViewportMinimumHeight >= 200f &&
+                    infoScroll.Size.Y >= 200f &&
+                    ControlInside(_panel, infoScroll) &&
+                    ControlInside(_panel, approvalSection) &&
+                    !infoScroll.IsAncestorOf(approvalSection) &&
+                    ControlInside(_panel, approve) &&
+                    ControlInside(_panel, commission),
+                    $"{size.X}×{size.Y}·UI {uiScalePercent}%에서 200px 정보창 또는 고정 승인·발주 영역이 잘렸습니다.");
+                Require(
+                    GetViewport().GuiGetFocusOwner() == focusTarget,
+                    $"{size.X}×{size.Y}·UI {uiScalePercent}%에서 도구 focus를 유지하지 못했습니다.");
+                Require(
+                    ControlInside(infoScroll, focusTarget),
+                    $"{size.X}×{size.Y}·UI {uiScalePercent}%에서 focus-follow가 도구를 스크롤 viewport에 표시하지 못했습니다. " +
+                    $"scroll={infoScroll.ScrollVertical} viewport={infoScroll.GetGlobalRect()} " +
+                    $"target={focusTarget.GetGlobalRect()} visible={focusTarget.IsVisibleInTree()}");
+                Require(
+                    _panel.ToolStatusText.Contains("현재 도구", StringComparison.Ordinal),
+                    $"{size.X}×{size.Y}·UI {uiScalePercent}%에서 sticky 현재 도구 문구가 사라졌습니다.");
+                Require(
+                    _panel.ApprovalChecklistText.Length > 0,
+                    $"{size.X}×{size.Y}·UI {uiScalePercent}%에서 승인 체크리스트가 사라졌습니다.");
+                Require(
+                    _panel.PhaseComparisonText.Contains("|", StringComparison.Ordinal),
+                    $"{size.X}×{size.Y}·UI {uiScalePercent}%에서 수요×국면 비교 표가 사라졌습니다.");
+                Require(
+                    _map.SelectedCandidateSummary?.Contains("후보", StringComparison.Ordinal) ?? false,
+                    $"{size.X}×{size.Y}·UI {uiScalePercent}%에서 지도 후보 피드백이 사라졌습니다.");
+                Require(
+                    _map.ReduceMotion &&
+                    _map.VisualWeather == WeatherProfile(projection) &&
+                    _map.VisualHeatStress == HasThermalHeatStress(projection) &&
+                    _map.UnavailableNodeIds.SequenceEqual(
+                        projection.EffectiveUnavailableNodeIds,
+                        StringComparer.Ordinal) &&
+                    _map.UnavailableEdgeIds.SequenceEqual(
+                        projection.EffectiveUnavailableEdgeIds,
+                        StringComparer.Ordinal) &&
+                    _map.CityFacilityCount == _productData.World.Loads.Count &&
+                    NearlyEqual(staticWeatherPhase, 0d, 0.000001d) &&
+                    NearlyEqual(_map.WeatherAnimationPhase, staticWeatherPhase, 0.000001d) &&
+                    _map.AccessibilityName.Contains("도시 표현", StringComparison.Ordinal) &&
+                    _map.AccessibilityName.Contains(
+                        "사용불가 설비",
+                        StringComparison.Ordinal) &&
+                    !_map.AccessibilityName.Contains("정비", StringComparison.Ordinal),
+                    $"{size.X}×{size.Y}·UI {uiScalePercent}%에서 typed 도시·날씨 또는 움직임 줄이기 정적 상태가 어긋났습니다.");
+
+                bool resultPortrait = size.X == 1920;
+                PresentStories(
+                [
+                    new CommercialStoryPresentation(
+                        _coreSnapshot.Chapter.Briefing,
+                        resultPortrait,
+                        "계속"),
+                ]);
+                await NextFrame();
+                TextureRect portrait = _shell.GetNode<TextureRect>("%StoryPortrait");
+                Control storyPage = _shell.GetNode<Control>("%StoryPage");
+                Require(
+                    _shell.Surface == (resultPortrait
+                        ? CommercialShellSurface.Result
+                        : CommercialShellSurface.Story) &&
+                    portrait.Visible &&
+                    portrait.Texture is not null &&
+                    portrait.AccessibilityName == "운영센터장 윤서진 초상" &&
+                    ControlInside(storyPage, portrait) &&
+                    ControlInside(_shell, portrait),
+                    $"{size.X}×{size.Y}·UI {uiScalePercent}% 이야기·결과 초상과 접근성 설명이 modal 안에 유지되지 않았습니다.");
+                _shell.StoryContinueButton.EmitSignal(BaseButton.SignalName.Pressed);
+                await NextFrame();
+
+                GD.Print(
+                    $"COMMERCIAL_STAGE_G_LAYOUT_PASS size={size.X}x{size.Y} " +
+                    $"ui={uiScalePercent} info={infoScroll.Size.Y:0} " +
+                    $"weather={_map.VisualWeather} reduced_motion=static");
+            }
+
+            PresentStories(
+            [
+                new CommercialStoryPresentation(
+                    new CommercialStoryCard(
+                        "시스템",
+                        "고정 fallback 확인",
+                        "등록되지 않은 화자의 시스템 안내입니다."),
+                    false,
+                    "계속",
+                    IsSystemWarning: true),
+            ]);
+            await NextFrame();
+            TextureRect fallbackPortrait = _shell.GetNode<TextureRect>("%StoryPortrait");
+            Require(
+                !fallbackPortrait.Visible &&
+                fallbackPortrait.Texture is null &&
+                fallbackPortrait.AccessibilityName == "인물 초상 없음",
+                "등록되지 않은 화자·시스템 경고의 초상 fallback을 유지하지 못했습니다.");
+            _shell.StoryContinueButton.EmitSignal(BaseButton.SignalName.Pressed);
+            await NextFrame();
+
+            GD.Print(
+                "COMMERCIAL_STAGE_G_LAYOUT_SMOKE_PASS layouts=4 " +
+                "placement_outcome=authoritative checklist=fixed phase_table=accessible " +
+                "portrait=bounded reduce_motion=static");
+            GetTree().Quit(0);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"단계 G 화면·접근성 smoke 실패: {exception}");
+            GetTree().Quit(1);
+        }
+    }
+
     private async void RunPlacementSmoke()
     {
         try
@@ -266,6 +857,25 @@ internal sealed partial class CommercialMain
             await SelectAndClickCandidate(new CoreMapPoint(300, 950), "WEST_SOURCE");
             Require(_snapshot.LineDraft?.StartNodeId == "WEST_SOURCE",
                 "선택한 서부 발전 접속점에서 선로 계획을 시작하지 못했습니다.");
+            CoreMapPoint overlappingCandidates = new(300, 1000);
+            await SelectCandidateAt(overlappingCandidates, "WEST_SOURCE");
+            Require(
+                _map.CandidateNodeIds.Count == 2 &&
+                !_pointerAccepted &&
+                _pointerError == ConstructionError.SameEndpoint &&
+                _panel.SelectionText.Contains("서부 발전 접속점", StringComparison.Ordinal) &&
+                _panel.SelectionText.Contains(_pointerMessage, StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains("서부 발전 접속점", StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains(_pointerMessage, StringComparison.Ordinal),
+                "Q/E 다중 후보에서 시작점 후보의 invalid typed 판정을 panel과 지도 접근성에 표시하지 못했습니다.");
+            await SelectCandidateAt(overlappingCandidates, "WEST_AUXILIARY");
+            Require(
+                _pointerAccepted &&
+                _panel.SelectionText.Contains("서부 예비 접속점", StringComparison.Ordinal) &&
+                _panel.SelectionText.Contains("접속 가능", StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains("서부 예비 접속점", StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains("접속 가능", StringComparison.Ordinal),
+                "Q/E로 유효 후보를 바꾼 뒤 후보명과 authoritative 판정을 함께 갱신하지 못했습니다.");
             await ClickMap(exactPath[0]);
             Require(_snapshot.LineDraft?.IntermediatePoints.SequenceEqual(exactPath[..1]) == true,
                 $"첫 전신주 계획을 추가하지 못했습니다: {_lastError}");
@@ -434,6 +1044,51 @@ internal sealed partial class CommercialMain
             "첫 불빛 결과와 두 번째 심장 전환을 같은 제품 흐름으로 열지 못했습니다.");
         await DismissStorySequence();
 
+        Require(
+            _coreSnapshot.Projections.Count > 1 &&
+            _thermalProjectionIndex == 0 &&
+            _coreSnapshot.FirstBlockingDiagnostic is not null,
+            "국면별 경로 전환을 확인할 두 국면 blocker 상태가 준비되지 않았습니다.");
+        CommercialSupplyDiagnostic phaseABlocker =
+            _coreSnapshot.FirstBlockingDiagnostic!;
+        CommercialPhaseComparisonRow phaseARow =
+            _coreSnapshot.PhaseComparisonRows.Single(row =>
+                row.PhaseId == phaseABlocker.PhaseId &&
+                row.LoadId == phaseABlocker.LoadId);
+        BaseButton phaseARowButton = _panel.GetPhaseComparisonButton(
+            $"{phaseARow.PhaseId}:{phaseARow.LoadId}");
+        phaseARowButton.GrabFocus();
+        await PressKey(Key.Enter);
+        Require(
+            _selectedPhaseComparisonId ==
+                $"{phaseARow.PhaseId}:{phaseARow.LoadId}" &&
+            _map.HighlightAccessibilitySummary.Contains(
+                phaseABlocker.LoadDisplayName,
+                StringComparison.Ordinal),
+            "국면 A 행이 A의 typed blocker 경로를 지도에 표시하지 못했습니다.");
+        EmitProjection(1);
+        await NextFrame();
+        CommercialPhaseProjection phaseB =
+            _coreSnapshot.Projections[_thermalProjectionIndex];
+        Require(
+            phaseB.Phase.PhaseId != phaseARow.PhaseId &&
+            _selectedApprovalChecklistId is null &&
+            _selectedPhaseComparisonId is null &&
+            _map.HighlightedNodeIds.Count == 0 &&
+            _map.HighlightedEdgeIds.Count == 0 &&
+            _map.HighlightedLimitingAssetId is null &&
+            string.IsNullOrEmpty(_map.HighlightAccessibilitySummary) &&
+            _lastStatus == $"{phaseB.Phase.DisplayName} 운영 국면을 표시했습니다.",
+            "국면 A 행 선택 뒤 국면 B로 바꿨을 때 A 경로·기본 blocker·상태 문구가 남았습니다.");
+        EmitProjection(-1);
+        await NextFrame();
+        Require(
+            _thermalProjectionIndex == 0 &&
+            _map.HighlightAccessibilitySummary.Contains(
+                phaseABlocker.LoadDisplayName,
+                StringComparison.Ordinal),
+            "첫 blocker가 일치하는 국면으로 돌아왔을 때만 기본 경로를 복원하지 못했습니다.");
+
         string highSubstationId = await BuildCampaignNodeThroughUi(
             "SMALL_SUBSTATION",
             new CoreMapPoint(2200, 1250),
@@ -494,9 +1149,22 @@ internal sealed partial class CommercialMain
             flood.Phase.ActiveRiskAreaIds.Contains(
                 "RIVER_FLOOD_ZONE",
                 StringComparer.Ordinal) &&
+            flood.EffectiveUnavailableEdgeIds.Count >
+                flood.Phase.UnavailableEdgeIds.Count &&
+            _map.UnavailableNodeIds.SequenceEqual(
+                flood.EffectiveUnavailableNodeIds,
+                StringComparer.Ordinal) &&
+            _map.UnavailableEdgeIds.SequenceEqual(
+                flood.EffectiveUnavailableEdgeIds,
+                StringComparer.Ordinal) &&
             _map.ActiveRiskAreaIds.Contains(
                 "RIVER_FLOOD_ZONE",
                 StringComparer.Ordinal) &&
+            _map.VisualWeather == CommercialWeatherProfile.Storm &&
+            _map.AccessibilityName.Contains(
+                "사용불가 설비",
+                StringComparison.Ordinal) &&
+            !_map.AccessibilityName.Contains("정비", StringComparison.Ordinal) &&
             flood.Evaluation.Loads.Single(item => item.LoadId == "HOSPITAL").DeliveredKw == 900 &&
             _panel.ProjectionText.Contains(flood.Phase.DisplayName, StringComparison.Ordinal),
             "범람 안전 차단시험 projection과 병원 공급 유지 결과를 같은 화면에 표시하지 못했습니다.");
@@ -608,9 +1276,7 @@ internal sealed partial class CommercialMain
         await NextFrame();
         Require(
             infoScroll.ScrollVertical > 0 &&
-            ControlInside(infoScroll, startLineButton) &&
-            ControlInside(_panel, startLineButton) &&
-            ControlInside(this, startLineButton),
+            ControlInside(infoScroll, startLineButton),
             "1280×720·UI 125%에서 스크롤된 공사 도구를 키보드 focus로 표시하지 못했습니다.");
         infoScroll.ScrollVertical = 0;
         _map.GrabFocus();
@@ -731,12 +1397,19 @@ internal sealed partial class CommercialMain
         await SelectCampaignProjectionThroughUi("NIGHT_SHIFT");
         CommercialPhaseProjection nightShift = _coreSnapshot.Projections.Single(item =>
             item.Phase.PhaseId == "NIGHT_SHIFT");
+        IReadOnlyList<CommercialAudioCue> scheduledStopCues = SelectApprovalCues(
+            [nightShift.Evaluation],
+            chapterCompleted: false,
+            campaignComplete: false,
+            completedChapterCount: _coreSnapshot.CompletedChapterOutcomes.Count);
         Require(
             nightShift.Evaluation.Loads.Single(item =>
                 item.LoadId == "RIVER_FACTORY").DeliveredKw == 2700 &&
             nightShift.Evaluation.Assets.Any(item =>
                 item.State == ThermalOperatingState.Emergency &&
-                item.NextState == ThermalOperatingState.ProtectiveOutage),
+                item.NextState == ThermalOperatingState.ProtectiveOutage) &&
+            scheduledStopCues.Contains(CommercialAudioCue.Warning) &&
+            !scheduledStopCues.Contains(CommercialAudioCue.ProtectiveStop),
             "야간 증산 projection이 실제 2,700 kW 공급과 다음 보호정지 설비를 표시하지 못했습니다.");
         EmitProduct(CommercialProductAction.ApproveWindow, "더운 저녁 운영안 승인");
         await NextFrame();
@@ -747,12 +1420,37 @@ internal sealed partial class CommercialMain
         await DismissStorySequence();
         CommercialPhaseProjection lateNight = _coreSnapshot.Projections.Single(item =>
             item.Phase.PhaseId == "LATE_NIGHT");
+        CommercialPhaseComparisonRow lateNightRow = _coreSnapshot.PhaseComparisonRows.First(row =>
+            row.PhaseId == "LATE_NIGHT" && row.LoadId == "HOSPITAL");
+        BaseButton lateNightRowButton = _panel.GetPhaseComparisonButton(
+            $"{lateNightRow.PhaseId}:{lateNightRow.LoadId}");
+        lateNightRowButton.GrabFocus();
+        await PressKey(Key.Enter);
+        IReadOnlyList<CommercialAudioCue> actualStopAndResultCues = SelectApprovalCues(
+            [lateNight.Evaluation],
+            chapterCompleted: true,
+            campaignComplete: false,
+            completedChapterCount: _coreSnapshot.CompletedChapterOutcomes.Count + 1);
         Require(
+            lateNightRow.PhaseNumber > 1 &&
+            _panel.ApprovalChecklistHeadingText.Contains(
+                $"국면 {lateNightRow.PhaseNumber}/{lateNightRow.PhaseCount}",
+                StringComparison.Ordinal) &&
+            _thermalProjectionIndex == ProjectionIndexForPhase(
+                _coreSnapshot,
+                lateNightRow.PhaseId) &&
+            GetViewport().GuiGetFocusOwner() == lateNightRowButton &&
+            lateNightRow.PathNodeIds.Count > 0 &&
+            _map.HighlightAccessibilitySummary.Contains("늦은 밤", StringComparison.Ordinal) &&
             lateNight.Evaluation.Loads.Single(item =>
                 item.LoadId == "HOSPITAL").DeliveredKw == 900 &&
             lateNight.Evaluation.Loads.Single(item =>
-                item.LoadId == "WATERWORKS").DeliveredKw == 900,
-            "보호정지 이후 늦은 밤의 의료원·정수장 공급을 표시하지 못했습니다.");
+                item.LoadId == "WATERWORKS").DeliveredKw == 900 &&
+            lateNight.Evaluation.Assets.Any(item =>
+                item.State == ThermalOperatingState.ProtectiveOutage) &&
+            actualStopAndResultCues.Contains(CommercialAudioCue.ProtectiveStop) &&
+            actualStopAndResultCues.Contains(CommercialAudioCue.Result),
+            "두 번째 운영 단계의 절대 국면·행 focus·경로 또는 실제 보호정지+결과 cue를 표시하지 못했습니다.");
         EmitProduct(CommercialProductAction.ApproveWindow, "늦은 밤 복구 운영안 승인");
         await NextFrame();
         Require(
@@ -927,6 +1625,11 @@ internal sealed partial class CommercialMain
         await SelectCampaignProjectionThroughUi("PROTECTIVE_STOP_FLOOD");
         CommercialPhaseProjection protectiveFlood = _coreSnapshot.Projections.Single(item =>
             item.Phase.PhaseId == "PROTECTIVE_STOP_FLOOD");
+        IReadOnlyList<CommercialAudioCue> finalApprovalCues = SelectApprovalCues(
+            [protectiveFlood.Evaluation],
+            chapterCompleted: true,
+            campaignComplete: true,
+            completedChapterCount: 8);
         Require(
             protectiveFlood.Phase.ActiveRiskAreaIds.Contains(
                 "RIVER_FLOOD_ZONE",
@@ -936,8 +1639,15 @@ internal sealed partial class CommercialMain
             protectiveFlood.Evaluation.Loads.Single(item =>
                 item.LoadId == "WATERWORKS").DeliveredKw == 900 &&
             protectiveFlood.Evaluation.Assets.Any(item =>
-                item.State == ThermalOperatingState.ProtectiveOutage),
-            "보호정지와 범람 국면의 위험·필수 공급·보호정지 설비를 표시하지 못했습니다.");
+                item.State == ThermalOperatingState.ProtectiveOutage) &&
+            finalApprovalCues.SequenceEqual(
+            [
+                CommercialAudioCue.ProtectiveStop,
+                CommercialAudioCue.Result,
+                CommercialAudioCue.FinalRerouteMotif,
+            ]) &&
+            _audio.SfxVoiceCount >= 3,
+            "보호정지·결과·마지막 motif 세 cue와 이를 보존할 세 재생 voice를 함께 보장하지 못했습니다.");
         EmitProduct(CommercialProductAction.ApproveWindow, "마지막 운영안 승인");
         await NextFrame();
         Require(
@@ -987,10 +1697,16 @@ internal sealed partial class CommercialMain
         Require(
             completedInfoScroll.ScrollVertical > 0 &&
             ControlInside(this, _panel) &&
-            ControlInside(completedInfoScroll, _panel.ChapterReplayButton) &&
-            ControlInside(_panel, _panel.ChapterReplayButton) &&
-            ControlInside(this, _panel.ChapterReplayButton),
+            ControlInside(completedInfoScroll, _panel.ChapterReplayButton),
             "완료 화면의 장 시작 선택을 패널 스크롤과 키보드 focus로 표시하지 못했습니다.");
+        string? replaySelectionBeforeRender = _panel.SelectedChapterReplayId;
+        Render();
+        await NextFrame();
+        Require(
+            GetViewport().GuiGetFocusOwner() == _panel.ChapterReplayButton &&
+            _panel.SelectedChapterReplayId == replaySelectionBeforeRender &&
+            _panel.ChapterReplayOptionCount == 8,
+            "동일한 완료 화면 Render가 장 재시작 선택 목록·선택·focus를 재생성했습니다.");
         RequireCampaignPersistedSnapshot(
             expectedChapterId: "LONGEST_NIGHT",
             campaignComplete: true);
@@ -1158,6 +1874,21 @@ internal sealed partial class CommercialMain
             CampaignLineDraftDiagnostics());
         EmitPanel(CommercialPanelAction.Commission, $"{description} 발주");
         await NextFrame();
+        CommercialRecoveryPreview activeLineRecovery =
+            _coreRun!.PreviewRecovery(CommercialRecoveryKind.DecisionWindow);
+        string activeLineRecoveryText = RecoveryConfirmationText(activeLineRecovery);
+        Require(
+            activeLineRecovery.Enabled &&
+            activeLineRecovery.DiscardedActiveConstructionKind == ConstructionKind.Line &&
+            activeLineRecovery.DiscardedActiveLineRoutePointCount == points.Count + 2 &&
+            activeLineRecoveryText.Contains(
+                $"진행 중 선로 공사(경로점 {points.Count + 2}곳)",
+                StringComparison.Ordinal) &&
+            (activeLineRecovery.RestoredCoolingAssetIds.Count != 0 ||
+             activeLineRecoveryText.Contains(
+                 "복원 후 냉각 상태 설비 없음",
+                 StringComparison.Ordinal)),
+            $"{description}: 복구 미리보기가 진행 중 선로의 typed 경로점 수 또는 빈 냉각 상태를 명확히 표시하지 못했습니다.");
         EmitPanel(CommercialPanelAction.Commission, $"{description} 완공");
         await NextFrame();
         Require(
@@ -1249,15 +1980,22 @@ internal sealed partial class CommercialMain
         ConstructionError expected,
         string description)
     {
-        int nodeCount = _snapshot.World.Nodes.Count;
+        ConstructionSnapshot before = _snapshot;
+        long inputId = _placementInputSequence + 1;
+        int outcomeCount = _placementOutcomePresentationCount;
         await MovePointer(point);
         Require(!_pointerAccepted && _pointerError == expected,
             $"{description}을 클릭 전에 막지 못했습니다.");
         await ClickMap(point);
         Require(
-            _snapshot.World.Nodes.Count == nodeCount &&
+            Equals(_snapshot, before) &&
             _snapshot.NodeDraft is null &&
-            _lastError == ErrorText(expected),
+            _placementInputSequence == inputId &&
+            _placementOutcomePresentationCount == outcomeCount + 1 &&
+            _lastError.Contains($"배치 입력 #{inputId}", StringComparison.Ordinal) &&
+            _lastError.Contains(ErrorText(expected), StringComparison.Ordinal) &&
+            _lastError.Contains("도시망·경로·초안은 바뀌지 않았습니다", StringComparison.Ordinal) &&
+            !_lastStatus.Contains("적용", StringComparison.Ordinal),
             $"{description}을 클릭 뒤 typed 오류로 거부하지 못했습니다.");
     }
 
@@ -1293,6 +2031,12 @@ internal sealed partial class CommercialMain
 
     private async Task SelectAndClickCandidate(CoreMapPoint point, string nodeId)
     {
+        await SelectCandidateAt(point, nodeId);
+        await ClickMap(point);
+    }
+
+    private async Task SelectCandidateAt(CoreMapPoint point, string nodeId)
+    {
         await MovePointer(point);
         for (int index = 0;
              index < _map.CandidateNodeIds.Count && _map.SelectedCandidateId != nodeId;
@@ -1302,7 +2046,6 @@ internal sealed partial class CommercialMain
         }
         Require(_map.SelectedCandidateId == nodeId,
             $"요청한 접속 후보를 선택할 수 없습니다: {nodeId}");
-        await ClickMap(point);
     }
 
     private async Task PushMouseMove(Vector2 viewportPoint)

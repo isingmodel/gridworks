@@ -101,7 +101,6 @@ text = "이어하기"
 
 [node name="TitleSettingsButton" type="Button" parent="Center/Panel/Margin/Pages/TitlePage"]
 unique_name_in_owner = true
-visible = false
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 text = "설정"
@@ -168,7 +167,6 @@ text = "제목 화면으로"
 
 [node name="PauseSettingsButton" type="Button" parent="Center/Panel/Margin/Pages/PausePage"]
 unique_name_in_owner = true
-visible = false
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 text = "설정"
@@ -223,10 +221,14 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "전체 음량"
-[node name="MasterVolumeOption" type="OptionButton" parent="Center/Panel/Margin/Pages/SettingsPage/MasterRow"]
+[node name="MasterVolumeOption" type="SpinBox" parent="Center/Panel/Margin/Pages/SettingsPage/MasterRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(210, 42)
 layout_mode = 2
+max_value = 100.0
+step = 25.0
+value = 100.0
+suffix = "%"
 
 [node name="AmbientRow" type="HBoxContainer" parent="Center/Panel/Margin/Pages/SettingsPage"]
 layout_mode = 2
@@ -234,10 +236,14 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "환경음"
-[node name="AmbientVolumeOption" type="OptionButton" parent="Center/Panel/Margin/Pages/SettingsPage/AmbientRow"]
+[node name="AmbientVolumeOption" type="SpinBox" parent="Center/Panel/Margin/Pages/SettingsPage/AmbientRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(210, 42)
 layout_mode = 2
+max_value = 100.0
+step = 25.0
+value = 100.0
+suffix = "%"
 
 [node name="SfxRow" type="HBoxContainer" parent="Center/Panel/Margin/Pages/SettingsPage"]
 layout_mode = 2
@@ -245,16 +251,26 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "효과음"
-[node name="SfxVolumeOption" type="OptionButton" parent="Center/Panel/Margin/Pages/SettingsPage/SfxRow"]
+[node name="SfxVolumeOption" type="SpinBox" parent="Center/Panel/Margin/Pages/SettingsPage/SfxRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(210, 42)
 layout_mode = 2
+max_value = 100.0
+step = 25.0
+value = 100.0
+suffix = "%"
 
 [node name="ReduceMotionCheck" type="CheckButton" parent="Center/Panel/Margin/Pages/SettingsPage"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 text = "움직임 줄이기"
+
+[node name="SettingsStatus" type="Label" parent="Center/Panel/Margin/Pages/SettingsPage"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+autowrap_mode = 2
 
 [node name="Spacer" type="Control" parent="Center/Panel/Margin/Pages/SettingsPage"]
 layout_mode = 2
@@ -351,15 +367,33 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
 text = "이야기"
 
-[node name="StorySpeakerLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage"]
+[node name="StoryHeader" type="HBoxContainer" parent="Center/Panel/Margin/Pages/StoryPage"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="StoryPortrait" type="TextureRect" parent="Center/Panel/Margin/Pages/StoryPage/StoryHeader"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(96, 96)
+layout_mode = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="StoryText" type="VBoxContainer" parent="Center/Panel/Margin/Pages/StoryPage/StoryHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="StorySpeakerLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage/StoryHeader/StoryText"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.49, 0.78, 0.8, 1)
 theme_override_font_sizes/font_size = 17
 
-[node name="StoryTitleLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage"]
+[node name="StoryTitleLabel" type="Label" parent="Center/Panel/Margin/Pages/StoryPage/StoryHeader/StoryText"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_font_sizes/font_size = 28
 autowrap_mode = 2
 

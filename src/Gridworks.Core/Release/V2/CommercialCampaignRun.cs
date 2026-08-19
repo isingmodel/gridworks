@@ -59,6 +59,8 @@ public sealed record CommercialCampaignSnapshot(
         Freeze(CompletedChapterOutcomes);
     private IReadOnlyList<CommercialCampaignChapterReplayOption> _chapterReplayOptions =
         Freeze(ChapterReplayOptions);
+    private IReadOnlyList<CommercialPhaseComparisonRow> _phaseComparisonRows =
+        Array.Empty<CommercialPhaseComparisonRow>();
 
     public IReadOnlyList<CommercialPhaseProjection> Projections
     {
@@ -101,6 +103,20 @@ public sealed record CommercialCampaignSnapshot(
         get => _chapterReplayOptions;
         init => _chapterReplayOptions = Freeze(value);
     }
+
+    public CommercialApprovalChecklist ApprovalChecklist { get; init; } =
+        CommercialApprovalChecklist.Empty;
+
+    public CommercialSupplyDiagnostic? FirstBlockingDiagnostic { get; init; }
+
+    public IReadOnlyList<CommercialPhaseComparisonRow> PhaseComparisonRows
+    {
+        get => _phaseComparisonRows;
+        init => _phaseComparisonRows = Freeze(value);
+    }
+
+    public CommercialConstructionWindowForecast ConstructionWindowForecast { get; init; } =
+        CommercialConstructionWindowForecast.Empty;
 
     private static IReadOnlyList<T> Freeze<T>(IReadOnlyList<T> values)
     {
@@ -171,6 +187,9 @@ public sealed class CommercialCampaignRun
     private ThermalState _thermalState = ThermalState.Empty;
     private bool _campaignComplete;
     private CommercialCampaignChapterOutcome? _lastOutcome;
+    private long _journalGeneration;
+    private long _recoveryPreviewGeneration = -1;
+    private IReadOnlyList<CommercialRecoveryPreview>? _recoveryPreviewCache;
 
     public CommercialCampaignRun(
         CommercialCampaignDefinition definition,
@@ -199,22 +218,8 @@ public sealed class CommercialCampaignRun
 
     public CommercialCampaignSnapshot GetSnapshot()
     {
-        (IReadOnlyList<CommercialPhaseProjection> projections, bool includesConstruction) =
-            BuildProjections();
-        IReadOnlyDictionary<string, bool> counterfactualFutureSafety =
-            BuildCounterfactualFutureSafety();
-        ThermalSupplyFailure? firstFailure = FirstBlockingFailure(
-            projections,
-            counterfactualFutureSafety);
-        IReadOnlyList<CommercialCampaignConnectionFailure> connectionFailures =
-            BuildConnectionFailures();
-        bool canApprove = !_campaignComplete &&
-            _construction.GetSnapshot().Phase == ConstructionPhase.Ready &&
-            PromiseReady() &&
-            connectionFailures.Count == 0 &&
-            firstFailure is null &&
-            CurrentWindowPromiseSatisfied(projections);
-        return new CommercialCampaignSnapshot(
+        ApprovalEvaluation approval = EvaluateApproval();
+        CommercialCampaignSnapshot snapshot = new(
             _chapterIndex,
             _chapter,
             CurrentWindowOrNull(),
@@ -223,16 +228,16 @@ public sealed class CommercialCampaignRun
             CurrentMinute,
             _promiseDecision,
             _thermalState,
-            projections,
+            approval.Projections,
             _committedPhases.ToArray(),
             _chapter.AvailableNodeClassIds,
             _chapter.AvailableLinePlans,
-            connectionFailures,
+            approval.ConnectionFailures,
             _completedOutcomes.ToArray(),
             GetCompletedCampaignReplayOptions(),
             GetEpiloguePresentation(),
-            includesConstruction,
-            canApprove,
+            approval.ProjectionIncludesCurrentConstruction,
+            approval.Checklist.CanApprove,
             CanRollbackRecentProject,
             !_campaignComplete && _commands.Count > _windowStartCommandCount,
             !_campaignComplete && _commands.Count > _chapterStartCommandCount,
@@ -241,8 +246,17 @@ public sealed class CommercialCampaignRun
             _commands.Count,
             _chapterStartCommandCount,
             _windowStartCommandCount,
-            firstFailure,
+            approval.FirstBlocking?.Supply.Failure,
             _lastOutcome);
+        return snapshot with
+        {
+            ApprovalChecklist = approval.Checklist,
+            FirstBlockingDiagnostic = approval.FirstBlocking is null
+                ? null
+                : BuildSupplyDiagnostic(approval.FirstBlocking),
+            PhaseComparisonRows = BuildPhaseComparisonRows(approval.Projections),
+            ConstructionWindowForecast = BuildConstructionWindowForecast(null),
+        };
     }
 
     public NodePlacementPreview PreviewNodePlacement(string nodeClassId, MapPoint position)
@@ -295,22 +309,249 @@ public sealed class CommercialCampaignRun
     public CommercialCampaignProjectQuote PreviewLineOrder() =>
         ProjectQuote(_construction.PreviewLineOrder());
 
+    public CommercialConstructionWindowForecast PreviewConstructionWindowForecast(
+        CommercialNextProjectPlan? nextProject = null) =>
+        BuildConstructionWindowForecast(nextProject);
+
+    public IReadOnlyList<CommercialRecoveryPreview> GetRecoveryPreviews()
+    {
+        if (_recoveryPreviewGeneration == _journalGeneration &&
+            _recoveryPreviewCache is not null)
+        {
+            return _recoveryPreviewCache;
+        }
+
+        CommercialCampaignSnapshot current = GetSnapshot();
+        CommercialRecoveryKind[] kinds = Enum.GetValues<CommercialRecoveryKind>();
+        var targets = new Dictionary<int, CommercialCampaignSnapshot>();
+        var previews = new CommercialRecoveryPreview[kinds.Length];
+        for (int index = 0; index < kinds.Length; index++)
+        {
+            CommercialRecoveryKind kind = kinds[index];
+            int? targetCount = RecoveryTargetCommandCount(kind);
+            if (!targetCount.HasValue)
+            {
+                previews[index] = DisabledRecovery(kind);
+                continue;
+            }
+            if (!targets.TryGetValue(targetCount.Value, out CommercialCampaignSnapshot? target))
+            {
+                CommercialCampaignRun restored = Restore(
+                    _definition,
+                    _baseWorld,
+                    _commands.Take(targetCount.Value).ToArray());
+                target = restored.GetSnapshot();
+                targets.Add(targetCount.Value, target);
+            }
+            previews[index] = BuildRecoveryPreview(kind, targetCount.Value, current, target);
+        }
+        _recoveryPreviewCache = Array.AsReadOnly(previews);
+        _recoveryPreviewGeneration = _journalGeneration;
+        return _recoveryPreviewCache;
+    }
+
+    public CommercialRecoveryPreview PreviewRecovery(CommercialRecoveryKind kind)
+    {
+        if (!Enum.IsDefined(kind))
+        {
+            throw new ArgumentOutOfRangeException(nameof(kind));
+        }
+        return GetRecoveryPreviews().Single(item => item.Kind == kind);
+    }
+
+    private CommercialRecoveryPreview BuildRecoveryPreview(
+        CommercialRecoveryKind kind,
+        int targetCount,
+        CommercialCampaignSnapshot current,
+        CommercialCampaignSnapshot target)
+    {
+        HashSet<string> targetNodes = target.Construction.World.Nodes
+            .Select(item => item.NodeId)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> targetEdges = target.Construction.World.Edges
+            .Select(item => item.EdgeId)
+            .ToHashSet(StringComparer.Ordinal);
+        string[] removedNodes = current.Construction.World.Nodes
+            .Select(item => item.NodeId)
+            .Where(id => !targetNodes.Contains(id))
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        string[] removedEdges = current.Construction.World.Edges
+            .Select(item => item.EdgeId)
+            .Where(id => !targetEdges.Contains(id))
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray();
+        RemovedWorkSummary removed = AnalyzeRemovedWork(targetCount, current.Construction);
+        ConstructionKind[] removedKinds =
+        [
+            .. removed.CompletedNodeProjectCount > 0
+                ? new[] { ConstructionKind.Node }
+                : Array.Empty<ConstructionKind>(),
+            .. removed.CompletedLineProjectCount > 0
+                ? new[] { ConstructionKind.Line }
+                : Array.Empty<ConstructionKind>(),
+            .. removed.DiscardedDraftKind.HasValue
+                ? new[] { removed.DiscardedDraftKind.Value }
+                : Array.Empty<ConstructionKind>(),
+            .. removed.DiscardedActiveConstructionKind.HasValue
+                ? new[] { removed.DiscardedActiveConstructionKind.Value }
+                : Array.Empty<ConstructionKind>(),
+        ];
+        ConstructionKind[] distinctRemovedKinds = removedKinds.Distinct().ToArray();
+        ConstructionKind? removedKind = distinctRemovedKinds.Length == 1
+            ? distinctRemovedKinds[0]
+            : null;
+        int removedRoutePointCount = checked(
+            removed.CompletedLineRoutePointCount +
+            (removed.DiscardedDraftKind == ConstructionKind.Line
+                ? removed.DiscardedDraftRoutePointCount
+                : 0) +
+            (removed.DiscardedActiveConstructionKind == ConstructionKind.Line
+                ? removed.DiscardedActiveConstructionRoutePointCount
+                : 0));
+        (string? phaseId, string? phaseDisplay, int? phaseNumber, int? phaseCount) =
+            RecoveryPhase(target);
+        return new CommercialRecoveryPreview(
+            kind,
+            true,
+            targetCount,
+            removedKind,
+            removedNodes,
+            removedEdges,
+            removedRoutePointCount,
+            target.CashUnit,
+            target.Minute,
+            target.ChapterIndex,
+            target.Chapter.DisplayName,
+            phaseId,
+            phaseDisplay,
+            phaseNumber,
+            phaseCount,
+            target.PromiseDecision,
+            target.Chapter.CityPromise?.DisplayName,
+            target.ThermalState.CoolingAssetIds)
+        {
+            RemovedCompletedNodeProjectCount = removed.CompletedNodeProjectCount,
+            RemovedCompletedLineProjectCount = removed.CompletedLineProjectCount,
+            RemovedCompletedLineRoutePointCount = removed.CompletedLineRoutePointCount,
+            DiscardedDraftKind = removed.DiscardedDraftKind,
+            DiscardedDraftRoutePointCount = removed.DiscardedDraftRoutePointCount,
+            DiscardedActiveConstructionKind = removed.DiscardedActiveConstructionKind,
+            DiscardedActiveLineRoutePointCount =
+                removed.DiscardedActiveConstructionRoutePointCount,
+        };
+    }
+
+    private RemovedWorkSummary AnalyzeRemovedWork(
+        int targetCount,
+        ConstructionSnapshot currentConstruction)
+    {
+        ConstructionKind? activeKind = null;
+        int activeLineIntermediatePointCount = 0;
+        bool activeLineEndSelected = false;
+        int completedNodeProjectCount = 0;
+        int completedLineProjectCount = 0;
+        int completedLineRoutePointCount = 0;
+
+        for (int index = targetCount; index < _commands.Count; index++)
+        {
+            CommercialCoreCommand command = _commands[index];
+            switch (command.Kind)
+            {
+                case CommercialCoreCommandKind.SetNodeDraft:
+                    activeKind = ConstructionKind.Node;
+                    activeLineIntermediatePointCount = 0;
+                    activeLineEndSelected = false;
+                    break;
+                case CommercialCoreCommandKind.StartLineDraft:
+                    activeKind = ConstructionKind.Line;
+                    activeLineIntermediatePointCount = 0;
+                    activeLineEndSelected = false;
+                    break;
+                case CommercialCoreCommandKind.AddLinePoint
+                    when activeKind == ConstructionKind.Line:
+                    activeLineIntermediatePointCount = checked(
+                        activeLineIntermediatePointCount + 1);
+                    break;
+                case CommercialCoreCommandKind.FinishLineDraft
+                    when activeKind == ConstructionKind.Line:
+                    activeLineEndSelected = true;
+                    break;
+                case CommercialCoreCommandKind.UndoLinePoint
+                    when activeKind == ConstructionKind.Line && activeLineEndSelected:
+                    activeLineEndSelected = false;
+                    break;
+                case CommercialCoreCommandKind.UndoLinePoint
+                    when activeKind == ConstructionKind.Line:
+                    activeLineIntermediatePointCount = Math.Max(
+                        0,
+                        activeLineIntermediatePointCount - 1);
+                    break;
+                case CommercialCoreCommandKind.CancelNodeDraft
+                    when activeKind == ConstructionKind.Node:
+                case CommercialCoreCommandKind.CancelLineDraft
+                    when activeKind == ConstructionKind.Line:
+                    activeKind = null;
+                    activeLineIntermediatePointCount = 0;
+                    activeLineEndSelected = false;
+                    break;
+                case CommercialCoreCommandKind.AdvanceConstruction:
+                    if (activeKind == ConstructionKind.Node)
+                    {
+                        completedNodeProjectCount = checked(completedNodeProjectCount + 1);
+                    }
+                    else if (activeKind == ConstructionKind.Line)
+                    {
+                        completedLineProjectCount = checked(completedLineProjectCount + 1);
+                        completedLineRoutePointCount = checked(
+                            completedLineRoutePointCount +
+                            activeLineIntermediatePointCount +
+                            2);
+                    }
+                    activeKind = null;
+                    activeLineIntermediatePointCount = 0;
+                    activeLineEndSelected = false;
+                    break;
+            }
+        }
+
+        ConstructionKind? discardedDraftKind = currentConstruction.Phase switch
+        {
+            ConstructionPhase.NodeDrafting => ConstructionKind.Node,
+            ConstructionPhase.LineDrafting => ConstructionKind.Line,
+            _ => null,
+        };
+        int discardedDraftRoutePointCount = currentConstruction.Phase ==
+            ConstructionPhase.LineDrafting
+                ? checked(
+                    1 +
+                    currentConstruction.LineDraft!.IntermediatePoints.Count +
+                    (currentConstruction.LineDraft.EndNodeId is null ? 0 : 1))
+                : 0;
+        ConstructionKind? discardedActiveConstructionKind = currentConstruction.Phase switch
+        {
+            ConstructionPhase.NodeBuilding => ConstructionKind.Node,
+            ConstructionPhase.LineBuilding => ConstructionKind.Line,
+            _ => null,
+        };
+        int discardedActiveConstructionRoutePointCount =
+            discardedActiveConstructionKind == ConstructionKind.Line
+                ? checked(currentConstruction.ActiveConstruction!.EdgeIds.Count + 1)
+                : 0;
+        return new RemovedWorkSummary(
+            completedNodeProjectCount,
+            completedLineProjectCount,
+            completedLineRoutePointCount,
+            discardedDraftKind,
+            discardedDraftRoutePointCount,
+            discardedActiveConstructionKind,
+            discardedActiveConstructionRoutePointCount);
+    }
+
     public CommercialCampaignCommandResult Execute(CommercialCoreCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
-        if (_commands.Count >= MaximumAcceptedCommands)
-        {
-            return Rejected(CommercialCampaignRunError.CommandLimit);
-        }
-        if (!ValidShape(command))
-        {
-            return Rejected(CommercialCampaignRunError.InvalidCommandShape);
-        }
-        if (!ToolAvailable(command))
-        {
-            return Rejected(CommercialCampaignRunError.ToolUnavailable);
-        }
-        ApplyResult result = Apply(command);
+        ApplyResult result = TryApply(command);
         if (!result.Accepted)
         {
             return Rejected(
@@ -318,9 +559,32 @@ public sealed class CommercialCampaignRun
                 result.ConstructionError,
                 result.ConnectionFailure);
         }
+        RecordAccepted(command, result);
+        return new CommercialCampaignCommandResult(true, null, null, null, GetSnapshot());
+    }
+
+    private ApplyResult TryApply(CommercialCoreCommand command)
+    {
+        if (_commands.Count >= MaximumAcceptedCommands)
+        {
+            return ApplyResult.Failure(CommercialCampaignRunError.CommandLimit);
+        }
+        if (!ValidShape(command))
+        {
+            return ApplyResult.Failure(CommercialCampaignRunError.InvalidCommandShape);
+        }
+        if (!ToolAvailable(command))
+        {
+            return ApplyResult.Failure(CommercialCampaignRunError.ToolUnavailable);
+        }
+        return Apply(command);
+    }
+
+    private void RecordAccepted(CommercialCoreCommand command, ApplyResult result)
+    {
         _commands.Add(command);
         result.AfterRecorded?.Invoke();
-        return new CommercialCampaignCommandResult(true, null, null, null, GetSnapshot());
+        MarkJournalChanged();
     }
 
     public bool UndoRecentConstruction()
@@ -493,13 +757,14 @@ public sealed class CommercialCampaignRun
         var run = new CommercialCampaignRun(definition, world);
         foreach (CommercialCoreCommand command in commands)
         {
-            CommercialCampaignCommandResult result = run.Execute(command);
+            ApplyResult result = run.TryApply(command);
             if (!result.Accepted)
             {
                 throw new ArgumentException(
                     $"Commercial campaign command replay rejected {command.Kind}.",
                     nameof(commands));
             }
+            run.RecordAccepted(command, result);
         }
         return run;
     }
@@ -550,7 +815,11 @@ public sealed class CommercialCampaignRun
         long? deadline = allowance.HasValue
             ? CheckedWindowDeadline(allowance.Value)
             : null;
-        if (!absoluteCompletionMinute.HasValue)
+        if (!HasCommandSlots(2))
+        {
+            error = CommercialCampaignRunError.CommandLimit;
+        }
+        else if (!absoluteCompletionMinute.HasValue)
         {
             error = CommercialCampaignRunError.ArithmeticOverflow;
         }
@@ -575,6 +844,309 @@ public sealed class CommercialCampaignRun
             absoluteCompletionMinute,
             quote.RiskAreaIds);
     }
+
+    private CommercialConstructionWindowForecast BuildConstructionWindowForecast(
+        CommercialNextProjectPlan? nextProject)
+    {
+        CommercialDecisionWindowDefinition? window = CurrentWindowOrNull();
+        long currentMinute = CurrentMinute;
+        long windowStartMinute = _campaignComplete ? currentMinute : _windowStartMinute;
+        int? allowance = window?.BuildMinutesAvailable;
+        long? deadline = allowance.HasValue
+            ? CheckedWindowDeadline(allowance.Value)
+            : null;
+        long alreadySpent = checked(currentMinute - windowStartMinute);
+        long? remainingNow = deadline.HasValue
+            ? checked(deadline.Value - currentMinute)
+            : null;
+        var steps = new List<CommercialConstructionForecastStep>();
+
+        (ConstructionKind Kind, CommercialCampaignProjectQuote Quote)? current =
+            CurrentProjectForecastQuote();
+        if (current.HasValue)
+        {
+            steps.Add(ForecastStep(
+                1,
+                CommercialConstructionForecastStepRole.CurrentDraft,
+                current.Value.Kind,
+                current.Value.Quote,
+                deadline));
+        }
+
+        if (nextProject is not null)
+        {
+            int sequence = steps.Count + 1;
+            ConstructionKind nextKind = NextProjectKind(nextProject);
+            CommercialCampaignRun clone = Restore(_definition, _baseWorld, _commands.ToArray());
+            CommercialCampaignProjectQuote nextQuote;
+            if (current.HasValue && !current.Value.Quote.Accepted)
+            {
+                nextQuote = BlockedNextProjectQuote();
+            }
+            else if (!clone.CompleteCurrentProjectForForecast(
+                         out CommercialCampaignProjectQuote? _))
+            {
+                nextQuote = BlockedNextProjectQuote();
+            }
+            else
+            {
+                nextQuote = clone.QuoteNextProject(nextProject);
+            }
+            steps.Add(ForecastStep(
+                sequence,
+                CommercialConstructionForecastStepRole.ExplicitNextPlan,
+                nextKind,
+                nextQuote,
+                deadline));
+        }
+
+        return new CommercialConstructionWindowForecast(
+            window?.WindowId,
+            windowStartMinute,
+            currentMinute,
+            alreadySpent,
+            allowance,
+            deadline,
+            remainingNow,
+            steps);
+    }
+
+    private (ConstructionKind Kind, CommercialCampaignProjectQuote Quote)?
+        CurrentProjectForecastQuote()
+    {
+        ConstructionSnapshot snapshot = _construction.GetSnapshot();
+        return snapshot.Phase switch
+        {
+            ConstructionPhase.NodeDrafting =>
+                (ConstructionKind.Node, PreviewNodeOrder()),
+            ConstructionPhase.LineDrafting =>
+                (ConstructionKind.Line, PreviewLineOrder()),
+            ConstructionPhase.NodeBuilding =>
+                (ConstructionKind.Node, ActiveConstructionQuote(snapshot)),
+            ConstructionPhase.LineBuilding =>
+                (ConstructionKind.Line, ActiveConstructionQuote(snapshot)),
+            _ => null,
+        };
+    }
+
+    private CommercialCampaignProjectQuote ActiveConstructionQuote(
+        ConstructionSnapshot snapshot)
+    {
+        ActiveConstructionSnapshot active = snapshot.ActiveConstruction ??
+            throw new InvalidOperationException("A building phase must have active construction.");
+        long? completion = CheckedAbsoluteCompletionMinute(active.CompletionMinute);
+        long? remaining = null;
+        CommercialCampaignRunError? error = null;
+        try
+        {
+            remaining = checked(active.CompletionMinute - snapshot.Minute);
+        }
+        catch (OverflowException)
+        {
+            error = CommercialCampaignRunError.ArithmeticOverflow;
+        }
+        if (!completion.HasValue)
+        {
+            error = CommercialCampaignRunError.ArithmeticOverflow;
+        }
+        else if (!HasCommandSlots(1))
+        {
+            error = CommercialCampaignRunError.CommandLimit;
+        }
+        return new CommercialCampaignProjectQuote(
+            error is null,
+            error,
+            null,
+            active.CostCashUnit,
+            remaining,
+            completion,
+            active.RiskAreaIds);
+    }
+
+    private static CommercialConstructionForecastStep ForecastStep(
+        int sequence,
+        CommercialConstructionForecastStepRole stepRole,
+        ConstructionKind kind,
+        CommercialCampaignProjectQuote quote,
+        long? deadline)
+    {
+        long? remaining = deadline.HasValue && quote.CompletionMinute.HasValue
+            ? checked(deadline.Value - quote.CompletionMinute.Value)
+            : null;
+        return new CommercialConstructionForecastStep(
+            sequence,
+            kind,
+            quote.Accepted,
+            quote.Error,
+            quote.ConstructionError,
+            quote.BuildMinutes,
+            quote.CompletionMinute,
+            remaining)
+        {
+            StepRole = stepRole,
+        };
+    }
+
+    private static CommercialCampaignProjectQuote BlockedNextProjectQuote() => new(
+        false,
+        CommercialCampaignRunError.WrongState,
+        null,
+        null,
+        null,
+        null,
+        Array.Empty<string>());
+
+    private bool CompleteCurrentProjectForForecast(
+        out CommercialCampaignProjectQuote? blockingQuote)
+    {
+        blockingQuote = null;
+        ConstructionPhase phase = _construction.GetSnapshot().Phase;
+        if (phase == ConstructionPhase.Ready)
+        {
+            return true;
+        }
+        if (phase is ConstructionPhase.NodeDrafting or ConstructionPhase.LineDrafting)
+        {
+            CommercialCampaignProjectQuote quote = phase == ConstructionPhase.NodeDrafting
+                ? PreviewNodeOrder()
+                : PreviewLineOrder();
+            if (!quote.Accepted)
+            {
+                blockingQuote = quote;
+                return false;
+            }
+            CommercialCoreCommand order = phase == ConstructionPhase.NodeDrafting
+                ? CommercialCoreCommand.OrderNode()
+                : CommercialCoreCommand.OrderLine();
+            CommercialCampaignCommandResult orderResult = Execute(order);
+            if (!orderResult.Accepted)
+            {
+                blockingQuote = new CommercialCampaignProjectQuote(
+                    false,
+                    orderResult.Error,
+                    orderResult.ConstructionError,
+                    quote.CostCashUnit,
+                    quote.BuildMinutes,
+                    quote.CompletionMinute,
+                    quote.RiskAreaIds);
+                return false;
+            }
+        }
+        else if (phase is ConstructionPhase.NodeBuilding or ConstructionPhase.LineBuilding)
+        {
+            CommercialCampaignProjectQuote quote = ActiveConstructionQuote(
+                _construction.GetSnapshot());
+            if (!quote.Accepted)
+            {
+                blockingQuote = quote;
+                return false;
+            }
+        }
+        CommercialCampaignCommandResult advance = Execute(
+            CommercialCoreCommand.AdvanceConstruction());
+        if (!advance.Accepted)
+        {
+            blockingQuote = new CommercialCampaignProjectQuote(
+                false,
+                advance.Error,
+                advance.ConstructionError,
+                null,
+                null,
+                null,
+                Array.Empty<string>());
+            return false;
+        }
+        return true;
+    }
+
+    private CommercialCampaignProjectQuote QuoteNextProject(CommercialNextProjectPlan plan)
+    {
+        switch (plan)
+        {
+            case CommercialNextNodeProjectPlan node:
+            {
+                CommercialCampaignCommandResult result = Execute(
+                    CommercialCoreCommand.SetNodeDraft(node.NodeClassId, node.Position));
+                if (!result.Accepted)
+                {
+                    return QuoteFromRejection(result);
+                }
+                CommercialCampaignProjectQuote quote = PreviewNodeOrder();
+                if (!quote.Accepted)
+                {
+                    return quote;
+                }
+                result = Execute(CommercialCoreCommand.OrderNode());
+                if (!result.Accepted)
+                {
+                    return QuoteFromRejection(result, quote);
+                }
+                result = Execute(CommercialCoreCommand.AdvanceConstruction());
+                return result.Accepted
+                    ? quote
+                    : QuoteFromRejection(result, quote);
+            }
+            case CommercialNextLineProjectPlan line:
+            {
+                CommercialCampaignCommandResult result = Execute(
+                    CommercialCoreCommand.StartLineDraft(
+                        line.StartNodeId,
+                        line.LineClassId,
+                        line.PoleClassId));
+                if (!result.Accepted)
+                {
+                    return QuoteFromRejection(result);
+                }
+                foreach (MapPoint point in line.IntermediatePoints)
+                {
+                    result = Execute(CommercialCoreCommand.AddLinePoint(point));
+                    if (!result.Accepted)
+                    {
+                        return QuoteFromRejection(result);
+                    }
+                }
+                result = Execute(CommercialCoreCommand.FinishLineDraft(line.EndNodeId));
+                if (!result.Accepted)
+                {
+                    return QuoteFromRejection(result);
+                }
+                CommercialCampaignProjectQuote quote = PreviewLineOrder();
+                if (!quote.Accepted)
+                {
+                    return quote;
+                }
+                result = Execute(CommercialCoreCommand.OrderLine());
+                if (!result.Accepted)
+                {
+                    return QuoteFromRejection(result, quote);
+                }
+                result = Execute(CommercialCoreCommand.AdvanceConstruction());
+                return result.Accepted
+                    ? quote
+                    : QuoteFromRejection(result, quote);
+            }
+            default:
+                throw new ArgumentException("The next-project plan kind is unsupported.", nameof(plan));
+        }
+    }
+
+    private static CommercialCampaignProjectQuote QuoteFromRejection(
+        CommercialCampaignCommandResult result,
+        CommercialCampaignProjectQuote? quote = null) => new(
+        false,
+        result.Error,
+        result.ConstructionError,
+        quote?.CostCashUnit,
+        quote?.BuildMinutes,
+        quote?.CompletionMinute,
+        quote?.RiskAreaIds ?? Array.Empty<string>());
+
+    private static ConstructionKind NextProjectKind(CommercialNextProjectPlan plan) => plan switch
+    {
+        CommercialNextNodeProjectPlan => ConstructionKind.Node,
+        CommercialNextLineProjectPlan => ConstructionKind.Line,
+        _ => throw new ArgumentException("The next-project plan kind is unsupported.", nameof(plan)),
+    };
 
     private ApplyResult Apply(CommercialCoreCommand command)
     {
@@ -661,6 +1233,10 @@ public sealed class CommercialCampaignRun
                 CommercialCampaignRunError.ConstructionRejected,
                 quote.Error);
         }
+        if (!HasCommandSlots(2))
+        {
+            return ApplyResult.Failure(CommercialCampaignRunError.CommandLimit);
+        }
         long? absoluteCompletionMinute = CheckedAbsoluteCompletionMinute(
             quote.CompletionMinute!.Value);
         if (!absoluteCompletionMinute.HasValue)
@@ -725,63 +1301,14 @@ public sealed class CommercialCampaignRun
 
     private ApplyResult ApplyApproval()
     {
-        if (_construction.GetSnapshot().Phase != ConstructionPhase.Ready)
-        {
-            return ApplyResult.Failure(CommercialCampaignRunError.WrongState);
-        }
-        if (!PromiseReady())
-        {
-            return ApplyResult.Failure(CommercialCampaignRunError.PromiseDecisionRequired);
-        }
-        CommercialCampaignConnectionFailure? connectionFailure =
-            BuildConnectionFailures().FirstOrDefault();
-        if (connectionFailure is not null)
+        ApprovalEvaluation evaluation = EvaluateApproval();
+        if (evaluation.Error.HasValue)
         {
             return ApplyResult.Failure(
-                CommercialCampaignRunError.ConnectionRequirementUnmet,
-                connectionFailure: connectionFailure);
+                evaluation.Error.Value,
+                connectionFailure: evaluation.ConnectionFailure);
         }
-
-        (IReadOnlyList<CommercialPhaseProjection> projections, _) = BuildProjections();
-        IReadOnlyDictionary<string, bool> counterfactualFutureSafety =
-            BuildCounterfactualFutureSafety();
-        int endIndex = CurrentWindowEndPhaseIndex();
-        int startIndex = CurrentWindowStartPhaseIndex();
-        for (int offset = 0; offset < projections.Count; offset++)
-        {
-            int index = startIndex + offset;
-            CommercialPhaseProjection projection = projections[offset];
-            if (!projection.SafetySatisfied)
-            {
-                if (index < endIndex)
-                {
-                    return ApplyResult.Failure(
-                        CommercialCampaignRunError.SafetyDutyUnserved);
-                }
-                if (counterfactualFutureSafety[projection.Phase.PhaseId])
-                {
-                    return ApplyResult.Failure(
-                        CommercialCampaignRunError.FutureSafetyAtRisk);
-                }
-            }
-            if (index < endIndex && !projection.PromiseSatisfied)
-            {
-                return ApplyResult.Failure(CommercialCampaignRunError.KeptPromiseUnserved);
-            }
-        }
-
-        CommercialPhaseProjection[] committed = projections
-            .Take(endIndex - startIndex)
-            .ToArray();
-        bool completesChapter = _windowIndex + 1 >= _chapter.DecisionWindows.Count;
-        if (completesChapter && _chapterIndex + 1 < _definition.Chapters.Count)
-        {
-            CommercialCampaignChapterDefinition next = _definition.Chapters[_chapterIndex + 1];
-            if (!CanEnterNextChapter(next))
-            {
-                return ApplyResult.Failure(CommercialCampaignRunError.ArithmeticOverflow);
-            }
-        }
+        IReadOnlyList<CommercialPhaseProjection> committed = evaluation.Committed;
         return ApplyResult.Success(() =>
         {
             foreach (CommercialPhaseProjection projection in committed)
@@ -790,7 +1317,7 @@ public sealed class CommercialCampaignRun
                     projection.Phase.PhaseId,
                     projection.Evaluation));
             }
-            if (committed.Length > 0)
+            if (committed.Count > 0)
             {
                 _thermalState = committed[^1].Evaluation.NextThermalState;
             }
@@ -819,6 +1346,91 @@ public sealed class CommercialCampaignRun
         });
     }
 
+    private ApprovalEvaluation EvaluateApproval()
+    {
+        (IReadOnlyList<CommercialPhaseProjection> projections, bool includesConstruction) =
+            BuildProjections();
+        IReadOnlyDictionary<string, bool> counterfactualFutureSafety =
+            BuildCounterfactualFutureSafety();
+        IReadOnlyList<CommercialCampaignConnectionFailure> connectionFailures =
+            BuildConnectionFailures();
+        BlockingSupply? firstBlocking = FirstBlockingSupply(
+            projections,
+            counterfactualFutureSafety);
+
+        CommercialCampaignRunError? error = null;
+        CommercialCampaignConnectionFailure? connectionFailure = null;
+        IReadOnlyList<CommercialPhaseProjection> committed =
+            Array.Empty<CommercialPhaseProjection>();
+        if (_commands.Count >= MaximumAcceptedCommands)
+        {
+            error = CommercialCampaignRunError.CommandLimit;
+        }
+        else if (_campaignComplete ||
+                 _construction.GetSnapshot().Phase != ConstructionPhase.Ready)
+        {
+            error = CommercialCampaignRunError.WrongState;
+        }
+        else if (!PromiseReady())
+        {
+            error = CommercialCampaignRunError.PromiseDecisionRequired;
+        }
+        else if (connectionFailures.Count > 0)
+        {
+            error = CommercialCampaignRunError.ConnectionRequirementUnmet;
+            connectionFailure = connectionFailures[0];
+        }
+        else
+        {
+            int endIndex = CurrentWindowEndPhaseIndex();
+            int startIndex = CurrentWindowStartPhaseIndex();
+            for (int offset = 0; offset < projections.Count && !error.HasValue; offset++)
+            {
+                int index = startIndex + offset;
+                CommercialPhaseProjection projection = projections[offset];
+                if (!projection.SafetySatisfied)
+                {
+                    if (index < endIndex)
+                    {
+                        error = CommercialCampaignRunError.SafetyDutyUnserved;
+                    }
+                    else if (counterfactualFutureSafety[projection.Phase.PhaseId])
+                    {
+                        error = CommercialCampaignRunError.FutureSafetyAtRisk;
+                    }
+                }
+                if (!error.HasValue && index < endIndex && !projection.PromiseSatisfied)
+                {
+                    error = CommercialCampaignRunError.KeptPromiseUnserved;
+                }
+            }
+
+            committed = projections.Take(endIndex - startIndex).ToArray();
+            bool completesChapter = _windowIndex + 1 >= _chapter.DecisionWindows.Count;
+            if (!error.HasValue && completesChapter &&
+                _chapterIndex + 1 < _definition.Chapters.Count &&
+                !CanEnterNextChapter(_definition.Chapters[_chapterIndex + 1]))
+            {
+                error = CommercialCampaignRunError.ArithmeticOverflow;
+            }
+        }
+
+        CommercialApprovalChecklist checklist = BuildApprovalChecklist(
+            projections,
+            counterfactualFutureSafety,
+            connectionFailures,
+            error is null);
+        return new ApprovalEvaluation(
+            projections,
+            includesConstruction,
+            connectionFailures,
+            firstBlocking,
+            checklist,
+            error,
+            connectionFailure,
+            committed);
+    }
+
     private IReadOnlyList<CommercialCampaignConnectionFailure> BuildConnectionFailures()
     {
         if (_campaignComplete || _chapter.ConnectionRequirements.Count == 0)
@@ -844,6 +1456,290 @@ public sealed class CommercialCampaignRun
             .ToArray();
     }
 
+    private CommercialApprovalChecklist BuildApprovalChecklist(
+        IReadOnlyList<CommercialPhaseProjection> projections,
+        IReadOnlyDictionary<string, bool> counterfactualFutureSafety,
+        IReadOnlyList<CommercialCampaignConnectionFailure> connectionFailures,
+        bool canApprove)
+    {
+        if (_campaignComplete)
+        {
+            return CommercialApprovalChecklist.Empty;
+        }
+        int phaseCount = _chapter.OperatingPhases.Count;
+        int firstPhaseNumber = checked(CurrentWindowStartPhaseIndex() + 1);
+        var items = new List<CommercialApprovalChecklistItem>();
+        long remainingCommandSlots = checked(MaximumAcceptedCommands - _commands.Count);
+        bool commandCapacity = remainingCommandSlots > 0;
+        items.Add(new CommercialApprovalChecklistItem(
+            "command-capacity",
+            commandCapacity
+                ? $"명령 용량 · 승인 가능 · 남은 슬롯 {remainingCommandSlots}"
+                : "명령 용량 · 승인 불가 · 남은 슬롯 없음",
+            CommercialApprovalGateKind.CommandCapacity,
+            commandCapacity,
+            null,
+            null,
+            null,
+            phaseCount,
+            null,
+            null,
+            null,
+            null,
+            1,
+            remainingCommandSlots,
+            Math.Max(0, 1 - remainingCommandSlots),
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            null));
+        ConstructionSnapshot construction = _construction.GetSnapshot();
+        bool constructionReady = construction.Phase == ConstructionPhase.Ready;
+        items.Add(new CommercialApprovalChecklistItem(
+            "construction-ready",
+            constructionReady
+                ? "공사 상태 · 발주 또는 공사 중인 설비 없음"
+                : "공사 상태 · 현재 공사를 먼저 완료하거나 취소해야 함",
+            CommercialApprovalGateKind.ConstructionReady,
+            constructionReady,
+            null,
+            null,
+            null,
+            phaseCount,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            null));
+
+        if (_chapter.CityPromise is CommercialCityPromiseDefinition promise)
+        {
+            bool selected = PromiseReady();
+            items.Add(new CommercialApprovalChecklistItem(
+                "promise-decision",
+                selected
+                    ? $"도시 약속 · {promise.DisplayName} · 선택 완료"
+                    : $"도시 약속 · {promise.DisplayName} · 선택 필요",
+                CommercialApprovalGateKind.PromiseDecision,
+                selected,
+                null,
+                null,
+                null,
+                phaseCount,
+                CommercialObligationKind.CityPromise,
+                promise.LoadId,
+                null,
+                null,
+                null,
+                null,
+                null,
+                Array.Empty<string>(),
+                Array.Empty<string>(),
+                null));
+        }
+
+        Dictionary<string, CommercialCampaignConnectionFailure> failedConnections =
+            connectionFailures.ToDictionary(item => item.NodeId, StringComparer.Ordinal);
+        (CommercialWorldDefinition projectedWorld, _) = ProjectedWorld();
+        Dictionary<string, int> connectionCounts = ConnectionCounts(projectedWorld);
+        Dictionary<string, string> nodeNames = projectedWorld.Nodes.ToDictionary(
+            item => item.NodeId,
+            item => item.DisplayName,
+            StringComparer.Ordinal);
+        foreach (CommercialCampaignConnectionRequirement requirement in
+                 _chapter.ConnectionRequirements)
+        {
+            int current = failedConnections.TryGetValue(
+                requirement.NodeId,
+                out CommercialCampaignConnectionFailure? failure)
+                ? failure.CurrentConnections
+                : connectionCounts[requirement.NodeId];
+            bool passed = current >= requirement.MinimumConnections;
+            items.Add(new CommercialApprovalChecklistItem(
+                $"connection:{requirement.NodeId}",
+                $"접속 조건 · {nodeNames[requirement.NodeId]} · {current}/{requirement.MinimumConnections}",
+                CommercialApprovalGateKind.ConnectionRequirement,
+                passed,
+                null,
+                null,
+                null,
+                phaseCount,
+                null,
+                null,
+                requirement.NodeId,
+                requirement.NodeId,
+                requirement.MinimumConnections,
+                current,
+                Math.Max(0, requirement.MinimumConnections - current),
+                Array.AsReadOnly(new[] { requirement.NodeId }),
+                Array.Empty<string>(),
+                null));
+        }
+
+        foreach (CommercialPhaseProjection projection in projections)
+        {
+            bool futureSafetyGate = !projection.IsInCurrentWindow &&
+                counterfactualFutureSafety[projection.Phase.PhaseId];
+            foreach (CommercialLoadBundleDefinition load in projection.Phase.Loads)
+            {
+                CommercialApprovalGateKind? kind = load.Obligation switch
+                {
+                    CommercialObligationKind.SafetyDuty when projection.IsInCurrentWindow =>
+                        CommercialApprovalGateKind.SafetyDemand,
+                    CommercialObligationKind.CityPromise
+                        when projection.IsInCurrentWindow &&
+                             _promiseDecision == CommercialPromiseDecision.Keep =>
+                        CommercialApprovalGateKind.KeptPromiseDemand,
+                    CommercialObligationKind.SafetyDuty when futureSafetyGate =>
+                        CommercialApprovalGateKind.FutureSafety,
+                    _ => null,
+                };
+                if (!kind.HasValue)
+                {
+                    continue;
+                }
+                ThermalLoadSupply supply = projection.Evaluation.Loads.Single(item =>
+                    string.Equals(item.LoadId, load.LoadId, StringComparison.Ordinal));
+                bool passed = supply.DeliveredKw == supply.DemandKw;
+                CommercialSupplyDiagnostic? diagnostic = supply.Failure is null
+                    ? null
+                    : BuildSupplyDiagnostic(new BlockingSupply(projection, load, supply));
+                string loadName = LoadDisplayName(load.LoadId);
+                string gateLabel = kind == CommercialApprovalGateKind.FutureSafety
+                    ? "후속 열 상태"
+                    : ObligationDisplayName(load.Obligation);
+                items.Add(new CommercialApprovalChecklistItem(
+                    $"{GateId(kind.Value)}:{projection.Phase.PhaseId}:{load.LoadId}",
+                    $"{projection.Phase.DisplayName} · {loadName} · {gateLabel} · {supply.DeliveredKw}/{supply.DemandKw} kW",
+                    kind.Value,
+                    passed,
+                    projection.Phase.PhaseId,
+                    projection.Phase.DisplayName,
+                    PhaseNumber(projection.Phase.PhaseId),
+                    phaseCount,
+                    load.Obligation,
+                    load.LoadId,
+                    null,
+                    supply.Failure?.AssetId,
+                    supply.DemandKw,
+                    supply.DeliveredKw,
+                    checked(supply.DemandKw - supply.DeliveredKw),
+                    supply.PathNodeIds,
+                    supply.PathEdgeIds,
+                    diagnostic));
+            }
+        }
+
+        int blockers = items.Count(item => !item.Passed);
+        return new CommercialApprovalChecklist(
+            CurrentWindowOrNull()?.WindowId,
+            checked(_windowIndex + 1),
+            _chapter.DecisionWindows.Count,
+            firstPhaseNumber,
+            phaseCount,
+            canApprove,
+            blockers,
+            items);
+    }
+
+    private IReadOnlyList<CommercialPhaseComparisonRow> BuildPhaseComparisonRows(
+        IReadOnlyList<CommercialPhaseProjection> projections)
+    {
+        int phaseCount = _chapter.OperatingPhases.Count;
+        var rows = new List<CommercialPhaseComparisonRow>();
+        foreach (CommercialPhaseProjection projection in projections)
+        {
+            foreach (CommercialLoadBundleDefinition load in projection.Phase.Loads)
+            {
+                ThermalLoadSupply? supply = projection.Evaluation.Loads.FirstOrDefault(item =>
+                    string.Equals(item.LoadId, load.LoadId, StringComparison.Ordinal));
+                CommercialPhaseComparisonApplicability applicability = supply is not null
+                    ? CommercialPhaseComparisonApplicability.Evaluated
+                    : _promiseDecision == CommercialPromiseDecision.Defer
+                        ? CommercialPhaseComparisonApplicability.DeferredByPromise
+                        : CommercialPhaseComparisonApplicability.AwaitingPromiseDecision;
+                (ThermalOperatingState? currentState, ThermalOperatingState? nextState) =
+                    supply is null
+                        ? (null, null)
+                        : PathStateSummary(projection.Evaluation, supply);
+                CommercialSupplyDiagnostic? diagnostic = supply?.Failure is null
+                    ? null
+                    : BuildSupplyDiagnostic(new BlockingSupply(projection, load, supply));
+                rows.Add(new CommercialPhaseComparisonRow(
+                    projection.Phase.PhaseId,
+                    projection.Phase.DisplayName,
+                    PhaseNumber(projection.Phase.PhaseId),
+                    phaseCount,
+                    projection.IsInCurrentWindow,
+                    projection.Phase.Story?.Title,
+                    projection.Phase.Story?.Body,
+                    load.LoadId,
+                    LoadDisplayName(load.LoadId),
+                    load.Obligation,
+                    ObligationDisplayName(load.Obligation),
+                    applicability,
+                    load.DemandKw,
+                    supply?.DeliveredKw ?? 0,
+                    supply?.SourceId,
+                    supply?.SourceId is null ? null : SourceDisplayName(supply.SourceId),
+                    supply?.MinimumRemainingKw,
+                    currentState,
+                    nextState,
+                    supply?.PathNodeIds ?? Array.Empty<string>(),
+                    supply?.PathEdgeIds ?? Array.Empty<string>(),
+                    diagnostic));
+            }
+        }
+        return Array.AsReadOnly(rows.ToArray());
+    }
+
+    private static (ThermalOperatingState? Current, ThermalOperatingState? Next)
+        PathStateSummary(
+            ThermalIntervalEvaluation evaluation,
+            ThermalLoadSupply supply)
+    {
+        HashSet<string> pathAssets = supply.PathNodeIds
+            .Concat(supply.PathEdgeIds)
+            .ToHashSet(StringComparer.Ordinal);
+        ThermalAssetUsage[] assets = evaluation.Assets
+            .Where(item => pathAssets.Contains(item.AssetId))
+            .ToArray();
+        if (assets.Length == 0)
+        {
+            return (null, null);
+        }
+        return (
+            assets.Select(item => item.State).MaxBy(StateRank),
+            assets.Select(item => item.NextState).MaxBy(StateRank));
+    }
+
+    private static int StateRank(ThermalOperatingState state) => state switch
+    {
+        ThermalOperatingState.Continuous => 0,
+        ThermalOperatingState.Emergency => 1,
+        ThermalOperatingState.ProtectiveOutage => 2,
+        ThermalOperatingState.OverLimit => 3,
+        _ => throw new InvalidOperationException("Unknown thermal operating state."),
+    };
+
+    private static Dictionary<string, int> ConnectionCounts(CommercialWorldDefinition world)
+    {
+        Dictionary<string, int> result = world.Nodes.ToDictionary(
+            item => item.NodeId,
+            _ => 0,
+            StringComparer.Ordinal);
+        foreach (SpatialEdgeDefinition edge in world.Edges.Where(item => item.Commissioned))
+        {
+            result[edge.FromNodeId]++;
+            result[edge.ToNodeId]++;
+        }
+        return result;
+    }
+
     private (IReadOnlyList<CommercialPhaseProjection> Projections, bool IncludesConstruction)
         BuildProjections()
     {
@@ -852,6 +1748,7 @@ public sealed class CommercialCampaignRun
             return (Array.Empty<CommercialPhaseProjection>(), false);
         }
         (CommercialWorldDefinition world, bool includesConstruction) = ProjectedWorld();
+        SpatialWorldDefinition projectedSpatialWorld = world.ToSpatialWorld();
         int startIndex = CurrentWindowStartPhaseIndex();
         int currentEndIndex = CurrentWindowEndPhaseIndex();
         ThermalState state = _thermalState;
@@ -871,7 +1768,12 @@ public sealed class CommercialCampaignRun
                 index < currentEndIndex,
                 RequiredLoadsDelivered(phase, evaluation, CommercialObligationKind.SafetyDuty),
                 _promiseDecision != CommercialPromiseDecision.Keep ||
-                RequiredLoadsDelivered(phase, evaluation, CommercialObligationKind.CityPromise)));
+                RequiredLoadsDelivered(phase, evaluation, CommercialObligationKind.CityPromise))
+            {
+                ProjectedWorld = projectedSpatialWorld,
+                EffectiveUnavailableNodeIds = request.UnavailableNodeIds,
+                EffectiveUnavailableEdgeIds = request.UnavailableEdgeIds,
+            });
         }
         return (result, includesConstruction);
     }
@@ -1002,7 +1904,7 @@ public sealed class CommercialCampaignRun
 
     private bool WithinProjectionBudgetAndDeadline(ConstructionQuote quote)
     {
-        if (!quote.Accepted || quote.CostCashUnit!.Value > _cashUnit)
+        if (!quote.Accepted || !HasCommandSlots(2) || quote.CostCashUnit!.Value > _cashUnit)
         {
             return false;
         }
@@ -1066,11 +1968,14 @@ public sealed class CommercialCampaignRun
     private bool PromiseReady() => _chapter.CityPromise is null ||
         _promiseDecision is CommercialPromiseDecision.Keep or CommercialPromiseDecision.Defer;
 
+    private bool HasCommandSlots(int required) => required >= 0 &&
+        _commands.Count <= MaximumAcceptedCommands - required;
+
     private bool CurrentWindowPromiseSatisfied(
         IReadOnlyList<CommercialPhaseProjection> projections) =>
         projections.Where(item => item.IsInCurrentWindow).All(item => item.PromiseSatisfied);
 
-    private ThermalSupplyFailure? FirstBlockingFailure(
+    private BlockingSupply? FirstBlockingSupply(
         IReadOnlyList<CommercialPhaseProjection> projections,
         IReadOnlyDictionary<string, bool> counterfactualFutureSafety)
     {
@@ -1095,11 +2000,104 @@ public sealed class CommercialCampaignRun
                     item.LoadId == load.LoadId);
                 if (supply is null || supply.DeliveredKw != supply.DemandKw)
                 {
-                    return supply?.Failure;
+                    return supply is null
+                        ? null
+                        : new BlockingSupply(projection, load, supply);
                 }
             }
         }
         return null;
+    }
+
+    private CommercialSupplyDiagnostic BuildSupplyDiagnostic(BlockingSupply blocking)
+    {
+        ThermalSupplyFailure failure = blocking.Supply.Failure ??
+            throw new InvalidOperationException("A blocking supply must have a typed failure.");
+        (CommercialWorldDefinition world, _) = ProjectedWorld();
+        Dictionary<string, SpatialNodeDefinition> nodes = world.Nodes.ToDictionary(
+            item => item.NodeId,
+            StringComparer.Ordinal);
+        Dictionary<string, SpatialEdgeDefinition> edges = world.Edges.ToDictionary(
+            item => item.EdgeId,
+            StringComparer.Ordinal);
+        ThermalAssetKind? assetKind = failure.AssetId switch
+        {
+            string id when nodes.ContainsKey(id) => ThermalAssetKind.Node,
+            string id when edges.ContainsKey(id) => ThermalAssetKind.Edge,
+            _ => null,
+        };
+        string? assetName = failure.AssetId switch
+        {
+            string id when nodes.TryGetValue(id, out SpatialNodeDefinition? node) =>
+                node.DisplayName,
+            string id when edges.TryGetValue(id, out SpatialEdgeDefinition? edge) =>
+                EdgeDisplayName(world, edge),
+            _ => null,
+        };
+        return new CommercialSupplyDiagnostic(
+            blocking.Projection.Phase.PhaseId,
+            blocking.Projection.Phase.DisplayName,
+            PhaseNumber(blocking.Projection.Phase.PhaseId),
+            _chapter.OperatingPhases.Count,
+            blocking.Load.LoadId,
+            LoadDisplayName(blocking.Load.LoadId),
+            blocking.Load.Obligation,
+            ObligationDisplayName(blocking.Load.Obligation),
+            failure.Kind,
+            failure.AttemptedSourceId,
+            failure.AttemptedSourceId is null
+                ? null
+                : SourceDisplayName(failure.AttemptedSourceId),
+            assetKind,
+            failure.AssetId,
+            assetName,
+            failure.RequiredKw,
+            failure.AvailableKw,
+            checked(failure.RequiredKw - failure.AvailableKw),
+            blocking.Supply.PathNodeIds,
+            blocking.Supply.PathNodeIds.Select(id => nodes[id].DisplayName).ToArray(),
+            blocking.Supply.PathEdgeIds,
+            blocking.Supply.PathEdgeIds.Select(id => EdgeDisplayName(world, edges[id])).ToArray());
+    }
+
+    private int PhaseNumber(string phaseId) => checked(
+        _chapter.OperatingPhases.ToList().FindIndex(item =>
+            string.Equals(item.PhaseId, phaseId, StringComparison.Ordinal)) + 1);
+
+    private string LoadDisplayName(string loadId) => _baseWorld.Loads.First(item =>
+        string.Equals(item.LoadId, loadId, StringComparison.Ordinal)).DisplayName;
+
+    private string SourceDisplayName(string sourceId) => _baseWorld.Sources.First(item =>
+        string.Equals(item.SourceId, sourceId, StringComparison.Ordinal)).DisplayName;
+
+    private static string ObligationDisplayName(CommercialObligationKind obligation) =>
+        obligation switch
+        {
+            CommercialObligationKind.SafetyDuty => "안전 의무",
+            CommercialObligationKind.CityPromise => "도시 약속",
+            CommercialObligationKind.OperatingRecord => "운영 기록",
+            _ => throw new InvalidOperationException("Unknown commercial obligation kind."),
+        };
+
+    private static string GateId(CommercialApprovalGateKind kind) => kind switch
+    {
+        CommercialApprovalGateKind.SafetyDemand => "safety",
+        CommercialApprovalGateKind.KeptPromiseDemand => "promise-load",
+        CommercialApprovalGateKind.FutureSafety => "future-safety",
+        _ => kind.ToString(),
+    };
+
+    private static string EdgeDisplayName(
+        CommercialWorldDefinition world,
+        SpatialEdgeDefinition edge)
+    {
+        string lineName = world.LineClasses.First(item =>
+            string.Equals(item.ClassId, edge.LineClassId, StringComparison.Ordinal)).DisplayName;
+        Dictionary<string, string> nodeNames = world.Nodes.ToDictionary(
+            item => item.NodeId,
+            item => item.DisplayName,
+            StringComparer.Ordinal);
+        return $"{lineName} · {nodeNames[edge.FromNodeId]}–{nodeNames[edge.ToNodeId]}";
     }
 
     private IReadOnlyDictionary<string, bool> BuildCounterfactualFutureSafety()
@@ -1149,6 +2147,7 @@ public sealed class CommercialCampaignRun
     private void ResetToStart()
     {
         _commands.Clear();
+        MarkJournalChanged();
         _chapterStartCommandCounts.Clear();
         _completedOutcomes.Clear();
         _committedPhases.Clear();
@@ -1480,19 +2479,83 @@ public sealed class CommercialCampaignRun
         }
     }
 
+    private int? RecoveryTargetCommandCount(CommercialRecoveryKind kind) => kind switch
+    {
+        CommercialRecoveryKind.RecentProject when CanRollbackRecentProject =>
+            _recentProjectStartCommandCount,
+        CommercialRecoveryKind.DecisionWindow
+            when !_campaignComplete && _commands.Count > _windowStartCommandCount =>
+            _windowStartCommandCount,
+        CommercialRecoveryKind.Chapter
+            when !_campaignComplete && _commands.Count > _chapterStartCommandCount =>
+            _chapterStartCommandCount,
+        CommercialRecoveryKind.PreviousChapter when CanRewindPreviousChapter =>
+            _chapterStartCommandCounts[_campaignComplete ? _chapterIndex : _chapterIndex - 1],
+        _ => null,
+    };
+
+    private static CommercialRecoveryPreview DisabledRecovery(CommercialRecoveryKind kind) =>
+        new(
+            kind,
+            false,
+            null,
+            null,
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            0,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Array.Empty<string>());
+
+    private static (string? PhaseId, string? PhaseDisplay, int? PhaseNumber, int? PhaseCount)
+        RecoveryPhase(CommercialCampaignSnapshot snapshot)
+    {
+        if (snapshot.CampaignComplete || snapshot.CurrentWindow is null)
+        {
+            return (null, null, null, null);
+        }
+        int index = snapshot.Chapter.OperatingPhases.ToList().FindIndex(item =>
+            string.Equals(
+                item.PhaseId,
+                snapshot.CurrentWindow.BeforePhaseId,
+                StringComparison.Ordinal));
+        CommercialOperatingPhaseDefinition phase = snapshot.Chapter.OperatingPhases[index];
+        return (
+            phase.PhaseId,
+            phase.DisplayName,
+            checked(index + 1),
+            snapshot.Chapter.OperatingPhases.Count);
+    }
+
     private void ReplayPrefix(int count)
     {
         CommercialCoreCommand[] prefix = _commands.Take(count).ToArray();
         ResetToStart();
         foreach (CommercialCoreCommand command in prefix)
         {
-            CommercialCampaignCommandResult result = Execute(command);
+            ApplyResult result = TryApply(command);
             if (!result.Accepted)
             {
                 throw new InvalidOperationException(
                     "Accepted commercial campaign journal failed to replay.");
             }
+            RecordAccepted(command, result);
         }
+    }
+
+    private void MarkJournalChanged()
+    {
+        _journalGeneration = checked(_journalGeneration + 1);
+        _recoveryPreviewGeneration = -1;
+        _recoveryPreviewCache = null;
     }
 
     private CommercialCampaignCommandResult Rejected(
@@ -1542,6 +2605,30 @@ public sealed class CommercialCampaignRun
 
     private static bool Text(string? value) =>
         !string.IsNullOrWhiteSpace(value) && value == value.Trim();
+
+    private sealed record BlockingSupply(
+        CommercialPhaseProjection Projection,
+        CommercialLoadBundleDefinition Load,
+        ThermalLoadSupply Supply);
+
+    private sealed record ApprovalEvaluation(
+        IReadOnlyList<CommercialPhaseProjection> Projections,
+        bool ProjectionIncludesCurrentConstruction,
+        IReadOnlyList<CommercialCampaignConnectionFailure> ConnectionFailures,
+        BlockingSupply? FirstBlocking,
+        CommercialApprovalChecklist Checklist,
+        CommercialCampaignRunError? Error,
+        CommercialCampaignConnectionFailure? ConnectionFailure,
+        IReadOnlyList<CommercialPhaseProjection> Committed);
+
+    private sealed record RemovedWorkSummary(
+        int CompletedNodeProjectCount,
+        int CompletedLineProjectCount,
+        int CompletedLineRoutePointCount,
+        ConstructionKind? DiscardedDraftKind,
+        int DiscardedDraftRoutePointCount,
+        ConstructionKind? DiscardedActiveConstructionKind,
+        int DiscardedActiveConstructionRoutePointCount);
 
     private sealed record ApplyResult(
         bool Accepted,

@@ -48,7 +48,12 @@ internal sealed record CommercialStoryPresentation(
     bool IsResult,
     string ContinueLabel,
     bool IsSystemWarning = false,
-    string? KindLabel = null);
+    string? KindLabel = null,
+    CommercialStoryPortraitPresentation? Portrait = null);
+
+internal sealed record CommercialStoryPortraitPresentation(
+    string ResourcePath,
+    string AccessibilityDescription);
 
 internal sealed partial class CommercialShell : Control
 {
@@ -71,27 +76,33 @@ internal sealed partial class CommercialShell : Control
     private Label _confirmBody = null!;
     private Button _confirmAction = null!;
     private Label _storyKind = null!;
+    private TextureRect _storyPortrait = null!;
     private Label _storySpeaker = null!;
     private Label _storyTitle = null!;
     private Label _storyBody = null!;
     private Button _storyContinue = null!;
     private OptionButton _fullscreen = null!;
     private OptionButton _uiScale = null!;
-    private OptionButton _master = null!;
-    private OptionButton _ambient = null!;
-    private OptionButton _sfx = null!;
+    private SpinBox _master = null!;
+    private SpinBox _ambient = null!;
+    private SpinBox _sfx = null!;
     private CheckButton _reduceMotion = null!;
+    private Label _settingsStatus = null!;
     private CommercialShellSurface _surface;
     private CommercialShellSurface _returnSurface;
     private CommercialShellAction? _pendingConfirmation;
+    private string? _pendingConfirmationId;
+    private Control? _returnFocus;
     private bool _settingControls;
 
     public event Action<CommercialShellAction>? ActionRequested;
     public event Action<CommercialSettingsPresentation>? SettingsChanged;
     public event Action? StoryAcknowledged;
     public event Action? GameplayFocusRequested;
+    public event Action<string>? ConfirmationAccepted;
 
     public CommercialShellSurface Surface => _surface;
+#if DEBUG
     public string HelpText => _helpBody.Text;
     public string StoryKindText => _storyKind.Text;
     public string StoryBodyText => _storyBody.Text;
@@ -106,6 +117,7 @@ internal sealed partial class CommercialShell : Control
         CommercialShellAction.ReturnToTitle => _returnToTitle,
         _ => throw new ArgumentOutOfRangeException(nameof(action)),
     };
+#endif
 
     public override void _Ready()
     {
@@ -129,22 +141,24 @@ internal sealed partial class CommercialShell : Control
         _confirmBody = GetNode<Label>("%ConfirmBody");
         _confirmAction = GetNode<Button>("%ConfirmActionButton");
         _storyKind = GetNode<Label>("%StoryKindLabel");
+        _storyPortrait = GetNode<TextureRect>("%StoryPortrait");
         _storySpeaker = GetNode<Label>("%StorySpeakerLabel");
         _storyTitle = GetNode<Label>("%StoryTitleLabel");
         _storyBody = GetNode<Label>("%StoryBodyLabel");
         _storyContinue = GetNode<Button>("%StoryContinueButton");
         _fullscreen = GetNode<OptionButton>("%FullscreenOption");
         _uiScale = GetNode<OptionButton>("%UiScaleOption");
-        _master = GetNode<OptionButton>("%MasterVolumeOption");
-        _ambient = GetNode<OptionButton>("%AmbientVolumeOption");
-        _sfx = GetNode<OptionButton>("%SfxVolumeOption");
+        _master = GetNode<SpinBox>("%MasterVolumeOption");
+        _ambient = GetNode<SpinBox>("%AmbientVolumeOption");
+        _sfx = GetNode<SpinBox>("%SfxVolumeOption");
         _reduceMotion = GetNode<CheckButton>("%ReduceMotionCheck");
+        _settingsStatus = GetNode<Label>("%SettingsStatus");
 
         AddChoice(_fullscreen, "창 모드", 0, "전체화면", 1);
         AddChoice(_uiScale, "100%", 100, "125%", 125);
-        AddVolumeChoices(_master);
-        AddVolumeChoices(_ambient);
-        AddVolumeChoices(_sfx);
+        _master.AccessibilityName = "전체 음량 백분율";
+        _ambient.AccessibilityName = "환경음 백분율";
+        _sfx.AccessibilityName = "효과음 백분율";
 
         _newGame.Pressed += () => ActionRequested?.Invoke(CommercialShellAction.NewGame);
         _continue.Pressed += () => ActionRequested?.Invoke(CommercialShellAction.Continue);
@@ -166,9 +180,9 @@ internal sealed partial class CommercialShell : Control
         _storyContinue.Pressed += () => StoryAcknowledged?.Invoke();
         _fullscreen.ItemSelected += _ => EmitSettings();
         _uiScale.ItemSelected += _ => EmitSettings();
-        _master.ItemSelected += _ => EmitSettings();
-        _ambient.ItemSelected += _ => EmitSettings();
-        _sfx.ItemSelected += _ => EmitSettings();
+        _master.ValueChanged += _ => EmitSettings();
+        _ambient.ValueChanged += _ => EmitSettings();
+        _sfx.ValueChanged += _ => EmitSettings();
         _reduceMotion.Toggled += _ => EmitSettings();
         SetSurface(CommercialShellSurface.Hidden);
     }
@@ -214,10 +228,28 @@ internal sealed partial class CommercialShell : Control
             : model.IsResult
                 ? "결과"
                 : "이야기");
+        if (model.Portrait is CommercialStoryPortraitPresentation portrait)
+        {
+            _storyPortrait.Texture = ResourceLoader.Load<Texture2D>(portrait.ResourcePath);
+            _storyPortrait.Visible = _storyPortrait.Texture is not null;
+            _storyPortrait.AccessibilityName = portrait.AccessibilityDescription;
+            _storyPortrait.AccessibilityDescription =
+                "말하는 사람을 구분하는 고정 인물 초상입니다.";
+        }
+        else
+        {
+            _storyPortrait.Texture = null;
+            _storyPortrait.Visible = false;
+            _storyPortrait.AccessibilityName = "인물 초상 없음";
+            _storyPortrait.AccessibilityDescription = string.Empty;
+        }
         _storySpeaker.Text = model.Card.Speaker;
         _storyTitle.Text = model.Card.Title;
         _storyBody.Text = model.Card.Body;
         _storyContinue.Text = model.ContinueLabel;
+        _story.AccessibilityDescription = model.Portrait is null
+            ? $"{_storyKind.Text}. {model.Card.Speaker}. {model.Card.Title}."
+            : $"{_storyKind.Text}. {model.Portrait.AccessibilityDescription}. {model.Card.Title}.";
         SetSurface(model.IsResult ? CommercialShellSurface.Result : CommercialShellSurface.Story,
             _storyContinue);
     }
@@ -229,10 +261,30 @@ internal sealed partial class CommercialShell : Control
         string actionLabel)
     {
         _pendingConfirmation = action;
+        _pendingConfirmationId = null;
         _returnSurface = _surface;
+        _returnFocus = GetViewport().GuiGetFocusOwner();
         _confirmHeading.Text = heading;
         _confirmBody.Text = body;
         _confirmAction.Text = actionLabel;
+        SetSurface(CommercialShellSurface.Confirm, GetNode<Button>("%CancelConfirmButton"));
+    }
+
+    public void ShowConfirmation(
+        string confirmationId,
+        string heading,
+        string body,
+        string actionLabel)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(confirmationId);
+        _pendingConfirmation = null;
+        _pendingConfirmationId = confirmationId;
+        _returnSurface = _surface;
+        _returnFocus = GetViewport().GuiGetFocusOwner();
+        _confirmHeading.Text = heading;
+        _confirmBody.Text = body;
+        _confirmAction.Text = actionLabel;
+        _confirmBody.AccessibilityName = body.Replace('\n', ' ');
         SetSurface(CommercialShellSurface.Confirm, GetNode<Button>("%CancelConfirmButton"));
     }
 
@@ -242,11 +294,25 @@ internal sealed partial class CommercialShell : Control
         _settingControls = true;
         SelectById(_fullscreen, settings.Fullscreen ? 1 : 0);
         SelectById(_uiScale, settings.UiScalePercent);
-        SelectById(_master, settings.MasterVolumePercent);
-        SelectById(_ambient, settings.AmbientVolumePercent);
-        SelectById(_sfx, settings.SfxVolumePercent);
+        _master.Value = settings.MasterVolumePercent;
+        _ambient.Value = settings.AmbientVolumePercent;
+        _sfx.Value = settings.SfxVolumePercent;
         _reduceMotion.ButtonPressed = settings.ReduceMotion;
         _settingControls = false;
+    }
+
+    public void SetSettingsStatus(string status, bool isError = false)
+    {
+        _settingsStatus.Text = status;
+        _settingsStatus.AccessibilityName = string.IsNullOrWhiteSpace(status)
+            ? "설정 상태 알림 없음"
+            : status;
+        _settingsStatus.AccessibilityLive = isError
+            ? AccessibilityServer.AccessibilityLiveMode.Assertive
+            : AccessibilityServer.AccessibilityLiveMode.Polite;
+        _settingsStatus.AddThemeColorOverride(
+            "font_color",
+            isError ? Color.FromHtml("ed756e") : Color.FromHtml("78c9c1"));
     }
 
     public bool HandleEscape()
@@ -281,24 +347,53 @@ internal sealed partial class CommercialShell : Control
     private void ShowSettings(CommercialShellSurface returnSurface)
     {
         _returnSurface = returnSurface;
+        _returnFocus = GetViewport().GuiGetFocusOwner();
         SetSurface(CommercialShellSurface.Settings, _fullscreen);
     }
 
     private void ShowHelp(CommercialShellSurface returnSurface)
     {
         _returnSurface = returnSurface;
+        _returnFocus = GetViewport().GuiGetFocusOwner();
         SetSurface(CommercialShellSurface.Help, GetNode<Button>("%HelpBackButton"));
     }
 
     private void ReturnFromSubpage()
     {
         _pendingConfirmation = null;
+        _pendingConfirmationId = null;
         if (_returnSurface == CommercialShellSurface.Hidden)
         {
-            HideShell();
+            Control? hiddenFocus = ReturnFocusTarget(CommercialShellSurface.Hidden);
+            _returnFocus = null;
+            SetSurface(CommercialShellSurface.Hidden, hiddenFocus);
+            if (hiddenFocus is null)
+            {
+                GameplayFocusRequested?.Invoke();
+            }
             return;
         }
-        SetSurface(_returnSurface);
+        CommercialShellSurface returnSurface = _returnSurface;
+        Control? focus = ReturnFocusTarget(returnSurface);
+        _returnFocus = null;
+        SetSurface(returnSurface, focus);
+    }
+
+    private Control? ReturnFocusTarget(CommercialShellSurface surface)
+    {
+        if (_returnFocus is { } opener &&
+            opener.IsInsideTree() &&
+            opener.FocusMode != FocusModeEnum.None &&
+            (opener is not BaseButton button || !button.Disabled))
+        {
+            return opener;
+        }
+        return surface switch
+        {
+            CommercialShellSurface.Title => _continue.Disabled ? _newGame : _continue,
+            CommercialShellSurface.Pause => GetNode<Button>("%ResumeButton"),
+            _ => null,
+        };
     }
 
     private void Confirm()
@@ -307,6 +402,12 @@ internal sealed partial class CommercialShell : Control
         {
             _pendingConfirmation = null;
             ActionRequested?.Invoke(action);
+            return;
+        }
+        if (_pendingConfirmationId is string confirmationId)
+        {
+            _pendingConfirmationId = null;
+            ConfirmationAccepted?.Invoke(confirmationId);
         }
     }
 
@@ -319,9 +420,9 @@ internal sealed partial class CommercialShell : Control
         SettingsChanged?.Invoke(new CommercialSettingsPresentation(
             SelectedId(_fullscreen) == 1,
             SelectedId(_uiScale),
-            SelectedId(_master),
-            SelectedId(_ambient),
-            SelectedId(_sfx),
+            (int)_master.Value,
+            (int)_ambient.Value,
+            (int)_sfx.Value,
             _reduceMotion.ButtonPressed));
     }
 
@@ -359,14 +460,6 @@ internal sealed partial class CommercialShell : Control
     {
         option.AddItem(firstText, firstId);
         option.AddItem(secondText, secondId);
-    }
-
-    private static void AddVolumeChoices(OptionButton option)
-    {
-        foreach (int value in new[] { 0, 25, 50, 75, 100 })
-        {
-            option.AddItem($"{value}%", value);
-        }
     }
 
     private static void SelectById(OptionButton option, int id)

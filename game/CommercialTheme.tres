@@ -1,0 +1,164 @@
+[gd_resource type="Theme" load_steps=12 format=3]
+
+[sub_resource type="SystemFont" id="SystemFont_Korean"]
+font_names = PackedStringArray("Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR", "sans-serif")
+
+[sub_resource type="StyleBoxFlat" id="StylePanel"]
+bg_color = Color(0.039, 0.083, 0.105, 0.985)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.19, 0.34, 0.37, 1)
+corner_radius_top_left = 7
+corner_radius_top_right = 7
+corner_radius_bottom_right = 7
+corner_radius_bottom_left = 7
+
+[sub_resource type="StyleBoxFlat" id="StyleButton"]
+bg_color = Color(0.068, 0.139, 0.16, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.43, 0.45, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_left = 13.0
+content_margin_top = 8.0
+content_margin_right = 13.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleButtonHover"]
+bg_color = Color(0.09, 0.194, 0.213, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.4, 0.74, 0.73, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_left = 13.0
+content_margin_top = 8.0
+content_margin_right = 13.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleButtonPressed"]
+bg_color = Color(0.18, 0.22, 0.18, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.87, 0.66, 0.31, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_left = 13.0
+content_margin_top = 8.0
+content_margin_right = 13.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleButtonDisabled"]
+bg_color = Color(0.035, 0.068, 0.08, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.12, 0.2, 0.22, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+content_margin_left = 13.0
+content_margin_top = 8.0
+content_margin_right = 13.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxFlat" id="StyleFocus"]
+bg_color = Color(0, 0, 0, 0)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.96, 0.82, 0.47, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+expand_margin_left = 2.0
+expand_margin_top = 2.0
+expand_margin_right = 2.0
+expand_margin_bottom = 2.0
+
+[sub_resource type="StyleBoxLine" id="StyleSeparator"]
+color = Color(0.2, 0.34, 0.36, 1)
+thickness = 1
+
+[sub_resource type="StyleBoxFlat" id="StyleScroll"]
+bg_color = Color(0.025, 0.055, 0.068, 0.8)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleGrabber"]
+bg_color = Color(0.25, 0.43, 0.45, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+expand_margin_left = 2.0
+expand_margin_right = 2.0
+
+[sub_resource type="StyleBoxFlat" id="StyleGrabberHover"]
+bg_color = Color(0.4, 0.68, 0.68, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+expand_margin_left = 2.0
+expand_margin_right = 2.0
+
+[resource]
+default_font = SubResource("SystemFont_Korean")
+default_font_size = 15
+Label/colors/font_color = Color(0.9, 0.94, 0.95, 1)
+Label/colors/font_shadow_color = Color(0.005, 0.012, 0.016, 0.7)
+Label/constants/line_spacing = 3
+Label/constants/shadow_offset_x = 1
+Label/constants/shadow_offset_y = 1
+Label/font_sizes/font_size = 15
+PanelContainer/styles/panel = SubResource("StylePanel")
+Button/colors/font_color = Color(0.92, 0.96, 0.96, 1)
+Button/colors/font_hover_color = Color(1, 1, 1, 1)
+Button/colors/font_pressed_color = Color(1, 0.92, 0.72, 1)
+Button/colors/font_disabled_color = Color(0.43, 0.51, 0.53, 1)
+Button/font_sizes/font_size = 15
+Button/styles/normal = SubResource("StyleButton")
+Button/styles/hover = SubResource("StyleButtonHover")
+Button/styles/pressed = SubResource("StyleButtonPressed")
+Button/styles/disabled = SubResource("StyleButtonDisabled")
+Button/styles/focus = SubResource("StyleFocus")
+OptionButton/colors/font_color = Color(0.92, 0.96, 0.96, 1)
+OptionButton/colors/font_hover_color = Color(1, 1, 1, 1)
+OptionButton/colors/font_pressed_color = Color(1, 0.92, 0.72, 1)
+OptionButton/font_sizes/font_size = 15
+OptionButton/styles/normal = SubResource("StyleButton")
+OptionButton/styles/hover = SubResource("StyleButtonHover")
+OptionButton/styles/pressed = SubResource("StyleButtonPressed")
+OptionButton/styles/disabled = SubResource("StyleButtonDisabled")
+OptionButton/styles/focus = SubResource("StyleFocus")
+CheckButton/colors/font_color = Color(0.92, 0.96, 0.96, 1)
+CheckButton/colors/font_hover_color = Color(1, 1, 1, 1)
+CheckButton/font_sizes/font_size = 15
+CheckButton/styles/focus = SubResource("StyleFocus")
+HSeparator/styles/separator = SubResource("StyleSeparator")
+VScrollBar/styles/scroll = SubResource("StyleScroll")
+VScrollBar/styles/grabber = SubResource("StyleGrabber")
+VScrollBar/styles/grabber_highlight = SubResource("StyleGrabberHover")
+VScrollBar/styles/grabber_pressed = SubResource("StyleGrabberHover")

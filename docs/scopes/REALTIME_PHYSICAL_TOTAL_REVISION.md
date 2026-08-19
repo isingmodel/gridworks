@@ -1,6 +1,6 @@
 # Gridworks — 실시간 물리 세계 전면 개편 구현 계약
 
-> 문서 상태: **사용자가 승인한 전면 개편의 구현 권위 · 구현 증거 미수집**
+> 문서 상태: **사용자가 승인한 전면 개편의 구현 권위 · R0 완료 · R1 활성**
 >
 > 기준일: **2026-08-19**
 >
@@ -1075,6 +1075,9 @@ proof는 별도 사용자 승인 아래 실행하며 자동 PASS 수치에 합�
 
 ```text
 RealtimePhysicalRevisionContract = DEFINED
+ActiveRevisionGate = R1_REALTIME_CORE_VERTICAL_SLICE
+R0BaselineCommit = 5a9e465
+R0IndependentReview = P0_0_P1_0
 RealtimeCoreStatus = NOT_IMPLEMENTED
 RealtimeUxStatus = NOT_IMPLEMENTED
 HorizontalEventHorizonStatus = NOT_IMPLEMENTED

@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "gridworks.realtime.campaign.v3",
+  "campaignId": "CHEONGRYU_RELEASE_CAMPAIGN",
+  "initialSeed": {
+    "seedId": "FIRST_LIGHT_REALTIME_R1_SEED",
+    "startMinute": 1020,
+    "initialCashUnit": 8500000,
+    "baseNodeIds": [
+      "EAST_RESIDENTIAL_TERMINAL",
+      "FACTORY_TERMINAL",
+      "HOSPITAL_TERMINAL",
+      "NORTH_RESIDENTIAL_TERMINAL",
+      "SOUTH_SOURCE_NODE",
+      "WATER_TERMINAL",
+      "WEST_SOURCE_NODE"
+    ],
+    "baseEdgeIds": [],
+    "constructedNodes": [
+      { "nodeId": "SLICE_LINE_EAST_BANK", "classId": "REINFORCED_POLE", "displayName": "선로 병목 동쪽 지지점", "position": { "xUnit": 1615, "yUnit": 650 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_LINE_SUBSTATION", "classId": "LARGE_SUBSTATION", "displayName": "선로 병목 회랑 변전소", "position": { "xUnit": 2200, "yUnit": 700 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_LINE_WEST_BANK", "classId": "REINFORCED_POLE", "displayName": "선로 병목 서쪽 지지점", "position": { "xUnit": 1050, "yUnit": 650 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_LINE_WEST_MID", "classId": "REINFORCED_POLE", "displayName": "선로 병목 서쪽 중간점", "position": { "xUnit": 700, "yUnit": 650 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_POLE_EAST_BANK", "classId": "REINFORCED_POLE", "displayName": "전신주 병목 동쪽 지지점", "position": { "xUnit": 1715, "yUnit": 1350 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_POLE_SUBSTATION", "classId": "LARGE_SUBSTATION", "displayName": "전신주 병목 회랑 변전소", "position": { "xUnit": 2200, "yUnit": 1350 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_POLE_TARGET", "classId": "STANDARD_POLE", "displayName": "전신주 접속부 병목", "position": { "xUnit": 700, "yUnit": 1650 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_POLE_WEST_BANK", "classId": "REINFORCED_POLE", "displayName": "전신주 병목 서쪽 지지점", "position": { "xUnit": 1110, "yUnit": 1350 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_SUBSTATION_EAST_BANK", "classId": "REINFORCED_POLE", "displayName": "변전소 병목 동쪽 지지점", "position": { "xUnit": 1545, "yUnit": 250 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_SUBSTATION_TARGET", "classId": "SMALL_SUBSTATION", "displayName": "변전소 주기기 병목", "position": { "xUnit": 2050, "yUnit": 350 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_SUBSTATION_WEST_BANK", "classId": "REINFORCED_POLE", "displayName": "변전소 병목 서쪽 지지점", "position": { "xUnit": 1000, "yUnit": 250 }, "commissioned": true, "authoredFoundation": false },
+      { "nodeId": "SLICE_SUBSTATION_WEST_MID", "classId": "REINFORCED_POLE", "displayName": "변전소 병목 서쪽 중간점", "position": { "xUnit": 650, "yUnit": 250 }, "commissioned": true, "authoredFoundation": false }
+    ],
+    "constructedEdges": [
+      { "edgeId": "SLICE_LINE_EAST_FEED", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_LINE_EAST_BANK", "toNodeId": "SLICE_LINE_SUBSTATION", "commissioned": true },
+      { "edgeId": "SLICE_LINE_LOAD", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_LINE_SUBSTATION", "toNodeId": "EAST_RESIDENTIAL_TERMINAL", "commissioned": true },
+      { "edgeId": "SLICE_LINE_SOURCE", "lineClassId": "REINFORCED_LINE", "fromNodeId": "WEST_SOURCE_NODE", "toNodeId": "SLICE_LINE_WEST_MID", "commissioned": true },
+      { "edgeId": "SLICE_LINE_WEST_FEED", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_LINE_WEST_MID", "toNodeId": "SLICE_LINE_WEST_BANK", "commissioned": true },
+      { "edgeId": "SLICE_POLE_CROSSING", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_POLE_WEST_BANK", "toNodeId": "SLICE_POLE_EAST_BANK", "commissioned": true },
+      { "edgeId": "SLICE_POLE_EAST_FEED", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_POLE_EAST_BANK", "toNodeId": "SLICE_POLE_SUBSTATION", "commissioned": true },
+      { "edgeId": "SLICE_POLE_LOAD", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_POLE_SUBSTATION", "toNodeId": "HOSPITAL_TERMINAL", "commissioned": true },
+      { "edgeId": "SLICE_POLE_SOURCE", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SOUTH_SOURCE_NODE", "toNodeId": "SLICE_POLE_TARGET", "commissioned": true },
+      { "edgeId": "SLICE_POLE_WEST_FEED", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_POLE_TARGET", "toNodeId": "SLICE_POLE_WEST_BANK", "commissioned": true },
+      { "edgeId": "SLICE_SUBSTATION_CROSSING", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_SUBSTATION_WEST_BANK", "toNodeId": "SLICE_SUBSTATION_EAST_BANK", "commissioned": true },
+      { "edgeId": "SLICE_SUBSTATION_EAST_FEED", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_SUBSTATION_EAST_BANK", "toNodeId": "SLICE_SUBSTATION_TARGET", "commissioned": true },
+      { "edgeId": "SLICE_SUBSTATION_LOAD", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_SUBSTATION_TARGET", "toNodeId": "WATER_TERMINAL", "commissioned": true },
+      { "edgeId": "SLICE_SUBSTATION_SOURCE", "lineClassId": "REINFORCED_LINE", "fromNodeId": "WEST_SOURCE_NODE", "toNodeId": "SLICE_SUBSTATION_WEST_MID", "commissioned": true },
+      { "edgeId": "SLICE_SUBSTATION_WEST_FEED", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SLICE_SUBSTATION_WEST_MID", "toNodeId": "SLICE_SUBSTATION_WEST_BANK", "commissioned": true }
+    ],
+    "coolingAssetIds": ["SLICE_POLE_TARGET"]
+  },
+  "chapters": [
+    {
+      "chapterId": "FIRST_LIGHT",
+      "preparationMinutes": 240,
+      "promiseDecisionDeadlineOffsetMinutes": null,
+      "scheduledEvents": [
+        {
+          "eventId": "FIRST_LIGHT_SUBSTATION_BOTTLENECK",
+          "displayName": "변전소 주기기 병목 시험",
+          "priority": 10,
+          "startOffsetMinutes": 264,
+          "durationMinutes": 6,
+          "forecastLeadMinutes": 264,
+          "thermalPolicy": "safetyEmergencyAllowed",
+          "loads": [{ "loadId": "WATERWORKS", "demandKw": 2000, "obligation": "safetyDuty" }],
+          "unavailableNodeIds": [], "unavailableEdgeIds": [], "activeRiskAreaIds": [], "thermalLimitOverrides": []
+        },
+        {
+          "eventId": "FIRST_LIGHT_LINE_BOTTLENECK",
+          "displayName": "선로 도체 병목 시험",
+          "priority": 20,
+          "startOffsetMinutes": 240,
+          "durationMinutes": 6,
+          "forecastLeadMinutes": 240,
+          "thermalPolicy": "safetyEmergencyAllowed",
+          "loads": [{ "loadId": "EAST_RESIDENTIAL", "demandKw": 2000, "obligation": "safetyDuty" }],
+          "unavailableNodeIds": [], "unavailableEdgeIds": [], "activeRiskAreaIds": [], "thermalLimitOverrides": []
+        },
+        {
+          "eventId": "FIRST_LIGHT_POLE_BOTTLENECK",
+          "displayName": "전신주 접속부 병목 시험",
+          "priority": 0,
+          "startOffsetMinutes": 252,
+          "durationMinutes": 6,
+          "forecastLeadMinutes": 252,
+          "thermalPolicy": "safetyEmergencyAllowed",
+          "loads": [{ "loadId": "HOSPITAL", "demandKw": 2000, "obligation": "safetyDuty" }],
+          "unavailableNodeIds": [], "unavailableEdgeIds": [], "activeRiskAreaIds": [], "thermalLimitOverrides": []
+        }
+      ]
+    }
+  ]
+}

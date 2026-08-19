@@ -27,7 +27,8 @@ docs/
 │   ├── CAMPAIGN_CONTENT.md              완료된 세 장 콘텐츠 구현 기준
 │   ├── RELEASE_2D.md                    완료된 내부 후보의 2D 표현·사운드·패키징 기준
 │   ├── RELEASE_REBUILD.md               완료된 기술 기준선 재구축 계약
-│   └── COMMERCIAL_2D_IMPLEMENTATION.md  상용 2D 게임 단계 B~G 계약과 완료 기록
+│   ├── COMMERCIAL_2D_IMPLEMENTATION.md  상용 2D 게임 단계 B~G 계약과 완료 기록
+│   └── REALTIME_PHYSICAL_TOTAL_REVISION.md 활성 실시간·물리 세계 전면 개편 계약
 ├── development/
 │   └── BALANCING_STATIC_SIM.md        조건부 정적 분석 도구
 └── future/
@@ -62,6 +63,7 @@ docs/
 | 완료된 2D 표현·사운드·package는 어디까지 보장하는가? | [2D 출시 마감](scopes/RELEASE_2D.md) | 외부 테스트·공개 배포를 포함하지 않음 |
 | 완료된 기술 기준선은 무엇을 보장하는가? | [출시판 재구축](scopes/RELEASE_REBUILD.md) | 새 상용 제품의 구현 권한으로 사용하지 않음 |
 | 상용 v2 게임은 어디까지 구현됐고 무엇이 남았는가? | [상용 2D 게임 구현](scopes/COMMERCIAL_2D_IMPLEMENTATION.md) | 단계 B~G 완료 증거와 미개방 H를 구분 |
+| 현재 실시간·물리 세계 전면 개편에서 무엇을 구현하는가? | [실시간 물리 세계 전면 개편](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md) | 현재 branch의 유일한 새 구현 권위; v2 완료 증거와 공개 배포 승인을 대신하지 않음 |
 | 정적 분석 도구는 언제 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 자동 튜닝이나 사람 선택 대체에 쓰지 않음 |
 | 1.0 이후 냉각수·원전 방향은 무엇인가? | [1.0 이후 방향](future/POST_1_0.md) | 1.0 schema·UI를 선결하지 않음 |
 

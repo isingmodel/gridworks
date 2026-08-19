@@ -1,16 +1,18 @@
 # Gridworks — 상용 2D 게임 완성 로드맵
 
-> 문서 상태: 단계 B~G 완료, 활성 단계 없음, 단계 H 미개방
+> 문서 상태: 단계 B~G 완료, 실시간 물리 세계 전면 개편 활성, 과거 v2 단계 H 미개방
 
 이 로드맵은 기술 기준선을 보이는 격자 없는 상용 2D 전력망 게임으로 교체하는 제작 순서를 정한다.
-현재 단계와 구현 권한은 루트 [README](../README.md), 정확한 규칙과 종료조건은
-[상용 2D 게임 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 제품 경험은
+현재 단계와 구현 권한은 루트 [README](../README.md), 현재 정확한 규칙과 종료조건은
+[실시간 물리 세계 전면 개편 계약](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md), 동결 v2 기록은
+[상용 2D 게임 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 장기 제품 경험은
 [상용 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md), 증거 상태는
 [체크리스트](ROADMAP_2D_CHECKLIST.md)가 소유한다.
 
-단계 G와 관찰 기반 선행 보정 backlog는 2026-08-19 사용자 승인 아래 완료됐다. 선행 보정→최종
-표현·설정→화면·키보드 증거→내부 package와 저장소 밖 새 설치 전체 실행까지 닫았고, 현재 활성
-구현 단계는 없다. 단계 H 사람 검증과 공개 배포는 열지 않았다.
+단계 G와 관찰 기반 선행 보정 backlog는 2026-08-19 사용자 승인 아래 완료됐다. 이후 사용자는
+별도 `codex/total-revision` 브랜치에서 기존 turn형 진행과 graph-first 표현을 대체하는
+[실시간 물리 세계 전면 개편](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)을 새 활성 구현 단계로
+열었다. 과거 v2의 단계 H 사람 검증과 공개 배포는 여전히 열지 않았다.
 
 그 뒤 수행한 공식 Stage F cold LLM 관찰은 8장 `가장 긴 밤`의 `폭염 정점 2/3`, 500 kW 비상
 열여유 부족 화면에서 사용자가 중단했다.
@@ -37,7 +39,7 @@
 
 ## 2. 제작 원칙
 
-- 단계 B→C→D→E/F→G 순서로 한 단계씩 연다.
+- 아래 B→G 순서는 동결 v2의 과거 제작 기록이다. 현재 개편은 R0→R7을 한 단계씩 연다.
 - 한 단계의 코드·데이터·검사·native 증거·문서·독립 검토를 커밋한 뒤 다음 단계로 간다.
 - v2 world와 campaign이 실행 숫자와 콘텐츠를 한 곳씩 소유한다.
 - Core가 규칙을 계산하고 Game은 typed 결과만 입력·표현한다.
@@ -157,3 +159,7 @@ H는 열지 않았다. 사람 전체 플레이·전문 교정은 `NOT_COLLECTED`
 - 대화 선택지, 호감도, 분기 결말 엔진, 긴 컷신·음성
 - 온라인, 업적, 순위표, 다국어·게임패드·모바일 동시 출시
 - 반복 LLM 플레이와 자동 밸런스 튜닝
+
+위 제외 가운데 실시간 clock·배속·시간 기반 과부하·공사 진행은 현재 사용자 지시로 명시적으로
+대체됐다. 새 경계와 제외는 [전면 개편 계약 §16](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md#16-명시적-제외)이
+소유한다. 이 문서의 B~G 기록은 과거 완료 상태로 유지한다.

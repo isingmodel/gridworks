@@ -13,6 +13,9 @@
 별도 `codex/total-revision` 브랜치에서 기존 turn형 진행과 graph-first 표현을 대체하는
 [실시간 물리 세계 전면 개편](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)을 새 활성 구현 단계로
 열었다. 과거 v2의 단계 H 사람 검증과 공개 배포는 여전히 열지 않았다.
+개편 R0와 R1은 각각 계약 기준선과 결정론적 실시간 `FIRST_LIGHT` Core slice로 완료했고, 현재는
+R2의 새 interaction hierarchy·사건 지평선·FHD/4K shell 통합만 활성이다. 정확한 단계 증거는
+[개편 계약](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md#14-단계별-구현-순서)이 소유한다.
 
 그 뒤 수행한 공식 Stage F cold LLM 관찰은 8장 `가장 긴 밤`의 `폭염 정점 2/3`, 500 kW 비상
 열여유 부족 화면에서 사용자가 중단했다.

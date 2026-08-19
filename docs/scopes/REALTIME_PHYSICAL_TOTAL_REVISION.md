@@ -1,6 +1,6 @@
 # Gridworks — 실시간 물리 세계 전면 개편 구현 계약
 
-> 문서 상태: **사용자가 승인한 전면 개편의 구현 권위 · R0 완료 · R1 활성**
+> 문서 상태: **사용자가 승인한 전면 개편의 구현 권위 · R0~R1 완료 · R2 활성**
 >
 > 기준일: **2026-08-19**
 >
@@ -914,6 +914,22 @@ Debug·Release·ExportRelease 0 warnings / 0 errors를 재확인해 기록한다
 - frame chunk·speed 독립, event order, overload·cooldown과 forecast=actual PASS
 - v2 Core 무수정, 독립 P0/P1 0
 
+종료 기록 — 2026-08-19:
+
+- 구현 commit `3da1897`은 이 단계가 허용한 V3 Core 14개 파일과 별도 realtime check project·두
+  `FIRST_LIGHT` fixture만 포함한다. persistence, production V3 data, Game·UI·art는 포함하지 않았다.
+- 허용 18개 파일의 경로+내용 aggregate SHA-256은
+  `ef44058ee00e345866a1398959a062c6949ee83856aab3d93217cd96609d7c9a`다.
+- `RealtimeCampaignPersistence.cs`를 물리적으로 제외한 Debug와 Release에서 각각 22 suites /
+  639 assertions가 통과했고 두 build는 0 warnings / 0 errors였다. 동결 V2 CommercialChecks도
+  30 suites / 5,739 assertions를 다시 통과했다.
+- 한 `FIRST_LIGHT` 실행에서 just-in-time 공사, 동시 사건의 priority·ID 순서, 선로·전신주 접속부·
+  변전소 주기기의 독립 병목과 시간 기반 비상 노출→보호정지→복귀, forecast=actual, frame
+  30/60/120/144 Hz·1×/2×/4× 동등성, pause·catch-up remainder와 canonical future-equivalence를
+  대표 성공·경계·반례로 고정했다.
+- 최종 독립 교차 검토는 P0 0 / P1 0이다. 전체 campaign, 저장, Game shell과 production art는
+  다음 권한 단계에 남아 있으므로 R1 증거를 그 완료로 확장하지 않는다.
+
 ### R2 — UX foundation과 사건 지평선
 
 범위:
@@ -1075,12 +1091,16 @@ proof는 별도 사용자 승인 아래 실행하며 자동 PASS 수치에 합�
 
 ```text
 RealtimePhysicalRevisionContract = DEFINED
-ActiveRevisionGate = R1_REALTIME_CORE_VERTICAL_SLICE
+ActiveRevisionGate = R2_UX_FOUNDATION_EVENT_HORIZON
 R0BaselineCommit = 5a9e465
 R0IndependentReview = P0_0_P1_0
-RealtimeCoreStatus = NOT_IMPLEMENTED
-RealtimeUxStatus = NOT_IMPLEMENTED
-HorizontalEventHorizonStatus = NOT_IMPLEMENTED
+R1RealtimeCoreCommit = 3da1897
+R1RealtimeChecks = PASS_22_SUITES_639_ASSERTIONS_DEBUG_RELEASE_ISOLATED
+R1FrozenV2Regression = PASS_30_SUITES_5739_ASSERTIONS
+R1IndependentReview = P0_0_P1_0
+RealtimeCoreStatus = FIRST_LIGHT_VERTICAL_SLICE_COMPLETE
+RealtimeUxStatus = R2_ACTIVE_NOT_COMPLETE
+HorizontalEventHorizonStatus = R2_ACTIVE_NOT_COMPLETE
 PhysicalWorldArtStatus = NOT_IMPLEMENTED
 FhdSupportEvidence = NOT_COLLECTED_FOR_REVISION
 FourKSupportEvidence = NOT_COLLECTED

@@ -15,8 +15,11 @@
 브랜치 `codex/total-revision`에서 아트, UX, 수평 사건 지평선, FHD·4K, 설비 과부하와 실시간
 simulation을 함께 완성하도록 명시적으로 승인했다. 정확한 새 권위와 R0~R7 종료 조건은
 [실시간 물리 세계 전면 개편 계약](docs/scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)이 소유한다.
-R0 계약·동결 기준선은 `5a9e465`에서 독립 P0/P1 0으로 닫혔고, 현재는 **R1 결정론적 실시간 Core
-vertical slice만 활성**이다.
+R0 계약·동결 기준선은 `5a9e465`에서 닫혔고, R1 결정론적 실시간 Core vertical slice는
+`3da1897`에서 독립 P0/P1 0으로 완료했다. 현재는 **R2 UX foundation·수평 사건 지평선만 활성**이다.
+R1의 exact 격리·회귀 증거와 이후 단계 상태는
+[전면 개편 계약의 단계 기록](docs/scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md#r1--결정론적-실시간-core-vertical-slice)이
+소유한다.
 
 단계 B~G와 관찰 기반 선행 보정 backlog를 끝낸 상용 v2는 회귀·저장 이관 기준선으로 동결한다.
 과거 단계 H 사람 검증·전문 교정·공개 배포는 v2의 미개방 외부 gate였으며, 이번 개편을 공개

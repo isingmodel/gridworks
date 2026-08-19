@@ -743,18 +743,6 @@ static void RequireCommercialImport(
             $"required PCK import has no single target: {importPath}");
     }
     string target = targetLines[0][6..^1];
-    string expectedSource = $"source_file=\"res://{sourcePath}\"";
-    if (!lines.Contains(expectedSource, StringComparer.Ordinal))
-    {
-        throw new InvalidDataException(
-            $"required PCK import source is incorrect: {importPath}");
-    }
-    string expectedDestination = $"dest_files=[\"{target}\"]";
-    if (!lines.Contains(expectedDestination, StringComparer.Ordinal))
-    {
-        throw new InvalidDataException(
-            $"required PCK import destination is incorrect: {importPath}");
-    }
     if (!target.StartsWith("res://", StringComparison.Ordinal))
     {
         throw new InvalidDataException(

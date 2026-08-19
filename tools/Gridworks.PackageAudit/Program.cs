@@ -572,10 +572,10 @@ static PckAuditResult ValidateCommercialPck(string pckPath)
                  "yoon_seojin.png",
              })
     {
-        RequireCommercialRemap(
+        RequireCommercialImport(
             stream,
             entries,
-            $"assets/commercial/portraits/{portrait}.remap",
+            $"assets/commercial/portraits/{portrait}",
             $".godot/imported/{portrait}-",
             ".ctex");
     }
@@ -707,6 +707,67 @@ static void RequireCommercialRemap(
         throw new InvalidDataException(
             $"required PCK remap target is missing or unexpected: " +
             $"{remapPath} -> {target}");
+    }
+}
+
+static void RequireCommercialImport(
+    FileStream stream,
+    IReadOnlyDictionary<string, PckEntry> entries,
+    string sourcePath,
+    string targetPrefix,
+    string targetSuffix)
+{
+    string importPath = sourcePath + ".import";
+    if (!entries.TryGetValue(importPath, out PckEntry? import))
+    {
+        throw new InvalidDataException(
+            $"required PCK import metadata is missing: {importPath}");
+    }
+    byte[] bytes = ReadEntry(stream, import, maximumLength: 32_768);
+    string text = new UTF8Encoding(false, true).GetString(bytes);
+    string[] lines = text
+        .Replace("\r\n", "\n", StringComparison.Ordinal)
+        .Split('\n');
+    if (!lines.Contains("importer=\"texture\"", StringComparer.Ordinal) ||
+        !lines.Contains("type=\"CompressedTexture2D\"", StringComparer.Ordinal))
+    {
+        throw new InvalidDataException(
+            $"required PCK texture import shape is invalid: {importPath}");
+    }
+    string[] targetLines = lines
+        .Where(line => line.StartsWith("path=\"", StringComparison.Ordinal))
+        .ToArray();
+    if (targetLines.Length != 1 || !targetLines[0].EndsWith('"'))
+    {
+        throw new InvalidDataException(
+            $"required PCK import has no single target: {importPath}");
+    }
+    string target = targetLines[0][6..^1];
+    string expectedSource = $"source_file=\"res://{sourcePath}\"";
+    if (!lines.Contains(expectedSource, StringComparer.Ordinal))
+    {
+        throw new InvalidDataException(
+            $"required PCK import source is incorrect: {importPath}");
+    }
+    string expectedDestination = $"dest_files=[\"{target}\"]";
+    if (!lines.Contains(expectedDestination, StringComparer.Ordinal))
+    {
+        throw new InvalidDataException(
+            $"required PCK import destination is incorrect: {importPath}");
+    }
+    if (!target.StartsWith("res://", StringComparison.Ordinal))
+    {
+        throw new InvalidDataException(
+            $"required PCK import target is not a resource path: {importPath}");
+    }
+    string packedTarget = target[6..];
+    if (!packedTarget.StartsWith(targetPrefix, StringComparison.Ordinal) ||
+        !packedTarget.EndsWith(targetSuffix, StringComparison.Ordinal) ||
+        !entries.ContainsKey(packedTarget))
+    {
+        throw new InvalidDataException(
+            $"required PCK import target is missing or unexpected: " +
+            $"{importPath} -> {target}");
     }
 }
 

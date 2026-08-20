@@ -19,3 +19,6 @@
 # Local-only documents and temporary artifacts.
 /temp/
 /dist/
+
+
+.DS_Store

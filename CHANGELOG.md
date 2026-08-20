@@ -7,6 +7,8 @@
 - R1 결정론적 실시간 Core와 R2 HUD·사건 지평선·조건부 작업 UI를 보존하면서, flat graph/SVG
   placeholder가 아니라 회화적 아이소메트릭 도시 world로 전환하는 A0–A5 로드맵을 열었다.
 - A0 문서 기준선만 완료했고 code/art 구현 gate는 열지 않았다. 기본 장면은 `CommercialMain`이다.
+- 라이브 검증은 결정론적 중간 checkpoint에서 필요한 구간만 수행하고, 처음부터 실행하는 E2E는
+  onboarding·save/migration·누적 상태·package·전체 campaign에만 쓰도록 현재 scope에 고정했다.
 - 현재 목표에 필요한 문서만 `docs/` 전면에 남기고, 완료·중단된 prototype·v1·v2·R0–R2 기록은
   [압축 아카이브](docs/archive/COMPLETED_HISTORY.md)와 Git commit `9aceaf7`로 이동했다.
 - 기존 HTML/CSS 목표 화면은 `./assets` 스타일과 맞지 않아 현재 목표·증거에서 폐기했다.

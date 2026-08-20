@@ -172,7 +172,87 @@ LOD 또는 축소 규칙
 source master와 runtime derivative를 분리한다. 임의로 잘라낸 합성 화면, prompt만 남은 파일,
 hash가 없는 후보와 Git에 포함되지 않은 로컬 파일은 production authority가 될 수 없다.
 
-## 8. 단계와 권한
+## 8. 구간 직접 진입형 라이브 테스트
+
+### 8.1 기본 원칙
+
+라이브 테스트는 캠페인 처음부터 재생하지 않는다. **검증하려는 경계 직전의 이름 붙은 결정론적
+checkpoint에서 시작해 필요한 실제 조작과 렌더 구간만 실행하는 것**을 기본으로 한다.
+
+```text
+정확한 checkpoint를 만든다
+→ 시작 identity와 canonical state를 확인한다
+→ production controller·presentation·input·render 경로에 연결한다
+→ 필요한 조작·시간만 진행한다
+→ bounded 결과와 종료 identity를 기록한다
+```
+
+중간 상태 진입은 테스트 대상 adapter를 우회하는 임의 UI 주입이 아니다. 초기 Core 상태를 짧게 만들
+뿐이며, 진입 뒤에는 실제 scene의 clock, reducer, presenter, hit routing, accessibility와 draw 경로를
+그대로 사용한다.
+
+### 8.2 checkpoint 계약
+
+checkpoint 하나는 최소 다음을 고정한다.
+
+```text
+CheckpointId
+authoritative fixture/schema ID와 source hash
+Core state 생성 방법과 command replay hash
+시작 minute와 canonical state SHA-256
+active construction/event/duty/thermal state
+예상 world selection과 presentation anchor
+허용된 다음 입력·시간 범위
+종료 assertion과 evidence label
+```
+
+상태 생성은 다음 우선순위를 따른다.
+
+1. exact fixture와 deterministic scenario builder
+2. baseline부터의 bounded canonical command replay
+3. save/restore 자체가 테스트 대상일 때만 production save
+
+수동으로 JSON을 임의 수정한 save, 내부 필드 reflection, presentation DTO 직접 주입과 테스트만을 위한
+Core 규칙 분기는 checkpoint가 될 수 없다.
+
+### 8.3 표준 checkpoint 후보
+
+| ID | 시작 상태 | 검증 구간 |
+|---|---|---|
+| `A1_NORMAL_READY` | 정상 운전, 선택·초안 없음 | no-click clock·선택·normal capture |
+| `A1_CONSTRUCTION_DUE_1M` | 실제 공사 완공 1분 전 | frame 진행→원자 완공→통전 |
+| `A2_HEATWAVE_PRETRIP_1M` | 비상 허용시간 소진 1분 전 | exposure→trip·auto-pause |
+| `A2_PROTECTIVE_OUTAGE` | 보호정지 직후 | 사용량 0·world/horizon/context 원인 |
+| `A2_RECOVERY_DUE_1M` | 냉각 종료 1분 전 | recovery→재배정·상태 회복 |
+| `A2_EVENT_CONSTRUCTION_COLLISION` | 사건 경계와 완공이 같은 minute | transition order와 공급 재계산 |
+| `A4_CAMPAIGN_RESULT_DUE` | 실제 campaign 완료 직전 | completed transition·Ended shell·result |
+
+단계 계약은 필요한 ID만 연다. 미래 checkpoint를 미리 구현하지 않는다.
+
+### 8.4 처음부터 실행해야 하는 예외
+
+다음은 시작 경로 자체가 검증 대상이므로 checkpoint로 대체하지 않는다.
+
+- 처음 보는 사용자의 onboarding·첫 이해 관찰
+- 새 설치·기본 장면·초기 modal과 최초 입력
+- save 생성→종료→fresh process restore
+- save schema migration과 손상/불일치 보존
+- 이전 결정의 누적이 원인인 campaign·경제·열 상태 문제
+- 전체 campaign completion, package와 공개 후보 E2E
+
+전체 시작 테스트를 사용할 때는 왜 checkpoint로 답할 수 없는지 gate에 한 줄로 기록한다. 단지 기존
+harness가 처음부터 시작한다는 이유는 충분하지 않다.
+
+### 8.5 증거 표기
+
+- 구간 테스트: `TARGETED_LIVE_CHECKPOINT_PASS:<CheckpointId>`
+- 처음부터 실제 흐름: `FULL_FLOW_E2E_PASS:<FlowId>`
+- save/fresh process: `FRESH_PROCESS_RESTORE_PASS:<SaveId>`
+
+구간 PASS를 onboarding·전체 campaign·package PASS로 확대하지 않고, 전체 E2E를 좁은 결함 재현에
+매번 반복하지 않는다. 실패한 구간은 가장 가까운 앞 checkpoint까지 좁혀 재현한다.
+
+## 9. 단계와 권한
 
 ### A0 — 목표·문서 기준선 — 완료
 
@@ -187,6 +267,7 @@ hash가 없는 후보와 Git에 포함되지 않은 로컬 파일은 production 
 - textured terrain·road·river와 3상 conductor attachment
 - 정상·선택·계획·공사 상태
 - 실제 R1/R2 adapter로 no-click clock, 건설·완공과 선택
+- Debug 전용 `A1_NORMAL_READY`와 `A1_CONSTRUCTION_DUE_1M` 진입
 
 ### A2 — 사건·열 상태 표현 — 미개방
 
@@ -215,7 +296,7 @@ hash가 없는 후보와 Git에 포함되지 않은 로컬 파일은 production 
 
 로드맵 항목은 구현 권한이 아니다. 현재 허용된 변경은 A0 문서 기준선뿐이다.
 
-## 9. A1 개방 조건
+## 10. A1 개방 조건
 
 사용자가 A1 구현을 명시적으로 승인하기 전에는 runtime 파일을 추가·수정하지 않는다. 개방 시 계약은
 다음을 먼저 고정해야 한다.
@@ -223,10 +304,11 @@ hash가 없는 후보와 Git에 포함되지 않은 로컬 파일은 production 
 - exact source asset allowlist와 provenance
 - 수정 가능한 Game·Core·fixture 경계
 - 한 장면·한 사건·한 건설 흐름의 bounded player outcome
+- exact checkpoint ID, 생성 방식, 시작 hash와 종료 assertion
 - reference comparison sheet와 FHD capture protocol
 - 성능 예산, fallback 금지 목록과 종료 gate
 
-## 10. 완료 판정 상한
+## 11. 완료 판정 상한
 
 자동검사는 다음을 강하게 판정할 수 있다.
 
@@ -246,7 +328,7 @@ hash가 없는 후보와 Git에 포함되지 않은 로컬 파일은 production 
 따라서 최종 상태는 native capture와 사람·전문 검토가 수집되기 전까지
 `HumanVisualValidation = NOT_COLLECTED`, `PublicReleaseStatus = NOT_AUTHORIZED`다.
 
-## 11. 명시적 제외
+## 12. 명시적 제외
 
 - full 3D, 자유 회전·원근 camera와 photoreal digital twin
 - AC power flow, 전압·무효전력·상불평형·상세 보호계전

@@ -30,6 +30,8 @@
 - [x] 현재 목표 문서만 전면에 보존
 - [x] 완료·중단 과거를 압축 아카이브와 Git 이력으로 이동
 - [x] 이전 HTML/vector 목표를 current target/evidence에서 제거
+- [x] 구간 직접 진입형 live checkpoint를 기본 테스트 정책으로 고정
+- [x] onboarding·save/migration·누적 상태·package·전체 campaign만 full-flow 예외로 제한
 - [x] A1을 자동으로 열지 않음
 
 ## A1 개방 전 체크
@@ -40,6 +42,8 @@
 - [ ] 공통 camera·light·scale sheet
 - [ ] 수정 가능한 Game/Core/data 경계
 - [ ] 한 `FIRST_LIGHT` scene와 player outcome
+- [ ] `A1_NORMAL_READY`·`A1_CONSTRUCTION_DUE_1M` 생성 계약과 시작 hash
+- [ ] targeted live 종료 assertion·evidence label
 - [ ] FHD reference contact sheet 절차
 - [ ] frame budget와 지원 hardware
 - [ ] fallback·placeholder 금지 목록
@@ -52,6 +56,8 @@
 | 증거 | 증명할 수 있음 | 증명할 수 없음 |
 |---|---|---|
 | Core/자동검사 | 규칙·상태전이·동등성·save | 미감·도시 밀도·재미 |
+| targeted live checkpoint | 특정 중간 상태의 실제 입력·렌더·transition | onboarding·전체 campaign·package |
+| full-flow E2E | 시작부터 이어진 wiring·누적 상태·fresh process | 모든 중간 결함의 최소 재현 |
 | scene smoke | wiring·입력 owner·crash·clipping | 장시간 가독성·사람 이해 |
 | native capture | 실제 render·texture·depth·layout | 실제 사람의 선호·피로 |
 | reference review | 카메라·밀도·재질·실루엣·조명 방향 | 규칙 정확성·법적 권리 |
@@ -67,6 +73,8 @@ ActiveImplementationGate = NONE
 NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
+LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
+FullFlowE2EPolicy = EXCEPTION_ONLY
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED
@@ -87,6 +95,7 @@ source commit
 exact file/asset allowlist
 manifest aggregate hash
 bounded automatic/native commands and result
+checkpoint ID/start hash/end assertion or full-flow exception reason
 reference capture IDs
 human/professional status
 independent P0/P1 verdict

@@ -17,6 +17,8 @@
 - source asset의 provenance·camera·scale·anchor 없이 world 통합을 시작하지 않는다.
 - placeholder와 production asset을 같은 scene에서 조용히 혼합하지 않는다.
 - 자동검사·native capture·사람 미감·전문 검토를 서로 대신하지 않는다.
+- 라이브 테스트는 필요한 경계 직전의 이름 붙은 deterministic checkpoint에서 시작한다.
+- 전체 시작 E2E는 onboarding, save/migration, 누적 상태, default scene·package와 전체 campaign에만 쓴다.
 - 과거 v2/R2 증거는 회귀 기반일 뿐 새 아트 gate의 PASS가 아니다.
 
 ## A0 — 목표·문서 기준선 — 완료
@@ -43,6 +45,7 @@ A0는 runtime 화면, 새 sprite, native capture나 미감 검토를 만들지 �
 ### bounded content
 
 - 한 `FIRST_LIGHT` world와 exact linked fixture
+- `A1_NORMAL_READY`, `A1_CONSTRUCTION_DUE_1M` checkpoint
 - 주거지 1, 필수시설 1, 산업시설 1
 - 발전 접속점, 일반/보강 pole, 일반/보강 line, 소형 변전소
 - terrain, river/bank, road set, dense city block
@@ -55,6 +58,7 @@ A0는 runtime 화면, 새 sprite, native capture나 미감 검토를 만들지 �
 - 같은 camera·light·scale, alpha fringe와 anchor 오류 0
 - 합성 배경·flat SVG/tiny fallback 0
 - no-click clock과 한 건설 흐름이 actual scene에서 Core와 동일
+- 각 checkpoint의 시작 canonical hash와 종료 상태가 exact contract와 동일
 - FHD normal/construction capture와 reference contact sheet
 - 카메라·밀도·재질·실루엣·조명·상태 rubric 모두 PASS
 - 독립 P0/P1 0
@@ -72,6 +76,7 @@ A0는 runtime 화면, 새 sprite, native capture나 미감 검토를 만들지 �
 - planned authored unavailable와 thermal protective outage의 별도 표현
 - emergency exposure, trip, cooling, recovery
 - pole/line/substation 세 bottleneck witness
+- `A2_HEATWAVE_PRETRIP_1M`, `A2_PROTECTIVE_OUTAGE`, `A2_RECOVERY_DUE_1M` checkpoint
 - auto-pause reason과 next event
 
 ### gate
@@ -164,6 +169,8 @@ A0는 runtime 화면, 새 sprite, native capture나 미감 검토를 만들지 �
 - 지원 화면에서 clipping, 작은 hit target, focus trap과 색 전용 cue가 없다.
 - 영향을 받는 결정론 검사와 build가 통과한다.
 - 실제 capture와 독립 범위 검토에서 P0/P1이 0이다.
+- 라이브 검증은 가장 가까운 checkpoint에서 bounded하게 실행하고 evidence label을 구간 PASS로 남긴다.
+- 처음부터 실행한 경우 checkpoint로 대체할 수 없었던 이유와 전체-flow evidence label을 기록한다.
 - README, 목표 계약, 비주얼 명세와 체크리스트를 같은 변경에서 갱신한다.
 
 사람 미감·재미·전문성은 자동 assertion 수로 대신하지 않는다.

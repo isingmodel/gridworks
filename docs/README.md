@@ -30,6 +30,7 @@ docs/
 | 최종적으로 어떤 게임을 만드는가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 단계별 파일·절차는 만들지 않음 |
 | `./assets` 스타일을 게임에서 어떻게 재현하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 규칙·수치를 새로 계산하지 않음 |
 | 현재 전체 목표와 금지 범위는 무엇인가? | [에셋 스타일 실시간 게임 계약](scopes/ASSET_STYLE_REALTIME_GAME.md) | 활성 코드 gate가 없으면 구현하지 않음 |
+| 라이브 테스트를 어디서 시작하는가? | [현재 목표 계약 §8](scopes/ASSET_STYLE_REALTIME_GAME.md#8-구간-직접-진입형-라이브-테스트) | 필요한 checkpoint가 기본, 전체 시작은 예외 |
 | 어떤 순서로 전환하는가? | [로드맵](ROADMAP_2D.md) | 다음 단계 후보는 자동 승인 아님 |
 | 현재 단계와 증거 상태는 무엇인가? | [체크리스트](ROADMAP_2D_CHECKLIST.md) | 긴 로그·규칙을 복제하지 않음 |
 | 설비와 상태는 무엇인가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 현재 규칙과 시각 준비 상태를 분리 |
@@ -51,6 +52,8 @@ docs/
 - `DocumentationBaseline = A0_COMPLETE`
 - `ActiveImplementationGate = NONE`
 - `NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED`
+- `LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT`
+- `FullFlowE2EPolicy = EXCEPTION_ONLY`
 - 기본 장면은 `CommercialMain`이다.
 - R1/R2는 기반으로 보존하지만 R2 종료 gate를 새로 PASS로 만들지 않는다.
 - `./assets` 네 이미지는 visual reference authority이며 runtime·규칙·숫자 authority가 아니다.

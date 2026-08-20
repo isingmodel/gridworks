@@ -46,6 +46,8 @@ ActiveImplementationGate = NONE
 NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
+LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
+FullFlowE2EPolicy = EXCEPTION_ONLY
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2RealtimeUx = PRESERVED_GATE_NOT_COMPLETED
@@ -101,6 +103,10 @@ tools/                               결정론적 자동검사
   provenance를 가져야 한다.
 - 자동검사는 규칙·상태·build·wiring을 판정한다. 미감·가독성·재미는 실제 화면과 사람 검토를 별도로
   기록한다.
+- 라이브 검증은 처음부터 재생하지 않고 이름 붙은 결정론적 checkpoint에서 필요한 구간만 실행하는
+  것을 기본으로 한다. checkpoint는 실제 controller·presentation·input·render 경로를 우회하지 않는다.
+- 처음부터 실행하는 E2E는 onboarding, save/migration, 누적 상태, default scene·package와 전체
+  campaign처럼 앞선 경로 자체가 검증 대상일 때만 사용한다.
 - 과거 후보의 PASS를 새 목표의 아트·native·사람 증거로 합산하지 않는다.
 
 ## 개발 실행

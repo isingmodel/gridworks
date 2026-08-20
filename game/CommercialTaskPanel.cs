@@ -11,6 +11,7 @@ internal enum CommercialPanelAction
     UndoPoint,
     CancelDraft,
     Commission,
+    NextThermalPhase,
 }
 
 internal sealed record CommercialActionPresentation(
@@ -23,13 +24,15 @@ internal sealed record CommercialTaskPanelModel(
     string Instruction,
     string Selection,
     string Quote,
+    string Thermal,
     string Status,
     string Error,
     CommercialActionPresentation PlaceSubstation,
     CommercialActionPresentation StartLine,
     CommercialActionPresentation UndoPoint,
     CommercialActionPresentation CancelDraft,
-    CommercialActionPresentation Commission);
+    CommercialActionPresentation Commission,
+    CommercialActionPresentation NextThermalPhase);
 
 internal sealed partial class CommercialTaskPanel : PanelContainer
 {
@@ -37,6 +40,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     private Label _instructionLabel = null!;
     private Label _selectionLabel = null!;
     private Label _quoteLabel = null!;
+    private Label _thermalLabel = null!;
     private Label _statusLabel = null!;
     private Label _errorLabel = null!;
     private IReadOnlyDictionary<CommercialPanelAction, Button> _buttons = null!;
@@ -49,6 +53,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _instructionLabel = GetNode<Label>("%InstructionLabel");
         _selectionLabel = GetNode<Label>("%SelectionLabel");
         _quoteLabel = GetNode<Label>("%QuoteLabel");
+        _thermalLabel = GetNode<Label>("%ThermalLabel");
         _statusLabel = GetNode<Label>("%StatusLabel");
         _errorLabel = GetNode<Label>("%ErrorLabel");
         _buttons = new Dictionary<CommercialPanelAction, Button>
@@ -58,6 +63,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             [CommercialPanelAction.UndoPoint] = GetNode<Button>("%UndoPointButton"),
             [CommercialPanelAction.CancelDraft] = GetNode<Button>("%CancelDraftButton"),
             [CommercialPanelAction.Commission] = GetNode<Button>("%CommissionButton"),
+            [CommercialPanelAction.NextThermalPhase] = GetNode<Button>("%NextThermalPhaseButton"),
         };
 
         foreach ((CommercialPanelAction action, Button button) in _buttons)
@@ -75,6 +81,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _instructionLabel.Text = model.Instruction;
         _selectionLabel.Text = model.Selection;
         _quoteLabel.Text = model.Quote;
+        _thermalLabel.Text = model.Thermal;
         _statusLabel.Text = model.Status;
         _errorLabel.Text = model.Error;
         SetButton(CommercialPanelAction.PlaceSubstation, model.PlaceSubstation);
@@ -82,7 +89,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         SetButton(CommercialPanelAction.UndoPoint, model.UndoPoint);
         SetButton(CommercialPanelAction.CancelDraft, model.CancelDraft);
         SetButton(CommercialPanelAction.Commission, model.Commission);
-        AccessibilityName = $"공사 작업 패널. {model.Heading}. {model.Status}";
+        SetButton(CommercialPanelAction.NextThermalPhase, model.NextThermalPhase);
+        AccessibilityName = $"공사와 열 작업 패널. {model.Heading}. {model.Thermal}. {model.Status}";
     }
 
     public BaseButton GetActionButton(CommercialPanelAction action) => _buttons[action];

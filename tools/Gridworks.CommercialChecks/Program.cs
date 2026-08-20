@@ -27,7 +27,7 @@ internal static class Program
         if (args.Length > 1)
         {
             throw new ArgumentException(
-                "usage: Gridworks.CommercialChecks [commercial-spatial-json]");
+                "usage: Gridworks.CommercialChecks [release-world-v2-json]");
         }
 
         string path = args.Length == 1
@@ -35,11 +35,11 @@ internal static class Program
             : Path.Combine(
                 Environment.CurrentDirectory,
                 "data",
-                "commercial-free-placement-slice-v1.json");
+                "release-world-v2.json");
         path = Path.GetFullPath(path);
         if (!File.Exists(path))
         {
-            throw new FileNotFoundException("Commercial spatial fixture not found.", path);
+            throw new FileNotFoundException("Commercial world v2 fixture not found.", path);
         }
         return path;
     }
@@ -56,11 +56,20 @@ internal sealed class CommercialChecks
     private readonly byte[] _fixtureBytes;
     private readonly string _fixtureJson;
     private readonly SpatialWorldDefinition _fixture;
+    private readonly byte[] _commercialBytes;
+    private readonly string _commercialJson;
+    private readonly CommercialWorldDefinition _commercialWorld;
     private int _assertionCount;
 
     public CommercialChecks(string fixturePath)
     {
-        _fixtureBytes = File.ReadAllBytes(fixturePath);
+        _commercialBytes = File.ReadAllBytes(fixturePath);
+        _commercialJson = Encoding.UTF8.GetString(_commercialBytes);
+        _commercialWorld = CommercialWorldLoader.Load(_commercialBytes);
+        string spatialFixturePath = Path.Combine(
+            Path.GetDirectoryName(fixturePath)!,
+            "commercial-free-placement-slice-v1.json");
+        _fixtureBytes = File.ReadAllBytes(spatialFixturePath);
         _fixtureJson = Encoding.UTF8.GetString(_fixtureBytes);
         _fixture = SpatialWorldLoader.Load(_fixtureBytes);
     }
@@ -76,6 +85,10 @@ internal sealed class CommercialChecks
             ("construction-lifecycle-quote-atomicity", CheckConstructionLifecycle),
             ("rejected-invariance-and-determinism", CheckRejectedInvarianceAndDeterminism),
             ("crossing-nonconnection-and-replay", CheckCrossingNonConnectionAndReplay),
+            ("strict-commercial-world-loader", CheckStrictCommercialWorldLoader),
+            ("thermal-boundaries-and-route-order", CheckThermalBoundariesAndRouteOrder),
+            ("thermal-shared-permissions-and-bottleneck", CheckThermalSharedPermissionsAndBottleneck),
+            ("thermal-protection-cooling-and-determinism", CheckThermalProtectionCoolingAndDeterminism),
         ];
 
         List<string> failures = [];
@@ -634,6 +647,310 @@ internal sealed class CommercialChecks
             "replay first edge end identifier");
     }
 
+    private void CheckStrictCommercialWorldLoader()
+    {
+        CommercialWorldDefinition fromText = CommercialWorldLoader.Load(_commercialJson);
+        CommercialWorldDefinition fromBytes = CommercialWorldLoader.Load(_commercialBytes);
+        Equal(_commercialWorld.WorldId, fromText.WorldId, "commercial text loader world ID");
+        Equal(_commercialWorld.WorldId, fromBytes.WorldId, "commercial byte loader world ID");
+        Equal(2, _commercialWorld.GenerationSources.Count, "commercial source count");
+        Check(_commercialWorld.Spatial.Edges.Count > 0, "final world must contain an initial network");
+        Check(CommercialWorldLoader.ThermalAssetIds(_commercialWorld).Contains("NORTH_SUBSTATION"),
+            "substation thermal asset missing from final world");
+
+        string trimmed = _commercialJson.TrimStart();
+        ExpectCommercialRejected(
+            "duplicate commercial JSON property",
+            $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
+        ExpectCommercialRejected("unknown commercial root field", root => root["unexpected"] = true);
+        ExpectCommercialRejected("missing commercial world ID", root => root.Remove("worldId"));
+        ExpectCommercialRejected(
+            "mismatched spatial world ID",
+            root => Object(root["spatial"]!)["worldId"] = "OTHER_WORLD");
+        ExpectCommercialRejected(
+            "zero continuous limit",
+            root => Object(JsonArrayProperty(root, "thermalNodeClasses")[0]!)["continuousLimitKw"] = 0);
+        ExpectCommercialRejected(
+            "continuous above emergency",
+            root =>
+            {
+                JsonObject thermalClass = Object(JsonArrayProperty(root, "thermalLineClasses")[0]!);
+                thermalClass["continuousLimitKw"] = 9000;
+                thermalClass["emergencyLimitKw"] = 8000;
+            });
+        ExpectCommercialRejected(
+            "thermal source terminal class",
+            root => Object(JsonArrayProperty(root, "thermalNodeClasses")[0]!)["classId"] =
+                "SOURCE_TERMINAL");
+        ExpectCommercialRejected(
+            "duplicate source authored order",
+            root => Object(JsonArrayProperty(root, "generationSources")[1]!)["authoredOrder"] = 0);
+    }
+
+    private void CheckThermalBoundariesAndRouteOrder()
+    {
+        CommercialWorldDefinition boundaryWorld = ThermalWorld(
+        [
+            Node("S", 100, 100),
+            Node("A", 300, 100, PoleClassId),
+            Node("L", 500, 100, LoadClassId),
+        ],
+        [Edge("E1", "S", "A"), Edge("E2", "A", "L")],
+        continuous: 100,
+        emergency: 150);
+
+        ThermalIntervalResult exactContinuous = EvaluateOne(
+            boundaryWorld,
+            Interval("P", Demand("D", "L", 100, ThermalObligationKind.SafetyDuty)));
+        Check(exactContinuous.Demands[0].Supplied, "exact continuous load was rejected");
+        Check(exactContinuous.Assets.All(item => item.CurrentState == ThermalOperatingState.Continuous),
+            "exact continuous load entered emergency state");
+
+        ThermalIntervalResult aboveContinuous = EvaluateOne(
+            boundaryWorld,
+            Interval("P", Demand(
+                "D",
+                "L",
+                101,
+                ThermalObligationKind.CityPromise,
+                emergencyApproved: true)));
+        Check(aboveContinuous.Demands[0].Supplied, "approved load above continuous was rejected");
+        Check(aboveContinuous.Assets.Any(item => item.CurrentState == ThermalOperatingState.Emergency),
+            "load above continuous did not enter emergency state");
+
+        ThermalIntervalResult exactEmergency = EvaluateOne(
+            boundaryWorld,
+            Interval("P", Demand(
+                "D",
+                "L",
+                150,
+                ThermalObligationKind.CityPromise,
+                emergencyApproved: true)));
+        Check(exactEmergency.Demands[0].Supplied, "exact emergency load was rejected");
+        ThermalIntervalResult overEmergency = EvaluateOne(
+            boundaryWorld,
+            Interval("P", Demand(
+                "D",
+                "L",
+                151,
+                ThermalObligationKind.CityPromise,
+                emergencyApproved: true)));
+        Check(!overEmergency.Demands[0].Supplied &&
+            overEmergency.Demands[0].Failure == ThermalSupplyFailure.EmergencyLimit,
+            "load above emergency did not return the typed limit failure");
+
+        CommercialWorldDefinition routeWorld = ThermalWorld(
+        [
+            Node("S", 100, 500),
+            Node("SHORT_POLE", 300, 500, PoleClassId),
+            Node("LONG_POLE_1", 100, 800, PoleClassId),
+            Node("LONG_POLE_2", 400, 800, PoleClassId),
+            Node("L", 700, 500, LoadClassId),
+        ],
+        [
+            Edge("SHORT_1", "S", "SHORT_POLE"),
+            Edge("SHORT_2", "SHORT_POLE", "L"),
+            Edge("LONG_1", "S", "LONG_POLE_1"),
+            Edge("LONG_2", "LONG_POLE_1", "LONG_POLE_2"),
+            Edge("LONG_3", "LONG_POLE_2", "L"),
+        ],
+        continuous: 500,
+        emergency: 700);
+        ThermalIntervalDefinition routeInterval = Interval(
+            "ROUTE",
+            Demand("D", "L", 200, ThermalObligationKind.CityPromise, emergencyApproved: true),
+            overrides: [new ThermalLimitOverride("SHORT_2", 100, 500)]);
+        ThermalDemandResult route = EvaluateOne(routeWorld, routeInterval).Demands[0];
+        SequenceEqual(["LONG_1", "LONG_2", "LONG_3"], route.PathEdgeIds,
+            "long continuous route must outrank short emergency route");
+
+        CommercialWorldDefinition sourceOrderWorld = ThermalWorld(
+        [
+            Node("S0", 100, 50),
+            Node("S1", 100, 150),
+            Node("H", 300, 100, PoleClassId),
+            Node("L", 500, 100, LoadClassId),
+        ],
+        [Edge("S0_H", "S0", "H"), Edge("S1_H", "S1", "H"), Edge("H_L", "H", "L")],
+        continuous: 500,
+        emergency: 700);
+        Equal("S0", EvaluateOne(
+                sourceOrderWorld,
+                Interval("SOURCE_ORDER", Demand("D", "L", 100, ThermalObligationKind.SafetyDuty)))
+            .Demands[0].SourceNodeId,
+            "authored source order tie-break");
+    }
+
+    private void CheckThermalSharedPermissionsAndBottleneck()
+    {
+        CommercialWorldDefinition world = SharedThermalWorld();
+        ThermalLimitOverride hubLimit = new("HUB", 300, 400);
+        ThermalDemandDefinition first = Demand(
+            "SAFETY",
+            "L1",
+            180,
+            ThermalObligationKind.SafetyDuty);
+
+        ThermalIntervalResult operatingRejected = EvaluateOne(
+            world,
+            Interval(
+                "OPERATING",
+                first,
+                Demand("RECORD", "L2", 180, ThermalObligationKind.OperatingRecord),
+                overrides: [hubLimit]));
+        ThermalDemandResult rejected = operatingRejected.Demands[1];
+        Check(!rejected.Supplied && rejected.Failure == ThermalSupplyFailure.ContinuousPermission,
+            "operating record incorrectly used emergency capacity");
+        Equal("HUB", rejected.FirstBottleneckAssetId,
+            "shared connector must be the first typed bottleneck");
+
+        ThermalIntervalResult promiseApproved = EvaluateOne(
+            world,
+            Interval(
+                "PROMISE",
+                first,
+                Demand(
+                    "PROMISE_LOAD",
+                    "L2",
+                    180,
+                    ThermalObligationKind.CityPromise,
+                    emergencyApproved: true),
+                overrides: [hubLimit]));
+        Check(promiseApproved.Demands[1].Supplied, "approved promise did not use emergency capacity");
+        ThermalAssetResult hub = promiseApproved.Assets.Single(item => item.AssetId == "HUB");
+        Equal(360L, hub.UseKw, "shared connector aggregate use");
+        Equal(ThermalOperatingState.Emergency, hub.CurrentState, "shared connector emergency state");
+        Equal(ThermalOperatingState.ProtectiveOutage, hub.NextState,
+            "shared connector next protective state");
+
+        ThermalIntervalResult promiseUnapproved = EvaluateOne(
+            world,
+            Interval(
+                "PROMISE_UNAPPROVED",
+                Demand("P", "L1", 350, ThermalObligationKind.CityPromise),
+                overrides: [hubLimit]));
+        Check(!promiseUnapproved.Demands[0].Supplied &&
+            promiseUnapproved.Demands[0].Failure == ThermalSupplyFailure.ContinuousPermission,
+            "unapproved promise used emergency capacity");
+
+        ThermalIntervalResult ordinarySafety = EvaluateOne(
+            world,
+            Interval(
+                "ORDINARY_SAFETY",
+                Demand("S", "L1", 350, ThermalObligationKind.SafetyDuty),
+                policy: ThermalIntervalPolicy.SafetyEmergencyAllowed,
+                overrides: [hubLimit]));
+        Check(!ordinarySafety.Demands[0].Supplied,
+            "ordinary safety duty incorrectly used named-emergency permission");
+
+        ThermalIntervalResult namedSafety = EvaluateOne(
+            world,
+            Interval(
+                "NAMED_SAFETY",
+                Demand(
+                    "S",
+                    "L1",
+                    350,
+                    ThermalObligationKind.SafetyDuty,
+                    namedEmergency: true),
+                policy: ThermalIntervalPolicy.SafetyEmergencyAllowed,
+                overrides: [hubLimit]));
+        Check(namedSafety.Demands[0].Supplied, "named emergency safety duty was rejected");
+
+        ThermalSequenceResult futureGuard = ThermalEvaluator.Evaluate(
+            world,
+            new ThermalSequenceRequest(
+            [
+                Interval(
+                    "NAMED",
+                    Demand(
+                        "S1",
+                        "L1",
+                        350,
+                        ThermalObligationKind.SafetyDuty,
+                        namedEmergency: true),
+                    policy: ThermalIntervalPolicy.SafetyEmergencyAllowed,
+                    overrides: [hubLimit]),
+                Interval(
+                    "PUBLIC_NEXT",
+                    Demand("S2", "L1", 200, ThermalObligationKind.SafetyDuty),
+                    overrides: [hubLimit]),
+            ],
+            Array.Empty<ThermalAssetMemory>()));
+        Check(!futureGuard.Intervals[0].Demands[0].Supplied &&
+            futureGuard.Intervals[0].Demands[0].Failure == ThermalSupplyFailure.FutureSafetyDuty,
+            "named emergency use broke a published next safety duty");
+
+        ThermalIntervalResult deferred = EvaluateOne(
+            world,
+            Interval(
+                "DEFERRED",
+                Demand(
+                    "P",
+                    "L1",
+                    350,
+                    ThermalObligationKind.CityPromise,
+                    included: false,
+                    emergencyApproved: true),
+                overrides: [hubLimit]));
+        Check(deferred.Demands[0].Deferred && !deferred.Demands[0].Supplied,
+            "deferred promise remained an active demand candidate");
+    }
+
+    private void CheckThermalProtectionCoolingAndDeterminism()
+    {
+        CommercialWorldDefinition world = SharedThermalWorld();
+        ThermalLimitOverride hubLimit = new("HUB", 300, 400);
+        ThermalSequenceRequest request = new(
+        [
+            Interval(
+                "HOT",
+                Demand(
+                    "PROMISE",
+                    "L1",
+                    350,
+                    ThermalObligationKind.CityPromise,
+                    emergencyApproved: true),
+                overrides: [hubLimit]),
+            Interval("COOL", overrides: [hubLimit]),
+            Interval(
+                "RETURN",
+                Demand("SAFETY", "L1", 200, ThermalObligationKind.SafetyDuty),
+                overrides: [hubLimit]),
+        ],
+        Array.Empty<ThermalAssetMemory>());
+
+        ThermalSequenceResult first = ThermalEvaluator.Evaluate(world, request);
+        ThermalAssetResult hotHub = first.Intervals[0].Assets.Single(item => item.AssetId == "HUB");
+        ThermalAssetResult coolingHub = first.Intervals[1].Assets.Single(item => item.AssetId == "HUB");
+        ThermalAssetResult returnedHub = first.Intervals[2].Assets.Single(item => item.AssetId == "HUB");
+        Equal(ThermalOperatingState.Emergency, hotHub.CurrentState, "hot phase state");
+        Equal(ThermalOperatingState.ProtectiveOutage, coolingHub.CurrentState,
+            "next full phase protective outage");
+        Equal(0L, coolingHub.UseKw, "protective phase must remain unloaded");
+        Equal(ThermalOperatingState.Continuous, returnedHub.CurrentState,
+            "asset did not return after one unloaded cooling phase");
+        Check(first.Intervals[2].Demands[0].Supplied, "cooled asset did not resume supply");
+
+        string evaluated = JsonSerializer.Serialize(first);
+        string repeated = JsonSerializer.Serialize(ThermalEvaluator.Evaluate(world, request));
+        string preview = JsonSerializer.Serialize(ThermalEvaluator.Preview(world, request));
+        Equal(evaluated, repeated, "thermal sequence repeat determinism");
+        Equal(evaluated, preview, "thermal preview/evaluation value equality");
+
+        ExpectThrows<ThermalEvaluationException>(
+            () => ThermalEvaluator.Evaluate(
+                world,
+                new ThermalSequenceRequest(
+                [
+                    Interval(
+                        "BAD_OVERRIDE",
+                        overrides: [new ThermalLimitOverride("HUB", 401, 501)]),
+                ],
+                Array.Empty<ThermalAssetMemory>())),
+            "thermal override must only lower the class limits");
+    }
+
     private string ExecuteReplay(SpatialWorldDefinition world) =>
         JsonSerializer.Serialize(ExecuteReplaySnapshot(world));
 
@@ -684,6 +1001,86 @@ internal sealed class CommercialChecks
             risks ?? Array.Empty<SpatialRiskAreaDefinition>(),
             nodes,
             edges ?? Array.Empty<SpatialEdgeDefinition>());
+
+    private static CommercialWorldDefinition ThermalWorld(
+        IReadOnlyList<SpatialNodeDefinition> nodes,
+        IReadOnlyList<SpatialEdgeDefinition> edges,
+        long continuous,
+        long emergency)
+    {
+        SpatialWorldDefinition spatial = World(nodes, edges);
+        GenerationSourceDefinition[] sources = nodes
+            .Where(item => item.ClassId == SourceClassId)
+            .OrderBy(item => item.NodeId, StringComparer.Ordinal)
+            .Select((item, index) => new GenerationSourceDefinition(item.NodeId, 1000, index))
+            .ToArray();
+        CommercialWorldDefinition world = new(
+            CommercialWorldLoader.SupportedSchemaVersion,
+            spatial.WorldId,
+            spatial.DisplayName,
+            spatial,
+            [
+                new ThermalNodeClassDefinition(PoleClassId, continuous, emergency),
+                new ThermalNodeClassDefinition(SubstationClassId, continuous, emergency),
+            ],
+            [new ThermalLineClassDefinition(LineClassId, continuous, emergency)],
+            sources);
+        CommercialWorldLoader.Validate(world);
+        return world;
+    }
+
+    private static CommercialWorldDefinition SharedThermalWorld() => ThermalWorld(
+    [
+        Node("S", 100, 100),
+        Node("HUB", 300, 100, PoleClassId),
+        Node("L1", 500, 50, LoadClassId),
+        Node("L2", 500, 150, LoadClassId),
+    ],
+    [
+        Edge("SOURCE_HUB", "S", "HUB"),
+        Edge("HUB_L1", "HUB", "L1"),
+        Edge("HUB_L2", "HUB", "L2"),
+    ],
+    continuous: 400,
+    emergency: 500);
+
+    private static ThermalDemandDefinition Demand(
+        string id,
+        string nodeId,
+        long demandKw,
+        ThermalObligationKind obligation,
+        bool included = true,
+        bool emergencyApproved = false,
+        bool namedEmergency = false) => new(
+            id,
+            id,
+            nodeId,
+            demandKw,
+            obligation,
+            included,
+            emergencyApproved,
+            namedEmergency);
+
+    private static ThermalIntervalDefinition Interval(
+        string id,
+        ThermalDemandDefinition? first = null,
+        ThermalDemandDefinition? second = null,
+        ThermalIntervalPolicy policy = ThermalIntervalPolicy.ContinuousOnly,
+        IReadOnlyList<string>? unavailable = null,
+        IReadOnlyList<ThermalLimitOverride>? overrides = null) => new(
+            id,
+            id,
+            policy,
+            new[] { first, second }.Where(item => item is not null).Cast<ThermalDemandDefinition>().ToArray(),
+            unavailable ?? Array.Empty<string>(),
+            overrides ?? Array.Empty<ThermalLimitOverride>());
+
+    private static ThermalIntervalResult EvaluateOne(
+        CommercialWorldDefinition world,
+        ThermalIntervalDefinition interval) => ThermalEvaluator.Evaluate(
+            world,
+            new ThermalSequenceRequest([interval], Array.Empty<ThermalAssetMemory>()))
+        .Intervals[0];
 
     private static IReadOnlyList<SpatialNodeClassDefinition> NodeClasses() =>
     [
@@ -780,6 +1177,18 @@ internal sealed class CommercialChecks
     private void ExpectLoaderRejected(string label, byte[] bytes) =>
         ExpectThrows<SpatialWorldValidationException>(
             () => SpatialWorldLoader.Load(bytes),
+            label);
+
+    private void ExpectCommercialRejected(string label, Action<JsonObject> mutate)
+    {
+        JsonObject root = JsonNode.Parse(_commercialJson)!.AsObject();
+        mutate(root);
+        ExpectCommercialRejected(label, root.ToJsonString());
+    }
+
+    private void ExpectCommercialRejected(string label, string json) =>
+        ExpectThrows<CommercialWorldValidationException>(
+            () => CommercialWorldLoader.Load(json),
             label);
 
     private void ExpectThrows<T>(Action body, string label)

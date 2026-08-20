@@ -14,7 +14,9 @@ internal sealed record CommercialMapPresentation(
     string PointerMessage,
     string ToolLabel,
     int? PointerFootprintRadiusUnit,
-    bool NodeSnapEnabled);
+    bool NodeSnapEnabled,
+    ThermalIntervalResult? ThermalInterval,
+    string? SelectedThermalAssetId);
 
 internal readonly record struct CommercialDraftPointDrag(int PointIndex, CoreMapPoint Position);
 
@@ -30,6 +32,9 @@ internal sealed partial class CommercialMapView : Control
     private static readonly Color Risk = Color.FromHtml("c36568");
     private static readonly Color IdleLine = Color.FromHtml("869895");
     private static readonly Color CommissionedLine = Color.FromHtml("68d1c5");
+    private static readonly Color EmergencyLine = Color.FromHtml("f0b75e");
+    private static readonly Color OutageLine = Color.FromHtml("e56e73");
+    private static readonly Color OverLimitLine = Color.FromHtml("ff845d");
     private static readonly Color Planned = Color.FromHtml("efb75d");
     private static readonly Color Invalid = Color.FromHtml("ed756e");
     private static readonly Color Text = Color.FromHtml("e6eff0");
@@ -266,9 +271,12 @@ internal sealed partial class CommercialMapView : Control
         DrawMapGround();
         DrawTerrain(snapshot.World);
         DrawRiskAreas(snapshot.World);
-        DrawEdges(snapshot.World);
+        DrawEdges(snapshot.World, _presentation.ThermalInterval);
         DrawLineDraft(snapshot);
-        DrawNodes(snapshot.World);
+        DrawNodes(
+            snapshot.World,
+            _presentation.ThermalInterval,
+            _presentation.SelectedThermalAssetId);
         DrawNodeDraft(snapshot);
         DrawPointer(_presentation);
         DrawMapLegend();
@@ -496,7 +504,9 @@ internal sealed partial class CommercialMapView : Control
         }
     }
 
-    private void DrawEdges(SpatialWorldDefinition world)
+    private void DrawEdges(
+        SpatialWorldDefinition world,
+        ThermalIntervalResult? thermalInterval)
     {
         Dictionary<string, SpatialNodeDefinition> nodes = world.Nodes.ToDictionary(
             node => node.NodeId,
@@ -510,9 +520,26 @@ internal sealed partial class CommercialMapView : Control
             }
             Vector2 start = ToCanvas(from.Position);
             Vector2 end = ToCanvas(to.Position);
-            Color color = edge.Commissioned ? CommissionedLine : Planned;
+            ThermalAssetResult? thermal = thermalInterval?.Assets.FirstOrDefault(item =>
+                item.AssetId == edge.EdgeId);
+            Color color = !edge.Commissioned
+                ? Planned
+                : ThermalColor(thermal?.CurrentState);
             DrawLine(start, end, new Color(Background, 0.9f), 6f, true);
-            DrawLine(start, end, color, edge.Commissioned ? 3f : 2.5f, true);
+            if (thermal?.CurrentState == ThermalOperatingState.ProtectiveOutage)
+            {
+                DrawDashedLine(start, end, color, 3f, 9f, true, true);
+                DrawCross((start + end) / 2f, color, 7f);
+            }
+            else if (thermal?.CurrentState == ThermalOperatingState.Emergency)
+            {
+                DrawLine(start, end, color, 4.5f, true);
+                DrawDashedLine(start, end, Background, 1.3f, 7f, true, true);
+            }
+            else
+            {
+                DrawLine(start, end, color, edge.Commissioned ? 3f : 2.5f, true);
+            }
         }
     }
 
@@ -568,7 +595,10 @@ internal sealed partial class CommercialMapView : Control
         }
     }
 
-    private void DrawNodes(SpatialWorldDefinition world)
+    private void DrawNodes(
+        SpatialWorldDefinition world,
+        ThermalIntervalResult? thermalInterval,
+        string? selectedThermalAssetId)
     {
         Dictionary<string, SpatialNodeClassDefinition> classes = world.NodeClasses.ToDictionary(
             item => item.ClassId,
@@ -579,7 +609,9 @@ internal sealed partial class CommercialMapView : Control
             {
                 continue;
             }
-            Color color = node.Commissioned ? CommissionedLine : Planned;
+            ThermalAssetResult? thermal = thermalInterval?.Assets.FirstOrDefault(item =>
+                item.AssetId == node.NodeId);
+            Color color = node.Commissioned ? ThermalColor(thermal?.CurrentState) : Planned;
             DrawFootprint(node.Position, nodeClass.FootprintRadiusUnit, color, 0.08f);
             Vector2 center = ToCanvas(node.Position);
             float radius = nodeClass.Kind switch
@@ -591,6 +623,24 @@ internal sealed partial class CommercialMapView : Control
             };
             DrawCircle(center, radius + 2f, Background);
             DrawCircle(center, radius, color);
+            if (thermal?.CurrentState == ThermalOperatingState.Emergency)
+            {
+                Vector2[] triangle =
+                [
+                    center + new Vector2(0f, -radius - 7f),
+                    center + new Vector2(-5f, -radius + 2f),
+                    center + new Vector2(5f, -radius + 2f),
+                ];
+                DrawPolyline(triangle.Append(triangle[0]).ToArray(), color, 2f, true);
+            }
+            else if (thermal?.CurrentState == ThermalOperatingState.ProtectiveOutage)
+            {
+                DrawCross(center, color, radius + 5f);
+            }
+            if (node.NodeId == selectedThermalAssetId)
+            {
+                DrawArc(center, radius + 7f, 0f, Mathf.Tau, 32, Focus, 2f, true);
+            }
             if (nodeClass.Kind != SpatialNodeKind.Pole)
             {
                 DrawString(
@@ -615,6 +665,30 @@ internal sealed partial class CommercialMapView : Control
             item => string.Equals(item.ClassId, draft.NodeClassId, StringComparison.Ordinal));
         DrawFootprint(draft.Position, nodeClass.FootprintRadiusUnit, Planned, 0.16f);
         DrawCircle(ToCanvas(draft.Position), 6f, Planned);
+    }
+
+    private static Color ThermalColor(ThermalOperatingState? state) => state switch
+    {
+        ThermalOperatingState.Emergency => EmergencyLine,
+        ThermalOperatingState.ProtectiveOutage => OutageLine,
+        ThermalOperatingState.OverLimit => OverLimitLine,
+        _ => CommissionedLine,
+    };
+
+    private void DrawCross(Vector2 center, Color color, float radius)
+    {
+        DrawLine(
+            center + new Vector2(-radius, -radius),
+            center + new Vector2(radius, radius),
+            color,
+            2f,
+            true);
+        DrawLine(
+            center + new Vector2(-radius, radius),
+            center + new Vector2(radius, -radius),
+            color,
+            2f,
+            true);
     }
 
     private void DrawPointer(CommercialMapPresentation presentation)
@@ -750,7 +824,16 @@ internal sealed partial class CommercialMapView : Control
         string pointer = _pointerPoint is CoreMapPoint
             ? CandidateLabel(presentation.Snapshot.World) ?? presentation.PointerMessage
             : "지도 밖";
-        return $"청류시 자유 배치 지도. {presentation.ToolLabel}. {pointer}. 지도 {ZoomLabel}.";
+        string thermal = string.Empty;
+        if (presentation.ThermalInterval is ThermalIntervalResult interval)
+        {
+            int emergency = interval.Assets.Count(item =>
+                item.CurrentState == ThermalOperatingState.Emergency);
+            int outage = interval.Assets.Count(item =>
+                item.CurrentState == ThermalOperatingState.ProtectiveOutage);
+            thermal = $" 열 상태: 비상 {emergency}곳, 보호정지 {outage}곳.";
+        }
+        return $"청류시 자유 배치 지도. {presentation.ToolLabel}. {pointer}. 지도 {ZoomLabel}.{thermal}";
     }
 
     private Vector2 KeyboardAnchor() => RequireTransform().WorldToCanvas(

@@ -36,7 +36,7 @@ internal sealed partial class CommercialMain
 
             EmitPanel(CommercialPanelAction.PlaceSubstation, "변전소 도구");
             await NextFrame();
-            CoreMapPoint fractional = new(600, 627);
+            CoreMapPoint fractional = new(613, 327);
             await ClickMap(fractional);
             Require(_snapshot.NodeDraft?.Position == fractional,
                 "설계 단위 사이의 자유 좌표가 지도 입력에서 그대로 유지되지 않았습니다.");
@@ -55,7 +55,7 @@ internal sealed partial class CommercialMain
                 ConstructionError.BuildingFootprint,
                 "건물 경계 접촉 배치");
 
-            CoreMapPoint riskPoint = new(1900, 1500);
+            CoreMapPoint riskPoint = new(1900, 1850);
             await MovePointer(riskPoint);
             Require(
                 _pointerAccepted && _pointerRiskAreaIds.Contains("RIVER_FLOOD_ZONE", StringComparer.Ordinal) &&
@@ -92,12 +92,17 @@ internal sealed partial class CommercialMain
 
             EmitPanel(CommercialPanelAction.StartLine, "접속 후보 확인용 선로 도구");
             await NextFrame();
-            await MovePointer(new CoreMapPoint(300, 1000));
+            await MovePointer(new CoreMapPoint(300, 950));
             Require(
-                _map.CandidateNodeIds.SequenceEqual(
+                _map.CandidateNodeIds.OrderBy(item => item, StringComparer.Ordinal).SequenceEqual(
                     new[] { "WEST_AUXILIARY", "WEST_SOURCE" },
                     StringComparer.Ordinal),
-                "화면 거리와 node ID 순서의 접속 후보가 안정적으로 만들어지지 않았습니다.");
+                "화면 거리와 node ID 순서의 접속 후보가 안정적으로 만들어지지 않았습니다: " +
+                string.Join(",", _map.CandidateNodeIds) +
+                $" pointer={_pointerPoint} sources=" +
+                string.Join(";", _snapshot.World.Nodes.Where(item =>
+                    item.NodeId is "WEST_SOURCE" or "WEST_AUXILIARY").Select(item =>
+                    $"{item.NodeId}:{item.Position}")));
             string firstCandidate = _map.SelectedCandidateId!;
             await PressMapKey(Key.Q, physical: Key.Q);
             string cycledCandidate = _map.SelectedCandidateId!;
@@ -128,10 +133,11 @@ internal sealed partial class CommercialMain
 
             CoreMapPoint[] exactPath =
             [
-                new(650, 850),
-                new(1050, 800),
-                new(1605, 800),
-                new(2100, 800),
+                new(650, 900),
+                new(1050, 850),
+                new(1610, 850),
+                new(2100, 1150),
+                new(2400, 1150),
             ];
             await SelectAndClickCandidate(new CoreMapPoint(300, 950), "WEST_SOURCE");
             Require(_snapshot.LineDraft?.StartNodeId == "WEST_SOURCE",
@@ -159,17 +165,26 @@ internal sealed partial class CommercialMain
             Require(_snapshot.LineDraft?.IntermediatePoints.SequenceEqual(exactPath[..3]) == true,
                 $"강 동쪽 전신주 계획을 추가하지 못했습니다: {_lastError}");
             await ClickMap(exactPath[3]);
+            Require(_snapshot.LineDraft?.IntermediatePoints.SequenceEqual(exactPath[..4]) == true,
+                $"네 번째 전신주 계획을 추가하지 못했습니다: {_lastError}");
+            await ClickMap(exactPath[4]);
             Require(_snapshot.LineDraft?.IntermediatePoints.SequenceEqual(exactPath) == true,
                 $"마지막 전신주 계획을 추가하지 못했습니다: {_lastError}");
             await SelectAndClickCandidate(
                 new CoreMapPoint(2600, 800),
                 "EAST_RESIDENTIAL_TERMINAL");
+            Require(
+                _snapshot.LineDraft?.EndNodeId == "EAST_RESIDENTIAL_TERMINAL",
+                "동부 생활권 접속점을 선로 끝점으로 확정하지 못했습니다. " +
+                $"candidate={_map.SelectedCandidateId ?? "없음"} error={_lastError}");
             CoreMapPoint movedNonLast = new(1047, 777);
             await DragMap(exactPath[1], movedNonLast);
             Require(
                 _snapshot.LineDraft?.IntermediatePoints[1] == movedNonLast &&
                 _snapshot.LineDraft.EndNodeId == "EAST_RESIDENTIAL_TERMINAL",
-                "끝 접속점을 정한 뒤 중간 전신주를 실제 드래그 입력으로 옮기지 못했습니다.");
+                "끝 접속점을 정한 뒤 중간 전신주를 실제 드래그 입력으로 옮기지 못했습니다. " +
+                $"points={string.Join(';', _snapshot.LineDraft?.IntermediatePoints ?? Array.Empty<CoreMapPoint>())} " +
+                $"end={_snapshot.LineDraft?.EndNodeId ?? "없음"} error={_lastError}");
             await DragMap(movedNonLast, exactPath[1]);
             Require(
                 _snapshot.LineDraft is not null &&
@@ -190,7 +205,7 @@ internal sealed partial class CommercialMain
             Require(
                 _snapshot.Phase == ConstructionPhase.Ready &&
                 commissionedPositions.SequenceEqual(exactPath) &&
-                _snapshot.World.Edges.Count(edge => edge.Commissioned) == exactPath.Length + 1,
+                _snapshot.World.Edges.Count(edge => edge.Commissioned) == 19,
                 "강을 건너는 한 선로가 정확한 위치로 완공되지 않았습니다.");
 
             GD.Print(
@@ -202,6 +217,70 @@ internal sealed partial class CommercialMain
         catch (Exception exception)
         {
             GD.PushError($"상용 자유 배치 smoke 실패: {exception}");
+            GetTree().Quit(1);
+        }
+    }
+
+    private async void RunThermalSmoke()
+    {
+        try
+        {
+            await NextFrame();
+            GetWindow().Size = new Vector2I(1280, 720);
+            await NextFrame();
+            ApplyUiScale(this, 1.25f);
+            await NextFrame();
+            Require(ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.NextThermalPhase)),
+                "1280×720·UI 125%에서 열 국면 전환 행동이 패널 밖으로 잘렸습니다.");
+
+            ThermalIntervalResult hot = _thermalSequence.Intervals[0];
+            ThermalAssetResult hotSubstation = hot.Assets.Single(item =>
+                item.AssetId == "NORTH_SUBSTATION");
+            Require(
+                hotSubstation.UseKw == 3900 &&
+                hotSubstation.ContinuousLimitKw == 4000 &&
+                hotSubstation.EmergencyLimitKw == 5200,
+                "선택 변전소의 사용·연속·비상 한계가 typed 결과와 다릅니다.");
+            Require(
+                hot.Assets.Any(item => item.CurrentState == ThermalOperatingState.Emergency) &&
+                _panel.AccessibilityName.Contains("열", StringComparison.Ordinal),
+                "비상 운전 상태를 색 외 문장으로 노출하지 못했습니다.");
+
+            EmitPanel(CommercialPanelAction.NextThermalPhase, "보호정지 국면 전환");
+            await NextFrame();
+            Require(
+                _thermalProjectionIndex == 1 &&
+                _thermalSequence.Intervals[1].Assets.Any(item =>
+                    item.CurrentState == ThermalOperatingState.ProtectiveOutage) &&
+                _map.AccessibilityName.Contains("보호정지", StringComparison.Ordinal),
+                "다음 국면의 보호정지 overlay와 접근성 문장이 함께 바뀌지 않았습니다.");
+
+            EmitPanel(CommercialPanelAction.NextThermalPhase, "복귀 국면 전환");
+            await NextFrame();
+            Require(
+                _thermalProjectionIndex == 2 &&
+                _thermalSequence.Intervals[2].Assets.All(item =>
+                    item.CurrentState != ThermalOperatingState.ProtectiveOutage),
+                "한 국면 냉각 뒤 자동 복귀가 projection에 나타나지 않았습니다.");
+
+            _tool = CommercialTool.None;
+            await SelectAndClickCandidate(
+                new CoreMapPoint(2100, 1350),
+                "SOUTH_SUBSTATION");
+            Require(
+                _selectedThermalAssetId == "SOUTH_SUBSTATION" &&
+                _panel.AccessibilityName.Contains("열", StringComparison.Ordinal),
+                "지도 선택으로 열 설비 상세를 바꾸지 못했습니다.");
+
+            GD.Print(
+                "COMMERCIAL_THERMAL_SMOKE_PASS " +
+                $"phases={_thermalSequence.Intervals.Count} selected={_selectedThermalAssetId} " +
+                "patterns=continuous|emergency|protective-outage");
+            GetTree().Quit(0);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"상용 열 국면 smoke 실패: {exception}");
             GetTree().Quit(1);
         }
     }

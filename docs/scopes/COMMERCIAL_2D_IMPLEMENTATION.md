@@ -195,6 +195,18 @@ thermal evaluator는 작성된 고정망과 interval sequence를 순수 계산�
   색 외 패턴·아이콘·문장으로 확인한다.
 - 0~100 열 게이지, 범용 scheduler와 수동 급전은 열지 않는다.
 
+### 4.5 단계 C 검토 후보 — 2026-08-21
+
+- `release-world-v2.json` SHA-256:
+  `1b3485ca3aa0ae6302d0c245d13b8947d314507eeaa9e2d56561c07fbe6113ed`
+- CommercialChecks: **11 suites / 278 assertions PASS**
+- Game Debug·Release rebuild: **0 warnings / 0 errors**
+- 명시 `CommercialMain.tscn` native 회귀:
+  `COMMERCIAL_PLACEMENT_SMOKE_PASS minute=228 nodes=19 edges=19 zoom=전체 보기`
+- 1280×720·UI 125% 열 UI:
+  `COMMERCIAL_THERMAL_SMOKE_PASS phases=3 selected=SOUTH_SUBSTATION patterns=continuous|emergency|protective-outage`
+- 독립 exact-tree 검토 전이므로 단계 상태는 `검토 중`이며 단계 D는 아직 열지 않았다.
+
 ## 5. 단계 D — 상용 핵심 흐름
 
 `첫 불빛`의 짧은 무벌점 자유 배치 prelude와 4장 완료 상태의 본편 5장 `누구의 여유인가`를 같은

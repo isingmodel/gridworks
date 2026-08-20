@@ -12,7 +12,7 @@
 ## 현재 상태
 
 현재 활성 구현 단계는 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-**단계 C — 이산 열 국면 기반**이다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
+**단계 C — 이산 열 국면 기반(검토 중)**이다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
 주기기·전신주 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도
 v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대로 만든다. 기존 `ReleaseMain`과
 33×21 후보는 기술 회귀 기준선이며 새 규칙의 실행 권위가 아니다.
@@ -21,6 +21,12 @@ v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대
 선로, 초안 전신주 이동과 세 단계 카메라를 구현했다. CommercialChecks 7개 묶음 238 assertions,
 Game Debug·Release build와 1280×720·UI 125% native 자유 배치 흐름을 통과했고 독립 검토에서
 P0/P1이 없었다. 이 경로는 단계 D cut-over 전까지 명시 scene으로만 실행한다.
+
+단계 C 검토 후보는 최종 `release-world-v2`의 초기 분기·합류망과 선로·변전소·전신주 접속부의
+연속·비상 한계를 열었다. 모든 발전원·단순 경로를 누적 사용량과 고정 총순서로 비교하고, 의무별
+비상 권한, 다음 국면 보호정지, 한 국면 냉각·복귀와 첫 병목을 typed 결과로 반환한다.
+CommercialChecks 11개 묶음 278 assertions, Game Debug·Release build, 자유 배치 회귀와 1280×720·UI
+125% 열 projection native smoke가 통과했다. 독립 검토를 닫기 전까지 단계 D는 열지 않는다.
 
 직전 기준선의 `ReleaseMain`은 프롤로그 세 임무와 본편 다섯 장, 한국어 화면, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 후보까지 구현했다. 사용자 요청으로 수행한

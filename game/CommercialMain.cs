@@ -21,12 +21,13 @@ internal enum CommercialTool
 internal sealed partial class CommercialMain : Control
 {
     private const string FixtureResource =
-        "Gridworks.Game.EmbeddedData.commercial-free-placement-slice-v1.json";
+        "Gridworks.Game.EmbeddedData.release-world-v2.json";
     private const string SubstationClassId = "SMALL_SUBSTATION";
     private const string LineClassId = "REINFORCED_LINE";
     private const string PoleClassId = "REINFORCED_POLE";
 
     private CommercialLaunchOptions _options = null!;
+    private CommercialWorldDefinition _commercialWorld = null!;
     private ConstructionSession _session = null!;
     private ConstructionSnapshot _snapshot = null!;
     private CommercialMapView _map = null!;
@@ -47,16 +48,20 @@ internal sealed partial class CommercialMain : Control
     private IReadOnlyList<string> _pointerRiskAreaIds = Array.Empty<string>();
     private string _lastStatus = "아직 발주한 공사가 없습니다.";
     private string _lastError = string.Empty;
+    private ThermalSequenceResult _thermalSequence = null!;
+    private int _thermalProjectionIndex;
+    private string _selectedThermalAssetId = "NORTH_SUBSTATION";
 
     public override void _Ready()
     {
         try
         {
-            GetWindow().Title = "Gridworks — 첫 불빛 자유 배치";
+            GetWindow().Title = "Gridworks — 자유 배치와 열 국면";
             _options = CommercialLaunchOptions.Parse(OS.GetCmdlineUserArgs());
-            SpatialWorldDefinition world = SpatialWorldLoader.Load(ReadFixtureBytes());
-            _session = new ConstructionSession(world);
+            _commercialWorld = CommercialWorldLoader.Load(ReadFixtureBytes());
+            _session = new ConstructionSession(_commercialWorld.Spatial);
             _snapshot = _session.GetSnapshot();
+            RefreshThermalProjection();
             BindScene();
             Render();
             _map.CallDeferred(Control.MethodName.GrabFocus);
@@ -65,6 +70,10 @@ internal sealed partial class CommercialMain : Control
             {
                 CallDeferred(nameof(RunPlacementSmoke));
             }
+            else if (_options.ThermalSmoke)
+            {
+                CallDeferred(nameof(RunThermalSmoke));
+            }
 #endif
         }
         catch (Exception exception)
@@ -72,7 +81,8 @@ internal sealed partial class CommercialMain : Control
             GD.PushError($"상용 자유 배치 화면을 시작하지 못했습니다: {exception}");
             ShowFatal(exception.Message);
 #if DEBUG
-            if (OS.GetCmdlineUserArgs().Contains("--commercial-placement-smoke"))
+            if (OS.GetCmdlineUserArgs().Contains("--commercial-placement-smoke") ||
+                OS.GetCmdlineUserArgs().Contains("--commercial-thermal-smoke"))
             {
                 GetTree().Quit(1);
             }
@@ -174,6 +184,13 @@ internal sealed partial class CommercialMain : Control
                     : "마지막 접속점을 정했습니다. 견적을 확인하고 발주하세요.");
                 return;
 
+            case CommercialTool.None when candidateNodeId is not null:
+                _selectedThermalAssetId = candidateNodeId;
+                _lastStatus = "선택 설비의 열 한계와 다음 상태를 표시합니다.";
+                _lastError = string.Empty;
+                Render();
+                return;
+
             default:
                 RejectLocally("현재 작업에서 지도 위치를 더 선택할 수 없습니다.");
                 return;
@@ -198,6 +215,12 @@ internal sealed partial class CommercialMain : Control
                 break;
             case CommercialPanelAction.Commission:
                 OrderOrComplete();
+                break;
+            case CommercialPanelAction.NextThermalPhase:
+                _thermalProjectionIndex =
+                    (_thermalProjectionIndex + 1) % _thermalSequence.Intervals.Count;
+                _lastStatus = "작성된 다음 열 국면으로 지도를 전환했습니다.";
+                Render();
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(action));
@@ -288,6 +311,12 @@ internal sealed partial class CommercialMain : Control
         else
         {
             _lastError = ErrorText(result.Error);
+        }
+        if (result.Accepted &&
+            _snapshot.World.Nodes.All(item => item.Commissioned) &&
+            _snapshot.World.Edges.All(item => item.Commissioned))
+        {
+            RefreshThermalProjection();
         }
         RefreshPointerPreview();
         Render();
@@ -434,6 +463,7 @@ internal sealed partial class CommercialMain : Control
         {
             return;
         }
+        ThermalIntervalResult thermal = _thermalSequence.Intervals[_thermalProjectionIndex];
         _map.SetPresentation(new CommercialMapPresentation(
             _snapshot,
             _pointerPoint,
@@ -441,13 +471,15 @@ internal sealed partial class CommercialMain : Control
             _pointerMessage,
             ToolName(),
             PointerFootprintRadius(),
-            _tool == CommercialTool.Line));
+            _tool is CommercialTool.Line or CommercialTool.None,
+            thermal,
+            _selectedThermalAssetId));
         _panel.SetModel(BuildPanelModel());
         _zoomLabel.Text = $"지도 · {_map.ZoomLabel}";
         int commissionedEdges = _snapshot.World.Edges.Count(edge => edge.Commissioned);
-        _summaryLabel.Text = commissionedEdges == 0
-            ? "무벌점 연습 · 발전소와 마을 사이에 첫 선로를 완성하세요."
-            : $"자유 배치 연습 · 완공 선로 {commissionedEdges}구간 · 다른 경로도 계속 시험할 수 있습니다.";
+        _summaryLabel.Text =
+            $"{ThermalIntervalName(thermal.IntervalId)} · 완공 선로 {commissionedEdges}구간 · " +
+            "지도 설비를 선택해 현재와 다음 상태를 확인하세요.";
     }
 
     private CommercialTaskPanelModel BuildPanelModel()
@@ -472,6 +504,17 @@ internal sealed partial class CommercialMain : Control
             : _pointerAccepted
                 ? string.Empty
                 : _pointerMessage;
+        ThermalIntervalResult thermalInterval = _thermalSequence.Intervals[_thermalProjectionIndex];
+        ThermalAssetResult? selectedThermal = thermalInterval.Assets.FirstOrDefault(item =>
+            item.AssetId == _selectedThermalAssetId);
+        string thermalText = selectedThermal is null
+            ? $"열 국면 · {ThermalIntervalName(thermalInterval.IntervalId)}\n" +
+              "열 한계가 있는 선로·변전소·접속부를 지도에서 선택하세요."
+            : $"열 국면 · {ThermalIntervalName(thermalInterval.IntervalId)}\n" +
+              $"{AssetDisplayName(_selectedThermalAssetId)}\n" +
+              $"사용 {FormatPower(selectedThermal.UseKw)} / 연속 {FormatPower(selectedThermal.ContinuousLimitKw)} / " +
+              $"비상 {FormatPower(selectedThermal.EmergencyLimitKw)}\n" +
+              $"현재 {ThermalStateText(selectedThermal.CurrentState)} · 다음 {ThermalStateText(selectedThermal.NextState)}";
         return new CommercialTaskPanelModel(
             HeadingText(),
             InstructionText(),
@@ -479,6 +522,7 @@ internal sealed partial class CommercialMain : Control
                 ? "지도에서 작업 위치를 선택하세요."
                 : _pointerMessage,
             quoteText,
+            thermalText,
             $"공사 기준 시각 {_snapshot.Minute}분 · {_lastStatus}",
             error,
             new CommercialActionPresentation(
@@ -502,7 +546,11 @@ internal sealed partial class CommercialMain : Control
                 building ? "완공까지 진행" : "공사 발주",
                 building
                     ? "표시된 완공 시각까지 진행해 설비를 사용할 수 있게 합니다."
-                    : "현재 계획과 견적을 확정하고 공사를 시작합니다."));
+                    : "현재 계획과 견적을 확정하고 공사를 시작합니다."),
+            new CommercialActionPresentation(
+                _thermalSequence.Intervals.Count > 1,
+                $"다음 국면 보기 · {_thermalProjectionIndex + 1}/{_thermalSequence.Intervals.Count}",
+                "작성된 국면을 바꾸어 사용 불가, 실제 경로, 보호정지와 복귀 상태를 함께 비교합니다."));
     }
 
     private string HeadingText() => _snapshot.Phase switch
@@ -613,6 +661,100 @@ internal sealed partial class CommercialMain : Control
 
     private static string FormatWon(long cashUnit) =>
         cashUnit.ToString("N0", CultureInfo.GetCultureInfo("ko-KR")) + "원";
+
+    private void RefreshThermalProjection()
+    {
+        CommercialWorldDefinition currentWorld = _commercialWorld with { Spatial = _snapshot.World };
+        _thermalSequence = ThermalEvaluator.Preview(currentWorld, BuildThermalRequest());
+        _thermalProjectionIndex = Math.Clamp(
+            _thermalProjectionIndex,
+            0,
+            _thermalSequence.Intervals.Count - 1);
+        if (!_thermalSequence.Intervals[_thermalProjectionIndex].Assets.Any(item =>
+                item.AssetId == _selectedThermalAssetId))
+        {
+            _selectedThermalAssetId = _thermalSequence.Intervals[_thermalProjectionIndex].Assets
+                .First().AssetId;
+        }
+    }
+
+    private static ThermalSequenceRequest BuildThermalRequest() => new(
+    [
+        new ThermalIntervalDefinition(
+            "HOT_PROMISE",
+            "더운 저녁 · 도시 약속",
+            ThermalIntervalPolicy.ContinuousOnly,
+            [
+                new ThermalDemandDefinition(
+                    "EAST_PROMISE",
+                    "동부 생활권 저녁 약속",
+                    "EAST_RESIDENTIAL_TERMINAL",
+                    3900,
+                    ThermalObligationKind.CityPromise,
+                    true,
+                    true,
+                    false),
+            ],
+            Array.Empty<string>(),
+            Array.Empty<ThermalLimitOverride>()),
+        new ThermalIntervalDefinition(
+            "PROTECTIVE_COOLING",
+            "다음 경계 · 보호정지와 냉각",
+            ThermalIntervalPolicy.ContinuousOnly,
+            Array.Empty<ThermalDemandDefinition>(),
+            Array.Empty<string>(),
+            Array.Empty<ThermalLimitOverride>()),
+        new ThermalIntervalDefinition(
+            "RETURNED_SERVICE",
+            "그다음 경계 · 자동 복귀",
+            ThermalIntervalPolicy.ContinuousOnly,
+            [
+                new ThermalDemandDefinition(
+                    "HOSPITAL_DUTY",
+                    "의료원 안전 의무",
+                    "HOSPITAL_TERMINAL",
+                    1600,
+                    ThermalObligationKind.SafetyDuty,
+                    true,
+                    false,
+                    false),
+            ],
+            Array.Empty<string>(),
+            Array.Empty<ThermalLimitOverride>()),
+    ],
+    Array.Empty<ThermalAssetMemory>());
+
+    private string AssetDisplayName(string assetId)
+    {
+        SpatialNodeDefinition? node = _snapshot.World.Nodes.FirstOrDefault(item => item.NodeId == assetId);
+        if (node is not null)
+        {
+            return node.DisplayName;
+        }
+        SpatialEdgeDefinition? edge = _snapshot.World.Edges.FirstOrDefault(item => item.EdgeId == assetId);
+        return edge is null ? "선택 설비" : $"선로 {edge.EdgeId}";
+    }
+
+    private static string ThermalIntervalName(string intervalId) => intervalId switch
+    {
+        "HOT_PROMISE" => "더운 저녁 · 도시 약속",
+        "PROTECTIVE_COOLING" => "다음 경계 · 보호정지와 냉각",
+        "RETURNED_SERVICE" => "그다음 경계 · 자동 복귀",
+        _ => "작성 국면",
+    };
+
+    private static string ThermalStateText(ThermalOperatingState state) => state switch
+    {
+        ThermalOperatingState.Continuous => "연속 운전 ●",
+        ThermalOperatingState.Emergency => "비상 운전 ▲",
+        ThermalOperatingState.ProtectiveOutage => "보호정지 ✕",
+        ThermalOperatingState.OverLimit => "한계 초과 !",
+        _ => "확인 불가",
+    };
+
+    private static string FormatPower(long powerKw) => powerKw >= 1000
+        ? $"{powerKw / 1000m:0.0} MW"
+        : $"{powerKw} kW";
 
     private static string ErrorText(ConstructionError? error) => error switch
     {

@@ -20,6 +20,11 @@
     <ProjectReference Include="../src/Gridworks.Core/Gridworks.Core.csproj" />
   </ItemGroup>
 
+  <!-- R2 owns only the code-native placeholder map. R3's physical renderer is not open. -->
+  <ItemGroup>
+    <Compile Remove="realtime/world/**/*.cs" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
     <EmbeddedResource Include="../data/product-campaign-v1.json"
                       Link="EmbeddedData/product-campaign-v1.json"
@@ -27,6 +32,12 @@
     <EmbeddedResource Include="../data/product-heatwave-v1.json"
                       Link="EmbeddedData/product-heatwave-v1.json"
                       LogicalName="Gridworks.Game.EmbeddedData.product-heatwave-v1.json" />
+    <EmbeddedResource Include="../tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-world-realtime-v3.json"
+                      Link="EmbeddedData/stage-r1-world-realtime-v3.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.stage-r1-world-realtime-v3.json" />
+    <EmbeddedResource Include="../tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-first-light-realtime-v3.json"
+                      Link="EmbeddedData/stage-r1-first-light-realtime-v3.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.stage-r1-first-light-realtime-v3.json" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">

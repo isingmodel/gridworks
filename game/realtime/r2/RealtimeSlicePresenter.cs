@@ -1,0 +1,2180 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using Gridworks.Core.Release.V2;
+using Gridworks.Core.Release.V3;
+using Gridworks.Game.Realtime.UI;
+using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
+
+namespace Gridworks.Game.Realtime.R2;
+
+internal sealed record RealtimeSlicePresentation(
+    long Revision,
+    RealtimeCampaignSnapshot CoreSnapshot,
+    RealtimeForecastSnapshot BaseForecast,
+    RealtimeComparisonDraftForecast ComparisonDraftForecast,
+    RealtimeInteractionPresentation Interaction,
+    RealtimePlaceholderMapPresentation World,
+    RealtimeTopHudPresentation Hud,
+    RealtimeEventRailPresentation Rail,
+    RealtimeContextDockPresentation Context,
+    RealtimeBuildShelfPresentation BuildShelf,
+    RealtimeActionDockPresentation ActionDock,
+    RealtimeModalPresentation? Modal);
+
+internal enum RealtimeTimelineTargetKind
+{
+    Event,
+    ThermalAsset,
+    ConstructionProject,
+    Asset,
+    Unknown,
+}
+
+internal sealed record RealtimeTimelineTarget(
+    string MarkerId,
+    RealtimeTimelineTargetKind Kind,
+    string? SubjectId,
+    string? MapSubjectId);
+
+internal static class RealtimeSlicePresenter
+{
+    private const long DefaultHorizonMinutes =
+        RealtimeCampaignRun.DefaultForecastHorizonMinutes;
+    private const long TimelineHistoryMinutes = 6 * 60;
+    private const int TimelineHistoryLimit = 3;
+
+    internal static RealtimeSlicePresentation Present(
+        CommercialWorldDefinition displayWorld,
+        RealtimeWorldDefinition realtimeWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        RealtimeInteractionState interaction,
+        long revision,
+        CoreMapPoint? pointerPoint = null,
+        bool pointerAccepted = true,
+        string pointerMessage = "",
+        bool reduceMotion = false,
+        RealtimeProjectQuote? nodeOrderQuote = null,
+        RealtimeProjectQuote? lineOrderQuote = null) => Present(
+        displayWorld,
+        realtimeWorld,
+        snapshot,
+        snapshot.Forecast,
+        comparisonDraftForecast,
+        interaction,
+        revision,
+        pointerPoint,
+        pointerAccepted,
+        pointerMessage,
+        reduceMotion,
+        nodeOrderQuote,
+        lineOrderQuote);
+
+    internal static RealtimeSlicePresentation Present(
+        CommercialWorldDefinition displayWorld,
+        RealtimeWorldDefinition realtimeWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastSnapshot baseForecast,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        RealtimeInteractionState interaction,
+        long revision,
+        CoreMapPoint? pointerPoint = null,
+        bool pointerAccepted = true,
+        string pointerMessage = "",
+        bool reduceMotion = false,
+        RealtimeProjectQuote? nodeOrderQuote = null,
+        RealtimeProjectQuote? lineOrderQuote = null)
+    {
+        ArgumentNullException.ThrowIfNull(displayWorld);
+        ArgumentNullException.ThrowIfNull(realtimeWorld);
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(baseForecast);
+        ArgumentNullException.ThrowIfNull(comparisonDraftForecast);
+        ArgumentNullException.ThrowIfNull(interaction);
+
+        RealtimePausePresentation pause = Pause(
+            displayWorld,
+            snapshot,
+            baseForecast,
+            interaction.PauseReason);
+        RealtimeInteractionPresentation interactionPresentation =
+            interaction.ToPresentation(pause);
+        RealtimeEventRailPresentation rail = Rail(
+            displayWorld,
+            snapshot,
+            baseForecast,
+            comparisonDraftForecast,
+            interaction);
+        return new RealtimeSlicePresentation(
+            revision,
+            snapshot,
+            baseForecast,
+            comparisonDraftForecast,
+            interactionPresentation,
+            World(
+                displayWorld,
+                snapshot,
+                baseForecast,
+                comparisonDraftForecast,
+                interaction,
+                pointerPoint,
+                pointerAccepted,
+                pointerMessage,
+                reduceMotion),
+            Hud(snapshot, interaction, pause),
+            rail,
+            Context(
+                displayWorld,
+                realtimeWorld,
+                snapshot,
+                baseForecast,
+                comparisonDraftForecast,
+                interaction.Surface == RealtimeSurface.Inspector
+                    ? interaction.SelectionId
+                    : null),
+            BuildShelf(
+                snapshot,
+                interaction,
+                pointerAccepted,
+                pointerMessage),
+            ActionDock(
+                snapshot,
+                interaction,
+                pointerAccepted,
+                pointerMessage,
+                nodeOrderQuote,
+                lineOrderQuote),
+            Modal(snapshot, interaction, pause));
+    }
+
+    internal static RealtimeTimelineTarget ResolveTimelineTarget(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        string markerId) => ResolveTimelineTarget(
+        displayWorld,
+        snapshot,
+        snapshot.Forecast,
+        new RealtimeComparisonDraftForecast(false, null, null),
+        markerId);
+
+    internal static RealtimeTimelineTarget ResolveTimelineTarget(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        string markerId) => ResolveTimelineTarget(
+        displayWorld,
+        snapshot,
+        snapshot.Forecast,
+        comparisonDraftForecast,
+        markerId);
+
+    internal static RealtimeTimelineTarget ResolveTimelineTarget(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastSnapshot baseForecast,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        string markerId)
+    {
+        ArgumentNullException.ThrowIfNull(displayWorld);
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(baseForecast);
+        ArgumentNullException.ThrowIfNull(comparisonDraftForecast);
+        ArgumentException.ThrowIfNullOrWhiteSpace(markerId);
+        if (TryResolveComparisonEvent(
+                comparisonDraftForecast,
+                markerId,
+                out RealtimeForecastEvent comparisonEvent))
+        {
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.Event,
+                markerId,
+                EventMapSubject(
+                    displayWorld,
+                    snapshot,
+                    comparisonEvent.ProjectedEvaluation,
+                    comparisonEvent.OperatingProfile));
+        }
+        if (TryResolveComparisonThermalMarker(
+                comparisonDraftForecast,
+                markerId,
+                out _,
+                out RealtimeThermalTransition comparisonTransition))
+        {
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.ThermalAsset,
+                markerId,
+                comparisonTransition.AssetId);
+        }
+        RealtimeForecastEvent? selectedForecast = baseForecast.Events.FirstOrDefault(item =>
+            string.Equals(item.EventId, markerId, StringComparison.Ordinal));
+        if (selectedForecast is not null)
+        {
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.Event,
+                markerId,
+                EventMapSubject(
+                    displayWorld,
+                    snapshot,
+                    selectedForecast.ProjectedEvaluation,
+                    selectedForecast.OperatingProfile));
+        }
+        foreach (RealtimeForecastEvent forecast in baseForecast.Events)
+        {
+            foreach (RealtimeThermalTransition transition in
+                     forecast.TemporalProjection.Transitions)
+            {
+                if (string.Equals(
+                        ThermalMarkerId(forecast.EventId, transition),
+                        markerId,
+                        StringComparison.Ordinal))
+                {
+                    return new RealtimeTimelineTarget(
+                        markerId,
+                        RealtimeTimelineTargetKind.ThermalAsset,
+                        markerId,
+                        transition.AssetId);
+                }
+            }
+        }
+        RealtimeEventOutcome? selectedOutcome = snapshot.CurrentChapterEvents.FirstOrDefault(item =>
+            string.Equals(item.EventId, markerId, StringComparison.Ordinal));
+        if (selectedOutcome is not null)
+        {
+            RealtimeScheduledEventDefinition scheduled = snapshot.Chapter.ScheduledEvents
+                .Single(item => string.Equals(
+                    item.EventId,
+                    selectedOutcome.EventId,
+                    StringComparison.Ordinal));
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.Event,
+                markerId,
+                EventMapSubject(
+                    displayWorld,
+                    snapshot,
+                    selectedOutcome.FinalEvaluation,
+                    scheduled.OperatingProfile));
+        }
+        if (string.Equals(markerId, "ACTIVE_CONSTRUCTION", StringComparison.Ordinal))
+        {
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.ConstructionProject,
+                snapshot.Construction.ActiveConstruction is null
+                    ? null
+                    : markerId,
+                null);
+        }
+        if (snapshot.Construction.World.Nodes.Any(item => string.Equals(
+                item.NodeId,
+                markerId,
+                StringComparison.Ordinal)) ||
+            snapshot.Construction.World.Edges.Any(item => string.Equals(
+                item.EdgeId,
+                markerId,
+                StringComparison.Ordinal)))
+        {
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.Asset,
+                markerId,
+                markerId);
+        }
+        return new RealtimeTimelineTarget(
+            markerId,
+            RealtimeTimelineTargetKind.Unknown,
+            null,
+            null);
+    }
+
+    private static RealtimePlaceholderMapPresentation World(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastSnapshot baseForecast,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        RealtimeInteractionState interaction,
+        CoreMapPoint? pointerPoint,
+        bool pointerAccepted,
+        string pointerMessage,
+        bool reduceMotion)
+    {
+        IReadOnlyDictionary<string, RealtimeThermalAssetSnapshot> thermalById =
+            snapshot.Thermal.Assets.ToDictionary(
+                item => item.AssetId,
+                StringComparer.Ordinal);
+        RealtimePlaceholderAssetStatus[] statuses = snapshot.Construction.World.Nodes
+            .Select(item => WorldStatus(
+                item.NodeId,
+                item.Commissioned,
+                thermalById.GetValueOrDefault(item.NodeId)))
+            .Concat(snapshot.Construction.World.Edges.Select(item => WorldStatus(
+                item.EdgeId,
+                item.Commissioned,
+                thermalById.GetValueOrDefault(item.EdgeId))))
+            .OrderBy(item => item.AssetId, StringComparer.Ordinal)
+            .ToArray();
+        string[] riskIds = snapshot.ActiveEventStates
+            .SelectMany(item => item.Event.OperatingProfile.ActiveRiskAreaIds)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(item => item, StringComparer.Ordinal)
+            .ToArray();
+        return new RealtimePlaceholderMapPresentation(
+            snapshot.Construction.World,
+            Array.AsReadOnly(statuses),
+            pointerPoint,
+            pointerAccepted,
+            pointerMessage,
+            !snapshot.CampaignComplete &&
+                interaction.Simulation != RealtimeSimulationState.Ended &&
+                (interaction.Tool is RealtimeTool.BuildNode or
+                    RealtimeTool.BuildLine or RealtimeTool.MoveDraft),
+            MapSelectionId(
+                displayWorld,
+                snapshot,
+                baseForecast,
+                comparisonDraftForecast,
+                interaction.SelectionId),
+            interaction.Tool == RealtimeTool.Analysis,
+            Weather(snapshot),
+            snapshot.Minute,
+            Array.AsReadOnly(riskIds),
+            Highlight(
+                displayWorld,
+                snapshot,
+                baseForecast,
+                comparisonDraftForecast,
+                interaction.SelectionId),
+            reduceMotion);
+    }
+
+    private static RealtimeTopHudPresentation Hud(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeInteractionState interaction,
+        RealtimePausePresentation pause)
+    {
+        RealtimeReliabilityState reliability = Reliability(snapshot);
+        string reliabilityLabel = reliability switch
+        {
+            RealtimeReliabilityState.Stable => "안정",
+            RealtimeReliabilityState.Watch => "공급 주의",
+            RealtimeReliabilityState.Emergency => "비상 열운전",
+            RealtimeReliabilityState.Outage => "보호정지",
+            _ => throw new ArgumentOutOfRangeException(nameof(snapshot)),
+        };
+        string? warning = snapshot.Thermal.Assets.Any(item => item.ProtectiveOutage)
+            ? "보호정지 설비 있음 · 공급 경로 제외"
+            : snapshot.Thermal.Assets.Any(item => item.State == ThermalOperatingState.Emergency)
+                ? "비상 열운전 · 허용시간 감소"
+                : snapshot.Thermal.Evaluation.Loads.Any(item => item.DeliveredKw < item.DemandKw)
+                    ? "필수 수요 미공급 · 경로 확인"
+                    : null;
+        return new RealtimeTopHudPresentation(
+            snapshot.Chapter.Content.DisplayName,
+            snapshot.Chapter.Content.Objective,
+            Time(snapshot.Minute),
+            $"운영 자금 {Cash(snapshot.CashUnit)}",
+            reliabilityLabel,
+            reliability,
+            interaction.PresentedSpeed,
+            warning)
+        {
+            SimulationState = interaction.Simulation,
+            Pause = pause,
+            ToolShelfVisible = interaction.Surface == RealtimeSurface.Drawer,
+            BuildModeActive = !snapshot.CampaignComplete &&
+                interaction.Simulation != RealtimeSimulationState.Ended &&
+                (snapshot.Construction.NodeDraft is not null ||
+                 snapshot.Construction.LineDraft is not null),
+        };
+    }
+
+    private static RealtimeEventRailPresentation Rail(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastSnapshot baseForecast,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        RealtimeInteractionState interaction)
+    {
+        var items = new List<RealtimeTimelineItemPresentation>();
+        int highestAuthoredPriority = snapshot.Chapter.ScheduledEvents.Count == 0
+            ? 0
+            : snapshot.Chapter.ScheduledEvents.Max(item => item.Priority);
+        int thermalOrdinal = 0;
+        foreach (RealtimeForecastEvent item in baseForecast.Events)
+        {
+            bool active = item.Status == RealtimeForecastStatus.Active;
+            bool safetyRisk = !item.TemporalProjection.Outcome.SafetySatisfied;
+            RealtimeTimelineItemKind kind = EventKind(item.OperatingProfile);
+            string eventName = PlayerEventName(displayWorld, item.OperatingProfile);
+            items.Add(new RealtimeTimelineItemPresentation(
+                item.EventId,
+                kind,
+                item.StartMinute,
+                item.EndMinute,
+                eventName,
+                eventName,
+                EventDescription(item, eventName),
+                safetyRisk
+                    ? RealtimeTimelineSeverity.Critical
+                    : RealtimeTimelineSeverity.Advisory,
+                active
+                    ? RealtimeTimelineVisibility.Active
+                    : RealtimeTimelineVisibility.Announced,
+                active,
+                true)
+            {
+                Lane = item.OperatingProfile.ActiveRiskAreaIds.Count > 0 ||
+                       item.OperatingProfile.UnavailableEdgeIds.Count > 0 ||
+                       item.OperatingProfile.UnavailableNodeIds.Count > 0
+                    ? RealtimeTimelineLane.WeatherAndOutage
+                    : RealtimeTimelineLane.DemandAndDeadline,
+                Priority = ForecastPriority(snapshot, item),
+                TimeLabel = Time(item.StartMinute),
+                SeverityLabel = safetyRisk ? "안전 의무 위험" : "예고",
+            });
+
+            foreach (RealtimeThermalTransition transition in
+                     item.TemporalProjection.Transitions)
+            {
+                string id = ThermalMarkerId(item.EventId, transition);
+                if (items.Any(existing => string.Equals(existing.Id, id,
+                        StringComparison.Ordinal)))
+                {
+                    continue;
+                }
+                bool trip = transition.Kind == RealtimeThermalTransitionKind.ProtectiveTrip;
+                int stableThermalOrder = thermalOrdinal++;
+                items.Add(new RealtimeTimelineItemPresentation(
+                    id,
+                    RealtimeTimelineItemKind.ThermalProtection,
+                    transition.Minute,
+                    null,
+                    ThermalTitle(displayWorld, snapshot, transition),
+                    AssetDisplayName(displayWorld, snapshot, transition.AssetId),
+                    $"{eventName} 예상 · {ThermalTitle(displayWorld, snapshot, transition)}",
+                    trip
+                        ? RealtimeTimelineSeverity.Critical
+                        : RealtimeTimelineSeverity.Warning,
+                    RealtimeTimelineVisibility.Announced,
+                    transition.Minute == snapshot.Minute,
+                    true)
+                {
+                    Lane = RealtimeTimelineLane.ThermalProtection,
+                    Priority = highestAuthoredPriority <=
+                        int.MaxValue - stableThermalOrder - 1
+                            ? highestAuthoredPriority + stableThermalOrder + 1
+                            : int.MaxValue,
+                    TimeLabel = Time(transition.Minute),
+                    SeverityLabel = trip ? "보호정지 예상" : "열 상태 변화",
+                });
+            }
+        }
+
+        // Core owns the virtual commissioning and every resulting supply/thermal
+        // rule. The UI only maps that typed comparison snapshot into markers;
+        // it never reconstructs or mutates a draft forecast locally.
+        if (comparisonDraftForecast is { Available: true, Forecast: not null })
+        {
+            int comparisonThermalOrdinal = 0;
+            foreach (RealtimeForecastEvent item in
+                     comparisonDraftForecast.Forecast.Events)
+            {
+                bool active = item.Status == RealtimeForecastStatus.Active;
+                bool safetyRisk = !item.TemporalProjection.Outcome.SafetySatisfied;
+                RealtimeTimelineItemKind kind = EventKind(item.OperatingProfile);
+                string eventName = PlayerEventName(displayWorld, item.OperatingProfile);
+                string markerId = ComparisonEventMarkerId(item.EventId);
+                items.Add(new RealtimeTimelineItemPresentation(
+                    markerId,
+                    kind,
+                    item.StartMinute,
+                    item.EndMinute,
+                    $"현재 초안 기준 예상 · {eventName}",
+                    "현재 초안 기준 예상",
+                    $"현재 초안 기준 예상 · {EventDescription(item, eventName)}",
+                    safetyRisk
+                        ? RealtimeTimelineSeverity.Critical
+                        : RealtimeTimelineSeverity.Advisory,
+                    active
+                        ? RealtimeTimelineVisibility.Active
+                        : RealtimeTimelineVisibility.Announced,
+                    active,
+                    true)
+                {
+                    Lane = item.OperatingProfile.ActiveRiskAreaIds.Count > 0 ||
+                           item.OperatingProfile.UnavailableEdgeIds.Count > 0 ||
+                           item.OperatingProfile.UnavailableNodeIds.Count > 0
+                        ? RealtimeTimelineLane.WeatherAndOutage
+                        : RealtimeTimelineLane.DemandAndDeadline,
+                    Priority = ForecastPriority(snapshot, item),
+                    TimeLabel = Time(item.StartMinute),
+                    SeverityLabel = safetyRisk
+                        ? "현재 초안 기준 예상 · 안전 의무 위험"
+                        : "현재 초안 기준 예상",
+                });
+
+                foreach (RealtimeThermalTransition transition in
+                         item.TemporalProjection.Transitions)
+                {
+                    string id = ComparisonThermalMarkerId(item.EventId, transition);
+                    if (items.Any(existing => string.Equals(
+                            existing.Id,
+                            id,
+                            StringComparison.Ordinal)))
+                    {
+                        continue;
+                    }
+                    bool trip = transition.Kind ==
+                        RealtimeThermalTransitionKind.ProtectiveTrip;
+                    int stableThermalOrder = comparisonThermalOrdinal++;
+                    string thermalTitle = ThermalTitle(displayWorld, snapshot, transition);
+                    items.Add(new RealtimeTimelineItemPresentation(
+                        id,
+                        RealtimeTimelineItemKind.ThermalProtection,
+                        transition.Minute,
+                        null,
+                        $"현재 초안 기준 예상 · {thermalTitle}",
+                        "현재 초안 기준 예상",
+                        $"현재 초안 기준 예상 · {eventName} · {thermalTitle}",
+                        trip
+                            ? RealtimeTimelineSeverity.Critical
+                            : RealtimeTimelineSeverity.Warning,
+                        RealtimeTimelineVisibility.Announced,
+                        transition.Minute == snapshot.Minute,
+                        true)
+                    {
+                        Lane = RealtimeTimelineLane.ThermalProtection,
+                        Priority = highestAuthoredPriority <=
+                            int.MaxValue - stableThermalOrder - 1
+                                ? highestAuthoredPriority + stableThermalOrder + 1
+                                : int.MaxValue,
+                        TimeLabel = Time(transition.Minute),
+                        SeverityLabel = trip
+                            ? "현재 초안 기준 예상 · 보호정지"
+                            : "현재 초안 기준 예상 · 열 상태 변화",
+                    });
+                }
+            }
+        }
+
+        foreach (RealtimeEventOutcome outcome in snapshot.CurrentChapterEvents
+                     .Where(item => item.EndMinute <= snapshot.Minute)
+                     .OrderByDescending(item => item.EndMinute)
+                     .ThenBy(item => item.EventId, StringComparer.Ordinal)
+                     .Take(TimelineHistoryLimit)
+                     .OrderBy(item => item.EndMinute)
+                     .ThenBy(item => item.EventId, StringComparer.Ordinal))
+        {
+            RealtimeScheduledEventDefinition scheduled = snapshot.Chapter.ScheduledEvents
+                .Single(item => string.Equals(
+                    item.EventId,
+                    outcome.EventId,
+                    StringComparison.Ordinal));
+            string eventName = PlayerEventName(displayWorld, scheduled.OperatingProfile);
+            RealtimeTimelineItemKind kind = EventKind(scheduled.OperatingProfile);
+            items.Add(new RealtimeTimelineItemPresentation(
+                outcome.EventId,
+                kind,
+                outcome.StartMinute,
+                outcome.EndMinute,
+                eventName,
+                eventName,
+                outcome.SafetySatisfied
+                    ? $"{Time(outcome.EndMinute)} 종료 · 안전 의무 충족"
+                    : $"{Time(outcome.EndMinute)} 종료 · 안전 의무 " +
+                      $"{outcome.SafetyUnservedMinutes}분 미공급",
+                outcome.SafetySatisfied
+                    ? RealtimeTimelineSeverity.Information
+                    : RealtimeTimelineSeverity.Critical,
+                RealtimeTimelineVisibility.Completed,
+                false,
+                true)
+            {
+                Lane = kind is RealtimeTimelineItemKind.Weather or
+                    RealtimeTimelineItemKind.PlannedOutage
+                        ? RealtimeTimelineLane.WeatherAndOutage
+                        : RealtimeTimelineLane.DemandAndDeadline,
+                Priority = scheduled.Priority,
+                TimeLabel = Time(outcome.EndMinute),
+                SeverityLabel = outcome.SafetySatisfied
+                    ? "운영 기록 완료"
+                    : "미공급 기록 완료",
+            });
+        }
+
+        if (snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot project)
+        {
+            items.Add(new RealtimeTimelineItemPresentation(
+                "ACTIVE_CONSTRUCTION",
+                RealtimeTimelineItemKind.Construction,
+                project.CompletionMinute,
+                null,
+                project.Kind == ConstructionKind.Line ? "선로 공사" : "변전소 공사",
+                "공사 완료",
+                $"{Time(project.CompletionMinute)}에 완공 즉시 공급에 참여",
+                RealtimeTimelineSeverity.Information,
+                RealtimeTimelineVisibility.Active,
+                true,
+                true)
+            {
+                Lane = RealtimeTimelineLane.Construction,
+                Priority = int.MinValue,
+                TimeLabel = Time(project.CompletionMinute),
+                SeverityLabel = "공사 중",
+            });
+        }
+
+        long horizonMinutes = HorizonMinutes(interaction.TimelineHorizon);
+        long anchor = interaction.TimelineAnchorMinute ?? snapshot.Minute;
+        long horizonStart = Math.Max(0, anchor - TimelineHistoryMinutes);
+        long horizonEnd = anchor > long.MaxValue - horizonMinutes
+            ? long.MaxValue
+            : anchor + horizonMinutes;
+        RealtimeTimelineItemPresentation[] ordered = items
+            .OrderBy(item => item.StartMinute)
+            .ThenBy(item => item.Priority)
+            .ThenBy(item => item.Id, StringComparer.Ordinal)
+            .ToArray();
+        return new RealtimeEventRailPresentation(
+            snapshot.Minute,
+            horizonStart,
+            horizonEnd,
+            Time(snapshot.Minute),
+            $"{HorizonLabel(interaction.TimelineHorizon)} · 지난 6시간",
+            Array.AsReadOnly(ordered),
+            interaction.TimelineSelectedItemId)
+        {
+            HorizonPreset = interaction.TimelineHorizon,
+            Expanded = interaction.Surface == RealtimeSurface.Timeline,
+        };
+    }
+
+    private static RealtimeContextDockPresentation Context(
+        CommercialWorldDefinition displayWorld,
+        RealtimeWorldDefinition realtimeWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastSnapshot baseForecast,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        string? selectedId)
+    {
+        if (selectedId is null)
+        {
+            return new RealtimeContextDockPresentation(
+                string.Empty,
+                false,
+                string.Empty,
+                string.Empty,
+                Array.Empty<RealtimeContextSectionPresentation>());
+        }
+
+        if (string.Equals(selectedId, "ACTIVE_CONSTRUCTION", StringComparison.Ordinal) &&
+            snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot project)
+        {
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "공사 프로젝트",
+                project.Kind == ConstructionKind.Line ? "선로 공사" : "변전소 공사",
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("완공", Time(project.CompletionMinute)),
+                    new("비용", Cash(project.CostCashUnit)),
+                    new("범위", $"설비 {project.NodeIds.Count}곳 · 선로 {project.EdgeIds.Count}구간"),
+                })
+            {
+                Details = new RealtimeContextDetailPresentation[]
+                {
+                    new(
+                        RealtimeContextDetailTab.Route,
+                        "공사 범위",
+                        $"설비: {JoinAssetNames(displayWorld, snapshot, project.NodeIds)}\n" +
+                        $"선로: {JoinAssetNames(displayWorld, snapshot, project.EdgeIds)}",
+                        RealtimeTimelineSeverity.Information),
+                },
+            };
+        }
+
+        if (TryResolveComparisonEvent(
+                comparisonDraftForecast,
+                selectedId,
+                out RealtimeForecastEvent comparisonEvent))
+        {
+            RealtimeEventOutcome outcome = comparisonEvent.TemporalProjection.Outcome;
+            string eventName = PlayerEventName(
+                displayWorld,
+                comparisonEvent.OperatingProfile);
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "현재 초안 기준 예상",
+                eventName,
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("발생", $"{Time(comparisonEvent.StartMinute)}–{Time(comparisonEvent.EndMinute)}"),
+                    new("안전 의무", outcome.SafetySatisfied
+                        ? "현재 초안 기준 예상 · 공급 충족"
+                        : $"현재 초안 기준 예상 · {outcome.SafetyUnservedMinutes}분 미공급",
+                        outcome.SafetySatisfied
+                            ? RealtimeTimelineSeverity.Information
+                            : RealtimeTimelineSeverity.Critical),
+                    new("첫 병목", FirstBottleneck(
+                        displayWorld,
+                        snapshot,
+                        comparisonEvent.ProjectedEvaluation)),
+                })
+            {
+                Details = new RealtimeContextDetailPresentation[]
+                {
+                    new(
+                        RealtimeContextDetailTab.Forecast,
+                        "현재 초안 기준 예상",
+                        ForecastDetail(displayWorld, snapshot, comparisonEvent),
+                        outcome.SafetySatisfied
+                            ? RealtimeTimelineSeverity.Advisory
+                            : RealtimeTimelineSeverity.Critical),
+                },
+            };
+        }
+
+        if (TryResolveComparisonThermalMarker(
+                comparisonDraftForecast,
+                selectedId,
+                out RealtimeForecastEvent comparisonOwningForecast,
+                out RealtimeThermalTransition comparisonTransition))
+        {
+            string eventName = PlayerEventName(
+                displayWorld,
+                comparisonOwningForecast.OperatingProfile);
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "현재 초안 기준 예상 · 열 보호",
+                AssetDisplayName(displayWorld, snapshot, comparisonTransition.AssetId),
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("예상 시각", Time(comparisonTransition.Minute)),
+                    new("예상 변화", ThermalTitle(
+                            displayWorld,
+                            snapshot,
+                            comparisonTransition),
+                        comparisonTransition.Kind ==
+                            RealtimeThermalTransitionKind.ProtectiveTrip
+                            ? RealtimeTimelineSeverity.Critical
+                            : RealtimeTimelineSeverity.Warning),
+                    new("근거", $"현재 초안 기준 예상 · {eventName}"),
+                })
+            {
+                Details = new RealtimeContextDetailPresentation[]
+                {
+                    new(
+                        RealtimeContextDetailTab.Forecast,
+                        "현재 초안 기준 예상",
+                        ForecastDetail(
+                            displayWorld,
+                            snapshot,
+                            comparisonOwningForecast),
+                        comparisonTransition.Kind ==
+                            RealtimeThermalTransitionKind.ProtectiveTrip
+                            ? RealtimeTimelineSeverity.Critical
+                            : RealtimeTimelineSeverity.Warning),
+                },
+            };
+        }
+
+        RealtimeForecastEvent? forecast = baseForecast.Events.FirstOrDefault(item =>
+            string.Equals(item.EventId, selectedId, StringComparison.Ordinal));
+        if (forecast is not null)
+        {
+            RealtimeEventOutcome outcome = forecast.TemporalProjection.Outcome;
+            string eventName = PlayerEventName(displayWorld, forecast.OperatingProfile);
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "사건 지평선",
+                eventName,
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("발생", $"{Time(forecast.StartMinute)}–{Time(forecast.EndMinute)}"),
+                    new("안전 의무", outcome.SafetySatisfied
+                        ? "예상 공급 충족"
+                        : $"{outcome.SafetyUnservedMinutes}분 미공급 예상",
+                        outcome.SafetySatisfied
+                            ? RealtimeTimelineSeverity.Information
+                            : RealtimeTimelineSeverity.Critical),
+                    new("첫 병목", FirstBottleneck(
+                        displayWorld,
+                        snapshot,
+                        forecast.ProjectedEvaluation)),
+                })
+            {
+                Details = new RealtimeContextDetailPresentation[]
+                {
+                    new(
+                        RealtimeContextDetailTab.Route,
+                        "예상 공급 경로",
+                        ForecastRoutes(displayWorld, snapshot, forecast.ProjectedEvaluation),
+                        outcome.SafetySatisfied
+                            ? RealtimeTimelineSeverity.Information
+                            : RealtimeTimelineSeverity.Critical),
+                    new(
+                        RealtimeContextDetailTab.Forecast,
+                        "시간별 변화",
+                        ForecastDetail(displayWorld, snapshot, forecast),
+                        outcome.SafetySatisfied
+                            ? RealtimeTimelineSeverity.Advisory
+                            : RealtimeTimelineSeverity.Critical),
+                },
+            };
+        }
+
+        RealtimeEventOutcome? completed = snapshot.CurrentChapterEvents.FirstOrDefault(item =>
+            string.Equals(item.EventId, selectedId, StringComparison.Ordinal));
+        if (completed is not null)
+        {
+            RealtimeScheduledEventDefinition scheduled = snapshot.Chapter.ScheduledEvents
+                .Single(item => string.Equals(
+                    item.EventId,
+                    completed.EventId,
+                    StringComparison.Ordinal));
+            string eventName = PlayerEventName(displayWorld, scheduled.OperatingProfile);
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "최근 운영 기록",
+                eventName,
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("운영 시각", $"{Time(completed.StartMinute)}–{Time(completed.EndMinute)}"),
+                    new("안전 의무", completed.SafetySatisfied
+                        ? "공급 충족"
+                        : $"{completed.SafetyUnservedMinutes}분 미공급",
+                        completed.SafetySatisfied
+                            ? RealtimeTimelineSeverity.Information
+                            : RealtimeTimelineSeverity.Critical),
+                    new("첫 병목", FirstBottleneck(
+                        displayWorld,
+                        snapshot,
+                        completed.FinalEvaluation)),
+                })
+            {
+                Details = new RealtimeContextDetailPresentation[]
+                {
+                    new(
+                        RealtimeContextDetailTab.History,
+                        "완료된 공급 기록",
+                        ForecastRoutes(displayWorld, snapshot, completed.FinalEvaluation),
+                        completed.SafetySatisfied
+                            ? RealtimeTimelineSeverity.Information
+                            : RealtimeTimelineSeverity.Critical),
+                },
+            };
+        }
+
+        if (TryResolveThermalMarker(
+                baseForecast,
+                selectedId,
+                out RealtimeForecastEvent owningForecast,
+                out RealtimeThermalTransition selectedTransition))
+        {
+            RealtimeThermalAssetSnapshot? current = snapshot.Thermal.Assets.FirstOrDefault(item =>
+                string.Equals(
+                    item.AssetId,
+                    selectedTransition.AssetId,
+                    StringComparison.Ordinal));
+            string eventName = PlayerEventName(displayWorld, owningForecast.OperatingProfile);
+            string currentState = current is null
+                ? "현재 열 상태 기록 없음"
+                : current.State switch
+                {
+                    ThermalOperatingState.Continuous => "현재 연속 운전",
+                    ThermalOperatingState.Emergency => "현재 비상 운전",
+                    ThermalOperatingState.ProtectiveOutage => "현재 보호정지",
+                    ThermalOperatingState.OverLimit => "현재 한계 초과",
+                    _ => throw new ArgumentOutOfRangeException(nameof(snapshot)),
+                };
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                $"{eventName} · 열 보호 예상",
+                AssetDisplayName(displayWorld, snapshot, selectedTransition.AssetId),
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("예상 시각", Time(selectedTransition.Minute)),
+                    new("예상 변화", ThermalTitle(displayWorld, snapshot, selectedTransition),
+                        selectedTransition.Kind == RealtimeThermalTransitionKind.ProtectiveTrip
+                            ? RealtimeTimelineSeverity.Critical
+                            : RealtimeTimelineSeverity.Warning),
+                    new("현재 상태", currentState),
+                })
+            {
+                Details = new RealtimeContextDetailPresentation[]
+                {
+                    new(
+                        RealtimeContextDetailTab.Forecast,
+                        "사건별 열 보호 예상",
+                        ForecastDetail(displayWorld, snapshot, owningForecast),
+                        selectedTransition.Kind == RealtimeThermalTransitionKind.ProtectiveTrip
+                            ? RealtimeTimelineSeverity.Critical
+                            : RealtimeTimelineSeverity.Warning),
+                },
+            };
+        }
+
+        SpatialNodeDefinition? node = snapshot.Construction.World.Nodes.FirstOrDefault(item =>
+            string.Equals(item.NodeId, selectedId, StringComparison.Ordinal));
+        SpatialEdgeDefinition? edge = snapshot.Construction.World.Edges.FirstOrDefault(item =>
+            string.Equals(item.EdgeId, selectedId, StringComparison.Ordinal));
+        if ((node is not null && !node.Commissioned) ||
+            (edge is not null && !edge.Commissioned))
+        {
+            string constructionHeading = AssetDisplayName(
+                displayWorld,
+                snapshot,
+                selectedId);
+            string constructionBody = node is not null
+                ? $"{NodeClassDisplayName(snapshot, node.ClassId)} · 공사 중 · 완공 전 공급 불가"
+                : $"{LineClassDisplayName(snapshot, edge!.LineClassId)} · 공사 중 · 완공 전 공급 불가";
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "공사 중 설비",
+                constructionHeading,
+                new[]
+                {
+                    new RealtimeContextSectionPresentation(
+                        "현재 상태",
+                        "공사 중",
+                        RealtimeTimelineSeverity.Advisory),
+                    new RealtimeContextSectionPresentation("운영", constructionBody),
+                });
+        }
+
+        RealtimeThermalAssetSnapshot? asset = snapshot.Thermal.Assets.FirstOrDefault(item =>
+            string.Equals(item.AssetId, selectedId, StringComparison.Ordinal));
+        if (asset is not null)
+        {
+            RealtimeThermalProtectionCopy protection = RealtimeThermalPresentation.For(
+                realtimeWorld,
+                snapshot.Thermal,
+                asset);
+            string state = asset.ProtectiveOutage && asset.AuthoredUnavailable
+                ? "보호정지 · 계획 사용불가 겹침"
+                : asset.ProtectiveOutage
+                    ? "보호정지"
+                    : asset.AuthoredUnavailable
+                        ? "계획 사용불가"
+                        : asset.State switch
+            {
+                ThermalOperatingState.Continuous => "연속 운전",
+                ThermalOperatingState.Emergency => "비상 운전",
+                ThermalOperatingState.ProtectiveOutage => "보호정지",
+                ThermalOperatingState.OverLimit => "한계 초과",
+                _ => throw new ArgumentOutOfRangeException(nameof(snapshot)),
+            };
+            RealtimeTimelineSeverity stateSeverity = asset.ProtectiveOutage
+                ? RealtimeTimelineSeverity.Critical
+                : asset.AuthoredUnavailable
+                    ? RealtimeTimelineSeverity.Warning
+                    : asset.State switch
+                    {
+                        ThermalOperatingState.Continuous =>
+                            RealtimeTimelineSeverity.Information,
+                        ThermalOperatingState.Emergency =>
+                            RealtimeTimelineSeverity.Warning,
+                        _ => RealtimeTimelineSeverity.Critical,
+                    };
+            var sections = new List<RealtimeContextSectionPresentation>
+            {
+                new("현재 상태", state, stateSeverity),
+                new("열여유", string.Create(CultureInfo.InvariantCulture,
+                    $"사용 {asset.UsedKw:N0} / 연속 {asset.ContinuousKw:N0} / 비상 {asset.EmergencyKw:N0} kW")),
+                new("보호", protection.Summary),
+            };
+            if (asset.AuthoredUnavailable || asset.ProtectiveOutage)
+            {
+                sections.Add(new RealtimeContextSectionPresentation(
+                    "사용불가 원인",
+                    asset.AuthoredUnavailable && asset.ProtectiveOutage
+                        ? "작성된 사용불가와 열 보호정지가 함께 적용 중입니다. 더 늦은 복귀 시각까지 공급 경로에서 제외됩니다."
+                        : asset.AuthoredUnavailable
+                            ? "작성된 계획 사용불가가 적용 중이며 공급 경로에서 제외됩니다."
+                            : "비상 허용시간 소진으로 열 보호정지가 적용 중입니다.",
+                    asset.ProtectiveOutage
+                        ? RealtimeTimelineSeverity.Critical
+                        : RealtimeTimelineSeverity.Warning));
+            }
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                ThermalAssetDisplayKind(snapshot, asset),
+                AssetDisplayName(displayWorld, snapshot, selectedId),
+                Array.AsReadOnly(sections.ToArray()))
+            {
+                Details = new RealtimeContextDetailPresentation[]
+                {
+                    new(
+                        RealtimeContextDetailTab.Thermal,
+                        "열 보호 상태",
+                        protection.Detail,
+                        stateSeverity),
+                    new(
+                        RealtimeContextDetailTab.History,
+                        "최근 상태 변화",
+                        TransitionHistory(snapshot, asset),
+                        RealtimeTimelineSeverity.Advisory),
+                },
+            };
+        }
+
+        string heading = AssetDisplayName(displayWorld, snapshot, selectedId);
+        string body = node is not null
+            ? $"{NodeClassDisplayName(snapshot, node.ClassId)} · " +
+              $"{(node.Commissioned ? "사용 가능" : "공사 중")}"
+            : edge is not null
+                ? $"{LineClassDisplayName(snapshot, edge.LineClassId)} · " +
+                  $"{(edge.Commissioned ? "사용 가능" : "공사 중")}"
+                : "현재 지평선에서 찾을 수 없습니다.";
+        return new RealtimeContextDockPresentation(
+            selectedId,
+            true,
+            "망 설비",
+            heading,
+            new[] { new RealtimeContextSectionPresentation("식별", body) });
+    }
+
+    private static RealtimeBuildShelfPresentation BuildShelf(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeInteractionState interaction,
+        bool pointerAccepted,
+        string pointerMessage)
+    {
+        bool ended = snapshot.CampaignComplete ||
+            interaction.Simulation == RealtimeSimulationState.Ended;
+        RealtimeDraftToolLock? draftToolLock = ended
+            ? null
+            : RealtimeInteractionReducer.ResolveDraftToolLock(snapshot.Construction);
+        bool inspectEnabled = draftToolLock is null;
+        var tools = new List<RealtimeBuildToolPresentation>
+        {
+            new(
+                "TOOL:INSPECT",
+                "선택·검사",
+                "I",
+                inspectEnabled
+                    ? "설비와 사건을 선택해 현재 상태를 확인합니다."
+                    : draftToolLock!.RejectionReason,
+                inspectEnabled,
+                draftToolLock is null && interaction.Tool == RealtimeTool.Inspect),
+        };
+        foreach (string classId in snapshot.Chapter.Content.AvailableNodeClassIds)
+        {
+            SpatialNodeClassDefinition nodeClass = snapshot.Construction.World.NodeClasses
+                .Single(item => string.Equals(
+                    item.ClassId,
+                    classId,
+                    StringComparison.Ordinal));
+            string toolId = $"NODE:{classId}";
+            bool enabled = !ended && (draftToolLock is null || string.Equals(
+                draftToolLock.RequiredBuildToolId,
+                toolId,
+                StringComparison.Ordinal));
+            string nodeDescription = ended
+                ? RealtimeInteractionReducer.CampaignEndedReadOnlyReason
+                : !enabled
+                ? draftToolLock!.RejectionReason
+                : snapshot.Construction.ActiveConstruction is
+                ActiveConstructionSnapshot active
+                ? $"비교 초안은 만들 수 있습니다. {Time(active.CompletionMinute)}까지 두 번째 발주는 대기합니다."
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{nodeClass.DisplayName} · 비용 {Cash(nodeClass.CostCashUnit)} · 공기 {nodeClass.BuildMinutes}분");
+            tools.Add(new RealtimeBuildToolPresentation(
+                toolId,
+                $"{nodeClass.DisplayName} 배치",
+                "N",
+                nodeDescription,
+                enabled,
+                !ended && (draftToolLock is not null
+                    ? string.Equals(
+                        draftToolLock.RequiredBuildToolId,
+                        toolId,
+                        StringComparison.Ordinal)
+                    : interaction.Tool == RealtimeTool.BuildNode &&
+                      string.Equals(
+                          interaction.SelectedBuildToolId,
+                          toolId,
+                          StringComparison.Ordinal))));
+        }
+        foreach (CommercialCampaignLinePlanDefinition plan in
+                 snapshot.Chapter.Content.AvailableLinePlans)
+        {
+            SpatialLineClassDefinition lineClass = snapshot.Construction.World.LineClasses
+                .Single(item => string.Equals(
+                    item.ClassId,
+                    plan.LineClassId,
+                    StringComparison.Ordinal));
+            SpatialNodeClassDefinition poleClass = snapshot.Construction.World.NodeClasses
+                .Single(item => string.Equals(
+                    item.ClassId,
+                    plan.PoleClassId,
+                    StringComparison.Ordinal));
+            string toolId = $"LINE:{plan.LineClassId}:{plan.PoleClassId}";
+            bool enabled = !ended && (draftToolLock is null || string.Equals(
+                draftToolLock.RequiredBuildToolId,
+                toolId,
+                StringComparison.Ordinal));
+            string lineDescription = ended
+                ? RealtimeInteractionReducer.CampaignEndedReadOnlyReason
+                : !enabled
+                ? draftToolLock!.RejectionReason
+                : snapshot.Construction.ActiveConstruction is
+                ActiveConstructionSnapshot active
+                ? $"비교 경로는 그릴 수 있습니다. {Time(active.CompletionMinute)}까지 두 번째 발주는 대기합니다."
+                : $"{lineClass.DisplayName} · {poleClass.DisplayName} 접속부로 경로를 만듭니다.";
+            tools.Add(new RealtimeBuildToolPresentation(
+                toolId,
+                $"{lineClass.DisplayName} 건설",
+                "L",
+                lineDescription,
+                enabled,
+                !ended && (draftToolLock is not null
+                    ? string.Equals(
+                        draftToolLock.RequiredBuildToolId,
+                        toolId,
+                        StringComparison.Ordinal)
+                    : interaction.Tool == RealtimeTool.BuildLine &&
+                      string.Equals(
+                          interaction.SelectedBuildToolId,
+                          toolId,
+                          StringComparison.Ordinal))));
+        }
+        bool analysisEnabled = draftToolLock is null;
+        tools.Add(new RealtimeBuildToolPresentation(
+            "TOOL:ANALYSIS",
+            interaction.Tool == RealtimeTool.Analysis
+                ? "망 분석 켜짐"
+                : "망 분석",
+            "A",
+            analysisEnabled
+                ? interaction.Tool == RealtimeTool.Analysis
+                    ? "망 분석 켜짐 · 공급 경로와 첫 병목을 지도 위에 겹쳐 보고 있습니다."
+                    : "공급 경로와 첫 병목을 지도 위에 겹쳐 봅니다."
+                : draftToolLock!.RejectionReason,
+            analysisEnabled,
+            draftToolLock is null && interaction.Tool == RealtimeTool.Analysis));
+        return new RealtimeBuildShelfPresentation(
+            interaction.Surface == RealtimeSurface.Drawer,
+            Array.AsReadOnly(tools.ToArray()))
+        {
+            Guidance = BuildGuidance(
+                snapshot,
+                interaction,
+                pointerAccepted,
+                pointerMessage),
+        };
+    }
+
+    private static RealtimeActionDockPresentation ActionDock(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeInteractionState interaction,
+        bool pointerAccepted,
+        string pointerMessage,
+        RealtimeProjectQuote? nodeOrderQuote,
+        RealtimeProjectQuote? lineOrderQuote)
+    {
+        ConstructionSnapshot construction = snapshot.Construction;
+        bool ended = snapshot.CampaignComplete ||
+            interaction.Simulation == RealtimeSimulationState.Ended;
+        if (ended && (construction.NodeDraft is not null ||
+                      construction.LineDraft is not null))
+        {
+            return new RealtimeActionDockPresentation(
+                true,
+                "운영 완료 · 읽기 전용 초안",
+                RealtimeInteractionReducer.CampaignEndedReadOnlyReason,
+                new RealtimeActionPresentation(
+                    construction.NodeDraft is not null
+                        ? "ORDER_NODE"
+                        : "ORDER_LINE",
+                    "운영 완료 · 공사 시작 불가",
+                    RealtimeInteractionReducer.CampaignEndedReadOnlyReason,
+                    false));
+        }
+        if (construction.NodeDraft is not null)
+        {
+            bool enabled = OrderQuoteEnabled(snapshot, nodeOrderQuote);
+            string quoteDetail = OrderQuoteDetail(
+                snapshot,
+                nodeOrderQuote,
+                construction.ActiveConstruction);
+            return new RealtimeActionDockPresentation(
+                true,
+                "변전소 초안",
+                FeedbackDetail(pointerAccepted, pointerMessage, quoteDetail),
+                new RealtimeActionPresentation(
+                    "ORDER_NODE",
+                    "변전소 공사 시작",
+                    quoteDetail,
+                    enabled));
+        }
+        if (construction.LineDraft is { EndNodeId: not null })
+        {
+            bool enabled = OrderQuoteEnabled(snapshot, lineOrderQuote);
+            string quoteDetail = OrderQuoteDetail(
+                snapshot,
+                lineOrderQuote,
+                construction.ActiveConstruction);
+            return new RealtimeActionDockPresentation(
+                true,
+                "선로 초안",
+                FeedbackDetail(pointerAccepted, pointerMessage, quoteDetail),
+                new RealtimeActionPresentation(
+                    "ORDER_LINE",
+                    "선로 공사 시작",
+                    quoteDetail,
+                    enabled));
+        }
+        if (construction.ActiveConstruction is ActiveConstructionSnapshot active)
+        {
+            return new RealtimeActionDockPresentation(
+                true,
+                "공사 진행",
+                $"{Time(active.CompletionMinute)} 자동 완공 · 두 번째 발주 불가",
+                null);
+        }
+        return new RealtimeActionDockPresentation(false, string.Empty, string.Empty, null);
+    }
+
+    private static RealtimeModalPresentation? Modal(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeInteractionState interaction,
+        RealtimePausePresentation pause)
+    {
+        if (interaction.ActiveModalId is null || interaction.ActiveModalKind is null)
+        {
+            return null;
+        }
+        if (string.Equals(
+                interaction.ActiveModalId,
+                "CAMPAIGN_RESULT",
+                StringComparison.Ordinal))
+        {
+            RealtimeChapterOutcome? outcome = snapshot.CompletedChapters.LastOrDefault();
+            int satisfied = outcome?.Events.Count(item => item.SafetySatisfied) ??
+                snapshot.CurrentChapterEvents.Count(item => item.SafetySatisfied);
+            int total = outcome?.Events.Count ?? snapshot.CurrentChapterEvents.Count;
+            string resultBody = outcome is null
+                ? $"운영 종료 시각 {Time(snapshot.Minute)} · 최종 운영 자금 " +
+                  Cash(snapshot.CashUnit)
+                : $"{snapshot.Chapter.Content.DisplayName} 운영 완료 · " +
+                  $"안전 의무 {satisfied}/{total} 충족 · " +
+                  $"최종 운영 자금 {Cash(outcome.EndingCashUnit)}";
+            return new RealtimeModalPresentation(
+                interaction.ActiveModalId,
+                interaction.ActiveModalKind.Value,
+                "운영 결과",
+                snapshot.CampaignComplete ? "캠페인 운영 완료" : "장 운영 완료",
+                resultBody,
+                new RealtimeActionPresentation(
+                    "RESULT_CLOSE",
+                    "결과 확인",
+                    "종료 상태를 유지하고 결과 창을 닫습니다.",
+                    true),
+                null,
+                true,
+                true)
+            {
+                Pause = pause,
+            };
+        }
+        if (interaction.ActiveModalKind == RealtimeModalKind.ChapterStory)
+        {
+            return new RealtimeModalPresentation(
+                interaction.ActiveModalId,
+                interaction.ActiveModalKind.Value,
+                "새 임무",
+                snapshot.Chapter.Content.Briefing.Title,
+                snapshot.Chapter.Content.Briefing.Body,
+                new RealtimeActionPresentation(
+                    "BRIEFING_CONTINUE",
+                    "도시 운영 시작",
+                    "임무 안내를 닫고 실시간 운영을 시작합니다.",
+                    true),
+                null,
+                true,
+                false)
+            {
+                Pause = pause,
+            };
+        }
+
+        // R2 has no production command for destructive new-game, recovery, or
+        // title navigation. Never label its implemented close operation as one
+        // of those unsupported mutations; the only exposed action is an exact,
+        // non-destructive return to the state captured by the modal reducer.
+        return new RealtimeModalPresentation(
+            interaction.ActiveModalId,
+            interaction.ActiveModalKind.Value,
+            "운영 안내",
+            "현재 운영 화면에서 실행할 수 없는 작업입니다",
+            "현재 기록과 운영 상태는 변경되지 않았습니다. " +
+            "이 안내를 닫고 기존 운영 화면으로 돌아갑니다.",
+            new RealtimeActionPresentation(
+                "NOTICE_CLOSE",
+                "안내 닫기",
+                "아무 기록도 바꾸지 않고 기존 운영 화면으로 돌아갑니다.",
+                true),
+            null,
+            true,
+            true)
+        {
+            Pause = pause,
+        };
+    }
+
+    private static RealtimePausePresentation Pause(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastSnapshot baseForecast,
+        RealtimePauseReason reason)
+    {
+        // An event already in progress is current operational context, not the
+        // next event. Auto-pause and modal copy therefore advance strictly to
+        // the first authoritative forecast whose start lies in the future.
+        RealtimeForecastEvent? next = baseForecast.Events
+            .Where(item => item.StartMinute > snapshot.Minute)
+            .OrderBy(item => item.StartMinute)
+            .ThenBy(item => ForecastPriority(snapshot, item))
+            .ThenBy(item => item.EventId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        return new RealtimePausePresentation(
+            reason,
+            snapshot.Minute,
+            Time(snapshot.Minute),
+            next?.EventId,
+            next?.StartMinute,
+            next is null
+                ? "예정된 사건 없음"
+                : $"{PlayerEventName(displayWorld, next.OperatingProfile)} · " +
+                  Time(next.StartMinute));
+    }
+
+    private static RealtimePlaceholderHighlight? Highlight(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastSnapshot baseForecast,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        string? selectedId)
+    {
+        if (selectedId is null)
+        {
+            return null;
+        }
+        if (string.Equals(selectedId, "ACTIVE_CONSTRUCTION", StringComparison.Ordinal) &&
+            snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot project)
+        {
+            return new RealtimePlaceholderHighlight(
+                project.NodeIds,
+                project.EdgeIds,
+                null,
+                $"{Time(project.CompletionMinute)} 완공 예정 공사 대상");
+        }
+        ThermalIntervalEvaluation evaluation = snapshot.Thermal.Evaluation;
+        string? mapSelectionId = MapSelectionId(
+            displayWorld,
+            snapshot,
+            baseForecast,
+            comparisonDraftForecast,
+            selectedId);
+        RealtimeForecastEvent? forecast = baseForecast.Events.FirstOrDefault(item =>
+            string.Equals(item.EventId, selectedId, StringComparison.Ordinal));
+        if (forecast is not null)
+        {
+            evaluation = forecast.ProjectedEvaluation;
+        }
+        if (TryResolveComparisonEvent(
+                comparisonDraftForecast,
+                selectedId,
+                out RealtimeForecastEvent comparisonEvent))
+        {
+            forecast = comparisonEvent;
+            evaluation = comparisonEvent.ProjectedEvaluation;
+        }
+        RealtimeEventOutcome? completed = snapshot.CurrentChapterEvents.FirstOrDefault(item =>
+            string.Equals(item.EventId, selectedId, StringComparison.Ordinal));
+        if (completed is not null)
+        {
+            evaluation = completed.FinalEvaluation;
+        }
+        if (TryResolveThermalMarker(
+                baseForecast,
+                selectedId,
+                out RealtimeForecastEvent owningForecast,
+                out RealtimeThermalTransition transition))
+        {
+            forecast = owningForecast;
+            evaluation = owningForecast.ProjectedEvaluation;
+            mapSelectionId = transition.AssetId;
+        }
+        if (TryResolveComparisonThermalMarker(
+                comparisonDraftForecast,
+                selectedId,
+                out RealtimeForecastEvent comparisonOwningForecast,
+                out RealtimeThermalTransition comparisonTransition))
+        {
+            forecast = comparisonOwningForecast;
+            evaluation = comparisonOwningForecast.ProjectedEvaluation;
+            mapSelectionId = comparisonTransition.AssetId;
+        }
+        ThermalLoadSupply[] orderedRoutes = evaluation.Loads
+            .OrderBy(item => item.LoadId, StringComparer.Ordinal)
+            .ToArray();
+        ThermalLoadSupply? route = orderedRoutes.FirstOrDefault(item =>
+                mapSelectionId is not null &&
+                (item.PathNodeIds.Contains(mapSelectionId, StringComparer.Ordinal) ||
+                 item.PathEdgeIds.Contains(mapSelectionId, StringComparer.Ordinal) ||
+                 string.Equals(item.Failure?.AssetId, mapSelectionId,
+                     StringComparison.Ordinal))) ??
+            (forecast is not null || completed is not null
+                ? orderedRoutes.FirstOrDefault()
+                : null);
+        if (route is null)
+        {
+            return null;
+        }
+        string[] nodeIds = route.PathNodeIds
+            .Concat(mapSelectionId is not null && snapshot.Construction.World.Nodes.Any(
+                    item => string.Equals(item.NodeId, mapSelectionId,
+                        StringComparison.Ordinal))
+                ? new[] { mapSelectionId }
+                : Array.Empty<string>())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        string[] edgeIds = route.PathEdgeIds
+            .Concat(mapSelectionId is not null && snapshot.Construction.World.Edges.Any(
+                    item => string.Equals(item.EdgeId, mapSelectionId,
+                        StringComparison.Ordinal))
+                ? new[] { mapSelectionId }
+                : Array.Empty<string>())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        return new RealtimePlaceholderHighlight(
+            Array.AsReadOnly(nodeIds),
+            Array.AsReadOnly(edgeIds),
+            route.Failure?.AssetId ??
+                (forecast is null && completed is null ? mapSelectionId : null),
+            route.Failure is null
+                ? $"{LoadDisplayName(displayWorld, route.LoadId)} 공급 경로"
+                : $"{LoadDisplayName(displayWorld, route.LoadId)} 첫 병목 · " +
+                  FailureKindText(route.Failure.Kind));
+    }
+
+    private static RealtimeReliabilityState Reliability(RealtimeCampaignSnapshot snapshot)
+    {
+        if (snapshot.Thermal.Assets.Any(item => item.ProtectiveOutage))
+        {
+            return RealtimeReliabilityState.Outage;
+        }
+        if (snapshot.Thermal.Assets.Any(item => item.State is
+                ThermalOperatingState.Emergency or ThermalOperatingState.OverLimit))
+        {
+            return RealtimeReliabilityState.Emergency;
+        }
+        return snapshot.Thermal.Evaluation.Loads.Any(item =>
+                item.DeliveredKw < item.DemandKw)
+            ? RealtimeReliabilityState.Watch
+            : RealtimeReliabilityState.Stable;
+    }
+
+    private static RealtimePlaceholderAssetState WorldState(ThermalOperatingState state) =>
+        state switch
+    {
+        ThermalOperatingState.Continuous => RealtimePlaceholderAssetState.Normal,
+        ThermalOperatingState.Emergency => RealtimePlaceholderAssetState.Emergency,
+        ThermalOperatingState.ProtectiveOutage =>
+            RealtimePlaceholderAssetState.ProtectiveOutage,
+        ThermalOperatingState.OverLimit => RealtimePlaceholderAssetState.OverLimit,
+        _ => throw new ArgumentOutOfRangeException(nameof(state)),
+    };
+
+    private static RealtimePlaceholderAssetStatus WorldStatus(
+        string assetId,
+        bool commissioned,
+        RealtimeThermalAssetSnapshot? thermal)
+    {
+        RealtimePlaceholderAssetState state = !commissioned
+            ? RealtimePlaceholderAssetState.Building
+            : thermal is null
+                ? RealtimePlaceholderAssetState.Normal
+                : thermal.ProtectiveOutage
+                    ? RealtimePlaceholderAssetState.ProtectiveOutage
+                    : thermal.AuthoredUnavailable
+                        ? RealtimePlaceholderAssetState.AuthoredUnavailable
+                        : WorldState(thermal.State);
+        return new RealtimePlaceholderAssetStatus(
+            assetId,
+            state,
+            thermal?.UsedKw ?? 0,
+            thermal?.ContinuousKw ?? 0,
+            thermal?.EmergencyKw ?? 0,
+            thermal is null ? 0 : ClampInt(thermal.EmergencyExposureMinutes),
+            thermal?.EmergencyExposureLimitMinutes ?? 0,
+            thermal?.AuthoredUnavailable ?? false,
+            thermal?.ProtectiveOutage ?? false);
+    }
+
+    private static RealtimePlaceholderWeather Weather(RealtimeCampaignSnapshot snapshot) =>
+        snapshot.ActiveEventStates.Any(item =>
+            item.Event.OperatingProfile.ActiveRiskAreaIds.Count > 0)
+            ? RealtimePlaceholderWeather.Storm
+            : RealtimePlaceholderWeather.Clear;
+
+    private static string EventDescription(RealtimeForecastEvent item, string eventName)
+    {
+        RealtimeEventOutcome outcome = item.TemporalProjection.Outcome;
+        return outcome.SafetySatisfied
+            ? $"{eventName} · {Time(item.StartMinute)} 예상 공급 충족"
+            : $"{eventName} · {Time(item.StartMinute)} · " +
+              $"안전 의무 {outcome.SafetyUnservedMinutes}분 위험";
+    }
+
+    private static int ForecastPriority(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastEvent forecast) =>
+        forecast.ChapterIndex == snapshot.ChapterIndex
+            ? snapshot.Chapter.ScheduledEvents.FirstOrDefault(item => string.Equals(
+                    item.EventId,
+                    forecast.EventId,
+                    StringComparison.Ordinal))?.Priority ?? int.MaxValue
+            : int.MaxValue;
+
+    private static long HorizonMinutes(RealtimeTimelineHorizonPreset preset) => preset switch
+    {
+        RealtimeTimelineHorizonPreset.SixHours => 6 * 60,
+        RealtimeTimelineHorizonPreset.TwentyFourHours => DefaultHorizonMinutes,
+        RealtimeTimelineHorizonPreset.SevenDays => 7 * 24 * 60,
+        _ => throw new ArgumentOutOfRangeException(nameof(preset)),
+    };
+
+    internal static long RequiredForecastHorizonMinutes(
+        long currentMinute,
+        long? anchorMinute,
+        RealtimeTimelineHorizonPreset preset)
+    {
+        if (currentMinute < 0 || anchorMinute is < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                currentMinute < 0 ? nameof(currentMinute) : nameof(anchorMinute));
+        }
+        long anchor = anchorMinute ?? currentMinute;
+        long displayHorizon = HorizonMinutes(preset);
+        long horizonEnd = anchor > long.MaxValue - displayHorizon
+            ? long.MaxValue
+            : anchor + displayHorizon;
+        long minutesFromNow = horizonEnd <= currentMinute
+            ? 0
+            : horizonEnd - currentMinute;
+        // Preserve Core's existing 24-hour operational forecast for the HUD
+        // while widening it whenever a fixed anchor or the seven-day preset
+        // places the visible rail farther into the future. A null anchor keeps
+        // following the authoritative current minute on every presentation.
+        return Math.Max(DefaultHorizonMinutes, minutesFromNow);
+    }
+
+    private static string HorizonLabel(RealtimeTimelineHorizonPreset preset) => preset switch
+    {
+        RealtimeTimelineHorizonPreset.SixHours => "앞으로 6시간",
+        RealtimeTimelineHorizonPreset.TwentyFourHours => "앞으로 24시간",
+        RealtimeTimelineHorizonPreset.SevenDays => "앞으로 7일",
+        _ => throw new ArgumentOutOfRangeException(nameof(preset)),
+    };
+
+    private static string ForecastRoutes(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        ThermalIntervalEvaluation evaluation)
+    {
+        if (evaluation.Loads.Count == 0)
+        {
+            return "예상된 수요 경로가 없습니다.";
+        }
+        return string.Join("\n", evaluation.Loads
+            .OrderBy(item => item.LoadId, StringComparer.Ordinal)
+            .Select(item =>
+            {
+                string path = item.PathNodeIds.Count == 0
+                    ? "경로 없음"
+                    : string.Join(" → ", item.PathNodeIds.Select(id =>
+                        AssetDisplayName(displayWorld, snapshot, id)));
+                string supply = string.Create(CultureInfo.InvariantCulture,
+                    $"{item.DeliveredKw:N0}/{item.DemandKw:N0} kW");
+                string failure = item.Failure is null
+                    ? ""
+                    : $" · {FailureKindText(item.Failure.Kind)}" +
+                      $" ({FailureSubjectName(displayWorld, snapshot, item.Failure)})";
+                return $"{LoadDisplayName(displayWorld, item.LoadId)}: " +
+                       $"{path} · {supply}{failure}";
+            }));
+    }
+
+    private static string ForecastDetail(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastEvent forecast)
+    {
+        string intervals = string.Join(" · ", forecast.TemporalProjection.Intervals
+            .Select(item => $"{Time(item.StartMinute)}–{Time(item.EndMinute)}"));
+        string transitions = forecast.TemporalProjection.Transitions.Count == 0
+            ? "열 전환 없음"
+            : string.Join(" · ", forecast.TemporalProjection.Transitions.Select(item =>
+                $"{Time(item.Minute)} {ThermalTitle(displayWorld, snapshot, item)}"));
+        return $"예상 구간 {intervals}\n{transitions}";
+    }
+
+    private static string ThermalAssetDisplayKind(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeThermalAssetSnapshot asset)
+    {
+        if (asset.AssetKind == ThermalAssetKind.Edge)
+        {
+            return "선로 도체";
+        }
+        SpatialNodeDefinition? node = snapshot.Construction.World.Nodes.FirstOrDefault(item =>
+            string.Equals(item.NodeId, asset.AssetId, StringComparison.Ordinal));
+        SpatialNodeClassDefinition? nodeClass = node is null
+            ? null
+            : snapshot.Construction.World.NodeClasses.FirstOrDefault(item =>
+                string.Equals(item.ClassId, node.ClassId, StringComparison.Ordinal));
+        return nodeClass?.Kind switch
+        {
+            SpatialNodeKind.Pole => "전신주 접속부",
+            SpatialNodeKind.Substation => "변전소 주기기",
+            _ => "접속 설비",
+        };
+    }
+
+    private static string TransitionHistory(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeThermalAssetSnapshot asset)
+    {
+        RealtimeTransition[] transitions = snapshot.PendingTransitions
+            .Where(item => string.Equals(item.AssetId, asset.AssetId, StringComparison.Ordinal))
+            .OrderBy(item => item.Minute)
+            .ThenBy(item => item.Kind)
+            .ToArray();
+        return transitions.Length == 0
+            ? "현재 운영 기록에 설비 전환이 없습니다."
+            : string.Join("\n", transitions.Select(item =>
+                $"{Time(item.Minute)} · {TransitionKindText(item.Kind)}"));
+    }
+
+    private static string BuildGuidance(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeInteractionState interaction,
+        bool pointerAccepted,
+        string pointerMessage)
+    {
+        if (snapshot.CampaignComplete ||
+            interaction.Simulation == RealtimeSimulationState.Ended)
+        {
+            return RealtimeInteractionReducer.CampaignEndedReadOnlyReason;
+        }
+        RealtimeDraftToolLock? draftToolLock =
+            RealtimeInteractionReducer.ResolveDraftToolLock(snapshot.Construction);
+        if (draftToolLock is not null)
+        {
+            string feedback = string.IsNullOrWhiteSpace(pointerMessage)
+                ? string.Empty
+                : $"{(pointerAccepted ? "✓" : "!")} {pointerMessage} · ";
+            return $"{feedback}초안 도구 잠금 · {draftToolLock.RejectionReason}";
+        }
+        if (!string.IsNullOrWhiteSpace(pointerMessage))
+        {
+            return $"{(pointerAccepted ? "✓" : "!")} {pointerMessage}";
+        }
+        ConstructionSnapshot construction = snapshot.Construction;
+        if (construction.ActiveConstruction is ActiveConstructionSnapshot active)
+        {
+            return $"현재 공사는 {Time(active.CompletionMinute)}에 끝납니다. 비교 초안은 가능하지만 두 번째 발주는 대기합니다.";
+        }
+        if (construction.NodeDraft is not null)
+        {
+            return "변전소 초안입니다. 발주를 확인하거나 우클릭으로 취소하세요.";
+        }
+        if (construction.LineDraft is LineDraftSnapshot line)
+        {
+            return line.EndNodeId is null
+                ? "선로 경로를 이어 주세요. Backspace는 마지막 점, 우클릭은 현재 단계를 되돌립니다."
+                : "선로 경로가 닫혔습니다. 발주하거나 Backspace로 끝점을 되돌리세요.";
+        }
+        return interaction.Tool switch
+        {
+            RealtimeTool.BuildNode => "지도에서 변전소 위치를 선택하세요.",
+            RealtimeTool.BuildLine => "기존 설비에서 선로 시작점을 선택하세요.",
+            RealtimeTool.Analysis =>
+                "망 분석 켜짐 · 예상 공급 경로와 첫 병목을 지도에서 확인합니다.",
+            _ => "설비나 사건을 선택해 상태와 다음 행동을 확인하세요.",
+        };
+    }
+
+    private static string DisabledConstructionReason(ActiveConstructionSnapshot active) =>
+        $"현재 공사가 {Time(active.CompletionMinute)}에 끝난 뒤 발주할 수 있습니다.";
+
+    private static bool OrderQuoteEnabled(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeProjectQuote? quote) => quote is
+        {
+            Accepted: true,
+            CostCashUnit: not null,
+            BuildMinutes: not null,
+            CompletionMinute: not null,
+        } && quote.CostCashUnit.Value <= snapshot.CashUnit;
+
+    private static string OrderQuoteDetail(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeProjectQuote? quote,
+        ActiveConstructionSnapshot? active)
+    {
+        if (quote is null)
+        {
+            return "발주 견적을 확인하지 못해 공사를 시작할 수 없습니다.";
+        }
+        if (!quote.Accepted)
+        {
+            string rejection = active is not null
+                ? DisabledConstructionReason(active)
+                : quote.ConstructionError.HasValue
+                    ? RealtimeSliceMain.ConstructionErrorText(quote.ConstructionError)
+                    : RealtimeSliceMain.RealtimeRunErrorText(quote.Error);
+            return $"발주 불가 · {rejection}";
+        }
+        if (quote is not
+            {
+                CostCashUnit: long cost,
+                BuildMinutes: long buildMinutes,
+                CompletionMinute: long completionMinute,
+            })
+        {
+            return "발주 견적 값이 완전하지 않아 공사를 시작할 수 없습니다.";
+        }
+        string exactQuote =
+            $"발주 견적 · 비용 {Cash(cost)} · 공기 {buildMinutes}분 · " +
+            $"{Time(completionMinute)} 완공";
+        return cost <= snapshot.CashUnit
+            ? exactQuote
+            : $"{exactQuote}\n발주 불가 · 운영 자금이 {Cash(cost - snapshot.CashUnit)} 부족합니다.";
+    }
+
+    private static string FeedbackDetail(
+        bool accepted,
+        string message,
+        string fallback) => string.IsNullOrWhiteSpace(message)
+        ? fallback
+        : $"{(accepted ? "✓" : "!")} {message}\n{fallback}";
+
+    private static string JoinAssetNames(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        IReadOnlyList<string> ids) => ids.Count == 0
+        ? "없음"
+        : string.Join(", ", ids.Select(id =>
+            AssetDisplayName(displayWorld, snapshot, id)));
+
+    private static string FirstBottleneck(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        ThermalIntervalEvaluation evaluation)
+    {
+        ThermalSupplyFailure? failure = evaluation.Loads
+            .Select(item => item.Failure)
+            .FirstOrDefault(item => item is not null);
+        return failure is null
+            ? "예상 병목 없음"
+            : $"{FailureKindText(failure.Kind)} · " +
+              $"{FailureSubjectName(displayWorld, snapshot, failure)} · " +
+              $"필요 {failure.RequiredKw:N0} / 가능 {failure.AvailableKw:N0} kW";
+    }
+
+    private static string ThermalMarkerId(
+        string eventId,
+        RealtimeThermalTransition transition) =>
+        $"THERMAL:{eventId}:{transition.Minute}:{transition.Kind}:{transition.AssetId}";
+
+    private static string ComparisonEventMarkerId(string eventId) =>
+        $"DRAFT_FORECAST:{eventId}";
+
+    private static string ComparisonThermalMarkerId(
+        string eventId,
+        RealtimeThermalTransition transition) =>
+        $"DRAFT_THERMAL:{eventId}:{transition.Minute}:{transition.Kind}:{transition.AssetId}";
+
+    private static bool TryResolveComparisonEvent(
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        string markerId,
+        out RealtimeForecastEvent forecast)
+    {
+        if (comparisonDraftForecast is { Available: true, Forecast: not null })
+        {
+            foreach (RealtimeForecastEvent candidate in
+                     comparisonDraftForecast.Forecast.Events)
+            {
+                if (string.Equals(
+                        ComparisonEventMarkerId(candidate.EventId),
+                        markerId,
+                        StringComparison.Ordinal))
+                {
+                    forecast = candidate;
+                    return true;
+                }
+            }
+        }
+        forecast = null!;
+        return false;
+    }
+
+    private static bool TryResolveComparisonThermalMarker(
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        string markerId,
+        out RealtimeForecastEvent forecast,
+        out RealtimeThermalTransition transition)
+    {
+        if (comparisonDraftForecast is { Available: true, Forecast: not null })
+        {
+            foreach (RealtimeForecastEvent candidate in
+                     comparisonDraftForecast.Forecast.Events)
+            {
+                foreach (RealtimeThermalTransition candidateTransition in
+                         candidate.TemporalProjection.Transitions)
+                {
+                    if (string.Equals(
+                            ComparisonThermalMarkerId(
+                                candidate.EventId,
+                                candidateTransition),
+                            markerId,
+                            StringComparison.Ordinal))
+                    {
+                        forecast = candidate;
+                        transition = candidateTransition;
+                        return true;
+                    }
+                }
+            }
+        }
+        forecast = null!;
+        transition = null!;
+        return false;
+    }
+
+    private static bool TryResolveThermalMarker(
+        RealtimeForecastSnapshot baseForecast,
+        string markerId,
+        out RealtimeForecastEvent forecast,
+        out RealtimeThermalTransition transition)
+    {
+        foreach (RealtimeForecastEvent candidate in baseForecast.Events)
+        {
+            foreach (RealtimeThermalTransition candidateTransition in
+                     candidate.TemporalProjection.Transitions)
+            {
+                if (string.Equals(
+                        ThermalMarkerId(candidate.EventId, candidateTransition),
+                        markerId,
+                        StringComparison.Ordinal))
+                {
+                    forecast = candidate;
+                    transition = candidateTransition;
+                    return true;
+                }
+            }
+        }
+        forecast = null!;
+        transition = null!;
+        return false;
+    }
+
+    private static string? MapSelectionId(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastSnapshot baseForecast,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        string? selectionId)
+    {
+        if (selectionId is null)
+        {
+            return null;
+        }
+        if (TryResolveThermalMarker(
+                baseForecast,
+                selectionId,
+                out _,
+                out RealtimeThermalTransition transition))
+        {
+            return transition.AssetId;
+        }
+        if (TryResolveComparisonThermalMarker(
+                comparisonDraftForecast,
+                selectionId,
+                out _,
+                out RealtimeThermalTransition comparisonTransition))
+        {
+            return comparisonTransition.AssetId;
+        }
+        if (TryResolveComparisonEvent(
+                comparisonDraftForecast,
+                selectionId,
+                out RealtimeForecastEvent comparisonEvent))
+        {
+            return EventMapSubject(
+                displayWorld,
+                snapshot,
+                comparisonEvent.ProjectedEvaluation,
+                comparisonEvent.OperatingProfile);
+        }
+        RealtimeForecastEvent? forecast = baseForecast.Events.FirstOrDefault(item =>
+            string.Equals(item.EventId, selectionId, StringComparison.Ordinal));
+        if (forecast is not null)
+        {
+            return EventMapSubject(
+                displayWorld,
+                snapshot,
+                forecast.ProjectedEvaluation,
+                forecast.OperatingProfile);
+        }
+        RealtimeEventOutcome? outcome = snapshot.CurrentChapterEvents.FirstOrDefault(item =>
+            string.Equals(item.EventId, selectionId, StringComparison.Ordinal));
+        if (outcome is not null)
+        {
+            RealtimeScheduledEventDefinition scheduled = snapshot.Chapter.ScheduledEvents
+                .Single(item => string.Equals(
+                    item.EventId,
+                    outcome.EventId,
+                    StringComparison.Ordinal));
+            return EventMapSubject(
+                displayWorld,
+                snapshot,
+                outcome.FinalEvaluation,
+                scheduled.OperatingProfile);
+        }
+        bool worldAsset = snapshot.Construction.World.Nodes.Any(item => string.Equals(
+                item.NodeId,
+                selectionId,
+                StringComparison.Ordinal)) ||
+            snapshot.Construction.World.Edges.Any(item => string.Equals(
+                item.EdgeId,
+                selectionId,
+                StringComparison.Ordinal));
+        return worldAsset ? selectionId : null;
+    }
+
+    private static string? EventMapSubject(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        ThermalIntervalEvaluation evaluation,
+        CommercialOperatingPhaseDefinition profile)
+    {
+        bool Exists(string id) => snapshot.Construction.World.Nodes.Any(item =>
+                string.Equals(item.NodeId, id, StringComparison.Ordinal)) ||
+            snapshot.Construction.World.Edges.Any(item =>
+                string.Equals(item.EdgeId, id, StringComparison.Ordinal));
+
+        string? unavailable = profile.UnavailableNodeIds
+            .Concat(profile.UnavailableEdgeIds)
+            .OrderBy(item => item, StringComparer.Ordinal)
+            .FirstOrDefault(Exists);
+        if (unavailable is not null)
+        {
+            return unavailable;
+        }
+        ThermalLoadSupply? primaryRoute = evaluation.Loads
+            .OrderBy(item => item.LoadId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        string? suppliedTerminal = primaryRoute?.PathNodeIds.LastOrDefault();
+        if (suppliedTerminal is not null)
+        {
+            return suppliedTerminal;
+        }
+        string? blocker = primaryRoute?.Failure?.AssetId;
+        if (blocker is not null)
+        {
+            return blocker;
+        }
+        string? finalEdge = primaryRoute?.PathEdgeIds.LastOrDefault();
+        if (finalEdge is not null && Exists(finalEdge))
+        {
+            return finalEdge;
+        }
+        return profile.Loads
+            .Select(load => displayWorld.Loads.FirstOrDefault(item => string.Equals(
+                item.LoadId,
+                load.LoadId,
+                StringComparison.Ordinal))?.NodeId)
+            .FirstOrDefault(item => item is not null && Exists(item));
+    }
+
+    private static RealtimeTimelineItemKind EventKind(
+        CommercialOperatingPhaseDefinition profile)
+    {
+        if (profile.ActiveRiskAreaIds.Count > 0)
+        {
+            return RealtimeTimelineItemKind.Weather;
+        }
+        return profile.UnavailableNodeIds.Count > 0 || profile.UnavailableEdgeIds.Count > 0
+            ? RealtimeTimelineItemKind.PlannedOutage
+            : RealtimeTimelineItemKind.Demand;
+    }
+
+    private static string PlayerEventName(
+        CommercialWorldDefinition displayWorld,
+        CommercialOperatingPhaseDefinition profile)
+    {
+        if (!profile.DisplayName.Contains("병목 시험", StringComparison.Ordinal))
+        {
+            return profile.DisplayName;
+        }
+        string loadName = profile.Loads.Count == 0
+            ? "도시"
+            : LoadDisplayName(displayWorld, profile.Loads[0].LoadId);
+        return $"{loadName} 전력 수요 증가";
+    }
+
+    private static string Cash(long cashUnit) => string.Create(
+        CultureInfo.InvariantCulture,
+        $"{cashUnit:N0}만 원");
+
+    private static string ThermalTitle(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeThermalTransition transition)
+    {
+        string assetName = AssetDisplayName(displayWorld, snapshot, transition.AssetId);
+        return
+        transition.Kind switch
+        {
+            RealtimeThermalTransitionKind.EmergencyEntered =>
+                $"{assetName} 비상 운전 시작",
+            RealtimeThermalTransitionKind.EmergencyCleared =>
+                $"{assetName} 연속 운전 복귀",
+            RealtimeThermalTransitionKind.ProtectiveTrip =>
+                $"{assetName} 보호정지",
+            RealtimeThermalTransitionKind.Recovered =>
+                $"{assetName} 냉각 복귀",
+            _ => throw new ArgumentOutOfRangeException(nameof(transition)),
+        };
+    }
+
+    internal static string AssetDisplayName(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        string? assetId)
+    {
+        if (string.IsNullOrWhiteSpace(assetId))
+        {
+            return "공급 경로";
+        }
+        SpatialNodeDefinition? node = snapshot.Construction.World.Nodes.FirstOrDefault(item =>
+            string.Equals(item.NodeId, assetId, StringComparison.Ordinal));
+        if (node is not null)
+        {
+            return node.DisplayName;
+        }
+        SpatialEdgeDefinition? edge = snapshot.Construction.World.Edges.FirstOrDefault(item =>
+            string.Equals(item.EdgeId, assetId, StringComparison.Ordinal));
+        if (edge is not null)
+        {
+            string line = LineClassDisplayName(snapshot, edge.LineClassId);
+            string from = snapshot.Construction.World.Nodes.FirstOrDefault(item =>
+                string.Equals(item.NodeId, edge.FromNodeId, StringComparison.Ordinal))
+                ?.DisplayName ?? "시작 설비";
+            string to = snapshot.Construction.World.Nodes.FirstOrDefault(item =>
+                string.Equals(item.NodeId, edge.ToNodeId, StringComparison.Ordinal))
+                ?.DisplayName ?? "도착 설비";
+            return $"{line} · {from}–{to}";
+        }
+        CommercialLoadDefinition? load = displayWorld.Loads.FirstOrDefault(item =>
+            string.Equals(item.LoadId, assetId, StringComparison.Ordinal));
+        if (load is not null)
+        {
+            return load.DisplayName;
+        }
+        CommercialSourceDefinition? source = displayWorld.Sources.FirstOrDefault(item =>
+            string.Equals(item.SourceId, assetId, StringComparison.Ordinal));
+        return source?.DisplayName ?? "미확인 설비";
+    }
+
+    private static string LoadDisplayName(
+        CommercialWorldDefinition displayWorld,
+        string loadId) => displayWorld.Loads.FirstOrDefault(item =>
+            string.Equals(item.LoadId, loadId, StringComparison.Ordinal))?.DisplayName ??
+            "수요 시설";
+
+    private static string NodeClassDisplayName(
+        RealtimeCampaignSnapshot snapshot,
+        string classId) => snapshot.Construction.World.NodeClasses.FirstOrDefault(item =>
+            string.Equals(item.ClassId, classId, StringComparison.Ordinal))?.DisplayName ??
+            "접속 설비";
+
+    private static string LineClassDisplayName(
+        RealtimeCampaignSnapshot snapshot,
+        string classId) => snapshot.Construction.World.LineClasses.FirstOrDefault(item =>
+            string.Equals(item.ClassId, classId, StringComparison.Ordinal))?.DisplayName ??
+            "배전선";
+
+    private static string FailureSubjectName(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        ThermalSupplyFailure failure) => failure.AssetId is not null
+        ? AssetDisplayName(displayWorld, snapshot, failure.AssetId)
+        : failure.AttemptedSourceId is not null
+            ? AssetDisplayName(displayWorld, snapshot, failure.AttemptedSourceId)
+            : failure.Kind == ThermalFailureKind.NoEligibleSubstation
+                ? "변전소 접속"
+                : "공급 경로";
+
+    private static string FailureKindText(ThermalFailureKind kind) => kind switch
+    {
+        ThermalFailureKind.NoTopologyPath => "연결 경로 없음",
+        ThermalFailureKind.NoEligibleSubstation => "적합한 변전소 없음",
+        ThermalFailureKind.SourceCapacity => "발전 여력 부족",
+        ThermalFailureKind.AssetUnavailable => "설비 사용 불가",
+        ThermalFailureKind.ContinuousLimit => "연속 한계 초과",
+        ThermalFailureKind.EmergencyLimit => "비상 한계 초과",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
+
+    private static string TransitionKindText(RealtimeTransitionKind kind) => kind switch
+    {
+        RealtimeTransitionKind.ChapterStarted => "새 장 시작",
+        RealtimeTransitionKind.ForecastRevealed => "사건 예보 공개",
+        RealtimeTransitionKind.EventStarted => "사건 시작",
+        RealtimeTransitionKind.EventCompleted => "사건 종료",
+        RealtimeTransitionKind.ConstructionCompleted => "공사 완료",
+        RealtimeTransitionKind.ThermalEmergencyEntered => "비상 운전 시작",
+        RealtimeTransitionKind.ThermalEmergencyCleared => "연속 운전 복귀",
+        RealtimeTransitionKind.ThermalProtectiveTrip => "보호정지",
+        RealtimeTransitionKind.ThermalRecovered => "냉각 복귀",
+        RealtimeTransitionKind.PromiseDefaulted => "운영 약속 자동 선택",
+        RealtimeTransitionKind.ChapterCompleted => "장 운영 완료",
+        RealtimeTransitionKind.CampaignCompleted => "캠페인 운영 완료",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
+
+    private static string Time(long minute)
+    {
+        long day = checked(minute / (24 * 60) + 1);
+        long minuteOfDay = minute % (24 * 60);
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{day}일 {minuteOfDay / 60:00}:{minuteOfDay % 60:00}");
+    }
+
+    private static int ClampInt(long value) => value > int.MaxValue
+        ? int.MaxValue
+        : value < int.MinValue
+            ? int.MinValue
+            : (int)value;
+}

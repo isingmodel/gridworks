@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **A0 완료 · 활성 구현 gate 없음**
+> 현재 상태: **A0+A0.1 완료 · 활성 구현 gate 없음**
 > 다음 후보: **A1 미개방**
 
 이 문서는 단계 상태와 증거 상한만 기록한다. 기능과 시각 규격은
@@ -12,6 +12,7 @@
 | 단계 | 상태 | 핵심 결과 | 자동/native | 사람·전문 | 종료 |
 |---|---|---|---|---|---|
 | A0 목표·문서 기준선 | **완료** | 네 reference hash, 스타일 DNA, R1/R2 보존, 문서 압축 | 문서·링크·경계 검사 | 해당 없음 | 이 문서 변경 커밋 |
+| A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -34,16 +35,33 @@
 - [x] onboarding·save/migration·누적 상태·package·전체 campaign만 full-flow 예외로 제한
 - [x] A1을 자동으로 열지 않음
 
+## A0.1 구조 준비 확인
+
+- [x] Core `ExportRelease`는 동결 V2 explicit allowlist, Game `ExportRelease`는 R2/UI 제외
+- [x] 미승인 `RealtimeCampaignPersistence.cs`는 모든 Core 구성에서 compile 제외
+- [x] package audit가 R2/UI namespace 유입을 거부
+- [x] 동일 state/horizon forecast cache와 forecast 없는 `Minute` query 사용
+- [x] caller 0 frame facade·command alias·UI event·compatibility alias 제거
+- [x] world renderer가 raw campaign snapshot·forecast 대신 `IRealtimeWorldView` DTO를 사용
+- [x] pointer 이동은 full snapshot·forecast·전체 presentation 갱신을 호출하지 않음
+- [x] RealtimeChecks가 실행 위치와 무관하게 fixture를 찾고 `--suite <exact-name>`을 지원
+- [x] `A1_NORMAL_READY` exact start/replay/end identity와 bounded live segment PASS
+- [x] `A1_CONSTRUCTION_DUE_1M` exact start/replay/end identity와 원자 완공·통전 PASS
+- [x] full R2 harness와 전체 campaign을 다시 실행하지 않음
+
+두 구간의 고정 identity는 [현재 목표 계약 §8.3](scopes/ASSET_STYLE_REALTIME_GAME.md#83-표준-checkpoint-후보)가
+소유한다. 이 결과는 A1 art·native capture·사람 검토나 R2 종료 PASS로 확대하지 않는다.
+
 ## A1 개방 전 체크
 
 - [ ] 사용자 A1 구현 승인
 - [ ] exact source asset allowlist
 - [ ] source별 provenance·hash·사용 경계
 - [ ] 공통 camera·light·scale sheet
-- [ ] 수정 가능한 Game/Core/data 경계
+- [x] 수정 가능한 Game/Core/data build authority 경계
 - [ ] 한 `FIRST_LIGHT` scene와 player outcome
-- [ ] `A1_NORMAL_READY`·`A1_CONSTRUCTION_DUE_1M` 생성 계약과 시작 hash
-- [ ] targeted live 종료 assertion·evidence label
+- [x] `A1_NORMAL_READY`·`A1_CONSTRUCTION_DUE_1M` 생성 계약과 시작 hash
+- [x] targeted live 종료 assertion·evidence label
 - [ ] FHD reference contact sheet 절차
 - [ ] frame budget와 지원 hardware
 - [ ] fallback·placeholder 금지 목록
@@ -69,11 +87,13 @@
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 DocumentationBaseline = A0_COMPLETE
+ArchitecturePreparation = COMPLETE
 ActiveImplementationGate = NONE
 NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
+TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED

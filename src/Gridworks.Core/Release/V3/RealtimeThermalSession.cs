@@ -46,8 +46,9 @@ public sealed record RealtimeThermalSnapshot(
 }
 
 /// <summary>
-/// Deterministic temporal wrapper around the V2 steady-state route evaluator.
-/// It models protection exposure, trips, and recovery without temperature claims.
+/// Deterministic temporal session around the realtime supply allocator.
+/// It models protection exposure, trips, and recovery without temperature claims;
+/// V2 contracts remain the shared network and thermal value vocabulary.
 /// </summary>
 public sealed class RealtimeThermalSession
 {

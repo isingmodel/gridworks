@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **A0 문서 기준선 완료 · 활성 구현 gate 없음**
+> 현재 상태: **A0 문서 기준선+A0.1 구조 준비 완료 · 활성 구현 gate 없음**
 > 다음 후보: **A1 일반 운전 아트 vertical slice — 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
@@ -34,6 +34,21 @@
 ### 상한
 
 A0는 runtime 화면, 새 sprite, native capture나 미감 검토를 만들지 않는다.
+
+## A0.1 — A1 전 구조 준비 — 완료
+
+### 결과
+
+- Core와 Game의 Debug/Release 실시간 authority를 상용 `ExportRelease` v2 package에서 분리
+- 미승인 persistence·future world/data의 wildcard compile/package 유입 차단
+- 동일 state/horizon forecast cache와 cheap minute query, pointer-only world 갱신 경로
+- `IRealtimeWorldView`를 통한 placeholder/향후 asset renderer 교체 경계
+- exact Core suite filter와 `A1_NORMAL_READY`·`A1_CONSTRUCTION_DUE_1M` 단일 구간 runner
+
+### 상한
+
+A0.1은 A1의 구조·검증 진입점만 준비했다. runtime asset authority, 도시 아트, reference capture와
+사람 미감 증거는 만들지 않았고 A1은 계속 미개방이다.
 
 ## A1 — 일반 운전 아트 vertical slice — 미개방
 

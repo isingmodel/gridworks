@@ -42,6 +42,8 @@
 
   <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">
     <!-- The internal candidate contains only the CommercialMain product graph. -->
+    <Compile Remove="realtime/r2/**/*.cs" />
+    <Compile Remove="realtime/ui/**/*.cs" />
     <Compile Remove="CommercialMain.Smoke.cs" />
     <Compile Remove="DiagnosticLog.cs" />
     <Compile Remove="FirstLightMapView.cs" />

@@ -41,7 +41,7 @@ internal sealed partial class RealtimePlaceholderMap
 
     internal bool ActiveCandidateOutlineVisibleForSmoke =>
         ActiveCandidateId is string candidateId &&
-        _presentation?.World is RealtimePlaceholderMapPresentation presentation &&
+        _presentation is RealtimeWorldPresentation presentation &&
         (presentation.World.Nodes.Any(item => string.Equals(
              item.NodeId,
              candidateId,
@@ -53,17 +53,17 @@ internal sealed partial class RealtimePlaceholderMap
 
     internal int LabelFontSizeForSmoke => LabelFontSize;
 
-    internal string StatusLabelForSmoke(RealtimePlaceholderAssetState state) =>
+    internal string StatusLabelForSmoke(RealtimeWorldAssetState state) =>
         StatusLabel(state);
 
     internal RealtimePlaceholderStateCue StateCueForSmoke(
-        RealtimePlaceholderAssetState state) => StateCue(state);
+        RealtimeWorldAssetState state) => StateCue(state);
 
     internal (string AssetId, Vector2 ViewportPoint)? SelectionActionForSmoke
     {
         get
         {
-            if (_presentation?.World is not RealtimePlaceholderMapPresentation world ||
+            if (_presentation is not RealtimeWorldPresentation world ||
                 SelectionActionPoint(world) is not (string assetId, Vector2 point))
             {
                 return null;
@@ -73,7 +73,7 @@ internal sealed partial class RealtimePlaceholderMap
     }
 
     internal (string AssetId, Vector2 CanvasPoint)? SelectionActionCanvasPointForSmoke =>
-        _presentation?.World is RealtimePlaceholderMapPresentation world &&
+        _presentation is RealtimeWorldPresentation world &&
         SelectionActionPoint(world) is (string assetId, Vector2 point)
             ? (assetId, point)
             : null;
@@ -81,7 +81,7 @@ internal sealed partial class RealtimePlaceholderMap
     internal (string AssetId, Vector2 CanvasPoint, Vector2 Normal)
         EdgeHitProbeForSmoke()
     {
-        if (_presentation?.World is not RealtimePlaceholderMapPresentation world ||
+        if (_presentation is not RealtimeWorldPresentation world ||
             _transform is null)
         {
             throw new InvalidOperationException("Map presentation is not ready.");

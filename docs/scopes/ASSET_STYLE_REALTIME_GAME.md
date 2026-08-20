@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 목표 계약
 
-> 문서 상태: **현재 전체 목표 · A0 문서 기준선 완료 · 구현 gate 없음**
+> 문서 상태: **현재 전체 목표 · A0 문서 기준선+A0.1 구조 준비 완료 · 구현 gate 없음**
 > 다음 후보: `A1_NORMAL_OPERATION_ART_SLICE` — 사용자 승인 전 미개방
 
 ## 1. 목표
@@ -229,6 +229,18 @@ Core 규칙 분기는 checkpoint가 될 수 없다.
 
 단계 계약은 필요한 ID만 연다. 미래 checkpoint를 미리 구현하지 않는다.
 
+현재 구현된 checkpoint는 A1의 다음 두 개뿐이다. 이는 사용자가 별도로 승인한 구조 준비 결과이며
+A1 아트 gate 개방이나 전체 R2 종료를 의미하지 않는다.
+
+| ID | start minute | start canonical SHA-256 | replay SHA-256 | 1분 뒤 canonical SHA-256 |
+|---|---:|---|---|---|
+| `A1_NORMAL_READY` | 1020 | `7094f631c89fe072800858a205d08358be07a6e0e7341b83026ff619fc03f9a3` | `4f4d3748681585f49eeb4291262db3c99676baba10913450c94d5e1eda9e1611` | `d61217a830053e59f9c75a69eef110da2604892baf9b52ea74cb04d406ad6fec` |
+| `A1_CONSTRUCTION_DUE_1M` | 1259 | `3a00c6c937d130cc7574e3971403445cb036a26aecba6671e300e1398d4b9989` | `9bd7c3226fd36396d9d9f7a8d81da25379cedb8e0e54441601bb7c89e947c65c` | `304b96410d7652db9928613fe77443d8d50e29efcb273ff8061c064f876f37f9` |
+
+두 runner는 exact embedded R1 fixture와 bounded Core advance·실제 command replay로 시작 상태를 만들고,
+진입 뒤 실제 HUD speed signal과 frame/controller/presentation/world draw 경로를 60 frames/60 fps만
+진행한다. 누락·중복·알 수 없는 checkpoint ID는 fail-fast다.
+
 ### 8.4 처음부터 실행해야 하는 예외
 
 다음은 시작 경로 자체가 검증 대상이므로 checkpoint로 대체하지 않는다.
@@ -259,6 +271,16 @@ harness가 처음부터 시작한다는 이유는 충분하지 않다.
 - 네 reference hash와 스타일 DNA 고정
 - R1/R2 보존 경계와 금지 근사 고정
 - 현재 문서만 전면에 두고 과거 기록 압축
+
+### A0.1 — A1 전 구조 준비 — 완료
+
+- Debug/Release 실시간 Core와 상용 `ExportRelease` v2 authority를 compile allowlist로 분리
+- 미승인 persistence·future world/data가 wildcard build나 package에 들어오지 않도록 차단
+- Core minute의 cheap query와 동일 state/horizon forecast cache를 추가하고 caller 0 API 제거
+- renderer-neutral world presentation/interaction/camera seam과 pointer-only 갱신 경로 추가
+- exact suite 하나만 고르는 Core check와 위 두 targeted checkpoint runner 추가
+
+이 단계는 새 runtime art, production V3 data, persistence, 기본 장면 전환을 승인하지 않는다.
 
 ### A1 — 일반 운전 아트 vertical slice — 미개방
 
@@ -294,11 +316,13 @@ harness가 처음부터 시작한다는 이유는 충분하지 않다.
 - 한국어·전력설비 전문 검토
 - 권리·서명·공증·공개 배포의 별도 승인
 
-로드맵 항목은 구현 권한이 아니다. 현재 허용된 변경은 A0 문서 기준선뿐이다.
+로드맵 항목은 구현 권한이 아니다. A0와 사용자가 별도로 승인한 A0.1 구조 준비는 완료됐으며,
+현재 추가 코드·아트 구현 gate는 없다.
 
 ## 10. A1 개방 조건
 
-사용자가 A1 구현을 명시적으로 승인하기 전에는 runtime 파일을 추가·수정하지 않는다. 개방 시 계약은
+사용자가 A1 구현을 명시적으로 승인하기 전에는 완료된 A0.1 경계를 넘어 runtime 파일을 추가·수정하지
+않는다. 개방 시 계약은
 다음을 먼저 고정해야 한다.
 
 - exact source asset allowlist와 provenance

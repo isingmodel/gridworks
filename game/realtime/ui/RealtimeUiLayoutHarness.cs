@@ -524,7 +524,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             typedSlice.DisplayWorldForSmoke,
             typedSnapshot,
             outageItem.Id);
-        RealtimePlaceholderHighlight? outageHighlight =
+        RealtimeWorldHighlight? outageHighlight =
             selectedOutagePresentation.World.Highlight;
         Require(weatherItem.Kind == RealtimeTimelineItemKind.Weather &&
                 weatherItem.Lane == RealtimeTimelineLane.WeatherAndOutage &&
@@ -789,21 +789,21 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 "world map labels ignored the 100/200% UI accessibility scale",
                 failures);
             Require(map.StatusLabelForSmoke(
-                        RealtimePlaceholderAssetState.Emergency) == "비상 운전" &&
+                        RealtimeWorldAssetState.Emergency) == "비상 운전" &&
                     map.StatusLabelForSmoke(
-                        RealtimePlaceholderAssetState.ProtectiveOutage) == "보호정지" &&
+                        RealtimeWorldAssetState.ProtectiveOutage) == "보호정지" &&
                     map.StatusLabelForSmoke(
-                        RealtimePlaceholderAssetState.OverLimit) == "한계 초과",
+                        RealtimeWorldAssetState.OverLimit) == "한계 초과",
                 "map thermal states lost their non-color text/AX labels",
                 failures);
             Require(map.StateCueForSmoke(
-                        RealtimePlaceholderAssetState.Emergency) ==
+                        RealtimeWorldAssetState.Emergency) ==
                         RealtimePlaceholderStateCue.EmergencyTriangle &&
                     map.StateCueForSmoke(
-                        RealtimePlaceholderAssetState.ProtectiveOutage) ==
+                        RealtimeWorldAssetState.ProtectiveOutage) ==
                         RealtimePlaceholderStateCue.ProtectiveOutageCross &&
                     map.StateCueForSmoke(
-                        RealtimePlaceholderAssetState.OverLimit) ==
+                        RealtimeWorldAssetState.OverLimit) ==
                         RealtimePlaceholderStateCue.OverLimitDiamond,
                 "map thermal states lost their non-color geometric cues",
                 failures);
@@ -1980,10 +1980,10 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 viewport,
                 map.ViewportPointForSmoke(rejectedPoint));
             await SettleLayout();
-            Require(slice.LatestPresentation.World.PointerPoint == rejectedPoint &&
-                    !slice.LatestPresentation.World.PointerAccepted &&
+            Require(slice.LatestPresentation.Pointer.Point == rejectedPoint &&
+                    !slice.LatestPresentation.Pointer.Accepted &&
                     !string.IsNullOrWhiteSpace(
-                        slice.LatestPresentation.World.PointerMessage) &&
+                        slice.LatestPresentation.Pointer.Message) &&
                     slice.LatestPresentation.BuildShelf.Guidance.StartsWith(
                         "!", StringComparison.Ordinal) &&
                     string.Equals(
@@ -2004,8 +2004,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             await SettleLayout();
             Require(map.CandidateIdsForSmoke.Count == 0,
                 "accepted node placement unexpectedly resolved a world candidate", failures);
-            Require(slice.LatestPresentation.World.PointerPoint == emptyPoint &&
-                    slice.LatestPresentation.World.PointerAccepted &&
+            Require(slice.LatestPresentation.Pointer.Point == emptyPoint &&
+                    slice.LatestPresentation.Pointer.Accepted &&
                     slice.LatestPresentation.BuildShelf.Guidance.StartsWith(
                         "✓", StringComparison.Ordinal) &&
                     string.Equals(
@@ -2045,7 +2045,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         slice.LatestPresentation.ActionDock.Detail,
                         StringComparison.Ordinal) &&
                     slice.LatestPresentation.ActionDock.Detail.Contains(
-                        slice.LatestPresentation.World.PointerMessage,
+                        slice.LatestPresentation.Pointer.Message,
                         StringComparison.Ordinal),
                 "accepted node-draft pointer feedback was not visible as exact " +
                 "ActionDock text",
@@ -2086,7 +2086,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         slice.LatestPresentation.ActionDock.Detail,
                         StringComparison.Ordinal) &&
                     slice.LatestPresentation.ActionDock.Detail.Contains(
-                        slice.LatestPresentation.World.PointerMessage,
+                        slice.LatestPresentation.Pointer.Message,
                         StringComparison.Ordinal),
                 "draft-handle guidance was not exposed as exact visible ActionDock text",
                 failures);
@@ -3595,11 +3595,12 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             };
             RealtimeSlicePresentation buildingPresentation =
                 slice.PresentSnapshotForSmoke(buildingSnapshot, buildingInteraction);
-            map.SetPresentation(buildingPresentation);
+            map.SetPresentation(buildingPresentation.World);
+            map.SetPointerFeedback(buildingPresentation.Pointer);
             ui.SetContextDock(buildingPresentation.Context);
             await SettleLayout();
             await ForceActualMapDraw(viewport, map);
-            RealtimePlaceholderAssetStatus buildingStatus = buildingPresentation.World
+            RealtimeWorldAssetStatus buildingStatus = buildingPresentation.World
                 .AssetStatuses.Single(item => string.Equals(
                     item.AssetId,
                     buildingAssetId,
@@ -3613,7 +3614,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         buildingAssetId,
                         StringComparison.Ordinal)).Commissioned == false &&
                     buildingStatus.State ==
-                        RealtimePlaceholderAssetState.Building &&
+                        RealtimeWorldAssetState.Building &&
                     !buildingStatus.AuthoredUnavailable &&
                     !buildingStatus.ProtectiveOutage &&
                     buildingPresentation.Context.Eyebrow == "공사 중 설비" &&
@@ -3655,7 +3656,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
 
             async Task ValidateUnavailableStatus(
                 RealtimeThermalSnapshot thermal,
-                RealtimePlaceholderAssetState expectedState,
+                RealtimeWorldAssetState expectedState,
                 bool expectedProtectiveOutage,
                 string expectedStateCopy,
                 string expectedCauseCopy,
@@ -3682,11 +3683,12 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 RealtimeSlicePresentation projected = slice.PresentSnapshotForSmoke(
                     projectedSnapshot,
                     projectedInteraction);
-                map.SetPresentation(projected);
+                map.SetPresentation(projected.World);
+                map.SetPointerFeedback(projected.Pointer);
                 ui.SetContextDock(projected.Context);
                 await SettleLayout();
                 await ForceActualMapDraw(viewport, map);
-                RealtimePlaceholderAssetStatus status = projected.World.AssetStatuses
+                RealtimeWorldAssetStatus status = projected.World.AssetStatuses
                     .Single(item => string.Equals(
                         item.AssetId,
                         unavailableTarget.AssetId,
@@ -3733,7 +3735,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 AuthoredUnavailableRequest("R2_AUTHORED_UNAVAILABLE"));
             await ValidateUnavailableStatus(
                 authoredUnavailableAuthority.GetSnapshot(),
-                RealtimePlaceholderAssetState.AuthoredUnavailable,
+                RealtimeWorldAssetState.AuthoredUnavailable,
                 expectedProtectiveOutage: false,
                 "계획 사용불가",
                 "작성된 계획 사용불가가 적용 중이며 공급 경로에서 제외됩니다.",
@@ -3750,7 +3752,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 AuthoredUnavailableRequest("R2_DUAL_UNAVAILABLE"));
             await ValidateUnavailableStatus(
                 dualCauseAuthority.GetSnapshot(),
-                RealtimePlaceholderAssetState.ProtectiveOutage,
+                RealtimeWorldAssetState.ProtectiveOutage,
                 expectedProtectiveOutage: true,
                 "보호정지 · 계획 사용불가 겹침",
                 "작성된 사용불가와 열 보호정지가 함께 적용 중입니다. 더 늦은 복귀 시각까지 공급 경로에서 제외됩니다.",
@@ -3782,7 +3784,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             async Task ValidateState(
                 long minute,
                 ThermalOperatingState coreState,
-                RealtimePlaceholderAssetState presentationState,
+                RealtimeWorldAssetState presentationState,
                 RealtimePlaceholderStateCue drawnCue,
                 string visibleStateLabel,
                 string contextStateCopy)
@@ -3804,7 +3806,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         item.AssetId,
                         boundary.AssetId,
                         StringComparison.Ordinal));
-                RealtimePlaceholderAssetStatus presented = slice.LatestPresentation.World
+                RealtimeWorldAssetStatus presented = slice.LatestPresentation.World
                     .AssetStatuses
                     .Single(item => string.Equals(
                         item.AssetId,
@@ -3855,21 +3857,21 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             await ValidateState(
                 boundary.EmergencyStartMinute!.Value,
                 ThermalOperatingState.Emergency,
-                RealtimePlaceholderAssetState.Emergency,
+                RealtimeWorldAssetState.Emergency,
                 RealtimePlaceholderStateCue.EmergencyTriangle,
                 "비상 운전",
                 "비상 운전");
             await ValidateState(
                 boundary.TripMinute!.Value,
                 ThermalOperatingState.ProtectiveOutage,
-                RealtimePlaceholderAssetState.ProtectiveOutage,
+                RealtimeWorldAssetState.ProtectiveOutage,
                 RealtimePlaceholderStateCue.ProtectiveOutageCross,
                 "보호정지",
                 "보호정지");
             await ValidateState(
                 boundary.RecoveryMinute!.Value,
                 ThermalOperatingState.Continuous,
-                RealtimePlaceholderAssetState.Normal,
+                RealtimeWorldAssetState.Normal,
                 RealtimePlaceholderStateCue.None,
                 "정상",
                 "연속 운전");
@@ -6052,7 +6054,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         }
         else if (target.Kind == RealtimeTimelineTargetKind.Event)
         {
-            RealtimePlaceholderHighlight? highlight = presentation.World.Highlight;
+            RealtimeWorldHighlight? highlight = presentation.World.Highlight;
             bool comparison = expectedMarkerId.StartsWith(
                 "DRAFT_FORECAST:",
                 StringComparison.Ordinal);

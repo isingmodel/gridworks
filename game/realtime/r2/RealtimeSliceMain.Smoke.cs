@@ -20,12 +20,12 @@ internal sealed partial class RealtimeSliceMain
     internal RealtimeUiRoot UiForSmoke => _ui ??
         throw new InvalidOperationException("Scene UI is not ready.");
 
-    internal RealtimePlaceholderMap MapForSmoke => _map ??
-        throw new InvalidOperationException("Scene map is not ready.");
+    internal RealtimePlaceholderMap MapForSmoke => _worldView as RealtimePlaceholderMap ??
+        throw new InvalidOperationException("The smoke scene is not using PlaceholderMap.");
 
-    internal Rect2 MapInteractionRectForSmoke => _map is null
+    internal Rect2 MapInteractionRectForSmoke => _worldView is null
         ? throw new InvalidOperationException("Scene map is not ready.")
-        : new Rect2(_map.Position, _map.Size);
+        : _worldView.InteractionRect;
 
     internal void ApplyMapInteractionRectForSmoke(Rect2 rect)
     {

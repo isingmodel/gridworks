@@ -35,6 +35,7 @@
 - R2 실시간 UX 기반: 커밋 `4c27f65`, 비기본 `RealtimeSliceMain`
 - R2 마지막 전체 harness: 사용자 지시로 중단, 종료 PASS 아님
 - 새 목표 문서 기준선: `A0` 완료
+- A1 전 구조 준비: build authority 격리, renderer-neutral world seam, 두 DEBUG checkpoint 완료
 - 활성 코드·아트 gate: 없음
 - 다음 후보: `A1 일반 운전 아트 vertical slice`, 사용자 승인 전 미개방
 
@@ -42,11 +43,13 @@
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 GoalDirection = ACTIVE
 DocumentationBaseline = A0_COMPLETE
+ArchitecturePreparation = COMPLETE
 ActiveImplementationGate = NONE
 NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
+TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
@@ -126,6 +129,29 @@ dotnet build game/Gridworks.Game.csproj -c Debug
 ```sh
 ./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
   --path game --scene res://realtime/r2/RealtimeSliceMain.tscn
+```
+
+실시간 구간 검증은 전체 harness 대신 필요한 checkpoint 하나만 선택한다. 이 두 명령은 각각 실제
+`RealtimeSliceMain` controller·HUD signal·frame accumulator·presentation·world draw 경로에서 정확히
+1분만 진행하며, A1 아트나 전체 campaign PASS를 뜻하지 않는다.
+
+```sh
+./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
+  --headless --path game \
+  --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
+  -- --checkpoint=A1_NORMAL_READY
+
+./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
+  --headless --path game \
+  --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
+  -- --checkpoint=A1_CONSTRUCTION_DUE_1M
+```
+
+Core 회귀도 exact suite 하나만 선택할 수 있다.
+
+```sh
+dotnet run --project tools/Gridworks.RealtimeChecks -c Release -- \
+  --suite frame-speed-canonical-hash
 ```
 
 설치·저장·내부 후보 경계는 [INSTALL](INSTALL.md)을 따른다.

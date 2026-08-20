@@ -50,9 +50,11 @@ docs/
 
 - `CurrentGoal = ASSET_STYLE_REALTIME_GAME`
 - `DocumentationBaseline = A0_COMPLETE`
+- `ArchitecturePreparation = COMPLETE`
 - `ActiveImplementationGate = NONE`
 - `NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED`
 - `LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT`
+- `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`
 - 기본 장면은 `CommercialMain`이다.
 - R1/R2는 기반으로 보존하지만 R2 종료 gate를 새로 PASS로 만들지 않는다.

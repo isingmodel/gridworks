@@ -48,7 +48,7 @@ internal sealed partial class RealtimeUiRoot : Node
     public RealtimeLayoutProfile LayoutProfile => _layoutProfile;
 
     public bool CanWorldReceiveInput =>
-        _inputRouter.CanReceive(RealtimeInputPriority.World);
+        _inputRouter.CanReceive(RealtimeInputPriority.EmptyTerrain);
 
     public RealtimeInputRouter InputRouter => _inputRouter;
 
@@ -65,10 +65,7 @@ internal sealed partial class RealtimeUiRoot : Node
     public event Action<string>? BuildToolRequested;
     public event Action<string, string>? ModalActionRequested;
     public event Action<string>? ModalDismissRequested;
-    public event Action<bool>? SimulationPauseRequested;
-    public event Action<RealtimePausePresentation>? SimulationPauseChanged;
     public event Action<RealtimeInputRequest>? InputRequested;
-    public event Action<RealtimeLayoutProfile>? LayoutProfileChanged;
     public event Action<Rect2>? MapInteractionRectChanged;
 
     public override void _Ready()
@@ -100,9 +97,6 @@ internal sealed partial class RealtimeUiRoot : Node
         _modalHost.ActionRequested += (modalId, actionId) =>
             ModalActionRequested?.Invoke(modalId, actionId);
         _modalHost.DismissRequested += id => ModalDismissRequested?.Invoke(id);
-        _modalHost.SimulationPauseChanged += paused =>
-            SimulationPauseRequested?.Invoke(paused);
-        _modalHost.PauseChanged += pause => SimulationPauseChanged?.Invoke(pause);
         _modalHost.DepthChanged += OnModalDepthChanged;
         _inputRouter.InputRequested += RouteShortcut;
         GetViewport().SizeChanged += ApplyResponsiveLayout;
@@ -211,7 +205,6 @@ internal sealed partial class RealtimeUiRoot : Node
         // was previously taller cannot keep its obsolete expanded allocation.
         ApplySurfaceRects(stabilizationPasses: 8);
         ApplyTypography();
-        LayoutProfileChanged?.Invoke(_layoutProfile);
     }
 
     private void ApplySurfaceRects() => ApplySurfaceRects(stabilizationPasses: 1);

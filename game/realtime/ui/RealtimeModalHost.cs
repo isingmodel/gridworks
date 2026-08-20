@@ -18,10 +18,7 @@ internal sealed partial class RealtimeModalHost : Control
 
     public event Action<string, string>? ActionRequested;
     public event Action<string>? DismissRequested;
-    public event Action<bool>? SimulationPauseChanged;
-    public event Action<RealtimePausePresentation>? PauseChanged;
     public event Action<int>? DepthChanged;
-    public event Action<string>? NestedModalRejected;
 
     public int Depth => _active is null ? 0 : 1;
 
@@ -55,7 +52,6 @@ internal sealed partial class RealtimeModalHost : Control
         }
         if (_active is not null)
         {
-            NestedModalRejected?.Invoke(presentation.Id);
             return false;
         }
         if (!presentation.PausesSimulation ||
@@ -70,8 +66,6 @@ internal sealed partial class RealtimeModalHost : Control
         _backgroundReturnFocus = GetViewport().GuiGetFocusOwner();
         _active = presentation;
         RenderActive();
-        SimulationPauseChanged?.Invoke(true);
-        PauseChanged?.Invoke(presentation.Pause);
         DepthChanged?.Invoke(1);
         return true;
     }
@@ -96,8 +90,6 @@ internal sealed partial class RealtimeModalHost : Control
             : null;
         _backgroundReturnFocus = null;
         returnFocus?.CallDeferred(Control.MethodName.GrabFocus);
-        SimulationPauseChanged?.Invoke(false);
-        PauseChanged?.Invoke(RealtimePausePresentation.None);
         DepthChanged?.Invoke(0);
         return true;
     }
@@ -113,7 +105,6 @@ internal sealed partial class RealtimeModalHost : Control
 
     public void Clear(bool restoreFocus = true)
     {
-        bool wasActive = _active is not null;
         _active = null;
         Visible = false;
         MouseFilter = MouseFilterEnum.Ignore;
@@ -123,11 +114,6 @@ internal sealed partial class RealtimeModalHost : Control
             : null;
         _backgroundReturnFocus = null;
         returnFocus?.CallDeferred(Control.MethodName.GrabFocus);
-        if (wasActive)
-        {
-            SimulationPauseChanged?.Invoke(false);
-            PauseChanged?.Invoke(RealtimePausePresentation.None);
-        }
         DepthChanged?.Invoke(0);
     }
 

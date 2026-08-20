@@ -2,31 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Gridworks.Core.Release.V2;
-using Gridworks.Core.Release.V3;
 using Gridworks.Game.Realtime.UI;
 using Godot;
 using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
 
 namespace Gridworks.Game.Realtime.R2;
-
-internal enum RealtimePlaceholderAssetState
-{
-    Normal,
-    Planned,
-    Building,
-    AuthoredUnavailable,
-    Emergency,
-    ProtectiveOutage,
-    OverLimit,
-}
-
-internal enum RealtimePlaceholderWeather
-{
-    Clear,
-    Heat,
-    Rain,
-    Storm,
-}
 
 internal enum RealtimePlaceholderStateCue
 {
@@ -37,231 +17,11 @@ internal enum RealtimePlaceholderStateCue
     OverLimitDiamond,
 }
 
-internal sealed record RealtimePlaceholderAssetStatus(
-    string AssetId,
-    RealtimePlaceholderAssetState State,
-    long UsedKw,
-    long ContinuousLimitKw,
-    long EmergencyLimitKw,
-    int EmergencyExposureMinutes,
-    int EmergencyExposureLimitMinutes,
-    bool AuthoredUnavailable = false,
-    bool ProtectiveOutage = false);
-
-internal sealed record RealtimePlaceholderHighlight(
-    IReadOnlyList<string> NodeIds,
-    IReadOnlyList<string> EdgeIds,
-    string? LimitingAssetId,
-    string AccessibilitySummary)
-{
-    private IReadOnlyList<string> _nodeIds = Freeze(NodeIds);
-    private IReadOnlyList<string> _edgeIds = Freeze(EdgeIds);
-
-    public IReadOnlyList<string> NodeIds
-    {
-        get => _nodeIds;
-        init => _nodeIds = Freeze(value);
-    }
-
-    public IReadOnlyList<string> EdgeIds
-    {
-        get => _edgeIds;
-        init => _edgeIds = Freeze(value);
-    }
-
-    private static IReadOnlyList<string> Freeze(IReadOnlyList<string> values) =>
-        Array.AsReadOnly(values.ToArray());
-}
-
-internal sealed record RealtimePlaceholderMapPresentation(
-    SpatialWorldDefinition World,
-    IReadOnlyList<RealtimePlaceholderAssetStatus> AssetStatuses,
-    CoreMapPoint? PointerPoint,
-    bool PointerAccepted,
-    string PointerMessage,
-    bool PlacementMode,
-    string? SelectedAssetId,
-    bool AnalysisVisible,
-    RealtimePlaceholderWeather Weather,
-    long Minute,
-    IReadOnlyList<string> ActiveRiskAreaIds,
-    RealtimePlaceholderHighlight? Highlight,
-    bool ReduceMotion)
-{
-    private IReadOnlyList<RealtimePlaceholderAssetStatus> _assetStatuses =
-        Array.AsReadOnly(AssetStatuses.ToArray());
-    private IReadOnlyList<string> _activeRiskAreaIds =
-        Array.AsReadOnly(ActiveRiskAreaIds.ToArray());
-
-    public IReadOnlyList<RealtimePlaceholderAssetStatus> AssetStatuses
-    {
-        get => _assetStatuses;
-        init => _assetStatuses = Array.AsReadOnly(value.ToArray());
-    }
-
-    public IReadOnlyList<string> ActiveRiskAreaIds
-    {
-        get => _activeRiskAreaIds;
-        init => _activeRiskAreaIds = Array.AsReadOnly(value.ToArray());
-    }
-}
-
-internal enum RealtimePointerOwner
-{
-    EmptyTerrain,
-    WorldCandidate,
-    SelectionAction,
-    DraftHandle,
-    Hud,
-    BlockingModal,
-    Fatal,
-}
-
-internal enum RealtimeMapCandidateKind
-{
-    Node,
-    Edge,
-    DraftHandle,
-    SelectionAction,
-    EmptyTerrain,
-}
-
-internal sealed record RealtimeMapCandidate(
-    string Id,
-    RealtimeMapCandidateKind Kind,
-    RealtimePointerOwner Owner,
-    double DistanceSquared);
-
-internal sealed record RealtimePointerProbe(
-    string Id,
-    CoreMapPoint WorldPoint,
-    IReadOnlyList<RealtimeMapCandidate> Candidates,
-    bool HudHit = false,
-    bool BlockingModalHit = false,
-    bool FatalHit = false,
-    bool OverlayVisible = false,
-    bool WeatherVisible = false)
-{
-    private IReadOnlyList<RealtimeMapCandidate> _candidates =
-        Array.AsReadOnly(Candidates.ToArray());
-
-    public IReadOnlyList<RealtimeMapCandidate> Candidates
-    {
-        get => _candidates;
-        init => _candidates = Array.AsReadOnly(value.ToArray());
-    }
-}
-
-internal sealed record RealtimePointerResolution(
-    string ProbeId,
-    RealtimePointerOwner Owner,
-    string? ResolvedId,
-    IReadOnlyList<RealtimeMapCandidate> OrderedCandidates,
-    IReadOnlyList<string> OrderedWorldCandidateIds)
-{
-    private IReadOnlyList<RealtimeMapCandidate> _orderedCandidates =
-        Array.AsReadOnly(OrderedCandidates.ToArray());
-    private IReadOnlyList<string> _orderedWorldCandidateIds =
-        Array.AsReadOnly(OrderedWorldCandidateIds.ToArray());
-
-    public IReadOnlyList<RealtimeMapCandidate> OrderedCandidates
-    {
-        get => _orderedCandidates;
-        init => _orderedCandidates = Array.AsReadOnly(value.ToArray());
-    }
-
-    public IReadOnlyList<string> OrderedWorldCandidateIds
-    {
-        get => _orderedWorldCandidateIds;
-        init => _orderedWorldCandidateIds = Array.AsReadOnly(value.ToArray());
-    }
-
-    internal static RealtimePointerResolution Empty(string probeId) => new(
-        probeId,
-        RealtimePointerOwner.EmptyTerrain,
-        null,
-        Array.Empty<RealtimeMapCandidate>(),
-        Array.Empty<string>());
-}
-
-internal readonly record struct RealtimeMapCameraSnapshot(
-    Vector2 Center,
-    int ZoomIndex);
-
-internal static class RealtimePointerOwnerResolver
-{
-    internal static RealtimePointerResolution Resolve(RealtimePointerProbe probe)
-    {
-        ArgumentNullException.ThrowIfNull(probe);
-        RealtimeMapCandidate[] ordered = probe.Candidates
-            .Where(item => item.Kind != RealtimeMapCandidateKind.EmptyTerrain)
-            .OrderByDescending(item => Priority(item.Owner))
-            .ThenBy(item => item.DistanceSquared)
-            .ThenBy(item => item.Id, StringComparer.Ordinal)
-            .ToArray();
-        string[] worldIds = ordered
-            .Where(item => item.Owner == RealtimePointerOwner.WorldCandidate)
-            .Select(item => item.Id)
-            .Distinct(StringComparer.Ordinal)
-            .ToArray();
-        if (probe.FatalHit)
-        {
-            return Forced(probe, RealtimePointerOwner.Fatal, "FATAL", ordered, worldIds);
-        }
-        if (probe.BlockingModalHit)
-        {
-            return Forced(
-                probe,
-                RealtimePointerOwner.BlockingModal,
-                "BLOCKING_MODAL",
-                ordered,
-                worldIds);
-        }
-        if (probe.HudHit)
-        {
-            return Forced(probe, RealtimePointerOwner.Hud, "HUD", ordered, worldIds);
-        }
-        RealtimeMapCandidate? resolved = ordered.FirstOrDefault();
-        return resolved is null
-            ? RealtimePointerResolution.Empty(probe.Id)
-            : new RealtimePointerResolution(
-                probe.Id,
-                resolved.Owner,
-                resolved.Id,
-                Array.AsReadOnly(ordered),
-                Array.AsReadOnly(worldIds));
-    }
-
-    private static RealtimePointerResolution Forced(
-        RealtimePointerProbe probe,
-        RealtimePointerOwner owner,
-        string id,
-        IReadOnlyList<RealtimeMapCandidate> ordered,
-        IReadOnlyList<string> worldIds) => new(
-        probe.Id,
-        owner,
-        id,
-        ordered,
-        worldIds);
-
-    private static int Priority(RealtimePointerOwner owner) => owner switch
-    {
-        RealtimePointerOwner.Fatal => (int)RealtimeInputPriority.Fatal,
-        RealtimePointerOwner.BlockingModal => (int)RealtimeInputPriority.BlockingModal,
-        RealtimePointerOwner.Hud => (int)RealtimeInputPriority.Hud,
-        RealtimePointerOwner.DraftHandle => (int)RealtimeInputPriority.DraftHandle,
-        RealtimePointerOwner.SelectionAction => (int)RealtimeInputPriority.SelectionAction,
-        RealtimePointerOwner.WorldCandidate => (int)RealtimeInputPriority.WorldCandidate,
-        RealtimePointerOwner.EmptyTerrain => (int)RealtimeInputPriority.EmptyTerrain,
-        _ => throw new ArgumentOutOfRangeException(nameof(owner)),
-    };
-}
-
 /// <summary>
 /// R2-only code-native map. It deliberately renders geometry and typed state without using
-/// production artwork; the R1 simulation snapshot remains its sole world authority.
+/// production artwork. It consumes the same renderer-neutral contract as a future asset view.
 /// </summary>
-internal sealed partial class RealtimePlaceholderMap : Control
+internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldView
 {
     private static readonly Color Ground = Color.FromHtml("26342e");
     private static readonly Color Grid = Color.FromHtml("34463d");
@@ -274,7 +34,9 @@ internal sealed partial class RealtimePlaceholderMap : Control
     private static readonly Color Candidate = Color.FromHtml("f4d58a");
     private static readonly Color Text = Color.FromHtml("eef5f0");
 
-    private RealtimeSlicePresentation? _presentation;
+    private RealtimeWorldPresentation? _presentation;
+    private RealtimeWorldPointerFeedback _pointerFeedback =
+        RealtimeWorldPointerFeedback.Empty;
     private CommercialMapTransform? _transform;
     private CoreMapPoint? _pointer;
     private IReadOnlyList<string> _candidateCycle = Array.Empty<string>();
@@ -295,13 +57,14 @@ internal sealed partial class RealtimePlaceholderMap : Control
     private bool _drawnAnalysisOverlay;
 #endif
 
-    internal event Action<RealtimePointerResolution, CoreMapPoint>? PrimaryRequested;
-    internal event Action<RealtimePointerResolution, CoreMapPoint>? PointerMoved;
-    internal event Action? CancelRequested;
+    public event Action<RealtimePointerResolution, CoreMapPoint>? PrimaryRequested;
+    public event Action<RealtimePointerResolution, CoreMapPoint>? PointerMoved;
+    public event Action? CancelRequested;
 
     internal string ZoomLabel => _transform?.ZoomLabel ?? "지역 보기";
-    internal Vector2 CameraCenter => _transform?.Center ?? Vector2.Zero;
-    internal bool IsPanning => _panning;
+    public Vector2 CameraCenter => _transform?.Center ?? Vector2.Zero;
+    public bool IsPanning => _panning;
+    public Rect2 InteractionRect => new(Position, Size);
 
     internal int LabelFontSize => Math.Max(1, Mathf.RoundToInt(12f * _accessibilityScale));
 
@@ -315,7 +78,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
     private string ActiveCandidateVisibleLabel =>
         ActiveCandidateId is string candidateId && _presentation is not null
             ? $"후보 {_candidateIndex + 1}/{_candidateCycle.Count} · " +
-              CandidateDisplayName(_presentation.World, candidateId)
+              CandidateDisplayName(_presentation, candidateId)
             : string.Empty;
 
     public override void _Ready()
@@ -329,14 +92,22 @@ internal sealed partial class RealtimePlaceholderMap : Control
         Resized += ConfigureTransform;
     }
 
-    internal void SetPresentation(RealtimeSlicePresentation presentation)
+    public void SetPresentation(RealtimeWorldPresentation presentation)
     {
         ArgumentNullException.ThrowIfNull(presentation);
         _presentation = presentation;
         ConfigureTransform();
         EnsureKeyboardCursor();
         FollowSelection();
-        _ = RefreshPointerResolution("MAP_PRESENTATION_REFRESH");
+        _ = RefreshPointerResolution(RealtimeWorldProbeIds.PresentationRefresh);
+        UpdateAccessibility();
+        QueueRedraw();
+    }
+
+    public void SetPointerFeedback(RealtimeWorldPointerFeedback feedback)
+    {
+        ArgumentNullException.ThrowIfNull(feedback);
+        _pointerFeedback = feedback;
         UpdateAccessibility();
         QueueRedraw();
     }
@@ -345,18 +116,31 @@ internal sealed partial class RealtimePlaceholderMap : Control
     {
         _accessibilityScale = Math.Max(1f, profile.AccessibilityScale);
         _minimumPointerHitRadius = Math.Max(20f, profile.MinimumHitTarget / 2f);
-        _ = RefreshPointerResolution("MAP_LAYOUT_REFRESH");
+        _ = RefreshPointerResolution(RealtimeWorldProbeIds.LayoutRefresh);
         QueueRedraw();
     }
 
-    internal void CycleCandidate(int delta)
+    public void SetInteractionRect(Rect2 rect, RealtimeLayoutProfile profile)
+    {
+        AnchorLeft = 0;
+        AnchorTop = 0;
+        AnchorRight = 0;
+        AnchorBottom = 0;
+        Position = rect.Position;
+        Size = rect.Size;
+        ApplyLayout(profile);
+    }
+
+    public void RequestFocus() => GrabFocus();
+
+    public void CycleCandidate(int delta)
     {
         if (delta == 0 || !_hasCanvasPointer || _transform is null)
         {
             return;
         }
         RealtimePointerResolution? resolution = RefreshPointerResolution(
-            "MAP_KEYBOARD_CHOOSER");
+            RealtimeWorldProbeIds.KeyboardChooser);
         // Selection actions and draft handles own the point above any world
         // candidates underneath them. Q/E must not announce or cycle an
         // obscured candidate that Enter cannot actually activate.
@@ -373,37 +157,37 @@ internal sealed partial class RealtimePlaceholderMap : Control
         QueueRedraw();
     }
 
-    internal void BeginPan()
+    public void BeginPan()
     {
         _panning = true;
         MouseDefaultCursorShape = CursorShape.Drag;
     }
 
-    internal void EndPan()
+    public void EndPan()
     {
         _panning = false;
         MouseDefaultCursorShape = CursorShape.Arrow;
     }
 
-    internal void ConfirmCurrentCandidate()
+    public void ConfirmCurrentCandidate()
     {
         if (_presentation is null || _transform is null || !_hasCanvasPointer)
         {
             return;
         }
         RealtimePointerResolution? resolution = RefreshPointerResolution(
-            "MAP_KEYBOARD_CONFIRM");
+            RealtimeWorldProbeIds.KeyboardConfirm);
         if (resolution is not null && _pointer is CoreMapPoint point)
         {
             PrimaryRequested?.Invoke(resolution, point);
         }
     }
 
-    internal RealtimeMapCameraSnapshot CaptureCamera() => new(
+    public RealtimeMapCameraSnapshot CaptureCamera() => new(
         _transform?.Center ?? Vector2.Zero,
         _transform?.ZoomIndex ?? 0);
 
-    internal void RestoreCamera(RealtimeMapCameraSnapshot camera)
+    public void RestoreCamera(RealtimeMapCameraSnapshot camera)
     {
         if (_transform is null)
         {
@@ -415,7 +199,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         _transform.PanByCanvasDelta(
             new Vector2(current.X - camera.Center.X, current.Y - camera.Center.Y) *
             (float)_transform.Scale);
-        _ = RefreshPointerResolution("MAP_CAMERA_RESTORE");
+        _ = RefreshPointerResolution(RealtimeWorldProbeIds.CameraRestore);
         QueueRedraw();
     }
 
@@ -436,7 +220,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
                 _lastCanvasPointer = motion.Position;
                 _pointer = ToWorld(motion.Position);
                 RealtimePointerResolution panResolution = ResolveCanvasPoint(
-                    "MAP_HOVER",
+                    RealtimeWorldProbeIds.Hover,
                     motion.Position,
                     _pointer.Value);
                 PointerMoved?.Invoke(panResolution, _pointer.Value);
@@ -449,7 +233,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
                 _lastCanvasPointer = motion.Position;
                 _pointer = ToWorld(motion.Position);
                 RealtimePointerResolution hoverResolution = ResolveCanvasPoint(
-                    "MAP_HOVER",
+                    RealtimeWorldProbeIds.Hover,
                     motion.Position,
                     _pointer.Value);
                 PointerMoved?.Invoke(hoverResolution, _pointer.Value);
@@ -463,7 +247,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
                 _lastCanvasPointer = mouse.Position;
                 _hasCanvasPointer = true;
                 RealtimePointerResolution resolution = ResolveCanvasPoint(
-                    "MAP_PRIMARY",
+                    RealtimeWorldProbeIds.Primary,
                     mouse.Position,
                     worldPoint);
                 PrimaryRequested?.Invoke(resolution, worldPoint);
@@ -477,14 +261,14 @@ internal sealed partial class RealtimePlaceholderMap : Control
             case InputEventMouseButton mouse when mouse.ButtonIndex == MouseButton.WheelUp &&
                 mouse.Pressed:
                 _transform.SetZoomAt(_transform.ZoomIndex + 1, mouse.Position);
-                _ = RefreshPointerResolution("MAP_ZOOM_REFRESH");
+                _ = RefreshPointerResolution(RealtimeWorldProbeIds.ZoomRefresh);
                 QueueRedraw();
                 AcceptEvent();
                 break;
             case InputEventMouseButton mouse when mouse.ButtonIndex == MouseButton.WheelDown &&
                 mouse.Pressed:
                 _transform.SetZoomAt(_transform.ZoomIndex - 1, mouse.Position);
-                _ = RefreshPointerResolution("MAP_ZOOM_REFRESH");
+                _ = RefreshPointerResolution(RealtimeWorldProbeIds.ZoomRefresh);
                 QueueRedraw();
                 AcceptEvent();
                 break;
@@ -510,19 +294,19 @@ internal sealed partial class RealtimePlaceholderMap : Control
         {
             return;
         }
-        if (_presentation.World.AnalysisVisible)
+        if (_presentation.AnalysisVisible)
         {
 #if DEBUG
             _drawnAnalysisOverlay = true;
 #endif
-            DrawRiskAreas(_presentation.World);
+            DrawRiskAreas(_presentation);
         }
-        DrawEdges(_presentation.World);
-        DrawNodes(_presentation.World);
-        DrawActiveCandidate(_presentation.World);
-        DrawSelectionAction(_presentation.World);
+        DrawEdges(_presentation);
+        DrawNodes(_presentation);
+        DrawActiveCandidate(_presentation);
+        DrawSelectionAction(_presentation);
         DrawDraft(_presentation);
-        DrawPointer(_presentation.World);
+        DrawPointer(_presentation);
     }
 
     internal RealtimePointerResolution ResolveWorldProbe(RealtimePointerProbe probe) =>
@@ -540,11 +324,11 @@ internal sealed partial class RealtimePlaceholderMap : Control
                 probeId,
                 worldPoint,
                 Array.AsReadOnly(candidates),
-                BlockingModalHit: _presentation!.Interaction.Surface ==
+                BlockingModalHit: _presentation!.Surface ==
                     RealtimeSurface.BlockingModal,
-                OverlayVisible: _presentation.World.AnalysisVisible,
-                WeatherVisible: _presentation.World.Weather != RealtimePlaceholderWeather.Clear));
-        bool candidateIdIsConfirmable = _presentation!.Interaction.Tool is
+                OverlayVisible: _presentation.AnalysisVisible,
+                WeatherVisible: _presentation.Weather != RealtimeWorldWeather.Clear));
+        bool candidateIdIsConfirmable = _presentation!.Tool is
             RealtimeTool.Inspect or RealtimeTool.Analysis or RealtimeTool.BuildLine;
         if (resolution.OrderedWorldCandidateIds.Count == 0 ||
             resolution.Owner != RealtimePointerOwner.WorldCandidate ||
@@ -604,9 +388,10 @@ internal sealed partial class RealtimePlaceholderMap : Control
 
     private IEnumerable<RealtimeMapCandidate> Candidates(Vector2 canvasPoint)
     {
-        RealtimeCampaignSnapshot snapshot = _presentation!.CoreSnapshot;
-        if (!_presentation.World.PlacementMode &&
-            SelectionActionPoint(_presentation.World) is
+        RealtimeWorldPresentation presentation = _presentation ??
+            throw new InvalidOperationException("World presentation is not ready.");
+        if (!presentation.PlacementMode &&
+            SelectionActionPoint(presentation) is
             (string selectedAssetId, Vector2 actionPoint))
         {
             double actionDistance = actionPoint.DistanceSquaredTo(canvasPoint);
@@ -616,28 +401,28 @@ internal sealed partial class RealtimePlaceholderMap : Control
             if (actionDistance <= actionRadius * actionRadius)
             {
                 yield return new RealtimeMapCandidate(
-                    $"ACTION:INSPECT:{selectedAssetId}",
+                    RealtimeWorldIds.SelectionAction(selectedAssetId),
                     RealtimeMapCandidateKind.SelectionAction,
                     RealtimePointerOwner.SelectionAction,
                     actionDistance);
             }
         }
-        foreach ((CoreMapPoint point, string id) in DraftHandles(snapshot))
+        foreach (RealtimeWorldDraftHandle handle in presentation.Draft.Handles)
         {
-            double distance = Point(point).DistanceSquaredTo(canvasPoint);
+            double distance = Point(handle.Point).DistanceSquaredTo(canvasPoint);
             double hitRadius = Math.Max(
                 24f * _accessibilityScale,
                 _minimumPointerHitRadius);
             if (distance <= hitRadius * hitRadius)
             {
                 yield return new RealtimeMapCandidate(
-                    id,
+                    handle.Id,
                     RealtimeMapCandidateKind.DraftHandle,
                     RealtimePointerOwner.DraftHandle,
                     distance);
             }
         }
-        foreach (SpatialNodeDefinition node in snapshot.Construction.World.Nodes)
+        foreach (SpatialNodeDefinition node in presentation.World.Nodes)
         {
             double distance = Point(node.Position).DistanceSquaredTo(canvasPoint);
             double hitRadius = Math.Max(
@@ -652,11 +437,11 @@ internal sealed partial class RealtimePlaceholderMap : Control
                     distance);
             }
         }
-        foreach (SpatialEdgeDefinition edge in snapshot.Construction.World.Edges)
+        foreach (SpatialEdgeDefinition edge in presentation.World.Edges)
         {
-            SpatialNodeDefinition from = snapshot.Construction.World.Nodes.Single(item =>
+            SpatialNodeDefinition from = presentation.World.Nodes.Single(item =>
                 string.Equals(item.NodeId, edge.FromNodeId, StringComparison.Ordinal));
-            SpatialNodeDefinition to = snapshot.Construction.World.Nodes.Single(item =>
+            SpatialNodeDefinition to = presentation.World.Nodes.Single(item =>
                 string.Equals(item.NodeId, edge.ToNodeId, StringComparison.Ordinal));
             double distance = SegmentDistanceSquared(
                 canvasPoint,
@@ -689,7 +474,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         }
     }
 
-    private void DrawRiskAreas(RealtimePlaceholderMapPresentation presentation)
+    private void DrawRiskAreas(RealtimeWorldPresentation presentation)
     {
         HashSet<string> active = presentation.ActiveRiskAreaIds.ToHashSet(StringComparer.Ordinal);
         foreach (SpatialRiskAreaDefinition risk in presentation.World.RiskAreas.Where(item =>
@@ -708,7 +493,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         }
     }
 
-    private void DrawEdges(RealtimePlaceholderMapPresentation presentation)
+    private void DrawEdges(RealtimeWorldPresentation presentation)
     {
         HashSet<string> highlighted =
             presentation.Highlight?.EdgeIds.ToHashSet(StringComparer.Ordinal) ?? [];
@@ -720,7 +505,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
                 string.Equals(item.NodeId, edge.FromNodeId, StringComparison.Ordinal));
             SpatialNodeDefinition to = presentation.World.Nodes.Single(item =>
                 string.Equals(item.NodeId, edge.ToNodeId, StringComparison.Ordinal));
-            RealtimePlaceholderAssetStatus? status = Status(presentation, edge.EdgeId);
+            RealtimeWorldAssetStatus? status = Status(presentation, edge.EdgeId);
             bool selected = string.Equals(
                 presentation.SelectedAssetId,
                 edge.EdgeId,
@@ -746,7 +531,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         }
     }
 
-    private void DrawNodes(RealtimePlaceholderMapPresentation presentation)
+    private void DrawNodes(RealtimeWorldPresentation presentation)
     {
         HashSet<string> highlighted =
             presentation.Highlight?.NodeIds.ToHashSet(StringComparer.Ordinal) ?? [];
@@ -754,7 +539,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
                      item.NodeId,
                      StringComparer.Ordinal))
         {
-            RealtimePlaceholderAssetStatus? status = Status(presentation, node.NodeId);
+            RealtimeWorldAssetStatus? status = Status(presentation, node.NodeId);
             bool selected = string.Equals(
                 presentation.SelectedAssetId,
                 node.NodeId,
@@ -789,7 +574,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         }
     }
 
-    private void DrawActiveCandidate(RealtimePlaceholderMapPresentation presentation)
+    private void DrawActiveCandidate(RealtimeWorldPresentation presentation)
     {
         if (ActiveCandidateId is not string candidateId)
         {
@@ -887,7 +672,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
             Text);
     }
 
-    private void DrawSelectionAction(RealtimePlaceholderMapPresentation presentation)
+    private void DrawSelectionAction(RealtimeWorldPresentation presentation)
     {
         if (presentation.PlacementMode ||
             SelectionActionPoint(presentation) is not (_, Vector2 point))
@@ -908,7 +693,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
     }
 
     private (string AssetId, Vector2 Point)? SelectionActionPoint(
-        RealtimePlaceholderMapPresentation presentation)
+        RealtimeWorldPresentation presentation)
     {
         if (presentation.PlacementMode ||
             presentation.SelectedAssetId is not string selectedId ||
@@ -955,25 +740,14 @@ internal sealed partial class RealtimePlaceholderMap : Control
             Math.Clamp(point.Y, margin, Math.Max(margin, Size.Y - margin)));
     }
 
-    private void DrawDraft(RealtimeSlicePresentation presentation)
+    private void DrawDraft(RealtimeWorldPresentation presentation)
     {
-        LineDraftSnapshot? draft = presentation.CoreSnapshot.Construction.LineDraft;
-        if (draft is null)
+        if (presentation.Draft.LinePath.Count == 0)
         {
             return;
         }
-        var points = new List<Vector2>
-        {
-            Point(presentation.World.World.Nodes.Single(item =>
-                string.Equals(item.NodeId, draft.StartNodeId, StringComparison.Ordinal)).Position),
-        };
-        points.AddRange(draft.IntermediatePoints.Select(Point));
-        if (draft.EndNodeId is not null)
-        {
-            points.Add(Point(presentation.World.World.Nodes.Single(item =>
-                string.Equals(item.NodeId, draft.EndNodeId, StringComparison.Ordinal)).Position));
-        }
-        else if (_pointer is CoreMapPoint pointer)
+        var points = presentation.Draft.LinePath.Select(Point).ToList();
+        if (presentation.Draft.ExtendLineToPointer && _pointer is CoreMapPoint pointer)
         {
             points.Add(Point(pointer));
         }
@@ -994,16 +768,16 @@ internal sealed partial class RealtimePlaceholderMap : Control
         }
     }
 
-    private void DrawPointer(RealtimePlaceholderMapPresentation presentation)
+    private void DrawPointer(RealtimeWorldPresentation presentation)
     {
-        CoreMapPoint? pointer = presentation.PointerPoint ?? _pointer;
+        CoreMapPoint? pointer = _pointerFeedback.Point ?? _pointer;
         if (pointer is not CoreMapPoint value ||
             !presentation.PlacementMode && !HasFocus())
         {
             return;
         }
         Vector2 center = Point(value);
-        Color color = presentation.PlacementMode && !presentation.PointerAccepted
+        Color color = presentation.PlacementMode && !_pointerFeedback.Accepted
             ? Danger
             : Selected;
         float radius = (presentation.PlacementMode ? 12f : 8f) * _accessibilityScale;
@@ -1038,7 +812,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         string assetId,
         Vector2 from,
         Vector2 to,
-        RealtimePlaceholderAssetState? state)
+        RealtimeWorldAssetState? state)
     {
         Vector2 axis = to - from;
         if (axis.LengthSquared() <= 0.001f)
@@ -1082,7 +856,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         string assetId,
         Vector2 center,
         float radius,
-        RealtimePlaceholderAssetState? state)
+        RealtimeWorldAssetState? state)
     {
         float scale = _accessibilityScale;
         Vector2 cueCenter = center + Vector2.Up * (radius + 7f * scale);
@@ -1145,30 +919,13 @@ internal sealed partial class RealtimePlaceholderMap : Control
             2f * _accessibilityScale, true);
     }
 
-    private IEnumerable<(CoreMapPoint Point, string Id)> DraftHandles(
-        RealtimeCampaignSnapshot snapshot)
-    {
-        if (snapshot.Construction.NodeDraft is NodeDraftSnapshot node)
-        {
-            yield return (node.Position, "DRAFT_NODE");
-        }
-        if (snapshot.Construction.LineDraft is not LineDraftSnapshot line)
-        {
-            yield break;
-        }
-        for (int index = 0; index < line.IntermediatePoints.Count; index++)
-        {
-            yield return (line.IntermediatePoints[index], $"DRAFT_POINT:{index}");
-        }
-    }
-
     private void ConfigureTransform()
     {
         if (_presentation is null || Size.X <= 0 || Size.Y <= 0)
         {
             return;
         }
-        MapBounds bounds = _presentation.World.World.Bounds;
+        MapBounds bounds = _presentation.World.Bounds;
         var mapBounds = new CommercialMapBounds(
             bounds.MinXUnit,
             bounds.MaxXUnit,
@@ -1182,7 +939,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         {
             _transform.Configure(mapBounds, Size);
         }
-        _ = RefreshPointerResolution("MAP_TRANSFORM_REFRESH");
+        _ = RefreshPointerResolution(RealtimeWorldProbeIds.TransformRefresh);
         QueueRedraw();
     }
 
@@ -1192,8 +949,8 @@ internal sealed partial class RealtimePlaceholderMap : Control
         {
             return;
         }
-        CoreMapPoint? target = SelectionTarget(_presentation.World) ??
-            _presentation.World.World.Nodes
+        CoreMapPoint? target = SelectionTarget(_presentation) ??
+            _presentation.World.Nodes
                 .Where(item => item.Commissioned)
                 .OrderBy(item => item.NodeId, StringComparer.Ordinal)
                 .Select(item => (CoreMapPoint?)item.Position)
@@ -1206,7 +963,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         _lastCanvasPointer = Point(target.Value);
         _hasCanvasPointer = true;
         _ = ResolveCanvasPoint(
-            "MAP_KEYBOARD_DEFAULT",
+            RealtimeWorldProbeIds.KeyboardDefault,
             _lastCanvasPointer,
             target.Value);
     }
@@ -1215,13 +972,13 @@ internal sealed partial class RealtimePlaceholderMap : Control
     {
         if (_presentation is null || _transform is null || string.Equals(
                 _lastFollowSelectionId,
-                _presentation.World.SelectedAssetId,
+                _presentation.SelectedAssetId,
                 StringComparison.Ordinal))
         {
             return;
         }
-        _lastFollowSelectionId = _presentation.World.SelectedAssetId;
-        CoreMapPoint? target = SelectionTarget(_presentation.World);
+        _lastFollowSelectionId = _presentation.SelectedAssetId;
+        CoreMapPoint? target = SelectionTarget(_presentation);
         if (target.HasValue)
         {
             _transform.Follow(target.Value.XUnit, target.Value.YUnit, 80f);
@@ -1229,14 +986,14 @@ internal sealed partial class RealtimePlaceholderMap : Control
             _lastCanvasPointer = Point(target.Value);
             _hasCanvasPointer = true;
             _ = ResolveCanvasPoint(
-                "MAP_SELECTION_TARGET",
+                RealtimeWorldProbeIds.SelectionTarget,
                 _lastCanvasPointer,
                 target.Value);
         }
     }
 
     private static CoreMapPoint? SelectionTarget(
-        RealtimePlaceholderMapPresentation presentation)
+        RealtimeWorldPresentation presentation)
     {
         string? selectedId = presentation.SelectedAssetId;
         SpatialNodeDefinition? node = presentation.World.Nodes.FirstOrDefault(item =>
@@ -1276,19 +1033,19 @@ internal sealed partial class RealtimePlaceholderMap : Control
         {
             return;
         }
-        string selection = _presentation.World.SelectedAssetId is string selected
-            ? $"선택 {CandidateDisplayName(_presentation.World, selected)}"
+        string selection = _presentation.SelectedAssetId is string selected
+            ? $"선택 {CandidateDisplayName(_presentation, selected)}"
             : "선택 없음";
         string candidate = _candidateCycle.Count == 0
             ? "후보 없음"
             : $"후보 {_candidateIndex + 1}/{_candidateCycle.Count} " +
               CandidateDisplayName(
-                  _presentation.World,
+                  _presentation,
                   _candidateCycle[_candidateIndex]);
-        string feedback = string.IsNullOrWhiteSpace(_presentation.World.PointerMessage)
+        string feedback = string.IsNullOrWhiteSpace(_pointerFeedback.Message)
             ? "배치 결과 없음"
-            : (_presentation.World.PointerAccepted ? "승인" : "거절") + " " +
-              _presentation.World.PointerMessage;
+            : (_pointerFeedback.Accepted ? "승인" : "거절") + " " +
+              _pointerFeedback.Message;
         AccessibilityName = Accessibility(_presentation);
         AccessibilityDescription =
             $"{selection}. {candidate}. {feedback}. " +
@@ -1317,19 +1074,19 @@ internal sealed partial class RealtimePlaceholderMap : Control
             _ => 9f,
         }) * _accessibilityScale;
 
-    private static RealtimePlaceholderAssetStatus? Status(
-        RealtimePlaceholderMapPresentation presentation,
+    private static RealtimeWorldAssetStatus? Status(
+        RealtimeWorldPresentation presentation,
         string id) => presentation.AssetStatuses.FirstOrDefault(item =>
         string.Equals(item.AssetId, id, StringComparison.Ordinal));
 
-    private static Color StateColor(RealtimePlaceholderAssetState? state) => state switch
+    private static Color StateColor(RealtimeWorldAssetState? state) => state switch
     {
-        RealtimePlaceholderAssetState.Planned or
-            RealtimePlaceholderAssetState.Building or
-            RealtimePlaceholderAssetState.AuthoredUnavailable => Planned,
-        RealtimePlaceholderAssetState.Emergency => Emergency,
-        RealtimePlaceholderAssetState.ProtectiveOutage => Outage,
-        RealtimePlaceholderAssetState.OverLimit => Danger,
+        RealtimeWorldAssetState.Planned or
+            RealtimeWorldAssetState.Building or
+            RealtimeWorldAssetState.AuthoredUnavailable => Planned,
+        RealtimeWorldAssetState.Emergency => Emergency,
+        RealtimeWorldAssetState.ProtectiveOutage => Outage,
+        RealtimeWorldAssetState.OverLimit => Danger,
         _ => Normal,
     };
 
@@ -1344,26 +1101,26 @@ internal sealed partial class RealtimePlaceholderMap : Control
         return point.DistanceSquaredTo(start + axis * t);
     }
 
-    private static string Accessibility(RealtimeSlicePresentation presentation)
+    private static string Accessibility(RealtimeWorldPresentation presentation)
     {
-        int emergency = presentation.World.AssetStatuses.Count(item =>
-            item.State == RealtimePlaceholderAssetState.Emergency);
-        int outage = presentation.World.AssetStatuses.Count(item =>
-            item.State == RealtimePlaceholderAssetState.ProtectiveOutage);
-        int authoredUnavailable = presentation.World.AssetStatuses.Count(item =>
+        int emergency = presentation.AssetStatuses.Count(item =>
+            item.State == RealtimeWorldAssetState.Emergency);
+        int outage = presentation.AssetStatuses.Count(item =>
+            item.State == RealtimeWorldAssetState.ProtectiveOutage);
+        int authoredUnavailable = presentation.AssetStatuses.Count(item =>
             item.AuthoredUnavailable);
-        int building = presentation.World.AssetStatuses.Count(item =>
-            item.State == RealtimePlaceholderAssetState.Building);
+        int building = presentation.AssetStatuses.Count(item =>
+            item.State == RealtimeWorldAssetState.Building);
         return $"청류시 실시간 전력망 · 후보는 거리와 안정된 순서로 정렬 · " +
                $"공사 중 {building}곳 · 계획 사용불가 {authoredUnavailable}곳 · " +
                $"비상 {emergency}곳 · 보호정지 {outage}곳";
     }
 
     private static string CandidateDisplayName(
-        RealtimePlaceholderMapPresentation presentation,
+        RealtimeWorldPresentation presentation,
         string id)
     {
-        if (id.StartsWith("DRAFT_POINT:", StringComparison.Ordinal))
+        if (RealtimeWorldIds.IsDraftPoint(id))
         {
             return "초안 경로점";
         }
@@ -1385,7 +1142,7 @@ internal sealed partial class RealtimePlaceholderMap : Control
         return "지도 후보";
     }
 
-    private static string StatusLabel(RealtimePlaceholderAssetStatus? status)
+    private static string StatusLabel(RealtimeWorldAssetStatus? status)
     {
         if (status is null)
         {
@@ -1397,20 +1154,20 @@ internal sealed partial class RealtimePlaceholderMap : Control
         }
         return status.State switch
         {
-            RealtimePlaceholderAssetState.Planned => "계획",
-            RealtimePlaceholderAssetState.Building => "공사 중",
-            RealtimePlaceholderAssetState.AuthoredUnavailable => "계획 사용불가",
-            RealtimePlaceholderAssetState.Emergency => "비상 운전",
-            RealtimePlaceholderAssetState.ProtectiveOutage => "보호정지",
-            RealtimePlaceholderAssetState.OverLimit => "한계 초과",
+            RealtimeWorldAssetState.Planned => "계획",
+            RealtimeWorldAssetState.Building => "공사 중",
+            RealtimeWorldAssetState.AuthoredUnavailable => "계획 사용불가",
+            RealtimeWorldAssetState.Emergency => "비상 운전",
+            RealtimeWorldAssetState.ProtectiveOutage => "보호정지",
+            RealtimeWorldAssetState.OverLimit => "한계 초과",
             _ => "정상",
         };
     }
 
-    private static string StatusLabel(RealtimePlaceholderAssetState? state) =>
+    private static string StatusLabel(RealtimeWorldAssetState? state) =>
         StatusLabel(state is null
             ? null
-            : new RealtimePlaceholderAssetStatus(
+            : new RealtimeWorldAssetStatus(
                 "STATUS_PREVIEW",
                 state.Value,
                 0,
@@ -1419,20 +1176,20 @@ internal sealed partial class RealtimePlaceholderMap : Control
                 0,
                 0,
                 AuthoredUnavailable:
-                    state == RealtimePlaceholderAssetState.AuthoredUnavailable,
+                    state == RealtimeWorldAssetState.AuthoredUnavailable,
                 ProtectiveOutage:
-                    state == RealtimePlaceholderAssetState.ProtectiveOutage));
+                    state == RealtimeWorldAssetState.ProtectiveOutage));
 
     private static RealtimePlaceholderStateCue StateCue(
-        RealtimePlaceholderAssetState? state) => state switch
+        RealtimeWorldAssetState? state) => state switch
     {
-        RealtimePlaceholderAssetState.AuthoredUnavailable =>
+        RealtimeWorldAssetState.AuthoredUnavailable =>
             RealtimePlaceholderStateCue.AuthoredUnavailableBars,
-        RealtimePlaceholderAssetState.Emergency =>
+        RealtimeWorldAssetState.Emergency =>
             RealtimePlaceholderStateCue.EmergencyTriangle,
-        RealtimePlaceholderAssetState.ProtectiveOutage =>
+        RealtimeWorldAssetState.ProtectiveOutage =>
             RealtimePlaceholderStateCue.ProtectiveOutageCross,
-        RealtimePlaceholderAssetState.OverLimit =>
+        RealtimeWorldAssetState.OverLimit =>
             RealtimePlaceholderStateCue.OverLimitDiamond,
         _ => RealtimePlaceholderStateCue.None,
     };

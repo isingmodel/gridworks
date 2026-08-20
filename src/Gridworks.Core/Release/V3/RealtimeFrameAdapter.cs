@@ -163,7 +163,7 @@ public sealed class RealtimeFrameAccumulator
             return NoCampaignAdvance(accruedWholeMinutes);
         }
 
-        long currentMinute = run.GetSnapshot().Minute;
+        long currentMinute = run.Minute;
         long targetMinute = checked(currentMinute + appliedMinutes);
         RealtimeAdvanceResult campaign = run.AdvanceTo(targetMinute);
 
@@ -236,42 +236,5 @@ public sealed class RealtimeFrameAccumulator
             throw new InvalidOperationException(
                 "The supported frame rate must divide the clock resolution exactly.");
         }
-    }
-}
-
-/// <summary>
-/// Compatibility facade for callers that already own an exact whole-minute frame
-/// interval. Irregular frame delivery should use <see cref="RealtimeFrameAccumulator"/>.
-/// </summary>
-public static class RealtimeFrameAdapter
-{
-    public static RealtimeAdvanceResult AdvanceExactFrames(
-        RealtimeCampaignRun run,
-        long frameCount,
-        int framesPerSecond,
-        int speedMultiplier)
-    {
-        ArgumentNullException.ThrowIfNull(run);
-        RealtimeFrameAccumulator.ValidateFrameInput(
-            frameCount,
-            framesPerSecond,
-            speedMultiplier);
-
-        int unitsPerFrame = checked(
-            RealtimeFrameAccumulator.UnitsPerMinute / framesPerSecond *
-            speedMultiplier);
-        Int128 scaledUnits = checked((Int128)frameCount * unitsPerFrame);
-        if (scaledUnits % RealtimeFrameAccumulator.UnitsPerMinute != 0)
-        {
-            throw new ArgumentException(
-                "The exact frame interval must resolve to a whole simulation minute.",
-                nameof(frameCount));
-        }
-        Int128 delta = scaledUnits / RealtimeFrameAccumulator.UnitsPerMinute;
-        if (delta > long.MaxValue)
-        {
-            throw new OverflowException("The frame interval exceeds the realtime clock range.");
-        }
-        return run.AdvanceTo(checked(run.GetSnapshot().Minute + (long)delta));
     }
 }

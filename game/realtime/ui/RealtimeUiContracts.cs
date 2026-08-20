@@ -149,12 +149,6 @@ internal enum RealtimeInputPriority
     Hud = 400,
     BlockingModal = 500,
     Fatal = 600,
-
-    // Compatibility aliases for the first layout harness. New reducers use the
-    // explicit hit-layer names above.
-    World = EmptyTerrain,
-    Construction = DraftHandle,
-    Surface = Hud,
 }
 
 internal enum RealtimeInputCommand

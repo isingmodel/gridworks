@@ -657,7 +657,7 @@ internal static class RealtimeR2Smoke
                           item.Commissioned))),
             "world presentation lost Core node/edge IDs, topology, order, or commissioning",
             failures);
-        RealtimePlaceholderAssetStatus[] statuses = presentation.World.AssetStatuses
+        RealtimeWorldAssetStatus[] statuses = presentation.World.AssetStatuses
             .OrderBy(item => item.AssetId, StringComparer.Ordinal)
             .ToArray();
         RealtimeThermalAssetSnapshot[] thermal = slice.CoreSnapshot.Thermal.Assets
@@ -1176,7 +1176,7 @@ internal static class RealtimeR2Smoke
                     exposure,
                     protection.EmergencyExposureLimitMinutes,
                     expectedSummary);
-                RealtimePlaceholderAssetStatus worldStatus =
+                RealtimeWorldAssetStatus worldStatus =
                     presentation.World.AssetStatuses.Single(item => string.Equals(
                         item.AssetId,
                         asset.AssetId,
@@ -1826,27 +1826,27 @@ internal static class RealtimeR2Smoke
             $"{label} lost {kind} for {boundary.AssetId}@{minute}", failures);
     }
 
-    private static RealtimePlaceholderAssetState ExpectedWorldState(
+    private static RealtimeWorldAssetState ExpectedWorldState(
         ThermalOperatingState state) => state switch
     {
-        ThermalOperatingState.Continuous => RealtimePlaceholderAssetState.Normal,
-        ThermalOperatingState.Emergency => RealtimePlaceholderAssetState.Emergency,
+        ThermalOperatingState.Continuous => RealtimeWorldAssetState.Normal,
+        ThermalOperatingState.Emergency => RealtimeWorldAssetState.Emergency,
         ThermalOperatingState.ProtectiveOutage =>
-            RealtimePlaceholderAssetState.ProtectiveOutage,
-        ThermalOperatingState.OverLimit => RealtimePlaceholderAssetState.OverLimit,
+            RealtimeWorldAssetState.ProtectiveOutage,
+        ThermalOperatingState.OverLimit => RealtimeWorldAssetState.OverLimit,
         _ => throw new ArgumentOutOfRangeException(nameof(state)),
     };
 
-    private static RealtimePlaceholderAssetState ExpectedWorldState(
+    private static RealtimeWorldAssetState ExpectedWorldState(
         bool commissioned,
         RealtimeThermalAssetSnapshot? thermal) => !commissioned
-            ? RealtimePlaceholderAssetState.Building
+            ? RealtimeWorldAssetState.Building
             : thermal is null
-                ? RealtimePlaceholderAssetState.Normal
+                ? RealtimeWorldAssetState.Normal
                 : thermal.ProtectiveOutage
-                    ? RealtimePlaceholderAssetState.ProtectiveOutage
+                    ? RealtimeWorldAssetState.ProtectiveOutage
                     : thermal.AuthoredUnavailable
-                        ? RealtimePlaceholderAssetState.AuthoredUnavailable
+                        ? RealtimeWorldAssetState.AuthoredUnavailable
                         : ExpectedWorldState(thermal.State);
 
     private static void RequireIntent(

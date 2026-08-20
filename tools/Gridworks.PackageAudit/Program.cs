@@ -826,6 +826,8 @@ static void RequireNoForbiddenGameMarkers(string assemblyPath)
             "Gridworks.Game.EmbeddedData.product-campaign-v1.json",
             "Gridworks.Game.EmbeddedData.product-heatwave-v1.json",
             "Gridworks.Game.EmbeddedData.commercial-free-placement-slice-v1.json",
+            "Gridworks.Game.Realtime.R2",
+            "Gridworks.Game.Realtime.UI",
             "get_SfxVoiceCount",
             "get_StoryContinueButton",
             "get_InfoViewportMinimumHeight",
@@ -968,6 +970,13 @@ static void RunNegativeProbes()
         ExpectInvalidData(
             () => RequireNoForbiddenGameMarkers(probePath),
             "ASCII PE smoke witness symbol");
+
+        File.WriteAllBytes(
+            probePath,
+            Encoding.ASCII.GetBytes("Gridworks.Game.Realtime.R2"));
+        ExpectInvalidData(
+            () => RequireNoForbiddenGameMarkers(probePath),
+            "ASCII PE realtime namespace marker");
 
         File.WriteAllBytes(probePath, Encoding.ASCII.GetBytes("DEBUG"));
         ExpectInvalidData(

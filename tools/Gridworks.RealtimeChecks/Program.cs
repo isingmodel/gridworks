@@ -9,14 +9,55 @@ namespace Gridworks.RealtimeChecks;
 
 internal static class Program
 {
+    private const string Usage =
+        "usage: Gridworks.RealtimeChecks [data-directory] [--suite <exact-name>]";
+
     public static int Main(string[] args)
     {
         try
         {
-            string dataDirectory = args.Length == 0
-                ? Path.Combine(Environment.CurrentDirectory, "data")
-                : Path.GetFullPath(args[0]);
-            return new Checks(dataDirectory).Run();
+            string repositoryDirectory = ResolveRepositoryDirectory();
+            string? dataArgument;
+            string? suiteName;
+            if (args.Length == 0)
+            {
+                dataArgument = null;
+                suiteName = null;
+            }
+            else if (args.Length == 1 && !args[0].StartsWith("--", StringComparison.Ordinal))
+            {
+                dataArgument = args[0];
+                suiteName = null;
+            }
+            else if (args.Length == 2 && args[0] == "--suite")
+            {
+                dataArgument = null;
+                suiteName = args[1];
+            }
+            else if (args.Length == 3 && args[1] == "--suite" &&
+                     !args[0].StartsWith("--", StringComparison.Ordinal))
+            {
+                dataArgument = args[0];
+                suiteName = args[2];
+            }
+            else
+            {
+                throw new ArgumentException(Usage);
+            }
+            if (suiteName is not null && string.IsNullOrWhiteSpace(suiteName))
+            {
+                throw new ArgumentException(Usage);
+            }
+
+            string dataDirectory = dataArgument is null
+                ? Path.Combine(repositoryDirectory, "data")
+                : Path.GetFullPath(dataArgument);
+            string fixtureDirectory = Path.Combine(
+                repositoryDirectory,
+                "tools",
+                "Gridworks.RealtimeChecks",
+                "Fixtures");
+            return new Checks(dataDirectory, fixtureDirectory).Run(suiteName);
         }
         catch (Exception exception)
         {
@@ -24,6 +65,27 @@ internal static class Program
             Console.Error.WriteLine(exception);
             return 1;
         }
+    }
+
+    private static string ResolveRepositoryDirectory()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+        while (directory is not null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "Directory.Build.props")) &&
+                Directory.Exists(Path.Combine(directory.FullName, "data")) &&
+                Directory.Exists(Path.Combine(
+                    directory.FullName,
+                    "tools",
+                    "Gridworks.RealtimeChecks",
+                    "Fixtures")))
+            {
+                return directory.FullName;
+            }
+            directory = directory.Parent;
+        }
+        throw new DirectoryNotFoundException(
+            "Gridworks repository root was not found from the realtime checker binary path.");
     }
 }
 
@@ -47,15 +109,10 @@ internal sealed class Checks
     private readonly string _campaignV3Json;
     private int _assertions;
 
-    public Checks(string dataDirectory)
+    public Checks(string dataDirectory, string fixtureDirectory)
     {
         string worldV2Path = Path.Combine(dataDirectory, "release-world-v2.json");
         string campaignV2Path = Path.Combine(dataDirectory, "release-campaign-v2.json");
-        string fixtureDirectory = Path.Combine(
-            Environment.CurrentDirectory,
-            "tools",
-            "Gridworks.RealtimeChecks",
-            "Fixtures");
         string worldV3Path = Path.Combine(
             fixtureDirectory,
             "stage-r1-world-realtime-v3.json");
@@ -74,7 +131,7 @@ internal sealed class Checks
         _campaign = RealtimeCampaignLoader.Load(campaignV3, _baseCampaign, _world);
     }
 
-    public int Run()
+    public int Run(string? suiteName = null)
     {
         (string Name, Action Body)[] suites =
         [
@@ -101,6 +158,19 @@ internal sealed class Checks
             ("substation-bottleneck-exposure-trip-recovery", () => Bottleneck(Archetype.Substation)),
             ("line-bottleneck-exposure-trip-recovery", () => Bottleneck(Archetype.Line)),
         ];
+        if (suiteName is not null)
+        {
+            int suiteIndex = Array.FindIndex(
+                suites,
+                suite => string.Equals(suite.Name, suiteName, StringComparison.Ordinal));
+            if (suiteIndex < 0)
+            {
+                throw new ArgumentException(
+                    $"Unknown realtime check suite '{suiteName}'. Available suites: " +
+                    string.Join(", ", suites.Select(suite => suite.Name)));
+            }
+            suites = [suites[suiteIndex]];
+        }
         var failures = new List<string>();
         foreach ((string name, Action body) in suites)
         {

@@ -15,7 +15,8 @@ internal sealed record RealtimeSlicePresentation(
     RealtimeForecastSnapshot BaseForecast,
     RealtimeComparisonDraftForecast ComparisonDraftForecast,
     RealtimeInteractionPresentation Interaction,
-    RealtimePlaceholderMapPresentation World,
+    RealtimeWorldPresentation World,
+    RealtimeWorldPointerFeedback Pointer,
     RealtimeTopHudPresentation Hud,
     RealtimeEventRailPresentation Rail,
     RealtimeContextDockPresentation Context,
@@ -119,10 +120,11 @@ internal static class RealtimeSlicePresenter
                 baseForecast,
                 comparisonDraftForecast,
                 interaction,
+                reduceMotion),
+            new RealtimeWorldPointerFeedback(
                 pointerPoint,
                 pointerAccepted,
-                pointerMessage,
-                reduceMotion),
+                pointerMessage),
             Hud(snapshot, interaction, pause),
             rail,
             Context(
@@ -147,6 +149,44 @@ internal static class RealtimeSlicePresenter
                 nodeOrderQuote,
                 lineOrderQuote),
             Modal(snapshot, interaction, pause));
+    }
+
+    /// <summary>
+    /// Projects pointer feedback from the last authoritative presentation. This path performs no
+    /// snapshot fetch or forecast calculation and only changes the world pointer, build guidance,
+    /// and action-dock DTOs that can visibly depend on hover feedback.
+    /// </summary>
+    internal static RealtimeSlicePresentation PresentPointerFeedback(
+        RealtimeSlicePresentation current,
+        RealtimeInteractionState interaction,
+        long revision,
+        RealtimeWorldPointerFeedback pointer,
+        RealtimeProjectQuote? nodeOrderQuote,
+        RealtimeProjectQuote? lineOrderQuote)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        ArgumentNullException.ThrowIfNull(interaction);
+        ArgumentNullException.ThrowIfNull(pointer);
+        return current with
+        {
+            Revision = revision,
+            Pointer = pointer,
+            BuildShelf = current.BuildShelf with
+            {
+                Guidance = BuildGuidance(
+                    current.CoreSnapshot,
+                    interaction,
+                    pointer.Accepted,
+                    pointer.Message),
+            },
+            ActionDock = ActionDock(
+                current.CoreSnapshot,
+                interaction,
+                pointer.Accepted,
+                pointer.Message,
+                nodeOrderQuote,
+                lineOrderQuote),
+        };
     }
 
     internal static RealtimeTimelineTarget ResolveTimelineTarget(
@@ -292,22 +332,19 @@ internal static class RealtimeSlicePresenter
             null);
     }
 
-    private static RealtimePlaceholderMapPresentation World(
+    private static RealtimeWorldPresentation World(
         CommercialWorldDefinition displayWorld,
         RealtimeCampaignSnapshot snapshot,
         RealtimeForecastSnapshot baseForecast,
         RealtimeComparisonDraftForecast comparisonDraftForecast,
         RealtimeInteractionState interaction,
-        CoreMapPoint? pointerPoint,
-        bool pointerAccepted,
-        string pointerMessage,
         bool reduceMotion)
     {
         IReadOnlyDictionary<string, RealtimeThermalAssetSnapshot> thermalById =
             snapshot.Thermal.Assets.ToDictionary(
                 item => item.AssetId,
                 StringComparer.Ordinal);
-        RealtimePlaceholderAssetStatus[] statuses = snapshot.Construction.World.Nodes
+        RealtimeWorldAssetStatus[] statuses = snapshot.Construction.World.Nodes
             .Select(item => WorldStatus(
                 item.NodeId,
                 item.Commissioned,
@@ -323,12 +360,10 @@ internal static class RealtimeSlicePresenter
             .Distinct(StringComparer.Ordinal)
             .OrderBy(item => item, StringComparer.Ordinal)
             .ToArray();
-        return new RealtimePlaceholderMapPresentation(
+        return new RealtimeWorldPresentation(
             snapshot.Construction.World,
             Array.AsReadOnly(statuses),
-            pointerPoint,
-            pointerAccepted,
-            pointerMessage,
+            Draft(snapshot.Construction),
             !snapshot.CampaignComplete &&
                 interaction.Simulation != RealtimeSimulationState.Ended &&
                 (interaction.Tool is RealtimeTool.BuildNode or
@@ -349,7 +384,55 @@ internal static class RealtimeSlicePresenter
                 baseForecast,
                 comparisonDraftForecast,
                 interaction.SelectionId),
-            reduceMotion);
+            reduceMotion,
+            interaction.Tool,
+            interaction.Surface);
+    }
+
+    private static RealtimeWorldDraftPresentation Draft(ConstructionSnapshot construction)
+    {
+        var handles = new List<RealtimeWorldDraftHandle>();
+        if (construction.NodeDraft is NodeDraftSnapshot nodeDraft)
+        {
+            handles.Add(new RealtimeWorldDraftHandle(
+                RealtimeWorldIds.DraftNode,
+                nodeDraft.Position));
+        }
+
+        var linePath = new List<CoreMapPoint>();
+        bool extendLineToPointer = false;
+        if (construction.LineDraft is LineDraftSnapshot lineDraft)
+        {
+            SpatialNodeDefinition start = construction.World.Nodes.Single(item =>
+                string.Equals(
+                    item.NodeId,
+                    lineDraft.StartNodeId,
+                    StringComparison.Ordinal));
+            linePath.Add(start.Position);
+            for (int index = 0; index < lineDraft.IntermediatePoints.Count; index++)
+            {
+                CoreMapPoint point = lineDraft.IntermediatePoints[index];
+                linePath.Add(point);
+                handles.Add(new RealtimeWorldDraftHandle(
+                    RealtimeWorldIds.DraftPoint(index),
+                    point));
+            }
+            if (lineDraft.EndNodeId is string endNodeId)
+            {
+                linePath.Add(construction.World.Nodes.Single(item => string.Equals(
+                    item.NodeId,
+                    endNodeId,
+                    StringComparison.Ordinal)).Position);
+            }
+            else
+            {
+                extendLineToPointer = true;
+            }
+        }
+        return new RealtimeWorldDraftPresentation(
+            Array.AsReadOnly(handles.ToArray()),
+            Array.AsReadOnly(linePath.ToArray()),
+            extendLineToPointer);
     }
 
     private static RealtimeTopHudPresentation Hud(
@@ -1364,7 +1447,7 @@ internal static class RealtimeSlicePresenter
                   Time(next.StartMinute));
     }
 
-    private static RealtimePlaceholderHighlight? Highlight(
+    private static RealtimeWorldHighlight? Highlight(
         CommercialWorldDefinition displayWorld,
         RealtimeCampaignSnapshot snapshot,
         RealtimeForecastSnapshot baseForecast,
@@ -1378,7 +1461,7 @@ internal static class RealtimeSlicePresenter
         if (string.Equals(selectedId, "ACTIVE_CONSTRUCTION", StringComparison.Ordinal) &&
             snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot project)
         {
-            return new RealtimePlaceholderHighlight(
+            return new RealtimeWorldHighlight(
                 project.NodeIds,
                 project.EdgeIds,
                 null,
@@ -1463,7 +1546,7 @@ internal static class RealtimeSlicePresenter
                 : Array.Empty<string>())
             .Distinct(StringComparer.Ordinal)
             .ToArray();
-        return new RealtimePlaceholderHighlight(
+        return new RealtimeWorldHighlight(
             Array.AsReadOnly(nodeIds),
             Array.AsReadOnly(edgeIds),
             route.Failure?.AssetId ??
@@ -1491,32 +1574,32 @@ internal static class RealtimeSlicePresenter
             : RealtimeReliabilityState.Stable;
     }
 
-    private static RealtimePlaceholderAssetState WorldState(ThermalOperatingState state) =>
+    private static RealtimeWorldAssetState WorldState(ThermalOperatingState state) =>
         state switch
     {
-        ThermalOperatingState.Continuous => RealtimePlaceholderAssetState.Normal,
-        ThermalOperatingState.Emergency => RealtimePlaceholderAssetState.Emergency,
+        ThermalOperatingState.Continuous => RealtimeWorldAssetState.Normal,
+        ThermalOperatingState.Emergency => RealtimeWorldAssetState.Emergency,
         ThermalOperatingState.ProtectiveOutage =>
-            RealtimePlaceholderAssetState.ProtectiveOutage,
-        ThermalOperatingState.OverLimit => RealtimePlaceholderAssetState.OverLimit,
+            RealtimeWorldAssetState.ProtectiveOutage,
+        ThermalOperatingState.OverLimit => RealtimeWorldAssetState.OverLimit,
         _ => throw new ArgumentOutOfRangeException(nameof(state)),
     };
 
-    private static RealtimePlaceholderAssetStatus WorldStatus(
+    private static RealtimeWorldAssetStatus WorldStatus(
         string assetId,
         bool commissioned,
         RealtimeThermalAssetSnapshot? thermal)
     {
-        RealtimePlaceholderAssetState state = !commissioned
-            ? RealtimePlaceholderAssetState.Building
+        RealtimeWorldAssetState state = !commissioned
+            ? RealtimeWorldAssetState.Building
             : thermal is null
-                ? RealtimePlaceholderAssetState.Normal
+                ? RealtimeWorldAssetState.Normal
                 : thermal.ProtectiveOutage
-                    ? RealtimePlaceholderAssetState.ProtectiveOutage
+                    ? RealtimeWorldAssetState.ProtectiveOutage
                     : thermal.AuthoredUnavailable
-                        ? RealtimePlaceholderAssetState.AuthoredUnavailable
+                        ? RealtimeWorldAssetState.AuthoredUnavailable
                         : WorldState(thermal.State);
-        return new RealtimePlaceholderAssetStatus(
+        return new RealtimeWorldAssetStatus(
             assetId,
             state,
             thermal?.UsedKw ?? 0,
@@ -1528,11 +1611,11 @@ internal static class RealtimeSlicePresenter
             thermal?.ProtectiveOutage ?? false);
     }
 
-    private static RealtimePlaceholderWeather Weather(RealtimeCampaignSnapshot snapshot) =>
+    private static RealtimeWorldWeather Weather(RealtimeCampaignSnapshot snapshot) =>
         snapshot.ActiveEventStates.Any(item =>
             item.Event.OperatingProfile.ActiveRiskAreaIds.Count > 0)
-            ? RealtimePlaceholderWeather.Storm
-            : RealtimePlaceholderWeather.Clear;
+            ? RealtimeWorldWeather.Storm
+            : RealtimeWorldWeather.Clear;
 
     private static string EventDescription(RealtimeForecastEvent item, string eventName)
     {

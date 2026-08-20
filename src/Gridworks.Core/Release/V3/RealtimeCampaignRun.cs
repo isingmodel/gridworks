@@ -21,6 +21,9 @@ public sealed class RealtimeCampaignRun
     private readonly HashSet<string> _revealedEventKeys = new(StringComparer.Ordinal);
     private readonly HashSet<int> _activeEventIndexes = [];
     private readonly Dictionary<int, RealtimeEventDutyAccumulator> _activeDuties = [];
+    private readonly Dictionary<long, RealtimeForecastSnapshot> _forecastCache = [];
+    private readonly Dictionary<long, RealtimeComparisonDraftForecast>
+        _comparisonForecastCache = [];
     private RealtimeConstructionSession _construction;
     private RealtimeThermalSession _thermal;
     private long _minute;
@@ -66,6 +69,12 @@ public sealed class RealtimeCampaignRun
     public IReadOnlyList<TimedRealtimeCommand> AcceptedCommands =>
         Array.AsReadOnly(_commands.ToArray());
 
+    /// <summary>
+    /// Current authoritative campaign minute. Hosts that only need to advance the clock
+    /// should use this value instead of constructing the full snapshot and its forecast.
+    /// </summary>
+    public long Minute => _minute;
+
     public string GetCanonicalStateSha256() =>
         RealtimeStateCanonicalizer.Sha256(GetSnapshot());
 
@@ -92,12 +101,32 @@ public sealed class RealtimeCampaignRun
         _stateAuthority);
 
     public RealtimeForecastSnapshot GetForecast(
-        long horizonMinutes = DefaultForecastHorizonMinutes) =>
-        GetForecastCore(horizonMinutes, null);
+        long horizonMinutes = DefaultForecastHorizonMinutes)
+    {
+        ValidateForecastHorizon(horizonMinutes);
+        if (_forecastCache.TryGetValue(
+                horizonMinutes,
+                out RealtimeForecastSnapshot? cached))
+        {
+            return cached;
+        }
+
+        RealtimeForecastSnapshot forecast = GetForecastCore(horizonMinutes, null);
+        CacheBounded(_forecastCache, horizonMinutes, forecast);
+        return forecast;
+    }
 
     public RealtimeComparisonDraftForecast GetComparisonDraftForecast(
         long horizonMinutes = DefaultForecastHorizonMinutes)
     {
+        ValidateForecastHorizon(horizonMinutes);
+        if (_comparisonForecastCache.TryGetValue(
+                horizonMinutes,
+                out RealtimeComparisonDraftForecast? cached))
+        {
+            return cached;
+        }
+
         ConstructionSnapshot snapshot = _construction.GetSnapshot();
         ConstructionKind? kind = snapshot.NodeDraft is not null
             ? ConstructionKind.Node
@@ -106,22 +135,20 @@ public sealed class RealtimeCampaignRun
                 : null;
         RealtimeConstructionSession? virtualConstruction =
             _construction.ForkWithComparisonDraftCommissioned();
-        return virtualConstruction is null
+        RealtimeComparisonDraftForecast forecast = virtualConstruction is null
             ? new RealtimeComparisonDraftForecast(false, kind, null)
             : new RealtimeComparisonDraftForecast(
                 true,
                 kind,
                 GetForecastCore(horizonMinutes, virtualConstruction));
+        CacheBounded(_comparisonForecastCache, horizonMinutes, forecast);
+        return forecast;
     }
 
     private RealtimeForecastSnapshot GetForecastCore(
         long horizonMinutes,
         RealtimeConstructionSession? constructionOverride)
     {
-        if (horizonMinutes < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(horizonMinutes));
-        }
         long horizonEnd = horizonMinutes > long.MaxValue - _minute
             ? long.MaxValue
             : _minute + horizonMinutes;
@@ -171,6 +198,8 @@ public sealed class RealtimeCampaignRun
                 "Realtime campaign time cannot move backward.");
         }
 
+        InvalidateForecastCaches();
+
         var transitions = DrainPendingPublicTransitions();
         ProcessCurrentMinute(transitions);
         while (_minute < targetMinute)
@@ -208,6 +237,10 @@ public sealed class RealtimeCampaignRun
         {
             return Rejected(RealtimeRunError.InvalidCommandShape);
         }
+
+        // Construction, promise, and thermal state can all affect both forecast kinds.
+        // Clear before dispatch because accepted helpers construct their result snapshot.
+        InvalidateForecastCaches();
 
         var transitions = new List<RealtimeTransition>();
         RealtimeCommandResult result = command.Kind switch
@@ -251,8 +284,6 @@ public sealed class RealtimeCampaignRun
 
     public RealtimeCommandResult ApplyCommand(RealtimeCommand command) =>
         ApplyCommand(_minute, _commands.Count + 1L, command);
-
-    public RealtimeCommandResult Execute(RealtimeCommand command) => ApplyCommand(command);
 
     public NodePlacementPreview PreviewNodePlacement(string nodeClassId, MapPoint position)
     {
@@ -1258,6 +1289,33 @@ public sealed class RealtimeCampaignRun
                 item.AssetId,
                 item.AssetKind));
         }
+    }
+
+    private void InvalidateForecastCaches()
+    {
+        _forecastCache.Clear();
+        _comparisonForecastCache.Clear();
+    }
+
+    private static void ValidateForecastHorizon(long horizonMinutes)
+    {
+        if (horizonMinutes < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(horizonMinutes));
+        }
+    }
+
+    private static void CacheBounded<T>(
+        Dictionary<long, T> cache,
+        long horizonMinutes,
+        T value)
+    {
+        const int maximumCachedHorizons = 4;
+        if (cache.Count >= maximumCachedHorizons)
+        {
+            cache.Clear();
+        }
+        cache.Add(horizonMinutes, value);
     }
 
     private IReadOnlyList<TimelineEvent> Timeline()

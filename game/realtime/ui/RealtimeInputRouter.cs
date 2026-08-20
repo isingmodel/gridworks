@@ -20,7 +20,7 @@ internal sealed partial class RealtimeInputRouter : Node
     public event Action<RealtimeInputRequest>? InputRequested;
 
     public RealtimeInputPriority ActivePriority => _contexts.Count == 0
-        ? RealtimeInputPriority.World
+        ? RealtimeInputPriority.EmptyTerrain
         : _contexts[^1].Priority;
 
     public string ActiveOwner => _contexts.Count == 0 ? "world" : _contexts[^1].Owner;

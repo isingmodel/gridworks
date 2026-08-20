@@ -183,11 +183,13 @@ internal sealed partial class RealtimeSliceMain : Control
     private RealtimeFrameAccumulator? _frame;
     private RealtimeInteractionState? _interaction;
     private RealtimeSlicePresentation? _latestPresentation;
-    private RealtimePlaceholderMap? _map;
+    private IRealtimeWorldView? _worldView;
     private RealtimeUiRoot? _ui;
     private CoreMapPoint? _pointerPoint;
     private bool _pointerAccepted = true;
     private string _pointerMessage = string.Empty;
+    private RealtimeProjectQuote? _nodeOrderQuote;
+    private RealtimeProjectQuote? _lineOrderQuote;
     private long _presentationRevision;
     private long _wallClockRemainderUnits;
     private double _wallClockVirtualFrameRemainder;
@@ -208,7 +210,10 @@ internal sealed partial class RealtimeSliceMain : Control
 
     public override void _Ready()
     {
-        _map = GetNode<RealtimePlaceholderMap>("%PlaceholderMap");
+        Control worldNode = GetNode<Control>("%WorldView");
+        _worldView = worldNode as IRealtimeWorldView ??
+            throw new InvalidOperationException(
+                "The WorldView scene node must implement IRealtimeWorldView.");
         _ui = GetNode<RealtimeUiRoot>("%UiRoot");
         WireNodes();
         ApplyLogicalCanvas();
@@ -253,6 +258,8 @@ internal sealed partial class RealtimeSliceMain : Control
         _pointerPoint = null;
         _pointerAccepted = true;
         _pointerMessage = string.Empty;
+        _nodeOrderQuote = null;
+        _lineOrderQuote = null;
         _presentationRevision = 0;
         _wallClockRemainderUnits = 0;
         _wallClockVirtualFrameRemainder = 0;
@@ -273,9 +280,9 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void WireNodes()
     {
-        _map!.PrimaryRequested += HandleMapPrimary;
-        _map.PointerMoved += HandleMapPointerMoved;
-        _map.CancelRequested += HandleUndoDraftStep;
+        _worldView!.PrimaryRequested += HandleMapPrimary;
+        _worldView.PointerMoved += HandleMapPointerMoved;
+        _worldView.CancelRequested += HandleUndoDraftStep;
         _ui!.SpeedRequested += HandleSpeedRequested;
         _ui.MenuRequested += () => HandleShortcut(RealtimeInputCommand.ToggleBuildShelf);
         _ui.TimelineItemsRequested += HandleTimelineItems;
@@ -396,7 +403,7 @@ internal sealed partial class RealtimeSliceMain : Control
         if (coreCommand is not null)
         {
             commandResult = _run.ApplyCommand(
-                _run.GetSnapshot().Minute,
+                _run.Minute,
                 NextCommandSequence,
                 coreCommand);
             CollectTransitions(commandResult.Transitions);
@@ -711,11 +718,11 @@ internal sealed partial class RealtimeSliceMain : Control
             _run.GetForecast(forecastHorizonMinutes);
         RealtimeComparisonDraftForecast comparisonDraftForecast =
             _run.GetComparisonDraftForecast(forecastHorizonMinutes);
-        RealtimeProjectQuote? nodeOrderQuote =
+        _nodeOrderQuote =
             snapshot.Construction.NodeDraft is not null
                 ? _run.PreviewNodeOrder()
                 : null;
-        RealtimeProjectQuote? lineOrderQuote =
+        _lineOrderQuote =
             snapshot.Construction.LineDraft is { EndNodeId: not null }
                 ? _run.PreviewLineOrder()
                 : null;
@@ -732,19 +739,44 @@ internal sealed partial class RealtimeSliceMain : Control
             _pointerAccepted,
             _pointerMessage,
             reduceMotion: false,
-            nodeOrderQuote: nodeOrderQuote,
-            lineOrderQuote: lineOrderQuote);
-        if (_map is null || _ui is null || !IsInsideTree())
+            nodeOrderQuote: _nodeOrderQuote,
+            lineOrderQuote: _lineOrderQuote);
+        if (_worldView is null || _ui is null || !IsInsideTree())
         {
             return;
         }
-        _map.SetPresentation(_latestPresentation);
+        _worldView.SetPresentation(_latestPresentation.World);
+        _worldView.SetPointerFeedback(_latestPresentation.Pointer);
         _ui.SetTopHud(_latestPresentation.Hud);
         _ui.SetEventRail(_latestPresentation.Rail);
         _ui.SetContextDock(_latestPresentation.Context);
         _ui.SetBuildShelf(_latestPresentation.BuildShelf);
         _ui.SetActionDock(_latestPresentation.ActionDock);
         PresentModal(_latestPresentation.Modal);
+    }
+
+    private void PresentPointerFeedback()
+    {
+        EnsureBootstrapped();
+        _presentationRevision = checked(_presentationRevision + 1);
+        var pointer = new RealtimeWorldPointerFeedback(
+            _pointerPoint,
+            _pointerAccepted,
+            _pointerMessage);
+        _latestPresentation = RealtimeSlicePresenter.PresentPointerFeedback(
+            _latestPresentation!,
+            _interaction!,
+            _presentationRevision,
+            pointer,
+            _nodeOrderQuote,
+            _lineOrderQuote);
+        if (_worldView is null || _ui is null || !IsInsideTree())
+        {
+            return;
+        }
+        _worldView.SetPointerFeedback(pointer);
+        _ui.SetBuildShelf(_latestPresentation.BuildShelf);
+        _ui.SetActionDock(_latestPresentation.ActionDock);
     }
 
     private void PresentModal(RealtimeModalPresentation? modal)
@@ -767,7 +799,7 @@ internal sealed partial class RealtimeSliceMain : Control
             _ui!.PopModal();
         }
         _ui!.InputRouter.CancelPanCapture();
-        _map?.EndPan();
+        _worldView?.EndPan();
         // Preserve the real control that opened the modal. The map is only a
         // fallback for bootstrap/automatic incidents where no usable opener
         // currently owns focus; forcing it here would make every button-opened
@@ -775,7 +807,7 @@ internal sealed partial class RealtimeSliceMain : Control
         Control? opener = GetViewport().GuiGetFocusOwner();
         if (!IsValidReturnFocus(opener))
         {
-            _map?.GrabFocus();
+            _worldView?.RequestFocus();
         }
         if (!_ui!.PushModal(modal))
         {
@@ -828,10 +860,10 @@ internal sealed partial class RealtimeSliceMain : Control
             return;
         }
         if (resolution.Owner == RealtimePointerOwner.SelectionAction &&
-            resolution.ResolvedId is string actionId &&
-            actionId.StartsWith("ACTION:INSPECT:", StringComparison.Ordinal))
+            RealtimeWorldIds.TryParseSelectionAction(
+                resolution.ResolvedId,
+                out string selectedId))
         {
-            string selectedId = actionId["ACTION:INSPECT:".Length..];
             SetPointerFeedback(true, $"{DisplayAssetName(selectedId)} 상황 패널을 열었습니다.");
             _ = ApplyIntent(RealtimeR2Intent.Select(selectedId));
             return;
@@ -889,13 +921,13 @@ internal sealed partial class RealtimeSliceMain : Control
         // warning that is no longer visible.
         _draftCancelArmed = false;
         _pointerPoint = worldPoint;
-        if (_map?.IsPanning == true)
+        if (_worldView?.IsPanning == true)
         {
-            Present();
+            PresentPointerFeedback();
             return;
         }
 
-        ConstructionSnapshot construction = _run!.GetSnapshot().Construction;
+        ConstructionSnapshot construction = _latestPresentation!.CoreSnapshot.Construction;
         if (IsCampaignReadOnlyShell &&
             (resolution.Owner == RealtimePointerOwner.DraftHandle ||
              _interaction!.Tool is RealtimeTool.BuildNode or
@@ -904,18 +936,18 @@ internal sealed partial class RealtimeSliceMain : Control
             SetPointerFeedback(
                 false,
                 RealtimeInteractionReducer.CampaignEndedReadOnlyReason);
-            Present();
+            PresentPointerFeedback();
             return;
         }
         if (resolution.Owner == RealtimePointerOwner.SelectionAction &&
-            resolution.ResolvedId is string selectionActionId &&
-            selectionActionId.StartsWith("ACTION:INSPECT:", StringComparison.Ordinal))
+            RealtimeWorldIds.TryParseSelectionAction(
+                resolution.ResolvedId,
+                out string selectedId))
         {
-            string selectedId = selectionActionId["ACTION:INSPECT:".Length..];
             SetPointerFeedback(
                 true,
                 $"{DisplayAssetName(selectedId)} 상황 패널 열기 · 클릭 또는 Enter로 엽니다.");
-            Present();
+            PresentPointerFeedback();
             return;
         }
         switch (_interaction!.Tool)
@@ -926,7 +958,7 @@ internal sealed partial class RealtimeSliceMain : Control
                     SetPointerFeedback(false, "먼저 하단에서 변전소 등급을 선택하세요.");
                     break;
                 }
-                NodePlacementPreview nodePreview = _run.PreviewNodePlacement(
+                NodePlacementPreview nodePreview = _run!.PreviewNodePlacement(
                     nodeClassId,
                     worldPoint);
                 SetPointerFeedback(
@@ -957,7 +989,7 @@ internal sealed partial class RealtimeSliceMain : Control
                         : "빈 지형 · 클릭하면 현재 선택을 해제합니다.");
                 break;
         }
-        Present();
+        PresentPointerFeedback();
     }
 
     private void PreviewLinePointer(
@@ -1078,7 +1110,7 @@ internal sealed partial class RealtimeSliceMain : Control
         nodeClassId = toolId is not null && toolId.StartsWith(prefix, StringComparison.Ordinal)
             ? toolId[prefix.Length..]
             : string.Empty;
-        return nodeClassId.Length > 0 && _run!.GetSnapshot().Chapter.Content
+        return nodeClassId.Length > 0 && PresentedCoreSnapshot.Chapter.Content
             .AvailableNodeClassIds.Contains(nodeClassId, StringComparer.Ordinal);
     }
 
@@ -1086,7 +1118,7 @@ internal sealed partial class RealtimeSliceMain : Control
         out CommercialCampaignLinePlanDefinition? selectedPlan)
     {
         string? toolId = _interaction?.SelectedBuildToolId;
-        selectedPlan = _run!.GetSnapshot().Chapter.Content.AvailableLinePlans
+        selectedPlan = PresentedCoreSnapshot.Chapter.Content.AvailableLinePlans
             .SingleOrDefault(plan => string.Equals(
                 toolId,
                 $"LINE:{plan.LineClassId}:{plan.PoleClassId}",
@@ -1106,17 +1138,11 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void ApplyMapInteractionRect(Rect2 rect)
     {
-        if (_map is null || rect.Size.X <= 0 || rect.Size.Y <= 0)
+        if (_worldView is null || rect.Size.X <= 0 || rect.Size.Y <= 0)
         {
             return;
         }
-        _map.AnchorLeft = 0;
-        _map.AnchorTop = 0;
-        _map.AnchorRight = 0;
-        _map.AnchorBottom = 0;
-        _map.Position = rect.Position;
-        _map.Size = rect.Size;
-        _map.ApplyLayout(_ui!.LayoutProfile);
+        _worldView.SetInteractionRect(rect, _ui!.LayoutProfile);
     }
 
     private void HandleInputRequest(RealtimeInputRequest request)
@@ -1129,11 +1155,11 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void HandleShortcut(RealtimeInputCommand command)
     {
+        ConstructionSnapshot construction = PresentedCoreSnapshot.Construction;
         bool menuCancelsAuthoritativeDraft =
             command == RealtimeInputCommand.ToggleBuildShelf &&
             !IsCampaignReadOnlyShell &&
-            (_run!.GetSnapshot().Construction.NodeDraft is not null ||
-             _run.GetSnapshot().Construction.LineDraft is not null);
+            (construction.NodeDraft is not null || construction.LineDraft is not null);
         if (command != RealtimeInputCommand.CancelOrBack &&
             !menuCancelsAuthoritativeDraft)
         {
@@ -1195,19 +1221,19 @@ internal sealed partial class RealtimeSliceMain : Control
                 HandleUndoDraftStep();
                 break;
             case RealtimeInputCommand.CycleCandidatePrevious:
-                _map?.CycleCandidate(-1);
+                _worldView?.CycleCandidate(-1);
                 break;
             case RealtimeInputCommand.CycleCandidateNext:
-                _map?.CycleCandidate(1);
+                _worldView?.CycleCandidate(1);
                 break;
             case RealtimeInputCommand.BeginPan:
-                _map?.BeginPan();
+                _worldView?.BeginPan();
                 break;
             case RealtimeInputCommand.EndPan:
-                _map?.EndPan();
+                _worldView?.EndPan();
                 break;
             case RealtimeInputCommand.ConfirmOrSelect:
-                _map?.ConfirmCurrentCandidate();
+                _worldView?.ConfirmCurrentCandidate();
                 break;
             case RealtimeInputCommand.TimelineHome:
                 RouteTimelineNavigation(RealtimeTimelineNavigation.Home);
@@ -1597,7 +1623,7 @@ internal sealed partial class RealtimeSliceMain : Control
         EnsureBootstrapped(requirePresentation: false);
         return RealtimeSlicePresenter.AssetDisplayName(
             _data!.BaseWorld,
-            _run!.GetSnapshot(),
+            PresentedCoreSnapshot,
             assetId);
     }
 
@@ -1722,7 +1748,7 @@ internal sealed partial class RealtimeSliceMain : Control
         beforeHash,
         _run!.GetCanonicalStateSha256(),
         beforeMinute,
-        _run.GetSnapshot().Minute,
+        _run.Minute,
         beforeSequence,
         NextCommandSequence,
         _run.AcceptedCommands.Count - beforeCount,
@@ -1768,7 +1794,12 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private bool IsCampaignReadOnlyShell =>
         _interaction?.Simulation == RealtimeSimulationState.Ended ||
-        _run?.GetSnapshot().CampaignComplete == true;
+        _latestPresentation?.CoreSnapshot.CampaignComplete == true;
+
+    private RealtimeCampaignSnapshot PresentedCoreSnapshot =>
+        _latestPresentation?.CoreSnapshot ??
+        _run?.GetSnapshot() ??
+        throw new InvalidOperationException("Realtime R2 slice is not bootstrapped.");
 
     private void EnsureBootstrapped(bool requirePresentation = true)
     {
@@ -1946,14 +1977,14 @@ internal sealed partial class RealtimeSliceMain : Control
             IsInsideTree()
                 ? GetWindow().ContentScaleAspect
                 : Window.ContentScaleAspectEnum.Expand,
-            _map?.CameraCenter ?? Vector2.Zero);
+            _worldView?.CameraCenter ?? Vector2.Zero);
     }
 
     internal RealtimeMapCameraSnapshot CaptureCameraForSmoke() =>
-        _map?.CaptureCamera() ?? new RealtimeMapCameraSnapshot(Vector2.Zero, 0);
+        _worldView?.CaptureCamera() ?? new RealtimeMapCameraSnapshot(Vector2.Zero, 0);
 
     internal void RestoreCameraForSmoke(RealtimeMapCameraSnapshot camera) =>
-        _map?.RestoreCamera(camera);
+        _worldView?.RestoreCamera(camera);
 
     internal RealtimeCampaignSnapshot CoreSnapshot =>
         _run?.GetSnapshot() ?? throw new InvalidOperationException("Not bootstrapped.");
@@ -1979,10 +2010,10 @@ internal sealed partial class RealtimeSliceMain : Control
         FrozenClickCounters();
     internal IReadOnlyList<RealtimeR2PendingFrameDebt> RetainedFrameDebt =>
         FrozenFrameDebt();
-    internal Vector2 CameraCenter => _map?.CameraCenter ?? Vector2.Zero;
+    internal Vector2 CameraCenter => _worldView?.CameraCenter ?? Vector2.Zero;
     internal RealtimeR2InputOwnershipFacts InputOwnershipFacts => new(
         _lastInputRequest,
-        _map?.IsPanning ?? false,
+        _worldView?.IsPanning ?? false,
         FrozenClickCounters());
     internal RealtimeR2TimelineChooserFacts TimelineChooserFacts => new(
         Array.AsReadOnly(VisibleTimelineItems().Select(item => item.Id).ToArray()),

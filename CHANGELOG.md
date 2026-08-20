@@ -1,6 +1,18 @@
 # Gridworks 변경 기록
 
-## Unreleased — 상용 v2 단계 G 내부 후보
+## Unreleased — 실시간 전면 개편 R2 중단 기록
+
+- R0 기준선 `5a9e465`, R1 실시간 Core `3da1897` 뒤 R2 UX foundation·수평 사건 지평선 구현을
+  `4c27f65`에 보존했다.
+- 마지막 exact-tree 전체 harness는 사용자 지시로 중단돼 완료 gate가 아니다. 앞서 수집된 증거는
+  보존하지만 R2 PASS, 전면 개편 완료 또는 출시 증거로 승격하지 않는다.
+- R3~R7과 더 넓은 전면 개편은 `USER_STOPPED_AFTER_R2`이며 활성 revision gate는 없다. 기본 장면은
+  계속 `CommercialMain`이다.
+- 물리 UHD, 사람 사용성·미감, 한국어·전력설비 전문 검토와 공개 출시는 미수집·미승인이다.
+  [HTML 목표 이미지](docs/mockups/realtime-target/README.md)는 non-runtime 참고 시안이며 게임 구현이나
+  검증 증거가 아니다.
+
+## 상용 v2 단계 G 내부 후보 — 동결 기록
 
 현재 기본 `CommercialMain`은 별도 v2 world·campaign·Core에서 보이는 격자 없는 자유 배치,
 수면·건물·설비 점유영역, 선로 도체·변전소 주기기·전신주 접속부의 연속·비상 열 한계,

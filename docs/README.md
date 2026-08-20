@@ -2,6 +2,8 @@
 
 이 파일은 문서의 역할과 질문별 소유권을 정한다. 프로젝트의 현재 상태, 활성 단계와 구현 권한은
 루트 [README](../README.md)가 소유한다. 로드맵에 적힌 기능은 자동 승인된 backlog가 아니다.
+현재 전면 개편은 R2 구현 커밋 `4c27f65` 뒤 `USER_STOPPED_AFTER_R2`이고 활성 revision gate는 없다.
+마지막 exact-tree 전체 harness 중단을 완료 증거로 바꾸거나 R3~R7을 자동으로 열지 않는다.
 
 ## 문서 구조
 
@@ -28,7 +30,7 @@ docs/
 │   ├── RELEASE_2D.md                    완료된 내부 후보의 2D 표현·사운드·패키징 기준
 │   ├── RELEASE_REBUILD.md               완료된 기술 기준선 재구축 계약
 │   ├── COMMERCIAL_2D_IMPLEMENTATION.md  상용 2D 게임 단계 B~G 계약과 완료 기록
-│   └── REALTIME_PHYSICAL_TOTAL_REVISION.md 활성 실시간·물리 세계 전면 개편 계약
+│   └── REALTIME_PHYSICAL_TOTAL_REVISION.md 중단된 실시간·물리 세계 전면 개편 계약·기록
 ├── development/
 │   └── BALANCING_STATIC_SIM.md        조건부 정적 분석 도구
 └── future/
@@ -63,11 +65,11 @@ docs/
 | 완료된 2D 표현·사운드·package는 어디까지 보장하는가? | [2D 출시 마감](scopes/RELEASE_2D.md) | 외부 테스트·공개 배포를 포함하지 않음 |
 | 완료된 기술 기준선은 무엇을 보장하는가? | [출시판 재구축](scopes/RELEASE_REBUILD.md) | 새 상용 제품의 구현 권한으로 사용하지 않음 |
 | 상용 v2 게임은 어디까지 구현됐고 무엇이 남았는가? | [상용 2D 게임 구현](scopes/COMMERCIAL_2D_IMPLEMENTATION.md) | 단계 B~G 완료 증거와 미개방 H를 구분 |
-| 현재 실시간·물리 세계 전면 개편에서 무엇을 구현하는가? | [실시간 물리 세계 전면 개편](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md) | 현재 branch의 유일한 새 구현 권위; v2 완료 증거와 공개 배포 승인을 대신하지 않음 |
+| 중단된 실시간·물리 세계 전면 개편은 어디까지 갔는가? | [실시간 물리 세계 전면 개편](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md) | R2 구현과 미완료 gate를 구분하며 R3~R7 권한이나 공개 배포 승인을 만들지 않음 |
 | 정적 분석 도구는 언제 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 자동 튜닝이나 사람 선택 대체에 쓰지 않음 |
 | 1.0 이후 냉각수·원전 방향은 무엇인가? | [1.0 이후 방향](future/POST_1_0.md) | 1.0 schema·UI를 선결하지 않음 |
 
-충돌하면 `현재 사용자 지시 → 루트 README가 지목한 활성 단계 → 질문별 소유 문서` 순서로
+충돌하면 `현재 사용자 지시 → 루트 README가 지목한 활성 단계(있는 경우) → 질문별 소유 문서` 순서로
 판단한다. 콘셉트 이미지, 과거 실행자료와 미래 후보는 현재 규칙의 권위가 아니다.
 
 ## 읽는 순서

@@ -11,22 +11,20 @@
 
 ## 현재 상태
 
-현재 활성 구현 단계는 **실시간 물리 세계 전면 개편**이다. 사용자가 2026-08-19에 별도 작업
-브랜치 `codex/total-revision`에서 아트, UX, 수평 사건 지평선, FHD·4K, 설비 과부하와 실시간
-simulation을 함께 완성하도록 명시적으로 승인했다. 정확한 새 권위와 R0~R7 종료 조건은
-[실시간 물리 세계 전면 개편 계약](docs/scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)이 소유한다.
-R0 계약·동결 기준선은 `5a9e465`에서 닫혔고, R1 결정론적 실시간 Core vertical slice는
-`3da1897`에서 독립 P0/P1 0으로 완료했다. 현재는 **R2 UX foundation·수평 사건 지평선만 활성**이다.
-R1의 exact 격리·회귀 증거와 이후 단계 상태는
-[전면 개편 계약의 단계 기록](docs/scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md#r1--결정론적-실시간-core-vertical-slice)이
-소유한다.
+실시간 물리 세계 전면 개편은 사용자 지시로 **R2 뒤 중단**됐으며 현재 활성 구현 단계는 없다.
+R0 계약·동결 기준선은 `5a9e465`, R1 결정론적 실시간 Core vertical slice는 `3da1897`, R2 UX
+foundation·수평 사건 지평선 구현은 `4c27f65`에 남아 있다. 다만 R2의 마지막 exact-tree 전체
+harness는 사용자가 실행 중단을 지시해 끝나지 않았으므로 완료 gate가 아니다. 그 전까지 수집된
+자동·native 증거는 그대로 보존하되 R2 종료, 전면 개편 완료나 출시 증거로 승격하지 않는다.
+[전면 개편 계약](docs/scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)이 이 경계와 단계 기록을 소유한다.
+R3~R7과 더 넓은 전면 개편은 `USER_STOPPED_AFTER_R2`이며 새 사용자 승인 전에는 구현하지 않는다.
 
 단계 B~G와 관찰 기반 선행 보정 backlog를 끝낸 상용 v2는 회귀·저장 이관 기준선으로 동결한다.
 과거 단계 H 사람 검증·전문 교정·공개 배포는 v2의 미개방 외부 gate였으며, 이번 개편을 공개
 배포 승인으로 해석하지 않는다.
 
-현재 `main` 기준 기본 장면은 `CommercialMain`이다. 개편 브랜치는 별도 V3 Core·data·scene가
-전체 gate를 통과하기 전까지 이 경로를 회귀 기준으로 유지한다. v2 world·campaign·Core에서 보이는 격자 없는 자유
+현재 저장소 기본 장면은 `CommercialMain`이다. R1의 별도 V3 Core·fixture와 R2의 비기본 scene은
+이 경로를 대체하지 않는다. v2 world·campaign·Core에서 보이는 격자 없는 자유
 배치, 수면·건물·설비 점유영역, 서비스 권역과 실제 발전원 경로의 분리, 선로 도체·변전소 주기기·
 전신주 접속부의 연속·비상 열 한계와 보호정지, 안전 의무·도시 약속·최근 공사 복구, 같은 망을
 이어 쓰는 여덟 임무와 에필로그·save v3가 연결돼 있다. 단계 G는 이름 붙은 병목 경로, 원자적
@@ -52,6 +50,9 @@ archive identity와 독립 감사의 정확한 기록은
 `ExternalHumanValidationStatus = NOT_COLLECTED`,
 `KoreanProfessionalProofStatus = NOT_COLLECTED`다. LLM 관찰은 특정 build에서 보인 행동과
 혼란을 기록할 뿐 사람 사용성·재미·밸런스, 성공률이나 한국어 품질을 증명하지 않는다.
+물리 UHD panel 확인도 `OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE`이며 공개 출시는 계속
+`NOT_AUTHORIZED`다. [HTML 목표 이미지](docs/mockups/realtime-target/README.md)는 비실행 참고 시안일
+뿐 runtime 화면·구현·native/사람/전문 검토 증거가 아니다.
 
 기존 `ReleaseMain`·`ProductMain`과 33×21 격자 후보, Scope 0/1 실험은 회귀·역사 자료로만
 보존한다. 과거 카드 실험, prototype, 소유자 전체 플레이와 이전 LLM 관찰의 핵심 결과는

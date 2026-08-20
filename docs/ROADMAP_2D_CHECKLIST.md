@@ -5,9 +5,9 @@
 > [실시간 물리 세계 전면 개편 계약](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)이 소유한다. 과거
 > [상용 구현 계약·완료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)은 동결 v2 증거다.
 
-현재 활성 단계는 [실시간 물리 세계 전면 개편](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)이다.
-루트 [README](../README.md)가 단계 B~G 동결, 개편 R0~R7 활성 권한과 과거 v2 단계 H 미개방
-경계를 선언한다.
+현재 활성 단계는 없다. 실시간 물리 세계 전면 개편은 R2 구현 뒤 `USER_STOPPED_AFTER_R2`이며
+[계약 기록](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)과 루트 [README](../README.md)가 단계 B~G
+동결, R2 미완료 gate, R3~R7 중단과 과거 v2 단계 H 미개방 경계를 선언한다.
 
 ## 사용 규칙
 
@@ -30,7 +30,7 @@
 | E. 첫 네 임무·공통 UX | **완료** | final world/campaign v2와 [상용 구현 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md) | CommercialChecks 26 suites / 2,402 assertions | Game 3구성 0/0, 두 fresh process로 4장 완료 | `NOT_COLLECTED` | exact-tree P0/P1 0 |
 | F. 후반 네 임무·에필로그 | **완료** | world SHA `c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14` / campaign SHA `078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a` | CommercialChecks 29 suites / 4,486 assertions | Game 3구성 0/0, 1280×720·UI 125% 두 process 전체 흐름 통과 | 사람 전체 플레이·전문 교정 `NOT_COLLECTED`; 공식 cold LLM은 8장 폭염 정점 2/3에서 `USER_STOPPED`, 중단 후 리뷰만 수집 | Stage F 계약 exact-tree P0/P1 0; 관찰 backlog는 종료 당시 독립 미검증·미승인이었음 |
 | G. 시청각·접근성·package | **완료** | 최종 자산·settings v3·네 layout/keyboard evidence·package와 [완료된 관찰 backlog](ROADMAP_2D.md#관찰-기반-선행-보정-backlog--완료) | Commercial·동결 회귀·3구성 build·package audit PASS | 자유 배치·열·두 process·네 layout과 저장소 밖 새 설치 전체 캠페인 PASS | 전체 사람 검토·전문 교정 `NOT_COLLECTED` | [단계 G 완료 증거](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료), 독립 P0/P1 0; goal seeking 중단 |
-| R. 실시간 물리 세계 전면 개편 | **활성 · R2 UX foundation·사건 지평선** | [새 구현 계약](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)·R0 `5a9e465`·R1 `3da1897` 완료 | R1 격리 Debug/Release 22 suites / 639 assertions, 동결 v2 30 / 5,739 PASS; R2 수집 중 | R2 미수집 | §13.3 후속 validation `NOT_COLLECTED` | R1 독립 P0/P1 0; R2~R7 전체 gate 전에는 구현 완료 아님 |
+| R. 실시간 물리 세계 전면 개편 | **USER_STOPPED_AFTER_R2 · 활성 gate 없음** | [계약·중단 기록](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)·R0 `5a9e465`·R1 `3da1897`·R2 구현 `4c27f65` | R1 기록과 R2 선행 증거는 보존; 마지막 exact-tree 전체 harness는 사용자 중단으로 `NOT_COMPLETED`, PASS 승격 없음 | R2 종료 native gate 미완료; 물리 UHD `NOT_COLLECTED` | §13.3 사람·전문 검토 `NOT_COLLECTED` | R3~R7 미실행; 전면 개편 완료 아님; 공개 출시 `NOT_AUTHORIZED` |
 | H. 외부 검증·공개 후보 | **미승인** | 별도 사용자·자격증명 gate | 자동증거로 대체하지 않음 | 공개 bytes 확정 전 미실행 | 소유자·외부·전문 교정 필요 | Developer ID·공증·배포 결정 필요 |
 
 `USER_STOPPED`는 native 완료, 실패 또는 막힘 판정이 아니다. 참가자는 `가장 긴 밤`의 `폭염 정점
@@ -48,6 +48,10 @@
 단계 B~F는 2026-08-18 구현 목표에서, 단계 G와 관찰 backlog는 2026-08-19 별도 사용자 지시에서
 완료했다. 전체 감사와 문서 최신화 뒤 goal seeking을 중단했다. 단계 H의 사람 관찰·전문 교정·
 Developer ID 서명·공증·공개 배포는 여전히 별도 미개방 외부 gate다.
+
+개편 R2 뒤에는 사용자 중단으로 다음 단계를 열지 않는다. 저장소 기본 장면은 `CommercialMain`이며
+[HTML 목표 이미지](mockups/realtime-target/README.md)는 non-runtime 참고 자료일 뿐 이 장부의
+자동·native·사람 증거가 아니다.
 
 ## 공통 종료조건
 

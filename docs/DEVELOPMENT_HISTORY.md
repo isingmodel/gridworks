@@ -2,7 +2,8 @@
 
 이 문서는 현재 권위가 아니라 과거 결정과 교훈의 압축 기록이다. 현재 실행·단계·증거는 루트
 [README](../README.md)와
-[상용 2D 게임 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다. 세부 수치·원답·
+[상용 2D 게임 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 중단된
+[실시간 전면 개편 계약](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)이 소유한다. 세부 수치·원답·
 후보별 hash와 실행 기록은 동결 scope, `playtests/`와 Git 이력에 남기며 여기서 반복하지 않는다.
 
 ## 1. 카드와 작은 prototype
@@ -119,3 +120,14 @@ clean commit에서 package하고 저장소 밖 빈 user-data의 두 fresh proces
 `ExternalHumanValidationStatus = NOT_COLLECTED`,
 `KoreanProfessionalProofStatus = NOT_COLLECTED`다. 단계 G와 관찰 backlog는 완료했고 goal seeking을
 중단했다. 단계 H 사람 검증·전문 교정·Developer ID 서명·공증·공개 배포는 미개방 상태다.
+
+## 6. 실시간 전면 개편 R2 뒤 사용자 중단
+
+2026-08-19~20의 별도 전면 개편은 R0 `5a9e465`, R1 실시간 Core `3da1897`을 거쳐 R2 UX
+foundation·사건 지평선 구현 `4c27f65`까지 진행됐다. 마지막 exact-tree 전체 harness는 사용자가
+실행 중단을 지시해 끝나지 않았으며, 그 전의 자동·native 증거를 R2 종료나 전체 개편 완료로
+승격하지 않는다. R3~R7과 더 넓은 개편은 `USER_STOPPED_AFTER_R2`, 활성 revision gate는 `NONE`이다.
+
+기본 실행은 계속 `CommercialMain`이다. 물리 UHD panel, 사람 사용성·미감, 한국어·전력설비 전문
+검토와 공개 출시는 미수집·미승인 상태다. [HTML 목표 이미지](mockups/realtime-target/README.md)는
+non-runtime 참고 시안이며 게임 구현, native 화면 또는 검증 증거로 합산하지 않는다.

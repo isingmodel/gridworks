@@ -1,5 +1,14 @@
 # Gridworks 실행·내부 후보 설치
 
+## 현재 실행 경계
+
+현재 활성 revision gate는 없고 저장소 기본 장면은 `CommercialMain`이다. 실시간 전면 개편 R2
+구현은 `4c27f65`에 보존됐지만 마지막 exact-tree 전체 harness가 사용자 지시로 중단됐으므로 설치·
+출시 후보나 완료 gate가 아니다. R3~R7은 `USER_STOPPED_AFTER_R2`다. 물리 UHD, 사람·전문 검토,
+Developer ID 서명·공증과 공개 출시는 계속 미수집·미승인이다.
+[HTML 목표 이미지](docs/mockups/realtime-target/README.md)는 non-runtime 참고 자료이며 실행 파일,
+native capture 또는 지원 환경 증거가 아니다.
+
 ## 저장과 설정 파일
 
 현재 상용 v2 단계 G 완료 게임은 다음 Godot 사용자 폴더의 v3 파일을 사용한다.
@@ -20,7 +29,8 @@
 
 ## 저장소에서 실행
 
-현재 기본 장면은 단계 G 완료본의 `CommercialMain`이다. 저장소 루트에서 다음과 같이 실행한다.
+현재 기본 장면은 단계 G 완료본의 `CommercialMain`이다. R2 참고 scene가 이를 대체하지 않는다.
+저장소 루트에서 다음과 같이 실행한다.
 
 ```sh
 ./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path game

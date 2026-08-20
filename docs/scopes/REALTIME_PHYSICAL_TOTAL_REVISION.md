@@ -1,8 +1,8 @@
 # Gridworks — 실시간 물리 세계 전면 개편 구현 계약
 
-> 문서 상태: **사용자가 승인한 전면 개편의 구현 권위 · R0~R1 완료 · R2 활성**
+> 문서 상태: **R0~R1 완료 · R2 구현 커밋 보존/종료 gate 미완료 · 사용자 중단 · 활성 gate 없음**
 >
-> 기준일: **2026-08-19**
+> 기준일: **2026-08-20**
 >
 > 대상 브랜치: **`codex/total-revision`**
 >
@@ -949,6 +949,18 @@ Debug·Release·ExportRelease 0 warnings / 0 errors를 재확인해 기록한다
 - FHD/4K native에서 scroll 없는 핵심 flow와 actual realtime slice
 - click priority·focus·pause reason checks, 독립 UX P0/P1 0
 
+종료 기록 — 2026-08-20:
+
+- R2 구현은 커밋 `4c27f65`에 보존한다.
+- 마지막 exact-tree 전체 harness는 사용자가 실행 중단을 지시해 끝나지 않았다. 이전에 수집된
+  자동·native 증거는 보존하지만 이 중단 실행을 PASS로 세거나 R2 종료 gate로 승격하지 않는다.
+- 사용자는 이후 작업을 중단했다. R3~R7과 더 넓은 전면 개편 상태는
+  `USER_STOPPED_AFTER_R2`이고 현재 활성 revision gate는 없다.
+- 저장소 기본 장면은 계속 `CommercialMain`이다. 물리 UHD panel, 사람 사용성·미감, 전문 검토와
+  공개 출시는 각각 미수집·미승인 상태로 남는다.
+- [HTML 목표 이미지](../mockups/realtime-target/README.md)는 non-runtime 참고 시안이며 게임 구현,
+  native capture, 아트 완료나 사람·전문 검토 증거가 아니다.
+
 ### R3 — 물리 world art spike
 
 범위:
@@ -1090,26 +1102,38 @@ proof는 별도 사용자 승인 아래 실행하며 자동 PASS 수치에 합�
 현재 이 문서 작성 시점의 상태는 다음과 같다.
 
 ```text
-RealtimePhysicalRevisionContract = DEFINED
-ActiveRevisionGate = R2_UX_FOUNDATION_EVENT_HORIZON
+RealtimePhysicalRevisionContract = STOPPED_AFTER_R2
+ActiveRevisionGate = NONE
 R0BaselineCommit = 5a9e465
 R0IndependentReview = P0_0_P1_0
 R1RealtimeCoreCommit = 3da1897
 R1RealtimeChecks = PASS_22_SUITES_639_ASSERTIONS_DEBUG_RELEASE_ISOLATED
 R1FrozenV2Regression = PASS_30_SUITES_5739_ASSERTIONS
 R1IndependentReview = P0_0_P1_0
+R2ImplementationCommit = 4c27f65
+R2FinalExactTreeFullHarness = USER_INTERRUPTED_NOT_COMPLETED
+R2PriorEvidenceStatus = PRESERVED_NOT_UPGRADED
+R2ExitGate = NOT_COMPLETED
+R3ThroughR7Status = USER_STOPPED_AFTER_R2
 RealtimeCoreStatus = FIRST_LIGHT_VERTICAL_SLICE_COMPLETE
-RealtimeUxStatus = R2_ACTIVE_NOT_COMPLETE
-HorizontalEventHorizonStatus = R2_ACTIVE_NOT_COMPLETE
-PhysicalWorldArtStatus = NOT_IMPLEMENTED
-FhdSupportEvidence = NOT_COLLECTED_FOR_REVISION
-FourKSupportEvidence = NOT_COLLECTED
-RealtimeOverloadEvidence = NOT_COLLECTED
-V3SaveMigrationStatus = NOT_IMPLEMENTED
+RealtimeUxStatus = R2_IMPLEMENTED_GATE_NOT_COMPLETED
+HorizontalEventHorizonStatus = R2_IMPLEMENTED_GATE_NOT_COMPLETED
+PhysicalWorldArtStatus = R3_NOT_IMPLEMENTED_USER_STOPPED
+FhdSupportEvidence = R2_FOUNDATION_PRIOR_NATIVE_EVIDENCE_ONLY
+FourKSupportEvidence = R2_FOUNDATION_PRIOR_OFFSCREEN_UHD_EVIDENCE_ONLY
+FourKPhysicalPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
+RealtimeOverloadEvidence = R1_CORE_AND_R2_FIRST_LIGHT_PRESENTATION_ONLY
+RealtimeCampaignConversionStatus = R5_NOT_IMPLEMENTED_USER_STOPPED
+V3SaveMigrationStatus = R6_NOT_IMPLEMENTED_USER_STOPPED
+RevisionPackageStatus = R7_NOT_IMPLEMENTED_USER_STOPPED
 RevisionHumanValidationStatus = NOT_COLLECTED
+ElectricalProfessionalProofStatus = NOT_COLLECTED
+KoreanProfessionalProofStatus = NOT_COLLECTED
 TotalRevisionImplementationComplete = NO
 HumanValidatedInternalCandidate = NO
-TotalRevisionStatus = NOT_COMPLETE
+TotalRevisionStatus = USER_STOPPED_AFTER_R2
+HtmlRenderedTargetImagesStatus = NON_RUNTIME_REFERENCE_NOT_EVIDENCE
+DefaultMainScene = CommercialMain
 PublicReleaseStatus = NOT_AUTHORIZED
 ```
 

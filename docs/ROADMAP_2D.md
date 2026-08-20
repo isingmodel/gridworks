@@ -1,6 +1,6 @@
 # Gridworks — 상용 2D 게임 완성 로드맵
 
-> 문서 상태: 단계 B~G 완료, 실시간 물리 세계 전면 개편 활성, 과거 v2 단계 H 미개방
+> 문서 상태: 단계 B~G 완료, 실시간 물리 세계 전면 개편 R2 뒤 사용자 중단, 활성 단계 없음
 
 이 로드맵은 기술 기준선을 보이는 격자 없는 상용 2D 전력망 게임으로 교체하는 제작 순서를 정한다.
 현재 단계와 구현 권한은 루트 [README](../README.md), 현재 정확한 규칙과 종료조건은
@@ -11,10 +11,11 @@
 
 단계 G와 관찰 기반 선행 보정 backlog는 2026-08-19 사용자 승인 아래 완료됐다. 이후 사용자는
 별도 `codex/total-revision` 브랜치에서 기존 turn형 진행과 graph-first 표현을 대체하는
-[실시간 물리 세계 전면 개편](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)을 새 활성 구현 단계로
-열었다. 과거 v2의 단계 H 사람 검증과 공개 배포는 여전히 열지 않았다.
-개편 R0와 R1은 각각 계약 기준선과 결정론적 실시간 `FIRST_LIGHT` Core slice로 완료했고, 현재는
-R2의 새 interaction hierarchy·사건 지평선·FHD/4K shell 통합만 활성이다. 정확한 단계 증거는
+[실시간 물리 세계 전면 개편](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md)을 열었다. R0와 R1은 각각
+계약 기준선과 결정론적 실시간 `FIRST_LIGHT` Core slice로 완료했고 R2 구현은 `4c27f65`에 남아 있다.
+마지막 exact-tree 전체 harness는 사용자 지시로 중단돼 완료 gate가 아니며, 앞선 증거도 R2 종료로
+승격하지 않는다. R3~R7과 더 넓은 개편은 `USER_STOPPED_AFTER_R2`이고 현재 활성 단계는 없다.
+과거 v2의 단계 H 사람 검증과 공개 배포도 열지 않았다. 정확한 기록은
 [개편 계약](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md#14-단계별-구현-순서)이 소유한다.
 
 그 뒤 수행한 공식 Stage F cold LLM 관찰은 8장 `가장 긴 밤`의 `폭염 정점 2/3`, 500 kW 비상
@@ -42,7 +43,8 @@ R2의 새 interaction hierarchy·사건 지평선·FHD/4K shell 통합만 활성
 
 ## 2. 제작 원칙
 
-- 아래 B→G 순서는 동결 v2의 과거 제작 기록이다. 현재 개편은 R0→R7을 한 단계씩 연다.
+- 아래 B→G 순서는 동결 v2의 과거 제작 기록이다. 개편 R0→R7 계획은 R2 뒤 사용자 중단 상태이며
+  새 승인 없이 다음 단계를 열지 않는다.
 - 한 단계의 코드·데이터·검사·native 증거·문서·독립 검토를 커밋한 뒤 다음 단계로 간다.
 - v2 world와 campaign이 실행 숫자와 콘텐츠를 한 곳씩 소유한다.
 - Core가 규칙을 계산하고 Game은 typed 결과만 입력·표현한다.
@@ -151,6 +153,13 @@ ID·공증·사람 지원 환경 증거가 없으므로 공개 배포는 주장�
 H는 열지 않았다. 사람 전체 플레이·전문 교정은 `NOT_COLLECTED`, 외부 자격증명과 공개 배포는
 차단 상태로 남긴다.
 
+## 9.1 실시간 전면 개편 중단 경계
+
+저장소 기본 장면은 `CommercialMain`이다. R1 증거와 R2 선행 증거·구현 커밋은 보존하지만 마지막 전체
+harness가 끝나지 않았으므로 전면 개편 완료, 물리 UHD, 사람 미감·사용성, 전력설비 전문 검토 또는
+공개 출시를 주장하지 않는다. [HTML 목표 이미지](mockups/realtime-target/README.md)는 non-runtime
+참고 자료이며 실행 게임·native capture·아트 완료 증거가 아니다.
+
 ## 10. 전역 제외
 
 - 두 번째 도시, sandbox, 절차 생성, 사용자 제작 지도
@@ -163,6 +172,7 @@ H는 열지 않았다. 사람 전체 플레이·전문 교정은 `NOT_COLLECTED`
 - 온라인, 업적, 순위표, 다국어·게임패드·모바일 동시 출시
 - 반복 LLM 플레이와 자동 밸런스 튜닝
 
-위 제외 가운데 실시간 clock·배속·시간 기반 과부하·공사 진행은 현재 사용자 지시로 명시적으로
-대체됐다. 새 경계와 제외는 [전면 개편 계약 §16](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md#16-명시적-제외)이
-소유한다. 이 문서의 B~G 기록은 과거 완료 상태로 유지한다.
+위 제외 가운데 실시간 clock·배속·시간 기반 과부하·공사 진행은 R1~R2 범위에서 별도 구현됐지만
+전면 개편은 R2 뒤 중단됐다. 새 경계와 제외는
+[전면 개편 계약 §16](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md#16-명시적-제외)이 소유한다. 이
+문서의 B~G 기록은 과거 완료 상태로 유지한다.

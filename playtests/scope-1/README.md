@@ -1,9 +1,8 @@
 # Scope 1 historical materials
 
-Scope 1 is complete. Its current implementation rules are in
-[`docs/scopes/SCOPE_1_INTERACTION.md`](../../docs/scopes/SCOPE_1_INTERACTION.md); the single official observation,
-its limits and stable hashes are summarized in
-[`docs/DEVELOPMENT_HISTORY.md`](../../docs/DEVELOPMENT_HISTORY.md).
+Scope 1 is complete. The single official observation and its evidence boundary are summarized in the
+[compressed history](../../docs/archive/COMPLETED_HISTORY.md). The detailed former scope and history are
+recoverable from Git commit `9aceaf7` and are not current implementation authority.
 
 This directory keeps the fixture checker and the Git-ignored `private/` app and engine logs. It does not
 authorize another observation.

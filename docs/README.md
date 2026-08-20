@@ -1,103 +1,69 @@
 # Gridworks 문서 안내
 
-이 파일은 문서의 역할과 질문별 소유권을 정한다. 프로젝트의 현재 상태, 활성 단계와 구현 권한은
-루트 [README](../README.md)가 소유한다. 로드맵에 적힌 기능은 자동 승인된 backlog가 아니다.
-현재 전면 개편은 R2 구현 커밋 `4c27f65` 뒤 `USER_STOPPED_AFTER_R2`이고 활성 revision gate는 없다.
-마지막 exact-tree 전체 harness 중단을 완료 증거로 바꾸거나 R3~R7을 자동으로 열지 않는다.
+이 디렉터리는 **현재 `./assets` 스타일 실시간 게임 목표에 필요한 문서만 전면에 둔다.** 완료·중단된
+과거 상세 계약은 현재 권한과 혼동되지 않도록 Git 이력으로 돌리고, 핵심 사실만 `archive/`에
+압축했다.
 
-## 문서 구조
+## 현재 문서 구조
 
 ```text
 docs/
-├── README.md                         문서 지도와 질문별 소유권
-├── DEVELOPMENT_HISTORY.md            압축된 과거 결정·증거·교훈
-├── ROADMAP_2D.md                     2D 1.0까지의 단계와 범위
-├── ROADMAP_2D_CHECKLIST.md           단계 상태와 최소 종료 증거 장부
+├── README.md
+├── ROADMAP_2D.md
+├── ROADMAP_2D_CHECKLIST.md
 ├── product/
-│   ├── GAME_DESIGN_KO.md             제품 비전과 안정된 게임 원칙
-│   ├── COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md 채택된 상용 2D 제품 기준
-│   ├── OBJECT_CATALOG.md             오브젝트 정의와 기능 상태
-│   └── VISUAL_PRODUCTION_SPEC.md      규칙을 표현하는 시각 기준
+│   ├── GAME_DESIGN_KO.md
+│   ├── OBJECT_CATALOG.md
+│   └── VISUAL_PRODUCTION_SPEC.md
 ├── scopes/
-│   ├── SCOPE_0B_PLAYABLE.md           완료된 Scope 0B 구현 기준
-│   ├── SCOPE_1_INTERACTION.md         완료된 Scope 1 구현 기준
-│   ├── FIRST_LIGHT.md                 완료된 첫 제품 단계 기준
-│   ├── SECOND_HEART.md                완료된 병원 신뢰도·경제 구현 기준
-│   ├── FACTORY_CAPACITY.md             완료된 공장 수요·발전소 용량 기준
-│   ├── HEATWAVE_MAINTENANCE.md         완료된 폭염·예방정비 구현 기준
-│   ├── CAMPAIGN_SAVE_SETTINGS.md        완료된 캠페인·저장·설정 구현 기준
-│   ├── CAMPAIGN_CONTENT.md              완료된 세 장 콘텐츠 구현 기준
-│   ├── RELEASE_2D.md                    완료된 내부 후보의 2D 표현·사운드·패키징 기준
-│   ├── RELEASE_REBUILD.md               완료된 기술 기준선 재구축 계약
-│   ├── COMMERCIAL_2D_IMPLEMENTATION.md  상용 2D 게임 단계 B~G 계약과 완료 기록
-│   └── REALTIME_PHYSICAL_TOTAL_REVISION.md 중단된 실시간·물리 세계 전면 개편 계약·기록
-├── development/
-│   └── BALANCING_STATIC_SIM.md        조건부 정적 분석 도구
-└── future/
-    └── POST_1_0.md                    1.0 이후 격리 후보
+│   └── ASSET_STYLE_REALTIME_GAME.md
+└── archive/
+    ├── README.md
+    └── COMPLETED_HISTORY.md
 ```
 
-동결된 카드, 진행자료와 로컬 원본 위치는 [`playtests/`](../playtests/)에 있다. 그 자료는 과거
-실행 입력과 증거이며 현재 구현 권한이나 제품 숫자를 새로 만들지 않는다. Git 제외 `private/`
-원본을 재귀 삭제하지 않는다.
-
-## 질문별 소유 문서
+## 질문별 소유권
 
 | 질문 | 소유 문서 | 경계 |
 |---|---|---|
-| 지금 무엇을 구현할 수 있는가? | [루트 README](../README.md) | 로드맵·후보가 구현을 승인하지 않음 |
-| 무엇을 어떤 순서로 완성하려는가? | [2D 완성 로드맵](ROADMAP_2D.md) | 현재 단계의 정확한 계약을 대신하지 않음 |
-| 중단된 Stage F 관찰에서 나온 후속 task와 완료된 수용 기준은 무엇인가? | [2D 완성 로드맵](ROADMAP_2D.md#관찰-기반-선행-보정-backlog--완료) | G에서 닫힌 선행 보정 기록이며 사람 증거가 아님 |
-| 진행과 종료 증거는 어디에 기록하는가? | [로드맵 체크리스트](ROADMAP_2D_CHECKLIST.md) | 기능 명세·숫자를 복제하지 않음 |
-| 과거에 무엇을 확인하고 왜 바꿨는가? | [개발 이력](DEVELOPMENT_HISTORY.md) | 현재 권한이나 규칙을 소유하지 않음 |
-| 게임의 경험과 장기 원칙은 무엇인가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 단계별 숫자·절차를 만들지 않음 |
-| 자유 배치·열 한계를 포함한 상용 2D 게임의 제품 기준은 무엇인가? | [상용 2D 게임 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md) | 경험·콘텐츠·표현 원칙을 소유하고 열린 구현 단계만 구현 계약이 소유 |
-| 오브젝트와 가능한 동작은 무엇인가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 미래 기능을 현재 가능으로 표시하지 않음 |
-| 규칙을 어떻게 보이게 하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 게임 규칙을 새로 계산하지 않음 |
-| 동결된 고정 시나리오는 어떻게 동작했는가? | [Scope 0B 기준](scopes/SCOPE_0B_PLAYABLE.md) | 제품 전체 모델로 일반화하지 않음 |
-| 동결된 수동 선로 slice는 어떻게 동작했는가? | [Scope 1 기준](scopes/SCOPE_1_INTERACTION.md) | 고정 endpoint 밖의 기능을 열지 않음 |
-| 완료된 첫 제품 구현은 무엇을 만들 수 있는가? | [첫 점등 통합](scopes/FIRST_LIGHT.md) | 완료 범위를 현재 권한으로 오해하지 않음 |
-| 완료된 병원 제품 흐름은 무엇인가? | [두 번째 심장](scopes/SECOND_HEART.md) | 완료 범위를 다음 단계 권한으로 오해하지 않음 |
-| 완료된 공장·발전소 흐름은 무엇인가? | [공장 수요와 발전소 용량](scopes/FACTORY_CAPACITY.md) | 완료 범위를 폭염·정비 권한으로 오해하지 않음 |
-| 완료된 폭염·정비 흐름은 무엇인가? | [예고된 폭염과 예방정비](scopes/HEATWAVE_MAINTENANCE.md) | 완료 범위를 다음 단계 권한으로 오해하지 않음 |
-| 완료된 캠페인·저장 흐름은 무엇인가? | [캠페인 골격·저장·기본 설정](scopes/CAMPAIGN_SAVE_SETTINGS.md) | 완료 범위를 콘텐츠·패키징 권한으로 오해하지 않음 |
-| 완료된 세 장 콘텐츠는 무엇을 보장하는가? | [세 장 캠페인 콘텐츠 고정](scopes/CAMPAIGN_CONTENT.md) | 완료 범위를 아트·사운드·패키징 권한으로 오해하지 않음 |
-| 완료된 2D 표현·사운드·package는 어디까지 보장하는가? | [2D 출시 마감](scopes/RELEASE_2D.md) | 외부 테스트·공개 배포를 포함하지 않음 |
-| 완료된 기술 기준선은 무엇을 보장하는가? | [출시판 재구축](scopes/RELEASE_REBUILD.md) | 새 상용 제품의 구현 권한으로 사용하지 않음 |
-| 상용 v2 게임은 어디까지 구현됐고 무엇이 남았는가? | [상용 2D 게임 구현](scopes/COMMERCIAL_2D_IMPLEMENTATION.md) | 단계 B~G 완료 증거와 미개방 H를 구분 |
-| 중단된 실시간·물리 세계 전면 개편은 어디까지 갔는가? | [실시간 물리 세계 전면 개편](scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md) | R2 구현과 미완료 gate를 구분하며 R3~R7 권한이나 공개 배포 승인을 만들지 않음 |
-| 정적 분석 도구는 언제 쓰는가? | [Static Balance Lab](development/BALANCING_STATIC_SIM.md) | 자동 튜닝이나 사람 선택 대체에 쓰지 않음 |
-| 1.0 이후 냉각수·원전 방향은 무엇인가? | [1.0 이후 방향](future/POST_1_0.md) | 1.0 schema·UI를 선결하지 않음 |
+| 지금 무엇을 할 수 있는가? | [루트 README](../README.md) | 목표와 코드 구현 권한을 구분 |
+| 최종적으로 어떤 게임을 만드는가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 단계별 파일·절차는 만들지 않음 |
+| `./assets` 스타일을 게임에서 어떻게 재현하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 규칙·수치를 새로 계산하지 않음 |
+| 현재 전체 목표와 금지 범위는 무엇인가? | [에셋 스타일 실시간 게임 계약](scopes/ASSET_STYLE_REALTIME_GAME.md) | 활성 코드 gate가 없으면 구현하지 않음 |
+| 어떤 순서로 전환하는가? | [로드맵](ROADMAP_2D.md) | 다음 단계 후보는 자동 승인 아님 |
+| 현재 단계와 증거 상태는 무엇인가? | [체크리스트](ROADMAP_2D_CHECKLIST.md) | 긴 로그·규칙을 복제하지 않음 |
+| 설비와 상태는 무엇인가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 현재 규칙과 시각 준비 상태를 분리 |
+| 과거에 무엇을 완료·중단했는가? | [완료 이력](archive/COMPLETED_HISTORY.md) | 현재 구현 권한이나 현재 증거가 아님 |
 
-충돌하면 `현재 사용자 지시 → 루트 README가 지목한 활성 단계(있는 경우) → 질문별 소유 문서` 순서로
-판단한다. 콘셉트 이미지, 과거 실행자료와 미래 후보는 현재 규칙의 권위가 아니다.
+충돌하면 다음 순서를 따른다.
 
-## 읽는 순서
+```text
+현재 사용자 지시
+→ 루트 README의 활성 구현 gate
+→ 현재 목표 계약
+→ 질문별 소유 문서
+→ 압축 과거 이력
+```
 
-### 개발 작업
+## 현재 경계
 
-1. [루트 README](../README.md)에서 활성 단계와 금지 범위를 확인한다.
-2. 활성 단계가 있으면 그 단계의 별도 계약을 처음부터 끝까지 읽는다.
-3. 질문별 소유 문서만 추가로 읽는다.
-4. 작업 뒤 체크리스트, README와 영향을 받은 문서를 같은 변경에서 갱신한다.
+- `CurrentGoal = ASSET_STYLE_REALTIME_GAME`
+- `DocumentationBaseline = A0_COMPLETE`
+- `ActiveImplementationGate = NONE`
+- `NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED`
+- 기본 장면은 `CommercialMain`이다.
+- R1/R2는 기반으로 보존하지만 R2 종료 gate를 새로 PASS로 만들지 않는다.
+- `./assets` 네 이미지는 visual reference authority이며 runtime·규칙·숫자 authority가 아니다.
+- 이전 HTML/CSS 목표 화면은 현재 스타일 목표에서 폐기했다. 파일은 Git commit `9aceaf7`로 복구할 수
+  있고 현재 증거로 사용하지 않는다.
 
-활성 단계가 없으면 현재 사용자 요청이 문서·검토 작업인지, 새 구현 단계를 명시적으로 여는지
-구분한다. 로드맵의 다음 줄을 임의로 구현하지 않는다.
+## 작업 읽기 순서
 
-### 프로젝트 이해
+1. 루트 [README](../README.md)를 읽는다.
+2. [현재 목표 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)을 처음부터 끝까지 읽는다.
+3. 작업 질문의 소유 문서 하나만 추가로 읽는다.
+4. 승인된 gate 밖 코드·data·asset·scene은 만들지 않는다.
+5. 작업이 끝나면 체크리스트와 현재 상태를 같은 변경에서 갱신한다.
 
-1. [게임 기획서](product/GAME_DESIGN_KO.md)
-2. [현재 상태](../README.md#현재-상태)
-3. [2D 완성 로드맵](ROADMAP_2D.md)
-4. 필요한 경우 [개발 이력](DEVELOPMENT_HISTORY.md)과 완료 구현 기준
-
-## 유지 규칙
-
-- 현재 활성 단계와 구현 권한은 루트 README 한 곳에만 선언하고, 단계별 완료·대기 증거는
-  체크리스트에 기록한다.
-- 로드맵 설명과 체크리스트 상태를 분리한다.
-- machine-readable fixture의 숫자를 문서나 장면에 별도 권위로 복제하지 않는다.
-- 오브젝트 능력이 바뀌면 오브젝트 카탈로그를 같은 변경에서 갱신한다.
-- 파일을 이동·삭제하면 문서 링크와 검증기의 경로를 같은 변경에서 고친다.
-- 완료된 단계의 상세 로그는 압축 이력이나 Git 이력으로 보내고 현재 문서에 반복하지 않는다.
-- 다음 단계 시작 전 이전 단계의 코드·증거·문서 최신성을 독립 검토한다.
+과거 상세 내용이 필요하면 새 현재 문서로 되살리지 말고
+[아카이브 안내](archive/README.md)의 Git 조회 방법을 사용한다.

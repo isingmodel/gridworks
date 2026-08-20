@@ -21,8 +21,8 @@
 | 과거 내부 후보 | 보존 | [개발 이력](DEVELOPMENT_HISTORY.md)과 완료 scope | 동결 회귀 | 기존 package 실행 | 소유자 전체 플레이에서 출시 차단 문제 확인 | 출시판으로는 superseded |
 | 동결 release v1 기술 기준선 | **완료** | [과거 계약](scopes/RELEASE_REBUILD.md)·[world](../data/release-world-v1.json)·[campaign](../data/release-campaign-v1.json) | 15 suites / 481 assertions | 건설·두 프로세스 8임무·내부 package 통과 | 공식 cold LLM은 마지막 장 `BLOCKED`; v2 증거로 합산하지 않음 | 후속 기술 수정 P0/P1 0 |
 | B. 자유 좌표 기반 | **완료** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)·Stage-B spatial fixture | CommercialChecks 7 suites / 238 assertions | 1280×720·UI 125% 자유 배치 흐름 통과 | 해당 없음 | exact-tree P0/P1 0 |
-| C. 이산 열 국면 기반 | **검토 중** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)·[world v2](../data/release-world-v2.json) | CommercialChecks 11 suites / 278 assertions | 자유 배치 회귀·1280×720 UI 125% 열 projection 통과 | 해당 없음 | exact-tree 검토 대기 |
-| D. 상용 핵심 흐름 | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 사람 관찰은 구현 뒤 `NOT_COLLECTED` | C 종료 뒤 자동 활성화 |
+| C. 이산 열 국면 기반 | **완료** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#45-단계-c-종료-기록--2026-08-21)·[world v2](../data/release-world-v2.json) | CommercialChecks 12 suites / 283 assertions | 자유 배치 회귀·1280×720 UI 125% 열 projection 통과 | 해당 없음 | candidate P0 0 / P1 3; 전부 수정·재검증, open 0 |
+| D. 상용 핵심 흐름 | **활성** | 같은 활성 계약의 현재 gate | 구현 시작 | 미실행 | 구현 뒤 `CommercialSliceHumanStatus = NOT_COLLECTED` | C 종료 뒤 자동 활성화 |
 | E. 첫 네 임무·공통 UX | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 구현 중 수집하지 않음 | D 종료 뒤 자동 활성화 |
 | F. 후반 네 임무·에필로그 | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 구현 중 수집하지 않음 | E 종료 뒤 자동 활성화 |
 | G. 시청각·접근성·package | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 전체 사람 검토 `NOT_COLLECTED` | F 종료 뒤 자동 활성화 |

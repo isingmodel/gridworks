@@ -2,7 +2,7 @@
 
 > 상태: **ACTIVE**
 > 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 C — 이산 열 국면 기반**
+> 현재 작업: **단계 D — 상용 핵심 흐름**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -195,17 +195,20 @@ thermal evaluator는 작성된 고정망과 interval sequence를 순수 계산�
   색 외 패턴·아이콘·문장으로 확인한다.
 - 0~100 열 게이지, 범용 scheduler와 수동 급전은 열지 않는다.
 
-### 4.5 단계 C 검토 후보 — 2026-08-21
+### 4.5 단계 C 종료 기록 — 2026-08-21
 
 - `release-world-v2.json` SHA-256:
   `1b3485ca3aa0ae6302d0c245d13b8947d314507eeaa9e2d56561c07fbe6113ed`
-- CommercialChecks: **11 suites / 278 assertions PASS**
+- CommercialChecks: **12 suites / 283 assertions PASS**
 - Game Debug·Release rebuild: **0 warnings / 0 errors**
 - 명시 `CommercialMain.tscn` native 회귀:
   `COMMERCIAL_PLACEMENT_SMOKE_PASS minute=228 nodes=19 edges=19 zoom=전체 보기`
 - 1280×720·UI 125% 열 UI:
   `COMMERCIAL_THERMAL_SMOKE_PASS phases=3 selected=SOUTH_SUBSTATION patterns=continuous|emergency|protective-outage`
-- 독립 exact-tree 검토 전이므로 단계 상태는 `검토 중`이며 단계 D는 아직 열지 않았다.
+- 독립 exact-tree 검토: **P0 0 / P1 3**. 도시 약속 외 의무의 임의 제외, 비열 endpoint·접속점의
+  사용불가 누락, 100,000 simple-path 임의 중단을 모두 수정하고 전용 반례를 재실행해 **open P0/P1
+  0**으로 닫았다.
+- 범용 scheduler, 0~100 게이지와 수동 급전을 열지 않고 단계 D로 승격했다.
 
 ## 5. 단계 D — 상용 핵심 흐름
 

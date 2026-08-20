@@ -2,8 +2,6 @@ namespace Gridworks.Core.Release.V2;
 
 public static class ThermalEvaluator
 {
-    private const int MaximumSimplePaths = 100_000;
-
     public static ThermalSequenceResult Evaluate(
         CommercialWorldDefinition world,
         ThermalSequenceRequest request)
@@ -76,12 +74,13 @@ public static class ThermalEvaluator
                 continue;
             }
 
-            IReadOnlyList<PathCandidate> paths = EnumeratePaths(world, demand.NodeId);
-            List<ScoredCandidate> accepted = [];
-            List<CandidateFailure> failures = [];
+            ScoredCandidate? chosen = null;
+            CandidateFailure? preferredFailure = null;
+            bool sawPath = false;
             bool allowEmergency = AllowsEmergency(interval, demand);
-            foreach (PathCandidate path in paths)
+            VisitPaths(world, demand.NodeId, path =>
             {
+                sawPath = true;
                 CandidateEvaluation evaluation = EvaluateCandidate(
                     world,
                     path,
@@ -94,8 +93,15 @@ public static class ThermalEvaluator
                     sourceUse);
                 if (!evaluation.Accepted)
                 {
-                    failures.Add(new CandidateFailure(path, evaluation.Failure, evaluation.BottleneckAssetId));
-                    continue;
+                    var failure = new CandidateFailure(
+                        path,
+                        evaluation.Failure,
+                        evaluation.BottleneckAssetId);
+                    if (preferredFailure is null || CompareFailure(failure, preferredFailure) < 0)
+                    {
+                        preferredFailure = failure;
+                    }
+                    return;
                 }
 
                 if (enforceFutureSafety &&
@@ -112,42 +118,34 @@ public static class ThermalEvaluator
                         demand.DemandKw,
                         limits))
                 {
-                    failures.Add(new CandidateFailure(
+                    var failure = new CandidateFailure(
                         path,
                         ThermalSupplyFailure.FutureSafetyDuty,
-                        evaluation.EmergencyAssetIds[0]));
-                    continue;
+                        evaluation.EmergencyAssetIds[0]);
+                    if (preferredFailure is null || CompareFailure(failure, preferredFailure) < 0)
+                    {
+                        preferredFailure = failure;
+                    }
+                    return;
                 }
 
-                accepted.Add(new ScoredCandidate(path, evaluation));
-            }
+                var candidate = new ScoredCandidate(path, evaluation);
+                if (chosen is null || CompareCandidate(candidate, chosen) < 0)
+                {
+                    chosen = candidate;
+                }
+            });
 
-            if (accepted.Count == 0)
+            if (chosen is null)
             {
-                CandidateFailure? failure = failures
-                    .OrderBy(item => item.Path.Source.AuthoredOrder)
-                    .ThenBy(item => item.Path.LengthUnit)
-                    .ThenBy(item => item.Path.EdgeIds.Count)
-                    .ThenBy(item => string.Join('\u001f', item.Path.EdgeIds), StringComparer.Ordinal)
-                    .ThenBy(item => item.Path.NodeIds[^1], StringComparer.Ordinal)
-                    .FirstOrDefault();
                 demandResults.Add(FailedDemand(
                     demand,
-                    failure?.Failure ?? ThermalSupplyFailure.NoPath,
-                    failure?.BottleneckAssetId));
+                    sawPath
+                        ? preferredFailure?.Failure ?? ThermalSupplyFailure.NoPath
+                        : ThermalSupplyFailure.NoPath,
+                    preferredFailure?.BottleneckAssetId));
                 continue;
             }
-
-            ScoredCandidate chosen = accepted
-                .OrderBy(item => item.Evaluation.EmergencyAssetIds.Count == 0 ? 0 : 1)
-                .ThenBy(item => item.Evaluation.EmergencyAssetIds.Count)
-                .ThenByDescending(item => item.Evaluation.MinimumRemainingLimitKw)
-                .ThenBy(item => item.Path.Source.AuthoredOrder)
-                .ThenBy(item => item.Path.LengthUnit)
-                .ThenBy(item => item.Path.EdgeIds.Count)
-                .ThenBy(item => string.Join('\u001f', item.Path.EdgeIds), StringComparer.Ordinal)
-                .ThenBy(item => item.Path.NodeIds[^1], StringComparer.Ordinal)
-                .First();
 
             sourceUse[chosen.Path.Source.NodeId] = checked(
                 sourceUse[chosen.Path.Source.NodeId] + demand.DemandKw);
@@ -248,11 +246,14 @@ public static class ThermalEvaluator
         IReadOnlyDictionary<string, long> assetUse,
         IReadOnlyDictionary<string, long> sourceUse)
     {
-        if (unavailable.Contains(path.Source.NodeId))
+        foreach (string assetId in path.RouteAssetIds)
         {
-            return CandidateEvaluation.Rejected(
-                ThermalSupplyFailure.UnavailableAsset,
-                path.Source.NodeId);
+            if (unavailable.Contains(assetId))
+            {
+                return CandidateEvaluation.Rejected(
+                    ThermalSupplyFailure.UnavailableAsset,
+                    assetId);
+            }
         }
         if (checked(sourceUse[path.Source.NodeId] + demandKw) > path.Source.OutputCapacityKw)
         {
@@ -300,9 +301,10 @@ public static class ThermalEvaluator
             minimumRemaining == long.MaxValue ? 0 : minimumRemaining);
     }
 
-    private static IReadOnlyList<PathCandidate> EnumeratePaths(
+    private static void VisitPaths(
         CommercialWorldDefinition world,
-        string targetNodeId)
+        string targetNodeId,
+        Action<PathCandidate> visitor)
     {
         Dictionary<string, List<(string EdgeId, string NextNodeId)>> adjacency =
             world.Spatial.Nodes.ToDictionary(
@@ -329,7 +331,6 @@ public static class ThermalEvaluator
         HashSet<string> thermalNodeClasses = world.ThermalNodeClasses
             .Select(item => item.ClassId)
             .ToHashSet(StringComparer.Ordinal);
-        List<PathCandidate> paths = [];
         foreach (GenerationSourceDefinition source in world.GenerationSources.OrderBy(item => item.AuthoredOrder))
         {
             List<string> nodePath = [source.NodeId];
@@ -339,11 +340,6 @@ public static class ThermalEvaluator
 
             void Enumerate(string current)
             {
-                if (paths.Count > MaximumSimplePaths)
-                {
-                    throw new ThermalEvaluationException(
-                        $"Thermal path enumeration exceeded {MaximumSimplePaths} simple paths.");
-                }
                 if (current == targetNodeId)
                 {
                     long length = 0;
@@ -354,12 +350,15 @@ public static class ThermalEvaluator
                             nodes[nodePath[index + 1]].Position));
                     }
                     List<string> assets = [];
+                    List<string> routeAssets = [nodePath[0]];
                     if (thermalNodeClasses.Contains(nodes[nodePath[0]].ClassId))
                     {
                         assets.Add(nodePath[0]);
                     }
                     for (int index = 0; index < edgePath.Count; index++)
                     {
+                        routeAssets.Add(edgePath[index]);
+                        routeAssets.Add(nodePath[index + 1]);
                         assets.Add(edgePath[index]);
                         string nodeId = nodePath[index + 1];
                         if (thermalNodeClasses.Contains(nodes[nodeId].ClassId))
@@ -367,11 +366,12 @@ public static class ThermalEvaluator
                             assets.Add(nodeId);
                         }
                     }
-                    paths.Add(new PathCandidate(
+                    visitor(new PathCandidate(
                         source,
                         nodePath.ToArray(),
                         edgePath.ToArray(),
                         assets.ToArray(),
+                        routeAssets.ToArray(),
                         length));
                     return;
                 }
@@ -390,7 +390,6 @@ public static class ThermalEvaluator
                 }
             }
         }
-        return paths;
     }
 
     private static Dictionary<string, ThermalLimitDefinition> AppliedLimits(
@@ -463,6 +462,9 @@ public static class ThermalEvaluator
                 Require(loadNodes.Contains(demand.NodeId),
                     $"Demand '{demand.DemandId}' references a non-load endpoint.");
                 Require(demand.DemandKw > 0, $"Demand '{demand.DemandId}' must be positive.");
+                Require(demand.Included ||
+                    demand.ObligationKind == ThermalObligationKind.CityPromise,
+                    $"Only a city promise can be deferred from an interval.");
                 Require(!demand.EmergencyUseApproved ||
                     demand.ObligationKind == ThermalObligationKind.CityPromise,
                     $"Only a city promise can carry direct emergency approval.");
@@ -518,6 +520,59 @@ public static class ThermalEvaluator
         .Select(item => new ThermalAssetMemory(item.Key, item.Value))
         .ToArray();
 
+    private static int CompareCandidate(ScoredCandidate left, ScoredCandidate right)
+    {
+        int result = (left.Evaluation.EmergencyAssetIds.Count == 0 ? 0 : 1).CompareTo(
+            right.Evaluation.EmergencyAssetIds.Count == 0 ? 0 : 1);
+        if (result != 0) return result;
+        result = left.Evaluation.EmergencyAssetIds.Count.CompareTo(
+            right.Evaluation.EmergencyAssetIds.Count);
+        if (result != 0) return result;
+        result = right.Evaluation.MinimumRemainingLimitKw.CompareTo(
+            left.Evaluation.MinimumRemainingLimitKw);
+        if (result != 0) return result;
+        result = left.Path.Source.AuthoredOrder.CompareTo(right.Path.Source.AuthoredOrder);
+        if (result != 0) return result;
+        result = left.Path.LengthUnit.CompareTo(right.Path.LengthUnit);
+        if (result != 0) return result;
+        result = left.Path.EdgeIds.Count.CompareTo(right.Path.EdgeIds.Count);
+        if (result != 0) return result;
+        result = CompareOrdinalLists(left.Path.EdgeIds, right.Path.EdgeIds);
+        return result != 0
+            ? result
+            : StringComparer.Ordinal.Compare(left.Path.NodeIds[^1], right.Path.NodeIds[^1]);
+    }
+
+    private static int CompareFailure(CandidateFailure left, CandidateFailure right)
+    {
+        int result = left.Path.Source.AuthoredOrder.CompareTo(right.Path.Source.AuthoredOrder);
+        if (result != 0) return result;
+        result = left.Path.LengthUnit.CompareTo(right.Path.LengthUnit);
+        if (result != 0) return result;
+        result = left.Path.EdgeIds.Count.CompareTo(right.Path.EdgeIds.Count);
+        if (result != 0) return result;
+        result = CompareOrdinalLists(left.Path.EdgeIds, right.Path.EdgeIds);
+        return result != 0
+            ? result
+            : StringComparer.Ordinal.Compare(left.Path.NodeIds[^1], right.Path.NodeIds[^1]);
+    }
+
+    private static int CompareOrdinalLists(
+        IReadOnlyList<string> left,
+        IReadOnlyList<string> right)
+    {
+        int common = Math.Min(left.Count, right.Count);
+        for (int index = 0; index < common; index++)
+        {
+            int result = StringComparer.Ordinal.Compare(left[index], right[index]);
+            if (result != 0)
+            {
+                return result;
+            }
+        }
+        return left.Count.CompareTo(right.Count);
+    }
+
     private static void RequireText(string? value, string path) =>
         Require(!string.IsNullOrWhiteSpace(value), $"{path} must be nonempty text.");
 
@@ -534,6 +589,7 @@ public static class ThermalEvaluator
         IReadOnlyList<string> NodeIds,
         IReadOnlyList<string> EdgeIds,
         IReadOnlyList<string> AssetIds,
+        IReadOnlyList<string> RouteAssetIds,
         long LengthUnit);
 
     private sealed record CandidateEvaluation(

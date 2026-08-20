@@ -57,7 +57,7 @@
 strict spatial fixture와 geometry·construction 검사가 통과하고, 1280×720·UI 125% 실제 viewport에서
 마우스·키보드 자유 배치와 카메라를 한 번 확인한다. 열 schema와 캠페인은 만들지 않는다.
 
-## 4. 단계 C — 이산 열 국면 기반 — 활성
+## 4. 단계 C — 이산 열 국면 기반 — 완료
 
 ### 플레이어 결과
 
@@ -78,7 +78,7 @@ strict spatial fixture와 geometry·construction 검사가 통과하고, 1280×7
 연속·비상 경계, 공유 합산, 경로 순서, permission, 정지·냉각·복귀와 preview=commit을 자동검사하고
 작은 native 열 UI 흐름을 한 번 확인한다. 실제 온도·연속 축열·수동 급전은 만들지 않는다.
 
-## 5. 단계 D — 상용 핵심 흐름
+## 5. 단계 D — 상용 핵심 흐름 — 활성
 
 ### 플레이어 결과
 

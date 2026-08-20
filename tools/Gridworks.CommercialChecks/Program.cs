@@ -89,6 +89,7 @@ internal sealed class CommercialChecks
             ("thermal-boundaries-and-route-order", CheckThermalBoundariesAndRouteOrder),
             ("thermal-shared-permissions-and-bottleneck", CheckThermalSharedPermissionsAndBottleneck),
             ("thermal-protection-cooling-and-determinism", CheckThermalProtectionCoolingAndDeterminism),
+            ("thermal-review-regressions", CheckThermalReviewRegressions),
         ];
 
         List<string> failures = [];
@@ -951,6 +952,76 @@ internal sealed class CommercialChecks
             "thermal override must only lower the class limits");
     }
 
+    private void CheckThermalReviewRegressions()
+    {
+        CommercialWorldDefinition shared = SharedThermalWorld();
+        ExpectThrows<ThermalEvaluationException>(
+            () => EvaluateOne(
+                shared,
+                Interval(
+                    "DEFERRED_SAFETY",
+                    Demand(
+                        "S",
+                        "L1",
+                        100,
+                        ThermalObligationKind.SafetyDuty,
+                        included: false))),
+            "mandatory safety duty cannot be deferred");
+        ExpectThrows<ThermalEvaluationException>(
+            () => EvaluateOne(
+                shared,
+                Interval(
+                    "DEFERRED_RECORD",
+                    Demand(
+                        "R",
+                        "L1",
+                        100,
+                        ThermalObligationKind.OperatingRecord,
+                        included: false))),
+            "operating record cannot be deferred");
+
+        ThermalIntervalResult unavailableEndpoint = EvaluateOne(
+            shared,
+            Interval(
+                "UNAVAILABLE_ENDPOINT",
+                Demand("S", "L1", 100, ThermalObligationKind.SafetyDuty),
+                unavailable: ["L1"]));
+        Check(!unavailableEndpoint.Demands[0].Supplied &&
+            unavailableEndpoint.Demands[0].Failure == ThermalSupplyFailure.UnavailableAsset &&
+            unavailableEndpoint.Demands[0].FirstBottleneckAssetId == "L1",
+            "unavailable nonthermal load endpoint still received supply");
+
+        CommercialWorldDefinition transitWorld = ThermalWorld(
+        [
+            Node("S", 100, 100),
+            Node("TRANSIT_LOAD", 300, 100, LoadClassId),
+            Node("L", 500, 100, LoadClassId),
+        ],
+        [Edge("E1", "S", "TRANSIT_LOAD"), Edge("E2", "TRANSIT_LOAD", "L")],
+        continuous: 500,
+        emergency: 700);
+        ThermalDemandResult unavailableTransit = EvaluateOne(
+            transitWorld,
+            Interval(
+                "UNAVAILABLE_TRANSIT",
+                Demand("D", "L", 100, ThermalObligationKind.SafetyDuty),
+                unavailable: ["TRANSIT_LOAD"]))
+            .Demands[0];
+        Check(!unavailableTransit.Supplied &&
+            unavailableTransit.FirstBottleneckAssetId == "TRANSIT_LOAD",
+            "unavailable nonthermal transit endpoint still carried supply");
+
+        CommercialWorldDefinition manyPaths = DiamondThermalWorld(17);
+        ThermalDemandResult routed = EvaluateOne(
+            manyPaths,
+            Interval(
+                "MANY_PATHS",
+                Demand("D", "L", 1, ThermalObligationKind.SafetyDuty)))
+            .Demands[0];
+        Check(routed.Supplied && routed.PathEdgeIds.Count == 34,
+            "all-simple-path evaluation aborted above the former 100,000-path limit");
+    }
+
     private string ExecuteReplay(SpatialWorldDefinition world) =>
         JsonSerializer.Serialize(ExecuteReplaySnapshot(world));
 
@@ -1043,6 +1114,35 @@ internal sealed class CommercialChecks
     ],
     continuous: 400,
     emergency: 500);
+
+    private static CommercialWorldDefinition DiamondThermalWorld(int diamondCount)
+    {
+        var nodes = new List<SpatialNodeDefinition>
+        {
+            Node("S", 100, 1000),
+            Node("L", 100 + (diamondCount * 100), 1000, LoadClassId),
+        };
+        var edges = new List<SpatialEdgeDefinition>();
+        for (int index = 0; index < diamondCount; index++)
+        {
+            string left = index == 0 ? "S" : $"J{index:D2}";
+            string right = index + 1 == diamondCount ? "L" : $"J{index + 1:D2}";
+            string top = $"T{index:D2}";
+            string bottom = $"B{index:D2}";
+            int branchX = 150 + (index * 100);
+            nodes.Add(Node(top, branchX, 900, PoleClassId));
+            nodes.Add(Node(bottom, branchX, 1100, PoleClassId));
+            if (index + 1 < diamondCount)
+            {
+                nodes.Add(Node(right, 200 + (index * 100), 1000, PoleClassId));
+            }
+            edges.Add(Edge($"D{index:D2}_A_TOP", left, top));
+            edges.Add(Edge($"D{index:D2}_B_BOTTOM", left, bottom));
+            edges.Add(Edge($"D{index:D2}_C_TOP", top, right));
+            edges.Add(Edge($"D{index:D2}_D_BOTTOM", bottom, right));
+        }
+        return ThermalWorld(nodes, edges, continuous: 500, emergency: 700);
+    }
 
     private static ThermalDemandDefinition Demand(
         string id,

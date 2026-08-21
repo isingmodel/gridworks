@@ -490,6 +490,13 @@ internal sealed partial class CommercialMain
                 _incompatibleSavePending = true;
                 _shell.ShowTitle(false, "비호환 저장 복구 확인");
                 await PressShellAsync(ReleaseShellAction.NewGame, "비호환 저장 뒤 새 게임");
+                if (_shell.Page == ReleaseShellPage.Help)
+                {
+                    await PressShellAsync(
+                        ReleaseShellAction.HelpBack,
+                        "비호환 저장 뒤 조작 도움말 닫기");
+                }
+                await NextFrame();
                 coreRun = _coreRun!;
                 string[] preserved = Directory.GetFiles(
                     recoveryDirectory,

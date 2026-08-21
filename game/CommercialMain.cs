@@ -1085,9 +1085,13 @@ internal sealed partial class CommercialMain : Control
                 window.Story?.Title ?? $"결정 경계 {index + 1}",
                 state));
         }
+        CommercialChapterResultRecord? presentedResult = _presentedResult ??
+            (core.CampaignComplete && core.ChapterResults.Count > 0
+                ? core.ChapterResults[^1]
+                : null);
         steps.Add(new CommercialTimelineStep(
             "결과",
-            chapter.StandardResult.Title,
+            presentedResult?.Story.Title ?? chapter.StandardResult.Title,
             showingResult ? CommercialTimelineStepState.Current : CommercialTimelineStepState.Upcoming));
         string progress = showingResult
             ? "운영 결과 확정"

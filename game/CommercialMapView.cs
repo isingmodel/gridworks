@@ -602,8 +602,8 @@ internal sealed partial class CommercialMapView : Control
         {
             Vector2[] polygon = area.Polygon.Select(ToCanvas).ToArray();
             Color fill = area.Kind == TerrainKind.Water
-                ? new Color(Water, 0.34f)
-                : new Color(Building, 0.12f);
+                ? new Color(Water, 0.62f)
+                : new Color(Building, 0.18f);
             Color edge = area.Kind == TerrainKind.Water ? WaterLine : BuildingEdge;
             DrawColoredPolygon(polygon, fill);
             DrawPolyline(polygon.Append(polygon[0]).ToArray(), edge, 1.6f, true);

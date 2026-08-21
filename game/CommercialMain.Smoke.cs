@@ -636,6 +636,8 @@ internal sealed partial class CommercialMain
                 checkpoint.ChapterResults.Count == 4 &&
                 fact.Supplied && fact.SourceNodeId is not null &&
                 checkpoint.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1") &&
+                _timeline.CurrentStepLabel == "결과" &&
+                _timeline.AccessibilityName.Contains(result.Story.Title, StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("실제 의무", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("정수장", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("도시 약속 · 지킴", StringComparison.Ordinal) &&

@@ -3,11 +3,11 @@
 - Generated: 2026-08-21
 - Tool: OpenAI built-in ImageGen
 - Output: `commercial-city-plate-v1.png` (`1672×941`)
-- SHA-256: `9f1d0cde2c03998bf18c20b2fd02fbc047c870c519c0a464d4dee42e8b5b7377`
+- SHA-256: `151a498dc4e6f6284c045a430f1cf3a90873b9db7ca944a9fcec4490a522846c`
 - References: `assets/01-grid-construction.png` through `assets/04-plant-siting.png`, used only for
   style, mood, camera angle, material and city-density guidance.
 
-## Final prompt
+## Base prompt
 
 ```text
 Use case: stylized-concept
@@ -21,4 +21,10 @@ Lighting/mood: moody late-afternoon-to-evening operational city, warm amber wind
 Color palette: charcoal, oxidized bronze, muted slate blue, deep river teal, warm amber lights; restrained contrast so bright cyan and amber live network overlays remain dominant
 Materials/textures: worn asphalt, concrete, river water, dark rooftops, industrial steel, subtle terrain relief
 Constraints: no text; no letters; no numbers; no UI panels; no borders; no icons; no logos; no watermark; no power lines; no cables; no pylons; no poles; no substations; no highlighted service circles; no route overlays; no warning zones; no dashed lines; no glowing network; no selection outlines; no readable signage. Keep the city plate visually useful beneath precise code-native gameplay overlays.
+```
+
+## Exact-review refinement prompt
+
+```text
+Edit this existing runtime game environment plate. Preserve the exact canvas aspect ratio, overall oblique top-down industrial Korean city composition, central north-to-south river, road network, dense neighborhoods, factories, warm evening windows, charcoal/bronze/teal palette, painterly texture, and restrained contrast. Remove every baked semantic facility landmark that could be mistaken for authoritative gameplay data: remove the red-cross hospital and its recognizable medical campus, remove all circular water-treatment tanks/basins and water-utility complex, remove any distinctive civic or utility iconography. Replace those areas seamlessly with generic low-rise residential, municipal, workshop, and warehouse blocks matching their surroundings. Do not add or move power infrastructure. No text, letters, numbers, UI, borders, icons, logos, watermark, power lines, cables, pylons, poles, substations, service circles, route overlays, warning zones, dashed lines, glowing network, selection outlines, or readable signage. The central river remains atmospheric only; live code-native overlays will define exact build-blocking terrain and facilities.
 ```

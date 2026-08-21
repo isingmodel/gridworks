@@ -4,7 +4,7 @@
 
 | 자산 | 형태와 출처 | 권리·라이선스 경계 |
 |---|---|---|
-| 청류시 도시 배경 plate | `game/art/commercial-city-plate-v1.png`; 저장소의 네 concept을 style·mood reference로 사용해 OpenAI built-in ImageGen으로 새로 생성. prompt와 금지요소는 인접 `.prompt.md`에 고정 | Gridworks 프로젝트용 생성 출력. 공개 라이선스 없음. 내부 후보에만 포함. SHA-256 `9f1d0cde2c03998bf18c20b2fd02fbc047c870c519c0a464d4dee42e8b5b7377` |
+| 청류시 도시 배경 plate | `game/art/commercial-city-plate-v1.png`; 저장소의 네 concept을 style·mood reference로 사용해 OpenAI built-in ImageGen으로 새로 생성하고, 권위 시설로 오인할 의료·정수 landmark를 제거. prompt와 금지요소는 인접 `.prompt.md`에 고정 | Gridworks 프로젝트용 생성 출력. 공개 라이선스 없음. 내부 후보에만 포함. SHA-256 `151a498dc4e6f6284c045a430f1cf3a90873b9db7ca944a9fcec4490a522846c` |
 | 실제 망·시설·상태 pattern·사건 timeline·네 고정 인물 초상 | `CommercialMapView.cs`, `CommercialEventTimeline.cs`, `CommercialPortrait.cs`가 그리는 저장소 자체 code-native 2D 표현 | Gridworks 자체 저작물. 공개 라이선스 없음. 내부 후보에만 포함 |
 | 도시 환경음·날씨 layer·발주·완공·통전·차단·경고·결과 cue·두 motif | `ReleaseAudio.cs`가 실행 중 생성하는 결정적 mono PCM16 파형. 외부 음원 sample 없음 | Gridworks 자체 저작물. 공개 라이선스 없음. 내부 후보에만 포함 |
 | app icon | `game/icon.svg`, 저장소 자체 vector | Gridworks 자체 저작물. 공개 라이선스 없음. 내부 후보에만 포함 |

@@ -404,6 +404,7 @@ internal sealed partial class CommercialMapView : Control
         {
             Vector2 pointerCanvas = _transform.WorldToCanvas(pointer.XUnit, pointer.YUnit);
             _candidateNodeIds.AddRange(_presentation.Snapshot.World.Nodes
+                .Where(node => node.Commissioned)
                 .Select(node => new
                 {
                     node.NodeId,
@@ -611,7 +612,16 @@ internal sealed partial class CommercialMapView : Control
             }
             ThermalAssetResult? thermal = thermalInterval?.Assets.FirstOrDefault(item =>
                 item.AssetId == node.NodeId);
-            Color color = node.Commissioned ? ThermalColor(thermal?.CurrentState) : Planned;
+            Color color = node.Reserved
+                ? Muted
+                : node.Commissioned
+                    ? ThermalColor(thermal?.CurrentState)
+                    : Planned;
+            if (node.Commissioned && node.NodeId == selectedThermalAssetId &&
+                nodeClass.ServiceRadiusUnit > 0)
+            {
+                DrawServiceArea(node.Position, nodeClass.ServiceRadiusUnit);
+            }
             DrawFootprint(node.Position, nodeClass.FootprintRadiusUnit, color, 0.08f);
             Vector2 center = ToCanvas(node.Position);
             float radius = nodeClass.Kind switch
@@ -646,7 +656,7 @@ internal sealed partial class CommercialMapView : Control
                 DrawString(
                     GetThemeDefaultFont(),
                     center + new Vector2(radius + 7f, -radius - 2f),
-                    node.DisplayName,
+                    node.Reserved ? $"예정 · {node.DisplayName}" : node.DisplayName,
                     HorizontalAlignment.Left,
                     -1f,
                     12,
@@ -663,6 +673,10 @@ internal sealed partial class CommercialMapView : Control
         }
         SpatialNodeClassDefinition nodeClass = snapshot.World.NodeClasses.Single(
             item => string.Equals(item.ClassId, draft.NodeClassId, StringComparison.Ordinal));
+        if (nodeClass.ServiceRadiusUnit > 0)
+        {
+            DrawServiceArea(draft.Position, nodeClass.ServiceRadiusUnit);
+        }
         DrawFootprint(draft.Position, nodeClass.FootprintRadiusUnit, Planned, 0.16f);
         DrawCircle(ToCanvas(draft.Position), 6f, Planned);
     }
@@ -733,6 +747,14 @@ internal sealed partial class CommercialMapView : Control
         DrawCircle(center, radiusPixel, new Color(color, alpha));
         DrawArc(center, radiusPixel, 0f, Mathf.Tau, 48, new Color(color, 0.72f), 1.2f, true);
         DrawArc(center, radiusPixel + 6f, 0f, Mathf.Tau, 48, new Color(color, 0.22f), 1f, true);
+    }
+
+    private void DrawServiceArea(CoreMapPoint point, int radiusUnit)
+    {
+        float radiusPixel = Math.Max(2f, (float)(radiusUnit * RequireTransform().Scale));
+        Vector2 center = ToCanvas(point);
+        DrawCircle(center, radiusPixel, new Color(Focus, 0.035f));
+        DrawArc(center, radiusPixel, 0f, Mathf.Tau, 72, new Color(Focus, 0.62f), 1.5f, true);
     }
 
     private void DrawMapLegend()
@@ -833,7 +855,10 @@ internal sealed partial class CommercialMapView : Control
                 item.CurrentState == ThermalOperatingState.ProtectiveOutage);
             thermal = $" 열 상태: 비상 {emergency}곳, 보호정지 {outage}곳.";
         }
-        return $"청류시 자유 배치 지도. {presentation.ToolLabel}. {pointer}. 지도 {ZoomLabel}.{thermal}";
+        int reserved = presentation.Snapshot.World.Nodes.Count(item => item.Reserved);
+        string reservedText = reserved == 0 ? string.Empty : $" 예정 시설 {reserved}곳.";
+        return $"청류시 자유 배치 지도. {presentation.ToolLabel}. {pointer}. 지도 {ZoomLabel}." +
+               $"{reservedText}{thermal}";
     }
 
     private Vector2 KeyboardAnchor() => RequireTransform().WorldToCanvas(

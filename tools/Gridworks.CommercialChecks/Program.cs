@@ -62,6 +62,9 @@ internal sealed class CommercialChecks
     private readonly byte[] _coreBytes;
     private readonly string _coreJson;
     private readonly CommercialCoreSliceDefinition _coreSlice;
+    private readonly byte[] _campaignBytes;
+    private readonly string _campaignJson;
+    private readonly CommercialCampaignDefinition _campaign;
     private int _assertionCount;
 
     public CommercialChecks(string fixturePath)
@@ -75,6 +78,12 @@ internal sealed class CommercialChecks
         _coreBytes = File.ReadAllBytes(corePath);
         _coreJson = Encoding.UTF8.GetString(_coreBytes);
         _coreSlice = CommercialCoreLoader.Load(_coreBytes, _commercialWorld);
+        string campaignPath = Path.Combine(
+            Path.GetDirectoryName(fixturePath)!,
+            "release-campaign-v2.json");
+        _campaignBytes = File.ReadAllBytes(campaignPath);
+        _campaignJson = Encoding.UTF8.GetString(_campaignBytes);
+        _campaign = CommercialCampaignLoader.Load(_campaignBytes, _commercialWorld);
         string spatialFixturePath = Path.Combine(
             Path.GetDirectoryName(fixturePath)!,
             "commercial-free-placement-slice-v1.json");
@@ -104,6 +113,8 @@ internal sealed class CommercialChecks
             ("commercial-core-choice-deadline-and-atomicity", CheckCommercialCoreChoiceDeadlineAndAtomicity),
             ("commercial-core-rollback-and-fresh-replay", CheckCommercialCoreRollbackAndFreshReplay),
             ("commercial-core-save-v3", CheckCommercialCoreSaveV3),
+            ("strict-commercial-campaign-loader", CheckStrictCommercialCampaignLoader),
+            ("commercial-campaign-first-four-carry-save", CheckCommercialCampaignFirstFourCarrySave),
         ];
 
         List<string> failures = [];
@@ -141,6 +152,12 @@ internal sealed class CommercialChecks
         Equal(_fixture.WorldId, fromBytes.WorldId, "UTF-8 loader world ID");
         Equal(100, _fixture.UnitsPerDesignUnit, "fixed-point units per design unit");
         Equal(6, _fixture.Nodes.Count, "authored fixture node count");
+        JsonObject serviceRoot = JsonNode.Parse(_fixtureJson)!.AsObject();
+        Object(JsonArrayProperty(serviceRoot, "nodeClasses")[4]!)["serviceRadiusUnit"] = 800;
+        SpatialWorldDefinition serviceWorld = SpatialWorldLoader.Load(serviceRoot.ToJsonString());
+        Equal(800, serviceWorld.NodeClasses.Single(item =>
+            item.ClassId == "SMALL_SUBSTATION").ServiceRadiusUnit,
+            "strict loader substation service radius");
 
         string trimmed = _fixtureJson.TrimStart();
         ExpectLoaderRejected(
@@ -158,6 +175,12 @@ internal sealed class CommercialChecks
         ExpectLoaderRejected(
             "future line rating field",
             root => Object(JsonArrayProperty(root, "lineClasses")[0]!)["ratingKw"] = 2500);
+        ExpectLoaderRejected(
+            "service radius on non-substation",
+            root => Object(JsonArrayProperty(root, "nodeClasses")[0]!)["serviceRadiusUnit"] = 800);
+        ExpectLoaderRejected(
+            "negative substation service radius",
+            root => Object(JsonArrayProperty(root, "nodeClasses")[4]!)["serviceRadiusUnit"] = -1);
         ExpectLoaderRejected(
             "duplicate node identifier",
             root => JsonArrayProperty(root, "nodes").Add(
@@ -780,6 +803,231 @@ internal sealed class CommercialChecks
                     Object(JsonArrayProperty(root, "chapters")[1]!),
                     "operatingPhases")[1]!),
                     "loads")[0]!)["loadId"] = "HOSPITAL_DUTY");
+    }
+
+    private void CheckStrictCommercialCampaignLoader()
+    {
+        CommercialCampaignDefinition fromText = CommercialCampaignLoader.Load(
+            _campaignJson,
+            _commercialWorld);
+        CommercialCampaignDefinition fromBytes = CommercialCampaignLoader.Load(
+            _campaignBytes,
+            _commercialWorld);
+        Equal(_campaign.CampaignId, fromText.CampaignId, "campaign text loader ID");
+        Equal(_campaign.CampaignId, fromBytes.CampaignId, "campaign byte loader ID");
+        Equal(4, _campaign.Chapters.Count, "Stage-E exact chapter count");
+        Check(_campaign.Chapters.Select(item => item.ChapterId).SequenceEqual(
+                new[] { "FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE", "NORTH_BANK_PROMISE" },
+                StringComparer.Ordinal),
+            "Stage-E authored chapter order");
+        Check(_campaign.Chapters.SelectMany(item => item.OperatingPhases).All(phase =>
+                phase.Policy == ThermalIntervalPolicy.ContinuousOnly),
+            "Stage-E opened emergency thermal permission before mission five");
+
+        string trimmed = _campaignJson.TrimStart();
+        ExpectCampaignRejected(
+            "duplicate campaign JSON property",
+            $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
+        ExpectCampaignRejected("unknown campaign root field", root => root["future"] = true);
+        ExpectCampaignRejected("missing campaign ID", root => root.Remove("campaignId"));
+        ExpectCampaignRejected(
+            "wrong campaign world ID",
+            root => root["worldId"] = "OTHER_WORLD");
+        ExpectCampaignRejected(
+            "future mission placeholder",
+            root => JsonArrayProperty(root, "chapters").Add(
+                JsonArrayProperty(root, "chapters")[3]!.DeepClone()));
+        ExpectCampaignRejected(
+            "later cash reset",
+            root => Object(JsonArrayProperty(root, "chapters")[1]!)["seedCashUnit"] = 1);
+        ExpectCampaignRejected(
+            "emergency permission before mission five",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[2]!),
+                "operatingPhases")[0]!)["policy"] = "SafetyEmergencyAllowed");
+        ExpectCampaignRejected(
+            "direct terminal service allowed",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(
+                    Object(JsonArrayProperty(root, "chapters")[0]!),
+                    "operatingPhases")[0]!),
+                "loads")[0]!)["requireSubstationPath"] = false);
+    }
+
+    private void CheckCommercialCampaignFirstFourCarrySave()
+    {
+        var direct = new CommercialCoreRun(_commercialWorld, _campaign);
+        BuildCampaignLine(
+            direct,
+            "WEST_SOURCE",
+            "EAST_RESIDENTIAL_TERMINAL",
+            [
+                new MapPoint(650, 700),
+                new MapPoint(1030, 500),
+                new MapPoint(1560, 500),
+                new MapPoint(2000, 600),
+                new MapPoint(2400, 700),
+            ],
+            "direct no-substation route");
+        CommercialDecisionPreview directPreview = direct.PreviewDecisionWindow();
+        Check(!directPreview.Accepted &&
+            directPreview.Error == CommercialCoreError.SafetyDutyFailed &&
+            directPreview.SupplyFailure == ThermalSupplyFailure.NoPath,
+            "a direct source-to-load line bypassed the required distribution substation");
+
+        CommercialCoreRun keep = CompleteCampaignFirstThree();
+        CommercialCoreSnapshot fourthStart = keep.GetSnapshot();
+        Equal("NORTH_BANK_PROMISE", fourthStart.Chapter.ChapterId,
+            "campaign fourth mission transition");
+        int carriedEdgeCount = fourthStart.Construction.World.Edges.Count;
+        CoreAccepted(keep.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "keep north-bank promise");
+        CommercialDecisionPreview missingWater = keep.PreviewDecisionWindow();
+        Check(!missingWater.Accepted &&
+            missingWater.Error == CommercialCoreError.SafetyDutyFailed &&
+            missingWater.FailedDemandId == "WATER_SAFETY_DUTY",
+            "fourth mission approved without its new water safety branch");
+        BuildCampaignLine(
+            keep,
+            "PLAYER_SUBSTATION_1",
+            "WATER_TERMINAL",
+            Array.Empty<MapPoint>(),
+            "keep water branch");
+        CommercialDecisionPreview keepPreview = keep.PreviewDecisionWindow();
+        Check(keepPreview.Accepted, "keep first-four preview failed");
+        Check(keepPreview.PhaseResults.SelectMany(item => item.Assets).All(item =>
+                item.CurrentState != ThermalOperatingState.Emergency),
+            "first four missions used emergency thermal permission");
+        CommercialCoreCommandResult keepFinish = keep.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(keepFinish, "keep first-four completion");
+        Check(keepFinish.Snapshot.CampaignComplete &&
+            keepFinish.Snapshot.ChapterResults.Count == 4,
+            "Stage-E campaign did not complete four factual results");
+        Check(keepFinish.Snapshot.Construction.World.Edges.Count > carriedEdgeCount &&
+            keepFinish.Snapshot.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1"),
+            "campaign did not carry the player-built first-light network through mission four");
+        CommercialChapterResultRecord keptResult = keepFinish.CompletedChapter!;
+        Check(keptResult.PromiseDecision == PromiseDecision.Keep &&
+            keptResult.DemandFacts.Single(item =>
+                item.DemandId == "NORTH_BANK_PROMISE_LOAD").Supplied,
+            "kept north-bank promise was not recorded from actual supply");
+
+        CommercialCampaignSaveV3 save = CommercialCampaignSaveCodec.Create(
+            _commercialWorld,
+            _commercialBytes,
+            _campaign,
+            _campaignBytes,
+            keep.GetCommands());
+        CommercialCampaignSaveV3 decoded = CommercialCampaignSaveCodec.Deserialize(
+            CommercialCampaignSaveCodec.Serialize(save));
+        CommercialCoreRun restored = CommercialCampaignSaveCodec.Restore(
+            decoded,
+            _commercialWorld,
+            _commercialBytes,
+            _campaign,
+            _campaignBytes);
+        Equal(JsonSerializer.Serialize(keep.GetSnapshot()),
+            JsonSerializer.Serialize(restored.GetSnapshot()),
+            "first-four save fresh restore state equality");
+        Equal(_campaign.CampaignId, decoded.CampaignId, "campaign save authority ID");
+        string saveJson = Encoding.UTF8.GetString(CommercialCampaignSaveCodec.Serialize(save));
+        string duplicateCampaignId = saveJson.Replace(
+            "\"campaignId\":",
+            "\"campaignId\": \"DUPLICATE\", \"campaignId\":",
+            StringComparison.Ordinal);
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialCampaignSaveCodec.Deserialize(
+                Encoding.UTF8.GetBytes(duplicateCampaignId)),
+            "duplicate campaign save property");
+        CommercialCoreCampaignSave stageDSave = CommercialCoreSaveCodec.Create(
+            _commercialWorld,
+            _commercialBytes,
+            _coreSlice,
+            _coreBytes,
+            Array.Empty<CommercialCoreCommand>());
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialCampaignSaveCodec.Deserialize(
+                CommercialCoreSaveCodec.Serialize(stageDSave)),
+            "Stage-D development save must be incompatible with final campaign authority");
+
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            $"gridworks-commercial-campaign-save-{Guid.NewGuid():N}");
+        string savePath = Path.Combine(directory, CommercialCampaignPersistenceStore.SaveFileName);
+        try
+        {
+            CommercialCampaignPersistenceStore.Save(savePath, save);
+            CommercialCampaignSaveLoadResult loaded = CommercialCampaignPersistenceStore.Load(savePath);
+            Check(loaded.Status == CommercialCoreDocumentLoadStatus.Loaded && loaded.Save is not null,
+                "campaign atomic store did not load its committed save");
+            Equal(saveJson, Encoding.UTF8.GetString(File.ReadAllBytes(savePath)),
+                "campaign atomic store bytes");
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+
+        CommercialCoreRun restart = CompleteCampaignFirstThree();
+        string fourthStartJson = JsonSerializer.Serialize(restart.GetSnapshot());
+        BuildCampaignLine(
+            restart,
+            "PLAYER_SUBSTATION_1",
+            "WATER_TERMINAL",
+            Array.Empty<MapPoint>(),
+            "restart water branch");
+        CoreAccepted(restart.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "restart promise choice");
+        CoreAccepted(restart.RestartChapter(), "campaign fourth mission restart");
+        Equal(fourthStartJson, JsonSerializer.Serialize(restart.GetSnapshot()),
+            "campaign chapter restart changed earlier network/results/cash");
+
+        CommercialCoreRun deferred = CompleteCampaignFirstThree();
+        BuildCampaignLine(
+            deferred,
+            "PLAYER_SUBSTATION_2",
+            "WATER_TERMINAL",
+            Array.Empty<MapPoint>(),
+            "deferred shared water branch");
+        CoreAccepted(deferred.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Defer)), "defer north-bank promise");
+        CommercialCoreCommandResult deferredFinish = deferred.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(deferredFinish, "deferred first-four completion");
+        CommercialResultDemandFact deferredPromise = deferredFinish.CompletedChapter!.DemandFacts.Single(
+            item => item.DemandId == "NORTH_BANK_PROMISE_LOAD");
+        Check(deferredPromise.Deferred && !deferredPromise.Supplied,
+            "deferred north-bank promise entered supply allocation");
+        Check(deferredFinish.CompletedChapter.PromiseDecision == PromiseDecision.Defer,
+            "deferred result omitted explicit promise choice");
+
+        CommercialCoreRun keepSouth = CompleteCampaignFirstThree();
+        BuildCampaignLine(
+            keepSouth,
+            "PLAYER_SUBSTATION_2",
+            "WATER_TERMINAL",
+            Array.Empty<MapPoint>(),
+            "keep south water branch");
+        CoreAccepted(keepSouth.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "keep south promise choice");
+        CommercialCoreCommandResult keepSouthFinish = keepSouth.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(keepSouthFinish, "keep south first-four completion");
+        CommercialResultDemandFact northWater = keptResult.DemandFacts.Single(item =>
+            item.DemandId == "WATER_SAFETY_DUTY");
+        CommercialResultDemandFact southWater = keepSouthFinish.CompletedChapter!.DemandFacts.Single(item =>
+            item.DemandId == "WATER_SAFETY_DUTY");
+        Check(northWater.Supplied && southWater.Supplied &&
+            !northWater.PathEdgeIds.SequenceEqual(southWater.PathEdgeIds, StringComparer.Ordinal),
+            "two valid fourth-mission prototypes did not retain distinct actual water paths");
     }
 
     private void CheckCommercialCoreFlowDesignsAndFacts()
@@ -1465,6 +1713,33 @@ internal sealed class CommercialChecks
             unavailableTransit.FirstBottleneckAssetId == "TRANSIT_LOAD",
             "unavailable nonthermal transit endpoint still carried supply");
 
+        CommercialWorldDefinition outsideServiceArea = ThermalWorld(
+        [
+            Node("S", 100, 400),
+            Node("SUB", 500, 400, SubstationClassId),
+            Node("P", 900, 400, PoleClassId),
+            Node("L", 1300, 400, LoadClassId),
+        ],
+        [
+            Edge("S_SUB", "S", "SUB"),
+            Edge("SUB_P", "SUB", "P"),
+            Edge("P_L", "P", "L"),
+        ],
+        continuous: 500,
+        emergency: 700);
+        ThermalDemandResult outsideServiceResult = EvaluateOne(
+            outsideServiceArea,
+            Interval(
+                "OUTSIDE_SERVICE_AREA",
+                Demand("D", "L", 100, ThermalObligationKind.SafetyDuty) with
+                {
+                    RequireSubstationPath = true,
+                }))
+            .Demands[0];
+        Check(!outsideServiceResult.Supplied &&
+            outsideServiceResult.Failure == ThermalSupplyFailure.NoPath,
+            "a path through a distant substation served a load outside its service area");
+
         CommercialWorldDefinition manyPaths = DiamondThermalWorld(17);
         ThermalDemandResult routed = EvaluateOne(
             manyPaths,
@@ -1477,6 +1752,167 @@ internal sealed class CommercialChecks
     }
 
     private CommercialCoreRun NewCoreRun() => new(_commercialWorld, _coreSlice);
+
+    private CommercialCoreRun CompleteCampaignFirstThree()
+    {
+        var run = new CommercialCoreRun(_commercialWorld, _campaign);
+        SpatialNodeDefinition reservedSource = run.GetSnapshot().Construction.World.Nodes.Single(item =>
+            item.NodeId == "WEST_AUXILIARY");
+        Check(reservedSource.Reserved && !reservedSource.Commissioned &&
+            run.PreviewLineStart(
+                "WEST_AUXILIARY",
+                "REINFORCED_LINE",
+                "REINFORCED_POLE").Error == ConstructionError.EndpointNotCommissioned,
+            "future second source was not footprint-reserved and electrically locked");
+        BuildCampaignSubstation(run, new MapPoint(2200, 750), "first-light substation");
+        BuildCampaignLine(
+            run,
+            "WEST_SOURCE",
+            "PLAYER_SUBSTATION_1",
+            [
+                new MapPoint(650, 700),
+                new MapPoint(950, 500),
+                new MapPoint(1545, 450),
+                new MapPoint(1900, 600),
+            ],
+            "first-light feeder",
+            poleClassId: "STANDARD_POLE");
+        BuildCampaignLine(
+            run,
+            "PLAYER_SUBSTATION_1",
+            "EAST_RESIDENTIAL_TERMINAL",
+            Array.Empty<MapPoint>(),
+            "first-light service line",
+            poleClassId: "STANDARD_POLE");
+        CommercialCoreCommandResult first = run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(first, "first-light approval");
+        Equal("SECOND_HEART", first.Snapshot.Chapter.ChapterId,
+            "first-light chapter transition");
+        Check(first.Snapshot.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1"),
+            "first-light network did not carry into second-heart");
+
+        BuildCampaignLine(
+            run,
+            "PLAYER_SUBSTATION_1",
+            "HOSPITAL_TERMINAL",
+            [new MapPoint(2200, 1100)],
+            "second-heart north route");
+        CommercialDecisionPreview singleCorridor = run.PreviewDecisionWindow();
+        Check(!singleCorridor.Accepted &&
+            singleCorridor.Error == CommercialCoreError.SafetyDutyFailed &&
+            singleCorridor.FailedDemandId == "HOSPITAL_NORTH_TEST",
+            "second-heart accepted one corridor against both cutover tests");
+        BuildCampaignSubstation(run, new MapPoint(2100, 1450), "second-heart south substation");
+        BuildCampaignLine(
+            run,
+            "WEST_SOURCE",
+            "PLAYER_SUBSTATION_2",
+            [
+                new MapPoint(650, 1150),
+                new MapPoint(950, 1450),
+                new MapPoint(1170, 1750),
+                new MapPoint(1760, 1750),
+                new MapPoint(2050, 1650),
+            ],
+            "second-heart south feeder");
+        BuildCampaignLine(
+            run,
+            "PLAYER_SUBSTATION_2",
+            "HOSPITAL_TERMINAL",
+            Array.Empty<MapPoint>(),
+            "second-heart south service line");
+        CommercialDecisionPreview heartPreview = run.PreviewDecisionWindow();
+        Check(heartPreview.Accepted, $"second-heart preview failed: {heartPreview.Error}/" +
+            $"{heartPreview.FailedDemandId}/{heartPreview.FirstBottleneckAssetId}");
+        ThermalDemandResult northTest = heartPreview.PhaseResults[0].Demands[0];
+        ThermalDemandResult floodTest = heartPreview.PhaseResults[1].Demands[0];
+        Check(northTest.Supplied && floodTest.Supplied &&
+            !northTest.PathEdgeIds.SequenceEqual(floodTest.PathEdgeIds, StringComparer.Ordinal),
+            "second-heart tests did not select two surviving spatial corridors");
+        CommercialCoreCommandResult second = run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(second, "second-heart approval");
+        Equal("SECOND_SOURCE", second.Snapshot.Chapter.ChapterId,
+            "second-heart chapter transition");
+        SpatialNodeDefinition activatedSource = second.Snapshot.Construction.World.Nodes.Single(item =>
+            item.NodeId == "WEST_AUXILIARY");
+        Check(activatedSource.Commissioned && !activatedSource.Reserved,
+            "second source did not activate at its authored mission boundary");
+        CommercialDecisionPreview disconnectedSource = run.PreviewDecisionWindow();
+        Check(!disconnectedSource.Accepted &&
+            disconnectedSource.Error == CommercialCoreError.SafetyDutyFailed,
+            "second-source mission approved before the new source joined the carried network");
+
+        BuildCampaignLine(
+            run,
+            "WEST_AUXILIARY",
+            "PLAYER_POLE_1",
+            Array.Empty<MapPoint>(),
+            "second-source residential tie");
+        BuildCampaignLine(
+            run,
+            "WEST_AUXILIARY",
+            "PLAYER_POLE_6",
+            Array.Empty<MapPoint>(),
+            "second-source hospital tie");
+        CommercialDecisionPreview sourcePreview = run.PreviewDecisionWindow();
+        Check(sourcePreview.Accepted, $"second-source preview failed: {sourcePreview.Error}/" +
+            $"{sourcePreview.FailedDemandId}/{sourcePreview.FirstBottleneckAssetId}");
+        Check(sourcePreview.PhaseResults[0].Demands.All(item =>
+                item.Supplied && item.SourceNodeId == "WEST_AUXILIARY"),
+            "second-source acceptance test did not use the available authored source");
+        CommercialCoreCommandResult third = run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(third, "second-source approval");
+        Equal("NORTH_BANK_PROMISE", third.Snapshot.Chapter.ChapterId,
+            "second-source chapter transition");
+        return run;
+    }
+
+    private void BuildCampaignSubstation(
+        CommercialCoreRun run,
+        MapPoint position,
+        string label)
+    {
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetNodeDraft,
+            Position: position,
+            NodeClassId: "SMALL_SUBSTATION")), $"{label} draft");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderNode)), $"{label} order");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), $"{label} completion");
+    }
+
+    private void BuildCampaignLine(
+        CommercialCoreRun run,
+        string startNodeId,
+        string endNodeId,
+        IReadOnlyList<MapPoint> points,
+        string label,
+        string lineClassId = "REINFORCED_LINE",
+        string poleClassId = "REINFORCED_POLE")
+    {
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.StartLineDraft,
+            StartNodeId: startNodeId,
+            LineClassId: lineClassId,
+            PoleClassId: poleClassId)), $"{label} start");
+        foreach (MapPoint point in points)
+        {
+            CoreAccepted(run.Apply(new CommercialCoreCommand(
+                CommercialCoreCommandKind.AddLinePoint,
+                Position: point)), $"{label} point {point}");
+        }
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.FinishLineDraft,
+            EndNodeId: endNodeId)), $"{label} finish");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderLine)), $"{label} order");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), $"{label} completion");
+    }
 
     private void CompletePrelude(CommercialCoreRun run)
     {
@@ -1736,7 +2172,7 @@ internal sealed class CommercialChecks
         new(PoleClassId, "검사 전신주", SpatialNodeKind.Pole,
             10, 4, 50, 3),
         new(SubstationClassId, "검사 변전소", SpatialNodeKind.Substation,
-            20, 4, 100, 10),
+            20, 4, 100, 10, 600),
     ];
 
     private static IReadOnlyList<SpatialLineClassDefinition> LineClasses() =>
@@ -1846,6 +2282,18 @@ internal sealed class CommercialChecks
     private void ExpectCoreRejected(string label, string json) =>
         ExpectThrows<CommercialCoreValidationException>(
             () => CommercialCoreLoader.Load(json, _commercialWorld),
+            label);
+
+    private void ExpectCampaignRejected(string label, Action<JsonObject> mutate)
+    {
+        JsonObject root = JsonNode.Parse(_campaignJson)!.AsObject();
+        mutate(root);
+        ExpectCampaignRejected(label, root.ToJsonString());
+    }
+
+    private void ExpectCampaignRejected(string label, string json) =>
+        ExpectThrows<CommercialCampaignValidationException>(
+            () => CommercialCampaignLoader.Load(json, _commercialWorld),
             label);
 
     private void ExpectThrows<T>(Action body, string label)

@@ -30,7 +30,8 @@ public sealed record CommercialCoreLoadBundle(
     string NodeId,
     long DemandKw,
     CommercialCoreObligationKind ObligationKind,
-    bool NamedEmergencyDuty);
+    bool NamedEmergencyDuty,
+    bool RequireSubstationPath = false);
 
 public sealed record CommercialCoreOperatingPhase(
     string PhaseId,

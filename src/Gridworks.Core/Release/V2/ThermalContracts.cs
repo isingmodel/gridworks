@@ -41,7 +41,8 @@ public sealed record ThermalDemandDefinition(
     ThermalObligationKind ObligationKind,
     bool Included,
     bool EmergencyUseApproved,
-    bool NamedEmergencyDuty);
+    bool NamedEmergencyDuty,
+    bool RequireSubstationPath = false);
 
 public sealed record ThermalLimitOverride(
     string AssetId,

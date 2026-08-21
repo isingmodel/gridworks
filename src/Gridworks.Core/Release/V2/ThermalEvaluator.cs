@@ -60,6 +60,10 @@ public static class ThermalEvaluator
             item => item.NodeId,
             _ => 0L,
             StringComparer.Ordinal);
+        Dictionary<string, SpatialNodeClassDefinition> spatialNodeClasses = world.Spatial.NodeClasses
+            .ToDictionary(item => item.ClassId, StringComparer.Ordinal);
+        Dictionary<string, SpatialNodeDefinition> spatialNodes = world.Spatial.Nodes
+            .ToDictionary(item => item.NodeId, StringComparer.Ordinal);
         List<ThermalDemandResult> demandResults = [];
 
         foreach (ThermalDemandDefinition demand in interval.Demands)
@@ -78,8 +82,25 @@ public static class ThermalEvaluator
             CandidateFailure? preferredFailure = null;
             bool sawPath = false;
             bool allowEmergency = AllowsEmergency(interval, demand);
+            HashSet<string> serviceSubstationNodeIds = demand.RequireSubstationPath
+                ? world.Spatial.Nodes
+                    .Where(node => node.Commissioned &&
+                        spatialNodeClasses[node.ClassId].Kind == SpatialNodeKind.Substation &&
+                        spatialNodeClasses[node.ClassId].ServiceRadiusUnit > 0 &&
+                        FixedGeometry.CeilDistance(
+                            node.Position,
+                            spatialNodes[demand.NodeId].Position) <=
+                            spatialNodeClasses[node.ClassId].ServiceRadiusUnit)
+                    .Select(item => item.NodeId)
+                    .ToHashSet(StringComparer.Ordinal)
+                : [];
             VisitPaths(world, demand.NodeId, path =>
             {
+                if (demand.RequireSubstationPath &&
+                    !path.NodeIds.Any(serviceSubstationNodeIds.Contains))
+                {
+                    return;
+                }
                 sawPath = true;
                 CandidateEvaluation evaluation = EvaluateCandidate(
                     world,
@@ -333,6 +354,10 @@ public static class ThermalEvaluator
             .ToHashSet(StringComparer.Ordinal);
         foreach (GenerationSourceDefinition source in world.GenerationSources.OrderBy(item => item.AuthoredOrder))
         {
+            if (!nodes[source.NodeId].Commissioned)
+            {
+                continue;
+            }
             List<string> nodePath = [source.NodeId];
             List<string> edgePath = [];
             HashSet<string> visited = new(StringComparer.Ordinal) { source.NodeId };

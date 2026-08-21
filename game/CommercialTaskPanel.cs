@@ -23,11 +23,13 @@ internal enum CommercialPanelAction
 internal sealed record CommercialActionPresentation(
     bool Enabled,
     string Text,
-    string Description);
+    string Description,
+    bool Visible = true);
 
 internal sealed record CommercialTaskPanelModel(
     string Heading,
     string Instruction,
+    string Obligations,
     string Selection,
     string Quote,
     string Thermal,
@@ -50,6 +52,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
 {
     private Label _headingLabel = null!;
     private Label _instructionLabel = null!;
+    private Label _obligationsLabel = null!;
     private Label _selectionLabel = null!;
     private Label _quoteLabel = null!;
     private Label _thermalLabel = null!;
@@ -63,6 +66,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     {
         _headingLabel = GetNode<Label>("%HeadingLabel");
         _instructionLabel = GetNode<Label>("%InstructionLabel");
+        _obligationsLabel = GetNode<Label>("%ObligationsLabel");
         _selectionLabel = GetNode<Label>("%SelectionLabel");
         _quoteLabel = GetNode<Label>("%QuoteLabel");
         _thermalLabel = GetNode<Label>("%ThermalLabel");
@@ -97,6 +101,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         ArgumentNullException.ThrowIfNull(model);
         _headingLabel.Text = model.Heading;
         _instructionLabel.Text = model.Instruction;
+        _obligationsLabel.Text = model.Obligations;
         _selectionLabel.Text = model.Selection;
         _quoteLabel.Text = model.Quote;
         _thermalLabel.Text = model.Thermal;
@@ -115,7 +120,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         SetButton(CommercialPanelAction.RestartChapter, model.RestartChapter);
         SetButton(CommercialPanelAction.NextThermalPhase, model.NextThermalPhase);
         AccessibilityName =
-            $"공사와 열 작업 패널. {model.Heading}. {model.Instruction}. {model.Thermal}. {model.Status}";
+            $"공사와 열 작업 패널. {model.Heading}. {model.Instruction}. {model.Obligations}. " +
+            $"{model.Thermal}. {model.Status}";
     }
 
     public BaseButton GetActionButton(CommercialPanelAction action) => _buttons[action];
@@ -125,6 +131,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         CommercialActionPresentation presentation)
     {
         Button button = _buttons[action];
+        button.Visible = presentation.Visible;
         button.Disabled = !presentation.Enabled;
         button.Text = presentation.Text;
         button.AccessibilityName = presentation.Text;

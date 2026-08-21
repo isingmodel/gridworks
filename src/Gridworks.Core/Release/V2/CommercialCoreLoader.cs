@@ -57,6 +57,29 @@ public static class CommercialCoreLoader
         CommercialCoreSliceDefinition definition,
         CommercialWorldDefinition world)
     {
+        Validate(definition, world, requireStageDSliceShape: true);
+    }
+
+    internal static void ValidateChapters(
+        IReadOnlyList<CommercialCoreChapter> chapters,
+        CommercialWorldDefinition world)
+    {
+        Validate(
+            new CommercialCoreSliceDefinition(
+                CommercialCoreSliceDefinition.SupportedSchemaVersion,
+                "CAMPAIGN_CONTENT_VALIDATION",
+                "Campaign content validation",
+                world.WorldId,
+                chapters),
+            world,
+            requireStageDSliceShape: false);
+    }
+
+    private static void Validate(
+        CommercialCoreSliceDefinition definition,
+        CommercialWorldDefinition world,
+        bool requireStageDSliceShape)
+    {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(world);
         CommercialWorldLoader.Validate(world);
@@ -65,12 +88,15 @@ public static class CommercialCoreLoader
         RequireText(definition.SliceId, "$.sliceId");
         RequireText(definition.DisplayName, "$.displayName");
         Require(definition.WorldId == world.WorldId, "$.worldId must match the commercial world.");
-        Require(definition.Chapters.Count == 2,
-            "Stage-D core slice must contain exactly the prelude and commercial core chapter.");
-        Require(definition.Chapters[0].Kind == CommercialCoreChapterKind.Prelude,
-            "The first core-slice chapter must be Prelude.");
-        Require(definition.Chapters[1].Kind == CommercialCoreChapterKind.CommercialCore,
-            "The second core-slice chapter must be CommercialCore.");
+        if (requireStageDSliceShape)
+        {
+            Require(definition.Chapters.Count == 2,
+                "Stage-D core slice must contain exactly the prelude and commercial core chapter.");
+            Require(definition.Chapters[0].Kind == CommercialCoreChapterKind.Prelude,
+                "The first core-slice chapter must be Prelude.");
+            Require(definition.Chapters[1].Kind == CommercialCoreChapterKind.CommercialCore,
+                "The second core-slice chapter must be CommercialCore.");
+        }
         RequireUnique(definition.Chapters.Select(item => item.ChapterId), "$.chapters[].chapterId");
 
         HashSet<string> worldNodeIds = world.Spatial.Nodes.Select(item => item.NodeId)

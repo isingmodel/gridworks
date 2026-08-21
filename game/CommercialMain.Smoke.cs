@@ -2,7 +2,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Gridworks.Core.Release.V2;
 using Godot;
@@ -290,7 +289,7 @@ internal sealed partial class CommercialMain
         }
     }
 
-    private async void RunCoreSmoke()
+    private async void RunCampaignSmoke()
     {
         try
         {
@@ -302,139 +301,212 @@ internal sealed partial class CommercialMain
             ApplyUiScale(this, 1.25f);
             await NextFrame();
             Require(
-                coreRun.GetSnapshot().Chapter.ChapterId == "FIRST_LIGHT_PRELUDE" &&
+                coreRun.GetSnapshot().Chapter.ChapterId == "FIRST_LIGHT" &&
                 _audio.GetChildCount() == 2 &&
+                !_panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
+                _panel.AccessibilityName.Contains("현재 의무", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("조작 ·", StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains("예정 시설 3곳", StringComparison.Ordinal) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RestartChapter)),
-                "1920×1080·UI 125%에서 상용 핵심 흐름·오디오와 고정 행동 영역을 열지 못했습니다.");
+                "1920×1080·UI 125%에서 상용 캠페인·오디오와 고정 행동 영역을 열지 못했습니다.");
 
-            EmitPanel(CommercialPanelAction.StartLine, "프롤로그 선로 도구");
-            await NextFrame();
-            await SelectAndClickCandidate(new CoreMapPoint(300, 870), "WEST_SOURCE");
-            foreach (CoreMapPoint point in new[]
-            {
-                new CoreMapPoint(650, 700),
-                new CoreMapPoint(1030, 500),
-                new CoreMapPoint(1560, 500),
-                new CoreMapPoint(2000, 600),
-                new CoreMapPoint(2400, 700),
-            })
-            {
-                await ClickMap(point);
-            }
-            await SelectAndClickCandidate(
-                new CoreMapPoint(2600, 800),
-                "EAST_RESIDENTIAL_TERMINAL");
-            CommercialDecisionPreview preludeDraft = coreRun.PreviewDecisionWindow();
-            Require(
-                preludeDraft.Accepted && preludeDraft.ProjectedMinute <= 420,
-                "첫 불빛 complete-draft 예고가 안전 의무와 기한을 만족하지 못했습니다.");
-            EmitPanel(CommercialPanelAction.Commission, "프롤로그 공사 발주");
-            await NextFrame();
-            EmitPanel(CommercialPanelAction.Commission, "프롤로그 공사 완공");
-            await NextFrame();
-            EmitPanel(CommercialPanelAction.ApproveWindow, "프롤로그 운영 승인");
+            await BuildCampaignSmokeSubstation(
+                new CoreMapPoint(2200, 750),
+                "첫 불빛 변전소");
+            await BuildCampaignSmokeLine(
+                "WEST_SOURCE",
+                "PLAYER_SUBSTATION_1",
+                [
+                    new CoreMapPoint(650, 700),
+                    new CoreMapPoint(950, 500),
+                    new CoreMapPoint(1545, 450),
+                    new CoreMapPoint(1900, 600),
+                ],
+                "첫 불빛 간선");
+            await BuildCampaignSmokeLine(
+                "PLAYER_SUBSTATION_1",
+                "EAST_RESIDENTIAL_TERMINAL",
+                Array.Empty<CoreMapPoint>(),
+                "첫 불빛 인입선");
+            CommercialDecisionPreview firstPreview = coreRun.PreviewDecisionWindow();
+            Require(firstPreview.Accepted && firstPreview.ProjectedMinute <= 800,
+                "첫 불빛 운영안이 안전 의무와 기한을 만족하지 못했습니다.");
+            EmitPanel(CommercialPanelAction.ApproveWindow, "첫 불빛 운영 승인");
             await NextFrame();
             Require(
-                coreRun.GetSnapshot().Chapter.ChapterId == "WHOSE_MARGIN" &&
+                coreRun.GetSnapshot().Chapter.ChapterId == "SECOND_HEART" &&
                 coreRun.GetSnapshot().ChapterResults.Count == 1 &&
-                _panel.AccessibilityName.Contains("첫 점등 보고", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("동부 생활권 첫 점등", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("실제 경로", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("서부 발전 접속점", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("동부 생활권", StringComparison.Ordinal),
-                "첫 불빛 결과와 실제 공급 사실을 제시한 뒤 누구의 여유인가 seed로 전환하지 못했습니다.");
+                "첫 불빛 결과와 실제 공급 사실을 제시한 뒤 두 번째 심장으로 전환하지 못했습니다.");
 
-            EmitPanel(CommercialPanelAction.KeepPromise, "도시 약속 지킴 선택");
-            await NextFrame();
-            EmitPanel(CommercialPanelAction.CycleLineClass, "일반 배전선 선택");
-            await NextFrame();
-            Require(_lineClassId == StandardLineClassId,
-                "장단점 비교용 일반 배전선을 실제 패널 입력으로 선택하지 못했습니다.");
-            await BuildCoreSmokeIndustryLine();
-            CommercialDecisionPreview hotDraft = coreRun.PreviewDecisionWindow();
-            ThermalDemandResult promise = hotDraft.PhaseResults[0].Demands.Single(item =>
-                item.DemandId == "INDUSTRY_PROMISE");
+            await BuildCampaignSmokeLine(
+                "PLAYER_SUBSTATION_1",
+                "HOSPITAL_TERMINAL",
+                [new CoreMapPoint(2200, 1100)],
+                "의료원 북안 회랑");
+            await BuildCampaignSmokeSubstation(
+                new CoreMapPoint(2100, 1450),
+                "의료원 남안 변전소");
+            await BuildCampaignSmokeLine(
+                "WEST_SOURCE",
+                "PLAYER_SUBSTATION_2",
+                [
+                    new CoreMapPoint(650, 1150),
+                    new CoreMapPoint(950, 1450),
+                    new CoreMapPoint(1170, 1750),
+                    new CoreMapPoint(1760, 1750),
+                    new CoreMapPoint(2050, 1650),
+                ],
+                "의료원 강변 회랑");
+            await BuildCampaignSmokeLine(
+                "PLAYER_SUBSTATION_2",
+                "HOSPITAL_TERMINAL",
+                Array.Empty<CoreMapPoint>(),
+                "의료원 남안 인입선");
+            CommercialDecisionPreview heartPreview = coreRun.PreviewDecisionWindow();
             Require(
-                hotDraft.Accepted && promise.Supplied &&
-                promise.EmergencyAssetIds.Contains("PLAYER_EDGE_1", StringComparer.Ordinal),
-                "일반선 원형의 실제 공급·비상 열 예고를 패널과 지도 흐름에서 만들지 못했습니다.");
-            EmitPanel(CommercialPanelAction.Commission, "산업선 공사 발주");
+                heartPreview.Accepted && heartPreview.PhaseResults.Count == 2 &&
+                heartPreview.PhaseResults.All(item => item.Demands[0].Supplied) &&
+                !heartPreview.PhaseResults[0].Demands[0].PathEdgeIds.SequenceEqual(
+                    heartPreview.PhaseResults[1].Demands[0].PathEdgeIds,
+                    StringComparer.Ordinal),
+                "두 차단시험이 서로 다른 생존 회랑을 사용하지 못했습니다.");
+            EmitPanel(CommercialPanelAction.ApproveWindow, "의료원 차단시험 승인");
             await NextFrame();
-            EmitPanel(CommercialPanelAction.Commission, "산업선 공사 완공");
-            await NextFrame();
-            EmitPanel(CommercialPanelAction.RollbackProject, "최근 공사 복구");
-            await NextFrame();
-            CommercialCoreSnapshot rolledBack = coreRun.GetSnapshot();
             Require(
-                rolledBack.Construction.Minute == 0 &&
-                rolledBack.PromiseDecision == PromiseDecision.Keep &&
-                rolledBack.DecisionWindowIndex == 0 &&
-                rolledBack.ThermalMemory.Count == 0 &&
-                rolledBack.Construction.World.Edges.All(item => item.EdgeId != "PLAYER_EDGE_1"),
-                "최근 공사 복구가 좌표·현금·시각·국면·약속·열 상태를 함께 되돌리지 못했습니다.");
+                coreRun.GetSnapshot().Chapter.ChapterId == "SECOND_SOURCE" &&
+                !_panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
+                !_panel.AccessibilityName.Contains("조작 ·", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("수술실 전환시험 완료", StringComparison.Ordinal),
+                "두 번째 심장 결과와 다음 임무 전환을 제시하지 못했습니다.");
 
-            await BuildCoreSmokeIndustryLine();
-            EmitPanel(CommercialPanelAction.Commission, "복구 뒤 산업선 재발주");
+            await BuildCampaignSmokeLine(
+                "WEST_AUXILIARY",
+                "PLAYER_POLE_1",
+                Array.Empty<CoreMapPoint>(),
+                "남부 전원 생활권 연계");
+            await BuildCampaignSmokeLine(
+                "WEST_AUXILIARY",
+                "PLAYER_POLE_6",
+                Array.Empty<CoreMapPoint>(),
+                "남부 전원 의료원 연계");
+            CommercialDecisionPreview sourcePreview = coreRun.PreviewDecisionWindow();
+            Require(sourcePreview.Accepted &&
+                sourcePreview.PhaseResults[0].Demands.All(item =>
+                    item.Supplied && item.SourceNodeId == "WEST_AUXILIARY"),
+                "서부 전원 인수시험이 남부 발전 접속점의 실제 경로를 사용하지 못했습니다.");
+            EmitPanel(CommercialPanelAction.ApproveWindow, "서부 주간선 인수시험 승인");
             await NextFrame();
-            EmitPanel(CommercialPanelAction.Commission, "복구 뒤 산업선 재완공");
-            await NextFrame();
-            CommercialDecisionPreview beforeApproval = coreRun.PreviewDecisionWindow();
-            EmitPanel(CommercialPanelAction.ApproveWindow, "더운 저녁 승인");
-            await NextFrame();
-            CommercialCoreSnapshot afterHot = coreRun.GetSnapshot();
             Require(
-                afterHot.DecisionWindowIndex == 1 &&
-                afterHot.CommittedPhaseResults.Count == 2 &&
-                afterHot.ThermalMemory.Single(item =>
-                    item.AssetId == "PLAYER_EDGE_1").ProtectiveOutage &&
-                JsonSerializer.Serialize(beforeApproval.PhaseResults[0]) ==
-                    JsonSerializer.Serialize(afterHot.CommittedPhaseResults[^1]) &&
-                _panel.AccessibilityName.Contains("다음 경계까지 남는 것", StringComparison.Ordinal),
-                "공개 예고와 승인 결과가 다르거나 다음 보호정지·사건 이야기를 제시하지 못했습니다.");
-            EmitPanel(CommercialPanelAction.ApproveWindow, "다음 안전 경계 승인");
+                coreRun.GetSnapshot().Chapter.ChapterId == "NORTH_BANK_PROMISE" &&
+                _panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
+                _panel.AccessibilityName.Contains("선택 필요", StringComparison.Ordinal) &&
+                !_map.AccessibilityName.Contains("예정 시설", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("운영 인수 완료", StringComparison.Ordinal),
+                "두 번째 전원 결과와 본편 전환을 제시하지 못했습니다.");
+
+            EmitPanel(CommercialPanelAction.KeepPromise, "북안 입주 약속 지킴");
+            await NextFrame();
+            await BuildCampaignSmokeLine(
+                "PLAYER_SUBSTATION_1",
+                "WATER_TERMINAL",
+                Array.Empty<CoreMapPoint>(),
+                "정수장 분기");
+            int completedEdgeCount = coreRun.GetSnapshot().Construction.World.Edges.Count;
+            EmitPanel(CommercialPanelAction.RollbackProject, "정수장 최근 공사 복구");
+            await NextFrame();
+            Require(
+                coreRun.GetSnapshot().PromiseDecision == PromiseDecision.Keep &&
+                coreRun.GetSnapshot().Construction.World.Edges.Count == completedEdgeCount - 1 &&
+                coreRun.GetSnapshot().ChapterResults.Count == 3,
+                "최근 공사 복구가 이전 임무 망·결과와 현재 약속을 보존하지 못했습니다.");
+            await BuildCampaignSmokeLine(
+                "PLAYER_SUBSTATION_1",
+                "WATER_TERMINAL",
+                Array.Empty<CoreMapPoint>(),
+                "복구 뒤 정수장 분기");
+            CommercialDecisionPreview finalPreview = coreRun.PreviewDecisionWindow();
+            Require(finalPreview.Accepted && finalPreview.PhaseResults[0].Assets.All(item =>
+                    item.CurrentState != ThermalOperatingState.Emergency),
+                "북안 운영안이 연속 한계 안에서 의무와 약속을 공급하지 못했습니다.");
+            EmitPanel(CommercialPanelAction.ApproveWindow, "북안 운영안 승인");
             await NextFrame();
             CommercialCoreSnapshot complete = coreRun.GetSnapshot();
             CommercialChapterResultRecord result = complete.ChapterResults[^1];
             CommercialResultDemandFact fact = result.DemandFacts.Single(item =>
-                item.DemandId == "INDUSTRY_PROMISE");
+                item.DemandId == "NORTH_BANK_PROMISE_LOAD");
             Require(
                 complete.CampaignComplete &&
+                complete.ChapterResults.Count == 4 &&
                 fact.Supplied && fact.SourceNodeId is not null &&
-                fact.PathEdgeIds.Contains("PLAYER_EDGE_1", StringComparer.Ordinal) &&
-                result.EmergencyAssetIds.Contains("PLAYER_EDGE_1", StringComparer.Ordinal) &&
+                complete.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1") &&
                 _panel.AccessibilityName.Contains("실제 의무", StringComparison.Ordinal) &&
-                _panel.AccessibilityName.Contains("산업단지", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("정수장", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("도시 약속 · 지킴", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("실제 경로", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("발전 접속점", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("비상 운전", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("보호정지", StringComparison.Ordinal),
-                "결과 카드가 실제 공급원·경로·비상·의무 사실로 핵심 흐름을 닫지 못했습니다.");
+                "결과 카드가 실제 공급원·경로·의무·약속 사실로 첫 네 임무를 닫지 못했습니다.");
 
             GD.Print(
-                "COMMERCIAL_CORE_SMOKE_PASS " +
-                $"chapters={complete.ChapterResults.Count} choice={result.PromiseDecision} " +
-                $"path={fact.PathEdgeIds.Count} emergency={result.EmergencyAssetIds.Count} " +
-                "rollback=fresh-replay preview=approval");
+                "COMMERCIAL_CAMPAIGN_STAGE_E_SMOKE_PASS " +
+                $"missions={complete.ChapterResults.Count} choice={result.PromiseDecision} " +
+                $"edges={complete.Construction.World.Edges.Count} path={fact.PathEdgeIds.Count} " +
+                "carry=yes rollback=recent preview=approval resolution=1920x1080");
             GetTree().Quit(0);
         }
         catch (Exception exception)
         {
-            GD.PushError($"상용 핵심 흐름 smoke 실패: {exception}");
+            GD.PushError($"상용 캠페인 smoke 실패: {exception}");
             GetTree().Quit(1);
         }
     }
 
-    private async Task BuildCoreSmokeIndustryLine()
+    private async Task BuildCampaignSmokeLine(
+        string startNodeId,
+        string endNodeId,
+        IReadOnlyList<CoreMapPoint> intermediatePoints,
+        string label)
     {
-        EmitPanel(CommercialPanelAction.StartLine, "산업선 도구");
+        EmitPanel(CommercialPanelAction.StartLine, $"{label} 선로 도구");
         await NextFrame();
-        await SelectAndClickCandidate(new CoreMapPoint(2500, 1150), "WATER_TERMINAL");
-        await SelectAndClickCandidate(new CoreMapPoint(3000, 1150), "INDUSTRY_TERMINAL");
+        SpatialNodeDefinition start = _snapshot.World.Nodes.Single(item =>
+            item.NodeId == startNodeId);
+        SpatialNodeDefinition end = _snapshot.World.Nodes.Single(item =>
+            item.NodeId == endNodeId);
+        await SelectAndClickCandidate(start.Position, startNodeId);
+        foreach (CoreMapPoint point in intermediatePoints)
+        {
+            await ClickMap(point);
+        }
+        await SelectAndClickCandidate(end.Position, endNodeId);
         Require(
-            _snapshot.LineDraft?.EndNodeId == "INDUSTRY_TERMINAL",
-            $"정수장과 산업단지의 직접 선로를 완성하지 못했습니다: {_lastError}");
+            _snapshot.LineDraft?.EndNodeId == endNodeId,
+            $"{label} 경로를 완성하지 못했습니다: {_lastError}");
+        EmitPanel(CommercialPanelAction.Commission, $"{label} 공사 발주");
+        await NextFrame();
+        EmitPanel(CommercialPanelAction.Commission, $"{label} 공사 완공");
+        await NextFrame();
+    }
+
+    private async Task BuildCampaignSmokeSubstation(CoreMapPoint position, string label)
+    {
+        EmitPanel(CommercialPanelAction.PlaceSubstation, $"{label} 도구");
+        await NextFrame();
+        await ClickMap(position);
+        Require(
+            _snapshot.NodeDraft?.Position == position,
+            $"{label} 위치를 계획하지 못했습니다: {_lastError}");
+        EmitPanel(CommercialPanelAction.Commission, $"{label} 공사 발주");
+        await NextFrame();
+        EmitPanel(CommercialPanelAction.Commission, $"{label} 공사 완공");
+        await NextFrame();
     }
 
     private async Task RequireRejectedPlacement(

@@ -1,0 +1,300 @@
+{
+  "schemaVersion": "gridworks.commercial.campaign.v2",
+  "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+  "displayName": "청류시 상용 캠페인",
+  "worldId": "CHEONGRYU_COMMERCIAL_V2",
+  "chapters": [
+    {
+      "chapterId": "FIRST_LIGHT",
+      "kind": "Prelude",
+      "displayName": "첫 불빛",
+      "seedCashUnit": 6000000,
+      "seedNodeIds": [
+        "WEST_SOURCE",
+        "EAST_RESIDENTIAL_TERMINAL"
+      ],
+      "seedEdgeIds": [],
+      "briefing": {
+        "speaker": "윤서진",
+        "title": "첫 입주가 오늘 저녁 시작됩니다",
+        "body": "동부 생활권에는 아직 전기가 닿지 않습니다. 강 위에는 설비를 세우지 말고, 육지의 접속점 사이는 선로로 건너 첫 공급 경로를 완성하세요."
+      },
+      "objective": "동부 생활권 0.8 MW를 연속 한계 안에서 공급한다.",
+      "grantCashUnit": 0,
+      "deadlineMinute": 800,
+      "promise": null,
+      "decisionWindows": [
+        {
+          "windowId": "FIRST_LIGHT_BUILD",
+          "nextPhaseId": "FIRST_LIGHT_SERVICE",
+          "story": null,
+          "buildMinutesAllowance": 800
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "FIRST_LIGHT_SERVICE",
+          "displayName": "첫 입주 점등",
+          "policy": "ContinuousOnly",
+          "loads": [
+            {
+              "loadId": "FIRST_LIGHT_RESIDENTIAL",
+              "displayName": "동부 생활권 첫 입주",
+              "nodeId": "EAST_RESIDENTIAL_TERMINAL",
+              "demandKw": 800,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false,
+              "requireSubstationPath": true
+            }
+          ],
+          "unavailableAssetIds": [],
+          "activeRiskAreaIds": [],
+          "limitOverrides": []
+        }
+      ],
+      "standardResult": {
+        "speaker": "윤서진",
+        "title": "동부 생활권 첫 점등",
+        "body": "첫 입주 시각에 맞춰 주거지 창과 가로등에 전기가 들어왔습니다. 오늘 놓은 경로는 다음 공사에도 그대로 남습니다."
+      },
+      "keptResult": null,
+      "deferredResult": null
+    },
+    {
+      "chapterId": "SECOND_HEART",
+      "kind": "Prelude",
+      "displayName": "두 번째 심장",
+      "seedCashUnit": 0,
+      "seedNodeIds": [
+        "WEST_SOURCE",
+        "EAST_RESIDENTIAL_TERMINAL",
+        "HOSPITAL_TERMINAL"
+      ],
+      "seedEdgeIds": [],
+      "briefing": {
+        "speaker": "박지현",
+        "title": "두 줄이 같은 곳에서 멈추면 한 줄입니다",
+        "body": "의료원 전환시험은 서로 다른 두 회랑을 차례로 차단합니다. 북안과 강변 어느 한쪽이 막혀도 수술실 접속점까지 실제 경로가 남아야 합니다."
+      },
+      "objective": "북안·강변 차단시험 각각에서 의료원 0.7 MW를 공급한다.",
+      "grantCashUnit": 2500000,
+      "deadlineMinute": 900,
+      "promise": null,
+      "decisionWindows": [
+        {
+          "windowId": "SECOND_HEART_BUILD",
+          "nextPhaseId": "NORTH_CORRIDOR_TEST",
+          "story": null,
+          "buildMinutesAllowance": 900
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "NORTH_CORRIDOR_TEST",
+          "displayName": "북안 회랑 차단시험",
+          "policy": "ContinuousOnly",
+          "loads": [
+            {
+              "loadId": "HOSPITAL_NORTH_TEST",
+              "displayName": "의료원 수술실 전환시험",
+              "nodeId": "HOSPITAL_TERMINAL",
+              "demandKw": 700,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false,
+              "requireSubstationPath": true
+            }
+          ],
+          "unavailableAssetIds": [],
+          "activeRiskAreaIds": ["NORTH_CORRIDOR_TEST_ZONE"],
+          "limitOverrides": []
+        },
+        {
+          "phaseId": "RIVER_CORRIDOR_TEST",
+          "displayName": "강변 회랑 차단시험",
+          "policy": "ContinuousOnly",
+          "loads": [
+            {
+              "loadId": "HOSPITAL_RIVER_TEST",
+              "displayName": "의료원 중환자실 전환시험",
+              "nodeId": "HOSPITAL_TERMINAL",
+              "demandKw": 700,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false,
+              "requireSubstationPath": true
+            }
+          ],
+          "unavailableAssetIds": [],
+          "activeRiskAreaIds": ["RIVER_FLOOD_ZONE"],
+          "limitOverrides": []
+        }
+      ],
+      "standardResult": {
+        "speaker": "박지현",
+        "title": "수술실 전환시험 완료",
+        "body": "두 차단시험에서 의료원 전력이 끊기지 않았습니다. 결과에는 각 시험에서 실제로 남은 경로가 기록됩니다."
+      },
+      "keptResult": null,
+      "deferredResult": null
+    },
+    {
+      "chapterId": "SECOND_SOURCE",
+      "kind": "Prelude",
+      "displayName": "두 번째 전원",
+      "seedCashUnit": 0,
+      "seedNodeIds": [
+        "WEST_SOURCE",
+        "EAST_RESIDENTIAL_TERMINAL",
+        "HOSPITAL_TERMINAL",
+        "WEST_AUXILIARY"
+      ],
+      "seedEdgeIds": [],
+      "briefing": {
+        "speaker": "강민호",
+        "title": "서부 전원을 빼고도 망은 서 있어야 합니다",
+        "body": "남부 예비 발전 접속점을 기존 망에 합류시키세요. 인수시험 동안 서부 발전 접속점은 빠지고, 선로와 접속부는 연속 한계만 사용합니다."
+      },
+      "objective": "서부 전원 인수시험 중 생활권 0.8 MW와 의료원 0.7 MW를 공급한다.",
+      "grantCashUnit": 2200000,
+      "deadlineMinute": 500,
+      "promise": null,
+      "decisionWindows": [
+        {
+          "windowId": "SECOND_SOURCE_BUILD",
+          "nextPhaseId": "WEST_SOURCE_ACCEPTANCE_TEST",
+          "story": {
+            "speaker": "강민호",
+            "title": "연속 한계만 보는 인수시험",
+            "body": "발전량이 남아도 경로 중 한 접속부가 먼저 차면 공급은 성립하지 않습니다. 두 시설의 실제 경로와 최소 열여유를 확인하세요."
+          },
+          "buildMinutesAllowance": 500
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "WEST_SOURCE_ACCEPTANCE_TEST",
+          "displayName": "서부 주간선 인수시험",
+          "policy": "ContinuousOnly",
+          "loads": [
+            {
+              "loadId": "ACCEPTANCE_RESIDENTIAL",
+              "displayName": "동부 생활권 인수 공급",
+              "nodeId": "EAST_RESIDENTIAL_TERMINAL",
+              "demandKw": 800,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false,
+              "requireSubstationPath": true
+            },
+            {
+              "loadId": "ACCEPTANCE_HOSPITAL",
+              "displayName": "의료원 인수 공급",
+              "nodeId": "HOSPITAL_TERMINAL",
+              "demandKw": 700,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false,
+              "requireSubstationPath": true
+            }
+          ],
+          "unavailableAssetIds": ["WEST_SOURCE"],
+          "activeRiskAreaIds": [],
+          "limitOverrides": []
+        }
+      ],
+      "standardResult": {
+        "speaker": "강민호",
+        "title": "청류시 운영 인수 완료 · 6개월 후",
+        "body": "남부 전원에서 두 시설까지 이어진 경로와 접속부 여유를 확인했습니다. 이제 조작 안내 없이 운영 결정을 맡습니다."
+      },
+      "keptResult": null,
+      "deferredResult": null
+    },
+    {
+      "chapterId": "NORTH_BANK_PROMISE",
+      "kind": "CommercialCore",
+      "displayName": "북안의 약속",
+      "seedCashUnit": 0,
+      "seedNodeIds": [
+        "WEST_SOURCE",
+        "EAST_RESIDENTIAL_TERMINAL",
+        "HOSPITAL_TERMINAL",
+        "WEST_AUXILIARY",
+        "WATER_TERMINAL"
+      ],
+      "seedEdgeIds": [],
+      "briefing": {
+        "speaker": "윤서진",
+        "title": "북안 입주 날짜를 확정할 차례입니다",
+        "body": "정수장 공급은 반드시 지켜야 합니다. 북안 입주 약속까지 같은 망에 담을지 미룰지 정하고, 다음 더운 저녁의 산업 증산 전에 접속부 여유를 남기세요."
+      },
+      "objective": "정수장 0.9 MW를 공급하고 북안 입주 약속을 지킬지 미룰지 명시한다.",
+      "grantCashUnit": 2400000,
+      "deadlineMinute": 500,
+      "promise": {
+        "promiseId": "NORTH_BANK_MOVE_IN",
+        "displayName": "북안 입주 1.2 MW",
+        "loadId": "NORTH_BANK_PROMISE_LOAD"
+      },
+      "decisionWindows": [
+        {
+          "windowId": "NORTH_BANK_BUILD",
+          "nextPhaseId": "NORTH_BANK_OPENING",
+          "story": null,
+          "buildMinutesAllowance": 500
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "NORTH_BANK_OPENING",
+          "displayName": "북안 입주 저녁",
+          "policy": "ContinuousOnly",
+          "loads": [
+            {
+              "loadId": "WATER_SAFETY_DUTY",
+              "displayName": "청류정수장 필수 공급",
+              "nodeId": "WATER_TERMINAL",
+              "demandKw": 900,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false,
+              "requireSubstationPath": true
+            },
+            {
+              "loadId": "HOSPITAL_OPERATING_RECORD",
+              "displayName": "의료원 운영 기록",
+              "nodeId": "HOSPITAL_TERMINAL",
+              "demandKw": 700,
+              "obligationKind": "OperatingRecord",
+              "namedEmergencyDuty": false,
+              "requireSubstationPath": true
+            },
+            {
+              "loadId": "NORTH_BANK_PROMISE_LOAD",
+              "displayName": "북안 입주 약속",
+              "nodeId": "EAST_RESIDENTIAL_TERMINAL",
+              "demandKw": 1200,
+              "obligationKind": "CityPromise",
+              "namedEmergencyDuty": false,
+              "requireSubstationPath": true
+            }
+          ],
+          "unavailableAssetIds": [],
+          "activeRiskAreaIds": [],
+          "limitOverrides": []
+        }
+      ],
+      "standardResult": {
+        "speaker": "윤서진",
+        "title": "북안 운영 기록",
+        "body": "정수장 공급 경로와 남은 운영 자금을 기록했습니다."
+      },
+      "keptResult": {
+        "speaker": "윤서진",
+        "title": "입주 약속을 지켰습니다",
+        "body": "정수장 공급과 북안 입주 전력을 함께 승인했습니다. 다음 더운 저녁에는 산업 증산이 같은 열여유를 요구합니다."
+      },
+      "deferredResult": {
+        "speaker": "윤서진",
+        "title": "입주 약속을 미뤘습니다",
+        "body": "정수장 공급을 먼저 승인하고 북안 입주 일정을 미뤘습니다. 남은 망과 자금은 다음 더운 저녁에도 그대로 이어집니다."
+      }
+    }
+  ]
+}

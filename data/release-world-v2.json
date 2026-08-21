@@ -58,7 +58,8 @@
         "footprintRadiusUnit": 80,
         "maxConnections": 4,
         "costCashUnit": 1200000,
-        "buildMinutes": 120
+        "buildMinutes": 120,
+        "serviceRadiusUnit": 800
       }
     ],
     "lineClasses": [
@@ -113,6 +114,16 @@
       }
     ],
     "riskAreas": [
+      {
+        "riskAreaId": "NORTH_CORRIDOR_TEST_ZONE",
+        "displayName": "북안 회랑 차단시험구역",
+        "polygon": [
+          { "xUnit": 600, "yUnit": 120 },
+          { "xUnit": 2100, "yUnit": 120 },
+          { "xUnit": 2100, "yUnit": 1050 },
+          { "xUnit": 600, "yUnit": 1050 }
+        ]
+      },
       {
         "riskAreaId": "RIVER_FLOOD_ZONE",
         "displayName": "강변 범람 예고구역",

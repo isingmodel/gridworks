@@ -29,7 +29,8 @@ public sealed record SpatialNodeClassDefinition(
     int FootprintRadiusUnit,
     int MaxConnections,
     long CostCashUnit,
-    int BuildMinutes);
+    int BuildMinutes,
+    int ServiceRadiusUnit = 0);
 
 public sealed record SpatialLineClassDefinition(
     string ClassId,
@@ -73,14 +74,16 @@ public sealed record SpatialNodeDefinition(
     string DisplayName,
     MapPoint Position,
     bool Commissioned,
-    bool AuthoredFoundation);
+    bool AuthoredFoundation,
+    bool Reserved = false);
 
 public sealed record SpatialEdgeDefinition(
     string EdgeId,
     string LineClassId,
     string FromNodeId,
     string ToNodeId,
-    bool Commissioned);
+    bool Commissioned,
+    bool Reserved = false);
 
 public sealed record SpatialWorldDefinition(
     string SchemaVersion,

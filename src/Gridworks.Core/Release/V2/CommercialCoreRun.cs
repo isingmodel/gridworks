@@ -3,7 +3,10 @@ namespace Gridworks.Core.Release.V2;
 public sealed class CommercialCoreRun
 {
     private readonly CommercialWorldDefinition _world;
-    private readonly CommercialCoreSliceDefinition _slice;
+    private readonly CommercialCoreSliceDefinition? _slice;
+    private readonly CommercialCampaignDefinition? _campaign;
+    private readonly IReadOnlyList<CommercialCoreChapter> _chapters;
+    private readonly bool _carryWorldAcrossChapters;
     private readonly List<CommercialCoreCommand> _commands = [];
     private readonly List<ThermalIntervalResult> _committedPhaseResults = [];
     private readonly List<CommercialChapterResultRecord> _chapterResults = [];
@@ -28,6 +31,22 @@ public sealed class CommercialCoreRun
         CommercialCoreLoader.Validate(slice, world);
         _world = world;
         _slice = slice;
+        _chapters = slice.Chapters;
+        _carryWorldAcrossChapters = false;
+        StartChapter(0, chapterStartCommandCount: 0);
+    }
+
+    public CommercialCoreRun(
+        CommercialWorldDefinition world,
+        CommercialCampaignDefinition campaign)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        ArgumentNullException.ThrowIfNull(campaign);
+        CommercialCampaignLoader.Validate(campaign, world);
+        _world = world;
+        _campaign = campaign;
+        _chapters = campaign.Chapters;
+        _carryWorldAcrossChapters = true;
         StartChapter(0, chapterStartCommandCount: 0);
     }
 
@@ -37,7 +56,7 @@ public sealed class CommercialCoreRun
         return new CommercialCoreSnapshot(
             chapter,
             _chapterIndex,
-            _slice.Chapters.Count,
+            _chapters.Count,
             _campaignComplete ? null : chapter.DecisionWindows[_windowIndex],
             _windowIndex,
             _construction.GetSnapshot(),
@@ -185,6 +204,25 @@ public sealed class CommercialCoreRun
     {
         ArgumentNullException.ThrowIfNull(commands);
         var run = new CommercialCoreRun(world, slice);
+        for (int index = 0; index < commands.Count; index++)
+        {
+            CommercialCoreCommandResult result = run.Execute(commands[index], record: true);
+            if (!result.Accepted)
+            {
+                throw new CommercialCoreReplayException(
+                    $"Command {index} was rejected during fresh replay: {result.Error}/{result.ConstructionError}.");
+            }
+        }
+        return run;
+    }
+
+    public static CommercialCoreRun Restore(
+        CommercialWorldDefinition world,
+        CommercialCampaignDefinition campaign,
+        IReadOnlyList<CommercialCoreCommand> commands)
+    {
+        ArgumentNullException.ThrowIfNull(commands);
+        var run = new CommercialCoreRun(world, campaign);
         for (int index = 0; index < commands.Count; index++)
         {
             CommercialCoreCommandResult result = run.Execute(commands[index], record: true);
@@ -440,7 +478,7 @@ public sealed class CommercialCoreRun
             _cashUnit);
         _chapterResults.Add(record);
 
-        if (_chapterIndex + 1 == _slice.Chapters.Count)
+        if (_chapterIndex + 1 == _chapters.Count)
         {
             _campaignComplete = true;
         }
@@ -453,17 +491,43 @@ public sealed class CommercialCoreRun
 
     private void StartChapter(int chapterIndex, int chapterStartCommandCount)
     {
+        SpatialWorldDefinition? carriedWorld = _carryWorldAcrossChapters && chapterIndex > 0
+            ? _construction.GetSnapshot().World
+            : null;
         _chapterIndex = chapterIndex;
         _windowIndex = 0;
         _promiseDecision = null;
-        _thermalMemory = Array.Empty<ThermalAssetMemory>();
+        if (carriedWorld is null)
+        {
+            _thermalMemory = Array.Empty<ThermalAssetMemory>();
+        }
         _recentProjectCheckpointCommandCount = null;
         _pendingProjectStartCommandCount = null;
         _chapterStartCommandCount = chapterStartCommandCount;
         CommercialCoreChapter chapter = CurrentChapter;
-        CommercialWorldDefinition chapterWorld = CommercialCoreLoader.CreateChapterWorld(_world, chapter);
-        _construction = new ConstructionSession(chapterWorld.Spatial);
-        _cashUnit = checked(chapter.SeedCashUnit + chapter.GrantCashUnit);
+        if (carriedWorld is null)
+        {
+            CommercialWorldDefinition chapterWorld = _campaign is null
+                ? CommercialCoreLoader.CreateChapterWorld(_world, chapter)
+                : CommercialCampaignLoader.CreateInitialWorld(_world, _campaign);
+            _cashUnit = checked(chapter.SeedCashUnit + chapter.GrantCashUnit);
+            _construction = new ConstructionSession(chapterWorld.Spatial with
+            {
+                InitialCashUnit = _cashUnit,
+            });
+        }
+        else
+        {
+            _cashUnit = checked(_cashUnit + chapter.GrantCashUnit);
+            SpatialWorldDefinition activated = CommercialCampaignLoader.ActivateChapterAssets(
+                _world,
+                carriedWorld,
+                chapter);
+            _construction = new ConstructionSession(activated with
+            {
+                InitialCashUnit = _cashUnit,
+            });
+        }
     }
 
     private (CommercialWorldDefinition World, long Minute, long Cash) PreviewWorld(bool includeDraft)
@@ -557,7 +621,8 @@ public sealed class CommercialCoreRun
                         _promiseDecision == PromiseDecision.Keep,
                     load.ObligationKind == CommercialCoreObligationKind.CityPromise &&
                         _promiseDecision == PromiseDecision.Keep,
-                    load.NamedEmergencyDuty)).ToArray(),
+                    load.NamedEmergencyDuty,
+                    load.RequireSubstationPath)).ToArray(),
                 unavailable.OrderBy(item => item, StringComparer.Ordinal).ToArray(),
                 phase.LimitOverrides));
         }
@@ -642,10 +707,7 @@ public sealed class CommercialCoreRun
     }
 
     private CommercialWorldDefinition CurrentCommercialWorld() =>
-        CommercialCoreLoader.CreateChapterWorld(_world, CurrentChapter) with
-        {
-            Spatial = _construction.GetSnapshot().World,
-        };
+        CommercialCampaignLoader.WorldForSpatial(_world, _construction.GetSnapshot().World);
 
     private CommercialCoreCommandResult Construction(
         ConstructionCommandResult result,
@@ -756,10 +818,15 @@ public sealed class CommercialCoreRun
 
     private void RebuildFromPrefix(int commandCount)
     {
-        CommercialCoreRun rebuilt = Restore(
-            _world,
-            _slice,
-            _commands.Take(commandCount).ToArray());
+        CommercialCoreRun rebuilt = _campaign is null
+            ? Restore(
+                _world,
+                _slice!,
+                _commands.Take(commandCount).ToArray())
+            : Restore(
+                _world,
+                _campaign,
+                _commands.Take(commandCount).ToArray());
         _commands.Clear();
         _commands.AddRange(rebuilt._commands);
         _committedPhaseResults.Clear();
@@ -778,5 +845,5 @@ public sealed class CommercialCoreRun
         _recentProjectCheckpointCommandCount = rebuilt._recentProjectCheckpointCommandCount;
     }
 
-    private CommercialCoreChapter CurrentChapter => _slice.Chapters[_chapterIndex];
+    private CommercialCoreChapter CurrentChapter => _chapters[_chapterIndex];
 }

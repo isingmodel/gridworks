@@ -22,8 +22,8 @@ internal sealed partial class CommercialMain : Control
 {
     private const string FixtureResource =
         "Gridworks.Game.EmbeddedData.release-world-v2.json";
-    private const string CoreSliceResource =
-        "Gridworks.Game.EmbeddedData.commercial-core-slice-v1.json";
+    private const string CampaignResource =
+        "Gridworks.Game.EmbeddedData.release-campaign-v2.json";
     private const string SubstationClassId = "SMALL_SUBSTATION";
     private const string StandardLineClassId = "STANDARD_LINE";
     private const string ReinforcedLineClassId = "REINFORCED_LINE";
@@ -32,12 +32,12 @@ internal sealed partial class CommercialMain : Control
 
     private CommercialLaunchOptions _options = null!;
     private CommercialWorldDefinition _commercialWorld = null!;
-    private CommercialCoreSliceDefinition _coreSlice = null!;
+    private CommercialCampaignDefinition _campaign = null!;
     private CommercialCoreRun? _coreRun;
     private ConstructionSession? _legacySession;
     private ConstructionSnapshot _snapshot = null!;
     private byte[] _worldBytes = null!;
-    private byte[] _coreBytes = null!;
+    private byte[] _campaignBytes = null!;
     private string? _savePath;
     private bool _saveWritable = true;
     private CommercialMapView _map = null!;
@@ -70,12 +70,12 @@ internal sealed partial class CommercialMain : Control
     {
         try
         {
-            GetWindow().Title = "Gridworks — 첫 불빛과 누구의 여유인가";
+            GetWindow().Title = "Gridworks — 첫 불빛에서 북안의 약속까지";
             _options = CommercialLaunchOptions.Parse(OS.GetCmdlineUserArgs());
             _worldBytes = ReadEmbeddedBytes(FixtureResource, "상용 지도 데이터를 열 수 없습니다.");
-            _coreBytes = ReadEmbeddedBytes(CoreSliceResource, "상용 핵심 흐름 데이터를 열 수 없습니다.");
+            _campaignBytes = ReadEmbeddedBytes(CampaignResource, "상용 캠페인 데이터를 열 수 없습니다.");
             _commercialWorld = CommercialWorldLoader.Load(_worldBytes);
-            _coreSlice = CommercialCoreLoader.Load(_coreBytes, _commercialWorld);
+            _campaign = CommercialCampaignLoader.Load(_campaignBytes, _commercialWorld);
             if (_options.PlacementSmoke || _options.ThermalSmoke)
             {
                 _legacySession = new ConstructionSession(_commercialWorld.Spatial);
@@ -84,7 +84,7 @@ internal sealed partial class CommercialMain : Control
             }
             else
             {
-                InitializeCoreRun(loadSave: !_options.CoreSmoke);
+                InitializeCoreRun(loadSave: !_options.CampaignSmoke);
             }
             RefreshThermalProjection();
             BindScene();
@@ -99,9 +99,9 @@ internal sealed partial class CommercialMain : Control
             {
                 CallDeferred(nameof(RunThermalSmoke));
             }
-            else if (_options.CoreSmoke)
+            else if (_options.CampaignSmoke)
             {
-                CallDeferred(nameof(RunCoreSmoke));
+                CallDeferred(nameof(RunCampaignSmoke));
             }
 #endif
         }
@@ -112,7 +112,7 @@ internal sealed partial class CommercialMain : Control
 #if DEBUG
             if (OS.GetCmdlineUserArgs().Contains("--commercial-placement-smoke") ||
                 OS.GetCmdlineUserArgs().Contains("--commercial-thermal-smoke") ||
-                OS.GetCmdlineUserArgs().Contains("--commercial-core-smoke"))
+                OS.GetCmdlineUserArgs().Contains("--commercial-campaign-smoke"))
             {
                 GetTree().Quit(1);
             }
@@ -797,6 +797,17 @@ internal sealed partial class CommercialMain : Control
         ThermalIntervalResult thermalInterval = _thermalSequence.Intervals[_thermalProjectionIndex];
         ThermalAssetResult? selectedThermal = thermalInterval.Assets.FirstOrDefault(item =>
             item.AssetId == _selectedThermalAssetId);
+        SpatialNodeDefinition? selectedSpatialNode = _snapshot.World.Nodes.FirstOrDefault(item =>
+            item.NodeId == _selectedThermalAssetId);
+        int selectedServiceRadius = selectedSpatialNode is null
+            ? 0
+            : _snapshot.World.NodeClasses.Single(item =>
+                item.ClassId == selectedSpatialNode.ClassId).ServiceRadiusUnit;
+        string serviceAreaText = selectedServiceRadius > 0
+            ? $"\n서비스 권역 · 반경 " +
+              (selectedServiceRadius / 100m).ToString("0.##", CultureInfo.InvariantCulture) +
+              " 설계거리"
+            : string.Empty;
         string thermalText = selectedThermal is null
             ? $"열 국면 · {ThermalIntervalName(thermalInterval.IntervalId)}\n" +
               "열 한계가 있는 선로·변전소·접속부를 지도에서 선택하세요."
@@ -804,7 +815,8 @@ internal sealed partial class CommercialMain : Control
               $"{AssetDisplayName(_selectedThermalAssetId)}\n" +
               $"사용 {FormatPower(selectedThermal.UseKw)} / 연속 {FormatPower(selectedThermal.ContinuousLimitKw)} / " +
               $"비상 {FormatPower(selectedThermal.EmergencyLimitKw)}\n" +
-              $"현재 {ThermalStateText(selectedThermal.CurrentState)} · 다음 {ThermalStateText(selectedThermal.NextState)}";
+              $"현재 {ThermalStateText(selectedThermal.CurrentState)} · 다음 {ThermalStateText(selectedThermal.NextState)}" +
+              serviceAreaText;
         if (core is not null && !core.CampaignComplete)
         {
             CommercialDecisionPreview forecast = _coreRun!.PreviewDecisionWindow();
@@ -823,6 +835,7 @@ internal sealed partial class CommercialMain : Control
         return new CommercialTaskPanelModel(
             HeadingText(),
             InstructionText(),
+            ObligationsText(core),
             string.IsNullOrWhiteSpace(_pointerMessage)
                 ? "지도에서 작업 위치를 선택하세요."
                 : _pointerMessage,
@@ -864,11 +877,13 @@ internal sealed partial class CommercialMain : Control
             new CommercialActionPresentation(
                 promiseAvailable,
                 core?.PromiseDecision == PromiseDecision.Keep ? "약속 지킴 ✓" : "약속 지킴",
-                "도시 약속 수요를 공급 후보에 포함하고 필요하면 비상 열여유 사용을 승인합니다."),
+                "도시 약속 수요를 공급 후보에 포함합니다. 첫 네 임무에서는 연속 한계만 사용합니다.",
+                Visible: core?.Chapter.Promise is not null),
             new CommercialActionPresentation(
                 promiseAvailable,
                 core?.PromiseDecision == PromiseDecision.Defer ? "약속 미룸 ✓" : "약속 미룸",
-                "도시 약속 수요를 이번 공급 후보에서 제외하지만 지원금과 필수 진행은 바꾸지 않습니다."),
+                "도시 약속 수요를 이번 공급 후보에서 제외하지만 지원금과 필수 진행은 바꾸지 않습니다.",
+                Visible: core?.Chapter.Promise is not null),
             new CommercialActionPresentation(
                 approvalAvailable,
                 core?.CampaignComplete == true ? "핵심 흐름 완료" : "다음 경계 승인",
@@ -884,7 +899,8 @@ internal sealed partial class CommercialMain : Control
             new CommercialActionPresentation(
                 _thermalSequence.Intervals.Count > 1,
                 $"다음 국면 보기 · {_thermalProjectionIndex + 1}/{_thermalSequence.Intervals.Count}",
-                "작성된 국면을 바꾸어 사용 불가, 실제 경로, 보호정지와 복귀 상태를 함께 비교합니다."));
+                "작성된 국면을 바꾸어 사용 불가, 실제 경로, 보호정지와 복귀 상태를 함께 비교합니다.",
+                Visible: _thermalSequence.Intervals.Count > 1));
     }
 
     private string HeadingText()
@@ -896,7 +912,7 @@ internal sealed partial class CommercialMain : Control
         }
         if (core is not null && core.CampaignComplete)
         {
-            return "상용 핵심 흐름 완료";
+            return "첫 네 임무 완료";
         }
         return _snapshot.Phase switch
         {
@@ -932,11 +948,50 @@ internal sealed partial class CommercialMain : Control
             ConstructionPhase.NodeBuilding or ConstructionPhase.LineBuilding =>
                 "발주한 공사는 임의로 움직일 수 없습니다. 완공 시각까지 진행하세요.",
             _ when core?.DecisionWindow?.Story is CommercialStoryCard story =>
-                $"{story.Title}\n{story.Body}\n목표 · {core.Chapter.Objective}",
+                $"{story.Title}\n{story.Body}\n목표 · {core.Chapter.Objective}" +
+                ChapterGuidance(core),
             _ when core is not null =>
-                $"{core.Chapter.Briefing.Title}\n{core.Chapter.Briefing.Body}\n목표 · {core.Chapter.Objective}",
+                $"{core.Chapter.Briefing.Title}\n{core.Chapter.Briefing.Body}\n목표 · {core.Chapter.Objective}" +
+                ChapterGuidance(core),
             _ => "보이는 격자 없이 지형을 읽고, 발전 접속점과 생활권을 직접 이어 보세요.",
         };
+    }
+
+    private static string ChapterGuidance(CommercialCoreSnapshot core) => core.ChapterIndex switch
+    {
+        0 => "\n조작 · 선로 잇기에서 접속점을 고르고 전신주를 놓습니다. Q/E는 후보 전환, 휠은 확대, Home은 전체 보기입니다.",
+        1 => "\n확인 · 다음 국면 보기로 북안·강변 차단시험의 실제 공급 경로를 번갈아 확인하세요.",
+        _ => string.Empty,
+    };
+
+    private string ObligationsText(CommercialCoreSnapshot? core)
+    {
+        if (core is null)
+        {
+            return "열 연습 · 작성 수요를 확인하세요.";
+        }
+        if (core.CampaignComplete)
+        {
+            return "현재 공개된 네 임무의 의무와 약속 기록을 완료했습니다.";
+        }
+        string[] obligations = core.Chapter.OperatingPhases
+            .SelectMany(item => item.Loads)
+            .Select(item =>
+            {
+                string decision = item.ObligationKind == CommercialCoreObligationKind.CityPromise
+                    ? core.PromiseDecision switch
+                    {
+                        PromiseDecision.Keep => " · 지킴 선택",
+                        PromiseDecision.Defer => " · 미룸 선택",
+                        _ => " · 선택 필요",
+                    }
+                    : string.Empty;
+                return $"{ObligationText(item.ObligationKind)} · {item.DisplayName} " +
+                       $"{FormatPower(item.DemandKw)}{decision}";
+            })
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        return "현재 의무\n" + string.Join("\n", obligations);
     }
 
     private string ResultPresentationText(CommercialChapterResultRecord result)
@@ -1123,7 +1178,7 @@ internal sealed partial class CommercialMain : Control
             {
                 CommercialCoreRun presentationRun = CommercialCoreRun.Restore(
                     _commercialWorld,
-                    _coreSlice,
+                    _campaign,
                     _coreRun.GetCommands());
                 _ = presentationRun.Apply(new CommercialCoreCommand(
                     CommercialCoreCommandKind.SetPromiseDecision,
@@ -1219,7 +1274,7 @@ internal sealed partial class CommercialMain : Control
         "HOT_PROMISE" => "더운 저녁 · 도시 약속",
         "PROTECTIVE_COOLING" => "다음 경계 · 보호정지와 냉각",
         "RETURNED_SERVICE" => "그다음 경계 · 자동 복귀",
-        _ => _coreSlice.Chapters.SelectMany(item => item.OperatingPhases)
+        _ => _campaign.Chapters.SelectMany(item => item.OperatingPhases)
             .FirstOrDefault(item => item.PhaseId == intervalId)?.DisplayName ?? "작성 국면",
     };
 
@@ -1280,30 +1335,30 @@ internal sealed partial class CommercialMain : Control
             CommercialCoreError.DeadlineExceeded => "예상 완공 시각이 이 장의 공사 기한을 넘습니다.",
             CommercialCoreError.SafetyDutyFailed => "공개된 안전 의무를 공급하지 못해 승인을 보류했습니다.",
             CommercialCoreError.KeptPromiseFailed => "지키기로 한 도시 약속을 공급하지 못해 승인을 보류했습니다.",
-            CommercialCoreError.CampaignComplete => "상용 핵심 흐름의 두 장을 모두 완료했습니다.",
+            CommercialCoreError.CampaignComplete => "현재 공개된 네 임무를 모두 완료했습니다.",
             CommercialCoreError.NothingToRollback => "현재 장에서 되돌릴 최근 완공 공사가 없습니다.",
             _ => "현재 행동을 적용하지 못했습니다.",
         };
 
     private void InitializeCoreRun(bool loadSave)
     {
-        _coreRun = new CommercialCoreRun(_commercialWorld, _coreSlice);
+        _coreRun = new CommercialCoreRun(_commercialWorld, _campaign);
         if (loadSave)
         {
             _savePath = ProjectSettings.GlobalizePath(
-                $"user://{CommercialCorePersistenceStore.SaveFileName}");
-            CommercialCoreSaveLoadResult load = CommercialCorePersistenceStore.Load(_savePath);
+                $"user://{CommercialCampaignPersistenceStore.SaveFileName}");
+            CommercialCampaignSaveLoadResult load = CommercialCampaignPersistenceStore.Load(_savePath);
             if (load.Status == CommercialCoreDocumentLoadStatus.Loaded)
             {
                 try
                 {
-                    _coreRun = CommercialCoreSaveCodec.Restore(
+                    _coreRun = CommercialCampaignSaveCodec.Restore(
                         load.Save!,
                         _commercialWorld,
                         _worldBytes,
-                        _coreSlice,
-                        _coreBytes);
-                    _lastStatus = "저장한 상용 핵심 흐름을 fresh replay로 이어갑니다.";
+                        _campaign,
+                        _campaignBytes);
+                    _lastStatus = "저장한 상용 캠페인을 fresh replay로 이어갑니다.";
                 }
                 catch (CommercialCorePersistenceException)
                 {
@@ -1314,7 +1369,7 @@ internal sealed partial class CommercialMain : Control
             else if (load.Status == CommercialCoreDocumentLoadStatus.Invalid)
             {
                 _saveWritable = false;
-                _lastError = "읽을 수 없는 저장 기록을 보존했습니다. 새 저장으로 덮어쓰지 않습니다.";
+                _lastError = "이전 단계 또는 읽을 수 없는 저장 기록을 보존했습니다. 새 저장으로 덮어쓰지 않습니다.";
             }
             string previousPath = ProjectSettings.GlobalizePath("user://release-campaign-save-v2.json");
             if (load.Status == CommercialCoreDocumentLoadStatus.Missing && File.Exists(previousPath))
@@ -1333,13 +1388,13 @@ internal sealed partial class CommercialMain : Control
         }
         try
         {
-            CommercialCoreCampaignSave save = CommercialCoreSaveCodec.Create(
+            CommercialCampaignSaveV3 save = CommercialCampaignSaveCodec.Create(
                 _commercialWorld,
                 _worldBytes,
-                _coreSlice,
-                _coreBytes,
+                _campaign,
+                _campaignBytes,
                 _coreRun.GetCommands());
-            CommercialCorePersistenceStore.Save(_savePath, save);
+            CommercialCampaignPersistenceStore.Save(_savePath, save);
         }
         catch (Exception exception) when (
             exception is CommercialCorePersistenceException or IOException or

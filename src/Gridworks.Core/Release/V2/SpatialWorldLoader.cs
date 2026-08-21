@@ -81,6 +81,11 @@ public static class SpatialWorldLoader
                 "Node maxConnections must be positive.");
             Require(definition.CostCashUnit >= 0 && definition.BuildMinutes >= 0,
                 "Node cost and build time must be nonnegative.");
+            Require(definition.ServiceRadiusUnit >= 0,
+                "Node service radius must be nonnegative.");
+            Require(definition.Kind == SpatialNodeKind.Substation ||
+                definition.ServiceRadiusUnit == 0,
+                "Only substations may define a service radius.");
             if (definition.Kind is SpatialNodeKind.Pole or SpatialNodeKind.Substation)
             {
                 Require(definition.CostCashUnit > 0 && definition.BuildMinutes > 0,
@@ -120,7 +125,10 @@ public static class SpatialWorldLoader
         {
             SpatialNodeDefinition node = world.Nodes[index];
             RequireText(node.DisplayName, "$.nodes[].displayName");
-            Require(node.Commissioned, "All Stage-B authored nodes must be commissioned.");
+            Require(node.Commissioned || node.Reserved,
+                "Every authored node must be commissioned or explicitly reserved at runtime.");
+            Require(!(node.Commissioned && node.Reserved),
+                "A commissioned node cannot also be reserved.");
             Require(nodeClasses.TryGetValue(node.ClassId, out SpatialNodeClassDefinition? nodeClass),
                 $"Node '{node.NodeId}' references an unknown class.");
             Require(FixedGeometry.CircleWithinBounds(
@@ -178,7 +186,10 @@ public static class SpatialWorldLoader
         List<(SpatialEdgeDefinition Edge, MapPoint Start, MapPoint End)> validatedEdges = new();
         foreach (SpatialEdgeDefinition edge in edges.Values)
         {
-            Require(edge.Commissioned, "All Stage-B authored edges must be commissioned.");
+            Require(edge.Commissioned || edge.Reserved,
+                "Every authored edge must be commissioned or explicitly reserved at runtime.");
+            Require(!(edge.Commissioned && edge.Reserved),
+                "A commissioned edge cannot also be reserved.");
             Require(lineClasses.TryGetValue(edge.LineClassId, out SpatialLineClassDefinition? lineClass),
                 $"Edge '{edge.EdgeId}' references an unknown line class.");
             Require(nodes.TryGetValue(edge.FromNodeId, out SpatialNodeDefinition? from),
@@ -240,7 +251,9 @@ public static class SpatialWorldLoader
 
     private static SpatialNodeClassDefinition NodeClass(JsonElement element, string path)
     {
-        RequireObject(element, path, NodeClassFields);
+        bool hasServiceRadius = element.TryGetProperty("serviceRadiusUnit", out _);
+        RequireObject(element, path,
+            hasServiceRadius ? NodeClassWithServiceRadiusFields : NodeClassFields);
         return new SpatialNodeClassDefinition(
             String(element, "classId", path),
             String(element, "displayName", path),
@@ -248,7 +261,8 @@ public static class SpatialWorldLoader
             Int32(element, "footprintRadiusUnit", path),
             Int32(element, "maxConnections", path),
             Int64(element, "costCashUnit", path),
-            Int32(element, "buildMinutes", path));
+            Int32(element, "buildMinutes", path),
+            hasServiceRadius ? Int32(element, "serviceRadiusUnit", path) : 0);
     }
 
     private static SpatialLineClassDefinition LineClass(JsonElement element, string path)
@@ -520,6 +534,9 @@ public static class SpatialWorldLoader
     private static readonly IReadOnlySet<string> NodeClassFields = Fields(
         "classId", "displayName", "kind", "footprintRadiusUnit", "maxConnections",
         "costCashUnit", "buildMinutes");
+    private static readonly IReadOnlySet<string> NodeClassWithServiceRadiusFields = Fields(
+        "classId", "displayName", "kind", "footprintRadiusUnit", "maxConnections",
+        "costCashUnit", "buildMinutes", "serviceRadiusUnit");
     private static readonly IReadOnlySet<string> LineClassFields = Fields(
         "classId", "displayName", "maxSpanUnit",
         "costCashUnitPerDesignUnit", "buildMinutesPerDesignUnit");

@@ -39,6 +39,13 @@ layout_mode = 2
 autowrap_mode = 2
 text = "발전소와 마을을 잇는 경로를 직접 계획하세요."
 
+[node name="ObligationsLabel" type="Label" parent="Margin/Column/InfoScroll/InfoColumn"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.88, 0.72, 1)
+autowrap_mode = 2
+text = "안전 의무를 불러오고 있습니다."
+
 [node name="Separator1" type="HSeparator" parent="Margin/Column/InfoScroll/InfoColumn"]
 layout_mode = 2
 

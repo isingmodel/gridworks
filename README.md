@@ -11,10 +11,10 @@
 
 ## 현재 상태
 
-[상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의 단계 B부터 G까지는 완료됐다.
-현재 활성 구현 단계는 **G.1 — 소유자 시각 정렬 수정**이다. 2026-08-21 소유자 실행 검토에서 실제
-화면이 `assets/`의 산업 도시·설비 규모·청록 통전망·호박색 계획선 방향과 멀고 사건 timeline bar가
-없다는 출시 차단 피드백을 받았다. 규칙·campaign·save를 바꾸지 않고 표현 구조를 바로잡는다.
+[상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의 단계 B부터 G.1까지는 완료됐다.
+현재 활성 구현 단계는 없다. 2026-08-21 소유자 실행 검토에서 실제 화면이 `assets/`의 산업 도시·
+설비 규모·청록 통전망·호박색 계획선 방향과 멀고 사건 timeline bar가 없다는 출시 차단 피드백을
+받았으며, 규칙·campaign·save를 바꾸지 않고 표현 구조와 사건 흐름을 바로잡았다.
 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소 주기기·전신주
 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도 v2
 world·campaign·Core와 기본 장면에서 그 범위를 순서대로 완성했다. 단계 H의 외부 검증·공개 후보는
@@ -64,13 +64,16 @@ CommercialChecks 20개 묶음 1,805 assertions, 동결 회귀, Game Debug·Relea
 settings v3 migration, ReduceMotion, 원자 campaign/settings 저장, 확인 shell, 생성형 환경음·날씨·
 상태 cue·두 motif를 기본 장면에 연결했다. CommercialChecks 21개 묶음 1,828 assertions, Game
 Debug·Release build, 자유 배치·열·세 fresh 캠페인 process와 1920×1080 UI 100%·125% actual-input
-presentation smoke가 통과했다. clean source `bbbdbe7`의 macOS 내부 ZIP은 Universal 2·ad-hoc
-서명과 archive 격리 검사를 통과했으며 release record는 [변경 기록](CHANGELOG.md)이 소유한다.
+presentation smoke가 통과했다. clean source `997f675`의 macOS 내부 ZIP은 Universal 2·ad-hoc
+서명, 도시 plate 포함·concept 원본 제외와 archive 격리 검사를 통과했으며 release record는
+[변경 기록](CHANGELOG.md)이 소유한다.
 candidate 독립 검토의 P1 5건은 파괴 행동 확인, release record, 도움말, audio cue 순서와 네 초상을
 수정했다. exact tree `f38a337` 재검토는 **P0 0 / P1 0 / open 0**이며 전체 동결·상용 검사와
-Debug·Release rebuild도 최종 통과했다. 그 뒤 열린 G.1은 concept-aligned 도시 plate, 산업형
-frame·inspector, 더 큰 시설 실루엣과 권위 chapter window/phase/result에서 만든 사건 timeline을
-추가한다. 1280×720은 지원하지 않는다.
+Debug·Release rebuild도 최종 통과했다. 완료된 G.1은 concept-aligned 도시 plate, 산업형
+frame·inspector, 더 큰 시설 실루엣과 권위 chapter window/phase/실제 promise result에서 만든 읽기
+전용 사건 timeline을 추가했다. 첫 exact 검토의 공간 landmark·promise 결과 P1 2건을 수정했고
+exact tree `d1e7f9a` 재검토는 **P0 0 / P1 0 / open 0**이다. 수정 화면의 소유자 재확인은 대기 중이며
+전체 소유자 플레이 상태를 대신하지 않는다. 1280×720은 지원하지 않는다.
 
 직전 기준선의 `ReleaseMain`은 프롤로그 세 임무와 본편 다섯 장, 한국어 화면, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 후보까지 구현했다. 사용자 요청으로 수행한

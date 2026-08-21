@@ -1,8 +1,8 @@
 # Gridworks 상용 2D 게임 구현
 
-> 상태: **ACTIVE — G.1 OWNER VISUAL ALIGNMENT**
-> 구현 권한: **GRANTED — 단계 B부터 G 완료, G.1 소유자 수정 활성**
-> 현재 작업: **concept 정렬·사건 timeline bar — 단계 H는 미승인**
+> 상태: **COMPLETE**
+> 구현 권한: **GRANTED AND COMPLETED — 단계 B부터 G.1까지**
+> 현재 작업: **활성 구현 gate 없음 — 단계 H는 미승인**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -454,6 +454,27 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
   문장을 실제 입력으로 검사한다. 1280×720은 지원하거나 검수하지 않는다.
 - CommercialChecks와 변경이 닿는 native campaign/placement/thermal 회귀, Debug·Release build,
   bounded exact-tree P0/P1 검토를 닫은 뒤에만 다시 완료로 표시한다.
+
+### 7.6 단계 G.1 종료 기록 — 2026-08-21
+
+- OpenAI built-in ImageGen으로 만든 `1672×941` runtime plate는 SHA-256
+  `151a498dc4e6f6284c045a430f1cf3a90873b9db7ca944a9fcec4490a522846c`다. 의료·정수·civic landmark를
+  제거하고 실제 수면·건물·시설·선로·위험 상태는 v2 좌표의 code-native layer만 권위로 남겼다.
+- 하단 사건 bar는 briefing, 각 decision window의 `nextPhaseId`가 가리키는 운영 국면, 실제 Core가
+  선택한 kept/deferred/standard result를 완료·현재·다음 marker와 접근성 문장으로 표시한다. 공사분과
+  기한을 읽지만 입력을 받거나 시간을 진행하지 않는다.
+- CommercialChecks `21 suites / 1,828 assertions`, 전체 동결 rule 회귀, Game Debug·Release build
+  warning/error 0, 자유 배치·열과 checkpoint→completion→completed-resume campaign smoke가 통과했다.
+  native presentation smoke는 1920×1080 UI 100% 제목과 UI 125% 경로·timeline·ReduceMotion 화면,
+  keyboard focus와 Save & Quit을 통과했다. 1280×720은 실행·검수하지 않았다.
+- clean source `997f67551d07c4f4e5405bb0e202467be3ad53df`의 내부 ZIP은 `126,993,251 bytes`,
+  SHA-256 `9e3c6869847fcf6c763f85438d8babeb8d9aca0a09e222f282c392e058cd06a9`다. package 안에 runtime
+  plate와 v2 권위가 있고 네 source concept·prototype·v1 fixture·PDB·로컬 경로·별도 release record는
+  없다. Universal 2, ad-hoc hardened-runtime signature와 격리된 세 campaign process를 확인했다.
+- candidate `a07695f` 독립 검토의 **P0 0 / P1 2**는 비권위 plate landmark와 promise 결과 timeline
+  불일치였다. 둘을 수정한 exact tree `d1e7f9a10c51bc5954c28ebca7bdacb5529cd0cf` 재검토는
+  **P0 0 / P1 0 / open 0**, worktree clean이다. 수정 화면의 소유자 재확인은 대기 중이고
+  `ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`를 바꾸지 않는다.
 
 ## 8. 전체 완료 증거
 

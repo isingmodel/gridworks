@@ -44,7 +44,6 @@ internal sealed partial class CommercialMapView : Control
 {
     private static readonly Color Background = Color.FromHtml("071319");
     private static readonly Color Land = Color.FromHtml("142724");
-    private static readonly Color LandEdge = Color.FromHtml("35534d");
     private static readonly Color Water = Color.FromHtml("123b4b");
     private static readonly Color WaterLine = Color.FromHtml("397389");
     private static readonly Color Building = Color.FromHtml("5b6663");
@@ -64,9 +63,55 @@ internal sealed partial class CommercialMapView : Control
     private const float KeyboardFollowMarginPixel = 72f;
     private const int KeyboardSmallStepUnit = 100;
     private const int KeyboardLargeStepUnit = 500;
+    private const int GroundTileWorldUnit = 400;
 
     [Export]
-    public Texture2D? CityPlate { get; set; }
+    public Texture2D? GroundAsphaltTile { get; set; }
+
+    [Export]
+    public Texture2D? GroundScrubTile { get; set; }
+
+    [Export]
+    public Texture2D? GroundConcreteTile { get; set; }
+
+    [Export]
+    public Texture2D? GroundGravelTile { get; set; }
+
+    [Export]
+    public Texture2D? RiverWaterTile { get; set; }
+
+    [Export]
+    public Texture2D? ResidentialBlockTile { get; set; }
+
+    [Export]
+    public Texture2D? HospitalBlockTile { get; set; }
+
+    [Export]
+    public Texture2D? SourcePlantSprite { get; set; }
+
+    [Export]
+    public Texture2D? StandardPoleSprite { get; set; }
+
+    [Export]
+    public Texture2D? ReinforcedPoleSprite { get; set; }
+
+    [Export]
+    public Texture2D? BridgeFoundationSprite { get; set; }
+
+    [Export]
+    public Texture2D? SubstationSprite { get; set; }
+
+    [Export]
+    public Texture2D? ResidentialFacilitySprite { get; set; }
+
+    [Export]
+    public Texture2D? HospitalFacilitySprite { get; set; }
+
+    [Export]
+    public Texture2D? WaterFacilitySprite { get; set; }
+
+    [Export]
+    public Texture2D? IndustryFacilitySprite { get; set; }
 
     private CommercialMapPresentation? _presentation;
     private CommercialMapTransform? _transform;
@@ -109,7 +154,54 @@ internal sealed partial class CommercialMapView : Control
 
     public IReadOnlyList<string> CandidateNodeIds => _candidateNodeIds.AsReadOnly();
 
-    public bool HasCityPlate => CityPlate is not null;
+    public bool HasIndividualTileAssets =>
+        GroundAsphaltTile is not null &&
+        GroundScrubTile is not null &&
+        GroundConcreteTile is not null &&
+        GroundGravelTile is not null &&
+        RiverWaterTile is not null &&
+        ResidentialBlockTile is not null &&
+        HospitalBlockTile is not null;
+
+    public bool HasIndividualObjectAssets =>
+        SourcePlantSprite is not null &&
+        StandardPoleSprite is not null &&
+        ReinforcedPoleSprite is not null &&
+        BridgeFoundationSprite is not null &&
+        SubstationSprite is not null &&
+        ResidentialFacilitySprite is not null &&
+        HospitalFacilitySprite is not null &&
+        WaterFacilitySprite is not null &&
+        IndustryFacilitySprite is not null;
+
+    public int IndividualArtAssetCount =>
+        IndividualTileAssetCount + IndividualObjectAssetCount;
+
+    private int IndividualTileAssetCount =>
+        new Texture2D?[]
+        {
+            GroundAsphaltTile,
+            GroundScrubTile,
+            GroundConcreteTile,
+            GroundGravelTile,
+            RiverWaterTile,
+            ResidentialBlockTile,
+            HospitalBlockTile,
+        }.Count(texture => texture is not null);
+
+    private int IndividualObjectAssetCount =>
+        new Texture2D?[]
+        {
+            SourcePlantSprite,
+            StandardPoleSprite,
+            ReinforcedPoleSprite,
+            BridgeFoundationSprite,
+            SubstationSprite,
+            ResidentialFacilitySprite,
+            HospitalFacilitySprite,
+            WaterFacilitySprite,
+            IndustryFacilitySprite,
+        }.Count(texture => texture is not null);
 
     public bool IsDraggingDraftPoint => _draggingDraftPoint;
 
@@ -119,8 +211,11 @@ internal sealed partial class CommercialMapView : Control
     {
         MouseFilter = MouseFilterEnum.Stop;
         FocusMode = FocusModeEnum.All;
+        TextureFilter = TextureFilterEnum.LinearWithMipmaps;
+        TextureRepeat = TextureRepeatEnum.Enabled;
         AccessibilityDescription =
-            "청류시 자유 배치 지도. 방향키로 커서를 움직이고 Enter로 선택합니다. Q와 E로 가까운 접속점을 바꿉니다.";
+            "청류시 자유 배치 지도. 개별 지형 타일과 시설 오브젝트가 v2 좌표에 배치됩니다. " +
+            "방향키로 커서를 움직이고 Enter로 선택합니다. Q와 E로 가까운 접속점을 바꿉니다.";
         MouseExited += () =>
         {
             if (!_panning)
@@ -509,28 +604,45 @@ internal sealed partial class CommercialMapView : Control
         Vector2 bottomRight = transform.WorldToCanvas(bounds.MaxXUnit, bounds.MaxYUnit);
         Rect2 mapRect = new(topLeft, bottomRight - topLeft);
         DrawRect(mapRect, Land);
-        if (CityPlate is not null)
-        {
-            DrawTextureRect(
-                CityPlate,
-                mapRect,
-                false,
-                new Color(0.84f, 0.86f, 0.82f, 0.88f));
-            DrawRect(mapRect, new Color(Land, 0.20f));
-        }
-        DrawRect(mapRect, Color.FromHtml("9a7b4f"), false, 2f);
 
-        for (int index = 1; index <= 4; index++)
+        Texture2D?[] variants =
         {
-            float ratio = index / 5f;
-            Vector2 from = new(
-                Mathf.Lerp(topLeft.X, bottomRight.X, ratio),
-                Mathf.Lerp(topLeft.Y, bottomRight.Y, 0.12f));
-            Vector2 to = new(
-                Mathf.Lerp(topLeft.X, bottomRight.X, ratio - 0.12f),
-                Mathf.Lerp(topLeft.Y, bottomRight.Y, 0.88f));
-            DrawLine(from, to, new Color(LandEdge, 0.08f), 1f, true);
+            GroundScrubTile,
+            GroundConcreteTile,
+            GroundGravelTile,
+        };
+        int row = 0;
+        for (int y = bounds.MinYUnit; y < bounds.MaxYUnit; y += GroundTileWorldUnit, row++)
+        {
+            int column = 0;
+            int nextY = Math.Min(bounds.MaxYUnit, y + GroundTileWorldUnit);
+            for (int x = bounds.MinXUnit; x < bounds.MaxXUnit; x += GroundTileWorldUnit, column++)
+            {
+                int nextX = Math.Min(bounds.MaxXUnit, x + GroundTileWorldUnit);
+                Vector2 cellTopLeft = transform.WorldToCanvas(x, y);
+                Vector2 cellBottomRight = transform.WorldToCanvas(nextX, nextY);
+                Rect2 cell = new(cellTopLeft, cellBottomRight - cellTopLeft);
+                if (GroundAsphaltTile is not null)
+                {
+                    DrawTextureRect(
+                        GroundAsphaltTile,
+                        cell.Grow(0.65f),
+                        false,
+                        new Color(0.66f, 0.71f, 0.66f, 0.94f));
+                }
+                Texture2D? variant = variants[((column * 7) + (row * 11)) % variants.Length];
+                if (variant is not null)
+                {
+                    DrawTextureRect(
+                        variant,
+                        cell.Grow(0.8f),
+                        false,
+                        new Color(0.66f, 0.70f, 0.64f, 0.18f));
+                }
+            }
         }
+        DrawRect(mapRect, new Color(Land, 0.24f));
+        DrawRect(mapRect, Color.FromHtml("9a7b4f"), false, 2f);
     }
 
     private void DrawChapterAtmosphere(int chapterIndex, bool reduceMotion)
@@ -601,11 +713,50 @@ internal sealed partial class CommercialMapView : Control
         foreach (TerrainPolygonDefinition area in world.Terrain)
         {
             Vector2[] polygon = area.Polygon.Select(ToCanvas).ToArray();
+            Texture2D? texture = TerrainTexture(area.TerrainId);
             Color fill = area.Kind == TerrainKind.Water
                 ? new Color(Water, 0.62f)
                 : new Color(Building, 0.18f);
             Color edge = area.Kind == TerrainKind.Water ? WaterLine : BuildingEdge;
-            DrawColoredPolygon(polygon, fill);
+            if (texture is null)
+            {
+                DrawColoredPolygon(polygon, fill);
+            }
+            else
+            {
+                int minX = area.Polygon.Min(point => point.XUnit);
+                int maxX = area.Polygon.Max(point => point.XUnit);
+                int minY = area.Polygon.Min(point => point.YUnit);
+                int maxY = area.Polygon.Max(point => point.YUnit);
+                Vector2[] uvs = area.Polygon
+                    .Select(point => new Vector2(
+                        (float)(point.XUnit - minX) / Math.Max(1, maxX - minX) *
+                            Math.Max(1, texture.GetWidth() - 1),
+                        (float)(point.YUnit - minY) / Math.Max(1, maxY - minY) *
+                            Math.Max(1, texture.GetHeight() - 1)))
+                    .ToArray();
+                Color textureModulate = area.Kind == TerrainKind.Water
+                    ? new Color(0.64f, 0.84f, 0.88f, 0.96f)
+                    : new Color(0.88f, 0.88f, 0.82f, 0.96f);
+                if (area.Kind == TerrainKind.Building &&
+                    area.Polygon.All(point =>
+                        (point.XUnit == minX || point.XUnit == maxX) &&
+                        (point.YUnit == minY || point.YUnit == maxY)))
+                {
+                    Vector2 textureTopLeft = ToCanvas(new CoreMapPoint(minX, minY));
+                    Vector2 textureBottomRight = ToCanvas(new CoreMapPoint(maxX, maxY));
+                    DrawTextureRect(
+                        texture,
+                        new Rect2(textureTopLeft, textureBottomRight - textureTopLeft),
+                        false,
+                        textureModulate);
+                }
+                else
+                {
+                    DrawColoredPolygon(polygon, textureModulate, uvs, texture);
+                }
+                DrawColoredPolygon(polygon, new Color(fill, 0.10f));
+            }
             DrawPolyline(polygon.Append(polygon[0]).ToArray(), edge, 1.6f, true);
             if (area.Kind == TerrainKind.Water)
             {
@@ -614,6 +765,14 @@ internal sealed partial class CommercialMapView : Control
             DrawAreaLabel(polygon, area.DisplayName, edge);
         }
     }
+
+    private Texture2D? TerrainTexture(string terrainId) => terrainId switch
+    {
+        "CHEONGRYU_RIVER" => RiverWaterTile,
+        "EAST_RESIDENTIAL_BLOCK" => ResidentialBlockTile,
+        "HOSPITAL_BLOCK" => HospitalBlockTile,
+        _ => null,
+    };
 
     private void DrawRiskAreas(
         SpatialWorldDefinition world,
@@ -852,9 +1011,22 @@ internal sealed partial class CommercialMapView : Control
                 SpatialNodeKind.DedicatedLoadTerminal => 13f,
                 _ => 6f,
             };
-            DrawCircle(center, radius + 4f, new Color(Background, 0.94f));
-            DrawCircle(center, radius + 1f, new Color(color, 0.24f));
-            DrawArc(center, radius, 0f, Mathf.Tau, 28, color, 2.5f, true);
+            (Texture2D? texture, float maxSide) = NodeSprite(node, nodeClass);
+            Vector2 spriteSize = texture is null
+                ? Vector2.One * (radius * 2f)
+                : FitSpriteSize(texture, maxSide * (1f + (ZoomIndex * 0.16f)));
+            float objectRadius = Math.Max(radius, Math.Max(spriteSize.X, spriteSize.Y) * 0.42f);
+            if (texture is not null)
+            {
+                DrawTextureRect(
+                    texture,
+                    new Rect2(center - (spriteSize / 2f), spriteSize),
+                    false,
+                    NodeSpriteModulate(node, thermal));
+            }
+            DrawArc(center, objectRadius, 0f, Mathf.Tau, 32, new Color(color, 0.88f), 2f, true);
+            DrawCircle(center, 4.2f, new Color(Background, 0.86f));
+            DrawCircle(center, 2.7f, color);
             if (nodeClass.Kind == SpatialNodeKind.DedicatedLoadTerminal)
             {
                 CommercialFacilityPresentation facility = facilities.FirstOrDefault(item =>
@@ -862,78 +1034,104 @@ internal sealed partial class CommercialMapView : Control
                         node.NodeId,
                         CommercialFacilityState.Waiting,
                         "현재 국면 수요 없음");
-                DrawFacilityIcon(node, center, radius, facility);
-            }
-            else
-            {
-                DrawEquipmentIcon(nodeClass.Kind, center, radius, color);
+                DrawFacilityStateMarker(center, objectRadius, facility);
             }
             if (thermal?.CurrentState == ThermalOperatingState.Emergency)
             {
                 Vector2[] triangle =
                 [
-                    center + new Vector2(0f, -radius - 7f),
-                    center + new Vector2(-5f, -radius + 2f),
-                    center + new Vector2(5f, -radius + 2f),
+                    center + new Vector2(0f, -objectRadius - 8f),
+                    center + new Vector2(-5f, -objectRadius + 1f),
+                    center + new Vector2(5f, -objectRadius + 1f),
                 ];
                 DrawPolyline(triangle.Append(triangle[0]).ToArray(), color, 2f, true);
             }
             else if (thermal?.CurrentState == ThermalOperatingState.ProtectiveOutage)
             {
-                DrawCross(center, color, radius + 5f);
+                DrawCross(center, color, objectRadius + 3f);
             }
             if (node.NodeId == selectedThermalAssetId)
             {
-                DrawArc(center, radius + 7f, 0f, Mathf.Tau, 32, Focus, 2f, true);
+                DrawArc(center, objectRadius + 6f, 0f, Mathf.Tau, 36, Focus, 2f, true);
             }
             if (node.NodeId == selectedDemandNodeId)
             {
                 DrawRect(new Rect2(
-                        center - new Vector2(radius + 9f, radius + 9f),
-                        Vector2.One * (radius + 9f) * 2f),
+                        center - new Vector2(objectRadius + 8f, objectRadius + 8f),
+                        Vector2.One * (objectRadius + 8f) * 2f),
                     Focus, false, 2f);
             }
             if (nodeClass.Kind != SpatialNodeKind.Pole)
             {
                 DrawMapLabel(
-                    center + new Vector2(radius + 8f, -radius + 2f),
+                    center + new Vector2(objectRadius + 8f, -objectRadius + 2f),
                     node.Reserved ? $"예정 · {node.DisplayName}" : node.DisplayName,
                     node.Reserved ? Muted : Text);
             }
         }
     }
 
-    private void DrawEquipmentIcon(
-        SpatialNodeKind kind,
-        Vector2 center,
-        float radius,
-        Color color)
+    private (Texture2D? Texture, float MaxSide) NodeSprite(
+        SpatialNodeDefinition node,
+        SpatialNodeClassDefinition nodeClass)
     {
-        switch (kind)
+        if (node.AuthoredFoundation)
         {
-            case SpatialNodeKind.SourceTerminal:
-                DrawRect(new Rect2(center.X - 9f, center.Y - 3f, 18f, 10f), color, false, 2f);
-                DrawLine(center + new Vector2(-6f, -3f), center + new Vector2(-6f, -11f), color, 3f);
-                DrawLine(center + new Vector2(1f, -3f), center + new Vector2(1f, -9f), color, 3f);
-                DrawLine(center + new Vector2(7f, -3f), center + new Vector2(7f, -7f), color, 3f);
-                break;
-            case SpatialNodeKind.Substation:
-                DrawRect(new Rect2(center.X - 10f, center.Y - 7f, 20f, 14f), color, false, 2f);
-                DrawCircle(center + new Vector2(-5f, 0f), 3f, color, false, 1.5f);
-                DrawCircle(center + new Vector2(5f, 0f), 3f, color, false, 1.5f);
-                DrawLine(center + new Vector2(-10f, -10f), center + new Vector2(10f, -10f), color, 2f);
-                break;
-            default:
-                DrawLine(center + new Vector2(0f, -radius + 2f), center + new Vector2(0f, radius - 2f), color, 2f);
-                DrawLine(center + new Vector2(-5f, -2f), center + new Vector2(5f, -2f), color, 2f);
-                break;
+            return (BridgeFoundationSprite, 64f);
         }
+        return nodeClass.Kind switch
+        {
+            SpatialNodeKind.SourceTerminal => (SourcePlantSprite, 72f),
+            SpatialNodeKind.Substation => (SubstationSprite, 70f),
+            SpatialNodeKind.Pole when node.ClassId == "STANDARD_POLE" =>
+                (StandardPoleSprite, 52f),
+            SpatialNodeKind.Pole => (ReinforcedPoleSprite, 58f),
+            SpatialNodeKind.DedicatedLoadTerminal when
+                node.NodeId == "EAST_RESIDENTIAL_TERMINAL" =>
+                (ResidentialFacilitySprite, 76f),
+            SpatialNodeKind.DedicatedLoadTerminal when
+                node.NodeId == "HOSPITAL_TERMINAL" =>
+                (HospitalFacilitySprite, 82f),
+            SpatialNodeKind.DedicatedLoadTerminal when
+                node.NodeId == "WATER_TERMINAL" =>
+                (WaterFacilitySprite, 82f),
+            SpatialNodeKind.DedicatedLoadTerminal when
+                node.NodeId == "INDUSTRY_TERMINAL" =>
+                (IndustryFacilitySprite, 80f),
+            _ => (null, 24f),
+        };
     }
 
-    private void DrawFacilityIcon(
+    private static Vector2 FitSpriteSize(Texture2D texture, float maxSide)
+    {
+        float width = Math.Max(1, texture.GetWidth());
+        float height = Math.Max(1, texture.GetHeight());
+        float scale = maxSide / Math.Max(width, height);
+        return new Vector2(width * scale, height * scale);
+    }
+
+    private static Color NodeSpriteModulate(
         SpatialNodeDefinition node,
+        ThermalAssetResult? thermal)
+    {
+        if (thermal?.CurrentState == ThermalOperatingState.ProtectiveOutage)
+        {
+            return new Color(0.74f, 0.48f, 0.48f, 0.54f);
+        }
+        if (node.Reserved)
+        {
+            return new Color(0.56f, 0.61f, 0.59f, 0.42f);
+        }
+        if (!node.Commissioned)
+        {
+            return new Color(0.86f, 0.72f, 0.48f, 0.62f);
+        }
+        return new Color(0.94f, 0.96f, 0.92f, 0.98f);
+    }
+
+    private void DrawFacilityStateMarker(
         Vector2 center,
-        float radius,
+        float objectRadius,
         CommercialFacilityPresentation facility)
     {
         Color stateColor = facility.State switch
@@ -943,49 +1141,22 @@ internal sealed partial class CommercialMapView : Control
             CommercialFacilityState.Unavailable => OutageLine,
             _ => IdleLine,
         };
-        DrawRect(
-            new Rect2(center - new Vector2(radius - 3f, radius - 3f), Vector2.One * (radius - 3f) * 2f),
-            new Color(Background, 0.72f));
-        float iconY = center.Y;
-        if (node.NodeId.Contains("HOSPITAL", StringComparison.Ordinal))
-        {
-            DrawLine(new Vector2(center.X - 7f, iconY), new Vector2(center.X + 7f, iconY), stateColor, 3f);
-            DrawLine(new Vector2(center.X, iconY - 7f), new Vector2(center.X, iconY + 7f), stateColor, 3f);
-        }
-        else if (node.NodeId.Contains("WATER", StringComparison.Ordinal))
-        {
-            DrawArc(new Vector2(center.X, iconY), 7f, 0f, Mathf.Tau, 20, stateColor, 2f, true);
-            DrawLine(new Vector2(center.X - 7f, iconY + 7f), new Vector2(center.X + 7f, iconY + 7f), stateColor, 2f);
-        }
-        else if (node.NodeId.Contains("INDUSTR", StringComparison.Ordinal) ||
-                 node.NodeId.Contains("FACTORY", StringComparison.Ordinal))
-        {
-            DrawRect(new Rect2(center.X - 8f, iconY - 6f, 16f, 12f), stateColor, false, 2f);
-            DrawLine(new Vector2(center.X + 4f, iconY - 6f), new Vector2(center.X + 4f, iconY - 12f), stateColor, 3f);
-        }
-        else
-        {
-            Vector2[] roof =
-            [
-                new(center.X - 9f, iconY + 3f),
-                new(center.X, iconY - 7f),
-                new(center.X + 9f, iconY + 3f),
-            ];
-            DrawPolyline(roof, stateColor, 2f, true);
-        }
+        Vector2 badge = center + new Vector2(objectRadius * 0.72f, -objectRadius * 0.72f);
+        DrawCircle(badge, 7f, new Color(Background, 0.88f));
+        DrawArc(badge, 6f, 0f, Mathf.Tau, 20, stateColor, 2f, true);
 
         if (facility.State == CommercialFacilityState.Supplied)
         {
-            DrawLine(center + new Vector2(-4f, 1f), center + new Vector2(-1f, 5f), stateColor, 2f);
-            DrawLine(center + new Vector2(-1f, 5f), center + new Vector2(6f, -4f), stateColor, 2f);
+            DrawLine(badge + new Vector2(-3f, 0f), badge + new Vector2(-1f, 3f), stateColor, 2f);
+            DrawLine(badge + new Vector2(-1f, 3f), badge + new Vector2(4f, -3f), stateColor, 2f);
         }
         else if (facility.State == CommercialFacilityState.Unavailable)
         {
-            DrawCross(center, stateColor, radius + 4f);
+            DrawCross(center, stateColor, objectRadius + 3f);
         }
         else if (facility.State == CommercialFacilityState.Deferred)
         {
-            DrawDashedLine(center + new Vector2(-7f, 0f), center + new Vector2(7f, 0f),
+            DrawDashedLine(badge + new Vector2(-4f, 0f), badge + new Vector2(4f, 0f),
                 stateColor, 2f, 4f);
         }
     }

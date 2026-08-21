@@ -10,9 +10,10 @@
   있다. 현재 장 재시작, 이전 장 되감기와 새 게임은 파괴 범위를 알리는 확인 화면을 거친다.
 - 선택 수요의 발전원→전체 경로→최소 열여유→수요처와 시설 상태를 지도·inspector·접근성 문장에
   함께 표시한다. 연속·비상·보호정지는 색 외 pattern과 icon으로도 구분한다.
-- 네 concept의 사선 산업도시 방향을 새로 생성한 배경 plate, 흑철·황동 frame, 큰 시설 실루엣으로
-  반영한다. plate에는 의료·정수 landmark를 굽지 않고 실제 선로·시설·수면·건물·위험·선택 상태는
-  v2 권위의 code-native overlay가 소유하며 concept 원본은 package에 넣지 않는다. 하단 사건 timeline은
+- 네 concept의 사선 산업도시 방향을 개별 지형 tile 7종, transparent 설비·시설 object 9종,
+  흑철·황동 frame으로 반영한다. 지면은 400단위 셀에, 강·주거·의료 tile은 정확한 v2 polygon에,
+  설비·시설은 class/ID별 node 좌표에 배치한다. 전체 map plate와 concept 원본은 package에 넣지 않고
+  실제 선로·위험·선택 상태는 v2 권위 layer가 소유한다. 하단 사건 timeline은
   briefing→정확한 decision window·phase→선택한 promise 결과와 공사분/기한을 읽기 전용으로 표시한다.
 - 장별 조명·날씨와 네 인물의 고정 code-native 초상을 제공한다. 외부 음원 없이 도시 환경음, 날씨
   layer, 발주·완공·통전·차단·경고·결과 cue와 두 motif를 생성한다.
@@ -21,7 +22,7 @@
   성공한 뒤에만 제목으로 이동한다.
 - 최소 지원·검수 해상도는 **1920×1080**이며 UI 100%·125%와 마우스·키보드를 확인했다.
   1280×720은 지원하거나 검수하지 않는다.
-- 패키지는 `CommercialMain`과 실행 의존성, 생성 도시 plate, v2 world·campaign·build identity,
+- 패키지는 `CommercialMain`과 실행 의존성, 개별 tile/object 16종, v2 world·campaign·build identity,
   기본 오디오 bus, 설치 안내와 라이선스·크레딧·고지만 포함한다. source concept·prototype·v1
   fixture·PDB·로컬 빌드 경로와 이 별도 release record는 ZIP에서 제외했다.
 

@@ -64,8 +64,9 @@ CommercialChecks 20개 묶음 1,805 assertions, 동결 회귀, Game Debug·Relea
 settings v3 migration, ReduceMotion, 원자 campaign/settings 저장, 확인 shell, 생성형 환경음·날씨·
 상태 cue·두 motif를 기본 장면에 연결했다. CommercialChecks 21개 묶음 1,828 assertions, Game
 Debug·Release build, 자유 배치·열·세 fresh 캠페인 process와 1920×1080 UI 100%·125% actual-input
-presentation smoke가 통과했다. clean source `997f675`의 macOS 내부 ZIP은 Universal 2·ad-hoc
-서명, 도시 plate 포함·concept 원본 제외와 archive 격리 검사를 통과했으며 release record는
+presentation smoke가 통과했다. G.1의 clean source `997f675` macOS 내부 ZIP은 Universal 2·ad-hoc
+서명과 archive 격리 검사를 통과했지만, 그 ZIP의 whole-map plate 방식은 이후 소유자가 거부해 현재
+후보가 아니다. G.2는 개별 art 16종 포함·plate/concept 원본 제외를 다시 검사하며 release record는
 [변경 기록](CHANGELOG.md)이 소유한다.
 candidate 독립 검토의 P1 5건은 파괴 행동 확인, release record, 도움말, audio cue 순서와 네 초상을
 수정했다. exact tree `f38a337` 재검토는 **P0 0 / P1 0 / open 0**이며 전체 동결·상용 검사와

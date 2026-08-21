@@ -1,7 +1,22 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://CommercialMapView.cs" id="1_map"]
-[ext_resource type="Texture2D" path="res://art/commercial-city-plate-v1.png" id="2_city"]
+[ext_resource type="Texture2D" path="res://art/commercial/tiles/ground-asphalt-v1.png" id="2_ground_asphalt"]
+[ext_resource type="Texture2D" path="res://art/commercial/tiles/ground-scrub-v1.png" id="3_ground_scrub"]
+[ext_resource type="Texture2D" path="res://art/commercial/tiles/ground-concrete-v1.png" id="4_ground_concrete"]
+[ext_resource type="Texture2D" path="res://art/commercial/tiles/ground-gravel-v1.png" id="5_ground_gravel"]
+[ext_resource type="Texture2D" path="res://art/commercial/tiles/river-water-v1.png" id="6_river"]
+[ext_resource type="Texture2D" path="res://art/commercial/tiles/residential-block-v1.png" id="7_residential_block"]
+[ext_resource type="Texture2D" path="res://art/commercial/tiles/hospital-block-v1.png" id="8_hospital_block"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/source-plant-v1.png" id="9_source"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/pole-standard-v1.png" id="10_standard_pole"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/pole-reinforced-v1.png" id="11_reinforced_pole"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/bridge-foundation-v1.png" id="12_bridge"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/substation-v1.png" id="13_substation"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/facility-residential-v1.png" id="14_residential"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/facility-hospital-v1.png" id="15_hospital"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/facility-water-v1.png" id="16_water"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/facility-industry-v1.png" id="17_industry"]
 
 [node name="CommercialMapView" type="Control"]
 custom_minimum_size = Vector2(720, 500)
@@ -9,4 +24,19 @@ mouse_filter = 0
 focus_mode = 2
 clip_contents = true
 script = ExtResource("1_map")
-CityPlate = ExtResource("2_city")
+GroundAsphaltTile = ExtResource("2_ground_asphalt")
+GroundScrubTile = ExtResource("3_ground_scrub")
+GroundConcreteTile = ExtResource("4_ground_concrete")
+GroundGravelTile = ExtResource("5_ground_gravel")
+RiverWaterTile = ExtResource("6_river")
+ResidentialBlockTile = ExtResource("7_residential_block")
+HospitalBlockTile = ExtResource("8_hospital_block")
+SourcePlantSprite = ExtResource("9_source")
+StandardPoleSprite = ExtResource("10_standard_pole")
+ReinforcedPoleSprite = ExtResource("11_reinforced_pole")
+BridgeFoundationSprite = ExtResource("12_bridge")
+SubstationSprite = ExtResource("13_substation")
+ResidentialFacilitySprite = ExtResource("14_residential")
+HospitalFacilitySprite = ExtResource("15_hospital")
+WaterFacilitySprite = ExtResource("16_water")
+IndustryFacilitySprite = ExtResource("17_industry")

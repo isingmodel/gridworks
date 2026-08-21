@@ -91,9 +91,34 @@ verify_release_payload() {
         print -u2 "Release package is missing the Godot packed resource."
         return 1
     fi
-    if ! LC_ALL=C strings "$packed_resource" | grep -F \
+    local -a required_commercial_art=(
+        'res://art/commercial/tiles/ground-asphalt-v1.png'
+        'res://art/commercial/tiles/ground-scrub-v1.png'
+        'res://art/commercial/tiles/ground-concrete-v1.png'
+        'res://art/commercial/tiles/ground-gravel-v1.png'
+        'res://art/commercial/tiles/river-water-v1.png'
+        'res://art/commercial/tiles/residential-block-v1.png'
+        'res://art/commercial/tiles/hospital-block-v1.png'
+        'res://art/commercial/objects/source-plant-v1.png'
+        'res://art/commercial/objects/pole-standard-v1.png'
+        'res://art/commercial/objects/pole-reinforced-v1.png'
+        'res://art/commercial/objects/bridge-foundation-v1.png'
+        'res://art/commercial/objects/substation-v1.png'
+        'res://art/commercial/objects/facility-residential-v1.png'
+        'res://art/commercial/objects/facility-hospital-v1.png'
+        'res://art/commercial/objects/facility-water-v1.png'
+        'res://art/commercial/objects/facility-industry-v1.png'
+    )
+    local art_resource
+    for art_resource in "${required_commercial_art[@]}"; do
+        if ! LC_ALL=C strings "$packed_resource" | grep -F "$art_resource" >/dev/null; then
+            print -u2 "Release package is missing discrete commercial art: $art_resource"
+            return 1
+        fi
+    done
+    if LC_ALL=C strings "$packed_resource" | grep -F \
         'res://art/commercial-city-plate-v1.png' >/dev/null; then
-        print -u2 "Release package is missing the commercial city plate."
+        print -u2 "Release package still contains the rejected whole-map city plate."
         return 1
     fi
     if LC_ALL=C strings "$packed_resource" | grep -E \

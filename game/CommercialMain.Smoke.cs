@@ -72,14 +72,20 @@ internal sealed partial class CommercialMain
                 selected.Supplied &&
                 selected.PathEdgeIds.Count > 0 &&
                 _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal) &&
-                _map.HasCityPlate &&
+                _map.HasIndividualTileAssets &&
+                _map.HasIndividualObjectAssets &&
+                _map.IndividualArtAssetCount == 16 &&
                 _panel.AccessibilityName.Contains("최소 열여유", StringComparison.Ordinal) &&
                 _supplyLabel.Text.Contains("필수 공급 · 1/1 ✓", StringComparison.Ordinal) &&
                 _timeline.AccessibilityName.Contains("사건 흐름", StringComparison.Ordinal) &&
                 _timeline.CurrentStepLabel.Contains("첫 입주 점등", StringComparison.Ordinal),
                 "선택 수요의 발전원·전체 경로·열여유·시설 강조가 함께 갱신되지 않았습니다. " +
-                $"plate={_map.HasCityPlate}, timeline={_timeline.CurrentStepLabel}, " +
+                $"tiles={_map.HasIndividualTileAssets}, objects={_map.HasIndividualObjectAssets}, " +
+                $"art={_map.IndividualArtAssetCount}, timeline={_timeline.CurrentStepLabel}, " +
                 $"supply={_supplyLabel.Text}");
+            SaveEvidencePng(Path.Combine(
+                evidenceDirectory,
+                "1920x1080-ui100-discrete-art-path.png"));
 
             await PressKey(Key.Escape);
             Require(_shell.Page == ReleaseShellPage.Pause,
@@ -123,7 +129,8 @@ internal sealed partial class CommercialMain
                 "Save & Quit이 성공한 원자적 저장 뒤에만 제목으로 이동하지 않았습니다.");
             GD.Print(
                 "COMMERCIAL_STAGE_G_PRESENTATION_SMOKE_PASS " +
-                "screens=title-ui100|path-ui125 visual=concept-city|event-timeline " +
+                "screens=title-ui100|art-path-ui100|art-path-ui125 " +
+                "visual=discrete-tiles-7|discrete-objects-9|event-timeline " +
                 "input=focus-keyboard reduce-motion=on " +
                 "save-and-quit=atomic resolution=1920x1080 " +
                 $"buildIdentity={CommercialCoreSaveCodec.ComputeSha256(_buildIdentityBytes)}");
@@ -455,7 +462,9 @@ internal sealed partial class CommercialMain
                 _panel.AccessibilityName.Contains("현재 의무", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("조작 ·", StringComparison.Ordinal) &&
                 _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
-                _map.HasCityPlate &&
+                _map.HasIndividualTileAssets &&
+                _map.HasIndividualObjectAssets &&
+                _map.IndividualArtAssetCount == 16 &&
                 _timeline.StepCount == 3 &&
                 _timeline.CurrentStepLabel == "첫 입주 점등" &&
                 _timeline.AccessibilityName.Contains("시간을 진행하지 않습니다", StringComparison.Ordinal) &&

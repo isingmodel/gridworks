@@ -5,10 +5,11 @@
 게임 설계, C# 코드, 한국어 문구, code-native 2D 표현과 app icon은 Gridworks 저장소의 작업물이다.
 runtime의 ambient와 상태 cue는 저장된 외부 음원 없이 코드가 고정된 PCM16 파형으로 생성한다.
 
-청류시 runtime 배경 plate는 `assets/`의 네 이미지를 style·mood reference로 삼아 OpenAI built-in
-ImageGen으로 새로 생성했다. 원본 concept 자체, UI·문구·전력망 상태는 plate에 포함하지 않는다.
-현재 제품 빌드에는 `assets/`의 콘셉트 원본, 외부 raster sprite, 외부 font, 음악과 voice-over를
-포함하지 않는다.
+청류시 runtime 지형 tile 7종과 망 설비·시설 object 9종은 `assets/`의 네 이미지를 style·mood
+reference로 삼아 OpenAI built-in ImageGen으로 각각 생성했다. whole-map 배경판이나 atlas로 합치지
+않으며, object는 실제 transparent PNG로 분리했다. 원본 concept 자체, UI·문구·전력망 상태는 생성
+파일에 포함하지 않는다. 현재 제품 빌드에는 `assets/`의 콘셉트 원본, 외부 raster sprite, 외부 font,
+음악과 voice-over를 포함하지 않는다.
 
 최종 runtime별 출처와 권리 경계는 [ASSET_MANIFEST.md](ASSET_MANIFEST.md)에 고정했다.
 

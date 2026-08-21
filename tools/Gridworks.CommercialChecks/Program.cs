@@ -1,3 +1,6 @@
+using System.Buffers.Binary;
+using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -65,10 +68,14 @@ internal sealed class CommercialChecks
     private readonly byte[] _campaignBytes;
     private readonly string _campaignJson;
     private readonly CommercialCampaignDefinition _campaign;
+    private readonly string _repositoryDirectory;
     private int _assertionCount;
 
     public CommercialChecks(string fixturePath)
     {
+        _repositoryDirectory = Path.GetFullPath(Path.Combine(
+            Path.GetDirectoryName(fixturePath)!,
+            ".."));
         _commercialBytes = File.ReadAllBytes(fixturePath);
         _commercialJson = Encoding.UTF8.GetString(_commercialBytes);
         _commercialWorld = CommercialWorldLoader.Load(_commercialBytes);
@@ -117,6 +124,7 @@ internal sealed class CommercialChecks
             ("strict-commercial-campaign-loader", CheckStrictCommercialCampaignLoader),
             ("commercial-campaign-first-four-carry-save", CheckCommercialCampaignFirstFourCarrySave),
             ("commercial-campaign-final-eight-epilogue", CheckCommercialCampaignFinalEightEpilogue),
+            ("commercial-map-discrete-art-contract", CheckCommercialMapDiscreteArt),
         ];
 
         List<string> failures = [];
@@ -144,6 +152,103 @@ internal sealed class CommercialChecks
         Console.WriteLine(
             $"Gridworks Commercial checks: PASS ({suites.Length} suites, {_assertionCount} assertions)");
         return 0;
+    }
+
+    private void CheckCommercialMapDiscreteArt()
+    {
+        string gameDirectory = Path.Combine(_repositoryDirectory, "game");
+        string artDirectory = Path.Combine(gameDirectory, "art", "commercial");
+        string scene = File.ReadAllText(Path.Combine(gameDirectory, "CommercialMapView.tscn"));
+        string renderer = File.ReadAllText(Path.Combine(gameDirectory, "CommercialMapView.cs"));
+        string promptRecordPath = Path.Combine(
+            artDirectory,
+            "commercial-map-assets-v1.prompts.md");
+        string promptRecord = File.ReadAllText(promptRecordPath);
+
+        (string Property, string RelativePath, bool RequiresAlpha)[] assets =
+        [
+            ("GroundAsphaltTile", "tiles/ground-asphalt-v1.png", false),
+            ("GroundScrubTile", "tiles/ground-scrub-v1.png", false),
+            ("GroundConcreteTile", "tiles/ground-concrete-v1.png", false),
+            ("GroundGravelTile", "tiles/ground-gravel-v1.png", false),
+            ("RiverWaterTile", "tiles/river-water-v1.png", false),
+            ("ResidentialBlockTile", "tiles/residential-block-v1.png", false),
+            ("HospitalBlockTile", "tiles/hospital-block-v1.png", false),
+            ("SourcePlantSprite", "objects/source-plant-v1.png", true),
+            ("StandardPoleSprite", "objects/pole-standard-v1.png", true),
+            ("ReinforcedPoleSprite", "objects/pole-reinforced-v1.png", true),
+            ("BridgeFoundationSprite", "objects/bridge-foundation-v1.png", true),
+            ("SubstationSprite", "objects/substation-v1.png", true),
+            ("ResidentialFacilitySprite", "objects/facility-residential-v1.png", true),
+            ("HospitalFacilitySprite", "objects/facility-hospital-v1.png", true),
+            ("WaterFacilitySprite", "objects/facility-water-v1.png", true),
+            ("IndustryFacilitySprite", "objects/facility-industry-v1.png", true),
+        ];
+
+        Equal(16, assets.Length, "discrete runtime art count");
+        foreach ((string property, string relativePath, bool requiresAlpha) in assets)
+        {
+            string filePath = Path.Combine(artDirectory, relativePath);
+            Check(File.Exists(filePath), $"missing discrete art: {relativePath}");
+            Check(File.Exists($"{filePath}.import"), $"missing Godot import: {relativePath}");
+            Check(File.ReadAllText($"{filePath}.import").Contains(
+                    "mipmaps/generate=true",
+                    StringComparison.Ordinal),
+                $"discrete art lacks downscale mipmaps: {relativePath}");
+            string resourcePath = $"res://art/commercial/{relativePath}";
+            Check(scene.Contains(resourcePath, StringComparison.Ordinal),
+                $"scene does not bind {resourcePath}");
+            Check(scene.Contains($"{property} = ExtResource", StringComparison.Ordinal),
+                $"scene does not assign {property}");
+            Check(promptRecord.Contains(relativePath, StringComparison.Ordinal),
+                $"prompt record does not name {relativePath}");
+            string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(filePath)))
+                .ToLowerInvariant();
+            Check(promptRecord.Contains(hash, StringComparison.Ordinal),
+                $"prompt record hash is stale for {relativePath}");
+
+            PngInfo png = ReadPng(filePath, requiresAlpha);
+            Check(png.Width >= 1024 && png.Height >= 1024,
+                $"discrete art is below source resolution: {relativePath}");
+            Equal((byte)8, png.BitDepth, $"8-bit PNG: {relativePath}");
+            if (requiresAlpha)
+            {
+                Equal((byte)6, png.ColorType, $"RGBA object PNG: {relativePath}");
+                Check(png.TransparentFraction >= 0.35d,
+                    $"object lacks transparent isolation: {relativePath}");
+                Check(png.CornerAlphas.All(alpha => alpha <= 1),
+                    $"object corners are not transparent: {relativePath}");
+            }
+            else
+            {
+                Check(png.ColorType is 2 or 6,
+                    $"tile PNG has unsupported color type: {relativePath}");
+            }
+        }
+
+        string oldPlatePath = Path.Combine(gameDirectory, "art", "commercial-city-plate-v1.png");
+        Check(!File.Exists(oldPlatePath), "whole-map city plate still exists");
+        Check(!scene.Contains("commercial-city-plate", StringComparison.Ordinal),
+            "scene still references whole-map city plate");
+        Check(!renderer.Contains("CityPlate", StringComparison.Ordinal),
+            "renderer still exposes whole-map city plate");
+        foreach (string mapping in new[]
+                 {
+                     "CHEONGRYU_RIVER",
+                     "EAST_RESIDENTIAL_BLOCK",
+                     "HOSPITAL_BLOCK",
+                     "EAST_RESIDENTIAL_TERMINAL",
+                     "HOSPITAL_TERMINAL",
+                     "WATER_TERMINAL",
+                     "INDUSTRY_TERMINAL",
+                     "STANDARD_POLE",
+                     "AuthoredFoundation",
+                     "GroundTileWorldUnit = 400",
+                 })
+        {
+            Check(renderer.Contains(mapping, StringComparison.Ordinal),
+                $"renderer is missing discrete art mapping: {mapping}");
+        }
     }
 
     private void CheckStrictSpatialLoader()
@@ -2995,6 +3100,156 @@ internal sealed class CommercialChecks
             }
         }
         return reached.Contains(target);
+    }
+
+    private readonly record struct PngInfo(
+        int Width,
+        int Height,
+        byte BitDepth,
+        byte ColorType,
+        double TransparentFraction,
+        IReadOnlyList<byte> CornerAlphas);
+
+    private static PngInfo ReadPng(string path, bool decodeAlpha)
+    {
+        using FileStream input = File.OpenRead(path);
+        Span<byte> signature = stackalloc byte[8];
+        input.ReadExactly(signature);
+        ReadOnlySpan<byte> expectedSignature =
+            [137, 80, 78, 71, 13, 10, 26, 10];
+        if (!signature.SequenceEqual(expectedSignature))
+        {
+            throw new InvalidOperationException($"invalid PNG signature: {path}");
+        }
+
+        int width = 0;
+        int height = 0;
+        byte bitDepth = 0;
+        byte colorType = 0;
+        byte interlace = 0;
+        using var compressed = new MemoryStream();
+        byte[] lengthBytes = new byte[4];
+        byte[] typeBytes = new byte[4];
+        while (input.Position < input.Length)
+        {
+            input.ReadExactly(lengthBytes);
+            int length = checked((int)BinaryPrimitives.ReadUInt32BigEndian(lengthBytes));
+            input.ReadExactly(typeBytes);
+            string type = Encoding.ASCII.GetString(typeBytes);
+            byte[] data = new byte[length];
+            input.ReadExactly(data);
+            input.Position = checked(input.Position + 4);
+            if (type == "IHDR")
+            {
+                if (data.Length != 13)
+                {
+                    throw new InvalidOperationException($"invalid PNG IHDR: {path}");
+                }
+                width = checked((int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(0, 4)));
+                height = checked((int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(4, 4)));
+                bitDepth = data[8];
+                colorType = data[9];
+                interlace = data[12];
+            }
+            else if (type == "IDAT" && decodeAlpha)
+            {
+                compressed.Write(data);
+            }
+            else if (type == "IEND")
+            {
+                break;
+            }
+        }
+
+        if (width <= 0 || height <= 0 || interlace != 0)
+        {
+            throw new InvalidOperationException($"unsupported PNG layout: {path}");
+        }
+        if (!decodeAlpha)
+        {
+            return new PngInfo(width, height, bitDepth, colorType, 0d, Array.Empty<byte>());
+        }
+        if (bitDepth != 8 || colorType != 6)
+        {
+            return new PngInfo(width, height, bitDepth, colorType, 0d, Array.Empty<byte>());
+        }
+
+        compressed.Position = 0;
+        using var decompressor = new ZLibStream(compressed, CompressionMode.Decompress);
+        using var rawBuffer = new MemoryStream();
+        decompressor.CopyTo(rawBuffer);
+        byte[] raw = rawBuffer.ToArray();
+        const int bytesPerPixel = 4;
+        int stride = checked(width * bytesPerPixel);
+        int expectedLength = checked(height * (stride + 1));
+        if (raw.Length != expectedLength)
+        {
+            throw new InvalidOperationException($"unexpected PNG scanline length: {path}");
+        }
+
+        byte[] pixels = new byte[checked(height * stride)];
+        int source = 0;
+        for (int y = 0; y < height; y++)
+        {
+            byte filter = raw[source++];
+            int rowStart = y * stride;
+            int previousRowStart = rowStart - stride;
+            for (int x = 0; x < stride; x++)
+            {
+                byte encoded = raw[source++];
+                byte left = x >= bytesPerPixel ? pixels[rowStart + x - bytesPerPixel] : (byte)0;
+                byte up = y > 0 ? pixels[previousRowStart + x] : (byte)0;
+                byte upLeft = y > 0 && x >= bytesPerPixel
+                    ? pixels[previousRowStart + x - bytesPerPixel]
+                    : (byte)0;
+                int predictor = filter switch
+                {
+                    0 => 0,
+                    1 => left,
+                    2 => up,
+                    3 => (left + up) / 2,
+                    4 => Paeth(left, up, upLeft),
+                    _ => throw new InvalidOperationException($"unsupported PNG filter: {path}"),
+                };
+                pixels[rowStart + x] = unchecked((byte)(encoded + predictor));
+            }
+        }
+
+        long transparent = 0;
+        for (int offset = 3; offset < pixels.Length; offset += bytesPerPixel)
+        {
+            if (pixels[offset] == 0)
+            {
+                transparent++;
+            }
+        }
+        byte[] corners =
+        [
+            pixels[3],
+            pixels[((width - 1) * bytesPerPixel) + 3],
+            pixels[((height - 1) * stride) + 3],
+            pixels[((height * stride) - bytesPerPixel) + 3],
+        ];
+        return new PngInfo(
+            width,
+            height,
+            bitDepth,
+            colorType,
+            (double)transparent / (width * (long)height),
+            corners);
+    }
+
+    private static int Paeth(byte left, byte up, byte upLeft)
+    {
+        int prediction = left + up - upLeft;
+        int leftDistance = Math.Abs(prediction - left);
+        int upDistance = Math.Abs(prediction - up);
+        int upperLeftDistance = Math.Abs(prediction - upLeft);
+        return leftDistance <= upDistance && leftDistance <= upperLeftDistance
+            ? left
+            : upDistance <= upperLeftDistance
+                ? up
+                : upLeft;
     }
 
     private void ExpectLoaderRejected(string label, Action<JsonObject> mutate)

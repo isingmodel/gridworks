@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://u1pw8wdmpug0"
-path="res://.godot/imported/commercial-city-plate-v1.png-7a577e296472c9e67e749b032cd46241.ctex"
+uid="uid://dgyqu7gtjxsxg"
+path="res://.godot/imported/facility-residential-v1.png-3a1f9150f2f7cf40e73f6592cd369f03.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/commercial-city-plate-v1.png"
-dest_files=["res://.godot/imported/commercial-city-plate-v1.png-7a577e296472c9e67e749b032cd46241.ctex"]
+source_file="res://art/commercial/objects/facility-residential-v1.png"
+dest_files=["res://.godot/imported/facility-residential-v1.png-3a1f9150f2f7cf40e73f6592cd369f03.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

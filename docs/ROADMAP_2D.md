@@ -191,8 +191,9 @@ P0/P1/open 0으로 종료했다. 1280×720은 실행·검수하지 않았다.
 - 개별 diamond terrain·river bank·road·district·functional object
 - 굽은 강, 평상·폭염·범람 수면과 foundation 접합
 - full-bleed map, reference scale grid, HUD·inspector·128px event timeline
+- 48개 개별 runtime raster의 provenance·asset-kit sheet와 whole-map 합성 우회 금지
 - [평가 프로토콜](product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)의 세 multimodal LLM jury
-  checkpoint, bias calibration과 근거 좌표가 있는 차이 보고서
+  checkpoint, 10개 고정 pair·bias calibration과 근거 좌표가 있는 차이 보고서
 
 루트 README가 이 단계를 활성으로 선언하기 전에는 구현하지 않는다.
 

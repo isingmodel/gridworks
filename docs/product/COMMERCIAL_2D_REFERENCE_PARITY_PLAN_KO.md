@@ -109,17 +109,28 @@ water surface는 흐름 방향이 일치하는 2:1 tile이고 bank는 transparen
 
 ## 6. 개별 art 목록
 
-G.3 예상 runtime raster는 약 36종이다.
+G.3 예상 runtime raster는 **48종**이다. `5.2`의 river kit 15종을 모두 독립 file로 센 수치이며,
+water/bank 기반 3종으로 축약하지 않는다.
 
-- ground·parcel 14종: diamond ground 4, water/bank 기반 3, 두 방향 road·교차·yard·plaza 5,
-  residential/hospital base 2
+- ground·parcel 15종: diamond ground 4, neutral 2·heat 1·flood 1 water surface 4,
+  두 방향 road·교차·yard·plaza 5, residential/hospital base 2
+- transparent river edge·effect 11종: bank straight·inner bend·outer bend 6,
+  bridge abutment·rock/soil transition 3, reflection/ripple overlay 2
 - world object 16종: main plant, auxiliary switchyard, pole 2, bridge foundation, substation,
   residential cluster 3, hospital 2, water facility 2, industry/warehouse 3
 - UI chrome 6종: top metric plate, inspector 9-slice, tool slot, default/cyan/amber button plate
 
-ImageGen은 atlas batch가 아니라 자산 하나당 한 호출을 사용한다. 모든 호출은 승인된 style anchor와
+합계는 `15 + 11 + 16 + 6 = 48`이며 manifest에서 family별 개수와 전체 개수를 모두 검사한다.
+
+ImageGen은 atlas batch가 아니라 자산 하나당 한 호출을 사용한다. 모든 호출은 고정된 style anchor와
 해당 family에 가장 관련 있는 원본 reference를 함께 받는다. camera drift·투명 배경 실패·edge halo는
-폐기 사유다. background extraction은 geometry·빛·비율을 보존할 수 있을 때 한 번만 허용한다.
+폐기 사유다. reference screenshot이나 target mockup의 pixel을 crop해 runtime sprite·tile·background로
+재사용하는 것은 금지한다. background removal은 **그 호출에서 새로 생성한 단일 object**를 투명화할
+때만 허용한다. whole-map image를 잘라 여러 asset인 것처럼 등록하는 것도 금지한다.
+
+각 raster는 `assetId`, family, generator run ID, prompt SHA, reference SHA, 원본 출력 SHA, 투명화 여부,
+최종 PNG SHA와 실제 runtime binding을 manifest에 남긴다. asset-sheet는 이 manifest의 개별 PNG에서
+자동 조립하며 별도의 합성 원화를 사용하지 않는다.
 
 홈 zoom 목표 표시 크기는 main plant `200~240px`, switchyard `110~130px`, substation `130~160px`,
 standard pole `70~80px`, reinforced pole `85~100px`, landmark `170~220px`, residential cluster
@@ -160,12 +171,26 @@ timeline은 최소 `15px` 글자와 `16px` marker로 briefing→authored window/
 ## 10. LLM jury checkpoint와 종료
 
 1. target mockup 세 장: camera·river·density·HUD formative jury
-2. west plant→river→east district vertical slice: 실제 입력과 first-light runtime jury
+2. 48개 개별 asset-sheet와 west plant→river→east district vertical slice: asset provenance·실제 입력·
+   first-light runtime jury
 3. 평상·폭염·폭우·겨울밤 전체 상태: exact-tree final jury
 
-두 번째 checkpoint 전에는 전체 asset family를 만들지 않는다. 최종 native evidence는 first-light,
-substation draft, pole draft, energized route, heat/outage, flood, winter, UI 125% ReduceMotion 여덟 장이다.
+첫 번째 checkpoint를 통과하기 전에는 전체 asset family를 만들지 않는다. 최종 native evidence는
+first-light, substation draft, pole draft, energized route, heat/outage, flood, winter,
+UI 125% ReduceMotion 여덟 장이다.
 720p mode는 만들거나 실행·검수하지 않는다.
 
 파일·authority·input·build hard gate는 LLM visual score와 별도로 모두 통과해야 한다. 사람 review는
 사용하지 않는다. 상세 jury 구성, calibration, 점수·차이 보고서와 pass gate는 평가 프로토콜을 따른다.
+
+## 11. 사용자 요구사항 추적
+
+| 요구사항 | 계획 소유 위치 | 종료 증거 |
+|---|---|---|
+| `assets/`와 최대한 같은 느낌·각도·설계 | §2~4, §7~9 | runtime 5 pair의 camera·density·material·HUD jury |
+| whole-map image를 뒤에 두지 않음 | §6 | 48개 provenance·runtime binding hard gate와 5개 asset-kit board jury |
+| 개별 tile/object 생성·적용 | §5.2, §6 | 개별 generator run·PNG SHA와 kit sheet jury |
+| 강물·제방 품질 | §5 | `PAIR-KIT-RIVER`, `PAIR-NORMAL/HEAT/FLOOD`, river category `≥85` |
+| 독립 event timeline bar | §9 | actual-input timeline round trip과 `PAIR-KIT-UI/NORMAL/HEAT/ROUTE` |
+| 사람 review 없이 LLM judge만 사용 | §10과 평가 프로토콜 | diverse 3-judge jury, order reversal, replicate, LLM adjudication |
+| 720p 미지원 | 문서 상단과 §10 | 1920×1080 UI 100%·125% manifest만 허용 |

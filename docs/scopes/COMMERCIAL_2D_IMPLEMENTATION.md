@@ -408,6 +408,29 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 - Developer ID와 notarization 자격증명이 없으면 ad-hoc 내부 후보로만 기록한다. 공개 배포 가능이라고
   표현하지 않는다.
 
+### 7.4 단계 G 후보 기록 — 2026-08-21
+
+- CommercialChecks는 **21 suites / 1,828 assertions PASS**이고 Game Debug·Release rebuild는
+  **0 warnings / 0 errors**다. 자유 배치·열 smoke와 세 fresh 1920×1080 actual-input campaign
+  process가 통과했다. Scope 0B·Scope 1·product·release v1 동결 회귀는 최종 순차 확인 대상으로
+  유지한다.
+- [화면·입력 증거](../../playtests/commercial-2d/LAYOUT_EVIDENCE.md)는 native 1920×1080 UI 100%
+  제목과 UI 125% 선택 경로·ReduceMotion을 보존한다. 새 게임→상용 도움말→지도 실제 공사→설정→
+  원자 Save & Quit을 keyboard focus 입력으로 통과했고 1280×720 모드나 증거는 만들지 않았다.
+- clean source `bbbdbe773f04daf89021508022b6a483240f0fb3`에서 만든
+  `Gridworks-macOS-0.1.0.zip`은 `124,799,010 bytes`, SHA-256
+  `e18cd33b9d09d07dcfeb64c7bde07ebf8d5ad50c9b0d4394ae096e237494818b`다. Universal 2
+  (`x86_64 arm64`), architecture별 선언 하한 macOS 14.0, ad-hoc hardened-runtime signature를
+  확인했다. world SHA-256은 `304eb051a564a0ceda7912d717268d3011f5f3482a5ab9d1c68dd9330e0e165c`,
+  campaign은 `f94617c74de7bab0c97499fbaa8fd542aa64ee3c2fc60a6c7f090de203239200`, build identity는
+  `98db63fb41da601c2620fabd55aaca58218387c6d22eed5208d599e2ab737a17`다.
+- 저장소 밖 archive의 arm64 checkpoint→fresh completion→completed-resume 세 process가 여덟 결과·
+  에필로그·완료 저장·장 선택 재시작을 통과했다. archive에는 설치·권리 문서와 버전 고정 license
+  원문만 더하며 prototype·v1 fixture·PDB·로컬 절대경로와 별도 release record는 없다.
+- candidate `531e6d9` exact-tree 독립 검토는 **P0 0 / P1 5**였다. 고정 패널의 확인 없는 파괴
+  행동, stale package record, 과거 제품 도움말, 같은 player가 덮어쓰던 통전/차단 cue, 글자 badge뿐인
+  네 인물을 수정했다. exact-fix 종료 재검토 전까지 단계 상태는 `검토 중`이다.
+
 ## 8. 전체 완료 증거
 
 검증은 간결하게 유지하고 같은 사실을 여러 runner에서 반복하지 않는다.

@@ -55,6 +55,16 @@ CommercialChecks 20개 묶음 1,805 assertions, 동결 회귀, Game Debug·Relea
 수정해 열린 P0/P1은 없고 `FullCampaignHumanStatus = NOT_COLLECTED`다. 단계 G는 이 완성된 핵심 흐름의
 최종 시청각·접근성·설정·macOS 내부 package 경계만 마감한다.
 
+단계 G 구현 후보는 1920×1080에서 장·경계·현금·필수 공급 header, 선택 수요의 전체 경로·최소
+열여유·시설 상태, 색 외 pattern/icon, 네 고정 인물 초상과 장별 도시 표현을 통합했다. strict
+settings v3 migration, ReduceMotion, 원자 campaign/settings 저장, 확인 shell, 생성형 환경음·날씨·
+상태 cue·두 motif를 기본 장면에 연결했다. CommercialChecks 21개 묶음 1,828 assertions, Game
+Debug·Release build, 자유 배치·열·세 fresh 캠페인 process와 1920×1080 UI 100%·125% actual-input
+presentation smoke가 통과했다. clean source `bbbdbe7`의 macOS 내부 ZIP은 Universal 2·ad-hoc
+서명과 archive 격리 검사를 통과했으며 release record는 [변경 기록](CHANGELOG.md)이 소유한다.
+candidate 독립 검토의 P1 5건은 파괴 행동 확인, release record, 도움말, audio cue 순서와 네 초상을
+수정했고 exact-tree 종료 재검토를 기다린다. 1280×720은 지원하지 않는다.
+
 직전 기준선의 `ReleaseMain`은 프롤로그 세 임무와 본편 다섯 장, 한국어 화면, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 후보까지 구현했다. 사용자 요청으로 수행한
 [공식 cold LLM 관찰 1회](playtests/release-2d/OFFICIAL_RELEASE_REBUILD_LLM_OBSERVATION_01.md)는

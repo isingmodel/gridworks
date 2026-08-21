@@ -589,12 +589,9 @@ internal sealed partial class CommercialMain
             Require(coreRun.GetSnapshot().Chapter.ChapterId == "BEFORE_WATER_REACHES" &&
                 coreRun.GetSnapshot().ChapterResults.Count == 5,
                 "다섯 번째 임무의 두 운영 경계를 사실 기록으로 닫지 못했습니다.");
-            await PressPanelAsync(
-                CommercialPanelAction.CycleLineClass,
-                "범람 우회 보강 선종 선택");
-            Require(_lineClassId == ReinforcedLineClassId &&
-                _poleClassId == ReinforcedPoleClassId,
-                "화면 선종 선택이 보강 선로와 보강 전신주를 함께 선택하지 못했습니다.");
+            Require(_lineClassId == StandardLineClassId &&
+                _poleClassId == StandardPoleClassId,
+                "범람 우회의 일반 선로와 일반 전신주 선택이 유지되지 않았습니다.");
 
             await BuildCampaignSmokeLine(
                 "WATER_TERMINAL",
@@ -602,15 +599,33 @@ internal sealed partial class CommercialMain
                 Array.Empty<CoreMapPoint>(),
                 "범람 고지대 우회선");
             CommercialDecisionPreview flood = coreRun.PreviewDecisionWindow();
-            Require(flood.Accepted && flood.PhaseResults[0].Demands.All(item => item.Supplied),
-                "여섯 번째 임무의 범람 우회선이 수술과 급수 의무를 공급하지 못했습니다.");
+            Require(flood.Accepted && flood.PhaseResults[0].Demands
+                    .Where(item => item.DemandId is
+                        "FLOOD_WATER_DUTY" or "FLOOD_HOSPITAL_DUTY")
+                    .All(item => item.Supplied) &&
+                flood.PhaseResults[0].Demands.Single(item =>
+                    item.DemandId == "FLOOD_HOSPITAL_DUTY").EmergencyAssetIds.Count > 0,
+                "여섯 번째 임무의 범람 우회선이 수술과 급수 의무를 공급하지 못했습니다: " +
+                $"{flood.Accepted}/{flood.Error}/{flood.FailedDemandId}/{flood.SupplyFailure}; " +
+                "hospital-emergency=" + string.Join(",", flood.PhaseResults[0].Demands.Single(item =>
+                    item.DemandId == "FLOOD_HOSPITAL_DUTY").EmergencyAssetIds) + "; demands=" +
+                string.Join(";", flood.PhaseResults[0].Demands.Select(item =>
+                    $"{item.DemandId}:{item.Supplied}:{item.Deferred}:{item.Failure}")));
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "범람 통제 운영 승인");
             await NextFrame();
             Require(coreRun.GetSnapshot().Chapter.ChapterId == "SHUT_DOWN_TO_KEEP" &&
+                coreRun.GetSnapshot().ChapterResults[^1].EmergencyAssetIds.Count > 0 &&
                 coreRun.GetSnapshot().ThermalMemory.All(item => !item.ProtectiveOutage) &&
                 coreRun.GetSnapshot().Chapter.ResetThermalMemoryAtStart &&
                 coreRun.GetSnapshot().Chapter.Briefing.Title.Contains("3주 뒤", StringComparison.Ordinal),
                 "작성된 장간 시간경과가 일곱 번째 임무의 열 상태를 복귀시키지 못했습니다.");
+
+            await PressPanelAsync(
+                CommercialPanelAction.CycleLineClass,
+                "계획정지 보강 선종 선택");
+            Require(_lineClassId == ReinforcedLineClassId &&
+                _poleClassId == ReinforcedPoleClassId,
+                "계획정지 임무의 보강 선로와 보강 전신주를 선택하지 못했습니다.");
 
             await BuildCampaignSmokeLine(
                 "PLAYER_SUBSTATION_2",

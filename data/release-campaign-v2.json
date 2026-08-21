@@ -450,9 +450,9 @@
       "briefing": {
         "speaker": "이도윤",
         "title": "강변 설비가 멈추기 전에 우회 용량을 만드세요",
-        "body": "범람구역 안의 선로와 전신주는 함께 사용할 수 없게 됩니다. 북안의 남은 회랑에 의료원과 정수장의 필수 공급이 몰려도 연속 한계를 넘지 않도록 새 공급 경로를 완성하세요."
+        "body": "범람구역 안의 선로와 전신주는 함께 사용할 수 없게 됩니다. 북안의 남은 회랑에 의료원과 정수장의 필수 공급이 몰립니다. 일반선의 공개된 비상 한계와 다음 보호정지, 보강선의 연속 여유를 비교해 새 공급 경로를 완성하세요."
       },
-      "objective": "강변 범람 중 의료원 1.2 MW와 정수장 1.5 MW를 연속 한계 안에서 공급한다.",
+      "objective": "강변 범람 중 긴급 의료 1.4 MW와 정수장 2.3 MW를 공개된 열 한계 안에서 공급한다.",
       "grantCashUnit": 3400000,
       "deadlineMinute": 360,
       "promise": null,
@@ -472,24 +472,24 @@
         {
           "phaseId": "RIVER_FLOOD_PEAK",
           "displayName": "강변 범람 정점",
-          "policy": "ContinuousOnly",
+          "policy": "SafetyEmergencyAllowed",
           "loads": [
             {
               "loadId": "FLOOD_WATER_DUTY",
-              "displayName": "정수장 범람 필수 공급",
+              "displayName": "정수장 범람 긴급 급수",
               "nodeId": "WATER_TERMINAL",
-              "demandKw": 1500,
+              "demandKw": 2300,
               "obligationKind": "MustSupply",
               "namedEmergencyDuty": false,
               "requireSubstationPath": true
             },
             {
               "loadId": "FLOOD_HOSPITAL_DUTY",
-              "displayName": "의료원 범람 필수 공급",
+              "displayName": "의료원 범람 긴급 공급",
               "nodeId": "HOSPITAL_TERMINAL",
-              "demandKw": 1200,
+              "demandKw": 1400,
               "obligationKind": "MustSupply",
-              "namedEmergencyDuty": false,
+              "namedEmergencyDuty": true,
               "requireSubstationPath": true
             },
             {
@@ -510,7 +510,7 @@
       "standardResult": {
         "speaker": "이도윤",
         "title": "물이 닿는 동안에도 수술과 급수는 이어졌습니다",
-        "body": "범람구역 밖에서 실제로 남은 발전원과 경로가 의료원과 정수장의 필수 공급을 맡았습니다."
+        "body": "범람구역 밖에서 실제로 남은 발전원과 경로가 의료원과 정수장의 필수 공급을 맡았습니다. 사용한 비상 운전과 다음 보호정지도 운영 기록에 남겼습니다."
       },
       "keptResult": null,
       "deferredResult": null

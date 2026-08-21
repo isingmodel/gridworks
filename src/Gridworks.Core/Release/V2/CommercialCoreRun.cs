@@ -848,6 +848,8 @@ public sealed class CommercialCoreRun
         _committedPhaseResults.AddRange(rebuilt._committedPhaseResults);
         _chapterResults.Clear();
         _chapterResults.AddRange(rebuilt._chapterResults);
+        _chapterStartCommandCounts.Clear();
+        _chapterStartCommandCounts.AddRange(rebuilt._chapterStartCommandCounts);
         _construction = rebuilt._construction;
         _chapterIndex = rebuilt._chapterIndex;
         _windowIndex = rebuilt._windowIndex;

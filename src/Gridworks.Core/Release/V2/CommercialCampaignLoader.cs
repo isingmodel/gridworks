@@ -139,9 +139,9 @@ public static class CommercialCampaignLoader
                 phase.Policy is ThermalIntervalPolicy.ContinuousOnly or
                     ThermalIntervalPolicy.SafetyEmergencyAllowed)),
             "Missions six through eight may only recombine the established thermal policies.");
-        Require(!definition.Chapters[0].ResetThermalMemoryAtStart &&
-            definition.Chapters.Skip(1).Count(item => item.ResetThermalMemoryAtStart) <= 1,
-            "Only one authored post-opening long gap may reset thermal memory.");
+        Require(definition.Chapters.Select((chapter, index) =>
+                chapter.ResetThermalMemoryAtStart == (index == 6)).All(item => item),
+            "Only mission seven may apply the authored long-gap thermal reset.");
     }
 
     public static CommercialWorldDefinition CreateInitialWorld(

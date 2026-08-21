@@ -30,12 +30,12 @@
 
 - 파일: `Gridworks-macOS-0.1.0.zip`
 - 상태: `INTERNAL_RC`
-- 크기: `126,993,251 bytes`
-- SHA-256: `9e3c6869847fcf6c763f85438d8babeb8d9aca0a09e222f282c392e058cd06a9`
+- 크기: `157,996,954 bytes`
+- SHA-256: `1c0b9fbd52e7480e960acd150937b201885281c1a3f0a214888940797f1b83c8`
 - world SHA-256: `304eb051a564a0ceda7912d717268d3011f5f3482a5ab9d1c68dd9330e0e165c`
 - campaign SHA-256: `f94617c74de7bab0c97499fbaa8fd542aa64ee3c2fc60a6c7f090de203239200`
 - build identity SHA-256: `98db63fb41da601c2620fabd55aaca58218387c6d22eed5208d599e2ab737a17`
-- 소스 기준 커밋: `997f67551d07c4f4e5405bb0e202467be3ad53df`
+- 소스 기준 커밋: `c1c4f35b14be87ecac4bd286d0b2a4048b56f22b`
 - 앱: `Gridworks 0.1.0`, bundle identifier `com.gridworks.game`
 - 실행 파일: Universal 2 (`x86_64 arm64`), architecture별 선언 하한 macOS `14.0`
 - 실제 확인 환경: macOS `26.6.1` arm64
@@ -48,9 +48,10 @@ clean committed checkout에서 만든 ZIP을 저장소 밖에 풀었다. 첫 arm
 확인에서는 Godot이 코드 생성 오디오 객체의 종료 정리 경고를 남겼지만 실행 중 오류·저장 손상·
 미완료는 관찰되지 않았다.
 
-[화면·입력 증거](playtests/commercial-2d/LAYOUT_EVIDENCE.md)는 native 1920×1080 UI 100% 제목
-화면과 UI 125%의 concept-aligned 도시, 선택 경로, 사건 timeline·ReduceMotion 화면을 보존한다.
-같은 실제 keyboard 흐름에서 새 게임→도움말→공사→설정→Save & Quit을 통과했다.
+[화면·입력 증거](playtests/commercial-2d/LAYOUT_EVIDENCE.md)는 native 1920×1080 UI 100%·125%의
+개별 tile/object 도시, 선택 경로, 사건 timeline·ReduceMotion과 live 변전소·전신주 class draft까지
+화면 5장으로 보존한다. 같은 실제 keyboard 흐름에서 새 게임→도움말→공사→설정→Save & Quit을
+통과했다.
 
 v2 hash나 build identity가 맞지 않는 개발 저장은 이 후보에서 이어갈 수 없다. 앱은 호환되지 않는
 저장을 덮어쓰지 않고 별도 파일로 보존한 뒤 쓰기 가능한 새 게임을 시작할 수 있다.

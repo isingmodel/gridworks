@@ -1,8 +1,8 @@
 # Gridworks 상용 2D 게임 구현
 
-> 상태: **ACTIVE — G.2 DISCRETE TILE AND OBJECT ART**
-> 구현 권한: **GRANTED — 단계 B부터 G.1 완료 기록, G.2 소유자 수정 활성**
-> 현재 작업: **whole-map plate 제거·개별 runtime art 적용 — 단계 H는 미승인**
+> 상태: **COMPLETE — 단계 B부터 G.2 종료 기록**
+> 구현 권한: **CLOSED — 활성 구현 단계 없음**
+> 현재 작업: **단계 H 외부 검증·공개 후보는 미승인**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -497,6 +497,30 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
   clipping과 focus를 확인한다. 1280×720은 지원하거나 검수하지 않는다.
 - CommercialChecks, Game Debug·Release build, 자유 배치·열·campaign·presentation smoke, clean package와
   bounded exact-tree P0/P1 검토를 닫은 뒤에만 완료로 표시한다.
+
+### 7.8 단계 G.2 종료 기록 — 2026-08-21
+
+- OpenAI built-in ImageGen에 `assets/`의 네 reference image를 매번 직접 입력해 같은 낮은 3/4 사선
+  시점, 흑연·흑철·풍화 콘크리트, 작은 황동·호박색 조명 언어로 seamless 지형 tile 7종과 독립
+  transparent object 9종을 만들었다. 각 파일은 개별 prompt와 SHA-256 기록을 가지며 whole-map
+  plate와 네 concept 원본은 runtime·package에서 제거됐다.
+- renderer는 tile을 v2의 정확한 terrain polygon에, 설비·시설을 `nodeId`·`classId`와 world 좌표에
+  배치한다. 일반·보강 전신주와 소형 변전소의 live construction draft도 선택한 node class sprite를
+  사용한다. 계획·통전·비상·보호정지·선택 상태와 사건 timeline은 기존 typed state를 표현할 뿐
+  지형·충돌·비용·급전·열 규칙을 바꾸지 않는다.
+- CommercialChecks `22 suites / 2,024 assertions`, 전체 동결 rule 회귀, Game Debug·Release build
+  warning/error 0, 자유 배치·열·campaign smoke가 통과했다. native presentation smoke는
+  1920×1080 UI 100%·125%, keyboard focus, ReduceMotion, 사건 timeline과 live 변전소·전신주 draft를
+  포함한 화면 5장을 확인했다. 1280×720은 실행·검수하지 않았다.
+- clean source `c1c4f35b14be87ecac4bd286d0b2a4048b56f22b`의 내부 ZIP은
+  `157,996,954 bytes`, SHA-256
+  `1c0b9fbd52e7480e960acd150937b201885281c1a3f0a214888940797f1b83c8`다. Universal 2,
+  ad-hoc hardened-runtime signature, 16개 discrete art 포함, plate·concept·prototype·v1 fixture·PDB·
+  로컬 경로 부재와 격리된 세 campaign process를 확인했다. 저장소 밖에 푼 같은 앱의
+  1920×1080 actual-input presentation도 통과했다.
+- exact tree `c1c4f35b14be87ecac4bd286d0b2a4048b56f22b` 독립 검토는
+  **P0 0 / P1 0 / open 0**, worktree clean이다. 수정 후보의 소유자 전체 플레이는 자동으로 수집하지
+  않았으며 `ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`를 유지한다.
 
 ## 8. 전체 완료 증거
 

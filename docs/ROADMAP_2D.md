@@ -162,7 +162,7 @@ Universal binary와 서명 경계를 기록한다. Developer ID·공증·실제 
   추가하지 않는다.
 - 1920×1080 UI 100/125 actual-input evidence를 다시 만들고, 1280×720 지원은 열지 않는다.
 
-## 8.2 단계 G.2 — 개별 tile·object 자산 교체 — 활성
+## 8.2 단계 G.2 — 개별 tile·object 자산 교체 — 완료
 
 G.1의 whole-map plate 방식은 소유자 검토에서 거부됐다. 전체 배경 한 장을 제거하고 다음 개별
 runtime art만 사용한다.
@@ -173,6 +173,12 @@ runtime art만 사용한다.
 - 기존 typed 전력·열·선택 상태를 sprite tint·outline·pattern과 문장으로 유지한다.
 - package에 개별 자산이 모두 있고 whole-map plate와 source concept이 없는지 검사한다.
 - 1920×1080 UI 100/125 actual-input evidence, 회귀·package·독립 검토를 다시 닫는다.
+
+완료 후보는 네 `assets/` reference를 직접 사용해 같은 낮은 3/4 사선 산업도시 언어로 tile 7종과
+transparent object 9종을 개별 생성했다. v2 terrain·node·class와 live construction draft에 각각
+연결했으며 whole-map plate는 제거했다. CommercialChecks 22 suites / 2,024 assertions, 동결 회귀,
+Debug·Release build, 1920×1080 actual-input 화면 5장, clean macOS package와 exact-tree 독립 검토
+P0/P1/open 0으로 종료했다. 1280×720은 실행·검수하지 않았다.
 
 ## 9. 단계 H — 외부 검증과 공개 후보 — 구현 뒤 별도 게이트
 

@@ -12,11 +12,12 @@
 ## 현재 상태
 
 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의 단계 B부터 G.2까지는 기술 완료
-기록이다. 현재 활성 구현 단계는 없다. G.2는 whole-map plate를 제거하고 개별 tile/object를
+기록이다. 현재 활성 구현 단계는 **G.3 reference parity 재구축**이다. G.2는 whole-map plate를 제거하고 개별 tile/object를
 연결했지만, 2026-08-21 소유자 실행 screenshot에서 camera, 도시 밀도, object scale, 강물·제방,
 전력망과 UI가 `assets/01~04`와 크게 다르다고 거부됐다. [G.3 레퍼런스 정렬 계획](docs/product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md)과
-[평가 프로토콜](docs/product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)은 승인 대기 후보이며 아직
-구현 권한이 아니다.
+[평가 프로토콜](docs/product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)은 2026-08-21 사용자 지시로
+활성화됐다. 개별 tile/object와 게임 구현을 필요한 만큼 근본적으로 바꾸고, 고정 LLM jury
+`ReferenceParity >96`을 달성할 때까지 반복한다.
 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소 주기기·전신주
 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도 v2
 world·campaign·Core와 기본 장면에서 그 범위를 순서대로 완성했다. 단계 H의 외부 검증·공개 후보는

@@ -1,6 +1,6 @@
 # Gridworks 멀티모달 LLM 배심원 레퍼런스 정렬 평가 프로토콜
 
-> 상태: **DRAFT COMPLETE — G.3 후보의 LLM-as-a-judge 전용 시각 평가 절차, 구현 권한 아님**
+> 상태: **ACTIVE — G.3 LLM-as-a-judge 전용 시각 평가 절차**
 > 사람 평가: **사용하지 않음**
 > 기본 캔버스: **native 1920×1080, UI 100%**; UI 125%는 접근성 보조 세트
 
@@ -390,8 +390,9 @@ ReferenceParity = RawJuryParity - Penalty
 
 | ReferenceParity | 해석 |
 |---:|---|
-| `90~100` | reference와 거의 같은 시각 체계 |
-| `85~89.99` | G.3 최소 정렬선 충족 후보 |
+| `>96~100` | 현재 사용자 목표 달성 |
+| `90~96` | reference와 거의 같은 체계지만 계속 개선 |
+| `85~89.99` | 이전 최소 정렬선 후보이나 현재는 계속 개선 |
 | `75~84.99` | 관련성은 분명하지만 구조 차이로 실패 |
 | `<75` | reference와 상당히 다른 제품 화면 |
 
@@ -417,7 +418,7 @@ ReferenceParity = RawJuryParity - Penalty
 
 집계 구현은 다음 고정 예시를 unit test로 가져야 한다.
 
-- 모든 category·pair가 `CLOSE`, spread `0`이면 `ReferenceParity=85`, visual threshold 경계 PASS
+- 모든 category·pair가 `CLOSE`, spread `0`이면 `ReferenceParity=85`, 현재 목표에서는 `FAIL_VISUAL`
 - river만 `65`, 나머지가 `100`이면 가중 평균이 높아도 river `<85`와 visual P1 때문에 FAIL
 - jury spread가 커 `Penalty>5`면 raw 점수와 무관하게 FAIL
 - hard gate 하나가 FAIL이면 jury가 전부 `PARITY`여도 `FAIL_HARD_GATE`
@@ -425,9 +426,10 @@ ReferenceParity = RawJuryParity - Penalty
 
 ## 10. 통과·차단 조건
 
-G.3 visual pass는 다음을 모두 만족해야 한다.
+G.3 visual pass는 다음을 모두 만족해야 한다. 사용자의 2026-08-21 반복 목표가 protocol의 기존
+최소선보다 높으므로 최종 `ReferenceParity` threshold는 `>96`으로 강화한다.
 
-- `ReferenceParity ≥85`
+- `ReferenceParity >96`
 - camera, density, river의 `FinalCategoryScore`가 각각 `≥85`
 - 개별 comparison pair 점수 `≥75`
 - `Penalty ≤5`
@@ -445,6 +447,28 @@ G.3 visual pass는 다음을 모두 만족해야 한다.
 - capture/manifest/ROI 누락
 
 사람 review·owner 점수·사람 tie-break는 어느 단계에도 없다.
+
+### 10.1 최상위 output
+
+공식 output은 boolean 하나가 아니라 다음 구조다. `verdict`가 최종 상태이고 점수·근거는 그 판정의
+설명 가능한 payload다.
+
+```json
+{
+  "verdict": "PASS",
+  "referenceParity": 96.8,
+  "rawJuryParity": 98.1,
+  "disagreementPenalty": 1.3,
+  "pairScores": {},
+  "categoryScores": {},
+  "criticalFailures": [],
+  "differenceReport": "DIFFERENCE_REPORT.md"
+}
+```
+
+`verdict` enum은 `PASS`, `FAIL_VISUAL`, `FAIL_HARD_GATE`, `BLOCKED_NO_DIVERSE_JURY`,
+`BLOCKED_NO_QUALIFIED_JURY`, `BLOCKED_JURY_DISAGREEMENT`, `BLOCKED_MISSING_EVIDENCE`다. `BLOCKED_*`이면
+공식 `referenceParity`는 `null`이고 유효한 부분 판정만 별도 보존한다. 단순 `true/false`로 축약하지 않는다.
 
 ## 11. 차이 보고서
 

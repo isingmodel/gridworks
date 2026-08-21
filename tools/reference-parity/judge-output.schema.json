@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["pairId", "judgeSlot", "order", "replicate", "criteria"],
+  "properties": {
+    "pairId": { "type": "string" },
+    "judgeSlot": { "type": "string", "const": "SOL-ULTRA" },
+    "order": { "enum": ["REFERENCE_FIRST", "CANDIDATE_FIRST"] },
+    "replicate": { "type": "integer", "minimum": 1, "maximum": 2 },
+    "criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "criterion",
+          "label",
+          "confidence",
+          "similar",
+          "different",
+          "evidence",
+          "criticalFailure"
+        ],
+        "properties": {
+          "criterion": {
+            "enum": [
+              "camera",
+              "density",
+              "river",
+              "scale",
+              "material",
+              "grid",
+              "hud",
+              "state",
+              "timeline"
+            ]
+          },
+          "label": { "enum": ["PARITY", "CLOSE", "RELATED", "WEAK", "DIFFERENT"] },
+          "confidence": { "enum": ["HIGH", "MEDIUM", "LOW"] },
+          "similar": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": { "type": "string" }
+          },
+          "different": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": { "type": "string" }
+          },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 3,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["imageRole", "roi", "box", "observation"],
+              "properties": {
+                "imageRole": { "enum": ["REFERENCE", "CANDIDATE"] },
+                "roi": { "enum": ["MAP", "RIVER", "GRID", "LANDMARK", "HUD", "TIMELINE", "KIT", "STATE-CONTEXT"] },
+                "box": {
+                  "type": "array",
+                  "minItems": 4,
+                  "maxItems": 4,
+                  "items": { "type": "integer", "minimum": 0, "maximum": 1000 }
+                },
+                "observation": { "type": "string" }
+              }
+            }
+          },
+          "criticalFailure": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

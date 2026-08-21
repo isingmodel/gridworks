@@ -60,15 +60,26 @@ internal sealed class CommercialMapTransform
         _ => throw new InvalidOperationException("지원하지 않는 지도 확대 단계입니다."),
     };
 
-    public double Scale
+    /// <summary>
+    /// Horizontal pixels per world unit in the fixed 2:1 isometric projection.
+    /// Kept as Scale for callers which need a conservative scalar size.
+    /// </summary>
+    public double Scale => ScaleX;
+
+    public double ScaleX
     {
         get
         {
             Rect2 plot = PlotRect;
-            double fit = Math.Min(plot.Size.X / _bounds.Width, plot.Size.Y / _bounds.Height);
+            double projectedSpan = _bounds.Width + _bounds.Height;
+            double fit = Math.Min(
+                plot.Size.X / projectedSpan,
+                plot.Size.Y / (projectedSpan * 0.5d));
             return fit * ZoomMultipliers[_zoomIndex];
         }
     }
+
+    public double ScaleY => ScaleX * 0.5d;
 
     public Rect2 PlotRect
     {
@@ -96,20 +107,21 @@ internal sealed class CommercialMapTransform
     public Vector2 WorldToCanvas(double worldX, double worldY)
     {
         Rect2 plot = PlotRect;
-        double scale = Scale;
+        double deltaX = worldX - _center.X;
+        double deltaY = worldY - _center.Y;
         return plot.GetCenter() + new Vector2(
-            (float)((worldX - _center.X) * scale),
-            (float)((worldY - _center.Y) * scale));
+            (float)((deltaX - deltaY) * ScaleX),
+            (float)((deltaX + deltaY) * ScaleY));
     }
 
     public CommercialWorldPosition CanvasToWorld(Vector2 canvasPoint)
     {
         Rect2 plot = PlotRect;
-        double scale = Scale;
         Vector2 offset = canvasPoint - plot.GetCenter();
+        Vector2 worldOffset = CanvasDeltaToWorld(offset);
         return new CommercialWorldPosition(
-            _center.X + (offset.X / scale),
-            _center.Y + (offset.Y / scale));
+            _center.X + worldOffset.X,
+            _center.Y + worldOffset.Y);
     }
 
     public void SetZoomAt(int zoomIndex, Vector2 canvasAnchor)
@@ -130,10 +142,7 @@ internal sealed class CommercialMapTransform
 
     public void PanByCanvasDelta(Vector2 canvasDelta)
     {
-        double scale = Scale;
-        _center = ClampCenter(_center - new Vector2(
-            (float)(canvasDelta.X / scale),
-            (float)(canvasDelta.Y / scale)));
+        _center = ClampCenter(_center - CanvasDeltaToWorld(canvasDelta));
     }
 
     public void Home()
@@ -159,20 +168,26 @@ internal sealed class CommercialMapTransform
             return;
         }
 
-        double scale = Scale;
-        _center = ClampCenter(_center + new Vector2(
-            (float)((current.X - desired.X) / scale),
-            (float)((current.Y - desired.Y) / scale)));
+        _center = ClampCenter(_center + CanvasDeltaToWorld(current - desired));
     }
 
     private Vector2 ClampCenter(Vector2 requested)
     {
-        Rect2 plot = PlotRect;
-        double halfVisibleWidth = plot.Size.X / (Scale * 2d);
-        double halfVisibleHeight = plot.Size.Y / (Scale * 2d);
+        double zoom = ZoomMultipliers[_zoomIndex];
+        double halfVisibleWidth = _bounds.Width / (zoom * 2d);
+        double halfVisibleHeight = _bounds.Height / (zoom * 2d);
         return new Vector2(
             ClampAxis(requested.X, _bounds.MinX, _bounds.MaxX, halfVisibleWidth),
             ClampAxis(requested.Y, _bounds.MinY, _bounds.MaxY, halfVisibleHeight));
+    }
+
+    private Vector2 CanvasDeltaToWorld(Vector2 canvasDelta)
+    {
+        double projectedX = canvasDelta.X / ScaleX;
+        double projectedY = canvasDelta.Y / ScaleY;
+        return new Vector2(
+            (float)((projectedX + projectedY) * 0.5d),
+            (float)((projectedY - projectedX) * 0.5d));
     }
 
     private static float ClampAxis(float requested, int minimum, int maximum, double halfVisible)

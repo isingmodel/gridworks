@@ -619,10 +619,12 @@ internal sealed partial class CommercialMapView : Control
     {
         CommercialMapTransform transform = RequireTransform();
         MapBounds bounds = _presentation!.Snapshot.World.Bounds;
-        Vector2 topLeft = transform.WorldToCanvas(bounds.MinXUnit, bounds.MinYUnit);
-        Vector2 bottomRight = transform.WorldToCanvas(bounds.MaxXUnit, bounds.MaxYUnit);
-        Rect2 mapRect = new(topLeft, bottomRight - topLeft);
-        DrawRect(mapRect, Land);
+        Vector2[] mapDiamond = WorldQuad(
+            bounds.MinXUnit,
+            bounds.MinYUnit,
+            bounds.MaxXUnit,
+            bounds.MaxYUnit);
+        DrawColoredPolygon(mapDiamond, Land);
 
         Texture2D?[] variants =
         {
@@ -638,30 +640,63 @@ internal sealed partial class CommercialMapView : Control
             for (int x = bounds.MinXUnit; x < bounds.MaxXUnit; x += GroundTileWorldUnit, column++)
             {
                 int nextX = Math.Min(bounds.MaxXUnit, x + GroundTileWorldUnit);
-                Vector2 cellTopLeft = transform.WorldToCanvas(x, y);
-                Vector2 cellBottomRight = transform.WorldToCanvas(nextX, nextY);
-                Rect2 cell = new(cellTopLeft, cellBottomRight - cellTopLeft);
                 if (GroundAsphaltTile is not null)
                 {
-                    DrawTextureRect(
+                    DrawWorldQuadTexture(
                         GroundAsphaltTile,
-                        cell.Grow(0.65f),
-                        false,
+                        x,
+                        y,
+                        nextX,
+                        nextY,
                         new Color(0.94f, 0.92f, 0.86f, 1f));
                 }
                 Texture2D? variant = variants[((column * 7) + (row * 11)) % variants.Length];
                 if (variant is not null)
                 {
-                    DrawTextureRect(
+                    DrawWorldQuadTexture(
                         variant,
-                        cell.Grow(0.8f),
-                        false,
+                        x,
+                        y,
+                        nextX,
+                        nextY,
                         new Color(0.88f, 0.84f, 0.74f, 0.34f));
                 }
             }
         }
-        DrawRect(mapRect, new Color(Land, 0.07f));
-        DrawRect(mapRect, Color.FromHtml("9a7b4f"), false, 2f);
+        DrawColoredPolygon(mapDiamond, new Color(Land, 0.07f));
+        DrawPolyline(
+            mapDiamond.Append(mapDiamond[0]).ToArray(),
+            Color.FromHtml("9a7b4f"),
+            2f,
+            true);
+    }
+
+    private Vector2[] WorldQuad(int minX, int minY, int maxX, int maxY) =>
+    [
+        RequireTransform().WorldToCanvas(minX, minY),
+        RequireTransform().WorldToCanvas(maxX, minY),
+        RequireTransform().WorldToCanvas(maxX, maxY),
+        RequireTransform().WorldToCanvas(minX, maxY),
+    ];
+
+    private void DrawWorldQuadTexture(
+        Texture2D texture,
+        int minX,
+        int minY,
+        int maxX,
+        int maxY,
+        Color modulate)
+    {
+        Vector2[] uvs =
+        [
+            Vector2.Zero,
+            new Vector2(Math.Max(1, texture.GetWidth() - 1), 0f),
+            new Vector2(
+                Math.Max(1, texture.GetWidth() - 1),
+                Math.Max(1, texture.GetHeight() - 1)),
+            new Vector2(0f, Math.Max(1, texture.GetHeight() - 1)),
+        ];
+        DrawColoredPolygon(WorldQuad(minX, minY, maxX, maxY), modulate, uvs, texture);
     }
 
     private void DrawChapterAtmosphere(int chapterIndex, bool reduceMotion)
@@ -757,23 +792,7 @@ internal sealed partial class CommercialMapView : Control
                 Color textureModulate = area.Kind == TerrainKind.Water
                     ? new Color(0.82f, 0.92f, 0.94f, 0.98f)
                     : new Color(1f, 0.96f, 0.88f, 0.98f);
-                if (area.Kind == TerrainKind.Building &&
-                    area.Polygon.All(point =>
-                        (point.XUnit == minX || point.XUnit == maxX) &&
-                        (point.YUnit == minY || point.YUnit == maxY)))
-                {
-                    Vector2 textureTopLeft = ToCanvas(new CoreMapPoint(minX, minY));
-                    Vector2 textureBottomRight = ToCanvas(new CoreMapPoint(maxX, maxY));
-                    DrawTextureRect(
-                        texture,
-                        new Rect2(textureTopLeft, textureBottomRight - textureTopLeft),
-                        false,
-                        textureModulate);
-                }
-                else
-                {
-                    DrawColoredPolygon(polygon, textureModulate, uvs, texture);
-                }
+                DrawColoredPolygon(polygon, textureModulate, uvs, texture);
                 DrawColoredPolygon(polygon, new Color(fill, 0.10f));
             }
             DrawPolyline(polygon.Append(polygon[0]).ToArray(), edge, 1.6f, true);
@@ -837,22 +856,35 @@ internal sealed partial class CommercialMapView : Control
             Color color = !edge.Commissioned
                 ? Planned
                 : ThermalColor(thermal?.CurrentState);
-            DrawLine(start, end, new Color(Background, 0.9f), 6f, true);
+            DrawLine(start, end, new Color(Background, 0.9f), 8f, true);
             if (thermal?.CurrentState == ThermalOperatingState.ProtectiveOutage)
             {
-                DrawDashedLine(start, end, color, 3f, 9f, true, true);
+                DrawDashedLine(start, end, color, 3.2f, 9f, true, true);
                 DrawCross((start + end) / 2f, color, 7f);
             }
             else if (thermal?.CurrentState == ThermalOperatingState.Emergency)
             {
-                DrawLine(start, end, color, 4.5f, true);
+                DrawPowerSpan(start, end, color, 3.6f);
                 DrawDashedLine(start, end, Background, 1.3f, 7f, true, true);
             }
             else
             {
-                DrawLine(start, end, color, edge.Commissioned ? 3f : 2.5f, true);
+                DrawPowerSpan(start, end, color, edge.Commissioned ? 2.8f : 2.2f);
             }
         }
+    }
+
+    private void DrawPowerSpan(Vector2 start, Vector2 end, Color color, float width)
+    {
+        Vector2 direction = end - start;
+        if (direction.LengthSquared() <= 0.01f)
+        {
+            return;
+        }
+        Vector2 normal = new Vector2(-direction.Y, direction.X).Normalized() * 2.3f;
+        DrawLine(start + normal, end + normal, new Color(color, 0.92f), width, true);
+        DrawLine(start - normal, end - normal, new Color(color, 0.72f), width, true);
+        DrawLine(start, end, new Color(color, 0.28f), width + 3.5f, true);
     }
 
     private void DrawSelectedDemandPath(
@@ -976,16 +1008,13 @@ internal sealed partial class CommercialMapView : Control
         CoreMapPoint currentSegmentStart = draft.IntermediatePoints.Count == 0
             ? start.Position
             : draft.IntermediatePoints[^1];
-        float spanRadiusPixel = (float)(lineClass.MaxSpanUnit * RequireTransform().Scale);
-        DrawArc(
-            ToCanvas(currentSegmentStart),
-            spanRadiusPixel,
-            0f,
-            Mathf.Tau,
-            72,
+        DrawProjectedWorldCircle(
+            currentSegmentStart,
+            lineClass.MaxSpanUnit,
             new Color(Planned, 0.24f),
-            1.2f,
-            true);
+            fillAlpha: 0f,
+            width: 1.2f,
+            pointCount: 72);
         foreach (CoreMapPoint point in draft.IntermediatePoints)
         {
             DrawFootprint(point, poleClass.FootprintRadiusUnit, Planned, 0.12f);
@@ -1005,7 +1034,10 @@ internal sealed partial class CommercialMapView : Control
         Dictionary<string, SpatialNodeClassDefinition> classes = world.NodeClasses.ToDictionary(
             item => item.ClassId,
             StringComparer.Ordinal);
-        foreach (SpatialNodeDefinition node in world.Nodes)
+        foreach (SpatialNodeDefinition node in world.Nodes
+            .OrderBy(node => ToCanvas(node.Position).Y)
+            .ThenBy(node => ToCanvas(node.Position).X)
+            .ThenBy(node => node.NodeId, StringComparer.Ordinal))
         {
             if (!classes.TryGetValue(node.ClassId, out SpatialNodeClassDefinition? nodeClass))
             {
@@ -1041,7 +1073,7 @@ internal sealed partial class CommercialMapView : Control
             {
                 DrawTextureRect(
                     texture,
-                    new Rect2(center - (spriteSize / 2f), spriteSize),
+                    SpriteRect(center, spriteSize),
                     false,
                     NodeSpriteModulate(node, thermal));
             }
@@ -1102,23 +1134,23 @@ internal sealed partial class CommercialMapView : Control
         }
         return nodeClass.Kind switch
         {
-            SpatialNodeKind.SourceTerminal => (SourcePlantSprite, 94f),
-            SpatialNodeKind.Substation => (SubstationSprite, 88f),
+            SpatialNodeKind.SourceTerminal => (SourcePlantSprite, 212f),
+            SpatialNodeKind.Substation => (SubstationSprite, 138f),
             SpatialNodeKind.Pole when node.ClassId == "STANDARD_POLE" =>
-                (StandardPoleSprite, 70f),
-            SpatialNodeKind.Pole => (ReinforcedPoleSprite, 78f),
+                (StandardPoleSprite, 76f),
+            SpatialNodeKind.Pole => (ReinforcedPoleSprite, 88f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "EAST_RESIDENTIAL_TERMINAL" =>
-                (ResidentialFacilitySprite, 96f),
+                (ResidentialFacilitySprite, 176f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "HOSPITAL_TERMINAL" =>
-                (HospitalFacilitySprite, 104f),
+                (HospitalFacilitySprite, 184f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "WATER_TERMINAL" =>
-                (WaterFacilitySprite, 104f),
+                (WaterFacilitySprite, 166f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "INDUSTRY_TERMINAL" =>
-                (IndustryFacilitySprite, 102f),
+                (IndustryFacilitySprite, 184f),
             _ => (null, 24f),
         };
     }
@@ -1126,15 +1158,15 @@ internal sealed partial class CommercialMapView : Control
     private (Texture2D? Texture, float MaxSide) DraftPoleSprite(string poleClassId) =>
         poleClassId switch
         {
-            "STANDARD_POLE" => (StandardPoleSprite, 70f),
-            "REINFORCED_POLE" => (ReinforcedPoleSprite, 78f),
+            "STANDARD_POLE" => (StandardPoleSprite, 76f),
+            "REINFORCED_POLE" => (ReinforcedPoleSprite, 88f),
             _ => (null, 24f),
         };
 
     private (Texture2D? Texture, float MaxSide) DraftNodeSprite(string nodeClassId) =>
         nodeClassId switch
         {
-            "SMALL_SUBSTATION" => (SubstationSprite, 88f),
+            "SMALL_SUBSTATION" => (SubstationSprite, 138f),
             _ => (null, 24f),
         };
 
@@ -1152,7 +1184,7 @@ internal sealed partial class CommercialMapView : Control
         float objectRadius = Math.Max(6f, Math.Max(spriteSize.X, spriteSize.Y) * 0.42f);
         DrawTextureRect(
             texture,
-            new Rect2(center - (spriteSize / 2f), spriteSize),
+            SpriteRect(center, spriteSize),
             false,
             new Color(1f, 0.86f, 0.62f, 0.88f));
         DrawArc(center, objectRadius, 0f, Mathf.Tau, 32, new Color(Planned, 0.9f), 2f, true);
@@ -1165,6 +1197,10 @@ internal sealed partial class CommercialMapView : Control
         float scale = maxSide / Math.Max(width, height);
         return new Vector2(width * scale, height * scale);
     }
+
+    private static Rect2 SpriteRect(Vector2 groundAnchor, Vector2 spriteSize) => new(
+        groundAnchor - new Vector2(spriteSize.X * 0.5f, spriteSize.Y * 0.78f),
+        spriteSize);
 
     private static Color NodeSpriteModulate(
         SpatialNodeDefinition node,
@@ -1296,19 +1332,42 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawFootprint(CoreMapPoint point, int radiusUnit, Color color, float alpha)
     {
-        float radiusPixel = Math.Max(2f, (float)(radiusUnit * RequireTransform().Scale));
-        Vector2 center = ToCanvas(point);
-        DrawCircle(center, radiusPixel, new Color(color, alpha));
-        DrawArc(center, radiusPixel, 0f, Mathf.Tau, 48, new Color(color, 0.72f), 1.2f, true);
-        DrawArc(center, radiusPixel + 6f, 0f, Mathf.Tau, 48, new Color(color, 0.22f), 1f, true);
+        DrawProjectedWorldCircle(point, radiusUnit, color, alpha, 1.2f, 48);
+        DrawProjectedWorldCircle(point, radiusUnit + 24, new Color(color, 0.22f), 0f, 1f, 48);
     }
 
     private void DrawServiceArea(CoreMapPoint point, int radiusUnit)
     {
-        float radiusPixel = Math.Max(2f, (float)(radiusUnit * RequireTransform().Scale));
-        Vector2 center = ToCanvas(point);
-        DrawCircle(center, radiusPixel, new Color(Focus, 0.035f));
-        DrawArc(center, radiusPixel, 0f, Mathf.Tau, 72, new Color(Focus, 0.62f), 1.5f, true);
+        DrawProjectedWorldCircle(point, radiusUnit, Focus, 0.035f, 1.5f, 72);
+    }
+
+    private void DrawProjectedWorldCircle(
+        CoreMapPoint center,
+        int radiusUnit,
+        Color color,
+        float fillAlpha,
+        float width,
+        int pointCount)
+    {
+        int count = Math.Max(12, pointCount);
+        Vector2[] polygon = Enumerable.Range(0, count)
+            .Select(index =>
+            {
+                double angle = Mathf.Tau * index / count;
+                return RequireTransform().WorldToCanvas(
+                    center.XUnit + (Math.Cos(angle) * radiusUnit),
+                    center.YUnit + (Math.Sin(angle) * radiusUnit));
+            })
+            .ToArray();
+        if (fillAlpha > 0f)
+        {
+            DrawColoredPolygon(polygon, new Color(color, fillAlpha));
+        }
+        DrawPolyline(
+            polygon.Append(polygon[0]).ToArray(),
+            new Color(color, Math.Max(color.A, 0.72f)),
+            width,
+            true);
     }
 
     private void DrawMapLegend()

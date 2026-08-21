@@ -1052,7 +1052,10 @@ internal sealed partial class CommercialMain
             await PressMapKey(Key.E, physical: Key.E);
         }
         Require(_map.SelectedCandidateId == nodeId,
-            $"요청한 접속 후보를 선택할 수 없습니다: {nodeId}");
+            $"요청한 접속 후보를 선택할 수 없습니다: {nodeId}; " +
+            $"selected={_map.SelectedCandidateId ?? "none"}; " +
+            $"candidates={string.Join(',', _map.CandidateNodeIds)}; " +
+            $"pointer={_map.KeyboardPoint.XUnit},{_map.KeyboardPoint.YUnit}");
         await ClickMap(point);
     }
 

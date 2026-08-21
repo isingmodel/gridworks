@@ -193,5 +193,5 @@ UI 125% ReduceMotion 여덟 장이다.
 | 개별 tile/object 생성·적용 | §5.2, §6 | 개별 generator run·PNG SHA와 kit sheet jury |
 | 강물·제방 품질 | §5 | `PAIR-KIT-RIVER`, `PAIR-NORMAL/HEAT/FLOOD`, river category `≥85` |
 | 독립 event timeline bar | §9 | actual-input timeline round trip과 `PAIR-KIT-UI/NORMAL/HEAT/ROUTE` |
-| 사람 review 없이 LLM judge만 사용 | §10과 평가 프로토콜 | diverse 3-judge jury, order reversal, replicate, LLM adjudication |
+| 사람 review 없이 LLM judge만 사용 | §10과 평가 프로토콜 | `gpt-5.6-sol` ultra, order reversal, 독립 replicate, blind evidence verification |
 | 720p 미지원 | 문서 상단과 §10 | 1920×1080 UI 100%·125% manifest만 허용 |

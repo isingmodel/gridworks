@@ -1,7 +1,7 @@
 # Gridworks — 출시판 진행 체크리스트
 
 > 이 문서는 단계 상태와 최소 종료 증거만 기록한다. 상세 규칙은
-> [로드맵](ROADMAP_2D.md)과 현재 [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다.
+> [로드맵](ROADMAP_2D.md)과 [완료 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다.
 
 현재 활성 단계는 루트 [README](../README.md)만 선언한다.
 
@@ -20,12 +20,12 @@
 |---|---|---|---|---|---|---|
 | 과거 내부 후보 | 보존 | [개발 이력](DEVELOPMENT_HISTORY.md)과 완료 scope | 동결 회귀 | 기존 package 실행 | 소유자 전체 플레이에서 출시 차단 문제 확인 | 출시판으로는 superseded |
 | 동결 release v1 기술 기준선 | **완료** | [과거 계약](scopes/RELEASE_REBUILD.md)·[world](../data/release-world-v1.json)·[campaign](../data/release-campaign-v1.json) | 15 suites / 481 assertions | 건설·두 프로세스 8임무·내부 package 통과 | 공식 cold LLM은 마지막 장 `BLOCKED`; v2 증거로 합산하지 않음 | 후속 기술 수정 P0/P1 0 |
-| B. 자유 좌표 기반 | **완료** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)·Stage-B spatial fixture | CommercialChecks 7 suites / 238 assertions | 1280×720·UI 125% 자유 배치 흐름 통과 | 해당 없음 | exact-tree P0/P1 0 |
-| C. 이산 열 국면 기반 | **완료** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#45-단계-c-종료-기록--2026-08-21)·[world v2](../data/release-world-v2.json) | CommercialChecks 12 suites / 283 assertions | 자유 배치 회귀·1280×720 UI 125% 열 projection 통과 | 해당 없음 | candidate P0 0 / P1 3; 전부 수정·재검증, open 0 |
+| B. 자유 좌표 기반 | **완료** | [완료 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)·Stage-B spatial fixture | CommercialChecks 7 suites / 238 assertions | 1280×720·UI 125% 자유 배치 흐름 통과 | 해당 없음 | exact-tree P0/P1 0 |
+| C. 이산 열 국면 기반 | **완료** | [완료 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#45-단계-c-종료-기록--2026-08-21)·[world v2](../data/release-world-v2.json) | CommercialChecks 12 suites / 283 assertions | 자유 배치 회귀·1280×720 UI 125% 열 projection 통과 | 해당 없음 | candidate P0 0 / P1 3; 전부 수정·재검증, open 0 |
 | D. 상용 핵심 흐름 | **완료** | [단계 D 종료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#51-단계-d-종료-기록--2026-08-21)·[world v2](../data/release-world-v2.json)·[core slice](../data/commercial-core-slice-v1.json) | CommercialChecks 17 suites / 682 assertions, 동결 회귀 통과 | 기본 장면 1280×720·UI 125% 핵심 흐름과 자유 배치·열 회귀 통과 | `CommercialSliceHumanStatus = NOT_COLLECTED` | candidate P0 0 / P1 4; 전부 수정·재검증, open 0 |
 | E. 첫 네 임무·공통 UX | **완료** | [단계 E 종료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#64-단계-e-종료-기록--2026-08-21)·[world v2](../data/release-world-v2.json)·[campaign v2](../data/release-campaign-v2.json) | CommercialChecks 19 suites / 1,330 assertions, 동결 회귀 통과 | 1920×1080·UI 125% actual-input 4임무·저장복구, 자유 배치·열 회귀 통과 | `FullCampaignHumanStatus = NOT_COLLECTED` | candidate P0 0 / P1 4; 전부 수정·exact-fix 재검증, open 0 |
 | F. 후반 네 임무·에필로그 | **완료** | [단계 F 종료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#65-단계-f-종료-기록--2026-08-21)·[world v2](../data/release-world-v2.json)·[campaign v2](../data/release-campaign-v2.json) | CommercialChecks 20 suites / 1,805 assertions, 동결 회귀 통과 | 세 fresh 1920×1080 actual-input process로 4장 저장→8장·에필로그→완료 저장·장 선택, 자유 배치·열·E 회귀 통과 | `FullCampaignHumanStatus = NOT_COLLECTED` | candidate P0 0 / P1 3; 전부 수정·exact-fix 재검증, open 0 |
-| G. 시청각·접근성·package | **검토 중** | [단계 G 후보 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#74-단계-g-후보-기록--2026-08-21)·[world v2](../data/release-world-v2.json)·[campaign v2](../data/release-campaign-v2.json) | CommercialChecks 21 suites / 1,828 assertions, 동결 회귀 통과 | 1920×1080 UI 100/125 actual-input presentation, 자유 배치·열·세 fresh campaign process와 clean macOS ZIP 통과 | 전체 사람 검토 `NOT_COLLECTED` | candidate P0 0 / P1 5; 전부 수정, exact-fix 재검토 중 |
+| G. 시청각·접근성·package | **완료** | [단계 G 종료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#74-단계-g-종료-기록--2026-08-21)·[world v2](../data/release-world-v2.json)·[campaign v2](../data/release-campaign-v2.json) | CommercialChecks 21 suites / 1,828 assertions, 동결 회귀 통과 | 1920×1080 UI 100/125 actual-input presentation, 자유 배치·열·세 fresh campaign process와 clean macOS ZIP 통과 | 전체 사람 검토 `NOT_COLLECTED` | candidate P0 0 / P1 5; 전부 수정·exact-fix 재검증, open 0 |
 | H. 외부 검증·공개 후보 | **미승인** | 별도 사용자·자격증명 gate | 자동증거로 대체하지 않음 | 공개 bytes 확정 전 미실행 | 소유자·외부·전문 교정 필요 | Developer ID·공증·배포 결정 필요 |
 
 ## 단계 활성화 조건

@@ -11,11 +11,12 @@
 
 ## 현재 상태
 
-현재 활성 구현 단계는 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-**단계 G — 시청각·접근성·패키징 마감**이다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
-주기기·전신주 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도
-v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대로 만든다. 기존 `ReleaseMain`과
-33×21 후보는 기술 회귀 기준선이며 새 규칙의 실행 권위가 아니다.
+[상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의 단계 B부터 G까지는 **완료**됐고
+현재 활성 구현 단계는 없다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소 주기기·전신주
+접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도 v2
+world·campaign·Core와 기본 장면에서 그 범위를 순서대로 완성했다. 단계 H의 외부 검증·공개 후보는
+미승인이며 Developer ID·공증·소유자 배포 결정 없이 열지 않는다. 기존 `ReleaseMain`과 33×21
+후보는 기술 회귀 기준선이며 새 규칙의 실행 권위가 아니다.
 
 단계 B의 명시 실행 장면은 고정소수점 자유 좌표, 원형 점유영역, 수면·건물·위험구역, 교차 비접속
 선로, 초안 전신주 이동과 세 단계 카메라를 구현했다. CommercialChecks 7개 묶음 238 assertions,
@@ -63,7 +64,8 @@ Debug·Release build, 자유 배치·열·세 fresh 캠페인 process와 1920×1
 presentation smoke가 통과했다. clean source `bbbdbe7`의 macOS 내부 ZIP은 Universal 2·ad-hoc
 서명과 archive 격리 검사를 통과했으며 release record는 [변경 기록](CHANGELOG.md)이 소유한다.
 candidate 독립 검토의 P1 5건은 파괴 행동 확인, release record, 도움말, audio cue 순서와 네 초상을
-수정했고 exact-tree 종료 재검토를 기다린다. 1280×720은 지원하지 않는다.
+수정했다. exact tree `f38a337` 재검토는 **P0 0 / P1 0 / open 0**이며 전체 동결·상용 검사와
+Debug·Release rebuild도 최종 통과했다. 1280×720은 지원하지 않는다.
 
 직전 기준선의 `ReleaseMain`은 프롤로그 세 임무와 본편 다섯 장, 한국어 화면, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 후보까지 구현했다. 사용자 요청으로 수행한
@@ -75,7 +77,7 @@ candidate 독립 검토의 P1 5건은 파괴 행동 확인, release record, 도�
 후속 내부 후보도 상용 2D 게임으로는 선택·리듬·이야기 회수가 부족하다는 판단에 따라
 [상용 2D 게임 재기획서](docs/product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)를 채택했다. 이 제품
 기준은 보이는 격자 없는 자유 배치와 선로·변압기·전신주 접속부의 국면별 열 한계, 실제 상태를
-기억하는 여덟 임무를 새 기반으로 삼는다. 정확한 구현 경계와 순서는 활성 계약이 소유한다.
+기억하는 여덟 임무를 새 기반으로 삼는다. 정확한 구현 경계와 종료 증거는 완료 구현 계약이 소유한다.
 
 현재 기본 실행 장면은 새 `CommercialMain`이다. 보이는 격자 없는 지도에서 자유 좌표로 전신주·
 변전소·선로를 건설하고 여덟 임무에서 작성된 국면의 사용량·연속·비상 한계와 보호정지를 비교한다. 현재
@@ -141,7 +143,7 @@ candidate 독립 검토의 P1 5건은 파괴 행동 확인, release record, 도�
 최소 출시판에는 22.9 kV급 계획 모델, 분기·합류, 고정소수점 자유 배치, 점유영역·지형,
 연속·비상 열 한계와 국면 상태, 결정론적 공급·우회, 전문적인 한국어 UX, 실제 망을 기억하는
 이야기, 저장·설정과 설치 가능한 2D 빌드가 포함된다. 상세 범위와 현실성의 상한은
-[활성 계약](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다.
+[완료 구현 계약](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다.
 
 ## 저장소 구조
 

@@ -1,14 +1,14 @@
 # Gridworks 상용 2D 게임 구현
 
-> 상태: **ACTIVE**
-> 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 G — 시청각·접근성·패키징 마감**
+> 상태: **COMPLETE**
+> 구현 권한: **GRANTED AND COMPLETED — 단계 B부터 G까지**
+> 현재 작업: **활성 구현 gate 없음 — 단계 H는 미승인**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
 이 문서는 [상용 2D 게임 재기획서](../product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md)를 실제 제품으로
-만드는 현재 구현 계약이다. 재기획서가 경험·콘텐츠·표현 원칙을, 이 문서가 실행 권위·단계 순서와
-완료 증거를 소유한다.
+만든 완료 구현 계약이다. 재기획서가 경험·콘텐츠·표현 원칙을, 이 문서가 v2 실행 권위·완료한
+단계 순서와 종료 증거를 소유한다.
 
 기존 `release v1` 경로와 macOS 내부 후보는 기술 기준선으로 동결한다. 새 게임은 그 타입과 저장을
 점진적으로 일반화하지 않고 별도 v2 규칙·데이터·기본 장면을 사용한다. 각 단계는 구현, 결정론적
@@ -408,12 +408,12 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 - Developer ID와 notarization 자격증명이 없으면 ad-hoc 내부 후보로만 기록한다. 공개 배포 가능이라고
   표현하지 않는다.
 
-### 7.4 단계 G 후보 기록 — 2026-08-21
+### 7.4 단계 G 종료 기록 — 2026-08-21
 
 - CommercialChecks는 **21 suites / 1,828 assertions PASS**이고 Game Debug·Release rebuild는
   **0 warnings / 0 errors**다. 자유 배치·열 smoke와 세 fresh 1920×1080 actual-input campaign
-  process가 통과했다. Scope 0B·Scope 1·product·release v1 동결 회귀는 최종 순차 확인 대상으로
-  유지한다.
+  process가 통과했다. 최종 순차 확인에서 Scope 0B **7 suites / 3,098 assertions**, Scope 1
+  **8 / 646**, product와 그 후속 묶음, release v1 **15 / 481**도 모두 PASS했다.
 - [화면·입력 증거](../../playtests/commercial-2d/LAYOUT_EVIDENCE.md)는 native 1920×1080 UI 100%
   제목과 UI 125% 선택 경로·ReduceMotion을 보존한다. 새 게임→상용 도움말→지도 실제 공사→설정→
   원자 Save & Quit을 keyboard focus 입력으로 통과했고 1280×720 모드나 증거는 만들지 않았다.
@@ -429,7 +429,9 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
   원문만 더하며 prototype·v1 fixture·PDB·로컬 절대경로와 별도 release record는 없다.
 - candidate `531e6d9` exact-tree 독립 검토는 **P0 0 / P1 5**였다. 고정 패널의 확인 없는 파괴
   행동, stale package record, 과거 제품 도움말, 같은 player가 덮어쓰던 통전/차단 cue, 글자 badge뿐인
-  네 인물을 수정했다. exact-fix 종료 재검토 전까지 단계 상태는 `검토 중`이다.
+  네 인물을 수정했다. exact tree `f38a337107d147396d75edd156da74eb3255aa8c`의 종료 재검토는
+  **P0 0 / P1 0 / open 0**, worktree clean이며 추출한 package의 1920×1080 presentation smoke도
+  독립 통과했다.
 
 ## 8. 전체 완료 증거
 

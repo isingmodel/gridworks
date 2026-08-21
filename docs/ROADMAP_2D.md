@@ -162,6 +162,18 @@ Universal binary와 서명 경계를 기록한다. Developer ID·공증·실제 
   추가하지 않는다.
 - 1920×1080 UI 100/125 actual-input evidence를 다시 만들고, 1280×720 지원은 열지 않는다.
 
+## 8.2 단계 G.2 — 개별 tile·object 자산 교체 — 활성
+
+G.1의 whole-map plate 방식은 소유자 검토에서 거부됐다. 전체 배경 한 장을 제거하고 다음 개별
+runtime art만 사용한다.
+
+- seamless ground·water·building tile을 별도 PNG로 만들고 정확한 v2 terrain에 반복 배치한다.
+- 발전·전신주·교량 기초·변전·주거·의료·정수·산업 object를 transparent PNG로 각각 만들고 실제
+  node 좌표·class에 연결한다.
+- 기존 typed 전력·열·선택 상태를 sprite tint·outline·pattern과 문장으로 유지한다.
+- package에 개별 자산이 모두 있고 whole-map plate와 source concept이 없는지 검사한다.
+- 1920×1080 UI 100/125 actual-input evidence, 회귀·package·독립 검토를 다시 닫는다.
+
 ## 9. 단계 H — 외부 검증과 공개 후보 — 구현 뒤 별도 게이트
 
 - 상용 핵심 구간 사람 관찰

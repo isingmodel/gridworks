@@ -1,8 +1,8 @@
 # Gridworks 상용 2D 게임 구현
 
-> 상태: **COMPLETE**
-> 구현 권한: **GRANTED AND COMPLETED — 단계 B부터 G.1까지**
-> 현재 작업: **활성 구현 gate 없음 — 단계 H는 미승인**
+> 상태: **ACTIVE — G.2 DISCRETE TILE AND OBJECT ART**
+> 구현 권한: **GRANTED — 단계 B부터 G.1 완료 기록, G.2 소유자 수정 활성**
+> 현재 작업: **whole-map plate 제거·개별 runtime art 적용 — 단계 H는 미승인**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -475,6 +475,28 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
   불일치였다. 둘을 수정한 exact tree `d1e7f9a10c51bc5954c28ebca7bdacb5529cd0cf` 재검토는
   **P0 0 / P1 0 / open 0**, worktree clean이다. 수정 화면의 소유자 재확인은 대기 중이고
   `ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`를 바꾸지 않는다.
+
+### 7.7 단계 G.2 — 개별 tile·object 자산 교체
+
+소유자는 G.1의 whole-map city plate가 개별 게임 자산 제작·적용을 대신했다고 거부했다. 현재 지시는
+그 구조를 폐기하고 실제 tile·object 이미지가 각각의 runtime 대상에 붙도록 이 표현 단위를 다시 연다.
+
+- `commercial-city-plate-v1.png`와 `CityPlate` 경로를 최종 runtime에서 제거한다. 지도 전체를 덮는
+  단일 그림, 임의 landmark, plate 위에 권위 layer만 얹는 방식은 허용하지 않는다.
+- 바닥은 서로 다른 seamless ground tile PNG를 개별 셀에 반복 배치하되 셀 경계·격자를 보이지 않는다.
+  강·동부 생활권 건물·의료원 건물 tile은 `release-world-v2.json`의 정확한 terrain polygon에만
+  적용한다. tile 선택은 충돌·비용·거리·급전에 관여하지 않는다.
+- 발전 접속점, 일반·보강 전신주, 교량 기초, 배전 변전소, 주거·의료·정수·산업 수요는 서로 다른
+  transparent object PNG를 가진다. renderer는 v2 `nodeId`·`classId`와 플레이어 건설 node class로
+  sprite를 고르고 실제 world 좌표에 중심을 맞춘다.
+- 계획·공사·통전·미사용·비상·보호정지·선택 상태는 sprite를 바꾸어 규칙을 재계산하지 않고 기존
+  typed state의 tint, outline, pattern, ring과 접근성 문장으로 함께 표현한다.
+- 각 runtime PNG는 개별 파일, prompt와 SHA-256 기록을 가진다. package 검사는 모든 tile/object가
+  포함되고 whole-map plate와 네 source concept은 제외됐음을 확인한다.
+- 1920×1080 UI 100/125 실제 입력 화면에서 tile 반복, 모든 object family, 실제 경로, 사건 timeline,
+  clipping과 focus를 확인한다. 1280×720은 지원하거나 검수하지 않는다.
+- CommercialChecks, Game Debug·Release build, 자유 배치·열·campaign·presentation smoke, clean package와
+  bounded exact-tree P0/P1 검토를 닫은 뒤에만 완료로 표시한다.
 
 ## 8. 전체 완료 증거
 

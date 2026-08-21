@@ -49,7 +49,8 @@ internal sealed partial class CommercialMain
 
             await BuildCampaignSmokeSubstation(
                 new CoreMapPoint(2200, 750),
-                "표현 확인 변전소");
+                "표현 확인 변전소",
+                Path.Combine(evidenceDirectory, "1920x1080-ui100-substation-draft.png"));
             await BuildCampaignSmokeLine(
                 "WEST_SOURCE",
                 "PLAYER_SUBSTATION_1",
@@ -59,7 +60,8 @@ internal sealed partial class CommercialMain
                     new CoreMapPoint(1545, 450),
                     new CoreMapPoint(1900, 600),
                 ],
-                "표현 확인 간선");
+                "표현 확인 간선",
+                Path.Combine(evidenceDirectory, "1920x1080-ui100-pole-draft.png"));
             await BuildCampaignSmokeLine(
                 "PLAYER_SUBSTATION_1",
                 "EAST_RESIDENTIAL_TERMINAL",
@@ -129,8 +131,9 @@ internal sealed partial class CommercialMain
                 "Save & Quit이 성공한 원자적 저장 뒤에만 제목으로 이동하지 않았습니다.");
             GD.Print(
                 "COMMERCIAL_STAGE_G_PRESENTATION_SMOKE_PASS " +
-                "screens=title-ui100|art-path-ui100|art-path-ui125 " +
-                "visual=discrete-tiles-7|discrete-objects-9|event-timeline " +
+                "screens=title-ui100|substation-draft-ui100|pole-draft-ui100|" +
+                "art-path-ui100|art-path-ui125 " +
+                "visual=discrete-tiles-7|discrete-objects-9|planned-class-sprites|event-timeline " +
                 "input=focus-keyboard reduce-motion=on " +
                 "save-and-quit=atomic resolution=1920x1080 " +
                 $"buildIdentity={CommercialCoreSaveCodec.ComputeSha256(_buildIdentityBytes)}");
@@ -939,7 +942,8 @@ internal sealed partial class CommercialMain
         string startNodeId,
         string endNodeId,
         IReadOnlyList<CoreMapPoint> intermediatePoints,
-        string label)
+        string label,
+        string? draftEvidencePath = null)
     {
         await PressPanelAsync(CommercialPanelAction.StartLine, $"{label} 선로 도구");
         await NextFrame();
@@ -951,6 +955,13 @@ internal sealed partial class CommercialMain
         foreach (CoreMapPoint point in intermediatePoints)
         {
             await ClickMap(point);
+            Require(
+                _map.CurrentDraftSpriteClassId == _snapshot.LineDraft?.PoleClassId,
+                $"{label}의 건설 중 전주가 선택한 node class 스프라이트를 표시하지 않았습니다.");
+        }
+        if (draftEvidencePath is not null)
+        {
+            SaveEvidencePng(draftEvidencePath);
         }
         await SelectAndClickCandidate(end.Position, endNodeId);
         Require(
@@ -962,14 +973,22 @@ internal sealed partial class CommercialMain
         await NextFrame();
     }
 
-    private async Task BuildCampaignSmokeSubstation(CoreMapPoint position, string label)
+    private async Task BuildCampaignSmokeSubstation(
+        CoreMapPoint position,
+        string label,
+        string? draftEvidencePath = null)
     {
         await PressPanelAsync(CommercialPanelAction.PlaceSubstation, $"{label} 도구");
         await NextFrame();
         await ClickMap(position);
         Require(
-            _snapshot.NodeDraft?.Position == position,
+            _snapshot.NodeDraft?.Position == position &&
+            _map.CurrentDraftSpriteClassId == _snapshot.NodeDraft.NodeClassId,
             $"{label} 위치를 계획하지 못했습니다: {_lastError}");
+        if (draftEvidencePath is not null)
+        {
+            SaveEvidencePng(draftEvidencePath);
+        }
         await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 발주");
         await NextFrame();
         await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 완공");

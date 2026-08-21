@@ -242,6 +242,10 @@ internal sealed class CommercialChecks
                      "WATER_TERMINAL",
                      "INDUSTRY_TERMINAL",
                      "STANDARD_POLE",
+                     "DraftPoleSprite",
+                     "DraftNodeSprite",
+                     "DrawDraftSprite",
+                     "CurrentDraftSpriteClassId",
                      "AuthoredFoundation",
                      "GroundTileWorldUnit = 400",
                  })

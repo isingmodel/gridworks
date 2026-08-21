@@ -177,6 +177,25 @@ internal sealed partial class CommercialMapView : Control
     public int IndividualArtAssetCount =>
         IndividualTileAssetCount + IndividualObjectAssetCount;
 
+    public string? CurrentDraftSpriteClassId
+    {
+        get
+        {
+            if (_presentation?.Snapshot.NodeDraft is NodeDraftSnapshot nodeDraft &&
+                DraftNodeSprite(nodeDraft.NodeClassId).Texture is not null)
+            {
+                return nodeDraft.NodeClassId;
+            }
+            if (_presentation?.Snapshot.LineDraft is LineDraftSnapshot lineDraft &&
+                lineDraft.IntermediatePoints.Count > 0 &&
+                DraftPoleSprite(lineDraft.PoleClassId).Texture is not null)
+            {
+                return lineDraft.PoleClassId;
+            }
+            return null;
+        }
+    }
+
     private int IndividualTileAssetCount =>
         new Texture2D?[]
         {
@@ -628,7 +647,7 @@ internal sealed partial class CommercialMapView : Control
                         GroundAsphaltTile,
                         cell.Grow(0.65f),
                         false,
-                        new Color(0.66f, 0.71f, 0.66f, 0.94f));
+                        new Color(0.94f, 0.92f, 0.86f, 1f));
                 }
                 Texture2D? variant = variants[((column * 7) + (row * 11)) % variants.Length];
                 if (variant is not null)
@@ -637,11 +656,11 @@ internal sealed partial class CommercialMapView : Control
                         variant,
                         cell.Grow(0.8f),
                         false,
-                        new Color(0.66f, 0.70f, 0.64f, 0.18f));
+                        new Color(0.88f, 0.84f, 0.74f, 0.34f));
                 }
             }
         }
-        DrawRect(mapRect, new Color(Land, 0.24f));
+        DrawRect(mapRect, new Color(Land, 0.07f));
         DrawRect(mapRect, Color.FromHtml("9a7b4f"), false, 2f);
     }
 
@@ -736,8 +755,8 @@ internal sealed partial class CommercialMapView : Control
                             Math.Max(1, texture.GetHeight() - 1)))
                     .ToArray();
                 Color textureModulate = area.Kind == TerrainKind.Water
-                    ? new Color(0.64f, 0.84f, 0.88f, 0.96f)
-                    : new Color(0.88f, 0.88f, 0.82f, 0.96f);
+                    ? new Color(0.82f, 0.92f, 0.94f, 0.98f)
+                    : new Color(1f, 0.96f, 0.88f, 0.98f);
                 if (area.Kind == TerrainKind.Building &&
                     area.Polygon.All(point =>
                         (point.XUnit == minX || point.XUnit == maxX) &&
@@ -970,6 +989,8 @@ internal sealed partial class CommercialMapView : Control
         foreach (CoreMapPoint point in draft.IntermediatePoints)
         {
             DrawFootprint(point, poleClass.FootprintRadiusUnit, Planned, 0.12f);
+            (Texture2D? texture, float maxSide) = DraftPoleSprite(draft.PoleClassId);
+            DrawDraftSprite(texture, point, maxSide);
             DrawCircle(ToCanvas(point), 4.5f, Planned);
         }
     }
@@ -1077,29 +1098,64 @@ internal sealed partial class CommercialMapView : Control
     {
         if (node.AuthoredFoundation)
         {
-            return (BridgeFoundationSprite, 64f);
+            return (BridgeFoundationSprite, 82f);
         }
         return nodeClass.Kind switch
         {
-            SpatialNodeKind.SourceTerminal => (SourcePlantSprite, 72f),
-            SpatialNodeKind.Substation => (SubstationSprite, 70f),
+            SpatialNodeKind.SourceTerminal => (SourcePlantSprite, 94f),
+            SpatialNodeKind.Substation => (SubstationSprite, 88f),
             SpatialNodeKind.Pole when node.ClassId == "STANDARD_POLE" =>
-                (StandardPoleSprite, 52f),
-            SpatialNodeKind.Pole => (ReinforcedPoleSprite, 58f),
+                (StandardPoleSprite, 70f),
+            SpatialNodeKind.Pole => (ReinforcedPoleSprite, 78f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "EAST_RESIDENTIAL_TERMINAL" =>
-                (ResidentialFacilitySprite, 76f),
+                (ResidentialFacilitySprite, 96f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "HOSPITAL_TERMINAL" =>
-                (HospitalFacilitySprite, 82f),
+                (HospitalFacilitySprite, 104f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "WATER_TERMINAL" =>
-                (WaterFacilitySprite, 82f),
+                (WaterFacilitySprite, 104f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "INDUSTRY_TERMINAL" =>
-                (IndustryFacilitySprite, 80f),
+                (IndustryFacilitySprite, 102f),
             _ => (null, 24f),
         };
+    }
+
+    private (Texture2D? Texture, float MaxSide) DraftPoleSprite(string poleClassId) =>
+        poleClassId switch
+        {
+            "STANDARD_POLE" => (StandardPoleSprite, 70f),
+            "REINFORCED_POLE" => (ReinforcedPoleSprite, 78f),
+            _ => (null, 24f),
+        };
+
+    private (Texture2D? Texture, float MaxSide) DraftNodeSprite(string nodeClassId) =>
+        nodeClassId switch
+        {
+            "SMALL_SUBSTATION" => (SubstationSprite, 88f),
+            _ => (null, 24f),
+        };
+
+    private void DrawDraftSprite(
+        Texture2D? texture,
+        CoreMapPoint point,
+        float maxSide)
+    {
+        if (texture is null)
+        {
+            return;
+        }
+        Vector2 center = ToCanvas(point);
+        Vector2 spriteSize = FitSpriteSize(texture, maxSide * (1f + (ZoomIndex * 0.16f)));
+        float objectRadius = Math.Max(6f, Math.Max(spriteSize.X, spriteSize.Y) * 0.42f);
+        DrawTextureRect(
+            texture,
+            new Rect2(center - (spriteSize / 2f), spriteSize),
+            false,
+            new Color(1f, 0.86f, 0.62f, 0.88f));
+        DrawArc(center, objectRadius, 0f, Mathf.Tau, 32, new Color(Planned, 0.9f), 2f, true);
     }
 
     private static Vector2 FitSpriteSize(Texture2D texture, float maxSide)
@@ -1174,6 +1230,8 @@ internal sealed partial class CommercialMapView : Control
             DrawServiceArea(draft.Position, nodeClass.ServiceRadiusUnit);
         }
         DrawFootprint(draft.Position, nodeClass.FootprintRadiusUnit, Planned, 0.16f);
+        (Texture2D? texture, float maxSide) = DraftNodeSprite(draft.NodeClassId);
+        DrawDraftSprite(texture, draft.Position, maxSide);
         DrawCircle(ToCanvas(draft.Position), 6f, Planned);
     }
 

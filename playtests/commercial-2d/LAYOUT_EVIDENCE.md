@@ -16,8 +16,9 @@
 
 ![1920×1080 UI 100% 개별 art와 선택 경로](layout-evidence/1920x1080-ui100-discrete-art-path.png)
 
-- 지면은 400 내부단위 셀마다 asphalt 기반 PNG를 실제로 반복하고 scrub·concrete·gravel PNG를 낮은
-  농도의 개별 변형층으로 적용한다. 셀 경계선이나 gameplay 격자를 그리지 않는다.
+- 지면은 400 내부단위 셀마다 asphalt 기반 PNG를 실제로 반복하고 scrub·concrete·gravel PNG를 개별
+  변형층으로 적용한다. 네 reference를 모든 생성 호출에 직접 넣어 같은 3/4 사선 표면, 흑연·그을린
+  철·낡은 콘크리트와 작은 황동 마모를 사용하며 셀 경계선이나 gameplay 격자를 그리지 않는다.
 - 강 texture는 `CHEONGRYU_RIVER` polygon, 조밀한 주거 texture는 `EAST_RESIDENTIAL_BLOCK`, 공공시설
   texture는 `HOSPITAL_BLOCK` 안에만 있다. 동부 생활권과 의료원 block의 다른 지붕 구성이 화면에서도
   구분된다.
@@ -26,6 +27,19 @@
   예약 시설은 같은 sprite에 낮은 alpha·회색 ring·`예정` 문구를 함께 쓴다.
 - 전체 map plate 파일과 `CityPlate` 경로는 source·scene에서 제거됐다. 화면의 선로, 서비스 권역,
   선택·공급·예정 상태와 사건 timeline은 여전히 v2 typed state에서 갱신된다.
+
+## 1920×1080 · UI 100% · 실제 건설 중 class sprite
+
+![1920×1080 UI 100% 변전소 계획 sprite](layout-evidence/1920x1080-ui100-substation-draft.png)
+
+![1920×1080 UI 100% 전주 계획 sprite](layout-evidence/1920x1080-ui100-pole-draft.png)
+
+- 변전소 위치를 실제 map click으로 정한 뒤 완공 전에 `SMALL_SUBSTATION` sprite와 호박색 계획 tint를
+  함께 캡처했다. 서비스 반경·footprint·클릭 표식은 같은 typed draft에서 그린다.
+- 선로 시작점과 네 중간점을 실제 입력으로 정한 뒤 완공 전에 선택된 `STANDARD_POLE` class의 격자
+  철탑 sprite가 모든 intermediate point에 붙었음을 캡처했다. 보강 class는 별도 더 큰 철탑 PNG를
+  선택한다. smoke는 화면 저장뿐 아니라 renderer가 보고한 draft class와 Core draft class의 일치도
+  각 입력 직후 검사한다.
 
 ## 1920×1080 · UI 125% · 선택 경로와 ReduceMotion
 
@@ -47,5 +61,5 @@
 - 같은 입력 흐름의 Save & Quit은 campaign과 settings temp 파일이 없는 성공 뒤에만 제목으로
   이동했다.
 
-세 화면은 native OpenGL/Metal process에서 저장했다. 최소 지원·검수 해상도는 1920×1080뿐이며
+다섯 화면은 native OpenGL/Metal process에서 저장했다. 최소 지원·검수 해상도는 1920×1080뿐이며
 1280×720 모드나 증거는 이 후보에 만들지 않았다.

@@ -168,7 +168,8 @@ public sealed record CommercialCoreSnapshot(
     bool CampaignComplete,
     int CommandCount,
     int ChapterStartCommandCount,
-    int? RecentProjectCheckpointCommandCount)
+    int? RecentProjectCheckpointCommandCount,
+    IReadOnlyList<int> ChapterStartCommandCounts)
 {
     private IReadOnlyList<ThermalAssetMemory> _thermalMemory =
         Array.AsReadOnly(ThermalMemory.ToArray());
@@ -176,6 +177,8 @@ public sealed record CommercialCoreSnapshot(
         Array.AsReadOnly(CommittedPhaseResults.ToArray());
     private IReadOnlyList<CommercialChapterResultRecord> _chapterResults =
         Array.AsReadOnly(ChapterResults.ToArray());
+    private IReadOnlyList<int> _chapterStartCommandCounts =
+        Array.AsReadOnly(ChapterStartCommandCounts.ToArray());
 
     public IReadOnlyList<ThermalAssetMemory> ThermalMemory
     {
@@ -193,6 +196,12 @@ public sealed record CommercialCoreSnapshot(
     {
         get => _chapterResults;
         init => _chapterResults = Array.AsReadOnly(value.ToArray());
+    }
+
+    public IReadOnlyList<int> ChapterStartCommandCounts
+    {
+        get => _chapterStartCommandCounts;
+        init => _chapterStartCommandCounts = Array.AsReadOnly(value.ToArray());
     }
 }
 

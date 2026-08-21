@@ -102,7 +102,8 @@ public sealed record CommercialCoreChapter(
     IReadOnlyList<CommercialCoreOperatingPhase> OperatingPhases,
     CommercialStoryCard StandardResult,
     CommercialStoryCard? KeptResult,
-    CommercialStoryCard? DeferredResult)
+    CommercialStoryCard? DeferredResult,
+    bool ResetThermalMemoryAtStart = false)
 {
     private IReadOnlyList<string> _seedNodeIds = Array.AsReadOnly(SeedNodeIds.ToArray());
     private IReadOnlyList<string> _seedEdgeIds = Array.AsReadOnly(SeedEdgeIds.ToArray());

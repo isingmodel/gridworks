@@ -5,12 +5,16 @@ namespace Gridworks.Core.Release.V2;
 
 public static class CommercialCampaignLoader
 {
-    private static readonly string[] StageEChapterIds =
+    private static readonly string[] FinalChapterIds =
     [
         "FIRST_LIGHT",
         "SECOND_HEART",
         "SECOND_SOURCE",
         "NORTH_BANK_PROMISE",
+        "WHOSE_MARGIN",
+        "BEFORE_WATER_REACHES",
+        "SHUT_DOWN_TO_KEEP",
+        "LONGEST_NIGHT",
     ];
 
     private static readonly JsonSerializerOptions Options = new()
@@ -78,23 +82,29 @@ public static class CommercialCampaignLoader
         RequireText(definition.DisplayName, "$.displayName");
         Require(definition.WorldId == world.WorldId,
             "$.worldId must match the commercial world.");
-        Require(definition.Chapters.Count == StageEChapterIds.Length,
-            "Stage-E campaign must contain exactly the first four authored missions.");
+        Require(definition.Chapters.Count == FinalChapterIds.Length,
+            "Final campaign must contain exactly eight authored missions.");
         Require(
             definition.Chapters.Select(item => item.ChapterId)
-                .SequenceEqual(StageEChapterIds, StringComparer.Ordinal),
-            "Stage-E campaign missions must use the authored first-four order.");
+                .SequenceEqual(FinalChapterIds, StringComparer.Ordinal),
+            "Final campaign missions must use the authored eight-mission order.");
         Require(definition.Chapters.Take(3).All(item =>
                 item.Kind == CommercialCoreChapterKind.Prelude) &&
-            definition.Chapters[3].Kind == CommercialCoreChapterKind.CommercialCore,
-            "Stage-E campaign must contain three onboarding missions and one commercial chapter.");
+            definition.Chapters.Skip(3).All(item =>
+                item.Kind == CommercialCoreChapterKind.CommercialCore),
+            "Final campaign must contain three onboarding missions and five commercial chapters.");
+        CommercialStoryCard epilogue = definition.Epilogue ??
+            throw new CommercialCampaignValidationException("$.epilogue is required.");
+        RequireText(epilogue.Speaker, "$.epilogue.speaker");
+        RequireText(epilogue.Title, "$.epilogue.title");
+        RequireText(epilogue.Body, "$.epilogue.body");
 
         CommercialCoreLoader.ValidateChapters(definition.Chapters, world);
         CommercialCoreChapter first = definition.Chapters[0];
         Require(first.SeedCashUnit > 0,
-            "The first Stage-E mission must define starting cash.");
+            "The first mission must define starting cash.");
         Require(definition.Chapters.Skip(1).All(item => item.SeedCashUnit == 0),
-            "Later Stage-E missions carry cash and must not reset seedCashUnit.");
+            "Later missions carry cash and must not reset seedCashUnit.");
         HashSet<string> previousNodes = first.SeedNodeIds.ToHashSet(StringComparer.Ordinal);
         HashSet<string> previousEdges = first.SeedEdgeIds.ToHashSet(StringComparer.Ordinal);
         foreach (CommercialCoreChapter chapter in definition.Chapters.Skip(1))
@@ -102,23 +112,36 @@ public static class CommercialCampaignLoader
             HashSet<string> currentNodes = chapter.SeedNodeIds.ToHashSet(StringComparer.Ordinal);
             HashSet<string> currentEdges = chapter.SeedEdgeIds.ToHashSet(StringComparer.Ordinal);
             Require(previousNodes.IsSubsetOf(currentNodes) && previousEdges.IsSubsetOf(currentEdges),
-                "Stage-E authored map seeds must grow monotonically across missions.");
+                "Authored map seeds must grow monotonically across missions.");
             previousNodes = currentNodes;
             previousEdges = currentEdges;
         }
         Require(definition.Chapters.Take(3).All(item => item.Promise is null) &&
             definition.Chapters[3].Promise is not null,
-            "Only the fourth Stage-E mission may introduce the first city promise.");
+            "The fourth mission must introduce the first city promise after promise-free onboarding.");
         Require(world.Spatial.NodeClasses.Any(item =>
                 item.Kind == SpatialNodeKind.Substation && item.ServiceRadiusUnit > 0),
-            "The Stage-E world must define a positive substation service area.");
-        foreach (CommercialCoreChapter chapter in definition.Chapters)
+            "The final world must define a positive substation service area.");
+        foreach (CommercialCoreChapter chapter in definition.Chapters.Take(4))
         {
             Require(chapter.OperatingPhases.All(phase =>
                     phase.Policy == ThermalIntervalPolicy.ContinuousOnly &&
                     phase.Loads.All(load => !load.NamedEmergencyDuty && load.RequireSubstationPath)),
                 "The first four missions must require a substation service path and cannot authorize emergency thermal use.");
         }
+        Require(definition.Chapters.Skip(4).SelectMany(item => item.OperatingPhases).All(phase =>
+                phase.Loads.All(load => load.RequireSubstationPath)),
+            "Every final-campaign load must use a substation service path.");
+        Require(definition.Chapters[4].OperatingPhases.Any(phase =>
+                phase.Policy == ThermalIntervalPolicy.SafetyEmergencyAllowed),
+            "Mission five must introduce the campaign emergency-permission boundary.");
+        Require(definition.Chapters.Skip(5).All(chapter => chapter.OperatingPhases.All(phase =>
+                phase.Policy is ThermalIntervalPolicy.ContinuousOnly or
+                    ThermalIntervalPolicy.SafetyEmergencyAllowed)),
+            "Missions six through eight may only recombine the established thermal policies.");
+        Require(!definition.Chapters[0].ResetThermalMemoryAtStart &&
+            definition.Chapters.Skip(1).Count(item => item.ResetThermalMemoryAtStart) <= 1,
+            "Only one authored post-opening long gap may reset thermal memory.");
     }
 
     public static CommercialWorldDefinition CreateInitialWorld(

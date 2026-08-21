@@ -11,6 +11,7 @@ public sealed class CommercialCoreRun
     private readonly List<CommercialCoreCommand> _commands = [];
     private readonly List<ThermalIntervalResult> _committedPhaseResults = [];
     private readonly List<CommercialChapterResultRecord> _chapterResults = [];
+    private readonly List<int> _chapterStartCommandCounts = [];
 
     private ConstructionSession _construction = null!;
     private int _chapterIndex;
@@ -71,7 +72,8 @@ public sealed class CommercialCoreRun
             _campaignComplete,
             _commands.Count,
             _chapterStartCommandCount,
-            _recentProjectCheckpointCommandCount);
+            _recentProjectCheckpointCommandCount,
+            _chapterStartCommandCounts);
     }
 
     public IReadOnlyList<CommercialCoreCommand> GetCommands() =>
@@ -494,6 +496,10 @@ public sealed class CommercialCoreRun
 
     private void StartChapter(int chapterIndex, int chapterStartCommandCount)
     {
+        if (_chapterStartCommandCounts.Count == chapterIndex)
+        {
+            _chapterStartCommandCounts.Add(chapterStartCommandCount);
+        }
         SpatialWorldDefinition? carriedWorld = _carryWorldAcrossChapters && chapterIndex > 0
             ? _construction.GetSnapshot().World
             : null;
@@ -508,6 +514,10 @@ public sealed class CommercialCoreRun
         _pendingProjectStartCommandCount = null;
         _chapterStartCommandCount = chapterStartCommandCount;
         CommercialCoreChapter chapter = CurrentChapter;
+        if (chapter.ResetThermalMemoryAtStart)
+        {
+            _thermalMemory = Array.Empty<ThermalAssetMemory>();
+        }
         if (carriedWorld is null)
         {
             CommercialWorldDefinition chapterWorld = _campaign is null

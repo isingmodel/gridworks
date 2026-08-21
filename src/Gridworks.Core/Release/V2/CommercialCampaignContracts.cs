@@ -5,7 +5,8 @@ public sealed record CommercialCampaignDefinition(
     string CampaignId,
     string DisplayName,
     string WorldId,
-    IReadOnlyList<CommercialCoreChapter> Chapters)
+    IReadOnlyList<CommercialCoreChapter> Chapters,
+    CommercialStoryCard Epilogue)
 {
     public const string SupportedSchemaVersion = "gridworks.commercial.campaign.v2";
 

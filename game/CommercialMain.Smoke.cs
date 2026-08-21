@@ -307,39 +307,42 @@ internal sealed partial class CommercialMain
                 !_panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
                 _panel.AccessibilityName.Contains("현재 의무", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("조작 ·", StringComparison.Ordinal) &&
-                _map.AccessibilityName.Contains("예정 시설 3곳", StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RestartChapter)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.NewGame)),
                 "1920×1080·UI 125%에서 상용 캠페인·오디오와 고정 행동 영역을 열지 못했습니다.");
 
-            string recoveryDirectory = Path.Combine(
-                Path.GetTempPath(),
-                $"gridworks-stage-e-native-recovery-{Guid.NewGuid():N}");
-            Directory.CreateDirectory(recoveryDirectory);
-            string incompatiblePath = Path.Combine(
-                recoveryDirectory,
-                CommercialCampaignPersistenceStore.SaveFileName);
-            byte[] incompatibleBytes = [0xff, 0x00, 0x7f];
-            File.WriteAllBytes(incompatiblePath, incompatibleBytes);
-            _savePath = incompatiblePath;
-            _saveWritable = false;
-            _incompatibleSavePending = true;
-            await PressPanelAsync(CommercialPanelAction.NewGame, "비호환 저장 뒤 새 게임");
-            coreRun = _coreRun!;
-            string[] preserved = Directory.GetFiles(
-                recoveryDirectory,
-                "*.incompatible*.json");
-            Require(
-                _saveWritable && !_incompatibleSavePending &&
-                CommercialCampaignPersistenceStore.Load(incompatiblePath).Status ==
-                    CommercialCoreDocumentLoadStatus.Loaded &&
-                preserved.Length == 1 &&
-                File.ReadAllBytes(preserved[0]).SequenceEqual(incompatibleBytes),
-                "비호환 저장을 보존한 뒤 실제 새 게임 입력으로 쓰기 가능한 저장을 열지 못했습니다.");
-            Directory.Delete(recoveryDirectory, recursive: true);
-            _savePath = null;
+            if (_options.CampaignSmoke)
+            {
+                string recoveryDirectory = Path.Combine(
+                    Path.GetTempPath(),
+                    $"gridworks-stage-e-native-recovery-{Guid.NewGuid():N}");
+                Directory.CreateDirectory(recoveryDirectory);
+                string incompatiblePath = Path.Combine(
+                    recoveryDirectory,
+                    CommercialCampaignPersistenceStore.SaveFileName);
+                byte[] incompatibleBytes = [0xff, 0x00, 0x7f];
+                File.WriteAllBytes(incompatiblePath, incompatibleBytes);
+                _savePath = incompatiblePath;
+                _saveWritable = false;
+                _incompatibleSavePending = true;
+                await PressPanelAsync(CommercialPanelAction.NewGame, "비호환 저장 뒤 새 게임");
+                coreRun = _coreRun!;
+                string[] preserved = Directory.GetFiles(
+                    recoveryDirectory,
+                    "*.incompatible*.json");
+                Require(
+                    _saveWritable && !_incompatibleSavePending &&
+                    CommercialCampaignPersistenceStore.Load(incompatiblePath).Status ==
+                        CommercialCoreDocumentLoadStatus.Loaded &&
+                    preserved.Length == 1 &&
+                    File.ReadAllBytes(preserved[0]).SequenceEqual(incompatibleBytes),
+                    "비호환 저장을 보존한 뒤 실제 새 게임 입력으로 쓰기 가능한 저장을 열지 못했습니다.");
+                Directory.Delete(recoveryDirectory, recursive: true);
+                _savePath = null;
+            }
 
             await BuildCampaignSmokeSubstation(
                 new CoreMapPoint(2200, 750),
@@ -439,7 +442,7 @@ internal sealed partial class CommercialMain
                 coreRun.GetSnapshot().Chapter.ChapterId == "NORTH_BANK_PROMISE" &&
                 _panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
                 _panel.AccessibilityName.Contains("선택 필요", StringComparison.Ordinal) &&
-                !_map.AccessibilityName.Contains("예정 시설", StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains("예정 시설 1곳", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("운영 인수 완료", StringComparison.Ordinal),
                 "두 번째 전원 결과와 본편 전환을 제시하지 못했습니다.");
 
@@ -469,15 +472,16 @@ internal sealed partial class CommercialMain
                 "북안 운영안이 연속 한계 안에서 의무와 약속을 공급하지 못했습니다.");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "북안 운영안 승인");
             await NextFrame();
-            CommercialCoreSnapshot complete = coreRun.GetSnapshot();
-            CommercialChapterResultRecord result = complete.ChapterResults[^1];
+            CommercialCoreSnapshot checkpoint = coreRun.GetSnapshot();
+            CommercialChapterResultRecord result = checkpoint.ChapterResults[^1];
             CommercialResultDemandFact fact = result.DemandFacts.Single(item =>
                 item.DemandId == "NORTH_BANK_PROMISE_LOAD");
             Require(
-                complete.CampaignComplete &&
-                complete.ChapterResults.Count == 4 &&
+                !checkpoint.CampaignComplete &&
+                checkpoint.Chapter.ChapterId == "WHOSE_MARGIN" &&
+                checkpoint.ChapterResults.Count == 4 &&
                 fact.Supplied && fact.SourceNodeId is not null &&
-                complete.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1") &&
+                checkpoint.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1") &&
                 _panel.AccessibilityName.Contains("실제 의무", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("정수장", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("도시 약속 · 지킴", StringComparison.Ordinal) &&
@@ -487,17 +491,251 @@ internal sealed partial class CommercialMain
                 _panel.AccessibilityName.Contains("보호정지", StringComparison.Ordinal),
                 "결과 카드가 실제 공급원·경로·의무·약속 사실로 첫 네 임무를 닫지 못했습니다.");
 
-            GD.Print(
-                "COMMERCIAL_CAMPAIGN_STAGE_E_SMOKE_PASS " +
-                $"missions={complete.ChapterResults.Count} choice={result.PromiseDecision} " +
-                $"edges={complete.Construction.World.Edges.Count} path={fact.PathEdgeIds.Count} " +
-                "carry=yes rollback=recent preview=approval input=focus-keyboard " +
-                "recovery=incompatible-preserved projection=live resolution=1920x1080");
+            if (_options.CampaignCheckpointSmoke)
+            {
+                Require(_savePath is not null &&
+                    CommercialCampaignPersistenceStore.Load(_savePath).Status ==
+                        CommercialCoreDocumentLoadStatus.Loaded,
+                    "네 번째 임무 뒤 fresh-process 재개용 저장을 남기지 못했습니다.");
+                GD.Print(
+                    "COMMERCIAL_CAMPAIGN_STAGE_F_CHECKPOINT_SMOKE_PASS " +
+                    $"missions={checkpoint.ChapterResults.Count} next={checkpoint.Chapter.ChapterId} " +
+                    $"edges={checkpoint.Construction.World.Edges.Count} input=focus-keyboard " +
+                    "save=mission4-to-5 resolution=1920x1080");
+            }
+            else
+            {
+                GD.Print(
+                    "COMMERCIAL_CAMPAIGN_STAGE_E_SMOKE_PASS " +
+                    $"missions={checkpoint.ChapterResults.Count} choice={result.PromiseDecision} " +
+                    $"edges={checkpoint.Construction.World.Edges.Count} path={fact.PathEdgeIds.Count} " +
+                    "carry=yes rollback=recent preview=approval input=focus-keyboard " +
+                    "recovery=incompatible-preserved projection=live checkpoint=mission5 resolution=1920x1080");
+            }
             GetTree().Quit(0);
         }
         catch (Exception exception)
         {
             GD.PushError($"상용 캠페인 smoke 실패: {exception}");
+            GetTree().Quit(1);
+        }
+    }
+
+    private async void RunCampaignCompletionSmoke()
+    {
+        try
+        {
+            await NextFrame();
+            GetWindow().Size = new Vector2I(1920, 1080);
+            await NextFrame();
+            ApplyUiScale(this, 1.25f);
+            await NextFrame();
+            CommercialCoreRun coreRun = _coreRun
+                ?? throw new InvalidOperationException("상용 핵심 흐름 runner가 없습니다.");
+            CommercialCoreSnapshot resumed = coreRun.GetSnapshot();
+            Require(
+                resumed.Chapter.ChapterId == "WHOSE_MARGIN" &&
+                resumed.ChapterResults.Count == 4 &&
+                resumed.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1") &&
+                _panel.AccessibilityName.Contains("더운 저녁의 여유", StringComparison.Ordinal),
+                "별도 process가 네 번째 임무 저장에서 다섯 번째 임무로 이어지지 못했습니다.");
+
+            await PressPanelAsync(
+                CommercialPanelAction.CycleLineClass,
+                "산업단지 일반 선종 확인");
+            await PressPanelAsync(
+                CommercialPanelAction.CycleLineClass,
+                "산업단지 보강 선종 선택");
+            Require(_lineClassId == ReinforcedLineClassId &&
+                _poleClassId == ReinforcedPoleClassId,
+                "다섯 번째 임무에서 보강 선로와 보강 전신주를 화면 입력으로 선택하지 못했습니다.");
+
+            await BuildCampaignSmokeSubstation(
+                new CoreMapPoint(2700, 1150),
+                "산업단지 서비스 변전소");
+            await BuildCampaignSmokeLine(
+                "WEST_AUXILIARY",
+                "PLAYER_SUBSTATION_3",
+                [
+                    new CoreMapPoint(650, 900),
+                    new CoreMapPoint(1050, 1050),
+                    new CoreMapPoint(1650, 1050),
+                    new CoreMapPoint(2100, 1050),
+                    new CoreMapPoint(2600, 1100),
+                ],
+                "산업단지 보강 간선");
+            await PressPanelAsync(
+                CommercialPanelAction.CycleLineClass,
+                "산업단지 일반 인입선 선택");
+            Require(_lineClassId == StandardLineClassId && _poleClassId == StandardPoleClassId,
+                "화면 선종 선택이 일반 선로와 일반 전신주를 함께 선택하지 못했습니다.");
+            await BuildCampaignSmokeLine(
+                "PLAYER_SUBSTATION_3",
+                "INDUSTRY_TERMINAL",
+                Array.Empty<CoreMapPoint>(),
+                "산업단지 일반 인입선");
+            await PressPanelAsync(CommercialPanelAction.KeepPromise, "폭염 증산 약속 지킴");
+            CommercialDecisionPreview hot = coreRun.PreviewDecisionWindow();
+            Require(hot.Accepted && hot.PhaseResults[0].Demands.Single(item =>
+                    item.DemandId == "INDUSTRY_MARGIN_PROMISE").EmergencyAssetIds.Count > 0,
+                "다섯 번째 임무가 공개된 비상 열여유로 증산 약속을 공급하지 못했습니다.");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "폭염 운영 승인");
+            await NextFrame();
+            Require(coreRun.GetSnapshot().DecisionWindowIndex == 1 &&
+                _panel.AccessibilityName.Contains("보호정지 뒤에도 아침은 옵니다", StringComparison.Ordinal),
+                "다섯 번째 임무의 보호정지 결과 이야기와 다음 결정 경계를 표시하지 못했습니다.");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "보호정지 뒤 아침 운영 승인");
+            await NextFrame();
+            Require(coreRun.GetSnapshot().Chapter.ChapterId == "BEFORE_WATER_REACHES" &&
+                coreRun.GetSnapshot().ChapterResults.Count == 5,
+                "다섯 번째 임무의 두 운영 경계를 사실 기록으로 닫지 못했습니다.");
+            await PressPanelAsync(
+                CommercialPanelAction.CycleLineClass,
+                "범람 우회 보강 선종 선택");
+            Require(_lineClassId == ReinforcedLineClassId &&
+                _poleClassId == ReinforcedPoleClassId,
+                "화면 선종 선택이 보강 선로와 보강 전신주를 함께 선택하지 못했습니다.");
+
+            await BuildCampaignSmokeLine(
+                "WATER_TERMINAL",
+                "PLAYER_SUBSTATION_3",
+                Array.Empty<CoreMapPoint>(),
+                "범람 고지대 우회선");
+            CommercialDecisionPreview flood = coreRun.PreviewDecisionWindow();
+            Require(flood.Accepted && flood.PhaseResults[0].Demands.All(item => item.Supplied),
+                "여섯 번째 임무의 범람 우회선이 수술과 급수 의무를 공급하지 못했습니다.");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "범람 통제 운영 승인");
+            await NextFrame();
+            Require(coreRun.GetSnapshot().Chapter.ChapterId == "SHUT_DOWN_TO_KEEP" &&
+                coreRun.GetSnapshot().ThermalMemory.All(item => !item.ProtectiveOutage) &&
+                coreRun.GetSnapshot().Chapter.ResetThermalMemoryAtStart &&
+                coreRun.GetSnapshot().Chapter.Briefing.Title.Contains("3주 뒤", StringComparison.Ordinal),
+                "작성된 장간 시간경과가 일곱 번째 임무의 열 상태를 복귀시키지 못했습니다.");
+
+            await BuildCampaignSmokeLine(
+                "PLAYER_SUBSTATION_2",
+                "PLAYER_POLE_14",
+                Array.Empty<CoreMapPoint>(),
+                "계획정지 변전소 연계");
+            Require(_panel.AccessibilityName.Contains("3주 뒤", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("모든 설비가 연속 운전 가능 상태로 복귀", StringComparison.Ordinal),
+                "일곱 번째 임무 화면이 작성된 장간 열 상태 복귀를 알리지 못했습니다.");
+            await PressPanelAsync(CommercialPanelAction.KeepPromise, "계획정지 복구 약속 지킴");
+            Require(coreRun.PreviewDecisionWindow().Accepted,
+                "일곱 번째 임무의 계획정지 우회 운영안을 승인할 수 없습니다.");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "계획정지 운영 승인");
+            await NextFrame();
+            Require(coreRun.GetSnapshot().Chapter.ChapterId == "LONGEST_NIGHT" &&
+                coreRun.GetSnapshot().ChapterResults.Count == 7,
+                "일곱 번째 임무 결과가 마지막 임무로 이어지지 못했습니다.");
+
+            await BuildCampaignSmokeLine(
+                "HOSPITAL_TERMINAL",
+                "PLAYER_POLE_14",
+                Array.Empty<CoreMapPoint>(),
+                "가장 긴 밤 의료원 연계");
+            await PressPanelAsync(CommercialPanelAction.DeferPromise, "마지막 야간 증산 약속 미룸");
+            Require(coreRun.PreviewDecisionWindow().Accepted,
+                "여덟 번째 임무의 폭염 운영안을 승인할 수 없습니다.");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "마지막 폭염 운영 승인");
+            await NextFrame();
+            Require(coreRun.GetSnapshot().DecisionWindowIndex == 1 &&
+                _panel.AccessibilityName.Contains("강변 통제와 서부 전원 정지", StringComparison.Ordinal),
+                "여덟 번째 임무의 복합재난 전환 이야기를 표시하지 못했습니다.");
+            Require(coreRun.PreviewDecisionWindow().Accepted,
+                "여덟 번째 임무의 복합재난 운영안을 승인할 수 없습니다.");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "마지막 복합재난 운영 승인");
+            await NextFrame();
+
+            CommercialCoreSnapshot complete = coreRun.GetSnapshot();
+            Require(complete.CampaignComplete && complete.ChapterResults.Count == 8 &&
+                complete.ChapterStartCommandCounts.Count == 8 &&
+                _panel.AccessibilityName.Contains("여덟 임무 실제 기록", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("약속 미룸", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("잔액", StringComparison.Ordinal),
+                "여덟 임무를 실제 사실 비교 기록으로 완료하지 못했습니다.");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "완주 에필로그 열기");
+            await NextFrame();
+            Require(_showEpilogue &&
+                _panel.AccessibilityName.Contains("청류시 전력망 운영 인계", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("원하는 장의 시작 상태", StringComparison.Ordinal),
+                "완주 뒤 작성된 에필로그와 장 선택 안내를 표시하지 못했습니다.");
+            string completedSavePath = _savePath
+                ?? throw new InvalidOperationException("완료 저장 경로가 없습니다.");
+            CommercialCampaignSaveLoadResult completedLoad =
+                CommercialCampaignPersistenceStore.Load(completedSavePath);
+            Require(completedLoad.Status == CommercialCoreDocumentLoadStatus.Loaded,
+                "여덟 번째 임무 뒤 완료 저장을 기록하지 못했습니다.");
+            CommercialCoreRun freshComplete = CommercialCampaignSaveCodec.Restore(
+                completedLoad.Save!,
+                _commercialWorld,
+                _worldBytes,
+                _campaign,
+                _campaignBytes);
+            Require(freshComplete.GetSnapshot().CampaignComplete &&
+                freshComplete.GetSnapshot().ChapterResults.Count == 8,
+                "완료 저장을 fresh replay로 동일한 완주 상태에 복원하지 못했습니다.");
+
+            GD.Print(
+                "COMMERCIAL_CAMPAIGN_STAGE_F_COMPLETION_SMOKE_PASS " +
+                $"missions={complete.ChapterResults.Count} results=factual epilogue=shown " +
+                "resume=mission5-to-8 save=complete input=focus-keyboard resolution=1920x1080");
+            GetTree().Quit(0);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"상용 캠페인 Stage-F 완주 smoke 실패: {exception}");
+            GetTree().Quit(1);
+        }
+    }
+
+    private async void RunCampaignCompletedResumeSmoke()
+    {
+        try
+        {
+            await NextFrame();
+            GetWindow().Size = new Vector2I(1920, 1080);
+            await NextFrame();
+            ApplyUiScale(this, 1.25f);
+            await NextFrame();
+            CommercialCoreRun coreRun = _coreRun
+                ?? throw new InvalidOperationException("상용 핵심 흐름 runner가 없습니다.");
+            CommercialCoreSnapshot restored = coreRun.GetSnapshot();
+            Require(restored.CampaignComplete && restored.ChapterResults.Count == 8 &&
+                _showEpilogue &&
+                _panel.AccessibilityName.Contains("청류시 전력망 운영 인계", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("첫 불빛 · 안전 의무", StringComparison.Ordinal),
+                "새 process가 완료 저장의 에필로그와 여덟 사실 기록을 복원하지 못했습니다.");
+            for (int index = 1; index < _campaign.Chapters.Count; index++)
+            {
+                await PressPanelAsync(
+                    CommercialPanelAction.NextThermalPhase,
+                    $"완료 장 선택 {index + 1}");
+            }
+            Require(_completedChapterSelectionIndex == 7 &&
+                _panel.AccessibilityName.Contains("8/8 가장 긴 밤", StringComparison.Ordinal),
+                "실제 키보드 입력으로 여덟 번째 장 시작 상태를 선택하지 못했습니다.");
+            await PressPanelAsync(CommercialPanelAction.RestartChapter, "선택한 마지막 장부터 다시 시작");
+            await NextFrame();
+            CommercialCoreSnapshot selected = _coreRun!.GetSnapshot();
+            Require(!selected.CampaignComplete && selected.Chapter.ChapterId == "LONGEST_NIGHT" &&
+                selected.ChapterResults.Count == 7 && selected.DecisionWindowIndex == 0 &&
+                _panel.AccessibilityName.Contains("앞서 만든 망과 약속", StringComparison.Ordinal),
+                "선택한 여덟 번째 장의 정확한 시작 journal 상태로 돌아가지 못했습니다.");
+            Require(_savePath is not null &&
+                CommercialCampaignPersistenceStore.Load(_savePath).Status ==
+                    CommercialCoreDocumentLoadStatus.Loaded,
+                "선택 장 시작 상태를 새 진행으로 저장하지 못했습니다.");
+
+            GD.Print(
+                "COMMERCIAL_CAMPAIGN_STAGE_F_COMPLETED_RESUME_SMOKE_PASS " +
+                $"restored=complete selected={selected.Chapter.ChapterId} prior-results=" +
+                $"{selected.ChapterResults.Count} input=focus-keyboard resolution=1920x1080");
+            GetTree().Quit(0);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"상용 캠페인 Stage-F 완료 재개 smoke 실패: {exception}");
             GetTree().Quit(1);
         }
     }

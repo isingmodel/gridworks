@@ -115,6 +115,7 @@ internal sealed class CommercialChecks
             ("commercial-core-save-v3", CheckCommercialCoreSaveV3),
             ("strict-commercial-campaign-loader", CheckStrictCommercialCampaignLoader),
             ("commercial-campaign-first-four-carry-save", CheckCommercialCampaignFirstFourCarrySave),
+            ("commercial-campaign-final-eight-epilogue", CheckCommercialCampaignFinalEightEpilogue),
         ];
 
         List<string> failures = [];
@@ -815,14 +816,21 @@ internal sealed class CommercialChecks
             _commercialWorld);
         Equal(_campaign.CampaignId, fromText.CampaignId, "campaign text loader ID");
         Equal(_campaign.CampaignId, fromBytes.CampaignId, "campaign byte loader ID");
-        Equal(4, _campaign.Chapters.Count, "Stage-E exact chapter count");
+        Equal(8, _campaign.Chapters.Count, "final exact chapter count");
         Check(_campaign.Chapters.Select(item => item.ChapterId).SequenceEqual(
-                new[] { "FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE", "NORTH_BANK_PROMISE" },
+                new[]
+                {
+                    "FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE", "NORTH_BANK_PROMISE",
+                    "WHOSE_MARGIN", "BEFORE_WATER_REACHES", "SHUT_DOWN_TO_KEEP", "LONGEST_NIGHT",
+                },
                 StringComparer.Ordinal),
-            "Stage-E authored chapter order");
-        Check(_campaign.Chapters.SelectMany(item => item.OperatingPhases).All(phase =>
+            "final authored chapter order");
+        Check(_campaign.Chapters.Take(4).SelectMany(item => item.OperatingPhases).All(phase =>
                 phase.Policy == ThermalIntervalPolicy.ContinuousOnly),
             "Stage-E opened emergency thermal permission before mission five");
+        Check(_campaign.Chapters[4].OperatingPhases.Any(phase =>
+                phase.Policy == ThermalIntervalPolicy.SafetyEmergencyAllowed),
+            "mission five did not open the authored emergency permission boundary");
 
         string trimmed = _campaignJson.TrimStart();
         ExpectCampaignRejected(
@@ -830,6 +838,7 @@ internal sealed class CommercialChecks
             $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
         ExpectCampaignRejected("unknown campaign root field", root => root["future"] = true);
         ExpectCampaignRejected("missing campaign ID", root => root.Remove("campaignId"));
+        ExpectCampaignRejected("missing campaign epilogue", root => root.Remove("epilogue"));
         ExpectCampaignRejected(
             "wrong campaign world ID",
             root => root["worldId"] = "OTHER_WORLD");
@@ -845,6 +854,19 @@ internal sealed class CommercialChecks
             root => Object(JsonArrayProperty(
                 Object(JsonArrayProperty(root, "chapters")[2]!),
                 "operatingPhases")[0]!)["policy"] = "SafetyEmergencyAllowed");
+        ExpectCampaignRejected(
+            "mission five without emergency permission",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[4]!),
+                "operatingPhases")[0]!)["policy"] = "ContinuousOnly");
+        ExpectCampaignRejected(
+            "long-gap reset at opening",
+            root => Object(JsonArrayProperty(root, "chapters")[0]!)[
+                "resetThermalMemoryAtStart"] = true);
+        ExpectCampaignRejected(
+            "multiple long-gap resets",
+            root => Object(JsonArrayProperty(root, "chapters")[5]!)[
+                "resetThermalMemoryAtStart"] = true);
         ExpectCampaignRejected(
             "direct terminal service allowed",
             root => Object(JsonArrayProperty(
@@ -902,9 +924,10 @@ internal sealed class CommercialChecks
         CommercialCoreCommandResult keepFinish = keep.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.ApproveDecisionWindow));
         CoreAccepted(keepFinish, "keep first-four completion");
-        Check(keepFinish.Snapshot.CampaignComplete &&
-            keepFinish.Snapshot.ChapterResults.Count == 4,
-            "Stage-E campaign did not complete four factual results");
+        Check(!keepFinish.Snapshot.CampaignComplete &&
+            keepFinish.Snapshot.ChapterResults.Count == 4 &&
+            keepFinish.Snapshot.Chapter.ChapterId == "WHOSE_MARGIN",
+            "Stage-E checkpoint did not retain four factual results before mission five");
         Check(keepFinish.Snapshot.Construction.World.Edges.Count > carriedEdgeCount &&
             keepFinish.Snapshot.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1"),
             "campaign did not carry the player-built first-light network through mission four");
@@ -1072,6 +1095,360 @@ internal sealed class CommercialChecks
             PromiseDecision: PromiseDecision.Defer)), "continuous-only defer recovery");
         Check(noEarlyEmergency.PreviewDecisionWindow().Accepted,
             "mission-four continuous-only boundary could not recover by deferring its optional promise");
+    }
+
+    private void CheckCommercialCampaignFinalEightEpilogue()
+    {
+        CommercialCoreRun run = CompleteCampaignFirstFour();
+        CommercialCoreSnapshot fifthStart = run.GetSnapshot();
+        Equal("WHOSE_MARGIN", fifthStart.Chapter.ChapterId, "mission-five start");
+        Check(fifthStart.Construction.World.Nodes.Single(item =>
+                item.NodeId == "INDUSTRY_TERMINAL").Commissioned,
+            "industry terminal did not activate at mission five");
+        IReadOnlyList<CommercialCoreCommand> fifthStartCommands = run.GetCommands().ToArray();
+        string fifthStartJson = JsonSerializer.Serialize(fifthStart);
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "mission-five keep choice before construction");
+        CommercialDecisionPreview missingIndustry = run.PreviewDecisionWindow();
+        Check(!missingIndustry.Accepted &&
+            missingIndustry.Error == CommercialCoreError.KeptPromiseFailed &&
+            missingIndustry.FailedDemandId == "INDUSTRY_MARGIN_PROMISE" &&
+            missingIndustry.SupplyFailure == ThermalSupplyFailure.NoPath,
+            "mission five approved a kept industry promise without service construction");
+        CoreAccepted(run.RestartChapter(), "mission-five missing-service recovery restart");
+        Equal(fifthStartJson, JsonSerializer.Serialize(run.GetSnapshot()),
+            "mission-five failure restart did not restore the exact chapter start");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "mission-five keep choice after restart");
+
+        BuildMissionFiveIndustryService(run, "STANDARD_LINE");
+        CommercialDecisionPreview hot = run.PreviewDecisionWindow();
+        Check(hot.Accepted && hot.PhaseResults[0].Demands.Single(item =>
+                item.DemandId == "INDUSTRY_MARGIN_PROMISE").EmergencyAssetIds.Count > 0,
+            $"mission-five standard prototype failed: {hot.Error}/{hot.FailedDemandId}/" +
+            $"{hot.SupplyFailure}/{hot.FirstBottleneckAssetId}");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)), "mission-five hot approval");
+        Check(run.GetSnapshot().ThermalMemory.Any(item => item.ProtectiveOutage),
+            "mission-five emergency use did not create protective memory");
+        CommercialDecisionPreview morning = run.PreviewDecisionWindow();
+        Check(morning.Accepted && morning.PhaseResults[0].Assets.Any(item =>
+                item.CurrentState == ThermalOperatingState.ProtectiveOutage),
+            "mission-five next safety projection omitted protective outage");
+        CommercialCoreCommandResult fifthFinish = run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(fifthFinish, "mission-five morning approval");
+        Check(fifthFinish.CompletedChapter!.EmergencyAssetIds.Count > 0 &&
+            fifthFinish.CompletedChapter.ProtectiveOutageAssetIds.Count > 0,
+            "mission-five factual result omitted emergency/protective assets");
+
+        CommercialCoreRun reinforcedMargin = CommercialCoreRun.Restore(
+            _commercialWorld,
+            _campaign,
+            fifthStartCommands);
+        BuildMissionFiveIndustryService(reinforcedMargin, "REINFORCED_LINE");
+        CoreAccepted(reinforcedMargin.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "reinforced mission-five keep choice");
+        CommercialDecisionPreview reinforcedHot = reinforcedMargin.PreviewDecisionWindow();
+        Check(reinforcedHot.Accepted && reinforcedHot.PhaseResults.SelectMany(item => item.Assets)
+                .All(item => item.CurrentState != ThermalOperatingState.Emergency),
+            "mission-five reinforced prototype did not stay inside continuous limits");
+        CoreAccepted(reinforcedMargin.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)),
+            "reinforced mission-five hot approval");
+        CoreAccepted(reinforcedMargin.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)),
+            "reinforced mission-five morning approval");
+        CommercialChapterResultRecord reinforcedMarginResult =
+            reinforcedMargin.GetSnapshot().ChapterResults[^1];
+        Check(fifthFinish.CompletedChapter.RemainingCashUnit >
+                reinforcedMarginResult.RemainingCashUnit &&
+            hot.ProjectedMinute < reinforcedHot.ProjectedMinute &&
+            fifthFinish.CompletedChapter.EmergencyAssetIds.Count > 0 &&
+            reinforcedMarginResult.EmergencyAssetIds.Count == 0,
+            "mission-five standard/reinforced prototypes lost their cash-time versus thermal-state tradeoff");
+        Equal("BEFORE_WATER_REACHES", run.GetSnapshot().Chapter.ChapterId,
+            "mission-six transition");
+
+        IReadOnlyList<CommercialCoreCommand> sixthStartCommands = run.GetCommands().ToArray();
+        string sixthStartJson = JsonSerializer.Serialize(run.GetSnapshot());
+
+        CommercialDecisionPreview noFloodBypass = run.PreviewDecisionWindow();
+        Check(!noFloodBypass.Accepted &&
+            noFloodBypass.Error == CommercialCoreError.SafetyDutyFailed,
+            "mission six did not require additional flood-surviving capacity");
+        CoreAccepted(run.RestartChapter(), "mission-six missing-bypass recovery restart");
+        Equal(sixthStartJson, JsonSerializer.Serialize(run.GetSnapshot()),
+            "mission-six failure restart did not restore the exact chapter start");
+        BuildCampaignLine(
+            run,
+            "WATER_TERMINAL",
+            "PLAYER_SUBSTATION_3",
+            Array.Empty<MapPoint>(),
+            "standard flood high-ground bypass",
+            lineClassId: "STANDARD_LINE",
+            poleClassId: "STANDARD_POLE");
+        CommercialDecisionPreview flood = run.PreviewDecisionWindow();
+        Check(flood.Accepted && flood.PhaseResults[0].Demands
+                .Where(item => item.DemandId is "FLOOD_WATER_DUTY" or "FLOOD_HOSPITAL_DUTY")
+                .All(item => item.Supplied),
+            $"mission-six bypass failed: {flood.Error}/{flood.FailedDemandId}/" +
+            $"{flood.SupplyFailure}/{flood.FirstBottleneckAssetId}");
+
+        CommercialCoreRun reinforcedFlood = CommercialCoreRun.Restore(
+            _commercialWorld,
+            _campaign,
+            sixthStartCommands);
+        BuildCampaignLine(
+            reinforcedFlood,
+            "WATER_TERMINAL",
+            "PLAYER_SUBSTATION_3",
+            Array.Empty<MapPoint>(),
+            "reinforced flood high-ground bypass");
+        CommercialDecisionPreview reinforcedFloodPreview = reinforcedFlood.PreviewDecisionWindow();
+        Check(reinforcedFloodPreview.Accepted,
+            $"mission-six reinforced prototype failed: {reinforcedFloodPreview.Error}/" +
+            $"{reinforcedFloodPreview.FailedDemandId}/{reinforcedFloodPreview.SupplyFailure}/" +
+            $"{reinforcedFloodPreview.FirstBottleneckAssetId}");
+        ThermalDemandResult waterPrototype = flood.PhaseResults[0].Demands.Single(item =>
+            item.DemandId == "FLOOD_WATER_DUTY");
+        ThermalDemandResult reinforcedWater = reinforcedFloodPreview.PhaseResults[0].Demands.Single(item =>
+            item.DemandId == "FLOOD_WATER_DUTY");
+        Check(flood.ProjectedCashUnit > reinforcedFloodPreview.ProjectedCashUnit &&
+            flood.ProjectedMinute < reinforcedFloodPreview.ProjectedMinute &&
+            waterPrototype.MinimumRemainingLimitKw < reinforcedWater.MinimumRemainingLimitKw,
+            "mission-six standard/reinforced prototypes lost their cash-time versus flood-margin tradeoff: " +
+            $"cash={flood.ProjectedCashUnit}/{reinforcedFloodPreview.ProjectedCashUnit}, " +
+            $"minute={flood.ProjectedMinute}/{reinforcedFloodPreview.ProjectedMinute}, " +
+            $"water-margin={waterPrototype.MinimumRemainingLimitKw}/" +
+            $"{reinforcedWater.MinimumRemainingLimitKw}");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)), "mission-six flood approval");
+        Equal("SHUT_DOWN_TO_KEEP", run.GetSnapshot().Chapter.ChapterId,
+            "mission-seven transition");
+        Check(run.GetSnapshot().ThermalMemory.All(item => !item.ProtectiveOutage),
+            "authored long gap did not reset every thermal asset before mission seven");
+        IReadOnlyList<CommercialCoreCommand> seventhStartCommands = run.GetCommands().ToArray();
+        string seventhStart = JsonSerializer.Serialize(run.GetSnapshot());
+
+        CommercialCoreRun overdueMaintenance = CommercialCoreRun.Restore(
+            _commercialWorld,
+            _campaign,
+            seventhStartCommands);
+        BuildCampaignSubstation(
+            overdueMaintenance,
+            new MapPoint(160, 160),
+            "mission-seven overdue substation one");
+        BuildCampaignSubstation(
+            overdueMaintenance,
+            new MapPoint(420, 160),
+            "mission-seven overdue substation two");
+        BuildCampaignSubstation(
+            overdueMaintenance,
+            new MapPoint(680, 160),
+            "mission-seven overdue substation three");
+        BuildCampaignSubstation(
+            overdueMaintenance,
+            new MapPoint(2600, 200),
+            "mission-seven overdue substation four");
+        CoreAccepted(overdueMaintenance.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Defer)), "mission-seven overdue defer choice");
+        CommercialDecisionPreview overdueMaintenancePreview =
+            overdueMaintenance.PreviewDecisionWindow();
+        Check(!overdueMaintenancePreview.Accepted &&
+            overdueMaintenancePreview.Error == CommercialCoreError.DeadlineExceeded &&
+            overdueMaintenancePreview.ProjectedMinute >
+                overdueMaintenance.GetSnapshot().Chapter.DeadlineMinute,
+            "mission seven did not reject a project beyond its authored deadline");
+        CoreAccepted(overdueMaintenance.RestartChapter(), "mission-seven deadline recovery restart");
+        Equal(seventhStart, JsonSerializer.Serialize(overdueMaintenance.GetSnapshot()),
+            "mission-seven deadline recovery did not restore the exact chapter start");
+
+        BuildCampaignLine(
+            run,
+            "PLAYER_SUBSTATION_2",
+            "PLAYER_POLE_14",
+            Array.Empty<MapPoint>(),
+            "planned-outage substation tie");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "mission-seven keep choice");
+        CommercialDecisionPreview maintenance = run.PreviewDecisionWindow();
+        Check(maintenance.Accepted && maintenance.PhaseResults[0].Demands.All(item => item.Supplied),
+            $"mission-seven keep prototype failed: {maintenance.Error}/" +
+            $"{maintenance.FailedDemandId}/{maintenance.SupplyFailure}/" +
+            $"{maintenance.FirstBottleneckAssetId}");
+        CommercialCoreCommandResult maintenanceFinish = run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(maintenanceFinish, "mission-seven maintenance approval");
+
+        CommercialCoreRun deferredMaintenance = CommercialCoreRun.Restore(
+            _commercialWorld,
+            _campaign,
+            seventhStartCommands);
+        BuildCampaignLine(
+            deferredMaintenance,
+            "PLAYER_SUBSTATION_2",
+            "PLAYER_POLE_14",
+            Array.Empty<MapPoint>(),
+            "deferred planned-outage substation tie");
+        CoreAccepted(deferredMaintenance.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Defer)), "mission-seven defer choice");
+        CommercialDecisionPreview deferredMaintenancePreview =
+            deferredMaintenance.PreviewDecisionWindow();
+        Check(deferredMaintenancePreview.Accepted,
+            $"mission-seven defer prototype failed: {deferredMaintenancePreview.Error}/" +
+            $"{deferredMaintenancePreview.FailedDemandId}/" +
+            $"{deferredMaintenancePreview.SupplyFailure}/" +
+            $"{deferredMaintenancePreview.FirstBottleneckAssetId}");
+        CommercialCoreCommandResult deferredMaintenanceFinish =
+            deferredMaintenance.Apply(new CommercialCoreCommand(
+                CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(deferredMaintenanceFinish, "mission-seven deferred maintenance approval");
+        Check(maintenanceFinish.CompletedChapter!.PromiseDecision == PromiseDecision.Keep &&
+            deferredMaintenanceFinish.CompletedChapter!.PromiseDecision == PromiseDecision.Defer,
+            "mission-seven valid prototypes did not preserve their explicit promise tradeoff");
+        Equal("LONGEST_NIGHT", run.GetSnapshot().Chapter.ChapterId,
+            "mission-eight transition");
+        IReadOnlyList<CommercialCoreCommand> eighthStartCommands = run.GetCommands().ToArray();
+        string eighthStartSnapshot = JsonSerializer.Serialize(run.GetSnapshot());
+
+        CommercialCoreRun overdueNight = CommercialCoreRun.Restore(
+            _commercialWorld,
+            _campaign,
+            eighthStartCommands);
+        BuildCampaignSubstation(
+            overdueNight,
+            new MapPoint(160, 160),
+            "mission-eight overdue substation one");
+        BuildCampaignSubstation(
+            overdueNight,
+            new MapPoint(420, 160),
+            "mission-eight overdue substation two");
+        BuildCampaignSubstation(
+            overdueNight,
+            new MapPoint(680, 160),
+            "mission-eight overdue substation three");
+        BuildCampaignSubstation(
+            overdueNight,
+            new MapPoint(2600, 200),
+            "mission-eight overdue substation four");
+        BuildCampaignSubstation(
+            overdueNight,
+            new MapPoint(160, 1880),
+            "mission-eight overdue substation five");
+        CoreAccepted(overdueNight.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Defer)), "mission-eight overdue defer choice");
+        CommercialDecisionPreview overdueNightPreview = overdueNight.PreviewDecisionWindow();
+        Check(!overdueNightPreview.Accepted &&
+            overdueNightPreview.Error == CommercialCoreError.DeadlineExceeded &&
+            overdueNightPreview.ProjectedMinute > overdueNight.GetSnapshot().Chapter.DeadlineMinute,
+            "mission eight did not reject a project beyond its authored deadline");
+        CoreAccepted(overdueNight.RestartChapter(), "mission-eight deadline recovery restart");
+        Equal(eighthStartSnapshot, JsonSerializer.Serialize(overdueNight.GetSnapshot()),
+            "mission-eight deadline recovery did not restore the exact chapter start");
+
+        BuildCampaignLine(
+            run,
+            "HOSPITAL_TERMINAL",
+            "PLAYER_POLE_14",
+            Array.Empty<MapPoint>(),
+            "last-night hospital cross-tie");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Defer)), "mission-eight defer choice");
+        CommercialDecisionPreview lastHeat = run.PreviewDecisionWindow();
+        Check(lastHeat.Accepted, $"mission-eight heat preview failed: {lastHeat.Error}/" +
+            $"{lastHeat.FailedDemandId}/{lastHeat.SupplyFailure}/{lastHeat.FirstBottleneckAssetId}");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)), "mission-eight heat approval");
+        CommercialDecisionPreview lastStorm = run.PreviewDecisionWindow();
+        Check(lastStorm.Accepted && lastStorm.PhaseResults[0].Demands.All(item => item.Supplied),
+            $"mission-eight storm preview failed: {lastStorm.Error}/" +
+            $"{lastStorm.FailedDemandId}/{lastStorm.SupplyFailure}/" +
+            $"{lastStorm.FirstBottleneckAssetId}");
+        CommercialCoreCommandResult final = run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(final, "mission-eight final approval");
+
+        CommercialCoreRun keptNight = CommercialCoreRun.Restore(
+            _commercialWorld,
+            _campaign,
+            eighthStartCommands);
+        BuildCampaignLine(
+            keptNight,
+            "HOSPITAL_TERMINAL",
+            "PLAYER_POLE_14",
+            Array.Empty<MapPoint>(),
+            "kept last-night hospital cross-tie");
+        CoreAccepted(keptNight.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "mission-eight keep choice");
+        CommercialDecisionPreview keptLastHeat = keptNight.PreviewDecisionWindow();
+        Check(keptLastHeat.Accepted,
+            $"mission-eight keep prototype heat failed: {keptLastHeat.Error}/" +
+            $"{keptLastHeat.FailedDemandId}/{keptLastHeat.SupplyFailure}/" +
+            $"{keptLastHeat.FirstBottleneckAssetId}");
+        CoreAccepted(keptNight.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)),
+            "mission-eight kept heat approval");
+        CommercialDecisionPreview keptLastStorm = keptNight.PreviewDecisionWindow();
+        Check(keptLastStorm.Accepted,
+            $"mission-eight keep prototype storm failed: {keptLastStorm.Error}/" +
+            $"{keptLastStorm.FailedDemandId}/{keptLastStorm.SupplyFailure}/" +
+            $"{keptLastStorm.FirstBottleneckAssetId}");
+        CommercialCoreCommandResult keptFinal = keptNight.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(keptFinal, "mission-eight kept final approval");
+        Check(final.CompletedChapter!.PromiseDecision == PromiseDecision.Defer &&
+            keptFinal.CompletedChapter!.PromiseDecision == PromiseDecision.Keep &&
+            final.CompletedChapter.DemandFacts.All(item =>
+                item.DemandId != "LAST_NIGHT_INDUSTRY_PROMISE" || item.Deferred) &&
+            keptFinal.CompletedChapter.DemandFacts.Any(item =>
+                item.DemandId == "LAST_NIGHT_INDUSTRY_PROMISE" && !item.Deferred && item.Supplied),
+            "mission-eight valid prototypes did not preserve deferred versus supplied promise facts");
+        CommercialCoreSnapshot complete = run.GetSnapshot();
+        Check(complete.CampaignComplete && complete.ChapterResults.Count == 8 &&
+            complete.ChapterStartCommandCounts.Count == 8 &&
+            complete.ChapterStartCommandCounts.Zip(
+                    complete.ChapterStartCommandCounts.Skip(1),
+                    (first, second) => first < second)
+                .All(item => item),
+            "final campaign did not reach eight results with selectable chapter starts");
+        Equal("청류시 전력망 운영 인계", _campaign.Epilogue.Title,
+            "authored campaign epilogue");
+
+        CommercialCampaignSaveV3 completedSave = CommercialCampaignSaveCodec.Create(
+            _commercialWorld,
+            _commercialBytes,
+            _campaign,
+            _campaignBytes,
+            run.GetCommands());
+        CommercialCoreRun completedRestore = CommercialCampaignSaveCodec.Restore(
+            CommercialCampaignSaveCodec.Deserialize(
+                CommercialCampaignSaveCodec.Serialize(completedSave)),
+            _commercialWorld,
+            _commercialBytes,
+            _campaign,
+            _campaignBytes);
+        Equal(JsonSerializer.Serialize(complete),
+            JsonSerializer.Serialize(completedRestore.GetSnapshot()),
+            "completed campaign save fresh restore equality");
+        int eighthStart = complete.ChapterStartCommandCounts[7];
+        CommercialCoreRun selectedEighth = CommercialCoreRun.Restore(
+            _commercialWorld,
+            _campaign,
+            run.GetCommands().Take(eighthStart).ToArray());
+        Check(!selectedEighth.GetSnapshot().CampaignComplete &&
+            selectedEighth.GetSnapshot().Chapter.ChapterId == "LONGEST_NIGHT" &&
+            selectedEighth.GetSnapshot().ChapterResults.Count == 7,
+            "completed chapter selection did not restore the exact eighth-chapter start state");
     }
 
     private void CheckCommercialCoreFlowDesignsAndFacts()
@@ -1915,15 +2292,72 @@ internal sealed class CommercialChecks
         return run;
     }
 
+    private CommercialCoreRun CompleteCampaignFirstFour()
+    {
+        CommercialCoreRun run = CompleteCampaignFirstThree();
+        BuildCampaignLine(
+            run,
+            "PLAYER_SUBSTATION_1",
+            "WATER_TERMINAL",
+            Array.Empty<MapPoint>(),
+            "fourth-mission water branch");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "fourth-mission keep choice");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)), "fourth-mission approval");
+        Equal("WHOSE_MARGIN", run.GetSnapshot().Chapter.ChapterId,
+            "first-four checkpoint transition");
+        return run;
+    }
+
+    private void BuildMissionFiveIndustryService(
+        CommercialCoreRun run,
+        string serviceLineClassId)
+    {
+        BuildCampaignSubstation(run, new MapPoint(2700, 1150), "industry service substation");
+        BuildCampaignLine(
+            run,
+            "WEST_AUXILIARY",
+            "PLAYER_SUBSTATION_3",
+            [
+                new MapPoint(650, 900),
+                new MapPoint(1050, 1050),
+                new MapPoint(1650, 1050),
+                new MapPoint(2100, 1050),
+                new MapPoint(2600, 1100),
+            ],
+            "industry reinforced feeder");
+        BuildCampaignLine(
+            run,
+            "PLAYER_SUBSTATION_3",
+            "INDUSTRY_TERMINAL",
+            Array.Empty<MapPoint>(),
+            "industry service line",
+            lineClassId: serviceLineClassId,
+            poleClassId: serviceLineClassId == "STANDARD_LINE"
+                ? "STANDARD_POLE"
+                : "REINFORCED_POLE");
+    }
+
     private void BuildCampaignSubstation(
         CommercialCoreRun run,
         MapPoint position,
         string label)
     {
+        BuildCampaignNode(run, position, "SMALL_SUBSTATION", label);
+    }
+
+    private void BuildCampaignNode(
+        CommercialCoreRun run,
+        MapPoint position,
+        string nodeClassId,
+        string label)
+    {
         CoreAccepted(run.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.SetNodeDraft,
             Position: position,
-            NodeClassId: "SMALL_SUBSTATION")), $"{label} draft");
+            NodeClassId: nodeClassId)), $"{label} draft");
         CoreAccepted(run.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.OrderNode)), $"{label} order");
         CoreAccepted(run.Apply(new CommercialCoreCommand(

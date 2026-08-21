@@ -365,17 +365,10 @@ internal sealed partial class CommercialMain : Control
                 RollbackProject();
                 break;
             case CommercialPanelAction.RestartChapter:
-                if (_coreRun?.GetSnapshot().CampaignComplete == true)
-                {
-                    StartCompletedChapter();
-                }
-                else
-                {
-                    RestartChapter();
-                }
+                ShowPause();
                 break;
             case CommercialPanelAction.NewGame:
-                StartNewGame();
+                _shell.ShowTitle(_hasContinuation, "새 게임은 확인 뒤 시작할 수 있습니다.");
                 break;
             case CommercialPanelAction.NextThermalPhase:
                 if (_coreRun?.GetSnapshot().CampaignComplete == true)
@@ -514,6 +507,11 @@ internal sealed partial class CommercialMain : Control
             RejectLocally("이 열 연습에는 다시 시작할 캠페인 장이 없습니다.");
             return;
         }
+        if (_coreRun.GetSnapshot().CampaignComplete)
+        {
+            StartCompletedChapter();
+            return;
+        }
         CommercialCoreCommandResult result = _coreRun.RestartChapter();
         if (result.Accepted)
         {
@@ -550,6 +548,10 @@ internal sealed partial class CommercialMain : Control
             {
                 _lastError = "이전 저장을 보존하지 못해 새 게임을 시작하지 않았습니다.";
                 Render();
+                if (_shell.Page != ReleaseShellPage.Hidden)
+                {
+                    _shell.ShowPersistenceError(_lastError);
+                }
                 return;
             }
         }
@@ -571,6 +573,10 @@ internal sealed partial class CommercialMain : Control
         RefreshThermalProjection();
         RefreshPointerPreview();
         Render();
+        if (_shell.Page != ReleaseShellPage.Hidden)
+        {
+            _shell.HideShell();
+        }
         if (fromTitle)
         {
             if (_settings.ShowControlHelp)
@@ -611,6 +617,10 @@ internal sealed partial class CommercialMain : Control
         RefreshThermalProjection();
         RefreshPointerPreview();
         Render();
+        if (_shell.Page != ReleaseShellPage.Hidden)
+        {
+            _shell.HideShell();
+        }
     }
 
     private void ApplyCoreResult(CommercialCoreCommandResult result, string success)
@@ -625,12 +635,10 @@ internal sealed partial class CommercialMain : Control
             PersistCoreRun();
             if (result.CompletedChapter is not null)
             {
-                _audio.PlayLive(ReleaseAudioCue.Result);
                 int completedIndex = result.Snapshot.ChapterResults.Count - 1;
-                if (completedIndex == 0 || result.Snapshot.CampaignComplete)
-                {
-                    _audio.PlayMotifLive(result.Snapshot.CampaignComplete);
-                }
+                _audio.QueueResultLive(
+                    completedIndex == 0 || result.Snapshot.CampaignComplete,
+                    result.Snapshot.CampaignComplete);
             }
         }
         else
@@ -1148,11 +1156,13 @@ internal sealed partial class CommercialMain : Control
                 core?.CampaignComplete == true ? "선택 장부터 다시" : "현재 장 처음부터",
                 core?.CampaignComplete == true
                     ? "선택한 완료 장의 시작 journal 상태에서 새 진행을 시작합니다."
-                    : "현재 장 시작 journal로 되돌려 좌표·현금·시각·국면·약속·열 상태를 다시 만듭니다."),
+                    : "현재 장 시작 journal로 되돌려 좌표·현금·시각·국면·약속·열 상태를 다시 만듭니다.",
+                Visible: false),
             new CommercialActionPresentation(
                 core is not null,
                 "새 게임",
-                "현재 진행을 지우고 첫 불빛부터 시작합니다. 비호환 저장은 별도 파일로 보존합니다."),
+                "현재 진행을 지우고 첫 불빛부터 시작합니다. 비호환 저장은 별도 파일로 보존합니다.",
+                Visible: false),
             new CommercialActionPresentation(
                 core?.CampaignComplete == true || _thermalSequence.Intervals.Count > 1,
                 core?.CampaignComplete == true
@@ -1207,19 +1217,19 @@ internal sealed partial class CommercialMain : Control
         return speaker switch
         {
             "박지현" => new CommercialSpeakerPresentation(
-                "박",
+                "park",
                 "박지현 · 계통운영 책임자",
                 Color.FromHtml("79b8d6")),
             "강민호" => new CommercialSpeakerPresentation(
-                "강",
+                "kang",
                 "강민호 · 발전운영 책임자",
                 Color.FromHtml("e2b461")),
             "이도윤" => new CommercialSpeakerPresentation(
-                "이",
+                "lee",
                 "이도윤 · 정수운영 책임자",
                 Color.FromHtml("71c8a8")),
             _ => new CommercialSpeakerPresentation(
-                "윤",
+                "yoon",
                 "윤서진 · 청류시 전력운영센터장",
                 Color.FromHtml("d39acb")),
         };
@@ -1915,8 +1925,11 @@ internal sealed partial class CommercialMain : Control
             return;
         }
         CommercialCoreSnapshot? core = _coreRun?.GetSnapshot();
+        string chapterName = core?.CampaignComplete == true
+            ? _campaign.Chapters[_completedChapterSelectionIndex].DisplayName
+            : core?.Chapter.DisplayName ?? "열 운영 연습";
         _shell.ShowPause(
-            core?.Chapter.DisplayName ?? "열 운영 연습",
+            chapterName,
             _lastError,
             canRewindPreviousChapter: core is { CampaignComplete: false, ChapterIndex: > 0 });
     }

@@ -29,7 +29,7 @@ internal sealed record CommercialActionPresentation(
     bool Visible = true);
 
 internal sealed record CommercialSpeakerPresentation(
-    string Initial,
+    string PersonId,
     string NameAndRole,
     Color CardColor);
 
@@ -61,7 +61,7 @@ internal sealed record CommercialTaskPanelModel(
 internal sealed partial class CommercialTaskPanel : PanelContainer
 {
     private Label _headingLabel = null!;
-    private Label _portraitBadge = null!;
+    private CommercialPortrait _portrait = null!;
     private Label _speakerLabel = null!;
     private Label _instructionLabel = null!;
     private Label _obligationsLabel = null!;
@@ -77,7 +77,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     public override void _Ready()
     {
         _headingLabel = GetNode<Label>("%HeadingLabel");
-        _portraitBadge = GetNode<Label>("%PortraitBadge");
+        _portrait = GetNode<CommercialPortrait>("%Portrait");
         _speakerLabel = GetNode<Label>("%SpeakerLabel");
         _instructionLabel = GetNode<Label>("%InstructionLabel");
         _obligationsLabel = GetNode<Label>("%ObligationsLabel");
@@ -119,8 +119,10 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     {
         ArgumentNullException.ThrowIfNull(model);
         _headingLabel.Text = model.Heading;
-        _portraitBadge.Text = model.Speaker.Initial;
-        _portraitBadge.AddThemeColorOverride("font_color", model.Speaker.CardColor);
+        _portrait.SetPerson(
+            model.Speaker.PersonId,
+            model.Speaker.NameAndRole,
+            model.Speaker.CardColor);
         _speakerLabel.Text = model.Speaker.NameAndRole;
         _speakerLabel.AddThemeColorOverride("font_color", model.Speaker.CardColor);
         _instructionLabel.Text = model.Instruction;

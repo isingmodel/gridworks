@@ -4,7 +4,7 @@
 
 | 자산 | 형태와 출처 | 권리·라이선스 경계 |
 |---|---|---|
-| 청류시 지도·시설·상태 pattern·고정 인물 badge | `CommercialMapView.cs`, `CommercialTaskPanel.cs`가 그리는 저장소 자체 code-native 2D 표현 | Gridworks 자체 저작물. 공개 라이선스 없음. 내부 후보에만 포함 |
+| 청류시 지도·시설·상태 pattern·네 고정 인물 초상 | `CommercialMapView.cs`, `CommercialPortrait.cs`가 그리는 저장소 자체 code-native 2D 표현 | Gridworks 자체 저작물. 공개 라이선스 없음. 내부 후보에만 포함 |
 | 도시 환경음·날씨 layer·발주·완공·통전·차단·경고·결과 cue·두 motif | `ReleaseAudio.cs`가 실행 중 생성하는 결정적 mono PCM16 파형. 외부 음원 sample 없음 | Gridworks 자체 저작물. 공개 라이선스 없음. 내부 후보에만 포함 |
 | app icon | `game/icon.svg`, 저장소 자체 vector | Gridworks 자체 저작물. 공개 라이선스 없음. 내부 후보에만 포함 |
 | UI 글꼴 | 별도 font 파일을 포함하지 않고 Godot/macOS system fallback 사용 | Godot와 OS의 각 라이선스 적용. Godot 고지는 동봉 |

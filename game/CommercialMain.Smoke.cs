@@ -451,8 +451,8 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
-                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RestartChapter)) &&
-                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.NewGame)),
+                !_panel.GetActionButton(CommercialPanelAction.RestartChapter).Visible &&
+                !_panel.GetActionButton(CommercialPanelAction.NewGame).Visible,
                 "1920×1080·UI 125%에서 상용 캠페인·오디오와 고정 행동 영역을 열지 못했습니다.");
 
             if (_options.CampaignSmoke)
@@ -469,7 +469,8 @@ internal sealed partial class CommercialMain
                 _savePath = incompatiblePath;
                 _saveWritable = false;
                 _incompatibleSavePending = true;
-                await PressPanelAsync(CommercialPanelAction.NewGame, "비호환 저장 뒤 새 게임");
+                _shell.ShowTitle(false, "비호환 저장 복구 확인");
+                await PressShellAsync(ReleaseShellAction.NewGame, "비호환 저장 뒤 새 게임");
                 coreRun = _coreRun!;
                 string[] preserved = Directory.GetFiles(
                     recoveryDirectory,
@@ -871,7 +872,13 @@ internal sealed partial class CommercialMain
             Require(_completedChapterSelectionIndex == 7 &&
                 _panel.AccessibilityName.Contains("8/8 가장 긴 밤", StringComparison.Ordinal),
                 "실제 키보드 입력으로 여덟 번째 장 시작 상태를 선택하지 못했습니다.");
-            await PressPanelAsync(CommercialPanelAction.RestartChapter, "선택한 마지막 장부터 다시 시작");
+            _helpButton.GrabFocus();
+            await NextFrame();
+            await PressKey(Key.Enter);
+            Require(_shell.Page == ReleaseShellPage.Pause,
+                "완료 캠페인에서 메뉴가 선택 장 재시작 확인을 열지 못했습니다.");
+            await PressShellAsync(ReleaseShellAction.RestartChapter, "선택한 마지막 장 재시작 확인 열기");
+            await PressShellAsync(ReleaseShellAction.Confirm, "선택한 마지막 장부터 다시 시작");
             await NextFrame();
             CommercialCoreSnapshot selected = _coreRun!.GetSnapshot();
             Require(!selected.CampaignComplete && selected.Chapter.ChapterId == "LONGEST_NIGHT" &&

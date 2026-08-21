@@ -15,7 +15,6 @@ root_documents=(
     "$repository_dir/ASSET_MANIFEST.md"
     "$repository_dir/THIRD_PARTY_NOTICES.md"
     "$repository_dir/LICENSE.md"
-    "$repository_dir/CHANGELOG.md"
 )
 license_relative_documents=(
     "$godot_notice_relative"

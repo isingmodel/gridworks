@@ -37,6 +37,9 @@ internal sealed partial class ReleaseAudio : Node
     private AudioStreamWav _result = null!;
     private AudioStreamWav _firstLightMotif = null!;
     private AudioStreamWav _lastBypassMotif = null!;
+    private bool _resultQueued;
+    private bool _queuedMotif;
+    private bool _queuedFinalMotif;
     private bool _ready;
 
     public override void _Ready()
@@ -69,6 +72,7 @@ internal sealed partial class ReleaseAudio : Node
         AddChild(_weatherPlayer);
         AddChild(_sfxPlayer);
         AddChild(_motifPlayer);
+        _sfxPlayer.Finished += OnSfxFinished;
         _ambientPlayer.Play();
         _weatherPlayer.Play();
         _ready = true;
@@ -123,6 +127,21 @@ internal sealed partial class ReleaseAudio : Node
         _sfxPlayer.Play();
     }
 
+    public void QueueResultLive(bool playMotif, bool finalChapter)
+    {
+        if (!_ready)
+        {
+            return;
+        }
+        _resultQueued = true;
+        _queuedMotif = playMotif;
+        _queuedFinalMotif = finalChapter;
+        if (!_sfxPlayer.Playing)
+        {
+            OnSfxFinished();
+        }
+    }
+
     public void SetAtmosphere(int chapterIndex)
     {
         if (!_ready)
@@ -154,6 +173,25 @@ internal sealed partial class ReleaseAudio : Node
         }
         _motifPlayer.Stream = finalChapter ? _lastBypassMotif : _firstLightMotif;
         _motifPlayer.Play();
+    }
+
+    private void OnSfxFinished()
+    {
+        if (!_ready || !_resultQueued)
+        {
+            return;
+        }
+        bool playMotif = _queuedMotif;
+        bool finalChapter = _queuedFinalMotif;
+        _resultQueued = false;
+        _queuedMotif = false;
+        _queuedFinalMotif = false;
+        _sfxPlayer.Stream = _result;
+        _sfxPlayer.Play();
+        if (playMotif)
+        {
+            PlayMotifLive(finalChapter);
+        }
     }
 
     private static AudioStreamWav BuildAmbient()

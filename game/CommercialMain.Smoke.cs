@@ -28,14 +28,14 @@ internal sealed partial class CommercialMain
                 NearlyEqual(highResolutionRoundTrip.X, resolutionPoint.XUnit, 0.02d) &&
                 NearlyEqual(highResolutionRoundTrip.Y, resolutionPoint.YUnit, 0.02d),
                 "1920×1080 지도 변환이 같은 자유 좌표를 왕복하지 못했습니다.");
-            GetWindow().Size = new Vector2I(1280, 720);
+            GetWindow().Size = new Vector2I(1920, 1080);
             await NextFrame();
             ApplyUiScale(this, 1.25f);
             await NextFrame();
             Require(
-                GetWindow().Size == new Vector2I(1280, 720) &&
+                GetWindow().Size == new Vector2I(1920, 1080) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.Commission)),
-                "1280×720·UI 125%에서 핵심 공사 행동이 패널 밖으로 잘렸습니다.");
+                "1920×1080·UI 125%에서 핵심 공사 행동이 패널 밖으로 잘렸습니다.");
 
             EmitPanel(CommercialPanelAction.PlaceSubstation, "변전소 도구");
             await NextFrame();
@@ -231,12 +231,12 @@ internal sealed partial class CommercialMain
         try
         {
             await NextFrame();
-            GetWindow().Size = new Vector2I(1280, 720);
+            GetWindow().Size = new Vector2I(1920, 1080);
             await NextFrame();
             ApplyUiScale(this, 1.25f);
             await NextFrame();
             Require(ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.NextThermalPhase)),
-                "1280×720·UI 125%에서 열 국면 전환 행동이 패널 밖으로 잘렸습니다.");
+                "1920×1080·UI 125%에서 열 국면 전환 행동이 패널 밖으로 잘렸습니다.");
 
             ThermalIntervalResult hot = _thermalSequence.Intervals[0];
             ThermalAssetResult hotSubstation = hot.Assets.Single(item =>
@@ -297,7 +297,7 @@ internal sealed partial class CommercialMain
             await NextFrame();
             CommercialCoreRun coreRun = _coreRun
                 ?? throw new InvalidOperationException("상용 핵심 흐름 runner가 없습니다.");
-            GetWindow().Size = new Vector2I(1280, 720);
+            GetWindow().Size = new Vector2I(1920, 1080);
             await NextFrame();
             ApplyUiScale(this, 1.25f);
             await NextFrame();
@@ -307,7 +307,7 @@ internal sealed partial class CommercialMain
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RestartChapter)),
-                "1280×720·UI 125%에서 상용 핵심 흐름·오디오와 고정 행동 영역을 열지 못했습니다.");
+                "1920×1080·UI 125%에서 상용 핵심 흐름·오디오와 고정 행동 영역을 열지 못했습니다.");
 
             EmitPanel(CommercialPanelAction.StartLine, "프롤로그 선로 도구");
             await NextFrame();

@@ -78,7 +78,7 @@ strict spatial fixture와 geometry·construction 검사가 통과하고, 1280×7
 연속·비상 경계, 공유 합산, 경로 순서, permission, 정지·냉각·복귀와 preview=commit을 자동검사하고
 작은 native 열 UI 흐름을 한 번 확인한다. 실제 온도·연속 축열·수동 급전은 만들지 않는다.
 
-## 5. 단계 D — 상용 핵심 흐름 — 활성
+## 5. 단계 D — 상용 핵심 흐름 — 완료
 
 ### 플레이어 결과
 
@@ -100,7 +100,11 @@ strict spatial fixture와 geometry·construction 검사가 통과하고, 1280×7
 두 유효 설계 원형, 약속 두 선택, deadline 경계, 대표 실패, 복구와 실제 결과를 자동·native 흐름으로
 고정한다. 사람 이해·재미는 `NOT_COLLECTED`로 남기되 사용자의 전체 구현 지시에 따라 제작을 계속한다.
 
-## 6. 단계 E — 첫 네 임무와 공통 UX
+17 suites / 682 assertions와 기본 장면의 1280×720·UI 125% 실제 입력 smoke로 핵심 흐름을 닫았다.
+독립 검토의 P1 4건은 strict 수요 terminal, authored story·prelude 결과, 실제 결과 사실과 오디오
+cue 경계를 보강해 모두 수정했으며 열린 P0/P1은 없다. 사람 상태는 `NOT_COLLECTED`다.
+
+## 6. 단계 E — 첫 네 임무와 공통 UX — 활성
 
 1. `첫 불빛`: 자유 배치, 자석 맞춤, 카메라, 수면과 완공 전 무전압
 2. `두 번째 심장`: 두 회랑, 선 교차와 실제 접속, 범람 안전 차단시험
@@ -133,7 +137,7 @@ strict spatial fixture와 geometry·construction 검사가 통과하고, 1280×7
 
 ### 접근성·저장
 
-- 1280×720·1920×1080 × UI 100/125
+- 최소 1920×1080 × UI 100/125; 1280×720은 지원하지 않음
 - 마우스·키보드 동등성, focus 복원, 한국어 glyph, 움직임 줄이기
 - Title, Pause, 도움말, 설정, atomic 저장·재개·최근 공사·장 재시작
 - 설정 v3의 화면·세 음량·움직임 줄이기와 strict v2 one-step migration

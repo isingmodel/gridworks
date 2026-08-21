@@ -22,8 +22,8 @@
 | 동결 release v1 기술 기준선 | **완료** | [과거 계약](scopes/RELEASE_REBUILD.md)·[world](../data/release-world-v1.json)·[campaign](../data/release-campaign-v1.json) | 15 suites / 481 assertions | 건설·두 프로세스 8임무·내부 package 통과 | 공식 cold LLM은 마지막 장 `BLOCKED`; v2 증거로 합산하지 않음 | 후속 기술 수정 P0/P1 0 |
 | B. 자유 좌표 기반 | **완료** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)·Stage-B spatial fixture | CommercialChecks 7 suites / 238 assertions | 1280×720·UI 125% 자유 배치 흐름 통과 | 해당 없음 | exact-tree P0/P1 0 |
 | C. 이산 열 국면 기반 | **완료** | [활성 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#45-단계-c-종료-기록--2026-08-21)·[world v2](../data/release-world-v2.json) | CommercialChecks 12 suites / 283 assertions | 자유 배치 회귀·1280×720 UI 125% 열 projection 통과 | 해당 없음 | candidate P0 0 / P1 3; 전부 수정·재검증, open 0 |
-| D. 상용 핵심 흐름 | **활성** | 같은 활성 계약의 현재 gate | 구현 시작 | 미실행 | 구현 뒤 `CommercialSliceHumanStatus = NOT_COLLECTED` | C 종료 뒤 자동 활성화 |
-| E. 첫 네 임무·공통 UX | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 구현 중 수집하지 않음 | D 종료 뒤 자동 활성화 |
+| D. 상용 핵심 흐름 | **완료** | [단계 D 종료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#51-단계-d-종료-기록--2026-08-21)·[world v2](../data/release-world-v2.json)·[core slice](../data/commercial-core-slice-v1.json) | CommercialChecks 17 suites / 682 assertions, 동결 회귀 통과 | 기본 장면 1280×720·UI 125% 핵심 흐름과 자유 배치·열 회귀 통과 | `CommercialSliceHumanStatus = NOT_COLLECTED` | candidate P0 0 / P1 4; 전부 수정·재검증, open 0 |
+| E. 첫 네 임무·공통 UX | **활성** | 같은 활성 계약의 현재 gate | 구현 시작 | 미실행 | 구현 중 수집하지 않음 | D 종료 뒤 자동 활성화 |
 | F. 후반 네 임무·에필로그 | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 구현 중 수집하지 않음 | E 종료 뒤 자동 활성화 |
 | G. 시청각·접근성·package | **승인·대기** | 같은 활성 계약의 다음 gate | 미실행 | 미실행 | 전체 사람 검토 `NOT_COLLECTED` | F 종료 뒤 자동 활성화 |
 | H. 외부 검증·공개 후보 | **미승인** | 별도 사용자·자격증명 gate | 자동증거로 대체하지 않음 | 공개 bytes 확정 전 미실행 | 소유자·외부·전문 교정 필요 | Developer ID·공증·배포 결정 필요 |
@@ -38,6 +38,9 @@
 단계 B부터 G까지의 전체 구현 목표는 2026-08-18 사용자 요청으로 승인됐다. 따라서 각 단계는 이전
 단계 종료와 문서 전환 뒤 같은 목표 안에서 이어갈 수 있지만, 동시에 둘을 구현하지 않는다. 단계 H의
 사람 관찰·전문 교정·공개 배포 자격은 별도 외부 gate다.
+
+현재 제품의 최소 지원 해상도는 **1920×1080**이며 UI 100%·125%를 검수한다. 완료된 B~D 행의
+1280×720 기록은 당시 단계의 역사 증거일 뿐 현재 지원 범위가 아니다.
 
 ## 공통 종료조건
 

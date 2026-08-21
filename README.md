@@ -12,7 +12,7 @@
 ## 현재 상태
 
 현재 활성 구현 단계는 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-**단계 D — 상용 핵심 흐름**이다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
+**단계 E — 첫 네 임무와 공통 UX**다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
 주기기·전신주 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도
 v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대로 만든다. 기존 `ReleaseMain`과
 33×21 후보는 기술 회귀 기준선이며 새 규칙의 실행 권위가 아니다.
@@ -20,7 +20,7 @@ v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대
 단계 B의 명시 실행 장면은 고정소수점 자유 좌표, 원형 점유영역, 수면·건물·위험구역, 교차 비접속
 선로, 초안 전신주 이동과 세 단계 카메라를 구현했다. CommercialChecks 7개 묶음 238 assertions,
 Game Debug·Release build와 1280×720·UI 125% native 자유 배치 흐름을 통과했고 독립 검토에서
-P0/P1이 없었다. 이 경로는 단계 D cut-over 전까지 명시 scene으로만 실행한다.
+P0/P1이 없었다. 이 수치는 완료 당시의 역사 증거이며 1280×720을 현재 지원한다는 뜻은 아니다.
 
 완료된 단계 C는 최종 `release-world-v2`의 초기 분기·합류망과 선로·변전소·전신주 접속부의
 연속·비상 한계를 열었다. 모든 발전원·단순 경로를 누적 사용량과 고정 총순서로 비교하고, 의무별
@@ -28,7 +28,15 @@ P0/P1이 없었다. 이 경로는 단계 D cut-over 전까지 명시 scene으로
 CommercialChecks 12개 묶음 283 assertions, Game Debug·Release build, 자유 배치 회귀와 1280×720·UI
 125% 열 projection native smoke가 통과했다. 독립 검토의 P1 3건은 의무 임의 제외, 비열 endpoint
 사용불가, 임의 경로 수 상한을 고쳤고 열린 P0/P1은 없다. 단계 D는 `첫 불빛` prelude와 4장 완료
-seed의 `누구의 여유인가`를 한 상용 핵심 경로에 통합한다.
+seed의 `누구의 여유인가`를 한 상용 핵심 경로에 통합했다.
+
+완료된 단계 D는 최대 세 결정 경계, 안전 의무·도시 약속·운영 기록, authored deadline, 최근 완공
+공사 fresh-replay 복구와 save v3를 같은 Core runner에 연결했다. 결과 화면은 실제 시설·발전원·경로·
+비상 운전·보호정지·약속을 말하고, authored prelude 결과와 사건 story, 환경음·발주·완공·통전·
+보호정지 cue를 기본 `CommercialMain`에서 표현한다. CommercialChecks 17개 묶음 682 assertions,
+Game Debug·Release build, 핵심·자유 배치·열 native smoke와 동결 회귀가 통과했다. 독립 검토의 P1
+4건을 모두 수정해 열린 P0/P1은 없고 `CommercialSliceHumanStatus = NOT_COLLECTED`다. 단계 E는 최종
+`release-campaign-v2.json`을 열어 첫 네 임무와 공통 저장·복구·의무·약속·story/result UX를 만든다.
 
 직전 기준선의 `ReleaseMain`은 프롤로그 세 임무와 본편 다섯 장, 한국어 화면, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 후보까지 구현했다. 사용자 요청으로 수행한
@@ -42,14 +50,13 @@ seed의 `누구의 여유인가`를 한 상용 핵심 경로에 통합한다.
 기준은 보이는 격자 없는 자유 배치와 선로·변압기·전신주 접속부의 국면별 열 한계, 실제 상태를
 기억하는 여덟 임무를 새 기반으로 삼는다. 정확한 구현 경계와 순서는 활성 계약이 소유한다.
 
-현재 기본 실행 장면은 새 `ReleaseMain`이다. 33×21 지도에서 변전소와 선로를 직접 건설하고,
-분기·합류 설비의 사용량·정격·접속 여유를 보면서 같은 청류시 망을 8개 임무 동안 이어 쓴다.
-예고 상황을 지도에 미리 적용해 사용 불가 설비와 우회 경로를 비교할 수 있고, 과거 설계가 뒤의
-임무를 막으면 이전 임무 시작부터 다시 설계할 수 있다. 두 fresh process 대표 흐름에서 본편 중간
-저장·이어하기·장 재시작과 마지막 임무 완료까지 확인했다.
+현재 기본 실행 장면은 새 `CommercialMain`이다. 보이는 격자 없는 지도에서 자유 좌표로 전신주·
+변전소·선로를 건설하고 작성된 국면의 사용량·연속·비상 한계와 다음 보호정지를 비교한다. 현재
+제품의 최소 지원 해상도는 **1920×1080**이며 UI 100%·125%를 목표로 한다. 1280×720은 지원하지
+않는다. `ReleaseMain`의 33×21 여덟 임무 후보는 명시 scene 동결 회귀로만 남는다.
 [화면·입력 증거](playtests/release-2d/LAYOUT_EVIDENCE.md)는 직전 후보의 네 화면 배치와 저장소 밖
 키보드 focus 흐름, 후속 후보의 1280×720·UI 125% 작업 영역·접속 한도·수면 거부 확인을 구분해
-보존한다.
+보존한다. 이 기록 역시 현재 상용 제품의 해상도 지원 근거가 아니다.
 이전 세 장 내부 후보는 규칙 회귀용으로만 보존한다.
 
 현재 저장소에는 예방정비와 고정 폭염 결산까지 이어지는 제품 흐름, Title·Pause, 한 슬롯
@@ -185,9 +192,8 @@ dotnet run --project tools/Gridworks.CommercialChecks/Gridworks.CommercialChecks
 dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild
 ```
 
-단계 D의 제품 cut-over 전까지 Godot 기본 실행은 `game/project.godot`의 `ReleaseMain.tscn`이다.
-단계 B·C의 새 `CommercialMain.tscn`은 명시 scene smoke로 실행하고, 단계 D 종료 커밋에서 기본 장면을
-전환한다. 완료된 회귀 장면은
+Godot 기본 실행은 `game/project.godot`의 `CommercialMain.tscn`이며 기본 viewport는
+1920×1080이다. 완료된 회귀 장면은 `--scene res://ReleaseMain.tscn`,
 `--scene res://ProductMain.tscn`, `--scene res://Main.tscn` 또는 `--scene res://Scope1Main.tscn`을
 명시해 실행한다. 이전 내부 후보의 대표 shell
 smoke는 [캠페인·저장 종료 기록](docs/scopes/CAMPAIGN_SAVE_SETTINGS.md#9-현재-검사와-종료-기록), 전체

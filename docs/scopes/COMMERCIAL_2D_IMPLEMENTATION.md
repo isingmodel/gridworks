@@ -2,7 +2,7 @@
 
 > 상태: **ACTIVE**
 > 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 D — 상용 핵심 흐름**
+> 현재 작업: **단계 E — 첫 네 임무와 공통 UX**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -254,6 +254,29 @@ V2 운영 명령은 건설 명령 외 `SetPromiseDecision(Keep|Defer)`와 `Appro
 동결 기준선 `ReleaseMain.tscn`으로 유지한다. 단계 D 핵심 흐름의 자동·native 증거가 닫히는 커밋에서
 기본 장면을 `CommercialMain.tscn`으로 전환하고, 이후 `ReleaseMain`은 명시 scene 회귀로만 실행한다.
 
+### 5.1 단계 D 종료 기록 — 2026-08-21
+
+- `release-world-v2.json` SHA-256:
+  `f7af0a74c6819839eee542e11d7eabf49c298fbab5bd262c9bcd8f9672bddde0`
+- `commercial-core-slice-v1.json` SHA-256:
+  `d607cb6a8d2a637fc5fa88b560c45690cdf271cecb89050b4bcb21c0acf29632`
+- CommercialChecks: **17 suites / 682 assertions PASS**. 두 유효 설계, 병목, 약속 두 선택, deadline,
+  preview=approval, recent-project fresh replay, save v3 복원을 포함한다.
+- Game Debug·Release rebuild: **0 warnings / 0 errors**. v1 release·product·Scope 0B·Scope 1 동결
+  회귀도 모두 통과했다.
+- 기본 `CommercialMain.tscn`, 1280×720·UI 125% 실제 입력 흐름:
+  `COMMERCIAL_CORE_SMOKE_PASS chapters=2 choice=Keep path=7 emergency=1 rollback=fresh-replay preview=approval`
+- 자유 배치·열 native 회귀:
+  `COMMERCIAL_PLACEMENT_SMOKE_PASS minute=228 nodes=21 edges=22 zoom=전체 보기`,
+  `COMMERCIAL_THERMAL_SMOKE_PASS phases=3 selected=SOUTH_SUBSTATION patterns=continuous|emergency|protective-outage`
+- 독립 exact-tree 검토: **P0 0 / P1 4**. 전용 수요 terminal strict 검증, prelude 결과와 사건 story
+  표시, 실제 시설·발전원·경로·약속·비상·보호정지 결과 문장, 환경음·발주·완공·통전·보호정지 cue를
+  모두 수정하고 관련 자동·native 흐름을 재실행해 **open P0/P1 0**으로 닫았다.
+- `project.godot`의 기본 장면을 `CommercialMain.tscn`으로 전환했다. `ReleaseMain`은 명시 scene
+  회귀로만 남는다.
+- `CommercialSliceHumanStatus = NOT_COLLECTED`. 이해·재미를 기계 통과로 주장하지 않고 단계 E로
+  승격했다.
+
 ## 6. 단계 E·F — 여덟 임무 전체 캠페인
 
 ### 6.1 임무 구조
@@ -308,8 +331,8 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 - 선택 수요의 발전원→전체 경로→최소 용량·열여유→수요처를 지도에서 강조한다.
 - `평상/작성 국면` projection을 전환하면 사용불가, 실제 경로, 보호정지와 지킨 의무가 함께 바뀐다.
 - 연속/비상/정지/복귀는 색 외에 선 모양, 패턴, 아이콘과 접근성 문장을 사용한다.
-- 움직임 줄이기, UI 100/125%, 1280×720·1920×1080, 마우스·키보드 동등성과 한국어 glyph를
-  지원한다. 핵심 행동은 패널 스크롤 밖에 숨지 않는다.
+- 최소 지원 해상도는 1920×1080이다. UI 100/125%, 마우스·키보드 동등성과 한국어 glyph를
+  지원한다. 핵심 행동은 패널 스크롤 밖에 숨지 않는다. 1280×720은 지원·검수 대상이 아니다.
 
 ### 7.2 시각·사운드
 
@@ -342,7 +365,7 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
    preview=실행, save prefix·rollback, 여덟 임무의 두 원형과 대표 실패를 검사한다.
 3. Commercial Game Debug/Release rebuild가 warning/error 0이다.
 4. 자유 배치 native smoke 1회, 열 UI smoke 1회, two-process 전체 캠페인 smoke 1회를 실행한다.
-5. 1280×720·1920×1080 × UI 100/125 네 화면과 keyboard/focus/reduce-motion을 bounded evidence로 남긴다.
+5. 1920×1080 × UI 100/125 두 화면과 keyboard/focus/reduce-motion을 bounded evidence로 남긴다.
 6. clean committed checkout에서 내부 macOS ZIP을 만들고 저장소 밖에서 새 게임→저장→fresh continue→
    전체 완료를 한 번 실행한다. archive hash, embedded data hash, Universal binary, signature 경계,
    license, PDB·로컬경로·prototype 부재를 기록한다.

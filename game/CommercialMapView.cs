@@ -40,7 +40,7 @@ internal sealed partial class CommercialMapView : Control
     private static readonly Color Text = Color.FromHtml("e6eff0");
     private static readonly Color Muted = Color.FromHtml("91a3a1");
     private static readonly Color Focus = Color.FromHtml("f4d27c");
-    private const float CandidateRadiusPixel = 24f;
+    private const float CandidateRadiusPixel = 36f;
     private const float KeyboardFollowMarginPixel = 72f;
     private const int KeyboardSmallStepUnit = 100;
     private const int KeyboardLargeStepUnit = 500;

@@ -1,8 +1,8 @@
 # Gridworks 상용 2D 게임 구현
 
-> 상태: **COMPLETE**
-> 구현 권한: **GRANTED AND COMPLETED — 단계 B부터 G까지**
-> 현재 작업: **활성 구현 gate 없음 — 단계 H는 미승인**
+> 상태: **ACTIVE — G.1 OWNER VISUAL ALIGNMENT**
+> 구현 권한: **GRANTED — 단계 B부터 G 완료, G.1 소유자 수정 활성**
+> 현재 작업: **concept 정렬·사건 timeline bar — 단계 H는 미승인**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -432,6 +432,28 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
   네 인물을 수정했다. exact tree `f38a337107d147396d75edd156da74eb3255aa8c`의 종료 재검토는
   **P0 0 / P1 0 / open 0**, worktree clean이며 추출한 package의 1920×1080 presentation smoke도
   독립 통과했다.
+
+### 7.5 단계 G.1 — 소유자 시각 정렬 수정
+
+2026-08-21 실제 기본 장면을 실행한 소유자는 화면이 `assets/` 콘셉트의 도시·설비·전력 흐름과
+멀고 사건 timeline bar가 없다고 판단했다. 현재 사용자 지시가 이 한 표현 단위를 다시 연다.
+
+- 단일 runtime city plate는 네 콘셉트의 낮은 사선 시점, 낡은 산업 도시, 강·주거·공장·의료
+  실루엣, 흑철·황동·청록·호박 palette를 참고하되 UI·글자·전력선·경고·수치를 포함하지 않는다.
+  실제 선로·설비·위험·선택 상태는 기존 v2 좌표 위의 code-native layer만 권위로 그린다.
+- opaque 평면·큰 위험구역 hatch를 줄이고 도시 plate가 읽히게 한다. 시설은 작은 원이 아니라
+  발전·변전·주거·의료·정수·산업별 큰 실루엣과 통전 glow를 가진다. 청록 통전선, 회백 미사용선,
+  호박 계획선, 이중 비상선과 끊긴 보호정지선은 기존 상태 사실을 유지한다.
+- 상단은 segmented resource HUD, 오른쪽은 compact industrial inspector, 중앙은 가장 넓은 도시
+  작업면으로 정리한다. 장문·현재 행동·keyboard focus 경계는 유지한다.
+- 하단 사건 timeline은 campaign의 briefing, 정확한 decision windows와 그 `nextPhaseId`, result를
+  순서대로 표시한다. 현재 window, 지난 window, 다음 window, 결과를 icon/선 모양/문장으로 함께
+  구분하고 현재 공사분/장 기한을 표시한다. timeline은 탐색·배속 control이 아니며 Core state를
+  변경하지 않는다.
+- 1920×1080 UI 100/125 두 화면에서 timeline, map, inspector와 고정 행동의 clipping·focus·접근성
+  문장을 실제 입력으로 검사한다. 1280×720은 지원하거나 검수하지 않는다.
+- CommercialChecks와 변경이 닿는 native campaign/placement/thermal 회귀, Debug·Release build,
+  bounded exact-tree P0/P1 검토를 닫은 뒤에만 다시 완료로 표시한다.
 
 ## 8. 전체 완료 증거
 

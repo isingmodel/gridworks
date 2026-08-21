@@ -149,6 +149,19 @@ clean committed checkout에서 v2 데이터와 새 제품 scene만 포함한 mac
 Universal binary와 서명 경계를 기록한다. Developer ID·공증·실제 지원 OS 증거가 없으면 공개 배포를
 주장하지 않는다.
 
+## 8.1 단계 G.1 — 소유자 시각 정렬 수정
+
+2026-08-21 소유자 실행 검토에서 `assets/` 콘셉트와 실제 화면 사이의 큰 거리, 사건 timeline bar
+누락을 확인했다. Core 규칙·v2 campaign·save·열 계산은 동결하고 다음 표현만 다시 연다.
+
+- 네 콘셉트의 산업 도시 질감, 청록 통전망, 호박색 계획선, 큰 시설 실루엣과 금속 frame 위계를
+  직접 복제하지 않는 자체 runtime plate·code-native overlay로 번역한다.
+- 상단 resource HUD, 넓은 도시 지도, 오른쪽 compact inspector, 하단 사건 흐름 bar의 위계를 만든다.
+- 사건 bar는 `브리핑 → 작성된 결정 경계/운영 국면 → 결과`를 campaign 권위에서 만들고 현재·완료·
+  다음 상태, 공사 경과/기한을 색 외 marker와 접근성 문장으로 표시한다. 배속·실시간 simulation은
+  추가하지 않는다.
+- 1920×1080 UI 100/125 actual-input evidence를 다시 만들고, 1280×720 지원은 열지 않는다.
+
 ## 9. 단계 H — 외부 검증과 공개 후보 — 구현 뒤 별도 게이트
 
 - 상용 핵심 구간 사람 관찰

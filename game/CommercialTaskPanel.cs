@@ -17,6 +17,7 @@ internal enum CommercialPanelAction
     ApproveWindow,
     RollbackProject,
     RestartChapter,
+    NewGame,
     NextThermalPhase,
 }
 
@@ -46,6 +47,7 @@ internal sealed record CommercialTaskPanelModel(
     CommercialActionPresentation ApproveWindow,
     CommercialActionPresentation RollbackProject,
     CommercialActionPresentation RestartChapter,
+    CommercialActionPresentation NewGame,
     CommercialActionPresentation NextThermalPhase);
 
 internal sealed partial class CommercialTaskPanel : PanelContainer
@@ -85,6 +87,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             [CommercialPanelAction.ApproveWindow] = GetNode<Button>("%ApproveWindowButton"),
             [CommercialPanelAction.RollbackProject] = GetNode<Button>("%RollbackProjectButton"),
             [CommercialPanelAction.RestartChapter] = GetNode<Button>("%RestartChapterButton"),
+            [CommercialPanelAction.NewGame] = GetNode<Button>("%NewGameButton"),
             [CommercialPanelAction.NextThermalPhase] = GetNode<Button>("%NextThermalPhaseButton"),
         };
 
@@ -118,6 +121,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         SetButton(CommercialPanelAction.ApproveWindow, model.ApproveWindow);
         SetButton(CommercialPanelAction.RollbackProject, model.RollbackProject);
         SetButton(CommercialPanelAction.RestartChapter, model.RestartChapter);
+        SetButton(CommercialPanelAction.NewGame, model.NewGame);
         SetButton(CommercialPanelAction.NextThermalPhase, model.NextThermalPhase);
         AccessibilityName =
             $"공사와 열 작업 패널. {model.Heading}. {model.Instruction}. {model.Obligations}. " +

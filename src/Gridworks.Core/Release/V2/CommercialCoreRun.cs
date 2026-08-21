@@ -7,6 +7,7 @@ public sealed class CommercialCoreRun
     private readonly CommercialCampaignDefinition? _campaign;
     private readonly IReadOnlyList<CommercialCoreChapter> _chapters;
     private readonly bool _carryWorldAcrossChapters;
+    private readonly bool _gatePromiseEmergencyByPhase;
     private readonly List<CommercialCoreCommand> _commands = [];
     private readonly List<ThermalIntervalResult> _committedPhaseResults = [];
     private readonly List<CommercialChapterResultRecord> _chapterResults = [];
@@ -33,6 +34,7 @@ public sealed class CommercialCoreRun
         _slice = slice;
         _chapters = slice.Chapters;
         _carryWorldAcrossChapters = false;
+        _gatePromiseEmergencyByPhase = false;
         StartChapter(0, chapterStartCommandCount: 0);
     }
 
@@ -47,6 +49,7 @@ public sealed class CommercialCoreRun
         _campaign = campaign;
         _chapters = campaign.Chapters;
         _carryWorldAcrossChapters = true;
+        _gatePromiseEmergencyByPhase = true;
         StartChapter(0, chapterStartCommandCount: 0);
     }
 
@@ -620,7 +623,9 @@ public sealed class CommercialCoreRun
                     load.ObligationKind != CommercialCoreObligationKind.CityPromise ||
                         _promiseDecision == PromiseDecision.Keep,
                     load.ObligationKind == CommercialCoreObligationKind.CityPromise &&
-                        _promiseDecision == PromiseDecision.Keep,
+                        _promiseDecision == PromiseDecision.Keep &&
+                        (!_gatePromiseEmergencyByPhase ||
+                            phase.Policy == ThermalIntervalPolicy.SafetyEmergencyAllowed),
                     load.NamedEmergencyDuty,
                     load.RequireSubstationPath)).ToArray(),
                 unavailable.OrderBy(item => item, StringComparer.Ordinal).ToArray(),

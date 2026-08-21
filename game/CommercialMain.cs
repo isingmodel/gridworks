@@ -40,6 +40,7 @@ internal sealed partial class CommercialMain : Control
     private byte[] _campaignBytes = null!;
     private string? _savePath;
     private bool _saveWritable = true;
+    private bool _incompatibleSavePending;
     private CommercialMapView _map = null!;
     private CommercialTaskPanel _panel = null!;
     private ReleaseAudio _audio = null!;
@@ -294,6 +295,9 @@ internal sealed partial class CommercialMain : Control
             case CommercialPanelAction.RestartChapter:
                 RestartChapter();
                 break;
+            case CommercialPanelAction.NewGame:
+                StartNewGame();
+                break;
             case CommercialPanelAction.NextThermalPhase:
                 _thermalProjectionIndex =
                     (_thermalProjectionIndex + 1) % _thermalSequence.Intervals.Count;
@@ -413,6 +417,46 @@ internal sealed partial class CommercialMain : Control
         ApplyCoreResult(
             result,
             "현재 장 시작 journal로 좌표·현금·시각·국면·약속·열 상태를 복구했습니다.");
+    }
+
+    private void StartNewGame()
+    {
+        if (_coreRun is null)
+        {
+            RejectLocally("이 열 연습에는 새로 시작할 캠페인이 없습니다.");
+            return;
+        }
+        bool preservedIncompatible = false;
+        if (_incompatibleSavePending && _savePath is not null && File.Exists(_savePath))
+        {
+            try
+            {
+                _ = CommercialCampaignPersistenceStore.PreserveIncompatible(_savePath);
+                preservedIncompatible = true;
+            }
+            catch (Exception exception) when (
+                exception is IOException or UnauthorizedAccessException)
+            {
+                _lastError = "이전 저장을 보존하지 못해 새 게임을 시작하지 않았습니다.";
+                Render();
+                return;
+            }
+        }
+        _coreRun = new CommercialCoreRun(_commercialWorld, _campaign);
+        _snapshot = _coreRun.GetSnapshot().Construction;
+        _tool = CommercialTool.None;
+        _presentedResult = null;
+        _thermalProjectionIndex = 0;
+        _saveWritable = true;
+        _incompatibleSavePending = false;
+        _lastStatus = preservedIncompatible
+            ? "새 게임을 시작했습니다. 이전 비호환 저장은 별도 파일로 보존했습니다."
+            : "새 게임을 첫 불빛부터 시작했습니다.";
+        _lastError = string.Empty;
+        PersistCoreRun();
+        RefreshThermalProjection();
+        RefreshPointerPreview();
+        Render();
     }
 
     private void ApplyCoreResult(CommercialCoreCommandResult result, string success)
@@ -563,8 +607,8 @@ internal sealed partial class CommercialMain : Control
     private void AfterStateChange(bool accepted)
     {
         if (accepted &&
-            _snapshot.World.Nodes.All(item => item.Commissioned) &&
-            _snapshot.World.Edges.All(item => item.Commissioned))
+            _snapshot.Phase is not
+                (ConstructionPhase.NodeBuilding or ConstructionPhase.LineBuilding))
         {
             RefreshThermalProjection();
         }
@@ -896,6 +940,10 @@ internal sealed partial class CommercialMain : Control
                 core is not null,
                 "현재 장 처음부터",
                 "현재 장 시작 journal로 되돌려 좌표·현금·시각·국면·약속·열 상태를 다시 만듭니다."),
+            new CommercialActionPresentation(
+                core is not null,
+                "새 게임",
+                "현재 진행을 지우고 첫 불빛부터 시작합니다. 비호환 저장은 별도 파일로 보존합니다."),
             new CommercialActionPresentation(
                 _thermalSequence.Intervals.Count > 1,
                 $"다음 국면 보기 · {_thermalProjectionIndex + 1}/{_thermalSequence.Intervals.Count}",
@@ -1363,12 +1411,14 @@ internal sealed partial class CommercialMain : Control
                 catch (CommercialCorePersistenceException)
                 {
                     _saveWritable = false;
+                    _incompatibleSavePending = true;
                     _lastError = "현재 데이터와 맞지 않는 저장 기록을 보존했습니다. 새 저장으로 덮어쓰지 않습니다.";
                 }
             }
             else if (load.Status == CommercialCoreDocumentLoadStatus.Invalid)
             {
                 _saveWritable = false;
+                _incompatibleSavePending = true;
                 _lastError = "이전 단계 또는 읽을 수 없는 저장 기록을 보존했습니다. 새 저장으로 덮어쓰지 않습니다.";
             }
             string previousPath = ProjectSettings.GlobalizePath("user://release-campaign-save-v2.json");

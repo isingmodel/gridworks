@@ -1,6 +1,7 @@
 #if DEBUG
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Gridworks.Core.Release.V2;
@@ -36,7 +37,7 @@ internal sealed partial class CommercialMain
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.Commission)),
                 "1920×1080·UI 125%에서 핵심 공사 행동이 패널 밖으로 잘렸습니다.");
 
-            EmitPanel(CommercialPanelAction.PlaceSubstation, "변전소 도구");
+            await PressPanelAsync(CommercialPanelAction.PlaceSubstation, "변전소 도구");
             await NextFrame();
             CoreMapPoint fractional = new(613, 327);
             await ClickMap(fractional);
@@ -46,7 +47,7 @@ internal sealed partial class CommercialMain
             Require(_snapshot.Phase == ConstructionPhase.Ready && _snapshot.NodeDraft is null,
                 "Esc가 작성 중인 변전소 계획을 먼저 취소하지 않았습니다.");
 
-            EmitPanel(CommercialPanelAction.PlaceSubstation, "변전소 도구 다시 선택");
+            await PressPanelAsync(CommercialPanelAction.PlaceSubstation, "변전소 도구 다시 선택");
             await NextFrame();
             await RequireRejectedPlacement(
                 new CoreMapPoint(1300, 900),
@@ -92,7 +93,7 @@ internal sealed partial class CommercialMain
                 _map.CameraCenter.IsEqualApprox(new Vector2(1600f, 1000f)),
                 "Home이 전체 보기와 지도 중심을 복원하지 못했습니다.");
 
-            EmitPanel(CommercialPanelAction.StartLine, "접속 후보 확인용 선로 도구");
+            await PressPanelAsync(CommercialPanelAction.StartLine, "접속 후보 확인용 선로 도구");
             await NextFrame();
             await MovePointer(new CoreMapPoint(300, 950));
             Require(
@@ -195,9 +196,9 @@ internal sealed partial class CommercialMain
                 "강을 건너는 선로 계획의 정확한 자유 좌표가 유지되지 않았습니다. " +
                 $"points={string.Join(';', _snapshot.LineDraft?.IntermediatePoints ?? Array.Empty<CoreMapPoint>())} " +
                 $"end={_snapshot.LineDraft?.EndNodeId ?? "없음"} error={_lastError}");
-            EmitPanel(CommercialPanelAction.Commission, "선로 공사 발주");
+            await PressPanelAsync(CommercialPanelAction.Commission, "선로 공사 발주");
             await NextFrame();
-            EmitPanel(CommercialPanelAction.Commission, "선로 공사 완공");
+            await PressPanelAsync(CommercialPanelAction.Commission, "선로 공사 완공");
             await NextFrame();
             CoreMapPoint[] commissionedPositions = _snapshot.World.Nodes
                 .Where(node => node.NodeId.StartsWith("PLAYER_POLE_", StringComparison.Ordinal))
@@ -250,7 +251,7 @@ internal sealed partial class CommercialMain
                 _panel.AccessibilityName.Contains("열", StringComparison.Ordinal),
                 "비상 운전 상태를 색 외 문장으로 노출하지 못했습니다.");
 
-            EmitPanel(CommercialPanelAction.NextThermalPhase, "보호정지 국면 전환");
+            await PressPanelAsync(CommercialPanelAction.NextThermalPhase, "보호정지 국면 전환");
             await NextFrame();
             Require(
                 _thermalProjectionIndex == 1 &&
@@ -259,7 +260,7 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("보호정지", StringComparison.Ordinal),
                 "다음 국면의 보호정지 overlay와 접근성 문장이 함께 바뀌지 않았습니다.");
 
-            EmitPanel(CommercialPanelAction.NextThermalPhase, "복귀 국면 전환");
+            await PressPanelAsync(CommercialPanelAction.NextThermalPhase, "복귀 국면 전환");
             await NextFrame();
             Require(
                 _thermalProjectionIndex == 2 &&
@@ -309,8 +310,36 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("예정 시설 3곳", StringComparison.Ordinal) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
-                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RestartChapter)),
+                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RestartChapter)) &&
+                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.NewGame)),
                 "1920×1080·UI 125%에서 상용 캠페인·오디오와 고정 행동 영역을 열지 못했습니다.");
+
+            string recoveryDirectory = Path.Combine(
+                Path.GetTempPath(),
+                $"gridworks-stage-e-native-recovery-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(recoveryDirectory);
+            string incompatiblePath = Path.Combine(
+                recoveryDirectory,
+                CommercialCampaignPersistenceStore.SaveFileName);
+            byte[] incompatibleBytes = [0xff, 0x00, 0x7f];
+            File.WriteAllBytes(incompatiblePath, incompatibleBytes);
+            _savePath = incompatiblePath;
+            _saveWritable = false;
+            _incompatibleSavePending = true;
+            await PressPanelAsync(CommercialPanelAction.NewGame, "비호환 저장 뒤 새 게임");
+            coreRun = _coreRun!;
+            string[] preserved = Directory.GetFiles(
+                recoveryDirectory,
+                "*.incompatible*.json");
+            Require(
+                _saveWritable && !_incompatibleSavePending &&
+                CommercialCampaignPersistenceStore.Load(incompatiblePath).Status ==
+                    CommercialCoreDocumentLoadStatus.Loaded &&
+                preserved.Length == 1 &&
+                File.ReadAllBytes(preserved[0]).SequenceEqual(incompatibleBytes),
+                "비호환 저장을 보존한 뒤 실제 새 게임 입력으로 쓰기 가능한 저장을 열지 못했습니다.");
+            Directory.Delete(recoveryDirectory, recursive: true);
+            _savePath = null;
 
             await BuildCampaignSmokeSubstation(
                 new CoreMapPoint(2200, 750),
@@ -330,10 +359,14 @@ internal sealed partial class CommercialMain
                 "EAST_RESIDENTIAL_TERMINAL",
                 Array.Empty<CoreMapPoint>(),
                 "첫 불빛 인입선");
+            Require(_thermalSequence.Intervals.SelectMany(item => item.Assets).Any(item =>
+                    item.AssetId == "PLAYER_EDGE_6") &&
+                _panel.AccessibilityName.Contains("공급할 수 있습니다", StringComparison.Ordinal),
+                "예약 시설이 남은 임무에서 완공 선로의 열·경로 projection을 즉시 갱신하지 못했습니다.");
             CommercialDecisionPreview firstPreview = coreRun.PreviewDecisionWindow();
             Require(firstPreview.Accepted && firstPreview.ProjectedMinute <= 800,
                 "첫 불빛 운영안이 안전 의무와 기한을 만족하지 못했습니다.");
-            EmitPanel(CommercialPanelAction.ApproveWindow, "첫 불빛 운영 승인");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "첫 불빛 운영 승인");
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "SECOND_HEART" &&
@@ -376,7 +409,7 @@ internal sealed partial class CommercialMain
                     heartPreview.PhaseResults[1].Demands[0].PathEdgeIds,
                     StringComparer.Ordinal),
                 "두 차단시험이 서로 다른 생존 회랑을 사용하지 못했습니다.");
-            EmitPanel(CommercialPanelAction.ApproveWindow, "의료원 차단시험 승인");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "의료원 차단시험 승인");
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "SECOND_SOURCE" &&
@@ -400,7 +433,7 @@ internal sealed partial class CommercialMain
                 sourcePreview.PhaseResults[0].Demands.All(item =>
                     item.Supplied && item.SourceNodeId == "WEST_AUXILIARY"),
                 "서부 전원 인수시험이 남부 발전 접속점의 실제 경로를 사용하지 못했습니다.");
-            EmitPanel(CommercialPanelAction.ApproveWindow, "서부 주간선 인수시험 승인");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "서부 주간선 인수시험 승인");
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "NORTH_BANK_PROMISE" &&
@@ -410,7 +443,7 @@ internal sealed partial class CommercialMain
                 _panel.AccessibilityName.Contains("운영 인수 완료", StringComparison.Ordinal),
                 "두 번째 전원 결과와 본편 전환을 제시하지 못했습니다.");
 
-            EmitPanel(CommercialPanelAction.KeepPromise, "북안 입주 약속 지킴");
+            await PressPanelAsync(CommercialPanelAction.KeepPromise, "북안 입주 약속 지킴");
             await NextFrame();
             await BuildCampaignSmokeLine(
                 "PLAYER_SUBSTATION_1",
@@ -418,7 +451,7 @@ internal sealed partial class CommercialMain
                 Array.Empty<CoreMapPoint>(),
                 "정수장 분기");
             int completedEdgeCount = coreRun.GetSnapshot().Construction.World.Edges.Count;
-            EmitPanel(CommercialPanelAction.RollbackProject, "정수장 최근 공사 복구");
+            await PressPanelAsync(CommercialPanelAction.RollbackProject, "정수장 최근 공사 복구");
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().PromiseDecision == PromiseDecision.Keep &&
@@ -434,7 +467,7 @@ internal sealed partial class CommercialMain
             Require(finalPreview.Accepted && finalPreview.PhaseResults[0].Assets.All(item =>
                     item.CurrentState != ThermalOperatingState.Emergency),
                 "북안 운영안이 연속 한계 안에서 의무와 약속을 공급하지 못했습니다.");
-            EmitPanel(CommercialPanelAction.ApproveWindow, "북안 운영안 승인");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "북안 운영안 승인");
             await NextFrame();
             CommercialCoreSnapshot complete = coreRun.GetSnapshot();
             CommercialChapterResultRecord result = complete.ChapterResults[^1];
@@ -458,7 +491,8 @@ internal sealed partial class CommercialMain
                 "COMMERCIAL_CAMPAIGN_STAGE_E_SMOKE_PASS " +
                 $"missions={complete.ChapterResults.Count} choice={result.PromiseDecision} " +
                 $"edges={complete.Construction.World.Edges.Count} path={fact.PathEdgeIds.Count} " +
-                "carry=yes rollback=recent preview=approval resolution=1920x1080");
+                "carry=yes rollback=recent preview=approval input=focus-keyboard " +
+                "recovery=incompatible-preserved projection=live resolution=1920x1080");
             GetTree().Quit(0);
         }
         catch (Exception exception)
@@ -474,7 +508,7 @@ internal sealed partial class CommercialMain
         IReadOnlyList<CoreMapPoint> intermediatePoints,
         string label)
     {
-        EmitPanel(CommercialPanelAction.StartLine, $"{label} 선로 도구");
+        await PressPanelAsync(CommercialPanelAction.StartLine, $"{label} 선로 도구");
         await NextFrame();
         SpatialNodeDefinition start = _snapshot.World.Nodes.Single(item =>
             item.NodeId == startNodeId);
@@ -489,23 +523,23 @@ internal sealed partial class CommercialMain
         Require(
             _snapshot.LineDraft?.EndNodeId == endNodeId,
             $"{label} 경로를 완성하지 못했습니다: {_lastError}");
-        EmitPanel(CommercialPanelAction.Commission, $"{label} 공사 발주");
+        await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 발주");
         await NextFrame();
-        EmitPanel(CommercialPanelAction.Commission, $"{label} 공사 완공");
+        await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 완공");
         await NextFrame();
     }
 
     private async Task BuildCampaignSmokeSubstation(CoreMapPoint position, string label)
     {
-        EmitPanel(CommercialPanelAction.PlaceSubstation, $"{label} 도구");
+        await PressPanelAsync(CommercialPanelAction.PlaceSubstation, $"{label} 도구");
         await NextFrame();
         await ClickMap(position);
         Require(
             _snapshot.NodeDraft?.Position == position,
             $"{label} 위치를 계획하지 못했습니다: {_lastError}");
-        EmitPanel(CommercialPanelAction.Commission, $"{label} 공사 발주");
+        await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 발주");
         await NextFrame();
-        EmitPanel(CommercialPanelAction.Commission, $"{label} 공사 완공");
+        await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 완공");
         await NextFrame();
     }
 
@@ -677,14 +711,17 @@ internal sealed partial class CommercialMain
         await PressKey(key, physical, shift);
     }
 
-    private void EmitPanel(CommercialPanelAction action, string description)
+    private async Task PressPanelAsync(CommercialPanelAction action, string description)
     {
         BaseButton button = _panel.GetActionButton(action);
         if (!button.Visible || button.Disabled)
         {
             throw new InvalidOperationException($"필요한 화면 행동을 사용할 수 없습니다: {description}");
         }
-        button.EmitSignal(BaseButton.SignalName.Pressed);
+        button.GrabFocus();
+        await NextFrame();
+        Require(button.HasFocus(), $"화면 행동이 키보드 focus를 받지 못했습니다: {description}");
+        await PressKey(Key.Enter);
     }
 
     private static bool ControlInside(Control outer, Control inner)

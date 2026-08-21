@@ -173,6 +173,12 @@ custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 text = "현재 장 처음부터"
 
+[node name="NewGameButton" type="Button" parent="Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "새 게임"
+
 [node name="NextThermalPhaseButton" type="Button" parent="Margin/Column"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)

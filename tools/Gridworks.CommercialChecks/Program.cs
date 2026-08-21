@@ -964,6 +964,15 @@ internal sealed class CommercialChecks
                 "campaign atomic store did not load its committed save");
             Equal(saveJson, Encoding.UTF8.GetString(File.ReadAllBytes(savePath)),
                 "campaign atomic store bytes");
+            string preservedPath = CommercialCampaignPersistenceStore.PreserveIncompatible(savePath);
+            Check(!File.Exists(savePath) && File.Exists(preservedPath),
+                "incompatible campaign save was not moved aside in the same directory");
+            Equal(saveJson, Encoding.UTF8.GetString(File.ReadAllBytes(preservedPath)),
+                "preserved incompatible campaign save bytes");
+            CommercialCampaignPersistenceStore.Save(savePath, save);
+            Check(CommercialCampaignPersistenceStore.Load(savePath).Status ==
+                    CommercialCoreDocumentLoadStatus.Loaded && File.Exists(preservedPath),
+                "new campaign save did not coexist with preserved incompatible bytes");
         }
         finally
         {
@@ -1028,6 +1037,41 @@ internal sealed class CommercialChecks
         Check(northWater.Supplied && southWater.Supplied &&
             !northWater.PathEdgeIds.SequenceEqual(southWater.PathEdgeIds, StringComparer.Ordinal),
             "two valid fourth-mission prototypes did not retain distinct actual water paths");
+
+        CommercialWorldDefinition constrainedWorld = _commercialWorld with
+        {
+            ThermalNodeClasses = _commercialWorld.ThermalNodeClasses.Select(item => item with
+            {
+                ContinuousLimitKw = Math.Min(item.ContinuousLimitKw, 1500),
+            }).ToArray(),
+            ThermalLineClasses = _commercialWorld.ThermalLineClasses.Select(item => item with
+            {
+                ContinuousLimitKw = Math.Min(item.ContinuousLimitKw, 1500),
+            }).ToArray(),
+        };
+        CommercialWorldLoader.Validate(constrainedWorld);
+        CommercialCoreRun noEarlyEmergency = CompleteCampaignFirstThree(constrainedWorld);
+        BuildCampaignLine(
+            noEarlyEmergency,
+            "PLAYER_SUBSTATION_1",
+            "WATER_TERMINAL",
+            Array.Empty<MapPoint>(),
+            "continuous-only water branch");
+        CoreAccepted(noEarlyEmergency.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "continuous-only keep choice");
+        CommercialDecisionPreview noEarlyEmergencyPreview =
+            noEarlyEmergency.PreviewDecisionWindow();
+        Check(!noEarlyEmergencyPreview.Accepted &&
+            noEarlyEmergencyPreview.Error == CommercialCoreError.KeptPromiseFailed &&
+            noEarlyEmergencyPreview.FailedDemandId == "NORTH_BANK_PROMISE_LOAD" &&
+            noEarlyEmergencyPreview.SupplyFailure == ThermalSupplyFailure.ContinuousPermission,
+            "mission four used emergency capacity for a kept promise before the mission-five unlock");
+        CoreAccepted(noEarlyEmergency.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Defer)), "continuous-only defer recovery");
+        Check(noEarlyEmergency.PreviewDecisionWindow().Accepted,
+            "mission-four continuous-only boundary could not recover by deferring its optional promise");
     }
 
     private void CheckCommercialCoreFlowDesignsAndFacts()
@@ -1753,9 +1797,10 @@ internal sealed class CommercialChecks
 
     private CommercialCoreRun NewCoreRun() => new(_commercialWorld, _coreSlice);
 
-    private CommercialCoreRun CompleteCampaignFirstThree()
+    private CommercialCoreRun CompleteCampaignFirstThree(
+        CommercialWorldDefinition? world = null)
     {
-        var run = new CommercialCoreRun(_commercialWorld, _campaign);
+        var run = new CommercialCoreRun(world ?? _commercialWorld, _campaign);
         SpatialNodeDefinition reservedSource = run.GetSnapshot().Construction.World.Nodes.Single(item =>
             item.NodeId == "WEST_AUXILIARY");
         Check(reservedSource.Reserved && !reservedSource.Commissioned &&

@@ -302,6 +302,31 @@ public static class CommercialCampaignPersistenceStore
         }
     }
 
+    public static string PreserveIncompatible(string absolutePath)
+    {
+        ValidateAbsolutePath(absolutePath);
+        if (!File.Exists(absolutePath))
+        {
+            throw new FileNotFoundException("보존할 비호환 저장을 찾을 수 없습니다.", absolutePath);
+        }
+        string directory = Path.GetDirectoryName(absolutePath)!;
+        string fileName = Path.GetFileNameWithoutExtension(absolutePath);
+        string extension = Path.GetExtension(absolutePath);
+        int suffix = 0;
+        string preservedPath;
+        do
+        {
+            string ordinal = suffix == 0 ? string.Empty : $"-{suffix}";
+            preservedPath = Path.Combine(
+                directory,
+                $"{fileName}.incompatible{ordinal}{extension}");
+            suffix++;
+        }
+        while (File.Exists(preservedPath));
+        File.Move(absolutePath, preservedPath);
+        return preservedPath;
+    }
+
     private static void ValidateAbsolutePath(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

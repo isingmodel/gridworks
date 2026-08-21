@@ -12,7 +12,7 @@
 ## 현재 상태
 
 현재 활성 구현 단계는 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-**단계 E — 첫 네 임무와 공통 UX**다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
+**단계 F — 후반 네 임무와 에필로그**다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
 주기기·전신주 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도
 v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대로 만든다. 기존 `ReleaseMain`과
 33×21 후보는 기술 회귀 기준선이며 새 규칙의 실행 권위가 아니다.
@@ -35,8 +35,16 @@ seed의 `누구의 여유인가`를 한 상용 핵심 경로에 통합했다.
 비상 운전·보호정지·약속을 말하고, authored prelude 결과와 사건 story, 환경음·발주·완공·통전·
 보호정지 cue를 기본 `CommercialMain`에서 표현한다. CommercialChecks 17개 묶음 682 assertions,
 Game Debug·Release build, 핵심·자유 배치·열 native smoke와 동결 회귀가 통과했다. 독립 검토의 P1
-4건을 모두 수정해 열린 P0/P1은 없고 `CommercialSliceHumanStatus = NOT_COLLECTED`다. 단계 E는 최종
-`release-campaign-v2.json`을 열어 첫 네 임무와 공통 저장·복구·의무·약속·story/result UX를 만든다.
+4건을 모두 수정해 열린 P0/P1은 없고 `CommercialSliceHumanStatus = NOT_COLLECTED`다.
+
+완료된 단계 E는 최종 `release-campaign-v2.json`에 `첫 불빛`, `두 번째 심장`, `두 번째 전원`,
+`북안의 약속`을 열고 같은 지도·현금·망·결과를 장 사이에 유지한다. 변전소 서비스 권역, 두 위험
+회랑, 두 번째 발전원, 첫 도시 약속을 실제 공사로 검증하며 4장까지는 연속 한계만 허용한다. 예약된
+후속 시설은 점유영역만 보이고 장 경계에서 통전되며, save v3 fresh replay·최근 공사·장 재시작과
+비호환 저장 보존 뒤 쓰기 가능한 새 게임을 공통 UI에서 제공한다. CommercialChecks 19개 묶음 1,330
+assertions, Game Debug·Release build, 1920×1080·UI 125% actual-input 캠페인과 자유 배치·열 native
+smoke 및 동결 회귀가 통과했다. 독립 검토의 P1 4건을 모두 수정해 열린 P0/P1은 없다. 단계 F는 같은
+campaign 권위와 runner를 정확히 여덟 임무·에필로그로 확장한다.
 
 직전 기준선의 `ReleaseMain`은 프롤로그 세 임무와 본편 다섯 장, 한국어 화면, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 후보까지 구현했다. 사용자 요청으로 수행한
@@ -51,7 +59,7 @@ Game Debug·Release build, 핵심·자유 배치·열 native smoke와 동결 회
 기억하는 여덟 임무를 새 기반으로 삼는다. 정확한 구현 경계와 순서는 활성 계약이 소유한다.
 
 현재 기본 실행 장면은 새 `CommercialMain`이다. 보이는 격자 없는 지도에서 자유 좌표로 전신주·
-변전소·선로를 건설하고 작성된 국면의 사용량·연속·비상 한계와 다음 보호정지를 비교한다. 현재
+변전소·선로를 건설하고 첫 네 임무에서 작성된 국면의 사용량·연속 한계를 비교한다. 현재
 제품의 최소 지원 해상도는 **1920×1080**이며 UI 100%·125%를 목표로 한다. 1280×720은 지원하지
 않는다. `ReleaseMain`의 33×21 여덟 임무 후보는 명시 scene 동결 회귀로만 남는다.
 [화면·입력 증거](playtests/release-2d/LAYOUT_EVIDENCE.md)는 직전 후보의 네 화면 배치와 저장소 밖

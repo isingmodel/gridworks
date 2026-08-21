@@ -2,7 +2,7 @@
 
 > 상태: **ACTIVE**
 > 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 E — 첫 네 임무와 공통 UX**
+> 현재 작업: **단계 F — 후반 네 임무와 에필로그**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -321,6 +321,31 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 - 두 fresh process native 흐름에서 4장 뒤 저장·종료, 새 실행 재개, 5~8장·에필로그, 완료 저장 재개와
   장 선택을 확인한다.
 - 임무별 Game 코드 분기와 임무별 별도 native runner는 만들지 않는다.
+
+### 6.4 단계 E 종료 기록 — 2026-08-21
+
+- `release-world-v2.json` SHA-256:
+  `304eb051a564a0ceda7912d717268d3011f5f3482a5ab9d1c68dd9330e0e165c`
+- `release-campaign-v2.json` SHA-256:
+  `cced2bf7959fa3adf1f35972443ce0362cf553ea89191effab60148889332393`
+- final campaign v2는 정확히 첫 네 authored mission만 열었다. 한 runner가 장 사이의 자유 배치 망,
+  현금, 결과와 thermal memory를 유지하고 후속 시설의 점유영역을 예약한 뒤 해당 장에서 통전한다.
+- 변전소 서비스 권역과 실제 변전소 경유, 두 공간 위험 회랑, 두 번째 발전원, 북안 정수장 분기의
+  두 유효 원형과 대표 실패·복구를 고정했다. 1~4장의 모든 국면은 `ContinuousOnly`이며 제한을 낮춘
+  반례에서도 도시 약속이 임무 5 전 비상 한계를 사용하지 못한다.
+- campaign save v3는 world·campaign ID/hash와 journal을 strict하게 묶고 fresh replay, 최근 공사,
+  장 재시작을 제공한다. 같은 경로의 단계 D 저장은 별도 파일로 보존하며 화면의 `새 게임`이 즉시
+  쓰기 가능한 현재 save를 연다.
+- CommercialChecks: **19 suites / 1,330 assertions PASS**. Scope 0B·Scope 1·product·release v1 동결
+  회귀도 모두 통과했다. Game Debug·Release build는 **0 warnings / 0 errors**다.
+- 1920×1080·UI 125% 실제 focus+Enter와 지도 입력 흐름:
+  `COMMERCIAL_CAMPAIGN_STAGE_E_SMOKE_PASS missions=4 choice=Keep edges=18 path=10 carry=yes rollback=recent preview=approval input=focus-keyboard recovery=incompatible-preserved projection=live resolution=1920x1080`.
+  자유 배치·열 native 회귀도 통과했다. 1280×720은 지원하거나 검수하지 않았다.
+- 독립 exact-tree 검토는 candidate에서 **P0 0 / P1 4**를 찾았다. 임무 4 비상 권한, 예약 시설이 있는
+  장의 live projection, 비호환 저장 뒤 writable New Game, 직접 signal을 쓰던 native 입력을 모두
+  수정했다. exact fix `ed7a0d7` 재검토에서 **open P0/P1 0**, worktree clean을 확인했다.
+- `FullCampaignHumanStatus = NOT_COLLECTED`, `KoreanProfessionalProofStatus = NOT_COLLECTED`다. 이해·재미·
+  전문 교정을 기계 통과로 주장하지 않고 단계 F로 승격했다.
 
 ## 7. 단계 G — 시청각·접근성·패키징 마감
 

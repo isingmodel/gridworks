@@ -236,6 +236,22 @@
         "position": { "xUnit": 2280, "yUnit": 1500 },
         "commissioned": true,
         "authoredFoundation": false
+      },
+      {
+        "nodeId": "WATER_TERMINAL",
+        "classId": "LOAD_TERMINAL",
+        "displayName": "청류정수장 접속점",
+        "position": { "xUnit": 2500, "yUnit": 1150 },
+        "commissioned": true,
+        "authoredFoundation": false
+      },
+      {
+        "nodeId": "INDUSTRY_TERMINAL",
+        "classId": "LOAD_TERMINAL",
+        "displayName": "동부 산업단지 접속점",
+        "position": { "xUnit": 3000, "yUnit": 1150 },
+        "commissioned": true,
+        "authoredFoundation": false
       }
     ],
     "edges": [
@@ -251,7 +267,10 @@
       { "edgeId": "S04", "lineClassId": "REINFORCED_LINE", "fromNodeId": "BRIDGE_SOUTH_FOUNDATION", "toNodeId": "SOUTH_EAST_POLE", "commissioned": true },
       { "edgeId": "S05", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SOUTH_EAST_POLE", "toNodeId": "SOUTH_SUBSTATION", "commissioned": true },
       { "edgeId": "H01", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SOUTH_SUBSTATION", "toNodeId": "HOSPITAL_TERMINAL", "commissioned": true },
-      { "edgeId": "TIE01", "lineClassId": "REINFORCED_LINE", "fromNodeId": "EAST_JUNCTION", "toNodeId": "SOUTH_SUBSTATION", "commissioned": true }
+      { "edgeId": "TIE01", "lineClassId": "REINFORCED_LINE", "fromNodeId": "EAST_JUNCTION", "toNodeId": "SOUTH_SUBSTATION", "commissioned": true },
+      { "edgeId": "W01", "lineClassId": "REINFORCED_LINE", "fromNodeId": "EAST_JUNCTION", "toNodeId": "WATER_TERMINAL", "commissioned": true },
+      { "edgeId": "W02", "lineClassId": "REINFORCED_LINE", "fromNodeId": "SOUTH_SUBSTATION", "toNodeId": "WATER_TERMINAL", "commissioned": true },
+      { "edgeId": "I01", "lineClassId": "REINFORCED_LINE", "fromNodeId": "WATER_TERMINAL", "toNodeId": "INDUSTRY_TERMINAL", "commissioned": true }
     ]
   },
   "thermalNodeClasses": [
@@ -264,7 +283,7 @@
     { "classId": "REINFORCED_LINE", "continuousLimitKw": 3600, "emergencyLimitKw": 5000 }
   ],
   "generationSources": [
-    { "nodeId": "WEST_SOURCE", "outputCapacityKw": 4200, "authoredOrder": 0 },
-    { "nodeId": "WEST_AUXILIARY", "outputCapacityKw": 3000, "authoredOrder": 1 }
+    { "nodeId": "WEST_SOURCE", "outputCapacityKw": 5200, "authoredOrder": 0 },
+    { "nodeId": "WEST_AUXILIARY", "outputCapacityKw": 4000, "authoredOrder": 1 }
   ]
 }

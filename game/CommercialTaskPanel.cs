@@ -11,6 +11,12 @@ internal enum CommercialPanelAction
     UndoPoint,
     CancelDraft,
     Commission,
+    CycleLineClass,
+    KeepPromise,
+    DeferPromise,
+    ApproveWindow,
+    RollbackProject,
+    RestartChapter,
     NextThermalPhase,
 }
 
@@ -32,6 +38,12 @@ internal sealed record CommercialTaskPanelModel(
     CommercialActionPresentation UndoPoint,
     CommercialActionPresentation CancelDraft,
     CommercialActionPresentation Commission,
+    CommercialActionPresentation CycleLineClass,
+    CommercialActionPresentation KeepPromise,
+    CommercialActionPresentation DeferPromise,
+    CommercialActionPresentation ApproveWindow,
+    CommercialActionPresentation RollbackProject,
+    CommercialActionPresentation RestartChapter,
     CommercialActionPresentation NextThermalPhase);
 
 internal sealed partial class CommercialTaskPanel : PanelContainer
@@ -63,6 +75,12 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             [CommercialPanelAction.UndoPoint] = GetNode<Button>("%UndoPointButton"),
             [CommercialPanelAction.CancelDraft] = GetNode<Button>("%CancelDraftButton"),
             [CommercialPanelAction.Commission] = GetNode<Button>("%CommissionButton"),
+            [CommercialPanelAction.CycleLineClass] = GetNode<Button>("%CycleLineClassButton"),
+            [CommercialPanelAction.KeepPromise] = GetNode<Button>("%KeepPromiseButton"),
+            [CommercialPanelAction.DeferPromise] = GetNode<Button>("%DeferPromiseButton"),
+            [CommercialPanelAction.ApproveWindow] = GetNode<Button>("%ApproveWindowButton"),
+            [CommercialPanelAction.RollbackProject] = GetNode<Button>("%RollbackProjectButton"),
+            [CommercialPanelAction.RestartChapter] = GetNode<Button>("%RestartChapterButton"),
             [CommercialPanelAction.NextThermalPhase] = GetNode<Button>("%NextThermalPhaseButton"),
         };
 
@@ -89,6 +107,12 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         SetButton(CommercialPanelAction.UndoPoint, model.UndoPoint);
         SetButton(CommercialPanelAction.CancelDraft, model.CancelDraft);
         SetButton(CommercialPanelAction.Commission, model.Commission);
+        SetButton(CommercialPanelAction.CycleLineClass, model.CycleLineClass);
+        SetButton(CommercialPanelAction.KeepPromise, model.KeepPromise);
+        SetButton(CommercialPanelAction.DeferPromise, model.DeferPromise);
+        SetButton(CommercialPanelAction.ApproveWindow, model.ApproveWindow);
+        SetButton(CommercialPanelAction.RollbackProject, model.RollbackProject);
+        SetButton(CommercialPanelAction.RestartChapter, model.RestartChapter);
         SetButton(CommercialPanelAction.NextThermalPhase, model.NextThermalPhase);
         AccessibilityName = $"공사와 열 작업 패널. {model.Heading}. {model.Thermal}. {model.Status}";
     }

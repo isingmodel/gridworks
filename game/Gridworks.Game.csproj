@@ -31,6 +31,9 @@
     <EmbeddedResource Include="../data/release-world-v2.json"
                       Link="EmbeddedData/release-world-v2.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-world-v2.json" />
+    <EmbeddedResource Include="../data/commercial-core-slice-v1.json"
+                      Link="EmbeddedData/commercial-core-slice-v1.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.commercial-core-slice-v1.json" />
     <EmbeddedResource Include="../data/release-world-v1.json"
                       Link="EmbeddedData/release-world-v1.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-world-v1.json" />

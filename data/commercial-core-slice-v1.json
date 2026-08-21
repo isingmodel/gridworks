@@ -1,0 +1,220 @@
+{
+  "schemaVersion": "gridworks.commercial.core-slice.v1",
+  "sliceId": "CHEONGRYU_COMMERCIAL_CORE_V1",
+  "displayName": "첫 불빛에서 누구의 여유인가까지",
+  "worldId": "CHEONGRYU_COMMERCIAL_V2",
+  "chapters": [
+    {
+      "chapterId": "FIRST_LIGHT_PRELUDE",
+      "kind": "Prelude",
+      "displayName": "첫 불빛",
+      "seedCashUnit": 0,
+      "seedNodeIds": [
+        "WEST_SOURCE",
+        "EAST_RESIDENTIAL_TERMINAL"
+      ],
+      "seedEdgeIds": [],
+      "briefing": {
+        "speaker": "한도윤",
+        "title": "첫 선로는 직접 놓습니다",
+        "body": "서부 전원과 동부 생활권 사이에 전신주와 선로를 놓으세요. 강 위에 전신주를 세울 수는 없지만, 양쪽 육지의 접속점 사이는 선로로 건널 수 있습니다."
+      },
+      "objective": "동부 생활권 1.2 MW를 연속 한계 안에서 공급한다.",
+      "grantCashUnit": 600000,
+      "deadlineMinute": 420,
+      "promise": null,
+      "decisionWindows": [
+        {
+          "windowId": "PRELUDE_BUILD",
+          "nextPhaseId": "PRELUDE_SERVICE",
+          "story": null,
+          "buildMinutesAllowance": 420
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "PRELUDE_SERVICE",
+          "displayName": "첫 생활권 점등",
+          "policy": "ContinuousOnly",
+          "loads": [
+            {
+              "loadId": "PRELUDE_RESIDENTIAL",
+              "displayName": "동부 생활권 필수 공급",
+              "nodeId": "EAST_RESIDENTIAL_TERMINAL",
+              "demandKw": 1200,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false
+            }
+          ],
+          "unavailableAssetIds": [],
+          "activeRiskAreaIds": [],
+          "limitOverrides": []
+        }
+      ],
+      "standardResult": {
+        "speaker": "한도윤",
+        "title": "첫 점등 보고",
+        "body": "발전 접속점부터 생활권까지 실제로 이어진 경로를 확인했습니다."
+      },
+      "keptResult": null,
+      "deferredResult": null
+    },
+    {
+      "chapterId": "WHOSE_MARGIN",
+      "kind": "CommercialCore",
+      "displayName": "누구의 여유인가",
+      "seedCashUnit": 5000000,
+      "seedNodeIds": [
+        "WEST_SOURCE",
+        "WEST_AUXILIARY",
+        "NORTH_WEST_POLE",
+        "BRIDGE_NORTH_FOUNDATION",
+        "NORTH_EAST_POLE",
+        "NORTH_SUBSTATION",
+        "EAST_JUNCTION",
+        "SOUTH_WEST_POLE",
+        "SOUTH_APPROACH_POLE",
+        "BRIDGE_SOUTH_FOUNDATION",
+        "SOUTH_EAST_POLE",
+        "SOUTH_SUBSTATION",
+        "EAST_RESIDENTIAL_TERMINAL",
+        "HOSPITAL_TERMINAL",
+        "WATER_TERMINAL",
+        "INDUSTRY_TERMINAL"
+      ],
+      "seedEdgeIds": [
+        "N01",
+        "N02",
+        "N03",
+        "N04",
+        "N05",
+        "E01",
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "H01",
+        "TIE01",
+        "W01",
+        "W02"
+      ],
+      "briefing": {
+        "speaker": "서민재",
+        "title": "더운 저녁의 한 회선",
+        "body": "산업단지는 야간 증산 전력을 요청했습니다. 값싼 표준선은 이번 국면을 버티지만 다음 경계에 보호정지하고, 보강선은 더 비싸고 늦지만 연속 한계 안에 남습니다."
+      },
+      "objective": "의료원과 정수장 안전 의무를 지키며 산업 약속을 지킬지 미룰지 명시한다.",
+      "grantCashUnit": 500000,
+      "deadlineMinute": 20,
+      "promise": {
+        "promiseId": "INDUSTRY_NIGHT_SHIFT",
+        "displayName": "산업단지 야간 증산 2.6 MW",
+        "loadId": "INDUSTRY_PROMISE"
+      },
+      "decisionWindows": [
+        {
+          "windowId": "CORE_BUILD",
+          "nextPhaseId": "HOT_EVENING",
+          "story": null,
+          "buildMinutesAllowance": 20
+        },
+        {
+          "windowId": "CORE_EVENT",
+          "nextPhaseId": "NEXT_SAFETY",
+          "story": {
+            "speaker": "윤서진",
+            "title": "다음 경계까지 남는 것",
+            "body": "비상으로 쓴 설비는 지금 전력을 보내도 다음 경계에는 멈춥니다. 남은 회랑이 안전 의무를 받을 수 있는지 확인하세요."
+          },
+          "buildMinutesAllowance": null
+        }
+      ],
+      "operatingPhases": [
+        {
+          "phaseId": "HOT_EVENING",
+          "displayName": "더운 저녁 최대수요",
+          "policy": "ContinuousOnly",
+          "loads": [
+            {
+              "loadId": "HOSPITAL_DUTY",
+              "displayName": "의료원 생명 유지",
+              "nodeId": "HOSPITAL_TERMINAL",
+              "demandKw": 500,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false
+            },
+            {
+              "loadId": "WATER_DUTY",
+              "displayName": "정수장 필수 서비스",
+              "nodeId": "WATER_TERMINAL",
+              "demandKw": 800,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false
+            },
+            {
+              "loadId": "RESIDENTIAL_RECORD",
+              "displayName": "동부 생활권 운영 기록",
+              "nodeId": "EAST_RESIDENTIAL_TERMINAL",
+              "demandKw": 1000,
+              "obligationKind": "OperatingRecord",
+              "namedEmergencyDuty": false
+            },
+            {
+              "loadId": "INDUSTRY_PROMISE",
+              "displayName": "산업단지 야간 증산 약속",
+              "nodeId": "INDUSTRY_TERMINAL",
+              "demandKw": 2600,
+              "obligationKind": "CityPromise",
+              "namedEmergencyDuty": false
+            }
+          ],
+          "unavailableAssetIds": [],
+          "activeRiskAreaIds": [],
+          "limitOverrides": []
+        },
+        {
+          "phaseId": "NEXT_SAFETY",
+          "displayName": "다음 경계 안전 공급",
+          "policy": "ContinuousOnly",
+          "loads": [
+            {
+              "loadId": "HOSPITAL_NEXT_DUTY",
+              "displayName": "의료원 다음 경계 안전 의무",
+              "nodeId": "HOSPITAL_TERMINAL",
+              "demandKw": 1600,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false
+            },
+            {
+              "loadId": "WATER_NEXT_DUTY",
+              "displayName": "정수장 다음 경계 안전 의무",
+              "nodeId": "WATER_TERMINAL",
+              "demandKw": 900,
+              "obligationKind": "MustSupply",
+              "namedEmergencyDuty": false
+            }
+          ],
+          "unavailableAssetIds": [],
+          "activeRiskAreaIds": [],
+          "limitOverrides": []
+        }
+      ],
+      "standardResult": {
+        "speaker": "한도윤",
+        "title": "운영 결과",
+        "body": "선택한 망과 약속에 따라 실제 공급 경로와 다음 보호정지를 기록했습니다."
+      },
+      "keptResult": {
+        "speaker": "서민재",
+        "title": "지킨 약속의 비용",
+        "body": "야간 증산 전력을 공급했습니다. 비상으로 쓴 설비와 다음 경계 상태는 운영 기록에 남습니다."
+      },
+      "deferredResult": {
+        "speaker": "윤서진",
+        "title": "남겨 둔 여유",
+        "body": "증산 약속을 미루고 안전 의무에 쓸 열여유를 남겼습니다."
+      }
+    }
+  ]
+}

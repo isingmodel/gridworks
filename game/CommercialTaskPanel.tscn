@@ -118,6 +118,54 @@ custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 text = "공사 발주"
 
+[node name="CycleLineClassButton" type="Button" parent="Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "선종 · 보강 배전선"
+
+[node name="PromiseRow" type="HBoxContainer" parent="Margin/Column"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="KeepPromiseButton" type="Button" parent="Margin/Column/PromiseRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "약속 지킴"
+
+[node name="DeferPromiseButton" type="Button" parent="Margin/Column/PromiseRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "약속 미룸"
+
+[node name="DecisionRow" type="HBoxContainer" parent="Margin/Column"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="ApproveWindowButton" type="Button" parent="Margin/Column/DecisionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "다음 경계 승인"
+
+[node name="RollbackProjectButton" type="Button" parent="Margin/Column/DecisionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "최근 공사 복구"
+
+[node name="RestartChapterButton" type="Button" parent="Margin/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "현재 장 처음부터"
+
 [node name="NextThermalPhaseButton" type="Button" parent="Margin/Column"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)

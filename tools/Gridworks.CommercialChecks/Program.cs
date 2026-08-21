@@ -59,6 +59,9 @@ internal sealed class CommercialChecks
     private readonly byte[] _commercialBytes;
     private readonly string _commercialJson;
     private readonly CommercialWorldDefinition _commercialWorld;
+    private readonly byte[] _coreBytes;
+    private readonly string _coreJson;
+    private readonly CommercialCoreSliceDefinition _coreSlice;
     private int _assertionCount;
 
     public CommercialChecks(string fixturePath)
@@ -66,6 +69,12 @@ internal sealed class CommercialChecks
         _commercialBytes = File.ReadAllBytes(fixturePath);
         _commercialJson = Encoding.UTF8.GetString(_commercialBytes);
         _commercialWorld = CommercialWorldLoader.Load(_commercialBytes);
+        string corePath = Path.Combine(
+            Path.GetDirectoryName(fixturePath)!,
+            "commercial-core-slice-v1.json");
+        _coreBytes = File.ReadAllBytes(corePath);
+        _coreJson = Encoding.UTF8.GetString(_coreBytes);
+        _coreSlice = CommercialCoreLoader.Load(_coreBytes, _commercialWorld);
         string spatialFixturePath = Path.Combine(
             Path.GetDirectoryName(fixturePath)!,
             "commercial-free-placement-slice-v1.json");
@@ -90,6 +99,11 @@ internal sealed class CommercialChecks
             ("thermal-shared-permissions-and-bottleneck", CheckThermalSharedPermissionsAndBottleneck),
             ("thermal-protection-cooling-and-determinism", CheckThermalProtectionCoolingAndDeterminism),
             ("thermal-review-regressions", CheckThermalReviewRegressions),
+            ("strict-commercial-core-loader", CheckStrictCommercialCoreLoader),
+            ("commercial-core-flow-designs-and-facts", CheckCommercialCoreFlowDesignsAndFacts),
+            ("commercial-core-choice-deadline-and-atomicity", CheckCommercialCoreChoiceDeadlineAndAtomicity),
+            ("commercial-core-rollback-and-fresh-replay", CheckCommercialCoreRollbackAndFreshReplay),
+            ("commercial-core-save-v3", CheckCommercialCoreSaveV3),
         ];
 
         List<string> failures = [];
@@ -688,6 +702,439 @@ internal sealed class CommercialChecks
             root => Object(JsonArrayProperty(root, "generationSources")[1]!)["authoredOrder"] = 0);
     }
 
+    private void CheckStrictCommercialCoreLoader()
+    {
+        CommercialCoreSliceDefinition fromText = CommercialCoreLoader.Load(
+            _coreJson,
+            _commercialWorld);
+        CommercialCoreSliceDefinition fromBytes = CommercialCoreLoader.Load(
+            _coreBytes,
+            _commercialWorld);
+        Equal(_coreSlice.SliceId, fromText.SliceId, "core slice text loader ID");
+        Equal(_coreSlice.SliceId, fromBytes.SliceId, "core slice byte loader ID");
+        Equal(2, _coreSlice.Chapters.Count, "Stage-D exact chapter count");
+        Equal(2, _coreSlice.Chapters[1].DecisionWindows.Count, "core decision-window count");
+
+        string trimmed = _coreJson.TrimStart();
+        ExpectCoreRejected(
+            "duplicate core JSON property",
+            $"{{\"schemaVersion\":\"duplicate\",{trimmed[1..]}");
+        ExpectCoreRejected("unknown core root field", root => root["future"] = true);
+        ExpectCoreRejected("missing core slice ID", root => root.Remove("sliceId"));
+        ExpectCoreRejected(
+            "wrong core world ID",
+            root => root["worldId"] = "OTHER_WORLD");
+        ExpectCoreRejected(
+            "future campaign placeholder chapter",
+            root => JsonArrayProperty(root, "chapters").Add(
+                JsonArrayProperty(root, "chapters")[1]!.DeepClone()));
+        ExpectCoreRejected(
+            "unknown seed node",
+            root => JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[0]!),
+                "seedNodeIds").Add("UNKNOWN_NODE"));
+        ExpectCoreRejected(
+            "seed edge endpoint omitted",
+            root => JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[1]!),
+                "seedNodeIds").RemoveAt(0));
+        ExpectCoreRejected(
+            "zero window allowance",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[0]!),
+                "decisionWindows")[0]!)["buildMinutesAllowance"] = 0);
+        ExpectCoreRejected(
+            "unknown next phase",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[1]!),
+                "decisionWindows")[0]!)["nextPhaseId"] = "UNKNOWN_PHASE");
+        ExpectCoreRejected(
+            "integer chapter kind",
+            root => Object(JsonArrayProperty(root, "chapters")[0]!)["kind"] = 0);
+        ExpectCoreRejected(
+            "integer phase policy",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(root, "chapters")[0]!),
+                "operatingPhases")[0]!)["policy"] = 0);
+        ExpectCoreRejected(
+            "promise without deferred result",
+            root => Object(JsonArrayProperty(root, "chapters")[1]!)["deferredResult"] = null);
+        ExpectCoreRejected(
+            "unknown phase risk area",
+            root => JsonArrayProperty(
+                Object(JsonArrayProperty(
+                    Object(JsonArrayProperty(root, "chapters")[1]!),
+                    "operatingPhases")[0]!),
+                "activeRiskAreaIds").Add("UNKNOWN_RISK"));
+        ExpectCoreRejected(
+            "duplicate load ID across phases",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(
+                    Object(JsonArrayProperty(root, "chapters")[1]!),
+                    "operatingPhases")[1]!),
+                    "loads")[0]!)["loadId"] = "HOSPITAL_DUTY");
+    }
+
+    private void CheckCommercialCoreFlowDesignsAndFacts()
+    {
+        CommercialCoreRun standard = NewCoreRun();
+        CompletePrelude(standard);
+        CoreAccepted(standard.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "standard keep promise");
+        CommercialDecisionPreview standardDraft = CompleteIndustryDraft(
+            standard,
+            "STANDARD_LINE",
+            "STANDARD_POLE");
+        Equal(10L, standardDraft.ProjectedMinute, "standard draft projected minute");
+        Check(standardDraft.Accepted,
+            $"standard draft preview failed: {standardDraft.Error}/" +
+            $"{standardDraft.FailedDemandId}/{standardDraft.SupplyFailure}/" +
+            $"{standardDraft.FirstBottleneckAssetId}");
+        ThermalDemandResult standardPromise = standardDraft.PhaseResults[0].Demands.Single(item =>
+            item.DemandId == "INDUSTRY_PROMISE");
+        Check(standardPromise.Supplied, "standard prototype did not supply the promise");
+        Check(standardPromise.EmergencyAssetIds.Contains("PLAYER_EDGE_1"),
+            "standard prototype did not use its conductor emergency limit");
+
+        CoreAccepted(standard.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderLine)), "standard line order");
+        CoreAccepted(standard.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), "standard line completion");
+        CommercialDecisionPreview standardCommittedPreview = standard.PreviewDecisionWindow();
+        Equal(
+            JsonSerializer.Serialize(standardDraft),
+            JsonSerializer.Serialize(standardCommittedPreview),
+            "complete-draft preview equals commissioned preview");
+        CommercialCoreCommandResult hotApproval = standard.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(hotApproval, "standard hot-window approval");
+        Equal(
+            JsonSerializer.Serialize(standardCommittedPreview),
+            JsonSerializer.Serialize(hotApproval.DecisionPreview),
+            "public hot preview equals approval result");
+        Check(hotApproval.Snapshot.ThermalMemory.Single(item =>
+                item.AssetId == "PLAYER_EDGE_1").ProtectiveOutage,
+            "standard emergency line did not enter next-phase protective memory");
+        CommercialCoreCommandResult frozenChoice = standard.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Defer));
+        Check(!frozenChoice.Accepted && frozenChoice.Error == CommercialCoreError.WrongPhase,
+            "promise changed after its operating result was committed");
+        CommercialDecisionPreview safetyPreview = standard.PreviewDecisionWindow();
+        Check(safetyPreview.Accepted, "standard prototype broke next safety duties");
+        CommercialCoreCommandResult standardFinish = standard.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(standardFinish, "standard next-safety approval");
+        Equal(JsonSerializer.Serialize(safetyPreview),
+            JsonSerializer.Serialize(standardFinish.DecisionPreview),
+            "public next-safety preview equals approval result");
+        Check(standardFinish.Snapshot.CampaignComplete, "standard prototype did not complete the slice");
+        CommercialChapterResultRecord standardResult = standardFinish.CompletedChapter!;
+        Equal(PromiseDecision.Keep, standardResult.PromiseDecision, "standard result promise decision");
+        CommercialResultDemandFact standardFact = standardResult.DemandFacts.Single(item =>
+            item.DemandId == "INDUSTRY_PROMISE");
+        Equal(CommercialCoreObligationKind.CityPromise, standardFact.ObligationKind,
+            "standard result obligation fact");
+        Check(standardFact.Supplied && standardFact.PathNodeIds.Count > 1 &&
+            standardFact.PathEdgeIds.Contains("PLAYER_EDGE_1") &&
+            standardFact.SourceNodeId is not null,
+            "standard result omitted actual source/path facts");
+        Check(standardResult.EmergencyAssetIds.Contains("PLAYER_EDGE_1") &&
+            standardResult.ProtectiveOutageAssetIds.Contains("PLAYER_EDGE_1"),
+            "standard result omitted emergency/protective facts");
+
+        CommercialCoreRun reinforced = NewCoreRun();
+        CompletePrelude(reinforced);
+        CoreAccepted(reinforced.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "reinforced keep promise");
+        CommercialDecisionPreview reinforcedDraft = CompleteIndustryDraft(
+            reinforced,
+            "REINFORCED_LINE",
+            "REINFORCED_POLE");
+        Check(reinforcedDraft.Accepted, "reinforced draft preview failed");
+        Equal(15L, reinforcedDraft.ProjectedMinute, "reinforced draft projected minute");
+        Check(reinforcedDraft.ProjectedCashUnit < standardDraft.ProjectedCashUnit,
+            "reinforced prototype was not more expensive");
+        Check(reinforcedDraft.PhaseResults[0].Demands.Single(item =>
+                item.DemandId == "INDUSTRY_PROMISE").EmergencyAssetIds.Count == 0,
+            "reinforced prototype did not remain continuous: " + string.Join(",",
+                reinforcedDraft.PhaseResults[0].Assets
+                    .Where(item => item.UseKw > 0)
+                    .Select(item => $"{item.AssetId}={item.UseKw}/{item.ContinuousLimitKw}")));
+        CoreAccepted(reinforced.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderLine)), "reinforced line order");
+        CoreAccepted(reinforced.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), "reinforced line completion");
+        CoreAccepted(reinforced.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)), "reinforced hot approval");
+        CommercialCoreCommandResult reinforcedFinish = reinforced.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(reinforcedFinish, "reinforced safety approval");
+        Check(reinforcedFinish.CompletedChapter!.EmergencyAssetIds.Count == 0,
+            "reinforced result reported emergency operation");
+    }
+
+    private void CheckCommercialCoreChoiceDeadlineAndAtomicity()
+    {
+        CommercialCoreRun missingPromise = NewCoreRun();
+        CompletePrelude(missingPromise);
+        string beforeChoice = JsonSerializer.Serialize(missingPromise.GetSnapshot());
+        CommercialDecisionPreview choiceRequired = missingPromise.PreviewDecisionWindow();
+        Check(!choiceRequired.Accepted &&
+            choiceRequired.Error == CommercialCoreError.PromiseDecisionRequired,
+            "core preview did not require an explicit promise decision");
+        Equal(beforeChoice, JsonSerializer.Serialize(missingPromise.GetSnapshot()),
+            "rejected missing-choice preview mutated state");
+
+        CommercialCoreRun deferred = NewCoreRun();
+        CompletePrelude(deferred);
+        long cashBeforeChoice = deferred.GetSnapshot().CashUnit;
+        CoreAccepted(deferred.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Defer)), "defer promise");
+        Equal(cashBeforeChoice, deferred.GetSnapshot().CashUnit,
+            "promise choice changed the authored grant");
+        CommercialDecisionPreview deferPreview = deferred.PreviewDecisionWindow();
+        Check(deferPreview.Accepted, "deferred promise blocked required progress");
+        ThermalDemandResult deferredDemand = deferPreview.PhaseResults[0].Demands.Single(item =>
+            item.DemandId == "INDUSTRY_PROMISE");
+        Check(deferredDemand.Deferred && !deferredDemand.Supplied,
+            "deferred promise was not excluded from supply candidates");
+        CoreAccepted(deferred.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)), "deferred hot approval");
+        CommercialCoreCommandResult deferFinish = deferred.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(deferFinish, "deferred safety approval");
+        Equal(PromiseDecision.Defer, deferFinish.CompletedChapter!.PromiseDecision,
+            "deferred result choice");
+
+        CommercialCoreRun exactDeadline = NewCoreRun();
+        CompletePrelude(exactDeadline);
+        CoreAccepted(exactDeadline.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Defer)), "deadline defer promise");
+        CompleteIndustryDraft(exactDeadline, "STANDARD_LINE", "STANDARD_POLE");
+        CoreAccepted(exactDeadline.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderLine)), "deadline first line order");
+        CoreAccepted(exactDeadline.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), "deadline first line completion");
+        CoreAccepted(exactDeadline.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.StartLineDraft,
+            StartNodeId: "NORTH_SUBSTATION",
+            LineClassId: "STANDARD_LINE",
+            PoleClassId: "STANDARD_POLE")), "deadline second line start");
+        CoreAccepted(exactDeadline.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.FinishLineDraft,
+            EndNodeId: "EAST_RESIDENTIAL_TERMINAL")), "deadline second line finish");
+        CoreAccepted(exactDeadline.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderLine)), "deadline second line order");
+        CoreAccepted(exactDeadline.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), "deadline second line completion");
+        Equal(20L, exactDeadline.GetSnapshot().Construction.Minute, "exact deadline minute");
+        Check(exactDeadline.PreviewDecisionWindow().Accepted,
+            "exact authored deadline was rejected");
+
+        CommercialCoreRun overdue = NewCoreRun();
+        CompletePrelude(overdue);
+        CoreAccepted(overdue.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "overdue keep promise");
+        CoreAccepted(overdue.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.StartLineDraft,
+            StartNodeId: "WATER_TERMINAL",
+            LineClassId: "STANDARD_LINE",
+            PoleClassId: "STANDARD_POLE")), "overdue line start");
+        CoreAccepted(overdue.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AddLinePoint,
+            Position: new MapPoint(2750, 1100))), "overdue line point");
+        CoreAccepted(overdue.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.FinishLineDraft,
+            EndNodeId: "INDUSTRY_TERMINAL")), "overdue line finish");
+        CommercialDecisionPreview overdueDraft = overdue.PreviewDecisionWindow();
+        Check(!overdueDraft.Accepted && overdueDraft.Error == CommercialCoreError.DeadlineExceeded &&
+            overdueDraft.ProjectedMinute > 20,
+            "complete draft beyond deadline was not rejected");
+        CoreAccepted(overdue.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderLine)), "overdue line order");
+        CoreAccepted(overdue.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), "overdue line completion");
+        string overdueBeforeApproval = JsonSerializer.Serialize(overdue.GetSnapshot());
+        CommercialCoreCommandResult overdueApproval = overdue.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        Check(!overdueApproval.Accepted && overdueApproval.Error == CommercialCoreError.DeadlineExceeded,
+            "commissioned project beyond deadline was approved");
+        Equal(overdueBeforeApproval, JsonSerializer.Serialize(overdue.GetSnapshot()),
+            "deadline rejection mutated campaign state");
+
+        CommercialCoreSliceDefinition bottleneckSlice = CoreSliceWithIndustryDemand(3100);
+        CommercialCoreRun bottleneck = new(_commercialWorld, bottleneckSlice);
+        CompletePrelude(bottleneck);
+        CoreAccepted(bottleneck.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "bottleneck keep promise");
+        CompleteIndustryDraft(bottleneck, "STANDARD_LINE", "STANDARD_POLE");
+        CommercialDecisionPreview bottleneckPreview = bottleneck.PreviewDecisionWindow();
+        Check(!bottleneckPreview.Accepted &&
+            bottleneckPreview.Error == CommercialCoreError.KeptPromiseFailed &&
+            bottleneckPreview.SupplyFailure == ThermalSupplyFailure.EmergencyLimit &&
+            bottleneckPreview.FirstBottleneckAssetId == "PLAYER_EDGE_1",
+            $"representative thermal bottleneck was not identified: " +
+            $"{bottleneckPreview.Error}/{bottleneckPreview.SupplyFailure}/" +
+            $"{bottleneckPreview.FirstBottleneckAssetId}");
+
+        CommercialCoreRun invalid = NewCoreRun();
+        string invalidBefore = JsonSerializer.Serialize(invalid.GetSnapshot());
+        CommercialCoreCommandResult ignoredField = invalid.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AddLinePoint,
+            Position: new MapPoint(1, 1),
+            EndNodeId: "EXTRA"));
+        Check(!ignoredField.Accepted && ignoredField.Error == CommercialCoreError.InvalidCommand,
+            "command with ignored extra field was accepted");
+        Equal(invalidBefore, JsonSerializer.Serialize(invalid.GetSnapshot()),
+            "invalid command shape mutated state");
+        CommercialCoreCommandResult invalidPromise = invalid.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: (PromiseDecision)999));
+        Check(!invalidPromise.Accepted && invalidPromise.Error == CommercialCoreError.InvalidCommand,
+            "undefined promise decision enum was accepted");
+    }
+
+    private void CheckCommercialCoreRollbackAndFreshReplay()
+    {
+        CommercialCoreRun run = NewCoreRun();
+        CompletePrelude(run);
+        string chapterStart = JsonSerializer.Serialize(run.GetSnapshot());
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "rollback keep promise");
+        string beforeProject = JsonSerializer.Serialize(run.GetSnapshot());
+        CompleteIndustryDraft(run, "STANDARD_LINE", "STANDARD_POLE");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderLine)), "rollback project order");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), "rollback project completion");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)), "rollback hot approval");
+        Check(run.GetSnapshot().DecisionWindowIndex == 1 &&
+            run.GetSnapshot().ThermalMemory.Count > 0,
+            "rollback setup did not advance phase and thermal state");
+        CoreAccepted(run.RollbackRecentProject(), "recent project rollback");
+        Equal(beforeProject, JsonSerializer.Serialize(run.GetSnapshot()),
+            "recent rollback did not restore coordinates/cash/time/phases/promise/thermal state");
+
+        CommercialCoreRun fresh = CommercialCoreRun.Restore(
+            _commercialWorld,
+            _coreSlice,
+            run.GetCommands());
+        Equal(JsonSerializer.Serialize(run.GetSnapshot()), JsonSerializer.Serialize(fresh.GetSnapshot()),
+            "fresh replay after rollback snapshot");
+        Equal(JsonSerializer.Serialize(run.GetCommands()), JsonSerializer.Serialize(fresh.GetCommands()),
+            "fresh replay after rollback journal");
+
+        CompleteIndustryDraft(run, "REINFORCED_LINE", "REINFORCED_POLE");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.CancelLineDraft)), "cancel replayed draft");
+        CoreAccepted(run.RestartChapter(), "chapter restart");
+        Equal(chapterStart, JsonSerializer.Serialize(run.GetSnapshot()),
+            "chapter restart did not restore its journal prefix");
+    }
+
+    private void CheckCommercialCoreSaveV3()
+    {
+        CommercialCoreRun run = NewCoreRun();
+        CompletePrelude(run);
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.SetPromiseDecision,
+            PromiseDecision: PromiseDecision.Keep)), "save keep promise");
+        CompleteIndustryDraft(run, "REINFORCED_LINE", "REINFORCED_POLE");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderLine)), "save line order");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), "save line completion");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow)), "save hot approval");
+
+        CommercialCoreCampaignSave save = CommercialCoreSaveCodec.Create(
+            _commercialWorld,
+            _commercialBytes,
+            _coreSlice,
+            _coreBytes,
+            run.GetCommands());
+        byte[] serialized = CommercialCoreSaveCodec.Serialize(save);
+        CommercialCoreCampaignSave decoded = CommercialCoreSaveCodec.Deserialize(serialized);
+        CommercialCoreRun restored = CommercialCoreSaveCodec.Restore(
+            decoded,
+            _commercialWorld,
+            _commercialBytes,
+            _coreSlice,
+            _coreBytes);
+        Equal(JsonSerializer.Serialize(run.GetSnapshot()), JsonSerializer.Serialize(restored.GetSnapshot()),
+            "save to fresh restore state equality");
+        Equal(CommercialCoreSaveCodec.ComputeSha256(_commercialBytes), decoded.WorldSha256,
+            "save world content hash");
+        Equal(CommercialCoreSaveCodec.ComputeSha256(_coreBytes), decoded.SliceSha256,
+            "save core-slice content hash");
+
+        string duplicate = Encoding.UTF8.GetString(serialized).Replace(
+            "\"sliceId\":",
+            "\"sliceId\": \"DUPLICATE\", \"sliceId\":",
+            StringComparison.Ordinal);
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialCoreSaveCodec.Deserialize(Encoding.UTF8.GetBytes(duplicate)),
+            "duplicate save property");
+        string unknown = Encoding.UTF8.GetString(serialized).Replace(
+            "\"commands\":",
+            "\"future\": true, \"commands\":",
+            StringComparison.Ordinal);
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialCoreSaveCodec.Deserialize(Encoding.UTF8.GetBytes(unknown)),
+            "unknown save property");
+        JsonObject nullCommands = JsonNode.Parse(serialized)!.AsObject();
+        nullCommands["commands"] = null;
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialCoreSaveCodec.Deserialize(
+                Encoding.UTF8.GetBytes(nullCommands.ToJsonString())),
+            "null save command list");
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialCoreSaveCodec.Restore(
+                decoded,
+                _commercialWorld,
+                [.. _commercialBytes, (byte)0],
+                _coreSlice,
+                _coreBytes),
+            "save world hash mismatch");
+
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            $"gridworks-commercial-save-{Guid.NewGuid():N}");
+        string path = Path.Combine(directory, CommercialCorePersistenceStore.SaveFileName);
+        try
+        {
+            Equal(CommercialCoreDocumentLoadStatus.Missing,
+                CommercialCorePersistenceStore.Load(path).Status,
+                "missing commercial save status");
+            CommercialCorePersistenceStore.Save(path, save);
+            CommercialCoreSaveLoadResult loaded = CommercialCorePersistenceStore.Load(path);
+            Equal(CommercialCoreDocumentLoadStatus.Loaded, loaded.Status,
+                "stored commercial save status");
+            Check(loaded.Save is not null && !File.Exists(path + ".tmp"),
+                "atomic commercial save left no load or temporary file");
+            File.WriteAllText(path, "{invalid", Encoding.UTF8);
+            Equal(CommercialCoreDocumentLoadStatus.Invalid,
+                CommercialCorePersistenceStore.Load(path).Status,
+                "invalid commercial save status");
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
     private void CheckThermalBoundariesAndRouteOrder()
     {
         CommercialWorldDefinition boundaryWorld = ThermalWorld(
@@ -1022,6 +1469,97 @@ internal sealed class CommercialChecks
             "all-simple-path evaluation aborted above the former 100,000-path limit");
     }
 
+    private CommercialCoreRun NewCoreRun() => new(_commercialWorld, _coreSlice);
+
+    private void CompletePrelude(CommercialCoreRun run)
+    {
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.StartLineDraft,
+            StartNodeId: "WEST_SOURCE",
+            LineClassId: "REINFORCED_LINE",
+            PoleClassId: "STANDARD_POLE")), "prelude line start");
+        foreach (MapPoint point in new[]
+        {
+            new MapPoint(650, 700),
+            new MapPoint(1030, 500),
+            new MapPoint(1560, 500),
+            new MapPoint(2000, 600),
+            new MapPoint(2400, 700),
+        })
+        {
+            CoreAccepted(run.Apply(new CommercialCoreCommand(
+                CommercialCoreCommandKind.AddLinePoint,
+                Position: point)), "prelude line point");
+        }
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.FinishLineDraft,
+            EndNodeId: "EAST_RESIDENTIAL_TERMINAL")), "prelude line finish");
+        CommercialDecisionPreview draftPreview = run.PreviewDecisionWindow();
+        Check(draftPreview.Accepted, "prelude complete-draft preview failed");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.OrderLine)), "prelude line order");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.AdvanceConstruction)), "prelude line completion");
+        CommercialDecisionPreview commissioned = run.PreviewDecisionWindow();
+        Check(commissioned.Accepted, "commissioned prelude preview failed");
+        Equal(JsonSerializer.Serialize(draftPreview), JsonSerializer.Serialize(commissioned),
+            "prelude complete-draft preview equals commissioned preview");
+        CommercialCoreCommandResult approval = run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.ApproveDecisionWindow));
+        CoreAccepted(approval, "prelude approval");
+        Equal(JsonSerializer.Serialize(commissioned),
+            JsonSerializer.Serialize(approval.DecisionPreview),
+            "public prelude preview equals approval result");
+        Equal("WHOSE_MARGIN", approval.Snapshot.Chapter.ChapterId,
+            "prelude did not transition to the commercial core");
+    }
+
+    private CommercialDecisionPreview CompleteIndustryDraft(
+        CommercialCoreRun run,
+        string lineClassId,
+        string poleClassId)
+    {
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.StartLineDraft,
+            StartNodeId: "WATER_TERMINAL",
+            LineClassId: lineClassId,
+            PoleClassId: poleClassId)), "industry line start");
+        CoreAccepted(run.Apply(new CommercialCoreCommand(
+            CommercialCoreCommandKind.FinishLineDraft,
+            EndNodeId: "INDUSTRY_TERMINAL")), "industry line finish");
+        return run.PreviewDecisionWindow();
+    }
+
+    private CommercialCoreSliceDefinition CoreSliceWithIndustryDemand(long demandKw)
+    {
+        CommercialCoreChapter chapter = _coreSlice.Chapters[1];
+        CommercialCoreOperatingPhase hot = chapter.OperatingPhases[0];
+        CommercialCoreOperatingPhase changedHot = hot with
+        {
+            Loads = hot.Loads.Select(load => load.LoadId == "INDUSTRY_PROMISE"
+                ? load with { DemandKw = demandKw }
+                : load).ToArray(),
+        };
+        CommercialCoreChapter changedChapter = chapter with
+        {
+            OperatingPhases = chapter.OperatingPhases.Select(phase =>
+                phase.PhaseId == changedHot.PhaseId ? changedHot : phase).ToArray(),
+        };
+        CommercialCoreSliceDefinition changed = _coreSlice with
+        {
+            Chapters = [_coreSlice.Chapters[0], changedChapter],
+        };
+        CommercialCoreLoader.Validate(changed, _commercialWorld);
+        return changed;
+    }
+
+    private void CoreAccepted(CommercialCoreCommandResult result, string label)
+    {
+        Check(result.Accepted, $"{label}: rejected with {result.Error}/{result.ConstructionError}");
+        Check(result.Error is null && result.ConstructionError is null,
+            $"{label}: accepted result contained an error");
+    }
+
     private string ExecuteReplay(SpatialWorldDefinition world) =>
         JsonSerializer.Serialize(ExecuteReplaySnapshot(world));
 
@@ -1289,6 +1827,18 @@ internal sealed class CommercialChecks
     private void ExpectCommercialRejected(string label, string json) =>
         ExpectThrows<CommercialWorldValidationException>(
             () => CommercialWorldLoader.Load(json),
+            label);
+
+    private void ExpectCoreRejected(string label, Action<JsonObject> mutate)
+    {
+        JsonObject root = JsonNode.Parse(_coreJson)!.AsObject();
+        mutate(root);
+        ExpectCoreRejected(label, root.ToJsonString());
+    }
+
+    private void ExpectCoreRejected(string label, string json) =>
+        ExpectThrows<CommercialCoreValidationException>(
+            () => CommercialCoreLoader.Load(json, _commercialWorld),
             label);
 
     private void ExpectThrows<T>(Action body, string label)

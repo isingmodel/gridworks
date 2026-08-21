@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Gridworks.Core.Release.V2;
 using Godot;
@@ -16,6 +17,8 @@ internal sealed partial class CommercialMain
         try
         {
             await NextFrame();
+            int authoredNodeCount = _snapshot.World.Nodes.Count;
+            int authoredEdgeCount = _snapshot.World.Edges.Count;
             GetWindow().Size = new Vector2I(1920, 1080);
             await NextFrame();
             CoreMapPoint resolutionPoint = new(913, 711);
@@ -77,12 +80,12 @@ internal sealed partial class CommercialMain
                 NearlyEqual(beforeZoom.Y, afterZoom.Y, 0.02d),
                 "세 단계 확대가 포인터 아래 세계좌표를 유지하지 못했습니다.");
 
-            ConstructionSnapshot beforePan = _session.GetSnapshot();
+            ConstructionSnapshot beforePan = _legacySession!.GetSnapshot();
             Vector2 cameraBeforePan = _map.CameraCenter;
             await MiddleDrag(anchor, anchor + new Vector2(90f, 35f));
             Require(
                 !_map.CameraCenter.IsEqualApprox(cameraBeforePan) &&
-                Equals(_session.GetSnapshot(), beforePan),
+                Equals(_legacySession.GetSnapshot(), beforePan),
                 "지도 이동이 카메라만 바꾸지 않았거나 Core 상태를 변경했습니다.");
             await PressMapKey(Key.Home);
             Require(
@@ -205,7 +208,9 @@ internal sealed partial class CommercialMain
             Require(
                 _snapshot.Phase == ConstructionPhase.Ready &&
                 commissionedPositions.SequenceEqual(exactPath) &&
-                _snapshot.World.Edges.Count(edge => edge.Commissioned) == 19,
+                _snapshot.World.Nodes.Count == authoredNodeCount + exactPath.Length &&
+                _snapshot.World.Edges.Count(edge => edge.Commissioned) ==
+                    authoredEdgeCount + exactPath.Length + 1,
                 "강을 건너는 한 선로가 정확한 위치로 완공되지 않았습니다.");
 
             GD.Print(
@@ -283,6 +288,141 @@ internal sealed partial class CommercialMain
             GD.PushError($"상용 열 국면 smoke 실패: {exception}");
             GetTree().Quit(1);
         }
+    }
+
+    private async void RunCoreSmoke()
+    {
+        try
+        {
+            await NextFrame();
+            CommercialCoreRun coreRun = _coreRun
+                ?? throw new InvalidOperationException("상용 핵심 흐름 runner가 없습니다.");
+            GetWindow().Size = new Vector2I(1280, 720);
+            await NextFrame();
+            ApplyUiScale(this, 1.25f);
+            await NextFrame();
+            Require(
+                coreRun.GetSnapshot().Chapter.ChapterId == "FIRST_LIGHT_PRELUDE" &&
+                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
+                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
+                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RestartChapter)),
+                "1280×720·UI 125%에서 상용 핵심 흐름과 고정 행동 영역을 열지 못했습니다.");
+
+            EmitPanel(CommercialPanelAction.StartLine, "프롤로그 선로 도구");
+            await NextFrame();
+            await SelectAndClickCandidate(new CoreMapPoint(300, 870), "WEST_SOURCE");
+            foreach (CoreMapPoint point in new[]
+            {
+                new CoreMapPoint(650, 700),
+                new CoreMapPoint(1030, 500),
+                new CoreMapPoint(1560, 500),
+                new CoreMapPoint(2000, 600),
+                new CoreMapPoint(2400, 700),
+            })
+            {
+                await ClickMap(point);
+            }
+            await SelectAndClickCandidate(
+                new CoreMapPoint(2600, 800),
+                "EAST_RESIDENTIAL_TERMINAL");
+            CommercialDecisionPreview preludeDraft = coreRun.PreviewDecisionWindow();
+            Require(
+                preludeDraft.Accepted && preludeDraft.ProjectedMinute <= 420,
+                "첫 불빛 complete-draft 예고가 안전 의무와 기한을 만족하지 못했습니다.");
+            EmitPanel(CommercialPanelAction.Commission, "프롤로그 공사 발주");
+            await NextFrame();
+            EmitPanel(CommercialPanelAction.Commission, "프롤로그 공사 완공");
+            await NextFrame();
+            EmitPanel(CommercialPanelAction.ApproveWindow, "프롤로그 운영 승인");
+            await NextFrame();
+            Require(
+                coreRun.GetSnapshot().Chapter.ChapterId == "WHOSE_MARGIN" &&
+                coreRun.GetSnapshot().ChapterResults.Count == 1,
+                "첫 불빛 결과 뒤 누구의 여유인가 seed로 전환하지 못했습니다.");
+
+            EmitPanel(CommercialPanelAction.KeepPromise, "도시 약속 지킴 선택");
+            await NextFrame();
+            EmitPanel(CommercialPanelAction.CycleLineClass, "일반 배전선 선택");
+            await NextFrame();
+            Require(_lineClassId == StandardLineClassId,
+                "장단점 비교용 일반 배전선을 실제 패널 입력으로 선택하지 못했습니다.");
+            await BuildCoreSmokeIndustryLine();
+            CommercialDecisionPreview hotDraft = coreRun.PreviewDecisionWindow();
+            ThermalDemandResult promise = hotDraft.PhaseResults[0].Demands.Single(item =>
+                item.DemandId == "INDUSTRY_PROMISE");
+            Require(
+                hotDraft.Accepted && promise.Supplied &&
+                promise.EmergencyAssetIds.Contains("PLAYER_EDGE_1", StringComparer.Ordinal),
+                "일반선 원형의 실제 공급·비상 열 예고를 패널과 지도 흐름에서 만들지 못했습니다.");
+            EmitPanel(CommercialPanelAction.Commission, "산업선 공사 발주");
+            await NextFrame();
+            EmitPanel(CommercialPanelAction.Commission, "산업선 공사 완공");
+            await NextFrame();
+            EmitPanel(CommercialPanelAction.RollbackProject, "최근 공사 복구");
+            await NextFrame();
+            CommercialCoreSnapshot rolledBack = coreRun.GetSnapshot();
+            Require(
+                rolledBack.Construction.Minute == 0 &&
+                rolledBack.PromiseDecision == PromiseDecision.Keep &&
+                rolledBack.DecisionWindowIndex == 0 &&
+                rolledBack.ThermalMemory.Count == 0 &&
+                rolledBack.Construction.World.Edges.All(item => item.EdgeId != "PLAYER_EDGE_1"),
+                "최근 공사 복구가 좌표·현금·시각·국면·약속·열 상태를 함께 되돌리지 못했습니다.");
+
+            await BuildCoreSmokeIndustryLine();
+            EmitPanel(CommercialPanelAction.Commission, "복구 뒤 산업선 재발주");
+            await NextFrame();
+            EmitPanel(CommercialPanelAction.Commission, "복구 뒤 산업선 재완공");
+            await NextFrame();
+            CommercialDecisionPreview beforeApproval = coreRun.PreviewDecisionWindow();
+            EmitPanel(CommercialPanelAction.ApproveWindow, "더운 저녁 승인");
+            await NextFrame();
+            CommercialCoreSnapshot afterHot = coreRun.GetSnapshot();
+            Require(
+                afterHot.DecisionWindowIndex == 1 &&
+                afterHot.CommittedPhaseResults.Count == 2 &&
+                afterHot.ThermalMemory.Single(item =>
+                    item.AssetId == "PLAYER_EDGE_1").ProtectiveOutage &&
+                JsonSerializer.Serialize(beforeApproval.PhaseResults[0]) ==
+                    JsonSerializer.Serialize(afterHot.CommittedPhaseResults[^1]),
+                "공개 예고와 승인 결과가 다르거나 다음 보호정지를 커밋하지 못했습니다.");
+            EmitPanel(CommercialPanelAction.ApproveWindow, "다음 안전 경계 승인");
+            await NextFrame();
+            CommercialCoreSnapshot complete = coreRun.GetSnapshot();
+            CommercialChapterResultRecord result = complete.ChapterResults[^1];
+            CommercialResultDemandFact fact = result.DemandFacts.Single(item =>
+                item.DemandId == "INDUSTRY_PROMISE");
+            Require(
+                complete.CampaignComplete &&
+                fact.Supplied && fact.SourceNodeId is not null &&
+                fact.PathEdgeIds.Contains("PLAYER_EDGE_1", StringComparer.Ordinal) &&
+                result.EmergencyAssetIds.Contains("PLAYER_EDGE_1", StringComparer.Ordinal) &&
+                _panel.AccessibilityName.Contains("완료", StringComparison.Ordinal),
+                "결과 카드가 실제 공급원·경로·비상·의무 사실로 핵심 흐름을 닫지 못했습니다.");
+
+            GD.Print(
+                "COMMERCIAL_CORE_SMOKE_PASS " +
+                $"chapters={complete.ChapterResults.Count} choice={result.PromiseDecision} " +
+                $"path={fact.PathEdgeIds.Count} emergency={result.EmergencyAssetIds.Count} " +
+                "rollback=fresh-replay preview=approval");
+            GetTree().Quit(0);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"상용 핵심 흐름 smoke 실패: {exception}");
+            GetTree().Quit(1);
+        }
+    }
+
+    private async Task BuildCoreSmokeIndustryLine()
+    {
+        EmitPanel(CommercialPanelAction.StartLine, "산업선 도구");
+        await NextFrame();
+        await SelectAndClickCandidate(new CoreMapPoint(2500, 1150), "WATER_TERMINAL");
+        await SelectAndClickCandidate(new CoreMapPoint(3000, 1150), "INDUSTRY_TERMINAL");
+        Require(
+            _snapshot.LineDraft?.EndNodeId == "INDUSTRY_TERMINAL",
+            $"정수장과 산업단지의 직접 선로를 완성하지 못했습니다: {_lastError}");
     }
 
     private async Task RequireRejectedPlacement(

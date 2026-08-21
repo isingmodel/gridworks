@@ -1,0 +1,65 @@
+{
+  "manifestVersion": 1,
+  "sourceCommit": "9312a9a",
+  "generator": "Codex built-in image_gen",
+  "referenceImages": [
+    {
+      "path": "assets/01-grid-construction.png",
+      "sha256": "23c9acec1b8026ebcb8eebf329eb6b94201179f8952451aa27a71ab38b7ebedc"
+    },
+    {
+      "path": "assets/02-heatwave-outage.png",
+      "sha256": "47d4e53b9d9bad74b6afce6311acce023dc3f9642ffd0ea16609d67b6960a630"
+    },
+    {
+      "path": "assets/03-route-comparison.png",
+      "sha256": "f471ac24cbab24d9b1aff89953595d70fc3ccaf4e8c08c442651125ab3c65828"
+    },
+    {
+      "path": "assets/04-plant-siting.png",
+      "sha256": "10908370f3a2d8403e62ce2a97e39b7ba5c43d8eb0e32073f03e5b3521c01092"
+    }
+  ],
+  "targets": [
+    {
+      "targetId": "TARGET-NORMAL",
+      "generatorRunId": "exec-2d8a534e-2dee-419d-8aa0-e055e0d99786",
+      "sourcePath": "normal-first-light-v1-source.png",
+      "sourceSize": "1672x941",
+      "sourceSha256": "e4959361ea7bb9a053eb6fd6fce0ca3fc4935b2d3c46915b734d895b8bfbae36",
+      "normalizedPath": "normal-first-light-v1.png",
+      "normalizedSize": "1920x1080",
+      "normalizedSha256": "faf3230724062092730b0c0f26669a13800d515470a8792cb5fdf4f8fee69d26",
+      "promptId": "PROMPT-NORMAL-V1"
+    },
+    {
+      "targetId": "TARGET-HEAT",
+      "generatorRunId": "exec-ed2c9a05-83fb-40b2-b9bf-0c1d386aaeb7",
+      "sourcePath": "heat-outage-v1-source.png",
+      "sourceSize": "1672x941",
+      "sourceSha256": "2acb968d2b88ac223495ea0cc3e02681830ede3cf4520b328a177f9082b0c81a",
+      "normalizedPath": "heat-outage-v1.png",
+      "normalizedSize": "1920x1080",
+      "normalizedSha256": "88883a5abb848d0b3086f477db2e861632f58fbe17e6780e746198a8f66a11d2",
+      "promptId": "PROMPT-HEAT-V1"
+    },
+    {
+      "targetId": "TARGET-ROUTE-SITING",
+      "generatorRunId": "exec-3bc4d911-36d0-4cea-8089-4439cff130e1",
+      "sourcePath": "route-siting-v1-source.png",
+      "sourceSize": "1672x941",
+      "sourceSha256": "4569630a8e6a14aedc8a8e5b6b59fc81b88a197c104648d67f6aeb463997e5c0",
+      "normalizedPath": "route-siting-v1.png",
+      "normalizedSize": "1920x1080",
+      "normalizedSha256": "a45f2048cea901251910f6b439780118bdf2b52c9b38b52c1d1b3d67b22b0310",
+      "promptId": "PROMPT-ROUTE-SITING-V1"
+    }
+  ],
+  "normalization": {
+    "tool": "sips",
+    "operation": "resampleHeightWidth",
+    "height": 1080,
+    "width": 1920,
+    "contentEdit": false
+  }
+}

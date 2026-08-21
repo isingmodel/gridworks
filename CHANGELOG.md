@@ -11,9 +11,9 @@
 - 선택 수요의 발전원→전체 경로→최소 열여유→수요처와 시설 상태를 지도·inspector·접근성 문장에
   함께 표시한다. 연속·비상·보호정지는 색 외 pattern과 icon으로도 구분한다.
 - 네 concept의 사선 산업도시 방향을 새로 생성한 배경 plate, 흑철·황동 frame, 큰 시설 실루엣으로
-  반영한다. 실제 선로·시설·위험·선택 상태는 v2 권위의 code-native overlay가 소유하고 concept
-  원본은 package에 넣지 않는다. 하단 사건 timeline은 briefing→정확한 decision window·phase→result와
-  공사분/기한을 읽기 전용으로 표시한다.
+  반영한다. plate에는 의료·정수 landmark를 굽지 않고 실제 선로·시설·수면·건물·위험·선택 상태는
+  v2 권위의 code-native overlay가 소유하며 concept 원본은 package에 넣지 않는다. 하단 사건 timeline은
+  briefing→정확한 decision window·phase→선택한 promise 결과와 공사분/기한을 읽기 전용으로 표시한다.
 - 장별 조명·날씨와 네 인물의 고정 code-native 초상을 제공한다. 외부 음원 없이 도시 환경음, 날씨
   layer, 발주·완공·통전·차단·경고·결과 cue와 두 motif를 생성한다.
 - strict settings v3는 v2의 화면·UI·Master/Ambient/SFX 값을 한 번 보존 승격하고 ReduceMotion을
@@ -29,12 +29,12 @@
 
 - 파일: `Gridworks-macOS-0.1.0.zip`
 - 상태: `INTERNAL_RC`
-- 크기: `127,147,771 bytes`
-- SHA-256: `e0ce70a39a07cbc668236a7148fa7ee09dcea0e51ca73aae1e1659eaee45c018`
+- 크기: `126,993,251 bytes`
+- SHA-256: `9e3c6869847fcf6c763f85438d8babeb8d9aca0a09e222f282c392e058cd06a9`
 - world SHA-256: `304eb051a564a0ceda7912d717268d3011f5f3482a5ab9d1c68dd9330e0e165c`
 - campaign SHA-256: `f94617c74de7bab0c97499fbaa8fd542aa64ee3c2fc60a6c7f090de203239200`
 - build identity SHA-256: `98db63fb41da601c2620fabd55aaca58218387c6d22eed5208d599e2ab737a17`
-- 소스 기준 커밋: `ccfcee156774e82d91ff6d8377c09f287215d199`
+- 소스 기준 커밋: `997f67551d07c4f4e5405bb0e202467be3ad53df`
 - 앱: `Gridworks 0.1.0`, bundle identifier `com.gridworks.game`
 - 실행 파일: Universal 2 (`x86_64 arm64`), architecture별 선언 하한 macOS `14.0`
 - 실제 확인 환경: macOS `26.6.1` arm64

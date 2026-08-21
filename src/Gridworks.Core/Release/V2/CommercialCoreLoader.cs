@@ -75,6 +75,11 @@ public static class CommercialCoreLoader
 
         HashSet<string> worldNodeIds = world.Spatial.Nodes.Select(item => item.NodeId)
             .ToHashSet(StringComparer.Ordinal);
+        Dictionary<string, SpatialNodeKind> worldNodeKinds = world.Spatial.Nodes.ToDictionary(
+            item => item.NodeId,
+            item => world.Spatial.NodeClasses.Single(nodeClass =>
+                nodeClass.ClassId == item.ClassId).Kind,
+            StringComparer.Ordinal);
         Dictionary<string, SpatialEdgeDefinition> worldEdges = world.Spatial.Edges.ToDictionary(
             item => item.EdgeId,
             StringComparer.Ordinal);
@@ -186,6 +191,8 @@ public static class CommercialCoreLoader
                     RequireText(load.DisplayName, $"{phasePath}.loads[].displayName");
                     Require(seedNodes.Contains(load.NodeId),
                         $"{phasePath} load '{load.LoadId}' references a node outside the chapter seed.");
+                    Require(worldNodeKinds[load.NodeId] == SpatialNodeKind.DedicatedLoadTerminal,
+                        $"{phasePath} load '{load.LoadId}' must reference a dedicated load terminal.");
                     Require(load.DemandKw > 0, $"{phasePath} load '{load.LoadId}' must be positive.");
                     Require(Enum.IsDefined(load.ObligationKind),
                         $"{phasePath} load '{load.LoadId}' obligation kind is not supported.");

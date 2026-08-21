@@ -42,6 +42,7 @@ internal sealed partial class CommercialMain : Control
     private bool _saveWritable = true;
     private CommercialMapView _map = null!;
     private CommercialTaskPanel _panel = null!;
+    private ReleaseAudio _audio = null!;
     private Label _zoomLabel = null!;
     private Label _summaryLabel = null!;
     private Button _helpButton = null!;
@@ -63,6 +64,7 @@ internal sealed partial class CommercialMain : Control
     private string _selectedThermalAssetId = "NORTH_SUBSTATION";
     private string _lineClassId = ReinforcedLineClassId;
     private string _poleClassId = StandardPoleClassId;
+    private CommercialChapterResultRecord? _presentedResult;
 
     public override void _Ready()
     {
@@ -149,6 +151,7 @@ internal sealed partial class CommercialMain : Control
     {
         _map = GetNode<CommercialMapView>("%CommercialMapView");
         _panel = GetNode<CommercialTaskPanel>("%CommercialTaskPanel");
+        _audio = GetNode<ReleaseAudio>("%CommercialAudio");
         _zoomLabel = GetNode<Label>("%ZoomLabel");
         _summaryLabel = GetNode<Label>("%SummaryLabel");
         _helpButton = GetNode<Button>("%HelpButton");
@@ -309,6 +312,7 @@ internal sealed partial class CommercialMain : Control
             RejectLocally("작성 중인 계획이나 공사를 먼저 마치세요.");
             return;
         }
+        _presentedResult = null;
         _tool = tool;
         _lastError = string.Empty;
         _lastStatus = tool == CommercialTool.Substation
@@ -326,6 +330,7 @@ internal sealed partial class CommercialMain : Control
             RejectLocally("선종은 새 계획을 시작하기 전에 바꾸세요.");
             return;
         }
+        _presentedResult = null;
         _lineClassId = _lineClassId == ReinforcedLineClassId
             ? StandardLineClassId
             : ReinforcedLineClassId;
@@ -364,6 +369,15 @@ internal sealed partial class CommercialMain : Control
         string success = result.CompletedChapter is null
             ? "예고한 운영 국면을 승인했습니다. 다음 결정 경계를 확인하세요."
             : $"{result.CompletedChapter.ChapterDisplayName} 결과를 실제 공급 기록으로 확정했습니다.";
+        if (result.Accepted)
+        {
+            bool protectiveOutage = result.DecisionPreview?.PhaseResults
+                .SelectMany(item => item.Assets)
+                .Any(item => item.NextState == ThermalOperatingState.ProtectiveOutage) == true;
+            _audio.PlayLive(protectiveOutage
+                ? ReleaseAudioCue.Outage
+                : ReleaseAudioCue.Energize);
+        }
         ApplyCoreResult(result, success);
     }
 
@@ -374,8 +388,13 @@ internal sealed partial class CommercialMain : Control
             RejectLocally("이 열 연습에는 복구할 캠페인 공사가 없습니다.");
             return;
         }
+        CommercialCoreCommandResult result = _coreRun.RollbackRecentProject();
+        if (result.Accepted)
+        {
+            _audio.PlayLive(ReleaseAudioCue.Breaker);
+        }
         ApplyCoreResult(
-            _coreRun.RollbackRecentProject(),
+            result,
             "현재 장의 최근 완공 공사 직전으로 좌표·현금·시각·국면·약속·열 상태를 복구했습니다.");
     }
 
@@ -386,8 +405,13 @@ internal sealed partial class CommercialMain : Control
             RejectLocally("이 열 연습에는 다시 시작할 캠페인 장이 없습니다.");
             return;
         }
+        CommercialCoreCommandResult result = _coreRun.RestartChapter();
+        if (result.Accepted)
+        {
+            _audio.PlayLive(ReleaseAudioCue.Breaker);
+        }
         ApplyCoreResult(
-            _coreRun.RestartChapter(),
+            result,
             "현재 장 시작 journal로 좌표·현금·시각·국면·약속·열 상태를 복구했습니다.");
     }
 
@@ -396,6 +420,7 @@ internal sealed partial class CommercialMain : Control
         _snapshot = result.Snapshot.Construction;
         if (result.Accepted)
         {
+            _presentedResult = result.CompletedChapter;
             _lastStatus = success;
             _lastError = string.Empty;
             _tool = CommercialTool.None;
@@ -492,8 +517,10 @@ internal sealed partial class CommercialMain : Control
             _snapshot = result.Snapshot;
             if (result.Accepted)
             {
+                _presentedResult = null;
                 _lastStatus = success;
                 _lastError = string.Empty;
+                PlayConstructionCue(command.Kind);
             }
             else
             {
@@ -507,8 +534,10 @@ internal sealed partial class CommercialMain : Control
         _snapshot = coreResult.Snapshot.Construction;
         if (coreResult.Accepted)
         {
+            _presentedResult = null;
             _lastStatus = success;
             _lastError = string.Empty;
+            PlayConstructionCue(command.Kind);
             PersistCoreRun();
         }
         else
@@ -517,6 +546,18 @@ internal sealed partial class CommercialMain : Control
         }
         AfterStateChange(coreResult.Accepted);
         return coreResult.Accepted;
+    }
+
+    private void PlayConstructionCue(CommercialCoreCommandKind kind)
+    {
+        if (kind is CommercialCoreCommandKind.OrderNode or CommercialCoreCommandKind.OrderLine)
+        {
+            _audio.PlayLive(ReleaseAudioCue.Breaker);
+        }
+        else if (kind == CommercialCoreCommandKind.AdvanceConstruction)
+        {
+            _audio.PlayLive(ReleaseAudioCue.Energize);
+        }
     }
 
     private void AfterStateChange(bool accepted)
@@ -849,6 +890,10 @@ internal sealed partial class CommercialMain : Control
     private string HeadingText()
     {
         CommercialCoreSnapshot? core = _coreRun?.GetSnapshot();
+        if (_presentedResult is not null)
+        {
+            return $"{_presentedResult.ChapterDisplayName} · 결과";
+        }
         if (core is not null && core.CampaignComplete)
         {
             return "상용 핵심 흐름 완료";
@@ -858,6 +903,8 @@ internal sealed partial class CommercialMain : Control
             ConstructionPhase.NodeDrafting => "변전소 계획",
             ConstructionPhase.LineDrafting => "선로 계획",
             ConstructionPhase.NodeBuilding or ConstructionPhase.LineBuilding => "공사 진행",
+            _ when core?.DecisionWindow?.Story is not null =>
+                $"{core.Chapter.DisplayName} · {core.DecisionWindow.Story.Title}",
             _ when core is not null =>
                 $"{core.Chapter.DisplayName} · 결정 {core.DecisionWindowIndex + 1}/{core.Chapter.DecisionWindows.Count}",
             _ => "첫 불빛 · 자유 배치",
@@ -867,15 +914,13 @@ internal sealed partial class CommercialMain : Control
     private string InstructionText()
     {
         CommercialCoreSnapshot? core = _coreRun?.GetSnapshot();
+        if (_presentedResult is not null)
+        {
+            return ResultPresentationText(_presentedResult);
+        }
         if (core is not null && core.CampaignComplete)
         {
-            CommercialChapterResultRecord result = core.ChapterResults[^1];
-            int suppliedSafety = result.DemandFacts.Count(item =>
-                item.ObligationKind == CommercialCoreObligationKind.MustSupply && item.Supplied);
-            return $"{result.Story.Title}\n{result.Story.Body}\n" +
-                   $"실제 기록 · 안전 의무 {suppliedSafety}건 공급 · " +
-                   $"비상 설비 {result.EmergencyAssetIds.Count}곳 · " +
-                   $"보호정지 {result.ProtectiveOutageAssetIds.Count}곳";
+            return ResultPresentationText(core.ChapterResults[^1]);
         }
         return _snapshot.Phase switch
         {
@@ -886,11 +931,92 @@ internal sealed partial class CommercialMain : Control
                 "빈 지형에는 전신주가 놓입니다. 작성 중 전신주는 드래그로 옮기고 마지막 점은 Backspace 또는 오른쪽 클릭으로 되돌립니다.",
             ConstructionPhase.NodeBuilding or ConstructionPhase.LineBuilding =>
                 "발주한 공사는 임의로 움직일 수 없습니다. 완공 시각까지 진행하세요.",
+            _ when core?.DecisionWindow?.Story is CommercialStoryCard story =>
+                $"{story.Title}\n{story.Body}\n목표 · {core.Chapter.Objective}",
             _ when core is not null =>
                 $"{core.Chapter.Briefing.Title}\n{core.Chapter.Briefing.Body}\n목표 · {core.Chapter.Objective}",
             _ => "보이는 격자 없이 지형을 읽고, 발전 접속점과 생활권을 직접 이어 보세요.",
         };
     }
+
+    private string ResultPresentationText(CommercialChapterResultRecord result)
+    {
+        CommercialResultDemandFact[] supplied = result.DemandFacts
+            .Where(item => item.Supplied)
+            .ToArray();
+        string obligations = supplied.Length == 0
+            ? "공급된 의무 없음"
+            : string.Join(" · ", supplied.Select(item =>
+                $"{ObligationText(item.ObligationKind)} {NodeFactDisplayName(item.FacilityNodeId)} 공급"));
+        CommercialResultDemandFact? focus = supplied.FirstOrDefault(item =>
+            item.ObligationKind == CommercialCoreObligationKind.CityPromise) ??
+            supplied.FirstOrDefault();
+        string path = focus is null
+            ? "실제 공급 경로 없음"
+            : $"실제 경로 · {string.Join(" → ", focus.PathNodeIds.Select(NodeFactDisplayName))}";
+        string promise = result.PromiseDecision switch
+        {
+            PromiseDecision.Keep => "도시 약속 · 지킴",
+            PromiseDecision.Defer => "도시 약속 · 미룸",
+            _ => "도시 약속 · 해당 없음",
+        };
+        string emergency = result.EmergencyAssetIds.Count == 0
+            ? "비상 운전 · 없음"
+            : "비상 운전 · " + string.Join(", ", result.EmergencyAssetIds.Select(AssetFactDisplayName));
+        string outage = result.ProtectiveOutageAssetIds.Count == 0
+            ? "보호정지 · 없음"
+            : "보호정지 · " + string.Join(", ",
+                result.ProtectiveOutageAssetIds.Select(AssetFactDisplayName));
+        return $"{result.Story.Title}\n{result.Story.Body}\n" +
+               $"실제 의무 · {obligations}\n{promise}\n{path}\n{emergency}\n{outage}";
+    }
+
+    private string NodeFactDisplayName(string nodeId)
+    {
+        SpatialNodeDefinition? node = _snapshot.World.Nodes.FirstOrDefault(item =>
+            item.NodeId == nodeId) ?? _commercialWorld.Spatial.Nodes.FirstOrDefault(item =>
+            item.NodeId == nodeId);
+        if (node is not null)
+        {
+            return node.DisplayName;
+        }
+        if (nodeId.StartsWith("PLAYER_POLE_", StringComparison.Ordinal))
+        {
+            string ordinal = nodeId["PLAYER_POLE_".Length..];
+            return $"신설 전신주 {ordinal}";
+        }
+        if (nodeId.StartsWith("PLAYER_SUBSTATION_", StringComparison.Ordinal))
+        {
+            string ordinal = nodeId["PLAYER_SUBSTATION_".Length..];
+            return $"신설 변전소 {ordinal}";
+        }
+        return "신설 접속점";
+    }
+
+    private string AssetFactDisplayName(string assetId)
+    {
+        SpatialNodeDefinition? node = _snapshot.World.Nodes.FirstOrDefault(item =>
+            item.NodeId == assetId) ?? _commercialWorld.Spatial.Nodes.FirstOrDefault(item =>
+            item.NodeId == assetId);
+        if (node is not null)
+        {
+            return node.DisplayName;
+        }
+        SpatialEdgeDefinition? edge = _snapshot.World.Edges.FirstOrDefault(item =>
+            item.EdgeId == assetId) ?? _commercialWorld.Spatial.Edges.FirstOrDefault(item =>
+            item.EdgeId == assetId);
+        return edge is null
+            ? "신설 선로"
+            : $"{NodeFactDisplayName(edge.FromNodeId)}–{NodeFactDisplayName(edge.ToNodeId)} 선로";
+    }
+
+    private static string ObligationText(CommercialCoreObligationKind kind) => kind switch
+    {
+        CommercialCoreObligationKind.MustSupply => "안전 의무",
+        CommercialCoreObligationKind.CityPromise => "도시 약속",
+        CommercialCoreObligationKind.OperatingRecord => "운영 기록",
+        _ => "공급 기록",
+    };
 
     private string ToolInstruction() => _tool switch
     {

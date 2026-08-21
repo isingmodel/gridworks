@@ -114,7 +114,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         SetButton(CommercialPanelAction.RollbackProject, model.RollbackProject);
         SetButton(CommercialPanelAction.RestartChapter, model.RestartChapter);
         SetButton(CommercialPanelAction.NextThermalPhase, model.NextThermalPhase);
-        AccessibilityName = $"공사와 열 작업 패널. {model.Heading}. {model.Thermal}. {model.Status}";
+        AccessibilityName =
+            $"공사와 열 작업 패널. {model.Heading}. {model.Instruction}. {model.Thermal}. {model.Status}";
     }
 
     public BaseButton GetActionButton(CommercialPanelAction action) => _buttons[action];

@@ -1,9 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://CommercialMain.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://CommercialMapView.tscn" id="2_map"]
 [ext_resource type="PackedScene" path="res://CommercialTaskPanel.tscn" id="3_panel"]
 [ext_resource type="Theme" path="res://ReleaseTheme.tres" id="4_theme"]
+[ext_resource type="PackedScene" path="res://ReleaseAudio.tscn" id="5_audio"]
 
 [node name="CommercialMain" type="Control"]
 layout_mode = 3
@@ -14,6 +15,9 @@ grow_horizontal = 2
 grow_vertical = 2
 theme = ExtResource("4_theme")
 script = ExtResource("1_main")
+
+[node name="CommercialAudio" parent="." instance=ExtResource("5_audio")]
+unique_name_in_owner = true
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1

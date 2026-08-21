@@ -767,6 +767,13 @@ internal sealed class CommercialChecks
                     "operatingPhases")[0]!),
                 "activeRiskAreaIds").Add("UNKNOWN_RISK"));
         ExpectCoreRejected(
+            "load on source terminal",
+            root => Object(JsonArrayProperty(
+                Object(JsonArrayProperty(
+                    Object(JsonArrayProperty(root, "chapters")[0]!),
+                    "operatingPhases")[0]!),
+                    "loads")[0]!)["nodeId"] = "WEST_SOURCE");
+        ExpectCoreRejected(
             "duplicate load ID across phases",
             root => Object(JsonArrayProperty(
                 Object(JsonArrayProperty(

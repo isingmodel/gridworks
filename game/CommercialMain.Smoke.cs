@@ -303,10 +303,11 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "FIRST_LIGHT_PRELUDE" &&
+                _audio.GetChildCount() == 2 &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RestartChapter)),
-                "1280×720·UI 125%에서 상용 핵심 흐름과 고정 행동 영역을 열지 못했습니다.");
+                "1280×720·UI 125%에서 상용 핵심 흐름·오디오와 고정 행동 영역을 열지 못했습니다.");
 
             EmitPanel(CommercialPanelAction.StartLine, "프롤로그 선로 도구");
             await NextFrame();
@@ -337,8 +338,12 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "WHOSE_MARGIN" &&
-                coreRun.GetSnapshot().ChapterResults.Count == 1,
-                "첫 불빛 결과 뒤 누구의 여유인가 seed로 전환하지 못했습니다.");
+                coreRun.GetSnapshot().ChapterResults.Count == 1 &&
+                _panel.AccessibilityName.Contains("첫 점등 보고", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("실제 경로", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("서부 발전 접속점", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("동부 생활권", StringComparison.Ordinal),
+                "첫 불빛 결과와 실제 공급 사실을 제시한 뒤 누구의 여유인가 seed로 전환하지 못했습니다.");
 
             EmitPanel(CommercialPanelAction.KeepPromise, "도시 약속 지킴 선택");
             await NextFrame();
@@ -384,8 +389,9 @@ internal sealed partial class CommercialMain
                 afterHot.ThermalMemory.Single(item =>
                     item.AssetId == "PLAYER_EDGE_1").ProtectiveOutage &&
                 JsonSerializer.Serialize(beforeApproval.PhaseResults[0]) ==
-                    JsonSerializer.Serialize(afterHot.CommittedPhaseResults[^1]),
-                "공개 예고와 승인 결과가 다르거나 다음 보호정지를 커밋하지 못했습니다.");
+                    JsonSerializer.Serialize(afterHot.CommittedPhaseResults[^1]) &&
+                _panel.AccessibilityName.Contains("다음 경계까지 남는 것", StringComparison.Ordinal),
+                "공개 예고와 승인 결과가 다르거나 다음 보호정지·사건 이야기를 제시하지 못했습니다.");
             EmitPanel(CommercialPanelAction.ApproveWindow, "다음 안전 경계 승인");
             await NextFrame();
             CommercialCoreSnapshot complete = coreRun.GetSnapshot();
@@ -397,7 +403,13 @@ internal sealed partial class CommercialMain
                 fact.Supplied && fact.SourceNodeId is not null &&
                 fact.PathEdgeIds.Contains("PLAYER_EDGE_1", StringComparer.Ordinal) &&
                 result.EmergencyAssetIds.Contains("PLAYER_EDGE_1", StringComparer.Ordinal) &&
-                _panel.AccessibilityName.Contains("완료", StringComparison.Ordinal),
+                _panel.AccessibilityName.Contains("실제 의무", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("산업단지", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("도시 약속 · 지킴", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("실제 경로", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("발전 접속점", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("비상 운전", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("보호정지", StringComparison.Ordinal),
                 "결과 카드가 실제 공급원·경로·비상·의무 사실로 핵심 흐름을 닫지 못했습니다.");
 
             GD.Print(

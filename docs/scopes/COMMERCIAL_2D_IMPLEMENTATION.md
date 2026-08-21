@@ -2,7 +2,7 @@
 
 > 상태: **ACTIVE**
 > 구현 권한: **GRANTED — 단계 B부터 G까지**
-> 현재 작업: **단계 F — 후반 네 임무와 에필로그**
+> 현재 작업: **단계 G — 시청각·접근성·패키징 마감**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -346,6 +346,33 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
   수정했다. exact fix `ed7a0d7` 재검토에서 **open P0/P1 0**, worktree clean을 확인했다.
 - `FullCampaignHumanStatus = NOT_COLLECTED`, `KoreanProfessionalProofStatus = NOT_COLLECTED`다. 이해·재미·
   전문 교정을 기계 통과로 주장하지 않고 단계 F로 승격했다.
+
+### 6.5 단계 F 종료 기록 — 2026-08-21
+
+- `release-world-v2.json` SHA-256:
+  `304eb051a564a0ceda7912d717268d3011f5f3482a5ab9d1c68dd9330e0e165c`
+- `release-campaign-v2.json` SHA-256:
+  `f94617c74de7bab0c97499fbaa8fd542aa64ee3c2fc60a6c7f090de203239200`
+- final campaign v2 strict loader는 표의 정확한 여덟 임무 순서와 에필로그, 임무 5의 첫 비상 권한,
+  임무 7의 단 한 번뿐인 작성 장간 열 reset을 강제한다. 한 runner와 journal이 여덟 결과, 실제 망·현금·
+  열 상태, 장 시작 command count와 완료 장 선택을 소유하며 임무별 Game 분기는 만들지 않았다.
+- 본편 5~8장은 각각 두 checker-owned 유효 원형과 deadline 또는 누락 공사 failure→chapter restart를
+  가진다. 임무 5~7의 각 대체 원형을 남은 모든 임무와 여덟 결과까지 진행해 이전의 유효 선택이 미래
+  장을 영구 softlock하지 않음을 bounded witness로 고정했다. 임무 6의 값싼 일반선 원형이 실제 비상·
+  보호 상태를 만든 뒤 임무 7의 3주 reset이 이를 지우므로 reset 검사는 빈 상태에 대한 검사가 아니다.
+- CommercialChecks: **20 suites / 1,805 assertions PASS**. Scope 0B·Scope 1·product·release v1 동결
+  회귀도 모두 통과했다. Game Debug·Release rebuild는 **0 warnings / 0 errors**다.
+- 세 fresh 1920×1080·UI 125% actual-input process가 다음 순서로 통과했다.
+  `COMMERCIAL_CAMPAIGN_STAGE_F_CHECKPOINT_SMOKE_PASS missions=4 next=WHOSE_MARGIN edges=18 input=focus-keyboard save=mission4-to-5 resolution=1920x1080`,
+  `COMMERCIAL_CAMPAIGN_STAGE_F_COMPLETION_SMOKE_PASS missions=8 results=factual epilogue=shown resume=mission5-to-8 save=complete input=focus-keyboard resolution=1920x1080`,
+  `COMMERCIAL_CAMPAIGN_STAGE_F_COMPLETED_RESUME_SMOKE_PASS restored=complete selected=LONGEST_NIGHT prior-results=7 input=focus-keyboard resolution=1920x1080`.
+  자유 배치·열과 단계 E 캠페인 native 회귀도 1920×1080에서 통과했으며 1280×720은 지원하거나
+  검수하지 않았다.
+- 독립 exact-tree 검토는 candidate `d518d5c`에서 **P0 0 / P1 3**을 찾았다. 임무 7의 지배되는 원형,
+  비어 있던 장간 reset 증거, 대체 원형의 미래 softlock 증거 누락을 수정했다. exact fix `a17355c`
+  재검증에서 **P0 0 / P1 0 / open 0**, worktree clean을 확인했다.
+- `FullCampaignHumanStatus = NOT_COLLECTED`, `KoreanProfessionalProofStatus = NOT_COLLECTED`다. 이해·재미·
+  전문 교정을 기계 통과로 주장하지 않고 단계 G로 승격했다.
 
 ## 7. 단계 G — 시청각·접근성·패키징 마감
 

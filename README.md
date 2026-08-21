@@ -12,7 +12,7 @@
 ## 현재 상태
 
 현재 활성 구현 단계는 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-**단계 F — 후반 네 임무와 에필로그**다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
+**단계 G — 시청각·접근성·패키징 마감**이다. 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소
 주기기·전신주 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도
 v2 world·campaign·Core와 기본 장면에서 단계 B부터 G까지 순서대로 만든다. 기존 `ReleaseMain`과
 33×21 후보는 기술 회귀 기준선이며 새 규칙의 실행 권위가 아니다.
@@ -46,6 +46,15 @@ assertions, Game Debug·Release build, 1920×1080·UI 125% actual-input 캠페�
 smoke 및 동결 회귀가 통과했다. 독립 검토의 P1 4건을 모두 수정해 열린 P0/P1은 없다. 단계 F는 같은
 campaign 권위와 runner를 정확히 여덟 임무·에필로그로 확장한다.
 
+완료된 단계 F는 같은 campaign 권위와 runner를 `누구의 여유인가`, `물이 닿기 전에`, `꺼야 지킬 수
+있다`, `가장 긴 밤`까지 확장했다. 임무 5에서 연속·비상 열여유와 다음 보호정지를 열고 6~8장은 같은
+규칙을 범람·기한·계획정지·장간 열 reset과 재조합한다. 각 본편 장의 두 유효 원형, failure→장 재시작,
+대체 원형의 미래 완주, 여덟 사실 결과와 에필로그, 완료 저장 재개와 장 시작 선택을 고정했다.
+CommercialChecks 20개 묶음 1,805 assertions, 동결 회귀, Game Debug·Release build, 세 fresh
+1920×1080 actual-input process와 자유 배치·열·단계 E 회귀가 통과했다. 독립 검토의 P1 3건을 모두
+수정해 열린 P0/P1은 없고 `FullCampaignHumanStatus = NOT_COLLECTED`다. 단계 G는 이 완성된 핵심 흐름의
+최종 시청각·접근성·설정·macOS 내부 package 경계만 마감한다.
+
 직전 기준선의 `ReleaseMain`은 프롤로그 세 임무와 본편 다섯 장, 한국어 화면, 2D 표현·사운드,
 접근성·종료 UX와 macOS 내부 후보까지 구현했다. 사용자 요청으로 수행한
 [공식 cold LLM 관찰 1회](playtests/release-2d/OFFICIAL_RELEASE_REBUILD_LLM_OBSERVATION_01.md)는
@@ -59,7 +68,7 @@ campaign 권위와 runner를 정확히 여덟 임무·에필로그로 확장한�
 기억하는 여덟 임무를 새 기반으로 삼는다. 정확한 구현 경계와 순서는 활성 계약이 소유한다.
 
 현재 기본 실행 장면은 새 `CommercialMain`이다. 보이는 격자 없는 지도에서 자유 좌표로 전신주·
-변전소·선로를 건설하고 첫 네 임무에서 작성된 국면의 사용량·연속 한계를 비교한다. 현재
+변전소·선로를 건설하고 여덟 임무에서 작성된 국면의 사용량·연속·비상 한계와 보호정지를 비교한다. 현재
 제품의 최소 지원 해상도는 **1920×1080**이며 UI 100%·125%를 목표로 한다. 1280×720은 지원하지
 않는다. `ReleaseMain`의 33×21 여덟 임무 후보는 명시 scene 동결 회귀로만 남는다.
 [화면·입력 증거](playtests/release-2d/LAYOUT_EVIDENCE.md)는 직전 후보의 네 화면 배치와 저장소 밖

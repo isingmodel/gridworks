@@ -4,14 +4,14 @@
 [ext_resource type="Script" path="res://CommercialPortrait.cs" id="2_portrait"]
 
 [node name="CommercialTaskPanel" type="PanelContainer"]
-custom_minimum_size = Vector2(350, 0)
+custom_minimum_size = Vector2(372, 0)
 script = ExtResource("1_panel")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
-theme_override_constants/margin_left = 18
+theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 18
+theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 16
 
 [node name="Column" type="VBoxContainer" parent="Margin"]

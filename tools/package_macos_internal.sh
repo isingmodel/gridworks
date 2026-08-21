@@ -40,6 +40,7 @@ verify_sha256() {
 verify_release_payload() {
     local candidate_app=$1
     local resources="$candidate_app/Contents/Resources"
+    local packed_resource
     local unexpected_pdb
     local game_assembly_count
     local core_assembly_count
@@ -82,6 +83,23 @@ verify_release_payload() {
     if LC_ALL=C strings "$candidate_app/Contents/MacOS/Gridworks" | grep -E \
         'res://(ProductMain|ReleaseMain|Prototype|Scope1|CommercialPrototype).*\.tscn' >/dev/null; then
         print -u2 "Release package contains a prototype or v1 entry scene."
+        return 1
+    fi
+
+    packed_resource=$(find "$resources" -type f -name '*.pck' -print -quit)
+    if [[ -z $packed_resource ]]; then
+        print -u2 "Release package is missing the Godot packed resource."
+        return 1
+    fi
+    if ! LC_ALL=C strings "$packed_resource" | grep -F \
+        'res://art/commercial-city-plate-v1.png' >/dev/null; then
+        print -u2 "Release package is missing the commercial city plate."
+        return 1
+    fi
+    if LC_ALL=C strings "$packed_resource" | grep -E \
+        'res://.*(01-grid-construction|02-heatwave-outage|03-route-comparison|04-plant-siting)\.png' \
+        >/dev/null; then
+        print -u2 "Release package contains a source concept image."
         return 1
     fi
 }

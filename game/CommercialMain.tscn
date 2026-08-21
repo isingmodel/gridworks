@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://CommercialMain.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://CommercialMapView.tscn" id="2_map"]
@@ -6,6 +6,7 @@
 [ext_resource type="Theme" path="res://ReleaseTheme.tres" id="4_theme"]
 [ext_resource type="PackedScene" path="res://ReleaseAudio.tscn" id="5_audio"]
 [ext_resource type="PackedScene" path="res://ReleaseShellOverlay.tscn" id="6_shell"]
+[ext_resource type="Script" path="res://CommercialEventTimeline.cs" id="7_timeline"]
 
 [node name="CommercialMain" type="Control"]
 layout_mode = 3
@@ -47,7 +48,7 @@ layout_mode = 2
 theme_override_constants/separation = 9
 
 [node name="HeaderPanel" type="PanelContainer" parent="SafeMargin/RootColumn"]
-custom_minimum_size = Vector2(0, 74)
+custom_minimum_size = Vector2(0, 86)
 layout_mode = 2
 
 [node name="HeaderMargin" type="MarginContainer" parent="SafeMargin/RootColumn/HeaderPanel"]
@@ -66,9 +67,45 @@ layout_mode = 2
 
 [node name="TitleLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(245, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 21
-text = "GRIDWORKS · 첫 불빛"
+text = "GRIDWORKS // 첫 불빛"
+
+[node name="HeaderDivider1" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.44, 0.28, 1)
+text = "│"
+
+[node name="BoundaryLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.69, 0.38, 1)
+text = "경계 1/1 · 첫 입주 점등"
+
+[node name="HeaderDivider2" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.44, 0.28, 1)
+text = "│"
+
+[node name="CashLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 0)
+layout_mode = 2
+text = "운영 자금 · 6,000,000원"
+
+[node name="HeaderDivider3" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.44, 0.28, 1)
+text = "│"
+
+[node name="SupplyLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.37, 0.78, 0.79, 1)
+text = "필수 공급 · 0/1"
 
 [node name="TitleSpacer" type="Control" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
 layout_mode = 2
@@ -97,22 +134,35 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="MapFrame" type="PanelContainer" parent="SafeMargin/RootColumn/Body"]
+[node name="MapColumn" type="VBoxContainer" parent="SafeMargin/RootColumn/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="MapFrame" type="PanelContainer" parent="SafeMargin/RootColumn/Body/MapColumn"]
 custom_minimum_size = Vector2(720, 500)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="MapMargin" type="MarginContainer" parent="SafeMargin/RootColumn/Body/MapFrame"]
+[node name="MapMargin" type="MarginContainer" parent="SafeMargin/RootColumn/Body/MapColumn/MapFrame"]
 layout_mode = 2
 theme_override_constants/margin_left = 5
 theme_override_constants/margin_top = 5
 theme_override_constants/margin_right = 5
 theme_override_constants/margin_bottom = 5
 
-[node name="CommercialMapView" parent="SafeMargin/RootColumn/Body/MapFrame/MapMargin" instance=ExtResource("2_map")]
+[node name="CommercialMapView" parent="SafeMargin/RootColumn/Body/MapColumn/MapFrame/MapMargin" instance=ExtResource("2_map")]
 unique_name_in_owner = true
 layout_mode = 2
+
+[node name="CommercialEventTimeline" type="Control" parent="SafeMargin/RootColumn/Body/MapColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 92)
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("7_timeline")
 
 [node name="CommercialTaskPanel" parent="SafeMargin/RootColumn/Body" instance=ExtResource("3_panel")]
 unique_name_in_owner = true

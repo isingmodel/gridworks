@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://CommercialMapView.cs" id="1_map"]
+[ext_resource type="Texture2D" path="res://art/commercial-city-plate-v1.png" id="2_city"]
 
 [node name="CommercialMapView" type="Control"]
 custom_minimum_size = Vector2(720, 500)
@@ -8,3 +9,4 @@ mouse_filter = 0
 focus_mode = 2
 clip_contents = true
 script = ExtResource("1_map")
+CityPlate = ExtResource("2_city")

@@ -52,11 +52,15 @@ internal sealed partial class CommercialMain : Control
     private string _titleStatus = string.Empty;
     private CommercialMapView _map = null!;
     private CommercialTaskPanel _panel = null!;
+    private CommercialEventTimeline _timeline = null!;
     private ReleaseShellOverlay _shell = null!;
     private ReleaseAudio _audio = null!;
     private Label _titleLabel = null!;
     private Label _zoomLabel = null!;
     private Label _summaryLabel = null!;
+    private Label _boundaryLabel = null!;
+    private Label _cashLabel = null!;
+    private Label _supplyLabel = null!;
     private Label _controlHelp = null!;
     private Button _helpButton = null!;
     private Label _fatalLabel = null!;
@@ -189,11 +193,15 @@ internal sealed partial class CommercialMain : Control
     {
         _map = GetNode<CommercialMapView>("%CommercialMapView");
         _panel = GetNode<CommercialTaskPanel>("%CommercialTaskPanel");
+        _timeline = GetNode<CommercialEventTimeline>("%CommercialEventTimeline");
         _shell = GetNode<ReleaseShellOverlay>("%CommercialShellOverlay");
         _audio = GetNode<ReleaseAudio>("%CommercialAudio");
         _titleLabel = GetNode<Label>("%TitleLabel");
         _zoomLabel = GetNode<Label>("%ZoomLabel");
         _summaryLabel = GetNode<Label>("%SummaryLabel");
+        _boundaryLabel = GetNode<Label>("%BoundaryLabel");
+        _cashLabel = GetNode<Label>("%CashLabel");
+        _supplyLabel = GetNode<Label>("%SupplyLabel");
         _controlHelp = GetNode<Label>("%ControlHelp");
         _helpButton = GetNode<Button>("%HelpButton");
         _fatalLabel = GetNode<Label>("%FatalLabel");
@@ -985,23 +993,120 @@ internal sealed partial class CommercialMain : Control
             selectedDemandNodeId,
             selectedDemand?.PathNodeIds ?? Array.Empty<string>(),
             selectedDemand?.PathEdgeIds ?? Array.Empty<string>(),
+            ActiveRiskAreaIds(thermal.IntervalId),
             FacilityPresentations(thermal),
             core?.ChapterIndex ?? 0,
             _settings.ReduceMotion));
         _panel.SetModel(BuildPanelModel());
+        _timeline.SetPresentation(BuildTimelinePresentation(core));
         _zoomLabel.Text = $"지도 · {_map.ZoomLabel}";
         _titleLabel.Text = core is null
-            ? "GRIDWORKS · 열 운영 연습"
-            : $"GRIDWORKS · {core.Chapter.DisplayName}";
+            ? "GRIDWORKS // 열 운영 연습"
+            : $"GRIDWORKS // {_presentedResult?.ChapterDisplayName ?? core.Chapter.DisplayName}";
         _audio.SetAtmosphere(core?.ChapterIndex ?? 0);
         int commissionedEdges = _snapshot.World.Edges.Count(edge => edge.Commissioned);
+        _boundaryLabel.Text = core is null
+            ? $"국면 · {ThermalIntervalName(thermal.IntervalId)}"
+            : core.CampaignComplete
+                ? "경계 · 여덟 임무 완료"
+                : $"경계 {core.DecisionWindowIndex + 1}/{core.Chapter.DecisionWindows.Count} · " +
+                  ThermalIntervalName(thermal.IntervalId);
+        _cashLabel.Text = core is null
+            ? $"공사 시각 · {_snapshot.Minute}분"
+            : $"운영 자금 · {FormatWon(core.CashUnit)}";
+        _supplyLabel.Text = HardSupplySummary(thermal)
+            .Replace("필수 공급 ", "필수 공급 · ", StringComparison.Ordinal);
         _summaryLabel.Text = core is null
-            ? $"{ThermalIntervalName(thermal.IntervalId)} · 완공 선로 {commissionedEdges}구간 · " +
-              "지도 설비를 선택해 현재와 다음 상태를 확인하세요."
-            : $"{core.Chapter.DisplayName} · {ThermalIntervalName(thermal.IntervalId)} · " +
-              $"현금 {FormatWon(core.CashUnit)} · {HardSupplySummary(thermal)} · " +
-              $"완공 선로 {commissionedEdges}구간";
+            ? $"완공 선로 {commissionedEdges}구간 · 지도 설비를 선택해 현재와 다음 상태를 확인하세요."
+            : $"{core.Chapter.Objective} · 완공 선로 {commissionedEdges}구간";
     }
+
+    private CommercialEventTimelinePresentation BuildTimelinePresentation(
+        CommercialCoreSnapshot? core)
+    {
+        if (core is null)
+        {
+            CommercialTimelineStep[] thermalSteps = _thermalSequence.Intervals
+                .Select((interval, index) => new CommercialTimelineStep(
+                    ThermalIntervalName(interval.IntervalId),
+                    "열 운영 projection",
+                    index < _thermalProjectionIndex
+                        ? CommercialTimelineStepState.Completed
+                        : index == _thermalProjectionIndex
+                            ? CommercialTimelineStepState.Current
+                            : CommercialTimelineStepState.Upcoming))
+                .ToArray();
+            return new CommercialEventTimelinePresentation(
+                "열 운영 연습",
+                $"공사 시각 {_snapshot.Minute}분",
+                0f,
+                thermalSteps);
+        }
+
+        if (_showEpilogue && core.CampaignComplete)
+        {
+            var epilogueSteps = _campaign.Chapters
+                .Select(chapter => new CommercialTimelineStep(
+                    chapter.DisplayName,
+                    "완료한 임무",
+                    CommercialTimelineStepState.Completed))
+                .Append(new CommercialTimelineStep(
+                    "에필로그",
+                    _campaign.Epilogue.Title,
+                    CommercialTimelineStepState.Current))
+                .ToArray();
+            return new CommercialEventTimelinePresentation(
+                "청류시 전체 기록",
+                "8/8 임무 완료",
+                1f,
+                epilogueSteps);
+        }
+
+        CommercialCoreChapter chapter = _presentedResult is null
+            ? core.Chapter
+            : _campaign.Chapters.Single(item => item.ChapterId == _presentedResult.ChapterId);
+        bool showingResult = _presentedResult is not null || core.CampaignComplete;
+        var steps = new List<CommercialTimelineStep>
+        {
+            new("브리핑", chapter.Briefing.Title, CommercialTimelineStepState.Completed),
+        };
+        for (int index = 0; index < chapter.DecisionWindows.Count; index++)
+        {
+            CommercialCoreDecisionWindow window = chapter.DecisionWindows[index];
+            CommercialCoreOperatingPhase phase = chapter.OperatingPhases.First(item =>
+                item.PhaseId == window.NextPhaseId);
+            CommercialTimelineStepState state = showingResult || index < core.DecisionWindowIndex
+                ? CommercialTimelineStepState.Completed
+                : index == core.DecisionWindowIndex
+                    ? CommercialTimelineStepState.Current
+                    : CommercialTimelineStepState.Upcoming;
+            steps.Add(new CommercialTimelineStep(
+                phase.DisplayName,
+                window.Story?.Title ?? $"결정 경계 {index + 1}",
+                state));
+        }
+        steps.Add(new CommercialTimelineStep(
+            "결과",
+            chapter.StandardResult.Title,
+            showingResult ? CommercialTimelineStepState.Current : CommercialTimelineStepState.Upcoming));
+        string progress = showingResult
+            ? "운영 결과 확정"
+            : $"공사 {_snapshot.Minute}/{chapter.DeadlineMinute}분 · {ToolName()}";
+        float ratio = showingResult
+            ? 1f
+            : Math.Clamp(_snapshot.Minute / (float)Math.Max(1, chapter.DeadlineMinute), 0f, 1f);
+        int chapterIndex = _campaign.Chapters.ToList().FindIndex(item => item.ChapterId == chapter.ChapterId);
+        return new CommercialEventTimelinePresentation(
+            $"{chapterIndex + 1}/{_campaign.Chapters.Count} · {chapter.DisplayName}",
+            progress,
+            ratio,
+            steps);
+    }
+
+    private IReadOnlyList<string> ActiveRiskAreaIds(string intervalId) =>
+        _campaign.Chapters.SelectMany(item => item.OperatingPhases)
+            .FirstOrDefault(item => item.PhaseId == intervalId)?.ActiveRiskAreaIds ??
+        Array.Empty<string>();
 
     private CommercialTaskPanelModel BuildPanelModel()
     {
@@ -2030,6 +2135,7 @@ internal sealed partial class CommercialMain : Control
             : Window.ModeEnum.Windowed;
         GetWindow().ContentScaleFactor = 1f;
         ApplyRuntimeUiScale(this, settings.UiScalePercent / 100f);
+        _timeline.SetUiScale(settings.UiScalePercent / 100f);
         _controlHelp.Visible = settings.ShowControlHelp;
         _audio.ApplyVolumes(
             settings.MasterVolumePercent,

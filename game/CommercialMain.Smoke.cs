@@ -72,9 +72,14 @@ internal sealed partial class CommercialMain
                 selected.Supplied &&
                 selected.PathEdgeIds.Count > 0 &&
                 _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal) &&
+                _map.HasCityPlate &&
                 _panel.AccessibilityName.Contains("최소 열여유", StringComparison.Ordinal) &&
-                _summaryLabel.Text.Contains("필수 공급 1/1 ✓", StringComparison.Ordinal),
-                "선택 수요의 발전원·전체 경로·열여유·시설 강조가 함께 갱신되지 않았습니다.");
+                _supplyLabel.Text.Contains("필수 공급 · 1/1 ✓", StringComparison.Ordinal) &&
+                _timeline.AccessibilityName.Contains("사건 흐름", StringComparison.Ordinal) &&
+                _timeline.CurrentStepLabel.Contains("첫 입주 점등", StringComparison.Ordinal),
+                "선택 수요의 발전원·전체 경로·열여유·시설 강조가 함께 갱신되지 않았습니다. " +
+                $"plate={_map.HasCityPlate}, timeline={_timeline.CurrentStepLabel}, " +
+                $"supply={_supplyLabel.Text}");
 
             await PressKey(Key.Escape);
             Require(_shell.Page == ReleaseShellPage.Pause,
@@ -118,7 +123,8 @@ internal sealed partial class CommercialMain
                 "Save & Quit이 성공한 원자적 저장 뒤에만 제목으로 이동하지 않았습니다.");
             GD.Print(
                 "COMMERCIAL_STAGE_G_PRESENTATION_SMOKE_PASS " +
-                "screens=title-ui100|path-ui125 input=focus-keyboard reduce-motion=on " +
+                "screens=title-ui100|path-ui125 visual=concept-city|event-timeline " +
+                "input=focus-keyboard reduce-motion=on " +
                 "save-and-quit=atomic resolution=1920x1080 " +
                 $"buildIdentity={CommercialCoreSaveCodec.ComputeSha256(_buildIdentityBytes)}");
             GetTree().Quit(0);
@@ -449,6 +455,10 @@ internal sealed partial class CommercialMain
                 _panel.AccessibilityName.Contains("현재 의무", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("조작 ·", StringComparison.Ordinal) &&
                 _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
+                _map.HasCityPlate &&
+                _timeline.StepCount == 3 &&
+                _timeline.CurrentStepLabel == "첫 입주 점등" &&
+                _timeline.AccessibilityName.Contains("시간을 진행하지 않습니다", StringComparison.Ordinal) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
                 !_panel.GetActionButton(CommercialPanelAction.RestartChapter).Visible &&
@@ -516,6 +526,8 @@ internal sealed partial class CommercialMain
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "SECOND_HEART" &&
                 coreRun.GetSnapshot().ChapterResults.Count == 1 &&
+                _timeline.CurrentStepLabel == "결과" &&
+                _timeline.AccessibilityName.Contains("동부 생활권 첫 점등", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("동부 생활권 첫 점등", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("실제 경로", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("서부 발전 접속점", StringComparison.Ordinal) &&
@@ -724,6 +736,8 @@ internal sealed partial class CommercialMain
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "폭염 운영 승인");
             await NextFrame();
             Require(coreRun.GetSnapshot().DecisionWindowIndex == 1 &&
+                _timeline.CurrentStepLabel == "다음 아침 안전 경계" &&
+                _timeline.AccessibilityName.Contains("더운 저녁 · 산업 증산 완료", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("보호정지 뒤에도 아침은 옵니다", StringComparison.Ordinal),
                 "다섯 번째 임무의 보호정지 결과 이야기와 다음 결정 경계를 표시하지 못했습니다.");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "보호정지 뒤 아침 운영 승인");

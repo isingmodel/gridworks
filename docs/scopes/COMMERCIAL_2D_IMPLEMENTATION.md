@@ -554,8 +554,9 @@ NewCandidateLlmObservationStatus = NOT_REQUESTED
 PublicDistributionStatus = BLOCKED_UNTIL_SIGNING_NOTARIZATION_AND_OWNER_RELEASE_DECISION
 ```
 
-사람 관찰은 단계 H의 외부 증거이고 LLM 관찰은 사용자가 별도로 요청할 때만 수행한다. 어느 쪽도
-자동 완료 수치에 합산하지 않는다.
+사람 관찰은 단계 H의 외부 증거다. 사용자가 별도로 요청한 G.3 visual reference parity만 고정
+multimodal LLM jury protocol을 사용하며, 그 점수는 사람 사용성·재미·전문 교정이나 H 증거로
+합산하지 않는다.
 
 ## 9. 명시적 제외
 
@@ -567,7 +568,7 @@ PublicDistributionStatus = BLOCKED_UNTIL_SIGNING_NOTARIZATION_AND_OWNER_RELEASE_
 - 연속 줌·회전·관성·미니맵
 - 대화 선택지, 호감도, 범용 분기 스토리 엔진, 긴 컷신·음성
 - 온라인, 업적, 순위표, 게임패드·모바일·다국어 동시 출시
-- 반복 LLM 플레이, 사람을 대체하는 agent 평가와 자동 밸런스 튜닝
+- 반복 LLM 플레이와 자동 밸런스 튜닝. 단, G.3의 고정 reference visual jury는 별도 승인된 예외다.
 
 ## 10. 단계 승격 규칙
 

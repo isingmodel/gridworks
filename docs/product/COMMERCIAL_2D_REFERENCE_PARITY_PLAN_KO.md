@@ -1,6 +1,6 @@
 # Gridworks 상용 2D 레퍼런스 정렬 재구축 계획
 
-> 상태: **DRAFT — 계획·소유자 승인 대기, 구현 권한 아님**
+> 상태: **DRAFT COMPLETE — G.3 구현 활성화 대기, 구현 권한 아님**
 > 작성 근거: 2026-08-21 G.2 실행 화면에 대한 소유자 시각 거부
 > 대상 해상도: **1920×1080, UI 100%·125%만 해당**
 
@@ -53,7 +53,8 @@ runtime에 포함하지 않을 1920×1080 target mockup 세 장을 먼저 만든
 3. 경로·입지 비교: 복수 경로, 두 전원, 굽은 강과 오른쪽 inspector
 
 각 mockup은 소유자 화면을 layout edit target으로, 위 reference를 역할별 style input으로 사용한다.
-소유자가 카메라·강·밀도·UI 방향을 승인하기 전에는 전체 runtime 자산을 만들지 않는다.
+고정 멀티모달 LLM jury가 카메라·강·밀도·UI의 첫 formative gate를 통과시키기 전에는 전체 runtime
+자산을 만들지 않는다.
 
 ## 4. 아이소메트릭 좌표와 입력
 
@@ -156,15 +157,15 @@ inspector는 선택·공급/열·비용/시간·현재 행동을 먼저 보여�
 timeline은 최소 `15px` 글자와 `16px` marker로 briefing→authored window/phase→actual result를 표시한다.
 현재는 amber plate, 완료는 cyan check, 예정은 graphite empty marker다. timeline은 계속 읽기 전용이다.
 
-## 10. 승인 checkpoint와 종료
+## 10. LLM jury checkpoint와 종료
 
-1. target mockup 세 장: 카메라·강·밀도·UI 승인
-2. west plant→river→east district vertical slice: 실제 입력과 first-light 화면 승인
-3. 평상·폭염·폭우·겨울밤 전체 상태: 최종 소유자 승인
+1. target mockup 세 장: camera·river·density·HUD formative jury
+2. west plant→river→east district vertical slice: 실제 입력과 first-light runtime jury
+3. 평상·폭염·폭우·겨울밤 전체 상태: exact-tree final jury
 
 두 번째 checkpoint 전에는 전체 asset family를 만들지 않는다. 최종 native evidence는 first-light,
 substation draft, pole draft, energized route, heat/outage, flood, winter, UI 125% ReduceMotion 여덟 장이다.
 720p mode는 만들거나 실행·검수하지 않는다.
 
-자동검사·build·campaign smoke와 시각 점수는 사람 승인과 서로 대신하지 않는다. 상세 점수·차이
-보고서·pass gate는 평가 프로토콜을 따른다.
+파일·authority·input·build hard gate는 LLM visual score와 별도로 모두 통과해야 한다. 사람 review는
+사용하지 않는다. 상세 jury 구성, calibration, 점수·차이 보고서와 pass gate는 평가 프로토콜을 따른다.

@@ -9,14 +9,15 @@ internal sealed record CommercialLaunchOptions(
     bool CampaignSmoke,
     bool CampaignCheckpointSmoke,
     bool CampaignCompletionSmoke,
-    bool CampaignCompletedResumeSmoke)
+    bool CampaignCompletedResumeSmoke,
+    bool PresentationSmoke)
 {
     public bool AnyCampaignSmoke => CampaignSmoke || CampaignCheckpointSmoke ||
         CampaignCompletionSmoke || CampaignCompletedResumeSmoke;
 
-    public bool AnySmoke => PlacementSmoke || ThermalSmoke || AnyCampaignSmoke;
+    public bool AnySmoke => PlacementSmoke || ThermalSmoke || AnyCampaignSmoke || PresentationSmoke;
 
-    public bool StartsFreshCampaign => CampaignSmoke || CampaignCheckpointSmoke;
+    public bool StartsFreshCampaign => CampaignSmoke || CampaignCheckpointSmoke || PresentationSmoke;
 
     public static CommercialLaunchOptions Parse(IReadOnlyList<string> arguments)
     {
@@ -27,11 +28,12 @@ internal sealed record CommercialLaunchOptions(
         bool campaignCheckpointSmoke = false;
         bool campaignCompletionSmoke = false;
         bool campaignCompletedResumeSmoke = false;
+        bool presentationSmoke = false;
         foreach (string argument in arguments)
         {
             switch (argument)
             {
-#if DEBUG
+#if DEBUG || COMMERCIAL_INTERNAL
                 case "--commercial-placement-smoke" when !placementSmoke:
                     placementSmoke = true;
                     break;
@@ -68,6 +70,12 @@ internal sealed record CommercialLaunchOptions(
                 case "--commercial-campaign-stage-f-completed-resume-smoke":
                     throw new ArgumentException(
                         "완료 저장 재개 확인 인자는 한 번만 사용할 수 있습니다.");
+                case "--commercial-stage-g-presentation-smoke" when !presentationSmoke:
+                    presentationSmoke = true;
+                    break;
+                case "--commercial-stage-g-presentation-smoke":
+                    throw new ArgumentException(
+                        "상용 시청각·접근성 확인 인자는 한 번만 사용할 수 있습니다.");
 #endif
                 default:
                     throw new ArgumentException($"지원하지 않는 상용 게임 실행 인자입니다: {argument}");
@@ -76,7 +84,8 @@ internal sealed record CommercialLaunchOptions(
         if ((placementSmoke ? 1 : 0) + (thermalSmoke ? 1 : 0) +
             (campaignSmoke ? 1 : 0) + (campaignCheckpointSmoke ? 1 : 0) +
             (campaignCompletionSmoke ? 1 : 0) +
-            (campaignCompletedResumeSmoke ? 1 : 0) > 1)
+            (campaignCompletedResumeSmoke ? 1 : 0) +
+            (presentationSmoke ? 1 : 0) > 1)
         {
             throw new ArgumentException("상용 smoke 인자는 한 번에 하나만 사용하세요.");
         }
@@ -86,6 +95,7 @@ internal sealed record CommercialLaunchOptions(
             campaignSmoke,
             campaignCheckpointSmoke,
             campaignCompletionSmoke,
-            campaignCompletedResumeSmoke);
+            campaignCompletedResumeSmoke,
+            presentationSmoke);
     }
 }

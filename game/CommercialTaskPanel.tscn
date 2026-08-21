@@ -33,6 +33,27 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
 
+[node name="SpeakerRow" type="HBoxContainer" parent="Margin/Column/InfoScroll/InfoColumn"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PortraitBadge" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/SpeakerRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(44, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "윤"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SpeakerLabel" type="Label" parent="Margin/Column/InfoScroll/InfoColumn/SpeakerRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "윤서진 · 청류시 전력운영센터장"
+vertical_alignment = 1
+autowrap_mode = 2
+
 [node name="InstructionLabel" type="Label" parent="Margin/Column/InfoScroll/InfoColumn"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -179,8 +200,20 @@ custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 text = "새 게임"
 
-[node name="NextThermalPhaseButton" type="Button" parent="Margin/Column"]
+[node name="ProjectionRow" type="HBoxContainer" parent="Margin/Column"]
+layout_mode = 2
+theme_override_constants/separation = 7
+
+[node name="NextDemandButton" type="Button" parent="Margin/Column/ProjectionRow"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
+size_flags_horizontal = 3
+text = "다음 수요 경로"
+
+[node name="NextThermalPhaseButton" type="Button" parent="Margin/Column/ProjectionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
 text = "다음 국면 보기"

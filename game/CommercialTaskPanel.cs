@@ -19,6 +19,7 @@ internal enum CommercialPanelAction
     RestartChapter,
     NewGame,
     NextThermalPhase,
+    NextDemand,
 }
 
 internal sealed record CommercialActionPresentation(
@@ -27,8 +28,14 @@ internal sealed record CommercialActionPresentation(
     string Description,
     bool Visible = true);
 
+internal sealed record CommercialSpeakerPresentation(
+    string Initial,
+    string NameAndRole,
+    Color CardColor);
+
 internal sealed record CommercialTaskPanelModel(
     string Heading,
+    CommercialSpeakerPresentation Speaker,
     string Instruction,
     string Obligations,
     string Selection,
@@ -48,11 +55,14 @@ internal sealed record CommercialTaskPanelModel(
     CommercialActionPresentation RollbackProject,
     CommercialActionPresentation RestartChapter,
     CommercialActionPresentation NewGame,
-    CommercialActionPresentation NextThermalPhase);
+    CommercialActionPresentation NextThermalPhase,
+    CommercialActionPresentation NextDemand);
 
 internal sealed partial class CommercialTaskPanel : PanelContainer
 {
     private Label _headingLabel = null!;
+    private Label _portraitBadge = null!;
+    private Label _speakerLabel = null!;
     private Label _instructionLabel = null!;
     private Label _obligationsLabel = null!;
     private Label _selectionLabel = null!;
@@ -67,6 +77,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     public override void _Ready()
     {
         _headingLabel = GetNode<Label>("%HeadingLabel");
+        _portraitBadge = GetNode<Label>("%PortraitBadge");
+        _speakerLabel = GetNode<Label>("%SpeakerLabel");
         _instructionLabel = GetNode<Label>("%InstructionLabel");
         _obligationsLabel = GetNode<Label>("%ObligationsLabel");
         _selectionLabel = GetNode<Label>("%SelectionLabel");
@@ -74,6 +86,9 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _thermalLabel = GetNode<Label>("%ThermalLabel");
         _statusLabel = GetNode<Label>("%StatusLabel");
         _errorLabel = GetNode<Label>("%ErrorLabel");
+        VBoxContainer infoColumn = GetNode<VBoxContainer>("Margin/Column/InfoScroll/InfoColumn");
+        infoColumn.MoveChild(_obligationsLabel, 1);
+        infoColumn.MoveChild(_thermalLabel, 2);
         _buttons = new Dictionary<CommercialPanelAction, Button>
         {
             [CommercialPanelAction.PlaceSubstation] = GetNode<Button>("%PlaceSubstationButton"),
@@ -89,6 +104,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             [CommercialPanelAction.RestartChapter] = GetNode<Button>("%RestartChapterButton"),
             [CommercialPanelAction.NewGame] = GetNode<Button>("%NewGameButton"),
             [CommercialPanelAction.NextThermalPhase] = GetNode<Button>("%NextThermalPhaseButton"),
+            [CommercialPanelAction.NextDemand] = GetNode<Button>("%NextDemandButton"),
         };
 
         foreach ((CommercialPanelAction action, Button button) in _buttons)
@@ -103,6 +119,10 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     {
         ArgumentNullException.ThrowIfNull(model);
         _headingLabel.Text = model.Heading;
+        _portraitBadge.Text = model.Speaker.Initial;
+        _portraitBadge.AddThemeColorOverride("font_color", model.Speaker.CardColor);
+        _speakerLabel.Text = model.Speaker.NameAndRole;
+        _speakerLabel.AddThemeColorOverride("font_color", model.Speaker.CardColor);
         _instructionLabel.Text = model.Instruction;
         _obligationsLabel.Text = model.Obligations;
         _selectionLabel.Text = model.Selection;
@@ -123,8 +143,10 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         SetButton(CommercialPanelAction.RestartChapter, model.RestartChapter);
         SetButton(CommercialPanelAction.NewGame, model.NewGame);
         SetButton(CommercialPanelAction.NextThermalPhase, model.NextThermalPhase);
+        SetButton(CommercialPanelAction.NextDemand, model.NextDemand);
         AccessibilityName =
-            $"공사와 열 작업 패널. {model.Heading}. {model.Instruction}. {model.Obligations}. " +
+            $"공사와 열 작업 패널. {model.Heading}. {model.Speaker.NameAndRole}. " +
+            $"{model.Instruction}. {model.Obligations}. " +
             $"{model.Thermal}. {model.Status}";
     }
 

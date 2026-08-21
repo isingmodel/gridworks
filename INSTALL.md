@@ -7,6 +7,7 @@ Developer ID 서명과 Apple 공증은 하지 않았다. 따라서 공개 배포
 ## 확인된 환경
 
 - 지원 후보: macOS arm64
+- 최소 게임 화면: 1920×1080, UI 100% 또는 125%
 - 미검증 deployment target: macOS 14.0
 - 현재 확인 환경: macOS 26.6.1 arm64
 
@@ -32,9 +33,12 @@ macOS가 앱을 막으면 먼저 hash와 출처를 다시 확인한다. 신뢰�
 
 ```text
 ~/Library/Application Support/Godot/app_userdata/Gridworks/
-  release-campaign-save-v2.json
+  release-campaign-save-v3.json
   settings.json
 ```
+
+기존 `gridworks.settings.v2` 설정은 처음 한 번 화면 모드·UI 크기·Master/Ambient/SFX 값을 보존해
+strict v3로 승격하고 `움직임 줄이기`만 추가한다. 이 후보는 settings v3만 쓴다.
 
 초기 상태를 다시 확인하려면 게임을 완전히 종료한 뒤 두 파일을 별도 폴더로 옮겨 백업한다. 앱을
 교체해도 이 폴더는 자동으로 지워지지 않는다.

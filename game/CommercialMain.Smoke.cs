@@ -1,4 +1,4 @@
-#if DEBUG
+#if DEBUG || COMMERCIAL_INTERNAL
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,6 +12,147 @@ namespace Gridworks.Game;
 
 internal sealed partial class CommercialMain
 {
+    private async void RunPresentationSmoke()
+    {
+        try
+        {
+            await NextFrame();
+            string evidenceDirectory = System.Environment.GetEnvironmentVariable(
+                    "GRIDWORKS_STAGE_G_EVIDENCE_DIRECTORY")
+                ?? throw new InvalidOperationException(
+                    "Stage-G presentation smoke에는 evidence directory가 필요합니다.");
+            if (!Path.IsPathFullyQualified(evidenceDirectory))
+            {
+                throw new InvalidOperationException(
+                    "Stage-G evidence directory는 절대경로여야 합니다.");
+            }
+            Directory.CreateDirectory(evidenceDirectory);
+            GetWindow().Size = new Vector2I(1920, 1080);
+            await NextFrame();
+            Require(
+                _settings.UiScalePercent == 100 &&
+                !_settings.ReduceMotion &&
+                _shell.Page == ReleaseShellPage.Title &&
+                _shell.GetActionButton(ReleaseShellAction.NewGame).HasFocus() &&
+                ControlInside(_shell, _shell.GetActionButton(ReleaseShellAction.NewGame)),
+                "1920×1080·UI 100% 제목 화면의 keyboard focus와 bounds가 올바르지 않습니다.");
+            SaveEvidencePng(Path.Combine(evidenceDirectory, "1920x1080-ui100-title.png"));
+
+            await PressShellAsync(ReleaseShellAction.NewGame, "새 게임");
+            await NextFrame();
+            Require(_shell.Page == ReleaseShellPage.Help,
+                "새 게임의 조작 도움말이 같은 shell overlay에 열리지 않았습니다.");
+            await PressShellAsync(ReleaseShellAction.HelpBack, "조작 도움말 닫기");
+            await NextFrame();
+            Require(_shell.Page == ReleaseShellPage.Hidden && _map.HasFocus(),
+                "조작 도움말 뒤 지도로 keyboard focus가 돌아오지 않았습니다.");
+
+            await BuildCampaignSmokeSubstation(
+                new CoreMapPoint(2200, 750),
+                "표현 확인 변전소");
+            await BuildCampaignSmokeLine(
+                "WEST_SOURCE",
+                "PLAYER_SUBSTATION_1",
+                [
+                    new CoreMapPoint(650, 700),
+                    new CoreMapPoint(950, 500),
+                    new CoreMapPoint(1545, 450),
+                    new CoreMapPoint(1900, 600),
+                ],
+                "표현 확인 간선");
+            await BuildCampaignSmokeLine(
+                "PLAYER_SUBSTATION_1",
+                "EAST_RESIDENTIAL_TERMINAL",
+                Array.Empty<CoreMapPoint>(),
+                "표현 확인 인입선");
+            ThermalIntervalResult active = _thermalSequence.Intervals[_thermalProjectionIndex];
+            ThermalDemandResult selected = SelectedDemand(active)
+                ?? throw new InvalidOperationException("선택할 수요가 없습니다.");
+            Require(
+                selected.Supplied &&
+                selected.PathEdgeIds.Count > 0 &&
+                _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("최소 열여유", StringComparison.Ordinal) &&
+                _summaryLabel.Text.Contains("필수 공급 1/1 ✓", StringComparison.Ordinal),
+                "선택 수요의 발전원·전체 경로·열여유·시설 강조가 함께 갱신되지 않았습니다.");
+
+            await PressKey(Key.Escape);
+            Require(_shell.Page == ReleaseShellPage.Pause,
+                "Esc가 단일 shell overlay의 일시정지를 열지 않았습니다.");
+            await PressShellAsync(ReleaseShellAction.PauseSettings, "설정 열기");
+            OptionButton uiScale = _shell.GetUiScaleOption();
+            uiScale.GrabFocus();
+            await NextFrame();
+            await PressKey(Key.Enter);
+            await PressKey(Key.Down);
+            await PressKey(Key.Enter);
+            CheckButton reduceMotion = _shell.GetReduceMotionCheck();
+            reduceMotion.GrabFocus();
+            await NextFrame();
+            await PressKey(Key.Enter);
+            Require(
+                _settings.UiScalePercent == 125 &&
+                _settings.ReduceMotion &&
+                CommercialSettingsPersistenceStore.Load(_settingsPath).Settings == _settings,
+                "UI 125%와 ReduceMotion을 actual keyboard input 또는 settings v3에 적용하지 못했습니다.");
+            await PressShellAsync(ReleaseShellAction.SettingsBack, "설정 닫기");
+            await PressShellAsync(ReleaseShellAction.Resume, "게임 계속하기");
+            await NextFrame();
+            Require(
+                GetWindow().Size == new Vector2I(1920, 1080) &&
+                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.Commission)) &&
+                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.NextDemand)) &&
+                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.NextThermalPhase)) &&
+                _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal),
+                "1920×1080·UI 125%에서 고정 행동이나 선택 경로가 화면 밖으로 잘렸습니다.");
+            SaveEvidencePng(Path.Combine(evidenceDirectory, "1920x1080-ui125-path-reduce-motion.png"));
+
+            await PressKey(Key.Escape);
+            await PressShellAsync(ReleaseShellAction.SaveAndQuit, "저장하고 제목으로");
+            Require(
+                _shell.Page == ReleaseShellPage.Title &&
+                _hasContinuation &&
+                File.Exists(_savePath) &&
+                !File.Exists(_savePath + ".tmp") &&
+                !File.Exists(_settingsPath + ".tmp"),
+                "Save & Quit이 성공한 원자적 저장 뒤에만 제목으로 이동하지 않았습니다.");
+            GD.Print(
+                "COMMERCIAL_STAGE_G_PRESENTATION_SMOKE_PASS " +
+                "screens=title-ui100|path-ui125 input=focus-keyboard reduce-motion=on " +
+                "save-and-quit=atomic resolution=1920x1080 " +
+                $"buildIdentity={CommercialCoreSaveCodec.ComputeSha256(_buildIdentityBytes)}");
+            GetTree().Quit(0);
+        }
+        catch (Exception exception)
+        {
+            GD.PushError($"Stage-G 시청각·접근성 smoke 실패: {exception}");
+            GetTree().Quit(1);
+        }
+    }
+
+    private async Task PressShellAsync(ReleaseShellAction action, string description)
+    {
+        BaseButton button = _shell.GetActionButton(action);
+        if (!button.Visible || button.Disabled)
+        {
+            throw new InvalidOperationException($"필요한 shell 행동을 사용할 수 없습니다: {description}");
+        }
+        button.GrabFocus();
+        await NextFrame();
+        Require(button.HasFocus(), $"shell 행동이 keyboard focus를 받지 못했습니다: {description}");
+        await PressKey(Key.Enter);
+    }
+
+    private void SaveEvidencePng(string path)
+    {
+        Image image = GetViewport().GetTexture().GetImage();
+        Godot.Error result = image.SavePng(path);
+        if (result != Godot.Error.Ok)
+        {
+            throw new IOException($"화면 증거 PNG를 저장하지 못했습니다: {result}");
+        }
+    }
+
     private async void RunPlacementSmoke()
     {
         try
@@ -303,7 +444,7 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "FIRST_LIGHT" &&
-                _audio.GetChildCount() == 2 &&
+                _audio.GetChildCount() == 4 &&
                 !_panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
                 _panel.AccessibilityName.Contains("현재 의무", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("조작 ·", StringComparison.Ordinal) &&

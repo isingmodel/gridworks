@@ -8,6 +8,8 @@ runtime의 ambient와 상태 cue는 저장된 외부 음원 없이 코드가 고
 현재 제품 빌드에는 `assets/`의 콘셉트 이미지, 외부 raster sprite, 외부 font, 음악과 voice-over를
 포함하지 않는다.
 
+최종 runtime별 출처와 권리 경계는 [ASSET_MANIFEST.md](ASSET_MANIFEST.md)에 고정했다.
+
 ## Engine과 runtime
 
 - [Godot Engine 4.7.1 Mono](https://godotengine.org/), Godot Engine contributors

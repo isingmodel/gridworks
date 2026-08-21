@@ -113,6 +113,7 @@ internal sealed class CommercialChecks
             ("commercial-core-choice-deadline-and-atomicity", CheckCommercialCoreChoiceDeadlineAndAtomicity),
             ("commercial-core-rollback-and-fresh-replay", CheckCommercialCoreRollbackAndFreshReplay),
             ("commercial-core-save-v3", CheckCommercialCoreSaveV3),
+            ("commercial-settings-v3-migration-and-atomicity", CheckCommercialSettingsV3),
             ("strict-commercial-campaign-loader", CheckStrictCommercialCampaignLoader),
             ("commercial-campaign-first-four-carry-save", CheckCommercialCampaignFirstFourCarrySave),
             ("commercial-campaign-final-eight-epilogue", CheckCommercialCampaignFinalEightEpilogue),
@@ -1876,6 +1877,128 @@ internal sealed class CommercialChecks
             Equal(CommercialCoreDocumentLoadStatus.Invalid,
                 CommercialCorePersistenceStore.Load(path).Status,
                 "invalid commercial save status");
+        }
+        finally
+        {
+            if (Directory.Exists(directory))
+            {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    private void CheckCommercialSettingsV3()
+    {
+        const string v2 = """
+            {
+              "schemaVersion": "gridworks.settings.v2",
+              "windowMode": "fullscreen",
+              "uiScalePercent": 125,
+              "showControlHelp": false,
+              "masterVolumePercent": 75,
+              "ambientVolumePercent": 50,
+              "sfxVolumePercent": 25
+            }
+            """;
+        CommercialSettingsV3 migrated = CommercialSettingsCodec.Deserialize(
+            Encoding.UTF8.GetBytes(v2),
+            out bool migratedFromV2);
+        Check(migratedFromV2, "settings v2 was not reported as migrated");
+        Equal(CommercialSettingsV3.SupportedSchemaVersion, migrated.SchemaVersion,
+            "migrated settings schema");
+        Equal(CommercialWindowMode.Fullscreen, migrated.WindowMode,
+            "migrated window mode");
+        Equal(125, migrated.UiScalePercent, "migrated UI scale");
+        Check(!migrated.ShowControlHelp, "migrated control-help value changed");
+        Equal(75, migrated.MasterVolumePercent, "migrated Master volume");
+        Equal(50, migrated.AmbientVolumePercent, "migrated Ambient volume");
+        Equal(25, migrated.SfxVolumePercent, "migrated SFX volume");
+        Check(!migrated.ReduceMotion, "v2 migration did not default ReduceMotion off");
+
+        byte[] v3Bytes = CommercialSettingsCodec.Serialize(migrated);
+        string v3 = Encoding.UTF8.GetString(v3Bytes);
+        Check(v3.Contains("\"schemaVersion\": \"gridworks.settings.v3\"", StringComparison.Ordinal),
+            "settings writer did not emit v3");
+        Check(v3.Contains("\"reduceMotion\": false", StringComparison.Ordinal),
+            "settings writer omitted ReduceMotion");
+        CommercialSettingsV3 roundTrip = CommercialSettingsCodec.Deserialize(
+            v3Bytes,
+            out bool roundTripMigrated);
+        Check(!roundTripMigrated && roundTrip == migrated,
+            "settings v3 round trip changed values");
+
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialSettingsCodec.Deserialize(
+                Encoding.UTF8.GetBytes(v2.Replace(
+                    "\"uiScalePercent\": 125,",
+                    "\"uiScalePercent\": 125, \"uiScalePercent\": 100,",
+                    StringComparison.Ordinal)),
+                out _),
+            "duplicate settings property");
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialSettingsCodec.Deserialize(
+                Encoding.UTF8.GetBytes(v2.Replace(
+                    "\"showControlHelp\": false,",
+                    "\"future\": true, \"showControlHelp\": false,",
+                    StringComparison.Ordinal)),
+                out _),
+            "unknown settings property");
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialSettingsCodec.Deserialize(
+                Encoding.UTF8.GetBytes(v2.Replace(
+                    "  \"sfxVolumePercent\": 25\n",
+                    string.Empty,
+                    StringComparison.Ordinal).Replace(
+                    "\"ambientVolumePercent\": 50,",
+                    "\"ambientVolumePercent\": 50",
+                    StringComparison.Ordinal)),
+                out _),
+            "missing settings v2 field");
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialSettingsCodec.Deserialize(
+                Encoding.UTF8.GetBytes(v3.Replace(
+                    ",\n  \"reduceMotion\": false",
+                    string.Empty,
+                    StringComparison.Ordinal)),
+                out _),
+            "missing ReduceMotion in settings v3");
+        ExpectThrows<CommercialCorePersistenceException>(
+            () => CommercialSettingsCodec.Serialize(migrated with { UiScalePercent = 110 }),
+            "invalid settings UI scale");
+
+        string directory = Path.Combine(
+            Path.GetTempPath(),
+            $"gridworks-commercial-settings-{Guid.NewGuid():N}");
+        string path = Path.Combine(directory, CommercialSettingsPersistenceStore.SettingsFileName);
+        try
+        {
+            Equal(CommercialCoreDocumentLoadStatus.Missing,
+                CommercialSettingsPersistenceStore.Load(path).Status,
+                "missing settings status");
+            Directory.CreateDirectory(directory);
+            File.WriteAllBytes(path, Encoding.UTF8.GetBytes(v2));
+            CommercialSettingsLoadResult loaded = CommercialSettingsPersistenceStore.Load(path);
+            Equal(CommercialCoreDocumentLoadStatus.Loaded, loaded.Status,
+                "migrated settings load status");
+            Check(loaded.MigratedFromV2, "settings store did not report migration");
+            Check(File.ReadAllText(path, Encoding.UTF8).Contains(
+                    "gridworks.settings.v3",
+                    StringComparison.Ordinal),
+                "settings store did not atomically replace v2 with v3");
+            Check(!File.Exists(path + ".tmp"), "settings migration left a temporary file");
+
+            CommercialSettingsV3 changed = loaded.Settings with
+            {
+                ReduceMotion = true,
+                WindowMode = CommercialWindowMode.Windowed,
+            };
+            CommercialSettingsPersistenceStore.Save(path, changed);
+            CommercialSettingsLoadResult reloaded = CommercialSettingsPersistenceStore.Load(path);
+            Check(reloaded.Status == CommercialCoreDocumentLoadStatus.Loaded &&
+                  reloaded.Settings == changed &&
+                  !reloaded.MigratedFromV2 &&
+                  !File.Exists(path + ".tmp"),
+                "atomic settings v3 save did not round trip cleanly");
         }
         finally
         {

@@ -12,8 +12,10 @@ dotnet_notice_relative="licenses/DOTNET-RUNTIME-8.0.29-THIRD-PARTY-NOTICES.txt"
 root_documents=(
     "$repository_dir/INSTALL.md"
     "$repository_dir/CREDITS.md"
+    "$repository_dir/ASSET_MANIFEST.md"
     "$repository_dir/THIRD_PARTY_NOTICES.md"
     "$repository_dir/LICENSE.md"
+    "$repository_dir/CHANGELOG.md"
 )
 license_relative_documents=(
     "$godot_notice_relative"
@@ -64,16 +66,25 @@ verify_release_payload() {
     done < <(find "$resources" -type f \( -name 'Gridworks.Game.dll' -o -name 'Gridworks.Core.dll' \))
 
     while IFS= read -r game_assembly; do
-        if LC_ALL=C strings "$game_assembly" | grep -F 'Gridworks.Game.EmbeddedData.product-' >/dev/null; then
-            print -u2 "Release assembly contains a legacy Product data resource: $game_assembly"
+        if LC_ALL=C strings "$game_assembly" | grep -E \
+            'Gridworks.Game.EmbeddedData.(product-|release-world-v1|release-campaign-v1|commercial-core-slice-v1)' \
+            >/dev/null; then
+            print -u2 "Release assembly contains a prototype or v1 data resource: $game_assembly"
             return 1
         fi
-        if ! LC_ALL=C strings "$game_assembly" | grep -F 'Gridworks.Game.EmbeddedData.release-world-v1.json' >/dev/null ||
-           ! LC_ALL=C strings "$game_assembly" | grep -F 'Gridworks.Game.EmbeddedData.release-campaign-v1.json' >/dev/null; then
-            print -u2 "Release assembly is missing canonical release data: $game_assembly"
+        if ! LC_ALL=C strings "$game_assembly" | grep -F 'Gridworks.Game.EmbeddedData.release-world-v2.json' >/dev/null ||
+           ! LC_ALL=C strings "$game_assembly" | grep -F 'Gridworks.Game.EmbeddedData.release-campaign-v2.json' >/dev/null ||
+           ! LC_ALL=C strings "$game_assembly" | grep -F 'Gridworks.Game.EmbeddedData.commercial-build-identity-v1.json' >/dev/null; then
+            print -u2 "Release assembly is missing commercial v2 data or build identity: $game_assembly"
             return 1
         fi
     done < <(find "$resources" -type f -name 'Gridworks.Game.dll')
+
+    if LC_ALL=C strings "$candidate_app/Contents/MacOS/Gridworks" | grep -E \
+        'res://(ProductMain|ReleaseMain|Prototype|Scope1|CommercialPrototype).*\.tscn' >/dev/null; then
+        print -u2 "Release package contains a prototype or v1 entry scene."
+        return 1
+    fi
 }
 
 if [[ $package_temp_dir != /private/tmp/gridworks-macos-package.* ]]; then
@@ -82,6 +93,11 @@ if [[ $package_temp_dir != /private/tmp/gridworks-macos-package.* ]]; then
 fi
 
 trap 'rm -rf -- "$package_temp_dir"' EXIT
+
+if [[ -n $(git -C "$repository_dir" status --porcelain --untracked-files=all) ]]; then
+    print -u2 "Internal candidate must be built from a clean committed checkout."
+    exit 1
+fi
 
 if [[ ! -x $godot_bin ]]; then
     print -u2 "Godot executable not found: $godot_bin"
@@ -111,6 +127,7 @@ verification_dir="$package_temp_dir/verification"
 final_zip="$package_temp_dir/Gridworks-macOS-0.1.0.zip"
 app_path="$stage_dir/Gridworks.app"
 smoke_storage="$package_temp_dir/smoke-storage"
+smoke_save="$smoke_storage/release-campaign-save-v3.json"
 
 mkdir -p "$stage_dir" "$verification_dir" "$smoke_storage" "$repository_dir/dist"
 
@@ -197,25 +214,33 @@ verify_sha256 \
 
 (
     cd "$verification_dir"
+    GRIDWORKS_COMMERCIAL_STORAGE_DIRECTORY="$smoke_storage" \
+    GRIDWORKS_STAGE_F_SMOKE_SAVE_PATH="$smoke_save" \
     arch -arm64 "$verified_executable" \
         --headless \
-        --log-file "$package_temp_dir/campaign-save.log" \
+        --log-file "$package_temp_dir/campaign-checkpoint.log" \
         -- \
-        --release-campaign-smoke save \
-        --storage-directory "$smoke_storage" \
-        --session-id package-save
+        --commercial-campaign-stage-f-checkpoint-smoke
+    GRIDWORKS_COMMERCIAL_STORAGE_DIRECTORY="$smoke_storage" \
+    GRIDWORKS_STAGE_F_SMOKE_SAVE_PATH="$smoke_save" \
     arch -arm64 "$verified_executable" \
         --headless \
-        --log-file "$package_temp_dir/campaign-continue.log" \
+        --log-file "$package_temp_dir/campaign-completion.log" \
         -- \
-        --release-campaign-smoke continue \
-        --storage-directory "$smoke_storage" \
-        --session-id package-continue
+        --commercial-campaign-stage-f-completion-smoke
+    GRIDWORKS_COMMERCIAL_STORAGE_DIRECTORY="$smoke_storage" \
+    GRIDWORKS_STAGE_F_SMOKE_SAVE_PATH="$smoke_save" \
+    arch -arm64 "$verified_executable" \
+        --headless \
+        --log-file "$package_temp_dir/campaign-completed-resume.log" \
+        -- \
+        --commercial-campaign-stage-f-completed-resume-smoke
 )
 
-if ! grep -Fq "RELEASE_CAMPAIGN_SAVE_SMOKE_PASS" "$package_temp_dir/campaign-save.log" ||
-   ! grep -Fq "RELEASE_CAMPAIGN_COMPLETE_SMOKE_PASS" "$package_temp_dir/campaign-continue.log"; then
-    print -u2 "The isolated two-process campaign smoke did not reach its completion markers."
+if ! grep -Fq "COMMERCIAL_CAMPAIGN_STAGE_F_CHECKPOINT_SMOKE_PASS" "$package_temp_dir/campaign-checkpoint.log" ||
+   ! grep -Fq "COMMERCIAL_CAMPAIGN_STAGE_F_COMPLETION_SMOKE_PASS" "$package_temp_dir/campaign-completion.log" ||
+   ! grep -Fq "COMMERCIAL_CAMPAIGN_STAGE_F_COMPLETED_RESUME_SMOKE_PASS" "$package_temp_dir/campaign-completed-resume.log"; then
+    print -u2 "The isolated commercial campaign smoke did not reach all completion markers."
     exit 1
 fi
 
@@ -223,5 +248,9 @@ mv -f "$final_zip" "$output_zip"
 print "architectures=$architecture_list"
 print "minimum_macos=arm64:$arm64_minimum,x86_64:$x86_64_minimum"
 print "signature=adhoc"
-print "campaign_smoke=save+fresh-process-continue"
+print "campaign_smoke=checkpoint+fresh-process-completion+completed-resume"
+print "world_sha256=$(shasum -a 256 "$repository_dir/data/release-world-v2.json" | awk '{print $1}')"
+print "campaign_sha256=$(shasum -a 256 "$repository_dir/data/release-campaign-v2.json" | awk '{print $1}')"
+print "build_identity_sha256=$(shasum -a 256 "$repository_dir/data/commercial-build-identity-v1.json" | awk '{print $1}')"
+print "source_commit=$(git -C "$repository_dir" rev-parse HEAD)"
 shasum -a 256 "$output_zip"

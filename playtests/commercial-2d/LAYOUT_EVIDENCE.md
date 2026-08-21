@@ -1,0 +1,29 @@
+# Commercial 2D layout and input evidence
+
+이 기록은 `docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md` 단계 G의 자동화 가능한 화면·입력 경계만
+보존한다. 이해도·재미·한국어 전문 교정이나 사람 playtest를 대신하지 않는다.
+
+## 1920×1080 · UI 100% · 제목 shell
+
+![1920×1080 UI 100% 제목 화면](layout-evidence/1920x1080-ui100-title.png)
+
+- Title, Pause, Settings, Help와 확인창은 `ReleaseShellOverlay` 한 인스턴스의 상호 배타 page다.
+- 실제 keyboard focus가 `새 게임`에서 시작하며 새 게임→조작 도움말→지도 focus 복귀를 Enter 입력으로
+  통과했다.
+- 저장이 없을 때 `이어하기`는 비활성이고 보이는 label과 접근성 설명을 함께 가진다.
+
+## 1920×1080 · UI 125% · 선택 경로와 ReduceMotion
+
+![1920×1080 UI 125% 선택 경로](layout-evidence/1920x1080-ui125-path-reduce-motion.png)
+
+- 실제 지도·panel 입력으로 첫 변전소와 두 선로를 완공했다. 발전 접속점→전체 6구간→동부 생활권
+  접속점을 굵은 외곽선, 고정 흐름점, 접속점 ring과 시설 icon으로 함께 강조한다.
+- Header는 장·현재 경계·현금·`필수 공급 1/1 ✓`를 표시한다. 오른쪽 inspector는 선택 수요, 실제
+  경로, 최소 열여유, 시설 상태를 접근성 문장에도 포함한다.
+- keyboard로 Pause→Settings에서 UI 125%와 `지도 흐름과 날씨 움직임 줄이기`를 켰다. 핵심 공사,
+  승인, 복구, 장 재시작과 수요/국면 전환은 긴 설명 ScrollContainer 밖 고정 영역 안에 남았다.
+- 같은 입력 흐름의 Save & Quit은 campaign과 settings temp 파일이 없는 성공 뒤에만 제목으로
+  이동했다.
+
+두 화면은 native OpenGL/Metal process에서 저장했다. 최소 지원·검수 해상도는 1920×1080뿐이며
+1280×720 모드나 증거는 이 후보에 만들지 않았다.

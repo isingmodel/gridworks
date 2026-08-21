@@ -66,6 +66,7 @@ internal sealed partial class ReleaseShellOverlay : Control
     private OptionButton _ambientVolume = null!;
     private OptionButton _sfxVolume = null!;
     private CheckButton _controlHelp = null!;
+    private CheckButton _reduceMotion = null!;
     private ReleaseShellPage _page = ReleaseShellPage.Hidden;
     private ReleaseShellPage _returnPage = ReleaseShellPage.Title;
     private ReleaseShellConfirmation _confirmation;
@@ -85,6 +86,7 @@ internal sealed partial class ReleaseShellOverlay : Control
     public event Action<int>? AmbientVolumePercentChanged;
     public event Action<int>? SfxVolumePercentChanged;
     public event Action<bool>? ControlHelpChanged;
+    public event Action<bool>? ReduceMotionChanged;
     public event Action? GameplayFocusRequested;
 
     public ReleaseShellPage Page => _page;
@@ -116,6 +118,7 @@ internal sealed partial class ReleaseShellOverlay : Control
         _ambientVolume = GetNode<OptionButton>("%AmbientVolumeOption");
         _sfxVolume = GetNode<OptionButton>("%SfxVolumeOption");
         _controlHelp = GetNode<CheckButton>("%ControlHelpCheck");
+        _reduceMotion = GetNode<CheckButton>("%ReduceMotionCheck");
 
         _windowMode.AddItem("창 모드", 0);
         _windowMode.AddItem("전체화면", 1);
@@ -164,6 +167,13 @@ internal sealed partial class ReleaseShellOverlay : Control
             if (!_settingControls)
             {
                 ControlHelpChanged?.Invoke(enabled);
+            }
+        };
+        _reduceMotion.Toggled += enabled =>
+        {
+            if (!_settingControls)
+            {
+                ReduceMotionChanged?.Invoke(enabled);
             }
         };
 
@@ -261,7 +271,8 @@ internal sealed partial class ReleaseShellOverlay : Control
         bool controlHelpEnabled,
         int masterVolumePercent,
         int ambientVolumePercent,
-        int sfxVolumePercent)
+        int sfxVolumePercent,
+        bool reduceMotion = false)
     {
         _settingControls = true;
         _windowMode.Select(fullscreen ? 1 : 0);
@@ -270,6 +281,7 @@ internal sealed partial class ReleaseShellOverlay : Control
         _ambientVolume.Select(VolumeIndex(ambientVolumePercent));
         _sfxVolume.Select(VolumeIndex(sfxVolumePercent));
         _controlHelp.ButtonPressed = controlHelpEnabled;
+        _reduceMotion.ButtonPressed = reduceMotion;
         _settingControls = false;
     }
 
@@ -313,6 +325,8 @@ internal sealed partial class ReleaseShellOverlay : Control
     public OptionButton GetSfxVolumeOption() => _sfxVolume;
 
     public CheckButton GetControlHelpCheck() => _controlHelp;
+
+    public CheckButton GetReduceMotionCheck() => _reduceMotion;
 
     private void OnNewGamePressed()
     {

@@ -7,6 +7,19 @@ using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
 
 namespace Gridworks.Game;
 
+internal enum CommercialFacilityState
+{
+    Waiting,
+    Supplied,
+    Deferred,
+    Unavailable,
+}
+
+internal sealed record CommercialFacilityPresentation(
+    string NodeId,
+    CommercialFacilityState State,
+    string StatusText);
+
 internal sealed record CommercialMapPresentation(
     ConstructionSnapshot Snapshot,
     CoreMapPoint? PointerPoint,
@@ -16,7 +29,13 @@ internal sealed record CommercialMapPresentation(
     int? PointerFootprintRadiusUnit,
     bool NodeSnapEnabled,
     ThermalIntervalResult? ThermalInterval,
-    string? SelectedThermalAssetId);
+    string? SelectedThermalAssetId,
+    string? SelectedDemandNodeId,
+    IReadOnlyList<string> SelectedPathNodeIds,
+    IReadOnlyList<string> SelectedPathEdgeIds,
+    IReadOnlyList<CommercialFacilityPresentation> Facilities,
+    int ChapterIndex,
+    bool ReduceMotion);
 
 internal readonly record struct CommercialDraftPointDrag(int PointIndex, CoreMapPoint Position);
 
@@ -57,6 +76,8 @@ internal sealed partial class CommercialMapView : Control
     private Vector2 _lastPanPosition;
     private bool _draggingDraftPoint;
     private int _draggedDraftPointIndex = -1;
+    private double _animationSeconds;
+    private double _redrawAccumulator;
 
     public event Action<CoreMapPoint?, string?>? PointerChanged;
 
@@ -111,10 +132,26 @@ internal sealed partial class CommercialMapView : Control
         Resized += OnResized;
     }
 
+    public override void _Process(double delta)
+    {
+        if (_presentation?.ReduceMotion != false)
+        {
+            return;
+        }
+        _animationSeconds += delta;
+        _redrawAccumulator += delta;
+        if (_redrawAccumulator >= 1d / 12d)
+        {
+            _redrawAccumulator = 0d;
+            QueueRedraw();
+        }
+    }
+
     public void SetPresentation(CommercialMapPresentation presentation)
     {
         ArgumentNullException.ThrowIfNull(presentation);
         _presentation = presentation;
+        SetProcess(!presentation.ReduceMotion);
         MapBounds bounds = presentation.Snapshot.World.Bounds;
         var gameBounds = new CommercialMapBounds(
             bounds.MinXUnit,
@@ -271,12 +308,17 @@ internal sealed partial class CommercialMapView : Control
         DrawMapGround();
         DrawTerrain(snapshot.World);
         DrawRiskAreas(snapshot.World);
+        DrawChapterAtmosphere(_presentation.ChapterIndex, _presentation.ReduceMotion);
         DrawEdges(snapshot.World, _presentation.ThermalInterval);
+        DrawSelectedDemandPath(snapshot.World, _presentation);
+        DrawUnavailableMarks(snapshot.World, _presentation.ThermalInterval);
         DrawLineDraft(snapshot);
         DrawNodes(
             snapshot.World,
             _presentation.ThermalInterval,
-            _presentation.SelectedThermalAssetId);
+            _presentation.SelectedThermalAssetId,
+            _presentation.SelectedDemandNodeId,
+            _presentation.Facilities);
         DrawNodeDraft(snapshot);
         DrawPointer(_presentation);
         DrawMapLegend();
@@ -476,6 +518,69 @@ internal sealed partial class CommercialMapView : Control
         }
     }
 
+    private void DrawChapterAtmosphere(int chapterIndex, bool reduceMotion)
+    {
+        string[] labels =
+        [
+            "새벽 · 첫 입주",
+            "맑음 · 북안 점검",
+            "바람 · 전원 전환",
+            "저녁 · 입주 약속",
+            "폭염 · 열여유 경계",
+            "폭우 · 강 수위 상승",
+            "갬 · 3주 뒤",
+            "겨울밤 · 마지막 우회",
+        ];
+        int index = Math.Clamp(chapterIndex, 0, labels.Length - 1);
+        Color tint = index switch
+        {
+            0 => new Color(Color.FromHtml("304b59"), 0.12f),
+            3 => new Color(Color.FromHtml("855f38"), 0.08f),
+            4 => new Color(Color.FromHtml("ba6c3e"), 0.10f),
+            5 => new Color(Color.FromHtml("264a62"), 0.16f),
+            7 => new Color(Color.FromHtml("1b2851"), 0.20f),
+            _ => new Color(Color.FromHtml("31564f"), 0.06f),
+        };
+        DrawRect(new Rect2(Vector2.Zero, Size), tint);
+
+        if (index is 5 or 7)
+        {
+            float phase = reduceMotion ? 0f : (float)((_animationSeconds * 28d) % 34d);
+            for (float x = -Size.Y; x < Size.X + Size.Y; x += 34f)
+            {
+                Vector2 from = new(x + phase, 0f);
+                Vector2 to = new(x - Size.Y + phase, Size.Y);
+                DrawLine(from, to, new Color(WaterLine, index == 5 ? 0.16f : 0.09f), 1f, true);
+            }
+        }
+        else if (index == 4)
+        {
+            for (float y = 44f; y < Size.Y; y += 52f)
+            {
+                DrawDashedLine(
+                    new Vector2(0f, y),
+                    new Vector2(Size.X, y),
+                    new Color(EmergencyLine, 0.08f),
+                    1f,
+                    18f);
+            }
+        }
+
+        string motion = reduceMotion ? " · 움직임 줄임" : string.Empty;
+        string label = $"장면 · {labels[index]}{motion}";
+        Vector2 labelSize = GetThemeDefaultFont().GetStringSize(
+            label,
+            HorizontalAlignment.Left,
+            -1f,
+            12);
+        Vector2 position = new(Size.X - labelSize.X - 18f, 24f);
+        DrawRect(
+            new Rect2(position - new Vector2(7f, 16f), labelSize + new Vector2(14f, 8f)),
+            new Color(Background, 0.84f));
+        DrawString(GetThemeDefaultFont(), position, label,
+            HorizontalAlignment.Left, -1f, 12, Text);
+    }
+
     private void DrawTerrain(SpatialWorldDefinition world)
     {
         foreach (TerrainPolygonDefinition area in world.Terrain)
@@ -544,6 +649,92 @@ internal sealed partial class CommercialMapView : Control
         }
     }
 
+    private void DrawSelectedDemandPath(
+        SpatialWorldDefinition world,
+        CommercialMapPresentation presentation)
+    {
+        if (presentation.SelectedPathEdgeIds.Count == 0)
+        {
+            return;
+        }
+        HashSet<string> selected = presentation.SelectedPathEdgeIds.ToHashSet(StringComparer.Ordinal);
+        Dictionary<string, SpatialNodeDefinition> nodes = world.Nodes.ToDictionary(
+            node => node.NodeId,
+            StringComparer.Ordinal);
+        foreach (SpatialEdgeDefinition edge in world.Edges.Where(edge => selected.Contains(edge.EdgeId)))
+        {
+            if (!nodes.TryGetValue(edge.FromNodeId, out SpatialNodeDefinition? from) ||
+                !nodes.TryGetValue(edge.ToNodeId, out SpatialNodeDefinition? to))
+            {
+                continue;
+            }
+            Vector2 start = ToCanvas(from.Position);
+            Vector2 end = ToCanvas(to.Position);
+            DrawLine(start, end, new Color(Focus, 0.45f), 9f, true);
+            DrawLine(start, end, CommissionedLine, 4f, true);
+            float distance = start.DistanceTo(end);
+            if (distance <= 1f)
+            {
+                continue;
+            }
+            float phase = presentation.ReduceMotion
+                ? 0.5f
+                : (float)((_animationSeconds * 0.18d) % 1d);
+            int count = Math.Max(1, Mathf.FloorToInt(distance / 72f));
+            for (int dot = 0; dot < count; dot++)
+            {
+                float ratio = (phase + (dot / (float)count)) % 1f;
+                DrawCircle(start.Lerp(end, ratio), 3.2f, Focus);
+            }
+        }
+        foreach (string nodeId in presentation.SelectedPathNodeIds)
+        {
+            if (nodes.TryGetValue(nodeId, out SpatialNodeDefinition? node))
+            {
+                DrawArc(ToCanvas(node.Position), 13f, 0f, Mathf.Tau, 28, Focus, 2f, true);
+            }
+        }
+    }
+
+    private void DrawUnavailableMarks(
+        SpatialWorldDefinition world,
+        ThermalIntervalResult? interval)
+    {
+        if (interval is null)
+        {
+            return;
+        }
+        Dictionary<string, SpatialNodeDefinition> nodes = world.Nodes.ToDictionary(
+            item => item.NodeId,
+            StringComparer.Ordinal);
+        foreach (ThermalAssetResult asset in interval.Assets.Where(item => item.AuthoredUnavailable))
+        {
+            Vector2? center = null;
+            if (nodes.TryGetValue(asset.AssetId, out SpatialNodeDefinition? node))
+            {
+                center = ToCanvas(node.Position);
+            }
+            else
+            {
+                SpatialEdgeDefinition? edge = world.Edges.FirstOrDefault(item => item.EdgeId == asset.AssetId);
+                if (edge is not null &&
+                    nodes.TryGetValue(edge.FromNodeId, out SpatialNodeDefinition? from) &&
+                    nodes.TryGetValue(edge.ToNodeId, out SpatialNodeDefinition? to))
+                {
+                    center = (ToCanvas(from.Position) + ToCanvas(to.Position)) / 2f;
+                }
+            }
+            if (center is Vector2 point)
+            {
+                DrawRect(new Rect2(point - new Vector2(10f, 8f), new Vector2(20f, 16f)),
+                    new Color(Background, 0.88f));
+                DrawCross(point, OutageLine, 7f);
+                DrawString(GetThemeDefaultFont(), point + new Vector2(12f, -7f), "정비·잠금",
+                    HorizontalAlignment.Left, -1f, 11, OutageLine);
+            }
+        }
+    }
+
     private void DrawLineDraft(ConstructionSnapshot snapshot)
     {
         if (snapshot.LineDraft is not LineDraftSnapshot draft)
@@ -599,7 +790,9 @@ internal sealed partial class CommercialMapView : Control
     private void DrawNodes(
         SpatialWorldDefinition world,
         ThermalIntervalResult? thermalInterval,
-        string? selectedThermalAssetId)
+        string? selectedThermalAssetId,
+        string? selectedDemandNodeId,
+        IReadOnlyList<CommercialFacilityPresentation> facilities)
     {
         Dictionary<string, SpatialNodeClassDefinition> classes = world.NodeClasses.ToDictionary(
             item => item.ClassId,
@@ -633,6 +826,15 @@ internal sealed partial class CommercialMapView : Control
             };
             DrawCircle(center, radius + 2f, Background);
             DrawCircle(center, radius, color);
+            if (nodeClass.Kind == SpatialNodeKind.DedicatedLoadTerminal)
+            {
+                CommercialFacilityPresentation facility = facilities.FirstOrDefault(item =>
+                    item.NodeId == node.NodeId) ?? new CommercialFacilityPresentation(
+                        node.NodeId,
+                        CommercialFacilityState.Waiting,
+                        "현재 국면 수요 없음");
+                DrawFacilityIcon(node, center, radius, facility);
+            }
             if (thermal?.CurrentState == ThermalOperatingState.Emergency)
             {
                 Vector2[] triangle =
@@ -651,6 +853,13 @@ internal sealed partial class CommercialMapView : Control
             {
                 DrawArc(center, radius + 7f, 0f, Mathf.Tau, 32, Focus, 2f, true);
             }
+            if (node.NodeId == selectedDemandNodeId)
+            {
+                DrawRect(new Rect2(
+                        center - new Vector2(radius + 9f, radius + 9f),
+                        Vector2.One * (radius + 9f) * 2f),
+                    Focus, false, 2f);
+            }
             if (nodeClass.Kind != SpatialNodeKind.Pole)
             {
                 DrawString(
@@ -662,6 +871,63 @@ internal sealed partial class CommercialMapView : Control
                     12,
                     Text);
             }
+        }
+    }
+
+    private void DrawFacilityIcon(
+        SpatialNodeDefinition node,
+        Vector2 center,
+        float radius,
+        CommercialFacilityPresentation facility)
+    {
+        Color stateColor = facility.State switch
+        {
+            CommercialFacilityState.Supplied => CommissionedLine,
+            CommercialFacilityState.Deferred => Muted,
+            CommercialFacilityState.Unavailable => OutageLine,
+            _ => IdleLine,
+        };
+        float iconY = center.Y - radius - 13f;
+        if (node.NodeId.Contains("HOSPITAL", StringComparison.Ordinal))
+        {
+            DrawLine(new Vector2(center.X - 5f, iconY), new Vector2(center.X + 5f, iconY), stateColor, 2f);
+            DrawLine(new Vector2(center.X, iconY - 5f), new Vector2(center.X, iconY + 5f), stateColor, 2f);
+        }
+        else if (node.NodeId.Contains("WATER", StringComparison.Ordinal))
+        {
+            DrawArc(new Vector2(center.X, iconY), 5f, 0f, Mathf.Tau, 16, stateColor, 2f, true);
+            DrawLine(new Vector2(center.X - 5f, iconY + 5f), new Vector2(center.X + 5f, iconY + 5f), stateColor, 2f);
+        }
+        else if (node.NodeId.Contains("INDUSTR", StringComparison.Ordinal) ||
+                 node.NodeId.Contains("FACTORY", StringComparison.Ordinal))
+        {
+            DrawRect(new Rect2(center.X - 6f, iconY - 5f, 12f, 10f), stateColor, false, 2f);
+            DrawLine(new Vector2(center.X + 3f, iconY - 5f), new Vector2(center.X + 3f, iconY - 10f), stateColor, 2f);
+        }
+        else
+        {
+            Vector2[] roof =
+            [
+                new(center.X - 7f, iconY + 2f),
+                new(center.X, iconY - 5f),
+                new(center.X + 7f, iconY + 2f),
+            ];
+            DrawPolyline(roof, stateColor, 2f, true);
+        }
+
+        if (facility.State == CommercialFacilityState.Supplied)
+        {
+            DrawLine(center + new Vector2(-4f, 1f), center + new Vector2(-1f, 5f), stateColor, 2f);
+            DrawLine(center + new Vector2(-1f, 5f), center + new Vector2(6f, -4f), stateColor, 2f);
+        }
+        else if (facility.State == CommercialFacilityState.Unavailable)
+        {
+            DrawCross(center, stateColor, radius + 4f);
+        }
+        else if (facility.State == CommercialFacilityState.Deferred)
+        {
+            DrawDashedLine(center + new Vector2(-7f, 0f), center + new Vector2(7f, 0f),
+                stateColor, 2f, 4f);
         }
     }
 
@@ -855,10 +1121,26 @@ internal sealed partial class CommercialMapView : Control
                 item.CurrentState == ThermalOperatingState.ProtectiveOutage);
             thermal = $" 열 상태: 비상 {emergency}곳, 보호정지 {outage}곳.";
         }
+        string selectedPath = presentation.SelectedDemandNodeId is null
+            ? " 선택 수요 경로가 없습니다."
+            : $" 선택 수요 경로는 접속점 {presentation.SelectedPathNodeIds.Count}곳과 " +
+              $"선로 {presentation.SelectedPathEdgeIds.Count}구간입니다.";
+        Dictionary<string, string> nodeNames = presentation.Snapshot.World.Nodes.ToDictionary(
+            item => item.NodeId,
+            item => item.DisplayName,
+            StringComparer.Ordinal);
+        string facilities = presentation.Facilities.Count == 0
+            ? string.Empty
+            : " 시설 상태: " + string.Join(
+                ", ",
+                presentation.Facilities.Select(item =>
+                    $"{(nodeNames.TryGetValue(item.NodeId, out string? name) ? name : "수요 시설")} " +
+                    item.StatusText)) + ".";
+        string motion = presentation.ReduceMotion ? " 지도 움직임 줄임 적용." : string.Empty;
         int reserved = presentation.Snapshot.World.Nodes.Count(item => item.Reserved);
         string reservedText = reserved == 0 ? string.Empty : $" 예정 시설 {reserved}곳.";
         return $"청류시 자유 배치 지도. {presentation.ToolLabel}. {pointer}. 지도 {ZoomLabel}." +
-               $"{reservedText}{thermal}";
+               $"{reservedText}{thermal}{selectedPath}{facilities}{motion}";
     }
 
     private Vector2 KeyboardAnchor() => RequireTransform().WorldToCanvas(

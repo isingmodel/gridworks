@@ -29,7 +29,7 @@
 ### Artifact record
 
 - 파일: `Gridworks-macOS-0.1.0.zip`
-- 상태: `INTERNAL_RC`
+- 상태: `INTERNAL_REJECTED_VISUAL_REFERENCE_PARITY`
 - 크기: `157,996,954 bytes`
 - SHA-256: `1c0b9fbd52e7480e960acd150937b201885281c1a3f0a214888940797f1b83c8`
 - world SHA-256: `304eb051a564a0ceda7912d717268d3011f5f3482a5ab9d1c68dd9330e0e165c`

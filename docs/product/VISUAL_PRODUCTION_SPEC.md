@@ -61,6 +61,12 @@ Title, Pause, Settings, Help와 확인창은 한 shell overlay에서 상호 배�
 - 강물은 건설 불가 패턴과 이유 문장을 함께 사용하고, 고정 접속점 아래의 교량·보호기초는 수면과
   구분되게 그린다. 강·건물 sprite와 tile은 cursor와 선로를 가리지 않는다.
 
+강은 단일 직선 polygon에 어두운 texture만 clip하지 않는다. world authority와 일치하는 굽은 양쪽
+bank, 수면 반사·깊이, 평상·폭염·범람 상태, bridge foundation 접합을 개별 river tile/object와
+code-native overlay로 표현한다. 물처럼 보이는 pixel은 authored water 또는 active flood risk 밖으로
+나가면 안 된다. 구체 계획과 비교 기준은 [레퍼런스 정렬 재구축 계획](COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md)과
+[평가 프로토콜](REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)이 소유한다.
+
 미니맵은 1.0에 넣지 않는다. 1920×1080에서 클릭 간격과 텍스트가 충분한지 검증한다.
 
 ## 4. 지역 미술 방향

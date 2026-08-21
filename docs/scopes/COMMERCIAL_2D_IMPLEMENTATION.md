@@ -1,8 +1,8 @@
 # Gridworks 상용 2D 게임 구현
 
-> 상태: **COMPLETE — 단계 B부터 G.2 종료 기록**
-> 구현 권한: **CLOSED — 활성 구현 단계 없음**
-> 현재 작업: **단계 H 외부 검증·공개 후보는 미승인**
+> 상태: **COMPLETE TECHNICAL RECORD — G.2 OWNER VISUAL REJECTED**
+> 구현 권한: **CLOSED — 활성 구현 단계 없음, G.3 계획 승인 대기**
+> 현재 작업: **reference parity 재구축·단계 H 모두 미승인**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 
@@ -521,6 +521,12 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 - exact tree `c1c4f35b14be87ecac4bd286d0b2a4048b56f22b` 독립 검토는
   **P0 0 / P1 0 / open 0**, worktree clean이다. 수정 후보의 소유자 전체 플레이는 자동으로 수집하지
   않았으며 `ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`를 유지한다.
+
+> 후속 owner screenshot은 이 종료 증거가 asset binding·logic 회귀만 증명하고 reference parity는
+> 증명하지 못했다고 확인했다. camera, 도시 밀도, object scale, 강물·제방, 전력망과 UI가
+> `assets/01~04`와 크게 달라 G.2 package는 현재 시각 후보가 아니다. 대체 후보는
+> [G.3 계획](../product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md)과
+> [평가 프로토콜](../product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)에만 있으며 아직 구현 권한이 없다.
 
 ## 8. 전체 완료 증거
 

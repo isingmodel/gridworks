@@ -162,7 +162,7 @@ Universal binary와 서명 경계를 기록한다. Developer ID·공증·실제 
   추가하지 않는다.
 - 1920×1080 UI 100/125 actual-input evidence를 다시 만들고, 1280×720 지원은 열지 않는다.
 
-## 8.2 단계 G.2 — 개별 tile·object 자산 교체 — 완료
+## 8.2 단계 G.2 — 개별 tile·object 자산 교체 — 기술 완료·소유자 시각 거부
 
 G.1의 whole-map plate 방식은 소유자 검토에서 거부됐다. 전체 배경 한 장을 제거하고 다음 개별
 runtime art만 사용한다.
@@ -180,6 +180,22 @@ transparent object 9종을 개별 생성했다. v2 terrain·node·class와 live 
 Debug·Release build, 1920×1080 actual-input 화면 5장, clean macOS package와 exact-tree 독립 검토
 P0/P1/open 0으로 종료했다. 1280×720은 실행·검수하지 않았다.
 
+2026-08-21 소유자 실제 실행 screenshot은 자산 binding과 달리 camera, 도시 밀도, object scale,
+강물·제방, 전력망과 UI가 `assets/01~04`와 크게 다르다고 확인했다. 따라서 이 단계의 package는 현재
+시각 후보가 아니며 [G.3 계획](product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md)이 대체 후보를
+정의한다. 계획은 아직 구현 권한이 아니다.
+
+## 8.3 단계 G.3 — 레퍼런스 정렬 시각 재구축 — 계획·승인 대기
+
+- fixed 2:1 isometric transform과 inverse input
+- 개별 diamond terrain·river bank·road·district·functional object
+- 굽은 강, 평상·폭염·범람 수면과 foundation 접합
+- full-bleed map, reference scale grid, HUD·inspector·128px event timeline
+- [평가 프로토콜](product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)의 세 owner checkpoint와
+  정량·정성 차이 보고서
+
+루트 README가 이 단계를 활성으로 선언하기 전에는 구현하지 않는다.
+
 ## 9. 단계 H — 외부 검증과 공개 후보 — 구현 뒤 별도 게이트
 
 - 상용 핵심 구간 사람 관찰
@@ -187,8 +203,8 @@ P0/P1/open 0으로 종료했다. 1280×720은 실행·검수하지 않았다.
 - 실제 지원 환경 확인, Developer ID 서명·공증과 공개 배포 결정
 - 새 설치에서 사람이 완주한 bytes와 동일한 공개 후보
 
-이 단계의 사람·LLM 결과는 자동 증거에 합산하지 않는다. 현재 구현 작업은 G까지 완료하고 H 상태를
-정직하게 `NOT_COLLECTED` 또는 외부 자격증명 차단으로 남긴다.
+이 단계의 사람·LLM 결과는 자동 증거에 합산하지 않는다. 현재 활성 구현은 없고 G.3 계획은 승인
+대기다. H 상태는 `NOT_COLLECTED` 또는 외부 자격증명 차단으로 남긴다.
 
 ## 10. 전역 제외
 

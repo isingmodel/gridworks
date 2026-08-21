@@ -11,10 +11,12 @@
 
 ## 현재 상태
 
-[상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의 단계 B부터 G.2까지는 완료 기록이다.
-현재 활성 구현 단계는 없다. G.2는 소유자가 거부한 whole-map plate를 제거하고, `assets/`의 네
-reference image를 직접 참조해 별도로 생성·검수한 tile 7종과 transparent object 9종을 v2
-지형·노드 좌표와 실제 상태에 각각 배치했다.
+[상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의 단계 B부터 G.2까지는 기술 완료
+기록이다. 현재 활성 구현 단계는 없다. G.2는 whole-map plate를 제거하고 개별 tile/object를
+연결했지만, 2026-08-21 소유자 실행 screenshot에서 camera, 도시 밀도, object scale, 강물·제방,
+전력망과 UI가 `assets/01~04`와 크게 다르다고 거부됐다. [G.3 레퍼런스 정렬 계획](docs/product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md)과
+[평가 프로토콜](docs/product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)은 승인 대기 후보이며 아직
+구현 권한이 아니다.
 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소 주기기·전신주
 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도 v2
 world·campaign·Core와 기본 장면에서 그 범위를 순서대로 완성했다. 단계 H의 외부 검증·공개 후보는
@@ -64,12 +66,13 @@ CommercialChecks 20개 묶음 1,805 assertions, 동결 회귀, Game Debug·Relea
 settings v3 migration, ReduceMotion, 원자 campaign/settings 저장, 확인 shell, 생성형 환경음·날씨·
 상태 cue·두 motif를 기본 장면에 연결했다. CommercialChecks 21개 묶음 1,828 assertions, Game
 Debug·Release build, 자유 배치·열·세 fresh 캠페인 process와 1920×1080 UI 100%·125% actual-input
-presentation smoke가 통과했다. G.1의 whole-map plate 후보는 소유자가 거부해 폐기했다. 완료된
-G.2는 같은 낮은 3/4 사선 산업도시 언어의 개별 art 16종, class별 live construction draft와 사건
-timeline을 실제 v2 권위에 연결했다. CommercialChecks 22개 묶음 2,024 assertions, 전체 동결 회귀,
+presentation smoke가 통과했다. G.1의 whole-map plate 후보는 소유자가 거부해 폐기했다. G.2는 개별
+art 16종, class별 live construction draft와 사건 timeline을 실제 v2 권위에 연결했다. 이 기술
+변경은 CommercialChecks 22개 묶음 2,024 assertions, 전체 동결 회귀,
 Debug·Release build, 자유 배치·열·세 fresh 캠페인 process, 1920×1080 UI 100%·125% actual-input
 화면 5장과 clean macOS ZIP을 통과했다. exact tree `c1c4f35` 독립 검토는
-**P0 0 / P1 0 / open 0**이다. package byte 기록은 [변경 기록](CHANGELOG.md)이 소유한다.
+**logic P0 0 / P1 0 / open 0**이었다. 그러나 후속 owner screenshot은 reference parity를 거부했으므로
+그 package는 현재 시각 후보가 아니다. package byte 기록은 [변경 기록](CHANGELOG.md)이 소유한다.
 candidate 독립 검토의 P1 5건은 파괴 행동 확인, release record, 도움말, audio cue 순서와 네 초상을
 수정했다. exact tree `f38a337` 재검토는 **P0 0 / P1 0 / open 0**이며 전체 동결·상용 검사와
 Debug·Release rebuild도 최종 통과했다. 완료된 G.1은 concept-aligned 도시 plate, 산업형

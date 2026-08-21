@@ -14,6 +14,8 @@ docs/
 ├── product/
 │   ├── GAME_DESIGN_KO.md             제품 비전과 안정된 게임 원칙
 │   ├── COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md 상용 2D 게임 재기획 제안
+│   ├── COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md 레퍼런스 정렬 재구축 후보 계획
+│   ├── REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md 개발 화면·reference 비교 프로토콜
 │   ├── OBJECT_CATALOG.md             오브젝트 정의와 기능 상태
 │   └── VISUAL_PRODUCTION_SPEC.md      규칙을 표현하는 시각 기준
 ├── scopes/
@@ -50,6 +52,8 @@ docs/
 | 자유 배치·열 한계를 포함한 상용 2D 게임의 제품 기준은 무엇인가? | [상용 2D 게임 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md) | 경험·콘텐츠·표현 원칙을 소유하고 구현 경계·종료 증거는 완료 계약이 소유 |
 | 오브젝트와 가능한 동작은 무엇인가? | [오브젝트 카탈로그](product/OBJECT_CATALOG.md) | 미래 기능을 현재 가능으로 표시하지 않음 |
 | 규칙을 어떻게 보이게 하는가? | [비주얼 제작 명세](product/VISUAL_PRODUCTION_SPEC.md) | 게임 규칙을 새로 계산하지 않음 |
+| `assets/` reference와 화면을 어떻게 다시 맞출 것인가? | [레퍼런스 정렬 계획](product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md) | 계획 후보이며 현재 구현 권한이 아님 |
+| reference와 개발 화면의 유사도·차이를 어떻게 판정하는가? | [평가 프로토콜](product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md) | pixel match나 자동 점수 하나로 승인하지 않음 |
 | 현재 고정 시나리오는 어떻게 동작하는가? | [Scope 0B 기준](scopes/SCOPE_0B_PLAYABLE.md) | 제품 전체 모델로 일반화하지 않음 |
 | 현재 수동 선로 slice는 어떻게 동작하는가? | [Scope 1 기준](scopes/SCOPE_1_INTERACTION.md) | 고정 endpoint 밖의 기능을 열지 않음 |
 | 완료된 첫 제품 구현은 무엇을 만들 수 있는가? | [첫 점등 통합](scopes/FIRST_LIGHT.md) | 완료 범위를 현재 권한으로 오해하지 않음 |

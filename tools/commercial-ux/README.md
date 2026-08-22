@@ -54,24 +54,27 @@ second unstable panel becomes `BLOCKED_JUDGE_INSTABILITY`; a stable replacement 
 and records the exact initial `panelInputSha256` it replaced.
 
 Replacement is single-use and fail-closed. Before writing replacement output, the
-aggregator resolves the initial aggregate path and atomically creates this sibling with
-exclusive-create semantics:
+initial aggregate embeds one absolute, canonical, content-addressed receipt path. Its
+parent is the resolved parent of the original initial output and its filename is derived
+from the exact initial `panelInputSha256`:
 
 ```text
-<resolved-initial-filename>.replacement-receipt.json
+<original-output-parent>/.gridworks-commercial-ux-replacement-<panel-sha256-hex>.receipt.json
 ```
 
-The receipt binds the initial and replacement panel hashes, the three fresh replacement
-run IDs, and the text-plan/rubric/prompt/schema hashes. `replacementReceiptSha256` is null
-for an initial aggregate and is the SHA-256 of the exact compact receipt bytes (including
-its trailing newline) for a replacement. An existing or concurrently claimed receipt
-rejects reuse. Every aggregate output must be a fresh path and is created with
-exclusive-create semantics, so rerunning into an existing initial or replacement output
-cannot overwrite prior evidence. A replacement additionally rejects existing paths and
-inode aliases of the initial before claiming the receipt. Any output race or I/O failure
-after that claim deliberately leaves the receipt consumed. The initial aggregate is never
-modified; copying it to a different path is outside this local single-path receipt boundary
-and must be prevented by the candidate evidence manifest/provenance process.
+Every unchanged copy or rename of that initial carries the same embedded path, so all
+replacement attempts contend on one receipt even across directories. The receipt includes
+its own canonical path and the exact initial path used for the successful claim, and binds
+the initial/replacement panel hashes, three fresh run IDs, and text-plan/rubric/prompt/schema
+hashes. `replacementReceiptSha256` is null for an initial aggregate and is the SHA-256 of
+the exact compact receipt bytes (including its trailing newline) for a replacement. An
+existing or concurrently claimed receipt rejects reuse.
+
+Every aggregate output must be a fresh path and is created with exclusive-create
+semantics, so rerunning into an existing initial or replacement output cannot overwrite
+prior evidence. A replacement additionally rejects existing paths and inode aliases of
+the initial before claiming the receipt. Any output race or I/O failure after that claim
+deliberately leaves the receipt consumed. The initial aggregate is never modified.
 
 Run deterministic checks with:
 
@@ -95,8 +98,11 @@ python3 tools/commercial-ux/prepare-text-plan-evidence.py \
 The aggregate must be the exact `SCORED_FORMATIVE` output for those same three judgment
 files in the same argument order. If instability required a replacement, pass the three
 replacement judgments and the scored replacement aggregate instead. The preparer
-recomputes `panelInputSha256`, validates its initial/replacement linkage and receipt shape,
-then exposes only the opaque `judgePanelInputSha256` to the verifier.
+calls the aggregator's side-effect-free shared verifier, which reruns the production
+label-to-cell-to-category calculation and exact-compares the panel hash, status, every cell
+and category score, raw score, spread, penalty, proxy, linkage, and receipt provenance. It
+never claims a receipt. The preparer then exposes only the opaque
+`judgePanelInputSha256` to the verifier.
 
 Render `text-plan-evidence-verifier-prompt.template.txt` once for a fresh
 `gpt-5.6-sol`/`ultra` verifier and require

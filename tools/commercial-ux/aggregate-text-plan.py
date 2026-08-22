@@ -510,6 +510,7 @@ AGGREGATE_KEYS = {
     "rerunRequired",
     "panelInputSha256",
     "replacementForPanelInputSha256",
+    "replacementReceiptPath",
     "replacementReceiptSha256",
     "rubricSha256",
     "promptTemplateSha256",
@@ -525,6 +526,70 @@ AGGREGATE_KEYS = {
     "blockers",
 }
 
+REPLACEMENT_RECEIPT_KEYS = {
+    "schemaVersion",
+    "replacementReceiptPath",
+    "initialAggregatePath",
+    "initialPanelInputSha256",
+    "replacementPanelInputSha256",
+    "replacementJudgeRunIds",
+    "textPlanSha256",
+    "rubricSha256",
+    "promptTemplateSha256",
+    "judgmentSchemaSha256",
+}
+REPLACEMENT_RECEIPT_FILENAME_PREFIX = ".gridworks-commercial-ux-replacement-"
+REPLACEMENT_RECEIPT_FILENAME_SUFFIX = ".receipt.json"
+
+
+def canonical_path(path: Path, label: str) -> Path:
+    try:
+        return path.resolve(strict=False)
+    except (OSError, RuntimeError) as exception:
+        fail(f"{label} cannot be resolved: {exception}")
+
+
+def replacement_receipt_path_for_output(
+    output_path: Path,
+    initial_panel_input_sha256: str,
+) -> Path:
+    if SHA256_PATTERN.fullmatch(initial_panel_input_sha256) is None:
+        fail("initial panelInputSha256 must be a lowercase sha256 identifier")
+    digest = initial_panel_input_sha256.removeprefix("sha256:")
+    output_parent = canonical_path(output_path, "aggregate output path").parent
+    return output_parent / (
+        REPLACEMENT_RECEIPT_FILENAME_PREFIX
+        + digest
+        + REPLACEMENT_RECEIPT_FILENAME_SUFFIX
+    )
+
+
+def validate_embedded_receipt_path(
+    value: Any,
+    initial_panel_input_sha256: str,
+    label: str,
+) -> Path:
+    if not isinstance(value, str) or not value:
+        fail(f"{label} must be a nonempty absolute path string")
+    path = Path(value)
+    if not path.is_absolute():
+        fail(f"{label} must be an absolute path")
+    resolved = canonical_path(path, label)
+    if path != resolved:
+        fail(f"{label} must be canonical: expected {resolved}, got {path}")
+    digest = initial_panel_input_sha256.removeprefix("sha256:")
+    expected_name = (
+        REPLACEMENT_RECEIPT_FILENAME_PREFIX
+        + digest
+        + REPLACEMENT_RECEIPT_FILENAME_SUFFIX
+    )
+    if path.name != expected_name:
+        fail(
+            f"{label} is not content-addressed by the initial panelInputSha256: "
+            f"expected filename {expected_name!r}, got {path.name!r}"
+        )
+    return path
+
 
 def validate_replacement_initial(
     path: Path,
@@ -533,7 +598,7 @@ def validate_replacement_initial(
     prompt_template_sha256: str,
     judgment_schema_sha256: str,
     replacement_run_ids: list[str],
-) -> tuple[str, Path]:
+) -> tuple[str, Path, Path]:
     try:
         resolved_path = path.resolve(strict=True)
     except OSError as exception:
@@ -564,6 +629,11 @@ def validate_replacement_initial(
     panel_sha256 = initial["panelInputSha256"]
     if not isinstance(panel_sha256, str) or SHA256_PATTERN.fullmatch(panel_sha256) is None:
         fail("initial aggregate panelInputSha256 must be a lowercase sha256 identifier")
+    receipt_path = validate_embedded_receipt_path(
+        initial["replacementReceiptPath"],
+        panel_sha256,
+        "initial aggregate replacementReceiptPath",
+    )
     initial_run_ids = initial["judgeRunIds"]
     if (
         not isinstance(initial_run_ids, list)
@@ -578,21 +648,15 @@ def validate_replacement_initial(
     unstable_cells = initial["unstableCells"]
     if not isinstance(unstable_cells, list) or not unstable_cells:
         fail("initial aggregate must preserve at least one unstable cell")
-    return panel_sha256, resolved_path
-
-
-def replacement_receipt_path(initial_aggregate_path: Path) -> Path:
-    return initial_aggregate_path.with_name(
-        initial_aggregate_path.name + ".replacement-receipt.json"
-    )
+    return panel_sha256, resolved_path, receipt_path
 
 
 def validate_replacement_output_path(
     output_path: Path,
     initial_aggregate_path: Path,
+    receipt_path: Path,
 ) -> None:
-    receipt_path = replacement_receipt_path(initial_aggregate_path)
-    resolved_output_path = output_path.resolve()
+    resolved_output_path = canonical_path(output_path, "replacement output path")
     if resolved_output_path in {initial_aggregate_path, receipt_path}:
         fail(
             "replacement output must not overwrite the initial aggregate or its receipt: "
@@ -620,7 +684,8 @@ def validate_replacement_output_path(
     )
 
 
-def create_replacement_receipt(
+def replacement_receipt_bytes(
+    receipt_path: Path,
     initial_aggregate_path: Path,
     initial_panel_input_sha256: str,
     replacement_panel_input_sha256: str,
@@ -629,9 +694,10 @@ def create_replacement_receipt(
     rubric_sha256: str,
     prompt_template_sha256: str,
     judgment_schema_sha256: str,
-) -> str:
+) -> tuple[bytes, str]:
     receipt = {
         "schemaVersion": REPLACEMENT_RECEIPT_SCHEMA,
+        "replacementReceiptPath": str(receipt_path),
         "initialAggregatePath": str(initial_aggregate_path),
         "initialPanelInputSha256": initial_panel_input_sha256,
         "replacementPanelInputSha256": replacement_panel_input_sha256,
@@ -643,7 +709,14 @@ def create_replacement_receipt(
     }
     receipt_bytes = canonical_json_bytes(receipt) + b"\n"
     receipt_sha256 = "sha256:" + hashlib.sha256(receipt_bytes).hexdigest()
-    path = replacement_receipt_path(initial_aggregate_path)
+    return receipt_bytes, receipt_sha256
+
+
+def create_replacement_receipt(
+    path: Path,
+    receipt_bytes: bytes,
+    receipt_sha256: str,
+) -> None:
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
     try:
         descriptor = os.open(path, flags, 0o600)
@@ -672,15 +745,12 @@ def create_replacement_receipt(
         fail(f"replacement receipt bytes changed before verification: {path}")
     if "sha256:" + hashlib.sha256(persisted).hexdigest() != receipt_sha256:
         fail(f"replacement receipt hash verification failed: {path}")
-    return receipt_sha256
 
 
-def aggregate(
+def load_panel_inputs(
     judgment_paths: list[Path],
     rubric_path: Path,
     text_plan_path: Path,
-    replacement_for: Path | None,
-    output_path: Path,
 ) -> dict[str, Any]:
     if len(judgment_paths) != 3:
         fail("exactly three judgment paths are required")
@@ -716,29 +786,70 @@ def aggregate(
             "judgment textPlanSha256 does not match the supplied text-plan envelope: "
             f"expected {text_plan_sha256}, got {sorted(artifact_ids)}"
         )
-    replacement_for_panel_sha256 = None
-    replacement_initial_path = None
-    if replacement_for is not None:
-        replacement_for_panel_sha256, replacement_initial_path = validate_replacement_initial(
-            replacement_for,
-            text_plan_sha256,
-            rubric_sha256,
-            prompt_template_sha256,
-            judgment_schema_sha256,
-            run_ids,
-        )
-    panel_kind = "REPLACEMENT" if replacement_for is not None else "INITIAL"
-    panel_payload = {
-        "textPlanSha256": text_plan_sha256,
+    return {
+        "labelData": label_data,
+        "categories": categories,
+        "aggregationConfig": aggregation_config,
         "rubricSha256": rubric_sha256,
         "promptTemplateSha256": prompt_template_sha256,
         "judgmentSchemaSha256": judgment_schema_sha256,
+        "textPlanSha256": text_plan_sha256,
+        "payloads": payloads,
+        "judgments": judgments,
+        "runIds": run_ids,
+    }
+
+
+def panel_input_sha256(
+    panel: dict[str, Any],
+    panel_kind: str,
+    replacement_for_panel_sha256: str | None,
+) -> str:
+    panel_payload = {
+        "textPlanSha256": panel["textPlanSha256"],
+        "rubricSha256": panel["rubricSha256"],
+        "promptTemplateSha256": panel["promptTemplateSha256"],
+        "judgmentSchemaSha256": panel["judgmentSchemaSha256"],
         "panelKind": panel_kind,
         "replacementForPanelInputSha256": replacement_for_panel_sha256,
-        "judgments": sorted(payloads, key=lambda payload: payload["judgeRunId"]),
+        "judgments": sorted(
+            panel["payloads"],
+            key=lambda payload: payload["judgeRunId"],
+        ),
     }
-    panel_input_sha256 = (
-        "sha256:" + hashlib.sha256(canonical_json_bytes(panel_payload)).hexdigest()
+    return "sha256:" + hashlib.sha256(canonical_json_bytes(panel_payload)).hexdigest()
+
+
+def compute_aggregate_result(
+    panel: dict[str, Any],
+    panel_kind: str,
+    replacement_for_panel_sha256: str | None,
+    replacement_receipt_path: Path,
+    replacement_receipt_sha256: str | None,
+) -> dict[str, Any]:
+    if panel_kind not in {"INITIAL", "REPLACEMENT"}:
+        fail(f"panelKind must be INITIAL or REPLACEMENT, got {panel_kind!r}")
+    if panel_kind == "INITIAL":
+        if replacement_for_panel_sha256 is not None:
+            fail("INITIAL panel replacementForPanelInputSha256 must be null")
+        if replacement_receipt_sha256 is not None:
+            fail("INITIAL panel replacementReceiptSha256 must be null")
+    else:
+        for value, label in (
+            (replacement_for_panel_sha256, "replacementForPanelInputSha256"),
+            (replacement_receipt_sha256, "replacementReceiptSha256"),
+        ):
+            if not isinstance(value, str) or SHA256_PATTERN.fullmatch(value) is None:
+                fail(f"REPLACEMENT panel {label} must be a lowercase sha256 identifier")
+
+    label_data = panel["labelData"]
+    categories = panel["categories"]
+    aggregation_config = panel["aggregationConfig"]
+    judgments = panel["judgments"]
+    computed_panel_input_sha256 = panel_input_sha256(
+        panel,
+        panel_kind,
+        replacement_for_panel_sha256,
     )
 
     score_for = {label: data[1] for label, data in label_data.items()}
@@ -804,27 +915,13 @@ def aggregate(
         if unstable_cells
         else []
     )
-    if unstable_cells and replacement_for is not None:
+    if unstable_cells and panel_kind == "REPLACEMENT":
         status = "BLOCKED_JUDGE_INSTABILITY"
     elif unstable_cells:
         status = "RERUN_REQUIRED_JUDGE_INSTABILITY"
     else:
         status = "SCORED_FORMATIVE"
     text_plan_proxy = None if unstable_cells else rounded(text_raw - penalty)
-    replacement_receipt_sha256 = None
-    if replacement_initial_path is not None:
-        assert replacement_for_panel_sha256 is not None
-        validate_replacement_output_path(output_path, replacement_initial_path)
-        replacement_receipt_sha256 = create_replacement_receipt(
-            replacement_initial_path,
-            replacement_for_panel_sha256,
-            panel_input_sha256,
-            run_ids,
-            text_plan_sha256,
-            rubric_sha256,
-            prompt_template_sha256,
-            judgment_schema_sha256,
-        )
     return {
         "protocol": AGGREGATE_PROTOCOL,
         "status": status,
@@ -832,23 +929,232 @@ def aggregate(
         "commercialUXProxy": None,
         "officialCommercialUX": False,
         "panelKind": panel_kind,
-        "rerunRequired": bool(unstable_cells and replacement_for is None),
-        "panelInputSha256": panel_input_sha256,
+        "rerunRequired": bool(unstable_cells and panel_kind == "INITIAL"),
+        "panelInputSha256": computed_panel_input_sha256,
         "replacementForPanelInputSha256": replacement_for_panel_sha256,
+        "replacementReceiptPath": str(replacement_receipt_path),
         "replacementReceiptSha256": replacement_receipt_sha256,
-        "rubricSha256": rubric_sha256,
-        "promptTemplateSha256": prompt_template_sha256,
-        "judgmentSchemaSha256": judgment_schema_sha256,
+        "rubricSha256": panel["rubricSha256"],
+        "promptTemplateSha256": panel["promptTemplateSha256"],
+        "judgmentSchemaSha256": panel["judgmentSchemaSha256"],
         "textRaw": rounded(text_raw),
         "textRawSpread": rounded(text_raw_spread),
         "disagreementPenalty": rounded(penalty),
-        "textPlanSha256": text_plan_sha256,
-        "judgeRunIds": run_ids,
+        "textPlanSha256": panel["textPlanSha256"],
+        "judgeRunIds": panel["runIds"],
         "cellScores": cell_results,
         "categoryScores": category_results,
         "unstableCells": unstable_cells,
         "blockers": blockers,
     }
+
+
+def canonical_absolute_path_value(value: Any, label: str) -> Path:
+    if not isinstance(value, str) or not value:
+        fail(f"{label} must be a nonempty absolute path string")
+    path = Path(value)
+    if not path.is_absolute():
+        fail(f"{label} must be an absolute path")
+    resolved = canonical_path(path, label)
+    if path != resolved:
+        fail(f"{label} must be canonical: expected {resolved}, got {path}")
+    return path
+
+
+def verify_replacement_receipt(
+    receipt_path: Path,
+    declared_receipt_sha256: str,
+    replacement_panel_input_sha256: str,
+    panel: dict[str, Any],
+    initial_panel_input_sha256: str,
+) -> str:
+    if (
+        not isinstance(declared_receipt_sha256, str)
+        or SHA256_PATTERN.fullmatch(declared_receipt_sha256) is None
+    ):
+        fail("replacement aggregate replacementReceiptSha256 must be a sha256 identifier")
+    try:
+        persisted = receipt_path.read_bytes()
+    except OSError as exception:
+        fail(f"replacement receipt is unreadable at {receipt_path}: {exception}")
+    persisted_sha256 = "sha256:" + hashlib.sha256(persisted).hexdigest()
+    if persisted_sha256 != declared_receipt_sha256:
+        fail(
+            "replacement receipt hash mismatch: "
+            f"declared {declared_receipt_sha256}, computed {persisted_sha256}"
+        )
+    try:
+        receipt = json.loads(persisted.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exception:
+        fail(f"replacement receipt is not canonical UTF-8 JSON: {exception}")
+    if not isinstance(receipt, dict):
+        fail("replacement receipt must be a JSON object")
+    exact_keys(receipt, REPLACEMENT_RECEIPT_KEYS, "replacement receipt")
+    initial_aggregate_path = canonical_absolute_path_value(
+        receipt["initialAggregatePath"],
+        "replacement receipt initialAggregatePath",
+    )
+    expected_bytes, expected_sha256 = replacement_receipt_bytes(
+        receipt_path,
+        initial_aggregate_path,
+        initial_panel_input_sha256,
+        replacement_panel_input_sha256,
+        panel["runIds"],
+        panel["textPlanSha256"],
+        panel["rubricSha256"],
+        panel["promptTemplateSha256"],
+        panel["judgmentSchemaSha256"],
+    )
+    if persisted != expected_bytes or persisted_sha256 != expected_sha256:
+        fail("replacement receipt content does not match the scored panel provenance")
+    return persisted_sha256
+
+
+def verify_existing_scored_aggregate(
+    aggregate_path: Path,
+    judgment_paths: list[Path],
+    rubric_path: Path,
+    text_plan_path: Path,
+) -> dict[str, Any]:
+    """Read-only exact verification using the production aggregation calculation."""
+    existing = read_object(aggregate_path, "existing scored aggregate")
+    exact_keys(existing, AGGREGATE_KEYS, "existing scored aggregate")
+    panel = load_panel_inputs(judgment_paths, rubric_path, text_plan_path)
+    panel_kind = existing["panelKind"]
+    replacement_for_panel_sha256 = existing["replacementForPanelInputSha256"]
+    if panel_kind == "INITIAL":
+        if replacement_for_panel_sha256 is not None:
+            fail("INITIAL scored aggregate replacementForPanelInputSha256 must be null")
+        expected_panel_input_sha256 = panel_input_sha256(panel, "INITIAL", None)
+        receipt_path = validate_embedded_receipt_path(
+            existing["replacementReceiptPath"],
+            expected_panel_input_sha256,
+            "existing scored aggregate replacementReceiptPath",
+        )
+        if existing["replacementReceiptSha256"] is not None:
+            fail("INITIAL scored aggregate replacementReceiptSha256 must be null")
+        replacement_receipt_sha256 = None
+    elif panel_kind == "REPLACEMENT":
+        if (
+            not isinstance(replacement_for_panel_sha256, str)
+            or SHA256_PATTERN.fullmatch(replacement_for_panel_sha256) is None
+        ):
+            fail(
+                "REPLACEMENT scored aggregate replacementForPanelInputSha256 must be "
+                "a sha256 identifier"
+            )
+        expected_panel_input_sha256 = panel_input_sha256(
+            panel,
+            "REPLACEMENT",
+            replacement_for_panel_sha256,
+        )
+        receipt_path = validate_embedded_receipt_path(
+            existing["replacementReceiptPath"],
+            replacement_for_panel_sha256,
+            "existing scored aggregate replacementReceiptPath",
+        )
+        replacement_receipt_sha256 = verify_replacement_receipt(
+            receipt_path,
+            existing["replacementReceiptSha256"],
+            expected_panel_input_sha256,
+            panel,
+            replacement_for_panel_sha256,
+        )
+    else:
+        fail("existing scored aggregate panelKind must be INITIAL or REPLACEMENT")
+
+    expected = compute_aggregate_result(
+        panel,
+        panel_kind,
+        replacement_for_panel_sha256,
+        receipt_path,
+        replacement_receipt_sha256,
+    )
+    if expected["status"] != "SCORED_FORMATIVE":
+        fail(
+            "supplied judgments do not produce a scored aggregate: "
+            f"recomputed status is {expected['status']}"
+        )
+    if existing != expected:
+        mismatched_fields = sorted(
+            field for field in AGGREGATE_KEYS if existing[field] != expected[field]
+        )
+        fail(
+            "existing scored aggregate does not exactly match deterministic "
+            f"recomputation; mismatched fields={mismatched_fields}"
+        )
+    return existing
+
+
+def aggregate(
+    judgment_paths: list[Path],
+    rubric_path: Path,
+    text_plan_path: Path,
+    replacement_for: Path | None,
+    output_path: Path,
+) -> dict[str, Any]:
+    panel = load_panel_inputs(judgment_paths, rubric_path, text_plan_path)
+    replacement_for_panel_sha256 = None
+    replacement_initial_path = None
+    receipt_path = None
+    if replacement_for is not None:
+        (
+            replacement_for_panel_sha256,
+            replacement_initial_path,
+            receipt_path,
+        ) = validate_replacement_initial(
+            replacement_for,
+            panel["textPlanSha256"],
+            panel["rubricSha256"],
+            panel["promptTemplateSha256"],
+            panel["judgmentSchemaSha256"],
+            panel["runIds"],
+        )
+    panel_kind = "REPLACEMENT" if replacement_for is not None else "INITIAL"
+    computed_panel_input_sha256 = panel_input_sha256(
+        panel,
+        panel_kind,
+        replacement_for_panel_sha256,
+    )
+    if receipt_path is None:
+        receipt_path = replacement_receipt_path_for_output(
+            output_path,
+            computed_panel_input_sha256,
+        )
+        if canonical_path(output_path, "initial aggregate output path") == receipt_path:
+            fail("initial aggregate output path collides with its replacement receipt path")
+        receipt_sha256 = None
+        receipt_bytes = None
+    else:
+        assert replacement_initial_path is not None
+        assert replacement_for_panel_sha256 is not None
+        validate_replacement_output_path(
+            output_path,
+            replacement_initial_path,
+            receipt_path,
+        )
+        receipt_bytes, receipt_sha256 = replacement_receipt_bytes(
+            receipt_path,
+            replacement_initial_path,
+            replacement_for_panel_sha256,
+            computed_panel_input_sha256,
+            panel["runIds"],
+            panel["textPlanSha256"],
+            panel["rubricSha256"],
+            panel["promptTemplateSha256"],
+            panel["judgmentSchemaSha256"],
+        )
+
+    result = compute_aggregate_result(
+        panel,
+        panel_kind,
+        replacement_for_panel_sha256,
+        receipt_path,
+        receipt_sha256,
+    )
+    if receipt_bytes is not None:
+        create_replacement_receipt(receipt_path, receipt_bytes, receipt_sha256)
+    return result
 
 
 def write_output(path: Path, output: str, replacement_receipt_claimed: bool) -> None:

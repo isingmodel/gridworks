@@ -9,6 +9,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -372,6 +373,10 @@ def run_aggregate(
 
 def test_aggregation() -> None:
     rubric = load_json(RUBRIC_PATH)
+    aggregator = load_module(
+        AGGREGATOR_PATH,
+        "gridworks_commercial_ux_text_plan_aggregator_test",
+    )
     builder = load_module(BUILDER_PATH, "gridworks_commercial_ux_aggregate_builder_test")
     context = load_json(CONTEXT_PATH)
     campaign = load_json(CAMPAIGN_PATH)
@@ -401,6 +406,36 @@ def test_aggregation() -> None:
         assert all_strong["replacementReceiptSha256"] is None
         assert all_strong["promptTemplateSha256"] == PROMPT_TEMPLATE_SHA256
         assert all_strong["judgmentSchemaSha256"] == JUDGMENT_SCHEMA_SHA256
+        verified_all_strong = aggregator.verify_existing_scored_aggregate(
+            directory / "all-strong-aggregate.json",
+            [directory / f"all-strong-judge-{index}.json" for index in range(1, 4)],
+            RUBRIC_PATH,
+            directory / "all-strong-text-plan.json",
+        )
+        assert verified_all_strong == all_strong
+
+        tampered_all_strong = copy.deepcopy(all_strong)
+        tampered_all_strong["textRaw"] = 100.0
+        tampered_all_strong["textPlanProxy"] = 100.0
+        tampered_all_strong_path = directory / "all-strong-tampered-aggregate.json"
+        tampered_all_strong_path.write_text(
+            json.dumps(tampered_all_strong, ensure_ascii=False, indent=2, sort_keys=True)
+            + "\n",
+            encoding="utf-8",
+        )
+        try:
+            aggregator.verify_existing_scored_aggregate(
+                tampered_all_strong_path,
+                [directory / f"all-strong-judge-{index}.json" for index in range(1, 4)],
+                RUBRIC_PATH,
+                directory / "all-strong-text-plan.json",
+            )
+            raise AssertionError("tampered scored aggregate was accepted")
+        except SystemExit as exception:
+            message = str(exception)
+            assert "does not exactly match deterministic recomputation" in message
+            assert "textPlanProxy" in message
+            assert "textRaw" in message
 
         rerun_output_path = directory / "initial-output-once.json"
         initial_output_first = run_aggregate(
@@ -465,6 +500,10 @@ def test_aggregation() -> None:
         assert unstable["cellScores"]["TP-J1"]["ordinalRange"] == 2
         assert unstable["panelKind"] == "INITIAL"
         assert unstable["replacementForPanelInputSha256"] is None
+        assert Path(unstable["replacementReceiptPath"]).parent == directory.resolve()
+        assert unstable["panelInputSha256"].removeprefix("sha256:") in Path(
+            unstable["replacementReceiptPath"]
+        ).name
         assert unstable["replacementReceiptSha256"] is None
         assert unstable["rerunRequired"] is True
 
@@ -491,12 +530,23 @@ def test_aggregation() -> None:
         assert replacement_unstable["replacementReceiptSha256"].startswith("sha256:")
         assert replacement_unstable["rerunRequired"] is False
 
+        stable_source = run_aggregate(
+            directory,
+            "stable-replacement-source",
+            [
+                judgment(rubric, 60, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+                judgment(rubric, 61, artifact_sha, overrides={"TP-J1": "SERVICEABLE"}),
+                judgment(rubric, 62, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+            ],
+            text_plan,
+        )
+        assert isinstance(stable_source, dict)
         stable_replacement = run_aggregate(
             directory,
             "replacement-stable",
-            [judgment(rubric, index, artifact_sha) for index in range(4, 7)],
+            [judgment(rubric, index, artifact_sha) for index in range(63, 66)],
             text_plan,
-            replacement_for=unstable,
+            replacement_for=stable_source,
         )
         assert isinstance(stable_replacement, dict)
         assert stable_replacement["status"] == "SCORED_FORMATIVE"
@@ -504,27 +554,56 @@ def test_aggregation() -> None:
         assert stable_replacement["panelKind"] == "REPLACEMENT"
         assert (
             stable_replacement["replacementForPanelInputSha256"]
-            == unstable["panelInputSha256"]
+            == stable_source["panelInputSha256"]
+        )
+        assert (
+            stable_replacement["replacementReceiptPath"]
+            == stable_source["replacementReceiptPath"]
         )
         assert stable_replacement["replacementReceiptSha256"].startswith("sha256:")
         assert stable_replacement["rerunRequired"] is False
+        stable_receipt_path = Path(stable_replacement["replacementReceiptPath"])
+        stable_receipt_bytes = stable_receipt_path.read_bytes()
+        stable_files_before_verification = sorted(
+            path.relative_to(directory) for path in directory.rglob("*")
+        )
+        verified_stable_replacement = aggregator.verify_existing_scored_aggregate(
+            directory / "replacement-stable-aggregate.json",
+            [
+                directory / f"replacement-stable-judge-{index}.json"
+                for index in range(1, 4)
+            ],
+            RUBRIC_PATH,
+            directory / "replacement-stable-text-plan.json",
+        )
+        assert verified_stable_replacement == stable_replacement
+        assert stable_receipt_path.read_bytes() == stable_receipt_bytes
+        assert sorted(path.relative_to(directory) for path in directory.rglob("*")) == (
+            stable_files_before_verification
+        )
 
-        single_use_initial_path = directory / "single-use-initial.json"
-        single_use_initial_bytes = (
-            json.dumps(unstable, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-        ).encode("utf-8")
-        single_use_initial_path.write_bytes(single_use_initial_bytes)
+        single_use_initial = run_aggregate(
+            directory,
+            "single-use-initial",
+            [
+                judgment(rubric, 70, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+                judgment(rubric, 71, artifact_sha, overrides={"TP-J1": "SERVICEABLE"}),
+                judgment(rubric, 72, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+            ],
+            text_plan,
+        )
+        assert isinstance(single_use_initial, dict)
+        single_use_initial_path = directory / "single-use-initial-aggregate.json"
+        single_use_initial_bytes = single_use_initial_path.read_bytes()
         single_use_first = run_aggregate(
             directory,
             "single-use-first",
-            [judgment(rubric, index, artifact_sha) for index in range(7, 10)],
+            [judgment(rubric, index, artifact_sha) for index in range(73, 76)],
             text_plan,
             replacement_for=single_use_initial_path,
         )
         assert isinstance(single_use_first, dict)
-        single_use_receipt_path = single_use_initial_path.resolve().with_name(
-            single_use_initial_path.name + ".replacement-receipt.json"
-        )
+        single_use_receipt_path = Path(single_use_initial["replacementReceiptPath"])
         receipt_bytes = single_use_receipt_path.read_bytes()
         assert single_use_first["replacementReceiptSha256"] == (
             "sha256:" + hashlib.sha256(receipt_bytes).hexdigest()
@@ -532,10 +611,11 @@ def test_aggregation() -> None:
         receipt = json.loads(receipt_bytes)
         assert receipt == {
             "schemaVersion": "gridworks.commercial-ux.text-plan-replacement-receipt.v1",
+            "replacementReceiptPath": str(single_use_receipt_path),
             "initialAggregatePath": str(single_use_initial_path.resolve()),
-            "initialPanelInputSha256": unstable["panelInputSha256"],
+            "initialPanelInputSha256": single_use_initial["panelInputSha256"],
             "replacementPanelInputSha256": single_use_first["panelInputSha256"],
-            "replacementJudgeRunIds": ["fresh-run-7", "fresh-run-8", "fresh-run-9"],
+            "replacementJudgeRunIds": ["fresh-run-73", "fresh-run-74", "fresh-run-75"],
             "textPlanSha256": artifact_sha,
             "rubricSha256": single_use_first["rubricSha256"],
             "promptTemplateSha256": PROMPT_TEMPLATE_SHA256,
@@ -546,7 +626,7 @@ def test_aggregation() -> None:
         single_use_second = run_aggregate(
             directory,
             "single-use-second",
-            [judgment(rubric, index, artifact_sha) for index in range(10, 13)],
+            [judgment(rubric, index, artifact_sha) for index in range(76, 79)],
             text_plan,
             expect_success=False,
             replacement_for=single_use_initial_path,
@@ -556,19 +636,72 @@ def test_aggregation() -> None:
         assert single_use_initial_path.read_bytes() == single_use_initial_bytes
         assert not (directory / "single-use-second-aggregate.json").exists()
 
-        preclaimed_initial_path = directory / "preclaimed-initial.json"
-        preclaimed_initial_bytes = (
-            json.dumps(unstable, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-        ).encode("utf-8")
-        preclaimed_initial_path.write_bytes(preclaimed_initial_bytes)
-        preclaimed_receipt_path = preclaimed_initial_path.resolve().with_name(
-            preclaimed_initial_path.name + ".replacement-receipt.json"
+        copy_origin = directory / "copy-origin"
+        copy_source_path = copy_origin / "unstable-original.json"
+        copy_source = run_aggregate(
+            directory,
+            "copy-source",
+            [
+                judgment(rubric, 110, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+                judgment(rubric, 111, artifact_sha, overrides={"TP-J1": "SERVICEABLE"}),
+                judgment(rubric, 112, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+            ],
+            text_plan,
+            output_path=copy_source_path,
         )
+        assert isinstance(copy_source, dict)
+        copy_directory = directory / "copied-elsewhere"
+        copy_directory.mkdir()
+        copied_initial_path = copy_directory / "renamed-initial.json"
+        shutil.copyfile(copy_source_path, copied_initial_path)
+        copied_initial = load_json(copied_initial_path)
+        assert copied_initial["replacementReceiptPath"] == copy_source[
+            "replacementReceiptPath"
+        ]
+        assert Path(copy_source["replacementReceiptPath"]).parent == copy_origin.resolve()
+        copied_initial_bytes = copied_initial_path.read_bytes()
+        copy_first = run_aggregate(
+            directory,
+            "copy-first-replacement",
+            [judgment(rubric, index, artifact_sha) for index in range(113, 116)],
+            text_plan,
+            replacement_for=copy_source_path,
+        )
+        assert isinstance(copy_first, dict)
+        copy_second = run_aggregate(
+            directory,
+            "copy-second-replacement",
+            [judgment(rubric, index, artifact_sha) for index in range(116, 119)],
+            text_plan,
+            expect_success=False,
+            replacement_for=copied_initial_path,
+        )
+        assert isinstance(copy_second, subprocess.CompletedProcess)
+        assert "replacement was already consumed" in copy_second.stderr
+        assert copied_initial_path.read_bytes() == copied_initial_bytes
+        assert not (directory / "copy-second-replacement-aggregate.json").exists()
+        copied_local_receipts = list(copy_directory.glob("*.receipt.json"))
+        assert copied_local_receipts == []
+
+        preclaimed_initial = run_aggregate(
+            directory,
+            "preclaimed-initial",
+            [
+                judgment(rubric, 80, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+                judgment(rubric, 81, artifact_sha, overrides={"TP-J1": "SERVICEABLE"}),
+                judgment(rubric, 82, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+            ],
+            text_plan,
+        )
+        assert isinstance(preclaimed_initial, dict)
+        preclaimed_initial_path = directory / "preclaimed-initial-aggregate.json"
+        preclaimed_initial_bytes = preclaimed_initial_path.read_bytes()
+        preclaimed_receipt_path = Path(preclaimed_initial["replacementReceiptPath"])
         preclaimed_receipt_path.write_bytes(b"preexisting-receipt\n")
         preclaimed = run_aggregate(
             directory,
             "preclaimed-receipt",
-            [judgment(rubric, index, artifact_sha) for index in range(13, 16)],
+            [judgment(rubric, index, artifact_sha) for index in range(83, 86)],
             text_plan,
             expect_success=False,
             replacement_for=preclaimed_initial_path,
@@ -579,11 +712,19 @@ def test_aggregation() -> None:
         assert preclaimed_initial_path.read_bytes() == preclaimed_initial_bytes
         assert not (directory / "preclaimed-receipt-aggregate.json").exists()
 
-        concurrent_initial_path = directory / "concurrent-initial.json"
-        concurrent_initial_bytes = (
-            json.dumps(unstable, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-        ).encode("utf-8")
-        concurrent_initial_path.write_bytes(concurrent_initial_bytes)
+        concurrent_initial = run_aggregate(
+            directory,
+            "concurrent-initial",
+            [
+                judgment(rubric, 90, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+                judgment(rubric, 91, artifact_sha, overrides={"TP-J1": "SERVICEABLE"}),
+                judgment(rubric, 92, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+            ],
+            text_plan,
+        )
+        assert isinstance(concurrent_initial, dict)
+        concurrent_initial_path = directory / "concurrent-initial-aggregate.json"
+        concurrent_initial_bytes = concurrent_initial_path.read_bytes()
 
         def concurrent_replacement(name: str, first_run: int) -> tuple[str, Any]:
             try:
@@ -611,9 +752,7 @@ def test_aggregation() -> None:
         concurrent_success = next(value for status, value in concurrent_results if status == "PASS")
         assert "replacement was already consumed" in concurrent_failure
         assert isinstance(concurrent_success, dict)
-        concurrent_receipt_path = concurrent_initial_path.resolve().with_name(
-            concurrent_initial_path.name + ".replacement-receipt.json"
-        )
+        concurrent_receipt_path = Path(concurrent_initial["replacementReceiptPath"])
         concurrent_receipt_bytes = concurrent_receipt_path.read_bytes()
         assert concurrent_success["replacementReceiptSha256"] == (
             "sha256:" + hashlib.sha256(concurrent_receipt_bytes).hexdigest()
@@ -625,17 +764,25 @@ def test_aggregation() -> None:
         ]
         assert sum(path.exists() for path in concurrent_outputs) == 1
 
-        hardlink_initial_path = directory / "hardlink-initial.json"
-        hardlink_initial_bytes = (
-            json.dumps(unstable, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-        ).encode("utf-8")
-        hardlink_initial_path.write_bytes(hardlink_initial_bytes)
+        hardlink_initial = run_aggregate(
+            directory,
+            "hardlink-initial",
+            [
+                judgment(rubric, 100, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+                judgment(rubric, 101, artifact_sha, overrides={"TP-J1": "SERVICEABLE"}),
+                judgment(rubric, 102, artifact_sha, overrides={"TP-J1": "BROKEN"}),
+            ],
+            text_plan,
+        )
+        assert isinstance(hardlink_initial, dict)
+        hardlink_initial_path = directory / "hardlink-initial-aggregate.json"
+        hardlink_initial_bytes = hardlink_initial_path.read_bytes()
         hardlink_output_path = directory / "hardlink-output.json"
         os.link(hardlink_initial_path, hardlink_output_path)
         hardlink_rejected = run_aggregate(
             directory,
             "hardlink-output-alias",
-            [judgment(rubric, index, artifact_sha) for index in range(40, 43)],
+            [judgment(rubric, index, artifact_sha) for index in range(103, 106)],
             text_plan,
             expect_success=False,
             replacement_for=hardlink_initial_path,
@@ -645,9 +792,7 @@ def test_aggregation() -> None:
         assert "aliases the initial aggregate inode" in hardlink_rejected.stderr
         assert hardlink_initial_path.read_bytes() == hardlink_initial_bytes
         assert hardlink_output_path.read_bytes() == hardlink_initial_bytes
-        hardlink_receipt_path = hardlink_initial_path.resolve().with_name(
-            hardlink_initial_path.name + ".replacement-receipt.json"
-        )
+        hardlink_receipt_path = Path(hardlink_initial["replacementReceiptPath"])
         assert not hardlink_receipt_path.exists()
 
         exact_ninety_cells = {

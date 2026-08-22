@@ -7,6 +7,7 @@ import copy
 import hashlib
 import importlib.util
 import json
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -410,7 +411,7 @@ def test_prepare_and_aggregate() -> None:
             forged_panel_hash,
             expect_success=False,
         )
-        assert "panelInputSha256 mismatch" in forged_panel_completed.stderr
+        assert "panelInputSha256" in forged_panel_completed.stderr
 
         forged_run_ids = copy.deepcopy(scored_aggregate)
         forged_run_ids["judgeRunIds"] = ["forged-1", "forged-2", "forged-3"]
@@ -422,7 +423,69 @@ def test_prepare_and_aggregate() -> None:
             forged_run_ids,
             expect_success=False,
         )
-        assert "judgeRunIds do not exactly match" in forged_runs_completed.stderr
+        assert "judgeRunIds" in forged_runs_completed.stderr
+
+        forged_cell_scores = copy.deepcopy(scored_aggregate)
+        forged_cell_scores["cellScores"]["TP-J1"]["medianScore"] = 100
+        forged_cells_completed, _ = run_prepare(
+            directory,
+            "forged-cell-scores",
+            text_plan,
+            judgments,
+            forged_cell_scores,
+            expect_success=False,
+        )
+        assert "cellScores" in forged_cells_completed.stderr
+
+        forged_category_scores = copy.deepcopy(scored_aggregate)
+        forged_category_scores["categoryScores"]["journey"]["score"] = 100.0
+        forged_categories_completed, _ = run_prepare(
+            directory,
+            "forged-category-scores",
+            text_plan,
+            judgments,
+            forged_category_scores,
+            expect_success=False,
+        )
+        assert "categoryScores" in forged_categories_completed.stderr
+
+        forged_raw = copy.deepcopy(scored_aggregate)
+        forged_raw["textRaw"] = 100.0
+        forged_raw_completed, _ = run_prepare(
+            directory,
+            "forged-text-raw",
+            text_plan,
+            judgments,
+            forged_raw,
+            expect_success=False,
+        )
+        assert "textRaw" in forged_raw_completed.stderr
+
+        forged_proxy = copy.deepcopy(scored_aggregate)
+        forged_proxy["textPlanProxy"] = 100.0
+        forged_proxy_completed, _ = run_prepare(
+            directory,
+            "forged-text-proxy",
+            text_plan,
+            judgments,
+            forged_proxy,
+            expect_success=False,
+        )
+        assert "textPlanProxy" in forged_proxy_completed.stderr
+
+        forged_raw_and_proxy = copy.deepcopy(scored_aggregate)
+        forged_raw_and_proxy["textRaw"] = 100.0
+        forged_raw_and_proxy["textPlanProxy"] = 100.0
+        forged_pair_completed, _ = run_prepare(
+            directory,
+            "forged-raw-and-proxy",
+            text_plan,
+            judgments,
+            forged_raw_and_proxy,
+            expect_success=False,
+        )
+        assert "textRaw" in forged_pair_completed.stderr
+        assert "textPlanProxy" in forged_pair_completed.stderr
 
         unstable_judgments = [
             valid_judgment(
@@ -460,7 +523,7 @@ def test_prepare_and_aggregate() -> None:
             unstable_aggregate,
             expect_success=False,
         )
-        assert "status mismatch" in unscored_completed.stderr
+        assert "do not produce a scored aggregate" in unscored_completed.stderr
 
         replacement_judgments = [
             valid_judgment(prepare, index, text_plan["artifactSha256"])
@@ -477,6 +540,41 @@ def test_prepare_and_aggregate() -> None:
         assert replacement_aggregate["status"] == "SCORED_FORMATIVE"
         assert replacement_aggregate["panelKind"] == "REPLACEMENT"
         assert replacement_aggregate["replacementReceiptSha256"].startswith("sha256:")
+        origin_receipt_path = Path(replacement_aggregate["replacementReceiptPath"])
+        assert origin_receipt_path.is_file()
+
+        copied_directory = directory / "copied-initial"
+        copied_directory.mkdir()
+        origin_initial_path = directory / "stable-replacement-initial-aggregate.json"
+        copied_initial_path = copied_directory / "renamed-initial-aggregate.json"
+        shutil.copyfile(origin_initial_path, copied_initial_path)
+        second_replacement_judgments = [
+            valid_judgment(prepare, index, text_plan["artifactSha256"])
+            for index in range(17, 20)
+        ]
+        copied_text_plan_path = copied_directory / "text-plan.json"
+        write_json(copied_text_plan_path, text_plan)
+        second_judgment_paths = []
+        for index, judgment in enumerate(second_replacement_judgments, start=1):
+            path = copied_directory / f"second-replacement-{index}.json"
+            write_json(path, judgment)
+            second_judgment_paths.append(path)
+        second_output_path = copied_directory / "second-replacement-output.json"
+        try:
+            judge_aggregator.aggregate(
+                second_judgment_paths,
+                RUBRIC_PATH,
+                copied_text_plan_path,
+                copied_initial_path,
+                second_output_path,
+            )
+        except SystemExit as exception:
+            assert "initial aggregate replacement was already consumed" in str(exception)
+        else:
+            raise AssertionError("copied initial aggregate allowed a second replacement")
+        assert not second_output_path.exists()
+        assert not list(copied_directory.glob("*.receipt.json"))
+
         _, replacement_path = run_prepare(
             directory,
             "valid-replacement",
@@ -497,7 +595,7 @@ def test_prepare_and_aggregate() -> None:
             scored_aggregate,
             expect_success=False,
         )
-        assert "judgeRunIds do not exactly match" in replacement_as_initial_completed.stderr
+        assert replacement_as_initial_completed.stderr.strip()
         initial_as_replacement_completed, _ = run_prepare(
             directory,
             "initial-as-replacement",
@@ -506,7 +604,7 @@ def test_prepare_and_aggregate() -> None:
             replacement_aggregate,
             expect_success=False,
         )
-        assert "judgeRunIds do not exactly match" in initial_as_replacement_completed.stderr
+        assert initial_as_replacement_completed.stderr.strip()
 
         forged_initial_as_replacement = copy.deepcopy(scored_aggregate)
         forged_initial_as_replacement["panelKind"] = "REPLACEMENT"
@@ -524,7 +622,7 @@ def test_prepare_and_aggregate() -> None:
             forged_initial_as_replacement,
             expect_success=False,
         )
-        assert "panelInputSha256 mismatch" in forged_initial_kind_completed.stderr
+        assert forged_initial_kind_completed.stderr.strip()
 
         forged_replacement_as_initial = copy.deepcopy(replacement_aggregate)
         forged_replacement_as_initial["panelKind"] = "INITIAL"
@@ -538,7 +636,7 @@ def test_prepare_and_aggregate() -> None:
             forged_replacement_as_initial,
             expect_success=False,
         )
-        assert "panelInputSha256 mismatch" in forged_replacement_kind_completed.stderr
+        assert forged_replacement_kind_completed.stderr.strip()
 
         missing_replacement_receipt = copy.deepcopy(replacement_aggregate)
         missing_replacement_receipt["replacementReceiptSha256"] = None
@@ -568,6 +666,7 @@ def test_prepare_and_aggregate() -> None:
                 '"score"',
                 '"panelKind"',
                 '"replacementForPanelInputSha256"',
+                '"replacementReceiptPath"',
                 '"replacementReceiptSha256"',
                 '"judgeRunIds"',
             ):

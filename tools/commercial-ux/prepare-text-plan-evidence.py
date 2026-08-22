@@ -5,10 +5,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
-import math
 import re
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 
@@ -18,6 +19,7 @@ JUDGMENT_SCHEMA_PATH = TOOL_DIRECTORY / "text-plan-judge.schema.json"
 VERIFIER_PROMPT_PATH = TOOL_DIRECTORY / "text-plan-evidence-verifier-prompt.template.txt"
 VERIFIER_SCHEMA_PATH = TOOL_DIRECTORY / "text-plan-evidence-verifier.schema.json"
 RUBRIC_PATH = TOOL_DIRECTORY / "rubric.json"
+JUDGE_AGGREGATOR_PATH = TOOL_DIRECTORY / "aggregate-text-plan.py"
 TEXT_PLAN_ENVELOPE_SCHEMA = "gridworks.commercial-ux.text-plan-envelope.v1"
 TEXT_PLAN_ARTIFACT_SCHEMA = "gridworks.commercial-ux.text-plan-input.v1"
 STORY_PART_SCHEMA = "gridworks.commercial.story-part-output.v1"
@@ -25,7 +27,6 @@ JUDGMENT_PROTOCOL = "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-JUDGMENT-v1"
 EVIDENCE_INPUT_SCHEMA = "gridworks.commercial-ux.text-plan-evidence-input.v1"
 EVIDENCE_ENVELOPE_SCHEMA = "gridworks.commercial-ux.text-plan-evidence-envelope.v1"
 EVIDENCE_INPUT_PROTOCOL = "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-EVIDENCE-INPUT-v1"
-AGGREGATE_PROTOCOL = "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-AGGREGATE-v1"
 CAMPAIGN_ID = "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2"
 SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 FORBIDDEN_OBSERVATION_PATTERN = re.compile(
@@ -84,32 +85,6 @@ EXPECTED_SELECTORS = (
     "LONGEST_NIGHT/result/defer",
     "campaign/epilogue",
 )
-AGGREGATE_KEYS = {
-    "protocol",
-    "status",
-    "textPlanProxy",
-    "commercialUXProxy",
-    "officialCommercialUX",
-    "panelKind",
-    "rerunRequired",
-    "panelInputSha256",
-    "replacementForPanelInputSha256",
-    "replacementReceiptSha256",
-    "rubricSha256",
-    "promptTemplateSha256",
-    "judgmentSchemaSha256",
-    "textRaw",
-    "textRawSpread",
-    "disagreementPenalty",
-    "textPlanSha256",
-    "judgeRunIds",
-    "cellScores",
-    "categoryScores",
-    "unstableCells",
-    "blockers",
-}
-
-
 def fail(message: str) -> None:
     raise SystemExit(message)
 
@@ -162,18 +137,16 @@ def file_sha256_identifier(path: Path, label: str) -> str:
     return "sha256:" + hashlib.sha256(content).hexdigest()
 
 
-def finite_number(value: Any, label: str) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        fail(f"{label} must be a finite number")
-    number = float(value)
-    if not math.isfinite(number):
-        fail(f"{label} must be a finite number")
-    return number
-
-
-def canonical_file_object_sha256(path: Path, label: str) -> str:
-    payload = read_object(path, label)
-    return sha256_identifier(payload)
+def load_judge_aggregator() -> ModuleType:
+    spec = importlib.util.spec_from_file_location(
+        "gridworks_commercial_ux_shared_text_plan_aggregator",
+        JUDGE_AGGREGATOR_PATH,
+    )
+    if spec is None or spec.loader is None:
+        fail(f"could not load shared text-plan aggregator: {JUDGE_AGGREGATOR_PATH}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def validate_story_part(part: Any, index: int) -> str:
@@ -410,123 +383,6 @@ def extract_judgment_observations(
     return run_id, observations
 
 
-def validate_scored_aggregate(
-    path: Path,
-    payloads: list[dict[str, Any]],
-    text_plan_sha256: str,
-) -> str:
-    aggregate = read_object(path, "text-plan aggregate")
-    exact_keys(aggregate, AGGREGATE_KEYS, "text-plan aggregate")
-    prompt_template_sha256 = file_sha256_identifier(
-        JUDGE_PROMPT_PATH,
-        "text-plan judge prompt template",
-    )
-    judgment_schema_sha256 = file_sha256_identifier(
-        JUDGMENT_SCHEMA_PATH,
-        "text-plan judgment schema",
-    )
-    rubric_sha256 = canonical_file_object_sha256(RUBRIC_PATH, "text-plan rubric")
-    expected_values = {
-        "protocol": AGGREGATE_PROTOCOL,
-        "status": "SCORED_FORMATIVE",
-        "commercialUXProxy": None,
-        "officialCommercialUX": False,
-        "rerunRequired": False,
-        "textPlanSha256": text_plan_sha256,
-        "rubricSha256": rubric_sha256,
-        "promptTemplateSha256": prompt_template_sha256,
-        "judgmentSchemaSha256": judgment_schema_sha256,
-        "unstableCells": [],
-        "blockers": [],
-    }
-    for field, expected in expected_values.items():
-        if aggregate[field] != expected:
-            fail(
-                f"text-plan aggregate {field} mismatch: "
-                f"expected {expected!r}, got {aggregate[field]!r}"
-            )
-    text_plan_proxy = finite_number(
-        aggregate["textPlanProxy"],
-        "text-plan aggregate textPlanProxy",
-    )
-    text_raw = finite_number(aggregate["textRaw"], "text-plan aggregate textRaw")
-    text_raw_spread = finite_number(
-        aggregate["textRawSpread"],
-        "text-plan aggregate textRawSpread",
-    )
-    disagreement_penalty = finite_number(
-        aggregate["disagreementPenalty"],
-        "text-plan aggregate disagreementPenalty",
-    )
-    if not 0.0 <= text_raw <= 100.0:
-        fail("text-plan aggregate textRaw must be within 0..100")
-    if not 0.0 <= text_raw_spread <= 100.0:
-        fail("text-plan aggregate textRawSpread must be within 0..100")
-    expected_penalty = round(min(8.0, text_raw_spread * 0.20), 4)
-    if disagreement_penalty != expected_penalty:
-        fail(
-            "text-plan aggregate disagreementPenalty mismatch: "
-            f"expected {expected_penalty}, got {disagreement_penalty}"
-        )
-    expected_proxy = round(text_raw - disagreement_penalty, 4)
-    if text_plan_proxy != expected_proxy:
-        fail(
-            "text-plan aggregate textPlanProxy mismatch: "
-            f"expected {expected_proxy}, got {text_plan_proxy}"
-        )
-    if not isinstance(aggregate["cellScores"], dict) or not aggregate["cellScores"]:
-        fail("text-plan aggregate cellScores must be a nonempty object")
-    if not isinstance(aggregate["categoryScores"], dict) or not aggregate["categoryScores"]:
-        fail("text-plan aggregate categoryScores must be a nonempty object")
-
-    run_ids = [payload["judgeRunId"] for payload in payloads]
-    if aggregate["judgeRunIds"] != run_ids:
-        fail(
-            "text-plan aggregate judgeRunIds do not exactly match the supplied judgments: "
-            f"expected {run_ids!r}, got {aggregate['judgeRunIds']!r}"
-        )
-    panel_kind = aggregate["panelKind"]
-    replacement_for_panel_sha256 = aggregate["replacementForPanelInputSha256"]
-    replacement_receipt_sha256 = aggregate["replacementReceiptSha256"]
-    if panel_kind == "INITIAL":
-        if replacement_for_panel_sha256 is not None:
-            fail("INITIAL text-plan aggregate replacementForPanelInputSha256 must be null")
-        if replacement_receipt_sha256 is not None:
-            fail("INITIAL text-plan aggregate replacementReceiptSha256 must be null")
-    elif panel_kind == "REPLACEMENT":
-        for value, label in (
-            (replacement_for_panel_sha256, "replacementForPanelInputSha256"),
-            (replacement_receipt_sha256, "replacementReceiptSha256"),
-        ):
-            if not isinstance(value, str) or SHA256_PATTERN.fullmatch(value) is None:
-                fail(f"REPLACEMENT text-plan aggregate {label} must be a sha256 identifier")
-    else:
-        fail("text-plan aggregate panelKind must be INITIAL or REPLACEMENT")
-
-    panel_payload = {
-        "textPlanSha256": text_plan_sha256,
-        "rubricSha256": rubric_sha256,
-        "promptTemplateSha256": prompt_template_sha256,
-        "judgmentSchemaSha256": judgment_schema_sha256,
-        "panelKind": panel_kind,
-        "replacementForPanelInputSha256": replacement_for_panel_sha256,
-        "judgments": sorted(payloads, key=lambda payload: payload["judgeRunId"]),
-    }
-    computed_panel_sha256 = sha256_identifier(panel_payload)
-    declared_panel_sha256 = aggregate["panelInputSha256"]
-    if (
-        not isinstance(declared_panel_sha256, str)
-        or SHA256_PATTERN.fullmatch(declared_panel_sha256) is None
-    ):
-        fail("text-plan aggregate panelInputSha256 must be a sha256 identifier")
-    if declared_panel_sha256 != computed_panel_sha256:
-        fail(
-            "text-plan aggregate panelInputSha256 mismatch: "
-            f"declared {declared_panel_sha256}, computed {computed_panel_sha256}"
-        )
-    return declared_panel_sha256
-
-
 def build_evidence_envelope(
     artifact: dict[str, Any],
     text_plan_sha256: str,
@@ -594,11 +450,28 @@ def prepare(
     run_ids = [row[0] for row in extracted]
     if len(set(run_ids)) != 3:
         fail("the three judgments must have distinct judgeRunId values")
-    judge_panel_input_sha256 = validate_scored_aggregate(
-        aggregate_path,
-        payloads,
-        text_plan_sha256,
+    judge_aggregator = load_judge_aggregator()
+    verify_existing = getattr(
+        judge_aggregator,
+        "verify_existing_scored_aggregate",
+        None,
     )
+    if not callable(verify_existing):
+        fail("shared text-plan aggregator has no verify_existing_scored_aggregate")
+    verified_aggregate = verify_existing(
+        aggregate_path,
+        judgment_paths,
+        RUBRIC_PATH,
+        text_plan_path,
+    )
+    if not isinstance(verified_aggregate, dict):
+        fail("shared text-plan aggregate verifier returned a non-object")
+    judge_panel_input_sha256 = verified_aggregate.get("panelInputSha256")
+    if (
+        not isinstance(judge_panel_input_sha256, str)
+        or SHA256_PATTERN.fullmatch(judge_panel_input_sha256) is None
+    ):
+        fail("verified text-plan aggregate has no valid panelInputSha256")
     return build_evidence_envelope(
         artifact,
         text_plan_sha256,

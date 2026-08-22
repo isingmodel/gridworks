@@ -42,6 +42,31 @@ source, test, 개발자의 해설, 이전 점수, 목표 87과 변경 희망사�
 판정 가능한 journey, tutorial plan, causality, agency, pacing/payoff와 Korean만 형성 평가한다.
 결과 이름은 `TextPlanProxy`이며 **공식 CommercialUXProxy에 합산하지 않는다**.
 
+text-plan도 자유 category 인상을 쓰지 않는다. 실제 matrix에서 텍스트로 판정 가능한 다음 cell만
+같은 비중으로 재사용한다.
+
+| text category | cell과 category 내부 비중 |
+|---|---|
+| journey(12) | `TP-J1 chapter arc(50)`, `TP-J2 results→epilogue→replay closure(50)` |
+| tutorial(13) | `TP-T1 First Light plan(40)`, `TP-T2 Second Heart plan(35)`, `TP-T3 Second Source/withdrawal plan(25)` |
+| causality(13) | `TP-C1 first path(20)`, `TP-C2 corridor(20)`, `TP-C3 source/capacity(20)`, `TP-C4 thermal/flood/maintenance(20)`, `TP-C5 finale result(20)` |
+| agency(10) | `TP-A1 route/cost/time(30)`, `TP-A2 North Bank(25)`, `TP-A3 Whose Margin(25)`, `TP-A4 finale promise(20)` |
+| pacing(8) | `TP-P1 tutorial withdrawal(25)`, `TP-P2 chapters 4–7 escalation(35)`, `TP-P3 finale/epilogue payoff(40)` |
+| Korean(4) | `TP-K1 tutorial/control(35)`, `TP-K2 operation/error/result(35)`, `TP-K3 story/epilogue(30)` |
+
+같은 text artifact를 세 fresh judge가 각각 판정한다. cell별 세 label의 numeric median을 쓰고
+`TextRawSpread`는 cell→category→전체 순서로 최고-최저 label 점수 차이를 같은 weight로 합산한다.
+
+```text
+TextCategoryScore = Sum(textCellWeight * median(three judge scores)) / 100
+TextRaw            = Sum(applicableCategoryWeight * TextCategoryScore) / 60
+TextRawSpread      = Sum(applicableCategoryWeight * weightedTextCellSpread) / 60
+TextPlanProxy      = TextRaw - min(8, TextRawSpread * 0.20)
+```
+
+text cell의 ordinal range가 두 단계 이상이면 세 판정을 한 번 전부 교체 재실행하고 다시 불안정하면
+`TextPlanProxy=null`, `BLOCKED_JUDGE_INSTABILITY`로 기록한다.
+
 ### 2.2 COLD-JOURNEY — 실제 초회 플레이
 
 actor에게 fresh user-data, 기본 1920×1080 UI 100%의 native 앱과 “에필로그까지 플레이하세요”라는
@@ -110,7 +135,9 @@ judge는 각 cell에 다음 label 하나만 선택한다. 숫자나 전체 PASS/
 | `WEAK` | 40 | 외부 힌트/재시작이 필요하거나 되돌리기 어려운 행동 전까지 핵심 mental model이 크게 틀림 |
 | `BROKEN` | 0 | 필요한 affordance·설명·경험이 관찰상 사실상 없거나 사용할 수 없음 |
 
-`MISSING`, `INVALID`, `NOT_OBSERVED`는 0점 label이 아니라 판정 차단 상태다. `EXCELLENT`는 결함을
+`MISSING`, `INVALID`, `NOT_OBSERVED`는 0점 label이 아니라 판정 차단 상태다. 단, 아래 정의처럼 두
+actor 이상에서 검증된 제품 `PLAYER_STALLED`로 이후 cell에 도달하지 못한 경우는
+`NOT_REACHED_BY_PRODUCT`이며 결정론적으로 0점을 부여하고 cap 49를 적용한다. `EXCELLENT`는 결함을
 못 찾았다는 뜻이 아니며 정확한 예측/완료와 구체적인 강점 근거가 모두 있어야 한다. 근거가 부족하면
 최대 `STRONG`이다.
 
@@ -242,19 +269,32 @@ CategoryScore           = Sum(cellWeightWithinCategory * FinalCell) / 100
 RawCommercialUX         = Sum(categoryWeight * CategoryScore) / 100
 ```
 
-judge spread와 actor spread를 각각 cell에서 구하고 같은 cell/category/global weight로 합친다.
+judge spread와 actor spread는 다음 순서로 축약한다.
 
 ```text
-RawSpread = weightedMean(maxJudgeLabelScore-minJudgeLabelScore,
-                         maxActorCellScore-minActorCellScore)
+JudgeSpread(actor, cell) = max(three judge scores) - min(three judge scores)
+ColdJudgeSpread(cell)     = median(three actor JudgeSpread values)
+ActorSpread(cell)         = max(three JudgeCell values) - min(three JudgeCell values)
+ColdCellSpread(cell)      = (ColdJudgeSpread + ActorSpread) / 2
+CoverageCellSpread(cell)  = max(three coverage judge scores) - min(three coverage judge scores)
+FinalCellSpread(cell)     = max(ColdCellSpread, CoverageCellSpread) when both lanes own the cell;
+                            otherwise the assigned lane spread
+RawSpread                 = cell→category→global weighted mean of FinalCellSpread
 DisagreementPenalty = min(8, RawSpread * 0.20)
 PreCapCommercialUX = RawCommercialUX - DisagreementPenalty
 CommercialUXProxy  = min(PreCapCommercialUX, ActiveCap)
 ```
 
-세 actor terminal state가 다르거나 하나만 severe incident를 기록하면 전체 cold journey를 한 번 fresh
-profile로 재실행한다. 다시 다르면 median으로 숨기지 않고 `BLOCKED_JUDGE_INSTABILITY`다. 어느 cell의
-ordinal range가 두 단계 이상이어도 같은 한 번의 재실행 뒤 계속되면 BLOCKED다.
+세 actor terminal state가 다르거나 하나만 severe incident를 기록하거나 어느 cold cell의 judge/actor
+ordinal range가 두 단계 이상이면 **세 cold actor와 세 blind judge의 전체 panel**을 fresh profile에서
+한 번 재실행한다. coverage cell이 불안정하면 전체 coverage recipe와 세 judge를 한 번 재실행한다.
+재실행 결과는 원본과 합치거나 유리한 쪽을 고르지 않고 해당 lane의 집계 입력을 전부 교체하며, 원본은
+invalidated provenance로 보존한다. 교체 panel도 불안정하면 `BLOCKED_JUDGE_INSTABILITY`다.
+
+두 actor 이상이 같은 verified `PLAYER_STALLED` incident로 끝나면 terminal state disagreement가 아니다.
+그 incident 뒤의 required cell은 evidence 누락이 아니라 제품 때문에 도달하지 못한
+`NOT_REACHED_BY_PRODUCT`로 기록하고 고정 0점으로 집계하며 cap 49를 활성화한다. 한 actor만 stall이면
+위 전체-panel 재실행 규칙을 따르고, 재실행 뒤에도 terminal state가 갈리면 BLOCKED다.
 
 ## 11. 결정론적 hard gate
 
@@ -283,7 +323,7 @@ cap은 stable `chapter/window/screen/incidentType` key로 세 actor 중 둘 이�
 
 | cap | verified UX incident |
 |---:|---|
-| 49 | 화면 근거/도움 안에서 필수 목표·개념을 찾지 못해 외부 retrieval 또는 개발자 hint가 필요함; 12-action `UX_STALL` |
+| 49 | 화면 근거/도움 안에서 필수 목표·개념을 찾지 못해 외부 retrieval 또는 개발자 hint가 필요함; 두 actor 이상에서 같은 key로 검증된 12-action `PLAYER_STALLED`/`UX_STALL` |
 | 69 | 오류/실패 뒤 서로 다른 합리적 in-product 행동 3개 후에도 회복 경로를 발견하지 못함 |
 | 79 | result→next, resume orientation, actual/projection, must/promise 또는 thermal state를 승인 전에 반복 혼동함 |
 

@@ -1,0 +1,149 @@
+{
+  "boardSha256": "8878971421eafdcbd59654dc4d68816a343634680221fb1e9eb7a4d35a7d72e4",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "cells": [
+    {
+      "boardPasteRect": [
+        50,
+        182,
+        460,
+        190
+      ],
+      "cellId": "U01",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        90,
+        0,
+        550,
+        190
+      ]
+    },
+    {
+      "boardPasteRect": [
+        654,
+        137,
+        290,
+        280
+      ],
+      "cellId": "U02",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        1370,
+        80,
+        1660,
+        360
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1178,
+        137,
+        280,
+        280
+      ],
+      "cellId": "U03",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        0,
+        250,
+        280,
+        530
+      ]
+    },
+    {
+      "boardPasteRect": [
+        50,
+        573,
+        460,
+        190
+      ],
+      "cellId": "U04",
+      "reference": "02",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        720,
+        0,
+        1180,
+        190
+      ]
+    },
+    {
+      "boardPasteRect": [
+        654,
+        528,
+        290,
+        280
+      ],
+      "cellId": "U05",
+      "reference": "03",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        1360,
+        100,
+        1650,
+        380
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1173,
+        528,
+        290,
+        280
+      ],
+      "cellId": "U06",
+      "reference": "04",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        1310,
+        70,
+        1600,
+        350
+      ]
+    },
+    {
+      "boardPasteRect": [
+        500,
+        930,
+        600,
+        110
+      ],
+      "cellId": "U07",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        470,
+        850,
+        1070,
+        960
+      ]
+    }
+  ],
+  "pairId": "PAIR-KIT-UI",
+  "protocol": "G3-REFERENCE-PARITY-v2",
+  "referenceOriginalSha256": {
+    "01": "23c9acec1b8026ebcb8eebf329eb6b94201179f8952451aa27a71ab38b7ebedc",
+    "02": "47d4e53b9d9bad74b6afce6311acce023dc3f9642ffd0ea16609d67b6960a630",
+    "03": "f471ac24cbab24d9b1aff89953595d70fc3ccaf4e8c08c442651125ab3c65828",
+    "04": "10908370f3a2d8403e62ce2a97e39b7ba5c43d8eb0e32073f03e5b3521c01092"
+  },
+  "rendering": {
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "retouch": false,
+    "sourcePixelResize": false
+  }
+}

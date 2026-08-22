@@ -33,6 +33,7 @@ internal sealed record CommercialMapPresentation(
     string? SelectedDemandNodeId,
     IReadOnlyList<string> SelectedPathNodeIds,
     IReadOnlyList<string> SelectedPathEdgeIds,
+    IReadOnlyList<IReadOnlyList<string>> ComparisonPathEdgeIds,
     IReadOnlyList<string> ActiveRiskAreaIds,
     IReadOnlyList<CommercialFacilityPresentation> Facilities,
     int ChapterIndex,
@@ -68,12 +69,28 @@ internal sealed partial class CommercialMapView : Control
         ServiceYard,
     }
 
+    private enum AtomicScenerySpriteKind
+    {
+        RubbleBankA,
+        RockSoilTransitionA,
+        ConiferA,
+        ScrubA,
+        OutcropA,
+    }
+
     private enum AtomicSourcePartKind
     {
         MainHall,
         Smokestack,
         TurbineHall,
         BreakerBay,
+    }
+
+    private enum AtomicRiverEnvironmentKind
+    {
+        Conifer,
+        Scrub,
+        Outcrop,
     }
 
     private readonly record struct AtomicCityInstanceSpec(
@@ -90,11 +107,33 @@ internal sealed partial class CommercialMapView : Control
         float MaxSide,
         float Alpha = 0.92f);
 
+    private readonly record struct AtomicSceneryInstanceSpec(
+        AtomicScenerySpriteKind Kind,
+        int XUnit,
+        int YUnit,
+        float MaxSide,
+        float Alpha = 0.72f);
+
     private readonly record struct AtomicSourcePartSpec(
         AtomicSourcePartKind Kind,
         int OffsetXUnit,
         int OffsetYUnit,
         float MaxSide);
+
+    private readonly record struct AtomicIndustrialPartInstanceSpec(
+        AtomicSourcePartKind Kind,
+        int XUnit,
+        int YUnit,
+        float MaxSide,
+        float Alpha = 0.96f);
+
+    private readonly record struct AtomicRiverEnvironmentInstanceSpec(
+        AtomicRiverEnvironmentKind Kind,
+        float Phase,
+        bool LeftSide,
+        float MaxSide,
+        float OutwardOffset,
+        float Alpha = 0.96f);
 
     private static readonly Color Background = Color.FromHtml("071319");
     private static readonly Color Land = Color.FromHtml("142724");
@@ -129,6 +168,12 @@ internal sealed partial class CommercialMapView : Control
     private const float BuildRailGap = 8f;
     private static readonly CoreMapPoint[] ReferenceRiverControlPoints =
     [
+        // Continue beyond the playable rectangle so every supported camera sees
+        // the same persistent river enter and leave the frame instead of a short
+        // isolated pool. These are still authored centerline points; banks, water,
+        // scenery, reflections, and bridges remain separately drawn runtime parts.
+        new(1500, 2900),
+        new(1350, 2400),
         new(1211, 2000),
         new(1250, 1900),
         new(1291, 1833),
@@ -148,15 +193,59 @@ internal sealed partial class CommercialMapView : Control
         new(1310, 500),
     ];
 
+    // Each record places one generated tree, scrub bush, or rock outcrop beside
+    // one bank. The river itself remains authored geometry; no vegetation strip,
+    // shoreline scene, or district raster is baked into these objects.
+    private static readonly AtomicRiverEnvironmentInstanceSpec[]
+        AtomicRiverEnvironmentInstances =
+    [
+        new(AtomicRiverEnvironmentKind.Outcrop, 0.05f, true, 54f, 10f),
+        new(AtomicRiverEnvironmentKind.Scrub, 0.08f, false, 48f, 18f),
+        new(AtomicRiverEnvironmentKind.Conifer, 0.11f, true, 76f, 24f),
+        new(AtomicRiverEnvironmentKind.Scrub, 0.15f, true, 44f, 14f),
+        new(AtomicRiverEnvironmentKind.Outcrop, 0.18f, false, 58f, 11f),
+        new(AtomicRiverEnvironmentKind.Conifer, 0.22f, false, 70f, 25f),
+        new(AtomicRiverEnvironmentKind.Scrub, 0.26f, true, 50f, 17f),
+        new(AtomicRiverEnvironmentKind.Outcrop, 0.30f, true, 56f, 10f),
+        new(AtomicRiverEnvironmentKind.Conifer, 0.34f, false, 82f, 26f),
+        new(AtomicRiverEnvironmentKind.Scrub, 0.38f, false, 42f, 15f),
+        new(AtomicRiverEnvironmentKind.Outcrop, 0.42f, true, 62f, 11f),
+        new(AtomicRiverEnvironmentKind.Conifer, 0.46f, true, 72f, 24f),
+        new(AtomicRiverEnvironmentKind.Scrub, 0.50f, false, 52f, 18f),
+        new(AtomicRiverEnvironmentKind.Outcrop, 0.54f, false, 54f, 10f),
+        new(AtomicRiverEnvironmentKind.Conifer, 0.58f, true, 78f, 27f),
+        new(AtomicRiverEnvironmentKind.Scrub, 0.62f, true, 46f, 16f),
+        new(AtomicRiverEnvironmentKind.Outcrop, 0.66f, false, 60f, 12f),
+        new(AtomicRiverEnvironmentKind.Conifer, 0.70f, false, 74f, 24f),
+        new(AtomicRiverEnvironmentKind.Scrub, 0.74f, true, 50f, 18f),
+        new(AtomicRiverEnvironmentKind.Outcrop, 0.78f, true, 56f, 10f),
+        new(AtomicRiverEnvironmentKind.Conifer, 0.82f, false, 80f, 26f),
+        new(AtomicRiverEnvironmentKind.Scrub, 0.86f, false, 44f, 15f),
+        new(AtomicRiverEnvironmentKind.Outcrop, 0.90f, true, 58f, 11f),
+        new(AtomicRiverEnvironmentKind.Conifer, 0.94f, true, 72f, 24f),
+    ];
+
     // A source terminal is assembled from four independently generated objects.
     // The authored source point remains the gameplay authority; these offsets are
     // presentation-only placement records and never replace the facility footprint.
     private static readonly AtomicSourcePartSpec[] AtomicSourcePartInstances =
     [
-        new(AtomicSourcePartKind.Smokestack, 60, -150, 126f),
-        new(AtomicSourcePartKind.TurbineHall, -170, 70, 142f),
-        new(AtomicSourcePartKind.MainHall, 0, 0, 158f),
-        new(AtomicSourcePartKind.BreakerBay, 190, 110, 88f),
+        new(AtomicSourcePartKind.Smokestack, 60, -150, 145f),
+        new(AtomicSourcePartKind.TurbineHall, -170, 70, 164f),
+        new(AtomicSourcePartKind.MainHall, 0, 0, 182f),
+        new(AtomicSourcePartKind.BreakerBay, 190, 110, 102f),
+    ];
+
+    // One southern works compound assembled at runtime from five independent
+    // functional objects. It remains inside SOUTH_CENTRAL_YARD_BLOCK; there is no
+    // plant/district raster and the authored obstacle remains authoritative.
+    private static readonly AtomicIndustrialPartInstanceSpec[] AtomicIndustrialPartInstances =
+    [
+        new(AtomicSourcePartKind.Smokestack, 1540, 1840, 150f),
+        new(AtomicSourcePartKind.Smokestack, 1650, 1840, 142f),
+        new(AtomicSourcePartKind.TurbineHall, 1570, 1950, 164f),
+        new(AtomicSourcePartKind.MainHall, 1740, 1900, 188f),
+        new(AtomicSourcePartKind.BreakerBay, 1810, 1950, 108f),
     ];
 
     // Step 1 city composition authority. Every record resolves to one PNG that
@@ -217,18 +306,18 @@ internal sealed partial class CommercialMapView : Control
         new(AtomicCitySpriteKind.RetainingWallA, 540, 1600, 90f),
 
         // East block street furniture and retaining edges.
-        new(AtomicCitySpriteKind.StreetLampA, 2680, 620, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 2760, 720, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 2840, 620, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 2920, 720, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 3000, 620, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 3080, 720, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 2700, 880, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 2800, 980, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 2900, 880, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 3000, 980, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 3100, 880, 44f),
-        new(AtomicCitySpriteKind.StreetLampA, 3050, 1010, 44f),
+        new(AtomicCitySpriteKind.StreetLampA, 260, 320, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 560, 340, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 860, 320, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 1760, 320, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2060, 340, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2360, 320, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2660, 340, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2960, 320, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 460, 760, 56f),
+        new(AtomicCitySpriteKind.StreetLampA, 760, 780, 56f),
+        new(AtomicCitySpriteKind.StreetLampA, 2160, 760, 56f),
+        new(AtomicCitySpriteKind.StreetLampA, 2460, 780, 56f),
         new(AtomicCitySpriteKind.RetainingWallA, 2700, 1020, 94f),
         new(AtomicCitySpriteKind.RetainingWallA, 2820, 1020, 94f),
         new(AtomicCitySpriteKind.RetainingWallA, 2940, 1020, 94f),
@@ -236,24 +325,432 @@ internal sealed partial class CommercialMapView : Control
         new(AtomicCitySpriteKind.RetainingWallA, 2680, 760, 90f),
         new(AtomicCitySpriteKind.RetainingWallA, 3120, 840, 90f),
 
-        // Hospital and west-block furniture complete the 80-instance gate.
-        new(AtomicCitySpriteKind.StreetLampA, 2400, 1340, 48f),
-        new(AtomicCitySpriteKind.StreetLampA, 2520, 1320, 48f),
-        new(AtomicCitySpriteKind.StreetLampA, 2660, 1320, 48f),
-        new(AtomicCitySpriteKind.StreetLampA, 2800, 1320, 48f),
-        new(AtomicCitySpriteKind.StreetLampA, 2940, 1320, 48f),
-        new(AtomicCitySpriteKind.StreetLampA, 3020, 1420, 48f),
-        new(AtomicCitySpriteKind.StreetLampA, 3020, 1580, 48f),
-        new(AtomicCitySpriteKind.StreetLampA, 2440, 1720, 48f),
+        // Hospital and west-block furniture complete the original 80-instance gate.
+        new(AtomicCitySpriteKind.StreetLampA, 720, 1160, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 980, 1160, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 1740, 1160, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2020, 1160, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2260, 1180, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 720, 1820, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 980, 1820, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2060, 1820, 58f),
         new(AtomicCitySpriteKind.RetainingWallA, 2500, 1720, 104f),
         new(AtomicCitySpriteKind.RetainingWallA, 2680, 1720, 104f),
         new(AtomicCitySpriteKind.RetainingWallA, 2860, 1720, 104f),
         new(AtomicCitySpriteKind.RetainingWallA, 3000, 1720, 104f),
-        new(AtomicCitySpriteKind.StreetLampA, 120, 1280, 46f),
-        new(AtomicCitySpriteKind.StreetLampA, 260, 1280, 46f),
-        new(AtomicCitySpriteKind.StreetLampA, 420, 1280, 46f),
-        new(AtomicCitySpriteKind.StreetLampA, 580, 1280, 46f),
+        new(AtomicCitySpriteKind.StreetLampA, 120, 1280, 56f),
+        new(AtomicCitySpriteKind.StreetLampA, 260, 1280, 56f),
+        new(AtomicCitySpriteKind.StreetLampA, 420, 1280, 56f),
+        new(AtomicCitySpriteKind.StreetLampA, 580, 1280, 56f),
+
+        // North works: ten individual structures inside NORTH_WORKS_BLOCK.
+        new(AtomicCitySpriteKind.WorkshopA, 1160, 150, 86f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1360, 150, 92f),
+        new(AtomicCitySpriteKind.WorkshopA, 1560, 150, 84f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1760, 150, 92f),
+        new(AtomicCitySpriteKind.WorkshopA, 1960, 150, 86f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1160, 340, 94f),
+        new(AtomicCitySpriteKind.WorkshopA, 1360, 340, 84f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1560, 340, 92f),
+        new(AtomicCitySpriteKind.WorkshopA, 1760, 340, 86f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1960, 340, 94f),
+        new(AtomicCitySpriteKind.WorkshopA, 1260, 245, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1460, 245, 88f),
+        new(AtomicCitySpriteKind.WorkshopA, 1660, 245, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1860, 245, 88f),
+
+        // North-east fringe: eight individually placed homes and shops.
+        new(AtomicCitySpriteKind.WorkerHouseA, 2740, 150, 68f),
+        new(AtomicCitySpriteKind.RowShopA, 2860, 150, 72f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2980, 150, 66f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 3100, 150, 72f),
+        new(AtomicCitySpriteKind.RowShopA, 2740, 350, 72f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2860, 350, 70f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2980, 350, 68f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 3100, 350, 66f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2740, 250, 66f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2860, 250, 68f),
+        new(AtomicCitySpriteKind.RowShopA, 2980, 250, 72f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 3100, 250, 70f),
+
+        // Two compact authored obstacle islands fill the middle distance while
+        // preserving every checker-owned construction corridor around them.
+        new(AtomicCitySpriteKind.WorkshopA, 1450, 720, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1530, 720, 86f),
+        new(AtomicCitySpriteKind.WorkshopA, 1490, 780, 80f),
+        new(AtomicCitySpriteKind.WorkshopA, 120, 800, 84f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 300, 800, 92f),
+        new(AtomicCitySpriteKind.WorkshopA, 480, 800, 84f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 120, 980, 90f),
+        new(AtomicCitySpriteKind.WorkshopA, 300, 980, 84f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 480, 980, 92f),
+
+        // South freight edge: eight individual low industrial structures.
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1940, 1820, 92f),
+        new(AtomicCitySpriteKind.WorkshopA, 2140, 1820, 84f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2340, 1820, 94f),
+        new(AtomicCitySpriteKind.WorkshopA, 2540, 1820, 86f),
+        new(AtomicCitySpriteKind.WorkshopA, 1940, 1950, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2140, 1950, 92f),
+        new(AtomicCitySpriteKind.WorkshopA, 2340, 1950, 84f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2540, 1950, 94f),
+
+        // Roadside furniture is still a list of independent object instances.
+        // It stitches the playable districts into the same occupied industrial
+        // landscape as the references without inventing impassable buildings.
+        new(AtomicCitySpriteKind.StreetLampA, 180, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 420, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 660, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 900, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 1140, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 1380, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 1620, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 1860, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2100, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2340, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2580, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2820, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 3060, 220, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 180, 1900, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 460, 1900, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 740, 1900, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 1020, 1900, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 1860, 1900, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2140, 1900, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2420, 1900, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2700, 1900, 58f),
+        new(AtomicCitySpriteKind.StreetLampA, 2980, 1900, 58f),
+        new(AtomicCitySpriteKind.RetainingWallA, 1040, 260, 90f),
+        new(AtomicCitySpriteKind.RetainingWallA, 1960, 260, 90f),
+
+        // Hospital neighbourhood: individual homes occupy the authored campus
+        // perimeter, leaving the large medical objects readable at its core.
+        new(AtomicCitySpriteKind.WorkerHouseA, 2390, 1320, 76f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2670, 1320, 72f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2840, 1320, 78f),
+        new(AtomicCitySpriteKind.RowShopA, 3010, 1320, 80f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2380, 1450, 78f),
+        new(AtomicCitySpriteKind.RowShopA, 2670, 1470, 80f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2850, 1480, 76f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 3010, 1460, 72f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2360, 1690, 72f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2540, 1690, 76f),
+        new(AtomicCitySpriteKind.RowShopA, 2720, 1690, 80f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2900, 1690, 78f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 3020, 1690, 76f),
+
+        // Extra west-industry sheds close the large gaps between its existing
+        // nine objects while retaining each structure as a separate sprite.
+        new(AtomicCitySpriteKind.WorkshopA, 120, 1260, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 260, 1260, 90f),
+        new(AtomicCitySpriteKind.WorkshopA, 420, 1260, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 580, 1260, 90f),
+        new(AtomicCitySpriteKind.WorkshopA, 100, 1410, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 590, 1420, 90f),
+        new(AtomicCitySpriteKind.WorkshopA, 100, 1570, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 590, 1580, 90f),
+        new(AtomicCitySpriteKind.WorkshopA, 120, 1710, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 270, 1710, 90f),
+        new(AtomicCitySpriteKind.WorkshopA, 440, 1710, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 590, 1710, 90f),
+
+        // Three additional authoritative obstacle islands fill the visible
+        // middle distance. Every entry remains one generated object placement.
+        new(AtomicCitySpriteKind.WorkshopA, 140, 340, 78f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 270, 340, 84f),
+        new(AtomicCitySpriteKind.WorkshopA, 400, 340, 78f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 530, 340, 84f),
+        new(AtomicCitySpriteKind.WorkshopA, 660, 340, 78f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 140, 460, 84f),
+        new(AtomicCitySpriteKind.WorkshopA, 300, 460, 78f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 460, 460, 84f),
+        new(AtomicCitySpriteKind.WorkshopA, 620, 460, 78f),
+        new(AtomicCitySpriteKind.RowShopA, 380, 400, 74f),
+
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2110, 150, 92f),
+        new(AtomicCitySpriteKind.WorkshopA, 2260, 150, 84f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2420, 150, 92f),
+        new(AtomicCitySpriteKind.WorkshopA, 2110, 310, 84f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2260, 310, 92f),
+        new(AtomicCitySpriteKind.WorkshopA, 2420, 310, 84f),
+        new(AtomicCitySpriteKind.RowShopA, 2180, 230, 78f),
+        new(AtomicCitySpriteKind.RowShopA, 2350, 230, 78f),
+
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1550, 1860, 90f),
+        new(AtomicCitySpriteKind.WorkshopA, 1680, 1860, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1810, 1860, 90f),
+        new(AtomicCitySpriteKind.WorkshopA, 1550, 1960, 82f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1680, 1960, 90f),
+        new(AtomicCitySpriteKind.WorkshopA, 1810, 1960, 82f),
+
+        // A compact central-market obstacle block reduces the corridor void
+        // without hiding or moving any authored network node.
+        new(AtomicCitySpriteKind.RowShopA, 1610, 1140, 72f),
+        new(AtomicCitySpriteKind.WorkshopA, 1680, 1140, 74f),
+        new(AtomicCitySpriteKind.RowShopA, 1750, 1140, 72f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1610, 1210, 78f),
+        new(AtomicCitySpriteKind.WorkshopA, 1680, 1210, 72f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1750, 1210, 78f),
+        new(AtomicCitySpriteKind.WorkshopA, 1820, 1110, 74f),
+        new(AtomicCitySpriteKind.RowShopA, 1870, 1110, 72f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1920, 1110, 78f),
+        new(AtomicCitySpriteKind.RowShopA, 1820, 1170, 72f),
+        new(AtomicCitySpriteKind.WorkshopA, 1870, 1170, 74f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1920, 1170, 78f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2460, 720, 74f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2530, 720, 72f),
+        new(AtomicCitySpriteKind.RowShopA, 2600, 720, 76f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2460, 790, 76f),
+        new(AtomicCitySpriteKind.RowShopA, 2530, 790, 76f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2600, 790, 74f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2460, 860, 72f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2530, 860, 76f),
+        new(AtomicCitySpriteKind.RowShopA, 2600, 860, 76f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2490, 900, 72f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2560, 900, 70f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2630, 900, 74f),
+
+        // Infill stays inside existing authoritative obstacle polygons. Each
+        // record is still one generated building object; no cluster raster or
+        // non-blocking fake building is introduced to increase apparent density.
+        new(AtomicCitySpriteKind.WorkshopA, 1435, 685, 58f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1490, 685, 62f),
+        new(AtomicCitySpriteKind.WorkshopA, 1550, 685, 58f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1435, 750, 60f),
+        new(AtomicCitySpriteKind.WorkshopA, 1490, 750, 56f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1550, 750, 60f),
+        new(AtomicCitySpriteKind.WorkshopA, 1435, 790, 54f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1520, 790, 58f),
+        new(AtomicCitySpriteKind.WorkshopA, 1570, 790, 54f),
+
+        new(AtomicCitySpriteKind.WorkshopA, 1120, 95, 68f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1290, 95, 74f),
+        new(AtomicCitySpriteKind.WorkshopA, 1460, 95, 68f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1630, 95, 74f),
+        new(AtomicCitySpriteKind.WorkshopA, 1800, 95, 68f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1970, 95, 74f),
+        new(AtomicCitySpriteKind.WorkshopA, 1200, 285, 68f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1540, 285, 74f),
+        new(AtomicCitySpriteKind.WorkshopA, 1880, 285, 68f),
+
+        new(AtomicCitySpriteKind.WorkerHouseA, 1595, 1115, 54f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 1650, 1115, 52f),
+        new(AtomicCitySpriteKind.RowShopA, 1710, 1115, 56f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 1595, 1195, 56f),
+        new(AtomicCitySpriteKind.RowShopA, 1650, 1195, 56f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 1710, 1195, 54f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 1810, 1090, 52f),
+        new(AtomicCitySpriteKind.RowShopA, 1850, 1090, 54f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 1900, 1090, 54f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 1810, 1175, 52f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 1860, 1175, 52f),
+        new(AtomicCitySpriteKind.RowShopA, 1910, 1175, 54f),
+
+        // Fine-grain infill: every record is one separately rendered building
+        // inside an existing authoritative obstacle polygon. These smaller units
+        // replace the coarse district read with the reference's many-building
+        // urban grain; no record owns a parcel or combined silhouette.
+        new(AtomicCitySpriteKind.WorkerHouseA, 2740, 645, 48f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2820, 645, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2900, 645, 50f),
+        new(AtomicCitySpriteKind.RowShopA, 2980, 645, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 3060, 645, 48f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2740, 735, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2820, 735, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2900, 735, 48f),
+        new(AtomicCitySpriteKind.RowShopA, 2980, 735, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 3060, 735, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2740, 825, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2820, 825, 48f),
+        new(AtomicCitySpriteKind.RowShopA, 2900, 825, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2980, 825, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 3060, 825, 50f),
+        new(AtomicCitySpriteKind.RowShopA, 2740, 915, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2820, 915, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2900, 915, 48f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2980, 915, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 3060, 915, 46f),
+
+        new(AtomicCitySpriteKind.WorkerHouseA, 2400, 1340, 48f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2400, 1440, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2400, 1540, 50f),
+        new(AtomicCitySpriteKind.RowShopA, 2400, 1640, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2400, 1720, 48f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 3000, 1340, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 3000, 1440, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 3000, 1540, 48f),
+        new(AtomicCitySpriteKind.RowShopA, 3000, 1640, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 3000, 1720, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2520, 1710, 48f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2640, 1710, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2760, 1710, 50f),
+        new(AtomicCitySpriteKind.RowShopA, 2880, 1710, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 2700, 1330, 48f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2860, 1330, 50f),
+
+        new(AtomicCitySpriteKind.WorkshopA, 150, 1390, 50f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 290, 1390, 54f),
+        new(AtomicCitySpriteKind.WorkshopA, 430, 1390, 50f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 570, 1390, 54f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 150, 1540, 54f),
+        new(AtomicCitySpriteKind.WorkshopA, 290, 1540, 50f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 430, 1540, 54f),
+        new(AtomicCitySpriteKind.WorkshopA, 570, 1540, 50f),
+        new(AtomicCitySpriteKind.WorkshopA, 150, 1680, 50f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 290, 1680, 54f),
+        new(AtomicCitySpriteKind.WorkshopA, 430, 1680, 50f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 570, 1680, 54f),
+
+        new(AtomicCitySpriteKind.WorkshopA, 1150, 130, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1320, 130, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 1490, 130, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1660, 130, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 1830, 130, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2000, 130, 52f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1150, 310, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 1320, 310, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1490, 310, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 1660, 310, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1830, 310, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 2000, 310, 48f),
+
+        new(AtomicCitySpriteKind.WorkerHouseA, 2760, 110, 48f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2880, 110, 46f),
+        new(AtomicCitySpriteKind.RowShopA, 3000, 110, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 3120, 110, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 2760, 235, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2880, 235, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 3000, 235, 48f),
+        new(AtomicCitySpriteKind.RowShopA, 3120, 235, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseC, 2760, 380, 50f),
+        new(AtomicCitySpriteKind.RowShopA, 2880, 380, 50f),
+        new(AtomicCitySpriteKind.WorkerHouseB, 3000, 380, 46f),
+        new(AtomicCitySpriteKind.WorkerHouseA, 3120, 380, 48f),
+
+        new(AtomicCitySpriteKind.SmallWarehouseA, 1960, 1840, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 2160, 1840, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2360, 1840, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 2560, 1840, 48f),
+        new(AtomicCitySpriteKind.WorkshopA, 1960, 1950, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2160, 1950, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 2360, 1950, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2560, 1950, 52f),
+
+        new(AtomicCitySpriteKind.WorkshopA, 2100, 140, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2200, 140, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 2300, 140, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2400, 140, 52f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2100, 300, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 2200, 300, 48f),
+        new(AtomicCitySpriteKind.SmallWarehouseA, 2300, 300, 52f),
+        new(AtomicCitySpriteKind.WorkshopA, 2400, 300, 48f),
+
     ];
+
+    // Loose rubble is non-blocking scenery. Each record binds one short generated
+    // rock/soil object; no entry owns a parcel, district, or map-sized raster.
+    private static readonly AtomicSceneryInstanceSpec[] AtomicSceneryInstances =
+    [
+        new(AtomicScenerySpriteKind.RubbleBankA, 620, 650, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 780, 700, 38f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 980, 750, 32f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 520, 900, 36f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 700, 980, 30f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 900, 1080, 38f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 520, 1160, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 720, 1200, 36f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 960, 1180, 32f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 1050, 300, 40f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 1260, 430, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 1500, 460, 38f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 1800, 430, 32f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 2050, 400, 38f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 1550, 900, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 1750, 900, 40f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 1950, 900, 32f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 1550, 1040, 38f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 1850, 1050, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 2050, 1080, 40f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 1500, 1300, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 1680, 1320, 38f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 1850, 1370, 32f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 2050, 1400, 40f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 650, 1750, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 820, 1820, 38f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 1000, 1880, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 1550, 1750, 40f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 1720, 1780, 32f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 1880, 1720, 38f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 2050, 1750, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 2200, 1800, 40f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 2500, 1100, 32f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 2750, 1150, 38f),
+        new(AtomicScenerySpriteKind.RubbleBankA, 3000, 1200, 34f),
+        new(AtomicScenerySpriteKind.RockSoilTransitionA, 2300, 1000, 40f),
+        // Outer terrain relief uses separate generated environment objects. They
+        // occupy the sparse regional margins without becoming collision geometry.
+        new(AtomicScenerySpriteKind.OutcropA, 180, 180, 66f, 0.92f),
+        new(AtomicScenerySpriteKind.ScrubA, 420, 120, 46f, 0.88f),
+        new(AtomicScenerySpriteKind.ConiferA, 720, 110, 70f, 0.88f),
+        new(AtomicScenerySpriteKind.OutcropA, 980, 90, 62f, 0.90f),
+        new(AtomicScenerySpriteKind.ScrubA, 2220, 100, 48f, 0.88f),
+        new(AtomicScenerySpriteKind.ConiferA, 2480, 90, 74f, 0.88f),
+        new(AtomicScenerySpriteKind.OutcropA, 2780, 110, 68f, 0.92f),
+        new(AtomicScenerySpriteKind.ScrubA, 3100, 180, 46f, 0.88f),
+        new(AtomicScenerySpriteKind.ConiferA, 70, 460, 72f, 0.88f),
+        new(AtomicScenerySpriteKind.OutcropA, 100, 720, 64f, 0.92f),
+        new(AtomicScenerySpriteKind.ScrubA, 80, 980, 48f, 0.88f),
+        new(AtomicScenerySpriteKind.ConiferA, 70, 1880, 76f, 0.88f),
+        new(AtomicScenerySpriteKind.OutcropA, 330, 1940, 70f, 0.92f),
+        new(AtomicScenerySpriteKind.ScrubA, 650, 1960, 48f, 0.88f),
+        new(AtomicScenerySpriteKind.ConiferA, 920, 1940, 72f, 0.88f),
+        new(AtomicScenerySpriteKind.OutcropA, 1220, 1970, 64f, 0.92f),
+        new(AtomicScenerySpriteKind.ScrubA, 2080, 1960, 48f, 0.88f),
+        new(AtomicScenerySpriteKind.ConiferA, 2380, 1940, 74f, 0.88f),
+        new(AtomicScenerySpriteKind.OutcropA, 2680, 1960, 68f, 0.92f),
+        new(AtomicScenerySpriteKind.ScrubA, 3020, 1940, 46f, 0.88f),
+        new(AtomicScenerySpriteKind.ConiferA, 3160, 460, 72f, 0.88f),
+        new(AtomicScenerySpriteKind.OutcropA, 3140, 760, 66f, 0.92f),
+        new(AtomicScenerySpriteKind.ScrubA, 3160, 1060, 48f, 0.88f),
+        new(AtomicScenerySpriteKind.ConiferA, 3150, 1840, 74f, 0.88f),
+        new(AtomicScenerySpriteKind.OutcropA, 740, 430, 58f, 0.90f),
+        new(AtomicScenerySpriteKind.ScrubA, 930, 520, 44f, 0.86f),
+        new(AtomicScenerySpriteKind.ConiferA, 2120, 520, 66f, 0.86f),
+        new(AtomicScenerySpriteKind.OutcropA, 2280, 660, 60f, 0.90f),
+        new(AtomicScenerySpriteKind.ScrubA, 720, 1460, 46f, 0.86f),
+        new(AtomicScenerySpriteKind.OutcropA, 1020, 1600, 62f, 0.90f),
+        new(AtomicScenerySpriteKind.ConiferA, 2030, 1510, 68f, 0.86f),
+        new(AtomicScenerySpriteKind.ScrubA, 2260, 1640, 46f, 0.86f),
+        new(AtomicScenerySpriteKind.OutcropA, 1160, 620, 58f, 0.90f),
+        new(AtomicScenerySpriteKind.ScrubA, 1380, 610, 44f, 0.86f),
+        new(AtomicScenerySpriteKind.OutcropA, 1880, 620, 60f, 0.90f),
+        new(AtomicScenerySpriteKind.ScrubA, 2080, 700, 46f, 0.86f),
+        .. BuildReferenceRubbleField(),
+    ];
+
+    private static AtomicSceneryInstanceSpec[] BuildReferenceRubbleField()
+    {
+        // Ninety explicit runtime placements made from two short, individually
+        // generated terrain objects. The deterministic field supplies the dense
+        // broken-soil detail visible between reference districts without creating
+        // a baked corridor, parcel, district, or collision-bearing fake building.
+        var instances = new List<AtomicSceneryInstanceSpec>(90);
+        for (int row = 0; row < 9; row++)
+        {
+            for (int column = 0; column < 10; column++)
+            {
+                int x = 500 + (column * 180) + ((row & 1) * 70);
+                int y = 360 + (row * 170) + (((column * 37) + (row * 19)) % 54);
+                AtomicScenerySpriteKind kind = ((column + (row * 2)) & 1) == 0
+                    ? AtomicScenerySpriteKind.RubbleBankA
+                    : AtomicScenerySpriteKind.RockSoilTransitionA;
+                float maxSide = 40f + (((column * 5) + (row * 3)) % 5 * 4f);
+                float alpha = 0.76f + (((column + row) % 3) * 0.05f);
+                instances.Add(new AtomicSceneryInstanceSpec(kind, x, y, maxSide, alpha));
+            }
+        }
+        return instances.ToArray();
+    }
 
     private static readonly AtomicRoadInstanceSpec[] AtomicRoadInstances =
     [
@@ -297,6 +794,86 @@ internal sealed partial class CommercialMapView : Control
         new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 1800, 1000, 164f),
         new(AtomicRoadSpriteKind.CrossJunction, 2000, 1100, 168f),
         new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 2200, 1200, 164f),
+
+        // Continuous arterial fabric: every entry is one separately bound tile.
+        // Water is rendered above these tiles and the two road crossings are then
+        // restored by individual bridge objects at the authored foundations.
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 160, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 380, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 600, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 820, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1040, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1260, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1480, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1700, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1920, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 2140, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 2360, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 2580, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 2800, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 3020, 260, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 160, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 380, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 600, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 820, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1040, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1260, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1480, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1700, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1920, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 2140, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 2360, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 2580, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 2800, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 3020, 520, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 420, 760, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 420, 980, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 420, 1200, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 420, 1420, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 420, 1640, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 420, 1860, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 920, 780, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 920, 1000, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 920, 1220, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 920, 1440, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 920, 1660, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 2200, 360, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 2200, 580, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 2200, 800, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 2200, 1020, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 2200, 1240, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 2200, 1680, 146f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 2200, 1900, 146f),
+        new(AtomicRoadSpriteKind.CrossJunction, 420, 520, 150f),
+        new(AtomicRoadSpriteKind.CrossJunction, 920, 520, 150f),
+        new(AtomicRoadSpriteKind.CrossJunction, 2200, 520, 150f),
+
+        // Central service fabric is assembled from individual road tiles. Water
+        // masks the pieces that pass below the channel, and the separate bridge
+        // objects restore only the authored crossings above it.
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1100, 780, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1320, 780, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1540, 780, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1760, 780, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1980, 780, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1100, 1040, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1320, 1040, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1540, 1040, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1760, 1040, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1980, 1040, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1050, 1320, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1270, 1320, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1490, 1320, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1710, 1320, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthWestSouthEast, 1930, 1320, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 1160, 700, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 1160, 920, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 1160, 1140, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 1160, 1360, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 1850, 700, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 1850, 920, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 1850, 1140, 142f),
+        new(AtomicRoadSpriteKind.StraightNorthEastSouthWest, 1850, 1360, 142f),
     ];
 
     [Export]
@@ -361,6 +938,9 @@ internal sealed partial class CommercialMapView : Control
 
     [Export]
     public Texture2D? IndustrialRoadBridgeASprite { get; set; }
+
+    [Export]
+    public Texture2D? IndustrialRoadBridgeBSprite { get; set; }
 
     [Export]
     public Texture2D? AtomicPlantMainHallASprite { get; set; }
@@ -453,7 +1033,19 @@ internal sealed partial class CommercialMapView : Control
     public Texture2D? RiverFloodRippleASprite { get; set; }
 
     [Export]
+    public Texture2D? RiverBankConiferASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverBankScrubASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverBankOutcropASprite { get; set; }
+
+    [Export]
     public Texture2D? UiChromeFrameTexture { get; set; }
+
+    [Export]
+    public Texture2D? UiToolSlotTexture { get; set; }
 
     private CommercialMapPresentation? _presentation;
     private CommercialMapTransform? _transform;
@@ -520,6 +1112,7 @@ internal sealed partial class CommercialMapView : Control
     public bool HasIndividualObjectAssets =>
         HasAtomicGridAssets &&
         IndustrialRoadBridgeASprite is not null &&
+        IndustrialRoadBridgeBSprite is not null &&
         G3RiverBankRockSegmentASprite is not null &&
         G3RiverBankInnerBendASprite is not null &&
         G3RiverBankOuterBendASprite is not null &&
@@ -533,6 +1126,9 @@ internal sealed partial class CommercialMapView : Control
         RiverRockSoilTransitionASprite is not null &&
         RiverCurrentReflectionASprite is not null &&
         RiverFloodRippleASprite is not null &&
+        RiverBankConiferASprite is not null &&
+        RiverBankScrubASprite is not null &&
+        RiverBankOutcropASprite is not null &&
         HasAtomicCityAssets;
 
     public bool HasAtomicCityAssets =>
@@ -573,11 +1169,20 @@ internal sealed partial class CommercialMapView : Control
 
     public int AtomicSourcePartInstanceCount => AtomicSourcePartInstances.Length;
 
+    public int AtomicIndustrialPartInstanceCount => AtomicIndustrialPartInstances.Length;
+
     public int AtomicCityInstanceCount => AtomicCityInstances.Length;
 
     public int AtomicRoadInstanceCount => AtomicRoadInstances.Length;
 
-    public int AtomicWorldInstanceCount => AtomicCityInstanceCount + AtomicRoadInstanceCount;
+    public int AtomicSceneryInstanceCount => AtomicSceneryInstances.Length;
+
+    public int AtomicRiverEnvironmentInstanceCount =>
+        AtomicRiverEnvironmentInstances.Length;
+
+    public int AtomicWorldInstanceCount =>
+        AtomicCityInstanceCount + AtomicRoadInstanceCount + AtomicSceneryInstanceCount +
+        AtomicIndustrialPartInstanceCount + AtomicRiverEnvironmentInstanceCount;
 
     public int IndividualArtAssetCount =>
         IndividualTileAssetCount + IndividualObjectAssetCount;
@@ -630,6 +1235,7 @@ internal sealed partial class CommercialMapView : Control
             AtomicReinforcedPoleASprite,
             AtomicBridgeFoundationASprite,
             IndustrialRoadBridgeASprite,
+            IndustrialRoadBridgeBSprite,
             AtomicPlantMainHallASprite,
             AtomicPlantSmokestackASprite,
             AtomicPlantTurbineHallASprite,
@@ -648,6 +1254,9 @@ internal sealed partial class CommercialMapView : Control
             RiverRockSoilTransitionASprite,
             RiverCurrentReflectionASprite,
             RiverFloodRippleASprite,
+            RiverBankConiferASprite,
+            RiverBankScrubASprite,
+            RiverBankOutcropASprite,
             AtomicWorkerHouseASprite,
             AtomicWorkerHouseBSprite,
             AtomicWorkerHouseCSprite,
@@ -747,6 +1356,14 @@ internal sealed partial class CommercialMapView : Control
                 "표현 smoke chapter override에는 현재 map presentation이 필요합니다.");
         }
         _presentation = _presentation with { ChapterIndex = chapterIndex };
+        QueueRedraw();
+    }
+
+    internal void SetCameraForSmoke(Vector2 center, int zoomIndex)
+    {
+        RequireTransform().SetViewForSmoke(center, zoomIndex);
+        RefreshCandidates(notify: true);
+        CameraChanged?.Invoke();
         QueueRedraw();
     }
 #endif
@@ -889,17 +1506,30 @@ internal sealed partial class CommercialMapView : Control
         DrawRubbleMaterialPatches();
         DrawRoadFabric();
         DrawAtomicRoadTiles();
+        DrawAtomicScenery();
+        DrawChapterGroundState(_presentation.ChapterIndex);
         // Water belongs below the physical district/object layer. Drawing it after
         // the city made the channel read as a flat blue UI ribbon laid over roofs.
         DrawWaterTerrain(snapshot.World);
         DrawTerrain(snapshot.World);
         DrawAtomicCity();
-        DrawRiskAreas(snapshot.World, _presentation.ActiveRiskAreaIds);
+        DrawAtomicIndustrialParts();
+        // Mission 2 is an explicit two-route comparison. Keep the authored cut
+        // facts in the inspector, but do not lay the large diagnostic risk mask
+        // over both alternatives; it destroys the reference's clean A/B read.
+        if (_presentation.ChapterIndex != 1)
+        {
+            DrawRiskAreas(snapshot.World, _presentation.ActiveRiskAreaIds);
+        }
         DrawChapterAtmosphere(_presentation.ChapterIndex, _presentation.ReduceMotion);
         DrawReservedRouteCorridor(snapshot.World);
         DrawEdges(snapshot.World, _presentation.ThermalInterval);
+        DrawComparisonPaths(snapshot.World, _presentation);
         DrawSelectedDemandPath(snapshot.World, _presentation);
-        DrawUnavailableMarks(snapshot.World, _presentation.ThermalInterval);
+        if (_presentation.ChapterIndex is not 1 and not 5)
+        {
+            DrawUnavailableMarks(snapshot.World, _presentation.ThermalInterval);
+        }
         DrawLineDraft(snapshot);
         DrawNodes(
             snapshot.World,
@@ -1104,14 +1734,17 @@ internal sealed partial class CommercialMapView : Control
             G3GroundRubbleMixBTile ?? GroundAsphaltTile;
         if (ground is not null)
         {
+            bool heat = _presentation?.ChapterIndex == 4;
             DrawTextureRectRegion(
                 ground,
                 new Rect2(Vector2.Zero, Size),
                 new Rect2(Vector2.Zero, Size * 1.72f),
-                new Color(0.76f, 0.72f, 0.66f, 1f));
+                heat
+                    ? new Color(0.98f, 0.77f, 0.55f, 1f)
+                    : new Color(0.88f, 0.83f, 0.75f, 1f));
             DrawRect(
                 new Rect2(Vector2.Zero, Size),
-                new Color(Color.FromHtml("10100f"), 0.08f));
+                new Color(Color.FromHtml("10100f"), heat ? 0.04f : 0.08f));
         }
         else
         {
@@ -1128,10 +1761,14 @@ internal sealed partial class CommercialMapView : Control
         }
         (int MinX, int MinY, int MaxX, int MaxY, float Alpha)[] patches =
         [
-            (820, 520, 1540, 1080, 0.17f),
-            (1020, 1080, 1740, 1680, 0.14f),
-            (420, 1120, 1040, 1780, 0.12f),
+            (180, 180, 1040, 720, 0.20f),
+            (820, 260, 1780, 1080, 0.22f),
+            (1540, 180, 2500, 900, 0.18f),
+            (1020, 1080, 1740, 1680, 0.19f),
+            (420, 1120, 1040, 1780, 0.17f),
+            (1880, 980, 2920, 1860, 0.16f),
         ];
+        bool heat = _presentation?.ChapterIndex == 4;
         foreach ((int minX, int minY, int maxX, int maxY, float alpha) in patches)
         {
             DrawWorldQuadTexture(
@@ -1140,7 +1777,11 @@ internal sealed partial class CommercialMapView : Control
                 minY,
                 maxX,
                 maxY,
-                new Color(0.84f, 0.76f, 0.62f, alpha));
+                new Color(
+                    heat ? 0.96f : 0.84f,
+                    heat ? 0.68f : 0.76f,
+                    heat ? 0.42f : 0.62f,
+                    heat ? alpha * 1.55f : alpha));
         }
     }
 
@@ -1200,12 +1841,12 @@ internal sealed partial class CommercialMapView : Control
                 minY,
                 maxX,
                 maxY,
-                new Color(0.70f, 0.66f, 0.59f, 0.34f));
+                new Color(0.94f, 0.88f, 0.78f, 0.68f));
             Vector2[] road = WorldQuad(minX, minY, maxX, maxY);
             DrawPolyline(
                 road.Append(road[0]).ToArray(),
-                new Color(Color.FromHtml("887865"), 0.08f),
-                0.8f,
+                new Color(Color.FromHtml("c0a783"), 0.26f),
+                1.35f,
                 true);
         }
     }
@@ -1256,12 +1897,26 @@ internal sealed partial class CommercialMapView : Control
         {
             0 => new Color(Color.FromHtml("304b59"), 0.12f),
             3 => new Color(Color.FromHtml("855f38"), 0.08f),
-            4 => new Color(Color.FromHtml("ba6c3e"), 0.10f),
+            4 => new Color(Color.FromHtml("ba6c3e"), 0.22f),
             5 => new Color(Color.FromHtml("264a62"), 0.16f),
             7 => new Color(Color.FromHtml("1b2851"), 0.20f),
             _ => new Color(Color.FromHtml("31564f"), 0.06f),
         };
         DrawRect(new Rect2(Vector2.Zero, Size), tint);
+
+        if (index == 4)
+        {
+            // Heat is a world state, not only a header label. A fixed upper-right
+            // glare keeps the same authored map readable while matching the hot,
+            // low-angle light language of the reference. These translucent discs
+            // are presentation lighting; every building, river segment, and route
+            // remains an independently drawn runtime object underneath.
+            Vector2 sun = new(Size.X * 0.58f, Math.Max(104f, Size.Y * 0.14f));
+            DrawCircle(sun, 290f, new Color(Color.FromHtml("e8a35a"), 0.040f));
+            DrawCircle(sun, 195f, new Color(Color.FromHtml("f0b768"), 0.060f));
+            DrawCircle(sun, 112f, new Color(Color.FromHtml("ffd38a"), 0.092f));
+            DrawCircle(sun, 32f, new Color(Color.FromHtml("fff1c2"), 0.78f));
+        }
 
         if (index is 5 or 7)
         {
@@ -1459,12 +2114,129 @@ internal sealed partial class CommercialMapView : Control
             Vector2 center = ToCanvas(new CoreMapPoint(instance.XUnit, instance.YUnit));
             Vector2 size = FitSpriteSize(
                 texture,
-                instance.MaxSide * (1f + (ZoomIndex * 0.08f)));
+                instance.MaxSide * 0.82f * (1f + (ZoomIndex * 0.08f)));
             DrawTextureRect(
                 texture,
                 new Rect2(center - (size * 0.5f), size),
                 false,
-                new Color(0.74f, 0.72f, 0.68f, instance.Alpha));
+                new Color(0.94f, 0.88f, 0.78f, instance.Alpha * 0.78f));
+        }
+    }
+
+    private Texture2D? AtomicSceneryTexture(AtomicScenerySpriteKind kind) => kind switch
+    {
+        AtomicScenerySpriteKind.RubbleBankA => G3RiverBankRockSegmentASprite,
+        AtomicScenerySpriteKind.RockSoilTransitionA => RiverRockSoilTransitionASprite,
+        AtomicScenerySpriteKind.ConiferA => RiverBankConiferASprite,
+        AtomicScenerySpriteKind.ScrubA => RiverBankScrubASprite,
+        AtomicScenerySpriteKind.OutcropA => RiverBankOutcropASprite,
+        _ => null,
+    };
+
+    private void DrawAtomicScenery()
+    {
+        foreach (AtomicSceneryInstanceSpec instance in AtomicSceneryInstances
+            .OrderBy(item => ToCanvas(new CoreMapPoint(item.XUnit, item.YUnit)).Y)
+            .ThenBy(item => ToCanvas(new CoreMapPoint(item.XUnit, item.YUnit)).X)
+            .ThenBy(item => item.Kind))
+        {
+            Texture2D? texture = AtomicSceneryTexture(instance.Kind);
+            if (texture is null)
+            {
+                continue;
+            }
+            Vector2 center = ToCanvas(new CoreMapPoint(instance.XUnit, instance.YUnit));
+            Vector2 size = FitSpriteSize(texture, instance.MaxSide * 1.65f);
+            DrawTextureRect(
+                texture,
+                SpriteRect(center, size),
+                false,
+                new Color(0.84f, 0.78f, 0.67f, instance.Alpha));
+        }
+    }
+
+    private void DrawChapterGroundState(int chapterIndex)
+    {
+        Texture2D? rubble = G3GroundRubbleReliefCTile ?? G3GroundRubbleMixBTile;
+        if (chapterIndex == 2)
+        {
+            // Siting exposes a surveyed field between persistent city masses.
+            // This is a runtime ground treatment; all separately placed solid
+            // buildings are drawn afterward and remain intact.
+            if (rubble is not null)
+            {
+                DrawWorldQuadTexture(
+                    rubble,
+                    1180,
+                    580,
+                    2240,
+                    1420,
+                    new Color(0.82f, 0.72f, 0.55f, 0.72f));
+            }
+            Vector2[] reserve = WorldQuad(1180, 580, 2240, 1420);
+            DrawPolyline(
+                reserve.Append(reserve[0]).ToArray(),
+                new Color(Planned, 0.26f),
+                1.2f,
+                true);
+            return;
+        }
+        if (chapterIndex != 4)
+        {
+            return;
+        }
+
+        if (rubble is not null)
+        {
+            // Heat deposits a dusty, granular basin over the central service
+            // fabric while leaving authoritative solid objects visible.
+            DrawWorldQuadTexture(
+                rubble,
+                1020,
+                600,
+                2120,
+                1480,
+                new Color(0.96f, 0.65f, 0.37f, 0.58f));
+        }
+
+        // Heat changes the ground material itself. These deterministic crack
+        // branches are drawn below water and buildings, so the same assembled
+        // world reads as desiccated rather than as a uniformly tinted screenshot.
+        for (int row = 0; row < 8; row++)
+        {
+            for (int column = 0; column < 12; column++)
+            {
+                int x = 180 + (column * 265) + ((row & 1) * 75);
+                int y = 180 + (row * 235) + (((column * 41) + (row * 23)) % 86);
+                Vector2 center = ToCanvas(new CoreMapPoint(x, y));
+                float length = 9f + (((column * 3) + row) % 5 * 2.2f);
+                float angle = -0.92f + (((column + (row * 2)) % 7) * 0.23f);
+                Vector2 trunk = Vector2.FromAngle(angle) * length;
+                DrawLine(
+                    center - trunk,
+                    center + trunk,
+                    new Color(Color.FromHtml("17130f"), 0.56f),
+                    2.2f,
+                    true);
+                DrawLine(
+                    center - trunk,
+                    center + trunk,
+                    new Color(Color.FromHtml("b47a43"), 0.30f),
+                    0.8f,
+                    true);
+                Vector2 branchStart = center + (trunk * 0.14f);
+                for (int branch = -1; branch <= 1; branch += 2)
+                {
+                    Vector2 branchVector = Vector2.FromAngle(angle + (branch * 0.82f)) *
+                        (length * 0.62f);
+                    DrawLine(
+                        branchStart,
+                        branchStart + branchVector,
+                        new Color(Color.FromHtml("1a1510"), 0.48f),
+                        1.5f,
+                        true);
+                }
+            }
         }
     }
 
@@ -1480,27 +2252,99 @@ internal sealed partial class CommercialMapView : Control
             {
                 continue;
             }
+            bool heavyIndustrialDistrict =
+                (instance.XUnit <= 650 && instance.YUnit is >= 1230 and <= 1750) ||
+                (instance.XUnit is >= 1500 and <= 1840 && instance.YUnit >= 1810);
+            bool denseEasternDistrict =
+                instance.XUnit >= 2340 && instance.YUnit is >= 560 and <= 1760;
+            bool centralInfillDistrict =
+                instance.XUnit is >= 1400 and <= 1980 &&
+                instance.YUnit is >= 650 and <= 1250;
+            float districtMassScale = heavyIndustrialDistrict
+                ? 1.42f
+                : denseEasternDistrict ? 1.05f
+                : centralInfillDistrict ? 1.05f : 1f;
+            if (_presentation?.ChapterIndex == 1 && centralInfillDistrict)
+            {
+                // Route comparison needs a readable open decision corridor between
+                // two occupied edges. The buildings remain individual objects and
+                // present in the persistent world; only this mission's overview
+                // scale is reduced so the A/B routes are not buried underneath.
+                districtMassScale = 0.82f;
+            }
             Vector2 size = FitSpriteSize(
                 texture,
-                instance.MaxSide * (1f + (ZoomIndex * 0.10f)));
+                instance.MaxSide * 0.98f * districtMassScale *
+                    (1f + (ZoomIndex * 0.10f)));
             Color modulate = instance.Kind switch
             {
                 AtomicCitySpriteKind.HospitalMainA =>
-                    new Color(0.90f, 0.90f, 0.86f, instance.Alpha),
+                    new Color(0.98f, 0.96f, 0.90f, instance.Alpha),
                 AtomicCitySpriteKind.WaterTankA =>
-                    new Color(0.80f, 0.82f, 0.80f, instance.Alpha),
+                    new Color(0.90f, 0.89f, 0.84f, instance.Alpha),
                 AtomicCitySpriteKind.StreetLampA =>
-                    new Color(0.86f, 0.82f, 0.72f, instance.Alpha),
-                _ => new Color(0.80f, 0.78f, 0.73f, instance.Alpha),
+                    new Color(1.00f, 0.94f, 0.76f, instance.Alpha),
+                _ => new Color(0.92f, 0.87f, 0.79f, instance.Alpha),
             };
+            if (_presentation?.ChapterIndex == 4 &&
+                instance.Kind != AtomicCitySpriteKind.StreetLampA)
+            {
+                modulate = new Color(
+                    modulate.R * 0.84f,
+                    modulate.G * 0.76f,
+                    modulate.B * 0.66f,
+                    modulate.A);
+            }
+            Vector2 center = ToCanvas(new CoreMapPoint(instance.XUnit, instance.YUnit));
+            DrawSpriteGroundShadow(center, size);
             DrawTextureRect(
                 texture,
                 SpriteRect(
-                    ToCanvas(new CoreMapPoint(instance.XUnit, instance.YUnit)),
+                    center,
                     size),
                 false,
                 modulate);
         }
+    }
+
+    private void DrawAtomicIndustrialParts()
+    {
+        foreach (AtomicIndustrialPartInstanceSpec instance in AtomicIndustrialPartInstances
+            .OrderBy(item => ToCanvas(new CoreMapPoint(item.XUnit, item.YUnit)).Y)
+            .ThenBy(item => ToCanvas(new CoreMapPoint(item.XUnit, item.YUnit)).X)
+            .ThenBy(item => item.Kind))
+        {
+            Texture2D? texture = AtomicSourcePartTexture(instance.Kind);
+            if (texture is null)
+            {
+                continue;
+            }
+            Vector2 center = ToCanvas(new CoreMapPoint(instance.XUnit, instance.YUnit));
+            float industrialScale = _presentation?.ChapterIndex == 2 ? 1.24f : 0.92f;
+            Vector2 size = FitSpriteSize(
+                texture,
+                instance.MaxSide * industrialScale * (1f + (ZoomIndex * 0.08f)));
+            DrawSpriteGroundShadow(center, size);
+            DrawTextureRect(
+                texture,
+                SpriteRect(center, size),
+                false,
+                new Color(0.90f, 0.86f, 0.78f, instance.Alpha));
+        }
+    }
+
+    private void DrawSpriteGroundShadow(Vector2 groundAnchor, Vector2 spriteSize)
+    {
+        float halfWidth = Math.Clamp(spriteSize.X * 0.36f, 7f, 54f);
+        float halfDepth = Math.Clamp(spriteSize.Y * 0.10f, 3f, 14f);
+        Vector2[] shadow =
+        [
+            groundAnchor + new Vector2(-halfWidth, 0f),
+            groundAnchor + new Vector2(0f, -halfDepth),
+            groundAnchor + new Vector2(halfWidth, 0f),
+            groundAnchor + new Vector2(0f, halfDepth),
+        ];
+        DrawColoredPolygon(shadow, new Color(0f, 0f, 0f, 0.34f));
     }
 
     private void DrawRiverTerrain(
@@ -1525,8 +2369,8 @@ internal sealed partial class CommercialMapView : Control
             // world space so zoom, pan, hit testing, and every chapter remain one map.
             Vector2[] centerline = SmoothOpenPolyline(
                 ReferenceRiverControlPoints.Select(ToCanvas).ToArray(),
-                8);
-            centerline = RuggedOpenPolyline(centerline, 3.8f, 0.7f);
+                12);
+            centerline = RuggedOpenPolyline(centerline, 1.65f, 0.7f);
             (leftBank, rightBankAscending) = BuildSingleRiverBanks(centerline, chapter);
         }
         else
@@ -1545,10 +2389,17 @@ internal sealed partial class CommercialMapView : Control
 
         float baseBankInset = chapter switch
         {
-            4 => 0.28f,
-            5 => 0.04f,
-            7 => 0.20f,
-            _ => 0.10f,
+            1 => 0.44f,
+            2 => 0.44f,
+            4 => 0.42f,
+            // Flooding darkens and roughens the same persistent channel. It does
+            // not replace the valley with a hard polygon sheet; wet-bank cues and
+            // reflections carry the state while bridge attachment stays fixed.
+            5 => 0.10f,
+            // The siting reference is the one intentionally broad rural valley;
+            // route and heat views keep the same channel much narrower.
+            7 => 0.25f,
+            _ => 0.44f,
         };
         Vector2[] surfaceLeft = leftBank
             .Select((point, index) => point.Lerp(
@@ -1567,36 +2418,71 @@ internal sealed partial class CommercialMapView : Control
         // edges read as tributaries. Render a narrow, terrain-owned strip around the
         // actual water surface instead, so the visible river is unambiguously one
         // continuous channel while still using individual bank objects.
+        float visibleBankFraction = chapter switch
+        {
+            2 => 0.42f,
+            4 => 0.48f,
+            5 => 0.68f,
+            7 => 0.55f,
+            _ => 0.36f,
+        };
         Vector2[] outerLeft = Enumerable.Range(0, surfaceLeft.Length)
-            .Select(index => surfaceLeft[index].Lerp(leftBank[index], 0.82f))
+            .Select(index => surfaceLeft[index].Lerp(leftBank[index], visibleBankFraction))
             .ToArray();
         Vector2[] outerRight = Enumerable.Range(0, surfaceRightAscending.Length)
-            .Select(index => surfaceRightAscending[index].Lerp(rightBankAscending[index], 0.82f))
+            .Select(index => surfaceRightAscending[index].Lerp(
+                rightBankAscending[index],
+                visibleBankFraction))
             .ToArray();
         DrawRiverBankStrip(outerLeft, surfaceLeft, bank);
         DrawRiverBankStrip(surfaceRightAscending, outerRight, bank);
+        // Recess the river with layered low-alpha soil shadows. A single opaque
+        // contour made the otherwise smooth spline read as a vector cut-out.
         DrawPolyline(
-            outerLeft.Select(point => point + new Vector2(0f, 2f)).ToArray(),
-            new Color(Color.FromHtml("090808"), 0.24f),
-            1.4f,
+            outerLeft.Select(point => point + new Vector2(0f, 3f)).ToArray(),
+            new Color(Color.FromHtml("111513"), 0.18f),
+            10.0f,
             true);
         DrawPolyline(
-            outerRight.Select(point => point + new Vector2(0f, 2f)).ToArray(),
-            new Color(Color.FromHtml("090808"), 0.24f),
-            1.4f,
+            outerRight.Select(point => point + new Vector2(0f, 3f)).ToArray(),
+            new Color(Color.FromHtml("111513"), 0.18f),
+            10.0f,
             true);
+        DrawPolyline(outerLeft, new Color(Color.FromHtml("262823"), 0.28f), 3.0f, true);
+        DrawPolyline(outerRight, new Color(Color.FromHtml("262823"), 0.28f), 3.0f, true);
+        DrawPolyline(outerLeft, new Color(Color.FromHtml("8b795e"), 0.19f), 1.0f, true);
+        DrawPolyline(outerRight, new Color(Color.FromHtml("8b795e"), 0.19f), 1.0f, true);
+        // Two irregular contour ledges make the channel visibly recessed. They
+        // are derived from the same runtime bank geometry rather than baked into
+        // a river or district image.
+        Vector2[] leftLedge = Enumerable.Range(0, outerLeft.Length)
+            .Select(index => outerLeft[index].Lerp(surfaceLeft[index], 0.34f))
+            .ToArray();
+        Vector2[] rightLedge = Enumerable.Range(0, outerRight.Length)
+            .Select(index => outerRight[index].Lerp(surfaceRightAscending[index], 0.34f))
+            .ToArray();
+        DrawPolyline(leftLedge, new Color(Color.FromHtml("1b1b18"), 0.34f), 4.2f, true);
+        DrawPolyline(rightLedge, new Color(Color.FromHtml("1b1b18"), 0.34f), 4.2f, true);
+        DrawPolyline(leftLedge, new Color(Color.FromHtml("9b805d"), 0.14f), 1.0f, true);
+        DrawPolyline(rightLedge, new Color(Color.FromHtml("9b805d"), 0.14f), 1.0f, true);
+        if (chapter == 5)
+        {
+            DrawPolyline(outerLeft, new Color(Color.FromHtml("4b8192"), 0.20f), 7.0f, true);
+            DrawPolyline(outerRight, new Color(Color.FromHtml("4b8192"), 0.20f), 7.0f, true);
+        }
         // Bank sprites are terrain objects, so composite them before the water.
         // The water then masks each sprite's irregular inner edge while its outer
         // rock/soil silhouette remains visible on land. Drawing these afterward
         // made the dark sprite matte intrude into the channel like floating debris.
         DrawRiverBankObjects(outerLeft, leftSide: true);
         DrawRiverBankObjects(outerRight, leftSide: false);
+        DrawAtomicRiverEnvironment(outerLeft, outerRight);
         Color waterModulate = chapter switch
         {
-            4 => new Color(0.90f, 0.80f, 0.62f, 0.98f),
-            5 => new Color(0.84f, 0.94f, 1.00f, 1.00f),
+            4 => new Color(0.62f, 0.63f, 0.58f, 1.00f),
+            5 => new Color(0.72f, 0.82f, 0.86f, 1.00f),
             7 => new Color(0.76f, 0.83f, 0.88f, 0.98f),
-            _ => new Color(0.90f, 0.95f, 1.00f, 0.98f),
+            _ => new Color(0.70f, 0.78f, 0.79f, 1.00f),
         };
         Texture2D? primaryWaterTexture = chapter switch
         {
@@ -1612,9 +2498,9 @@ internal sealed partial class CommercialMapView : Control
         };
         Color waterLift = chapter switch
         {
-            4 => new Color(Color.FromHtml("4a4034"), 0.34f),
-            5 => new Color(Color.FromHtml("31596b"), 0.30f),
-            _ => new Color(Color.FromHtml("245262"), 0.38f),
+            4 => new Color(Color.FromHtml("243234"), 0.18f),
+            5 => new Color(Color.FromHtml("31515c"), 0.10f),
+            _ => new Color(Color.FromHtml("1d3035"), 0.06f),
         };
         DrawRiverSurfaceSegments(
             surfaceLeft,
@@ -1623,34 +2509,35 @@ internal sealed partial class CommercialMapView : Control
             secondaryWaterTexture,
             waterModulate,
             primaryWaterTexture is null ? new Color(Water, 0.96f) : waterLift);
-        DrawPolyline(surfaceLeft, new Color(Color.FromHtml("45666d"), 0.08f), 0.6f, true);
-        DrawPolyline(surfaceRightAscending, new Color(Color.FromHtml("45666d"), 0.08f), 0.6f, true);
+        DrawPolyline(surfaceLeft, new Color(Color.FromHtml("111817"), 0.16f), 7.0f, true);
+        DrawPolyline(surfaceRightAscending, new Color(Color.FromHtml("111817"), 0.16f), 7.0f, true);
+        DrawPolyline(surfaceLeft, new Color(Color.FromHtml("111817"), 0.25f), 2.0f, true);
+        DrawPolyline(surfaceRightAscending, new Color(Color.FromHtml("111817"), 0.25f), 2.0f, true);
+        DrawPolyline(surfaceLeft, new Color(Color.FromHtml("748588"), 0.14f), 0.9f, true);
+        DrawPolyline(surfaceRightAscending, new Color(Color.FromHtml("748588"), 0.14f), 0.9f, true);
         for (int index = 8; index < surfaceLeft.Length - 8; index += 13)
         {
             DrawLine(
                 surfaceLeft[index].Lerp(surfaceRightAscending[index], 0.18f),
                 surfaceLeft[index].Lerp(surfaceRightAscending[index], 0.72f),
-                new Color(Color.FromHtml("6b9298"), index % 26 == 8 ? 0.16f : 0.10f),
-                1f,
+                new Color(Color.FromHtml("718789"), index % 26 == 8 ? 0.15f : 0.09f),
+                1.4f,
                 true);
         }
-        DrawRiverShoals(surfaceLeft, surfaceRightAscending);
-        DrawRiverBridgeDeck(new CoreMapPoint(1330, 500), 1.18f);
-        DrawRiverBridgeDeck(new CoreMapPoint(1480, 1500), 1.18f);
         DrawRiverReflections(surface, chapter);
+        DrawRiverShoals(surfaceLeft, surfaceRightAscending);
+        DrawRiverBridgeDeck(new CoreMapPoint(1330, 500), 1.18f, chapter);
+        DrawRiverBridgeDeck(new CoreMapPoint(1480, 1500), 1.18f, chapter);
     }
 
     private static (Vector2[] Left, Vector2[] Right) BuildSingleRiverBanks(
         Vector2[] centerline,
         int chapter)
     {
-        float baseHalfWidth = chapter switch
-        {
-            4 => 11f,
-            5 => 22f,
-            7 => 15f,
-            _ => 17f,
-        };
+        // The carved valley is persistent across chapters. Only the exposed
+        // water surface changes through the inset above; this keeps bank objects,
+        // bridges, and simulation crossings spatially registered in every state.
+        const float baseHalfWidth = 64f;
         Vector2[] left = new Vector2[centerline.Length];
         Vector2[] right = new Vector2[centerline.Length];
         for (int index = 0; index < centerline.Length; index++)
@@ -1677,8 +2564,8 @@ internal sealed partial class CommercialMapView : Control
             GroundGravelTile,
             GroundGravelTile is null
                 ? new Color(bank, 0.82f)
-                : new Color(0.56f, 0.51f, 0.43f, 0.18f),
-            GroundGravelTile is null ? Colors.Transparent : new Color(bank, 0.08f));
+                : new Color(0.76f, 0.67f, 0.53f, 0.78f),
+            GroundGravelTile is null ? Colors.Transparent : new Color(bank, 0.25f));
     }
 
     private void DrawRiverSurfaceSegments(
@@ -1748,7 +2635,7 @@ internal sealed partial class CommercialMapView : Control
         }
         else
         {
-            DrawColoredPolygon(triangle, fill, TextureUvs(triangle, texture), texture);
+            DrawColoredPolygon(triangle, fill, TiledTextureUvs(triangle, texture), texture);
         }
         if (overlay.A > 0f)
         {
@@ -1803,19 +2690,19 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawRiverBankObjects(Vector2[] bank, bool leftSide)
     {
-        Texture2D? straight = leftSide
-            ? RiverBankLeftStraightASprite ?? G3RiverBankRockSegmentASprite
-            : RiverBankRightStraightASprite ?? G3RiverBankRockSegmentASprite;
+        Texture2D? straight = G3RiverBankRockSegmentASprite ?? (leftSide
+            ? RiverBankLeftStraightASprite
+            : RiverBankRightStraightASprite);
         if (straight is null || bank.Length < 7)
         {
             return;
         }
-        Texture2D? inner = leftSide
-            ? RiverBankLeftInnerASprite ?? G3RiverBankInnerBendASprite
-            : RiverBankRightInnerASprite ?? G3RiverBankInnerBendASprite;
-        Texture2D? outer = leftSide
-            ? RiverBankLeftOuterASprite ?? G3RiverBankOuterBendASprite
-            : RiverBankRightOuterASprite ?? G3RiverBankOuterBendASprite;
+        Texture2D? inner = G3RiverBankInnerBendASprite ?? (leftSide
+            ? RiverBankLeftInnerASprite
+            : RiverBankRightInnerASprite);
+        Texture2D? outer = G3RiverBankOuterBendASprite ?? (leftSide
+            ? RiverBankLeftOuterASprite
+            : RiverBankRightOuterASprite);
 
         for (int index = 7; index < bank.Length - 7; index += 11)
         {
@@ -1840,21 +2727,73 @@ internal sealed partial class CommercialMapView : Control
             float rotation = tangent.Angle();
             Vector2 bankNormal = new Vector2(-tangent.Y, tangent.X).Normalized();
             Vector2 objectCenter = bank[index] +
-                (bankNormal * (leftSide ? -16f : 16f));
+                (bankNormal * (leftSide ? -8f : 8f));
             float maxSide = Math.Abs(turn) >= 0.035f
-                ? 30f
+                ? 48f
                 : bankTexture == RiverRockSoilTransitionASprite
-                    ? 32f
-                    : index % 22 == 7 ? 26f : 23f;
-            Vector2 size = FitSpriteSize(bankTexture, maxSide);
+                    ? 54f
+                    : index % 22 == 7 ? 38f : 32f;
+            Vector2 size = FitSpriteSize(bankTexture, maxSide * 1.24f);
             DrawSetTransform(objectCenter, rotation, Vector2.One);
             DrawTextureRect(
                 bankTexture,
                 new Rect2(size * -0.5f, size),
                 false,
-                new Color(0.45f, 0.43f, 0.40f, 0.90f));
+                new Color(0.78f, 0.71f, 0.59f, 0.90f));
         }
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
+    }
+
+    private Texture2D? AtomicRiverEnvironmentTexture(AtomicRiverEnvironmentKind kind) =>
+        kind switch
+        {
+            AtomicRiverEnvironmentKind.Conifer => RiverBankConiferASprite,
+            AtomicRiverEnvironmentKind.Scrub => RiverBankScrubASprite,
+            AtomicRiverEnvironmentKind.Outcrop => RiverBankOutcropASprite,
+            _ => null,
+        };
+
+    private void DrawAtomicRiverEnvironment(Vector2[] leftBank, Vector2[] rightBank)
+    {
+        if (leftBank.Length < 7 || leftBank.Length != rightBank.Length)
+        {
+            return;
+        }
+
+        foreach ((AtomicRiverEnvironmentInstanceSpec Spec, Vector2 Anchor) placement in
+                 AtomicRiverEnvironmentInstances
+                     .Select(spec =>
+                     {
+                         int index = Math.Clamp(
+                             Mathf.RoundToInt(spec.Phase * (leftBank.Length - 1)),
+                             3,
+                             leftBank.Length - 4);
+                         Vector2[] bank = spec.LeftSide ? leftBank : rightBank;
+                         Vector2 tangent = (bank[index + 2] - bank[index - 2]).Normalized();
+                         Vector2 normal = new(-tangent.Y, tangent.X);
+                         Vector2 outward = spec.LeftSide ? -normal : normal;
+                         return (Spec: spec, Anchor: bank[index] +
+                             (outward * spec.OutwardOffset));
+                     })
+                     .OrderBy(item => item.Anchor.Y)
+                     .ThenBy(item => item.Anchor.X)
+                     .ThenBy(item => item.Spec.Kind))
+        {
+            Texture2D? texture = AtomicRiverEnvironmentTexture(placement.Spec.Kind);
+            if (texture is null)
+            {
+                continue;
+            }
+            Vector2 size = FitSpriteSize(
+                texture,
+                placement.Spec.MaxSide * 1.42f * (1f + (ZoomIndex * 0.10f)));
+            DrawSpriteGroundShadow(placement.Anchor, size);
+            DrawTextureRect(
+                texture,
+                SpriteRect(placement.Anchor, size),
+                false,
+                new Color(1.00f, 0.96f, 0.86f, placement.Spec.Alpha));
+        }
     }
 
     private void DrawRiverShoals(Vector2[] left, Vector2[] right)
@@ -1868,7 +2807,7 @@ internal sealed partial class CommercialMapView : Control
         // A few individual rubble shoals interrupt the water without baking a
         // complete river image. This mirrors the reference's broken, terrain-owned
         // channel and keeps every obstruction a separately bound runtime object.
-        float[] phases = [0.31f, 0.63f];
+        float[] phases = [0.19f, 0.37f, 0.61f, 0.79f];
         foreach (float phase in phases)
         {
             int index = Math.Clamp(
@@ -1879,7 +2818,9 @@ internal sealed partial class CommercialMapView : Control
                 (left[index - 2] + right[index - 2])) * 0.5f;
             Vector2 center = left[index].Lerp(right[index], phase == 0.47f ? 0.62f : 0.48f);
             Texture2D phaseTexture = shoalTexture;
-            Vector2 size = FitSpriteSize(phaseTexture, 12f);
+            Vector2 size = FitSpriteSize(
+                phaseTexture,
+                phase is > 0.30f and < 0.70f ? 17f : 13f);
             DrawSetTransform(center, tangent.Angle(), Vector2.One);
             DrawTextureRect(
                 phaseTexture,
@@ -1890,7 +2831,7 @@ internal sealed partial class CommercialMapView : Control
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
 
-    private void DrawRiverBridgeAbutment(Vector2 center, float rotation)
+    private void DrawRiverBridgeAbutment(Vector2 center, float rotation, float maxSide)
     {
         Texture2D? abutmentTexture = RiverBridgeAbutmentASprite ?? AtomicBridgeFoundationASprite ??
             G3RiverBankRockSegmentASprite;
@@ -1898,34 +2839,67 @@ internal sealed partial class CommercialMapView : Control
         {
             return;
         }
-        Vector2 size = FitSpriteSize(abutmentTexture, 52f);
-        DrawSetTransform(center, rotation, Vector2.One);
+        Vector2 size = FitSpriteSize(abutmentTexture, maxSide);
+        DrawSetTransform(center, 0f, Vector2.One);
         DrawTextureRect(
             abutmentTexture,
             new Rect2(size * -0.5f, size),
             false,
-            new Color(0.52f, 0.50f, 0.46f, 0.82f));
+            new Color(0.72f, 0.68f, 0.60f, 0.94f));
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
 
-    private void DrawRiverBridgeDeck(CoreMapPoint position, float rotation)
+    private void DrawRiverBridgeDeck(CoreMapPoint position, float rotation, int chapter)
     {
         Vector2 center = ToCanvas(position);
         Vector2 bridgeAxis = new(Mathf.Cos(rotation), Mathf.Sin(rotation));
-        DrawRiverBridgeAbutment(center - (bridgeAxis * 24f), rotation);
-        DrawRiverBridgeAbutment(center + (bridgeAxis * 24f), rotation + Mathf.Pi);
-        if (IndustrialRoadBridgeASprite is null)
+        float bridgeMaxSide = chapter switch
+        {
+            1 => 120f,
+            2 => 170f,
+            4 => 150f,
+            5 => 190f,
+            _ => 150f,
+        };
+        float abutmentMaxSide = chapter switch
+        {
+            1 => 42f,
+            2 => 68f,
+            4 => 64f,
+            5 => 76f,
+            _ => 58f,
+        };
+        float anchorOffset = chapter switch
+        {
+            1 => 26f,
+            2 => 42f,
+            4 => 40f,
+            5 => 48f,
+            _ => 36f,
+        };
+        DrawRiverBridgeAbutment(
+            center - (bridgeAxis * anchorOffset),
+            rotation,
+            abutmentMaxSide);
+        DrawRiverBridgeAbutment(
+            center + (bridgeAxis * anchorOffset),
+            rotation + Mathf.Pi,
+            abutmentMaxSide);
+        if (IndustrialRoadBridgeBSprite is null)
         {
             return;
         }
 
-        Vector2 size = FitSpriteSize(IndustrialRoadBridgeASprite, 54f);
-        DrawSetTransform(center, rotation, Vector2.One);
+        Vector2 size = FitSpriteSize(IndustrialRoadBridgeBSprite, bridgeMaxSide);
+        // B is generated as one transparent, steep NW-SE isometric bridge object.
+        // Its baked long axis matches this crossing's authored bridge axis, so it
+        // is placed directly rather than rotating a shallow deck into a wall.
+        DrawSetTransform(center, 0f, Vector2.One);
         DrawTextureRect(
-            IndustrialRoadBridgeASprite,
+            IndustrialRoadBridgeBSprite,
             new Rect2(size * -0.5f, size),
             false,
-            new Color(0.78f, 0.75f, 0.69f, 0.58f));
+            new Color(0.92f, 0.86f, 0.74f, 0.98f));
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
 
@@ -1991,6 +2965,14 @@ internal sealed partial class CommercialMapView : Control
             ((point.Y - minY) / height) * Math.Max(1, texture.GetHeight() - 1))).ToArray();
     }
 
+    private static Vector2[] TiledTextureUvs(Vector2[] polygon, Texture2D texture)
+    {
+        const float ScreenRepeatPeriod = 96f;
+        return polygon.Select(point => new Vector2(
+            (point.X / ScreenRepeatPeriod) * Math.Max(1, texture.GetWidth() - 1),
+            (point.Y / ScreenRepeatPeriod) * Math.Max(1, texture.GetHeight() - 1))).ToArray();
+    }
+
     private static Vector2[] RiverTextureUvs(Vector2[] polygon, Texture2D texture) =>
         TextureUvs(polygon, texture)
             .Select(uv => uv * 2.8f)
@@ -2007,16 +2989,19 @@ internal sealed partial class CommercialMapView : Control
                 ReferenceRiverControlPoints.Select(ToCanvas).ToArray(),
                 8);
             Color modulate = chapter == 4
-                ? new Color(0.74f, 0.55f, 0.38f, 0.28f)
+                ? new Color(0.78f, 0.63f, 0.46f, 0.42f)
                 : chapter == 5
-                    ? new Color(0.82f, 0.94f, 1.00f, 0.52f)
-                    : new Color(0.70f, 0.82f, 0.86f, 0.38f);
-            for (int index = 12; index < centerline.Length - 12; index += 20)
+                    ? new Color(0.82f, 0.92f, 0.95f, 0.60f)
+                    : new Color(0.76f, 0.88f, 0.92f, 0.44f);
+            int step = chapter == 5 ? 10 : 16;
+            for (int index = 12; index < centerline.Length - 12; index += step)
             {
                 Vector2 tangent = centerline[index + 3] - centerline[index - 3];
                 Vector2 size = FitSpriteSize(
                     effectTexture,
-                    index % 40 == 12 ? 68f : 58f);
+                    chapter == 5
+                        ? index % 20 == 12 ? 118f : 92f
+                        : index % 32 == 12 ? 78f : 62f);
                 DrawSetTransform(centerline[index], tangent.Angle(), Vector2.One);
                 DrawTextureRect(
                     effectTexture,
@@ -2053,6 +3038,17 @@ internal sealed partial class CommercialMapView : Control
         "EAST_RESIDENTIAL_BLOCK" => null,
         "HOSPITAL_BLOCK" => null,
         "WEST_INDUSTRIAL_BLOCK" => GroundConcreteTile,
+        "NORTH_WORKS_BLOCK" => null,
+        "NORTH_EAST_FRINGE_BLOCK" => null,
+        "SOUTH_FREIGHT_BLOCK" => null,
+        "CENTRAL_MAINTENANCE_BLOCK" => null,
+        "WEST_MID_BLOCK" => null,
+        "WEST_NORTH_YARD_BLOCK" => null,
+        "CENTRAL_NORTH_YARD_BLOCK" => null,
+        "SOUTH_CENTRAL_YARD_BLOCK" => null,
+        "CENTRAL_MARKET_BLOCK" => null,
+        "CENTRAL_EAST_MARKET_BLOCK" => null,
+        "TERMINAL_EAST_BLOCK" => null,
         _ => null,
     };
 
@@ -2065,15 +3061,15 @@ internal sealed partial class CommercialMapView : Control
         {
             Vector2[] polygon = area.Polygon.Select(ToCanvas).ToArray();
             bool isActive = active.Contains(area.RiskAreaId);
-            DrawColoredPolygon(polygon, new Color(Risk, isActive ? 0.12f : 0.018f));
+            DrawColoredPolygon(polygon, new Color(Risk, isActive ? 0.06f : 0.018f));
             DrawPolyline(
                 polygon.Append(polygon[0]).ToArray(),
-                new Color(isActive ? Risk : BrassRisk(), isActive ? 0.92f : 0.24f),
+                new Color(isActive ? Risk : BrassRisk(), isActive ? 0.76f : 0.24f),
                 isActive ? 2f : 1f,
                 true);
             if (isActive)
             {
-                DrawPolygonHatching(polygon, Risk, 20f, 0.28f);
+                DrawPolygonHatching(polygon, Risk, 26f, 0.13f);
                 DrawAreaLabel(polygon, $"사건 구역 · {area.DisplayName}", Risk);
             }
         }
@@ -2103,6 +3099,16 @@ internal sealed partial class CommercialMapView : Control
             Color color = !edge.Commissioned
                 ? Planned
                 : ThermalColor(thermal?.CurrentState);
+            bool comparisonEdge = _presentation?.ChapterIndex == 1 &&
+                _presentation.ComparisonPathEdgeIds.Any(path =>
+                    path.Contains(edge.EdgeId, StringComparer.Ordinal));
+            if (comparisonEdge)
+            {
+                // The two authoritative comparison paths are redrawn below as
+                // distinct A/B overlays. Do not first paint the same edges as one
+                // thick cyan bundle, which visually merges the alternatives.
+                continue;
+            }
             if (thermal?.CurrentState == ThermalOperatingState.ProtectiveOutage)
             {
                 DrawDashedLine(start, end, color, 3.2f, 9f, true, true);
@@ -2131,13 +3137,13 @@ internal sealed partial class CommercialMapView : Control
         // makes planned amber and energized cyan readable as two alternatives.
         CoreMapPoint[] proposal =
         [
-            new(957, 1243),
-            new(1100, 1279),
-            new(1252, 1323),
-            new(1421, 1350),
-            new(1542, 1319),
-            new(1529, 1171),
-            new(1493, 1029),
+            new(500, 1480),
+            new(760, 1560),
+            new(1040, 1660),
+            new(1320, 1760),
+            new(1620, 1720),
+            new(1940, 1580),
+            new(2260, 1360),
         ];
         Vector2[] grounds = proposal.Select(ToCanvas).ToArray();
         Vector2[] anchors = grounds
@@ -2167,7 +3173,9 @@ internal sealed partial class CommercialMapView : Control
         for (int index = 0; index < supports.Length; index++)
         {
             Vector2 ground = supports[index];
-            Vector2 size = FitSpriteSize(AtomicReinforcedPoleASprite, 96f);
+            int chapterIndex = _presentation?.ChapterIndex ?? 0;
+            float maxSide = chapterIndex == 2 ? 72f : chapterIndex == 4 ? 78f : 96f;
+            Vector2 size = FitSpriteSize(AtomicReinforcedPoleASprite, maxSide);
             DrawCircle(ground, 11f, new Color(Planned, 0.10f));
             DrawTextureRect(
                 AtomicReinforcedPoleASprite,
@@ -2227,19 +3235,29 @@ internal sealed partial class CommercialMapView : Control
                 return start.Lerp(end, t) + new Vector2(0f, 4f * t * (1f - t) * sag);
             })
             .ToArray();
-        Vector2[][] strands =
-        [
-            center.Select(point => point + normal).ToArray(),
-            center,
-            center.Select(point => point - normal).ToArray(),
-        ];
+        bool sparseHeatSpan = _presentation?.ChapterIndex == 4;
+        Vector2[][] strands = sparseHeatSpan
+            ?
+            [
+                center.Select(point => point + (normal * 0.72f)).ToArray(),
+                center.Select(point => point - (normal * 0.72f)).ToArray(),
+            ]
+            :
+            [
+                center.Select(point => point + normal).ToArray(),
+                center,
+                center.Select(point => point - normal).ToArray(),
+            ];
         foreach (Vector2[] strand in strands)
         {
             DrawPolyline(strand, new Color(color, 0.17f), 4.0f, true);
         }
         DrawPolyline(strands[0], new Color(color, 0.98f), 1.55f, true);
         DrawPolyline(strands[1], new Color(color, 0.88f), 1.25f, true);
-        DrawPolyline(strands[2], new Color(color, 0.96f), 1.45f, true);
+        if (strands.Length == 3)
+        {
+            DrawPolyline(strands[2], new Color(color, 0.96f), 1.45f, true);
+        }
     }
 
     private Vector2 ConductorAnchor(
@@ -2254,7 +3272,9 @@ internal sealed partial class CommercialMapView : Control
         {
             SpatialNodeKind.SourceTerminal => 70f,
             SpatialNodeKind.Substation => 66f,
-            SpatialNodeKind.Pole => node.AuthoredFoundation ? 52f : 90f,
+            SpatialNodeKind.Pole => node.AuthoredFoundation
+                ? 66f
+                : node.ClassId == "STANDARD_POLE" ? 100f : 104f,
             SpatialNodeKind.DedicatedLoadTerminal => 46f,
             _ => 0f,
         };
@@ -2291,12 +3311,77 @@ internal sealed partial class CommercialMapView : Control
                 continue;
             }
             // Selected-path emphasis belongs on the actual attachment nodes and
-            // conductor glow. Repeated travelling dots made the span read as a UI
-            // rail rather than physical conductors between tower heads.
+            // conductor glow. A restrained fixed dash makes the currently
+            // inspected source-to-facility route traceable through a dense network
+            // without replacing the physical three-strand conductor underneath.
+            DrawDashedLine(
+                start,
+                end,
+                new Color(Focus, 0.90f),
+                1.35f,
+                11f,
+                true,
+                true);
         }
-        // The conductor glow itself is the selected-path indication. Extra node
-        // rings made substations read as abstract diagram vertices instead of
-        // physical equipment in the isometric world.
+    }
+
+    private void DrawComparisonPaths(
+        SpatialWorldDefinition world,
+        CommercialMapPresentation presentation)
+    {
+        if (presentation.ChapterIndex != 1 ||
+            presentation.ComparisonPathEdgeIds.Count < 2)
+        {
+            return;
+        }
+
+        Dictionary<string, SpatialNodeDefinition> nodes = world.Nodes.ToDictionary(
+            node => node.NodeId,
+            StringComparer.Ordinal);
+        Dictionary<string, SpatialNodeClassDefinition> classes = world.NodeClasses.ToDictionary(
+            item => item.ClassId,
+            StringComparer.Ordinal);
+        Color[] routeColors = [Planned, Color.FromHtml("86dce7")];
+        for (int routeIndex = 0;
+             routeIndex < Math.Min(routeColors.Length, presentation.ComparisonPathEdgeIds.Count);
+             routeIndex++)
+        {
+            Color routeColor = routeColors[routeIndex];
+            HashSet<string> route = presentation.ComparisonPathEdgeIds[routeIndex]
+                .ToHashSet(StringComparer.Ordinal);
+            bool routeLabelDrawn = false;
+            foreach (SpatialEdgeDefinition edge in world.Edges.Where(item => route.Contains(item.EdgeId)))
+            {
+                if (!nodes.TryGetValue(edge.FromNodeId, out SpatialNodeDefinition? from) ||
+                    !nodes.TryGetValue(edge.ToNodeId, out SpatialNodeDefinition? to))
+                {
+                    continue;
+                }
+                Vector2 start = ConductorAnchor(from, classes);
+                Vector2 end = ConductorAnchor(to, classes);
+                DrawDashedLine(start, end, new Color(Background, 0.88f), 5.2f, 14f, true, true);
+                DrawDashedLine(start, end, new Color(routeColor, 0.98f), 2.6f, 14f, true, true);
+                DrawCircle(start, 6.2f, new Color(routeColor, 0.94f));
+                DrawCircle(start, 2.4f, Background);
+                DrawCircle(end, 6.2f, new Color(routeColor, 0.94f));
+                DrawCircle(end, 2.4f, Background);
+                if (!routeLabelDrawn)
+                {
+                    Vector2 badge = start.Lerp(end, 0.42f);
+                    DrawCircle(badge, 13f, new Color(Background, 0.92f));
+                    DrawArc(badge, 12f, 0f, Mathf.Tau, 28, routeColor, 2f, true);
+                    DrawString(
+                        GetThemeDefaultFont(),
+                        badge + new Vector2(-4f, 5f),
+                        routeIndex == 0 ? "A" : "B",
+                        HorizontalAlignment.Left,
+                        -1f,
+                        13,
+                        routeColor);
+                    routeLabelDrawn = true;
+                }
+            }
+        }
     }
 
     private void DrawUnavailableMarks(
@@ -2408,9 +3493,10 @@ internal sealed partial class CommercialMapView : Control
                 continue;
             }
             Vector2 center = ToCanvas(placement.Point);
+            float sourceScale = _presentation?.ChapterIndex == 2 ? 1.12f : 0.78f;
             Vector2 size = FitSpriteSize(
                 texture,
-                placement.Part.MaxSide * (1f + (ZoomIndex * 0.12f)));
+                placement.Part.MaxSide * sourceScale * (1f + (ZoomIndex * 0.12f)));
             DrawTextureRect(texture, SpriteRect(center, size), false, modulate);
         }
     }
@@ -2468,11 +3554,23 @@ internal sealed partial class CommercialMapView : Control
             (Texture2D? texture, float maxSide) = NodeSprite(node, nodeClass);
             bool sourceEnsemble = nodeClass.Kind == SpatialNodeKind.SourceTerminal &&
                 HasAtomicSourcePlantAssets;
+            int chapterIndex = _presentation?.ChapterIndex ?? 0;
             Vector2 spriteSize = sourceEnsemble
-                ? new Vector2(224f, 186f) * (1f + (ZoomIndex * 0.12f))
+                ? new Vector2(260f, 215f) *
+                    (chapterIndex == 2 ? 1.28f : 1f) *
+                    (1f + (ZoomIndex * 0.12f))
                 : texture is null
                 ? Vector2.One * (radius * 2f)
                 : FitSpriteSize(texture, maxSide * (1f + (ZoomIndex * 0.16f)));
+            if (nodeClass.Kind == SpatialNodeKind.Pole && chapterIndex is 1 or 2 or 4)
+            {
+                spriteSize *= chapterIndex switch
+                {
+                    1 => 0.78f,
+                    2 => 0.76f,
+                    _ => 0.82f,
+                };
+            }
             float objectRadius = Math.Max(radius, Math.Max(spriteSize.X, spriteSize.Y) * 0.42f);
             if (sourceEnsemble)
             {
@@ -2482,7 +3580,7 @@ internal sealed partial class CommercialMapView : Control
             {
                 Color spriteModulate = selectedPathNode &&
                     nodeClass.Kind == SpatialNodeKind.Pole
-                        ? new Color(0.72f, 0.92f, 1.00f, 0.99f)
+                        ? new Color(0.68f, 0.82f, 0.84f, 0.99f)
                         : NodeSpriteModulate(node, thermal);
                 DrawTextureRect(
                     texture,
@@ -2587,13 +3685,13 @@ internal sealed partial class CommercialMapView : Control
         {
             SpatialNodeKind.SourceTerminal => (AtomicPlantMainHallASprite, 158f),
             SpatialNodeKind.Substation =>
-                (AtomicSubstationTransformerASprite, 152f),
+                (AtomicSubstationTransformerASprite, 110f),
             SpatialNodeKind.Pole when node.ClassId == "STANDARD_POLE" =>
-                (AtomicStandardPoleASprite, 84f),
-            SpatialNodeKind.Pole => (AtomicReinforcedPoleASprite, 100f),
+                (AtomicStandardPoleASprite, 82f),
+            SpatialNodeKind.Pole => (AtomicReinforcedPoleASprite, 92f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "EAST_RESIDENTIAL_TERMINAL" =>
-                (AtomicRowShopASprite, 116f),
+                (AtomicRowShopASprite, 104f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "HOSPITAL_TERMINAL" =>
                 (AtomicHospitalMainASprite, 174f),
@@ -2610,8 +3708,8 @@ internal sealed partial class CommercialMapView : Control
     private (Texture2D? Texture, float MaxSide) DraftPoleSprite(string poleClassId) =>
         poleClassId switch
         {
-            "STANDARD_POLE" => (AtomicStandardPoleASprite, 84f),
-            "REINFORCED_POLE" => (AtomicReinforcedPoleASprite, 100f),
+            "STANDARD_POLE" => (AtomicStandardPoleASprite, 94f),
+            "REINFORCED_POLE" => (AtomicReinforcedPoleASprite, 102f),
             _ => (null, 24f),
         };
 
@@ -2619,7 +3717,7 @@ internal sealed partial class CommercialMapView : Control
         nodeClassId switch
         {
             "SMALL_SUBSTATION" =>
-                (AtomicSubstationTransformerASprite, 152f),
+                (AtomicSubstationTransformerASprite, 128f),
             _ => (null, 24f),
         };
 
@@ -2671,7 +3769,7 @@ internal sealed partial class CommercialMapView : Control
         {
             return new Color(0.86f, 0.72f, 0.48f, 0.62f);
         }
-        return new Color(0.94f, 0.96f, 0.92f, 0.98f);
+        return new Color(0.78f, 0.82f, 0.78f, 0.98f);
     }
 
     private void DrawFacilityStateMarker(
@@ -2874,7 +3972,8 @@ internal sealed partial class CommercialMapView : Control
             DrawChromeFrame(
                 slot,
                 active ? new Color(0.96f, 0.78f, 0.43f, 1f) : new Color(0.76f, 0.72f, 0.65f, 1f),
-                14f);
+                14f,
+                UiToolSlotTexture);
             DrawRect(slot, accent, false, active ? 2.4f : 1.3f);
             if (slots[index].Texture is Texture2D texture)
             {
@@ -2896,17 +3995,22 @@ internal sealed partial class CommercialMapView : Control
         }
     }
 
-    private void DrawChromeFrame(Rect2 destination, Color modulate, float destinationSlice)
+    private void DrawChromeFrame(
+        Rect2 destination,
+        Color modulate,
+        float destinationSlice,
+        Texture2D? textureOverride = null)
     {
-        if (UiChromeFrameTexture is null)
+        Texture2D? texture = textureOverride ?? UiChromeFrameTexture;
+        if (texture is null)
         {
             DrawRect(destination, new Color(Color.FromHtml("090d0f"), 0.97f));
             DrawRect(destination, Color.FromHtml("755f3e"), false, 2f);
             return;
         }
-        float sourceWidth = UiChromeFrameTexture.GetWidth();
-        float sourceHeight = UiChromeFrameTexture.GetHeight();
-        float sourceSlice = Math.Min(18f, Math.Min(sourceWidth, sourceHeight) * 0.25f);
+        float sourceWidth = texture.GetWidth();
+        float sourceHeight = texture.GetHeight();
+        float sourceSlice = Math.Min(sourceWidth, sourceHeight) * 0.16f;
         float drawSlice = Math.Min(
             destinationSlice,
             Math.Min(destination.Size.X, destination.Size.Y) * 0.34f);
@@ -2931,7 +4035,7 @@ internal sealed partial class CommercialMapView : Control
             for (int column = 0; column < 3; column++)
             {
                 DrawTextureRectRegion(
-                    UiChromeFrameTexture,
+                    texture,
                     new Rect2(
                         drawX[column],
                         drawY[row],

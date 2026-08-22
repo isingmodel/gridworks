@@ -92,8 +92,8 @@ def main() -> None:
         "replicate": payload.get("replicate"),
         "pairScore": pair_score,
         "criticalFailure": critical_failure,
-        "threshold": 90,
-        "thresholdPassed": pair_score > 90 and not critical_failure,
+        "threshold": 75,
+        "thresholdPassed": pair_score >= 75 and not critical_failure,
         "criteria": result_rows,
     }
     output = json.dumps(result, ensure_ascii=False, indent=2) + "\n"

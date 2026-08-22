@@ -1,12 +1,49 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://CommercialTaskPanel.cs" id="1_panel"]
 [ext_resource type="Script" path="res://CommercialPortrait.cs" id="2_portrait"]
 [ext_resource type="Texture2D" path="res://art/commercial/objects/substation-v1.png" id="3_substation"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/inspector-frame-a.png" id="4_inspector_frame"]
+
+[sub_resource type="StyleBoxTexture" id="StyleInspectorFrame"]
+texture = ExtResource("4_inspector_frame")
+texture_margin_left = 64.0
+texture_margin_top = 64.0
+texture_margin_right = 64.0
+texture_margin_bottom = 64.0
+content_margin_left = 18.0
+content_margin_top = 16.0
+content_margin_right = 18.0
+content_margin_bottom = 16.0
+
+[sub_resource type="StyleBoxFlat" id="StyleComparisonA"]
+bg_color = Color(0.035, 0.045, 0.044, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.88, 0.62, 0.25, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleComparisonB"]
+bg_color = Color(0.035, 0.045, 0.044, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.77, 0.83, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 
 [node name="CommercialTaskPanel" type="PanelContainer"]
 custom_minimum_size = Vector2(300, 0)
 script = ExtResource("1_panel")
+theme_override_styles/panel = SubResource("StyleInspectorFrame")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
@@ -24,8 +61,90 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "첫 불빛"
+autowrap_mode = 2
+
+[node name="ComparisonCards" type="VBoxContainer" parent="Margin/Column"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="ComparisonA" type="PanelContainer" parent="Margin/Column/ComparisonCards"]
+custom_minimum_size = Vector2(0, 230)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleComparisonA")
+
+[node name="Margin" type="MarginContainer" parent="Margin/Column/ComparisonCards/ComparisonA"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="Column" type="VBoxContainer" parent="Margin/Column/ComparisonCards/ComparisonA/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ComparisonATitle" type="Label" parent="Margin/Column/ComparisonCards/ComparisonA/Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.70, 0.31, 1)
+theme_override_font_sizes/font_size = 19
+text = "북안 A"
+
+[node name="ComparisonAMetric" type="Label" parent="Margin/Column/ComparisonCards/ComparisonA/Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 23
+text = "700 kW ✓"
+
+[node name="ComparisonADetail" type="Label" parent="Margin/Column/ComparisonCards/ComparisonA/Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.77, 0.68, 1)
+theme_override_font_sizes/font_size = 14
+text = "실제 경로 3구간 · 연속 한계"
+autowrap_mode = 2
+
+[node name="ComparisonB" type="PanelContainer" parent="Margin/Column/ComparisonCards"]
+custom_minimum_size = Vector2(0, 230)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleComparisonB")
+
+[node name="Margin" type="MarginContainer" parent="Margin/Column/ComparisonCards/ComparisonB"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="Column" type="VBoxContainer" parent="Margin/Column/ComparisonCards/ComparisonB/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ComparisonBTitle" type="Label" parent="Margin/Column/ComparisonCards/ComparisonB/Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.42, 0.84, 0.88, 1)
+theme_override_font_sizes/font_size = 19
+text = "강변 B"
+
+[node name="ComparisonBMetric" type="Label" parent="Margin/Column/ComparisonCards/ComparisonB/Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 23
+text = "700 kW ✓"
+
+[node name="ComparisonBDetail" type="Label" parent="Margin/Column/ComparisonCards/ComparisonB/Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.67, 0.83, 0.84, 1)
+theme_override_font_sizes/font_size = 14
+text = "실제 경로 4구간 · 우회 가능"
+autowrap_mode = 2
 
 [node name="FacilityCard" type="PanelContainer" parent="Margin/Column"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 190)
 layout_mode = 2
 
@@ -41,6 +160,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="FacilityImage" type="TextureRect" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow"]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 88)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -56,11 +176,13 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 5
 
 [node name="FacilityType" type="Label" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.84, 0.68, 0.42, 1)
 text = "배전 변전소"
 
 [node name="FacilityCapacity" type="Label" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.37, 0.78, 0.79, 1)
 theme_override_font_sizes/font_size = 25
@@ -91,6 +213,7 @@ layout_mode = 2
 color = Color(0.18, 0.22, 0.22, 1)
 
 [node name="FacilityState" type="Label" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.72, 0.68, 1)
 text = "연속 운전 · 정상"

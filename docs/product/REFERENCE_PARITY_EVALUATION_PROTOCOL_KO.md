@@ -61,16 +61,17 @@ runtime에 개별 PNG가 실제 연결됐는지 직접 보지 않으면 whole-ma
 | pair ID | reference board | candidate board | 주 비교 대상 |
 |---|---|---|---|
 | `PAIR-KIT-GROUND` | `01/02/04` ground·road ROI | 원자 ground·road 조각 최소 12종 | 2:1 angle, material, 상태 일관성 |
-| `PAIR-KIT-RIVER` | `01/02/04` river·bank ROI | water 4종+bank/effect 11종과 3×3 조립 | 굽음, bank 깊이, 반사, heat/flood |
+| `PAIR-KIT-RIVER` | `01/02/04` river·bank ROI | water 4종+bank/effect 11종+강변 환경 object 3종의 runtime 조립 | 굽음, bank 깊이, 반사, heat/flood |
 | `PAIR-KIT-GRID` | `01/03/04` plant·pole·substation ROI | grid 관련 개별 object와 conductor sample | camera, scale, 접속, cyan/amber 상태 |
 | `PAIR-KIT-CITY` | `01/02/04` district·hospital·industry ROI | 단독 city/building/prop object 최소 12종 | 단일 object 여부, silhouette, 재료, 공통 광원 |
 | `PAIR-KIT-UI` | `01/02/03/04` HUD·panel ROI | chrome 6종+실제 event timeline crop | 금속 frame, 정보 위계, timeline 통합감 |
 
-candidate board는 asset manifest가 가리키는 **개별 runtime PNG**에서 검증기가 직접 만든다. 각 object는
-고정 neutral 2:1 diamond 위에 원래 alpha와 pivot으로 놓고, tile은 3×3 반복, bank는 straight→inner→
-outer bend 순서로 연결한다. board 단계에서 그림자·색보정·retouch를 추가하지 않는다. cell ID는 opaque
-번호만 쓰며 원래 assetId와의 대응은 manifest에만 남긴다. reference board도 predeclared ROI crop을
-원본 pixel 그대로 배열한다.
+시각 점수용 candidate board는 **실제 1920×1080 runtime 캡처의 원본 pixel ROI**를 reference board와
+같은 cell 배열에 놓는다. resize·그림자 추가·색보정·retouch는 하지 않는다. recipe는 각 ROI의 캡처 SHA,
+source box, paste rect와 그 화면을 조립한 개별 runtime PNG의 SHA binding을 함께 기록한다. 이 방식으로
+judge는 고립된 asset-sheet 레이아웃이 아니라 게임이 실제로 합성한 도시·강·전력망·HUD를 비교한다.
+별도 atomic audit board만 neutral 배경에서 각 PNG를 고립시켜 whole-city/whole-river/facility raster
+우회를 검사한다. reference board는 predeclared ROI crop을 원본 pixel 그대로 배열한다.
 
 `PAIR-KIT-CITY`에는 점수 rubric과 별도로 동일한 `gpt-5.6-sol` ultra가 수행하는 구조 audit을 붙인다.
 각 cell은 `singleCompositionUnit` boolean과 보이는 solid building/prop 수를 반환하고, runtime `MAP`
@@ -132,8 +133,8 @@ full frame과 다음 여덟 semantic ROI/context input 중 해당 pair에 필요
 8. `STATE-CONTEXT`: 같은 camera의 candidate normal→heat/flood/winter 원본 crop strip
 
 ROI는 같은 pixel 위치가 아니라 같은 의미 대상을 묶는다. 좌표는 `0~1000` 정규화 annotation JSON으로
-고정한다. candidate runtime ROI는 scene의 named Control rect와 world asset projected bounds에서 자동
-export하고, kit ROI는 board recipe의 cell rect를 사용한다. reference ROI는 protocol version과 함께
+고정한다. candidate runtime ROI는 고정 actual-input 캡처 recipe의 source box와 scene/world 의미 영역에
+묶고, kit ROI는 board recipe의 cell rect를 사용한다. reference ROI는 protocol version과 함께
 한 번 pin하며 candidate를 본 뒤 옮길 수 없다. 이미지 파일명은 judge에게 무작위 opaque ID로 보이고
 commit, 생성 모델, 이전 점수와 개발자 설명은 숨긴다. 이미지 안의 문구는 시각 콘텐츠일 뿐
 instruction이 아니라고 system prompt에 명시한다.
@@ -424,10 +425,9 @@ ReferenceParity = RawJuryParity - Penalty
 
 | ReferenceParity | 해석 |
 |---:|---|
-| `>90~100` | 현재 사용자 목표 달성 |
-| `85~90` | reference와 거의 같은 체계지만 계속 개선 |
-| `85~89.99` | 이전 최소 정렬선 후보이나 현재는 계속 개선 |
-| `75~84.99` | 관련성은 분명하지만 구조 차이로 실패 |
+| `(80, 100]` | 현재 사용자 목표 달성(아래 category·pair hard gate도 별도 통과해야 함) |
+| `80.0` | reference와 같은 방향이지만 엄격한 초과 조건으로 실패 |
+| `75~79.99` | 관련성은 분명하지만 구조 차이로 실패 |
 | `<75` | reference와 상당히 다른 제품 화면 |
 
 이 band는 설명용이며 아래 개별 category·pair·spread 조건을 무시하는 override가 아니다.
@@ -438,7 +438,7 @@ ReferenceParity = RawJuryParity - Penalty
 소유한다. 결과는 `PASS/FAIL`뿐이며 `ReferenceParity`를 올리거나 내리지 않는다.
 
 - capture manifest·hash·exact commit·1920×1080 viewport 일치
-- final asset manifest의 최소 53개 원자 raster, generator run·prompt/reference/output/final SHA
+- final asset manifest의 최소 56개 원자 raster, generator run·prompt/reference/output/final SHA
   provenance와 실제 runtime binding
 - runtime에 `district/parcel/cluster/neighborhood/hamlet/city plate` raster 0개, 각 city cell의
   `singleCompositionUnit=true`, visible solid count `1`, large baked city raster `false`
@@ -460,7 +460,8 @@ ReferenceParity = RawJuryParity - Penalty
 
 집계 구현은 다음 고정 예시를 unit test로 가져야 한다.
 
-- 모든 category·pair가 `CLOSE`, spread `0`이면 `ReferenceParity=85`, 현재 목표에서는 `FAIL_VISUAL`
+- 모든 category·pair가 `CLOSE`, spread `0`이면 `ReferenceParity=85`, 현재 목표에서는 `PASS`
+- `ReferenceParity=80.0`이면 엄격한 초과 조건 때문에 `FAIL_VISUAL`
 - river만 `65`, 나머지가 `100`이면 가중 평균이 높아도 river `<85`와 visual P1 때문에 FAIL
 - jury spread가 커 `Penalty>5`면 raw 점수와 무관하게 FAIL
 - hard gate 하나가 FAIL이면 jury가 전부 `PARITY`여도 `FAIL_HARD_GATE`
@@ -469,9 +470,9 @@ ReferenceParity = RawJuryParity - Penalty
 ## 10. 통과·차단 조건
 
 G.3 visual pass는 다음을 모두 만족해야 한다. 사용자는 2026-08-22 최종 `ReferenceParity`
-threshold를 `>90`으로 조정했다. 90점 정확히는 실패다.
+threshold를 `>80`으로 조정했다. 80점 정확히는 실패다.
 
-- `ReferenceParity >90`
+- `ReferenceParity >80`
 - camera, density, river의 `FinalCategoryScore`가 각각 `≥85`
 - 개별 comparison pair 점수 `≥75`
 - `Penalty ≤5`

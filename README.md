@@ -18,8 +18,8 @@
 [평가 프로토콜](docs/product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)은 2026-08-21 사용자 지시로
 활성화됐다. 도시를 큰 district/parcel 이미지로 만들지 않고 건물 한 채·도로 조각·시설 부품·prop을
 각각 생성해 코드가 개별 배치한다. 개별 tile/object와 게임 구현을 필요한 만큼 근본적으로 바꾸고, 고정 LLM jury
-`ReferenceParity >90`을 달성할 때까지 반복한다. 2026-08-22 사용자가 기존 `>96` 종료선을
-`>90`으로 조정했으며, 90점 정확히는 통과가 아니다.
+`ReferenceParity >80`을 달성할 때까지 반복한다. 2026-08-22 사용자가 종료선을
+`>80`으로 조정했으며, 80점 정확히는 통과가 아니다.
 2026-08-22 Step 1 원자 도시 hard gate는 단독 city/building/prop 12종, 단독 road 6종, 명시 배치
 80+40개, package-eligible 합성 후보 0개를 고정했다. `gpt-5.6-sol` ultra 구조 감사도 12/12 단일
 composition unit과 baked-city=false로 통과했다. Step 2는 개별 water/bank/effect 12종, authored
@@ -27,8 +27,12 @@ composition unit과 baked-city=false로 통과했다. Step 2는 개별 water/ban
 baked-river=false와 세 상태 식별을 모두 통과시켰고 CommercialChecks는 22 suites/2,265 assertions다.
 Step 3은 발전소 4부품 조립, 변압기·표준/보강 철탑·foundation 8종과 계획/통전 상태를
 `gpt-5.6-sol` ultra 구조 audit 8/8로 닫았고 CommercialChecks는 22 suites/2,286 assertions다.
-현재 작업은 Step 4 UI chrome·full-bleed HUD·독립 event timeline이다. 앞선 PASS는 최종
-`ReferenceParity` 점수가 아니다.
+Step 4는 UI chrome 6종, full-bleed HUD, 독립 event timeline, 55개 개별 runtime art와 338개
+원자 도시 배치를 연결하고 2026-08-22 formative-v26까지 완료했다. CommercialChecks는 22 suites /
+2,331 assertions, 같은 저장의 native 1920×1080 checkpoint→completion→completed-resume는 모두
+actual-input으로 통과했다. `gpt-5.6-sol` ultra 10-pair 단일-call formative의 고정 category 환산
+proxy는 74.375이며 density=65, river=65가 남은 병목이다. 이는 공식 40-call jury나 최종
+`ReferenceParity`가 아니므로 G.3와 `>80` 목표는 계속 활성이다.
 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소 주기기·전신주
 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도 v2
 world·campaign·Core와 기본 장면에서 그 범위를 순서대로 완성했다. 단계 H의 외부 검증·공개 후보는

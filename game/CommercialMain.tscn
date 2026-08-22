@@ -7,14 +7,14 @@
 [ext_resource type="PackedScene" path="res://ReleaseAudio.tscn" id="5_audio"]
 [ext_resource type="PackedScene" path="res://ReleaseShellOverlay.tscn" id="6_shell"]
 [ext_resource type="Script" path="res://CommercialEventTimeline.cs" id="7_timeline"]
-[ext_resource type="Texture2D" path="res://art/commercial/g3/ui/panel-frame.png" id="8_panel_frame"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/top-metric-plate-a.png" id="8_panel_frame"]
 
 [sub_resource type="StyleBoxTexture" id="StyleHeaderOuter"]
 texture = ExtResource("8_panel_frame")
-texture_margin_left = 20.0
-texture_margin_top = 20.0
-texture_margin_right = 20.0
-texture_margin_bottom = 20.0
+texture_margin_left = 36.0
+texture_margin_top = 36.0
+texture_margin_right = 36.0
+texture_margin_bottom = 36.0
 content_margin_left = 6.0
 content_margin_top = 4.0
 content_margin_right = 6.0
@@ -22,10 +22,10 @@ content_margin_bottom = 4.0
 
 [sub_resource type="StyleBoxTexture" id="StyleHeaderCell"]
 texture = ExtResource("8_panel_frame")
-texture_margin_left = 15.0
-texture_margin_top = 15.0
-texture_margin_right = 15.0
-texture_margin_bottom = 15.0
+texture_margin_left = 36.0
+texture_margin_top = 36.0
+texture_margin_right = 36.0
+texture_margin_bottom = 36.0
 content_margin_left = 7.0
 content_margin_top = 4.0
 content_margin_right = 7.0
@@ -70,7 +70,7 @@ anchor_right = 1.0
 offset_left = 2.0
 offset_top = 2.0
 offset_right = -2.0
-offset_bottom = 92.0
+offset_bottom = 90.0
 grow_horizontal = 2
 theme_override_styles/panel = SubResource("StyleHeaderOuter")
 
@@ -79,7 +79,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="TitleMetric" type="PanelContainer" parent="HeaderPanel/HeaderRow"]
-custom_minimum_size = Vector2(108, 0)
+custom_minimum_size = Vector2(88, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleHeaderCell")
 
@@ -93,13 +93,13 @@ theme_override_constants/margin_bottom = 2
 [node name="TitleLabel" type="Label" parent="HeaderPanel/HeaderRow/TitleMetric/Margin"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 34
+theme_override_font_sizes/font_size = 28
 text = "⚙"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="CashMetric" type="PanelContainer" parent="HeaderPanel/HeaderRow"]
-custom_minimum_size = Vector2(340, 0)
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleHeaderCell")
 
@@ -114,12 +114,12 @@ theme_override_constants/margin_bottom = 2
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.88, 0.82, 0.7, 1)
-theme_override_font_sizes/font_size = 32
+theme_override_font_sizes/font_size = 30
 text = "₩ 6,000,000원"
 vertical_alignment = 1
 
 [node name="SupplyMetric" type="PanelContainer" parent="HeaderPanel/HeaderRow"]
-custom_minimum_size = Vector2(500, 0)
+custom_minimum_size = Vector2(450, 0)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleHeaderCell")
 
@@ -134,7 +134,7 @@ theme_override_constants/margin_bottom = 2
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.37, 0.78, 0.79, 1)
-theme_override_font_sizes/font_size = 29
+theme_override_font_sizes/font_size = 28
 text = "⚡ 필수 공급 · 0/1"
 vertical_alignment = 1
 
@@ -154,7 +154,7 @@ theme_override_constants/margin_bottom = 2
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.88, 0.69, 0.38, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 24
 text = "▣ 경계 1/1 · 첫 입주"
 vertical_alignment = 1
 
@@ -203,12 +203,14 @@ unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
+anchor_bottom = 1.0
 anchor_right = 1.0
-offset_left = -326.0
+offset_left = -350.0
 offset_top = 90.0
 offset_right = -10.0
-offset_bottom = 520.0
+offset_bottom = -430.0
 grow_horizontal = 0
+grow_vertical = 2
 clip_contents = true
 
 [node name="CommercialEventTimeline" type="Control" parent="."]
@@ -217,7 +219,7 @@ layout_mode = 1
 anchors_preset = 12
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -82.0
+offset_top = -78.0
 offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 0

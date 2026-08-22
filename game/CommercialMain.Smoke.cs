@@ -58,7 +58,7 @@ internal sealed partial class CommercialMain
                 "표현 smoke가 실제 입력으로 2.25배 공사 보기를 열지 못했습니다.");
 
             await BuildCampaignSmokeSubstation(
-                new CoreMapPoint(1700, 850),
+                new CoreMapPoint(2200, 750),
                 "표현 확인 동부 변전소");
             await BuildCampaignSmokeSubstation(
                 new CoreMapPoint(1050, 1050),
@@ -91,37 +91,40 @@ internal sealed partial class CommercialMain
                 "PLAYER_SUBSTATION_1",
                 [
                     new CoreMapPoint(1350, 900),
-                    new CoreMapPoint(1450, 850),
+                    new CoreMapPoint(1650, 850),
+                    new CoreMapPoint(1950, 800),
                 ],
                 "표현 확인 중앙 연계선");
             Vector2 eastConstructionAnchor =
-                _map.ViewportPointForWorld(new CoreMapPoint(1700, 900));
+                _map.ViewportPointForWorld(new CoreMapPoint(2200, 800));
             await WheelAt(eastConstructionAnchor, MouseButton.WheelUp);
             await WheelAt(eastConstructionAnchor, MouseButton.WheelUp);
             Require(_map.ZoomIndex == 2,
                 "동부 인입선 actual-input 공사 보기가 2.25배로 열리지 않았습니다.");
-            eastConstructionAnchor =
-                _map.ViewportPointForWorld(new CoreMapPoint(1700, 900));
-            await MiddleDrag(
-                eastConstructionAnchor,
-                eastConstructionAnchor + new Vector2(-1050f, -460f));
             await BuildCampaignSmokeLine(
                 "PLAYER_SUBSTATION_1",
                 "EAST_RESIDENTIAL_TERMINAL",
-                [
-                    new CoreMapPoint(1850, 850),
-                    new CoreMapPoint(2000, 825),
-                    new CoreMapPoint(2200, 800),
-                ],
+                [],
                 "표현 확인 인입선");
             _map.GrabFocus();
             await NextFrame();
             await PressKey(Key.Home);
             await NextFrame();
+            Vector2 presentationAnchor =
+                _map.ViewportPointForWorld(new CoreMapPoint(1600, 1000));
+            await WheelAt(presentationAnchor, MouseButton.WheelUp);
+            await NextFrame();
+            // Keep the fixed parity checkpoint on the denser eastern half while
+            // retaining the western source. This is a real middle-button camera
+            // gesture, and its center is recorded by the smoke evidence.
+            await MiddleDrag(
+                presentationAnchor,
+                presentationAnchor + new Vector2(-65f, 32f));
             Require(
-                _map.ZoomIndex == 0 &&
-                _map.CameraCenter.IsEqualApprox(new Vector2(1600f, 1000f)),
-                "고정 시각 판정 캡처가 actual-input Home 전체 보기로 복귀하지 않았습니다.");
+                _map.ZoomIndex == 1 &&
+                Math.Abs(_map.CameraCenter.X - 1600f) < 12f &&
+                _map.CameraCenter.Y is > 890f and < 920f,
+                "고정 시각 판정 캡처가 actual-input 1.50배 프레젠테이션 보기에 진입하지 않았습니다.");
             ThermalIntervalResult active = _thermalSequence.Intervals[_thermalProjectionIndex];
             ThermalDemandResult selected = SelectedDemand(active)
                 ?? throw new InvalidOperationException("선택할 수요가 없습니다.");
@@ -131,10 +134,10 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal) &&
                 _map.HasIndividualTileAssets &&
                 _map.HasIndividualObjectAssets &&
-                _map.IndividualArtAssetCount == 51 &&
+                _map.IndividualArtAssetCount == 55 &&
                 _map.AtomicCityAssetCount == 12 &&
                 _map.AtomicRoadTileAssetCount == 6 &&
-                _map.AtomicWorldInstanceCount == 120 &&
+                _map.AtomicWorldInstanceCount == 641 &&
                 _panel.AccessibilityName.Contains("최소 열여유", StringComparison.Ordinal) &&
                 _supplyLabel.Text.Contains("필수 공급 · 1/1 ✓", StringComparison.Ordinal) &&
                 _timeline.AccessibilityName.Contains("사건 흐름", StringComparison.Ordinal) &&
@@ -220,6 +223,7 @@ internal sealed partial class CommercialMain
                 "planned-class-sprites|event-timeline " +
                 "input=focus-keyboard reduce-motion=on " +
                 "save-and-quit=atomic resolution=1920x1080 " +
+                $"camera={_map.CameraCenter.X:0.0},{_map.CameraCenter.Y:0.0} " +
                 $"buildIdentity={CommercialCoreSaveCodec.ComputeSha256(_buildIdentityBytes)}");
             GetTree().Quit(0);
         }
@@ -251,6 +255,100 @@ internal sealed partial class CommercialMain
         {
             throw new IOException($"화면 증거 PNG를 저장하지 못했습니다: {result}");
         }
+    }
+
+    private async Task CaptureG3FinalPair(string fileName)
+    {
+        string? directory = System.Environment.GetEnvironmentVariable(
+            G3FinalCaptureDirectoryEnvironment);
+        if (string.IsNullOrWhiteSpace(directory))
+        {
+            return;
+        }
+        if (!Path.IsPathFullyQualified(directory))
+        {
+            throw new InvalidOperationException(
+                $"{G3FinalCaptureDirectoryEnvironment}는 절대경로여야 합니다.");
+        }
+        Directory.CreateDirectory(directory);
+        Vector2 previousCenter = _map.CameraCenter;
+        int previousZoomIndex = _map.ZoomIndex;
+        GetWindow().Size = new Vector2I(1920, 1080);
+        ApplyRuntimeUiScale(this, 1f);
+        _timeline.SetUiScale(1f);
+        await NextFrame();
+        _map.GrabFocus();
+        await NextFrame();
+        await PressKey(Key.Home);
+        bool regionalSitingView = string.Equals(
+            fileName,
+            "pair-siting.png",
+            StringComparison.Ordinal);
+        bool regionalFloodView = string.Equals(
+            fileName,
+            "pair-flood.png",
+            StringComparison.Ordinal);
+        bool floodBaselineView = string.Equals(
+            fileName,
+            "pair-flood-baseline.png",
+            StringComparison.Ordinal);
+        bool routeComparisonView = string.Equals(
+            fileName,
+            "pair-route.png",
+            StringComparison.Ordinal);
+        bool heatCityView = string.Equals(
+            fileName,
+            "pair-heat.png",
+            StringComparison.Ordinal);
+        bool easternRiverView = string.Equals(
+            fileName,
+            "pair-normal.png",
+            StringComparison.Ordinal);
+        bool fullRegionalView = routeComparisonView || regionalSitingView ||
+            regionalFloodView || floodBaselineView;
+        if (!fullRegionalView)
+        {
+            Vector2 anchor = _map.ViewportPointForWorld(new CoreMapPoint(1600, 1000));
+            await WheelAt(anchor, MouseButton.WheelUp);
+            await MiddleDrag(
+                anchor,
+                anchor + (routeComparisonView
+                    ? new Vector2(-280f, -129f)
+                    : heatCityView
+                        ? new Vector2(-193f, -43f)
+                    : easternRiverView
+                        ? new Vector2(-133f, -13f)
+                        : new Vector2(-65f, 32f)));
+        }
+        Require(
+            GetWindow().Size == new Vector2I(1920, 1080) &&
+            _map.ZoomIndex == (fullRegionalView ? 0 : 1) &&
+            (routeComparisonView
+                ? Math.Abs(_map.CameraCenter.X - 1600f) < 12f
+                : heatCityView
+                    ? _map.CameraCenter.X is > 1840f and < 1940f
+                : easternRiverView
+                    ? _map.CameraCenter.X is > 1720f and < 1780f
+                    : Math.Abs(_map.CameraCenter.X - 1600f) < 12f) &&
+            (fullRegionalView
+                ? Math.Abs(_map.CameraCenter.Y - 1000f) < 12f
+                : routeComparisonView
+                    ? _map.CameraCenter.Y is > 960f and < 1040f
+                : heatCityView
+                    ? _map.CameraCenter.Y is > 880f and < 940f
+                : _map.CameraCenter.Y is > 890f and < 920f),
+            $"G.3 final pair {fileName}의 1920×1080·UI 100% fixed camera가 다릅니다. " +
+            $"zoom={_map.ZoomIndex}/{_map.ZoomLabel}, center={_map.CameraCenter}");
+        await NextFrame();
+        SaveEvidencePng(Path.Combine(directory, fileName));
+
+        // Restore the exact pre-capture navigation state so evidence capture has
+        // no effect on the subsequent actual-input campaign regression.
+        ApplyRuntimeUiScale(this, 1.25f);
+        _timeline.SetUiScale(1.25f);
+        await NextFrame();
+        _map.SetCameraForSmoke(previousCenter, previousZoomIndex);
+        await NextFrame();
     }
 
     private async void RunPlacementSmoke()
@@ -549,18 +647,24 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
                 _map.HasIndividualTileAssets &&
                 _map.HasIndividualObjectAssets &&
-                _map.IndividualArtAssetCount == 51 &&
+                _map.IndividualArtAssetCount == 55 &&
                 _map.AtomicCityAssetCount == 12 &&
                 _map.AtomicRoadTileAssetCount == 6 &&
-                _map.AtomicWorldInstanceCount == 120 &&
-                _timeline.StepCount == 3 &&
+                _map.AtomicWorldInstanceCount == 641 &&
+                _timeline.StepCount == 4 &&
                 _timeline.CurrentStepLabel == "첫 입주 점등" &&
                 _timeline.AccessibilityName.Contains("시간을 진행하지 않습니다", StringComparison.Ordinal) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
                 !_panel.GetActionButton(CommercialPanelAction.RestartChapter).Visible &&
                 !_panel.GetActionButton(CommercialPanelAction.NewGame).Visible,
-                "1920×1080·UI 125%에서 상용 캠페인·오디오와 고정 행동 영역을 열지 못했습니다.");
+                "1920×1080·UI 125%에서 상용 캠페인·오디오와 고정 행동 영역을 열지 못했습니다. " +
+                $"chapter={coreRun.GetSnapshot().Chapter.ChapterId}, audio={_audio.GetChildCount()}, " +
+                $"art={_map.IndividualArtAssetCount}, atomic={_map.AtomicCityAssetCount}/" +
+                $"{_map.AtomicRoadTileAssetCount}/{_map.AtomicWorldInstanceCount}, " +
+                $"timeline={_timeline.StepCount}/{_timeline.CurrentStepLabel}, " +
+                $"approveInside={ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow))}, " +
+                $"rollbackInside={ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject))}");
 
             if (_options.CampaignSmoke)
             {
@@ -625,6 +729,12 @@ internal sealed partial class CommercialMain
             CommercialDecisionPreview firstPreview = coreRun.PreviewDecisionWindow();
             Require(firstPreview.Accepted && firstPreview.ProjectedMinute <= 800,
                 "첫 불빛 운영안이 안전 의무와 기한을 만족하지 못했습니다.");
+            await CaptureG3FinalPair("pair-normal.png");
+            // The flood comparison needs a genuine before-state of the same
+            // persistent world at the same regional Home camera. Keep this as a
+            // separate actual-input capture instead of reusing the closer normal
+            // hero shot, which would make camera change look like state change.
+            await CaptureG3FinalPair("pair-flood-baseline.png");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "첫 불빛 운영 승인");
             await NextFrame();
             Require(
@@ -670,6 +780,7 @@ internal sealed partial class CommercialMain
                     heartPreview.PhaseResults[1].Demands[0].PathEdgeIds,
                     StringComparer.Ordinal),
                 "두 차단시험이 서로 다른 생존 회랑을 사용하지 못했습니다.");
+            await CaptureG3FinalPair("pair-route.png");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "의료원 차단시험 승인");
             await NextFrame();
             Require(
@@ -694,6 +805,7 @@ internal sealed partial class CommercialMain
                 sourcePreview.PhaseResults[0].Demands.All(item =>
                     item.Supplied && item.SourceNodeId == "WEST_AUXILIARY"),
                 "서부 전원 인수시험이 남부 발전 접속점의 실제 경로를 사용하지 못했습니다.");
+            await CaptureG3FinalPair("pair-siting.png");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "서부 주간선 인수시험 승인");
             await NextFrame();
             Require(
@@ -821,7 +933,7 @@ internal sealed partial class CommercialMain
                     new CoreMapPoint(1050, 1050),
                     new CoreMapPoint(1650, 1050),
                     new CoreMapPoint(2100, 1050),
-                    new CoreMapPoint(2600, 1100),
+                    new CoreMapPoint(2500, 1050),
                 ],
                 "산업단지 보강 간선");
             await PressPanelAsync(
@@ -843,9 +955,30 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Require(coreRun.GetSnapshot().DecisionWindowIndex == 1 &&
                 _timeline.CurrentStepLabel == "다음 아침 안전 경계" &&
-                _timeline.AccessibilityName.Contains("더운 저녁 · 산업 증산 완료", StringComparison.Ordinal) &&
+                _timeline.AccessibilityName.Contains(
+                    "더운 저녁의 여유는 한 번만 쓸 수 있습니다",
+                    StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("보호정지 뒤에도 아침은 옵니다", StringComparison.Ordinal),
-                "다섯 번째 임무의 보호정지 결과 이야기와 다음 결정 경계를 표시하지 못했습니다.");
+                "다섯 번째 임무의 보호정지 결과 이야기와 다음 결정 경계를 표시하지 못했습니다. " +
+                $"window={coreRun.GetSnapshot().DecisionWindowIndex}, timeline={_timeline.CurrentStepLabel}, " +
+                $"timelineA11y={_timeline.AccessibilityName}, panelA11y={_panel.AccessibilityName}");
+            (int OutageIntervalIndex, ThermalAssetResult OutageAsset) outage =
+                _thermalSequence.Intervals
+                    .SelectMany((interval, index) => interval.Assets
+                        .Where(asset => asset.CurrentState ==
+                            ThermalOperatingState.ProtectiveOutage)
+                        .Select(asset => (OutageIntervalIndex: index, OutageAsset: asset)))
+                    .FirstOrDefault();
+            Require(outage.OutageAsset is not null,
+                "폭염 보호정지 캡처에 실제 보호정지 asset이 없습니다.");
+            _thermalProjectionIndex = outage.OutageIntervalIndex;
+            _selectedThermalAssetId = outage.OutageAsset!.AssetId;
+            Render();
+            await NextFrame();
+            // The heat reference is explicitly an outage screen. Capture the
+            // authored protective-outage boundary, not the preceding successful
+            // emergency-use preview, so the visual state and factual panel agree.
+            await CaptureG3FinalPair("pair-heat.png");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "보호정지 뒤 아침 운영 승인");
             await NextFrame();
             Require(coreRun.GetSnapshot().Chapter.ChapterId == "BEFORE_WATER_REACHES" &&
@@ -873,6 +1006,7 @@ internal sealed partial class CommercialMain
                     item.DemandId == "FLOOD_HOSPITAL_DUTY").EmergencyAssetIds) + "; demands=" +
                 string.Join(";", flood.PhaseResults[0].Demands.Select(item =>
                     $"{item.DemandId}:{item.Supplied}:{item.Deferred}:{item.Failure}")));
+            await CaptureG3FinalPair("pair-flood.png");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "범람 통제 운영 승인");
             await NextFrame();
             Require(coreRun.GetSnapshot().Chapter.ChapterId == "SHUT_DOWN_TO_KEEP" &&
@@ -1056,7 +1190,8 @@ internal sealed partial class CommercialMain
             _snapshot.LineDraft?.EndNodeId == endNodeId,
             $"{label} 경로를 완성하지 못했습니다: {_lastError}; " +
             $"endCanvas={_map.ViewportPointForWorld(end.Position)}; " +
-            $"candidate={_map.SelectedCandidateId ?? "none"}");
+            $"candidate={_map.SelectedCandidateId ?? "none"}; " +
+            $"draft={string.Join(';', _snapshot.LineDraft?.IntermediatePoints ?? Array.Empty<CoreMapPoint>())}");
         await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 발주");
         await NextFrame();
         await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 완공");
@@ -1134,7 +1269,17 @@ internal sealed partial class CommercialMain
 
     private async Task SelectAndClickCandidate(CoreMapPoint point, string nodeId)
     {
-        await MovePointer(point);
+        // Native rendering can publish the pointer move one frame before the map
+        // has rebuilt its proximity candidates after a camera/layout update.
+        // Keep exercising the real mouse-input path, but bound the settle loop so
+        // the smoke is deterministic without invoking renderer signals directly.
+        for (int settle = 0;
+             settle < 8 && !_map.CandidateNodeIds.Contains(nodeId, StringComparer.Ordinal);
+             settle++)
+        {
+            await MovePointer(point);
+            await NextFrame();
+        }
         for (int index = 0;
              index < _map.CandidateNodeIds.Count && _map.SelectedCandidateId != nodeId;
              index++)

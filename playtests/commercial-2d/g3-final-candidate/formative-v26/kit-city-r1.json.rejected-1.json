@@ -1,0 +1,6 @@
+{"pairId":"PAIR-KIT-CITY","judgeSlot":"SOL-ULTRA","order":"REFERENCE_FIRST","replicate":1,"criteria":[{"criterion":"camera","label":"CLOSE","confidence":"HIGH","similar":["Both use an oblique isometric projection with visible roofs and façades.","Diagonal roads and ground axes recede at closely matched angles."],"different":["The candidate reads slightly steeper and more top-down.","The candidate exposes a more explicit orthogonal ground grid, while the reference framing is more pictorial."],"evidence":[{"imageRole":"REFERENCE","roi":"MAP","box":[271,118,484,341],"observation":"Dense roofs, façades, and crossing diagonal roads establish the reference isometric camera."},{"imageRole":"CANDIDATE","roi":"MAP","box":[271,127,484,331],"observation":"Roofs and façades follow nearly the same oblique projection and diagonal recession."},{"imageRole":"REFERENCE","roi":"MAP","box":[514,118,727,341],"observation":"Roads and structures have a moderately pitched cinematic framing."}
+
+
+
+
+] ,"criticalFailure":false}]}

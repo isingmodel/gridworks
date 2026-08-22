@@ -53,7 +53,7 @@ internal sealed partial class CommercialEventTimeline : Control
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Ignore;
-        CustomMinimumSize = new Vector2(0f, 82f);
+        CustomMinimumSize = new Vector2(0f, 78f);
         Resized += QueueRedraw;
     }
 
@@ -77,28 +77,38 @@ internal sealed partial class CommercialEventTimeline : Control
 
     public override void _Draw()
     {
-        float plateWidth = Math.Min(Size.X - 20f, 660f * _uiScale);
-        float plateLeft = ((Size.X - plateWidth) * 0.5f) - (78f * _uiScale);
+        float workLeft = 184f;
+        float workWidth = Math.Max(760f, Size.X - workLeft - 360f);
+        float plateWidth = Math.Min(workWidth, 650f * _uiScale);
+        float plateLeft = workLeft + ((workWidth - plateWidth) * 0.5f);
         Rect2 outer = new(new Vector2(plateLeft, 0f), new Vector2(plateWidth, Size.Y));
-        DrawChromeFrame(outer, Colors.White, 16f);
+        DrawChromeFrame(outer, Colors.White, 18f);
 
         if (_presentation is null || _presentation.Steps.Count == 0)
         {
             return;
         }
 
-        float left = plateLeft + 18f;
-        float right = plateLeft + plateWidth - 18f;
+        float left = plateLeft + 16f;
+        float right = plateLeft + plateWidth - 16f;
         int count = _presentation.Steps.Count;
-        float gap = 7f;
+        float gap = 5f;
         float cellWidth = Math.Max(58f, ((right - left) - (gap * (count - 1))) / count);
-        int labelSize = ScaledFont(count >= 6 ? 9 : 11);
+        int labelSize = ScaledFont(14);
+        float cellTop = 7f;
+        float cellHeight = Math.Max(48f, Size.Y - 14f);
+        DrawLine(
+            new Vector2(left + (cellWidth * 0.5f), cellTop + 20f),
+            new Vector2(right - (cellWidth * 0.5f), cellTop + 20f),
+            Upcoming,
+            2f,
+            true);
         for (int index = 0; index < count; index++)
         {
             CommercialTimelineStep step = _presentation.Steps[index];
             Rect2 cell = new(
-                new Vector2(left + (index * (cellWidth + gap)), 9f),
-                new Vector2(cellWidth, Size.Y - 18f));
+                new Vector2(left + (index * (cellWidth + gap)), cellTop),
+                new Vector2(cellWidth, cellHeight));
             Color border = step.State switch
             {
                 CommercialTimelineStepState.Completed => Completed,
@@ -116,14 +126,17 @@ internal sealed partial class CommercialEventTimeline : Control
                 12f);
             DrawRect(cell, new Color(border, step.State == CommercialTimelineStepState.Upcoming ? 0.65f : 0.94f),
                 false, step.State == CommercialTimelineStepState.Current ? 2f : 1f);
-            Vector2 marker = new(cell.GetCenter().X, cell.Position.Y + (cell.Size.Y * 0.38f));
+            Vector2 marker = new(cell.GetCenter().X, cellTop + 20f);
             DrawStepMarker(marker, step.State);
+            string visualLabel = index == 0
+                ? $"{_presentation.ProgressText} · {step.Label}"
+                : step.Label;
             DrawString(
                 GetThemeDefaultFont(),
-                new Vector2(cell.Position.X + 8f, cell.End.Y - 10f),
-                step.Label,
+                new Vector2(cell.Position.X + 7f, cell.End.Y - 9f),
+                visualLabel,
                 HorizontalAlignment.Center,
-                cellWidth - 16f,
+                cellWidth - 14f,
                 labelSize,
                 step.State == CommercialTimelineStepState.Current ? Current :
                     step.State == CommercialTimelineStepState.Completed ? Text : Muted);
@@ -132,8 +145,8 @@ internal sealed partial class CommercialEventTimeline : Control
         float progressWidth = (plateWidth - 40f) *
             Math.Clamp(_presentation.DeadlineRatio, 0f, 1f);
         DrawLine(
-            new Vector2(plateLeft + 20f, Size.Y - 5f),
-            new Vector2(plateLeft + 20f + progressWidth, Size.Y - 5f),
+            new Vector2(plateLeft + 20f, Size.Y - 3f),
+            new Vector2(plateLeft + 20f + progressWidth, Size.Y - 3f),
             _presentation.DeadlineRatio >= 0.88f ? Current : Completed,
             2f,
             true);
@@ -149,7 +162,7 @@ internal sealed partial class CommercialEventTimeline : Control
         }
         float sourceWidth = ChromeFrameTexture.GetWidth();
         float sourceHeight = ChromeFrameTexture.GetHeight();
-        float sourceSlice = Math.Min(18f, Math.Min(sourceWidth, sourceHeight) * 0.25f);
+        float sourceSlice = Math.Min(sourceWidth, sourceHeight) * 0.16f;
         float drawSlice = Math.Min(
             destinationSlice,
             Math.Min(destination.Size.X, destination.Size.Y) * 0.34f);

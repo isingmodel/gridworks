@@ -28,7 +28,19 @@ def main() -> int:
             "edge. Use for a uniform white matte around a deliberately dark object."
         ),
     )
+    parser.add_argument(
+        "--minimum-transparent-fraction",
+        type=float,
+        default=0.35,
+        help=(
+            "Minimum fraction of fully transparent pixels required after extraction. "
+            "Keep the default for sprites; tightly framed UI plates may declare a lower "
+            "value while still requiring all four transparent corners."
+        ),
+    )
     args = parser.parse_args()
+    if not 0.01 <= args.minimum_transparent_fraction <= 0.95:
+        raise SystemExit("minimum transparent fraction must be between 0.01 and 0.95")
 
     rgb = np.asarray(Image.open(args.source).convert("RGB"), dtype=np.uint8)
     low = rgb.min(axis=2).astype(np.int16)
@@ -105,7 +117,7 @@ def main() -> int:
     rgba = np.dstack((clean_rgb.astype(np.uint8), alpha))
     transparent_fraction = float(np.count_nonzero(alpha == 0)) / alpha.size
     corners = [int(alpha[0, 0]), int(alpha[0, -1]), int(alpha[-1, 0]), int(alpha[-1, -1])]
-    if transparent_fraction < 0.35 or any(value != 0 for value in corners):
+    if transparent_fraction < args.minimum_transparent_fraction or any(value != 0 for value in corners):
         raise SystemExit(
             "checkerboard extraction rejected: "
             f"transparent_fraction={transparent_fraction:.4f}, corners={corners}"

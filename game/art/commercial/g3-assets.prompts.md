@@ -436,6 +436,26 @@ Create exactly ONE production-ready isolated isometric runtime object: continuou
 Create exactly one isolated runtime game object: a short two-lane industrial road bridge deck with two compact concrete-and-blackened-steel abutment caps, viewed in classic orthographic 2:1 isometric projection, yaw 45 degrees and pitch 35.264 degrees, no perspective convergence. Match the supplied Gridworks references as closely as possible in camera, painterly embossed detail, graphite steel, soot-dark weathered concrete, restrained warm amber work lights, and upper-right key light. The bridge should span a narrow river diagonally from southwest to northeast, with a slim dark asphalt deck, low riveted steel side girders, visible concrete feet at both ends, and enough underside depth to read as a bridge when placed over dark teal water. One centered object only, no river, no terrain patch, no vehicles, no power lines, no UI, no labels, no letters, no numbers, no border, no crop, no atlas, no extra variants. Place it on a perfectly uniform pure white background with generous clearance on all sides and a soft contact shadow confined immediately under the object, suitable for deterministic background removal. Square 1024x1024 output.
 ```
 
+## `g3/objects/industrial-road-bridge-b.png`
+
+- accepted built-in ImageGen source run: `exec-072784e2-c6e9-44a8-a3bf-7db4ecd29a21`
+- preserved source: `playtests/commercial-2d/g3-runtime-sources/industrial-road-bridge-b-source.png`,
+  SHA-256 `8968c0931876d72a95b3df631be22e5150606bc9e81f89134471d097bb2b2386`
+- rejected predecessor: `exec-97308055-0dc8-48dd-959c-7ad4b646098b`; the apparent checkerboard was
+  baked into opaque pixels, so it was never copied into the repository or accepted as runtime art.
+- inputs: accepted bridge A as the object/style reference; the call altered the long-axis orientation,
+  retained exactly one bridge, and prohibited river, terrain, background plates, UI and text.
+- runtime processing: real source alpha was preserved; `trim-alpha-padding.py --padding 16` reduced
+  1536×1024 to 1005×1006 without reconstruction, compositing, or checkerboard extraction.
+- runtime proof: 65.34% fully transparent pixels and four alpha-zero corners.
+- runtime class: one individually placed NW-SE road bridge with its own four attached end supports;
+  never a river plate, terrain background, atlas, or map plate.
+- runtime SHA-256: `b6c7e7899b8411b69bb45f2cbb1687fb7ca5df3ded472ce7cd5aee13ac8e7ff4`
+
+```text
+Edit the attached single bridge sprite into exactly ONE isolated, complete bridge object for Gridworks. Preserve its dark graphite asphalt, blackened riveted steel, weathered concrete end supports, restrained amber lamps, premium hand-painted relief, and classic 2:1 orthographic isometric camera. Change the bridge's baked long axis to the steep upper-left-to-lower-right screen diagonal so the finished object crosses the runtime river instead of running along it. Keep the whole deck and all attached supports fully visible and centered. Use a genuinely transparent RGBA background to every canvas edge with alpha-zero corners—no checkerboard pixels, matte, glow plate, river, water, bank, terrain, road extension, second object, map, UI, text, labels, border, or watermark.
+```
+
 ## G.3 Step 1 — atomic city/building/prop kit
 
 The following assets replace every runtime-bound district, parcel, cluster, neighbourhood, hamlet,
@@ -519,9 +539,11 @@ SERVICE_YARD_TILE_A: exactly one paved industrial service-yard diamond with one 
 The river remains code/data geometry. These files are only individually bound material tiles or short
 objects placed along the authoritative banks. ImageGen was called once per selected asset; no call produced
 an atlas, full river, full map, shoreline plate, or baked city. The three water sources were center-cropped
-and downscaled deterministically to opaque 1024×512 2:1 material tiles. The nine object/effect sources used
-`extract-checkerboard-alpha.py --connected-matte-floor 200` and a deterministic 1024 px max-side resize;
-each has alpha-zero corners and at least 64% transparent source canvas.
+and downscaled deterministically to opaque 1024×512 2:1 material tiles. The original nine bank/effect
+sources used `extract-checkerboard-alpha.py --connected-matte-floor 200` and a deterministic 1024 px
+max-side resize. The three later bank-environment objects arrived with real alpha and used
+`trim-alpha-padding.py` only; no checker pixels were accepted. Every transparent object has alpha-zero
+corners and a separately pinned source/output SHA.
 
 | runtime path | ImageGen run | preserved source / source SHA-256 | final SHA-256 | unit |
 |---|---|---|---|---|
@@ -537,6 +559,9 @@ each has alpha-zero corners and at least 64% transparent source canvas.
 | `g3/river/river-bridge-abutment-a.png` | `exec-9b9a3087-d3d6-4c95-98d7-6f7c0a1645f5` | `river-bridge-abutment-a-source.png` / `18abd8d627acdfb355b8caacc77fa2342f7255de127c3a38470f7d02e96b5074` | `8d9943ed6441b6ef0ade0a82ffd65e523f11a2f8d6f03010756e6f440dfb3ce1` | one single-bank bridge abutment |
 | `g3/river/river-rock-soil-transition-a.png` | `exec-02db16b8-2c39-4648-a702-1e48a8f7c8f4` | `river-rock-soil-transition-a-source.png` / `3be54eb70ef284f8fabc6ca49fa66b48c8ab0951126d76becfce8f615a5ea504` | `a083c1d9549c9a42a0f2c00ad6d78aaa2055ebf98063f0a0606272226c7875bf` | one bank rock-to-soil transition |
 | `g3/river/river-flood-ripple-a.png` | `exec-39d06c57-7026-4209-b07a-5fee07e76021` | `river-flood-ripple-a-source.png` / `1e7e4e67c1ae02d758fd31be9517f25ce7d4fc81d37d7b6851c262e16448098f` | `9107d3af98121878c9e331b6f1633fee699f75d17d227876bde87c46eb86979f` | one flood-ripple overlay cluster |
+| `g3/river/river-bank-conifer-a.png` | `exec-ad2bc6df-f6ac-4de6-9409-e7ce590348b0` | `river-bank-conifer-a-source.png` / `eedcdcf6d00b012a9187cc22944a3e6884eebe814e7719f83c8758868ae6964f` | `7a00a7776daefa647404a42b176b137654656e9193f2b5aa78edf3c2d9f8af6c` | one windswept conifer object |
+| `g3/river/river-bank-scrub-a.png` | `exec-1e6ad975-9e07-45e0-9cf5-902e45e3eac4` | `river-bank-scrub-a-source.png` / `b42691fd7e51ae72d1c1ca45204285a226012698a957d1095fc423061cc35f6c` | `1107e80b4c660a2a93801c3d2588d1512bfaf741fc7811231d6f53fa763d24b5` | one windswept scrub-bush object |
+| `g3/river/river-bank-outcrop-a.png` | `exec-c3000101-0616-4fb7-bc3b-773d5d9d5bf6` | `river-bank-outcrop-a-source.png` / `9f0fdf039542b7772eea666721c5c0635ba1ba59450ddea282a88fc16a36c9e7` | `1c4f8431e0fd88a6b9b011d6940055c35a646d36406ad7da966b719ef940c3a4` | one compact basalt-outcrop object |
 
 ### Atomic river prompt contract
 
@@ -560,6 +585,9 @@ BANK_RIGHT_OUTER_A: one narrow right-bank convex 55-degree bend with two tangent
 BRIDGE_ABUTMENT_A: one compact single-bank concrete/steel bridge seat with wing walls, bearing shelf, anchors, and no deck/opposite bank.
 ROCK_SOIL_TRANSITION_A: one tapered bank piece changing from a raised rock edge into wet soil/gravel, with compatible narrow endpoints.
 FLOOD_RIPPLE_A: one sparse long cluster of separated cold ripple arcs, broken current streaks and tiny foam flecks on empty matte.
+CONIFER_A: exactly one isolated wind-bent riverbank conifer, single ground-contact trunk, soot-dark needles and restrained amber rim light; actual alpha outside the tree; no terrain, water, second plant, scene, or checkerboard.
+SCRUB_A: exactly one isolated low windswept riverbank scrub bush, single ground-contact root point, soot-black/desaturated-olive foliage and charcoal dead branches; actual alpha outside the bush; no soil patch, terrain, water, second plant, scene, or checkerboard.
+OUTCROP_A: exactly one isolated compact connected riverbank basalt outcrop, one elliptical ground-contact footprint, desaturated olive moss only in cracks and restrained amber rim light; actual alpha outside the object; no soil patch, terrain, water, plant, second cluster, scene, or checkerboard.
 ```
 
 ## G.3 Step 3 — atomic grid/facility kit
@@ -578,8 +606,8 @@ deterministic 1024 px max-side resize; every runtime PNG has alpha-zero corners.
 | `g3/grid/plant-turbine-hall-a.png` | `exec-7e1e7885-b6af-4891-bd70-e9ff3fc92830` | `atomic-plant-turbine-hall-a-source.png` / `eb97c8b8076f411797a5545224142adc6883df74ba72bb1c0af1cd023d16b4dd` | `c0d392c613a9667308755f54aaac782a753a78328b97f66e1e1ea83b1d81cea0` | one turbine-hall building |
 | `g3/grid/switchyard-breaker-bay-a.png` | `exec-751318e5-a19c-4fc8-811d-c0490c20e401` | `atomic-switchyard-breaker-bay-a-source.png` / `6d62a81973a60b75bd087addd2da51c1356358512aca60a4a11e136022650684` | `6ae34713dd868cc3c735836e8416ba054e12b4017899a215adfd6c7974066dcd` | one breaker bay |
 | `g3/grid/substation-transformer-a.png` | `exec-525b7168-42d9-4c04-a538-4afe281489c6` | `atomic-substation-transformer-a-source.png` / `bc8ab955983669e36b3f2c562e917ddccab6061a21c22387d9101189f8f4fedf` | `60c75dd42c66e55b66249c2a4f93ca006fbbd9afdd4b8875ae50b02ede33cfab` | one transformer machine |
-| `g3/grid/pole-standard-a.png` | `exec-f0fe7a22-7c24-402d-9494-ad80b442073a` | `atomic-pole-standard-a-source.png` / `f7cce0b1372b951bfff66fddd1470691c8ed6e607f9633bdc14d07b339010619` | `2da582c008a07fcce47685f6132a9533ecb09fcdcc893af720ca841f63d47fd8` | one standard lattice pole |
-| `g3/grid/pole-reinforced-a.png` | `exec-3db19133-0dbf-42ea-b16b-8f6cf89648d4` | `atomic-pole-reinforced-a-source.png` / `014eb6d8c097f8cb28abf69e992da2169d8381c89c214e352196a6eaae47ba82` | `c6692776ed72834e2c4c39c7a20d23b2c21a40d9a1878826aae6378d360d2b9b` | one reinforced lattice tower |
+| `g3/grid/pole-standard-a.png` | `exec-f0fe7a22-7c24-402d-9494-ad80b442073a` | `atomic-pole-standard-a-source.png` / `f7cce0b1372b951bfff66fddd1470691c8ed6e607f9633bdc14d07b339010619` | `95211238e68b27a6d3a4256006ecc245af1727b584834537e472cda6ebcb0655` | one standard lattice pole; alpha-bound trim with 16 px padding |
+| `g3/grid/pole-reinforced-a.png` | `exec-3db19133-0dbf-42ea-b16b-8f6cf89648d4` | `atomic-pole-reinforced-a-source.png` / `014eb6d8c097f8cb28abf69e992da2169d8381c89c214e352196a6eaae47ba82` | `82321ee3e6792750f875009f660be746a4319bde326e0e8ff3391bb0a6a66379` | one reinforced lattice tower; alpha-bound trim with 16 px padding |
 | `g3/grid/bridge-foundation-a.png` | `exec-9775ee23-b362-488f-8d0e-2ab8df147252` | `atomic-bridge-foundation-a-source.png` / `0ea44ff2433a3da7de114241802eee58a7c2ce0d4235615607f8ae4f83217d42` | `56041864e4da3257c9f0e43d37ac2e39d3c0a3fba450af1110ba15ed74fc29f5` | one crossing foundation |
 
 ### Atomic grid prompt contract

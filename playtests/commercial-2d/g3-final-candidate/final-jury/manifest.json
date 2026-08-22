@@ -1,0 +1,219 @@
+{
+  "callCount": 40,
+  "judge": {
+    "codexCliVersion": "codex-cli 0.149.0",
+    "model": "gpt-5.6-sol",
+    "reasoningEffort": "ultra",
+    "slot": "SOL-ULTRA"
+  },
+  "pairCount": 10,
+  "pairs": [
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
+      "candidateSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "criteria": [
+        "camera",
+        "density",
+        "river",
+        "scale",
+        "material",
+        "grid",
+        "hud",
+        "timeline"
+      ],
+      "judgments": [
+        "judgments/normal-reference-first-r1.json",
+        "judgments/normal-candidate-first-r1.json",
+        "judgments/normal-reference-first-r2.json",
+        "judgments/normal-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-NORMAL",
+      "referencePath": "/Users/fred/dev/gridworks/assets/01-grid-construction.png",
+      "referenceSha256": "23c9acec1b8026ebcb8eebf329eb6b94201179f8952451aa27a71ab38b7ebedc"
+    },
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
+      "candidateSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "criteria": [
+        "camera",
+        "density",
+        "river",
+        "scale",
+        "material",
+        "grid",
+        "hud",
+        "state",
+        "timeline"
+      ],
+      "judgments": [
+        "judgments/heat-reference-first-r1.json",
+        "judgments/heat-candidate-first-r1.json",
+        "judgments/heat-reference-first-r2.json",
+        "judgments/heat-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-HEAT",
+      "referencePath": "/Users/fred/dev/gridworks/assets/02-heatwave-outage.png",
+      "referenceSha256": "47d4e53b9d9bad74b6afce6311acce023dc3f9642ffd0ea16609d67b6960a630"
+    },
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-route.png",
+      "candidateSha256": "9f1f9b9bccf585639da228b12bba2a5d4b9619a90556a17d8b027fd95c17786b",
+      "criteria": [
+        "camera",
+        "density",
+        "river",
+        "scale",
+        "material",
+        "grid",
+        "hud",
+        "timeline"
+      ],
+      "judgments": [
+        "judgments/route-reference-first-r1.json",
+        "judgments/route-candidate-first-r1.json",
+        "judgments/route-reference-first-r2.json",
+        "judgments/route-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-ROUTE",
+      "referencePath": "/Users/fred/dev/gridworks/assets/03-route-comparison.png",
+      "referenceSha256": "f471ac24cbab24d9b1aff89953595d70fc3ccaf4e8c08c442651125ab3c65828"
+    },
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-siting.png",
+      "candidateSha256": "4e1b447b6fc67b3bacd6119c12431609b27ed759eab751d77039242b427245e1",
+      "criteria": [
+        "camera",
+        "density",
+        "river",
+        "scale",
+        "material",
+        "grid",
+        "hud"
+      ],
+      "judgments": [
+        "judgments/siting-reference-first-r1.json",
+        "judgments/siting-candidate-first-r1.json",
+        "judgments/siting-reference-first-r2.json",
+        "judgments/siting-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-SITING",
+      "referencePath": "/Users/fred/dev/gridworks/assets/04-plant-siting.png",
+      "referenceSha256": "10908370f3a2d8403e62ce2a97e39b7ba5c43d8eb0e32073f03e5b3521c01092"
+    },
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-flood-candidate-comparison.png",
+      "candidateSha256": "f9c6a69eaf09e75b3c015fbaa3136896425ec58bc8db2c84fa4e12861cef78d9",
+      "criteria": [
+        "camera",
+        "river",
+        "material",
+        "grid",
+        "state"
+      ],
+      "judgments": [
+        "judgments/flood-reference-first-r1.json",
+        "judgments/flood-candidate-first-r1.json",
+        "judgments/flood-reference-first-r2.json",
+        "judgments/flood-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-FLOOD",
+      "referencePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-flood-reference.png",
+      "referenceSha256": "cd1a9ebd6e14a98583dc5a415d2af45ee82989c46b1b63e1b709d74f9eaeaf28"
+    },
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-ground-candidate-comparison.png",
+      "candidateSha256": "ea541c7dbd82f6c1111cc55d65b9aeb25c06a9a009a0f1010d0cdb06b368a536",
+      "criteria": [
+        "camera",
+        "material",
+        "state"
+      ],
+      "judgments": [
+        "judgments/kit-ground-reference-first-r1.json",
+        "judgments/kit-ground-candidate-first-r1.json",
+        "judgments/kit-ground-reference-first-r2.json",
+        "judgments/kit-ground-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-KIT-GROUND",
+      "referencePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-ground-reference.png",
+      "referenceSha256": "6ca0c54fd987753cf95ab2be0a664ee99d178e7058ef7ab72ecd342d89fdbde9"
+    },
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-river-candidate-comparison.png",
+      "candidateSha256": "28079dbf545418fc3965dfb93613aee93fde528ecdc7ccb9f0993f5ab001951f",
+      "criteria": [
+        "camera",
+        "river",
+        "material",
+        "state"
+      ],
+      "judgments": [
+        "judgments/kit-river-reference-first-r1.json",
+        "judgments/kit-river-candidate-first-r1.json",
+        "judgments/kit-river-reference-first-r2.json",
+        "judgments/kit-river-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-KIT-RIVER",
+      "referencePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-river-reference.png",
+      "referenceSha256": "3eee440d2ad816461d147c8479dc15bcbaeb3e4c96aa37ef6a71ece36e299b41"
+    },
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-grid-candidate-comparison.png",
+      "candidateSha256": "e04c7215a5783dee39f56e7f74291c1279a511d9049c3d00912b0673adc7c7d0",
+      "criteria": [
+        "camera",
+        "scale",
+        "material",
+        "grid"
+      ],
+      "judgments": [
+        "judgments/kit-grid-reference-first-r1.json",
+        "judgments/kit-grid-candidate-first-r1.json",
+        "judgments/kit-grid-reference-first-r2.json",
+        "judgments/kit-grid-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-KIT-GRID",
+      "referencePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-grid-reference.png",
+      "referenceSha256": "be5dc5999fdb81a4f1b564cb1f78a46887e50058bf25ab4914e67fe84ef1b51c"
+    },
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-city-candidate-comparison.png",
+      "candidateSha256": "e5aa2c513cad6c6c16a66ff098ea01d89f9cf800380f6097b53bd58e41e0d5e8",
+      "criteria": [
+        "camera",
+        "scale",
+        "material"
+      ],
+      "judgments": [
+        "judgments/kit-city-reference-first-r1.json",
+        "judgments/kit-city-candidate-first-r1.json",
+        "judgments/kit-city-reference-first-r2.json",
+        "judgments/kit-city-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-KIT-CITY",
+      "referencePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-city-reference.png",
+      "referenceSha256": "82db0b054c272ed69be32f04908344405f0fc1c95a17c1be58322172f2da5338"
+    },
+    {
+      "candidatePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-ui-candidate.png",
+      "candidateSha256": "47802e92a046a005293fff2100f316a5677a5a762d467519dac9f23151750fe5",
+      "criteria": [
+        "material",
+        "hud",
+        "timeline"
+      ],
+      "judgments": [
+        "judgments/kit-ui-reference-first-r1.json",
+        "judgments/kit-ui-candidate-first-r1.json",
+        "judgments/kit-ui-reference-first-r2.json",
+        "judgments/kit-ui-candidate-first-r2.json"
+      ],
+      "pairId": "PAIR-KIT-UI",
+      "referencePath": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/boards/pair-kit-ui-reference.png",
+      "referenceSha256": "8878971421eafdcbd59654dc4d68816a343634680221fb1e9eb7a4d35a7d72e4"
+    }
+  ],
+  "protocol": "G3-REFERENCE-PARITY-v2",
+  "uiScalePercent": 100,
+  "viewport": "1920x1080"
+}

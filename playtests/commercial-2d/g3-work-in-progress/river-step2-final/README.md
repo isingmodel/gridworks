@@ -41,4 +41,4 @@
   두 bridge deck은 authored foundation `(1330, 500)`, `(1480, 1500)`에 정렬된다.
 
 이 구조 gate는 최종 ReferenceParity 점수를 대신하지 않는다. 전체 완료는 고정 jury의
-`ReferenceParity > 90`이며, 90.0은 실패다.
+`ReferenceParity > 85`이며, 85.0은 실패다.

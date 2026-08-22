@@ -36,14 +36,16 @@ internal sealed class CommercialMapTransform
     private CommercialMapBounds _bounds;
     private Vector2 _viewportSize;
     private Vector2 _center;
-    private int _zoomIndex;
+    // The playable default is the reference-composition view. Home still restores
+    // the complete authoritative bounds at index 0 for navigation and recovery.
+    private int _zoomIndex = 1;
 
     public CommercialMapTransform(CommercialMapBounds bounds, Vector2 viewportSize)
     {
         bounds.Validate();
         _bounds = bounds;
         _viewportSize = ValidViewport(viewportSize);
-        _center = ReferenceHomeCenter(bounds);
+        _center = bounds.Center;
     }
 
     public CommercialMapBounds Bounds => _bounds;
@@ -55,7 +57,7 @@ internal sealed class CommercialMapTransform
     public string ZoomLabel => _zoomIndex switch
     {
         0 => "전체 보기",
-        1 => "1.5배",
+        1 => "1.50배",
         2 => "2.25배",
         _ => throw new InvalidOperationException("지원하지 않는 지도 확대 단계입니다."),
     };
@@ -150,6 +152,14 @@ internal sealed class CommercialMapTransform
         _zoomIndex = 0;
         _center = ReferenceHomeCenter(_bounds);
     }
+
+#if DEBUG || COMMERCIAL_INTERNAL
+    internal void SetViewForSmoke(Vector2 center, int zoomIndex)
+    {
+        _zoomIndex = Math.Clamp(zoomIndex, 0, ZoomMultipliers.Length - 1);
+        _center = ClampCenter(center);
+    }
+#endif
 
     public void Follow(double worldX, double worldY, float edgeMargin)
     {

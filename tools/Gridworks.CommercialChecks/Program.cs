@@ -158,7 +158,15 @@ internal sealed class CommercialChecks
     {
         string gameDirectory = Path.Combine(_repositoryDirectory, "game");
         string artDirectory = Path.Combine(gameDirectory, "art", "commercial");
-        string scene = File.ReadAllText(Path.Combine(gameDirectory, "CommercialMapView.tscn"));
+        string scene = string.Join(
+            '\n',
+            new[]
+            {
+                "CommercialMapView.tscn",
+                "CommercialMain.tscn",
+                "CommercialTaskPanel.tscn",
+                "ReleaseTheme.tres",
+            }.Select(fileName => File.ReadAllText(Path.Combine(gameDirectory, fileName))));
         string renderer = File.ReadAllText(Path.Combine(gameDirectory, "CommercialMapView.cs"));
         string transform = File.ReadAllText(Path.Combine(gameDirectory, "CommercialMapTransform.cs"));
         string timeline = File.ReadAllText(Path.Combine(gameDirectory, "CommercialEventTimeline.cs"));
@@ -567,6 +575,11 @@ internal sealed class CommercialChecks
                          "IndustrialRoadBridgeASprite",
                          "DrawRiverBridgeDeck",
                          "industrial road bridge A"),
+                     (
+                         "g3/objects/industrial-road-bridge-b.png",
+                         "IndustrialRoadBridgeBSprite",
+                         "IndustrialRoadBridgeBSprite",
+                         "industrial road bridge B"),
                  })
         {
             string assetPath = Path.Combine(artDirectory, relativePath);
@@ -745,7 +758,7 @@ internal sealed class CommercialChecks
             transform.Contains("ScaleY => ScaleX * 0.5d", StringComparison.Ordinal),
             "commercial map transform is not the fixed 2:1 isometric projection");
         Check(
-            timeline.Contains("660f * _uiScale", StringComparison.Ordinal) &&
+            timeline.Contains("650f * _uiScale", StringComparison.Ordinal) &&
             timeline.Contains("plateLeft", StringComparison.Ordinal),
             "event timeline is not a compact centered independent plate");
         Check(
@@ -872,8 +885,14 @@ internal sealed class CommercialChecks
                 "river-rock-soil-transition-a-source.png", "exec-02db16b8-2c39-4648-a702-1e48a8f7c8f4", true),
             ("RiverFloodRippleASprite", "g3/river/river-flood-ripple-a.png",
                 "river-flood-ripple-a-source.png", "exec-39d06c57-7026-4209-b07a-5fee07e76021", true),
+            ("RiverBankConiferASprite", "g3/river/river-bank-conifer-a.png",
+                "river-bank-conifer-a-source.png", "exec-ad2bc6df-f6ac-4de6-9409-e7ce590348b0", true),
+            ("RiverBankScrubASprite", "g3/river/river-bank-scrub-a.png",
+                "river-bank-scrub-a-source.png", "exec-1e6ad975-9e07-45e0-9cf5-902e45e3eac4", true),
+            ("RiverBankOutcropASprite", "g3/river/river-bank-outcrop-a.png",
+                "river-bank-outcrop-a-source.png", "exec-c3000101-0616-4fb7-bc3b-773d5d9d5bf6", true),
         ];
-        Equal(12, atomicRiverAssets.Length, "Step 2 atomic river asset count");
+        Equal(15, atomicRiverAssets.Length, "Step 2 atomic river asset count");
 
         (string Property, string RelativePath, string SourceName, string RunId)[] atomicGridAssets =
         [
@@ -1006,9 +1025,18 @@ internal sealed class CommercialChecks
                 $"Step 3 provenance is incomplete or stale: {relativePath}");
             PngInfo png = ReadPng(runtimePath, true);
             Equal((byte)6, png.ColorType, $"Step 3 atomic grid RGBA: {relativePath}");
-            Check(Math.Max(png.Width, png.Height) >= 1024 &&
-                Math.Min(png.Width, png.Height) >= 512,
-                $"Step 3 grid art below source resolution: {relativePath}");
+            bool alphaTrimmedPole = property is
+                "AtomicStandardPoleASprite" or "AtomicReinforcedPoleASprite";
+            Check(alphaTrimmedPole
+                    ? Math.Max(png.Width, png.Height) >= 350 &&
+                      Math.Min(png.Width, png.Height) >= 180
+                    : Math.Max(png.Width, png.Height) >= 1024 &&
+                      Math.Min(png.Width, png.Height) >= 512,
+                $"Step 3 grid art lacks source or alpha-trimmed runtime resolution: {relativePath}");
+            PngInfo sourcePng = ReadPng(sourcePath, true);
+            Check(Math.Max(sourcePng.Width, sourcePng.Height) >= 1024 &&
+                Math.Min(sourcePng.Width, sourcePng.Height) >= 512,
+                $"Step 3 preserved source is below generation resolution: {sourceName}");
             Check(png.TransparentFraction >= 0.30d &&
                 png.CornerAlphas.All(alpha => alpha <= 1),
                 $"Step 3 grid art lacks isolated transparent alpha: {relativePath}");
@@ -1042,8 +1070,8 @@ internal sealed class CommercialChecks
             g3Directory,
             "*.png",
             SearchOption.AllDirectories);
-        Equal(47, packagedG3Pngs.Length,
-            "Step 3 package-eligible G.3 PNG count");
+        Equal(57, packagedG3Pngs.Length,
+            "Step 4 package-eligible G.3 PNG count");
         foreach (string packagedG3Png in packagedG3Pngs)
         {
             string relativePath = Path.GetRelativePath(artDirectory, packagedG3Png)
@@ -1052,12 +1080,15 @@ internal sealed class CommercialChecks
                 $"unbound G.3 PNG remains package-eligible: {relativePath}");
         }
 
-        Equal(80,
+        Equal(338,
             renderer.Split("new(AtomicCitySpriteKind.", StringSplitOptions.None).Length - 1,
             "Step 1 atomic city instance records");
-        Equal(40,
+        Equal(112,
             renderer.Split("new(AtomicRoadSpriteKind.", StringSplitOptions.None).Length - 1,
             "Step 1 atomic road instance records");
+        Equal(24,
+            renderer.Split("new(AtomicRiverEnvironmentKind.", StringSplitOptions.None).Length - 1,
+            "Step 2 atomic river environment instance records");
         Check(renderer.Contains("DrawAtomicRoadTiles();", StringComparison.Ordinal) &&
             renderer.Contains("DrawAtomicCity();", StringComparison.Ordinal) &&
             renderer.Contains("OrderBy(item => ToCanvas", StringComparison.Ordinal) &&
@@ -1078,6 +1109,7 @@ internal sealed class CommercialChecks
             ("G3RiverBankOuterBendASprite", "g3/objects/river-bank-outer-bend-a.png"),
             ("RiverCurrentReflectionASprite", "g3/objects/river-current-reflection-a.png"),
             ("IndustrialRoadBridgeASprite", "g3/objects/industrial-road-bridge-a.png"),
+            ("IndustrialRoadBridgeBSprite", "g3/objects/industrial-road-bridge-b.png"),
         ];
         foreach ((string property, string relativePath) in retainedG3Assets)
         {
@@ -1092,17 +1124,17 @@ internal sealed class CommercialChecks
                 $"retained G.3 provenance hash is stale: {relativePath}");
         }
 
-        Equal(52,
+        Equal(64,
             scene.Split("[ext_resource type=\"Texture2D\"", StringSplitOptions.None).Length - 1,
-            "Step 3 runtime texture resource count including UI chrome");
+            "Step 4 runtime texture resource count including UI chrome");
         Check(renderer.Contains("IndividualArtAssetCount", StringComparison.Ordinal) &&
             renderer.Contains("AtomicCityAssetCount", StringComparison.Ordinal) &&
             renderer.Contains("AtomicRoadTileAssetCount", StringComparison.Ordinal) &&
             renderer.Contains("AtomicGridAssetCount", StringComparison.Ordinal),
             "Step 3 exact runtime asset inventory is not exposed");
-        Equal(4,
+        Equal(9,
             renderer.Split("new(AtomicSourcePartKind.", StringSplitOptions.None).Length - 1,
-            "Step 3 atomic source-part placement records");
+            "Step 3 atomic source-part placement records across source and southern works");
         Check(renderer.Contains("DrawAtomicSourcePlant", StringComparison.Ordinal) &&
             renderer.Contains("OrderBy(item => ToCanvas(item.Point).Y)", StringComparison.Ordinal) &&
             renderer.Contains("SpatialNodeKind.SourceTerminal => (AtomicPlantMainHallASprite", StringComparison.Ordinal) &&
@@ -1135,7 +1167,7 @@ internal sealed class CommercialChecks
             transform.Contains("(deltaX + deltaY) * ScaleY", StringComparison.Ordinal) &&
             transform.Contains("ScaleY => ScaleX * 0.5d", StringComparison.Ordinal),
             "commercial map transform is not fixed 2:1 isometric");
-        Check(timeline.Contains("660f * _uiScale", StringComparison.Ordinal) &&
+        Check(timeline.Contains("650f * _uiScale", StringComparison.Ordinal) &&
             timeline.Contains("plateLeft", StringComparison.Ordinal),
             "event timeline is not a compact independent plate");
 

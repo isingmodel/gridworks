@@ -1,0 +1,58 @@
+{
+  "atomicAssetBindings": [],
+  "boardSha256": "f9c6a69eaf09e75b3c015fbaa3136896425ec58bc8db2c84fa4e12861cef78d9",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "cells": [
+    {
+      "boardPasteRect": [
+        50,
+        154,
+        720,
+        850
+      ],
+      "cellId": "F01",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood-baseline.png",
+      "runtimeCaptureSha256": "5a87efba258dbe821015010d9a5415764468aae961c5ff2fea29a3aac3ae56ff",
+      "sourceBox": [
+        500,
+        110,
+        1220,
+        960
+      ]
+    },
+    {
+      "boardPasteRect": [
+        829,
+        154,
+        720,
+        850
+      ],
+      "cellId": "F02",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
+      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "sourceBox": [
+        500,
+        110,
+        1220,
+        960
+      ]
+    }
+  ],
+  "pairId": "PAIR-FLOOD",
+  "protocol": "G3-REFERENCE-PARITY-v2",
+  "rendering": {
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "retouch": false,
+    "runtimeContextResize": false
+  }
+}

@@ -1,0 +1,167 @@
+{
+  "boardSha256": "be5dc5999fdb81a4f1b564cb1f78a46887e50058bf25ab4914e67fe84ef1b51c",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "cells": [
+    {
+      "boardPasteRect": [
+        45,
+        190,
+        340,
+        280
+      ],
+      "cellId": "G01",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        80,
+        100,
+        420,
+        380
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        190,
+        340,
+        280
+      ],
+      "cellId": "G02",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        570,
+        100,
+        910,
+        380
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        190,
+        340,
+        280
+      ],
+      "cellId": "G03",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        720,
+        230,
+        1060,
+        510
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        190,
+        340,
+        280
+      ],
+      "cellId": "G04",
+      "reference": "03",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        180,
+        190,
+        520,
+        470
+      ]
+    },
+    {
+      "boardPasteRect": [
+        45,
+        687,
+        340,
+        280
+      ],
+      "cellId": "G05",
+      "reference": "03",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        300,
+        400,
+        640,
+        680
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        687,
+        340,
+        280
+      ],
+      "cellId": "G06",
+      "reference": "03",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        690,
+        420,
+        1030,
+        700
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        687,
+        340,
+        280
+      ],
+      "cellId": "G07",
+      "reference": "04",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        120,
+        100,
+        460,
+        380
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        687,
+        340,
+        280
+      ],
+      "cellId": "G08",
+      "reference": "04",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        480,
+        570,
+        820,
+        850
+      ]
+    }
+  ],
+  "pairId": "PAIR-KIT-GRID",
+  "protocol": "G3-REFERENCE-PARITY-v2",
+  "referenceOriginalSha256": {
+    "01": "23c9acec1b8026ebcb8eebf329eb6b94201179f8952451aa27a71ab38b7ebedc",
+    "02": "47d4e53b9d9bad74b6afce6311acce023dc3f9642ffd0ea16609d67b6960a630",
+    "03": "f471ac24cbab24d9b1aff89953595d70fc3ccaf4e8c08c442651125ab3c65828",
+    "04": "10908370f3a2d8403e62ce2a97e39b7ba5c43d8eb0e32073f03e5b3521c01092"
+  },
+  "rendering": {
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "retouch": false,
+    "sourcePixelResize": false
+  }
+}

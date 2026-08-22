@@ -1,0 +1,331 @@
+{
+  "atomicAssetBindings": [
+    {
+      "cellId": "C01",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/worker-house-a.png",
+      "runtimeSha256": "9159d64fbef14a6d35da1695ef5d3bf74b66cf17bdfa69e5bf7a02f66aef133c"
+    },
+    {
+      "cellId": "C02",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/worker-house-b.png",
+      "runtimeSha256": "0f1c6d2eb9281cdb99b0291bb76ea39c5e759fb0aec6d670921c07a01882c71c"
+    },
+    {
+      "cellId": "C03",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/worker-house-c.png",
+      "runtimeSha256": "4b5e80d82193abe201c8744adb8c5a36f2f5fa8a121dbb2e38ef7900391edfd5"
+    },
+    {
+      "cellId": "C04",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/row-shop-a.png",
+      "runtimeSha256": "4d75f76c62fe922d07ab90cfe684d7b062b9c997fbaf6e9a80039a7b10afb279"
+    },
+    {
+      "cellId": "C05",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/workshop-a.png",
+      "runtimeSha256": "7471e78cdef99430d97d80bfc1eebf25afadf3c194f6dc965a5457d05716b920"
+    },
+    {
+      "cellId": "C06",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/small-warehouse-a.png",
+      "runtimeSha256": "089017630516b33dcca357cbc7aec08b3d0ff22235079459cb2bbce8beb4d221"
+    },
+    {
+      "cellId": "C07",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/hospital-main-a.png",
+      "runtimeSha256": "e7f50e9e970ec1172f6ca4595660fdb3bb5ce57e3dac332999f60ceda5702444"
+    },
+    {
+      "cellId": "C08",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/hospital-service-a.png",
+      "runtimeSha256": "97ed4d5f889069f5587fbf70e6b6c4419eb8b154e007e28f4524f2169a08a201"
+    },
+    {
+      "cellId": "C09",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/pump-house-a.png",
+      "runtimeSha256": "a1de39d09bb5e7a10511b5fb899b10bdc2f246340ece23eea08c82ec176d131c"
+    },
+    {
+      "cellId": "C10",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/water-tank-a.png",
+      "runtimeSha256": "15bf9ceb387a92c625ad7f9380c476da10b037161d2253a2eef52035114881ac"
+    },
+    {
+      "cellId": "C11",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/retaining-wall-a.png",
+      "runtimeSha256": "54e41d72dec8c8df61bd5e895885364417e0d76120236d994a5dda199eb1ea5c"
+    },
+    {
+      "cellId": "C12",
+      "kind": "object",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/atomic/street-lamp-a.png",
+      "runtimeSha256": "3c90099d3c08db87ceede6cc2527b6e38d23634be9b570c0ba5c69511174a0e5"
+    }
+  ],
+  "boardSha256": "e5aa2c513cad6c6c16a66ff098ea01d89f9cf800380f6097b53bd58e41e0d5e8",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "cells": [
+    {
+      "boardPasteRect": [
+        45,
+        137,
+        340,
+        220
+      ],
+      "cellId": "C01",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
+      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "sourceBox": [
+        1180,
+        100,
+        1520,
+        320
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        137,
+        340,
+        220
+      ],
+      "cellId": "C02",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
+      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "sourceBox": [
+        1220,
+        250,
+        1560,
+        470
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        137,
+        340,
+        220
+      ],
+      "cellId": "C03",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
+      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "sourceBox": [
+        1180,
+        500,
+        1520,
+        720
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        137,
+        340,
+        220
+      ],
+      "cellId": "C04",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
+      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "sourceBox": [
+        1020,
+        700,
+        1360,
+        920
+      ]
+    },
+    {
+      "boardPasteRect": [
+        45,
+        468,
+        340,
+        220
+      ],
+      "cellId": "C05",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
+      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "sourceBox": [
+        1120,
+        100,
+        1460,
+        320
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        468,
+        340,
+        220
+      ],
+      "cellId": "C06",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
+      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "sourceBox": [
+        1160,
+        280,
+        1500,
+        500
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        468,
+        340,
+        220
+      ],
+      "cellId": "C07",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
+      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "sourceBox": [
+        1060,
+        620,
+        1400,
+        840
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        468,
+        340,
+        220
+      ],
+      "cellId": "C08",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-route.png",
+      "runtimeCaptureSha256": "9f1f9b9bccf585639da228b12bba2a5d4b9619a90556a17d8b027fd95c17786b",
+      "sourceBox": [
+        1000,
+        650,
+        1340,
+        870
+      ]
+    },
+    {
+      "boardPasteRect": [
+        45,
+        799,
+        340,
+        220
+      ],
+      "cellId": "C09",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-siting.png",
+      "runtimeCaptureSha256": "4e1b447b6fc67b3bacd6119c12431609b27ed759eab751d77039242b427245e1",
+      "sourceBox": [
+        310,
+        220,
+        650,
+        440
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        799,
+        340,
+        220
+      ],
+      "cellId": "C10",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-siting.png",
+      "runtimeCaptureSha256": "4e1b447b6fc67b3bacd6119c12431609b27ed759eab751d77039242b427245e1",
+      "sourceBox": [
+        1030,
+        260,
+        1370,
+        480
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        799,
+        340,
+        220
+      ],
+      "cellId": "C11",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-siting.png",
+      "runtimeCaptureSha256": "4e1b447b6fc67b3bacd6119c12431609b27ed759eab751d77039242b427245e1",
+      "sourceBox": [
+        930,
+        650,
+        1270,
+        870
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        799,
+        340,
+        220
+      ],
+      "cellId": "C12",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
+      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "sourceBox": [
+        1050,
+        650,
+        1390,
+        870
+      ]
+    }
+  ],
+  "pairId": "PAIR-KIT-CITY",
+  "protocol": "G3-REFERENCE-PARITY-v2",
+  "rendering": {
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "retouch": false,
+    "runtimeContextResize": false
+  }
+}

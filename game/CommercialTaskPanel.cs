@@ -43,6 +43,17 @@ internal sealed record CommercialTaskPanelModel(
     string Thermal,
     string Status,
     string Error,
+    string FacilityType,
+    string FacilityCapacity,
+    string FacilityState,
+    bool FacilityUnavailable,
+    bool ShowComparisonCards,
+    string ComparisonATitle,
+    string ComparisonAMetric,
+    string ComparisonADetail,
+    string ComparisonBTitle,
+    string ComparisonBMetric,
+    string ComparisonBDetail,
     CommercialActionPresentation PlaceSubstation,
     CommercialActionPresentation StartLine,
     CommercialActionPresentation UndoPoint,
@@ -70,6 +81,19 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     private Label _thermalLabel = null!;
     private Label _statusLabel = null!;
     private Label _errorLabel = null!;
+    private TextureRect _facilityImage = null!;
+    private Label _facilityType = null!;
+    private Label _facilityCapacity = null!;
+    private Label _facilityState = null!;
+    private Control _facilityCard = null!;
+    private Control _comparisonCards = null!;
+    private Control _infoScroll = null!;
+    private Label _comparisonATitle = null!;
+    private Label _comparisonAMetric = null!;
+    private Label _comparisonADetail = null!;
+    private Label _comparisonBTitle = null!;
+    private Label _comparisonBMetric = null!;
+    private Label _comparisonBDetail = null!;
     private IReadOnlyDictionary<CommercialPanelAction, Button> _buttons = null!;
 
     public event Action<CommercialPanelAction>? ActionRequested;
@@ -86,14 +110,22 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _thermalLabel = GetNode<Label>("%ThermalLabel");
         _statusLabel = GetNode<Label>("%StatusLabel");
         _errorLabel = GetNode<Label>("%ErrorLabel");
-        _speakerLabel.GetParent<Control>().Visible = false;
-        _instructionLabel.Visible = false;
-        _selectionLabel.Visible = false;
-        _thermalLabel.Visible = false;
-        _statusLabel.Visible = false;
-        VBoxContainer infoColumn = GetNode<VBoxContainer>("Margin/Column/InfoScroll/InfoColumn");
-        infoColumn.MoveChild(_obligationsLabel, 1);
-        infoColumn.MoveChild(_thermalLabel, 2);
+        _facilityImage = GetNode<TextureRect>("%FacilityImage");
+        _facilityType = GetNode<Label>("%FacilityType");
+        _facilityCapacity = GetNode<Label>("%FacilityCapacity");
+        _facilityState = GetNode<Label>("%FacilityState");
+        _facilityCard = GetNode<Control>("%FacilityCard");
+        _comparisonCards = GetNode<Control>("%ComparisonCards");
+        _infoScroll = GetNode<Control>("Margin/Column/InfoScroll");
+        _comparisonATitle = GetNode<Label>("%ComparisonATitle");
+        _comparisonAMetric = GetNode<Label>("%ComparisonAMetric");
+        _comparisonADetail = GetNode<Label>("%ComparisonADetail");
+        _comparisonBTitle = GetNode<Label>("%ComparisonBTitle");
+        _comparisonBMetric = GetNode<Label>("%ComparisonBMetric");
+        _comparisonBDetail = GetNode<Label>("%ComparisonBDetail");
+        // The right inspector mirrors the reference's dense, factual hierarchy.
+        // All authored facts stay visible in the scroll region instead of collapsing
+        // into a mostly empty frame; only contextually unavailable actions collapse.
         _buttons = new Dictionary<CommercialPanelAction, Button>
         {
             [CommercialPanelAction.PlaceSubstation] = GetNode<Button>("%PlaceSubstationButton"),
@@ -130,15 +162,40 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             model.Speaker.CardColor);
         _speakerLabel.Text = model.Speaker.NameAndRole;
         _speakerLabel.AddThemeColorOverride("font_color", model.Speaker.CardColor);
-        _instructionLabel.Text = model.Instruction;
+        _instructionLabel.Text = CompactVisual(model.Instruction, 92);
         _obligationsLabel.Text = CompactVisual(model.Obligations, 38);
-        _selectionLabel.Text = model.Selection;
+        _selectionLabel.Text = CompactVisual(model.Selection, 72);
         _quoteLabel.Visible = !string.IsNullOrWhiteSpace(model.Quote);
         _quoteLabel.Text = CompactVisual(model.Quote, 62);
         _thermalLabel.Text = CompactVisual(model.Thermal, 72);
-        _statusLabel.Text = model.Status;
+        _statusLabel.Text = CompactVisual(model.Status, 78);
         _errorLabel.Visible = !string.IsNullOrWhiteSpace(model.Error);
         _errorLabel.Text = CompactVisual(model.Error, 72);
+        _facilityType.Text = model.FacilityType;
+        _facilityCapacity.Text = model.FacilityCapacity;
+        _facilityState.Text = model.FacilityState;
+        Color facilityStateColor = model.FacilityUnavailable
+            ? Color.FromHtml("e56e73")
+            : model.FacilityState.Contains("비상", StringComparison.Ordinal)
+                ? Color.FromHtml("f0b75e")
+                : Color.FromHtml("71c9cf");
+        _facilityCapacity.AddThemeColorOverride("font_color", facilityStateColor);
+        _facilityState.AddThemeColorOverride("font_color", facilityStateColor);
+        _facilityImage.Modulate = model.FacilityUnavailable
+            ? new Color(0.82f, 0.40f, 0.38f, 0.86f)
+            : Colors.White;
+        _facilityCard.Visible = !model.ShowComparisonCards;
+        _comparisonCards.Visible = model.ShowComparisonCards;
+        // Comparison missions use the reference's dedicated A/B inspector. The
+        // authored briefing remains in accessibility output, but does not crowd
+        // the visible metric cards with a second long narrative hierarchy.
+        _infoScroll.Visible = !model.ShowComparisonCards;
+        _comparisonATitle.Text = model.ComparisonATitle;
+        _comparisonAMetric.Text = model.ComparisonAMetric;
+        _comparisonADetail.Text = model.ComparisonADetail;
+        _comparisonBTitle.Text = model.ComparisonBTitle;
+        _comparisonBMetric.Text = model.ComparisonBMetric;
+        _comparisonBDetail.Text = model.ComparisonBDetail;
         SetButton(CommercialPanelAction.PlaceSubstation, model.PlaceSubstation);
         SetButton(CommercialPanelAction.StartLine, model.StartLine);
         SetButton(CommercialPanelAction.UndoPoint, model.UndoPoint);
@@ -156,7 +213,8 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         AccessibilityName =
             $"공사와 열 작업 패널. {model.Heading}. {model.Speaker.NameAndRole}. " +
             $"{model.Instruction}. {model.Obligations}. " +
-            $"{model.Thermal}. {model.Status}";
+            $"{model.Thermal}. {model.ComparisonATitle} {model.ComparisonAMetric} " +
+            $"{model.ComparisonBTitle} {model.ComparisonBMetric}. {model.Status}";
     }
 
     public BaseButton GetActionButton(CommercialPanelAction action) => _buttons[action];

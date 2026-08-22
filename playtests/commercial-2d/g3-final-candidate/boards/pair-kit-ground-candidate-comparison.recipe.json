@@ -1,0 +1,331 @@
+{
+  "atomicAssetBindings": [
+    {
+      "cellId": "D01",
+      "kind": "ground",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/tiles/ground-asphalt-v1.png",
+      "runtimeSha256": "d4f3b205aeb2e51d785421288b4a1d891ecd040939e48744defc2625d03d4b7d"
+    },
+    {
+      "cellId": "D02",
+      "kind": "ground",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/tiles/ground-scrub-v1.png",
+      "runtimeSha256": "07428690c956ef95b23e2528185dc95d3a67b9ebe648fd0fe426cc36c700b72f"
+    },
+    {
+      "cellId": "D03",
+      "kind": "ground",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/tiles/ground-concrete-v1.png",
+      "runtimeSha256": "146ee721c0195c0a907c24ae44cc2871e252da9cc9e1766008ca7745ae2ee385"
+    },
+    {
+      "cellId": "D04",
+      "kind": "ground",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/tiles/ground-gravel-v1.png",
+      "runtimeSha256": "4df081e67b48ba61007a5db2e0599064fc7799b6a7866df97cd137bcfac64c1a"
+    },
+    {
+      "cellId": "D05",
+      "kind": "ground",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/tiles/ground-rubble-mix-b.png",
+      "runtimeSha256": "436fde50506ccb7758bb70abd6d2a8301bd4ba9ff5e0db2a0075e3b88cf80ee3"
+    },
+    {
+      "cellId": "D06",
+      "kind": "ground",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/tiles/ground-rubble-relief-c.png",
+      "runtimeSha256": "9dbd83fdc9300077db9643c4671623e8464b8ad7b47c9698d24e79247b11aaf1"
+    },
+    {
+      "cellId": "D07",
+      "kind": "road",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/roads/road-straight-ne-sw-a.png",
+      "runtimeSha256": "260e954a098449598ae2281a47b352e83379fce05c8978e0b545fd87ae0a9a1d"
+    },
+    {
+      "cellId": "D08",
+      "kind": "road",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/roads/road-straight-nw-se-a.png",
+      "runtimeSha256": "da4b42795e46a9e888d935855d1aa861b54c93f9bb71f2f2f75981603a12b1b9"
+    },
+    {
+      "cellId": "D09",
+      "kind": "road",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/roads/road-corner-n-e-a.png",
+      "runtimeSha256": "ac9ac6e508d587ab5a4b08cf21214f8f19f1911992240adfa5d0bb1e48ddca86"
+    },
+    {
+      "cellId": "D10",
+      "kind": "road",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/roads/road-t-junction-a.png",
+      "runtimeSha256": "b24dfc1f246c7eb50db452730194ab0fcdb7d0350ac47f153ca2a26ef7b75b91"
+    },
+    {
+      "cellId": "D11",
+      "kind": "road",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/roads/road-cross-junction-a.png",
+      "runtimeSha256": "2fa8047f7c4833e6c72736a31d641cac58063160d43dc3ddf51f04b826ca5551"
+    },
+    {
+      "cellId": "D12",
+      "kind": "road",
+      "runtimePath": "/Users/fred/dev/gridworks/game/art/commercial/g3/roads/service-yard-tile-a.png",
+      "runtimeSha256": "40677a9358d6e52f9630a08d174c6ed94505c551c4d46d081872d0d0232223b4"
+    }
+  ],
+  "boardSha256": "ea541c7dbd82f6c1111cc55d65b9aeb25c06a9a009a0f1010d0cdb06b368a536",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "cells": [
+    {
+      "boardPasteRect": [
+        45,
+        137,
+        340,
+        220
+      ],
+      "cellId": "D01",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
+      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "sourceBox": [
+        260,
+        300,
+        600,
+        520
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        137,
+        340,
+        220
+      ],
+      "cellId": "D02",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
+      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "sourceBox": [
+        560,
+        400,
+        900,
+        620
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        137,
+        340,
+        220
+      ],
+      "cellId": "D03",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
+      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "sourceBox": [
+        840,
+        500,
+        1180,
+        720
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        137,
+        340,
+        220
+      ],
+      "cellId": "D04",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
+      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "sourceBox": [
+        320,
+        680,
+        660,
+        900
+      ]
+    },
+    {
+      "boardPasteRect": [
+        45,
+        468,
+        340,
+        220
+      ],
+      "cellId": "D05",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
+      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "sourceBox": [
+        250,
+        300,
+        590,
+        520
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        468,
+        340,
+        220
+      ],
+      "cellId": "D06",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
+      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "sourceBox": [
+        600,
+        420,
+        940,
+        640
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        468,
+        340,
+        220
+      ],
+      "cellId": "D07",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
+      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "sourceBox": [
+        900,
+        560,
+        1240,
+        780
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        468,
+        340,
+        220
+      ],
+      "cellId": "D08",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
+      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "sourceBox": [
+        300,
+        700,
+        640,
+        920
+      ]
+    },
+    {
+      "boardPasteRect": [
+        45,
+        799,
+        340,
+        220
+      ],
+      "cellId": "D09",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
+      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "sourceBox": [
+        260,
+        300,
+        600,
+        520
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        799,
+        340,
+        220
+      ],
+      "cellId": "D10",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
+      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "sourceBox": [
+        560,
+        420,
+        900,
+        640
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        799,
+        340,
+        220
+      ],
+      "cellId": "D11",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
+      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "sourceBox": [
+        820,
+        500,
+        1160,
+        720
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        799,
+        340,
+        220
+      ],
+      "cellId": "D12",
+      "colorCorrection": false,
+      "resized": false,
+      "retouched": false,
+      "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
+      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "sourceBox": [
+        1030,
+        650,
+        1370,
+        870
+      ]
+    }
+  ],
+  "pairId": "PAIR-KIT-GROUND",
+  "protocol": "G3-REFERENCE-PARITY-v2",
+  "rendering": {
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "retouch": false,
+    "runtimeContextResize": false
+  }
+}

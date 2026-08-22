@@ -196,13 +196,17 @@ P0/P1/open 0으로 종료했다. 1280×720은 실행·검수하지 않았다.
   checkpoint, 10개 고정 pair·bias calibration과 근거 좌표가 있는 차이 보고서
 
 2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정을 승인했고, 2026-08-22 고정 LLM jury
-종료선을 `ReferenceParity >90`으로 조정했다. 720p는 열지 않고 1920×1080 UI 100%·125%만 검수한다.
+종료선을 `ReferenceParity >80`으로 조정했다. 80점 정확히는 실패다. 720p는 열지 않고 1920×1080 UI 100%·125%만 검수한다.
 Step 1 원자 도시·도로와 Step 2 원자 강물·제방은 각각 고정 `gpt-5.6-sol` ultra 구조 audit을
 12/12로 통과했다. Step 2는 정상·고온·홍수 수면 상태와 authoritative foundation 접합까지
-CommercialChecks 22 suites/2,265 assertions 및 native presentation smoke로 닫았다. 현재 활성 단위는
-Step 3 원자 grid/facility 부품과 전력망 상태 표현도 고정 `gpt-5.6-sol` ultra 구조 audit 8/8,
-CommercialChecks 22 suites/2,286 assertions와 1920×1080 native smoke로 닫았다. 현재 활성 단위는
-Step 4 UI chrome·full-bleed HUD·독립 event timeline이다.
+CommercialChecks 22 suites/2,265 assertions 및 native presentation smoke로 닫았다. Step 3 원자
+grid/facility 부품과 전력망 상태 표현도 고정 `gpt-5.6-sol` ultra 구조 audit 8/8,
+CommercialChecks 22 suites/2,286 assertions와 1920×1080 native smoke로 닫았다. Step 4는 UI chrome
+6종, full-bleed HUD, 독립 event timeline, 55개 개별 runtime art, 338개 원자 도시 배치를 연결하고
+CommercialChecks 22 suites/2,331 assertions 및 같은 저장의 native 1920×1080 actual-input
+checkpoint→completion→completed-resume를 통과했다. 10-pair 단일-call formative-v26의 고정 category
+환산 proxy는 74.375로, 공식 40-call `ReferenceParity`가 아니다. density·river category가 각각
+65라 `>80` 종료 gate와 G.3 활성 상태는 유지한다.
 
 ## 9. 단계 H — 외부 검증과 공개 후보 — 구현 뒤 별도 게이트
 

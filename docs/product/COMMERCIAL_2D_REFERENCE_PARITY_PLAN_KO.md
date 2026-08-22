@@ -3,7 +3,7 @@
 > 상태: **ACTIVE — G.3 구현·평가 반복 중**
 > 작성 근거: 2026-08-21 G.2 실행 화면에 대한 소유자 시각 거부
 > 대상 해상도: **1920×1080, UI 100%·125%만 해당**
-> 현재 gate: **Step 1·2·3 PASS — Step 4 UI chrome·full-bleed HUD·event timeline 활성**
+> 현재 gate: **Step 1·2·3 PASS — Step 4 구현·formative 완료, 최종 `ReferenceParity` 미달**
 
 이 계획은 `assets/01~04`의 낮은 아이소메트릭 산업도시, 전력망, 강과 UI 위계를 실제 게임 화면에
 가깝게 옮기기 위한 G.3 후보를 정의한다. whole-map plate뿐 아니라 여러 건물·도로·구획을 한 장에
@@ -12,8 +12,17 @@
 명시 배치 데이터로 조립하며, 게임 규칙과 화면 표현이 어긋나지 않게 한다.
 
 2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정을 승인했고, 2026-08-22 최종 반복 종료선을
-`ReferenceParity >90`으로 조정했다. 90점 정확히는 실패다. 상세 비교와 종료 판정은
+`ReferenceParity >80`으로 조정했다. 80점 정확히는 실패다. 상세 비교와 종료 판정은
 [레퍼런스 정렬 평가 프로토콜](REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)이 소유한다.
+
+2026-08-22 Step 4 경계에서는 UI chrome 6종과 독립 event timeline, 개별 runtime art 55종,
+원자 도시 338개/전체 world 641개 배치를 동일 v26 화면에 고정했다. native 1920×1080 actual-input
+checkpoint→completion→completed-resume와 CommercialChecks 22 suites/2,331 assertions는 통과했다.
+`gpt-5.6-sol` ultra의 10-pair 단일-call formative category proxy는 74.375
+(camera 85, density 65, river 65, scale 65, material 85, grid 65, HUD 85, state 75,
+timeline 92.5)다. 이것은 order reversal·replicate·spread penalty가 없는 진단값이지 공식
+`ReferenceParity`가 아니다. 이번 Step 4 구현/formative만 완료하며 density·river 개선과 최종
+10×4 jury는 다음 반복으로 남긴다.
 
 ## 1. G.2 실패 진단
 
@@ -170,15 +179,16 @@ manifest가 소유하고, 아래 **원자 단위 최소 구성**보다 적을 �
 
 - ground·road 최소 12종: diamond ground 4, 두 방향 straight road, corner 2, T/십자 교차,
   yard, plaza. 각 road/tile은 한 연결 조각이다.
-- water surface 4종과 transparent river edge·effect 11종: bank straight·inner bend·outer bend 6,
-  bridge abutment·rock/soil transition 3, reflection/ripple overlay 2
+- water surface 4종과 transparent river edge·effect 11종, 강변 환경 object 3종: bank
+  straight·inner bend·outer bend 6, bridge abutment·rock/soil transition 3,
+  reflection/ripple overlay 2, 단독 침엽수·관목·암반 3
 - atomic city/building/prop 최소 12종: 단독 주택 3, 단독 상점 1, 단독 작업장 1, 단독 소형 창고 1,
   단독 병원동 2, 단독 수도시설 2, 단일 옹벽·잔해/가로시설 prop 2 이상
 - atomic grid/facility part 최소 8종: 발전소 본관·굴뚝·터빈동을 각각 분리하고, switchyard,
   pole 2, bridge foundation, substation을 각각 한 기능 object로 둔다.
 - UI chrome 6종: top metric plate, inspector 9-slice, tool slot, default/cyan/amber button plate
 
-따라서 final manifest는 최소 `53종`이며, 반복 instance 수는 asset 수와 별도로 기록한다. 한 파일에 여러
+따라서 final manifest는 최소 `56종`이며, 반복 instance 수는 asset 수와 별도로 기록한다. 한 파일에 여러
 건물을 넣어 수량을 맞추는 것은 자산 수와 무관하게 실패다.
 
 ImageGen은 atlas batch가 아니라 자산 하나당 한 호출을 사용한다. 모든 호출은 고정된 style anchor와

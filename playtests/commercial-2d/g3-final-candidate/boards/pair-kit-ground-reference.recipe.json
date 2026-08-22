@@ -1,0 +1,239 @@
+{
+  "boardSha256": "6ca0c54fd987753cf95ab2be0a664ee99d178e7058ef7ab72ecd342d89fdbde9",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "cells": [
+    {
+      "boardPasteRect": [
+        45,
+        137,
+        340,
+        220
+      ],
+      "cellId": "D01",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        310,
+        510,
+        650,
+        730
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        137,
+        340,
+        220
+      ],
+      "cellId": "D02",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        690,
+        630,
+        1030,
+        850
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        137,
+        340,
+        220
+      ],
+      "cellId": "D03",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        1040,
+        650,
+        1380,
+        870
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        137,
+        340,
+        220
+      ],
+      "cellId": "D04",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        120,
+        620,
+        460,
+        840
+      ]
+    },
+    {
+      "boardPasteRect": [
+        45,
+        468,
+        340,
+        220
+      ],
+      "cellId": "D05",
+      "reference": "02",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        280,
+        300,
+        620,
+        520
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        468,
+        340,
+        220
+      ],
+      "cellId": "D06",
+      "reference": "02",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        610,
+        530,
+        950,
+        750
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        468,
+        340,
+        220
+      ],
+      "cellId": "D07",
+      "reference": "02",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        930,
+        670,
+        1270,
+        890
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        468,
+        340,
+        220
+      ],
+      "cellId": "D08",
+      "reference": "02",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        80,
+        720,
+        420,
+        940
+      ]
+    },
+    {
+      "boardPasteRect": [
+        45,
+        799,
+        340,
+        220
+      ],
+      "cellId": "D09",
+      "reference": "04",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        180,
+        420,
+        520,
+        640
+      ]
+    },
+    {
+      "boardPasteRect": [
+        434,
+        799,
+        340,
+        220
+      ],
+      "cellId": "D10",
+      "reference": "04",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        540,
+        480,
+        880,
+        700
+      ]
+    },
+    {
+      "boardPasteRect": [
+        823,
+        799,
+        340,
+        220
+      ],
+      "cellId": "D11",
+      "reference": "04",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        880,
+        540,
+        1220,
+        760
+      ]
+    },
+    {
+      "boardPasteRect": [
+        1212,
+        799,
+        340,
+        220
+      ],
+      "cellId": "D12",
+      "reference": "04",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        960,
+        500,
+        1300,
+        720
+      ]
+    }
+  ],
+  "pairId": "PAIR-KIT-GROUND",
+  "protocol": "G3-REFERENCE-PARITY-v2",
+  "referenceOriginalSha256": {
+    "01": "23c9acec1b8026ebcb8eebf329eb6b94201179f8952451aa27a71ab38b7ebedc",
+    "02": "47d4e53b9d9bad74b6afce6311acce023dc3f9642ffd0ea16609d67b6960a630",
+    "03": "f471ac24cbab24d9b1aff89953595d70fc3ccaf4e8c08c442651125ab3c65828",
+    "04": "10908370f3a2d8403e62ce2a97e39b7ba5c43d8eb0e32073f03e5b3521c01092"
+  },
+  "rendering": {
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "retouch": false,
+    "sourcePixelResize": false
+  }
+}

@@ -140,6 +140,127 @@
           { "xUnit": 650, "yUnit": 1750 },
           { "xUnit": 80, "yUnit": 1750 }
         ]
+      },
+      {
+        "terrainId": "NORTH_WORKS_BLOCK",
+        "displayName": "북부 정비 작업장",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 1080, "yUnit": 60 },
+          { "xUnit": 2040, "yUnit": 60 },
+          { "xUnit": 2040, "yUnit": 390 },
+          { "xUnit": 1080, "yUnit": 390 }
+        ]
+      },
+      {
+        "terrainId": "NORTH_EAST_FRINGE_BLOCK",
+        "displayName": "북동부 생활권 가장자리",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 2700, "yUnit": 60 },
+          { "xUnit": 3180, "yUnit": 60 },
+          { "xUnit": 3180, "yUnit": 440 },
+          { "xUnit": 2700, "yUnit": 440 }
+        ]
+      },
+      {
+        "terrainId": "SOUTH_FREIGHT_BLOCK",
+        "displayName": "남부 화물 작업장",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 1880, "yUnit": 1780 },
+          { "xUnit": 2620, "yUnit": 1780 },
+          { "xUnit": 2620, "yUnit": 2000 },
+          { "xUnit": 1880, "yUnit": 2000 }
+        ]
+      },
+      {
+        "terrainId": "CENTRAL_MAINTENANCE_BLOCK",
+        "displayName": "중앙 정비 작업장",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 1420, "yUnit": 670 },
+          { "xUnit": 1600, "yUnit": 670 },
+          { "xUnit": 1600, "yUnit": 800 },
+          { "xUnit": 1420, "yUnit": 800 }
+        ]
+      },
+      {
+        "terrainId": "WEST_MID_BLOCK",
+        "displayName": "서부 중간 작업장",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 60, "yUnit": 740 },
+          { "xUnit": 540, "yUnit": 740 },
+          { "xUnit": 540, "yUnit": 1040 },
+          { "xUnit": 60, "yUnit": 1040 }
+        ]
+      },
+      {
+        "terrainId": "WEST_NORTH_YARD_BLOCK",
+        "displayName": "서북부 공업 야적장",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 80, "yUnit": 300 },
+          { "xUnit": 720, "yUnit": 300 },
+          { "xUnit": 720, "yUnit": 500 },
+          { "xUnit": 80, "yUnit": 500 }
+        ]
+      },
+      {
+        "terrainId": "CENTRAL_NORTH_YARD_BLOCK",
+        "displayName": "중북부 공업 야적장",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 2050, "yUnit": 80 },
+          { "xUnit": 2500, "yUnit": 80 },
+          { "xUnit": 2500, "yUnit": 360 },
+          { "xUnit": 2050, "yUnit": 360 }
+        ]
+      },
+      {
+        "terrainId": "SOUTH_CENTRAL_YARD_BLOCK",
+        "displayName": "남중부 공업 야적장",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 1500, "yUnit": 1810 },
+          { "xUnit": 1840, "yUnit": 1810 },
+          { "xUnit": 1840, "yUnit": 1990 },
+          { "xUnit": 1500, "yUnit": 1990 }
+        ]
+      },
+      {
+        "terrainId": "CENTRAL_MARKET_BLOCK",
+        "displayName": "중앙 공구상가",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 1580, "yUnit": 1100 },
+          { "xUnit": 1780, "yUnit": 1100 },
+          { "xUnit": 1780, "yUnit": 1240 },
+          { "xUnit": 1580, "yUnit": 1240 }
+        ]
+      },
+      {
+        "terrainId": "CENTRAL_EAST_MARKET_BLOCK",
+        "displayName": "중앙 동측 공구상가",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 1800, "yUnit": 1080 },
+          { "xUnit": 1940, "yUnit": 1080 },
+          { "xUnit": 1940, "yUnit": 1190 },
+          { "xUnit": 1800, "yUnit": 1190 }
+        ]
+      },
+      {
+        "terrainId": "TERMINAL_EAST_BLOCK",
+        "displayName": "동부 접속점 생활가",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 2440, "yUnit": 680 },
+          { "xUnit": 2640, "yUnit": 680 },
+          { "xUnit": 2640, "yUnit": 920 },
+          { "xUnit": 2440, "yUnit": 920 }
+        ]
       }
     ],
     "riskAreas": [

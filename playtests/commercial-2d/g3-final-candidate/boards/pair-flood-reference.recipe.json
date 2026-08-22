@@ -1,0 +1,59 @@
+{
+  "boardSha256": "cd1a9ebd6e14a98583dc5a415d2af45ee82989c46b1b63e1b709d74f9eaeaf28",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "cells": [
+    {
+      "boardPasteRect": [
+        50,
+        154,
+        720,
+        850
+      ],
+      "cellId": "F01",
+      "reference": "01",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        200,
+        80,
+        920,
+        930
+      ]
+    },
+    {
+      "boardPasteRect": [
+        829,
+        154,
+        720,
+        850
+      ],
+      "cellId": "F02",
+      "reference": "04",
+      "resized": false,
+      "retouched": false,
+      "sourceBox": [
+        200,
+        80,
+        920,
+        930
+      ]
+    }
+  ],
+  "pairId": "PAIR-FLOOD",
+  "protocol": "G3-REFERENCE-PARITY-v2",
+  "referenceOriginalSha256": {
+    "01": "23c9acec1b8026ebcb8eebf329eb6b94201179f8952451aa27a71ab38b7ebedc",
+    "02": "47d4e53b9d9bad74b6afce6311acce023dc3f9642ffd0ea16609d67b6960a630",
+    "03": "f471ac24cbab24d9b1aff89953595d70fc3ccaf4e8c08c442651125ab3c65828",
+    "04": "10908370f3a2d8403e62ce2a97e39b7ba5c43d8eb0e32073f03e5b3521c01092"
+  },
+  "rendering": {
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "retouch": false,
+    "sourcePixelResize": false
+  }
+}

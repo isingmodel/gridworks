@@ -1,0 +1,184 @@
+{
+  "boardSha256": "5294aa7cbd5eb30dfc41af416defc6ed722ec96c0d8f541eb5389e1fddde5985",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "cells": [
+    {
+      "boardPasteRect": [
+        94,
+        168,
+        320,
+        174
+      ],
+      "cellId": "D01",
+      "colorCorrection": false,
+      "kind": "ground",
+      "retouch": false,
+      "runtimePath": "art/commercial/tiles/ground-asphalt-v1.png",
+      "runtimeSha256": "d4f3b205aeb2e51d785421288b4a1d891ecd040939e48744defc2625d03d4b7d"
+    },
+    {
+      "boardPasteRect": [
+        483,
+        168,
+        320,
+        174
+      ],
+      "cellId": "D02",
+      "colorCorrection": false,
+      "kind": "ground",
+      "retouch": false,
+      "runtimePath": "art/commercial/tiles/ground-scrub-v1.png",
+      "runtimeSha256": "07428690c956ef95b23e2528185dc95d3a67b9ebe648fd0fe426cc36c700b72f"
+    },
+    {
+      "boardPasteRect": [
+        872,
+        168,
+        320,
+        174
+      ],
+      "cellId": "D03",
+      "colorCorrection": false,
+      "kind": "ground",
+      "retouch": false,
+      "runtimePath": "art/commercial/tiles/ground-concrete-v1.png",
+      "runtimeSha256": "146ee721c0195c0a907c24ae44cc2871e252da9cc9e1766008ca7745ae2ee385"
+    },
+    {
+      "boardPasteRect": [
+        1261,
+        168,
+        320,
+        174
+      ],
+      "cellId": "D04",
+      "colorCorrection": false,
+      "kind": "ground",
+      "retouch": false,
+      "runtimePath": "art/commercial/tiles/ground-gravel-v1.png",
+      "runtimeSha256": "4df081e67b48ba61007a5db2e0599064fc7799b6a7866df97cd137bcfac64c1a"
+    },
+    {
+      "boardPasteRect": [
+        94,
+        499,
+        320,
+        174
+      ],
+      "cellId": "D05",
+      "colorCorrection": false,
+      "kind": "ground",
+      "retouch": false,
+      "runtimePath": "art/commercial/g3/tiles/ground-rubble-mix-b.png",
+      "runtimeSha256": "436fde50506ccb7758bb70abd6d2a8301bd4ba9ff5e0db2a0075e3b88cf80ee3"
+    },
+    {
+      "boardPasteRect": [
+        483,
+        499,
+        320,
+        174
+      ],
+      "cellId": "D06",
+      "colorCorrection": false,
+      "kind": "ground",
+      "retouch": false,
+      "runtimePath": "art/commercial/g3/tiles/ground-rubble-relief-c.png",
+      "runtimeSha256": "9dbd83fdc9300077db9643c4671623e8464b8ad7b47c9698d24e79247b11aaf1"
+    },
+    {
+      "boardPasteRect": [
+        820,
+        494,
+        347,
+        172
+      ],
+      "cellId": "D07",
+      "colorCorrection": false,
+      "kind": "road",
+      "retouch": false,
+      "runtimePath": "art/commercial/g3/roads/road-straight-ne-sw-a.png",
+      "runtimeSha256": "260e954a098449598ae2281a47b352e83379fce05c8978e0b545fd87ae0a9a1d"
+    },
+    {
+      "boardPasteRect": [
+        1209,
+        488,
+        347,
+        184
+      ],
+      "cellId": "D08",
+      "colorCorrection": false,
+      "kind": "road",
+      "retouch": false,
+      "runtimePath": "art/commercial/g3/roads/road-straight-nw-se-a.png",
+      "runtimeSha256": "da4b42795e46a9e888d935855d1aa861b54c93f9bb71f2f2f75981603a12b1b9"
+    },
+    {
+      "boardPasteRect": [
+        42,
+        826,
+        347,
+        171
+      ],
+      "cellId": "D09",
+      "colorCorrection": false,
+      "kind": "road",
+      "retouch": false,
+      "runtimePath": "art/commercial/g3/roads/road-corner-n-e-a.png",
+      "runtimeSha256": "ac9ac6e508d587ab5a4b08cf21214f8f19f1911992240adfa5d0bb1e48ddca86"
+    },
+    {
+      "boardPasteRect": [
+        431,
+        800,
+        347,
+        222
+      ],
+      "cellId": "D10",
+      "colorCorrection": false,
+      "kind": "road",
+      "retouch": false,
+      "runtimePath": "art/commercial/g3/roads/road-t-junction-a.png",
+      "runtimeSha256": "b24dfc1f246c7eb50db452730194ab0fcdb7d0350ac47f153ca2a26ef7b75b91"
+    },
+    {
+      "boardPasteRect": [
+        820,
+        825,
+        347,
+        173
+      ],
+      "cellId": "D11",
+      "colorCorrection": false,
+      "kind": "road",
+      "retouch": false,
+      "runtimePath": "art/commercial/g3/roads/road-cross-junction-a.png",
+      "runtimeSha256": "2fa8047f7c4833e6c72736a31d641cac58063160d43dc3ddf51f04b826ca5551"
+    },
+    {
+      "boardPasteRect": [
+        1209,
+        808,
+        347,
+        207
+      ],
+      "cellId": "D12",
+      "colorCorrection": false,
+      "kind": "road",
+      "retouch": false,
+      "runtimePath": "art/commercial/g3/roads/service-yard-tile-a.png",
+      "runtimeSha256": "40677a9358d6e52f9630a08d174c6ed94505c551c4d46d081872d0d0232223b4"
+    }
+  ],
+  "pairId": "PAIR-KIT-GROUND",
+  "protocol": "G3-KIT-GROUND-v1",
+  "rendering": {
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "retouch": false
+  }
+}

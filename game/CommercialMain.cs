@@ -33,6 +33,8 @@ internal sealed partial class CommercialMain : Control
     private const string ReinforcedPoleClassId = "REINFORCED_POLE";
     private const string StageFSmokeSaveEnvironment = "GRIDWORKS_STAGE_F_SMOKE_SAVE_PATH";
     private const string StorageDirectoryEnvironment = "GRIDWORKS_COMMERCIAL_STORAGE_DIRECTORY";
+    private const string G3FinalCaptureDirectoryEnvironment =
+        "GRIDWORKS_G3_FINAL_CAPTURE_DIRECTORY";
 
     private CommercialLaunchOptions _options = null!;
     private CommercialWorldDefinition _commercialWorld = null!;
@@ -981,6 +983,7 @@ internal sealed partial class CommercialMain : Control
             ? null
             : DemandNodeId(thermal.IntervalId, selectedDemand.DemandId);
         CommercialCoreSnapshot? core = _coreRun?.GetSnapshot();
+        int chapterIndex = core?.ChapterIndex ?? 0;
         _map.SetPresentation(new CommercialMapPresentation(
             _snapshot,
             _pointerPoint,
@@ -994,10 +997,26 @@ internal sealed partial class CommercialMain : Control
             selectedDemandNodeId,
             selectedDemand?.PathNodeIds ?? Array.Empty<string>(),
             selectedDemand?.PathEdgeIds ?? Array.Empty<string>(),
+            ComparisonPathEdgeIds(core),
             ActiveRiskAreaIds(thermal.IntervalId),
             FacilityPresentations(thermal),
-            core?.ChapterIndex ?? 0,
+            chapterIndex,
             _settings.ReduceMotion));
+        // The pinned references do not use one invariant inspector height. The
+        // first construction screen has a compact equipment card, while route,
+        // siting, heat, and flood decisions use a docked full-height comparison
+        // inspector. Preserve that chapter hierarchy without changing gameplay
+        // facts or covering the independent event timeline.
+        bool decisionComparisonReady = _coreRun is not null &&
+            _snapshot.Phase == ConstructionPhase.Ready &&
+            _coreRun.PreviewDecisionWindow().Accepted;
+        _panel.OffsetBottom = chapterIndex switch
+        {
+            0 => -560f,
+            4 when decisionComparisonReady => -520f,
+            1 or 2 or 5 when decisionComparisonReady => -88f,
+            _ => -430f,
+        };
         _panel.SetModel(BuildPanelModel());
         _timeline.SetPresentation(BuildTimelinePresentation(core));
         _zoomLabel.Text = _map.ZoomLabel;
@@ -1007,12 +1026,15 @@ internal sealed partial class CommercialMain : Control
             : $"GRIDWORKS · {_presentedResult?.ChapterDisplayName ?? core.Chapter.DisplayName}";
         _audio.SetAtmosphere(core?.ChapterIndex ?? 0);
         int commissionedEdges = _snapshot.World.Edges.Count(edge => edge.Commissioned);
-        _boundaryLabel.Text = core is null
+        string boundaryText = core is null
             ? $"▣ {ThermalIntervalName(thermal.IntervalId)}"
             : core.CampaignComplete
                 ? "▣ 여덟 임무 완료"
                 : $"▣ 경계 {core.DecisionWindowIndex + 1}/{core.Chapter.DecisionWindows.Count} · " +
                   ThermalIntervalName(thermal.IntervalId);
+        _boundaryLabel.Text = chapterIndex == 4
+            ? $"☀ 폭염 +8°C · {boundaryText}"
+            : boundaryText;
         _cashLabel.Text = core is null
             ? $"◷ {_snapshot.Minute}분"
             : $"₩ {FormatWon(core.CashUnit)}";
@@ -1021,6 +1043,23 @@ internal sealed partial class CommercialMain : Control
         _summaryLabel.Text = core is null
             ? $"완공 선로 {commissionedEdges}구간 · 지도 설비를 선택해 현재와 다음 상태를 확인하세요."
             : $"{core.Chapter.Objective} · 완공 선로 {commissionedEdges}구간";
+    }
+
+    private IReadOnlyList<IReadOnlyList<string>> ComparisonPathEdgeIds(
+        CommercialCoreSnapshot? core)
+    {
+        if (core?.ChapterIndex != 1)
+        {
+            return Array.Empty<IReadOnlyList<string>>();
+        }
+
+        return _thermalSequence.Intervals
+            .SelectMany(interval => interval.Demands)
+            .Where(demand => demand.Supplied && demand.PathEdgeIds.Count > 0)
+            .Select(demand => (IReadOnlyList<string>)demand.PathEdgeIds.ToArray())
+            .DistinctBy(path => string.Join("\u001f", path), StringComparer.Ordinal)
+            .Take(2)
+            .ToArray();
     }
 
     private CommercialEventTimelinePresentation BuildTimelinePresentation(
@@ -1203,6 +1242,73 @@ internal sealed partial class CommercialMain : Control
         approvalAvailable |= core?.CampaignComplete == true && !_showEpilogue;
         bool canConstruct = _snapshot.Phase == ConstructionPhase.Ready &&
             core?.CampaignComplete != true;
+        ThermalAssetResult? facilityThermal = selectedThermal ?? thermalInterval.Assets
+            .OrderByDescending(item => item.AuthoredUnavailable ||
+                item.CurrentState == ThermalOperatingState.ProtectiveOutage)
+            .ThenByDescending(item => item.CurrentState == ThermalOperatingState.Emergency)
+            .ThenByDescending(item => item.UseKw)
+            .FirstOrDefault();
+        bool facilityUnavailable = facilityThermal is not null &&
+            (facilityThermal.AuthoredUnavailable ||
+             facilityThermal.CurrentState == ThermalOperatingState.ProtectiveOutage);
+        string facilityType = facilityThermal is null
+            ? "배전 변전소"
+            : AssetDisplayName(facilityThermal.AssetId);
+        string facilityCapacity = facilityThermal is null
+            ? "4.0 MW"
+            : facilityUnavailable
+                ? "0 MW"
+                : FormatPower(facilityThermal.UseKw);
+        string facilityState = facilityThermal is null
+            ? "연속 운전 · 정상"
+            : facilityThermal.AuthoredUnavailable
+                ? "사용 불가 · 계통 분리"
+                : ThermalStateText(facilityThermal.CurrentState);
+        bool routeComparisonCards = string.Equals(
+            core?.Chapter.ChapterId,
+            "SECOND_HEART",
+            StringComparison.Ordinal);
+        bool sourceAcceptanceCards = string.Equals(
+            core?.Chapter.ChapterId,
+            "SECOND_SOURCE",
+            StringComparison.Ordinal);
+        bool showComparisonCards = routeComparisonCards || sourceAcceptanceCards;
+        ThermalIntervalResult comparisonAInterval = _thermalSequence.Intervals[0];
+        ThermalIntervalResult comparisonBInterval = routeComparisonCards &&
+            _thermalSequence.Intervals.Count > 1
+                ? _thermalSequence.Intervals[1]
+                : _thermalSequence.Intervals[0];
+        ThermalDemandResult? comparisonADemand = comparisonAInterval.Demands.FirstOrDefault();
+        ThermalDemandResult? comparisonBDemand = sourceAcceptanceCards
+            ? comparisonBInterval.Demands.Skip(1).FirstOrDefault() ??
+              comparisonBInterval.Demands.FirstOrDefault()
+            : comparisonBInterval.Demands.FirstOrDefault();
+        (string Metric, string Detail) ComparisonFact(
+            ThermalIntervalResult interval,
+            ThermalDemandResult? demand)
+        {
+            if (demand is null)
+            {
+                return ("경로 계산 중", ThermalIntervalName(interval.IntervalId));
+            }
+            string metric = demand.Supplied
+                ? $"{FormatPower(demand.DemandKw)}  ✓"
+                : "0 kW  ×";
+            string margin = demand.MinimumRemainingLimitKw is long remaining
+                ? $"여유 {FormatPower(remaining)}"
+                : "열여유 없음";
+            string detail = demand.Supplied
+                ? $"{ThermalIntervalName(interval.IntervalId)}\n" +
+                  $"실제 경로 {demand.PathEdgeIds.Count}구간\n" +
+                  $"{margin} · 전력 흐름 검증"
+                : $"{ThermalIntervalName(interval.IntervalId)} · " +
+                  SupplyFailureText(demand.Failure);
+            return (metric, detail);
+        }
+        (string comparisonAMetric, string comparisonADetail) =
+            ComparisonFact(comparisonAInterval, comparisonADemand);
+        (string comparisonBMetric, string comparisonBDetail) =
+            ComparisonFact(comparisonBInterval, comparisonBDemand);
         return new CommercialTaskPanelModel(
             HeadingText(),
             SpeakerPresentation(),
@@ -1218,6 +1324,17 @@ internal sealed partial class CommercialMain : Control
                 : $"공사 {_snapshot.Minute}/{core.Chapter.DeadlineMinute}분 · " +
                   $"현금 {FormatWon(core.CashUnit)} · {_lastStatus}",
             error,
+            facilityType,
+            facilityCapacity,
+            facilityState,
+            facilityUnavailable,
+            showComparisonCards,
+            routeComparisonCards ? "북안 A · 차단시험" : "생활권 A · 인수 경로",
+            comparisonAMetric,
+            comparisonADetail,
+            routeComparisonCards ? "강변 B · 차단시험" : "의료원 B · 인수 경로",
+            comparisonBMetric,
+            comparisonBDetail,
             new CommercialActionPresentation(
                 canConstruct,
                 "변전소 놓기",
@@ -1311,6 +1428,14 @@ internal sealed partial class CommercialMain : Control
             return _showEpilogue
                 ? $"에필로그 · {_campaign.Epilogue.Title}"
                 : "여덟 임무 완료 · 마지막 결과";
+        }
+        if (core?.ChapterIndex == 1 && _snapshot.Phase == ConstructionPhase.Ready)
+        {
+            return "경로 비교 · 북안 A / 강변 B";
+        }
+        if (core?.ChapterIndex == 2 && _snapshot.Phase == ConstructionPhase.Ready)
+        {
+            return "인수 경로 · 생활권 A / 의료원 B";
         }
         return _snapshot.Phase switch
         {

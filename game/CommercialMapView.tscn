@@ -1,4 +1,4 @@
-[gd_scene load_steps=54 format=3]
+[gd_scene load_steps=59 format=3]
 
 [ext_resource type="Script" path="res://CommercialMapView.cs" id="1_map"]
 [ext_resource type="Texture2D" path="res://art/commercial/tiles/ground-asphalt-v1.png" id="2_ground_asphalt"]
@@ -10,7 +10,7 @@
 [ext_resource type="Texture2D" path="res://art/commercial/g3/objects/river-bank-rock-segment-a.png" id="29_river_bank_rock_a"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/objects/river-bank-inner-bend-a.png" id="30_river_bank_inner_a"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/objects/river-bank-outer-bend-a.png" id="31_river_bank_outer_a"]
-[ext_resource type="Texture2D" path="res://art/commercial/g3/ui/panel-frame.png" id="34_ui_frame"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/inspector-frame-a.png" id="34_ui_frame"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/tiles/ground-rubble-mix-b.png" id="36_ground_rubble_b"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/objects/industrial-road-bridge-a.png" id="45_road_bridge_a"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/tiles/ground-rubble-relief-c.png" id="46_ground_relief_c"]
@@ -53,6 +53,11 @@
 [ext_resource type="Texture2D" path="res://art/commercial/g3/grid/pole-standard-a.png" id="86_pole_standard"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/grid/pole-reinforced-a.png" id="87_pole_reinforced"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/grid/bridge-foundation-a.png" id="88_bridge_foundation"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/tool-slot-a.png" id="89_tool_slot"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bank-conifer-a.png" id="90_bank_conifer"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bank-scrub-a.png" id="91_bank_scrub"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bank-outcrop-a.png" id="92_bank_outcrop"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/objects/industrial-road-bridge-b.png" id="93_road_bridge_b"]
 
 [node name="CommercialMapView" type="Control"]
 custom_minimum_size = Vector2(720, 500)
@@ -74,6 +79,7 @@ AtomicStandardPoleASprite = ExtResource("86_pole_standard")
 AtomicReinforcedPoleASprite = ExtResource("87_pole_reinforced")
 AtomicBridgeFoundationASprite = ExtResource("88_bridge_foundation")
 IndustrialRoadBridgeASprite = ExtResource("45_road_bridge_a")
+IndustrialRoadBridgeBSprite = ExtResource("93_road_bridge_b")
 AtomicPlantMainHallASprite = ExtResource("81_plant_main_hall")
 AtomicPlantSmokestackASprite = ExtResource("82_plant_smokestack")
 AtomicPlantTurbineHallASprite = ExtResource("83_plant_turbine_hall")
@@ -92,7 +98,11 @@ RiverBridgeAbutmentASprite = ExtResource("78_bridge_abutment")
 RiverRockSoilTransitionASprite = ExtResource("79_rock_soil_transition")
 RiverCurrentReflectionASprite = ExtResource("50_river_reflection_a")
 RiverFloodRippleASprite = ExtResource("80_flood_ripple")
+RiverBankConiferASprite = ExtResource("90_bank_conifer")
+RiverBankScrubASprite = ExtResource("91_bank_scrub")
+RiverBankOutcropASprite = ExtResource("92_bank_outcrop")
 UiChromeFrameTexture = ExtResource("34_ui_frame")
+UiToolSlotTexture = ExtResource("89_tool_slot")
 G3RiverWaterSurfaceTile = ExtResource("28_river_water_a")
 RoadStraightNorthWestSouthEastATile = ExtResource("51_road_nw_se")
 RoadStraightNorthEastSouthWestATile = ExtResource("52_road_ne_sw")

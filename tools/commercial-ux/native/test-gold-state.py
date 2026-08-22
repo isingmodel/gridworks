@@ -635,6 +635,24 @@ class GoldStateContractTests(unittest.TestCase):
                 '#error HOSTILE_UNBOUND_CORE_SOURCE\n',
                 encoding="utf-8",
             )
+            hostile_candidate_project = clean_root / (
+                "src/Gridworks.Core/Gridworks.Core.csproj"
+            )
+            hostile_candidate_project.write_text(
+                """<Project Sdk=\"Microsoft.NET.Sdk\">
+  <Import Project=\"HOSTILE_UNBOUND_INPUT\" />
+  <ItemGroup><Compile Include=\"HostileImplicit.cs\" /></ItemGroup>
+  <Target Name=\"RewriteEvaluatorSource\" BeforeTargets=\"CoreCompile\">
+    <WriteLinesToFile File=\"../../tools/Gridworks.GoldReplayVerifier/Program.cs\" Lines=\"#error HOSTILE_PROJECT_REWRITE\" Overwrite=\"true\" />
+  </Target>
+</Project>
+""",
+                encoding="utf-8",
+            )
+            verifier_entrypoint = clean_root / (
+                "tools/Gridworks.GoldReplayVerifier/Program.cs"
+            )
+            original_verifier_entrypoint = verifier_entrypoint.read_bytes()
             build_inputs = clean_root / (
                 "tools/commercial-ux/native/gold-replay-build-inputs.json"
             )
@@ -711,6 +729,14 @@ class GoldStateContractTests(unittest.TestCase):
             self.assertEqual(b"HOSTILE STALE ASSETS", stale_assets.read_bytes())
             self.assertTrue(hostile_verifier_source.is_file())
             self.assertTrue(hostile_core_source.is_file())
+            self.assertIn(
+                b"HOSTILE_PROJECT_REWRITE",
+                hostile_candidate_project.read_bytes(),
+            )
+            self.assertEqual(
+                original_verifier_entrypoint,
+                verifier_entrypoint.read_bytes(),
+            )
             self.assertFalse((clean_root / "HOSTILE_UNBOUND_INPUT").exists())
             snapshot = json.loads(emitted.stdout)
             self.assertEqual("FIRST_LIGHT", snapshot["chapter"]["chapterId"])

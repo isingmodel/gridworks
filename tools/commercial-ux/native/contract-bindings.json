@@ -11,7 +11,8 @@
       "validate-gold-state.py",
       "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
       "../../Gridworks.GoldReplayVerifier/Program.cs",
-      "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
+      "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj",
+      "../../Gridworks.GoldReplayVerifier/Gridworks.ReplayCore.csproj"
     ],
     "requiredProducerStagesBeforeScoreBearing": [
       "CANDIDATE-MANIFEST-PACKAGER",
@@ -62,11 +63,12 @@
     {"path": "../rubric.json", "kind": "RUBRIC", "sha256": "sha256:9a5f80c42870b475a4c3955cdf7d4fe610383bff994baa60e2c9b5ec7f131f4b"},
     {"path": "../aggregate-native.py", "kind": "TOOL", "sha256": "sha256:85d03816ef739463e5eb52df79f18e360596600a5f6ea9d115bd92c425f7a9ed"},
     {"path": "claim-evaluation-session.py", "kind": "TOOL", "sha256": "sha256:718a3b387779988f0737171c2f0cea8c4a11e187cc0cb2e79c751d3718b14fc2"},
-    {"path": "validate-contract.py", "kind": "TOOL", "sha256": "sha256:c46f7ac6f383a47c5ec54f50e68608ec585fc83a9260418eef9a2bade62f8ecb"},
-    {"path": "validate-gold-state.py", "kind": "TOOL", "sha256": "sha256:3e2a69aac8fbd7b4e73d656eb1dab74e2764e7285ef8cdc4f33282428d8e56a7"},
+    {"path": "validate-contract.py", "kind": "TOOL", "sha256": "sha256:f875cd5179f54b7a94ad5fbb42f06abb7898d8a05487078563a8f95d43ecfb93"},
+    {"path": "validate-gold-state.py", "kind": "TOOL", "sha256": "sha256:d51072c67779550e31deb480db8a5576188898fd3fbda4c683b12aa3f9687449"},
     {"path": "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs", "kind": "TOOL", "sha256": "sha256:0e40668e66d2a9b45999dd443c2344bccdd8171ccaa2c683d1207be20a521d77"},
     {"path": "../../Gridworks.GoldReplayVerifier/Program.cs", "kind": "TOOL", "sha256": "sha256:56a3ce93484aa69fe90ddafeb01a09e2cae500bcb46333c53397c8708f0c1b79"},
-    {"path": "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj", "kind": "TOOL", "sha256": "sha256:669ccf19d61c25fdec1898b6c49558d9b0ca3c7222bea84486220d70decaa200"},
+    {"path": "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj", "kind": "TOOL", "sha256": "sha256:ef3b310f674f4658eaab665b8be31a0a68488262a8de35ba91f7aa9039a67478"},
+    {"path": "../../Gridworks.GoldReplayVerifier/Gridworks.ReplayCore.csproj", "kind": "TOOL", "sha256": "sha256:f22dc61ef50d0c94e1ff34f0999d53da1aa90b33b3fc7918597776429a96892b"},
     {"path": "actor-action-ledger.schema.json", "kind": "SCHEMA", "sha256": "sha256:088c49f08a58bda0373441229bc386fc0109511496a2a64b9eb159c425488e59"},
     {"path": "actor-observation.schema.json", "kind": "SCHEMA", "sha256": "sha256:e02aee6392908a24eb5930a36b6acb49f3ce4a6e392f3c4fb77cdcc64b380fb7"},
     {"path": "actor-trace.schema.json", "kind": "SCHEMA", "sha256": "sha256:befa17221743aaebe6bd595215e7b30e709b4fc3aa87db277005d39809c4556d"},
@@ -76,7 +78,7 @@
     {"path": "canonical-hash-policy.schema.json", "kind": "SCHEMA", "sha256": "sha256:830f32299d5dfc6c7823a52ec2a842284b83554086162c8b0c9b83e5eb0bf1ec"},
     {"path": "cold-actor-response.schema.json", "kind": "SCHEMA", "sha256": "sha256:63989c32bbf100638f428356f6eef59bd5eba189706e252f35e003d9ada4fdd2"},
     {"path": "cold-journey-recipe.schema.json", "kind": "SCHEMA", "sha256": "sha256:47bb63b050fdb3534cd5cdbd0ceb85d90fcdbf5adf5588d59bc046e297579d20"},
-    {"path": "contract-bindings.schema.json", "kind": "SCHEMA", "sha256": "sha256:86acc80bc02b8e7d8111dfc8d4f70e49b85923a84ce2774e2e9b9fc6cbac9be1"},
+    {"path": "contract-bindings.schema.json", "kind": "SCHEMA", "sha256": "sha256:e1a4aa45d0ac558224b11b6408df9f2141c3830da6c5591c3f7e42266d5e18c1"},
     {"path": "coverage-action-ledger.schema.json", "kind": "SCHEMA", "sha256": "sha256:5b5ea66ac70d49ab72319c74dd0ee37d13ea8530a49428337358d75217adc65d"},
     {"path": "coverage-trace.schema.json", "kind": "SCHEMA", "sha256": "sha256:f4cae0337607bf4c56bc47af252292621cc6951f03fe333733971b7c6d7eae95"},
     {"path": "evaluation-run-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:70db951a9ab0ca3dd7d9edc9c02b4814ea174a8cba1194be60cccf9e22b365e6"},
@@ -85,7 +87,7 @@
     {"path": "evaluation-attempt-terminal.schema.json", "kind": "SCHEMA", "sha256": "sha256:cb3e6ba6932f0b513de3508c6b9abeef11981aea8497dc8f7e87abe092731189"},
     {"path": "evaluation-session-claim.schema.json", "kind": "SCHEMA", "sha256": "sha256:95780cbd32b2d444c30e1eacef6a3fc6782508cccbd541cf057e6de98654398b"},
     {"path": "gold-binding-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:c74c4e7687b387c05d053afebd95d4cb878ded68fb36ccc8f833cb1a274e6604"},
-    {"path": "gold-replay-build-inputs.schema.json", "kind": "SCHEMA", "sha256": "sha256:6f113a42d7f79d5afc18912ccb2bd3396ca5104e38c26cf677b28dbf54a3f8c3"},
+    {"path": "gold-replay-build-inputs.schema.json", "kind": "SCHEMA", "sha256": "sha256:970e12d0885ee46ade2a7ad95042ecaf52927a5450a713c36db01cacc56a4791"},
     {"path": "gold-state-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:df36167d41e785d66dc2f8178c119ed8d07db1008cb81da276fcb878e6e741e9"},
     {"path": "holdout-consumption-receipt.schema.json", "kind": "SCHEMA", "sha256": "sha256:1bdb9b42cf71c4f2c450ff6deaac40feff4b72892bb263eed3e925e9d4569516"},
     {"path": "holdout-consumption-registry.schema.json", "kind": "SCHEMA", "sha256": "sha256:9fc2ce1fefc1a380dac65bc04d7156d67f5fe8135d8ebe2cec9570324429da00"},
@@ -108,8 +110,8 @@
     {"path": "cold-journey-recipe.json", "kind": "RECIPE", "sha256": "sha256:2ed0a537049d237b6acaf3b0e55fe828dfa18d600211ddf8481b236032298a20"},
     {"path": "concept-exposure-manifest.json", "kind": "AUTHORITY", "sha256": "sha256:1a5bffddcf78c8952f1d5a47ee5f5926c0bc5c5c6e0fbf2cbc0291c24783e9f5"},
     {"path": "coverage-recipe.json", "kind": "RECIPE", "sha256": "sha256:dfb2e7950defe8d50073f26529b0ae2d0b2418f92884a412a802afd64d271c7d"},
-    {"path": "gold-replay-build-inputs.json", "kind": "AUTHORITY", "sha256": "sha256:61cefe4f8e9021b9a47d2855724866919432ae4722668a86d8f74375988789c9"},
-    {"path": "gold-state-manifest.json", "kind": "AUTHORITY", "sha256": "sha256:a4deffc7aad78e1c6213b8ce462a9f0081e3170264cdcd292ba7c3454bb1d0a6"},
+    {"path": "gold-replay-build-inputs.json", "kind": "AUTHORITY", "sha256": "sha256:0b2e69d6e43f24367c15804171e1f34bf9a5e6e82d66ac6dcc7510fde37ca394"},
+    {"path": "gold-state-manifest.json", "kind": "AUTHORITY", "sha256": "sha256:6549a50ee86219bb1c0e26937b426b640ab0deecd86b1c9a071c0b3e5b51095e"},
     {"path": "holdout-recipes.json", "kind": "RECIPE", "sha256": "sha256:b46c39e2ec1cec46453d12caf3ab5ff6e4f016d4e910eafdb8aada9720441a16"},
     {"path": "qualification-anchors.json", "kind": "AUTHORITY", "sha256": "sha256:8c0cc3a57568edf50c9afc2151df4cb17d130c3c3ce92ef37a9f2c65165c2d41"},
     {"path": "qualification-transport-map.json", "kind": "AUTHORITY", "sha256": "sha256:3816cb466c2ef7387d24f6791b9dee51ad725139ab24a01ae8a462298ef533de"},
@@ -187,9 +189,10 @@
         "gold-replay-build-inputs.json",
         "gold-state-manifest.json",
         "coverage-recipe.json",
-        "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
-        "../../Gridworks.GoldReplayVerifier/Program.cs",
-        "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
+            "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
+            "../../Gridworks.GoldReplayVerifier/Program.cs",
+            "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj",
+            "../../Gridworks.GoldReplayVerifier/Gridworks.ReplayCore.csproj"
       ]
     },
     {

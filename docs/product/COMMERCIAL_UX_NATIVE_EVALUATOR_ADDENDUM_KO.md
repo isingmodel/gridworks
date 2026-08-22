@@ -196,9 +196,11 @@ rubric, target, label anchor, category/cell weight, floor, cap 수치 또는 집
 candidate-specific journal/snapshot을 판정하는 Core replay verifier는 저장소 checkout 안에서 직접
 빌드하지 않는다. `gold-replay-build-inputs.json`은 SDK lock 1개, project 2개, verifier
 entrypoint/source 2개, Commercial Core V2 source 19개의 exact path/role/ownership 순서를 고정한다.
-SDK·verifier 4개는 evaluator 소유 raw SHA-256·byte length를 먼저 검증하고, Core project/source 20개는
-candidate manifest가 실제 bytes의 `(path, rawSha256, byteLength)` ordered canonical projection으로
-결속한다. 그 24개 allowlisted bytes만 private temporary source root에 복사한다.
+SDK·verifier·명시적 replay Core project 5개는 evaluator 소유 raw SHA-256·byte length를 먼저 검증하고,
+Core source 19개는 candidate manifest가 실제 bytes의 `(path, rawSha256, byteLength)` ordered canonical
+projection으로 결속한다. 후보 `Gridworks.Core.csproj`는 복사하거나 MSBuild로 실행하지 않으며 evaluator
+소유 replay project가 19개 source를 하나씩 명시한다. 그 24개 allowlisted bytes만 private temporary
+source root에 복사한다.
 
 restore/build는 그 root에서 `Directory.Build.props`, `Directory.Build.targets`,
 `Directory.Packages.props` 자동 import를 끄고, package source가 비어 있는 전용 NuGet config와

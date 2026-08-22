@@ -168,8 +168,9 @@ Gold replay builds are source-hermetic at the repository boundary. The contract-
 [`native/gold-replay-build-inputs.json`](native/gold-replay-build-inputs.json) allowlists the
 pinned SDK file, two projects, verifier entrypoint/source, and 19 Commercial Core V2 sources.
 Only those 24 exact path/role inputs are copied to a private temporary source tree. Evaluator
-authority freezes the four SDK/verifier byte streams; the candidate manifest binds the observed
-20 Core project/source byte streams through an ordered canonical projection. Directory build
+authority freezes the five SDK/verifier/explicit replay-Core-project byte streams; the candidate
+manifest binds the observed 19 Core source byte streams through an ordered canonical projection.
+The candidate `Gridworks.Core.csproj` is never copied or executed. Directory build
 props/targets/package props, user NuGet sources, ambient MSBuild properties, implicit checkout
 sources, and checkout `bin/obj` are excluded before restore and build.
 This closes only the gold replay verifier build. Candidate game-build inputs and the complete

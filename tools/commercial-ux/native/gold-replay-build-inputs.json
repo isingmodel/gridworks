@@ -16,10 +16,10 @@
   },
   "files": [
     {"path": "global.json", "role": "SDK_LOCK", "ownership": "EVALUATOR", "sha256": "sha256:9e5dddc69006a787c251be614e6db6cd4e93a104128d3e03b66a7c914acdaf55", "byteLength": 104},
-    {"path": "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj", "role": "VERIFIER_PROJECT", "ownership": "EVALUATOR", "sha256": "sha256:669ccf19d61c25fdec1898b6c49558d9b0ca3c7222bea84486220d70decaa200", "byteLength": 532},
+    {"path": "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj", "role": "VERIFIER_PROJECT", "ownership": "EVALUATOR", "sha256": "sha256:ef3b310f674f4658eaab665b8be31a0a68488262a8de35ba91f7aa9039a67478", "byteLength": 513},
+    {"path": "tools/Gridworks.GoldReplayVerifier/Gridworks.ReplayCore.csproj", "role": "REPLAY_CORE_PROJECT", "ownership": "EVALUATOR", "sha256": "sha256:f22dc61ef50d0c94e1ff34f0999d53da1aa90b33b3fc7918597776429a96892b", "byteLength": 3004},
     {"path": "tools/Gridworks.GoldReplayVerifier/Program.cs", "role": "VERIFIER_ENTRYPOINT", "ownership": "EVALUATOR", "sha256": "sha256:56a3ce93484aa69fe90ddafeb01a09e2cae500bcb46333c53397c8708f0c1b79", "byteLength": 730},
     {"path": "tools/Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs", "role": "VERIFIER_SOURCE", "ownership": "EVALUATOR", "sha256": "sha256:0e40668e66d2a9b45999dd443c2344bccdd8171ccaa2c683d1207be20a521d77", "byteLength": 11687},
-    {"path": "src/Gridworks.Core/Gridworks.Core.csproj", "role": "CORE_PROJECT", "ownership": "CANDIDATE", "sha256": null, "byteLength": null},
     {"path": "src/Gridworks.Core/Release/V2/CommercialCampaignContracts.cs", "role": "CORE_SOURCE", "ownership": "CANDIDATE", "sha256": null, "byteLength": null},
     {"path": "src/Gridworks.Core/Release/V2/CommercialCampaignLoader.cs", "role": "CORE_SOURCE", "ownership": "CANDIDATE", "sha256": null, "byteLength": null},
     {"path": "src/Gridworks.Core/Release/V2/CommercialCampaignPersistence.cs", "role": "CORE_SOURCE", "ownership": "CANDIDATE", "sha256": null, "byteLength": null},

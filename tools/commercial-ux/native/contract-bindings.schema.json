@@ -20,8 +20,8 @@
     "toolBindingPolicy": {"$ref": "#/$defs/toolBindingPolicy"},
     "fileHashes": {
       "type": "array",
-      "minItems": 57,
-      "maxItems": 57,
+      "minItems": 58,
+      "maxItems": 58,
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/fileHash"}
     },
@@ -78,7 +78,8 @@
             "validate-gold-state.py",
             "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
             "../../Gridworks.GoldReplayVerifier/Program.cs",
-            "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
+            "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj",
+            "../../Gridworks.GoldReplayVerifier/Gridworks.ReplayCore.csproj"
           ]
         },
         "requiredProducerStagesBeforeScoreBearing": {
@@ -122,7 +123,7 @@
       "properties": {
         "path": {
           "type": "string",
-          "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|\\.\\./\\.\\./Gridworks\\.CommercialChecks/CommercialGoldReplayVerifier\\.cs|\\.\\./\\.\\./Gridworks\\.GoldReplayVerifier/(Program\\.cs|Gridworks\\.GoldReplayVerifier\\.csproj)|[a-z0-9][a-z0-9.-]+)$"
+          "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|\\.\\./\\.\\./Gridworks\\.CommercialChecks/CommercialGoldReplayVerifier\\.cs|\\.\\./\\.\\./Gridworks\\.GoldReplayVerifier/(Program\\.cs|Gridworks\\.(GoldReplayVerifier|ReplayCore)\\.csproj)|[a-z0-9][a-z0-9.-]+)$"
         },
         "kind": {"enum": ["RUBRIC", "PROMPT", "SCHEMA", "AUTHORITY", "RECIPE", "POLICY", "TOOL"]},
         "sha256": {"$ref": "#/$defs/sha256"}
@@ -186,7 +187,7 @@
           "uniqueItems": true,
           "items": {
             "type": "string",
-            "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|\\.\\./\\.\\./Gridworks\\.CommercialChecks/CommercialGoldReplayVerifier\\.cs|\\.\\./\\.\\./Gridworks\\.GoldReplayVerifier/(Program\\.cs|Gridworks\\.GoldReplayVerifier\\.csproj)|[a-z0-9][a-z0-9.-]+)$"
+            "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|\\.\\./\\.\\./Gridworks\\.CommercialChecks/CommercialGoldReplayVerifier\\.cs|\\.\\./\\.\\./Gridworks\\.GoldReplayVerifier/(Program\\.cs|Gridworks\\.(GoldReplayVerifier|ReplayCore)\\.csproj)|[a-z0-9][a-z0-9.-]+)$"
           }
         }
       },

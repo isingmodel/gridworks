@@ -9,6 +9,6 @@
 
   <ItemGroup>
     <Compile Include="../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs" Link="CommercialGoldReplayVerifier.cs" />
-    <ProjectReference Include="../../src/Gridworks.Core/Gridworks.Core.csproj" />
+    <ProjectReference Include="Gridworks.ReplayCore.csproj" />
   </ItemGroup>
 </Project>

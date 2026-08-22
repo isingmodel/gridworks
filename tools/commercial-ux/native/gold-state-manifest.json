@@ -108,9 +108,9 @@
       "entrypointPath": "tools/Gridworks.GoldReplayVerifier/Program.cs",
       "entrypointSha256": "sha256:56a3ce93484aa69fe90ddafeb01a09e2cae500bcb46333c53397c8708f0c1b79",
       "projectPath": "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj",
-      "projectSha256": "sha256:669ccf19d61c25fdec1898b6c49558d9b0ca3c7222bea84486220d70decaa200",
+      "projectSha256": "sha256:ef3b310f674f4658eaab665b8be31a0a68488262a8de35ba91f7aa9039a67478",
       "buildInputsPath": "tools/commercial-ux/native/gold-replay-build-inputs.json",
-      "buildInputsSha256": "sha256:61cefe4f8e9021b9a47d2855724866919432ae4722668a86d8f74375988789c9",
+      "buildInputsSha256": "sha256:0b2e69d6e43f24367c15804171e1f34bf9a5e6e82d66ac6dcc7510fde37ca394",
       "referenceMode": "EXACT_RAW_SHA_AND_CORE_REPLAY",
       "members": ["CommercialGoldReplayVerifier", "VerifyBatch", "EmitSnapshot"]
     },

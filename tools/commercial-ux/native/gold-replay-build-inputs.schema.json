@@ -60,15 +60,15 @@
         "properties": {
           "path": {
             "type": "string",
-            "pattern": "^(global\\.json|tools/Gridworks\\.GoldReplayVerifier/(Gridworks\\.GoldReplayVerifier\\.csproj|Program\\.cs)|tools/Gridworks\\.CommercialChecks/CommercialGoldReplayVerifier\\.cs|src/Gridworks\\.Core/(Gridworks\\.Core\\.csproj|Release/V2/[A-Za-z0-9]+\\.cs))$"
+            "pattern": "^(global\\.json|tools/Gridworks\\.GoldReplayVerifier/(Gridworks\\.(GoldReplayVerifier|ReplayCore)\\.csproj|Program\\.cs)|tools/Gridworks\\.CommercialChecks/CommercialGoldReplayVerifier\\.cs|src/Gridworks\\.Core/Release/V2/[A-Za-z0-9]+\\.cs)$"
           },
           "role": {
             "enum": [
               "SDK_LOCK",
               "VERIFIER_PROJECT",
+              "REPLAY_CORE_PROJECT",
               "VERIFIER_ENTRYPOINT",
               "VERIFIER_SOURCE",
-              "CORE_PROJECT",
               "CORE_SOURCE"
             ]
           },

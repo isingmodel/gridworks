@@ -50,15 +50,18 @@ GOLD_REPLAY_BUILD_INPUT_MANIFEST_PATH = (
 GOLD_REPLAY_PROJECT_PATH = (
     "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
 )
+GOLD_REPLAY_CORE_PROJECT_PATH = (
+    "tools/Gridworks.GoldReplayVerifier/Gridworks.ReplayCore.csproj"
+)
 GOLD_REPLAY_BUILD_INPUTS = (
     ("global.json", "SDK_LOCK"),
     (GOLD_REPLAY_PROJECT_PATH, "VERIFIER_PROJECT"),
+    (GOLD_REPLAY_CORE_PROJECT_PATH, "REPLAY_CORE_PROJECT"),
     ("tools/Gridworks.GoldReplayVerifier/Program.cs", "VERIFIER_ENTRYPOINT"),
     (
         "tools/Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
         "VERIFIER_SOURCE",
     ),
-    ("src/Gridworks.Core/Gridworks.Core.csproj", "CORE_PROJECT"),
     (
         "src/Gridworks.Core/Release/V2/CommercialCampaignContracts.cs",
         "CORE_SOURCE",
@@ -698,7 +701,7 @@ def read_gold_replay_build_inputs(
         (
             path,
             role,
-            "CANDIDATE" if role in {"CORE_PROJECT", "CORE_SOURCE"} else "EVALUATOR",
+            "CANDIDATE" if role == "CORE_SOURCE" else "EVALUATOR",
         )
         for path, role in GOLD_REPLAY_BUILD_INPUTS
     ]

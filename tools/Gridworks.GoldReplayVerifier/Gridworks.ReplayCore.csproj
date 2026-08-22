@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>Gridworks.Core</AssemblyName>
+    <RootNamespace>Gridworks.Core</RootNamespace>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialCampaignContracts.cs" Link="Release/V2/CommercialCampaignContracts.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialCampaignLoader.cs" Link="Release/V2/CommercialCampaignLoader.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialCampaignPersistence.cs" Link="Release/V2/CommercialCampaignPersistence.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialCoreContracts.cs" Link="Release/V2/CommercialCoreContracts.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialCoreLoader.cs" Link="Release/V2/CommercialCoreLoader.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialCorePersistence.cs" Link="Release/V2/CommercialCorePersistence.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialCoreRun.cs" Link="Release/V2/CommercialCoreRun.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialCoreRunContracts.cs" Link="Release/V2/CommercialCoreRunContracts.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialSettingsPersistence.cs" Link="Release/V2/CommercialSettingsPersistence.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialWorldContracts.cs" Link="Release/V2/CommercialWorldContracts.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/CommercialWorldLoader.cs" Link="Release/V2/CommercialWorldLoader.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/ConstructionContracts.cs" Link="Release/V2/ConstructionContracts.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/ConstructionSession.cs" Link="Release/V2/ConstructionSession.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/FixedGeometry.cs" Link="Release/V2/FixedGeometry.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/PlacementValidator.cs" Link="Release/V2/PlacementValidator.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/SpatialContracts.cs" Link="Release/V2/SpatialContracts.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/SpatialWorldLoader.cs" Link="Release/V2/SpatialWorldLoader.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/ThermalContracts.cs" Link="Release/V2/ThermalContracts.cs" />
+    <Compile Include="../../src/Gridworks.Core/Release/V2/ThermalEvaluator.cs" Link="Release/V2/ThermalEvaluator.cs" />
+  </ItemGroup>
+</Project>

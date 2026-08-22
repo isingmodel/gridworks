@@ -464,8 +464,8 @@ def candidate_replay_build_inputs_sha256(native: Path) -> str:
             "rawSha256": "sha256:" + hashlib.sha256(data).hexdigest(),
             "byteLength": len(data),
         })
-    if len(projection) != 20:
-        raise ContractError("gold replay recipe must select exactly 20 candidate inputs")
+    if len(projection) != 19:
+        raise ContractError("gold replay recipe must select exactly 19 candidate inputs")
     return "sha256:" + hashlib.sha256(canonical_json_bytes(projection)).hexdigest()
 
 
@@ -3024,6 +3024,7 @@ def validate_contract_bindings(
             "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
             "../../Gridworks.GoldReplayVerifier/Program.cs",
             "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj",
+            "../../Gridworks.GoldReplayVerifier/Gridworks.ReplayCore.csproj",
         ]
         and tool_policy.get("unboundImplementationStatus")
         == "BLOCKED_UNTIL_IMPLEMENTED_AND_RAW_HASH_BOUND"
@@ -3040,6 +3041,7 @@ def validate_contract_bindings(
         "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs": "TOOL",
         "../../Gridworks.GoldReplayVerifier/Program.cs": "TOOL",
         "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj": "TOOL",
+        "../../Gridworks.GoldReplayVerifier/Gridworks.ReplayCore.csproj": "TOOL",
         **{name: "SCHEMA" for name in schemas},
         "canonical-hash-policy.json": "POLICY",
         "evaluation-session-policy.json": "POLICY",
@@ -3215,6 +3217,7 @@ def validate_contract_bindings(
             "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
             "../../Gridworks.GoldReplayVerifier/Program.cs",
             "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj",
+            "../../Gridworks.GoldReplayVerifier/Gridworks.ReplayCore.csproj",
         ],
         "candidate -> receipt -> session -> attempt -> gold-binding DAG must remain exact and acyclic",
         errors,

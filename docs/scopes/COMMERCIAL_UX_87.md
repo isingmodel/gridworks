@@ -229,8 +229,9 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
   binding이 아직 없으므로 `scoreBearingCaptureAllowed=false`, 공식 cold/native 점수 미실행 상태를
   유지한다.
 - gold replay verifier는 exact path/role 24개만 private temp source tree로 materialize한다. evaluator가
-  SDK/verifier 4개 bytes를 동결하고 candidate manifest가 Core project/source 20개 bytes의 ordered
-  canonical projection을 소유한다. verifier는
+  SDK/verifier/explicit replay Core project 5개 bytes를 동결하고 candidate manifest가 Core source 19개
+  bytes의 ordered canonical projection을 소유한다. 후보 `Gridworks.Core.csproj`는 복사·실행하지 않는다.
+  verifier는
   `Directory.Build.props/targets`, `Directory.Packages.props`, ambient MSBuild/NuGet 설정, implicit source,
   checkout `bin/obj`를 배제한다. 따라서 candidate commit이 verifier 파일 3개의 hash를 유지한 채
   암시적 build input으로 replay report를 위조할 수 없다. 이는 gold replay verifier만 닫으며 실제 게임

@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "pairId", "judgeSlot", "cells", "map", "states", "criticalFailures", "verdict"],
+  "properties": {
+    "protocol": { "type": "string", "const": "G3-ATOMIC-RIVER-AUDIT-v1" },
+    "pairId": { "type": "string", "const": "PAIR-KIT-RIVER" },
+    "judgeSlot": { "type": "string", "const": "SOL-ULTRA" },
+    "cells": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cellId", "singleCompositionUnit", "containsWholeRiverOrMap", "containsAtlasOrAlternatives", "evidenceBox", "observation"],
+        "properties": {
+          "cellId": { "enum": ["R01", "R02", "R03", "R04", "R05", "R06", "R07", "R08", "R09", "R10", "R11", "R12"] },
+          "singleCompositionUnit": { "type": "boolean" },
+          "containsWholeRiverOrMap": { "type": "boolean" },
+          "containsAtlasOrAlternatives": { "type": "boolean" },
+          "evidenceBox": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "integer", "minimum": 0, "maximum": 1000 }
+          },
+          "observation": { "type": "string" }
+        }
+      }
+    },
+    "map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["largeBakedRiverRasterPresent", "evidenceBoxes", "observation"],
+      "properties": {
+        "largeBakedRiverRasterPresent": { "type": "boolean" },
+        "evidenceBoxes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 6,
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "integer", "minimum": 0, "maximum": 1000 }
+          }
+        },
+        "observation": { "type": "string" }
+      }
+    },
+    "states": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["normalWaterVisible", "heatIsNarrowerAndDrier", "floodIsWiderAndWetter", "evidenceBoxes", "observation"],
+      "properties": {
+        "normalWaterVisible": { "type": "boolean" },
+        "heatIsNarrowerAndDrier": { "type": "boolean" },
+        "floodIsWiderAndWetter": { "type": "boolean" },
+        "evidenceBoxes": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 9,
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "integer", "minimum": 0, "maximum": 1000 }
+          }
+        },
+        "observation": { "type": "string" }
+      }
+    },
+    "criticalFailures": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "verdict": { "enum": ["PASS", "FAIL_HARD_GATE"] }
+  }
+}

@@ -1,4 +1,4 @@
-[gd_scene load_steps=40 format=3]
+[gd_scene load_steps=52 format=3]
 
 [ext_resource type="Script" path="res://CommercialMapView.cs" id="1_map"]
 [ext_resource type="Texture2D" path="res://art/commercial/tiles/ground-asphalt-v1.png" id="2_ground_asphalt"]
@@ -39,6 +39,18 @@
 [ext_resource type="Texture2D" path="res://art/commercial/g3/atomic/water-tank-a.png" id="66_water_tank"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/atomic/retaining-wall-a.png" id="67_retaining_wall"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/atomic/street-lamp-a.png" id="68_street_lamp"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-water-neutral-b.png" id="69_river_water_b"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-water-heat-a.png" id="70_river_water_heat"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-water-flood-a.png" id="71_river_water_flood"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bank-left-straight-a.png" id="72_bank_left_straight"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bank-right-straight-a.png" id="73_bank_right_straight"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bank-left-inner-a.png" id="74_bank_left_inner"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bank-left-outer-a.png" id="75_bank_left_outer"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bank-right-inner-a.png" id="76_bank_right_inner"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bank-right-outer-a.png" id="77_bank_right_outer"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bridge-abutment-a.png" id="78_bridge_abutment"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-rock-soil-transition-a.png" id="79_rock_soil_transition"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-flood-ripple-a.png" id="80_flood_ripple"]
 
 [node name="CommercialMapView" type="Control"]
 custom_minimum_size = Vector2(720, 500)
@@ -53,6 +65,9 @@ GroundGravelTile = ExtResource("5_ground_gravel")
 G3GroundRubbleMixBTile = ExtResource("36_ground_rubble_b")
 G3GroundRubbleReliefCTile = ExtResource("46_ground_relief_c")
 RiverWaterTile = ExtResource("6_river")
+RiverWaterNeutralBTile = ExtResource("69_river_water_b")
+RiverWaterHeatATile = ExtResource("70_river_water_heat")
+RiverWaterFloodATile = ExtResource("71_river_water_flood")
 StandardPoleSprite = ExtResource("10_standard_pole")
 ReinforcedPoleSprite = ExtResource("11_reinforced_pole")
 BridgeFoundationSprite = ExtResource("12_bridge")
@@ -63,7 +78,16 @@ ChunkySwitchingSubstationBSprite = ExtResource("49_substation_b")
 G3RiverBankRockSegmentASprite = ExtResource("29_river_bank_rock_a")
 G3RiverBankInnerBendASprite = ExtResource("30_river_bank_inner_a")
 G3RiverBankOuterBendASprite = ExtResource("31_river_bank_outer_a")
+RiverBankLeftStraightASprite = ExtResource("72_bank_left_straight")
+RiverBankRightStraightASprite = ExtResource("73_bank_right_straight")
+RiverBankLeftInnerASprite = ExtResource("74_bank_left_inner")
+RiverBankLeftOuterASprite = ExtResource("75_bank_left_outer")
+RiverBankRightInnerASprite = ExtResource("76_bank_right_inner")
+RiverBankRightOuterASprite = ExtResource("77_bank_right_outer")
+RiverBridgeAbutmentASprite = ExtResource("78_bridge_abutment")
+RiverRockSoilTransitionASprite = ExtResource("79_rock_soil_transition")
 RiverCurrentReflectionASprite = ExtResource("50_river_reflection_a")
+RiverFloodRippleASprite = ExtResource("80_flood_ripple")
 UiChromeFrameTexture = ExtResource("34_ui_frame")
 G3RiverWaterSurfaceTile = ExtResource("28_river_water_a")
 RoadStraightNorthWestSouthEastATile = ExtResource("51_road_nw_se")

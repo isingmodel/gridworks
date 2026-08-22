@@ -195,8 +195,12 @@ P0/P1/open 0으로 종료했다. 1280×720은 실행·검수하지 않았다.
 - [평가 프로토콜](product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)의 세 multimodal LLM jury
   checkpoint, 10개 고정 pair·bias calibration과 근거 좌표가 있는 차이 보고서
 
-2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정, 고정 LLM jury `ReferenceParity >96`까지의
-반복 개선을 승인했다. 720p는 열지 않고 1920×1080 UI 100%·125%만 검수한다.
+2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정을 승인했고, 2026-08-22 고정 LLM jury
+종료선을 `ReferenceParity >90`으로 조정했다. 720p는 열지 않고 1920×1080 UI 100%·125%만 검수한다.
+Step 1 원자 도시·도로와 Step 2 원자 강물·제방은 각각 고정 `gpt-5.6-sol` ultra 구조 audit을
+12/12로 통과했다. Step 2는 정상·고온·홍수 수면 상태와 authoritative foundation 접합까지
+CommercialChecks 22 suites/2,265 assertions 및 native presentation smoke로 닫았다. 현재 활성 단위는
+Step 3 원자 grid/facility 부품과 전력망 상태 표현이다.
 
 ## 9. 단계 H — 외부 검증과 공개 후보 — 구현 뒤 별도 게이트
 

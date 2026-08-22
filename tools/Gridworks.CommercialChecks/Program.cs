@@ -849,6 +849,36 @@ internal sealed class CommercialChecks
         ];
         Equal(6, atomicRoadAssets.Length, "Step 1 atomic road asset count");
 
+        (string Property, string RelativePath, string SourceName, string RunId, bool RequiresAlpha)[]
+            atomicRiverAssets =
+        [
+            ("RiverWaterNeutralBTile", "g3/river/river-water-neutral-b.png",
+                "river-water-neutral-b-source.png", "exec-e2902ef2-0d4b-40d5-9198-9459848058cd", false),
+            ("RiverWaterHeatATile", "g3/river/river-water-heat-a.png",
+                "river-water-heat-a-source.png", "exec-0bbd1fe2-6d39-4589-b142-6bd7f0cbb64b", false),
+            ("RiverWaterFloodATile", "g3/river/river-water-flood-a.png",
+                "river-water-flood-a-source.png", "exec-c0a4f649-0a55-40ca-93a2-01d0be7befbb", false),
+            ("RiverBankLeftStraightASprite", "g3/river/river-bank-left-straight-a.png",
+                "river-bank-left-straight-a-source.png", "exec-1a53642a-0344-49ce-8f1f-65e464d8ceb0", true),
+            ("RiverBankRightStraightASprite", "g3/river/river-bank-right-straight-a.png",
+                "river-bank-right-straight-a-source.png", "exec-85c008ed-521f-42df-9965-345057973ce9", true),
+            ("RiverBankLeftInnerASprite", "g3/river/river-bank-left-inner-a.png",
+                "river-bank-left-inner-a-source.png", "exec-8447db00-7d32-494c-8b2f-aac537fb4960", true),
+            ("RiverBankLeftOuterASprite", "g3/river/river-bank-left-outer-a.png",
+                "river-bank-left-outer-a-source.png", "exec-d60c0365-8ce9-47c3-b3b4-65372b0cc556", true),
+            ("RiverBankRightInnerASprite", "g3/river/river-bank-right-inner-a.png",
+                "river-bank-right-inner-a-source.png", "exec-2669c1aa-5bf0-4137-af7d-5d4ebb7bea1a", true),
+            ("RiverBankRightOuterASprite", "g3/river/river-bank-right-outer-a.png",
+                "river-bank-right-outer-a-source.png", "exec-d21488ab-a180-4627-be80-bf8b49326b5a", true),
+            ("RiverBridgeAbutmentASprite", "g3/river/river-bridge-abutment-a.png",
+                "river-bridge-abutment-a-source.png", "exec-9b9a3087-d3d6-4c95-98d7-6f7c0a1645f5", true),
+            ("RiverRockSoilTransitionASprite", "g3/river/river-rock-soil-transition-a.png",
+                "river-rock-soil-transition-a-source.png", "exec-02db16b8-2c39-4648-a702-1e48a8f7c8f4", true),
+            ("RiverFloodRippleASprite", "g3/river/river-flood-ripple-a.png",
+                "river-flood-ripple-a-source.png", "exec-39d06c57-7026-4209-b07a-5fee07e76021", true),
+        ];
+        Equal(12, atomicRiverAssets.Length, "Step 2 atomic river asset count");
+
         foreach ((string property, string relativePath, string sourceName, string runId) in
                  atomicCityAssets.Concat(atomicRoadAssets))
         {
@@ -885,6 +915,52 @@ internal sealed class CommercialChecks
                 $"Step 1 atomic art lacks isolated alpha: {relativePath}");
         }
 
+        foreach ((string property, string relativePath, string sourceName, string runId,
+                     bool requiresAlpha) in atomicRiverAssets)
+        {
+            string runtimePath = Path.Combine(artDirectory, relativePath);
+            string sourcePath = Path.Combine(sourceDirectory, sourceName);
+            Check(File.Exists(runtimePath), $"missing Step 2 atomic river art: {relativePath}");
+            Check(File.Exists(sourcePath), $"missing Step 2 preserved source: {sourceName}");
+            Check(File.Exists($"{runtimePath}.import") &&
+                File.ReadAllText($"{runtimePath}.import").Contains(
+                    "mipmaps/generate=true",
+                    StringComparison.Ordinal),
+                $"Step 2 river art lacks mipmapped import: {relativePath}");
+            Check(scene.Contains($"res://art/commercial/{relativePath}", StringComparison.Ordinal) &&
+                scene.Contains($"{property} = ExtResource", StringComparison.Ordinal) &&
+                renderer.Contains(property, StringComparison.Ordinal),
+                $"Step 2 river art is not runtime-bound: {relativePath}");
+            string runtimeHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(runtimePath))).ToLowerInvariant();
+            string sourceHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(sourcePath))).ToLowerInvariant();
+            Check(ledger.Contains(relativePath, StringComparison.Ordinal) &&
+                ledger.Contains(sourceName, StringComparison.Ordinal) &&
+                ledger.Contains(runId, StringComparison.Ordinal) &&
+                ledger.Contains(runtimeHash, StringComparison.Ordinal) &&
+                ledger.Contains(sourceHash, StringComparison.Ordinal),
+                $"Step 2 provenance is incomplete or stale: {relativePath}");
+            PngInfo png = ReadPng(runtimePath, requiresAlpha);
+            Check(Math.Max(png.Width, png.Height) >= 1024 &&
+                Math.Min(png.Width, png.Height) >= 512,
+                $"Step 2 river art below source resolution: {relativePath}");
+            if (requiresAlpha)
+            {
+                Equal((byte)6, png.ColorType, $"Step 2 river RGBA: {relativePath}");
+                Check(png.TransparentFraction >= 0.35d &&
+                    png.CornerAlphas.All(alpha => alpha <= 1),
+                    $"Step 2 river object lacks isolated alpha: {relativePath}");
+            }
+            else
+            {
+                Check(png.ColorType is 2 or 6,
+                    $"Step 2 water tile PNG has unsupported color type: {relativePath}");
+                Equal(2, png.Width / Math.Max(1, png.Height),
+                    $"Step 2 water tile is not 2:1: {relativePath}");
+            }
+        }
+
         foreach (string forbidden in new[]
                  {
                      "district",
@@ -913,8 +989,8 @@ internal sealed class CommercialChecks
             g3Directory,
             "*.png",
             SearchOption.AllDirectories);
-        Equal(29, packagedG3Pngs.Length,
-            "Step 1 package-eligible G.3 PNG count");
+        Equal(41, packagedG3Pngs.Length,
+            "Step 2 package-eligible G.3 PNG count");
         foreach (string packagedG3Png in packagedG3Pngs)
         {
             string relativePath = Path.GetRelativePath(artDirectory, packagedG3Png)
@@ -965,13 +1041,32 @@ internal sealed class CommercialChecks
                 $"retained G.3 provenance hash is stale: {relativePath}");
         }
 
-        Equal(38,
+        Equal(50,
             scene.Split("[ext_resource type=\"Texture2D\"", StringSplitOptions.None).Length - 1,
-            "Step 1 runtime texture resource count including UI chrome");
+            "Step 2 runtime texture resource count including UI chrome");
         Check(renderer.Contains("IndividualArtAssetCount", StringComparison.Ordinal) &&
             renderer.Contains("AtomicCityAssetCount", StringComparison.Ordinal) &&
             renderer.Contains("AtomicRoadTileAssetCount", StringComparison.Ordinal),
             "Step 1 exact runtime asset inventory is not exposed");
+        Check(renderer.Contains("RiverWaterHeatATile ?? texture", StringComparison.Ordinal) &&
+            renderer.Contains("RiverWaterFloodATile ?? texture", StringComparison.Ordinal) &&
+            renderer.Contains("RiverBankLeftStraightASprite", StringComparison.Ordinal) &&
+            renderer.Contains("RiverBankRightOuterASprite", StringComparison.Ordinal) &&
+            renderer.Contains("RiverBridgeAbutmentASprite", StringComparison.Ordinal) &&
+            renderer.Contains("RiverFloodRippleASprite", StringComparison.Ordinal),
+            "Step 2 river state/directional object wiring is incomplete");
+        Check(renderer.Contains("new(1211, 2000)", StringComparison.Ordinal) &&
+            renderer.Contains("new(1310, 500)", StringComparison.Ordinal) &&
+            renderer.Contains("new CoreMapPoint(1330, 500)", StringComparison.Ordinal) &&
+            renderer.Contains("new CoreMapPoint(1480, 1500)", StringComparison.Ordinal),
+            "Step 2 river does not span the authoritative corridor and bridge foundations");
+        int riverBankObjectDraw = renderer.IndexOf(
+            "DrawRiverBankObjects(outerLeft", StringComparison.Ordinal);
+        int riverWaterDraw = renderer.IndexOf(
+            "DrawRiverSurfaceSegments(", StringComparison.Ordinal);
+        Check(riverBankObjectDraw >= 0 && riverWaterDraw >= 0 &&
+            riverBankObjectDraw < riverWaterDraw,
+            "Step 2 bank objects must composite below water to avoid dark channel intrusion");
         Check(transform.Contains("(deltaX - deltaY) * ScaleX", StringComparison.Ordinal) &&
             transform.Contains("(deltaX + deltaY) * ScaleY", StringComparison.Ordinal) &&
             transform.Contains("ScaleY => ScaleX * 0.5d", StringComparison.Ordinal),

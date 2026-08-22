@@ -1,0 +1,11 @@
+{
+  "protocol": "G3-ATOMIC-RIVER-AUDIT-v1",
+  "model": "gpt-5.6-sol",
+  "codexMode": "ultra",
+  "codexVersion": "codex-cli 0.149.0",
+  "boardSha256": "d7d6f21c6fca91f92c5fc402e355462deecfd15cd56bd3d3305cc75d6e52654a",
+  "normalSha256": "2fda3c8eb9969da3bd00dda32f28dc02b5d4402b542b629d8a49cc66194fb8f6",
+  "heatSha256": "8aa93fb0104597b49b1e5bb0252feb3d91738c983ff673c062dd6587383a2be1",
+  "floodSha256": "478fc0573a48720b73a630240a7b63b986ed5dc7ec641dc4ac2dba32f12a1589",
+  "recipeSha256": "2c7179dc9d46f610f28163340006c9d7d2e6afc49ba828fe5d5349b797f065b1"
+}

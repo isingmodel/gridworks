@@ -1,7 +1,7 @@
 # Gridworks 상용 2D 게임 구현
 
 > 상태: **G.3 ACTIVE — G.2 TECHNICAL RECORD PRESERVED**
-> 구현 권한: **OPEN — G.3 reference parity, `ReferenceParity >96`까지 반복**
+> 구현 권한: **OPEN — G.3 reference parity, `ReferenceParity >90`까지 반복**
 > 현재 작업: **Step 2 원자 river water/bank/effect kit — Step 1 원자 도시 PASS**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
@@ -527,7 +527,8 @@ checker-owned 유효 설계 원형 두 개와 대표 실패·복구 하나를 �
 > `assets/01~04`와 크게 달라 G.2 package는 현재 시각 후보가 아니다. 대체 후보는
 > [G.3 계획](../product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md)과
 > [평가 프로토콜](../product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)에 있다. 2026-08-21 사용자는
-> 필요한 게임 구현의 근본 수정과 `ReferenceParity >96`까지의 반복 개선을 승인했다.
+> 필요한 게임 구현의 근본 수정을 승인했고, 2026-08-22 종료선을 `ReferenceParity >90`으로
+> 조정했다.
 
 ## 8. 전체 완료 증거
 

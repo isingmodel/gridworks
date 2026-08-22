@@ -37,4 +37,4 @@ failure count is zero. This is a hard-gate boolean audit, not a ReferenceParity 
 - actual-input placement smoke: PASS at 1920×1080 UI 125%, Home `전체 보기`, Q/E candidate cycling
 
 Step 1 is closed. Step 2 is the atomic river/water/bank kit and authoritative state rendering; the final
-goal remains `ReferenceParity >96`.
+goal remains `ReferenceParity >90` after the 2026-08-22 owner threshold adjustment.

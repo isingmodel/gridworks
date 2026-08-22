@@ -1,0 +1,376 @@
+{
+  "boardSha256": "d7d6f21c6fca91f92c5fc402e355462deecfd15cd56bd3d3305cc75d6e52654a",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "captureSha256": {
+    "flood": "478fc0573a48720b73a630240a7b63b986ed5dc7ec641dc4ac2dba32f12a1589",
+    "heat": "8aa93fb0104597b49b1e5bb0252feb3d91738c983ff673c062dd6587383a2be1",
+    "normal": "2fda3c8eb9969da3bd00dda32f28dc02b5d4402b542b629d8a49cc66194fb8f6"
+  },
+  "cells": [
+    {
+      "alphaBounds": [
+        0,
+        0,
+        1024,
+        512
+      ],
+      "assetType": "water_tile",
+      "boardCellRect": [
+        28,
+        72,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        49,
+        164,
+        333,
+        166
+      ],
+      "cellId": "R01",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-water-neutral-b.png",
+      "runtimeSha256": "9b5d408f7b263ff123280607331d4a20cfdc327555ff17b25ab58721357b3780",
+      "sourceSize": [
+        1024,
+        512
+      ]
+    },
+    {
+      "alphaBounds": [
+        0,
+        0,
+        1024,
+        512
+      ],
+      "assetType": "water_tile",
+      "boardCellRect": [
+        417,
+        72,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        438,
+        164,
+        333,
+        166
+      ],
+      "cellId": "R02",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-water-heat-a.png",
+      "runtimeSha256": "797627b40d75b87883c1da55793655537af99ccb435d14c93a4a047c21f1f240",
+      "sourceSize": [
+        1024,
+        512
+      ]
+    },
+    {
+      "alphaBounds": [
+        0,
+        0,
+        1024,
+        512
+      ],
+      "assetType": "water_tile",
+      "boardCellRect": [
+        806,
+        72,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        827,
+        164,
+        333,
+        166
+      ],
+      "cellId": "R03",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-water-flood-a.png",
+      "runtimeSha256": "872e6ffd201fa1fcca98c08a284d42332abd0515033fff76a623175894f8e324",
+      "sourceSize": [
+        1024,
+        512
+      ]
+    },
+    {
+      "alphaBounds": [
+        22,
+        220,
+        1010,
+        767
+      ],
+      "assetType": "bank_object",
+      "boardCellRect": [
+        1195,
+        72,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        1216,
+        155,
+        333,
+        184
+      ],
+      "cellId": "R04",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-bank-left-straight-a.png",
+      "runtimeSha256": "100fa39f890229122fceebc26f0280cc876c8501937364b72467c722909ce655",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        34,
+        250,
+        989,
+        743
+      ],
+      "assetType": "bank_object",
+      "boardCellRect": [
+        28,
+        403,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        49,
+        492,
+        333,
+        172
+      ],
+      "cellId": "R05",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-bank-right-straight-a.png",
+      "runtimeSha256": "58bdc74f54cc65ebece5423c8d86ee319e08a7270acc8e3486e5b833a51c5204",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        21,
+        96,
+        1003,
+        923
+      ],
+      "assetType": "bank_object",
+      "boardCellRect": [
+        417,
+        403,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        468,
+        464,
+        272,
+        229
+      ],
+      "cellId": "R06",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-bank-left-inner-a.png",
+      "runtimeSha256": "c71abc22419942f85b16939b19a30f3210bc2b4edb640979469a5e6b685c8305",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        68,
+        143,
+        976,
+        884
+      ],
+      "assetType": "bank_object",
+      "boardCellRect": [
+        806,
+        403,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        853,
+        464,
+        281,
+        229
+      ],
+      "cellId": "R07",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-bank-left-outer-a.png",
+      "runtimeSha256": "dde92ee9a6a8c9d0343cff95add892a2b970a20da6c527f6a0078062ed620291",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        82,
+        70,
+        931,
+        941
+      ],
+      "assetType": "bank_object",
+      "boardCellRect": [
+        1195,
+        403,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        1271,
+        464,
+        223,
+        229
+      ],
+      "cellId": "R08",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-bank-right-inner-a.png",
+      "runtimeSha256": "75920f6117c333cff9b9bc9d6d48d5bf64adc433a1f60985a6f30c86eea179bc",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        72,
+        92,
+        961,
+        931
+      ],
+      "assetType": "bank_object",
+      "boardCellRect": [
+        28,
+        734,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        94,
+        795,
+        243,
+        229
+      ],
+      "cellId": "R09",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-bank-right-outer-a.png",
+      "runtimeSha256": "1ea5ca9d12fbfd2e18ff82465e7ebcc80b36e1c64c68ad2480b2453f3e4325fb",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        150,
+        109,
+        892,
+        892
+      ],
+      "assetType": "bank_object",
+      "boardCellRect": [
+        417,
+        734,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        496,
+        795,
+        217,
+        229
+      ],
+      "cellId": "R10",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-bridge-abutment-a.png",
+      "runtimeSha256": "8d9943ed6441b6ef0ade0a82ffd65e523f11a2f8d6f03010756e6f440dfb3ce1",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        14,
+        226,
+        1015,
+        780
+      ],
+      "assetType": "bank_object",
+      "boardCellRect": [
+        806,
+        734,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        827,
+        817,
+        333,
+        184
+      ],
+      "cellId": "R11",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-rock-soil-transition-a.png",
+      "runtimeSha256": "a083c1d9549c9a42a0f2c00ad6d78aaa2055ebf98063f0a0606272226c7875bf",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        22,
+        214,
+        991,
+        825
+      ],
+      "assetType": "effect_object",
+      "boardCellRect": [
+        1195,
+        734,
+        375,
+        317
+      ],
+      "boardPasteRect": [
+        1216,
+        804,
+        333,
+        210
+      ],
+      "cellId": "R12",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/river/river-flood-ripple-a.png",
+      "runtimeSha256": "9107d3af98121878c9e331b6f1633fee699f75d17d227876bde87c46eb86979f",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    }
+  ],
+  "layout": {
+    "cellCount": 12,
+    "columns": 4,
+    "rows": 3
+  },
+  "pairId": "PAIR-KIT-RIVER",
+  "protocol": "G3-ATOMIC-RIVER-AUDIT-v1",
+  "rendering": {
+    "background": "#090d0e",
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "resampling": "LANCZOS",
+    "retouch": false
+  }
+}

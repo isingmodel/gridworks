@@ -79,6 +79,14 @@ crop은 `largeBakedCityRasterPresent` boolean을 반환한다. 모든 cell이 `t
 `district/parcel/cluster/neighborhood/hamlet/city plate`처럼 여러 건물·도로망·도시 윤곽을 한 PNG에
 구운 자산은 label이 `PARITY`여도 즉시 실패다.
 
+`PAIR-KIT-RIVER`에도 별도 `G3-ATOMIC-RIVER-AUDIT-v1` 구조 audit을 붙인다. water material cell은
+하나의 tile, bank·transition·single-bank abutment cell은 하나의 짧은 배치 object, ripple cell은
+하나의 effect cluster여야 한다. 모든 cell의 `singleCompositionUnit=true`,
+`containsWholeRiverOrMap=false`, `containsAtlasOrAlternatives=false`, runtime의
+`largeBakedRiverRasterPresent=false`가 필요하다. 같은 camera의 정상·고온·홍수 캡처에서 정상 수면,
+더 좁고 건조한 고온 수로, 더 넓고 습윤한 홍수 수로 boolean도 모두 true여야 한다. 이 audit 역시
+ReferenceParity 산술에는 들어가지 않는 hard gate다.
+
 UI 125%는 `PAIR-NORMAL`과 `PAIR-ROUTE`에서 clipping, hierarchy, focus만 추가 확인한다. final jury는
 미리 정한 pair를 빼거나 더 유리한 screenshot으로 교체할 수 없다.
 
@@ -409,8 +417,8 @@ ReferenceParity = RawJuryParity - Penalty
 
 | ReferenceParity | 해석 |
 |---:|---|
-| `>96~100` | 현재 사용자 목표 달성 |
-| `90~96` | reference와 거의 같은 체계지만 계속 개선 |
+| `>90~100` | 현재 사용자 목표 달성 |
+| `85~90` | reference와 거의 같은 체계지만 계속 개선 |
 | `85~89.99` | 이전 최소 정렬선 후보이나 현재는 계속 개선 |
 | `75~84.99` | 관련성은 분명하지만 구조 차이로 실패 |
 | `<75` | reference와 상당히 다른 제품 화면 |
@@ -427,6 +435,8 @@ ReferenceParity = RawJuryParity - Penalty
   provenance와 실제 runtime binding
 - runtime에 `district/parcel/cluster/neighborhood/hamlet/city plate` raster 0개, 각 city cell의
   `singleCompositionUnit=true`, visible solid count `1`, large baked city raster `false`
+- 각 river-kit cell의 `singleCompositionUnit=true`, whole-river/map·atlas `false`, runtime baked
+  river raster `false`, 정상·고온·홍수 상태 비교 boolean 모두 `true`
 - 최소 12종 atomic city/building/prop와 최소 80개 독립 runtime instance; 명시 좌표·depth key 장부
 - reference/target pixel crop의 runtime 재사용 금지, RGBA/alpha, crop·atlas boundary, seam·누락 파일 검사
 - asset-kit board가 manifest의 개별 runtime PNG만으로 재조립됐는지 확인
@@ -449,10 +459,10 @@ ReferenceParity = RawJuryParity - Penalty
 
 ## 10. 통과·차단 조건
 
-G.3 visual pass는 다음을 모두 만족해야 한다. 사용자의 2026-08-21 반복 목표가 protocol의 기존
-최소선보다 높으므로 최종 `ReferenceParity` threshold는 `>96`으로 강화한다.
+G.3 visual pass는 다음을 모두 만족해야 한다. 사용자는 2026-08-22 최종 `ReferenceParity`
+threshold를 `>90`으로 조정했다. 90점 정확히는 실패다.
 
-- `ReferenceParity >96`
+- `ReferenceParity >90`
 - camera, density, river의 `FinalCategoryScore`가 각각 `≥85`
 - 개별 comparison pair 점수 `≥75`
 - `Penalty ≤5`

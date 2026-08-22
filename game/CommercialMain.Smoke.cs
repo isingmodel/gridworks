@@ -131,7 +131,7 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal) &&
                 _map.HasIndividualTileAssets &&
                 _map.HasIndividualObjectAssets &&
-                _map.IndividualArtAssetCount == 37 &&
+                _map.IndividualArtAssetCount == 49 &&
                 _map.AtomicCityAssetCount == 12 &&
                 _map.AtomicRoadTileAssetCount == 6 &&
                 _map.AtomicWorldInstanceCount == 120 &&
@@ -143,11 +143,27 @@ internal sealed partial class CommercialMain
                 $"tiles={_map.HasIndividualTileAssets}, objects={_map.HasIndividualObjectAssets}, " +
                 $"art={_map.IndividualArtAssetCount}, atomic={_map.AtomicCityAssetCount}/" +
                 $"{_map.AtomicRoadTileAssetCount}/{_map.AtomicWorldInstanceCount}, " +
+                $"selected={selected.Supplied}/{selected.PathEdgeIds.Count}, " +
+                $"map-path={_map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal)}, " +
+                $"panel-margin={_panel.AccessibilityName.Contains("최소 열여유", StringComparison.Ordinal)}, " +
+                $"timeline-a11y={_timeline.AccessibilityName.Contains("사건 흐름", StringComparison.Ordinal)}, " +
                 $"timeline={_timeline.CurrentStepLabel}, " +
                 $"supply={_supplyLabel.Text}");
             SaveEvidencePng(Path.Combine(
                 evidenceDirectory,
                 "1920x1080-ui100-discrete-art-path.png"));
+            _map.SetChapterIndexForPresentationSmoke(4);
+            await NextFrame();
+            SaveEvidencePng(Path.Combine(
+                evidenceDirectory,
+                "1920x1080-ui100-river-heat.png"));
+            _map.SetChapterIndexForPresentationSmoke(5);
+            await NextFrame();
+            SaveEvidencePng(Path.Combine(
+                evidenceDirectory,
+                "1920x1080-ui100-river-flood.png"));
+            _map.SetChapterIndexForPresentationSmoke(0);
+            await NextFrame();
 
             await PressKey(Key.Escape);
             Require(_shell.Page == ReleaseShellPage.Pause,
@@ -198,7 +214,7 @@ internal sealed partial class CommercialMain
             GD.Print(
                 "COMMERCIAL_STAGE_G_PRESENTATION_SMOKE_PASS " +
                 "screens=title-ui100|substation-draft-ui100|pole-draft-ui100|" +
-                "art-path-ui100|art-path-ui125 " +
+                "art-path-ui100|river-heat-ui100|river-flood-ui100|art-path-ui125 " +
                 $"visual=discrete-tiles-{_map.IndividualTileAssetCount}|" +
                 $"discrete-objects-{_map.IndividualObjectAssetCount}|" +
                 "planned-class-sprites|event-timeline " +
@@ -533,7 +549,7 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
                 _map.HasIndividualTileAssets &&
                 _map.HasIndividualObjectAssets &&
-                _map.IndividualArtAssetCount == 37 &&
+                _map.IndividualArtAssetCount == 49 &&
                 _map.AtomicCityAssetCount == 12 &&
                 _map.AtomicRoadTileAssetCount == 6 &&
                 _map.AtomicWorldInstanceCount == 120 &&

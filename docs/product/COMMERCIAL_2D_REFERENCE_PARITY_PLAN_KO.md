@@ -3,7 +3,7 @@
 > 상태: **ACTIVE — G.3 구현·평가 반복 중**
 > 작성 근거: 2026-08-21 G.2 실행 화면에 대한 소유자 시각 거부
 > 대상 해상도: **1920×1080, UI 100%·125%만 해당**
-> 현재 gate: **Step 1 PASS — Step 2 원자 강물·제방 활성**
+> 현재 gate: **Step 1·2 PASS — Step 3 원자 grid/facility·전력망 활성**
 
 이 계획은 `assets/01~04`의 낮은 아이소메트릭 산업도시, 전력망, 강과 UI 위계를 실제 게임 화면에
 가깝게 옮기기 위한 G.3 후보를 정의한다. whole-map plate뿐 아니라 여러 건물·도로·구획을 한 장에
@@ -11,8 +11,8 @@
 채, 시설 부품 하나, 도로 조각 하나, 지형·마당·잔해 prop 하나**를 각각 별도 생성한 tile/object와
 명시 배치 데이터로 조립하며, 게임 규칙과 화면 표현이 어긋나지 않게 한다.
 
-2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정 및 `ReferenceParity >96`까지의 반복을
-승인했다. 상세 비교와 종료 판정은
+2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정을 승인했고, 2026-08-22 최종 반복 종료선을
+`ReferenceParity >90`으로 조정했다. 90점 정확히는 실패다. 상세 비교와 종료 판정은
 [레퍼런스 정렬 평가 프로토콜](REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)이 소유한다.
 
 ## 1. G.2 실패 진단
@@ -146,6 +146,22 @@ water surface는 흐름 방향이 일치하는 2:1 tile이고 bank는 transparen
 - 폭염: 낮은 수면, 드러난 토사·돌, warm haze. collision 밖의 가짜 마른 땅은 만들지 않는다.
 - 폭우·범람: 더 거친 ripple과 차가운 반사, authored flood risk의 hatch·경계
 - ReduceMotion: 흐름과 ripple 이동을 멈추고 고정 highlight·pattern으로 같은 상태를 전달
+
+### 5.4 Step 2 종료 기록 — 2026-08-22
+
+Step 2는 [고정 증거](../../playtests/commercial-2d/g3-work-in-progress/river-step2-final/README.md)로
+닫았다. 새 water/bank/transition/effect 12종은 각각 한 번의 선택된 ImageGen 호출, 보존 source,
+runtime binding을 가지며 강 경로·폭·상태는 renderer와 authoritative world geometry가 소유한다.
+남단 `(1211, 2000)`부터 북단 `(1310, 500)`까지 굽은 단일 수로를 만들고 bridge deck을 authored
+foundation `(1330, 500)`, `(1480, 1500)`에 맞췄다. 정상·고온 저수위·홍수 수면은 같은 camera의
+native 1920×1080 캡처로 고정했다.
+
+`gpt-5.6-sol` ultra `G3-ATOMIC-RIVER-AUDIT-v1`은 R01~R12 모두
+`singleCompositionUnit=true`, whole-river/map·atlas=false, runtime baked-river=false와 세 상태
+boolean=true, critical failure 0으로 `PASS`했다. CommercialChecks 22 suites/2,265 assertions,
+Debug build 0 warning/error, 1920×1080 UI 100/125 actual-input presentation smoke가 통과했다.
+이 구조 audit은 최종 ReferenceParity 점수에 합산하지 않는다. 다음 활성 gate는 원자
+grid/facility 부품, conductor와 cyan/amber/outage 상태 표현이다.
 
 ## 6. 개별 art 목록
 

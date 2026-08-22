@@ -513,3 +513,51 @@ ROAD_T_JUNCTION_A: exactly one T-junction connecting north-west, north-east and 
 ROAD_CROSS_JUNCTION_A: exactly one compact four-way crossing connecting all four edge midpoints; exactly four endpoints.
 SERVICE_YARD_TILE_A: exactly one paved industrial service-yard diamond with one south-west road throat, one loading apron and two integral storm grates; no freestanding prop.
 ```
+
+## G.3 Step 2 — atomic river water/bank/transition/effect kit
+
+The river remains code/data geometry. These files are only individually bound material tiles or short
+objects placed along the authoritative banks. ImageGen was called once per selected asset; no call produced
+an atlas, full river, full map, shoreline plate, or baked city. The three water sources were center-cropped
+and downscaled deterministically to opaque 1024×512 2:1 material tiles. The nine object/effect sources used
+`extract-checkerboard-alpha.py --connected-matte-floor 200` and a deterministic 1024 px max-side resize;
+each has alpha-zero corners and at least 64% transparent source canvas.
+
+| runtime path | ImageGen run | preserved source / source SHA-256 | final SHA-256 | unit |
+|---|---|---|---|---|
+| `g3/river/river-water-neutral-b.png` | `exec-e2902ef2-0d4b-40d5-9198-9459848058cd` | `river-water-neutral-b-source.png` / `5df743bfea1f9661d4aaccc024dd2f7217406c669b2742ad819ac413ee4be678` | `9b5d408f7b263ff123280607331d4a20cfdc327555ff17b25ab58721357b3780` | one neutral 2:1 water material tile |
+| `g3/river/river-water-heat-a.png` | `exec-0bbd1fe2-6d39-4589-b142-6bd7f0cbb64b` | `river-water-heat-a-source.png` / `8d73d6db870dda8eeb372a3e3fefa74bdb7a8b5229eb67c9c966cc4838102830` | `797627b40d75b87883c1da55793655537af99ccb435d14c93a4a047c21f1f240` | one low-water/heat 2:1 material tile |
+| `g3/river/river-water-flood-a.png` | `exec-c0a4f649-0a55-40ca-93a2-01d0be7befbb` | `river-water-flood-a-source.png` / `db2624e358519f927703f4e8ee39800ab0df0db693aa31eb8647e705ab520ba4` | `872e6ffd201fa1fcca98c08a284d42332abd0515033fff76a623175894f8e324` | one flood/rain 2:1 material tile |
+| `g3/river/river-bank-left-straight-a.png` | `exec-1a53642a-0344-49ce-8f1f-65e464d8ceb0` | `river-bank-left-straight-a-source.png` / `0bbc7da301def751006ff6a3fd2a354494c6296a8275d536df45637c90892d05` | `100fa39f890229122fceebc26f0280cc876c8501937364b72467c722909ce655` | one left-bank straight edge |
+| `g3/river/river-bank-right-straight-a.png` | `exec-85c008ed-521f-42df-9965-345057973ce9` | `river-bank-right-straight-a-source.png` / `6dc9fe06e5cd629dc91645bceb06bac311a752d8e6ebc0b96401dfa62fe556fc` | `58bdc74f54cc65ebece5423c8d86ee319e08a7270acc8e3486e5b833a51c5204` | one right-bank straight edge |
+| `g3/river/river-bank-left-inner-a.png` | `exec-8447db00-7d32-494c-8b2f-aac537fb4960` | `river-bank-left-inner-a-source.png` / `a55f06e2ab48d2ca14295e0eed6005da4279190a6c844928e5d0a9ebc576dfff` | `c71abc22419942f85b16939b19a30f3210bc2b4edb640979469a5e6b685c8305` | one left-bank inner bend |
+| `g3/river/river-bank-left-outer-a.png` | `exec-d60c0365-8ce9-47c3-b3b4-65372b0cc556` | `river-bank-left-outer-a-source.png` / `3f45537c3ee527171da01deb079d79f8df36e476adf5894eb01a63e34e6122ef` | `dde92ee9a6a8c9d0343cff95add892a2b970a20da6c527f6a0078062ed620291` | one left-bank outer bend |
+| `g3/river/river-bank-right-inner-a.png` | `exec-2669c1aa-5bf0-4137-af7d-5d4ebb7bea1a` | `river-bank-right-inner-a-source.png` / `240570a083b72781fa6557dd78b75bebed84de15162927054ff9fdf6c36055ad` | `75920f6117c333cff9b9bc9d6d48d5bf64adc433a1f60985a6f30c86eea179bc` | one right-bank inner bend |
+| `g3/river/river-bank-right-outer-a.png` | `exec-d21488ab-a180-4627-be80-bf8b49326b5a` | `river-bank-right-outer-a-source.png` / `7d01224560926ba0fa9661de8baf0308f17f57cb53bb0b7361a21c6e2d67feac` | `1ea5ca9d12fbfd2e18ff82465e7ebcc80b36e1c64c68ad2480b2453f3e4325fb` | one right-bank outer bend |
+| `g3/river/river-bridge-abutment-a.png` | `exec-9b9a3087-d3d6-4c95-98d7-6f7c0a1645f5` | `river-bridge-abutment-a-source.png` / `18abd8d627acdfb355b8caacc77fa2342f7255de127c3a38470f7d02e96b5074` | `8d9943ed6441b6ef0ade0a82ffd65e523f11a2f8d6f03010756e6f440dfb3ce1` | one single-bank bridge abutment |
+| `g3/river/river-rock-soil-transition-a.png` | `exec-02db16b8-2c39-4648-a702-1e48a8f7c8f4` | `river-rock-soil-transition-a-source.png` / `3be54eb70ef284f8fabc6ca49fa66b48c8ab0951126d76becfce8f615a5ea504` | `a083c1d9549c9a42a0f2c00ad6d78aaa2055ebf98063f0a0606272226c7875bf` | one bank rock-to-soil transition |
+| `g3/river/river-flood-ripple-a.png` | `exec-39d06c57-7026-4209-b07a-5fee07e76021` | `river-flood-ripple-a-source.png` / `1e7e4e67c1ae02d758fd31be9517f25ce7d4fc81d37d7b6851c262e16448098f` | `9107d3af98121878c9e331b6f1633fee699f75d17d227876bde87c46eb86979f` | one flood-ripple overlay cluster |
+
+### Atomic river prompt contract
+
+All selected calls used `assets/01-grid-construction.png` as the normal-state visual authority. The heat
+tile additionally used `assets/02-heatwave-outage.png`; the flood tile used `assets/04-plant-siting.png` for
+the broader winding-water material language. Bank and effect calls used the corresponding already accepted
+atomic river object as a style lock. Every call required soot-dark graphite/blue-gray material, upper-right
+dim light, painterly embossed detail, exactly one composition unit, and prohibited a complete river, scene,
+map, building, road, power equipment, UI, text, atlas, checkerboard, halo, or second piece.
+
+```text
+WATER_NEUTRAL_B: one seamless full-bleed dark blue-black/slate-teal water material, calm broad reflection bands, upper-left to lower-right current.
+WATER_HEAT_A: one seamless low-water heat material, muddy slate-brown/blue-gray water, warm bronze reflection, sparse sluggish current.
+WATER_FLOOD_A: one seamless flood-rain material, cold slate-blue water, faster current, broad cool reflection, layered ripple and sparse foam.
+BANK_LEFT_STRAIGHT_A: one narrow left-bank straight edge; land upper-left, water lower-right, visible water-facing drop.
+BANK_RIGHT_STRAIGHT_A: one narrow right-bank straight edge; water upper-left, land lower-right, visible water-facing drop.
+BANK_LEFT_INNER_A: one narrow left-bank concave 55-degree bend with two tangent ends and water on the lower-right inside edge.
+BANK_LEFT_OUTER_A: one narrow left-bank convex 55-degree bend with two tangent ends and water on the lower-right outside edge.
+BANK_RIGHT_INNER_A: one narrow right-bank concave 55-degree bend with two tangent ends and water on the upper-left inside edge.
+BANK_RIGHT_OUTER_A: one narrow right-bank convex 55-degree bend with two tangent ends and water on the upper-left outside edge.
+BRIDGE_ABUTMENT_A: one compact single-bank concrete/steel bridge seat with wing walls, bearing shelf, anchors, and no deck/opposite bank.
+ROCK_SOIL_TRANSITION_A: one tapered bank piece changing from a raised rock edge into wet soil/gravel, with compatible narrow endpoints.
+FLOOD_RIPPLE_A: one sparse long cluster of separated cold ripple arcs, broken current streaks and tiny foam flecks on empty matte.
+```

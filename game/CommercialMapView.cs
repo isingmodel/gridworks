@@ -115,20 +115,23 @@ internal sealed partial class CommercialMapView : Control
     private const float BuildRailGap = 8f;
     private static readonly CoreMapPoint[] ReferenceRiverControlPoints =
     [
-        new(1332, 1940),
-        new(1296, 1797),
-        new(1256, 1658),
-        new(1227, 1509),
-        new(1151, 1370),
-        new(1104, 1283),
-        new(1095, 1194),
-        new(1091, 1127),
-        new(1095, 1069),
-        new(1127, 1020),
-        new(1145, 948),
-        new(1171, 903),
-        new(1185, 854),
-        new(1207, 814),
+        new(1211, 2000),
+        new(1250, 1900),
+        new(1291, 1833),
+        new(1402, 1666),
+        new(1435, 1580),
+        new(1461, 1500),
+        new(1452, 1333),
+        new(1371, 1166),
+        new(1231, 1000),
+        new(1175, 900),
+        new(1151, 833),
+        new(1160, 740),
+        new(1192, 666),
+        new(1240, 625),
+        new(1300, 580),
+        new(1290, 540),
+        new(1310, 500),
     ];
 
     // Step 1 city composition authority. Every record resolves to one PNG that
@@ -296,6 +299,15 @@ internal sealed partial class CommercialMapView : Control
     public Texture2D? G3RiverWaterSurfaceTile { get; set; }
 
     [Export]
+    public Texture2D? RiverWaterNeutralBTile { get; set; }
+
+    [Export]
+    public Texture2D? RiverWaterHeatATile { get; set; }
+
+    [Export]
+    public Texture2D? RiverWaterFloodATile { get; set; }
+
+    [Export]
     public Texture2D? RoadStraightNorthWestSouthEastATile { get; set; }
 
     [Export]
@@ -380,7 +392,34 @@ internal sealed partial class CommercialMapView : Control
     public Texture2D? G3RiverBankOuterBendASprite { get; set; }
 
     [Export]
+    public Texture2D? RiverBankLeftStraightASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverBankRightStraightASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverBankLeftInnerASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverBankLeftOuterASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverBankRightInnerASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverBankRightOuterASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverBridgeAbutmentASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverRockSoilTransitionASprite { get; set; }
+
+    [Export]
     public Texture2D? RiverCurrentReflectionASprite { get; set; }
+
+    [Export]
+    public Texture2D? RiverFloodRippleASprite { get; set; }
 
     [Export]
     public Texture2D? UiChromeFrameTexture { get; set; }
@@ -437,6 +476,9 @@ internal sealed partial class CommercialMapView : Control
         G3GroundRubbleReliefCTile is not null &&
         RiverWaterTile is not null &&
         G3RiverWaterSurfaceTile is not null &&
+        RiverWaterNeutralBTile is not null &&
+        RiverWaterHeatATile is not null &&
+        RiverWaterFloodATile is not null &&
         RoadStraightNorthWestSouthEastATile is not null &&
         RoadStraightNorthEastSouthWestATile is not null &&
         RoadCornerNorthEastATile is not null &&
@@ -455,7 +497,16 @@ internal sealed partial class CommercialMapView : Control
         G3RiverBankRockSegmentASprite is not null &&
         G3RiverBankInnerBendASprite is not null &&
         G3RiverBankOuterBendASprite is not null &&
+        RiverBankLeftStraightASprite is not null &&
+        RiverBankRightStraightASprite is not null &&
+        RiverBankLeftInnerASprite is not null &&
+        RiverBankLeftOuterASprite is not null &&
+        RiverBankRightInnerASprite is not null &&
+        RiverBankRightOuterASprite is not null &&
+        RiverBridgeAbutmentASprite is not null &&
+        RiverRockSoilTransitionASprite is not null &&
         RiverCurrentReflectionASprite is not null &&
+        RiverFloodRippleASprite is not null &&
         HasAtomicCityAssets;
 
     public bool HasAtomicCityAssets =>
@@ -515,6 +566,9 @@ internal sealed partial class CommercialMapView : Control
             G3GroundRubbleReliefCTile,
             RiverWaterTile,
             G3RiverWaterSurfaceTile,
+            RiverWaterNeutralBTile,
+            RiverWaterHeatATile,
+            RiverWaterFloodATile,
             RoadStraightNorthWestSouthEastATile,
             RoadStraightNorthEastSouthWestATile,
             RoadCornerNorthEastATile,
@@ -536,7 +590,16 @@ internal sealed partial class CommercialMapView : Control
             G3RiverBankRockSegmentASprite,
             G3RiverBankInnerBendASprite,
             G3RiverBankOuterBendASprite,
+            RiverBankLeftStraightASprite,
+            RiverBankRightStraightASprite,
+            RiverBankLeftInnerASprite,
+            RiverBankLeftOuterASprite,
+            RiverBankRightInnerASprite,
+            RiverBankRightOuterASprite,
+            RiverBridgeAbutmentASprite,
+            RiverRockSoilTransitionASprite,
             RiverCurrentReflectionASprite,
+            RiverFloodRippleASprite,
             AtomicWorkerHouseASprite,
             AtomicWorkerHouseBSprite,
             AtomicWorkerHouseCSprite,
@@ -626,6 +689,19 @@ internal sealed partial class CommercialMapView : Control
         AccessibilityName = BuildAccessibilityName(presentation);
         QueueRedraw();
     }
+
+#if DEBUG || COMMERCIAL_INTERNAL
+    internal void SetChapterIndexForPresentationSmoke(int chapterIndex)
+    {
+        if (_presentation is null)
+        {
+            throw new InvalidOperationException(
+                "표현 smoke chapter override에는 현재 map presentation이 필요합니다.");
+        }
+        _presentation = _presentation with { ChapterIndex = chapterIndex };
+        QueueRedraw();
+    }
+#endif
 
     public Vector2 ViewportPointForWorld(CoreMapPoint point)
     {
@@ -1440,19 +1516,44 @@ internal sealed partial class CommercialMapView : Control
             new Color(Color.FromHtml("090808"), 0.24f),
             1.4f,
             true);
+        // Bank sprites are terrain objects, so composite them before the water.
+        // The water then masks each sprite's irregular inner edge while its outer
+        // rock/soil silhouette remains visible on land. Drawing these afterward
+        // made the dark sprite matte intrude into the channel like floating debris.
+        DrawRiverBankObjects(outerLeft, leftSide: true);
+        DrawRiverBankObjects(outerRight, leftSide: false);
         Color waterModulate = chapter switch
         {
-            4 => new Color(0.58f, 0.55f, 0.46f, 0.94f),
-            5 => new Color(0.72f, 0.85f, 0.90f, 0.98f),
-            7 => new Color(0.61f, 0.69f, 0.74f, 0.94f),
-            _ => new Color(0.51f, 0.58f, 0.59f, 0.92f),
+            4 => new Color(0.90f, 0.80f, 0.62f, 0.98f),
+            5 => new Color(0.84f, 0.94f, 1.00f, 1.00f),
+            7 => new Color(0.76f, 0.83f, 0.88f, 0.98f),
+            _ => new Color(0.90f, 0.95f, 1.00f, 0.98f),
+        };
+        Texture2D? primaryWaterTexture = chapter switch
+        {
+            4 => RiverWaterHeatATile ?? texture,
+            5 => RiverWaterFloodATile ?? texture,
+            _ => texture,
+        };
+        Texture2D? secondaryWaterTexture = chapter switch
+        {
+            4 => RiverWaterHeatATile ?? primaryWaterTexture,
+            5 => RiverWaterFloodATile ?? primaryWaterTexture,
+            _ => RiverWaterNeutralBTile ?? primaryWaterTexture,
+        };
+        Color waterLift = chapter switch
+        {
+            4 => new Color(Color.FromHtml("4a4034"), 0.34f),
+            5 => new Color(Color.FromHtml("31596b"), 0.30f),
+            _ => new Color(Color.FromHtml("245262"), 0.38f),
         };
         DrawRiverSurfaceSegments(
             surfaceLeft,
             surfaceRightAscending,
-            texture,
+            primaryWaterTexture,
+            secondaryWaterTexture,
             waterModulate,
-            new Color(Water, texture is null ? 0.96f : chapter == 4 ? 0.18f : 0.025f));
+            primaryWaterTexture is null ? new Color(Water, 0.96f) : waterLift);
         DrawPolyline(surfaceLeft, new Color(Color.FromHtml("45666d"), 0.08f), 0.6f, true);
         DrawPolyline(surfaceRightAscending, new Color(Color.FromHtml("45666d"), 0.08f), 0.6f, true);
         for (int index = 8; index < surfaceLeft.Length - 8; index += 13)
@@ -1464,11 +1565,9 @@ internal sealed partial class CommercialMapView : Control
                 1f,
                 true);
         }
-        DrawRiverBankObjects(outerLeft, leftSide: true);
-        DrawRiverBankObjects(outerRight, leftSide: false);
         DrawRiverShoals(surfaceLeft, surfaceRightAscending);
-        DrawRiverBridgeDeck(new CoreMapPoint(1139, 1338), 1.18f);
-        DrawRiverBridgeDeck(new CoreMapPoint(1254, 1655), 1.18f);
+        DrawRiverBridgeDeck(new CoreMapPoint(1330, 500), 1.18f);
+        DrawRiverBridgeDeck(new CoreMapPoint(1480, 1500), 1.18f);
         DrawRiverReflections(surface, chapter);
     }
 
@@ -1478,10 +1577,10 @@ internal sealed partial class CommercialMapView : Control
     {
         float baseHalfWidth = chapter switch
         {
-            4 => 9f,
-            5 => 16f,
-            7 => 12f,
-            _ => 13f,
+            4 => 11f,
+            5 => 22f,
+            7 => 15f,
+            _ => 17f,
         };
         Vector2[] left = new Vector2[centerline.Length];
         Vector2[] right = new Vector2[centerline.Length];
@@ -1516,16 +1615,24 @@ internal sealed partial class CommercialMapView : Control
     private void DrawRiverSurfaceSegments(
         Vector2[] leftEdge,
         Vector2[] rightEdge,
-        Texture2D? texture,
+        Texture2D? primaryTexture,
+        Texture2D? secondaryTexture,
         Color textureModulate,
         Color overlay)
     {
-        DrawSegmentedStrip(
-            leftEdge,
-            rightEdge,
-            texture,
-            texture is null ? overlay : textureModulate,
-            texture is null ? Colors.Transparent : overlay);
+        int segmentCount = Math.Min(leftEdge.Length, rightEdge.Length) - 1;
+        for (int index = 0; index < segmentCount; index++)
+        {
+            Texture2D? texture = index % 2 == 0
+                ? primaryTexture
+                : secondaryTexture ?? primaryTexture;
+            Color fill = texture is null ? overlay : textureModulate;
+            Color segmentOverlay = texture is null ? Colors.Transparent : overlay;
+            Vector2[] first = [leftEdge[index], leftEdge[index + 1], rightEdge[index + 1]];
+            Vector2[] second = [leftEdge[index], rightEdge[index + 1], rightEdge[index]];
+            DrawStripTriangle(first, texture, fill, segmentOverlay);
+            DrawStripTriangle(second, texture, fill, segmentOverlay);
+        }
     }
 
     private void DrawSegmentedStrip(
@@ -1551,11 +1658,20 @@ internal sealed partial class CommercialMapView : Control
         Color fill,
         Color overlay)
     {
-        float twiceArea = Math.Abs(
-            (triangle[1] - triangle[0]).Cross(triangle[2] - triangle[0]));
-        if (twiceArea < 0.01f)
+        if (triangle.Any(point =>
+                !float.IsFinite(point.X) || !float.IsFinite(point.Y)))
         {
             return;
+        }
+        float signedTwiceArea =
+            (triangle[1] - triangle[0]).Cross(triangle[2] - triangle[0]);
+        if (!float.IsFinite(signedTwiceArea) || Math.Abs(signedTwiceArea) < 0.5f)
+        {
+            return;
+        }
+        if (signedTwiceArea < 0f)
+        {
+            (triangle[1], triangle[2]) = (triangle[2], triangle[1]);
         }
         if (texture is null)
         {
@@ -1618,13 +1734,21 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawRiverBankObjects(Vector2[] bank, bool leftSide)
     {
-        Texture2D? straight = G3RiverBankRockSegmentASprite;
+        Texture2D? straight = leftSide
+            ? RiverBankLeftStraightASprite ?? G3RiverBankRockSegmentASprite
+            : RiverBankRightStraightASprite ?? G3RiverBankRockSegmentASprite;
         if (straight is null || bank.Length < 7)
         {
             return;
         }
+        Texture2D? inner = leftSide
+            ? RiverBankLeftInnerASprite ?? G3RiverBankInnerBendASprite
+            : RiverBankRightInnerASprite ?? G3RiverBankInnerBendASprite;
+        Texture2D? outer = leftSide
+            ? RiverBankLeftOuterASprite ?? G3RiverBankOuterBendASprite
+            : RiverBankRightOuterASprite ?? G3RiverBankOuterBendASprite;
 
-        for (int index = 7; index < bank.Length - 7; index += 12)
+        for (int index = 7; index < bank.Length - 7; index += 11)
         {
             Vector2 tangent = bank[index + 2] - bank[index - 2];
             if (tangent.LengthSquared() < 0.01f)
@@ -1637,19 +1761,29 @@ internal sealed partial class CommercialMapView : Control
             Texture2D bankTexture = Math.Abs(turn) < 0.035f
                 ? straight
                 : (turn > 0f) == leftSide
-                    ? G3RiverBankInnerBendASprite ?? straight
-                    : G3RiverBankOuterBendASprite ?? straight;
+                    ? inner ?? straight
+                    : outer ?? straight;
+            if (Math.Abs(turn) < 0.035f && index % 33 == 7 &&
+                RiverRockSoilTransitionASprite is not null)
+            {
+                bankTexture = RiverRockSoilTransitionASprite;
+            }
             float rotation = tangent.Angle();
+            Vector2 bankNormal = new Vector2(-tangent.Y, tangent.X).Normalized();
+            Vector2 objectCenter = bank[index] +
+                (bankNormal * (leftSide ? -16f : 16f));
             float maxSide = Math.Abs(turn) >= 0.035f
-                ? 38f
-                : index % 24 == 7 ? 33f : 29f;
+                ? 30f
+                : bankTexture == RiverRockSoilTransitionASprite
+                    ? 32f
+                    : index % 22 == 7 ? 26f : 23f;
             Vector2 size = FitSpriteSize(bankTexture, maxSide);
-            DrawSetTransform(bank[index], rotation, Vector2.One);
+            DrawSetTransform(objectCenter, rotation, Vector2.One);
             DrawTextureRect(
                 bankTexture,
                 new Rect2(size * -0.5f, size),
                 false,
-                new Color(0.68f, 0.62f, 0.54f, 0.34f));
+                new Color(0.45f, 0.43f, 0.40f, 0.90f));
         }
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
@@ -1665,7 +1799,7 @@ internal sealed partial class CommercialMapView : Control
         // A few individual rubble shoals interrupt the water without baking a
         // complete river image. This mirrors the reference's broken, terrain-owned
         // channel and keeps every obstruction a separately bound runtime object.
-        float[] phases = [0.16f, 0.31f, 0.47f, 0.63f, 0.79f];
+        float[] phases = [0.31f, 0.63f];
         foreach (float phase in phases)
         {
             int index = Math.Clamp(
@@ -1675,10 +1809,11 @@ internal sealed partial class CommercialMapView : Control
             Vector2 tangent = ((left[index + 2] + right[index + 2]) -
                 (left[index - 2] + right[index - 2])) * 0.5f;
             Vector2 center = left[index].Lerp(right[index], phase == 0.47f ? 0.62f : 0.48f);
-            Vector2 size = FitSpriteSize(shoalTexture, phase == 0.47f ? 42f : 34f);
+            Texture2D phaseTexture = shoalTexture;
+            Vector2 size = FitSpriteSize(phaseTexture, 12f);
             DrawSetTransform(center, tangent.Angle(), Vector2.One);
             DrawTextureRect(
-                shoalTexture,
+                phaseTexture,
                 new Rect2(size * -0.5f, size),
                 false,
                 new Color(0.58f, 0.54f, 0.47f, 0.80f));
@@ -1686,34 +1821,35 @@ internal sealed partial class CommercialMapView : Control
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
 
-    private void DrawRiverBridgeAbutment(CoreMapPoint position, float rotation)
+    private void DrawRiverBridgeAbutment(Vector2 center, float rotation)
     {
-        Texture2D? abutmentTexture = BridgeFoundationSprite ??
+        Texture2D? abutmentTexture = RiverBridgeAbutmentASprite ?? BridgeFoundationSprite ??
             G3RiverBankRockSegmentASprite;
         if (abutmentTexture is null)
         {
             return;
         }
-        Vector2 center = ToCanvas(position);
-        Vector2 size = FitSpriteSize(abutmentTexture, 110f);
+        Vector2 size = FitSpriteSize(abutmentTexture, 52f);
         DrawSetTransform(center, rotation, Vector2.One);
         DrawTextureRect(
             abutmentTexture,
             new Rect2(size * -0.5f, size),
             false,
-            new Color(0.76f, 0.72f, 0.64f, 0.86f));
+            new Color(0.52f, 0.50f, 0.46f, 0.82f));
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
 
     private void DrawRiverBridgeDeck(CoreMapPoint position, float rotation)
     {
+        Vector2 center = ToCanvas(position);
+        Vector2 bridgeAxis = new(Mathf.Cos(rotation), Mathf.Sin(rotation));
+        DrawRiverBridgeAbutment(center - (bridgeAxis * 24f), rotation);
+        DrawRiverBridgeAbutment(center + (bridgeAxis * 24f), rotation + Mathf.Pi);
         if (IndustrialRoadBridgeASprite is null)
         {
-            DrawRiverBridgeAbutment(position, rotation);
             return;
         }
 
-        Vector2 center = ToCanvas(position);
         Vector2 size = FitSpriteSize(IndustrialRoadBridgeASprite, 54f);
         DrawSetTransform(center, rotation, Vector2.One);
         DrawTextureRect(
@@ -1793,7 +1929,10 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawRiverReflections(Vector2[] polygon, int chapter)
     {
-        if (RiverCurrentReflectionASprite is not null)
+        Texture2D? effectTexture = chapter == 5
+            ? RiverFloodRippleASprite ?? RiverCurrentReflectionASprite
+            : RiverCurrentReflectionASprite;
+        if (effectTexture is not null)
         {
             Vector2[] centerline = SmoothOpenPolyline(
                 ReferenceRiverControlPoints.Select(ToCanvas).ToArray(),
@@ -1807,11 +1946,11 @@ internal sealed partial class CommercialMapView : Control
             {
                 Vector2 tangent = centerline[index + 3] - centerline[index - 3];
                 Vector2 size = FitSpriteSize(
-                    RiverCurrentReflectionASprite,
+                    effectTexture,
                     index % 40 == 12 ? 68f : 58f);
                 DrawSetTransform(centerline[index], tangent.Angle(), Vector2.One);
                 DrawTextureRect(
-                    RiverCurrentReflectionASprite,
+                    effectTexture,
                     new Rect2(size * -0.5f, size),
                     false,
                     modulate);

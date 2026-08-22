@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-qualification-input-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "candidateIndependent",
+    "judgeInputSha256",
+    "qualificationAnchorsAuthoritySha256",
+    "rubricSha256",
+    "anchors"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-qualification-input.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "candidateIndependent": {"const": true},
+    "judgeInputSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationAnchorsAuthoritySha256": {"$ref": "#/$defs/sha256"},
+    "rubricSha256": {"$ref": "#/$defs/sha256"},
+    "anchors": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "prefixItems": [
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0001"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0002"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0003"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0004"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0005"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0006"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0007"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0008"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0009"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0010"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0011"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0012"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0013"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0014"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0015"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0016"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0017"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0018"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0019"}}},
+        {"$ref": "#/$defs/anchor", "properties": {"anchorId": {"const": "QA-0020"}}}
+      ],
+      "items": false
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anchorId", "assignedExperience", "trace"],
+      "properties": {
+        "anchorId": {
+          "pattern": "^QA-[0-9]{4}$"
+        },
+        "assignedExperience": {"type": "string", "minLength": 1, "maxLength": 200},
+        "trace": {"type": "string", "minLength": 1, "maxLength": 2400}
+      }
+    }
+  }
+}

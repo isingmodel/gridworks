@@ -1,0 +1,288 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.coverage-recipe.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "recipeId": "FORMATIVE-01",
+  "officialCommercialUX": false,
+  "execution": {
+    "viewport": "1920x1080",
+    "defaultUiScalePercent": 100,
+    "accessibilityUiScalePercent": 125,
+    "inputMode": "ACTUAL_KEYBOARD_POINTER_EVENTS",
+    "audioPercent": 100,
+    "audioSampleRateHz": 48000,
+    "captureFps": 60,
+    "freshUserData": true,
+    "captureRule": "FIRST_REACH_ONLY"
+  },
+  "retryRules": {
+    "semanticActionRetries": 0,
+    "pointerCandidateSettleFrames": 8,
+    "nativeCompositorStartupRetries": 1,
+    "transportOrSchemaRetries": 2,
+    "validAdverseJudgmentRetries": 0,
+    "missingCapturePolicy": "BLOCKED_MISSING_EVIDENCE"
+  },
+  "goldStateManifest": "gold-state-manifest.json",
+  "episodes": [
+    {
+      "id": "E00-TITLE",
+      "prefixId": "PREFIX-FRESH-TITLE",
+      "actions": [
+        "KEYBOARD_OPEN_SETTINGS",
+        "SET_UI_SCALE_125",
+        "SET_REDUCE_MOTION_ON",
+        "KEYBOARD_RETURN_TITLE",
+        "KEYBOARD_START_NEW_GAME"
+      ],
+      "checkpoints": [
+        "title-default-focus",
+        "settings-ui125-reduce-motion",
+        "first-briefing-ui125"
+      ],
+      "cells": ["L1", "L2", "L3"]
+    },
+    {
+      "id": "E01-FIRST-LIGHT",
+      "prefixId": "PREFIX-FIRST-LIGHT-START",
+      "actions": [
+        "OPEN_FIRST_OPERATIONS",
+        "PLACE_SUBSTATION_ON_WATER_REJECT",
+        "PLACE_SUBSTATION_ON_LAND_DRAFT",
+        "MOVE_NODE_DRAFT",
+        "CANCEL_NODE_DRAFT",
+        "BUILD_TWO_SUBSTATIONS",
+        "START_LINE_DRAFT",
+        "ADD_LINE_POINT",
+        "UNDO_LINE_POINT",
+        "ADD_REPLACEMENT_LINE_POINT",
+        "CANCEL_LINE_DRAFT",
+        "BUILD_SOURCE_TO_SUBSTATION",
+        "BUILD_SUBSTATION_TO_LOAD",
+        "APPROVE_FIRST_WINDOW"
+      ],
+      "checkpoints": [
+        "first-operations",
+        "first-invalid-placement",
+        "first-node-draft-correction",
+        "first-line-draft-correction",
+        "first-energized-path",
+        "first-ready-approval",
+        "first-frozen-result"
+      ],
+      "cells": ["T1", "H1", "I1", "I2", "I3", "C1", "A1", "R1", "V1", "K1", "K2"]
+    },
+    {
+      "id": "E02-SECOND-HEART",
+      "prefixId": "PREFIX-SECOND-HEART-START",
+      "actions": [
+        "BUILD_SHARED_RISK_CORRIDORS",
+        "APPROVE_SHARED_RISK_REJECT",
+        "ROLLBACK_RECENT_PROJECT",
+        "BUILD_NORTH_CORRIDOR",
+        "BUILD_RIVERSIDE_CORRIDOR",
+        "APPROVE_TWO_CORRIDOR_TESTS"
+      ],
+      "checkpoints": [
+        "corridor-test-briefing",
+        "shared-risk-rejection",
+        "independent-route-comparison",
+        "second-heart-result"
+      ],
+      "cells": ["T2", "H1", "I3", "C2", "K2"]
+    },
+    {
+      "id": "E03-SECOND-SOURCE",
+      "prefixId": "PREFIX-SECOND-SOURCE-START",
+      "actions": [
+        "OPEN_SOURCE_ACCEPTANCE_STORY",
+        "BUILD_SECOND_SOURCE_CONNECTIONS",
+        "INSPECT_BOTH_DEMAND_PATHS",
+        "APPROVE_SOURCE_ACCEPTANCE"
+      ],
+      "checkpoints": [
+        "source-acceptance-window",
+        "source-capacity-comparison",
+        "tutorial-handoff-result"
+      ],
+      "cells": ["T3", "C3", "K1", "K2"]
+    },
+    {
+      "id": "E04-NORTH-BANK",
+      "prefixId": "PREFIX-NORTH-BANK-CHOICE",
+      "branchOrder": ["keep", "defer"],
+      "actions": [
+        "NORTH_BANK_CAPTURE_KEEP_PREDICTION",
+        "NORTH_BANK_APPLY_KEEP_BRANCH",
+        "KEEP_BUILD_WATER_BRANCH",
+        "APPROVE_KEEP_RESULT",
+        "NORTH_BANK_REPLAY_PREFIX",
+        "CAPTURE_DEFER_PREDICTION",
+        "NORTH_BANK_APPLY_DEFER_BRANCH",
+        "DEFER_BUILD_WATER_BRANCH",
+        "APPROVE_DEFER_RESULT"
+      ],
+      "checkpoints": [
+        "north-bank-choice",
+        "north-bank-first-result",
+        "north-bank-keep-result",
+        "north-bank-defer-result"
+      ],
+      "cells": ["J2", "H2", "H3", "A2", "K2"]
+    },
+    {
+      "id": "E05-WHOSE-MARGIN",
+      "prefixId": "PREFIX-WHOSE-MARGIN-CHOICE",
+      "prototypeSlot": "MISSION5",
+      "branchOrder": ["keep", "defer"],
+      "actions": [
+        "KEEP_BUILD_SELECTED_MARGIN_PROTOTYPE",
+        "WHOSE_MARGIN_CAPTURE_KEEP_PREDICTION",
+        "WHOSE_MARGIN_APPLY_KEEP_BRANCH",
+        "APPROVE_HEAT_WINDOW",
+        "INSPECT_PROTECTIVE_SHUTDOWN",
+        "APPROVE_MORNING_WINDOW",
+        "WHOSE_MARGIN_REPLAY_PREFIX",
+        "DEFER_BUILD_SELECTED_MARGIN_PROTOTYPE",
+        "WHOSE_MARGIN_APPLY_DEFER_BRANCH",
+        "APPROVE_BOTH_WINDOWS"
+      ],
+      "checkpoints": [
+        "heat-promise-choice",
+        "emergency-use",
+        "protective-shutdown",
+        "whose-margin-keep-result",
+        "whose-margin-defer-result"
+      ],
+      "cells": ["H2", "H4", "C4", "A3", "V2", "K2"]
+    },
+    {
+      "id": "E06-FLOOD",
+      "prefixId": "PREFIX-FLOOD-START",
+      "prototypeSlot": "MISSION6",
+      "actions": [
+        "BUILD_DEADLINE_EXCEEDING_ROUTE",
+        "APPROVE_FLOOD_ROUTE_REJECT",
+        "RESTART_CHAPTER",
+        "BUILD_SELECTED_FLOOD_PROTOTYPE",
+        "INSPECT_UNAVAILABLE_ASSETS_AND_PATH",
+        "APPROVE_FLOOD_RESULT"
+      ],
+      "checkpoints": [
+        "flood-deadline",
+        "flood-invalid-approval",
+        "flood-hazard-state",
+        "flood-recovered-path",
+        "flood-result"
+      ],
+      "cells": ["H4", "I3", "C4", "A1", "R1", "V3", "K2"]
+    },
+    {
+      "id": "E07-MAINTENANCE",
+      "prefixId": "PREFIX-MAINTENANCE-CHOICE",
+      "prototypeSlot": "MISSION7",
+      "branchOrder": ["keep", "defer"],
+      "actions": [
+        "VERIFY_THERMAL_RESET",
+        "KEEP_BUILD_SELECTED_MAINTENANCE_PROTOTYPE",
+        "MAINTENANCE_CAPTURE_KEEP_PREDICTION",
+        "MAINTENANCE_APPLY_KEEP_BRANCH",
+        "KEEP_APPROVE_MAINTENANCE_RESULT",
+        "MAINTENANCE_REPLAY_PREFIX",
+        "DEFER_BUILD_SELECTED_MAINTENANCE_PROTOTYPE",
+        "MAINTENANCE_APPLY_DEFER_BRANCH",
+        "DEFER_APPROVE_MAINTENANCE_RESULT"
+      ],
+      "checkpoints": [
+        "maintenance-briefing",
+        "planned-source-outage",
+        "maintenance-keep-result",
+        "maintenance-defer-result"
+      ],
+      "cells": ["C4", "A1", "K2"]
+    },
+    {
+      "id": "E08-FINALE",
+      "prefixId": "PREFIX-FINALE-CHOICE",
+      "branchOrder": ["keep", "defer"],
+      "actions": [
+        "CAPTURE_FINAL_KEEP_PREDICTION",
+        "APPLY_FINAL_KEEP_BRANCH",
+        "KEEP_APPROVE_FINAL_HEAT",
+        "KEEP_APPROVE_FINAL_STORM",
+        "OPEN_KEEP_EPILOGUE",
+        "FINALE_REPLAY_PREFIX",
+        "CAPTURE_FINAL_DEFER_PREDICTION",
+        "APPLY_FINAL_DEFER_BRANCH",
+        "DEFER_APPROVE_FINAL_HEAT",
+        "DEFER_APPROVE_FINAL_STORM",
+        "OPEN_DEFER_EPILOGUE",
+        "SELECT_COMPLETED_CHAPTER"
+      ],
+      "checkpoints": [
+        "finale-promise-choice",
+        "finale-heat",
+        "finale-storm",
+        "finale-keep-result",
+        "finale-defer-result",
+        "finale-result-to-epilogue",
+        "completed-chapter-select"
+      ],
+      "cells": ["J4", "C5", "A4", "V4", "K3"]
+    },
+    {
+      "id": "E09-MID-RESUME",
+      "prefixId": "PREFIX-NORTH-BANK-MID-DRAFT",
+      "processCount": 2,
+      "actions": [
+        "START_MID_DECISION_LINE_DRAFT",
+        "SAVE_AND_QUIT",
+        "MID_RESUME_TERMINATE_PROCESS",
+        "MID_RESUME_START_FRESH_PROCESS",
+        "CONTINUE_GAME",
+        "OPEN_AND_CLOSE_MENU_WITHOUT_MUTATION",
+        "RESUME_DRAFT",
+        "ADD_AND_UNDO_DRAFT_POINT"
+      ],
+      "checkpoints": [
+        "mid-save-before-exit",
+        "resume-orientation",
+        "resumed-editable-draft"
+      ],
+      "cells": ["R2"]
+    },
+    {
+      "id": "E10-COMPLETE-RESUME",
+      "prefixId": "PREFIX-CAMPAIGN-COMPLETE",
+      "processCount": 2,
+      "actions": [
+        "SAVE_COMPLETED_CAMPAIGN",
+        "COMPLETE_RESUME_TERMINATE_PROCESS",
+        "COMPLETE_RESUME_START_FRESH_PROCESS",
+        "CONTINUE_COMPLETED_GAME",
+        "OPEN_EPILOGUE",
+        "SELECT_CHAPTER_EIGHT",
+        "START_SELECTED_CHAPTER"
+      ],
+      "checkpoints": [
+        "completed-save-before-exit",
+        "completed-resume-select",
+        "selected-chapter-briefing"
+      ],
+      "cells": ["J4", "R3"]
+    },
+    {
+      "id": "E11-AUTHORED-TEXT",
+      "prefixId": "PREFIX-STORY-MANIFEST",
+      "actions": [
+        "EMIT_26_STORY_SELECTORS",
+        "BIND_EACH_SELECTOR_TO_FIRST_NATIVE_PRESENTATION",
+        "VERIFY_12_RESULT_BRANCHES",
+        "VERIFY_EPILOGUE_PRESENTATION"
+      ],
+      "checkpoints": [
+        "native-story-manifest-binding"
+      ],
+      "cells": ["J2", "J4", "K1", "K2", "K3"]
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.canonical-hash-policy.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "algorithm": "SHA-256",
+  "canonicalization": "RFC8785_JSON_CANONICALIZATION_SCHEME",
+  "encoding": "UTF-8",
+  "checkedInFileRule": "SHA256_OF_EXACT_RAW_BYTES",
+  "generatedEnvelopeRule": "RFC8785_WITH_DESIGNATED_SELF_HASH_FIELD_NULL",
+  "selfHashRule": "SET_DESIGNATED_FIELD_TO_NULL_BEFORE_CANONICALIZATION",
+  "projectionHashRules": {
+    "selectedRecipeSha256": "SHA256_OF_RFC8785_CANONICAL_SELECTED_FORMATIVE_OR_HOLDOUT_ROW"
+  },
+  "bindings": [
+    {
+      "artifactSchema": "actor-trace.schema.json",
+      "field": "actorArtifactId",
+      "producer": "HARNESS_FINAL_PACKAGER"
+    },
+    {
+      "artifactSchema": "evidence-set.schema.json",
+      "field": "evidenceSetSha256",
+      "producer": "EVIDENCE_SET_PACKAGER"
+    },
+    {
+      "artifactSchema": "qualification-input.schema.json",
+      "field": "judgeInputSha256",
+      "producer": "QUALIFICATION_INPUT_PACKAGER"
+    },
+    {
+      "artifactSchema": "native-evidence-verification-input.schema.json",
+      "field": "verificationInputSha256",
+      "producer": "VERIFICATION_INPUT_PACKAGER"
+    },
+    {
+      "artifactSchema": "candidate-manifest.schema.json",
+      "field": "candidateManifestSha256",
+      "producer": "CANDIDATE_MANIFEST_PACKAGER"
+    },
+    {
+      "artifactSchema": "evaluation-run-manifest.schema.json",
+      "field": "evaluationRunManifestSha256",
+      "producer": "EVALUATION_RUN_PACKAGER"
+    },
+    {
+      "artifactSchema": "coverage-trace.schema.json",
+      "field": "coverageArtifactId",
+      "producer": "COVERAGE_FINAL_PACKAGER"
+    },
+    {
+      "artifactSchema": "qualification-receipt.schema.json",
+      "field": "qualificationReceiptSha256",
+      "producer": "QUALIFICATION_RECEIPT_PACKAGER"
+    },
+    {
+      "artifactSchema": "judge-panel.schema.json",
+      "field": "judgePanelSha256",
+      "producer": "JUDGE_PANEL_PACKAGER"
+    }
+  ],
+  "postRunActorFields": [
+    "userDataSha256",
+    "saveSha256",
+    "journalSha256",
+    "recordingManifestSha256",
+    "actorArtifactId"
+  ],
+  "verification": {
+    "requireExactRecomputation": true,
+    "rejectMissingOrMismatch": true,
+    "hardGate": "HG13-PROVENANCE"
+  }
+}

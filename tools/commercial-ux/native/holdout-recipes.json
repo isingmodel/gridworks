@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.holdout-queue.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "selectionRule": "LOWEST_UNUSED_ORDINAL",
+  "reuseAllowed": false,
+  "exhaustionStatus": "BLOCKED_HOLDOUT_EXHAUSTED",
+  "baseCoverageRecipe": "coverage-recipe.json",
+  "formative": {
+    "id": "FORMATIVE-01",
+    "officialCommercialUX": false,
+    "routeFamily": "NATIVE_SMOKE_WITNESS",
+    "promiseBranchOrder": ["keep", "defer"],
+    "actorArtifactPermutation": [2, 0, 1],
+    "coverageArtifactOrder": "EPISODE_ASCENDING"
+  },
+  "holdouts": [
+    {
+      "id": "HOLDOUT-01",
+      "ordinal": 1,
+      "missionPrototypeBits": "000",
+      "promiseBranchOrder": ["defer", "keep"],
+      "actorArtifactPermutation": [1, 2, 0],
+      "coverageArtifactOrder": "EPISODE_DESCENDING"
+    },
+    {
+      "id": "HOLDOUT-02",
+      "ordinal": 2,
+      "missionPrototypeBits": "111",
+      "promiseBranchOrder": ["keep", "defer"],
+      "actorArtifactPermutation": [2, 0, 1],
+      "coverageArtifactOrder": "EPISODE_ASCENDING"
+    },
+    {
+      "id": "HOLDOUT-03",
+      "ordinal": 3,
+      "missionPrototypeBits": "010",
+      "promiseBranchOrder": ["defer", "keep"],
+      "actorArtifactPermutation": [0, 2, 1],
+      "coverageArtifactOrder": "EPISODE_DESCENDING"
+    },
+    {
+      "id": "HOLDOUT-04",
+      "ordinal": 4,
+      "missionPrototypeBits": "101",
+      "promiseBranchOrder": ["keep", "defer"],
+      "actorArtifactPermutation": [1, 0, 2],
+      "coverageArtifactOrder": "EPISODE_ASCENDING"
+    },
+    {
+      "id": "HOLDOUT-05",
+      "ordinal": 5,
+      "missionPrototypeBits": "001",
+      "promiseBranchOrder": ["defer", "keep"],
+      "actorArtifactPermutation": [2, 1, 0],
+      "coverageArtifactOrder": "EPISODE_DESCENDING"
+    },
+    {
+      "id": "HOLDOUT-06",
+      "ordinal": 6,
+      "missionPrototypeBits": "110",
+      "promiseBranchOrder": ["keep", "defer"],
+      "actorArtifactPermutation": [0, 1, 2],
+      "coverageArtifactOrder": "EPISODE_ASCENDING"
+    },
+    {
+      "id": "HOLDOUT-07",
+      "ordinal": 7,
+      "missionPrototypeBits": "011",
+      "promiseBranchOrder": ["defer", "keep"],
+      "actorArtifactPermutation": [1, 2, 0],
+      "coverageArtifactOrder": "EPISODE_DESCENDING"
+    },
+    {
+      "id": "HOLDOUT-08",
+      "ordinal": 8,
+      "missionPrototypeBits": "100",
+      "promiseBranchOrder": ["keep", "defer"],
+      "actorArtifactPermutation": [2, 0, 1],
+      "coverageArtifactOrder": "EPISODE_ASCENDING"
+    }
+  ]
+}

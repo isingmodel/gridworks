@@ -1,0 +1,245 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.native-contract-bindings.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "candidateIndependent": true,
+  "checkedInFileHashRule": "SHA256_OF_EXACT_RAW_BYTES",
+  "toolBindingPolicy": {
+    "boundImplementedTools": ["../aggregate-native.py", "validate-contract.py"],
+    "requiredProducerStagesBeforeScoreBearing": [
+      "CANDIDATE-MANIFEST-PACKAGER",
+      "COLD-PACKAGER",
+      "QUALIFICATION-INPUT-PACKAGER",
+      "QUALIFICATION-RECEIPT-PACKAGER",
+      "COVERAGE-RUN-PACKAGER",
+      "EVIDENCE-SET-PACKAGER",
+      "JUDGE-PANEL-PACKAGER",
+      "VERIFICATION-INPUT-PACKAGER",
+      "ORACLE-HARD-GATES",
+      "EVALUATION-RUN-PACKAGER",
+      "NATIVE-AGGREGATE"
+    ],
+    "currentlyUnboundProducerStages": [
+      "CANDIDATE-MANIFEST-PACKAGER",
+      "COLD-PACKAGER",
+      "QUALIFICATION-INPUT-PACKAGER",
+      "QUALIFICATION-RECEIPT-PACKAGER",
+      "COVERAGE-RUN-PACKAGER",
+      "EVIDENCE-SET-PACKAGER",
+      "JUDGE-PANEL-PACKAGER",
+      "VERIFICATION-INPUT-PACKAGER",
+      "ORACLE-HARD-GATES",
+      "EVALUATION-RUN-PACKAGER"
+    ],
+    "unboundImplementationStatus": "BLOCKED_UNTIL_IMPLEMENTED_AND_RAW_HASH_BOUND",
+    "scoreBearingCaptureAllowed": false
+  },
+  "fileHashes": [
+    {"path": "../rubric.json", "kind": "RUBRIC", "sha256": "sha256:9a5f80c42870b475a4c3955cdf7d4fe610383bff994baa60e2c9b5ec7f131f4b"},
+    {"path": "../aggregate-native.py", "kind": "TOOL", "sha256": "sha256:ac2923566824e9412227f9a60e463b7d7f83952648b420ef61ade11005197d6e"},
+    {"path": "validate-contract.py", "kind": "TOOL", "sha256": "sha256:1644e09bfdee582bb22cd6e5f5816a6416ec6388c35a466d5fb34fd78c59a923"},
+    {"path": "actor-observation.schema.json", "kind": "SCHEMA", "sha256": "sha256:85ff451ac164b3b50ecbd96e7f60ed265f86e6f395f12395ad4f8fa1931a25f2"},
+    {"path": "actor-trace.schema.json", "kind": "SCHEMA", "sha256": "sha256:933c989e5282963e44f198d4e98f41bec01f19d89cfbc44a404a0b52ac0c842a"},
+    {"path": "candidate-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:6c93e7d5d5273b03c2fad1cd57e941a021a406b49f344c2a3bef7bf1e85c1fcf"},
+    {"path": "canonical-hash-policy.schema.json", "kind": "SCHEMA", "sha256": "sha256:b9fb700a2dabad4b34313cd57398e7d8209c6d78881e8fc42efc7c4395e74873"},
+    {"path": "cold-journey-recipe.schema.json", "kind": "SCHEMA", "sha256": "sha256:6bd7e79dd63c6fc2b0b739065494d2992f0202e9ed4530d143bf8318f8903c9a"},
+    {"path": "contract-bindings.schema.json", "kind": "SCHEMA", "sha256": "sha256:571bbc1f7da3a620d7c99c7114423bb87d45c9adf9d0e0ad452b102d5740f08d"},
+    {"path": "coverage-trace.schema.json", "kind": "SCHEMA", "sha256": "sha256:0f50c753fbfa4ca20fcf154327084ec8afef1faf335d92ca6731444b51f120d3"},
+    {"path": "evaluation-run-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:66c05d42ea21aa7d35bafefc8998af0346a9cde41662164517158147908fdb69"},
+    {"path": "evidence-set.schema.json", "kind": "SCHEMA", "sha256": "sha256:e6d65f5958cc02a86830386c61b6523581bc41b13de923897947921cc1cab3b7"},
+    {"path": "gold-state-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:61e0ad65b8cf76788a151bc714695d5e73cb474d8de500c26c3f8199a8410b4c"},
+    {"path": "judge-panel.schema.json", "kind": "SCHEMA", "sha256": "sha256:62bfadd55ea094e8896d69d34394d5a97cb22ca3000b741a23bc47fc9993bb8c"},
+    {"path": "native-aggregation-input.schema.json", "kind": "SCHEMA", "sha256": "sha256:6712219b9709af6cca11df52eafe52a3e17c51fc9440861670b5da812fe12d9a"},
+    {"path": "native-evidence-verification-input.schema.json", "kind": "SCHEMA", "sha256": "sha256:e3e8e8cd98392103b466249eeb20ba8bfe01c41a36c30065c641fd7b215bc9a3"},
+    {"path": "native-evidence-verifier.schema.json", "kind": "SCHEMA", "sha256": "sha256:e71a248a21a9ac8789318db3cbd028739500288d67359b175d3f9016e3fb05d2"},
+    {"path": "native-judge.schema.json", "kind": "SCHEMA", "sha256": "sha256:01279824464aa02ded6e10c00b2f044fdf772f084b4c163e576cfe4c0aaa94e2"},
+    {"path": "native-replacement-receipt.schema.json", "kind": "SCHEMA", "sha256": "sha256:74e8872e2c25bab36ff027c90f964d47b1e75e08e3f6edd637ab82e214c2af0a"},
+    {"path": "native-scorecard.schema.json", "kind": "SCHEMA", "sha256": "sha256:267f542905b5bc140193ed689f6f2c8d7c01bfe2039656a000584e3c68a40bc4"},
+    {"path": "oracle-hard-gate-ledger.schema.json", "kind": "SCHEMA", "sha256": "sha256:b093feb04ddddc3a5c0ea1d380f4d5d99829f02b31ca8104828a8d46ca875f6a"},
+    {"path": "qualification-input.schema.json", "kind": "SCHEMA", "sha256": "sha256:c92f6a9262d938c24b6b532c4bd51de5949b4a9cc6e9eb58fdefc18b15ea2618"},
+    {"path": "qualification-receipt.schema.json", "kind": "SCHEMA", "sha256": "sha256:46a665f83faa460a900fa5b42f1f8ff5d36bc7e8387038c60c5a4b0809e8eaca"},
+    {"path": "qualification-transport-map.schema.json", "kind": "SCHEMA", "sha256": "sha256:31514cd4601e827acd8f8a243b9341f0448dafbc04b0d6453ec2dcb504eb8dd8"},
+    {"path": "canonical-hash-policy.json", "kind": "POLICY", "sha256": "sha256:16ba020efc97bb5303c55eb874156cacac496ffa33e99bbb85286422b8d1aa19"},
+    {"path": "cold-journey-recipe.json", "kind": "RECIPE", "sha256": "sha256:5293ed050acbe756e8b77e449d2fe2f41422d215581a8e2569e895ff74cf9d9f"},
+    {"path": "concept-exposure-manifest.json", "kind": "AUTHORITY", "sha256": "sha256:f010334c1ef5941e693ddf6ab8646e49ca261efae1c6c2c85cee090f30f58493"},
+    {"path": "coverage-recipe.json", "kind": "RECIPE", "sha256": "sha256:dfb2e7950defe8d50073f26529b0ae2d0b2418f92884a412a802afd64d271c7d"},
+    {"path": "gold-state-manifest.json", "kind": "AUTHORITY", "sha256": "sha256:505ec4c6da1cad60f95e8e2ea79f80de693620ca4d0257d0aefce6b8cf749528"},
+    {"path": "holdout-recipes.json", "kind": "RECIPE", "sha256": "sha256:061021b63f630bb7a9bfe8d39a54906b1f05526b270e04a11bcb0f7b9b966940"},
+    {"path": "qualification-anchors.json", "kind": "AUTHORITY", "sha256": "sha256:8c0cc3a57568edf50c9afc2151df4cb17d130c3c3ce92ef37a9f2c65165c2d41"},
+    {"path": "qualification-transport-map.json", "kind": "AUTHORITY", "sha256": "sha256:3816cb466c2ef7387d24f6791b9dee51ad725139ab24a01ae8a462298ef533de"},
+    {"path": "cold-actor-prompt.template.txt", "kind": "PROMPT", "sha256": "sha256:bd3b450491039c4900a5e20d3a8dc6911681084f54f552bfb9be715e74ea150a"},
+    {"path": "native-judge-prompt.template.txt", "kind": "PROMPT", "sha256": "sha256:4a57bbdfdfa4d32e9fd59f4a016c20dfbfd14a6b9cfd40d322e3597a122095a7"},
+    {"path": "native-evidence-verifier-prompt.template.txt", "kind": "PROMPT", "sha256": "sha256:c9c9d3cdad026f0d94e0bba957bca4ae85d9ce5c4f9bd627a77b6f71c5af5afd"}
+  ],
+  "stageBindings": [
+    {
+      "stageId": "CANDIDATE-MANIFEST-PACKAGER",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": [],
+      "outputSchema": "candidate-manifest.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": [
+        "canonical-hash-policy.json", "cold-journey-recipe.json",
+        "coverage-recipe.json", "holdout-recipes.json", "concept-exposure-manifest.json",
+        "gold-state-manifest.json", "qualification-anchors.json", "../rubric.json"
+      ]
+    },
+    {
+      "stageId": "COLD-ACTOR",
+      "producerType": "LLM",
+      "promptFile": "cold-actor-prompt.template.txt",
+      "inputSchemas": [],
+      "outputSchema": "actor-observation.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["cold-journey-recipe.json", "concept-exposure-manifest.json"]
+    },
+    {
+      "stageId": "COLD-PACKAGER",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": ["actor-observation.schema.json"],
+      "outputSchema": "actor-trace.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["canonical-hash-policy.json", "cold-journey-recipe.json", "concept-exposure-manifest.json"]
+    },
+    {
+      "stageId": "QUALIFICATION-INPUT-PACKAGER",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": [],
+      "outputSchema": "qualification-input.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["qualification-anchors.json", "qualification-transport-map.json", "../rubric.json"]
+    },
+    {
+      "stageId": "QUALIFICATION-JUDGE",
+      "producerType": "LLM",
+      "promptFile": "native-judge-prompt.template.txt",
+      "inputSchemas": ["qualification-input.schema.json"],
+      "outputSchema": "native-judge.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["../rubric.json"]
+    },
+    {
+      "stageId": "QUALIFICATION-RECEIPT-PACKAGER",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": ["qualification-input.schema.json", "native-judge.schema.json"],
+      "outputSchema": "qualification-receipt.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["qualification-anchors.json", "qualification-transport-map.json", "../rubric.json"]
+    },
+    {
+      "stageId": "COVERAGE-RUN-PACKAGER",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": [],
+      "outputSchema": "coverage-trace.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": [
+        "coverage-recipe.json", "holdout-recipes.json",
+        "concept-exposure-manifest.json", "gold-state-manifest.json"
+      ]
+    },
+    {
+      "stageId": "EVIDENCE-SET-PACKAGER",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": ["actor-trace.schema.json", "coverage-trace.schema.json"],
+      "outputSchema": "evidence-set.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["coverage-recipe.json", "holdout-recipes.json", "concept-exposure-manifest.json"]
+    },
+    {
+      "stageId": "CANDIDATE-JUDGE",
+      "producerType": "LLM",
+      "promptFile": "native-judge-prompt.template.txt",
+      "inputSchemas": ["evidence-set.schema.json"],
+      "outputSchema": "native-judge.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["../rubric.json"]
+    },
+    {
+      "stageId": "JUDGE-PANEL-PACKAGER",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": [
+        "candidate-manifest.schema.json",
+        "qualification-receipt.schema.json",
+        "evidence-set.schema.json",
+        "native-judge.schema.json"
+      ],
+      "outputSchema": "judge-panel.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["../rubric.json"]
+    },
+    {
+      "stageId": "VERIFICATION-INPUT-PACKAGER",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": ["evidence-set.schema.json", "native-judge.schema.json", "judge-panel.schema.json"],
+      "outputSchema": "native-evidence-verification-input.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": []
+    },
+    {
+      "stageId": "EVIDENCE-VERIFIER",
+      "producerType": "LLM",
+      "promptFile": "native-evidence-verifier-prompt.template.txt",
+      "inputSchemas": ["native-evidence-verification-input.schema.json"],
+      "outputSchema": "native-evidence-verifier.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": []
+    },
+    {
+      "stageId": "ORACLE-HARD-GATES",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": ["actor-trace.schema.json", "evidence-set.schema.json"],
+      "outputSchema": "oracle-hard-gate-ledger.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["gold-state-manifest.json", "coverage-recipe.json", "concept-exposure-manifest.json"]
+    },
+    {
+      "stageId": "EVALUATION-RUN-PACKAGER",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": [
+        "candidate-manifest.schema.json",
+        "qualification-receipt.schema.json",
+        "actor-observation.schema.json",
+        "actor-trace.schema.json",
+        "coverage-trace.schema.json",
+        "evidence-set.schema.json",
+        "native-judge.schema.json",
+        "judge-panel.schema.json",
+        "native-evidence-verifier.schema.json",
+        "oracle-hard-gate-ledger.schema.json"
+      ],
+      "outputSchema": "evaluation-run-manifest.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": ["canonical-hash-policy.json", "gold-state-manifest.json"]
+    },
+    {
+      "stageId": "NATIVE-AGGREGATE",
+      "producerType": "DETERMINISTIC",
+      "promptFile": null,
+      "inputSchemas": [
+        "native-aggregation-input.schema.json",
+        "candidate-manifest.schema.json",
+        "qualification-receipt.schema.json",
+        "judge-panel.schema.json",
+        "evaluation-run-manifest.schema.json",
+        "actor-observation.schema.json",
+        "coverage-trace.schema.json",
+        "evidence-set.schema.json",
+        "native-judge.schema.json",
+        "native-evidence-verifier.schema.json",
+        "oracle-hard-gate-ledger.schema.json"
+      ],
+      "outputSchema": "native-scorecard.schema.json",
+      "packagedOutputSchema": "native-replacement-receipt.schema.json",
+      "authorities": ["../rubric.json", "../aggregate-native.py", "validate-contract.py"]
+    }
+  ]
+}

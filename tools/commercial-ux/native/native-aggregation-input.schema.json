@@ -1,0 +1,189 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-aggregation-input-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "scorecardId",
+    "recipeId",
+    "operationalBlocker",
+    "verificationInputSha256",
+    "expectedObservationIds",
+    "notReachedByProductCellIds",
+    "artifactBindings",
+    "differenceReport",
+    "provenance"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-aggregation-input.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "scorecardId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "recipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "operationalBlocker": {
+      "oneOf": [
+        {
+          "enum": [
+            "BLOCKED_JUDGE_UNAVAILABLE",
+            "BLOCKED_JUDGE_SCHEMA",
+            "BLOCKED_MISSING_EVIDENCE",
+            "BLOCKED_HARNESS",
+            "BLOCKED_HOLDOUT_EXHAUSTED"
+          ]
+        },
+        {"type": "null"}
+      ]
+    },
+    "verificationInputSha256": {"$ref": "#/$defs/sha256"},
+    "expectedObservationIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 768,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^OBS-[0-9]{4}$"}
+    },
+    "notReachedByProductCellIds": {
+      "type": "array",
+      "maxItems": 30,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/coldCellId"}
+    },
+    "artifactBindings": {"$ref": "#/$defs/artifactBindings"},
+    "differenceReport": {"$ref": "#/$defs/differenceReport"},
+    "provenance": {"$ref": "#/$defs/provenance"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "coldCellId": {
+      "enum": [
+        "J1", "J2", "J3", "J4", "T1", "T2", "T3",
+        "H1", "H2", "H3", "H4", "I1", "I2", "I3",
+        "C1", "C2", "C3", "C4", "C5", "A1", "A2", "A3", "A4",
+        "P1", "P2", "P3", "R2", "K1", "K2", "K3"
+      ]
+    },
+    "artifactBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anonymousArtifactId", "artifactKind", "artifactSha256"],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "artifactKind": {"enum": ["COLD_ACTOR", "COVERAGE"]},
+        "artifactSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "artifactBindings": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/artifactBinding"},
+      "allOf": [
+        {
+          "contains": {"properties": {"artifactKind": {"const": "COLD_ACTOR"}}, "required": ["artifactKind"]},
+          "minContains": 3,
+          "maxContains": 3
+        },
+        {
+          "contains": {"properties": {"artifactKind": {"const": "COVERAGE"}}, "required": ["artifactKind"]},
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "differenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["priority", "cellIds", "incidentKeys", "observation", "boundedChange"],
+      "properties": {
+        "priority": {"enum": ["P0", "P1", "P2"]},
+        "cellIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 39,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[JTHICAPVRLK][1-5]$"}
+        },
+        "incidentKeys": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+          }
+        },
+        "observation": {"type": "string", "minLength": 1, "maxLength": 1600},
+        "boundedChange": {"type": "string", "minLength": 1, "maxLength": 1200}
+      }
+    },
+    "differenceReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items", "openP0", "openP1", "openP2"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 117,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/differenceItem"}
+        },
+        "openP0": {"type": "integer", "minimum": 0, "maximum": 117},
+        "openP1": {"type": "integer", "minimum": 0, "maximum": 117},
+        "openP2": {"type": "integer", "minimum": 0, "maximum": 117}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateManifestSha256", "candidateManifestRawSha256",
+        "nativeAggregatorSha256",
+        "qualificationReceiptSha256", "qualificationReceiptRawSha256",
+        "judgePanelSha256", "judgePanelRawSha256",
+        "evaluationRunManifestSha256", "evaluationRunManifestRawSha256",
+        "sourceCommit", "cleanTree", "model",
+        "reasoningEffort", "promptTemplateSha256", "judgmentSchemaSha256",
+        "verifierPromptTemplateSha256", "verifierSchemaSha256", "rubricSha256",
+        "coldRecipeSha256", "coverageRecipeSha256", "holdoutRecipeSha256",
+        "evidenceSetSha256", "verificationOutputSha256",
+        "oracleHardGateLedgerSha256", "executionArtifactSha256",
+        "packageSha256", "packageStatus"
+      ],
+      "properties": {
+        "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+        "candidateManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "nativeAggregatorSha256": {"$ref": "#/$defs/sha256"},
+        "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
+        "qualificationReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+        "judgePanelSha256": {"$ref": "#/$defs/sha256"},
+        "judgePanelRawSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationRunManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "cleanTree": {"type": "boolean"},
+        "model": {"const": "gpt-5.6-sol"},
+        "reasoningEffort": {"const": "ultra"},
+        "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
+        "judgmentSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "verifierPromptTemplateSha256": {"$ref": "#/$defs/sha256"},
+        "verifierSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "rubricSha256": {"$ref": "#/$defs/sha256"},
+        "coldRecipeSha256": {"$ref": "#/$defs/sha256"},
+        "coverageRecipeSha256": {"$ref": "#/$defs/sha256"},
+        "holdoutRecipeSha256": {"$ref": "#/$defs/sha256"},
+        "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+        "verificationOutputSha256": {"$ref": "#/$defs/sha256"},
+        "oracleHardGateLedgerSha256": {"$ref": "#/$defs/sha256"},
+        "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "packageSha256": {
+          "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+        },
+        "packageStatus": {
+          "enum": ["EDITOR_NATIVE_NOT_PUBLIC_PACKAGE", "INTERNAL_APP_BUNDLE"]
+        }
+      }
+    }
+  }
+}

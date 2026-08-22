@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-evidence-verification-input-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "verificationScope",
+    "verificationInputSha256",
+    "evidenceSetSha256",
+    "opaqueJudgePanelSha256",
+    "artifactBundles",
+    "observations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "gridworks.commercial-ux.native-evidence-verification-input.v1"
+    },
+    "protocol": {
+      "const": "GRIDWORKS-COMMERCIAL-UX-v1.1"
+    },
+    "verificationScope": {"const": "VISIBLE_OR_AUDIBLE_OBSERVATION_ONLY"},
+    "verificationInputSha256": {"$ref": "#/$defs/sha256"},
+    "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+    "opaqueJudgePanelSha256": {"$ref": "#/$defs/sha256"},
+    "artifactBundles": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/artifactBundle"}
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 768,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/observation"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "artifactBundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anonymousArtifactId", "artifactBundleSha256", "locator"],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "artifactBundleSha256": {"$ref": "#/$defs/sha256"},
+        "locator": {"type": "string", "minLength": 1, "maxLength": 300}
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anonymousArtifactId", "artifactId", "locator"],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "artifactId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "locator": {"type": "string", "minLength": 1, "maxLength": 300}
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["observationId", "claim", "citedSources"],
+      "properties": {
+        "observationId": {"type": "string", "pattern": "^OBS-[0-9]{4}$"},
+        "claim": {"type": "string", "minLength": 1, "maxLength": 1200},
+        "citedSources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/sourceRef"}
+        }
+      }
+    }
+  }
+}

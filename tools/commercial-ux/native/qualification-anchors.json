@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.qualification-anchors.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "candidateIndependent": true,
+  "passRule": {
+    "minimumExactPerJudge": 19,
+    "anchorCount": 20,
+    "excellentAndBrokenAllExact": true,
+    "schemaValidCount": 20,
+    "fullPanelReplacementMaximum": 1
+  },
+  "anchors": [
+    {
+      "anchorId": "Q-EXCELLENT-01",
+      "expectedLabel": "EXCELLENT",
+      "assignedExperience": "first-use goal and action",
+      "trace": "Before acting, the player cites the visible objective and next-action card, predicts the exact placement consequence, completes every assigned probe on the first attempt, and the captured result matches the prediction. No confusion or recovery incident occurs."
+    },
+    {
+      "anchorId": "Q-EXCELLENT-02",
+      "expectedLabel": "EXCELLENT",
+      "assignedExperience": "causal result",
+      "trace": "The player predicts which named path bottleneck will fail, cites the visible path and margin facts, changes the relevant route, and the result names the same source, path and recovered margin. Every required probe is present and no important friction is recorded."
+    },
+    {
+      "anchorId": "Q-EXCELLENT-03",
+      "expectedLabel": "EXCELLENT",
+      "assignedExperience": "save and resume",
+      "trace": "After a fresh process restart, the first screen identifies the previous result, current chapter, objective, resources and next action. The player cites those facts, resumes the unfinished edit immediately, and completes all assigned resume probes without detour."
+    },
+    {
+      "anchorId": "Q-EXCELLENT-04",
+      "expectedLabel": "EXCELLENT",
+      "assignedExperience": "accessible audiovisual state",
+      "trace": "Keyboard focus, text, icon shape, motion setting, synchronized sound and state color all communicate the same transition. The player predicts and completes every assigned keyboard and non-color probe with no important friction."
+    },
+    {
+      "anchorId": "Q-STRONG-01",
+      "expectedLabel": "STRONG",
+      "assignedExperience": "first-use goal and action",
+      "trace": "The player cites the correct visible objective, briefly focuses one adjacent harmless action, immediately returns to the indicated primary action, and completes all probes without external help or lost progress."
+    },
+    {
+      "anchorId": "Q-STRONG-02",
+      "expectedLabel": "STRONG",
+      "assignedExperience": "causal result",
+      "trace": "The player initially reads one secondary metric twice, then uses the visible path highlight to predict the correct bottleneck and completes the decision. The result is understood and all required probes are completed."
+    },
+    {
+      "anchorId": "Q-STRONG-03",
+      "expectedLabel": "STRONG",
+      "assignedExperience": "save and resume",
+      "trace": "The resume card contains all required context. The player pauses briefly to reread the prior-result line, then identifies the current objective and resumes correctly without restart, hint or state loss."
+    },
+    {
+      "anchorId": "Q-STRONG-04",
+      "expectedLabel": "STRONG",
+      "assignedExperience": "accessible audiovisual state",
+      "trace": "All required keyboard and non-color probes complete. One focus highlight is subtle and causes a single corrected Tab press, but the player proceeds without repeated uncertainty or outside help."
+    },
+    {
+      "anchorId": "Q-SERVICEABLE-01",
+      "expectedLabel": "SERVICEABLE",
+      "assignedExperience": "first-use goal and action",
+      "trace": "The player completes the experience, but at three checkpoints rereads the same objective and alternates between two reversible actions before finding the indicated control. No external hint or restart is needed."
+    },
+    {
+      "anchorId": "Q-SERVICEABLE-02",
+      "expectedLabel": "SERVICEABLE",
+      "assignedExperience": "causal result",
+      "trace": "The player finishes and can summarize the result, but repeatedly confuses projected and actual margin, makes two reversible route edits, and only then reconciles the visible path facts."
+    },
+    {
+      "anchorId": "Q-SERVICEABLE-03",
+      "expectedLabel": "SERVICEABLE",
+      "assignedExperience": "save and resume",
+      "trace": "The current context is present and the player eventually resumes, but searches the pause and help panels and returns to the resume card several times before identifying the next action. Progress is preserved."
+    },
+    {
+      "anchorId": "Q-SERVICEABLE-04",
+      "expectedLabel": "SERVICEABLE",
+      "assignedExperience": "accessible audiovisual state",
+      "trace": "All probes eventually complete, but focus order and dense text cause repeated recoverable uncertainty. The player uses several extra keyboard steps and rereads state labels, without outside help or irreversible loss."
+    },
+    {
+      "anchorId": "Q-WEAK-01",
+      "expectedLabel": "WEAK",
+      "assignedExperience": "first-use goal and action",
+      "trace": "The player forms the wrong core model, commits a costly action, restarts the section, and only proceeds after an explicit external hint identifies the required control. The experience exists but is not independently learned."
+    },
+    {
+      "anchorId": "Q-WEAK-02",
+      "expectedLabel": "WEAK",
+      "assignedExperience": "causal result",
+      "trace": "The path and result are present, but the player attributes success to the wrong source through multiple approvals and needs a developer hint before correcting the core causal account."
+    },
+    {
+      "anchorId": "Q-WEAK-03",
+      "expectedLabel": "WEAK",
+      "assignedExperience": "save and resume",
+      "trace": "A resume route exists, but the player cannot reconstruct the current objective, restarts the chapter and loses the unfinished plan before an external hint explains where the context was shown."
+    },
+    {
+      "anchorId": "Q-WEAK-04",
+      "expectedLabel": "WEAK",
+      "assignedExperience": "accessible audiovisual state",
+      "trace": "The required state can be reached, but the keyboard route is not discovered without a hint and the player mistakes a color-only warning until after an irreversible action."
+    },
+    {
+      "anchorId": "Q-BROKEN-01",
+      "expectedLabel": "BROKEN",
+      "assignedExperience": "first-use goal and action",
+      "trace": "No objective, instruction, usable action or equivalent in-product source for the assigned experience appears. The player cannot begin the required probe."
+    },
+    {
+      "anchorId": "Q-BROKEN-02",
+      "expectedLabel": "BROKEN",
+      "assignedExperience": "causal result",
+      "trace": "The assigned source, path and outcome explanation are absent. The result supplies no evidence from which the required causal experience can be judged."
+    },
+    {
+      "anchorId": "Q-BROKEN-03",
+      "expectedLabel": "BROKEN",
+      "assignedExperience": "save and resume",
+      "trace": "There is no continue action or recoverable saved state, so the assigned resume experience cannot be performed or observed."
+    },
+    {
+      "anchorId": "Q-BROKEN-04",
+      "expectedLabel": "BROKEN",
+      "assignedExperience": "accessible audiovisual state",
+      "trace": "The required keyboard action is unreachable and the assigned transition has no text, icon, sound or other non-color evidence. The experience is effectively absent."
+    }
+  ]
+}

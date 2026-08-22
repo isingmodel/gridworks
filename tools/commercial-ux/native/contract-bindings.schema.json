@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-contract-bindings-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "candidateIndependent",
+    "checkedInFileHashRule",
+    "toolBindingPolicy",
+    "fileHashes",
+    "stageBindings"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-contract-bindings.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "candidateIndependent": {"const": true},
+    "checkedInFileHashRule": {"const": "SHA256_OF_EXACT_RAW_BYTES"},
+    "toolBindingPolicy": {"$ref": "#/$defs/toolBindingPolicy"},
+    "fileHashes": {
+      "type": "array",
+      "minItems": 35,
+      "maxItems": 35,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/fileHash"}
+    },
+    "stageBindings": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "prefixItems": [
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "CANDIDATE-MANIFEST-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COLD-ACTOR"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COLD-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "QUALIFICATION-INPUT-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "QUALIFICATION-JUDGE"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "QUALIFICATION-RECEIPT-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COVERAGE-RUN-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "EVIDENCE-SET-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "CANDIDATE-JUDGE"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "JUDGE-PANEL-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "VERIFICATION-INPUT-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "EVIDENCE-VERIFIER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "ORACLE-HARD-GATES"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "EVALUATION-RUN-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "NATIVE-AGGREGATE"}}}
+      ],
+      "items": false
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "toolBindingPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boundImplementedTools", "requiredProducerStagesBeforeScoreBearing",
+        "currentlyUnboundProducerStages", "unboundImplementationStatus",
+        "scoreBearingCaptureAllowed"
+      ],
+      "properties": {
+        "boundImplementedTools": {
+          "const": ["../aggregate-native.py", "validate-contract.py"]
+        },
+        "requiredProducerStagesBeforeScoreBearing": {
+          "const": [
+            "CANDIDATE-MANIFEST-PACKAGER", "COLD-PACKAGER",
+            "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-RECEIPT-PACKAGER",
+            "COVERAGE-RUN-PACKAGER", "EVIDENCE-SET-PACKAGER",
+            "JUDGE-PANEL-PACKAGER", "VERIFICATION-INPUT-PACKAGER",
+            "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER", "NATIVE-AGGREGATE"
+          ]
+        },
+        "currentlyUnboundProducerStages": {
+          "const": [
+            "CANDIDATE-MANIFEST-PACKAGER", "COLD-PACKAGER",
+            "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-RECEIPT-PACKAGER",
+            "COVERAGE-RUN-PACKAGER", "EVIDENCE-SET-PACKAGER",
+            "JUDGE-PANEL-PACKAGER", "VERIFICATION-INPUT-PACKAGER",
+            "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER"
+          ]
+        },
+        "unboundImplementationStatus": {
+          "const": "BLOCKED_UNTIL_IMPLEMENTED_AND_RAW_HASH_BOUND"
+        },
+        "scoreBearingCaptureAllowed": {"const": false}
+      }
+    },
+    "fileHash": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "kind", "sha256"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|[a-z0-9][a-z0-9.-]+)$"},
+        "kind": {"enum": ["RUBRIC", "PROMPT", "SCHEMA", "AUTHORITY", "RECIPE", "POLICY", "TOOL"]},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "stageBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stageId", "producerType", "promptFile", "inputSchemas", "outputSchema",
+        "packagedOutputSchema", "authorities"
+      ],
+      "properties": {
+        "stageId": {
+          "enum": [
+            "CANDIDATE-MANIFEST-PACKAGER", "COLD-ACTOR", "COLD-PACKAGER",
+            "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-JUDGE",
+            "QUALIFICATION-RECEIPT-PACKAGER", "COVERAGE-RUN-PACKAGER",
+            "EVIDENCE-SET-PACKAGER", "CANDIDATE-JUDGE", "JUDGE-PANEL-PACKAGER",
+            "VERIFICATION-INPUT-PACKAGER", "EVIDENCE-VERIFIER",
+            "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER", "NATIVE-AGGREGATE"
+          ]
+        },
+        "producerType": {"enum": ["LLM", "DETERMINISTIC"]},
+        "promptFile": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9][a-z0-9.-]+$"
+        },
+        "inputSchemas": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]+\\.schema\\.json$"}
+        },
+        "outputSchema": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]+\\.schema\\.json$"},
+        "packagedOutputSchema": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z0-9][a-z0-9.-]+\\.schema\\.json$"
+        },
+        "authorities": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|[a-z0-9][a-z0-9.-]+)$"}
+        }
+      }
+    }
+  }
+}

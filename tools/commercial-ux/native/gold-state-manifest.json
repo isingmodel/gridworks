@@ -1,0 +1,621 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.gold-state-manifest.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "candidateIndependent": true,
+  "scoreBearingCapture": false,
+  "bindingComplete": false,
+  "scoreBearingCaptureAllowed": false,
+  "candidateExecutionPolicy": {
+    "candidateAuthorityHashOwner": "candidate manifest",
+    "candidateGoldBindingHashOwner": "binding manifest referenced by evaluation-run manifest",
+    "goldContractRole": "immutable recipe structure, semantic source references and typed checkpoint predicates",
+    "requiredCandidateAuthorityHashes": [
+      "world",
+      "campaign",
+      "coreReplay",
+      "coreContracts",
+      "deterministicWitness",
+      "nativeSmokeWitness",
+      "storyHarness",
+      "storyManifestOutput"
+    ],
+    "requiredCandidateBindingHashes": "accepted journal and canonical snapshot for every applicable prefix and checkpoint",
+    "candidateManifestValidation": "required before --require-score-ready can pass"
+  },
+  "nextRequiredGenerator": {
+    "status": "MISSING_IN_CURRENT_SCOPE",
+    "path": "tools/commercial-ux/native/capture-gold-state.py",
+    "commandTemplate": "python3 tools/commercial-ux/native/capture-gold-state.py --recipe tools/commercial-ux/native/coverage-recipe.json --holdout-recipe-id {RECIPE_ID} --native-executable {ABSOLUTE_NATIVE_EXECUTABLE} --output {ABSOLUTE_OUTPUT_DIRECTORY}",
+    "requiredOutputs": [
+      "candidate manifest with exact candidate source/output hashes",
+      "CommercialCampaignSaveCodec accepted-journal bytes, command count and SHA-256 at every applicable prefix and checkpoint",
+      "canonical CommercialCoreSnapshot plus typed Game presentation-state bytes and SHA-256 at every applicable prefix and checkpoint",
+      "process-separated pre-exit and post-resume equality records for E09 and E10"
+    ],
+    "blockingPrerequisite": "Implement a NORTH_BANK_PROMISE/NORTH_BANK_BUILD LineDrafting two-process witness for E09; the current native smoke resumes a different WHOSE_MARGIN draft."
+  },
+  "authorities": {
+    "world": {
+      "path": "data/release-world-v2.json",
+      "schemaVersion": "gridworks.commercial.world.v2",
+      "authorityId": "CHEONGRYU_COMMERCIAL_V2",
+      "candidateExecutionSha256": null
+    },
+    "campaign": {
+      "path": "data/release-campaign-v2.json",
+      "schemaVersion": "gridworks.commercial.campaign.v2",
+      "authorityId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "candidateExecutionSha256": null
+    },
+    "coverageRecipe": {
+      "path": "tools/commercial-ux/native/coverage-recipe.json",
+      "sha256": "sha256:dfb2e7950defe8d50073f26529b0ae2d0b2418f92884a412a802afd64d271c7d"
+    },
+    "conceptExposure": {
+      "path": "tools/commercial-ux/native/concept-exposure-manifest.json",
+      "sha256": "sha256:f010334c1ef5941e693ddf6ab8646e49ca261efae1c6c2c85cee090f30f58493"
+    },
+    "coreReplay": {
+      "path": "src/Gridworks.Core/Release/V2/CommercialCoreRun.cs",
+      "referenceMode": "PATH_AND_MEMBER_SEMANTIC",
+      "members": ["CommercialCoreRun", "GetSnapshot", "Replay"],
+      "candidateExecutionSha256": null
+    },
+    "coreContracts": {
+      "path": "src/Gridworks.Core/Release/V2/CommercialCoreRunContracts.cs",
+      "referenceMode": "PATH_AND_MEMBER_SEMANTIC",
+      "members": ["CommercialCoreSnapshot", "CommercialChapterResultRecord"],
+      "candidateExecutionSha256": null
+    },
+    "deterministicWitness": {
+      "path": "tools/Gridworks.CommercialChecks/Program.cs",
+      "referenceMode": "PATH_AND_MEMBER_SEMANTIC",
+      "members": ["CompleteCampaignFirstThree", "CompleteCampaignFirstFour", "CheckCommercialCampaignFinalEightEpilogue"],
+      "candidateExecutionSha256": null
+    },
+    "nativeSmokeWitness": {
+      "path": "game/CommercialMain.Smoke.cs",
+      "referenceMode": "PATH_AND_MEMBER_SEMANTIC",
+      "members": ["RunPresentationSmoke", "RunCampaignSmoke", "RunCampaignCompletionSmoke", "RunCampaignCompletedResumeSmoke"],
+      "candidateExecutionSha256": null
+    },
+    "storyHarness": {
+      "path": "tools/Gridworks.CommercialChecks/CommercialStoryPartHarness.cs",
+      "referenceMode": "PATH_AND_MEMBER_SEMANTIC",
+      "members": ["CommercialStoryPartHarness", "SerializeManifest"],
+      "candidateExecutionSha256": null
+    },
+    "storyManifest": {
+      "generator": "dotnet run --project tools/Gridworks.CommercialChecks/Gridworks.CommercialChecks.csproj -c Release -- --story-manifest",
+      "schemaVersion": "gridworks.commercial.story-manifest.v1",
+      "partCount": 26,
+      "resultPartCount": 12,
+      "candidateExecutionRawOutputSha256": null
+    }
+  },
+  "hashPolicy": {
+    "algorithm": "SHA-256",
+    "journalCanonicalization": "CommercialCampaignSaveCodec.Serialize exact bytes from accepted command journal prefix",
+    "snapshotCanonicalization": "Native evidence emitter canonical snapshot bytes; unavailable before the first recipe execution",
+    "captureCanonicalization": "Not owned by this manifest; no frame, video or audio hash is fabricated here",
+    "pendingStatus": "PENDING_NATIVE_REPLAY",
+    "unboundStatus": "UNBOUND_REQUIRED_WITNESS",
+    "notApplicableStatus": "NOT_APPLICABLE"
+  },
+  "prefixes": [
+    {
+      "prefixId": "PREFIX-FRESH-TITLE",
+      "replayAuthority": [
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunPresentationSmoke", "role": "fresh title and settings actual-input witness"}
+      ],
+      "expectedStart": {"snapshotRequired": false, "presentationMode": "Title"},
+      "journalBinding": {"status": "NOT_APPLICABLE", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "NOT_APPLICABLE", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-FIRST-LIGHT-START",
+      "replayAuthority": [
+        {"path": "src/Gridworks.Core/Release/V2/CommercialCoreRun.cs", "member": "CommercialCoreRun(CommercialWorldDefinition world, CommercialCampaignDefinition campaign)", "role": "empty accepted journal"},
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CompleteCampaignFirstThree", "role": "chapter-start prefix index 0 authority"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "FIRST_LIGHT", "decisionWindowId": "FIRST_LIGHT_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 0, "campaignComplete": false, "constructionPhase": "Ready"},
+      "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-SECOND-HEART-START",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CompleteCampaignFirstThree", "role": "take ChapterStartCommandCounts[1] accepted prefix"},
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunCampaignSmoke", "role": "actual-input transition witness"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "SECOND_HEART", "decisionWindowId": "SECOND_HEART_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 1, "campaignComplete": false, "constructionPhase": "Ready"},
+      "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-SECOND-SOURCE-START",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CompleteCampaignFirstThree", "role": "take ChapterStartCommandCounts[2] accepted prefix"},
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunCampaignSmoke", "role": "actual-input transition witness"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "SECOND_SOURCE", "decisionWindowId": "SECOND_SOURCE_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 2, "campaignComplete": false, "constructionPhase": "Ready"},
+      "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-NORTH-BANK-CHOICE",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CompleteCampaignFirstThree", "role": "complete accepted prefix"},
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunCampaignSmoke", "role": "actual-input choice witness"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "NORTH_BANK_PROMISE", "decisionWindowId": "NORTH_BANK_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 3, "campaignComplete": false, "constructionPhase": "Ready", "promiseDecision": null},
+      "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-WHOSE-MARGIN-CHOICE",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CompleteCampaignFirstFour", "role": "complete accepted keep-route prefix"},
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunCampaignSmoke", "role": "actual-input mission-five checkpoint witness"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "WHOSE_MARGIN", "decisionWindowId": "HOT_MARGIN_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 4, "campaignComplete": false, "constructionPhase": "Ready", "promiseDecision": null},
+      "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-FLOOD-START",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CheckCommercialCampaignFinalEightEpilogue", "role": "accepted mission-five standard/reinforced prototype prefix"},
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunCampaignCompletionSmoke", "role": "standard native-smoke carry route"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "BEFORE_WATER_REACHES", "decisionWindowId": "FLOOD_BYPASS_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 5, "campaignComplete": false, "constructionPhase": "Ready"},
+      "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-MAINTENANCE-CHOICE",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CheckCommercialCampaignFinalEightEpilogue", "role": "accepted mission-six standard/reinforced prototype prefix"},
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunCampaignCompletionSmoke", "role": "actual-input thermal-reset witness"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "SHUT_DOWN_TO_KEEP", "decisionWindowId": "MAINTENANCE_BYPASS_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 6, "campaignComplete": false, "constructionPhase": "Ready", "promiseDecision": null, "thermalMemoryProtectiveOutageCount": 0},
+      "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-FINALE-CHOICE",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CheckCommercialCampaignFinalEightEpilogue", "role": "accepted mission-seven standard/reinforced prototype prefix"},
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunCampaignCompletionSmoke", "role": "actual-input finale transition witness"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "LONGEST_NIGHT", "decisionWindowId": "LAST_NIGHT_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 7, "campaignComplete": false, "constructionPhase": "Ready", "promiseDecision": null},
+      "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-NORTH-BANK-MID-DRAFT",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CompleteCampaignFirstThree", "role": "chapter-four start authority only"},
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunCampaignCompletionSmoke", "role": "non-matching mission-five draft smoke; not accepted as this prefix"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "NORTH_BANK_PROMISE", "decisionWindowId": "NORTH_BANK_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 3, "campaignComplete": false, "constructionPhase": "LineDrafting", "lineDraftRequired": true},
+      "journalBinding": {"status": "UNBOUND_REQUIRED_WITNESS", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "UNBOUND_REQUIRED_WITNESS", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-CAMPAIGN-COMPLETE",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "CheckCommercialCampaignFinalEightEpilogue", "role": "eight-result accepted journal and fresh restore witness"},
+        {"path": "game/CommercialMain.Smoke.cs", "member": "RunCampaignCompletedResumeSmoke", "role": "fresh-process completed-resume witness"}
+      ],
+      "expectedStart": {"snapshotRequired": true, "chapterId": "LONGEST_NIGHT", "decisionWindowId": null, "decisionWindowIndex": 1, "chapterResultsCount": 8, "campaignComplete": true, "constructionPhase": "Ready"},
+      "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+    },
+    {
+      "prefixId": "PREFIX-STORY-MANIFEST",
+      "replayAuthority": [
+        {"path": "tools/Gridworks.CommercialChecks/CommercialStoryPartHarness.cs", "member": "CommercialStoryPartHarness", "role": "campaign-authority selector serialization"},
+        {"path": "tools/Gridworks.CommercialChecks/Program.cs", "member": "--story-manifest", "role": "stable 26-part CLI output"}
+      ],
+      "expectedStart": {"snapshotRequired": false, "storyPartCount": 26, "resultPartCount": 12},
+      "journalBinding": {"status": "NOT_APPLICABLE", "sha256": null, "commandCount": null},
+      "snapshotBinding": {"status": "NOT_APPLICABLE", "sha256": null}
+    }
+  ],
+  "episodes": [
+    {
+      "id": "E00-TITLE",
+      "prefixId": "PREFIX-FRESH-TITLE",
+      "checkpointBindings": [
+        {
+          "checkpointId": "title-default-focus",
+          "typedExpectations": {"core": {"snapshotRequired": false}, "presentation": {"mode": "Title", "focusedAction": "NewGame", "uiScalePercent": 100, "reduceMotion": false}},
+          "journalBinding": {"status": "NOT_APPLICABLE", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "NOT_APPLICABLE", "sha256": null}
+        },
+        {
+          "checkpointId": "settings-ui125-reduce-motion",
+          "typedExpectations": {"core": {"snapshotRequired": false}, "settings": {"uiScalePercent": 125, "reduceMotion": true}},
+          "journalBinding": {"status": "NOT_APPLICABLE", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "NOT_APPLICABLE", "sha256": null}
+        },
+        {
+          "checkpointId": "first-briefing-ui125",
+          "typedExpectations": {"core": {"snapshotRequired": true, "chapterId": "FIRST_LIGHT", "decisionWindowId": "FIRST_LIGHT_BUILD", "chapterResultsCount": 0, "campaignComplete": false, "constructionPhase": "Ready"}, "presentation": {"mode": "Briefing", "operationsLocked": true, "uiScalePercent": 125}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E01-FIRST-LIGHT",
+      "prefixId": "PREFIX-FIRST-LIGHT-START",
+      "checkpointBindings": [
+        {
+          "checkpointId": "first-operations",
+          "typedExpectations": {"core": {"chapterId": "FIRST_LIGHT", "decisionWindowId": "FIRST_LIGHT_BUILD", "chapterResultsCount": 0, "constructionPhase": "Ready"}, "presentation": {"mode": "Operations", "operationsLocked": false}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "first-invalid-placement",
+          "typedExpectations": {"core": {"chapterId": "FIRST_LIGHT", "constructionPhase": "Ready", "nodeDraftPresent": false}, "rejection": {"constructionError": "WaterFootprint", "stateMutation": false}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "first-node-draft-correction",
+          "typedExpectations": {"core": {"chapterId": "FIRST_LIGHT", "constructionPhase": "NodeDrafting", "nodeDraftPresent": true}, "draft": {"nodeClassId": "SMALL_SUBSTATION"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "first-line-draft-correction",
+          "typedExpectations": {"core": {"chapterId": "FIRST_LIGHT", "constructionPhase": "LineDrafting", "lineDraftPresent": true}, "draft": {"minimumIntermediatePointCount": 1, "undoMustReducePointCount": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "first-energized-path",
+          "typedExpectations": {"core": {"chapterId": "FIRST_LIGHT", "constructionPhase": "Ready"}, "preview": {"accepted": true, "phaseId": "FIRST_LIGHT_SERVICE", "suppliedDemandIds": ["FIRST_LIGHT_RESIDENTIAL"], "minimumPathEdgeCount": 1}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "first-ready-approval",
+          "typedExpectations": {"core": {"chapterId": "FIRST_LIGHT", "decisionWindowId": "FIRST_LIGHT_BUILD", "constructionPhase": "Ready"}, "preview": {"accepted": true, "projectedMinuteMaximum": 800}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "first-frozen-result",
+          "typedExpectations": {"core": {"chapterId": "SECOND_HEART", "chapterResultsCount": 1, "campaignComplete": false}, "frozenResult": {"chapterId": "FIRST_LIGHT", "storySelector": "FIRST_LIGHT/result/standard", "promiseDecision": null}, "presentation": {"mode": "Result", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E02-SECOND-HEART",
+      "prefixId": "PREFIX-SECOND-HEART-START",
+      "checkpointBindings": [
+        {
+          "checkpointId": "corridor-test-briefing",
+          "typedExpectations": {"core": {"chapterId": "SECOND_HEART", "decisionWindowId": "SECOND_HEART_BUILD", "chapterResultsCount": 1}, "phaseIds": ["NORTH_CORRIDOR_TEST", "RIVER_CORRIDOR_TEST"], "presentation": {"mode": "Briefing", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "shared-risk-rejection",
+          "typedExpectations": {"core": {"chapterId": "SECOND_HEART", "chapterResultsCount": 1}, "preview": {"accepted": false, "error": "SafetyDutyFailed", "stateMutation": false}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "independent-route-comparison",
+          "typedExpectations": {"core": {"chapterId": "SECOND_HEART"}, "preview": {"accepted": true, "suppliedDemandIds": ["HOSPITAL_NORTH_TEST", "HOSPITAL_RIVER_TEST"], "distinctPathEdgeSequences": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "second-heart-result",
+          "typedExpectations": {"core": {"chapterId": "SECOND_SOURCE", "chapterResultsCount": 2}, "frozenResult": {"chapterId": "SECOND_HEART", "storySelector": "SECOND_HEART/result/standard"}, "presentation": {"mode": "Result", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E03-SECOND-SOURCE",
+      "prefixId": "PREFIX-SECOND-SOURCE-START",
+      "checkpointBindings": [
+        {
+          "checkpointId": "source-acceptance-window",
+          "typedExpectations": {"core": {"chapterId": "SECOND_SOURCE", "decisionWindowId": "SECOND_SOURCE_BUILD", "chapterResultsCount": 2}, "phase": {"phaseId": "WEST_SOURCE_ACCEPTANCE_TEST", "unavailableAssetIds": ["WEST_SOURCE"]}, "presentation": {"mode": "WindowStory", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "source-capacity-comparison",
+          "typedExpectations": {"core": {"chapterId": "SECOND_SOURCE"}, "preview": {"accepted": true, "suppliedDemandIds": ["ACCEPTANCE_RESIDENTIAL", "ACCEPTANCE_HOSPITAL"], "requiredSourceNodeId": "WEST_AUXILIARY", "minimumPathEdgeCount": 1}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "tutorial-handoff-result",
+          "typedExpectations": {"core": {"chapterId": "NORTH_BANK_PROMISE", "chapterResultsCount": 3}, "frozenResult": {"chapterId": "SECOND_SOURCE", "storySelector": "SECOND_SOURCE/result/standard"}, "presentation": {"mode": "Result", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E04-NORTH-BANK",
+      "prefixId": "PREFIX-NORTH-BANK-CHOICE",
+      "checkpointBindings": [
+        {
+          "checkpointId": "north-bank-choice",
+          "typedExpectations": {"core": {"chapterId": "NORTH_BANK_PROMISE", "decisionWindowId": "NORTH_BANK_BUILD", "chapterResultsCount": 3, "promiseDecision": null}, "previewWithoutChoice": {"accepted": false, "error": "PromiseDecisionRequired"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "north-bank-first-result",
+          "typedExpectations": {"core": {"chapterId": "WHOSE_MARGIN", "chapterResultsCount": 4}, "branch": {"selectionRule": "coverage recipe branchOrder[0]", "allowedPromiseDecisions": ["Keep", "Defer"]}, "presentation": {"mode": "Result", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "north-bank-keep-result",
+          "typedExpectations": {"core": {"chapterId": "WHOSE_MARGIN", "chapterResultsCount": 4}, "result": {"completedChapterId": "NORTH_BANK_PROMISE", "promiseDecision": "Keep", "storySelector": "NORTH_BANK_PROMISE/result/keep", "requiredSuppliedDemandId": "NORTH_BANK_PROMISE_LOAD"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "north-bank-defer-result",
+          "typedExpectations": {"core": {"chapterId": "WHOSE_MARGIN", "chapterResultsCount": 4}, "result": {"completedChapterId": "NORTH_BANK_PROMISE", "promiseDecision": "Defer", "storySelector": "NORTH_BANK_PROMISE/result/defer", "requiredDeferredDemandId": "NORTH_BANK_PROMISE_LOAD"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E05-WHOSE-MARGIN",
+      "prefixId": "PREFIX-WHOSE-MARGIN-CHOICE",
+      "checkpointBindings": [
+        {
+          "checkpointId": "heat-promise-choice",
+          "typedExpectations": {"core": {"chapterId": "WHOSE_MARGIN", "decisionWindowId": "HOT_MARGIN_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 4, "promiseDecision": null}, "phase": {"phaseId": "HOT_MARGIN_EVENING", "policy": "SafetyEmergencyAllowed"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "emergency-use",
+          "typedExpectations": {"core": {"chapterId": "WHOSE_MARGIN", "decisionWindowIndex": 0}, "variantExpectations": {"MISSION5=0": {"prototype": "STANDARD_LINE", "previewAccepted": true, "minimumEmergencyAssetCount": 1}, "MISSION5=1": {"prototype": "REINFORCED_LINE", "previewAccepted": true, "emergencyAssetCount": 0}}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "protective-shutdown",
+          "typedExpectations": {"core": {"chapterId": "WHOSE_MARGIN", "decisionWindowId": "AFTER_HEAT_SAFETY", "decisionWindowIndex": 1}, "variantExpectations": {"MISSION5=0": {"minimumProtectiveOutageAssetCount": 1}, "MISSION5=1": {"protectiveOutageAssetCount": 0}}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "whose-margin-keep-result",
+          "typedExpectations": {"core": {"chapterId": "BEFORE_WATER_REACHES", "chapterResultsCount": 5}, "result": {"completedChapterId": "WHOSE_MARGIN", "promiseDecision": "Keep", "storySelector": "WHOSE_MARGIN/result/keep", "requiredSuppliedDemandId": "INDUSTRY_MARGIN_PROMISE"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "whose-margin-defer-result",
+          "typedExpectations": {"core": {"chapterId": "BEFORE_WATER_REACHES", "chapterResultsCount": 5}, "result": {"completedChapterId": "WHOSE_MARGIN", "promiseDecision": "Defer", "storySelector": "WHOSE_MARGIN/result/defer", "requiredDeferredDemandId": "INDUSTRY_MARGIN_PROMISE"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E06-FLOOD",
+      "prefixId": "PREFIX-FLOOD-START",
+      "checkpointBindings": [
+        {
+          "checkpointId": "flood-deadline",
+          "typedExpectations": {"core": {"chapterId": "BEFORE_WATER_REACHES", "decisionWindowId": "FLOOD_BYPASS_BUILD", "chapterResultsCount": 5}, "chapter": {"deadlineMinute": 360}, "phase": {"phaseId": "RIVER_FLOOD_PEAK", "activeRiskAreaIds": ["RIVER_FLOOD_ZONE"]}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "flood-invalid-approval",
+          "typedExpectations": {"core": {"chapterId": "BEFORE_WATER_REACHES"}, "preview": {"accepted": false, "allowedErrors": ["DeadlineExceeded", "SafetyDutyFailed"], "stateMutation": false}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "flood-hazard-state",
+          "typedExpectations": {"core": {"chapterId": "BEFORE_WATER_REACHES"}, "phase": {"phaseId": "RIVER_FLOOD_PEAK", "activeRiskAreaIds": ["RIVER_FLOOD_ZONE"], "requiredDemandIds": ["FLOOD_WATER_DUTY", "FLOOD_HOSPITAL_DUTY", "FLOOD_RESIDENTIAL_RECORD"]}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "flood-recovered-path",
+          "typedExpectations": {"core": {"chapterId": "BEFORE_WATER_REACHES", "constructionPhase": "Ready"}, "preview": {"accepted": true, "requiredSuppliedDemandIds": ["FLOOD_WATER_DUTY", "FLOOD_HOSPITAL_DUTY"]}, "variantExpectations": {"MISSION6=0": {"prototype": "STANDARD_LINE", "minimumHospitalEmergencyAssetCount": 1}, "MISSION6=1": {"prototype": "REINFORCED_LINE", "hospitalEmergencyAssetCount": 0}}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "flood-result",
+          "typedExpectations": {"core": {"chapterId": "SHUT_DOWN_TO_KEEP", "chapterResultsCount": 6, "thermalMemoryProtectiveOutageCount": 0}, "result": {"completedChapterId": "BEFORE_WATER_REACHES", "storySelector": "BEFORE_WATER_REACHES/result/standard"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E07-MAINTENANCE",
+      "prefixId": "PREFIX-MAINTENANCE-CHOICE",
+      "checkpointBindings": [
+        {
+          "checkpointId": "maintenance-briefing",
+          "typedExpectations": {"core": {"chapterId": "SHUT_DOWN_TO_KEEP", "decisionWindowId": "MAINTENANCE_BYPASS_BUILD", "chapterResultsCount": 6, "thermalMemoryProtectiveOutageCount": 0}, "chapter": {"resetThermalMemoryAtStart": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "planned-source-outage",
+          "typedExpectations": {"core": {"chapterId": "SHUT_DOWN_TO_KEEP"}, "phase": {"phaseId": "WEST_SOURCE_MAINTENANCE", "unavailableAssetIds": ["WEST_SOURCE"], "activeRiskAreaIds": ["RIVER_FLOOD_ZONE"]}, "variantExpectations": {"MISSION7=0": {"prototype": "STANDARD_LINE", "previewAccepted": true}, "MISSION7=1": {"prototype": "REINFORCED_LINE", "previewAccepted": true}}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "maintenance-keep-result",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "chapterResultsCount": 7}, "result": {"completedChapterId": "SHUT_DOWN_TO_KEEP", "promiseDecision": "Keep", "storySelector": "SHUT_DOWN_TO_KEEP/result/keep", "requiredSuppliedDemandId": "MAINTENANCE_INDUSTRY_PROMISE"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "maintenance-defer-result",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "chapterResultsCount": 7}, "result": {"completedChapterId": "SHUT_DOWN_TO_KEEP", "promiseDecision": "Defer", "storySelector": "SHUT_DOWN_TO_KEEP/result/defer", "requiredDeferredDemandId": "MAINTENANCE_INDUSTRY_PROMISE"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E08-FINALE",
+      "prefixId": "PREFIX-FINALE-CHOICE",
+      "checkpointBindings": [
+        {
+          "checkpointId": "finale-promise-choice",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "decisionWindowId": "LAST_NIGHT_BUILD", "decisionWindowIndex": 0, "chapterResultsCount": 7, "promiseDecision": null}, "phase": {"phaseId": "LAST_HEAT", "policy": "SafetyEmergencyAllowed"}, "promiseDemandId": "LAST_NIGHT_INDUSTRY_PROMISE"},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "finale-heat",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "decisionWindowId": "LAST_NIGHT_BUILD", "decisionWindowIndex": 0}, "preview": {"accepted": true, "phaseId": "LAST_HEAT"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "finale-storm",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "decisionWindowId": "LAST_STORM_APPROVAL", "decisionWindowIndex": 1}, "phase": {"phaseId": "LAST_STORM", "policy": "ContinuousOnly", "unavailableAssetIds": ["WEST_SOURCE"], "activeRiskAreaIds": ["RIVER_FLOOD_ZONE"]}, "preview": {"accepted": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "finale-keep-result",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "chapterResultsCount": 8, "campaignComplete": true}, "result": {"completedChapterId": "LONGEST_NIGHT", "promiseDecision": "Keep", "storySelector": "LONGEST_NIGHT/result/keep", "requiredSuppliedDemandId": "LAST_NIGHT_INDUSTRY_PROMISE"}, "presentation": {"mode": "Result", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "finale-defer-result",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "chapterResultsCount": 8, "campaignComplete": true}, "result": {"completedChapterId": "LONGEST_NIGHT", "promiseDecision": "Defer", "storySelector": "LONGEST_NIGHT/result/defer", "requiredDeferredDemandId": "LAST_NIGHT_INDUSTRY_PROMISE"}, "presentation": {"mode": "Result", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "finale-result-to-epilogue",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "chapterResultsCount": 8, "campaignComplete": true}, "story": {"selector": "campaign/epilogue", "title": "청류시 전력망 운영 인계"}, "presentation": {"mode": "Epilogue", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "completed-chapter-select",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "chapterResultsCount": 7, "campaignComplete": false, "decisionWindowId": "LAST_NIGHT_BUILD", "decisionWindowIndex": 0}, "chapterSelection": {"selectedChapterIndex": 7, "selectedChapterId": "LONGEST_NIGHT"}, "presentation": {"mode": "Briefing", "operationsLocked": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E09-MID-RESUME",
+      "prefixId": "PREFIX-NORTH-BANK-MID-DRAFT",
+      "checkpointBindings": [
+        {
+          "checkpointId": "mid-save-before-exit",
+          "typedExpectations": {"core": {"chapterId": "NORTH_BANK_PROMISE", "decisionWindowId": "NORTH_BANK_BUILD", "chapterResultsCount": 3, "campaignComplete": false, "constructionPhase": "LineDrafting", "lineDraftPresent": true}, "save": {"mustContainExactAcceptedJournal": true}},
+          "journalBinding": {"status": "UNBOUND_REQUIRED_WITNESS", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "UNBOUND_REQUIRED_WITNESS", "sha256": null}
+        },
+        {
+          "checkpointId": "resume-orientation",
+          "typedExpectations": {"core": {"chapterId": "NORTH_BANK_PROMISE", "chapterResultsCount": 3, "constructionPhase": "LineDrafting", "lineDraftPresent": true}, "presentation": {"mode": "ResumeOrientation", "operationsLocked": true}, "replay": {"journalAndSnapshotMustEqualPreExit": true}},
+          "journalBinding": {"status": "UNBOUND_REQUIRED_WITNESS", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "UNBOUND_REQUIRED_WITNESS", "sha256": null}
+        },
+        {
+          "checkpointId": "resumed-editable-draft",
+          "typedExpectations": {"core": {"chapterId": "NORTH_BANK_PROMISE", "chapterResultsCount": 3, "constructionPhase": "LineDrafting", "lineDraftPresent": true}, "presentation": {"mode": "Operations", "operationsLocked": false}, "draft": {"addThenUndoMustRestoreSnapshot": true}},
+          "journalBinding": {"status": "UNBOUND_REQUIRED_WITNESS", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "UNBOUND_REQUIRED_WITNESS", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E10-COMPLETE-RESUME",
+      "prefixId": "PREFIX-CAMPAIGN-COMPLETE",
+      "checkpointBindings": [
+        {
+          "checkpointId": "completed-save-before-exit",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "chapterResultsCount": 8, "campaignComplete": true}, "save": {"mustContainExactAcceptedJournal": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "completed-resume-select",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "chapterResultsCount": 8, "campaignComplete": true}, "presentation": {"mode": "ResumeOrientation", "operationsLocked": true}, "replay": {"journalAndSnapshotMustEqualPreExit": true}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        },
+        {
+          "checkpointId": "selected-chapter-briefing",
+          "typedExpectations": {"core": {"chapterId": "LONGEST_NIGHT", "chapterResultsCount": 7, "campaignComplete": false, "decisionWindowId": "LAST_NIGHT_BUILD", "decisionWindowIndex": 0}, "presentation": {"mode": "Briefing", "operationsLocked": true}, "chapterSelection": {"selectedChapterIndex": 7, "selectedChapterId": "LONGEST_NIGHT"}},
+          "journalBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "PENDING_NATIVE_REPLAY", "sha256": null}
+        }
+      ]
+    },
+    {
+      "id": "E11-AUTHORED-TEXT",
+      "prefixId": "PREFIX-STORY-MANIFEST",
+      "checkpointBindings": [
+        {
+          "checkpointId": "native-story-manifest-binding",
+          "typedExpectations": {"core": {"snapshotRequired": false}, "story": {"schemaVersion": "gridworks.commercial.story-manifest.v1", "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2", "partCount": 26, "briefingCount": 8, "windowCount": 5, "resultCount": 12, "epilogueCount": 1, "nativeIdentityRequired": true, "candidateExecutionRawOutputSha256Required": true}},
+          "journalBinding": {"status": "NOT_APPLICABLE", "sha256": null, "commandCount": null},
+          "snapshotBinding": {"status": "NOT_APPLICABLE", "sha256": null}
+        }
+      ]
+    }
+  ],
+  "knownLimitations": [
+    {
+      "id": "GL01-NO-EXECUTION-HASHES",
+      "status": "EXPECTED_PRE_EXECUTION",
+      "detail": "This gold contract intentionally leaves candidate source, accepted-journal and canonical snapshot hashes null. The candidate manifest owns exact source/output hashes; the generated binding manifest owns checkpoint journal/snapshot hashes and the evaluation-run manifest references that binding. Filling this contract would fabricate execution evidence and couple it to one candidate."
+    },
+    {
+      "id": "GL02-E09-WITNESS-MISMATCH",
+      "status": "BLOCKS_SCORE_BEARING_READINESS",
+      "detail": "The frozen E09 prefix names a North Bank chapter-four mid-draft. Current RunCampaignCompletionSmoke proves a different WHOSE_MARGIN mission-five INDUSTRY_TERMINAL draft, so it is not accepted as the E09 gold witness."
+    },
+    {
+      "id": "GL03-PRESENTATION-NOT-CORE",
+      "status": "EXPECTED_PRE_EXECUTION",
+      "detail": "Briefing, Result, ResumeOrientation and Epilogue modes are typed Game adapter state, not fields in CommercialCoreSnapshot. They require the native evidence emitter and cannot receive Core snapshot hashes from source inspection alone."
+    },
+    {
+      "id": "GL04-PROTOTYPE-HASH-FANOUT",
+      "status": "EXPECTED_PRE_EXECUTION",
+      "detail": "Mission 5, 6 and 7 standard/reinforced prototype hashes depend on the selected holdout bits. Each consumed recipe must bind its chosen variant after exact accepted replay; variants must not share one invented hash."
+    },
+    {
+      "id": "GL05-NO-MEDIA-EVIDENCE",
+      "status": "EXPECTED_PRE_EXECUTION",
+      "detail": "This candidate-independent contract contains no frame, video or audio artifact and cannot support a judge label by itself."
+    }
+  ]
+}

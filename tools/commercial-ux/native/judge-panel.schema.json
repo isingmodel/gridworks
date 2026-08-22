@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-judge-panel-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "judgePanelSha256", "candidateManifestSha256",
+    "qualificationReceiptSha256", "evaluationPhase", "officialCommercialUX", "recipeId",
+    "evidenceSetSha256", "model", "reasoningEffort", "transportVersion",
+    "promptTemplateSha256", "judgmentSchemaSha256", "rubricSha256", "panelKind",
+    "changedLanes", "replacementForPanelSha256", "replacementAuthoritySha256",
+    "artifactOrder", "slots"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-judge-panel.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "judgePanelSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationPhase": {"enum": ["FORMATIVE", "OFFICIAL_HOLDOUT"]},
+    "officialCommercialUX": {"type": "boolean"},
+    "recipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+    "model": {"const": "gpt-5.6-sol"},
+    "reasoningEffort": {"const": "ultra"},
+    "transportVersion": {"type": "string", "minLength": 1, "maxLength": 200},
+    "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
+    "judgmentSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "rubricSha256": {"$ref": "#/$defs/sha256"},
+    "panelKind": {"enum": ["INITIAL", "REPLACEMENT"]},
+    "changedLanes": {"$ref": "#/$defs/laneIds"},
+    "replacementForPanelSha256": {
+      "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+    },
+    "replacementAuthoritySha256": {
+      "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+    },
+    "artifactOrder": {
+      "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"}
+    },
+    "slots": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "prefixItems": [
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "JUDGE-01"}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "JUDGE-02"}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "JUDGE-03"}}}
+      ],
+      "items": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"evaluationPhase": {"const": "FORMATIVE"}}, "required": ["evaluationPhase"]},
+      "then": {"properties": {"officialCommercialUX": {"const": false}, "recipeId": {"const": "FORMATIVE-01"}}},
+      "else": {"properties": {"officialCommercialUX": {"const": true}, "recipeId": {"pattern": "^HOLDOUT-0[1-8]$"}}}
+    },
+    {
+      "if": {"properties": {"panelKind": {"const": "INITIAL"}}, "required": ["panelKind"]},
+      "then": {
+        "properties": {
+          "changedLanes": {"const": ["COLD-JOURNEY", "COVERAGE-JOURNEY"]},
+          "replacementForPanelSha256": {"type": "null"},
+          "replacementAuthoritySha256": {"type": "null"}
+        }
+      },
+      "else": {
+        "properties": {
+          "changedLanes": {"minItems": 1},
+          "replacementForPanelSha256": {"$ref": "#/$defs/sha256"},
+          "replacementAuthoritySha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "laneIds": {
+      "type": "array", "maxItems": 2, "uniqueItems": true,
+      "items": {"enum": ["COLD-JOURNEY", "COVERAGE-JOURNEY"]}
+    },
+    "slot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["slotId", "judgeRunId", "judgeInputSha256", "judgmentRawSha256"],
+      "properties": {
+        "slotId": {"enum": ["JUDGE-01", "JUDGE-02", "JUDGE-03"]},
+        "judgeRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "judgeInputSha256": {"$ref": "#/$defs/sha256"},
+        "judgmentRawSha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

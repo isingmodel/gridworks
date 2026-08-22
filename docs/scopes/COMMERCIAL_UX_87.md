@@ -62,6 +62,7 @@ LLM 플레이까지 포함하도록 승인했다.
 | 화면 표현·입력 | `game/Commercial*.cs`, `game/Commercial*.tscn` |
 | 결정론적 검사 | `tools/Gridworks.CommercialChecks`와 상용 UX 전용 도구 |
 | LLM 평가 절차 | `docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md` |
+| Native 실행·qualification·holdout·provenance | `docs/product/COMMERCIAL_UX_NATIVE_EVALUATOR_ADDENDUM_KO.md` |
 | 실행 증거 | `playtests/commercial-ux-87/` |
 
 Game은 story와 결과 사실을 다시 만들지 않고 Core/campaign의 typed 값을 표현한다. 평가용 selector는
@@ -178,3 +179,24 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
   actor·blind judge 점수는 아직 실행하지 않았으며 이 기록은 `CommercialUXProxy`를 소유하지 않는다.
 - exact fix `f7066f8`의 독립 재검토는 이전 P1 2건과 P2 2건이 모두 닫혔고 새 finding 없이
   **P0 0 / P1 0 / P2 0**임을 확인했다. Gate C를 닫고 Gate D의 frozen evidence 구축으로 이동한다.
+
+## 10. 진행 기록 — 2026-08-23 Gate D pre-capture
+
+- 텍스트 후보 2의 허용된 fresh replacement panel은 `TextPlanProxy = 94.6625`,
+  `SCORED_FORMATIVE`였다. blind evidence verifier의 177개 판정은 `SUPPORTED 155 / PARTIAL 22 /
+  UNSUPPORTED 0`이어서 최종 상태는 `BLOCKED_EVIDENCE_VERIFICATION`이다. 이 텍스트 수치는
+  공식 `CommercialUXProxy`가 아니고, 해당 panel의 결론을 제품 수정 근거로 사용하지 않는다.
+- [native evaluator v1.1 실행 부록](../product/COMMERCIAL_UX_NATIVE_EVALUATOR_ADDENDUM_KO.md)은 고정
+  `gpt-5.6-sol` ultra, candidate 노출 전 qualification 20 anchors, 3 cold actor artifact+1 coverage
+  envelope, 동일 evidence set의 3 blind judge, label-blind verifier와 deterministic oracle를 정의한다.
+  `FORMATIVE-01`과 `HOLDOUT-01`~`HOLDOUT-08`, 호출·artifact·receipt·replacement·집계 provenance를
+  첫 score-bearing native capture 전에 함께 동결했다.
+- native schema 21개·contract 23개·gold-state 11개·aggregate 44개 결정론적 검사,
+  CommercialChecks 24/2,910, Debug·Release 0 warning/error는 통과했지만 score-ready 상태가
+  아니다. gold-state에
+  native replay owner 52개가 `PENDING_NATIVE_REPLAY` 상태이고 E09 alternate-future witness 4개가
+  미바인딩이며, 스코어 입력을 생성하는 deterministic producer stage 10개의 구현과 exact raw
+  SHA binding이 남아 있다. 모두 닫히기 전 상태는 `BLOCKED_PRE_CAPTURE`이다.
+- Gate C의 fresh campaign·resume·viewport smoke는 결정론적 개발 증거로만 보존한다. v1.1
+  계약 동결 전에 생성된 화면·pilot·smoke를 official cold/coverage artifact나 score evidence로
+  승격시키지 않는다. 현재 official cold actor, blind judge, native `CommercialUXProxy`는 미실행이다.

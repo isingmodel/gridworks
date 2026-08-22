@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-candidate-manifest-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "candidateManifestSha256",
+    "candidateId",
+    "evaluationPhase",
+    "officialCommercialUX",
+    "source",
+    "evaluator",
+    "contractHashes",
+    "authorityHashes",
+    "recipes",
+    "execution"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "gridworks.commercial-ux.candidate-manifest.v1"
+    },
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "candidateId": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+    "evaluationPhase": {"enum": ["FORMATIVE", "OFFICIAL_HOLDOUT"]},
+    "officialCommercialUX": {"type": "boolean"},
+    "source": {"$ref": "#/$defs/source"},
+    "evaluator": {"$ref": "#/$defs/evaluator"},
+    "contractHashes": {"$ref": "#/$defs/contractHashes"},
+    "authorityHashes": {"$ref": "#/$defs/authorityHashes"},
+    "recipes": {"$ref": "#/$defs/recipes"},
+    "execution": {"$ref": "#/$defs/execution"}
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"evaluationPhase": {"const": "FORMATIVE"}},
+        "required": ["evaluationPhase"]
+      },
+      "then": {
+        "properties": {
+          "officialCommercialUX": {"const": false},
+          "recipes": {
+            "properties": {"selectedRecipeId": {"const": "FORMATIVE-01"}}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "officialCommercialUX": {"const": true},
+          "recipes": {
+            "properties": {"selectedRecipeId": {"pattern": "^HOLDOUT-0[1-8]$"}}
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "cleanTree"],
+      "properties": {
+        "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "cleanTree": {"const": true}
+      }
+    },
+    "evaluator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resolvedModelId",
+        "reasoningEffort",
+        "actorCount",
+        "judgeCount",
+        "verifierCount",
+        "transportVersion",
+        "samplingSupported",
+        "seedSupported",
+        "samplingValue",
+        "seedValue"
+      ],
+      "properties": {
+        "resolvedModelId": {"const": "gpt-5.6-sol"},
+        "reasoningEffort": {"const": "ultra"},
+        "actorCount": {"const": 3},
+        "judgeCount": {"const": 3},
+        "verifierCount": {"const": 1},
+        "transportVersion": {"type": "string", "minLength": 1, "maxLength": 200},
+        "samplingSupported": {"type": "boolean"},
+        "seedSupported": {"type": "boolean"},
+        "samplingValue": {"type": ["string", "null"], "minLength": 1, "maxLength": 100},
+        "seedValue": {"type": ["integer", "null"]}
+      }
+    },
+    "contractHashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contractBindingsSha256",
+        "canonicalHashPolicySha256",
+        "nativeAggregatorSha256",
+        "rubricSha256",
+        "coldActorPromptSha256",
+        "actorObservationSchemaSha256",
+        "actorTraceSchemaSha256",
+        "coverageTraceSchemaSha256",
+        "evidenceSetSchemaSha256",
+        "nativeJudgePromptSha256",
+        "nativeJudgeSchemaSha256",
+        "judgePanelSchemaSha256",
+        "qualificationInputSchemaSha256",
+        "qualificationReceiptSchemaSha256",
+        "nativeVerifierPromptSha256",
+        "nativeVerifierInputSchemaSha256",
+        "nativeVerifierSchemaSha256",
+        "oracleHardGateSchemaSha256",
+        "nativeAggregationInputSchemaSha256",
+        "nativeScorecardSchemaSha256",
+        "evaluationRunManifestSchemaSha256",
+        "nativeReplacementReceiptSchemaSha256"
+      ],
+      "properties": {
+        "contractBindingsSha256": {"$ref": "#/$defs/sha256"},
+        "canonicalHashPolicySha256": {"$ref": "#/$defs/sha256"},
+        "nativeAggregatorSha256": {"$ref": "#/$defs/sha256"},
+        "rubricSha256": {"$ref": "#/$defs/sha256"},
+        "coldActorPromptSha256": {"$ref": "#/$defs/sha256"},
+        "actorObservationSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "actorTraceSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "coverageTraceSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "evidenceSetSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "nativeJudgePromptSha256": {"$ref": "#/$defs/sha256"},
+        "nativeJudgeSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "judgePanelSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "qualificationInputSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "qualificationReceiptSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "nativeVerifierPromptSha256": {"$ref": "#/$defs/sha256"},
+        "nativeVerifierInputSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "nativeVerifierSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "oracleHardGateSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "nativeAggregationInputSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "nativeScorecardSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationRunManifestSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "nativeReplacementReceiptSchemaSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "authorityHashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "world",
+        "campaign",
+        "coreReplay",
+        "coreContracts",
+        "deterministicWitness",
+        "nativeSmokeWitness",
+        "storyHarness",
+        "storyManifestOutput"
+      ],
+      "properties": {
+        "world": {"$ref": "#/$defs/sha256"},
+        "campaign": {"$ref": "#/$defs/sha256"},
+        "coreReplay": {"$ref": "#/$defs/sha256"},
+        "coreContracts": {"$ref": "#/$defs/sha256"},
+        "deterministicWitness": {"$ref": "#/$defs/sha256"},
+        "nativeSmokeWitness": {"$ref": "#/$defs/sha256"},
+        "storyHarness": {"$ref": "#/$defs/sha256"},
+        "storyManifestOutput": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "recipes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coldJourneySha256",
+        "coverageSha256",
+        "holdoutQueueSha256",
+        "selectedRecipeId",
+        "selectedRecipeSha256",
+        "conceptExposureSha256",
+        "goldStateContractSha256",
+        "qualificationAnchorsSha256"
+      ],
+      "properties": {
+        "coldJourneySha256": {"$ref": "#/$defs/sha256"},
+        "coverageSha256": {"$ref": "#/$defs/sha256"},
+        "holdoutQueueSha256": {"$ref": "#/$defs/sha256"},
+        "selectedRecipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+        "selectedRecipeSha256": {"$ref": "#/$defs/sha256"},
+        "conceptExposureSha256": {"$ref": "#/$defs/sha256"},
+        "goldStateContractSha256": {"$ref": "#/$defs/sha256"},
+        "qualificationAnchorsSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "os",
+        "architecture",
+        "viewport",
+        "uiScalesPercent",
+        "inputModes",
+        "reduceMotionValues",
+        "audioPercent",
+        "godotVersion",
+        "godotExecutableSha256",
+        "managedAssemblySha256",
+        "pckResourceManifestSha256",
+        "executionArtifactSha256",
+        "packageSha256",
+        "packageStatus"
+      ],
+      "properties": {
+        "os": {"type": "string", "minLength": 1, "maxLength": 160},
+        "architecture": {"type": "string", "minLength": 1, "maxLength": 80},
+        "viewport": {"const": "1920x1080"},
+        "uiScalesPercent": {"const": [100, 125]},
+        "inputModes": {
+          "const": ["POINTER_KEYBOARD_ACTUAL_INPUT", "KEYBOARD_ONLY_ACTUAL_INPUT"]
+        },
+        "reduceMotionValues": {"const": [false, true]},
+        "audioPercent": {"const": 100},
+        "godotVersion": {"type": "string", "minLength": 1, "maxLength": 200},
+        "godotExecutableSha256": {"$ref": "#/$defs/sha256"},
+        "managedAssemblySha256": {"$ref": "#/$defs/sha256"},
+        "pckResourceManifestSha256": {"$ref": "#/$defs/sha256"},
+        "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "packageSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "packageStatus": {
+          "enum": ["EDITOR_NATIVE_NOT_PUBLIC_PACKAGE", "INTERNAL_APP_BUNDLE"]
+        }
+      }
+    }
+  }
+}

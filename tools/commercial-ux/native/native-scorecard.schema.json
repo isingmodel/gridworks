@@ -1,0 +1,794 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-scorecard-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "metric",
+    "scorecardId",
+    "recipeId",
+    "officialCommercialUX",
+    "status",
+    "verdict",
+    "commercialUXProxy",
+    "rawCommercialUX",
+    "rawSpread",
+    "disagreementPenalty",
+    "activeCap",
+    "cellScores",
+    "categoryScores",
+    "hardGates",
+    "criticalIncidents",
+    "differenceReport",
+    "qualificationStatus",
+    "evidenceVerificationStatus",
+    "stabilityStatus",
+    "provenance",
+    "humanValidationStatus",
+    "panelKind",
+    "judgeRunIds",
+    "judgePanelSha256",
+    "panelArtifactBindings",
+    "laneInputs",
+    "unstableLanes",
+    "replacementRequiredLanes",
+    "rerunRequired",
+    "replacementForPanelSha256",
+    "replacementReceiptPath",
+    "replacementReceiptSha256",
+    "verificationInputSha256"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-scorecard.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "metric": {"const": "CommercialUXProxy"},
+    "scorecardId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "recipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "officialCommercialUX": {"type": "boolean"},
+    "status": {"$ref": "#/$defs/status"},
+    "verdict": {
+      "oneOf": [
+        {"$ref": "#/$defs/finalVerdict"},
+        {"type": "null"}
+      ]
+    },
+    "commercialUXProxy": {"oneOf": [{"$ref": "#/$defs/score"}, {"type": "null"}]},
+    "rawCommercialUX": {"oneOf": [{"$ref": "#/$defs/score"}, {"type": "null"}]},
+    "rawSpread": {"oneOf": [{"$ref": "#/$defs/spread"}, {"type": "null"}]},
+    "disagreementPenalty": {
+      "oneOf": [
+        {"type": "number", "minimum": 0, "maximum": 8},
+        {"type": "null"}
+      ]
+    },
+    "activeCap": {
+      "oneOf": [
+        {"enum": [100, 79, 69, 49]},
+        {"type": "null"}
+      ]
+    },
+    "cellScores": {
+      "oneOf": [
+        {"$ref": "#/$defs/cellScores"},
+        {"type": "null"}
+      ]
+    },
+    "categoryScores": {
+      "oneOf": [
+        {"$ref": "#/$defs/categoryScores"},
+        {"type": "null"}
+      ]
+    },
+    "hardGates": {"$ref": "#/$defs/hardGates"},
+    "criticalIncidents": {
+      "type": "array",
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/criticalIncident"}
+    },
+    "differenceReport": {"$ref": "#/$defs/differenceReport"},
+    "qualificationStatus": {"enum": ["PASS", "BLOCKED_JUDGE_QUALIFICATION"]},
+    "evidenceVerificationStatus": {
+      "enum": ["NOT_EVALUATED", "VERIFIED_SUPPORTED_ONLY", "BLOCKED_EVIDENCE_VERIFICATION"]
+    },
+    "stabilityStatus": {"enum": ["STABLE", "RERUN_REQUIRED", "BLOCKED_JUDGE_INSTABILITY"]},
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "humanValidationStatus": {"const": "NOT_COLLECTED"},
+    "panelKind": {"enum": ["INITIAL", "REPLACEMENT"]},
+    "judgeRunIds": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {"type": "string", "minLength": 1, "maxLength": 200}
+    },
+    "judgePanelSha256": {"$ref": "#/$defs/sha256"},
+    "panelArtifactBindings": {"$ref": "#/$defs/panelArtifactBindings"},
+    "laneInputs": {
+      "oneOf": [
+        {"$ref": "#/$defs/laneInputs"},
+        {"const": {}}
+      ]
+    },
+    "unstableLanes": {"$ref": "#/$defs/laneIds"},
+    "replacementRequiredLanes": {"$ref": "#/$defs/laneIds"},
+    "rerunRequired": {"type": "boolean"},
+    "replacementForPanelSha256": {
+      "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+    },
+    "replacementReceiptPath": {"type": "string", "minLength": 1, "maxLength": 1200},
+    "replacementReceiptSha256": {
+      "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+    },
+    "verificationInputSha256": {"$ref": "#/$defs/sha256"}
+  },
+  "oneOf": [
+    {"properties": {"status": {"const": "SCORED_FORMATIVE"}, "verdict": {"type": "null"}}},
+    {"properties": {"status": {"const": "PASS"}, "verdict": {"const": "PASS"}}},
+    {"properties": {"status": {"const": "FAIL_UX"}, "verdict": {"const": "FAIL_UX"}}},
+    {"properties": {"status": {"const": "FAIL_HARD_GATE"}, "verdict": {"const": "FAIL_HARD_GATE"}}},
+    {
+      "properties": {
+        "status": {
+          "enum": [
+            "RERUN_REQUIRED_COLD_INSTABILITY",
+            "RERUN_REQUIRED_COVERAGE_INSTABILITY",
+            "RERUN_REQUIRED_PANEL_INSTABILITY"
+          ]
+        },
+        "verdict": {"type": "null"}
+      }
+    },
+    {"properties": {"status": {"const": "BLOCKED_JUDGE_UNAVAILABLE"}, "verdict": {"const": "BLOCKED_JUDGE_UNAVAILABLE"}}},
+    {"properties": {"status": {"const": "BLOCKED_JUDGE_QUALIFICATION"}, "verdict": {"const": "BLOCKED_JUDGE_QUALIFICATION"}}},
+    {"properties": {"status": {"const": "BLOCKED_JUDGE_SCHEMA"}, "verdict": {"const": "BLOCKED_JUDGE_SCHEMA"}}},
+    {"properties": {"status": {"const": "BLOCKED_JUDGE_INSTABILITY"}, "verdict": {"const": "BLOCKED_JUDGE_INSTABILITY"}}},
+    {"properties": {"status": {"const": "BLOCKED_EVIDENCE_VERIFICATION"}, "verdict": {"const": "BLOCKED_EVIDENCE_VERIFICATION"}}},
+    {"properties": {"status": {"const": "BLOCKED_MISSING_EVIDENCE"}, "verdict": {"const": "BLOCKED_MISSING_EVIDENCE"}}},
+    {"properties": {"status": {"const": "BLOCKED_HARNESS"}, "verdict": {"const": "BLOCKED_HARNESS"}}},
+    {"properties": {"status": {"const": "BLOCKED_HOLDOUT_EXHAUSTED"}, "verdict": {"const": "BLOCKED_HOLDOUT_EXHAUSTED"}}}
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {"recipeId": {"const": "FORMATIVE-01"}},
+        "required": ["recipeId"]
+      },
+      "then": {
+        "properties": {
+          "officialCommercialUX": {"const": false},
+          "status": {
+            "enum": [
+              "SCORED_FORMATIVE", "FAIL_HARD_GATE",
+              "RERUN_REQUIRED_COLD_INSTABILITY",
+              "RERUN_REQUIRED_COVERAGE_INSTABILITY",
+              "RERUN_REQUIRED_PANEL_INSTABILITY",
+              "BLOCKED_JUDGE_UNAVAILABLE", "BLOCKED_JUDGE_QUALIFICATION",
+              "BLOCKED_JUDGE_SCHEMA", "BLOCKED_JUDGE_INSTABILITY",
+              "BLOCKED_EVIDENCE_VERIFICATION", "BLOCKED_MISSING_EVIDENCE",
+              "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "officialCommercialUX": {"const": true},
+          "recipeId": {"pattern": "^HOLDOUT-0[1-8]$"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "RERUN_REQUIRED_COLD_INSTABILITY",
+              "RERUN_REQUIRED_COVERAGE_INSTABILITY",
+              "RERUN_REQUIRED_PANEL_INSTABILITY",
+              "BLOCKED_JUDGE_UNAVAILABLE", "BLOCKED_JUDGE_QUALIFICATION",
+              "BLOCKED_JUDGE_SCHEMA", "BLOCKED_JUDGE_INSTABILITY",
+              "BLOCKED_EVIDENCE_VERIFICATION", "BLOCKED_MISSING_EVIDENCE",
+              "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED"
+            ]
+          }
+        },
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "commercialUXProxy": {"type": "null"},
+          "rawCommercialUX": {"type": "null"},
+          "rawSpread": {"type": "null"},
+          "disagreementPenalty": {"type": "null"},
+          "activeCap": {"type": "null"},
+          "cellScores": {"type": "null"},
+          "categoryScores": {"type": "null"}
+        }
+      },
+      "else": {
+        "properties": {
+          "commercialUXProxy": {"$ref": "#/$defs/score"},
+          "rawCommercialUX": {"$ref": "#/$defs/score"},
+          "rawSpread": {"$ref": "#/$defs/spread"},
+          "disagreementPenalty": {"type": "number", "minimum": 0, "maximum": 8},
+          "activeCap": {"enum": [100, 79, 69, 49]},
+          "cellScores": {"$ref": "#/$defs/cellScores"},
+          "categoryScores": {"$ref": "#/$defs/categoryScores"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"const": "SCORED_FORMATIVE"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "recipeId": {"const": "FORMATIVE-01"},
+          "officialCommercialUX": {"const": false},
+          "verdict": {"type": "null"},
+          "commercialUXProxy": {"$ref": "#/$defs/score"},
+          "rawCommercialUX": {"$ref": "#/$defs/score"},
+          "rawSpread": {"$ref": "#/$defs/spread"},
+          "disagreementPenalty": {"type": "number", "minimum": 0, "maximum": 8},
+          "activeCap": {"enum": [100, 79, 69, 49]},
+          "cellScores": {"$ref": "#/$defs/cellScores"},
+          "categoryScores": {"$ref": "#/$defs/categoryScores"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"pattern": "^RERUN_REQUIRED_"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "panelKind": {"const": "INITIAL"},
+          "verdict": {"type": "null"},
+          "stabilityStatus": {"const": "RERUN_REQUIRED"},
+          "rerunRequired": {"const": true},
+          "replacementForPanelSha256": {"type": "null"},
+          "replacementReceiptSha256": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"panelKind": {"const": "REPLACEMENT"}},
+        "required": ["panelKind"]
+      },
+      "then": {
+        "properties": {
+          "rerunRequired": {"const": false},
+          "replacementRequiredLanes": {"maxItems": 0},
+          "replacementForPanelSha256": {"$ref": "#/$defs/sha256"},
+          "replacementReceiptSha256": {"$ref": "#/$defs/sha256"}
+        }
+      },
+      "else": {
+        "properties": {
+          "replacementForPanelSha256": {"type": "null"},
+          "replacementReceiptSha256": {"type": "null"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"const": "PASS"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "verdict": {"const": "PASS"},
+          "officialCommercialUX": {"const": true},
+          "commercialUXProxy": {"type": "number", "minimum": 87, "maximum": 100},
+          "activeCap": {"const": 100},
+          "qualificationStatus": {"const": "PASS"},
+          "evidenceVerificationStatus": {"const": "VERIFIED_SUPPORTED_ONLY"},
+          "stabilityStatus": {"const": "STABLE"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "score": {"type": "number", "minimum": 0, "maximum": 100},
+    "spread": {"type": "number", "minimum": 0, "maximum": 100},
+    "status": {
+      "enum": [
+        "SCORED_FORMATIVE", "PASS", "FAIL_UX", "FAIL_HARD_GATE",
+        "RERUN_REQUIRED_COLD_INSTABILITY",
+        "RERUN_REQUIRED_COVERAGE_INSTABILITY",
+        "RERUN_REQUIRED_PANEL_INSTABILITY",
+        "BLOCKED_JUDGE_UNAVAILABLE", "BLOCKED_JUDGE_QUALIFICATION",
+        "BLOCKED_JUDGE_SCHEMA", "BLOCKED_JUDGE_INSTABILITY",
+        "BLOCKED_EVIDENCE_VERIFICATION", "BLOCKED_MISSING_EVIDENCE",
+        "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED"
+      ]
+    },
+    "finalVerdict": {
+      "enum": [
+        "PASS", "FAIL_UX", "FAIL_HARD_GATE",
+        "BLOCKED_JUDGE_UNAVAILABLE", "BLOCKED_JUDGE_QUALIFICATION",
+        "BLOCKED_JUDGE_SCHEMA", "BLOCKED_JUDGE_INSTABILITY",
+        "BLOCKED_EVIDENCE_VERIFICATION", "BLOCKED_MISSING_EVIDENCE",
+        "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED"
+      ]
+    },
+    "laneIds": {
+      "type": "array",
+      "maxItems": 2,
+      "uniqueItems": true,
+      "items": {"enum": ["COLD-JOURNEY", "COVERAGE-JOURNEY"]}
+    },
+    "panelArtifactBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anonymousArtifactId", "artifactKind", "artifactSha256"],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "artifactKind": {"enum": ["COLD_ACTOR", "COVERAGE"]},
+        "artifactSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "panelArtifactBindings": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/panelArtifactBinding"},
+      "allOf": [
+        {
+          "contains": {"properties": {"artifactKind": {"const": "COLD_ACTOR"}}, "required": ["artifactKind"]},
+          "minContains": 3,
+          "maxContains": 3
+        },
+        {
+          "contains": {"properties": {"artifactKind": {"const": "COVERAGE"}}, "required": ["artifactKind"]},
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    },
+    "actorLaneInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anonymousArtifactId", "judgeMedianScore", "judgeSpread", "judgeOrdinalRange"
+      ],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "judgeMedianScore": {"enum": [0, 40, 70, 85, 100]},
+        "judgeSpread": {"$ref": "#/$defs/spread"},
+        "judgeOrdinalRange": {"type": "integer", "minimum": 0, "maximum": 4}
+      }
+    },
+    "coldLaneInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actors", "coldCellScore", "coldJudgeSpread", "actorSpread",
+        "coldCellSpread", "actorOrdinalRange", "unstable"
+      ],
+      "properties": {
+        "actors": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/actorLaneInput"}
+        },
+        "coldCellScore": {"enum": [0, 40, 70, 85, 100]},
+        "coldJudgeSpread": {"$ref": "#/$defs/spread"},
+        "actorSpread": {"$ref": "#/$defs/spread"},
+        "coldCellSpread": {"$ref": "#/$defs/spread"},
+        "actorOrdinalRange": {"type": "integer", "minimum": 0, "maximum": 4},
+        "unstable": {"type": "boolean"}
+      }
+    },
+    "coverageLaneInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coverageCellScore", "coverageCellSpread", "judgeOrdinalRange", "unstable"
+      ],
+      "properties": {
+        "coverageCellScore": {"enum": [0, 40, 70, 85, 100]},
+        "coverageCellSpread": {"$ref": "#/$defs/spread"},
+        "judgeOrdinalRange": {"type": "integer", "minimum": 0, "maximum": 4},
+        "unstable": {"type": "boolean"}
+      }
+    },
+    "laneInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cold", "coverage"],
+      "properties": {
+        "cold": {"oneOf": [{"$ref": "#/$defs/coldLaneInput"}, {"type": "null"}]},
+        "coverage": {"oneOf": [{"$ref": "#/$defs/coverageLaneInput"}, {"type": "null"}]}
+      }
+    },
+    "coldOnlyLaneInput": {
+      "allOf": [
+        {"$ref": "#/$defs/laneInput"},
+        {"properties": {"cold": {"$ref": "#/$defs/coldLaneInput"}, "coverage": {"type": "null"}}}
+      ]
+    },
+    "coverageOnlyLaneInput": {
+      "allOf": [
+        {"$ref": "#/$defs/laneInput"},
+        {"properties": {"cold": {"type": "null"}, "coverage": {"$ref": "#/$defs/coverageLaneInput"}}}
+      ]
+    },
+    "bothLaneInput": {
+      "allOf": [
+        {"$ref": "#/$defs/laneInput"},
+        {"properties": {"cold": {"$ref": "#/$defs/coldLaneInput"}, "coverage": {"$ref": "#/$defs/coverageLaneInput"}}}
+      ]
+    },
+    "laneInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "J1", "J2", "J3", "J4", "T1", "T2", "T3",
+        "H1", "H2", "H3", "H4", "I1", "I2", "I3",
+        "C1", "C2", "C3", "C4", "C5", "A1", "A2", "A3", "A4",
+        "P1", "P2", "P3", "V1", "V2", "V3", "V4",
+        "R1", "R2", "R3", "L1", "L2", "L3", "K1", "K2", "K3"
+      ],
+      "properties": {
+        "J1": {"$ref": "#/$defs/coldOnlyLaneInput"},
+        "J2": {"$ref": "#/$defs/bothLaneInput"},
+        "J3": {"$ref": "#/$defs/coldOnlyLaneInput"},
+        "J4": {"$ref": "#/$defs/bothLaneInput"},
+        "T1": {"$ref": "#/$defs/bothLaneInput"},
+        "T2": {"$ref": "#/$defs/bothLaneInput"},
+        "T3": {"$ref": "#/$defs/bothLaneInput"},
+        "H1": {"$ref": "#/$defs/bothLaneInput"},
+        "H2": {"$ref": "#/$defs/bothLaneInput"},
+        "H3": {"$ref": "#/$defs/bothLaneInput"},
+        "H4": {"$ref": "#/$defs/bothLaneInput"},
+        "I1": {"$ref": "#/$defs/bothLaneInput"},
+        "I2": {"$ref": "#/$defs/bothLaneInput"},
+        "I3": {"$ref": "#/$defs/bothLaneInput"},
+        "C1": {"$ref": "#/$defs/bothLaneInput"},
+        "C2": {"$ref": "#/$defs/bothLaneInput"},
+        "C3": {"$ref": "#/$defs/bothLaneInput"},
+        "C4": {"$ref": "#/$defs/bothLaneInput"},
+        "C5": {"$ref": "#/$defs/bothLaneInput"},
+        "A1": {"$ref": "#/$defs/bothLaneInput"},
+        "A2": {"$ref": "#/$defs/bothLaneInput"},
+        "A3": {"$ref": "#/$defs/bothLaneInput"},
+        "A4": {"$ref": "#/$defs/bothLaneInput"},
+        "P1": {"$ref": "#/$defs/coldOnlyLaneInput"},
+        "P2": {"$ref": "#/$defs/coldOnlyLaneInput"},
+        "P3": {"$ref": "#/$defs/coldOnlyLaneInput"},
+        "V1": {"$ref": "#/$defs/coverageOnlyLaneInput"},
+        "V2": {"$ref": "#/$defs/coverageOnlyLaneInput"},
+        "V3": {"$ref": "#/$defs/coverageOnlyLaneInput"},
+        "V4": {"$ref": "#/$defs/coverageOnlyLaneInput"},
+        "R1": {"$ref": "#/$defs/coverageOnlyLaneInput"},
+        "R2": {"$ref": "#/$defs/bothLaneInput"},
+        "R3": {"$ref": "#/$defs/coverageOnlyLaneInput"},
+        "L1": {"$ref": "#/$defs/coverageOnlyLaneInput"},
+        "L2": {"$ref": "#/$defs/coverageOnlyLaneInput"},
+        "L3": {"$ref": "#/$defs/coverageOnlyLaneInput"},
+        "K1": {"$ref": "#/$defs/bothLaneInput"},
+        "K2": {"$ref": "#/$defs/bothLaneInput"},
+        "K3": {"$ref": "#/$defs/bothLaneInput"}
+      }
+    },
+    "laneScore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "coldCellScore",
+        "coverageCellScore",
+        "finalCellScore",
+        "coldCellSpread",
+        "coverageCellSpread",
+        "finalCellSpread",
+        "judgmentPanelSha256"
+      ],
+      "properties": {
+        "state": {"enum": ["SCORED", "NOT_REACHED_BY_PRODUCT"]},
+        "coldCellScore": {"oneOf": [{"$ref": "#/$defs/score"}, {"type": "null"}]},
+        "coverageCellScore": {"oneOf": [{"$ref": "#/$defs/score"}, {"type": "null"}]},
+        "finalCellScore": {"$ref": "#/$defs/score"},
+        "coldCellSpread": {"oneOf": [{"$ref": "#/$defs/spread"}, {"type": "null"}]},
+        "coverageCellSpread": {"oneOf": [{"$ref": "#/$defs/spread"}, {"type": "null"}]},
+        "finalCellSpread": {"$ref": "#/$defs/spread"},
+        "judgmentPanelSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "coldOnlyScore": {
+      "allOf": [
+        {"$ref": "#/$defs/laneScore"},
+        {
+          "properties": {
+            "coldCellScore": {"$ref": "#/$defs/score"},
+            "coverageCellScore": {"type": "null"},
+            "coldCellSpread": {"$ref": "#/$defs/spread"},
+            "coverageCellSpread": {"type": "null"}
+          }
+        }
+      ]
+    },
+    "coverageOnlyScore": {
+      "allOf": [
+        {"$ref": "#/$defs/laneScore"},
+        {
+          "properties": {
+            "coldCellScore": {"type": "null"},
+            "coverageCellScore": {"$ref": "#/$defs/score"},
+            "coldCellSpread": {"type": "null"},
+            "coverageCellSpread": {"$ref": "#/$defs/spread"}
+          }
+        }
+      ]
+    },
+    "bothLaneScore": {
+      "allOf": [
+        {"$ref": "#/$defs/laneScore"},
+        {
+          "properties": {
+            "coldCellScore": {"$ref": "#/$defs/score"},
+            "coverageCellScore": {"$ref": "#/$defs/score"},
+            "coldCellSpread": {"$ref": "#/$defs/spread"},
+            "coverageCellSpread": {"$ref": "#/$defs/spread"}
+          }
+        }
+      ]
+    },
+    "cellScores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "J1", "J2", "J3", "J4",
+        "T1", "T2", "T3",
+        "H1", "H2", "H3", "H4",
+        "I1", "I2", "I3",
+        "C1", "C2", "C3", "C4", "C5",
+        "A1", "A2", "A3", "A4",
+        "P1", "P2", "P3",
+        "V1", "V2", "V3", "V4",
+        "R1", "R2", "R3",
+        "L1", "L2", "L3",
+        "K1", "K2", "K3"
+      ],
+      "properties": {
+        "J1": {"$ref": "#/$defs/coldOnlyScore"},
+        "J2": {"$ref": "#/$defs/bothLaneScore"},
+        "J3": {"$ref": "#/$defs/coldOnlyScore"},
+        "J4": {"$ref": "#/$defs/bothLaneScore"},
+        "T1": {"$ref": "#/$defs/bothLaneScore"},
+        "T2": {"$ref": "#/$defs/bothLaneScore"},
+        "T3": {"$ref": "#/$defs/bothLaneScore"},
+        "H1": {"$ref": "#/$defs/bothLaneScore"},
+        "H2": {"$ref": "#/$defs/bothLaneScore"},
+        "H3": {"$ref": "#/$defs/bothLaneScore"},
+        "H4": {"$ref": "#/$defs/bothLaneScore"},
+        "I1": {"$ref": "#/$defs/bothLaneScore"},
+        "I2": {"$ref": "#/$defs/bothLaneScore"},
+        "I3": {"$ref": "#/$defs/bothLaneScore"},
+        "C1": {"$ref": "#/$defs/bothLaneScore"},
+        "C2": {"$ref": "#/$defs/bothLaneScore"},
+        "C3": {"$ref": "#/$defs/bothLaneScore"},
+        "C4": {"$ref": "#/$defs/bothLaneScore"},
+        "C5": {"$ref": "#/$defs/bothLaneScore"},
+        "A1": {"$ref": "#/$defs/bothLaneScore"},
+        "A2": {"$ref": "#/$defs/bothLaneScore"},
+        "A3": {"$ref": "#/$defs/bothLaneScore"},
+        "A4": {"$ref": "#/$defs/bothLaneScore"},
+        "P1": {"$ref": "#/$defs/coldOnlyScore"},
+        "P2": {"$ref": "#/$defs/coldOnlyScore"},
+        "P3": {"$ref": "#/$defs/coldOnlyScore"},
+        "V1": {"$ref": "#/$defs/coverageOnlyScore"},
+        "V2": {"$ref": "#/$defs/coverageOnlyScore"},
+        "V3": {"$ref": "#/$defs/coverageOnlyScore"},
+        "V4": {"$ref": "#/$defs/coverageOnlyScore"},
+        "R1": {"$ref": "#/$defs/coverageOnlyScore"},
+        "R2": {"$ref": "#/$defs/bothLaneScore"},
+        "R3": {"$ref": "#/$defs/coverageOnlyScore"},
+        "L1": {"$ref": "#/$defs/coverageOnlyScore"},
+        "L2": {"$ref": "#/$defs/coverageOnlyScore"},
+        "L3": {"$ref": "#/$defs/coverageOnlyScore"},
+        "K1": {"$ref": "#/$defs/bothLaneScore"},
+        "K2": {"$ref": "#/$defs/bothLaneScore"},
+        "K3": {"$ref": "#/$defs/bothLaneScore"}
+      }
+    },
+    "categoryScore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "spread", "minimumScore", "meetsMinimum"],
+      "properties": {
+        "score": {"$ref": "#/$defs/score"},
+        "spread": {"$ref": "#/$defs/spread"},
+        "minimumScore": {"$ref": "#/$defs/score"},
+        "meetsMinimum": {"type": "boolean"}
+      }
+    },
+    "categoryScores": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "journey", "tutorial", "hierarchy", "feedback", "causality", "agency",
+        "pacing", "audiovisual", "recovery", "accessibility", "korean"
+      ],
+      "properties": {
+        "journey": {"$ref": "#/$defs/categoryScore"},
+        "tutorial": {"$ref": "#/$defs/categoryScore"},
+        "hierarchy": {"$ref": "#/$defs/categoryScore"},
+        "feedback": {"$ref": "#/$defs/categoryScore"},
+        "causality": {"$ref": "#/$defs/categoryScore"},
+        "agency": {"$ref": "#/$defs/categoryScore"},
+        "pacing": {"$ref": "#/$defs/categoryScore"},
+        "audiovisual": {"$ref": "#/$defs/categoryScore"},
+        "recovery": {"$ref": "#/$defs/categoryScore"},
+        "accessibility": {"$ref": "#/$defs/categoryScore"},
+        "korean": {"$ref": "#/$defs/categoryScore"}
+      }
+    },
+    "hardGateStatus": {"enum": ["PASS", "FAIL", "BLOCKED"]},
+    "hardGates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "HG01-AUTHORITY", "HG02-STORY", "HG03-REACHABILITY", "HG04-BUILD",
+        "HG05-TYPED-DISPLAY", "HG06-VIEWPORT", "HG07-KEYBOARD", "HG08-NONCOLOR",
+        "HG09-AUDIO", "HG10-REPLAY", "HG11-LIVENESS", "HG12-RAW-ID",
+        "HG13-PROVENANCE"
+      ],
+      "properties": {
+        "HG01-AUTHORITY": {"$ref": "#/$defs/hardGateStatus"},
+        "HG02-STORY": {"$ref": "#/$defs/hardGateStatus"},
+        "HG03-REACHABILITY": {"$ref": "#/$defs/hardGateStatus"},
+        "HG04-BUILD": {"$ref": "#/$defs/hardGateStatus"},
+        "HG05-TYPED-DISPLAY": {"$ref": "#/$defs/hardGateStatus"},
+        "HG06-VIEWPORT": {"$ref": "#/$defs/hardGateStatus"},
+        "HG07-KEYBOARD": {"$ref": "#/$defs/hardGateStatus"},
+        "HG08-NONCOLOR": {"$ref": "#/$defs/hardGateStatus"},
+        "HG09-AUDIO": {"$ref": "#/$defs/hardGateStatus"},
+        "HG10-REPLAY": {"$ref": "#/$defs/hardGateStatus"},
+        "HG11-LIVENESS": {"$ref": "#/$defs/hardGateStatus"},
+        "HG12-RAW-ID": {"$ref": "#/$defs/hardGateStatus"},
+        "HG13-PROVENANCE": {"$ref": "#/$defs/hardGateStatus"}
+      }
+    },
+    "criticalIncident": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["incidentKey", "severity", "status", "activeCap", "evidenceRefs"],
+      "properties": {
+        "incidentKey": {
+          "type": "string",
+          "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+        },
+        "severity": {"enum": ["P0", "P1", "P2"]},
+        "status": {"enum": ["VERIFIED", "UNRESOLVED"]},
+        "activeCap": {"enum": [100, 79, 69, 49]},
+        "evidenceRefs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 300}
+        }
+      }
+    },
+    "differenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["priority", "cellIds", "incidentKeys", "observation", "boundedChange"],
+      "properties": {
+        "priority": {"enum": ["P0", "P1", "P2"]},
+        "cellIds": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 39,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[JTHICAPVRLK][1-5]$"}
+        },
+        "incidentKeys": {
+          "type": "array",
+          "maxItems": 32,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+          }
+        },
+        "observation": {"type": "string", "minLength": 1, "maxLength": 1600},
+        "boundedChange": {"type": "string", "minLength": 1, "maxLength": 1200}
+      }
+    },
+    "differenceReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["items", "openP0", "openP1", "openP2"],
+      "properties": {
+        "items": {
+          "type": "array",
+          "maxItems": 117,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/differenceItem"}
+        },
+        "openP0": {"type": "integer", "minimum": 0, "maximum": 117},
+        "openP1": {"type": "integer", "minimum": 0, "maximum": 117},
+        "openP2": {"type": "integer", "minimum": 0, "maximum": 117}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateManifestSha256",
+        "candidateManifestRawSha256",
+        "nativeAggregatorSha256",
+        "qualificationReceiptSha256",
+        "qualificationReceiptRawSha256",
+        "judgePanelRawSha256",
+        "evaluationRunManifestSha256",
+        "evaluationRunManifestRawSha256",
+        "aggregationInputRawSha256",
+        "sourceCommit",
+        "cleanTree",
+        "model",
+        "reasoningEffort",
+        "promptTemplateSha256",
+        "judgmentSchemaSha256",
+        "verifierPromptTemplateSha256",
+        "verifierSchemaSha256",
+        "rubricSha256",
+        "coldRecipeSha256",
+        "coverageRecipeSha256",
+        "holdoutRecipeSha256",
+        "evidenceSetSha256",
+        "judgePanelSha256",
+        "verificationOutputSha256",
+        "oracleHardGateLedgerSha256",
+        "executionArtifactSha256",
+        "packageSha256",
+        "packageStatus"
+      ],
+      "properties": {
+        "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+        "candidateManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "nativeAggregatorSha256": {"$ref": "#/$defs/sha256"},
+        "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
+        "qualificationReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+        "judgePanelRawSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationRunManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "aggregationInputRawSha256": {"$ref": "#/$defs/sha256"},
+        "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "cleanTree": {"type": "boolean"},
+        "model": {"const": "gpt-5.6-sol"},
+        "reasoningEffort": {"const": "ultra"},
+        "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
+        "judgmentSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "verifierPromptTemplateSha256": {"$ref": "#/$defs/sha256"},
+        "verifierSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "rubricSha256": {"$ref": "#/$defs/sha256"},
+        "coldRecipeSha256": {"$ref": "#/$defs/sha256"},
+        "coverageRecipeSha256": {"$ref": "#/$defs/sha256"},
+        "holdoutRecipeSha256": {"$ref": "#/$defs/sha256"},
+        "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+        "judgePanelSha256": {"$ref": "#/$defs/sha256"},
+        "verificationOutputSha256": {"$ref": "#/$defs/sha256"},
+        "oracleHardGateLedgerSha256": {"$ref": "#/$defs/sha256"},
+        "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "packageSha256": {
+          "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+        },
+        "packageStatus": {
+          "enum": ["EDITOR_NATIVE_NOT_PUBLIC_PACKAGE", "INTERNAL_APP_BUNDLE"]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.cold-journey-recipe.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "recipeId": "COLD-JOURNEY-v1",
+  "candidateIndependent": true,
+  "objective": "에필로그까지 플레이하세요.",
+  "execution": {
+    "viewport": "1920x1080",
+    "uiScalePercent": 100,
+    "inputMode": "HARNESS_COMPUTER_USE_ACTUAL_INPUT",
+    "reduceMotion": false,
+    "audioPercent": 100,
+    "freshUserDataPerActor": true,
+    "freshProcessTreePerActor": true,
+    "actorCount": 3
+  },
+  "isolation": {
+    "allowed": [
+      "NATIVE_GAME_WINDOW",
+      "IN_PRODUCT_HELP",
+      "IN_PRODUCT_SETTINGS",
+      "IN_PRODUCT_CANCEL_UNDO_RESTART_SAVE_QUIT_CONTINUE",
+      "HARNESS_CAPTURE_TRACE_TRANSPORT"
+    ],
+    "forbidden": [
+      "README",
+      "REPOSITORY_SOURCE",
+      "CAMPAIGN_DATA",
+      "TEST_FIXTURE",
+      "SAVE_CONTENTS",
+      "ENGINE_LOG",
+      "TERMINAL",
+      "WEB",
+      "DEVELOPMENT_CONVERSATION",
+      "PRIOR_ACTOR_OUTPUT",
+      "RUBRIC_OR_EXPECTED_ROUTE"
+    ]
+  },
+  "journey": {
+    "start": "NEW_GAME",
+    "chapterCount": 8,
+    "tutorialChapterCount": 3,
+    "mainChapterCount": 5,
+    "midResume": {
+      "chapterId": "NORTH_BANK_PROMISE",
+      "timing": "FIRST_DECISION_WINDOW_AFTER_ONE_ACCEPTED_DRAFT_MUTATION",
+      "save": true,
+      "exit": "NORMAL_IN_PRODUCT_QUIT",
+      "restart": "FRESH_PROCESS",
+      "returnAction": "CONTINUE"
+    },
+    "terminalSequence": ["EPILOGUE", "CHAPTER_SELECT"]
+  },
+  "routePolicy": {
+    "prescribedRoute": false,
+    "hiddenHint": false,
+    "branchInstruction": false,
+    "actorChoosesInProductActions": true
+  },
+  "probePolicy": {
+    "manifest": "concept-exposure-manifest.json",
+    "delivery": "JUST_IN_TIME_FIRST_USE_ONLY",
+    "futureProbeDisclosure": false,
+    "record": [
+      "currentGoal",
+      "expectedVisibleConsequence",
+      "citedVisibleSource"
+    ],
+    "approvalRecord": [
+      "predictionImmediatelyBeforeApproval",
+      "observedResult",
+      "causalAccount"
+    ]
+  },
+  "terminalRules": {
+    "unchangedStateReasonableActionLimit": 12,
+    "productTerminal": "PLAYER_STALLED",
+    "harnessTerminal": "HARNESS_BLOCKED",
+    "successTerminal": "COMPLETED",
+    "inferenceAndToolWaitCountAsActions": false
+  }
+}

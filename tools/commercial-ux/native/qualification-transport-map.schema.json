@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-qualification-transport-map-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "candidateIndependent",
+    "authority",
+    "transportRule",
+    "entries"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.qualification-transport-map.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "candidateIndependent": {"const": true},
+    "authority": {"const": "qualification-anchors.json"},
+    "transportRule": {"const": "OPAQUE_ID_PRECOMMITTED_PERMUTATION"},
+    "entries": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "prefixItems": [
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0001"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0002"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0003"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0004"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0005"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0006"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0007"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0008"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0009"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0010"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0011"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0012"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0013"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0014"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0015"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0016"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0017"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0018"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0019"}}},
+        {"$ref": "#/$defs/entry", "properties": {"transportId": {"const": "QA-0020"}}}
+      ],
+      "items": false
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transportId", "authorityAnchorId"],
+      "properties": {
+        "transportId": {"type": "string", "pattern": "^QA-[0-9]{4}$"},
+        "authorityAnchorId": {
+          "type": "string",
+          "pattern": "^Q-(EXCELLENT|STRONG|SERVICEABLE|WEAK|BROKEN)-0[1-4]$"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,251 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.concept-exposure.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "coldObjective": "에필로그까지 플레이하세요.",
+  "firstUseRecord": [
+    "currentGoal",
+    "expectedVisibleConsequence",
+    "citedVisibleSource"
+  ],
+  "approvalRecord": [
+    "predictionImmediatelyBeforeApproval",
+    "observedResult",
+    "causalAccount"
+  ],
+  "forbiddenActorSources": [
+    "README",
+    "repositorySource",
+    "campaignData",
+    "testFixture",
+    "saveContents",
+    "engineLog",
+    "terminal",
+    "web",
+    "developmentConversation"
+  ],
+  "probes": [
+    {
+      "id": "PX01-ROLE-START",
+      "concept": "player role and journey start",
+      "firstEpisode": "E00-TITLE",
+      "firstCheckpoint": "title-default-focus",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["title", "newGameAction", "firstBriefing"],
+      "cells": ["J1", "K1"]
+    },
+    {
+      "id": "PX02-GOAL-NEXT-ACTION",
+      "concept": "current objective and next action",
+      "firstEpisode": "E01-FIRST-LIGHT",
+      "firstCheckpoint": "first-operations",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["objective", "nextAction", "primaryAction"],
+      "cells": ["T1", "H1", "K1"]
+    },
+    {
+      "id": "PX03-PLACEMENT-RECOVERY",
+      "concept": "land placement, invalid water placement and correction",
+      "firstEpisode": "E01-FIRST-LIGHT",
+      "firstCheckpoint": "first-invalid-placement",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["mapCue", "error", "nextAction"],
+      "cells": ["T1", "I1", "R1"]
+    },
+    {
+      "id": "PX04-LINE-DRAFT",
+      "concept": "line endpoints, intermediate poles, undo and cancel",
+      "firstEpisode": "E01-FIRST-LIGHT",
+      "firstCheckpoint": "first-line-draft-correction",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["draftState", "mapCue", "undoAction", "cancelAction"],
+      "cells": ["T1", "I1"]
+    },
+    {
+      "id": "PX05-SUPPLY-ENERGIZATION",
+      "concept": "actual source-to-load path and plan-to-energized transition",
+      "firstEpisode": "E01-FIRST-LIGHT",
+      "firstCheckpoint": "first-energized-path",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["supplyCounter", "actualPath", "nonColorStateCue", "audioCue"],
+      "cells": ["I2", "C1", "V1"]
+    },
+    {
+      "id": "PX06-CONTINUOUS-LIMIT",
+      "concept": "construction cost/time quote, continuous capacity and minimum path margin",
+      "firstEpisode": "E01-FIRST-LIGHT",
+      "firstCheckpoint": "first-ready-approval",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["quote", "obligation", "thermalFact", "approvalPreview"],
+      "cells": ["T1", "H2", "C1", "A1"]
+    },
+    {
+      "id": "PX07-CORRIDOR-INDEPENDENCE",
+      "concept": "two physical lines versus two independently surviving risk corridors",
+      "firstEpisode": "E02-SECOND-HEART",
+      "firstCheckpoint": "corridor-test-briefing",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["briefing", "comparisonCard", "actualPath", "resultFact"],
+      "cells": ["T2", "C2"]
+    },
+    {
+      "id": "PX08-SOURCE-BOTTLENECK",
+      "concept": "source withdrawal, whole-path capacity and bottleneck",
+      "firstEpisode": "E03-SECOND-SOURCE",
+      "firstCheckpoint": "source-acceptance-window",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["windowStory", "sourceState", "actualPath", "minimumMargin"],
+      "cells": ["T3", "C3"]
+    },
+    {
+      "id": "PX09-TUTORIAL-WITHDRAWAL",
+      "concept": "procedural guidance ends while goal, duty, promise and forecast remain",
+      "firstEpisode": "E03-SECOND-SOURCE",
+      "firstCheckpoint": "tutorial-handoff-result",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["resultStory", "nextMissionAction"],
+      "cells": ["T3", "P1"]
+    },
+    {
+      "id": "PX10-MUST-PROMISE",
+      "concept": "mandatory duty versus optional city promise",
+      "firstEpisode": "E04-NORTH-BANK",
+      "firstCheckpoint": "north-bank-choice",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["objective", "obligation", "promiseActions", "forecast"],
+      "cells": ["H2", "A2"]
+    },
+    {
+      "id": "PX11-RESULT-BOUNDARY",
+      "concept": "frozen actual result versus next chapter state",
+      "firstEpisode": "E04-NORTH-BANK",
+      "firstCheckpoint": "north-bank-first-result",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["resultHeading", "resultFacts", "nextMissionAction", "timeline"],
+      "cells": ["J2", "H2", "H3"]
+    },
+    {
+      "id": "PX12-EMERGENCY-SHUTDOWN",
+      "concept": "one-use emergency thermal margin and next-boundary protective shutdown",
+      "firstEpisode": "E05-WHOSE-MARGIN",
+      "firstCheckpoint": "heat-promise-choice",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["briefing", "thermalState", "forecast", "windowStory"],
+      "cells": ["H4", "C4", "A3", "V2"]
+    },
+    {
+      "id": "PX13-FLOOD-DEADLINE-RECOVERY",
+      "concept": "construction deadline, flood loss, rejected route and safe recovery",
+      "firstEpisode": "E06-FLOOD",
+      "firstCheckpoint": "flood-invalid-approval",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["deadline", "hazardCue", "error", "actualPath", "recoveryAction"],
+      "cells": ["H4", "I3", "C4", "R1", "V3"]
+    },
+    {
+      "id": "PX14-RESET-MAINTENANCE",
+      "concept": "elapsed-time thermal reset and planned source outage",
+      "firstEpisode": "E07-MAINTENANCE",
+      "firstCheckpoint": "maintenance-briefing",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["briefing", "sourceState", "thermalState", "actualPath"],
+      "cells": ["C4", "P2"]
+    },
+    {
+      "id": "PX15-FINALE-PROMISE",
+      "concept": "final 2.6 MW industrial promise before the first heat boundary",
+      "firstEpisode": "E08-FINALE",
+      "firstCheckpoint": "finale-promise-choice",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["briefing", "promiseActions", "obligation", "forecast"],
+      "cells": ["A4"]
+    },
+    {
+      "id": "PX16-FINALE-PAYOFF",
+      "concept": "compound-crisis result, epilogue and chapter selection",
+      "firstEpisode": "E08-FINALE",
+      "firstCheckpoint": "finale-result-to-epilogue",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["resultFacts", "epilogue", "chapterSelect", "audioCue"],
+      "cells": ["J4", "C5", "P3", "V4"]
+    },
+    {
+      "id": "PX17-MID-RESUME",
+      "concept": "mid-decision save, process restart and current-context recovery",
+      "firstEpisode": "E09-MID-RESUME",
+      "firstCheckpoint": "resume-orientation",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["previousResult", "currentChapter", "objective", "cash", "minute", "nextAction"],
+      "cells": ["J3", "R2"]
+    },
+    {
+      "id": "PX18-COMPLETE-RESUME",
+      "concept": "completed save, epilogue recovery and selected chapter restart",
+      "firstEpisode": "E10-COMPLETE-RESUME",
+      "firstCheckpoint": "completed-resume-select",
+      "requiredForCold": false,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["resumeOrientation", "epilogue", "chapterSelect", "briefing"],
+      "cells": ["R3"]
+    },
+    {
+      "id": "PX19-ACCESSIBILITY",
+      "concept": "keyboard-only, UI 125%, Reduce Motion and non-color cues",
+      "firstEpisode": "E00-TITLE",
+      "firstCheckpoint": "settings-ui125-reduce-motion",
+      "requiredForCold": false,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["keyboardFocus", "requiredControlBounds", "reduceMotionSetting", "nonColorStateCue"],
+      "cells": ["L1", "L2", "L3"]
+    },
+    {
+      "id": "PX20-AUDIOVISUAL",
+      "concept": "synchronized normal, heat, flood and finale state cues",
+      "firstEpisode": "E01-FIRST-LIGHT",
+      "firstCheckpoint": "first-energized-path",
+      "requiredForCold": false,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["video", "audio", "actionLedger", "typedTransition"],
+      "cells": ["V1", "V2", "V3", "V4"]
+    },
+    {
+      "id": "PX21-KOREAN-STORY",
+      "concept": "tutorial, operational, error, result, authored story and epilogue Korean",
+      "firstEpisode": "E11-AUTHORED-TEXT",
+      "firstCheckpoint": "native-story-manifest-binding",
+      "requiredForCold": true,
+      "requiredForCoverage": true,
+      "visibleSourceKinds": ["nativeText", "error", "resultStory", "epilogue", "storySelector"],
+      "cells": ["K1", "K2", "K3"]
+    }
+  ],
+  "requiredCells": [
+    "J1", "J2", "J3", "J4",
+    "T1", "T2", "T3",
+    "H1", "H2", "H3", "H4",
+    "I1", "I2", "I3",
+    "C1", "C2", "C3", "C4", "C5",
+    "A1", "A2", "A3", "A4",
+    "P1", "P2", "P3",
+    "V1", "V2", "V3", "V4",
+    "R1", "R2", "R3",
+    "L1", "L2", "L3",
+    "K1", "K2", "K3"
+  ]
+}

@@ -17,6 +17,7 @@ docs/
 │   ├── COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md 완료된 G.3 재구축 계획·이력
 │   ├── REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md 동결된 화면·reference 평가 프로토콜
 │   ├── COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md 활성 상용 UX LLM judge 프로토콜
+│   ├── COMMERCIAL_UX_NATIVE_EVALUATOR_ADDENDUM_KO.md native qualification·holdout·provenance 실행 부록
 │   ├── OBJECT_CATALOG.md             오브젝트 정의와 기능 상태
 │   └── VISUAL_PRODUCTION_SPEC.md      규칙을 표현하는 시각 기준
 ├── scopes/
@@ -57,6 +58,7 @@ docs/
 | `assets/` reference와 화면을 어떻게 다시 맞췄는가? | [레퍼런스 정렬 계획](product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md) | 완료된 G.3 구현·종료 기록이며 새 구현 권한이 아님 |
 | reference와 개발 화면의 유사도·차이를 어떻게 판정했는가? | [평가 프로토콜](product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md) | 고정 `gpt-5.6-sol` ultra judge의 동결 절차이며 사람 증거가 아님 |
 | 튜토리얼부터 에필로그까지 판매 가능한 UX를 어떻게 점수화하는가? | [상용 UX 평가 프로토콜](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md) | text-plan과 실제 native 점수를 분리하는 고정 `gpt-5.6-sol` ultra 내부 프록시 |
+| native judge를 어떤 qualification·holdout·provenance 계약으로 실행하는가? | [native evaluator v1.1 실행 부록](product/COMMERCIAL_UX_NATIVE_EVALUATOR_ADDENDUM_KO.md) | 첫 score-bearing capture 전 동결 계약이며, `BLOCKED_PRE_CAPTURE`를 official 점수로 승격시키지 않음 |
 | 현재 고정 시나리오는 어떻게 동작하는가? | [Scope 0B 기준](scopes/SCOPE_0B_PLAYABLE.md) | 제품 전체 모델로 일반화하지 않음 |
 | 현재 수동 선로 slice는 어떻게 동작하는가? | [Scope 1 기준](scopes/SCOPE_1_INTERACTION.md) | 고정 endpoint 밖의 기능을 열지 않음 |
 | 완료된 첫 제품 구현은 무엇을 만들 수 있는가? | [첫 점등 통합](scopes/FIRST_LIGHT.md) | 완료 범위를 현재 권한으로 오해하지 않음 |
@@ -91,7 +93,8 @@ docs/
 
 1. [루트 README의 현재 상태와 인계](../README.md#현재-상태)
 2. [체크리스트의 단계 상태](ROADMAP_2D_CHECKLIST.md)
-3. 현재 작업이면 [상용 UX 87 계약](scopes/COMMERCIAL_UX_87.md)과 [평가 프로토콜](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)
+3. 현재 작업이면 [상용 UX 87 계약](scopes/COMMERCIAL_UX_87.md), [평가 프로토콜](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md),
+   [native evaluator v1.1 실행 부록](product/COMMERCIAL_UX_NATIVE_EVALUATOR_ADDENDUM_KO.md)
 4. 유지보수라면 [상용 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)과 해당 코드·fixture
 5. G.3 증거 재현이라면 [v27 종료 요약](../playtests/commercial-2d/g3-final-candidate/FORMATIVE_V27_SUMMARY.md)
 6. H를 명시적으로 승인받은 경우에만 [로드맵의 H 게이트](ROADMAP_2D.md#9-단계-h--외부-검증과-공개-후보--미승인)를 읽고 외부 권한·입력을 확인

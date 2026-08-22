@@ -4,6 +4,10 @@
 > actor·judge·verifier: **`gpt-5.6-sol`**, reasoning effort **`ultra`**  
 > 목표: 공식 `CommercialUXProxy >= 87.0`
 
+> Native 실행의 소급 동결 공백과 결정론적 모호성은 첫 score-bearing native capture 전에 동결한
+> [native evaluator 실행 부록 v1.1](COMMERCIAL_UX_NATIVE_EVALUATOR_ADDENDUM_KO.md)이 소유한다.
+> v1의 model·label·weight·floor·cap·수식과 TEXT-PLAN 계약은 바뀌지 않는다.
+
 이 프로토콜은 Gridworks의 튜토리얼부터 에필로그까지가 실제 판매 후보로 느껴질 만큼 일관되고
 이해 가능한 게임 경험인지 점수화한다. LLM은 자유 총점을 만들지 않고 미리 정한 checkpoint cell에
 범주형 label과 관찰 근거만 반환한다. 숫자 변환, cell/category 합산, 불일치 penalty와 cap은

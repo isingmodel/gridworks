@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-evaluation-run-manifest-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "evaluationRunManifestSha256", "candidateManifestSha256",
+    "qualificationReceiptSha256", "judgePanelSha256", "evaluationPhase",
+    "officialCommercialUX", "recipeId", "goldBindings", "artifacts", "retryLedger",
+    "invalidationLedger", "terminalStates", "replacementAuthority"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.evaluation-run-manifest.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "evaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "judgePanelSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationPhase": {"enum": ["FORMATIVE", "OFFICIAL_HOLDOUT"]},
+    "officialCommercialUX": {"type": "boolean"},
+    "recipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "goldBindings": {"$ref": "#/$defs/goldBindings"},
+    "artifacts": {"$ref": "#/$defs/artifacts"},
+    "retryLedger": {
+      "type": "array", "maxItems": 128, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/retry"}
+    },
+    "invalidationLedger": {
+      "type": "array", "maxItems": 128, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/invalidation"}
+    },
+    "terminalStates": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/terminalState"}
+    },
+    "replacementAuthority": {"$ref": "#/$defs/replacementAuthority"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"evaluationPhase": {"const": "FORMATIVE"}}, "required": ["evaluationPhase"]},
+      "then": {"properties": {"officialCommercialUX": {"const": false}, "recipeId": {"const": "FORMATIVE-01"}}},
+      "else": {"properties": {"officialCommercialUX": {"const": true}, "recipeId": {"pattern": "^HOLDOUT-0[1-8]$"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "threeHashes": {
+      "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sha256"}
+    },
+    "threeNullableHashes": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "items": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+    },
+    "threeRawAttemptHashes": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "items": {"$ref": "#/$defs/sha256"}
+    },
+    "threeRunIds": {
+      "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 200}
+    },
+    "laneIds": {
+      "type": "array", "maxItems": 2, "uniqueItems": true,
+      "items": {"enum": ["COLD-JOURNEY", "COVERAGE-JOURNEY"]}
+    },
+    "goldBindings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bindingManifestSha256", "prefixCount", "checkpointCount",
+        "applicableBindingCount", "boundBindingCount", "notApplicableBindingCount",
+        "allApplicableBindingsExact", "e09NorthBankTwoProcessWitness"
+      ],
+      "properties": {
+        "bindingManifestSha256": {"$ref": "#/$defs/sha256"},
+        "prefixCount": {"const": 12},
+        "checkpointCount": {"const": 49},
+        "applicableBindingCount": {"type": "integer", "minimum": 1, "maximum": 61},
+        "boundBindingCount": {"type": "integer", "minimum": 1, "maximum": 61},
+        "notApplicableBindingCount": {"type": "integer", "minimum": 1, "maximum": 61},
+        "allApplicableBindingsExact": {"const": true},
+        "e09NorthBankTwoProcessWitness": {"const": true}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateManifestRawSha256", "qualificationReceiptRawSha256",
+        "judgePanelRawSha256", "actorObservationRawSha256", "actorArtifactIds",
+        "userDataSha256", "saveSha256", "journalSha256", "recordingManifestSha256",
+        "actorRunIds", "coverageArtifactId", "coverageTraceRawSha256",
+        "evidenceSetSha256", "judgeJudgmentRawSha256", "verifierRunId",
+        "verificationOutputSha256", "oracleHardGateLedgerSha256"
+      ],
+      "properties": {
+        "candidateManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "qualificationReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+        "judgePanelRawSha256": {"$ref": "#/$defs/sha256"},
+        "actorObservationRawSha256": {"$ref": "#/$defs/threeHashes"},
+        "actorArtifactIds": {"$ref": "#/$defs/threeHashes"},
+        "userDataSha256": {"$ref": "#/$defs/threeHashes"},
+        "saveSha256": {"$ref": "#/$defs/threeNullableHashes"},
+        "journalSha256": {"$ref": "#/$defs/threeHashes"},
+        "recordingManifestSha256": {"$ref": "#/$defs/threeHashes"},
+        "actorRunIds": {"$ref": "#/$defs/threeRunIds"},
+        "coverageArtifactId": {"$ref": "#/$defs/sha256"},
+        "coverageTraceRawSha256": {"$ref": "#/$defs/sha256"},
+        "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+        "judgeJudgmentRawSha256": {"$ref": "#/$defs/threeRawAttemptHashes"},
+        "verifierRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "verificationOutputSha256": {"$ref": "#/$defs/sha256"},
+        "oracleHardGateLedgerSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "runSlot", "role", "reason", "attempt", "outcome", "readStatus",
+        "rawArtifactSha256"
+      ],
+      "properties": {
+        "runSlot": {"type": "string", "minLength": 1, "maxLength": 120},
+        "role": {"enum": ["ACTOR", "COVERAGE", "QUALIFICATION", "JUDGE", "VERIFIER", "REPLACEMENT"]},
+        "reason": {
+          "enum": [
+            "SCHEMA", "TRANSPORT", "INPUT_UNREADABLE", "INSTABILITY",
+            "SEVERE_SINGLE_RUN", "HARNESS"
+          ]
+        },
+        "attempt": {"type": "integer", "minimum": 1, "maximum": 3},
+        "outcome": {"enum": ["VALID", "INVALIDATED", "BLOCKED"]},
+        "readStatus": {"enum": ["READ", "INPUT_UNREADABLE"]},
+        "rawArtifactSha256": {
+          "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"role": {"enum": ["JUDGE", "REPLACEMENT"]}},
+            "required": ["role"]
+          },
+          "then": {
+            "properties": {
+              "runSlot": {"enum": ["PANEL", "JUDGE-01", "JUDGE-02", "JUDGE-03"]}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"readStatus": {"const": "INPUT_UNREADABLE"}},
+            "required": ["readStatus"]
+          },
+          "then": {
+            "properties": {
+              "reason": {"const": "INPUT_UNREADABLE"},
+              "outcome": {"const": "BLOCKED"},
+              "rawArtifactSha256": {"type": "null"}
+            }
+          },
+          "else": {
+            "properties": {
+              "reason": {
+                "enum": ["SCHEMA", "TRANSPORT", "INSTABILITY", "SEVERE_SINGLE_RUN", "HARNESS"]
+              },
+              "rawArtifactSha256": {"$ref": "#/$defs/sha256"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"reason": {"const": "INPUT_UNREADABLE"}},
+            "required": ["reason"]
+          },
+          "then": {
+            "properties": {
+              "readStatus": {"const": "INPUT_UNREADABLE"},
+              "outcome": {"const": "BLOCKED"},
+              "rawArtifactSha256": {"type": "null"}
+            }
+          }
+        }
+      ]
+    },
+    "invalidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rawArtifactSha256", "replacementRawSha256", "reason", "receiptSha256"],
+      "properties": {
+        "rawArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "replacementRawSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "reason": {"enum": ["SCHEMA", "TRANSPORT", "INSTABILITY", "SEVERE_SINGLE_RUN", "HARNESS"]},
+        "receiptSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      }
+    },
+    "terminalState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actorArtifactId", "actorObservationRawSha256", "state",
+        "severeSingleRun", "incidentKeys", "terminalIncidentKey"
+      ],
+      "properties": {
+        "actorArtifactId": {"$ref": "#/$defs/sha256"},
+        "actorObservationRawSha256": {"$ref": "#/$defs/sha256"},
+        "state": {"enum": ["COMPLETED", "PLAYER_STALLED", "HARNESS_BLOCKED", "INVALID"]},
+        "severeSingleRun": {"type": "boolean"},
+        "incidentKeys": {
+          "type": "array", "maxItems": 256, "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"}
+        },
+        "terminalIncidentKey": {
+          "type": ["string", "null"],
+          "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"state": {"const": "COMPLETED"}}, "required": ["state"]},
+          "then": {
+            "properties": {
+              "terminalIncidentKey": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"state": {"enum": ["PLAYER_STALLED", "HARNESS_BLOCKED"]}},
+            "required": ["state"]
+          },
+          "then": {
+            "properties": {
+              "incidentKeys": {"minItems": 1},
+              "terminalIncidentKey": {
+                "type": "string",
+                "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"state": {"enum": ["HARNESS_BLOCKED", "INVALID"]}},
+            "required": ["state"]
+          },
+          "then": {"properties": {"severeSingleRun": {"const": false}}}
+        }
+      ]
+    },
+    "replacementAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "panelKind", "initialScorecardRawSha256", "initialJudgePanelSha256",
+        "initialEvaluationRunManifestSha256", "requiredLanes"
+      ],
+      "properties": {
+        "panelKind": {"enum": ["INITIAL", "REPLACEMENT"]},
+        "initialScorecardRawSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "initialJudgePanelSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "initialEvaluationRunManifestSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "requiredLanes": {"$ref": "#/$defs/laneIds"}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"panelKind": {"const": "INITIAL"}}, "required": ["panelKind"]},
+          "then": {
+            "properties": {
+              "initialScorecardRawSha256": {"type": "null"},
+              "initialJudgePanelSha256": {"type": "null"},
+              "initialEvaluationRunManifestSha256": {"type": "null"},
+              "requiredLanes": {"maxItems": 0}
+            }
+          },
+          "else": {
+            "properties": {
+              "initialScorecardRawSha256": {"$ref": "#/$defs/sha256"},
+              "initialJudgePanelSha256": {"$ref": "#/$defs/sha256"},
+              "initialEvaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
+              "requiredLanes": {"minItems": 1}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

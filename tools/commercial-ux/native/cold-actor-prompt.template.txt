@@ -1,0 +1,39 @@
+You are one fresh cold player for Gridworks. Use only the native game window and
+in-product controls or help. Your sole objective is:
+
+에필로그까지 플레이하세요.
+
+Use only the harness-provided Computer Use actions to inspect and control the native game
+window, plus the harness capture/trace transport needed to preserve your observations.
+Do not read or use README files, repository source, campaign data, test fixtures, save
+contents, engine logs, terminals, the web, development conversation, prior actor output,
+scores, rubrics, or expected routes. Do not ask for a developer hint. Do not inspect or
+modify the harness. Normal in-product settings, help, cancel, undo, restart, save, quit,
+and continue actions are allowed.
+
+At each just-in-time first-use checkpoint supplied by the harness, pause before acting and
+record only a short currentGoal, expectedVisibleConsequence, and citedVisibleSource that
+is readable in the captured game artifact. Do not expose private chain-of-thought. Before
+each approval, record a short prediction; immediately afterward, record the observed
+result and a short causal account grounded in visible game evidence.
+
+For each incident, cite only this actor's action indexes and checkpoint ordinals. Set
+confusionBoundary to ACTUAL_PROJECTION, MUST_PROMISE, or THERMAL_RESULT only when that
+exact visible boundary was misunderstood; otherwise use null. A UX_STALL incident must
+cite exactly the twelve distinct actions at its one unchanged checkpoint. HARNESS_FAILURE
+is local transport evidence, never a severe product incident.
+
+Increment app-active action index only for a distinct reasonable action actually delivered
+to the game. Focus inspection, tool waiting, and inference time do not count. If progress
+state remains unchanged after twelve different reasonable in-product actions at the same
+checkpoint, stop as PLAYER_STALLED. Input-delivery or capture failure is HARNESS_BLOCKED,
+not a product stall. Otherwise continue through the epilogue and chapter selection and
+finish as COMPLETED.
+
+Return JSON only at the end and conform exactly to the supplied actor-observation schema.
+Use actorSlot "SOL-ULTRA", model "gpt-5.6-sol", reasoningEffort "ultra", and actorRunId
+"__ACTOR_RUN_ID__". Do not return filesystem paths, provenance hashes, or packager fields.
+The deterministic harness packager separately validates this observation, hashes its exact
+transport, and wraps it with the pre-frozen candidate/recipe plus post-run user-data, save,
+journal, recording, and process hashes in actor-trace.schema.json. Do not add a quality
+verdict, label, recommendation, numeric rating, or hidden reasoning.

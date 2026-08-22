@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-replacement-receipt-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "claimPolicy", "authorityPreflightStatus",
+    "replacementReceiptPath", "initialAggregatePath", "initialAggregateRawSha256",
+    "initialPanelSha256", "initialEvaluationRunManifestSha256",
+    "replacementRequiredLanes", "candidateManifestSha256",
+    "qualificationReceiptSha256", "evaluationRunManifestSha256", "recipeId",
+    "rubricSha256", "promptTemplateSha256", "judgmentSchemaSha256",
+    "rawAggregationInputSha256", "rawCandidateManifestSha256",
+    "rawQualificationReceiptSha256", "rawEvaluationRunManifestSha256",
+    "panelAttempt", "judgmentAttempts", "attemptOutcome", "failureCode",
+    "parsedReplacementPanelSha256", "parsedJudgeRunIds", "slotConsumed"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-replacement-receipt.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "claimPolicy": {
+      "const": "O_EXCL_AFTER_AUTHORITY_PREFLIGHT_BEFORE_ATTEMPT_READ_THEN_FINALIZE_SAME_DESCRIPTOR"
+    },
+    "authorityPreflightStatus": {"const": "EXACT_BEFORE_CLAIM"},
+    "replacementReceiptPath": {"type": "string", "minLength": 1, "maxLength": 1200},
+    "initialAggregatePath": {"type": "string", "minLength": 1, "maxLength": 1200},
+    "initialAggregateRawSha256": {"$ref": "#/$defs/sha256"},
+    "initialPanelSha256": {"$ref": "#/$defs/sha256"},
+    "initialEvaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
+    "replacementRequiredLanes": {
+      "type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true,
+      "items": {"enum": ["COLD-JOURNEY", "COVERAGE-JOURNEY"]}
+    },
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
+    "recipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "rubricSha256": {"$ref": "#/$defs/sha256"},
+    "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
+    "judgmentSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "rawAggregationInputSha256": {"$ref": "#/$defs/sha256"},
+    "rawCandidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "rawQualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "rawEvaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
+    "panelAttempt": {
+      "allOf": [
+        {"$ref": "#/$defs/inputAttempt"},
+        {"properties": {"slotId": {"const": "PANEL"}}, "required": ["slotId"]}
+      ]
+    },
+    "judgmentAttempts": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "prefixItems": [
+        {
+          "allOf": [
+            {"$ref": "#/$defs/inputAttempt"},
+            {"properties": {"slotId": {"const": "JUDGE-01"}}, "required": ["slotId"]}
+          ]
+        },
+        {
+          "allOf": [
+            {"$ref": "#/$defs/inputAttempt"},
+            {"properties": {"slotId": {"const": "JUDGE-02"}}, "required": ["slotId"]}
+          ]
+        },
+        {
+          "allOf": [
+            {"$ref": "#/$defs/inputAttempt"},
+            {"properties": {"slotId": {"const": "JUDGE-03"}}, "required": ["slotId"]}
+          ]
+        }
+      ],
+      "items": false
+    },
+    "attemptOutcome": {
+      "description": "Deterministically derived from all four input slots with precedence INPUT_UNREADABLE > TRANSPORT_FAILURE > SCHEMA_FAILURE > VALID.",
+      "enum": ["VALID", "SCHEMA_FAILURE", "TRANSPORT_FAILURE", "INPUT_UNREADABLE"]
+    },
+    "failureCode": {"type": ["string", "null"], "minLength": 1, "maxLength": 300},
+    "parsedReplacementPanelSha256": {
+      "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+    },
+    "parsedJudgeRunIds": {
+      "type": "array", "maxItems": 3, "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1, "maxLength": 200}
+    },
+    "slotConsumed": {"const": true}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"attemptOutcome": {"const": "VALID"}}, "required": ["attemptOutcome"]},
+      "then": {
+        "properties": {
+          "failureCode": {"type": "null"},
+          "parsedReplacementPanelSha256": {"$ref": "#/$defs/sha256"},
+          "parsedJudgeRunIds": {"minItems": 3, "maxItems": 3},
+          "panelAttempt": {
+            "properties": {"attemptOutcome": {"const": "VALID"}},
+            "required": ["attemptOutcome"]
+          },
+          "judgmentAttempts": {
+            "items": {
+              "properties": {"attemptOutcome": {"const": "VALID"}},
+              "required": ["attemptOutcome"]
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "failureCode": {"type": "string", "minLength": 1, "maxLength": 300}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"attemptOutcome": {"const": "INPUT_UNREADABLE"}},
+        "required": ["attemptOutcome"]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "properties": {
+              "panelAttempt": {
+                "properties": {"attemptOutcome": {"const": "INPUT_UNREADABLE"}},
+                "required": ["attemptOutcome"]
+              }
+            },
+            "required": ["panelAttempt"]
+          },
+          {
+            "properties": {
+              "judgmentAttempts": {
+                "contains": {
+                  "properties": {"attemptOutcome": {"const": "INPUT_UNREADABLE"}},
+                  "required": ["attemptOutcome"]
+                },
+                "minContains": 1
+              }
+            },
+            "required": ["judgmentAttempts"]
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {"attemptOutcome": {"const": "TRANSPORT_FAILURE"}},
+        "required": ["attemptOutcome"]
+      },
+      "then": {
+        "properties": {
+          "panelAttempt": {
+            "properties": {
+              "attemptOutcome": {
+                "enum": ["VALID", "SCHEMA_FAILURE", "TRANSPORT_FAILURE"]
+              }
+            }
+          },
+          "judgmentAttempts": {
+            "items": {
+              "properties": {
+                "attemptOutcome": {
+                  "enum": ["VALID", "SCHEMA_FAILURE", "TRANSPORT_FAILURE"]
+                }
+              }
+            }
+          }
+        },
+        "anyOf": [
+          {
+            "properties": {
+              "panelAttempt": {
+                "properties": {"attemptOutcome": {"const": "TRANSPORT_FAILURE"}},
+                "required": ["attemptOutcome"]
+              }
+            },
+            "required": ["panelAttempt"]
+          },
+          {
+            "properties": {
+              "judgmentAttempts": {
+                "contains": {
+                  "properties": {"attemptOutcome": {"const": "TRANSPORT_FAILURE"}},
+                  "required": ["attemptOutcome"]
+                },
+                "minContains": 1
+              }
+            },
+            "required": ["judgmentAttempts"]
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {"attemptOutcome": {"const": "SCHEMA_FAILURE"}},
+        "required": ["attemptOutcome"]
+      },
+      "then": {
+        "properties": {
+          "panelAttempt": {
+            "properties": {
+              "attemptOutcome": {"enum": ["VALID", "SCHEMA_FAILURE"]}
+            }
+          },
+          "judgmentAttempts": {
+            "items": {
+              "properties": {
+                "attemptOutcome": {"enum": ["VALID", "SCHEMA_FAILURE"]}
+              }
+            }
+          }
+        },
+        "anyOf": [
+          {
+            "properties": {
+              "panelAttempt": {
+                "properties": {"attemptOutcome": {"const": "SCHEMA_FAILURE"}},
+                "required": ["attemptOutcome"]
+              }
+            },
+            "required": ["panelAttempt"]
+          },
+          {
+            "properties": {
+              "judgmentAttempts": {
+                "contains": {
+                  "properties": {"attemptOutcome": {"const": "SCHEMA_FAILURE"}},
+                  "required": ["attemptOutcome"]
+                },
+                "minContains": 1
+              }
+            },
+            "required": ["judgmentAttempts"]
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "panelAttempt": {
+            "properties": {"attemptOutcome": {"const": "VALID"}},
+            "required": ["attemptOutcome"]
+          }
+        },
+        "required": ["panelAttempt"]
+      },
+      "then": {
+        "properties": {
+          "parsedReplacementPanelSha256": {"$ref": "#/$defs/sha256"}
+        }
+      },
+      "else": {
+        "properties": {"parsedReplacementPanelSha256": {"type": "null"}}
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "inputAttempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slotId", "path", "readStatus", "rawSha256", "attemptOutcome", "failureCode"
+      ],
+      "properties": {
+        "slotId": {"enum": ["PANEL", "JUDGE-01", "JUDGE-02", "JUDGE-03"]},
+        "path": {"type": "string", "minLength": 1, "maxLength": 1200},
+        "readStatus": {"enum": ["READ", "INPUT_UNREADABLE"]},
+        "rawSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "attemptOutcome": {
+          "enum": ["VALID", "SCHEMA_FAILURE", "TRANSPORT_FAILURE", "INPUT_UNREADABLE"]
+        },
+        "failureCode": {"type": ["string", "null"], "minLength": 1, "maxLength": 300}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"readStatus": {"const": "READ"}}, "required": ["readStatus"]},
+          "then": {
+            "properties": {
+              "rawSha256": {"$ref": "#/$defs/sha256"},
+              "attemptOutcome": {"enum": ["VALID", "SCHEMA_FAILURE", "TRANSPORT_FAILURE"]}
+            }
+          },
+          "else": {
+            "properties": {
+              "rawSha256": {"type": "null"},
+              "attemptOutcome": {"const": "INPUT_UNREADABLE"},
+              "failureCode": {"type": "string", "minLength": 1, "maxLength": 300}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"attemptOutcome": {"const": "VALID"}}, "required": ["attemptOutcome"]},
+          "then": {"properties": {"failureCode": {"type": "null"}}},
+          "else": {
+            "properties": {
+              "failureCode": {"type": "string", "minLength": 1, "maxLength": 300}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

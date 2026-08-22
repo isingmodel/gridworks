@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-canonical-hash-policy-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "algorithm",
+    "canonicalization",
+    "encoding",
+    "checkedInFileRule",
+    "generatedEnvelopeRule",
+    "selfHashRule",
+    "projectionHashRules",
+    "bindings",
+    "postRunActorFields",
+    "verification"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.canonical-hash-policy.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "algorithm": {"const": "SHA-256"},
+    "canonicalization": {"const": "RFC8785_JSON_CANONICALIZATION_SCHEME"},
+    "encoding": {"const": "UTF-8"},
+    "checkedInFileRule": {"const": "SHA256_OF_EXACT_RAW_BYTES"},
+    "generatedEnvelopeRule": {
+      "const": "RFC8785_WITH_DESIGNATED_SELF_HASH_FIELD_NULL"
+    },
+    "selfHashRule": {"const": "SET_DESIGNATED_FIELD_TO_NULL_BEFORE_CANONICALIZATION"},
+    "projectionHashRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selectedRecipeSha256"],
+      "properties": {
+        "selectedRecipeSha256": {
+          "const": "SHA256_OF_RFC8785_CANONICAL_SELECTED_FORMATIVE_OR_HOLDOUT_ROW"
+        }
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "minItems": 9,
+      "maxItems": 9,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["artifactSchema", "field", "producer"],
+        "properties": {
+          "artifactSchema": {"type": "string", "pattern": "^[a-z0-9-]+\\.schema\\.json$"},
+          "field": {"type": "string", "minLength": 1, "maxLength": 100},
+          "producer": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,99}$"}
+        }
+      }
+    },
+    "postRunActorFields": {
+      "const": [
+        "userDataSha256",
+        "saveSha256",
+        "journalSha256",
+        "recordingManifestSha256",
+        "actorArtifactId"
+      ]
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requireExactRecomputation", "rejectMissingOrMismatch", "hardGate"],
+      "properties": {
+        "requireExactRecomputation": {"const": true},
+        "rejectMissingOrMismatch": {"const": true},
+        "hardGate": {"const": "HG13-PROVENANCE"}
+      }
+    }
+  }
+}

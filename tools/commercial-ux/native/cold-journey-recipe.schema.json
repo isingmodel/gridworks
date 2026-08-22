@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-cold-journey-recipe-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "recipeId",
+    "candidateIndependent",
+    "objective",
+    "execution",
+    "isolation",
+    "journey",
+    "routePolicy",
+    "probePolicy",
+    "terminalRules"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.cold-journey-recipe.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "recipeId": {"const": "COLD-JOURNEY-v1"},
+    "candidateIndependent": {"const": true},
+    "objective": {"const": "에필로그까지 플레이하세요."},
+    "execution": {"$ref": "#/$defs/execution"},
+    "isolation": {"$ref": "#/$defs/isolation"},
+    "journey": {"$ref": "#/$defs/journey"},
+    "routePolicy": {"$ref": "#/$defs/routePolicy"},
+    "probePolicy": {"$ref": "#/$defs/probePolicy"},
+    "terminalRules": {"$ref": "#/$defs/terminalRules"}
+  },
+  "$defs": {
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "viewport",
+        "uiScalePercent",
+        "inputMode",
+        "reduceMotion",
+        "audioPercent",
+        "freshUserDataPerActor",
+        "freshProcessTreePerActor",
+        "actorCount"
+      ],
+      "properties": {
+        "viewport": {"const": "1920x1080"},
+        "uiScalePercent": {"const": 100},
+        "inputMode": {"const": "HARNESS_COMPUTER_USE_ACTUAL_INPUT"},
+        "reduceMotion": {"const": false},
+        "audioPercent": {"const": 100},
+        "freshUserDataPerActor": {"const": true},
+        "freshProcessTreePerActor": {"const": true},
+        "actorCount": {"const": 3}
+      }
+    },
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed", "forbidden"],
+      "properties": {
+        "allowed": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "NATIVE_GAME_WINDOW",
+              "IN_PRODUCT_HELP",
+              "IN_PRODUCT_SETTINGS",
+              "IN_PRODUCT_CANCEL_UNDO_RESTART_SAVE_QUIT_CONTINUE",
+              "HARNESS_CAPTURE_TRACE_TRANSPORT"
+            ]
+          }
+        },
+        "forbidden": {
+          "type": "array",
+          "minItems": 11,
+          "maxItems": 11,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "README",
+              "REPOSITORY_SOURCE",
+              "CAMPAIGN_DATA",
+              "TEST_FIXTURE",
+              "SAVE_CONTENTS",
+              "ENGINE_LOG",
+              "TERMINAL",
+              "WEB",
+              "DEVELOPMENT_CONVERSATION",
+              "PRIOR_ACTOR_OUTPUT",
+              "RUBRIC_OR_EXPECTED_ROUTE"
+            ]
+          }
+        }
+      }
+    },
+    "journey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start",
+        "chapterCount",
+        "tutorialChapterCount",
+        "mainChapterCount",
+        "midResume",
+        "terminalSequence"
+      ],
+      "properties": {
+        "start": {"const": "NEW_GAME"},
+        "chapterCount": {"const": 8},
+        "tutorialChapterCount": {"const": 3},
+        "mainChapterCount": {"const": 5},
+        "midResume": {"$ref": "#/$defs/midResume"},
+        "terminalSequence": {
+          "const": ["EPILOGUE", "CHAPTER_SELECT"]
+        }
+      }
+    },
+    "midResume": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["chapterId", "timing", "save", "exit", "restart", "returnAction"],
+      "properties": {
+        "chapterId": {"const": "NORTH_BANK_PROMISE"},
+        "timing": {"const": "FIRST_DECISION_WINDOW_AFTER_ONE_ACCEPTED_DRAFT_MUTATION"},
+        "save": {"const": true},
+        "exit": {"const": "NORMAL_IN_PRODUCT_QUIT"},
+        "restart": {"const": "FRESH_PROCESS"},
+        "returnAction": {"const": "CONTINUE"}
+      }
+    },
+    "routePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prescribedRoute", "hiddenHint", "branchInstruction", "actorChoosesInProductActions"],
+      "properties": {
+        "prescribedRoute": {"const": false},
+        "hiddenHint": {"const": false},
+        "branchInstruction": {"const": false},
+        "actorChoosesInProductActions": {"const": true}
+      }
+    },
+    "probePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["manifest", "delivery", "futureProbeDisclosure", "record", "approvalRecord"],
+      "properties": {
+        "manifest": {"const": "concept-exposure-manifest.json"},
+        "delivery": {"const": "JUST_IN_TIME_FIRST_USE_ONLY"},
+        "futureProbeDisclosure": {"const": false},
+        "record": {
+          "const": ["currentGoal", "expectedVisibleConsequence", "citedVisibleSource"]
+        },
+        "approvalRecord": {
+          "const": [
+            "predictionImmediatelyBeforeApproval",
+            "observedResult",
+            "causalAccount"
+          ]
+        }
+      }
+    },
+    "terminalRules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unchangedStateReasonableActionLimit",
+        "productTerminal",
+        "harnessTerminal",
+        "successTerminal",
+        "inferenceAndToolWaitCountAsActions"
+      ],
+      "properties": {
+        "unchangedStateReasonableActionLimit": {"const": 12},
+        "productTerminal": {"const": "PLAYER_STALLED"},
+        "harnessTerminal": {"const": "HARNESS_BLOCKED"},
+        "successTerminal": {"const": "COMPLETED"},
+        "inferenceAndToolWaitCountAsActions": {"const": false}
+      }
+    }
+  }
+}

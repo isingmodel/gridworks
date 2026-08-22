@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-actor-trace-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "actorArtifactId",
+    "actorObservationSha256",
+    "observation",
+    "promptTemplateSha256",
+    "actorObservationSchemaSha256",
+    "actorTraceSchemaSha256",
+    "conceptManifestSha256",
+    "recipeId",
+    "recipeSha256",
+    "candidateManifestSha256",
+    "executionArtifactSha256",
+    "userDataSha256",
+    "saveSha256",
+    "journalSha256",
+    "recordingManifestSha256",
+    "processTreeId",
+    "packagerId"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-actor-trace.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "actorArtifactId": {"$ref": "#/$defs/sha256"},
+    "actorObservationSha256": {"$ref": "#/$defs/sha256"},
+    "observation": {"$ref": "actor-observation.schema.json"},
+    "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
+    "actorObservationSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "actorTraceSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "conceptManifestSha256": {"$ref": "#/$defs/sha256"},
+    "recipeId": {"const": "COLD-JOURNEY-v1"},
+    "recipeSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
+    "userDataSha256": {"$ref": "#/$defs/sha256"},
+    "saveSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+    "journalSha256": {"$ref": "#/$defs/sha256"},
+    "recordingManifestSha256": {"$ref": "#/$defs/sha256"},
+    "processTreeId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "packagerId": {"const": "HARNESS_FINAL_PACKAGER"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

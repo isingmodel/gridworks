@@ -1,0 +1,342 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-evidence-set-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "evidenceSetSha256",
+    "rubricSha256",
+    "conceptManifestSha256",
+    "recipeId",
+    "recipeSha256",
+    "holdoutQueueSha256",
+    "candidateManifestSha256",
+    "executionArtifactSha256",
+    "anonymizationManifestSha256",
+    "artifactOrder",
+    "artifacts"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-evidence-set.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+    "rubricSha256": {"$ref": "#/$defs/sha256"},
+    "conceptManifestSha256": {"$ref": "#/$defs/sha256"},
+    "recipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "recipeSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutQueueSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
+    "anonymizationManifestSha256": {"$ref": "#/$defs/sha256"},
+    "artifactOrder": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"}
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {"$ref": "#/$defs/coldArtifact"},
+          {"$ref": "#/$defs/coverageArtifact"}
+        ]
+      },
+      "allOf": [
+        {
+          "contains": {
+            "required": ["artifactKind"],
+            "properties": {"artifactKind": {"const": "COLD_ACTOR"}}
+          },
+          "minContains": 3,
+          "maxContains": 3
+        },
+        {
+          "contains": {
+            "required": ["artifactKind"],
+            "properties": {"artifactKind": {"const": "COVERAGE"}}
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "episodeId": {
+      "enum": [
+        "E00-TITLE",
+        "E01-FIRST-LIGHT",
+        "E02-SECOND-HEART",
+        "E03-SECOND-SOURCE",
+        "E04-NORTH-BANK",
+        "E05-WHOSE-MARGIN",
+        "E06-FLOOD",
+        "E07-MAINTENANCE",
+        "E08-FINALE",
+        "E09-MID-RESUME",
+        "E10-COMPLETE-RESUME",
+        "E11-AUTHORED-TEXT"
+      ]
+    },
+    "coldCellId": {
+      "enum": [
+        "J1", "J2", "J3", "J4",
+        "T1", "T2", "T3",
+        "H1", "H2", "H3", "H4",
+        "I1", "I2", "I3",
+        "C1", "C2", "C3", "C4", "C5",
+        "A1", "A2", "A3", "A4",
+        "P1", "P2", "P3",
+        "R2",
+        "K1", "K2", "K3"
+      ]
+    },
+    "coverageCellId": {
+      "enum": [
+        "J2", "J4",
+        "T1", "T2", "T3",
+        "H1", "H2", "H3", "H4",
+        "I1", "I2", "I3",
+        "C1", "C2", "C3", "C4", "C5",
+        "A1", "A2", "A3", "A4",
+        "V1", "V2", "V3", "V4",
+        "R1", "R2", "R3",
+        "L1", "L2", "L3",
+        "K1", "K2", "K3"
+      ]
+    },
+    "mediaArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "kind", "sha256", "mimeType", "locator"],
+      "properties": {
+        "artifactId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "kind": {"enum": ["FRAME", "VIDEO", "AUDIO", "ACTION_LEDGER", "VISIBLE_TEXT"]},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "mimeType": {"type": "string", "minLength": 1, "maxLength": 100},
+        "locator": {"type": "string", "minLength": 1, "maxLength": 300}
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "locator"],
+      "properties": {
+        "artifactId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "locator": {"type": "string", "minLength": 1, "maxLength": 300}
+      }
+    },
+    "traceRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "traceRowId",
+        "episode",
+        "checkpoint",
+        "appActiveActionIndex",
+        "currentGoal",
+        "expectedVisibleConsequence",
+        "citedVisibleSources",
+        "inputEvent",
+        "visibleFeedback",
+        "audibleFeedback",
+        "progressStateSha256",
+        "predictionImmediatelyBeforeApproval",
+        "observedResult",
+        "causalAccount",
+        "incidentKeys"
+      ],
+      "properties": {
+        "traceRowId": {"pattern": "^TRACE-[0-9]{4}$"},
+        "episode": {"$ref": "#/$defs/episodeId"},
+        "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "appActiveActionIndex": {"type": "integer", "minimum": 0, "maximum": 4096},
+        "currentGoal": {"type": ["string", "null"], "minLength": 1, "maxLength": 600},
+        "expectedVisibleConsequence": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 800
+        },
+        "citedVisibleSources": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/sourceRef"}
+        },
+        "inputEvent": {"type": ["string", "null"], "minLength": 1, "maxLength": 500},
+        "visibleFeedback": {"type": ["string", "null"], "minLength": 1, "maxLength": 1000},
+        "audibleFeedback": {"type": ["string", "null"], "minLength": 1, "maxLength": 1000},
+        "progressStateSha256": {"$ref": "#/$defs/sha256"},
+        "predictionImmediatelyBeforeApproval": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "observedResult": {"type": ["string", "null"], "minLength": 1, "maxLength": 1000},
+        "causalAccount": {"type": ["string", "null"], "minLength": 1, "maxLength": 1000},
+        "incidentKeys": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+          }
+        }
+      }
+    },
+    "baseArtifactProperties": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anonymousArtifactId",
+        "artifactKind",
+        "sourceArtifactSha256",
+        "sanitizedArtifactSha256",
+        "assignedCells",
+        "episodeIds",
+        "traceRows",
+        "mediaArtifacts",
+        "terminalState",
+        "terminalIncidentKey"
+      ]
+    },
+    "coldArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anonymousArtifactId",
+        "artifactKind",
+        "sourceArtifactSha256",
+        "sanitizedArtifactSha256",
+        "assignedCells",
+        "episodeIds",
+        "traceRows",
+        "mediaArtifacts",
+        "terminalState",
+        "terminalIncidentKey"
+      ],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "artifactKind": {"const": "COLD_ACTOR"},
+        "sourceArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "sanitizedArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "assignedCells": {
+          "type": "array",
+          "minItems": 30,
+          "maxItems": 30,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/coldCellId"}
+        },
+        "episodeIds": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "E00-TITLE", "E01-FIRST-LIGHT", "E02-SECOND-HEART",
+              "E03-SECOND-SOURCE", "E04-NORTH-BANK", "E05-WHOSE-MARGIN",
+              "E06-FLOOD", "E07-MAINTENANCE", "E08-FINALE",
+              "E09-MID-RESUME"
+            ]
+          }
+        },
+        "traceRows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": {"$ref": "#/$defs/traceRow"}
+        },
+        "mediaArtifacts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/mediaArtifact"}
+        },
+        "terminalState": {"enum": ["COMPLETED", "PLAYER_STALLED"]},
+        "terminalIncidentKey": {
+          "type": ["string", "null"],
+          "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"terminalState": {"const": "COMPLETED"}}, "required": ["terminalState"]},
+          "then": {"properties": {"terminalIncidentKey": {"type": "null"}}}
+        },
+        {
+          "if": {"properties": {"terminalState": {"const": "PLAYER_STALLED"}}, "required": ["terminalState"]},
+          "then": {
+            "properties": {
+              "terminalIncidentKey": {
+                "type": "string",
+                "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "coverageArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anonymousArtifactId",
+        "artifactKind",
+        "sourceArtifactSha256",
+        "sanitizedArtifactSha256",
+        "assignedCells",
+        "episodeIds",
+        "traceRows",
+        "mediaArtifacts",
+        "terminalState",
+        "terminalIncidentKey"
+      ],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "artifactKind": {"const": "COVERAGE"},
+        "sourceArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "sanitizedArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "assignedCells": {
+          "type": "array",
+          "minItems": 34,
+          "maxItems": 34,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/coverageCellId"}
+        },
+        "episodeIds": {
+          "type": "array",
+          "minItems": 12,
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/episodeId"}
+        },
+        "traceRows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": {"$ref": "#/$defs/traceRow"}
+        },
+        "mediaArtifacts": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/mediaArtifact"}
+        },
+        "terminalState": {"const": "COMPLETED"},
+        "terminalIncidentKey": {"type": "null"}
+      }
+    }
+  }
+}

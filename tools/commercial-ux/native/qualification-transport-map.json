@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.qualification-transport-map.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "candidateIndependent": true,
+  "authority": "qualification-anchors.json",
+  "transportRule": "OPAQUE_ID_PRECOMMITTED_PERMUTATION",
+  "entries": [
+    {"transportId": "QA-0001", "authorityAnchorId": "Q-SERVICEABLE-03"},
+    {"transportId": "QA-0002", "authorityAnchorId": "Q-EXCELLENT-01"},
+    {"transportId": "QA-0003", "authorityAnchorId": "Q-WEAK-04"},
+    {"transportId": "QA-0004", "authorityAnchorId": "Q-STRONG-02"},
+    {"transportId": "QA-0005", "authorityAnchorId": "Q-BROKEN-01"},
+    {"transportId": "QA-0006", "authorityAnchorId": "Q-SERVICEABLE-01"},
+    {"transportId": "QA-0007", "authorityAnchorId": "Q-STRONG-04"},
+    {"transportId": "QA-0008", "authorityAnchorId": "Q-EXCELLENT-03"},
+    {"transportId": "QA-0009", "authorityAnchorId": "Q-BROKEN-04"},
+    {"transportId": "QA-0010", "authorityAnchorId": "Q-WEAK-02"},
+    {"transportId": "QA-0011", "authorityAnchorId": "Q-EXCELLENT-04"},
+    {"transportId": "QA-0012", "authorityAnchorId": "Q-SERVICEABLE-02"},
+    {"transportId": "QA-0013", "authorityAnchorId": "Q-BROKEN-03"},
+    {"transportId": "QA-0014", "authorityAnchorId": "Q-STRONG-01"},
+    {"transportId": "QA-0015", "authorityAnchorId": "Q-WEAK-01"},
+    {"transportId": "QA-0016", "authorityAnchorId": "Q-SERVICEABLE-04"},
+    {"transportId": "QA-0017", "authorityAnchorId": "Q-EXCELLENT-02"},
+    {"transportId": "QA-0018", "authorityAnchorId": "Q-BROKEN-02"},
+    {"transportId": "QA-0019", "authorityAnchorId": "Q-STRONG-03"},
+    {"transportId": "QA-0020", "authorityAnchorId": "Q-WEAK-03"}
+  ]
+}

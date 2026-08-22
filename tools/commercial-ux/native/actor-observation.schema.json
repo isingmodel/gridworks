@@ -1,0 +1,329 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-actor-observation-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "actorRunId",
+    "actorSlot",
+    "model",
+    "reasoningEffort",
+    "objective",
+    "freshUserData",
+    "checkpoints",
+    "firstUseRecords",
+    "approvalRecords",
+    "actionLedger",
+    "incidents",
+    "terminalState",
+    "terminalIncidentKey"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-actor-observation.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "actorRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "actorSlot": {"const": "SOL-ULTRA"},
+    "model": {"const": "gpt-5.6-sol"},
+    "reasoningEffort": {"const": "ultra"},
+    "objective": {"const": "에필로그까지 플레이하세요."},
+    "freshUserData": {"const": true},
+    "checkpoints": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "items": {"$ref": "#/$defs/checkpoint"}
+    },
+    "firstUseRecords": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 21,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/firstUseRecord"}
+    },
+    "approvalRecords": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {"$ref": "#/$defs/approvalRecord"}
+    },
+    "actionLedger": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/action"}
+    },
+    "incidents": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/incident"}
+    },
+    "terminalState": {
+      "enum": ["COMPLETED", "PLAYER_STALLED", "HARNESS_BLOCKED", "INVALID"]
+    },
+    "terminalIncidentKey": {
+      "oneOf": [
+        {"$ref": "#/$defs/incidentKey"},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"terminalState": {"const": "COMPLETED"}}, "required": ["terminalState"]},
+      "then": {"properties": {"terminalIncidentKey": {"type": "null"}}}
+    },
+    {
+      "if": {
+        "properties": {"terminalState": {"enum": ["PLAYER_STALLED", "HARNESS_BLOCKED"]}},
+        "required": ["terminalState"]
+      },
+      "then": {"properties": {"terminalIncidentKey": {"$ref": "#/$defs/incidentKey"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "episodeId": {
+      "enum": [
+        "E00-TITLE",
+        "E01-FIRST-LIGHT",
+        "E02-SECOND-HEART",
+        "E03-SECOND-SOURCE",
+        "E04-NORTH-BANK",
+        "E05-WHOSE-MARGIN",
+        "E06-FLOOD",
+        "E07-MAINTENANCE",
+        "E08-FINALE",
+        "E09-MID-RESUME",
+        "E10-COMPLETE-RESUME",
+        "E11-AUTHORED-TEXT"
+      ]
+    },
+    "artifactRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifactId", "kind", "locator"],
+      "properties": {
+        "artifactId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "kind": {
+          "enum": ["FRAME", "VIDEO", "AUDIO", "VISIBLE_TEXT", "ACTION_LEDGER"]
+        },
+        "locator": {"type": "string", "minLength": 1, "maxLength": 300}
+      }
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordinal",
+        "episode",
+        "checkpoint",
+        "appActiveActionIndex",
+        "progressStateSha256",
+        "artifactRefs"
+      ],
+      "properties": {
+        "ordinal": {"type": "integer", "minimum": 1, "maximum": 256},
+        "episode": {"$ref": "#/$defs/episodeId"},
+        "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "appActiveActionIndex": {"type": "integer", "minimum": 0, "maximum": 4096},
+        "progressStateSha256": {"$ref": "#/$defs/sha256"},
+        "artifactRefs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/artifactRef"}
+        }
+      }
+    },
+    "firstUseRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "probeId",
+        "episode",
+        "checkpoint",
+        "checkpointOrdinal",
+        "currentGoal",
+        "expectedVisibleConsequence",
+        "citedVisibleSource"
+      ],
+      "properties": {
+        "probeId": {"pattern": "^PX[0-9]{2}-[A-Z0-9-]+$"},
+        "episode": {"$ref": "#/$defs/episodeId"},
+        "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "checkpointOrdinal": {"type": "integer", "minimum": 1, "maximum": 256},
+        "currentGoal": {"type": "string", "minLength": 1, "maxLength": 600},
+        "expectedVisibleConsequence": {"type": "string", "minLength": 1, "maxLength": 800},
+        "citedVisibleSource": {"$ref": "#/$defs/artifactRef"}
+      }
+    },
+    "approvalRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "episode",
+        "checkpoint",
+        "checkpointOrdinal",
+        "predictionImmediatelyBeforeApproval",
+        "observedResult",
+        "causalAccount",
+        "artifactRefs"
+      ],
+      "properties": {
+        "episode": {"$ref": "#/$defs/episodeId"},
+        "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "checkpointOrdinal": {"type": "integer", "minimum": 1, "maximum": 256},
+        "predictionImmediatelyBeforeApproval": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        },
+        "observedResult": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "causalAccount": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "artifactRefs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/artifactRef"}
+        }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actionIndex",
+        "episode",
+        "checkpoint",
+        "actionKind",
+        "inputEvent",
+        "visibleFeedback",
+        "audibleFeedback",
+        "preStateSha256",
+        "postStateSha256",
+        "appActive",
+        "rationalInProductAction"
+      ],
+      "properties": {
+        "actionIndex": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "episode": {"$ref": "#/$defs/episodeId"},
+        "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "actionKind": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,79}$"},
+        "inputEvent": {"type": "string", "minLength": 1, "maxLength": 500},
+        "visibleFeedback": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "audibleFeedback": {"type": "string", "maxLength": 1000},
+        "preStateSha256": {"$ref": "#/$defs/sha256"},
+        "postStateSha256": {"$ref": "#/$defs/sha256"},
+        "appActive": {"const": true},
+        "rationalInProductAction": {"type": "boolean"}
+      }
+    },
+    "incidentKey": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+    },
+    "incident": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incidentKey",
+        "episode",
+        "checkpointOrdinals",
+        "incidentType",
+        "confusionBoundary",
+        "severity",
+        "description",
+        "actionIndexes",
+        "artifactRefs"
+      ],
+      "properties": {
+        "incidentKey": {"$ref": "#/$defs/incidentKey"},
+        "episode": {"$ref": "#/$defs/episodeId"},
+        "checkpointOrdinals": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 1, "maximum": 256}
+        },
+        "incidentType": {
+          "enum": [
+            "CONFUSION",
+            "RECOVERY_FRICTION",
+            "UX_STALL",
+            "EXTERNAL_HINT_ATTEMPT",
+            "HARNESS_FAILURE"
+          ]
+        },
+        "confusionBoundary": {
+          "oneOf": [
+            {"enum": ["ACTUAL_PROJECTION", "MUST_PROMISE", "THERMAL_RESULT"]},
+            {"type": "null"}
+          ]
+        },
+        "severity": {"enum": ["LOCAL", "SEVERE"]},
+        "description": {"type": "string", "minLength": 1, "maxLength": 1200},
+        "actionIndexes": {
+          "type": "array",
+          "maxItems": 12,
+          "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 1, "maximum": 4096}
+        },
+        "artifactRefs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/artifactRef"}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"incidentType": {"const": "UX_STALL"}}, "required": ["incidentType"]},
+          "then": {
+            "properties": {
+              "checkpointOrdinals": {"minItems": 1, "maxItems": 1},
+              "actionIndexes": {"minItems": 12, "maxItems": 12},
+              "severity": {"const": "SEVERE"},
+              "confusionBoundary": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"incidentType": {"enum": ["EXTERNAL_HINT_ATTEMPT"]}},
+            "required": ["incidentType"]
+          },
+          "then": {
+            "properties": {
+              "severity": {"const": "SEVERE"},
+              "confusionBoundary": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "incidentType": {"enum": ["RECOVERY_FRICTION", "HARNESS_FAILURE"]}
+            },
+            "required": ["incidentType"]
+          },
+          "then": {"properties": {"confusionBoundary": {"type": "null"}}}
+        },
+        {
+          "if": {"properties": {"incidentType": {"const": "HARNESS_FAILURE"}}, "required": ["incidentType"]},
+          "then": {"properties": {"severity": {"const": "LOCAL"}}}
+        }
+      ]
+    }
+  }
+}

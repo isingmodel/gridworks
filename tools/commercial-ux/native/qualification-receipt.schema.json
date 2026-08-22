@@ -1,0 +1,211 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-qualification-receipt-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "qualificationReceiptSha256", "candidateIndependent",
+    "model", "reasoningEffort", "transportVersion", "promptTemplateSha256",
+    "judgmentSchemaSha256", "qualificationInputSchemaSha256",
+    "qualificationInputSha256", "qualificationAnchorsAuthoritySha256",
+    "qualificationTransportMapSha256", "rubricSha256", "passRule", "attempts", "status"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-qualification-receipt.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "candidateIndependent": {"const": true},
+    "model": {"const": "gpt-5.6-sol"},
+    "reasoningEffort": {"const": "ultra"},
+    "transportVersion": {"type": "string", "minLength": 1, "maxLength": 200},
+    "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
+    "judgmentSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationInputSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationInputSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationAnchorsAuthoritySha256": {"$ref": "#/$defs/sha256"},
+    "qualificationTransportMapSha256": {"$ref": "#/$defs/sha256"},
+    "rubricSha256": {"$ref": "#/$defs/sha256"},
+    "passRule": {
+      "const": {
+        "minimumExactPerJudge": 19,
+        "anchorCount": 20,
+        "excellentAndBrokenAllExact": true,
+        "schemaValidCount": 20,
+        "fullPanelReplacementMaximum": 1
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "prefixItems": [
+        {"$ref": "#/$defs/attempt", "properties": {"attempt": {"const": 1}}},
+        {"$ref": "#/$defs/attempt", "properties": {"attempt": {"const": 2}}}
+      ],
+      "items": false
+    },
+    "status": {"enum": ["PASS", "BLOCKED_JUDGE_QUALIFICATION"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"const": "PASS"}}, "required": ["status"]},
+      "then": {
+        "properties": {
+          "attempts": {
+            "oneOf": [
+              {
+                "minItems": 1,
+                "maxItems": 1,
+                "prefixItems": [
+                  {"properties": {"status": {"const": "PASS"}}, "required": ["status"]}
+                ]
+              },
+              {
+                "minItems": 2,
+                "maxItems": 2,
+                "prefixItems": [
+                  {"properties": {"status": {"const": "INVALIDATED"}}, "required": ["status"]},
+                  {"properties": {"status": {"const": "PASS"}}, "required": ["status"]}
+                ]
+              }
+            ],
+            "contains": {"properties": {"status": {"const": "PASS"}}, "required": ["status"]},
+            "minContains": 1,
+            "maxContains": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"const": "BLOCKED_JUDGE_QUALIFICATION"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "attempts": {
+            "minItems": 2,
+            "maxItems": 2,
+            "prefixItems": [
+              {"properties": {"status": {"const": "INVALIDATED"}}, "required": ["status"]},
+              {"properties": {"status": {"const": "FAIL"}}, "required": ["status"]}
+            ],
+            "contains": {"properties": {"status": {"const": "PASS"}}, "required": ["status"]},
+            "minContains": 0,
+            "maxContains": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"attempts": {"minItems": 2}}, "required": ["attempts"]},
+      "then": {
+        "properties": {
+          "attempts": {
+            "prefixItems": [
+              {"properties": {"attempt": {"const": 1}, "status": {"const": "INVALIDATED"}}},
+              {"properties": {"attempt": {"const": 2}, "status": {"enum": ["PASS", "FAIL"]}}}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "slot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slotId", "judgeRunId", "judgmentRawSha256", "exactCount",
+        "excellentAndBrokenAllExact", "schemaValidCount", "status"
+      ],
+      "properties": {
+        "slotId": {"enum": ["JUDGE-01", "JUDGE-02", "JUDGE-03"]},
+        "judgeRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "judgmentRawSha256": {"$ref": "#/$defs/sha256"},
+        "exactCount": {"type": "integer", "minimum": 0, "maximum": 20},
+        "excellentAndBrokenAllExact": {"type": "boolean"},
+        "schemaValidCount": {"type": "integer", "minimum": 0, "maximum": 20},
+        "status": {"enum": ["PASS", "FAIL_SCHEMA", "FAIL_BAND"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "PASS"}}, "required": ["status"]},
+          "then": {
+            "properties": {
+              "exactCount": {"type": "integer", "minimum": 19, "maximum": 20},
+              "excellentAndBrokenAllExact": {"const": true},
+              "schemaValidCount": {"const": 20}
+            }
+          }
+        },
+        {
+          "if": {"properties": {"status": {"const": "FAIL_SCHEMA"}}, "required": ["status"]},
+          "then": {"properties": {"schemaValidCount": {"type": "integer", "minimum": 0, "maximum": 19}}}
+        },
+        {
+          "if": {"properties": {"status": {"const": "FAIL_BAND"}}, "required": ["status"]},
+          "then": {
+            "properties": {"schemaValidCount": {"const": 20}},
+            "anyOf": [
+              {"properties": {"exactCount": {"type": "integer", "minimum": 0, "maximum": 18}}},
+              {"properties": {"excellentAndBrokenAllExact": {"const": false}}}
+            ]
+          }
+        }
+      ]
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attempt", "slots", "status"],
+      "properties": {
+        "attempt": {"enum": [1, 2]},
+        "slots": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "prefixItems": [
+            {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "JUDGE-01"}}},
+            {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "JUDGE-02"}}},
+            {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "JUDGE-03"}}}
+          ],
+          "items": false
+        },
+        "status": {"enum": ["PASS", "INVALIDATED", "FAIL"]}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "PASS"}}, "required": ["status"]},
+          "then": {
+            "properties": {
+              "slots": {
+                "contains": {"properties": {"status": {"const": "PASS"}}, "required": ["status"]},
+                "minContains": 3,
+                "maxContains": 3
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"status": {"enum": ["INVALIDATED", "FAIL"]}},
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "slots": {
+                "contains": {
+                  "properties": {"status": {"enum": ["FAIL_SCHEMA", "FAIL_BAND"]}},
+                  "required": ["status"]
+                },
+                "minContains": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

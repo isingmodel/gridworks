@@ -1,0 +1,359 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-judge-v1.json",
+  "oneOf": [
+    {"$ref": "#/$defs/evidenceSetJudgment"},
+    {"$ref": "#/$defs/qualificationJudgment"}
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "label": {"enum": ["EXCELLENT", "STRONG", "SERVICEABLE", "WEAK", "BROKEN"]},
+    "coldCellId": {
+      "enum": [
+        "J1", "J2", "J3", "J4",
+        "T1", "T2", "T3",
+        "H1", "H2", "H3", "H4",
+        "I1", "I2", "I3",
+        "C1", "C2", "C3", "C4", "C5",
+        "A1", "A2", "A3", "A4",
+        "P1", "P2", "P3",
+        "R2",
+        "K1", "K2", "K3"
+      ]
+    },
+    "coverageCellId": {
+      "enum": [
+        "J2", "J4",
+        "T1", "T2", "T3",
+        "H1", "H2", "H3", "H4",
+        "I1", "I2", "I3",
+        "C1", "C2", "C3", "C4", "C5",
+        "A1", "A2", "A3", "A4",
+        "V1", "V2", "V3", "V4",
+        "R1", "R2", "R3",
+        "L1", "L2", "L3",
+        "K1", "K2", "K3"
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkpoint", "artifact", "observation"],
+      "properties": {
+        "checkpoint": {"type": "string", "minLength": 1, "maxLength": 140},
+        "artifact": {"type": "string", "minLength": 1, "maxLength": 300},
+        "observation": {"type": "string", "minLength": 1, "maxLength": 1200}
+      }
+    },
+    "incidentKey": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+    },
+    "cellBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cellId",
+        "label",
+        "confidence",
+        "strengthEvidence",
+        "gapEvidence",
+        "incidentKeys",
+        "recommendedChange"
+      ],
+      "properties": {
+        "cellId": {"type": "string"},
+        "label": {"$ref": "#/$defs/label"},
+        "confidence": {"enum": ["HIGH", "MEDIUM"]},
+        "strengthEvidence": {
+          "type": "array",
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidence"}
+        },
+        "gapEvidence": {
+          "type": "array",
+          "maxItems": 6,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/evidence"}
+        },
+        "incidentKeys": {
+          "type": "array",
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/incidentKey"}
+        },
+        "recommendedChange": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 800
+        }
+      },
+      "anyOf": [
+        {"properties": {"strengthEvidence": {"minItems": 1}}},
+        {"properties": {"gapEvidence": {"minItems": 1}}}
+      ],
+      "allOf": [
+        {
+          "if": {"properties": {"label": {"const": "EXCELLENT"}}},
+          "then": {"properties": {"strengthEvidence": {"minItems": 1}}}
+        }
+      ]
+    },
+    "coldCell": {
+      "allOf": [
+        {"$ref": "#/$defs/cellBase"},
+        {"properties": {"cellId": {"$ref": "#/$defs/coldCellId"}}}
+      ]
+    },
+    "coverageCell": {
+      "allOf": [
+        {"$ref": "#/$defs/cellBase"},
+        {"properties": {"cellId": {"$ref": "#/$defs/coverageCellId"}}}
+      ]
+    },
+    "coldArtifactJudgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anonymousArtifactId", "artifactKind", "artifactSha256", "cells"],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "artifactKind": {"const": "COLD_ACTOR"},
+        "artifactSha256": {"$ref": "#/$defs/sha256"},
+        "cells": {
+          "type": "array",
+          "minItems": 30,
+          "maxItems": 30,
+          "prefixItems": [
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "J1"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "J2"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "J3"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "J4"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "T1"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "T2"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "T3"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "H1"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "H2"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "H3"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "H4"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "I1"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "I2"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "I3"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "C1"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "C2"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "C3"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "C4"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "C5"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "A1"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "A2"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "A3"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "A4"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "P1"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "P2"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "P3"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "R2"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "K1"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "K2"}}},
+            {"$ref": "#/$defs/coldCell", "properties": {"cellId": {"const": "K3"}}}
+          ],
+          "items": false
+        }
+      }
+    },
+    "coverageArtifactJudgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anonymousArtifactId", "artifactKind", "artifactSha256", "cells"],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "artifactKind": {"const": "COVERAGE"},
+        "artifactSha256": {"$ref": "#/$defs/sha256"},
+        "cells": {
+          "type": "array",
+          "minItems": 34,
+          "maxItems": 34,
+          "prefixItems": [
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "J2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "J4"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "T1"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "T2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "T3"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "H1"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "H2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "H3"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "H4"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "I1"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "I2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "I3"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "C1"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "C2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "C3"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "C4"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "C5"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "A1"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "A2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "A3"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "A4"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "V1"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "V2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "V3"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "V4"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "R1"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "R2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "R3"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "L1"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "L2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "L3"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "K1"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "K2"}}},
+            {"$ref": "#/$defs/coverageCell", "properties": {"cellId": {"const": "K3"}}}
+          ],
+          "items": false
+        }
+      }
+    },
+    "evidenceSetJudgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "protocol",
+        "judgmentMode",
+        "judgeRunId",
+        "judgeSlot",
+        "model",
+        "reasoningEffort",
+        "promptTemplateSha256",
+        "judgmentSchemaSha256",
+        "rubricSha256",
+        "judgeInputSha256",
+        "evidenceSetSha256",
+        "artifactJudgments"
+      ],
+      "properties": {
+        "schemaVersion": {"const": "gridworks.commercial-ux.native-judgment.v1"},
+        "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+        "judgmentMode": {"const": "EVIDENCE_SET"},
+        "judgeRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "judgeSlot": {"const": "SOL-ULTRA"},
+        "model": {"const": "gpt-5.6-sol"},
+        "reasoningEffort": {"const": "ultra"},
+        "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
+        "judgmentSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "rubricSha256": {"$ref": "#/$defs/sha256"},
+        "judgeInputSha256": {"$ref": "#/$defs/sha256"},
+        "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+        "artifactJudgments": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "oneOf": [
+              {"$ref": "#/$defs/coldArtifactJudgment"},
+              {"$ref": "#/$defs/coverageArtifactJudgment"}
+            ]
+          },
+          "allOf": [
+            {
+              "contains": {
+                "required": ["artifactKind"],
+                "properties": {"artifactKind": {"const": "COLD_ACTOR"}}
+              },
+              "minContains": 3,
+              "maxContains": 3
+            },
+            {
+              "contains": {
+                "required": ["artifactKind"],
+                "properties": {"artifactKind": {"const": "COVERAGE"}}
+              },
+              "minContains": 1,
+              "maxContains": 1
+            }
+          ]
+        }
+      }
+    },
+    "qualificationAnchorId": {
+      "enum": [
+        "QA-0001", "QA-0002", "QA-0003", "QA-0004", "QA-0005",
+        "QA-0006", "QA-0007", "QA-0008", "QA-0009", "QA-0010",
+        "QA-0011", "QA-0012", "QA-0013", "QA-0014", "QA-0015",
+        "QA-0016", "QA-0017", "QA-0018", "QA-0019", "QA-0020"
+      ]
+    },
+    "qualificationCell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["anchorId", "label", "confidence", "evidence"],
+      "properties": {
+        "anchorId": {"$ref": "#/$defs/qualificationAnchorId"},
+        "label": {"$ref": "#/$defs/label"},
+        "confidence": {"enum": ["HIGH", "MEDIUM"]},
+        "evidence": {"type": "string", "minLength": 1, "maxLength": 1000}
+      }
+    },
+    "qualificationJudgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "protocol",
+        "judgmentMode",
+        "judgeRunId",
+        "judgeSlot",
+        "model",
+        "reasoningEffort",
+        "promptTemplateSha256",
+        "judgmentSchemaSha256",
+        "rubricSha256",
+        "judgeInputSha256",
+        "qualificationAnchorsSha256",
+        "anchorJudgments"
+      ],
+      "properties": {
+        "schemaVersion": {"const": "gridworks.commercial-ux.native-judgment.v1"},
+        "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+        "judgmentMode": {"const": "QUALIFICATION"},
+        "judgeRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "judgeSlot": {"const": "SOL-ULTRA"},
+        "model": {"const": "gpt-5.6-sol"},
+        "reasoningEffort": {"const": "ultra"},
+        "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
+        "judgmentSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "rubricSha256": {"$ref": "#/$defs/sha256"},
+        "judgeInputSha256": {"$ref": "#/$defs/sha256"},
+        "qualificationAnchorsSha256": {"$ref": "#/$defs/sha256"},
+        "anchorJudgments": {
+          "type": "array",
+          "minItems": 20,
+          "maxItems": 20,
+          "prefixItems": [
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0001"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0002"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0003"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0004"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0005"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0006"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0007"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0008"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0009"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0010"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0011"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0012"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0013"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0014"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0015"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0016"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0017"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0018"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0019"}}},
+            {"$ref": "#/$defs/qualificationCell", "properties": {"anchorId": {"const": "QA-0020"}}}
+          ],
+          "items": false
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,343 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-gold-state-manifest-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "candidateIndependent",
+    "scoreBearingCapture",
+    "bindingComplete",
+    "scoreBearingCaptureAllowed",
+    "candidateExecutionPolicy",
+    "nextRequiredGenerator",
+    "authorities",
+    "hashPolicy",
+    "prefixes",
+    "episodes",
+    "knownLimitations"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.gold-state-manifest.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "candidateIndependent": {"const": true},
+    "scoreBearingCapture": {"const": false},
+    "bindingComplete": {"type": "boolean"},
+    "scoreBearingCaptureAllowed": {"type": "boolean"},
+    "candidateExecutionPolicy": {"$ref": "#/$defs/candidateExecutionPolicy"},
+    "nextRequiredGenerator": {"$ref": "#/$defs/nextRequiredGenerator"},
+    "authorities": {"$ref": "#/$defs/authorities"},
+    "hashPolicy": {"$ref": "#/$defs/hashPolicy"},
+    "prefixes": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/prefix"}
+    },
+    "episodes": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "prefixItems": [
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E00-TITLE"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E01-FIRST-LIGHT"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E02-SECOND-HEART"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E03-SECOND-SOURCE"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E04-NORTH-BANK"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E05-WHOSE-MARGIN"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E06-FLOOD"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E07-MAINTENANCE"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E08-FINALE"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E09-MID-RESUME"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E10-COMPLETE-RESUME"}}},
+        {"$ref": "#/$defs/episode", "properties": {"id": {"const": "E11-AUTHORED-TEXT"}}}
+      ],
+      "items": false
+    },
+    "knownLimitations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {"$ref": "#/$defs/knownLimitation"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "candidateExecutionPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateAuthorityHashOwner",
+        "candidateGoldBindingHashOwner",
+        "goldContractRole",
+        "requiredCandidateAuthorityHashes",
+        "requiredCandidateBindingHashes",
+        "candidateManifestValidation"
+      ],
+      "properties": {
+        "candidateAuthorityHashOwner": {"const": "candidate manifest"},
+        "candidateGoldBindingHashOwner": {
+          "const": "binding manifest referenced by evaluation-run manifest"
+        },
+        "goldContractRole": {"type": "string", "minLength": 1, "maxLength": 600},
+        "requiredCandidateAuthorityHashes": {
+          "const": [
+            "world",
+            "campaign",
+            "coreReplay",
+            "coreContracts",
+            "deterministicWitness",
+            "nativeSmokeWitness",
+            "storyHarness",
+            "storyManifestOutput"
+          ]
+        },
+        "requiredCandidateBindingHashes": {"type": "string", "minLength": 1, "maxLength": 600},
+        "candidateManifestValidation": {"type": "string", "minLength": 1, "maxLength": 600}
+      }
+    },
+    "nextRequiredGenerator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "path", "commandTemplate", "requiredOutputs", "blockingPrerequisite"],
+      "properties": {
+        "status": {"const": "MISSING_IN_CURRENT_SCOPE"},
+        "path": {"type": "string", "minLength": 1, "maxLength": 300},
+        "commandTemplate": {"type": "string", "minLength": 1, "maxLength": 1200},
+        "requiredOutputs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 800}
+        },
+        "blockingPrerequisite": {"type": "string", "minLength": 1, "maxLength": 1200}
+      }
+    },
+    "fileAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1, "maxLength": 300},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "dataAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "schemaVersion", "authorityId", "candidateExecutionSha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1, "maxLength": 300},
+        "schemaVersion": {"type": "string", "minLength": 1, "maxLength": 160},
+        "authorityId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "candidateExecutionSha256": {"type": "null"}
+      }
+    },
+    "semanticCodeAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "referenceMode", "members", "candidateExecutionSha256"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1, "maxLength": 300},
+        "referenceMode": {"const": "PATH_AND_MEMBER_SEMANTIC"},
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 300}
+        },
+        "candidateExecutionSha256": {"type": "null"}
+      }
+    },
+    "storyManifestAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["generator", "schemaVersion", "partCount", "resultPartCount", "candidateExecutionRawOutputSha256"],
+      "properties": {
+        "generator": {"type": "string", "minLength": 1, "maxLength": 500},
+        "schemaVersion": {"const": "gridworks.commercial.story-manifest.v1"},
+        "partCount": {"const": 26},
+        "resultPartCount": {"const": 12},
+        "candidateExecutionRawOutputSha256": {"type": "null"}
+      }
+    },
+    "authorities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "world",
+        "campaign",
+        "coverageRecipe",
+        "conceptExposure",
+        "coreReplay",
+        "coreContracts",
+        "deterministicWitness",
+        "nativeSmokeWitness",
+        "storyHarness",
+        "storyManifest"
+      ],
+      "properties": {
+        "world": {"$ref": "#/$defs/dataAuthority"},
+        "campaign": {"$ref": "#/$defs/dataAuthority"},
+        "coverageRecipe": {"$ref": "#/$defs/fileAuthority"},
+        "conceptExposure": {"$ref": "#/$defs/fileAuthority"},
+        "coreReplay": {"$ref": "#/$defs/semanticCodeAuthority"},
+        "coreContracts": {"$ref": "#/$defs/semanticCodeAuthority"},
+        "deterministicWitness": {"$ref": "#/$defs/semanticCodeAuthority"},
+        "nativeSmokeWitness": {"$ref": "#/$defs/semanticCodeAuthority"},
+        "storyHarness": {"$ref": "#/$defs/semanticCodeAuthority"},
+        "storyManifest": {"$ref": "#/$defs/storyManifestAuthority"}
+      }
+    },
+    "hashPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "journalCanonicalization",
+        "snapshotCanonicalization",
+        "captureCanonicalization",
+        "pendingStatus",
+        "unboundStatus",
+        "notApplicableStatus"
+      ],
+      "properties": {
+        "algorithm": {"const": "SHA-256"},
+        "journalCanonicalization": {"type": "string", "minLength": 1, "maxLength": 800},
+        "snapshotCanonicalization": {"type": "string", "minLength": 1, "maxLength": 800},
+        "captureCanonicalization": {"type": "string", "minLength": 1, "maxLength": 800},
+        "pendingStatus": {"const": "PENDING_NATIVE_REPLAY"},
+        "unboundStatus": {"const": "UNBOUND_REQUIRED_WITNESS"},
+        "notApplicableStatus": {"const": "NOT_APPLICABLE"}
+      }
+    },
+    "replayAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "member", "role"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1, "maxLength": 300},
+        "member": {"type": "string", "minLength": 1, "maxLength": 400},
+        "role": {"type": "string", "minLength": 1, "maxLength": 800}
+      }
+    },
+    "expectedStart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshotRequired"],
+      "properties": {
+        "snapshotRequired": {"type": "boolean"},
+        "presentationMode": {"type": "string", "minLength": 1, "maxLength": 100},
+        "chapterId": {"type": ["string", "null"], "minLength": 1, "maxLength": 160},
+        "decisionWindowId": {"type": ["string", "null"], "minLength": 1, "maxLength": 160},
+        "decisionWindowIndex": {"type": ["integer", "null"], "minimum": 0},
+        "chapterResultsCount": {"type": "integer", "minimum": 0, "maximum": 8},
+        "campaignComplete": {"type": "boolean"},
+        "constructionPhase": {"type": "string", "minLength": 1, "maxLength": 100},
+        "promiseDecision": {"type": ["string", "null"], "minLength": 1, "maxLength": 100},
+        "thermalMemoryProtectiveOutageCount": {"type": "integer", "minimum": 0},
+        "lineDraftRequired": {"type": "boolean"},
+        "storyPartCount": {"const": 26},
+        "resultPartCount": {"const": 12}
+      }
+    },
+    "journalBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "sha256", "commandCount"],
+      "properties": {
+        "status": {
+          "enum": [
+            "PENDING_NATIVE_REPLAY",
+            "UNBOUND_REQUIRED_WITNESS",
+            "NOT_APPLICABLE",
+            "BOUND_NATIVE_REPLAY"
+          ]
+        },
+        "sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "commandCount": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "snapshotBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "sha256"],
+      "properties": {
+        "status": {
+          "enum": [
+            "PENDING_NATIVE_REPLAY",
+            "UNBOUND_REQUIRED_WITNESS",
+            "NOT_APPLICABLE",
+            "BOUND_NATIVE_REPLAY"
+          ]
+        },
+        "sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}
+      }
+    },
+    "prefix": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prefixId", "replayAuthority", "expectedStart", "journalBinding", "snapshotBinding"],
+      "properties": {
+        "prefixId": {"type": "string", "pattern": "^PREFIX-[A-Z0-9-]+$"},
+        "replayAuthority": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/replayAuthority"}
+        },
+        "expectedStart": {"$ref": "#/$defs/expectedStart"},
+        "journalBinding": {"$ref": "#/$defs/journalBinding"},
+        "snapshotBinding": {"$ref": "#/$defs/snapshotBinding"}
+      }
+    },
+    "typedExpectations": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[A-Za-z][A-Za-z0-9]*$"}
+    },
+    "checkpointBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["checkpointId", "typedExpectations", "journalBinding", "snapshotBinding"],
+      "properties": {
+        "checkpointId": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "typedExpectations": {"$ref": "#/$defs/typedExpectations"},
+        "journalBinding": {"$ref": "#/$defs/journalBinding"},
+        "snapshotBinding": {"$ref": "#/$defs/snapshotBinding"}
+      }
+    },
+    "episode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "prefixId", "checkpointBindings"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^E(0[0-9]|1[01])-[A-Z0-9-]+$"},
+        "prefixId": {"type": "string", "pattern": "^PREFIX-[A-Z0-9-]+$"},
+        "checkpointBindings": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/checkpointBinding"}
+        }
+      }
+    },
+    "knownLimitation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "detail"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^GL[0-9]{2}-[A-Z0-9-]+$"},
+        "status": {"enum": ["EXPECTED_PRE_EXECUTION", "BLOCKS_SCORE_BEARING_READINESS"]},
+        "detail": {"type": "string", "minLength": 1, "maxLength": 1600}
+      }
+    }
+  }
+}

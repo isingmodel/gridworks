@@ -1,7 +1,8 @@
-# Commercial UX text-plan tools
+# Commercial UX evaluation tools
 
-This directory implements the formative `TEXT-PLAN` lane only. `TextPlanProxy` never
-becomes `CommercialUXProxy`.
+This directory keeps the formative `TEXT-PLAN` lane separate from the score-bearing native
+lane. `TextPlanProxy` never becomes `CommercialUXProxy`; only a complete, provenance-valid
+native evaluation may produce the latter.
 
 ## Build the blinded input
 
@@ -124,3 +125,94 @@ returns `BLOCKED_EVIDENCE_VERIFICATION` instead of silently dropping adverse evi
 ```sh
 python3 tools/commercial-ux/test-text-plan-evidence-verifier.py
 ```
+
+## Native evaluator v1.1 pre-capture contract
+
+The native contract is defined by
+[`COMMERCIAL_UX_NATIVE_EVALUATOR_ADDENDUM_KO.md`](../../docs/product/COMMERCIAL_UX_NATIVE_EVALUATOR_ADDENDUM_KO.md)
+and the authorities under [`native/`](native/). It fixes `gpt-5.6-sol` with `ultra`
+reasoning, 20 qualification anchors, three independent cold actors plus one coverage
+envelope, three blind judges receiving the same complete evidence set, a label-blind
+verifier, a deterministic oracle, `FORMATIVE-01`, and eight ordered holdouts. The checked-in
+hash policy and stage DAG bind prompts, schemas, recipes, receipts, evidence, retries,
+replacement, and aggregation without changing the v1 rubric or formulas.
+
+The earlier Gate C native smoke is deterministic developer evidence only. It predates this
+score-bearing contract and must not be repackaged as a cold actor, coverage, or judge input.
+
+Validate the candidate-independent contract and current gold-state declarations with:
+
+```sh
+python3 tools/commercial-ux/native/validate-contract.py
+python3 tools/commercial-ux/native/test-contract.py
+python3 tools/commercial-ux/native/test-gold-state.py
+python3 tools/commercial-ux/native/validate-gold-state.py --run-story-manifest
+python3 tools/commercial-ux/test-native-aggregate.py
+python3 -m py_compile \
+  tools/commercial-ux/aggregate-native.py \
+  tools/commercial-ux/test-native-aggregate.py \
+  tools/commercial-ux/native/validate-contract.py \
+  tools/commercial-ux/native/validate-gold-state.py
+```
+
+The current deterministic checks pass 21 schema validations, 23 contract tests, 11
+gold-state tests, and 44 aggregation tests. `CommercialChecks` passes 24 suites / 2,910
+assertions, and the Debug and Release rebuilds each finish with zero warnings and errors.
+Those results prove the pre-capture contract and product regressions, not score readiness or
+game quality.
+
+Immediately before any score-bearing capture, also run:
+
+```sh
+python3 tools/commercial-ux/native/validate-gold-state.py \
+  --run-story-manifest \
+  --require-score-ready
+```
+
+This command is expected to fail closed in the current pre-capture state. The gold-state
+manifest still has 52 pending native-replay owners and four unbound E09 witnesses. In
+addition, the following ten deterministic producer stages are not implemented and bound by
+their exact raw tool SHA yet:
+
+- `CANDIDATE-MANIFEST-PACKAGER`
+- `COLD-PACKAGER`
+- `QUALIFICATION-INPUT-PACKAGER`
+- `QUALIFICATION-RECEIPT-PACKAGER`
+- `COVERAGE-RUN-PACKAGER`
+- `EVIDENCE-SET-PACKAGER`
+- `JUDGE-PANEL-PACKAGER`
+- `VERIFICATION-INPUT-PACKAGER`
+- `ORACLE-HARD-GATES`
+- `EVALUATION-RUN-PACKAGER`
+
+Until all of those blockers are closed, the evaluator status is `BLOCKED_PRE_CAPTURE` and
+no official cold/native score exists. Do not create placeholder artifacts or invent hashes
+to make `--require-score-ready` pass.
+
+Only after score readiness, qualification, capture, judging, verification, and oracle hard
+gates have all completed may the exact three-judge panel be aggregated:
+
+```sh
+python3 tools/commercial-ux/aggregate-native.py \
+  /tmp/native-judge-01.json \
+  /tmp/native-judge-02.json \
+  /tmp/native-judge-03.json \
+  --verifier /tmp/native-verifier.json \
+  --oracle-ledger /tmp/oracle-hard-gates.json \
+  --candidate-provenance /tmp/native-aggregation-input.json \
+  --candidate-manifest /tmp/candidate-manifest.json \
+  --qualification-receipt /tmp/qualification-receipt.json \
+  --judge-panel /tmp/judge-panel.json \
+  --evaluation-run /tmp/evaluation-run-manifest.json \
+  --actor-observations \
+    /tmp/cold-actor-01.json \
+    /tmp/cold-actor-02.json \
+    /tmp/cold-actor-03.json \
+  --coverage-trace /tmp/coverage-trace.json \
+  --evidence-set /tmp/evidence-set.json \
+  --output /tmp/native-scorecard.json
+```
+
+`FORMATIVE-01` may guide a verified improvement but can never return official PASS. An
+official candidate consumes the lowest unused holdout, and a product change advances to the
+next unused holdout rather than rerolling the same evidence.

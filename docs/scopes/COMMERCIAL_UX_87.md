@@ -176,3 +176,5 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
   completed-resume와 창 모드 1920×1080 UI 100%·125% presentation smoke를 통과했다. UI 125% 검사는
   목표·다음 행동·본문·주 행동·복구 행동의 실제 표시·경계와 주 행동 focus를 확인한다. 공식 cold
   actor·blind judge 점수는 아직 실행하지 않았으며 이 기록은 `CommercialUXProxy`를 소유하지 않는다.
+- exact fix `f7066f8`의 독립 재검토는 이전 P1 2건과 P2 2건이 모두 닫혔고 새 finding 없이
+  **P0 0 / P1 0 / P2 0**임을 확인했다. Gate C를 닫고 Gate D의 frozen evidence 구축으로 이동한다.

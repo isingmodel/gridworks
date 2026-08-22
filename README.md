@@ -38,7 +38,8 @@
 첫 장의 목표·단계별 다음 행동, 승인 직전 상태를 동결한 결산, 직전 결과와 현재 목표를 함께 복원하는
 재개 카드를 연결했다. story selector 26개와 17개 typed failure, CommercialChecks 24/2,910 및 작성
 중 선로 초안을 다음 프로세스에서 편집하는 native 회귀는 통과했지만 공식 cold actor·blind judge는
-아직 실행 전이므로 87점이나 종료를 선언하지 않는다.
+아직 실행 전이므로 87점이나 종료를 선언하지 않는다. Gate C exact fix의 독립 재검토는
+`P0 0 / P1 0 / P2 0`이다.
 
 G.3 최종 v27은 55개 개별 runtime art, 338개 원자 도시 배치와 641개 전체 world 배치, 굽은 강과
 정상·고온·범람 상태, 발전소·변전소·철탑 부품 조립, full-bleed HUD와 독립 event timeline을

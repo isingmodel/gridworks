@@ -139,3 +139,18 @@ campaign/epilogue
 judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 불안정하면 낮은 점수나 PASS를 만들지
 않고 `BLOCKED_*`로 기록한다. 87점은 사람 출시 승인이나 외부 판매 가능성의 보증이 아니라, 사용자가
 지정한 고정 LLM 내부 프록시 gate다.
+
+## 8. 진행 기록 — 2026-08-22 Gate A·B 첫 기준선
+
+- campaign 권위에서 정상 도달 가능한 story selector 26개를 만들고, 존재하지 않거나 불가능한
+  selector 17개가 typed failure로 끝남을 검사했다. 누적 `CommercialChecks`는 23 suites,
+  2,885 assertions를 통과했다.
+- `--story-part`, `--story-manifest`는 campaign JSON을 직접 읽는 stable JSON 개발 경로이며 제품
+  저장이나 runtime 진행을 건너뛰지 않는다.
+- 첫 `gpt-5.6-sol` ultra 텍스트 후보는 초기 3인 패널과 허용된 한 번의 fresh replacement 뒤에도
+  `TP-A4`, `TP-P1`의 ordinal range 2가 남아 `BLOCKED_JUDGE_INSTABILITY`로 닫혔다. 점수나 PASS를
+  만들지 않았고 상세 원본은
+  [`baseline-text-v1`](../../playtests/commercial-ux-87/baseline-text-v1/README.md)이 소유한다.
+- fresh storage의 개발자 직접 플레이는 첫 불빛 결산이 다음 장 현금·경계·실패 projection과
+  섞이는 결함을 재현했다. 이는 공식 cold actor 증거가 아니며
+  [`developer-pilot-v1`](../../playtests/commercial-ux-87/developer-pilot-v1/README.md)에 관찰만 남겼다.

@@ -1,0 +1,438 @@
+{
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-JUDGMENT-v1",
+  "judgeRunId": "baseline-text-v1-sol-ultra-j03",
+  "judgeSlot": "SOL-ULTRA",
+  "model": "gpt-5.6-sol",
+  "reasoningEffort": "ultra",
+  "textPlanSha256": "sha256:7c09be293114a4fd6e8171b9d7c9d52d2eba324de0570297c52f669f6192c72c",
+  "promptTemplateSha256": "sha256:d31481546619063fcba5193d7c9043c5bb7e620d258ad3a6bc726fead6ff3be9",
+  "judgmentSchemaSha256": "sha256:69eb5143bc4821b14b90aa479da21620ddfffb20b63070d580184dfe35e69c04",
+  "cells": [
+    {
+      "cellId": "TP-J1",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:learningIntent",
+          "observation": "The arc begins with placement, real-path continuity, continuous limits, and the transition from planning to energized operation."
+        },
+        {
+          "sourceRef": "chapter:WHOSE_MARGIN:learningIntent",
+          "observation": "The main campaign develops those foundations into a linked decision across emergency headroom and the following protection shutdown."
+        },
+        {
+          "sourceRef": "chapter:LONGEST_NIGHT:learningIntent",
+          "observation": "The finale explicitly combines the accumulated network and promises with peak demand, emergency operation, shutdown, flooding, and source loss."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-J2",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/result/keep",
+          "observation": "The keep result records the actual network that preserved essential supply and the final industrial promise."
+        },
+        {
+          "sourceRef": "LONGEST_NIGHT/result/defer",
+          "observation": "The defer result gives the alternate promise outcome while preserving the essential-supply payoff."
+        },
+        {
+          "sourceRef": "campaign/epilogue",
+          "observation": "The epilogue retains obligations, promises, sources, paths, emergency use, and funds, then explicitly offers replay from a chosen chapter state."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-T1",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:learningIntent",
+          "observation": "The plan concretely assigns free placement, valid-endpoint routing, continuous limits, and plan-to-energized state transition."
+        },
+        {
+          "sourceRef": "FIRST_LIGHT/result/standard",
+          "observation": "The result supplies an immediate first-light payoff and states that the constructed route persists."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "FIRST_LIGHT/briefing",
+          "observation": "The authored briefing explains the river restriction and route objective but does not surface the assigned continuous-limit or approval-state concepts."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-T2",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "SECOND_HEART/briefing",
+          "observation": "The briefing makes corridor independence concrete through sequential North Bank and riverside blockages and requires a surviving path to the operating room."
+        },
+        {
+          "sourceRef": "SECOND_HEART/result/standard",
+          "observation": "The result closes the test by recording the path that actually survived each blockage."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "chapter:SECOND_HEART:choiceIntent",
+          "observation": "The shared-cost versus independent-placement trade-off is assigned in the intent but is not stated in the authored briefing or result."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-T3",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "SECOND_SOURCE/briefing",
+          "observation": "The briefing clearly adds the southern source, removes the western source for the test, and limits equipment to continuous ratings."
+        },
+        {
+          "sourceRef": "SECOND_SOURCE/window/SECOND_SOURCE_BUILD",
+          "observation": "The window explicitly distinguishes spare generation from an end-to-end path constrained by its first full connection."
+        },
+        {
+          "sourceRef": "SECOND_SOURCE/result/standard",
+          "observation": "The result verifies paths and connection headroom, marks the operating handoff, and explicitly ends control guidance."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-C1",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "FIRST_LIGHT/briefing",
+          "observation": "The first objective clearly requires a land-based line between connection points to create the initial supply path."
+        },
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:choiceIntent",
+          "observation": "The choice intent adds route cost, construction time, invalid placement correction, and pre-approval draft correction."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "FIRST_LIGHT/result/standard",
+          "observation": "The payoff confirms energization and persistence but does not identify the approval transition or limiting element of the completed path."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-C2",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:SECOND_HEART:learningIntent",
+          "observation": "The plan directly states that multiple lines sharing one risk corridor are not independent."
+        },
+        {
+          "sourceRef": "SECOND_HEART/briefing",
+          "observation": "Named corridor blockages turn the independence rule into a concrete survivability test."
+        },
+        {
+          "sourceRef": "SECOND_HEART/result/standard",
+          "observation": "The result promises evidence of the actual surviving route for each test."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-C3",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:SECOND_SOURCE:learningIntent",
+          "observation": "The concept explicitly separates available generation from the full source-to-demand route and its smallest connection capacity."
+        },
+        {
+          "sourceRef": "SECOND_SOURCE/window/SECOND_SOURCE_BUILD",
+          "observation": "The authored instruction tells the player that supply fails when any connection on the route fills first."
+        },
+        {
+          "sourceRef": "SECOND_SOURCE/result/standard",
+          "observation": "The result closes the lesson by verifying both southern-source routes and connection headroom."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-C4",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "WHOSE_MARGIN/window/AFTER_HEAT_SAFETY",
+          "observation": "Emergency operation produces a clearly sequenced protection shutdown at the following safety boundary."
+        },
+        {
+          "sourceRef": "BEFORE_WATER_REACHES/window/FLOOD_BYPASS_BUILD",
+          "observation": "Flood control visibly removes all equipment inside the control line and redirects attention to the remaining path."
+        },
+        {
+          "sourceRef": "SHUT_DOWN_TO_KEEP/window/MAINTENANCE_BYPASS_BUILD",
+          "observation": "Maintenance removes the western source for a stated interval and requires full-path and minimum-headroom verification from the south."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "chapter:SHUT_DOWN_TO_KEEP:learningIntent",
+          "observation": "The thermal-state transition is clear in context, but the intent uses the unexplained English term \"reset\" instead of the established Korean state language."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-C5",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/result/keep",
+          "observation": "The keep result records emergency use, protection shutdown, flooding, essential supply, the promise outcome, and the actual network."
+        },
+        {
+          "sourceRef": "LONGEST_NIGHT/result/defer",
+          "observation": "The alternate result clearly distinguishes a deferred industrial promise from successful hospital and waterworks supply."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/window/LAST_STORM_APPROVAL",
+          "observation": "The final results summarize the compound event but do not individually restate the window's western-source exclusion and surviving-route constraint."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-A1",
+      "label": "STRONG",
+      "confidence": "MEDIUM",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:choiceIntent",
+          "observation": "The opening choice explicitly combines route selection with construction cost and construction time."
+        },
+        {
+          "sourceRef": "chapter:BEFORE_WATER_REACHES:choiceIntent",
+          "observation": "The flood chapter provides a concrete comparison between a short risky reinforcement and a costlier or longer safe corridor."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "BEFORE_WATER_REACHES/briefing",
+          "observation": "The authored flood briefing contrasts emergency and reinforced capacity but leaves the assigned cost and build-time comparison implicit."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-A2",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "NORTH_BANK_PROMISE/briefing",
+          "observation": "The choice clearly places an optional housing promise beside mandatory waterworks supply and future industrial headroom."
+        },
+        {
+          "sourceRef": "NORTH_BANK_PROMISE/result/keep",
+          "observation": "The keep branch confirms the housing commitment and names the next claim on the same thermal headroom."
+        },
+        {
+          "sourceRef": "NORTH_BANK_PROMISE/result/defer",
+          "observation": "The defer branch confirms the delay and explicitly carries the remaining network and funds forward."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-A3",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "WHOSE_MARGIN/briefing",
+          "observation": "The briefing makes emergency headroom a one-use choice whose equipment shuts down at the next safety boundary."
+        },
+        {
+          "sourceRef": "WHOSE_MARGIN/result/keep",
+          "observation": "The keep result records the emergency equipment, subsequent shutdown, and surviving morning-safety route."
+        },
+        {
+          "sourceRef": "WHOSE_MARGIN/result/defer",
+          "observation": "The defer result records preserved continuous headroom for essential supply and the next morning."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-A4",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:LONGEST_NIGHT:choiceIntent",
+          "observation": "The finale explicitly assigns a keep-or-defer decision for the final industrial promise and carries it into results and accumulated records."
+        },
+        {
+          "sourceRef": "LONGEST_NIGHT/result/keep",
+          "observation": "The keep branch pays off both essential obligations and the final promise."
+        },
+        {
+          "sourceRef": "LONGEST_NIGHT/result/defer",
+          "observation": "The defer branch preserves the distinct outcome in which essential obligations take priority."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/briefing",
+          "observation": "The authored finale briefing refers generally to prior promises without naming the final industrial promise that the branch results resolve."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-P1",
+      "label": "STRONG",
+      "confidence": "MEDIUM",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:SECOND_SOURCE:learningIntent",
+          "observation": "The final tutorial explicitly assigns a transition in which tutorial guidance decreases."
+        },
+        {
+          "sourceRef": "SECOND_SOURCE/result/standard",
+          "observation": "The handoff is stated plainly: operation decisions now proceed without control guidance."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "SECOND_SOURCE/briefing",
+          "observation": "The artifact defines the withdrawal endpoint but does not show a staged reduction in guidance before that endpoint."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-P2",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:NORTH_BANK_PROMISE:crisisIntent",
+          "observation": "The main arc starts by linking a present essential obligation to headroom needed for the next hot-evening demand."
+        },
+        {
+          "sourceRef": "chapter:WHOSE_MARGIN:learningIntent",
+          "observation": "Escalation adds emergency thermal use and its next-boundary protection consequence."
+        },
+        {
+          "sourceRef": "chapter:BEFORE_WATER_REACHES:learningIntent",
+          "observation": "The following chapter adds a deadline, flood loss, emergency ratings, reinforced continuous capacity, and recovery after failure."
+        },
+        {
+          "sourceRef": "chapter:SHUT_DOWN_TO_KEEP:learningIntent",
+          "observation": "The maintenance chapter changes the operating state again by clearing prior thermal effects and removing a source under continuous limits."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-P3",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/briefing",
+          "observation": "The finale explicitly tests the network and promises built in earlier chapters against consecutive compound hazards."
+        },
+        {
+          "sourceRef": "LONGEST_NIGHT/result/keep",
+          "observation": "The result pays off both the accumulated operating sequence and the player's final promise decision."
+        },
+        {
+          "sourceRef": "campaign/epilogue",
+          "observation": "The epilogue consolidates the campaign record and converts it into a concrete chapter-state replay option."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-K1",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "FIRST_LIGHT/briefing",
+          "observation": "The opening Korean instruction is direct and concrete about forbidden river placement, valid connection points, and the supply-path objective."
+        },
+        {
+          "sourceRef": "SECOND_SOURCE/result/standard",
+          "observation": "The tutorial handoff uses concise Korean to state that control guidance is ending."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:choiceIntent",
+          "observation": "The otherwise Korean control plan contains the untranslated term \"draft,\" creating a small terminology break."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-K2",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "WHOSE_MARGIN/window/AFTER_HEAT_SAFETY",
+          "observation": "Operational Korean consistently names emergency operation, protection shutdown, safety obligation, and the surviving real path."
+        },
+        {
+          "sourceRef": "SHUT_DOWN_TO_KEEP/result/keep",
+          "observation": "The result states the preserved obligations and actual southern-source path in compact, natural Korean."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "chapter:SHUT_DOWN_TO_KEEP:learningIntent",
+          "observation": "The untranslated term \"reset\" interrupts otherwise consistent Korean operational terminology."
+        },
+        {
+          "sourceRef": "SHUT_DOWN_TO_KEEP/briefing",
+          "observation": "The phrase \"장간 시간경과\" appears malformed even though the surrounding maintenance-state explanation remains understandable."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-K3",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/result/keep",
+          "observation": "The finale result uses concise, natural Korean to connect the hazards, essential services, and promise payoff."
+        },
+        {
+          "sourceRef": "LONGEST_NIGHT/result/defer",
+          "observation": "The alternate result remains parallel and clearly communicates the priority given to surgery and water supply."
+        },
+        {
+          "sourceRef": "campaign/epilogue",
+          "observation": "The epilogue fluently summarizes accumulated records and explains replay without introducing new terminology."
+        }
+      ],
+      "gapEvidence": []
+    }
+  ]
+}

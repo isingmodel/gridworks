@@ -1,0 +1,397 @@
+{
+  "schemaVersion": "gridworks.commercial.story-manifest.v1",
+  "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+  "count": 26,
+  "parts": [
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "FIRST_LIGHT/briefing",
+      "kind": "briefing",
+      "chapterId": "FIRST_LIGHT",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "윤서진",
+        "title": "첫 입주가 오늘 저녁 시작됩니다",
+        "body": "동부 생활권에는 아직 전기가 닿지 않습니다. 강 위에는 설비를 세우지 말고, 육지의 접속점 사이는 선로로 건너 첫 공급 경로를 완성하세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "FIRST_LIGHT/result/standard",
+      "kind": "result",
+      "chapterId": "FIRST_LIGHT",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "윤서진",
+        "title": "동부 생활권 첫 점등",
+        "body": "첫 입주 시각에 맞춰 주거지 창과 가로등에 전기가 들어왔습니다. 오늘 놓은 경로는 다음 공사에도 그대로 남습니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "SECOND_HEART/briefing",
+      "kind": "briefing",
+      "chapterId": "SECOND_HEART",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "박지현",
+        "title": "두 줄이 같은 곳에서 멈추면 한 줄입니다",
+        "body": "의료원 전환시험은 서로 다른 두 회랑을 차례로 차단합니다. 북안과 강변 어느 한쪽이 막혀도 수술실 접속점까지 실제 경로가 남아야 합니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "SECOND_HEART/result/standard",
+      "kind": "result",
+      "chapterId": "SECOND_HEART",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "박지현",
+        "title": "수술실 전환시험 완료",
+        "body": "두 차단시험에서 의료원 전력이 끊기지 않았습니다. 결과에는 각 시험에서 실제로 남은 경로가 기록됩니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "SECOND_SOURCE/briefing",
+      "kind": "briefing",
+      "chapterId": "SECOND_SOURCE",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "강민호",
+        "title": "서부 전원을 빼고도 망은 서 있어야 합니다",
+        "body": "남부 예비 발전 접속점을 기존 망에 합류시키세요. 인수시험 동안 서부 발전 접속점은 빠지고, 선로와 접속부는 연속 한계만 사용합니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "SECOND_SOURCE/window/SECOND_SOURCE_BUILD",
+      "kind": "window",
+      "chapterId": "SECOND_SOURCE",
+      "windowId": "SECOND_SOURCE_BUILD",
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "강민호",
+        "title": "연속 한계만 보는 인수시험",
+        "body": "발전량이 남아도 경로 중 한 접속부가 먼저 차면 공급은 성립하지 않습니다. 두 시설의 실제 경로와 최소 열여유를 확인하세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "SECOND_SOURCE/result/standard",
+      "kind": "result",
+      "chapterId": "SECOND_SOURCE",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "강민호",
+        "title": "청류시 운영 인수 완료 · 6개월 후",
+        "body": "남부 전원에서 두 시설까지 이어진 경로와 접속부 여유를 확인했습니다. 이제 조작 안내 없이 운영 결정을 맡습니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "NORTH_BANK_PROMISE/briefing",
+      "kind": "briefing",
+      "chapterId": "NORTH_BANK_PROMISE",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "윤서진",
+        "title": "북안 입주 날짜를 확정할 차례입니다",
+        "body": "정수장 공급은 반드시 지켜야 합니다. 북안 입주 약속까지 같은 망에 담을지 미룰지 정하고, 다음 더운 저녁의 산업 증산 전에 접속부 여유를 남기세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "NORTH_BANK_PROMISE/result/keep",
+      "kind": "result",
+      "chapterId": "NORTH_BANK_PROMISE",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": "keep",
+      "story": {
+        "speaker": "윤서진",
+        "title": "입주 약속을 지켰습니다",
+        "body": "정수장 공급과 북안 입주 전력을 함께 승인했습니다. 다음 더운 저녁에는 산업 증산이 같은 열여유를 요구합니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "NORTH_BANK_PROMISE/result/defer",
+      "kind": "result",
+      "chapterId": "NORTH_BANK_PROMISE",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": "defer",
+      "story": {
+        "speaker": "윤서진",
+        "title": "입주 약속을 미뤘습니다",
+        "body": "정수장 공급을 먼저 승인하고 북안 입주 일정을 미뤘습니다. 남은 망과 자금은 다음 더운 저녁에도 그대로 이어집니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "WHOSE_MARGIN/briefing",
+      "kind": "briefing",
+      "chapterId": "WHOSE_MARGIN",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "강민호",
+        "title": "더운 저녁의 여유는 한 번만 쓸 수 있습니다",
+        "body": "산업단지 야간 증산 약속을 지키면 일부 설비의 비상 열여유를 직접 승인할 수 있습니다. 비상 운전한 설비는 다음 안전 경계에서 보호정지하므로 두 경계를 함께 확인하세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "WHOSE_MARGIN/window/AFTER_HEAT_SAFETY",
+      "kind": "window",
+      "chapterId": "WHOSE_MARGIN",
+      "windowId": "AFTER_HEAT_SAFETY",
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "박지현",
+        "title": "보호정지 뒤에도 아침은 옵니다",
+        "body": "더운 저녁에 비상 운전한 설비는 지금 보호정지합니다. 공개된 아침 안전 의무의 실제 경로가 남는지 확인하세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "WHOSE_MARGIN/result/keep",
+      "kind": "result",
+      "chapterId": "WHOSE_MARGIN",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": "keep",
+      "story": {
+        "speaker": "강민호",
+        "title": "증산 약속과 보호정지를 함께 기록했습니다",
+        "body": "산업단지 증산에 사용한 실제 비상 설비와 다음 보호정지, 아침 안전 의무의 남은 경로를 기록했습니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "WHOSE_MARGIN/result/defer",
+      "kind": "result",
+      "chapterId": "WHOSE_MARGIN",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": "defer",
+      "story": {
+        "speaker": "강민호",
+        "title": "증산 약속을 미루고 연속 여유를 남겼습니다",
+        "body": "산업단지 증산은 미뤘고 필수 공급과 다음 아침 경로에 남은 연속 열여유를 기록했습니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "BEFORE_WATER_REACHES/briefing",
+      "kind": "briefing",
+      "chapterId": "BEFORE_WATER_REACHES",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "이도윤",
+        "title": "강변 설비가 멈추기 전에 우회 용량을 만드세요",
+        "body": "범람구역 안의 선로와 전신주는 함께 사용할 수 없게 됩니다. 북안의 남은 회랑에 의료원과 정수장의 필수 공급이 몰립니다. 일반선의 공개된 비상 한계와 다음 보호정지, 보강선의 연속 여유를 비교해 새 공급 경로를 완성하세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "BEFORE_WATER_REACHES/window/FLOOD_BYPASS_BUILD",
+      "kind": "window",
+      "chapterId": "BEFORE_WATER_REACHES",
+      "windowId": "FLOOD_BYPASS_BUILD",
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "이도윤",
+        "title": "범람 통제선이 닫힙니다",
+        "body": "통제선 안의 설비는 안전을 위해 모두 정지합니다. 지도에서 사용불가 표시와 실제 공급 경로를 함께 확인하세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "BEFORE_WATER_REACHES/result/standard",
+      "kind": "result",
+      "chapterId": "BEFORE_WATER_REACHES",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "이도윤",
+        "title": "물이 닿는 동안에도 수술과 급수는 이어졌습니다",
+        "body": "범람구역 밖에서 실제로 남은 발전원과 경로가 의료원과 정수장의 필수 공급을 맡았습니다. 사용한 비상 운전과 다음 보호정지도 운영 기록에 남겼습니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "SHUT_DOWN_TO_KEEP/briefing",
+      "kind": "briefing",
+      "chapterId": "SHUT_DOWN_TO_KEEP",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "박지현",
+        "title": "3주 뒤 · 모든 열 설비가 복귀했습니다",
+        "body": "장간 시간경과로 앞선 보호정지는 모두 해제됐습니다. 서부 발전 접속점을 계획정지한 동안 남부 전원과 남은 경로만으로 필수 시설과 야간 복구 약속을 지킬지 결정하세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "SHUT_DOWN_TO_KEEP/window/MAINTENANCE_BYPASS_BUILD",
+      "kind": "window",
+      "chapterId": "SHUT_DOWN_TO_KEEP",
+      "windowId": "MAINTENANCE_BYPASS_BUILD",
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "강민호",
+        "title": "계획정지를 시작합니다",
+        "body": "서부 전원은 작성된 정비 시간 동안 사용할 수 없습니다. 남부 전원에서 각 시설까지 이어지는 전체 경로와 최소 열여유를 확인하세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "SHUT_DOWN_TO_KEEP/result/keep",
+      "kind": "result",
+      "chapterId": "SHUT_DOWN_TO_KEEP",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": "keep",
+      "story": {
+        "speaker": "박지현",
+        "title": "정비와 야간 복구를 함께 마쳤습니다",
+        "body": "필수 공급과 산업 야간 복구 약속을 함께 지킨 실제 남부 전원 경로를 기록했습니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "SHUT_DOWN_TO_KEEP/result/defer",
+      "kind": "result",
+      "chapterId": "SHUT_DOWN_TO_KEEP",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": "defer",
+      "story": {
+        "speaker": "박지현",
+        "title": "필수 공급을 먼저 지켰습니다",
+        "body": "산업 야간 복구는 미뤘고 서부 전원 정비 중 필수 시설을 지킨 경로를 기록했습니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "LONGEST_NIGHT/briefing",
+      "kind": "briefing",
+      "chapterId": "LONGEST_NIGHT",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "윤서진",
+        "title": "앞서 만든 망과 약속이 오늘 밤 시험받습니다",
+        "body": "폭염 뒤 국지성 폭우가 이어집니다. 첫 경계의 비상 운전은 다음 경계의 보호정지로 남고, 강변 범람과 서부 전원 정지가 겹칩니다. 새 우회 분기를 남겨 두 경계를 함께 통과하세요."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "LONGEST_NIGHT/window/LAST_STORM_APPROVAL",
+      "kind": "window",
+      "chapterId": "LONGEST_NIGHT",
+      "windowId": "LAST_STORM_APPROVAL",
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "이도윤",
+        "title": "강변 통제와 서부 전원 정지가 시작됐습니다",
+        "body": "첫 경계에서 비상 운전한 설비는 보호정지합니다. 범람구역과 서부 전원을 제외한 실제 경로로 의료원과 정수장을 지켜야 합니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "LONGEST_NIGHT/result/keep",
+      "kind": "result",
+      "chapterId": "LONGEST_NIGHT",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": "keep",
+      "story": {
+        "speaker": "윤서진",
+        "title": "수술과 급수, 마지막 약속을 함께 지켰습니다",
+        "body": "비상 운전과 보호정지, 범람을 지나 필수 공급과 마지막 산업 약속을 지킨 실제 망을 기록했습니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "LONGEST_NIGHT/result/defer",
+      "kind": "result",
+      "chapterId": "LONGEST_NIGHT",
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": "defer",
+      "story": {
+        "speaker": "윤서진",
+        "title": "수술과 급수를 먼저 지켰습니다",
+        "body": "마지막 산업 약속은 미뤘고 복합재난에서 의료원과 정수장을 지킨 실제 망을 기록했습니다."
+      }
+    },
+    {
+      "schemaVersion": "gridworks.commercial.story-part-output.v1",
+      "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+      "selector": "campaign/epilogue",
+      "kind": "epilogue",
+      "chapterId": null,
+      "windowId": null,
+      "reachable": true,
+      "requiredPromiseBranch": null,
+      "story": {
+        "speaker": "윤서진",
+        "title": "청류시 전력망 운영 인계",
+        "body": "여덟 임무의 기록에는 지킨 의무와 미룬 약속, 실제 발전원과 경로, 사용한 비상 운전과 남은 자금이 그대로 남았습니다. 원하는 장의 시작 상태를 골라 다른 망을 다시 시험할 수 있습니다."
+      }
+    }
+  ]
+}

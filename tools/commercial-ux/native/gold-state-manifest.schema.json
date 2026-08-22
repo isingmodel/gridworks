@@ -94,7 +94,8 @@
             "deterministicWitness",
             "nativeSmokeWitness",
             "storyHarness",
-            "storyManifestOutput"
+            "storyManifestOutput",
+            "goldReplayBuildInputs"
           ]
         },
         "requiredCandidateBindingHashes": {"type": "string", "minLength": 1, "maxLength": 600},

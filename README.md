@@ -53,9 +53,11 @@ provenance·집계 계약을 첫 score-bearing capture 전에 동결했다. 고�
 contract 53 시나리오, gold-state 25, evaluation-session 16, aggregate 78 결정론적 검사와
 CommercialChecks 24/2,910이 통과한다. candidate-specific overlay의 journal/snapshot 56쌍은 exact
 Core replay로 검증되며 E09 geometry/projection도 replay 결과에서 유도한다. replay verifier는 해시로
-고정한 24개 SDK/project/source 입력만 private temp tree에 복사해 빌드하며 저장소의 암시적 source,
+고정한 24개 path/role만 private temp tree에 복사해 빌드한다. 그중 SDK·verifier 4개 bytes는 evaluator가
+동결하고, Core project/source 20개 bytes는 candidate manifest의 canonical projection으로 결속한다. 저장소의 암시적 source,
 `Directory.Build.*`, `Directory.Packages.props`, NuGet source, `bin/obj`를 입력으로 허용하지 않는다.
-그러나 checked-in gold
+이 폐쇄는 gold replay verifier에만 적용되며, 실제 게임 build tree와 전체 runtime resource authority는
+`CANDIDATE-MANIFEST-PACKAGER` 구현 게이트에 남아 있다. 또한 checked-in gold
 template의 owner 52개는 pending, E09 owner 4개는 unbound 상태이고 17개 deterministic producer
 stage의 구현·raw hash binding이 남아 `BLOCKED_PRE_CAPTURE`이다. 따라서 공식 cold/native 점수는
 아직 없으며, 기존 Gate C smoke는 score evidence에 포함하지 않는다.

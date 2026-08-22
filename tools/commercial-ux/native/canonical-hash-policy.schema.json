@@ -31,10 +31,13 @@
     "projectionHashRules": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["selectedRecipeSha256"],
+      "required": ["selectedRecipeSha256", "goldReplayBuildInputs"],
       "properties": {
         "selectedRecipeSha256": {
           "const": "SHA256_OF_RFC8785_CANONICAL_SELECTED_FORMATIVE_OR_HOLDOUT_ROW"
+        },
+        "goldReplayBuildInputs": {
+          "const": "SHA256_OF_RFC8785_PATH_RAW_SHA256_BYTE_LENGTH_ROWS_FOR_CANDIDATE_OWNED_GOLD_REPLAY_INPUTS_IN_EXACT_DECLARED_ORDER"
         }
       }
     },

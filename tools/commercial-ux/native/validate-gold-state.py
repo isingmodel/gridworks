@@ -480,6 +480,25 @@ def validate_candidate_execution_manifest(
                 "candidate authorityHashes.storyManifestOutput mismatch",
                 failures,
             )
+        try:
+            _, observed_candidate_build_inputs_sha256 = (
+                read_gold_replay_build_inputs(
+                    root,
+                    root / GOLD_REPLAY_BUILD_INPUT_MANIFEST_PATH,
+                    authorities.get("goldReplayVerifier", {}).get(
+                        "buildInputsSha256"
+                    ),
+                )
+            )
+        except (ContractError, OSError) as error:
+            failures.append(f"candidate gold replay build inputs are invalid: {error}")
+        else:
+            require(
+                authority_hashes.get("goldReplayBuildInputs")
+                == observed_candidate_build_inputs_sha256,
+                "candidate authorityHashes.goldReplayBuildInputs mismatch",
+                failures,
+            )
 
     recipes = candidate.get("recipes")
     require(isinstance(recipes, dict), "candidate recipes must be an object", failures)
@@ -545,7 +564,8 @@ def checkpoint_branch_id(checkpoint_id: str, promise_branch_order: list[str]) ->
 def read_gold_replay_build_inputs(
     repository_root: Path,
     build_inputs_manifest_path: Path,
-) -> dict[str, bytes]:
+    expected_manifest_sha256: str,
+) -> tuple[dict[str, bytes], str]:
     """Open and validate every exact source byte allowed into the verifier build."""
 
     root = repository_root.resolve(strict=True)
@@ -576,6 +596,8 @@ def read_gold_replay_build_inputs(
         raise ContractError(
             f"gold replay build-input manifest cannot be read: {error}"
         ) from error
+    if sha256_bytes(manifest_bytes) != expected_manifest_sha256:
+        raise ContractError("gold replay build-input manifest raw SHA mismatch")
     if not isinstance(manifest, dict):
         raise ContractError("gold replay build-input manifest must be an object")
     expected_top_level = {
@@ -606,16 +628,18 @@ def read_gold_replay_build_inputs(
         raise ContractError("gold replay build-input manifest must list 24 files")
     observed_path_roles = []
     source_bytes: dict[str, bytes] = {}
+    candidate_rows: list[dict[str, Any]] = []
     for index, row in enumerate(rows):
         if not isinstance(row, dict) or set(row) != {
-            "path", "role", "sha256", "byteLength"
+            "path", "role", "ownership", "sha256", "byteLength"
         }:
             raise ContractError(
                 f"gold replay build input row {index} field set drift"
             )
         path_value = row.get("path")
         role = row.get("role")
-        observed_path_roles.append((path_value, role))
+        ownership = row.get("ownership")
+        observed_path_roles.append((path_value, role, ownership))
         if not isinstance(path_value, str):
             raise ContractError(f"gold replay build input row {index} path is invalid")
         lexical_path = root / path_value
@@ -643,35 +667,69 @@ def read_gold_replay_build_inputs(
                 f"gold replay build input cannot be read: {path_value}: {error}"
             ) from error
         byte_length = row.get("byteLength")
-        if (
-            not isinstance(byte_length, int)
-            or isinstance(byte_length, bool)
-            or byte_length <= 0
-            or byte_length != len(data)
-            or row.get("sha256") != sha256_bytes(data)
-        ):
+        if ownership == "EVALUATOR":
+            if (
+                not isinstance(byte_length, int)
+                or isinstance(byte_length, bool)
+                or byte_length <= 0
+                or byte_length != len(data)
+                or row.get("sha256") != sha256_bytes(data)
+            ):
+                raise ContractError(
+                    f"gold replay evaluator build input raw bytes mismatch: {path_value}"
+                )
+        elif ownership == "CANDIDATE":
+            if row.get("sha256") is not None or byte_length is not None:
+                raise ContractError(
+                    "candidate-owned gold replay build input must defer raw bytes: "
+                    f"{path_value}"
+                )
+            candidate_rows.append({
+                "path": path_value,
+                "rawSha256": sha256_bytes(data),
+                "byteLength": len(data),
+            })
+        else:
             raise ContractError(
-                f"gold replay build input raw bytes mismatch: {path_value}"
+                f"gold replay build input ownership is invalid: {path_value}"
             )
         source_bytes[path_value] = data
-    if observed_path_roles != list(GOLD_REPLAY_BUILD_INPUTS):
-        raise ContractError("gold replay build input path/role set or order drift")
+    expected_path_roles = [
+        (
+            path,
+            role,
+            "CANDIDATE" if role in {"CORE_PROJECT", "CORE_SOURCE"} else "EVALUATOR",
+        )
+        for path, role in GOLD_REPLAY_BUILD_INPUTS
+    ]
+    if observed_path_roles != expected_path_roles:
+        raise ContractError("gold replay build input path/role/ownership set or order drift")
     if len(source_bytes) != len(GOLD_REPLAY_BUILD_INPUTS):
         raise ContractError("gold replay build input paths must be unique")
-    return source_bytes
+    return source_bytes, sha256_bytes(canonical_json_bytes(candidate_rows))
 
 
 @contextmanager
 def isolated_gold_replay_verifier_assembly(
     repository_root: Path,
     build_inputs_manifest_path: Path,
+    expected_manifest_sha256: str,
+    expected_candidate_inputs_sha256: str | None,
 ) -> Iterator[Path]:
     """Build the verifier from only the exact bytes in its bound input manifest."""
 
-    source_bytes = read_gold_replay_build_inputs(
+    source_bytes, observed_candidate_inputs_sha256 = read_gold_replay_build_inputs(
         repository_root,
         build_inputs_manifest_path,
+        expected_manifest_sha256,
     )
+    if (
+        expected_candidate_inputs_sha256 is not None
+        and observed_candidate_inputs_sha256 != expected_candidate_inputs_sha256
+    ):
+        raise ContractError(
+            "gold replay candidate build-input canonical SHA mismatch"
+        )
 
     with tempfile.TemporaryDirectory(
         prefix="gridworks-gold-replay-build-"
@@ -815,6 +873,7 @@ def validate_gold_bundle(
     prefix_rows: list[Any],
     checkpoint_rows: list[Any],
     failures: list[str],
+    candidate_build_inputs_sha256: str | None = None,
 ) -> dict[str, dict[str, Any]]:
     root_value = binding.get("canonicalGoldBundleRoot")
     if not isinstance(root_value, str):
@@ -1024,6 +1083,8 @@ def validate_gold_bundle(
         with isolated_gold_replay_verifier_assembly(
             repository_root,
             verifier_build_inputs_path,
+            authorities.get("goldReplayVerifier", {}).get("buildInputsSha256"),
+            candidate_build_inputs_sha256,
         ) as verifier_assembly:
             completed = subprocess.run(
                 [
@@ -1368,6 +1429,11 @@ def validate_candidate_binding_overlay(
         prefix_rows,
         checkpoint_rows,
         failures,
+        (
+            candidate.get("authorityHashes", {}).get("goldReplayBuildInputs")
+            if isinstance(candidate, dict)
+            else None
+        ),
     )
     validate_replay_derived_core_expectations(manifest, replay_reports, failures)
     witness = binding.get("e09NorthBankTwoProcessWitness")
@@ -1696,6 +1762,7 @@ def validate_exact_inputs(
                 "nativeSmokeWitness",
                 "storyHarness",
                 "storyManifestOutput",
+                "goldReplayBuildInputs",
             },
             "candidateExecutionPolicy.requiredCandidateAuthorityHashes mismatch",
             failures,
@@ -1852,6 +1919,7 @@ def validate_exact_inputs(
                 read_gold_replay_build_inputs(
                     root,
                     root / GOLD_REPLAY_BUILD_INPUT_MANIFEST_PATH,
+                    authority.get("buildInputsSha256"),
                 )
             except (ContractError, OSError) as error:
                 failures.append(f"gold replay build inputs are invalid: {error}")

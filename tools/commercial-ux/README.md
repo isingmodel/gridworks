@@ -164,12 +164,16 @@ assertions, and the Debug and Release rebuilds each finish with zero warnings an
 Those results prove the pre-capture contract and product regressions, not score readiness or
 game quality.
 
-Gold replay builds are source-hermetic at the repository boundary. The raw-hash-bound
+Gold replay builds are source-hermetic at the repository boundary. The contract-bound
 [`native/gold-replay-build-inputs.json`](native/gold-replay-build-inputs.json) allowlists the
 pinned SDK file, two projects, verifier entrypoint/source, and 19 Commercial Core V2 sources.
-Only those 24 exact byte streams are copied to a private temporary source tree. Directory build
+Only those 24 exact path/role inputs are copied to a private temporary source tree. Evaluator
+authority freezes the four SDK/verifier byte streams; the candidate manifest binds the observed
+20 Core project/source byte streams through an ordered canonical projection. Directory build
 props/targets/package props, user NuGet sources, ambient MSBuild properties, implicit checkout
 sources, and checkout `bin/obj` are excluded before restore and build.
+This closes only the gold replay verifier build. Candidate game-build inputs and the complete
+runtime resource tree remain a separate `CANDIDATE-MANIFEST-PACKAGER` gate.
 
 Immediately before any score-bearing capture, also run:
 

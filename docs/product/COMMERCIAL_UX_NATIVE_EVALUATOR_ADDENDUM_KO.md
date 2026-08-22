@@ -194,11 +194,15 @@ rubric, target, label anchor, category/cell weight, floor, cap 수치 또는 집
 ## 12. gold replay build 입력 폐쇄
 
 candidate-specific journal/snapshot을 판정하는 Core replay verifier는 저장소 checkout 안에서 직접
-빌드하지 않는다. `gold-replay-build-inputs.json`이 고정한 SDK lock 1개, project 2개, verifier
-entrypoint/source 2개, Commercial Core V2 source 19개의 raw SHA-256과 byte length를 먼저 검증하고,
-그 24개 exact bytes만 private temporary source root에 복사한다.
+빌드하지 않는다. `gold-replay-build-inputs.json`은 SDK lock 1개, project 2개, verifier
+entrypoint/source 2개, Commercial Core V2 source 19개의 exact path/role/ownership 순서를 고정한다.
+SDK·verifier 4개는 evaluator 소유 raw SHA-256·byte length를 먼저 검증하고, Core project/source 20개는
+candidate manifest가 실제 bytes의 `(path, rawSha256, byteLength)` ordered canonical projection으로
+결속한다. 그 24개 allowlisted bytes만 private temporary source root에 복사한다.
 
 restore/build는 그 root에서 `Directory.Build.props`, `Directory.Build.targets`,
 `Directory.Packages.props` 자동 import를 끄고, package source가 비어 있는 전용 NuGet config와
 allowlist 환경만 사용한다. checkout의 implicit `*.cs`, `bin/obj`, ambient MSBuild/NuGet 설정은 build
 input이 아니다. source manifest 자체와 schema, validator는 contract binding raw hash에 포함한다.
+이 절은 gold replay verifier build만 폐쇄한다. 실제 게임 build tree와 전체 runtime resource authority는
+별도 `CANDIDATE-MANIFEST-PACKAGER` 구현·검증 전까지 닫힌 것으로 간주하지 않는다.

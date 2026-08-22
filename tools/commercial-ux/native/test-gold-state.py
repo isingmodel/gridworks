@@ -13,8 +13,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -84,6 +86,22 @@ class GoldStateContractTests(unittest.TestCase):
             encoding="utf-8",
         )
         return path
+
+    def replay_build_authorities(
+        self,
+        validator: Any,
+        repository_root: Path = ROOT,
+        manifest_path: Path = BUILD_INPUTS,
+    ) -> tuple[str, str]:
+        manifest_sha256 = "sha256:" + hashlib.sha256(
+            manifest_path.read_bytes()
+        ).hexdigest()
+        _, candidate_inputs_sha256 = validator.read_gold_replay_build_inputs(
+            repository_root,
+            manifest_path,
+            manifest_sha256,
+        )
+        return manifest_sha256, candidate_inputs_sha256
 
     def seal_binding(self, value: dict[str, Any]) -> None:
         value["goldBindingManifestSha256"] = None
@@ -374,9 +392,14 @@ class GoldStateContractTests(unittest.TestCase):
             "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
             "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
         }, separators=(",", ":")).encode("utf-8"))
+        build_manifest_sha256, candidate_inputs_sha256 = (
+            self.replay_build_authorities(validator)
+        )
         with validator.isolated_gold_replay_verifier_assembly(
             ROOT,
             BUILD_INPUTS,
+            build_manifest_sha256,
+            candidate_inputs_sha256,
         ) as verifier_assembly:
             emitted = subprocess.run(
                 [
@@ -447,9 +470,14 @@ class GoldStateContractTests(unittest.TestCase):
                 "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
                 "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
             }, separators=(",", ":")).encode("utf-8"))
+            build_manifest_sha256, candidate_inputs_sha256 = (
+                self.replay_build_authorities(validator)
+            )
             with validator.isolated_gold_replay_verifier_assembly(
                 ROOT,
                 BUILD_INPUTS,
+                build_manifest_sha256,
+                candidate_inputs_sha256,
             ) as verifier_assembly:
                 emitted = subprocess.run(
                     [
@@ -628,22 +656,56 @@ class GoldStateContractTests(unittest.TestCase):
                 "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
                 "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
             }, separators=(",", ":")).encode("utf-8"))
-            with validator.isolated_gold_replay_verifier_assembly(
-                clean_root,
-                build_inputs,
-            ) as verifier_assembly:
-                self.assertNotIn(str(clean_root), str(verifier_assembly))
-                emitted = subprocess.run(
-                    [
-                        "dotnet", str(verifier_assembly), "--emit-snapshot",
-                        str(emit_input.resolve()),
-                    ],
-                    cwd=clean_root,
-                    check=False,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    timeout=180,
+            build_manifest_sha256, candidate_inputs_sha256 = (
+                self.replay_build_authorities(
+                    validator,
+                    clean_root,
+                    build_inputs,
                 )
+            )
+            isolated_build_root = Path(temporary) / "isolated-build-root"
+            isolated_build_root.mkdir()
+            isolated_build_root = isolated_build_root.resolve(strict=True)
+            for build_hook in (
+                "Directory.Build.props",
+                "Directory.Build.targets",
+                "Directory.Packages.props",
+            ):
+                (isolated_build_root / build_hook).write_text(
+                    '<Project><Import Project="HOSTILE_UNBOUND_INPUT" /></Project>\n',
+                    encoding="utf-8",
+                )
+
+            @contextmanager
+            def fixed_build_directory(*_args: Any, **_kwargs: Any) -> Any:
+                yield str(isolated_build_root)
+
+            with mock.patch.object(
+                validator.tempfile,
+                "TemporaryDirectory",
+                fixed_build_directory,
+            ):
+                with validator.isolated_gold_replay_verifier_assembly(
+                    clean_root,
+                    build_inputs,
+                    build_manifest_sha256,
+                    candidate_inputs_sha256,
+                ) as verifier_assembly:
+                    self.assertTrue(
+                        verifier_assembly.is_relative_to(isolated_build_root),
+                        f"{verifier_assembly} escaped {isolated_build_root}",
+                    )
+                    emitted = subprocess.run(
+                        [
+                            "dotnet", str(verifier_assembly), "--emit-snapshot",
+                            str(emit_input.resolve()),
+                        ],
+                        cwd=clean_root,
+                        check=False,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        timeout=180,
+                    )
             self.assertEqual(0, emitted.returncode, emitted.stderr.decode())
             self.assertEqual(b"HOSTILE STALE ASSEMBLY", stale_assembly.read_bytes())
             self.assertEqual(b"HOSTILE STALE ASSETS", stale_assets.read_bytes())
@@ -668,24 +730,66 @@ class GoldStateContractTests(unittest.TestCase):
             )
             copied_manifest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(BUILD_INPUTS, copied_manifest)
-            exact_sources = validator.read_gold_replay_build_inputs(
-                clean_root,
-                copied_manifest,
+            original_manifest_sha256 = "sha256:" + hashlib.sha256(
+                copied_manifest.read_bytes()
+            ).hexdigest()
+            exact_sources, original_candidate_inputs_sha256 = (
+                validator.read_gold_replay_build_inputs(
+                    clean_root,
+                    copied_manifest,
+                    original_manifest_sha256,
+                )
             )
             self.assertEqual(24, len(exact_sources))
 
-            bound_source = clean_root / manifest["files"][-1]["path"]
-            original_source = bound_source.read_bytes()
-            bound_source.write_bytes(original_source + b"\n")
+            evaluator_row = next(
+                row for row in manifest["files"]
+                if row["ownership"] == "EVALUATOR"
+            )
+            evaluator_source = clean_root / evaluator_row["path"]
+            original_evaluator_source = evaluator_source.read_bytes()
+            evaluator_source.write_bytes(original_evaluator_source + b"\n")
             with self.assertRaisesRegex(
                 validator.ContractError,
-                "raw bytes mismatch",
+                "evaluator build input raw bytes mismatch",
             ):
                 validator.read_gold_replay_build_inputs(
                     clean_root,
                     copied_manifest,
+                    original_manifest_sha256,
                 )
-            bound_source.write_bytes(original_source)
+            evaluator_source.write_bytes(original_evaluator_source)
+
+            candidate_row = next(
+                row for row in manifest["files"]
+                if row["ownership"] == "CANDIDATE"
+            )
+            candidate_source = clean_root / candidate_row["path"]
+            original_candidate_source = candidate_source.read_bytes()
+            candidate_source.write_bytes(original_candidate_source + b"\n")
+            _, mutated_candidate_inputs_sha256 = (
+                validator.read_gold_replay_build_inputs(
+                    clean_root,
+                    copied_manifest,
+                    original_manifest_sha256,
+                )
+            )
+            self.assertNotEqual(
+                original_candidate_inputs_sha256,
+                mutated_candidate_inputs_sha256,
+            )
+            with self.assertRaisesRegex(
+                validator.ContractError,
+                "candidate build-input canonical SHA mismatch",
+            ):
+                with validator.isolated_gold_replay_verifier_assembly(
+                    clean_root,
+                    copied_manifest,
+                    original_manifest_sha256,
+                    original_candidate_inputs_sha256,
+                ):
+                    self.fail("candidate-owned Core drift reached the verifier build")
+            candidate_source.write_bytes(original_candidate_source)
 
             mutated_manifest = copy.deepcopy(manifest)
             mutated_manifest["files"][0], mutated_manifest["files"][1] = (
@@ -698,11 +802,107 @@ class GoldStateContractTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(
                 validator.ContractError,
-                "path/role set or order drift",
+                "manifest raw SHA mismatch",
+            ):
+                with validator.isolated_gold_replay_verifier_assembly(
+                    clean_root,
+                    copied_manifest,
+                    original_manifest_sha256,
+                    original_candidate_inputs_sha256,
+                ):
+                    self.fail("reopened manifest drift reached the verifier build")
+            mutated_manifest_sha256 = "sha256:" + hashlib.sha256(
+                copied_manifest.read_bytes()
+            ).hexdigest()
+            with self.assertRaisesRegex(
+                validator.ContractError,
+                "path/role/ownership set or order drift",
             ):
                 validator.read_gold_replay_build_inputs(
                     clean_root,
                     copied_manifest,
+                    mutated_manifest_sha256,
+                )
+
+            candidate_bytes_bound = copy.deepcopy(manifest)
+            candidate_index = candidate_bytes_bound["files"].index(
+                next(
+                    row for row in candidate_bytes_bound["files"]
+                    if row["ownership"] == "CANDIDATE"
+                )
+            )
+            candidate_path = clean_root / candidate_bytes_bound["files"][
+                candidate_index
+            ]["path"]
+            candidate_data = candidate_path.read_bytes()
+            candidate_bytes_bound["files"][candidate_index]["sha256"] = (
+                "sha256:" + hashlib.sha256(candidate_data).hexdigest()
+            )
+            candidate_bytes_bound["files"][candidate_index]["byteLength"] = len(
+                candidate_data
+            )
+            copied_manifest.write_text(
+                json.dumps(candidate_bytes_bound, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            candidate_bound_manifest_sha256 = "sha256:" + hashlib.sha256(
+                copied_manifest.read_bytes()
+            ).hexdigest()
+            with self.assertRaisesRegex(
+                validator.ContractError,
+                "candidate-owned gold replay build input must defer raw bytes",
+            ):
+                validator.read_gold_replay_build_inputs(
+                    clean_root,
+                    copied_manifest,
+                    candidate_bound_manifest_sha256,
+                )
+
+            evaluator_bytes_deferred = copy.deepcopy(manifest)
+            evaluator_index = evaluator_bytes_deferred["files"].index(
+                next(
+                    row for row in evaluator_bytes_deferred["files"]
+                    if row["ownership"] == "EVALUATOR"
+                )
+            )
+            evaluator_bytes_deferred["files"][evaluator_index]["sha256"] = None
+            evaluator_bytes_deferred["files"][evaluator_index]["byteLength"] = None
+            copied_manifest.write_text(
+                json.dumps(evaluator_bytes_deferred, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            evaluator_deferred_manifest_sha256 = "sha256:" + hashlib.sha256(
+                copied_manifest.read_bytes()
+            ).hexdigest()
+            with self.assertRaisesRegex(
+                validator.ContractError,
+                "evaluator build input raw bytes mismatch",
+            ):
+                validator.read_gold_replay_build_inputs(
+                    clean_root,
+                    copied_manifest,
+                    evaluator_deferred_manifest_sha256,
+                )
+
+            ownership_flipped = copy.deepcopy(manifest)
+            ownership_flipped["files"][evaluator_index]["ownership"] = "CANDIDATE"
+            ownership_flipped["files"][evaluator_index]["sha256"] = None
+            ownership_flipped["files"][evaluator_index]["byteLength"] = None
+            copied_manifest.write_text(
+                json.dumps(ownership_flipped, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            ownership_flipped_manifest_sha256 = "sha256:" + hashlib.sha256(
+                copied_manifest.read_bytes()
+            ).hexdigest()
+            with self.assertRaisesRegex(
+                validator.ContractError,
+                "path/role/ownership set or order drift",
+            ):
+                validator.read_gold_replay_build_inputs(
+                    clean_root,
+                    copied_manifest,
+                    ownership_flipped_manifest_sha256,
                 )
 
     def test_gold_bundle_disk_integrity_accepts_valid_and_rejects_mutations(self) -> None:

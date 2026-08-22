@@ -2166,6 +2166,39 @@ def validate_candidate_authority_hashes(
         raise ProvenanceFailure(
             "candidate authorityHashes.storyManifestOutput does not match raw story bytes"
         )
+    gold_replay_authority = authorities.get("goldReplayVerifier")
+    if not isinstance(gold_replay_authority, dict):
+        raise ProvenanceFailure("gold replay verifier authority is missing")
+    build_inputs_path = _repo_relative_path(
+        gold_replay_authority.get("buildInputsPath"),
+        "gold authorities.goldReplayVerifier.buildInputsPath",
+    )
+    build_inputs_sha256 = gold_replay_authority.get("buildInputsSha256")
+    if not isinstance(build_inputs_sha256, str) or SHA_PATTERN.fullmatch(
+        build_inputs_sha256
+    ) is None:
+        raise ProvenanceFailure(
+            "gold authorities.goldReplayVerifier.buildInputsSha256 is malformed"
+        )
+    gold_validator = _load_exact_validator(
+        GOLD_STATE_VALIDATOR_PATH,
+        "gridworks_candidate_gold_replay_build_inputs",
+    )
+    try:
+        _, replay_build_inputs_sha256 = gold_validator.read_gold_replay_build_inputs(
+            REPOSITORY_ROOT,
+            build_inputs_path,
+            build_inputs_sha256,
+        )
+    except (OSError, ValueError, gold_validator.ContractError) as exception:
+        raise ProvenanceFailure(
+            f"candidate gold replay build inputs are invalid: {exception}"
+        ) from exception
+    if declared.get("goldReplayBuildInputs") != replay_build_inputs_sha256:
+        raise ProvenanceFailure(
+            "candidate authorityHashes.goldReplayBuildInputs does not match "
+            "candidate Core source bytes"
+        )
     try:
         head = subprocess.run(
             ["git", "rev-parse", "HEAD"],

@@ -56,7 +56,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["path", "role", "sha256", "byteLength"],
+        "required": ["path", "role", "ownership", "sha256", "byteLength"],
         "properties": {
           "path": {
             "type": "string",
@@ -72,12 +72,40 @@
               "CORE_SOURCE"
             ]
           },
+          "ownership": {"enum": ["EVALUATOR", "CANDIDATE"]},
           "sha256": {
-            "type": "string",
-            "pattern": "^sha256:[0-9a-f]{64}$"
+            "oneOf": [
+              {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+              {"type": "null"}
+            ]
           },
-          "byteLength": {"type": "integer", "minimum": 1}
-        }
+          "byteLength": {
+            "oneOf": [
+              {"type": "integer", "minimum": 1},
+              {"type": "null"}
+            ]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {"ownership": {"const": "EVALUATOR"}},
+              "required": ["ownership"]
+            },
+            "then": {
+              "properties": {
+                "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+                "byteLength": {"type": "integer", "minimum": 1}
+              }
+            },
+            "else": {
+              "properties": {
+                "sha256": {"type": "null"},
+                "byteLength": {"type": "null"}
+              }
+            }
+          }
+        ]
       }
     }
   }

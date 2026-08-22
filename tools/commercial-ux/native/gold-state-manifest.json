@@ -17,7 +17,8 @@
       "deterministicWitness",
       "nativeSmokeWitness",
       "storyHarness",
-      "storyManifestOutput"
+      "storyManifestOutput",
+      "goldReplayBuildInputs"
     ],
     "requiredCandidateBindingHashes": "accepted journal and canonical snapshot for every applicable prefix and checkpoint",
     "candidateManifestValidation": "required before --require-score-ready can pass"
@@ -109,7 +110,7 @@
       "projectPath": "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj",
       "projectSha256": "sha256:669ccf19d61c25fdec1898b6c49558d9b0ca3c7222bea84486220d70decaa200",
       "buildInputsPath": "tools/commercial-ux/native/gold-replay-build-inputs.json",
-      "buildInputsSha256": "sha256:d9eca8365c9f24fe8d0a4b6ea00a15eb625f99980bf28840195f89fc65143904",
+      "buildInputsSha256": "sha256:61cefe4f8e9021b9a47d2855724866919432ae4722668a86d8f74375988789c9",
       "referenceMode": "EXACT_RAW_SHA_AND_CORE_REPLAY",
       "members": ["CommercialGoldReplayVerifier", "VerifyBatch", "EmitSnapshot"]
     },

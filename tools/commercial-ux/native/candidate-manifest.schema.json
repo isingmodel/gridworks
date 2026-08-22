@@ -163,7 +163,8 @@
         "deterministicWitness",
         "nativeSmokeWitness",
         "storyHarness",
-        "storyManifestOutput"
+        "storyManifestOutput",
+        "goldReplayBuildInputs"
       ],
       "properties": {
         "world": {"$ref": "#/$defs/sha256"},
@@ -173,7 +174,8 @@
         "deterministicWitness": {"$ref": "#/$defs/sha256"},
         "nativeSmokeWitness": {"$ref": "#/$defs/sha256"},
         "storyHarness": {"$ref": "#/$defs/sha256"},
-        "storyManifestOutput": {"$ref": "#/$defs/sha256"}
+        "storyManifestOutput": {"$ref": "#/$defs/sha256"},
+        "goldReplayBuildInputs": {"$ref": "#/$defs/sha256"}
       }
     },
     "recipes": {

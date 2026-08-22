@@ -428,6 +428,47 @@ def validate_actor_observation_semantics(
         errors.append(f"actor {terminal_state} terminal state requires an incident key and ordinal")
 
 
+def candidate_replay_build_inputs_sha256(native: Path) -> str:
+    """Hash candidate-owned Core inputs selected by the immutable replay recipe."""
+
+    recipe = read_json(native / "gold-replay-build-inputs.json")
+    rows = recipe.get("files")
+    if not isinstance(rows, list):
+        raise ContractError("gold replay build-input files must be an array")
+    repository_root = native.parents[2].resolve(strict=True)
+    projection: list[dict[str, Any]] = []
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or row.get("ownership") != "CANDIDATE":
+            continue
+        relative = row.get("path")
+        if not isinstance(relative, str):
+            raise ContractError(
+                f"gold replay candidate build input {index} path is invalid"
+            )
+        target = repository_root / relative
+        try:
+            resolved = target.resolve(strict=True)
+            resolved.relative_to(repository_root)
+        except (OSError, ValueError) as error:
+            raise ContractError(
+                f"gold replay candidate build input cannot be opened: {relative}: {error}"
+            ) from error
+        if target.absolute() != resolved or target.is_symlink() or not resolved.is_file():
+            raise ContractError(
+                "gold replay candidate build input must be a canonical regular file: "
+                f"{relative}"
+            )
+        data = resolved.read_bytes()
+        projection.append({
+            "path": relative,
+            "rawSha256": "sha256:" + hashlib.sha256(data).hexdigest(),
+            "byteLength": len(data),
+        })
+    if len(projection) != 20:
+        raise ContractError("gold replay recipe must select exactly 20 candidate inputs")
+    return "sha256:" + hashlib.sha256(canonical_json_bytes(projection)).hexdigest()
+
+
 def validate_candidate_manifest_semantics(
     candidate: dict[str, Any],
     native: Path,
@@ -470,6 +511,23 @@ def validate_candidate_manifest_semantics(
                 errors.append(f"candidate contract authority is missing: {path}")
             elif contract_hashes.get(field) != raw_sha256(path):
                 errors.append(f"candidate contractHashes.{field} raw SHA mismatch")
+
+    authority_hashes = candidate.get("authorityHashes")
+    if not isinstance(authority_hashes, dict):
+        errors.append("candidate authorityHashes must be an object")
+    else:
+        try:
+            replay_build_inputs_sha256 = candidate_replay_build_inputs_sha256(native)
+        except ContractError as error:
+            errors.append(str(error))
+        else:
+            require(
+                authority_hashes.get("goldReplayBuildInputs")
+                == replay_build_inputs_sha256,
+                "candidate authorityHashes.goldReplayBuildInputs does not match "
+                "candidate Core source bytes",
+                errors,
+            )
 
     recipe_paths = {
         "coldJourneySha256": native / "cold-journey-recipe.json",
@@ -2895,9 +2953,10 @@ def validate_hash_policy(native: Path, policy: dict[str, Any], schemas: dict[str
     require(policy.get("selfHashRule") == "SET_DESIGNATED_FIELD_TO_NULL_BEFORE_CANONICALIZATION", "self-hash rule drift", errors)
     require(
         policy.get("projectionHashRules") == {
-            "selectedRecipeSha256": "SHA256_OF_RFC8785_CANONICAL_SELECTED_FORMATIVE_OR_HOLDOUT_ROW"
+            "selectedRecipeSha256": "SHA256_OF_RFC8785_CANONICAL_SELECTED_FORMATIVE_OR_HOLDOUT_ROW",
+            "goldReplayBuildInputs": "SHA256_OF_RFC8785_PATH_RAW_SHA256_BYTE_LENGTH_ROWS_FOR_CANDIDATE_OWNED_GOLD_REPLAY_INPUTS_IN_EXACT_DECLARED_ORDER",
         },
-        "selected recipe projection hash rule drift",
+        "canonical projection hash rule drift",
         errors,
     )
     expected = {

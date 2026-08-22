@@ -348,6 +348,7 @@ def make_candidate_manifest(
                 "nativeSmokeWitness",
                 "storyHarness",
                 "storyManifestOutput",
+                "goldReplayBuildInputs",
             )
         },
         "recipes": {

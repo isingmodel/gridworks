@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-text-plan-judge-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "judgeRunId",
+    "judgeSlot",
+    "model",
+    "reasoningEffort",
+    "textPlanSha256",
+    "cells"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-JUDGMENT-v1"
+    },
+    "judgeRunId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "judgeSlot": {
+      "const": "SOL-ULTRA"
+    },
+    "model": {
+      "const": "gpt-5.6-sol"
+    },
+    "reasoningEffort": {
+      "const": "ultra"
+    },
+    "textPlanSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "cells": {
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "items": {
+        "$ref": "#/$defs/cell"
+      },
+      "allOf": [
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-J1"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-J2"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-T1"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-T2"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-T3"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-C1"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-C2"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-C3"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-C4"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-C5"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-A1"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-A2"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-A3"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-A4"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-P1"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-P2"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-P3"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-K1"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-K2"}}},
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {"properties": {"cellId": {"const": "TP-K3"}}},
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sourceRef", "observation"],
+      "properties": {
+        "sourceRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "cell": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cellId",
+        "label",
+        "confidence",
+        "strengthEvidence",
+        "gapEvidence"
+      ],
+      "properties": {
+        "cellId": {
+          "enum": [
+            "TP-J1",
+            "TP-J2",
+            "TP-T1",
+            "TP-T2",
+            "TP-T3",
+            "TP-C1",
+            "TP-C2",
+            "TP-C3",
+            "TP-C4",
+            "TP-C5",
+            "TP-A1",
+            "TP-A2",
+            "TP-A3",
+            "TP-A4",
+            "TP-P1",
+            "TP-P2",
+            "TP-P3",
+            "TP-K1",
+            "TP-K2",
+            "TP-K3"
+          ]
+        },
+        "label": {
+          "enum": ["EXCELLENT", "STRONG", "SERVICEABLE", "WEAK", "BROKEN"]
+        },
+        "confidence": {
+          "enum": ["HIGH", "MEDIUM"]
+        },
+        "strengthEvidence": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "gapEvidence": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "properties": {
+            "strengthEvidence": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "properties": {
+            "gapEvidence": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    }
+  }
+}

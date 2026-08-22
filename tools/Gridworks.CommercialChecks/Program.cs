@@ -14,8 +14,37 @@ internal static class Program
     {
         try
         {
+            if (args.Length == 1 && args[0] == "--story-manifest")
+            {
+                CommercialStoryPartHarness storyParts = LoadStoryPartHarness();
+                WriteJson(Console.OpenStandardOutput(), storyParts.SerializeManifest());
+                return 0;
+            }
+            if (args.Length == 2 && args[0] == "--story-part")
+            {
+                CommercialStoryPartHarness storyParts = LoadStoryPartHarness();
+                WriteJson(
+                    Console.OpenStandardOutput(),
+                    storyParts.Serialize(storyParts.Select(args[1])));
+                return 0;
+            }
+            if (args.Any(arg => arg is "--story-part" or "--story-manifest") ||
+                (args.Length == 1 && args[0].StartsWith("--", StringComparison.Ordinal)))
+            {
+                throw new ArgumentException(
+                    "usage: Gridworks.CommercialChecks [release-world-v2-json] | " +
+                    "--story-part SELECTOR | --story-manifest");
+            }
+
             string fixturePath = ResolveFixturePath(args);
             return new CommercialChecks(fixturePath).Run();
+        }
+        catch (CommercialStoryPartSelectionException exception)
+        {
+            WriteJson(
+                Console.OpenStandardError(),
+                CommercialStoryPartHarness.SerializeError(exception));
+            return 2;
         }
         catch (Exception exception)
         {
@@ -25,12 +54,34 @@ internal static class Program
         }
     }
 
+    private static CommercialStoryPartHarness LoadStoryPartHarness()
+    {
+        string worldPath = ResolveFixturePath(Array.Empty<string>());
+        CommercialWorldDefinition world = CommercialWorldLoader.Load(
+            File.ReadAllBytes(worldPath));
+        string campaignPath = Path.Combine(
+            Path.GetDirectoryName(worldPath)!,
+            "release-campaign-v2.json");
+        CommercialCampaignDefinition campaign = CommercialCampaignLoader.Load(
+            File.ReadAllBytes(campaignPath),
+            world);
+        return new CommercialStoryPartHarness(campaign);
+    }
+
+    private static void WriteJson(Stream stream, byte[] json)
+    {
+        stream.Write(json);
+        stream.WriteByte((byte)'\n');
+        stream.Flush();
+    }
+
     private static string ResolveFixturePath(string[] args)
     {
         if (args.Length > 1)
         {
             throw new ArgumentException(
-                "usage: Gridworks.CommercialChecks [release-world-v2-json]");
+                "usage: Gridworks.CommercialChecks [release-world-v2-json] | " +
+                "--story-part SELECTOR | --story-manifest");
         }
 
         string path = args.Length == 1
@@ -68,6 +119,7 @@ internal sealed class CommercialChecks
     private readonly byte[] _campaignBytes;
     private readonly string _campaignJson;
     private readonly CommercialCampaignDefinition _campaign;
+    private readonly CommercialStoryPartHarness _storyParts;
     private readonly string _repositoryDirectory;
     private int _assertionCount;
 
@@ -91,6 +143,7 @@ internal sealed class CommercialChecks
         _campaignBytes = File.ReadAllBytes(campaignPath);
         _campaignJson = Encoding.UTF8.GetString(_campaignBytes);
         _campaign = CommercialCampaignLoader.Load(_campaignBytes, _commercialWorld);
+        _storyParts = new CommercialStoryPartHarness(_campaign);
         string spatialFixturePath = Path.Combine(
             Path.GetDirectoryName(fixturePath)!,
             "commercial-free-placement-slice-v1.json");
@@ -122,6 +175,7 @@ internal sealed class CommercialChecks
             ("commercial-core-save-v3", CheckCommercialCoreSaveV3),
             ("commercial-settings-v3-migration-and-atomicity", CheckCommercialSettingsV3),
             ("strict-commercial-campaign-loader", CheckStrictCommercialCampaignLoader),
+            ("commercial-story-part-harness", CheckCommercialStoryPartHarness),
             ("commercial-campaign-first-four-carry-save", CheckCommercialCampaignFirstFourCarrySave),
             ("commercial-campaign-final-eight-epilogue", CheckCommercialCampaignFinalEightEpilogue),
             ("commercial-map-discrete-art-contract", CheckCommercialMapDiscreteArt),
@@ -1934,6 +1988,280 @@ internal sealed class CommercialChecks
                 "loads")[0]!)["requireSubstationPath"] = false);
     }
 
+    private void CheckCommercialStoryPartHarness()
+    {
+        IReadOnlyList<CommercialStoryPart> parts = _storyParts.Parts;
+        string[] expectedSelectors =
+        [
+            "FIRST_LIGHT/briefing",
+            "FIRST_LIGHT/result/standard",
+            "SECOND_HEART/briefing",
+            "SECOND_HEART/result/standard",
+            "SECOND_SOURCE/briefing",
+            "SECOND_SOURCE/window/SECOND_SOURCE_BUILD",
+            "SECOND_SOURCE/result/standard",
+            "NORTH_BANK_PROMISE/briefing",
+            "NORTH_BANK_PROMISE/result/keep",
+            "NORTH_BANK_PROMISE/result/defer",
+            "WHOSE_MARGIN/briefing",
+            "WHOSE_MARGIN/window/AFTER_HEAT_SAFETY",
+            "WHOSE_MARGIN/result/keep",
+            "WHOSE_MARGIN/result/defer",
+            "BEFORE_WATER_REACHES/briefing",
+            "BEFORE_WATER_REACHES/window/FLOOD_BYPASS_BUILD",
+            "BEFORE_WATER_REACHES/result/standard",
+            "SHUT_DOWN_TO_KEEP/briefing",
+            "SHUT_DOWN_TO_KEEP/window/MAINTENANCE_BYPASS_BUILD",
+            "SHUT_DOWN_TO_KEEP/result/keep",
+            "SHUT_DOWN_TO_KEEP/result/defer",
+            "LONGEST_NIGHT/briefing",
+            "LONGEST_NIGHT/window/LAST_STORM_APPROVAL",
+            "LONGEST_NIGHT/result/keep",
+            "LONGEST_NIGHT/result/defer",
+            "campaign/epilogue",
+        ];
+
+        Equal(26, parts.Count, "story-part reachable selector count");
+        SequenceEqual(
+            expectedSelectors,
+            parts.Select(part => part.Selector).ToArray(),
+            "story-part canonical authored order");
+        Equal(
+            parts.Count,
+            parts.Select(part => part.Selector).Distinct(StringComparer.Ordinal).Count(),
+            "story-part selector uniqueness");
+        Equal(8, parts.Count(part => part.Kind == CommercialStoryPartKind.Briefing),
+            "story-part briefing count");
+        Equal(5, parts.Count(part => part.Kind == CommercialStoryPartKind.Window),
+            "story-part non-null window count");
+        Equal(12, parts.Count(part => part.Kind == CommercialStoryPartKind.Result),
+            "story-part reachable result count");
+        Equal(1, parts.Count(part => part.Kind == CommercialStoryPartKind.Epilogue),
+            "story-part epilogue count");
+        Equal(4, parts.Count(part => part.Kind == CommercialStoryPartKind.Result &&
+                part.RequiredPromiseBranch is null),
+            "story-part standard no-promise result count");
+        Equal(4, parts.Count(part => part.RequiredPromiseBranch == PromiseDecision.Keep),
+            "story-part keep result count");
+        Equal(4, parts.Count(part => part.RequiredPromiseBranch == PromiseDecision.Defer),
+            "story-part defer result count");
+        Check(parts.All(part => part.Reachable),
+            "story-part manifest included a selector not marked reachable");
+
+        foreach (CommercialStoryPart part in parts)
+        {
+            CommercialStoryCard authorityStory;
+            if (part.Kind == CommercialStoryPartKind.Epilogue)
+            {
+                authorityStory = _campaign.Epilogue;
+            }
+            else
+            {
+                CommercialCoreChapter chapter = _campaign.Chapters.Single(item =>
+                    item.ChapterId == part.ChapterId);
+                authorityStory = part.Kind switch
+                {
+                    CommercialStoryPartKind.Briefing => chapter.Briefing,
+                    CommercialStoryPartKind.Window => chapter.DecisionWindows.Single(item =>
+                        item.WindowId == part.WindowId).Story!,
+                    CommercialStoryPartKind.Result when
+                        part.RequiredPromiseBranch == PromiseDecision.Keep => chapter.KeptResult!,
+                    CommercialStoryPartKind.Result when
+                        part.RequiredPromiseBranch == PromiseDecision.Defer => chapter.DeferredResult!,
+                    CommercialStoryPartKind.Result => chapter.StandardResult,
+                    _ => throw new InvalidOperationException(
+                        $"Unhandled story part kind {part.Kind}."),
+                };
+            }
+            Check(ReferenceEquals(authorityStory, part.Story),
+                $"story-part '{part.Selector}' copied or replaced its campaign story reference");
+            Check(ReferenceEquals(part, _storyParts.Select(part.Selector)),
+                $"story-part '{part.Selector}' selection did not return its manifest entry");
+        }
+
+        byte[] manifestBytes = _storyParts.SerializeManifest();
+        Check(manifestBytes.SequenceEqual(_storyParts.SerializeManifest()),
+            "story-part manifest bytes changed between identical serializations");
+        var freshHarness = new CommercialStoryPartHarness(
+            CommercialCampaignLoader.Load(_campaignBytes, _commercialWorld));
+        Check(manifestBytes.SequenceEqual(freshHarness.SerializeManifest()),
+            "story-part manifest bytes depended on campaign object identity");
+        for (int index = 0; index < parts.Count; index++)
+        {
+            byte[] selectedBytes = _storyParts.Serialize(parts[index]);
+            Check(selectedBytes.SequenceEqual(
+                    _storyParts.Serialize(_storyParts.Select(parts[index].Selector))),
+                $"story-part '{parts[index].Selector}' bytes changed between selections");
+            Check(selectedBytes.SequenceEqual(freshHarness.Serialize(
+                    freshHarness.Select(parts[index].Selector))),
+                $"story-part '{parts[index].Selector}' bytes depended on campaign object identity");
+        }
+
+        using (JsonDocument manifest = JsonDocument.Parse(manifestBytes))
+        {
+            JsonElement root = manifest.RootElement;
+            SequenceEqual(
+                new[] { "schemaVersion", "campaignId", "count", "parts" },
+                root.EnumerateObject().Select(property => property.Name).ToArray(),
+                "story manifest fixed root property order");
+            Equal(CommercialStoryPartHarness.ManifestSchemaVersion,
+                root.GetProperty("schemaVersion").GetString(),
+                "story manifest schema version");
+            Equal(_campaign.CampaignId, root.GetProperty("campaignId").GetString(),
+                "story manifest campaign ID");
+            Equal(26, root.GetProperty("count").GetInt32(), "story manifest JSON count");
+            JsonElement[] serializedParts = root.GetProperty("parts").EnumerateArray().ToArray();
+            Equal(parts.Count, serializedParts.Length, "story manifest serialized part count");
+            for (int index = 0; index < serializedParts.Length; index++)
+            {
+                JsonElement serializedPart = serializedParts[index];
+                SequenceEqual(
+                    new[]
+                    {
+                        "schemaVersion", "campaignId", "selector", "kind", "chapterId",
+                        "windowId", "reachable", "requiredPromiseBranch", "story",
+                    },
+                    serializedPart.EnumerateObject().Select(property => property.Name).ToArray(),
+                    $"story-part '{parts[index].Selector}' fixed property order");
+                SequenceEqual(
+                    new[] { "speaker", "title", "body" },
+                    serializedPart.GetProperty("story").EnumerateObject()
+                        .Select(property => property.Name).ToArray(),
+                    $"story-part '{parts[index].Selector}' fixed story property order");
+                Equal(CommercialStoryPartHarness.OutputSchemaVersion,
+                    serializedPart.GetProperty("schemaVersion").GetString(),
+                    $"story-part '{parts[index].Selector}' output schema version");
+                Equal(_campaign.CampaignId,
+                    serializedPart.GetProperty("campaignId").GetString(),
+                    $"story-part '{parts[index].Selector}' output campaign ID");
+                Equal(parts[index].Selector, serializedPart.GetProperty("selector").GetString(),
+                    $"story-part '{parts[index].Selector}' serialized selector");
+                string expectedKind = parts[index].Kind switch
+                {
+                    CommercialStoryPartKind.Briefing => "briefing",
+                    CommercialStoryPartKind.Window => "window",
+                    CommercialStoryPartKind.Result => "result",
+                    CommercialStoryPartKind.Epilogue => "epilogue",
+                    _ => throw new InvalidOperationException(
+                        $"Unhandled story part kind {parts[index].Kind}."),
+                };
+                Equal(expectedKind, serializedPart.GetProperty("kind").GetString(),
+                    $"story-part '{parts[index].Selector}' serialized kind");
+                Equal(parts[index].ChapterId,
+                    serializedPart.GetProperty("chapterId").GetString(),
+                    $"story-part '{parts[index].Selector}' serialized chapter ID");
+                Equal(parts[index].WindowId,
+                    serializedPart.GetProperty("windowId").GetString(),
+                    $"story-part '{parts[index].Selector}' serialized window ID");
+                Check(serializedPart.GetProperty("reachable").GetBoolean(),
+                    $"story-part '{parts[index].Selector}' serialized as unreachable");
+                string? expectedBranch = parts[index].RequiredPromiseBranch switch
+                {
+                    null => null,
+                    PromiseDecision.Keep => "keep",
+                    PromiseDecision.Defer => "defer",
+                    _ => throw new InvalidOperationException(
+                        $"Unhandled promise branch {parts[index].RequiredPromiseBranch}."),
+                };
+                Equal(expectedBranch,
+                    serializedPart.GetProperty("requiredPromiseBranch").GetString(),
+                    $"story-part '{parts[index].Selector}' serialized promise branch");
+                JsonElement story = serializedPart.GetProperty("story");
+                Equal(parts[index].Story.Speaker, story.GetProperty("speaker").GetString(),
+                    $"story-part '{parts[index].Selector}' serialized speaker");
+                Equal(parts[index].Story.Title, story.GetProperty("title").GetString(),
+                    $"story-part '{parts[index].Selector}' serialized title");
+                Equal(parts[index].Story.Body, story.GetProperty("body").GetString(),
+                    $"story-part '{parts[index].Selector}' serialized body");
+            }
+        }
+
+        List<string> unreachableSelectors = [];
+        foreach (CommercialCoreChapter chapter in _campaign.Chapters)
+        {
+            unreachableSelectors.AddRange(chapter.DecisionWindows
+                .Where(window => window.Story is null)
+                .Select(window => $"{chapter.ChapterId}/window/{window.WindowId}"));
+            if (chapter.Promise is null)
+            {
+                unreachableSelectors.Add($"{chapter.ChapterId}/result/keep");
+                unreachableSelectors.Add($"{chapter.ChapterId}/result/defer");
+            }
+            else
+            {
+                unreachableSelectors.Add($"{chapter.ChapterId}/result/standard");
+            }
+        }
+        Equal(17, unreachableSelectors.Count,
+            "story-part known but unreachable negative truth-table count");
+        Equal(unreachableSelectors.Count,
+            unreachableSelectors.Distinct(StringComparer.Ordinal).Count(),
+            "story-part unreachable negative truth-table uniqueness");
+        foreach (string selector in unreachableSelectors)
+        {
+            ExpectStoryPartRejected(
+                selector,
+                CommercialStoryPartErrorCode.UnreachableStoryPart,
+                $"known unreachable story part '{selector}'");
+        }
+
+        ExpectStoryPartRejected(
+            "UNKNOWN_CHAPTER/briefing",
+            CommercialStoryPartErrorCode.UnknownChapter,
+            "unknown story-part chapter");
+        ExpectStoryPartRejected(
+            "first_light/briefing",
+            CommercialStoryPartErrorCode.UnknownChapter,
+            "case-mismatched story-part chapter");
+        ExpectStoryPartRejected(
+            "FIRST_LIGHT/window/UNKNOWN_WINDOW",
+            CommercialStoryPartErrorCode.UnreachableStoryPart,
+            "unknown story-part window");
+        ExpectStoryPartRejected(
+            "SECOND_SOURCE/window/second_source_build",
+            CommercialStoryPartErrorCode.UnreachableStoryPart,
+            "case-mismatched story-part window");
+        string[] invalidSelectors =
+        [
+            "",
+            "FIRST_LIGHT",
+            "FIRST_LIGHT/Briefing",
+            "FIRST_LIGHT/window",
+            "FIRST_LIGHT/window/",
+            "FIRST_LIGHT/result/KEEP",
+            "FIRST_LIGHT/result/other",
+            "campaign/Epilogue",
+            "campaign/epilogue/extra",
+            "FIRST_LIGHT//briefing",
+        ];
+        foreach (string selector in invalidSelectors)
+        {
+            ExpectStoryPartRejected(
+                selector,
+                CommercialStoryPartErrorCode.InvalidSelector,
+                $"invalid story-part grammar '{selector}'");
+        }
+
+        CommercialStoryPartSelectionException error = CaptureStoryPartFailure(
+            "NORTH_BANK_PROMISE/result/standard",
+            CommercialStoryPartErrorCode.UnreachableStoryPart,
+            "promise standard-result typed failure");
+        byte[] errorBytes = CommercialStoryPartHarness.SerializeError(error);
+        Check(errorBytes.SequenceEqual(CommercialStoryPartHarness.SerializeError(error)),
+            "story-part error bytes changed between identical serializations");
+        using JsonDocument errorDocument = JsonDocument.Parse(errorBytes);
+        JsonElement errorRoot = errorDocument.RootElement;
+        SequenceEqual(
+            new[] { "schemaVersion", "selector", "errorCode", "message" },
+            errorRoot.EnumerateObject().Select(property => property.Name).ToArray(),
+            "story-part error fixed property order");
+        Equal(CommercialStoryPartHarness.ErrorSchemaVersion,
+            errorRoot.GetProperty("schemaVersion").GetString(),
+            "story-part error schema version");
+        Equal("UNREACHABLE_STORY_PART", errorRoot.GetProperty("errorCode").GetString(),
+            "story-part typed error code serialization");
+    }
+
     private void CheckCommercialCampaignFirstFourCarrySave()
     {
         var direct = new CommercialCoreRun(_commercialWorld, _campaign);
@@ -1994,6 +2322,10 @@ internal sealed class CommercialChecks
             keptResult.DemandFacts.Single(item =>
                 item.DemandId == "NORTH_BANK_PROMISE_LOAD").Supplied,
             "kept north-bank promise was not recorded from actual supply");
+        Check(ReferenceEquals(
+                _storyParts.Select("NORTH_BANK_PROMISE/result/keep").Story,
+                keptResult.Story),
+            "north-bank keep command witness did not reach its keep story selector");
 
         CommercialCampaignSaveV3 save = CommercialCampaignSaveCodec.Create(
             _commercialWorld,
@@ -2097,6 +2429,10 @@ internal sealed class CommercialChecks
             "deferred north-bank promise entered supply allocation");
         Check(deferredFinish.CompletedChapter.PromiseDecision == PromiseDecision.Defer,
             "deferred result omitted explicit promise choice");
+        Check(ReferenceEquals(
+                _storyParts.Select("NORTH_BANK_PROMISE/result/defer").Story,
+                deferredFinish.CompletedChapter.Story),
+            "north-bank defer command witness did not reach its defer story selector");
 
         CommercialCoreRun keepSouth = CompleteCampaignFirstThree();
         BuildCampaignLine(
@@ -2201,6 +2537,10 @@ internal sealed class CommercialChecks
         Check(fifthFinish.CompletedChapter!.EmergencyAssetIds.Count > 0 &&
             fifthFinish.CompletedChapter.ProtectiveOutageAssetIds.Count > 0,
             "mission-five factual result omitted emergency/protective assets");
+        Check(ReferenceEquals(
+                _storyParts.Select("WHOSE_MARGIN/result/keep").Story,
+                fifthFinish.CompletedChapter.Story),
+            "whose-margin keep command witness did not reach its keep story selector");
 
         CommercialCoreRun reinforcedMargin = CommercialCoreRun.Restore(
             _commercialWorld,
@@ -2316,6 +2656,10 @@ internal sealed class CommercialChecks
         Check(sixthFinish.CompletedChapter!.EmergencyAssetIds.Count > 0 &&
             run.GetSnapshot().ThermalMemory.All(item => !item.ProtectiveOutage),
             "authored long gap did not clear the protection created by mission-six emergency use");
+        Check(ReferenceEquals(
+                _storyParts.Select("BEFORE_WATER_REACHES/result/standard").Story,
+                sixthFinish.CompletedChapter.Story),
+            "flood command witness did not reach its standard story selector");
         IReadOnlyList<CommercialCoreCommand> seventhStartCommands = run.GetCommands().ToArray();
         string seventhStart = JsonSerializer.Serialize(run.GetSnapshot());
 
@@ -2379,6 +2723,10 @@ internal sealed class CommercialChecks
         CommercialCoreCommandResult maintenanceFinish = run.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.ApproveDecisionWindow));
         CoreAccepted(maintenanceFinish, "mission-seven maintenance approval");
+        Check(ReferenceEquals(
+                _storyParts.Select("SHUT_DOWN_TO_KEEP/result/keep").Story,
+                maintenanceFinish.CompletedChapter!.Story),
+            "maintenance keep command witness did not reach its keep story selector");
 
         CommercialCoreRun standardMaintenance = CommercialCoreRun.Restore(
             _commercialWorld,
@@ -2528,6 +2876,13 @@ internal sealed class CommercialChecks
         CommercialCoreCommandResult keptFinal = keptNight.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.ApproveDecisionWindow));
         CoreAccepted(keptFinal, "mission-eight kept final approval");
+        Check(ReferenceEquals(
+                _storyParts.Select("LONGEST_NIGHT/result/defer").Story,
+                final.CompletedChapter!.Story) &&
+            ReferenceEquals(
+                _storyParts.Select("LONGEST_NIGHT/result/keep").Story,
+                keptFinal.CompletedChapter!.Story),
+            "last-night command witnesses did not reach their defer/keep story selectors");
         Check(final.CompletedChapter!.PromiseDecision == PromiseDecision.Defer &&
             keptFinal.CompletedChapter!.PromiseDecision == PromiseDecision.Keep &&
             final.CompletedChapter.EmergencyAssetIds.Count <
@@ -3455,6 +3810,10 @@ internal sealed class CommercialChecks
         CommercialCoreCommandResult first = run.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.ApproveDecisionWindow));
         CoreAccepted(first, "first-light approval");
+        Check(ReferenceEquals(
+                _storyParts.Select("FIRST_LIGHT/result/standard").Story,
+                first.CompletedChapter!.Story),
+            "first-light command witness did not reach its standard story selector");
         Equal("SECOND_HEART", first.Snapshot.Chapter.ChapterId,
             "first-light chapter transition");
         Check(first.Snapshot.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1"),
@@ -3502,6 +3861,10 @@ internal sealed class CommercialChecks
         CommercialCoreCommandResult second = run.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.ApproveDecisionWindow));
         CoreAccepted(second, "second-heart approval");
+        Check(ReferenceEquals(
+                _storyParts.Select("SECOND_HEART/result/standard").Story,
+                second.CompletedChapter!.Story),
+            "second-heart command witness did not reach its standard story selector");
         Equal("SECOND_SOURCE", second.Snapshot.Chapter.ChapterId,
             "second-heart chapter transition");
         SpatialNodeDefinition activatedSource = second.Snapshot.Construction.World.Nodes.Single(item =>
@@ -3534,6 +3897,10 @@ internal sealed class CommercialChecks
         CommercialCoreCommandResult third = run.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.ApproveDecisionWindow));
         CoreAccepted(third, "second-source approval");
+        Check(ReferenceEquals(
+                _storyParts.Select("SECOND_SOURCE/result/standard").Story,
+                third.CompletedChapter!.Story),
+            "second-source command witness did not reach its standard story selector");
         Equal("NORTH_BANK_PROMISE", third.Snapshot.Chapter.ChapterId,
             "second-source chapter transition");
         return run;
@@ -4248,6 +4615,31 @@ internal sealed class CommercialChecks
         ExpectThrows<CommercialCampaignValidationException>(
             () => CommercialCampaignLoader.Load(json, _commercialWorld),
             label);
+
+    private void ExpectStoryPartRejected(
+        string selector,
+        CommercialStoryPartErrorCode expectedError,
+        string label) =>
+        _ = CaptureStoryPartFailure(selector, expectedError, label);
+
+    private CommercialStoryPartSelectionException CaptureStoryPartFailure(
+        string selector,
+        CommercialStoryPartErrorCode expectedError,
+        string label)
+    {
+        try
+        {
+            _storyParts.Select(selector);
+        }
+        catch (CommercialStoryPartSelectionException exception)
+        {
+            Equal(expectedError, exception.ErrorCode, $"{label}: typed error");
+            Equal(selector, exception.Selector, $"{label}: preserved selector");
+            return exception;
+        }
+        throw new InvalidOperationException(
+            $"{label}: expected {nameof(CommercialStoryPartSelectionException)}");
+    }
 
     private void ExpectThrows<T>(Action body, string label)
         where T : Exception

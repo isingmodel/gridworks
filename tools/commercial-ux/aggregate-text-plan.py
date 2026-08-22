@@ -1,0 +1,641 @@
+#!/usr/bin/env python3
+"""Deterministically aggregate exactly three blinded SOL-ULTRA text-plan judgments."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+from pathlib import Path
+from typing import Any
+
+
+RUBRIC_SCHEMA = "gridworks.commercial-ux.rubric.v1"
+JUDGMENT_PROTOCOL = "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-JUDGMENT-v1"
+AGGREGATE_PROTOCOL = "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-AGGREGATE-v1"
+TEXT_PLAN_ENVELOPE_SCHEMA = "gridworks.commercial-ux.text-plan-envelope.v1"
+TEXT_PLAN_ARTIFACT_SCHEMA = "gridworks.commercial-ux.text-plan-input.v1"
+STORY_PART_SCHEMA = "gridworks.commercial.story-part-output.v1"
+CAMPAIGN_ID = "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2"
+FROZEN_RUBRIC_SHA256 = "sha256:2e50903e40255c8141513cb36407223a68b18824adc5d61a8af864ba24359b0b"
+EXPECTED_LABELS = {
+    "EXCELLENT": (4, 100),
+    "STRONG": (3, 85),
+    "SERVICEABLE": (2, 70),
+    "WEAK": (1, 40),
+    "BROKEN": (0, 0),
+}
+SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
+EXPECTED_CHAPTERS = (
+    ("FIRST_LIGHT", "첫 불빛", "tutorial"),
+    ("SECOND_HEART", "두 번째 심장", "tutorial"),
+    ("SECOND_SOURCE", "두 번째 전원", "tutorial"),
+    ("NORTH_BANK_PROMISE", "북안의 약속", "main"),
+    ("WHOSE_MARGIN", "누구의 여유인가", "main"),
+    ("BEFORE_WATER_REACHES", "물이 닿기 전에", "main"),
+    ("SHUT_DOWN_TO_KEEP", "꺼야 지킬 수 있다", "main"),
+    ("LONGEST_NIGHT", "가장 긴 밤", "main"),
+)
+EXPECTED_SELECTORS = (
+    "FIRST_LIGHT/briefing",
+    "FIRST_LIGHT/result/standard",
+    "SECOND_HEART/briefing",
+    "SECOND_HEART/result/standard",
+    "SECOND_SOURCE/briefing",
+    "SECOND_SOURCE/window/SECOND_SOURCE_BUILD",
+    "SECOND_SOURCE/result/standard",
+    "NORTH_BANK_PROMISE/briefing",
+    "NORTH_BANK_PROMISE/result/keep",
+    "NORTH_BANK_PROMISE/result/defer",
+    "WHOSE_MARGIN/briefing",
+    "WHOSE_MARGIN/window/AFTER_HEAT_SAFETY",
+    "WHOSE_MARGIN/result/keep",
+    "WHOSE_MARGIN/result/defer",
+    "BEFORE_WATER_REACHES/briefing",
+    "BEFORE_WATER_REACHES/window/FLOOD_BYPASS_BUILD",
+    "BEFORE_WATER_REACHES/result/standard",
+    "SHUT_DOWN_TO_KEEP/briefing",
+    "SHUT_DOWN_TO_KEEP/window/MAINTENANCE_BYPASS_BUILD",
+    "SHUT_DOWN_TO_KEEP/result/keep",
+    "SHUT_DOWN_TO_KEEP/result/defer",
+    "LONGEST_NIGHT/briefing",
+    "LONGEST_NIGHT/window/LAST_STORM_APPROVAL",
+    "LONGEST_NIGHT/result/keep",
+    "LONGEST_NIGHT/result/defer",
+    "campaign/epilogue",
+)
+
+
+def fail(message: str) -> None:
+    raise SystemExit(message)
+
+
+def read_object(path: Path, label: str) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exception:
+        fail(f"{label} is unreadable: {exception}")
+    if not isinstance(value, dict):
+        fail(f"{label} must be a JSON object")
+    return value
+
+
+def exact_keys(value: dict[str, Any], expected: set[str], label: str) -> None:
+    actual = set(value)
+    if actual != expected:
+        fail(
+            f"{label} keys mismatch: missing={sorted(expected - actual)}, "
+            f"extra={sorted(actual - expected)}"
+        )
+
+
+def nonempty_string(value: Any, label: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        fail(f"{label} must be a nonempty string")
+    return value
+
+
+def canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def expected_part_metadata(selector: str) -> tuple[str, str | None, str | None, str | None]:
+    if selector == "campaign/epilogue":
+        return "epilogue", None, None, None
+    segments = selector.split("/")
+    chapter_id = segments[0]
+    if segments[1] == "briefing":
+        return "briefing", chapter_id, None, None
+    if segments[1] == "window":
+        return "window", chapter_id, segments[2], None
+    branch = segments[2]
+    return "result", chapter_id, None, branch if branch in {"keep", "defer"} else None
+
+
+def load_text_plan(path: Path) -> tuple[str, set[str]]:
+    envelope = read_object(path, "text-plan envelope")
+    exact_keys(
+        envelope,
+        {"schemaVersion", "artifactSha256", "artifact"},
+        "text-plan envelope",
+    )
+    if envelope["schemaVersion"] != TEXT_PLAN_ENVELOPE_SCHEMA:
+        fail(f"text-plan envelope schemaVersion must be {TEXT_PLAN_ENVELOPE_SCHEMA}")
+    declared_sha = envelope["artifactSha256"]
+    if not isinstance(declared_sha, str) or SHA256_PATTERN.fullmatch(declared_sha) is None:
+        fail("text-plan envelope artifactSha256 must be a lowercase sha256 identifier")
+    artifact = envelope["artifact"]
+    if not isinstance(artifact, dict):
+        fail("text-plan envelope artifact must be an object")
+    exact_keys(
+        artifact,
+        {
+            "schemaVersion",
+            "campaignId",
+            "premise",
+            "playerRole",
+            "chapters",
+            "storyParts",
+        },
+        "text-plan artifact",
+    )
+    if artifact["schemaVersion"] != TEXT_PLAN_ARTIFACT_SCHEMA:
+        fail(f"text-plan artifact schemaVersion must be {TEXT_PLAN_ARTIFACT_SCHEMA}")
+    if artifact["campaignId"] != CAMPAIGN_ID:
+        fail(f"text-plan artifact campaignId must be {CAMPAIGN_ID}")
+    nonempty_string(artifact["premise"], "text-plan artifact premise")
+    nonempty_string(artifact["playerRole"], "text-plan artifact playerRole")
+    computed_sha = "sha256:" + hashlib.sha256(canonical_json_bytes(artifact)).hexdigest()
+    if declared_sha != computed_sha:
+        fail(
+            "text-plan artifact hash mismatch: "
+            f"declared {declared_sha}, computed {computed_sha}"
+        )
+
+    chapters = artifact["chapters"]
+    if not isinstance(chapters, list) or len(chapters) != len(EXPECTED_CHAPTERS):
+        fail("text-plan artifact chapters must contain exactly eight rows")
+    allowed_refs = {"context:premise", "context:playerRole"}
+    seen_chapters: set[str] = set()
+    chapter_fields = {
+        "order",
+        "chapterId",
+        "displayName",
+        "phase",
+        "learningIntent",
+        "crisisIntent",
+        "choiceIntent",
+    }
+    for index, (chapter, expected_chapter) in enumerate(
+        zip(chapters, EXPECTED_CHAPTERS),
+        start=1,
+    ):
+        label = f"text-plan artifact chapter {index}"
+        if not isinstance(chapter, dict):
+            fail(f"{label} must be an object")
+        exact_keys(chapter, chapter_fields, label)
+        if type(chapter["order"]) is not int or chapter["order"] != index:
+            fail("text-plan artifact chapter order must be exactly 1..8")
+        chapter_id = nonempty_string(chapter["chapterId"], f"{label}.chapterId")
+        expected_chapter_id, expected_display_name, expected_phase = expected_chapter
+        if chapter_id != expected_chapter_id:
+            fail(
+                f"{label}.chapterId mismatch: expected {expected_chapter_id!r}, "
+                f"got {chapter_id!r}"
+            )
+        if chapter_id in seen_chapters:
+            fail(f"text-plan artifact duplicate chapterId {chapter_id!r}")
+        seen_chapters.add(chapter_id)
+        if chapter["displayName"] != expected_display_name:
+            fail(
+                f"{label}.displayName mismatch: expected {expected_display_name!r}, "
+                f"got {chapter['displayName']!r}"
+            )
+        if chapter["phase"] != expected_phase:
+            fail(f"{label}.phase must be {expected_phase}")
+        for field in ("learningIntent", "crisisIntent", "choiceIntent"):
+            nonempty_string(chapter[field], f"{label}.{field}")
+            allowed_refs.add(f"chapter:{chapter_id}:{field}")
+
+    story_parts = artifact["storyParts"]
+    if not isinstance(story_parts, list) or len(story_parts) != len(EXPECTED_SELECTORS):
+        fail("text-plan artifact storyParts must contain exactly 26 rows")
+    seen_selectors: set[str] = set()
+    part_fields = {
+        "schemaVersion",
+        "campaignId",
+        "selector",
+        "kind",
+        "chapterId",
+        "windowId",
+        "reachable",
+        "requiredPromiseBranch",
+        "story",
+    }
+    for index, (part, expected_selector) in enumerate(
+        zip(story_parts, EXPECTED_SELECTORS),
+        start=1,
+    ):
+        label = f"text-plan artifact story part {index}"
+        if not isinstance(part, dict):
+            fail(f"{label} must be an object")
+        exact_keys(part, part_fields, label)
+        selector = nonempty_string(part["selector"], f"{label}.selector")
+        if selector != expected_selector:
+            fail(
+                f"{label}.selector mismatch: expected {expected_selector!r}, "
+                f"got {selector!r}"
+            )
+        if selector in seen_selectors:
+            fail(f"text-plan artifact duplicate selector {selector!r}")
+        seen_selectors.add(selector)
+        expected_kind, expected_chapter_id, expected_window_id, expected_branch = (
+            expected_part_metadata(expected_selector)
+        )
+        expected_values = {
+            "schemaVersion": STORY_PART_SCHEMA,
+            "campaignId": CAMPAIGN_ID,
+            "kind": expected_kind,
+            "chapterId": expected_chapter_id,
+            "windowId": expected_window_id,
+            "reachable": True,
+            "requiredPromiseBranch": expected_branch,
+        }
+        for field, expected_value in expected_values.items():
+            if part[field] != expected_value or (
+                field == "reachable" and part[field] is not True
+            ):
+                fail(
+                    f"{label}.{field} mismatch: expected {expected_value!r}, "
+                    f"got {part[field]!r}"
+                )
+        story = part["story"]
+        if not isinstance(story, dict):
+            fail(f"{label}.story must be an object")
+        exact_keys(story, {"speaker", "title", "body"}, f"{label}.story")
+        for field in ("speaker", "title", "body"):
+            nonempty_string(story[field], f"{label}.story.{field}")
+        allowed_refs.add(selector)
+    return declared_sha, allowed_refs
+
+
+def load_text_rubric(
+    path: Path,
+) -> tuple[dict[str, tuple[int, int]], list[dict[str, Any]], dict[str, Any], str]:
+    rubric = read_object(path, "rubric")
+    rubric_sha256 = "sha256:" + hashlib.sha256(canonical_json_bytes(rubric)).hexdigest()
+    if rubric_sha256 != FROZEN_RUBRIC_SHA256:
+        fail(
+            "rubric canonical JSON hash drift: "
+            f"expected {FROZEN_RUBRIC_SHA256}, got {rubric_sha256}"
+        )
+    if rubric.get("schemaVersion") != RUBRIC_SCHEMA:
+        fail(f"rubric schemaVersion must be {RUBRIC_SCHEMA}")
+    judge = rubric.get("judge")
+    if judge != {
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "ultra",
+        "slot": "SOL-ULTRA",
+    }:
+        fail("rubric judge identity drift")
+
+    labels = rubric.get("labels")
+    if not isinstance(labels, list) or len(labels) != len(EXPECTED_LABELS):
+        fail("rubric labels must contain the five canonical labels")
+    label_data: dict[str, tuple[int, int]] = {}
+    for row in labels:
+        if not isinstance(row, dict):
+            fail("rubric label rows must be objects")
+        label_id = row.get("id")
+        actual = (row.get("ordinal"), row.get("score"))
+        if label_id not in EXPECTED_LABELS or actual != EXPECTED_LABELS[label_id]:
+            fail(f"rubric label drift: {label_id!r} -> {actual!r}")
+        label_data[label_id] = actual
+    if label_data != EXPECTED_LABELS:
+        fail("rubric labels are missing or duplicated")
+
+    text_plan = rubric.get("textPlan")
+    if not isinstance(text_plan, dict):
+        fail("rubric textPlan must be an object")
+    if text_plan.get("metric") != "TextPlanProxy" or text_plan.get("officialCommercialUX") is not False:
+        fail("rubric must keep TextPlanProxy non-official")
+    if text_plan.get("categoryWeightTotal") != 60:
+        fail("text-plan category weight total must be 60")
+    aggregation = text_plan.get("aggregation")
+    expected_aggregation = {
+        "judgeCount": 3,
+        "labelReduction": "NUMERIC_MEDIAN",
+        "spreadReduction": "MAX_MINUS_MIN",
+        "spreadPenaltyMultiplier": 0.2,
+        "spreadPenaltyMaximum": 8.0,
+        "instabilityOrdinalRangeMinimum": 2,
+    }
+    if aggregation != expected_aggregation:
+        fail("text-plan aggregation constants drifted from the frozen protocol")
+
+    categories = text_plan.get("categories")
+    if not isinstance(categories, list) or not categories:
+        fail("rubric text-plan categories must be a nonempty list")
+    category_ids: set[str] = set()
+    cell_ids: set[str] = set()
+    category_weight_sum = 0
+    for category in categories:
+        if not isinstance(category, dict):
+            fail("rubric text-plan category rows must be objects")
+        category_id = nonempty_string(category.get("id"), "rubric category id")
+        if category_id in category_ids:
+            fail(f"duplicate rubric category: {category_id}")
+        category_ids.add(category_id)
+        weight = category.get("weight")
+        if type(weight) is not int or weight <= 0:
+            fail(f"{category_id}: category weight must be a positive integer")
+        category_weight_sum += weight
+        cells = category.get("cells")
+        if not isinstance(cells, list) or not cells:
+            fail(f"{category_id}: cells must be a nonempty list")
+        cell_weight_sum = 0
+        for cell in cells:
+            if not isinstance(cell, dict):
+                fail(f"{category_id}: cell rows must be objects")
+            cell_id = nonempty_string(cell.get("id"), f"{category_id} cell id")
+            if cell_id in cell_ids:
+                fail(f"duplicate rubric text-plan cell: {cell_id}")
+            cell_ids.add(cell_id)
+            if cell.get("laneOwnership") != ["TEXT-PLAN"]:
+                fail(f"{cell_id}: text-plan lane ownership drift")
+            cell_weight = cell.get("weight")
+            if type(cell_weight) is not int or cell_weight <= 0:
+                fail(f"{cell_id}: cell weight must be a positive integer")
+            cell_weight_sum += cell_weight
+        if cell_weight_sum != 100:
+            fail(f"{category_id}: cell weights total {cell_weight_sum}, expected 100")
+    if category_weight_sum != text_plan["categoryWeightTotal"]:
+        fail(
+            f"text-plan category weights total {category_weight_sum}, "
+            f"expected {text_plan['categoryWeightTotal']}"
+        )
+    if len(cell_ids) != 20:
+        fail(f"text-plan rubric must contain exactly 20 cells, got {len(cell_ids)}")
+    return label_data, categories, aggregation, rubric_sha256
+
+
+def validate_evidence(value: Any, label: str, allowed_source_refs: set[str]) -> None:
+    if not isinstance(value, list) or len(value) > 4:
+        fail(f"{label} must be an array with at most four rows")
+    seen: set[tuple[str, str]] = set()
+    for index, row in enumerate(value):
+        row_label = f"{label}[{index}]"
+        if not isinstance(row, dict):
+            fail(f"{row_label} must be an object")
+        exact_keys(row, {"sourceRef", "observation"}, row_label)
+        source = nonempty_string(row["sourceRef"], f"{row_label}.sourceRef")
+        observation = nonempty_string(row["observation"], f"{row_label}.observation")
+        if source not in allowed_source_refs:
+            fail(f"{row_label}.sourceRef does not exist in the text-plan artifact: {source!r}")
+        key = (source, observation)
+        if key in seen:
+            fail(f"{label} contains duplicate evidence")
+        seen.add(key)
+
+
+def validate_judgment(
+    payload: dict[str, Any],
+    path: Path,
+    expected_cell_ids: set[str],
+    labels: set[str],
+    allowed_source_refs: set[str],
+) -> dict[str, dict[str, Any]]:
+    prefix = str(path)
+    exact_keys(
+        payload,
+        {
+            "protocol",
+            "judgeRunId",
+            "judgeSlot",
+            "model",
+            "reasoningEffort",
+            "textPlanSha256",
+            "cells",
+        },
+        prefix,
+    )
+    expected_identity = {
+        "protocol": JUDGMENT_PROTOCOL,
+        "judgeSlot": "SOL-ULTRA",
+        "model": "gpt-5.6-sol",
+        "reasoningEffort": "ultra",
+    }
+    for field, expected in expected_identity.items():
+        if payload[field] != expected:
+            fail(f"{prefix}: {field} must be {expected!r}")
+    nonempty_string(payload["judgeRunId"], f"{prefix}.judgeRunId")
+    sha256 = payload["textPlanSha256"]
+    if not isinstance(sha256, str) or SHA256_PATTERN.fullmatch(sha256) is None:
+        fail(f"{prefix}.textPlanSha256 must be a lowercase sha256 identifier")
+    cells = payload["cells"]
+    if not isinstance(cells, list) or len(cells) != len(expected_cell_ids):
+        fail(f"{prefix}: cells must contain exactly {len(expected_cell_ids)} rows")
+    by_id: dict[str, dict[str, Any]] = {}
+    for index, cell in enumerate(cells):
+        cell_label = f"{prefix}.cells[{index}]"
+        if not isinstance(cell, dict):
+            fail(f"{cell_label} must be an object")
+        exact_keys(
+            cell,
+            {"cellId", "label", "confidence", "strengthEvidence", "gapEvidence"},
+            cell_label,
+        )
+        cell_id = cell["cellId"]
+        if cell_id not in expected_cell_ids:
+            fail(f"{cell_label}: unknown cellId {cell_id!r}")
+        if cell_id in by_id:
+            fail(f"{prefix}: duplicate cellId {cell_id}")
+        if cell["label"] not in labels:
+            fail(f"{cell_id}: invalid label {cell['label']!r}")
+        if cell["confidence"] not in {"HIGH", "MEDIUM"}:
+            fail(f"{cell_id}: confidence must be HIGH or MEDIUM")
+        validate_evidence(
+            cell["strengthEvidence"],
+            f"{cell_id}.strengthEvidence",
+            allowed_source_refs,
+        )
+        validate_evidence(
+            cell["gapEvidence"],
+            f"{cell_id}.gapEvidence",
+            allowed_source_refs,
+        )
+        if not cell["strengthEvidence"] and not cell["gapEvidence"]:
+            fail(f"{cell_id}: at least one grounded evidence row is required")
+        if cell["label"] == "EXCELLENT" and not cell["strengthEvidence"]:
+            fail(f"{cell_id}: EXCELLENT requires concrete strength evidence")
+        by_id[cell_id] = cell
+    if set(by_id) != expected_cell_ids:
+        fail(f"{prefix}: missing text-plan cells {sorted(expected_cell_ids - set(by_id))}")
+    return by_id
+
+
+def rounded(value: float) -> float:
+    return round(value, 4)
+
+
+def aggregate(
+    judgment_paths: list[Path],
+    rubric_path: Path,
+    text_plan_path: Path,
+    replacement_panel: bool,
+) -> dict[str, Any]:
+    if len(judgment_paths) != 3:
+        fail("exactly three judgment paths are required")
+    label_data, categories, aggregation_config, rubric_sha256 = load_text_rubric(rubric_path)
+    text_plan_sha256, allowed_source_refs = load_text_plan(text_plan_path)
+    expected_cell_ids = {
+        cell["id"]
+        for category in categories
+        for cell in category["cells"]
+    }
+    payloads = [read_object(path, f"judgment {path}") for path in judgment_paths]
+    judgments = [
+        validate_judgment(
+            payload,
+            path,
+            expected_cell_ids,
+            set(label_data),
+            allowed_source_refs,
+        )
+        for payload, path in zip(payloads, judgment_paths)
+    ]
+    run_ids = [payload["judgeRunId"] for payload in payloads]
+    if len(set(run_ids)) != 3:
+        fail("the three judgments must have distinct judgeRunId values")
+    artifact_ids = {payload["textPlanSha256"] for payload in payloads}
+    if len(artifact_ids) != 1:
+        fail("the three judgments must evaluate the same textPlanSha256")
+    if artifact_ids != {text_plan_sha256}:
+        fail(
+            "judgment textPlanSha256 does not match the supplied text-plan envelope: "
+            f"expected {text_plan_sha256}, got {sorted(artifact_ids)}"
+        )
+    panel_payload = {
+        "textPlanSha256": text_plan_sha256,
+        "replacementPanel": replacement_panel,
+        "judgments": sorted(payloads, key=lambda payload: payload["judgeRunId"]),
+    }
+    panel_input_sha256 = (
+        "sha256:" + hashlib.sha256(canonical_json_bytes(panel_payload)).hexdigest()
+    )
+
+    score_for = {label: data[1] for label, data in label_data.items()}
+    ordinal_for = {label: data[0] for label, data in label_data.items()}
+    label_for_score = {score: label for label, score in score_for.items()}
+    instability_minimum = aggregation_config["instabilityOrdinalRangeMinimum"]
+    cell_results: dict[str, dict[str, Any]] = {}
+    unstable_cells: list[str] = []
+    for category in categories:
+        for cell in category["cells"]:
+            cell_id = cell["id"]
+            cell_labels = [judgment[cell_id]["label"] for judgment in judgments]
+            scores = [score_for[label] for label in cell_labels]
+            ordinals = [ordinal_for[label] for label in cell_labels]
+            median_score = sorted(scores)[1]
+            ordinal_range = max(ordinals) - min(ordinals)
+            unstable = ordinal_range >= instability_minimum
+            if unstable:
+                unstable_cells.append(cell_id)
+            cell_results[cell_id] = {
+                "categoryId": category["id"],
+                "weightWithinCategory": cell["weight"],
+                "labels": cell_labels,
+                "medianLabel": label_for_score[median_score],
+                "medianScore": median_score,
+                "spread": max(scores) - min(scores),
+                "ordinalRange": ordinal_range,
+                "unstable": unstable,
+            }
+
+    category_results: dict[str, dict[str, Any]] = {}
+    for category in categories:
+        category_id = category["id"]
+        category_score = sum(
+            cell["weight"] * cell_results[cell["id"]]["medianScore"]
+            for cell in category["cells"]
+        ) / 100
+        category_spread = sum(
+            cell["weight"] * cell_results[cell["id"]]["spread"]
+            for cell in category["cells"]
+        ) / 100
+        category_results[category_id] = {
+            "weight": category["weight"],
+            "score": rounded(category_score),
+            "spread": rounded(category_spread),
+        }
+
+    category_weight_total = sum(category["weight"] for category in categories)
+    text_raw = sum(
+        category["weight"] * category_results[category["id"]]["score"]
+        for category in categories
+    ) / category_weight_total
+    text_raw_spread = sum(
+        category["weight"] * category_results[category["id"]]["spread"]
+        for category in categories
+    ) / category_weight_total
+    penalty = min(
+        aggregation_config["spreadPenaltyMaximum"],
+        text_raw_spread * aggregation_config["spreadPenaltyMultiplier"],
+    )
+    blockers = (
+        ["text-plan-panel:ordinal-range-at-least-two"]
+        if unstable_cells
+        else []
+    )
+    if unstable_cells and replacement_panel:
+        status = "BLOCKED_JUDGE_INSTABILITY"
+    elif unstable_cells:
+        status = "RERUN_REQUIRED_JUDGE_INSTABILITY"
+    else:
+        status = "SCORED_FORMATIVE"
+    text_plan_proxy = None if unstable_cells else rounded(text_raw - penalty)
+    return {
+        "protocol": AGGREGATE_PROTOCOL,
+        "status": status,
+        "textPlanProxy": text_plan_proxy,
+        "commercialUXProxy": None,
+        "officialCommercialUX": False,
+        "replacementPanel": replacement_panel,
+        "rerunRequired": bool(unstable_cells and not replacement_panel),
+        "panelInputSha256": panel_input_sha256,
+        "rubricSha256": rubric_sha256,
+        "textRaw": rounded(text_raw),
+        "textRawSpread": rounded(text_raw_spread),
+        "disagreementPenalty": rounded(penalty),
+        "textPlanSha256": text_plan_sha256,
+        "judgeRunIds": run_ids,
+        "cellScores": cell_results,
+        "categoryScores": category_results,
+        "unstableCells": unstable_cells,
+        "blockers": blockers,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Aggregate exactly three strict commercial UX text-plan judgments."
+    )
+    parser.add_argument("judgments", nargs=3, type=Path)
+    parser.add_argument(
+        "--text-plan",
+        type=Path,
+        required=True,
+        help="Hash-pinned envelope emitted by build-text-plan-input.py",
+    )
+    parser.add_argument(
+        "--rubric",
+        type=Path,
+        default=Path(__file__).with_name("rubric.json"),
+    )
+    parser.add_argument(
+        "--replacement-panel",
+        action="store_true",
+        help="Mark this fresh three-judgment panel as the one allowed replacement run",
+    )
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    result = aggregate(
+        args.judgments,
+        args.rubric,
+        args.text_plan,
+        args.replacement_panel,
+    )
+    output = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(output, encoding="utf-8")
+    print(output, end="")
+
+
+if __name__ == "__main__":
+    main()

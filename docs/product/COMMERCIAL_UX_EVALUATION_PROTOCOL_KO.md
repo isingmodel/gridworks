@@ -36,7 +36,7 @@ campaign 권위에서 자동 추출한 다음 입력만 세 fresh blind judge에
 - 한 문단의 제품 premise와 플레이어 역할
 - 장 순서와 각 장의 학습·위기·선택 의도
 - 정상 도달하는 26개 briefing/window/result/epilogue selector와 authored text
-- chapter/window/branch 같은 사실 ID와 native 노출 여부
+- chapter/window/branch 같은 사실 ID
 
 source, test, 개발자의 해설, 이전 점수, 목표 87과 변경 희망사항은 숨긴다. 이 레인은 텍스트로
 판정 가능한 journey, tutorial plan, causality, agency, pacing/payoff와 Korean만 형성 평가한다.

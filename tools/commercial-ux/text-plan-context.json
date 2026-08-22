@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.text-plan-context.v1",
+  "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
+  "premise": "Gridworks는 이미 마을·병원·공장이 자리 잡은 청류시에서 발전소, 변전소와 선로를 건설하고 운영하며 필수 안전 기준, 비용과 공사시간을 함께 감당하는 싱글 플레이 2D 전력망 전략 게임이다.",
+  "playerRole": "플레이어는 실제로 이어진 공급 경로와 용량을 확인하고, 값싼 공유 경로의 위험과 비싼 이중화의 기회비용 사이에서 도시의 필수 의무와 약속을 책임지는 전력망 운영자다.",
+  "chapters": [
+    {
+      "order": 1,
+      "chapterId": "FIRST_LIGHT",
+      "displayName": "첫 불빛",
+      "phase": "tutorial",
+      "learningIntent": "자유 배치, 유효한 접속점 사이의 실제 선로 경로, 연속 한계와 계획 상태에서 통전 상태로의 전환을 첫 공급 행동으로 익힌다.",
+      "crisisIntent": "첫 입주 전까지 전기가 닿지 않은 동부 생활권에 안전한 공급 경로를 완성해야 한다.",
+      "choiceIntent": "강을 피하면서 공사비와 공사시간을 감당할 경로를 정하고, 잘못된 배치와 draft를 승인 전에 고친다."
+    },
+    {
+      "order": 2,
+      "chapterId": "SECOND_HEART",
+      "displayName": "두 번째 심장",
+      "phase": "tutorial",
+      "learningIntent": "두 선이 있어도 같은 위험 회랑을 공유하면 독립 경로가 아니며, 서로 다른 회랑 차단 뒤에도 의료원까지 실제 경로가 남아야 함을 익힌다.",
+      "crisisIntent": "북안과 강변 회랑을 차례로 차단하는 의료원 전환시험을 모두 통과해야 한다.",
+      "choiceIntent": "공유 공사비를 줄이는 배치와 한 회랑 상실에도 살아남는 독립 배치 사이에서 경로를 정한다."
+    },
+    {
+      "order": 3,
+      "chapterId": "SECOND_SOURCE",
+      "displayName": "두 번째 전원",
+      "phase": "tutorial",
+      "learningIntent": "발전량만이 아니라 전원부터 수요처까지의 전체 경로와 가장 작은 접속부 용량이 공급을 제한하며, 튜토리얼 안내가 줄어드는 전환을 익힌다.",
+      "crisisIntent": "서부 전원이 빠지는 인수시험에서 남부 전원만으로 생활권과 의료원을 함께 공급해야 한다.",
+      "choiceIntent": "기존 망에 두 번째 전원을 합류시키되 두 수요의 전체 경로 용량과 최소 열여유를 함께 확보한다."
+    },
+    {
+      "order": 4,
+      "chapterId": "NORTH_BANK_PROMISE",
+      "displayName": "북안의 약속",
+      "phase": "main",
+      "learningIntent": "서비스 권역은 연결 가능 범위일 뿐 공급 자체가 아니며, 현재 공사가 다음 장의 분기 공간과 열여유를 남긴다는 점을 본편 선택으로 확장한다.",
+      "crisisIntent": "정수장 필수 공급을 지키면서 다음 더운 저녁의 산업 증산 전에 망과 자금의 여유를 남겨야 한다.",
+      "choiceIntent": "북안 입주 약속을 지금 지킬지 미룰지 명시하고, 선택에 따라 다른 결과와 이어지는 망·자금을 받아들인다."
+    },
+    {
+      "order": 5,
+      "chapterId": "WHOSE_MARGIN",
+      "displayName": "누구의 여유인가",
+      "phase": "main",
+      "learningIntent": "연속 한계와 비상 열여유, 비상 운전 뒤 다음 국면의 보호정지를 하나의 연속된 판단으로 이해한다.",
+      "crisisIntent": "더운 저녁의 필수 공급과 다음 아침 안전 의무를 모두 고려해 한 번뿐인 비상 여유를 배분해야 한다.",
+      "choiceIntent": "산업단지 증산 약속을 지키며 비상 설비를 쓸지, 약속을 미루고 연속 여유와 다음 경계의 경로를 보호할지 정한다."
+    },
+    {
+      "order": 6,
+      "chapterId": "BEFORE_WATER_REACHES",
+      "displayName": "물이 닿기 전에",
+      "phase": "main",
+      "learningIntent": "공사 기한, 범람 위험구역의 설비 상실, 일반선의 비상 한계와 보강선의 연속 여유를 함께 읽고 실패 뒤 우회 계획을 회복한다.",
+      "crisisIntent": "통제선이 닫히기 전에 범람구역 밖에서 의료원과 정수장으로 이어지는 충분한 공급 경로를 완성해야 한다.",
+      "choiceIntent": "짧고 위험한 보강과 더 비싸거나 긴 안전 회랑을 비교해 범람 뒤 실제로 남을 경로를 고른다."
+    },
+    {
+      "order": 7,
+      "chapterId": "SHUT_DOWN_TO_KEEP",
+      "displayName": "꺼야 지킬 수 있다",
+      "phase": "main",
+      "learningIntent": "긴 시간경과 뒤 열 상태가 reset되고, 계획정지 중에는 남은 전원과 경로의 연속 열여유만으로 운영해야 함을 이해한다.",
+      "crisisIntent": "서부 전원 계획정지와 남은 강변 통제 속에서 의료원·정수장·생활권의 필수 공급을 지켜야 한다.",
+      "choiceIntent": "필수 공급을 우선하면서 산업 야간 복구 약속까지 지킬지 미룰지 정하고 결과에서 실제 남부 전원 경로를 확인한다."
+    },
+    {
+      "order": 8,
+      "chapterId": "LONGEST_NIGHT",
+      "displayName": "가장 긴 밤",
+      "phase": "main",
+      "learningIntent": "앞선 장에서 만든 망과 약속을 최대수요, 비상 운전, 다음 경계의 보호정지, 범람과 전원 상실이 연속되는 마지막 시험에 적용한다.",
+      "crisisIntent": "폭염 뒤 폭우가 이어지는 두 경계에서 의료원과 정수장의 필수 공급을 끝까지 지켜야 한다.",
+      "choiceIntent": "마지막 산업 약속을 지킬지 미룰지 정하고, 그 선택과 실제 공급 경로가 결과와 에필로그의 누적 운영 기록으로 회수되게 한다."
+    }
+  ]
+}

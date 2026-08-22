@@ -160,6 +160,8 @@ internal sealed class CommercialChecks
         string artDirectory = Path.Combine(gameDirectory, "art", "commercial");
         string scene = File.ReadAllText(Path.Combine(gameDirectory, "CommercialMapView.tscn"));
         string renderer = File.ReadAllText(Path.Combine(gameDirectory, "CommercialMapView.cs"));
+        string transform = File.ReadAllText(Path.Combine(gameDirectory, "CommercialMapTransform.cs"));
+        string timeline = File.ReadAllText(Path.Combine(gameDirectory, "CommercialEventTimeline.cs"));
         string promptRecordPath = Path.Combine(
             artDirectory,
             "commercial-map-assets-v1.prompts.md");
@@ -172,20 +174,13 @@ internal sealed class CommercialChecks
             ("GroundConcreteTile", "tiles/ground-concrete-v1.png", false),
             ("GroundGravelTile", "tiles/ground-gravel-v1.png", false),
             ("RiverWaterTile", "tiles/river-water-v1.png", false),
-            ("ResidentialBlockTile", "tiles/residential-block-v1.png", false),
-            ("HospitalBlockTile", "tiles/hospital-block-v1.png", false),
-            ("SourcePlantSprite", "objects/source-plant-v1.png", true),
             ("StandardPoleSprite", "objects/pole-standard-v1.png", true),
             ("ReinforcedPoleSprite", "objects/pole-reinforced-v1.png", true),
             ("BridgeFoundationSprite", "objects/bridge-foundation-v1.png", true),
             ("SubstationSprite", "objects/substation-v1.png", true),
-            ("ResidentialFacilitySprite", "objects/facility-residential-v1.png", true),
-            ("HospitalFacilitySprite", "objects/facility-hospital-v1.png", true),
-            ("WaterFacilitySprite", "objects/facility-water-v1.png", true),
-            ("IndustryFacilitySprite", "objects/facility-industry-v1.png", true),
         ];
 
-        Equal(16, assets.Length, "discrete runtime art count");
+        Equal(9, assets.Length, "retained discrete runtime art count");
         foreach ((string property, string relativePath, bool requiresAlpha) in assets)
         {
             string filePath = Path.Combine(artDirectory, relativePath);
@@ -226,6 +221,496 @@ internal sealed class CommercialChecks
             }
         }
 
+        // G.2's composite parcel/cluster checks remain below as a historical
+        // record, but the active G.3 Step 1 gate is deliberately authoritative.
+        // The helper returns runtime-derived truth rather than a compile-time
+        // constant, so the archived branch remains type-checked but never counts.
+        if (CheckG3AtomicStepOne(
+                gameDirectory,
+                artDirectory,
+                scene,
+                renderer,
+                transform,
+                timeline))
+        {
+            return;
+        }
+
+        string g3ResidentialPath = Path.Combine(
+            artDirectory,
+            "g3/objects/residential-cluster-a.png");
+        string g3PromptRecord = File.ReadAllText(Path.Combine(
+            artDirectory,
+            "g3-assets.prompts.md"));
+        Check(File.Exists(g3ResidentialPath), "missing G.3 residential cluster A");
+        Check(scene.Contains(
+                "res://art/commercial/g3/objects/residential-cluster-a.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("ResidentialClusterASprite = ExtResource", StringComparison.Ordinal),
+            "G.3 residential cluster A is not runtime-bound");
+        string g3ResidentialHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3ResidentialPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3ResidentialHash, StringComparison.Ordinal),
+            "G.3 residential cluster A provenance hash is stale");
+        PngInfo g3Residential = ReadPng(g3ResidentialPath, true);
+        Equal((byte)6, g3Residential.ColorType, "G.3 residential cluster A RGBA");
+        Check(g3Residential.TransparentFraction >= 0.35d &&
+            g3Residential.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 residential cluster A lacks isolated transparent alpha");
+
+        string g3IndustryPath = Path.Combine(
+            artDirectory,
+            "g3/objects/industrial-warehouse-a.png");
+        Check(File.Exists(g3IndustryPath), "missing G.3 industrial warehouse A");
+        Check(scene.Contains(
+                "res://art/commercial/g3/objects/industrial-warehouse-a.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("IndustrialWarehouseASprite = ExtResource", StringComparison.Ordinal),
+            "G.3 industrial warehouse A is not runtime-bound");
+        string g3IndustryHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3IndustryPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3IndustryHash, StringComparison.Ordinal),
+            "G.3 industrial warehouse A provenance hash is stale");
+        PngInfo g3Industry = ReadPng(g3IndustryPath, true);
+        Equal((byte)6, g3Industry.ColorType, "G.3 industrial warehouse A RGBA");
+        Check(g3Industry.TransparentFraction >= 0.35d &&
+            g3Industry.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 industrial warehouse A lacks isolated transparent alpha");
+
+        string g3CityParcelPath = Path.Combine(
+            artDirectory,
+            "g3/tiles/dense-city-parcel-a.png");
+        Check(File.Exists(g3CityParcelPath), "missing G.3 dense city parcel A");
+        Check(scene.Contains(
+                "res://art/commercial/g3/tiles/dense-city-parcel-a.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("DenseCityParcelASprite = ExtResource", StringComparison.Ordinal),
+            "G.3 dense city parcel A is not runtime-bound");
+        string g3CityParcelHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3CityParcelPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3CityParcelHash, StringComparison.Ordinal),
+            "G.3 dense city parcel A provenance hash is stale");
+        PngInfo g3CityParcel = ReadPng(g3CityParcelPath, true);
+        Equal((byte)6, g3CityParcel.ColorType, "G.3 dense city parcel A RGBA");
+        Check(g3CityParcel.TransparentFraction >= 0.35d &&
+            g3CityParcel.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 dense city parcel A lacks isolated transparent alpha");
+
+        string g3RubblePath = Path.Combine(
+            artDirectory,
+            "g3/objects/central-rubble-service-corridor-a.png");
+        Check(File.Exists(g3RubblePath), "missing G.3 central rubble corridor A");
+        Check(File.Exists($"{g3RubblePath}.import") &&
+            File.ReadAllText($"{g3RubblePath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 central rubble corridor A lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/objects/central-rubble-service-corridor-a.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("CentralRubbleServiceCorridorASprite = ExtResource", StringComparison.Ordinal) &&
+            renderer.Contains("DrawCentralRubbleCorridor", StringComparison.Ordinal),
+            "G.3 central rubble corridor A is not individually runtime-bound");
+        string g3RubbleHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3RubblePath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3RubbleHash, StringComparison.Ordinal),
+            "G.3 central rubble corridor A provenance hash is stale");
+        PngInfo g3Rubble = ReadPng(g3RubblePath, true);
+        Equal((byte)6, g3Rubble.ColorType, "G.3 central rubble corridor A RGBA");
+        Check(g3Rubble.TransparentFraction >= 0.35d &&
+            g3Rubble.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 central rubble corridor A lacks isolated transparent alpha");
+
+        string g3RiverWaterPath = Path.Combine(
+            artDirectory,
+            "g3/tiles/river-water-surface-a.png");
+        Check(File.Exists(g3RiverWaterPath), "missing G.3 river water surface A");
+        Check(File.Exists($"{g3RiverWaterPath}.import") &&
+            File.ReadAllText($"{g3RiverWaterPath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 river water surface A lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/tiles/river-water-surface-a.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("G3RiverWaterSurfaceTile = ExtResource", StringComparison.Ordinal) &&
+            renderer.Contains(
+                "G3RiverWaterSurfaceTile ?? RiverWaterTile",
+                StringComparison.Ordinal),
+            "G.3 river water surface A is not bound to the authoritative river polygon");
+        string g3RiverWaterHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3RiverWaterPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3RiverWaterHash, StringComparison.Ordinal),
+            "G.3 river water surface A provenance hash is stale");
+        PngInfo g3RiverWater = ReadPng(g3RiverWaterPath, false);
+        Check(g3RiverWater.ColorType is 2 or 6,
+            "G.3 river water surface A has unsupported PNG color type");
+
+        string g3RiverBankRockPath = Path.Combine(
+            artDirectory,
+            "g3/objects/river-bank-rock-segment-a.png");
+        Check(File.Exists(g3RiverBankRockPath), "missing G.3 river bank rock segment A");
+        Check(File.Exists($"{g3RiverBankRockPath}.import") &&
+            File.ReadAllText($"{g3RiverBankRockPath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 river bank rock segment A lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/objects/river-bank-rock-segment-a.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("G3RiverBankRockSegmentASprite = ExtResource", StringComparison.Ordinal) &&
+            renderer.Contains("G3RiverBankRockSegmentASprite ?? RiverBankRubbleASprite", StringComparison.Ordinal),
+            "G.3 river bank rock segment A is not individually bound to the river banks");
+        string g3RiverBankRockHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3RiverBankRockPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3RiverBankRockHash, StringComparison.Ordinal),
+            "G.3 river bank rock segment A provenance hash is stale");
+        PngInfo g3RiverBankRock = ReadPng(g3RiverBankRockPath, true);
+        Equal((byte)6, g3RiverBankRock.ColorType, "G.3 river bank rock segment A RGBA");
+        Check(g3RiverBankRock.TransparentFraction >= 0.35d &&
+            g3RiverBankRock.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 river bank rock segment A lacks isolated transparent alpha");
+
+        foreach ((string relativePath, string property) in new[]
+                 {
+                     ("g3/objects/river-bank-inner-bend-a.png", "G3RiverBankInnerBendASprite"),
+                     ("g3/objects/river-bank-outer-bend-a.png", "G3RiverBankOuterBendASprite"),
+                 })
+        {
+            string bendPath = Path.Combine(artDirectory, relativePath);
+            Check(File.Exists(bendPath), $"missing G.3 river bank bend: {relativePath}");
+            Check(File.Exists($"{bendPath}.import") &&
+                File.ReadAllText($"{bendPath}.import").Contains(
+                    "mipmaps/generate=true",
+                    StringComparison.Ordinal),
+                $"G.3 river bank bend lacks a mipmapped Godot import: {relativePath}");
+            Check(scene.Contains($"res://art/commercial/{relativePath}", StringComparison.Ordinal) &&
+                scene.Contains($"{property} = ExtResource", StringComparison.Ordinal) &&
+                renderer.Contains(property, StringComparison.Ordinal),
+                $"G.3 river bank bend is not individually runtime-bound: {relativePath}");
+            string bendHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(bendPath))).ToLowerInvariant();
+            Check(g3PromptRecord.Contains(bendHash, StringComparison.Ordinal),
+                $"G.3 river bank bend provenance hash is stale: {relativePath}");
+            PngInfo bendPng = ReadPng(bendPath, true);
+            Equal((byte)6, bendPng.ColorType, $"G.3 river bank bend RGBA: {relativePath}");
+            Check(bendPng.TransparentFraction >= 0.35d &&
+                bendPng.CornerAlphas.All(alpha => alpha <= 1),
+                $"G.3 river bank bend lacks isolated transparent alpha: {relativePath}");
+        }
+
+        string g3ServiceYardPath = Path.Combine(
+            artDirectory,
+            "g3/objects/industrial-service-yard-b.png");
+        Check(File.Exists(g3ServiceYardPath), "missing G.3 industrial service yard B");
+        Check(File.Exists($"{g3ServiceYardPath}.import") &&
+            File.ReadAllText($"{g3ServiceYardPath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 industrial service yard B lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/objects/industrial-service-yard-b.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("IndustrialServiceYardBSprite = ExtResource", StringComparison.Ordinal) &&
+            renderer.Contains("DrawIndustrialServiceYards", StringComparison.Ordinal),
+            "G.3 industrial service yard B is not individually runtime-bound");
+        string g3ServiceYardHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3ServiceYardPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3ServiceYardHash, StringComparison.Ordinal),
+            "G.3 industrial service yard B provenance hash is stale");
+        PngInfo g3ServiceYard = ReadPng(g3ServiceYardPath, true);
+        Equal((byte)6, g3ServiceYard.ColorType, "G.3 industrial service yard B RGBA");
+        Check(g3ServiceYard.TransparentFraction >= 0.35d &&
+            g3ServiceYard.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 industrial service yard B lacks isolated transparent alpha");
+
+        string g3ResidentialBPath = Path.Combine(
+            artDirectory,
+            "g3/objects/residential-cluster-b.png");
+        Check(File.Exists(g3ResidentialBPath), "missing G.3 residential cluster B");
+        Check(File.Exists($"{g3ResidentialBPath}.import") &&
+            File.ReadAllText($"{g3ResidentialBPath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 residential cluster B lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/objects/residential-cluster-b.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("ResidentialClusterBSprite = ExtResource", StringComparison.Ordinal) &&
+            renderer.Contains("ResidentialClusterBSprite", StringComparison.Ordinal),
+            "G.3 residential cluster B is not individually runtime-bound");
+        string g3ResidentialBHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3ResidentialBPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3ResidentialBHash, StringComparison.Ordinal),
+            "G.3 residential cluster B provenance hash is stale");
+        PngInfo g3ResidentialB = ReadPng(g3ResidentialBPath, true);
+        Equal((byte)6, g3ResidentialB.ColorType, "G.3 residential cluster B RGBA");
+        Check(g3ResidentialB.TransparentFraction >= 0.35d &&
+            g3ResidentialB.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 residential cluster B lacks isolated transparent alpha");
+
+        string g3ResidentialCPath = Path.Combine(
+            artDirectory,
+            "g3/objects/irregular-residential-parcel-c.png");
+        Check(File.Exists(g3ResidentialCPath), "missing G.3 irregular residential parcel C");
+        Check(File.Exists($"{g3ResidentialCPath}.import") &&
+            File.ReadAllText($"{g3ResidentialCPath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 irregular residential parcel C lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/objects/irregular-residential-parcel-c.png",
+                StringComparison.Ordinal) &&
+            scene.Contains(
+                "IrregularResidentialParcelCSprite = ExtResource",
+                StringComparison.Ordinal) &&
+            renderer.Contains("IrregularResidentialParcelCSprite", StringComparison.Ordinal),
+            "G.3 irregular residential parcel C is not individually runtime-bound");
+        string g3ResidentialCHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3ResidentialCPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3ResidentialCHash, StringComparison.Ordinal),
+            "G.3 irregular residential parcel C provenance hash is stale");
+        PngInfo g3ResidentialC = ReadPng(g3ResidentialCPath, true);
+        Equal((byte)6, g3ResidentialC.ColorType, "G.3 irregular residential parcel C RGBA");
+        Check(g3ResidentialC.TransparentFraction >= 0.30d &&
+            g3ResidentialC.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 irregular residential parcel C lacks isolated transparent alpha");
+
+        string g3ResidentialDPath = Path.Combine(
+            artDirectory,
+            "g3/objects/dense-residential-neighborhood-d.png");
+        Check(File.Exists(g3ResidentialDPath),
+            "missing G.3 dense residential neighborhood D");
+        Check(File.Exists($"{g3ResidentialDPath}.import") &&
+            File.ReadAllText($"{g3ResidentialDPath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 dense residential neighborhood D lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/objects/dense-residential-neighborhood-d.png",
+                StringComparison.Ordinal) &&
+            scene.Contains(
+                "DenseResidentialNeighborhoodDSprite = ExtResource",
+                StringComparison.Ordinal) &&
+            renderer.Contains("DenseResidentialNeighborhoodDSprite", StringComparison.Ordinal),
+            "G.3 dense residential neighborhood D is not individually runtime-bound");
+        string g3ResidentialDHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3ResidentialDPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3ResidentialDHash, StringComparison.Ordinal),
+            "G.3 dense residential neighborhood D provenance hash is stale");
+        PngInfo g3ResidentialD = ReadPng(g3ResidentialDPath, true);
+        Equal((byte)6, g3ResidentialD.ColorType,
+            "G.3 dense residential neighborhood D RGBA");
+        Check(g3ResidentialD.TransparentFraction >= 0.30d &&
+            g3ResidentialD.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 dense residential neighborhood D lacks isolated transparent alpha");
+
+        string g3IndustrialCPath = Path.Combine(
+            artDirectory,
+            "g3/objects/industrial-rubble-service-yard-c.png");
+        Check(File.Exists(g3IndustrialCPath),
+            "missing G.3 industrial rubble service yard C");
+        Check(File.Exists($"{g3IndustrialCPath}.import") &&
+            File.ReadAllText($"{g3IndustrialCPath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 industrial rubble service yard C lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/objects/industrial-rubble-service-yard-c.png",
+                StringComparison.Ordinal) &&
+            scene.Contains(
+                "IndustrialRubbleServiceYardCSprite = ExtResource",
+                StringComparison.Ordinal) &&
+            renderer.Contains("DrawIndustrialRubbleServiceYards", StringComparison.Ordinal),
+            "G.3 industrial rubble service yard C is not individually runtime-bound");
+        string g3IndustrialCHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3IndustrialCPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3IndustrialCHash, StringComparison.Ordinal),
+            "G.3 industrial rubble service yard C provenance hash is stale");
+        PngInfo g3IndustrialC = ReadPng(g3IndustrialCPath, true);
+        Equal((byte)6, g3IndustrialC.ColorType,
+            "G.3 industrial rubble service yard C RGBA");
+        Check(g3IndustrialC.TransparentFraction >= 0.30d &&
+            g3IndustrialC.CornerAlphas.All(alpha => alpha <= 1),
+            "G.3 industrial rubble service yard C lacks isolated transparent alpha");
+
+        foreach ((string relativePath, string property, string drawMarker, string label) in new[]
+                 {
+                     (
+                         "g3/objects/irregular-riverside-neighborhood-e.png",
+                         "IrregularRiversideNeighborhoodESprite",
+                         "IrregularRiversideNeighborhoodESprite",
+                         "irregular riverside neighborhood E"),
+                     (
+                         "g3/objects/industrial-salvage-boiler-yard-d.png",
+                         "IndustrialSalvageBoilerYardDSprite",
+                         "DrawIndustrialRubbleServiceYards",
+                         "industrial salvage boiler yard D"),
+                     (
+                         "g3/objects/rubble-utility-corridor-b.png",
+                         "RubbleUtilityCorridorBSprite",
+                         "DrawRubbleUtilityCorridor",
+                         "rubble utility corridor B"),
+                     (
+                         "g3/objects/compact-utility-hamlet-f.png",
+                         "CompactUtilityHamletFSprite",
+                         "CompactUtilityHamletFSprite",
+                         "compact utility hamlet F"),
+                     (
+                         "g3/objects/dense-roadside-residential-g.png",
+                         "DenseRoadsideResidentialGSprite",
+                         "DenseRoadsideResidentialGSprite",
+                         "dense roadside residential G"),
+                     (
+                         "g3/objects/scrap-industrial-micro-block-e.png",
+                         "ScrapIndustrialMicroBlockESprite",
+                         "ScrapIndustrialMicroBlockESprite",
+                         "scrap industrial micro-block E"),
+                     (
+                         "g3/objects/industrial-road-bridge-a.png",
+                         "IndustrialRoadBridgeASprite",
+                         "DrawRiverBridgeDeck",
+                         "industrial road bridge A"),
+                 })
+        {
+            string assetPath = Path.Combine(artDirectory, relativePath);
+            Check(File.Exists(assetPath), $"missing G.3 {label}");
+            Check(File.Exists($"{assetPath}.import") &&
+                File.ReadAllText($"{assetPath}.import").Contains(
+                    "mipmaps/generate=true",
+                    StringComparison.Ordinal),
+                $"G.3 {label} lacks a mipmapped Godot import");
+            Check(scene.Contains($"res://art/commercial/{relativePath}", StringComparison.Ordinal) &&
+                scene.Contains($"{property} = ExtResource", StringComparison.Ordinal) &&
+                renderer.Contains(drawMarker, StringComparison.Ordinal),
+                $"G.3 {label} is not individually runtime-bound");
+            string assetHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(assetPath))).ToLowerInvariant();
+            Check(g3PromptRecord.Contains(assetHash, StringComparison.Ordinal),
+                $"G.3 {label} provenance hash is stale");
+            PngInfo assetPng = ReadPng(assetPath, true);
+            Equal((byte)6, assetPng.ColorType, $"G.3 {label} RGBA");
+            Check(assetPng.TransparentFraction >= 0.30d &&
+                assetPng.CornerAlphas.All(alpha => alpha <= 1),
+                $"G.3 {label} lacks isolated transparent alpha");
+        }
+
+        string g3GroundRubblePath = Path.Combine(
+            artDirectory,
+            "g3/tiles/ground-rubble-mix-b.png");
+        Check(File.Exists(g3GroundRubblePath), "missing G.3 ground rubble mix B");
+        Check(File.Exists($"{g3GroundRubblePath}.import") &&
+            File.ReadAllText($"{g3GroundRubblePath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 ground rubble mix B lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/tiles/ground-rubble-mix-b.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("G3GroundRubbleMixBTile = ExtResource", StringComparison.Ordinal) &&
+            renderer.Contains("G3GroundRubbleMixBTile", StringComparison.Ordinal),
+            "G.3 ground rubble mix B is not individually runtime-bound");
+        string g3GroundRubbleHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3GroundRubblePath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3GroundRubbleHash, StringComparison.Ordinal),
+            "G.3 ground rubble mix B provenance hash is stale");
+        PngInfo g3GroundRubble = ReadPng(g3GroundRubblePath, false);
+        Equal((byte)2, g3GroundRubble.ColorType, "G.3 ground rubble mix B RGB");
+
+        string g3GroundReliefPath = Path.Combine(
+            artDirectory,
+            "g3/tiles/ground-rubble-relief-c.png");
+        Check(File.Exists(g3GroundReliefPath), "missing G.3 ground rubble relief C");
+        Check(File.Exists($"{g3GroundReliefPath}.import") &&
+            File.ReadAllText($"{g3GroundReliefPath}.import").Contains(
+                "mipmaps/generate=true",
+                StringComparison.Ordinal),
+            "G.3 ground rubble relief C lacks a mipmapped Godot import");
+        Check(scene.Contains(
+                "res://art/commercial/g3/tiles/ground-rubble-relief-c.png",
+                StringComparison.Ordinal) &&
+            scene.Contains("G3GroundRubbleReliefCTile = ExtResource", StringComparison.Ordinal) &&
+            renderer.Contains("G3GroundRubbleReliefCTile ??", StringComparison.Ordinal),
+            "G.3 ground rubble relief C is not bound as the primary ground material");
+        string g3GroundReliefHash = Convert.ToHexString(
+            SHA256.HashData(File.ReadAllBytes(g3GroundReliefPath))).ToLowerInvariant();
+        Check(g3PromptRecord.Contains(g3GroundReliefHash, StringComparison.Ordinal),
+            "G.3 ground rubble relief C provenance hash is stale");
+        PngInfo g3GroundRelief = ReadPng(g3GroundReliefPath, false);
+        Equal((byte)2, g3GroundRelief.ColorType, "G.3 ground rubble relief C RGB");
+
+        foreach ((string relativePath, string property, string drawMarker, string label,
+                     double minimumTransparency) in new[]
+                 {
+                     (
+                         "g3/objects/continuous-worker-city-parcel-h.png",
+                         "ContinuousWorkerCityParcelHSprite",
+                         "ContinuousWorkerCityParcelHSprite ?? DenseCityParcelASprite",
+                         "continuous worker city parcel H",
+                         0.45d),
+                     (
+                         "g3/objects/continuous-worker-city-parcel-i.png",
+                         "ContinuousWorkerCityParcelISprite",
+                         "ContinuousWorkerCityParcelISprite ?? parcelTexture",
+                         "continuous worker city parcel I",
+                         0.45d),
+                     (
+                         "g3/objects/tall-thermal-power-station-b.png",
+                         "TallThermalPowerStationBSprite",
+                         "TallThermalPowerStationBSprite ?? IndustrialPowerDistrictASprite",
+                         "tall thermal power station B",
+                         0.50d),
+                     (
+                         "g3/objects/chunky-switching-substation-b.png",
+                         "ChunkySwitchingSubstationBSprite",
+                         "ChunkySwitchingSubstationBSprite ?? SubstationSprite",
+                         "chunky switching substation B",
+                         0.50d),
+                     (
+                         "g3/objects/river-current-reflection-a.png",
+                         "RiverCurrentReflectionASprite",
+                         "DrawRiverReflections",
+                         "river current reflection A",
+                         0.85d),
+                 })
+        {
+            string assetPath = Path.Combine(artDirectory, relativePath);
+            Check(File.Exists(assetPath), $"missing G.3 {label}");
+            Check(File.Exists($"{assetPath}.import") &&
+                File.ReadAllText($"{assetPath}.import").Contains(
+                    "mipmaps/generate=true",
+                    StringComparison.Ordinal),
+                $"G.3 {label} lacks a mipmapped Godot import");
+            Check(scene.Contains($"res://art/commercial/{relativePath}", StringComparison.Ordinal) &&
+                scene.Contains($"{property} = ExtResource", StringComparison.Ordinal) &&
+                renderer.Contains(drawMarker, StringComparison.Ordinal),
+                $"G.3 {label} is not individually runtime-bound");
+            string assetHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(assetPath))).ToLowerInvariant();
+            Check(g3PromptRecord.Contains(assetHash, StringComparison.Ordinal),
+                $"G.3 {label} provenance hash is stale");
+            PngInfo assetPng = ReadPng(assetPath, true);
+            Equal((byte)6, assetPng.ColorType, $"G.3 {label} RGBA");
+            Check(assetPng.TransparentFraction >= minimumTransparency &&
+                assetPng.CornerAlphas.All(alpha => alpha <= 1),
+                $"G.3 {label} lacks isolated transparent alpha");
+        }
+
+        Check(
+            renderer.Contains("IndividualArtAssetCount", StringComparison.Ordinal) &&
+            renderer.Contains("G3GroundRubbleReliefCTile", StringComparison.Ordinal) &&
+            renderer.Contains("ContinuousWorkerCityParcelHSprite", StringComparison.Ordinal) &&
+            renderer.Contains("ContinuousWorkerCityParcelISprite", StringComparison.Ordinal) &&
+            renderer.Contains("TallThermalPowerStationBSprite", StringComparison.Ordinal) &&
+            renderer.Contains("ChunkySwitchingSubstationBSprite", StringComparison.Ordinal) &&
+            renderer.Contains("RiverCurrentReflectionASprite", StringComparison.Ordinal),
+            "G.3 exact 48-asset runtime inventory is incomplete");
+
+        Check(!scene.Contains(
+                "res://art/commercial/g3/tiles/dense-neighborhood-district-b.png",
+                StringComparison.Ordinal),
+            "superseded square neighborhood tile remains runtime-bound");
+
         string oldPlatePath = Path.Combine(gameDirectory, "art", "commercial-city-plate-v1.png");
         Check(!File.Exists(oldPlatePath), "whole-map city plate still exists");
         Check(!scene.Contains("commercial-city-plate", StringComparison.Ordinal),
@@ -248,11 +733,274 @@ internal sealed class CommercialChecks
                      "CurrentDraftSpriteClassId",
                      "AuthoredFoundation",
                      "GroundTileWorldUnit = 400",
+                     "DrawProjectedWorldCircle",
+                     "DrawRiverTerrain",
+                     "DrawRiverReflections",
+                     "DrawDistrictObjects",
                  })
         {
             Check(renderer.Contains(mapping, StringComparison.Ordinal),
                 $"renderer is missing discrete art mapping: {mapping}");
         }
+
+        Check(
+            transform.Contains("(deltaX - deltaY) * ScaleX", StringComparison.Ordinal) &&
+            transform.Contains("(deltaX + deltaY) * ScaleY", StringComparison.Ordinal) &&
+            transform.Contains("ScaleY => ScaleX * 0.5d", StringComparison.Ordinal),
+            "commercial map transform is not the fixed 2:1 isometric projection");
+        Check(
+            timeline.Contains("660f * _uiScale", StringComparison.Ordinal) &&
+            timeline.Contains("plateLeft", StringComparison.Ordinal),
+            "event timeline is not a compact centered independent plate");
+        Check(
+            renderer.Contains("DrawBuildRail", StringComparison.Ordinal) &&
+            renderer.Contains("BuildRailActionRequested", StringComparison.Ordinal),
+            "functional individual-asset build rail is not wired into the map");
+        Check(
+            renderer.Contains("SmoothOpenPolyline", StringComparison.Ordinal) &&
+            renderer.Contains("DrawCityFabric", StringComparison.Ordinal) &&
+            renderer.Contains("DrawRoadFabric", StringComparison.Ordinal),
+            "dense city fabric and spline river presentation are not wired");
+
+        TerrainPolygonDefinition river = _commercialWorld.Spatial.Terrain.Single(area =>
+            area.TerrainId == "CHEONGRYU_RIVER");
+        Check(river.Polygon.Count >= 12,
+            "commercial river lacks independent points for a winding two-bank channel");
+        MapPoint[] firstBank = river.Polygon.Take(river.Polygon.Count / 2).ToArray();
+        int previousDirection = 0;
+        int bends = 0;
+        for (int index = 1; index < firstBank.Length; index++)
+        {
+            int direction = Math.Sign(firstBank[index].XUnit - firstBank[index - 1].XUnit);
+            if (direction != 0 && previousDirection != 0 && direction != previousDirection)
+            {
+                bends++;
+            }
+            if (direction != 0)
+            {
+                previousDirection = direction;
+            }
+        }
+        Check(bends >= 3, "commercial river bank has fewer than three authored bends");
+        Check(_commercialWorld.Spatial.Terrain.Any(area =>
+                area.TerrainId == "WEST_INDUSTRIAL_BLOCK" &&
+                area.Kind == TerrainKind.Building),
+            "west industrial visual mass lacks an authoritative building footprint");
+    }
+
+    private bool CheckG3AtomicStepOne(
+        string gameDirectory,
+        string artDirectory,
+        string scene,
+        string renderer,
+        string transform,
+        string timeline)
+    {
+        string ledger = File.ReadAllText(Path.Combine(artDirectory, "g3-assets.prompts.md"));
+        string sourceDirectory = Path.Combine(
+            _repositoryDirectory,
+            "playtests",
+            "commercial-2d",
+            "g3-runtime-sources");
+
+        (string Property, string RelativePath, string SourceName, string RunId)[] atomicCityAssets =
+        [
+            ("AtomicWorkerHouseASprite", "g3/atomic/worker-house-a.png",
+                "atomic-worker-house-a-source.png", "exec-348f1a4d-b730-4ad3-9d06-e9b780840d67"),
+            ("AtomicWorkerHouseBSprite", "g3/atomic/worker-house-b.png",
+                "atomic-worker-house-b-source.png", "exec-06607a7d-af88-4666-84c1-6615bbf5c16c"),
+            ("AtomicWorkerHouseCSprite", "g3/atomic/worker-house-c.png",
+                "atomic-worker-house-c-source.png", "exec-bfda1dea-09bd-4f19-924b-1c5e244d2ad4"),
+            ("AtomicRowShopASprite", "g3/atomic/row-shop-a.png",
+                "atomic-row-shop-a-source.png", "exec-1c3cda36-0c41-4cc4-b799-9142a49b498f"),
+            ("AtomicWorkshopASprite", "g3/atomic/workshop-a.png",
+                "atomic-workshop-a-source.png", "exec-254a88ba-cfd8-4a7e-ae7e-a52c2c313309"),
+            ("AtomicSmallWarehouseASprite", "g3/atomic/small-warehouse-a.png",
+                "atomic-small-warehouse-a-source.png", "exec-002d0386-4823-4e0c-a3f0-fbc39c77785a"),
+            ("AtomicHospitalMainASprite", "g3/atomic/hospital-main-a.png",
+                "atomic-hospital-main-a-source.png", "exec-279112df-8da1-43c9-9a93-71d6c98d3c52"),
+            ("AtomicHospitalServiceASprite", "g3/atomic/hospital-service-a.png",
+                "atomic-hospital-service-a-source.png", "exec-7789efea-c361-4bad-ba20-2906b6035670"),
+            ("AtomicPumpHouseASprite", "g3/atomic/pump-house-a.png",
+                "atomic-pump-house-a-source.png", "exec-5807d9c6-e49b-4924-b695-b6dacfc1d681"),
+            ("AtomicWaterTankASprite", "g3/atomic/water-tank-a.png",
+                "atomic-water-tank-a-source.png", "exec-14bf3ed7-f268-41d7-ac6b-e89ab87ab765"),
+            ("AtomicRetainingWallASprite", "g3/atomic/retaining-wall-a.png",
+                "atomic-retaining-wall-a-source.png", "exec-7ac6b279-f844-40b6-ae3f-9a2422cd8043"),
+            ("AtomicStreetLampASprite", "g3/atomic/street-lamp-a.png",
+                "atomic-street-lamp-a-source.png", "exec-a0b090cb-b450-441d-9e15-24394a61ec27"),
+        ];
+        Equal(12, atomicCityAssets.Length, "Step 1 atomic city asset count");
+
+        (string Property, string RelativePath, string SourceName, string RunId)[] atomicRoadAssets =
+        [
+            ("RoadStraightNorthWestSouthEastATile", "g3/roads/road-straight-nw-se-a.png",
+                "atomic-road-straight-nw-se-a-source.png", "exec-0d5eddd4-7250-499e-8063-9572ab44b149"),
+            ("RoadStraightNorthEastSouthWestATile", "g3/roads/road-straight-ne-sw-a.png",
+                "atomic-road-straight-ne-sw-a-source.png", "exec-7339f677-be4e-4d01-814d-b4fa56dbb026"),
+            ("RoadCornerNorthEastATile", "g3/roads/road-corner-n-e-a.png",
+                "atomic-road-corner-n-e-a-source.png", "exec-431fc6a3-8172-4a37-8ca7-8af23278866f"),
+            ("RoadTJunctionATile", "g3/roads/road-t-junction-a.png",
+                "atomic-road-t-junction-a-source.png", "exec-e269ef5f-1a1d-48c4-96fd-ec4560724de2"),
+            ("RoadCrossJunctionATile", "g3/roads/road-cross-junction-a.png",
+                "atomic-road-cross-junction-a-source.png", "exec-2f632ddb-d92a-4f75-8e97-70a451b8d53a"),
+            ("ServiceYardATile", "g3/roads/service-yard-tile-a.png",
+                "atomic-service-yard-tile-a-source.png", "exec-64bdce3b-b5ae-4aca-83ed-0c5c65a5c234"),
+        ];
+        Equal(6, atomicRoadAssets.Length, "Step 1 atomic road asset count");
+
+        foreach ((string property, string relativePath, string sourceName, string runId) in
+                 atomicCityAssets.Concat(atomicRoadAssets))
+        {
+            string runtimePath = Path.Combine(artDirectory, relativePath);
+            string sourcePath = Path.Combine(sourceDirectory, sourceName);
+            Check(File.Exists(runtimePath), $"missing Step 1 atomic runtime art: {relativePath}");
+            Check(File.Exists(sourcePath), $"missing Step 1 preserved source: {sourceName}");
+            Check(File.Exists($"{runtimePath}.import") &&
+                File.ReadAllText($"{runtimePath}.import").Contains(
+                    "mipmaps/generate=true",
+                    StringComparison.Ordinal),
+                $"Step 1 atomic art lacks mipmapped import: {relativePath}");
+            Check(scene.Contains($"res://art/commercial/{relativePath}", StringComparison.Ordinal) &&
+                scene.Contains($"{property} = ExtResource", StringComparison.Ordinal) &&
+                renderer.Contains(property, StringComparison.Ordinal),
+                $"Step 1 atomic art is not runtime-bound: {relativePath}");
+            string runtimeHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(runtimePath))).ToLowerInvariant();
+            string sourceHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(sourcePath))).ToLowerInvariant();
+            Check(ledger.Contains(relativePath, StringComparison.Ordinal) &&
+                ledger.Contains(sourceName, StringComparison.Ordinal) &&
+                ledger.Contains(runId, StringComparison.Ordinal) &&
+                ledger.Contains(runtimeHash, StringComparison.Ordinal) &&
+                ledger.Contains(sourceHash, StringComparison.Ordinal),
+                $"Step 1 provenance is incomplete or stale: {relativePath}");
+            PngInfo png = ReadPng(runtimePath, true);
+            Equal((byte)6, png.ColorType, $"Step 1 atomic RGBA: {relativePath}");
+            Check(Math.Max(png.Width, png.Height) >= 1024 &&
+                Math.Min(png.Width, png.Height) >= 512,
+                $"Step 1 atomic art below source resolution: {relativePath}");
+            Check(png.TransparentFraction >= 0.35d &&
+                png.CornerAlphas.All(alpha => alpha <= 1),
+                $"Step 1 atomic art lacks isolated alpha: {relativePath}");
+        }
+
+        foreach (string forbidden in new[]
+                 {
+                     "district",
+                     "parcel",
+                     "cluster",
+                     "neighborhood",
+                     "hamlet",
+                     "city-plate",
+                 })
+        {
+            Check(!scene.Contains(forbidden, StringComparison.OrdinalIgnoreCase),
+                $"forbidden composite city raster remains runtime-bound: {forbidden}");
+        }
+        foreach (string retiredCityBlock in new[]
+                 {
+                     "residential-block-v1.png",
+                     "hospital-block-v1.png",
+                 })
+        {
+            Check(!scene.Contains(retiredCityBlock, StringComparison.Ordinal),
+                $"retired baked city block remains scene-bound: {retiredCityBlock}");
+        }
+
+        string g3Directory = Path.Combine(artDirectory, "g3");
+        string[] packagedG3Pngs = Directory.GetFiles(
+            g3Directory,
+            "*.png",
+            SearchOption.AllDirectories);
+        Equal(29, packagedG3Pngs.Length,
+            "Step 1 package-eligible G.3 PNG count");
+        foreach (string packagedG3Png in packagedG3Pngs)
+        {
+            string relativePath = Path.GetRelativePath(artDirectory, packagedG3Png)
+                .Replace(Path.DirectorySeparatorChar, '/');
+            Check(scene.Contains($"res://art/commercial/{relativePath}", StringComparison.Ordinal),
+                $"unbound G.3 PNG remains package-eligible: {relativePath}");
+        }
+
+        Equal(80,
+            renderer.Split("new(AtomicCitySpriteKind.", StringSplitOptions.None).Length - 1,
+            "Step 1 atomic city instance records");
+        Equal(40,
+            renderer.Split("new(AtomicRoadSpriteKind.", StringSplitOptions.None).Length - 1,
+            "Step 1 atomic road instance records");
+        Check(renderer.Contains("DrawAtomicRoadTiles();", StringComparison.Ordinal) &&
+            renderer.Contains("DrawAtomicCity();", StringComparison.Ordinal) &&
+            renderer.Contains("OrderBy(item => ToCanvas", StringComparison.Ordinal) &&
+            renderer.Contains("AtomicWorldInstanceCount", StringComparison.Ordinal),
+            "Step 1 atomic placement/depth renderer is incomplete");
+        Check(renderer.Contains("AtomicHospitalMainASprite, 174f", StringComparison.Ordinal) &&
+            renderer.Contains("AtomicPumpHouseASprite, 118f", StringComparison.Ordinal) &&
+            renderer.Contains("AtomicSmallWarehouseASprite, 124f", StringComparison.Ordinal),
+            "dedicated load terminals do not use atomic single-building sprites");
+
+        (string Property, string RelativePath)[] retainedG3Assets =
+        [
+            ("G3GroundRubbleMixBTile", "g3/tiles/ground-rubble-mix-b.png"),
+            ("G3GroundRubbleReliefCTile", "g3/tiles/ground-rubble-relief-c.png"),
+            ("G3RiverWaterSurfaceTile", "g3/tiles/river-water-surface-a.png"),
+            ("G3RiverBankRockSegmentASprite", "g3/objects/river-bank-rock-segment-a.png"),
+            ("G3RiverBankInnerBendASprite", "g3/objects/river-bank-inner-bend-a.png"),
+            ("G3RiverBankOuterBendASprite", "g3/objects/river-bank-outer-bend-a.png"),
+            ("RiverCurrentReflectionASprite", "g3/objects/river-current-reflection-a.png"),
+            ("IndustrialRoadBridgeASprite", "g3/objects/industrial-road-bridge-a.png"),
+            ("TallThermalPowerStationBSprite", "g3/objects/tall-thermal-power-station-b.png"),
+            ("ChunkySwitchingSubstationBSprite", "g3/objects/chunky-switching-substation-b.png"),
+        ];
+        foreach ((string property, string relativePath) in retainedG3Assets)
+        {
+            string runtimePath = Path.Combine(artDirectory, relativePath);
+            Check(File.Exists(runtimePath) &&
+                scene.Contains($"res://art/commercial/{relativePath}", StringComparison.Ordinal) &&
+                scene.Contains($"{property} = ExtResource", StringComparison.Ordinal),
+                $"retained G.3 runtime asset is missing: {relativePath}");
+            string runtimeHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(runtimePath))).ToLowerInvariant();
+            Check(ledger.Contains(runtimeHash, StringComparison.Ordinal),
+                $"retained G.3 provenance hash is stale: {relativePath}");
+        }
+
+        Equal(38,
+            scene.Split("[ext_resource type=\"Texture2D\"", StringSplitOptions.None).Length - 1,
+            "Step 1 runtime texture resource count including UI chrome");
+        Check(renderer.Contains("IndividualArtAssetCount", StringComparison.Ordinal) &&
+            renderer.Contains("AtomicCityAssetCount", StringComparison.Ordinal) &&
+            renderer.Contains("AtomicRoadTileAssetCount", StringComparison.Ordinal),
+            "Step 1 exact runtime asset inventory is not exposed");
+        Check(transform.Contains("(deltaX - deltaY) * ScaleX", StringComparison.Ordinal) &&
+            transform.Contains("(deltaX + deltaY) * ScaleY", StringComparison.Ordinal) &&
+            transform.Contains("ScaleY => ScaleX * 0.5d", StringComparison.Ordinal),
+            "commercial map transform is not fixed 2:1 isometric");
+        Check(timeline.Contains("660f * _uiScale", StringComparison.Ordinal) &&
+            timeline.Contains("plateLeft", StringComparison.Ordinal),
+            "event timeline is not a compact independent plate");
+
+        TerrainPolygonDefinition river = _commercialWorld.Spatial.Terrain.Single(area =>
+            area.TerrainId == "CHEONGRYU_RIVER");
+        Check(river.Polygon.Count >= 12,
+            "commercial river lacks independent points for a winding two-bank channel");
+        MapPoint[] firstBank = river.Polygon.Take(river.Polygon.Count / 2).ToArray();
+        int previousDirection = 0;
+        int bends = 0;
+        for (int index = 1; index < firstBank.Length; index++)
+        {
+            int direction = Math.Sign(firstBank[index].XUnit - firstBank[index - 1].XUnit);
+            if (direction != 0 && previousDirection != 0 && direction != previousDirection)
+            {
+                bends++;
+            }
+            if (direction != 0)
+            {
+                previousDirection = direction;
+            }
+        }
+        Check(bends >= 3, "commercial river bank has fewer than three authored bends");
+        return true;
     }
 
     private void CheckStrictSpatialLoader()
@@ -1420,7 +2168,7 @@ internal sealed class CommercialChecks
         BuildCampaignLine(
             run,
             "PLAYER_SUBSTATION_2",
-            "PLAYER_POLE_14",
+            "PLAYER_POLE_15",
             Array.Empty<MapPoint>(),
             "planned-outage substation tie");
         string maintenanceTieEdgeId = run.GetSnapshot().Construction.World.Edges
@@ -1448,7 +2196,7 @@ internal sealed class CommercialChecks
         BuildCampaignLine(
             standardMaintenance,
             "PLAYER_SUBSTATION_2",
-            "PLAYER_POLE_14",
+            "PLAYER_POLE_15",
             Array.Empty<MapPoint>(),
             "standard planned-outage substation tie",
             lineClassId: "STANDARD_LINE",
@@ -1534,7 +2282,7 @@ internal sealed class CommercialChecks
         BuildCampaignLine(
             run,
             "HOSPITAL_TERMINAL",
-            "PLAYER_POLE_14",
+            "PLAYER_POLE_15",
             Array.Empty<MapPoint>(),
             "last-night hospital cross-tie");
         string lastNightTieEdgeId = run.GetSnapshot().Construction.World.Edges
@@ -1567,7 +2315,7 @@ internal sealed class CommercialChecks
         BuildCampaignLine(
             keptNight,
             "HOSPITAL_TERMINAL",
-            "PLAYER_POLE_14",
+            "PLAYER_POLE_15",
             Array.Empty<MapPoint>(),
             "kept last-night hospital cross-tie");
         CoreAccepted(keptNight.Apply(new CommercialCoreCommand(
@@ -1809,7 +2557,7 @@ internal sealed class CommercialChecks
             PoleClassId: "STANDARD_POLE")), "overdue line start");
         CoreAccepted(overdue.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.AddLinePoint,
-            Position: new MapPoint(2750, 1100))), "overdue line point");
+            Position: new MapPoint(2850, 1100))), "overdue line point");
         CoreAccepted(overdue.Apply(new CommercialCoreCommand(
             CommercialCoreCommandKind.FinishLineDraft,
             EndNodeId: "INDUSTRY_TERMINAL")), "overdue line finish");
@@ -2525,7 +3273,7 @@ internal sealed class CommercialChecks
             run,
             "PLAYER_SUBSTATION_1",
             "HOSPITAL_TERMINAL",
-            [new MapPoint(2200, 1100)],
+            [new MapPoint(2000, 1100)],
             "second-heart north route");
         CommercialDecisionPreview singleCorridor = run.PreviewDecisionWindow();
         Check(!singleCorridor.Accepted &&
@@ -2538,7 +3286,7 @@ internal sealed class CommercialChecks
             "WEST_SOURCE",
             "PLAYER_SUBSTATION_2",
             [
-                new MapPoint(650, 1150),
+                new MapPoint(550, 1150),
                 new MapPoint(950, 1450),
                 new MapPoint(1170, 1750),
                 new MapPoint(1760, 1750),
@@ -2553,7 +3301,8 @@ internal sealed class CommercialChecks
             "second-heart south service line");
         CommercialDecisionPreview heartPreview = run.PreviewDecisionWindow();
         Check(heartPreview.Accepted, $"second-heart preview failed: {heartPreview.Error}/" +
-            $"{heartPreview.FailedDemandId}/{heartPreview.FirstBottleneckAssetId}");
+            $"{heartPreview.FailedDemandId}/{heartPreview.SupplyFailure}/" +
+            $"{heartPreview.FirstBottleneckAssetId}");
         ThermalDemandResult northTest = heartPreview.PhaseResults[0].Demands[0];
         ThermalDemandResult floodTest = heartPreview.PhaseResults[1].Demands[0];
         Check(northTest.Supplied && floodTest.Supplied &&
@@ -2583,7 +3332,7 @@ internal sealed class CommercialChecks
             run,
             "WEST_AUXILIARY",
             "PLAYER_POLE_6",
-            Array.Empty<MapPoint>(),
+            [new MapPoint(900, 1200)],
             "second-source hospital tie");
         CommercialDecisionPreview sourcePreview = run.PreviewDecisionWindow();
         Check(sourcePreview.Accepted, $"second-source preview failed: {sourcePreview.Error}/" +
@@ -2645,7 +3394,7 @@ internal sealed class CommercialChecks
         BuildCampaignLine(
             run,
             "PLAYER_SUBSTATION_2",
-            "PLAYER_POLE_14",
+            "PLAYER_POLE_15",
             Array.Empty<MapPoint>(),
             $"{label} maintenance tie");
         CoreAccepted(run.Apply(new CommercialCoreCommand(
@@ -2670,7 +3419,7 @@ internal sealed class CommercialChecks
         BuildCampaignLine(
             run,
             "HOSPITAL_TERMINAL",
-            "PLAYER_POLE_14",
+            "PLAYER_POLE_15",
             Array.Empty<MapPoint>(),
             $"{label} last-night hospital tie");
         CoreAccepted(run.Apply(new CommercialCoreCommand(
@@ -2705,7 +3454,7 @@ internal sealed class CommercialChecks
             "WEST_AUXILIARY",
             "PLAYER_SUBSTATION_3",
             [
-                new MapPoint(650, 900),
+                new MapPoint(900, 700),
                 new MapPoint(1050, 1050),
                 new MapPoint(1650, 1050),
                 new MapPoint(2100, 1050),

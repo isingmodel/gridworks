@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://CommercialMain.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://CommercialMapView.tscn" id="2_map"]
@@ -7,6 +7,29 @@
 [ext_resource type="PackedScene" path="res://ReleaseAudio.tscn" id="5_audio"]
 [ext_resource type="PackedScene" path="res://ReleaseShellOverlay.tscn" id="6_shell"]
 [ext_resource type="Script" path="res://CommercialEventTimeline.cs" id="7_timeline"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui/panel-frame.png" id="8_panel_frame"]
+
+[sub_resource type="StyleBoxTexture" id="StyleHeaderOuter"]
+texture = ExtResource("8_panel_frame")
+texture_margin_left = 20.0
+texture_margin_top = 20.0
+texture_margin_right = 20.0
+texture_margin_bottom = 20.0
+content_margin_left = 6.0
+content_margin_top = 4.0
+content_margin_right = 6.0
+content_margin_bottom = 4.0
+
+[sub_resource type="StyleBoxTexture" id="StyleHeaderCell"]
+texture = ExtResource("8_panel_frame")
+texture_margin_left = 15.0
+texture_margin_top = 15.0
+texture_margin_right = 15.0
+texture_margin_bottom = 15.0
+content_margin_left = 7.0
+content_margin_top = 4.0
+content_margin_right = 7.0
+content_margin_bottom = 4.0
 
 [node name="CommercialMain" type="Control"]
 layout_mode = 3
@@ -31,149 +54,190 @@ grow_vertical = 2
 mouse_filter = 2
 color = Color(0.018, 0.039, 0.052, 1)
 
-[node name="SafeMargin" type="MarginContainer" parent="."]
+[node name="CommercialMapView" parent="." instance=ExtResource("2_map")]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 12
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 12
-theme_override_constants/margin_bottom = 10
 
-[node name="RootColumn" type="VBoxContainer" parent="SafeMargin"]
-layout_mode = 2
-theme_override_constants/separation = 9
+[node name="HeaderPanel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 2.0
+offset_top = 2.0
+offset_right = -2.0
+offset_bottom = 92.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleHeaderOuter")
 
-[node name="HeaderPanel" type="PanelContainer" parent="SafeMargin/RootColumn"]
-custom_minimum_size = Vector2(0, 86)
-layout_mode = 2
-
-[node name="HeaderMargin" type="MarginContainer" parent="SafeMargin/RootColumn/HeaderPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 8
-
-[node name="HeaderColumn" type="VBoxContainer" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin"]
+[node name="HeaderRow" type="HBoxContainer" parent="HeaderPanel"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="TitleRow" type="HBoxContainer" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn"]
+[node name="TitleMetric" type="PanelContainer" parent="HeaderPanel/HeaderRow"]
+custom_minimum_size = Vector2(108, 0)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleHeaderCell")
 
-[node name="TitleLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+[node name="Margin" type="MarginContainer" parent="HeaderPanel/HeaderRow/TitleMetric"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 2
+
+[node name="TitleLabel" type="Label" parent="HeaderPanel/HeaderRow/TitleMetric/Margin"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(245, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 21
-text = "GRIDWORKS // 첫 불빛"
+theme_override_font_sizes/font_size = 34
+text = "⚙"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="HeaderDivider1" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+[node name="CashMetric" type="PanelContainer" parent="HeaderPanel/HeaderRow"]
+custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.44, 0.28, 1)
-text = "│"
+theme_override_styles/panel = SubResource("StyleHeaderCell")
 
-[node name="BoundaryLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+[node name="Margin" type="MarginContainer" parent="HeaderPanel/HeaderRow/CashMetric"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 2
+
+[node name="CashLabel" type="Label" parent="HeaderPanel/HeaderRow/CashMetric/Margin"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.88, 0.69, 0.38, 1)
-text = "경계 1/1 · 첫 입주 점등"
+theme_override_colors/font_color = Color(0.88, 0.82, 0.7, 1)
+theme_override_font_sizes/font_size = 32
+text = "₩ 6,000,000원"
+vertical_alignment = 1
 
-[node name="HeaderDivider2" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+[node name="SupplyMetric" type="PanelContainer" parent="HeaderPanel/HeaderRow"]
+custom_minimum_size = Vector2(500, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.44, 0.28, 1)
-text = "│"
+theme_override_styles/panel = SubResource("StyleHeaderCell")
 
-[node name="CashLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+[node name="Margin" type="MarginContainer" parent="HeaderPanel/HeaderRow/SupplyMetric"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 2
+
+[node name="SupplyLabel" type="Label" parent="HeaderPanel/HeaderRow/SupplyMetric/Margin"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 0)
-layout_mode = 2
-text = "운영 자금 · 6,000,000원"
-
-[node name="HeaderDivider3" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.44, 0.28, 1)
-text = "│"
-
-[node name="SupplyLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(170, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.37, 0.78, 0.79, 1)
-text = "필수 공급 · 0/1"
+theme_override_font_sizes/font_size = 29
+text = "⚡ 필수 공급 · 0/1"
+vertical_alignment = 1
 
-[node name="TitleSpacer" type="Control" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+[node name="BoundaryMetric" type="PanelContainer" parent="HeaderPanel/HeaderRow"]
+custom_minimum_size = Vector2(330, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleHeaderCell")
+
+[node name="Margin" type="MarginContainer" parent="HeaderPanel/HeaderRow/BoundaryMetric"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 2
+
+[node name="BoundaryLabel" type="Label" parent="HeaderPanel/HeaderRow/BoundaryMetric/Margin"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.69, 0.38, 1)
+theme_override_font_sizes/font_size = 26
+text = "▣ 경계 1/1 · 첫 입주"
+vertical_alignment = 1
+
+[node name="TitleSpacer" type="Control" parent="HeaderPanel/HeaderRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ZoomLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+[node name="MenuMetric" type="PanelContainer" parent="HeaderPanel/HeaderRow"]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleHeaderCell")
+
+[node name="Margin" type="MarginContainer" parent="HeaderPanel/HeaderRow/MenuMetric"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 2
+
+[node name="Row" type="HBoxContainer" parent="HeaderPanel/HeaderRow/MenuMetric/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ZoomLabel" type="Label" parent="HeaderPanel/HeaderRow/MenuMetric/Margin/Row"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.78, 0.83, 0.85, 1)
-text = "지도 · 전체 보기"
+text = "전체 보기"
+vertical_alignment = 1
 
-[node name="HelpButton" type="Button" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn/TitleRow"]
+[node name="HelpButton" type="Button" parent="HeaderPanel/HeaderRow/MenuMetric/Margin/Row"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(92, 36)
+custom_minimum_size = Vector2(108, 42)
 layout_mode = 2
-text = "메뉴"
+text = "Ⅱ  메뉴"
 
-[node name="SummaryLabel" type="Label" parent="SafeMargin/RootColumn/HeaderPanel/HeaderMargin/HeaderColumn"]
+[node name="SummaryLabel" type="Label" parent="HeaderPanel/HeaderRow"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
-theme_override_colors/font_color = Color(0.94, 0.78, 0.43, 1)
 text = "무벌점 연습 · 발전소와 마을 사이에 첫 선로를 완성하세요."
 
-[node name="Body" type="HBoxContainer" parent="SafeMargin/RootColumn"]
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 12
-
-[node name="MapColumn" type="VBoxContainer" parent="SafeMargin/RootColumn/Body"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 8
-
-[node name="MapFrame" type="PanelContainer" parent="SafeMargin/RootColumn/Body/MapColumn"]
-custom_minimum_size = Vector2(720, 500)
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="MapMargin" type="MarginContainer" parent="SafeMargin/RootColumn/Body/MapColumn/MapFrame"]
-layout_mode = 2
-theme_override_constants/margin_left = 5
-theme_override_constants/margin_top = 5
-theme_override_constants/margin_right = 5
-theme_override_constants/margin_bottom = 5
-
-[node name="CommercialMapView" parent="SafeMargin/RootColumn/Body/MapColumn/MapFrame/MapMargin" instance=ExtResource("2_map")]
+[node name="CommercialTaskPanel" parent="." instance=ExtResource("3_panel")]
 unique_name_in_owner = true
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -326.0
+offset_top = 90.0
+offset_right = -10.0
+offset_bottom = 520.0
+grow_horizontal = 0
+clip_contents = true
 
-[node name="CommercialEventTimeline" type="Control" parent="SafeMargin/RootColumn/Body/MapColumn"]
+[node name="CommercialEventTimeline" type="Control" parent="."]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 92)
-layout_mode = 2
+layout_mode = 1
+anchors_preset = 12
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -82.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
 mouse_filter = 2
 script = ExtResource("7_timeline")
+ChromeFrameTexture = ExtResource("8_panel_frame")
 
-[node name="CommercialTaskPanel" parent="SafeMargin/RootColumn/Body" instance=ExtResource("3_panel")]
+[node name="ControlHelp" type="Label" parent="."]
 unique_name_in_owner = true
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="ControlHelp" type="Label" parent="SafeMargin/RootColumn"]
-unique_name_in_owner = true
-layout_mode = 2
+visible = false
+layout_mode = 1
+anchors_preset = 12
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -26.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 0
 theme_override_colors/font_color = Color(0.58, 0.66, 0.68, 1)
-text = "휠 또는 +/− 확대 · 가운데 버튼 또는 Space+드래그 이동 · Home 전체 보기 · Q/E 접속점 · Enter 확정 · Backspace/오른쪽 클릭 되돌리기"
+text = "1 선로 · 2 변전소 · 3 선종 · 휠 또는 +/− 확대 · Space+드래그 이동 · Home 전체 보기 · Q/E 접속점 · Enter 확정 · Backspace 되돌리기"
 horizontal_alignment = 1
 
 [node name="CommercialShellOverlay" parent="." instance=ExtResource("6_shell")]

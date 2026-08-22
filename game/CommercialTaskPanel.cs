@@ -86,6 +86,11 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _thermalLabel = GetNode<Label>("%ThermalLabel");
         _statusLabel = GetNode<Label>("%StatusLabel");
         _errorLabel = GetNode<Label>("%ErrorLabel");
+        _speakerLabel.GetParent<Control>().Visible = false;
+        _instructionLabel.Visible = false;
+        _selectionLabel.Visible = false;
+        _thermalLabel.Visible = false;
+        _statusLabel.Visible = false;
         VBoxContainer infoColumn = GetNode<VBoxContainer>("Margin/Column/InfoScroll/InfoColumn");
         infoColumn.MoveChild(_obligationsLabel, 1);
         infoColumn.MoveChild(_thermalLabel, 2);
@@ -126,12 +131,14 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _speakerLabel.Text = model.Speaker.NameAndRole;
         _speakerLabel.AddThemeColorOverride("font_color", model.Speaker.CardColor);
         _instructionLabel.Text = model.Instruction;
-        _obligationsLabel.Text = model.Obligations;
+        _obligationsLabel.Text = CompactVisual(model.Obligations, 38);
         _selectionLabel.Text = model.Selection;
-        _quoteLabel.Text = model.Quote;
-        _thermalLabel.Text = model.Thermal;
+        _quoteLabel.Visible = !string.IsNullOrWhiteSpace(model.Quote);
+        _quoteLabel.Text = CompactVisual(model.Quote, 62);
+        _thermalLabel.Text = CompactVisual(model.Thermal, 72);
         _statusLabel.Text = model.Status;
-        _errorLabel.Text = model.Error;
+        _errorLabel.Visible = !string.IsNullOrWhiteSpace(model.Error);
+        _errorLabel.Text = CompactVisual(model.Error, 72);
         SetButton(CommercialPanelAction.PlaceSubstation, model.PlaceSubstation);
         SetButton(CommercialPanelAction.StartLine, model.StartLine);
         SetButton(CommercialPanelAction.UndoPoint, model.UndoPoint);
@@ -159,10 +166,30 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         CommercialActionPresentation presentation)
     {
         Button button = _buttons[action];
-        button.Visible = presentation.Visible;
+        // The inspector is contextual: controls that cannot act in the current
+        // state collapse completely instead of forming a tall disabled form.
+        // Their descriptions remain available when the action becomes valid.
+        button.Visible = presentation.Visible && presentation.Enabled;
         button.Disabled = !presentation.Enabled;
-        button.Text = presentation.Text;
+        button.Text = action switch
+        {
+            CommercialPanelAction.ApproveWindow or CommercialPanelAction.NextThermalPhase =>
+                $"⚡  {presentation.Text}",
+            CommercialPanelAction.RollbackProject => $"↶  {presentation.Text}",
+            _ => presentation.Text,
+        };
         button.AccessibilityName = presentation.Text;
         button.AccessibilityDescription = presentation.Description;
+    }
+
+    private static string CompactVisual(string value, int maxCharacters)
+    {
+        string compact = string.Join(
+            " · ",
+            (value ?? string.Empty)
+                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return compact.Length <= maxCharacters
+            ? compact
+            : compact[..Math.Max(1, maxCharacters - 1)] + "…";
     }
 }

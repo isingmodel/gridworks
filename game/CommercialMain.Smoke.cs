@@ -47,26 +47,81 @@ internal sealed partial class CommercialMain
             Require(_shell.Page == ReleaseShellPage.Hidden && _map.HasFocus(),
                 "조작 도움말 뒤 지도로 keyboard focus가 돌아오지 않았습니다.");
 
+            // Construction input is exercised at the closest authored zoom. The
+            // final parity captures return Home to the full-map composition so all
+            // independently placed buildings and road pieces remain visible.
+            Vector2 constructionZoomAnchor =
+                _map.ViewportPointForWorld(new CoreMapPoint(1600, 1000));
+            await WheelAt(constructionZoomAnchor, MouseButton.WheelUp);
+            await WheelAt(constructionZoomAnchor, MouseButton.WheelUp);
+            Require(_map.ZoomIndex == 2,
+                "표현 smoke가 실제 입력으로 2.25배 공사 보기를 열지 못했습니다.");
+
             await BuildCampaignSmokeSubstation(
-                new CoreMapPoint(2200, 750),
-                "표현 확인 변전소",
+                new CoreMapPoint(1700, 850),
+                "표현 확인 동부 변전소");
+            await BuildCampaignSmokeSubstation(
+                new CoreMapPoint(1050, 1050),
+                "표현 확인 중앙 변전소",
                 Path.Combine(evidenceDirectory, "1920x1080-ui100-substation-draft.png"));
+            Vector2 constructionAnchor = _map.ViewportPointForWorld(new CoreMapPoint(1600, 1000));
+            Vector2 cameraBeforeConstructionPan = _map.CameraCenter;
+            await MiddleDrag(
+                constructionAnchor,
+                constructionAnchor + new Vector2(390f, 260f));
+            Require(
+                _map.CameraCenter.X < cameraBeforeConstructionPan.X &&
+                _map.CameraCenter.Y < cameraBeforeConstructionPan.Y,
+                "확대된 작업 보기에서 서부 발전원 접속을 위한 actual-input camera 이동에 실패했습니다.");
             await BuildCampaignSmokeLine(
                 "WEST_SOURCE",
-                "PLAYER_SUBSTATION_1",
+                "PLAYER_SUBSTATION_2",
                 [
-                    new CoreMapPoint(650, 700),
-                    new CoreMapPoint(950, 500),
-                    new CoreMapPoint(1545, 450),
-                    new CoreMapPoint(1900, 600),
+                    new CoreMapPoint(800, 1000),
+                    new CoreMapPoint(900, 950),
                 ],
                 "표현 확인 간선",
                 Path.Combine(evidenceDirectory, "1920x1080-ui100-pole-draft.png"));
+            _map.GrabFocus();
+            await NextFrame();
+            await PressKey(Key.Home);
+            await NextFrame();
+            await BuildCampaignSmokeLine(
+                "PLAYER_SUBSTATION_2",
+                "PLAYER_SUBSTATION_1",
+                [
+                    new CoreMapPoint(1350, 900),
+                    new CoreMapPoint(1450, 850),
+                ],
+                "표현 확인 중앙 연계선");
+            Vector2 eastConstructionAnchor =
+                _map.ViewportPointForWorld(new CoreMapPoint(1700, 900));
+            await WheelAt(eastConstructionAnchor, MouseButton.WheelUp);
+            await WheelAt(eastConstructionAnchor, MouseButton.WheelUp);
+            Require(_map.ZoomIndex == 2,
+                "동부 인입선 actual-input 공사 보기가 2.25배로 열리지 않았습니다.");
+            eastConstructionAnchor =
+                _map.ViewportPointForWorld(new CoreMapPoint(1700, 900));
+            await MiddleDrag(
+                eastConstructionAnchor,
+                eastConstructionAnchor + new Vector2(-1050f, -460f));
             await BuildCampaignSmokeLine(
                 "PLAYER_SUBSTATION_1",
                 "EAST_RESIDENTIAL_TERMINAL",
-                Array.Empty<CoreMapPoint>(),
+                [
+                    new CoreMapPoint(1850, 850),
+                    new CoreMapPoint(2000, 825),
+                    new CoreMapPoint(2200, 800),
+                ],
                 "표현 확인 인입선");
+            _map.GrabFocus();
+            await NextFrame();
+            await PressKey(Key.Home);
+            await NextFrame();
+            Require(
+                _map.ZoomIndex == 0 &&
+                _map.CameraCenter.IsEqualApprox(new Vector2(1600f, 1000f)),
+                "고정 시각 판정 캡처가 actual-input Home 전체 보기로 복귀하지 않았습니다.");
             ThermalIntervalResult active = _thermalSequence.Intervals[_thermalProjectionIndex];
             ThermalDemandResult selected = SelectedDemand(active)
                 ?? throw new InvalidOperationException("선택할 수요가 없습니다.");
@@ -76,14 +131,19 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal) &&
                 _map.HasIndividualTileAssets &&
                 _map.HasIndividualObjectAssets &&
-                _map.IndividualArtAssetCount == 16 &&
+                _map.IndividualArtAssetCount == 37 &&
+                _map.AtomicCityAssetCount == 12 &&
+                _map.AtomicRoadTileAssetCount == 6 &&
+                _map.AtomicWorldInstanceCount == 120 &&
                 _panel.AccessibilityName.Contains("최소 열여유", StringComparison.Ordinal) &&
                 _supplyLabel.Text.Contains("필수 공급 · 1/1 ✓", StringComparison.Ordinal) &&
                 _timeline.AccessibilityName.Contains("사건 흐름", StringComparison.Ordinal) &&
                 _timeline.CurrentStepLabel.Contains("첫 입주 점등", StringComparison.Ordinal),
                 "선택 수요의 발전원·전체 경로·열여유·시설 강조가 함께 갱신되지 않았습니다. " +
                 $"tiles={_map.HasIndividualTileAssets}, objects={_map.HasIndividualObjectAssets}, " +
-                $"art={_map.IndividualArtAssetCount}, timeline={_timeline.CurrentStepLabel}, " +
+                $"art={_map.IndividualArtAssetCount}, atomic={_map.AtomicCityAssetCount}/" +
+                $"{_map.AtomicRoadTileAssetCount}/{_map.AtomicWorldInstanceCount}, " +
+                $"timeline={_timeline.CurrentStepLabel}, " +
                 $"supply={_supplyLabel.Text}");
             SaveEvidencePng(Path.Combine(
                 evidenceDirectory,
@@ -113,9 +173,15 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Require(
                 GetWindow().Size == new Vector2I(1920, 1080) &&
-                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.Commission)) &&
-                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.NextDemand)) &&
-                ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.NextThermalPhase)) &&
+                VisibleControlInside(
+                    _panel,
+                    _panel.GetActionButton(CommercialPanelAction.Commission)) &&
+                VisibleControlInside(
+                    _panel,
+                    _panel.GetActionButton(CommercialPanelAction.NextDemand)) &&
+                VisibleControlInside(
+                    _panel,
+                    _panel.GetActionButton(CommercialPanelAction.NextThermalPhase)) &&
                 _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal),
                 "1920×1080·UI 125%에서 고정 행동이나 선택 경로가 화면 밖으로 잘렸습니다.");
             SaveEvidencePng(Path.Combine(evidenceDirectory, "1920x1080-ui125-path-reduce-motion.png"));
@@ -133,7 +199,9 @@ internal sealed partial class CommercialMain
                 "COMMERCIAL_STAGE_G_PRESENTATION_SMOKE_PASS " +
                 "screens=title-ui100|substation-draft-ui100|pole-draft-ui100|" +
                 "art-path-ui100|art-path-ui125 " +
-                "visual=discrete-tiles-7|discrete-objects-9|planned-class-sprites|event-timeline " +
+                $"visual=discrete-tiles-{_map.IndividualTileAssetCount}|" +
+                $"discrete-objects-{_map.IndividualObjectAssetCount}|" +
+                "planned-class-sprites|event-timeline " +
                 "input=focus-keyboard reduce-motion=on " +
                 "save-and-quit=atomic resolution=1920x1080 " +
                 $"buildIdentity={CommercialCoreSaveCodec.ComputeSha256(_buildIdentityBytes)}");
@@ -252,7 +320,8 @@ internal sealed partial class CommercialMain
 
             await PressPanelAsync(CommercialPanelAction.StartLine, "접속 후보 확인용 선로 도구");
             await NextFrame();
-            await MovePointer(new CoreMapPoint(300, 950));
+            CoreMapPoint ambiguousSourcePointer = new(763, 1013);
+            await MovePointer(ambiguousSourcePointer);
             Require(
                 _map.CandidateNodeIds.OrderBy(item => item, StringComparer.Ordinal).SequenceEqual(
                     new[] { "WEST_AUXILIARY", "WEST_SOURCE" },
@@ -262,7 +331,8 @@ internal sealed partial class CommercialMain
                 $" pointer={_pointerPoint} sources=" +
                 string.Join(";", _snapshot.World.Nodes.Where(item =>
                     item.NodeId is "WEST_SOURCE" or "WEST_AUXILIARY").Select(item =>
-                    $"{item.NodeId}:{item.Position}")));
+                    $"{item.NodeId}:{item.Position}:screenDistance=" +
+                    $"{_map.ViewportPointForWorld(item.Position).DistanceTo(_map.ViewportPointForWorld(ambiguousSourcePointer)):F2}")));
             string firstCandidate = _map.SelectedCandidateId!;
             await PressMapKey(Key.Q, physical: Key.Q);
             string cycledCandidate = _map.SelectedCandidateId!;
@@ -297,9 +367,8 @@ internal sealed partial class CommercialMain
                 new(1050, 850),
                 new(1610, 850),
                 new(2100, 1150),
-                new(2400, 1150),
             ];
-            await SelectAndClickCandidate(new CoreMapPoint(300, 950), "WEST_SOURCE");
+            await SelectAndClickCandidate(new CoreMapPoint(675, 1100), "WEST_SOURCE");
             Require(_snapshot.LineDraft?.StartNodeId == "WEST_SOURCE",
                 "선택한 서부 발전 접속점에서 선로 계획을 시작하지 못했습니다.");
             await ClickMap(exactPath[0]);
@@ -325,13 +394,10 @@ internal sealed partial class CommercialMain
             Require(_snapshot.LineDraft?.IntermediatePoints.SequenceEqual(exactPath[..3]) == true,
                 $"강 동쪽 전신주 계획을 추가하지 못했습니다: {_lastError}");
             await ClickMap(exactPath[3]);
-            Require(_snapshot.LineDraft?.IntermediatePoints.SequenceEqual(exactPath[..4]) == true,
-                $"네 번째 전신주 계획을 추가하지 못했습니다: {_lastError}");
-            await ClickMap(exactPath[4]);
             Require(_snapshot.LineDraft?.IntermediatePoints.SequenceEqual(exactPath) == true,
                 $"마지막 전신주 계획을 추가하지 못했습니다: {_lastError}");
             await SelectAndClickCandidate(
-                new CoreMapPoint(2600, 800),
+                new CoreMapPoint(2350, 800),
                 "EAST_RESIDENTIAL_TERMINAL");
             Require(
                 _snapshot.LineDraft?.EndNodeId == "EAST_RESIDENTIAL_TERMINAL",
@@ -467,7 +533,10 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
                 _map.HasIndividualTileAssets &&
                 _map.HasIndividualObjectAssets &&
-                _map.IndividualArtAssetCount == 16 &&
+                _map.IndividualArtAssetCount == 37 &&
+                _map.AtomicCityAssetCount == 12 &&
+                _map.AtomicRoadTileAssetCount == 6 &&
+                _map.AtomicWorldInstanceCount == 120 &&
                 _timeline.StepCount == 3 &&
                 _timeline.CurrentStepLabel == "첫 입주 점등" &&
                 _timeline.AccessibilityName.Contains("시간을 진행하지 않습니다", StringComparison.Ordinal) &&
@@ -556,7 +625,7 @@ internal sealed partial class CommercialMain
             await BuildCampaignSmokeLine(
                 "PLAYER_SUBSTATION_1",
                 "HOSPITAL_TERMINAL",
-                [new CoreMapPoint(2200, 1100)],
+                [new CoreMapPoint(2000, 1100)],
                 "의료원 북안 회랑");
             await BuildCampaignSmokeSubstation(
                 new CoreMapPoint(2100, 1450),
@@ -565,7 +634,7 @@ internal sealed partial class CommercialMain
                 "WEST_SOURCE",
                 "PLAYER_SUBSTATION_2",
                 [
-                    new CoreMapPoint(650, 1150),
+                    new CoreMapPoint(550, 1150),
                     new CoreMapPoint(950, 1450),
                     new CoreMapPoint(1170, 1750),
                     new CoreMapPoint(1760, 1750),
@@ -602,7 +671,7 @@ internal sealed partial class CommercialMain
             await BuildCampaignSmokeLine(
                 "WEST_AUXILIARY",
                 "PLAYER_POLE_6",
-                Array.Empty<CoreMapPoint>(),
+                [new CoreMapPoint(900, 1200)],
                 "남부 전원 의료원 연계");
             CommercialDecisionPreview sourcePreview = coreRun.PreviewDecisionWindow();
             Require(sourcePreview.Accepted &&
@@ -732,7 +801,7 @@ internal sealed partial class CommercialMain
                 "WEST_AUXILIARY",
                 "PLAYER_SUBSTATION_3",
                 [
-                    new CoreMapPoint(650, 900),
+                    new CoreMapPoint(900, 700),
                     new CoreMapPoint(1050, 1050),
                     new CoreMapPoint(1650, 1050),
                     new CoreMapPoint(2100, 1050),
@@ -806,7 +875,7 @@ internal sealed partial class CommercialMain
 
             await BuildCampaignSmokeLine(
                 "PLAYER_SUBSTATION_2",
-                "PLAYER_POLE_14",
+                "PLAYER_POLE_15",
                 Array.Empty<CoreMapPoint>(),
                 "계획정지 변전소 연계");
             Require(_panel.AccessibilityName.Contains("3주 뒤", StringComparison.Ordinal) &&
@@ -823,7 +892,7 @@ internal sealed partial class CommercialMain
 
             await BuildCampaignSmokeLine(
                 "HOSPITAL_TERMINAL",
-                "PLAYER_POLE_14",
+                "PLAYER_POLE_15",
                 Array.Empty<CoreMapPoint>(),
                 "가장 긴 밤 의료원 연계");
             await PressPanelAsync(CommercialPanelAction.DeferPromise, "마지막 야간 증산 약속 미룸");
@@ -957,7 +1026,10 @@ internal sealed partial class CommercialMain
             await ClickMap(point);
             Require(
                 _map.CurrentDraftSpriteClassId == _snapshot.LineDraft?.PoleClassId,
-                $"{label}의 건설 중 전주가 선택한 node class 스프라이트를 표시하지 않았습니다.");
+                $"{label}의 건설 중 전주가 선택한 node class 스프라이트를 표시하지 않았습니다. " +
+                $"point={point} candidate={_map.SelectedCandidateId ?? "none"} " +
+                $"draft={string.Join(';', _snapshot.LineDraft?.IntermediatePoints ?? Array.Empty<CoreMapPoint>())} " +
+                $"error={_lastError} zoom={_map.ZoomLabel}");
         }
         if (draftEvidencePath is not null)
         {
@@ -966,7 +1038,9 @@ internal sealed partial class CommercialMain
         await SelectAndClickCandidate(end.Position, endNodeId);
         Require(
             _snapshot.LineDraft?.EndNodeId == endNodeId,
-            $"{label} 경로를 완성하지 못했습니다: {_lastError}");
+            $"{label} 경로를 완성하지 못했습니다: {_lastError}; " +
+            $"endCanvas={_map.ViewportPointForWorld(end.Position)}; " +
+            $"candidate={_map.SelectedCandidateId ?? "none"}");
         await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 발주");
         await NextFrame();
         await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 완공");
@@ -1168,6 +1242,18 @@ internal sealed partial class CommercialMain
 
     private async Task PressPanelAsync(CommercialPanelAction action, string description)
     {
+        Key toolKey = action switch
+        {
+            CommercialPanelAction.StartLine => Key.Key1,
+            CommercialPanelAction.PlaceSubstation => Key.Key2,
+            CommercialPanelAction.CycleLineClass => Key.Key3,
+            _ => Key.None,
+        };
+        if (toolKey != Key.None)
+        {
+            await PressMapKey(toolKey);
+            return;
+        }
         BaseButton button = _panel.GetActionButton(action);
         if (!button.Visible || button.Disabled)
         {
@@ -1185,6 +1271,9 @@ internal sealed partial class CommercialMain
         Rect2 innerRect = inner.GetGlobalRect();
         return outerRect.Encloses(innerRect);
     }
+
+    private static bool VisibleControlInside(Control outer, Control inner) =>
+        !inner.Visible || ControlInside(outer, inner);
 
     private static void ApplyUiScale(Node node, float scale)
     {

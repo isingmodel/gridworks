@@ -33,14 +33,17 @@ internal sealed partial class CommercialEventTimeline : Control
     private static readonly Color PlateInset = Color.FromHtml("0d1214");
     private static readonly Color Brass = Color.FromHtml("8c7047");
     private static readonly Color BrassMuted = Color.FromHtml("5a503f");
-    private static readonly Color Completed = Color.FromHtml("5fc5c9");
-    private static readonly Color Current = Color.FromHtml("efb75d");
+    private static readonly Color Completed = Color.FromHtml("4b8589");
+    private static readonly Color Current = Color.FromHtml("68cbd2");
     private static readonly Color Upcoming = Color.FromHtml("657174");
     private static readonly Color Text = Color.FromHtml("e8e0d1");
     private static readonly Color Muted = Color.FromHtml("9a9b94");
 
     private CommercialEventTimelinePresentation? _presentation;
     private float _uiScale = 1f;
+
+    [Export]
+    public Texture2D? ChromeFrameTexture { get; set; }
 
     public int StepCount => _presentation?.Steps.Count ?? 0;
 
@@ -50,7 +53,7 @@ internal sealed partial class CommercialEventTimeline : Control
     public override void _Ready()
     {
         MouseFilter = MouseFilterEnum.Ignore;
-        CustomMinimumSize = new Vector2(0f, 92f);
+        CustomMinimumSize = new Vector2(0f, 82f);
         Resized += QueueRedraw;
     }
 
@@ -74,82 +77,116 @@ internal sealed partial class CommercialEventTimeline : Control
 
     public override void _Draw()
     {
-        Rect2 outer = new(Vector2.Zero, Size);
-        DrawRect(outer, Plate);
-        DrawRect(new Rect2(3f, 3f, Size.X - 6f, Size.Y - 6f), PlateInset);
-        DrawRect(new Rect2(1f, 1f, Size.X - 2f, Size.Y - 2f), Brass, false, 2f);
-        DrawRivet(new Vector2(10f, 10f));
-        DrawRivet(new Vector2(Size.X - 10f, 10f));
-        DrawRivet(new Vector2(10f, Size.Y - 10f));
-        DrawRivet(new Vector2(Size.X - 10f, Size.Y - 10f));
+        float plateWidth = Math.Min(Size.X - 20f, 660f * _uiScale);
+        float plateLeft = ((Size.X - plateWidth) * 0.5f) - (78f * _uiScale);
+        Rect2 outer = new(new Vector2(plateLeft, 0f), new Vector2(plateWidth, Size.Y));
+        DrawChromeFrame(outer, Colors.White, 16f);
 
         if (_presentation is null || _presentation.Steps.Count == 0)
         {
             return;
         }
 
-        int headingSize = ScaledFont(12);
-        DrawString(
-            GetThemeDefaultFont(),
-            new Vector2(20f, 21f),
-            $"사건 흐름  //  {_presentation.ChapterLabel}",
-            HorizontalAlignment.Left,
-            Size.X * 0.55f,
-            headingSize,
-            Current);
-        DrawString(
-            GetThemeDefaultFont(),
-            new Vector2(Size.X * 0.64f, 21f),
-            _presentation.ProgressText,
-            HorizontalAlignment.Right,
-            Size.X * 0.32f,
-            headingSize,
-            Text);
-
-        Rect2 deadlineTrack = new(20f, 29f, Size.X - 40f, 4f);
-        DrawRect(deadlineTrack, BrassMuted);
-        DrawRect(new Rect2(
-            deadlineTrack.Position,
-            new Vector2(deadlineTrack.Size.X * Math.Clamp(_presentation.DeadlineRatio, 0f, 1f), 4f)),
-            _presentation.DeadlineRatio >= 0.88f ? Current : Completed);
-
-        float left = 40f;
-        float right = Size.X - 40f;
-        float stepY = 53f;
+        float left = plateLeft + 18f;
+        float right = plateLeft + plateWidth - 18f;
         int count = _presentation.Steps.Count;
-        float spacing = count <= 1 ? 0f : (right - left) / (count - 1);
-        for (int index = 0; index < count - 1; index++)
-        {
-            CommercialTimelineStep step = _presentation.Steps[index];
-            CommercialTimelineStep next = _presentation.Steps[index + 1];
-            Color connector = step.State == CommercialTimelineStepState.Completed &&
-                next.State != CommercialTimelineStepState.Upcoming
-                ? Completed
-                : BrassMuted;
-            DrawLine(
-                new Vector2(left + (spacing * index) + 8f, stepY),
-                new Vector2(left + (spacing * (index + 1)) - 8f, stepY),
-                connector,
-                step.State == CommercialTimelineStepState.Completed ? 3f : 2f,
-                true);
-        }
-
-        int labelSize = ScaledFont(count >= 7 ? 10 : 11);
+        float gap = 7f;
+        float cellWidth = Math.Max(58f, ((right - left) - (gap * (count - 1))) / count);
+        int labelSize = ScaledFont(count >= 6 ? 9 : 11);
         for (int index = 0; index < count; index++)
         {
             CommercialTimelineStep step = _presentation.Steps[index];
-            Vector2 center = new(left + (spacing * index), stepY);
-            DrawStepMarker(center, step.State);
-            float labelWidth = count <= 1 ? right - left : Math.Max(84f, spacing - 12f);
+            Rect2 cell = new(
+                new Vector2(left + (index * (cellWidth + gap)), 9f),
+                new Vector2(cellWidth, Size.Y - 18f));
+            Color border = step.State switch
+            {
+                CommercialTimelineStepState.Completed => Completed,
+                CommercialTimelineStepState.Current => Current,
+                _ => BrassMuted,
+            };
+            DrawChromeFrame(
+                cell,
+                step.State switch
+                {
+                    CommercialTimelineStepState.Completed => new Color(0.54f, 0.70f, 0.70f, 1f),
+                    CommercialTimelineStepState.Current => new Color(0.64f, 0.91f, 0.94f, 1f),
+                    _ => new Color(0.58f, 0.58f, 0.54f, 0.88f),
+                },
+                12f);
+            DrawRect(cell, new Color(border, step.State == CommercialTimelineStepState.Upcoming ? 0.65f : 0.94f),
+                false, step.State == CommercialTimelineStepState.Current ? 2f : 1f);
+            Vector2 marker = new(cell.GetCenter().X, cell.Position.Y + (cell.Size.Y * 0.38f));
+            DrawStepMarker(marker, step.State);
             DrawString(
                 GetThemeDefaultFont(),
-                new Vector2(center.X - (labelWidth / 2f), 77f),
+                new Vector2(cell.Position.X + 8f, cell.End.Y - 10f),
                 step.Label,
                 HorizontalAlignment.Center,
-                labelWidth,
+                cellWidth - 16f,
                 labelSize,
                 step.State == CommercialTimelineStepState.Current ? Current :
                     step.State == CommercialTimelineStepState.Completed ? Text : Muted);
+        }
+
+        float progressWidth = (plateWidth - 40f) *
+            Math.Clamp(_presentation.DeadlineRatio, 0f, 1f);
+        DrawLine(
+            new Vector2(plateLeft + 20f, Size.Y - 5f),
+            new Vector2(plateLeft + 20f + progressWidth, Size.Y - 5f),
+            _presentation.DeadlineRatio >= 0.88f ? Current : Completed,
+            2f,
+            true);
+    }
+
+    private void DrawChromeFrame(Rect2 destination, Color modulate, float destinationSlice)
+    {
+        if (ChromeFrameTexture is null)
+        {
+            DrawRect(destination, Plate);
+            DrawRect(destination, Brass, false, 2f);
+            return;
+        }
+        float sourceWidth = ChromeFrameTexture.GetWidth();
+        float sourceHeight = ChromeFrameTexture.GetHeight();
+        float sourceSlice = Math.Min(18f, Math.Min(sourceWidth, sourceHeight) * 0.25f);
+        float drawSlice = Math.Min(
+            destinationSlice,
+            Math.Min(destination.Size.X, destination.Size.Y) * 0.34f);
+        float[] sourceX = [0f, sourceSlice, sourceWidth - sourceSlice, sourceWidth];
+        float[] sourceY = [0f, sourceSlice, sourceHeight - sourceSlice, sourceHeight];
+        float[] drawX =
+        [
+            destination.Position.X,
+            destination.Position.X + drawSlice,
+            destination.End.X - drawSlice,
+            destination.End.X,
+        ];
+        float[] drawY =
+        [
+            destination.Position.Y,
+            destination.Position.Y + drawSlice,
+            destination.End.Y - drawSlice,
+            destination.End.Y,
+        ];
+        for (int row = 0; row < 3; row++)
+        {
+            for (int column = 0; column < 3; column++)
+            {
+                DrawTextureRectRegion(
+                    ChromeFrameTexture,
+                    new Rect2(
+                        drawX[column],
+                        drawY[row],
+                        drawX[column + 1] - drawX[column],
+                        drawY[row + 1] - drawY[row]),
+                    new Rect2(
+                        sourceX[column],
+                        sourceY[row],
+                        sourceX[column + 1] - sourceX[column],
+                        sourceY[row + 1] - sourceY[row]),
+                    modulate);
+            }
         }
     }
 
@@ -164,24 +201,24 @@ internal sealed partial class CommercialEventTimeline : Control
         switch (state)
         {
             case CommercialTimelineStepState.Completed:
-                DrawRect(new Rect2(center - new Vector2(6f, 6f), new Vector2(12f, 12f)), color);
-                DrawLine(center + new Vector2(-3f, 0f), center + new Vector2(-1f, 3f), PlateInset, 2f);
-                DrawLine(center + new Vector2(-1f, 3f), center + new Vector2(4f, -3f), PlateInset, 2f);
+                DrawRect(new Rect2(center - new Vector2(8f, 8f), new Vector2(16f, 16f)), color);
+                DrawLine(center + new Vector2(-4f, 0f), center + new Vector2(-1f, 4f), PlateInset, 2.4f);
+                DrawLine(center + new Vector2(-1f, 4f), center + new Vector2(5f, -4f), PlateInset, 2.4f);
                 break;
             case CommercialTimelineStepState.Current:
                 Vector2[] diamond =
                 [
-                    center + new Vector2(0f, -8f),
-                    center + new Vector2(8f, 0f),
-                    center + new Vector2(0f, 8f),
-                    center + new Vector2(-8f, 0f),
+                    center + new Vector2(0f, -11f),
+                    center + new Vector2(11f, 0f),
+                    center + new Vector2(0f, 11f),
+                    center + new Vector2(-11f, 0f),
                 ];
                 DrawColoredPolygon(diamond, color);
                 DrawPolyline(diamond.Append(diamond[0]).ToArray(), Color.FromHtml("fff0bf"), 1.5f, true);
                 break;
             default:
-                DrawCircle(center, 6f, PlateInset);
-                DrawArc(center, 6f, 0f, Mathf.Tau, 20, color, 2f, true);
+                DrawCircle(center, 8f, PlateInset);
+                DrawArc(center, 8f, 0f, Mathf.Tau, 24, color, 2.4f, true);
                 break;
         }
     }

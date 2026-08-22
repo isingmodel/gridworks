@@ -1,0 +1,9 @@
+{
+  "protocol": "G3-ATOMIC-CITY-AUDIT-v1",
+  "model": "gpt-5.6-sol",
+  "codexMode": "ultra",
+  "codexVersion": "codex-cli 0.149.0",
+  "boardSha256": "b152ab46e987d0fc7e9996cdad61462f4b1980481389ba1eaba2da70afd93f3b",
+  "mapSha256": "aecc39767d24b6a208b8ffa1d4b7947ba4acf6cbd2238620c3d592e3ff33918e",
+  "recipeSha256": "8286e6d74c1848203e5df47e18a77d012e4a88208b5784ae572582214aaed19d"
+}

@@ -84,10 +84,28 @@
         "displayName": "청류강",
         "kind": "Water",
         "polygon": [
-          { "xUnit": 1000, "yUnit": 0 },
-          { "xUnit": 1450, "yUnit": 0 },
-          { "xUnit": 1750, "yUnit": 2000 },
-          { "xUnit": 1250, "yUnit": 2000 }
+          { "xUnit": 1260, "yUnit": 500 },
+          { "xUnit": 1280, "yUnit": 580 },
+          { "xUnit": 1140, "yUnit": 666 },
+          { "xUnit": 1100, "yUnit": 833 },
+          { "xUnit": 1180, "yUnit": 1000 },
+          { "xUnit": 1320, "yUnit": 1166 },
+          { "xUnit": 1400, "yUnit": 1333 },
+          { "xUnit": 1410, "yUnit": 1500 },
+          { "xUnit": 1350, "yUnit": 1666 },
+          { "xUnit": 1240, "yUnit": 1833 },
+          { "xUnit": 1160, "yUnit": 2000 },
+          { "xUnit": 1262, "yUnit": 2000 },
+          { "xUnit": 1342, "yUnit": 1833 },
+          { "xUnit": 1454, "yUnit": 1666 },
+          { "xUnit": 1512, "yUnit": 1500 },
+          { "xUnit": 1504, "yUnit": 1333 },
+          { "xUnit": 1422, "yUnit": 1166 },
+          { "xUnit": 1281, "yUnit": 1000 },
+          { "xUnit": 1202, "yUnit": 833 },
+          { "xUnit": 1244, "yUnit": 666 },
+          { "xUnit": 1320, "yUnit": 580 },
+          { "xUnit": 1361, "yUnit": 500 }
         ]
       },
       {
@@ -110,6 +128,17 @@
           { "xUnit": 3060, "yUnit": 1280 },
           { "xUnit": 3060, "yUnit": 1760 },
           { "xUnit": 2340, "yUnit": 1760 }
+        ]
+      },
+      {
+        "terrainId": "WEST_INDUSTRIAL_BLOCK",
+        "displayName": "서부 산업 작업장",
+        "kind": "Building",
+        "polygon": [
+          { "xUnit": 80, "yUnit": 1230 },
+          { "xUnit": 650, "yUnit": 1230 },
+          { "xUnit": 650, "yUnit": 1750 },
+          { "xUnit": 80, "yUnit": 1750 }
         ]
       }
     ],
@@ -140,7 +169,7 @@
         "nodeId": "WEST_SOURCE",
         "classId": "SOURCE_TERMINAL",
         "displayName": "서부 발전 접속점",
-        "position": { "xUnit": 300, "yUnit": 870 },
+        "position": { "xUnit": 675, "yUnit": 1100 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -148,7 +177,7 @@
         "nodeId": "WEST_AUXILIARY",
         "classId": "SOURCE_TERMINAL",
         "displayName": "남부 예비 발전 접속점",
-        "position": { "xUnit": 300, "yUnit": 1030 },
+        "position": { "xUnit": 850, "yUnit": 925 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -156,7 +185,7 @@
         "nodeId": "NORTH_WEST_POLE",
         "classId": "REINFORCED_POLE",
         "displayName": "북안 서측 접속부",
-        "position": { "xUnit": 770, "yUnit": 500 },
+        "position": { "xUnit": 900, "yUnit": 550 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -164,7 +193,7 @@
         "nodeId": "BRIDGE_NORTH_FOUNDATION",
         "classId": "REINFORCED_POLE",
         "displayName": "북쪽 교량 보호기초",
-        "position": { "xUnit": 1300, "yUnit": 500 },
+        "position": { "xUnit": 1330, "yUnit": 500 },
         "commissioned": true,
         "authoredFoundation": true
       },
@@ -172,7 +201,7 @@
         "nodeId": "NORTH_EAST_POLE",
         "classId": "REINFORCED_POLE",
         "displayName": "북안 동측 접속부",
-        "position": { "xUnit": 1750, "yUnit": 500 },
+        "position": { "xUnit": 1650, "yUnit": 550 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -180,7 +209,7 @@
         "nodeId": "NORTH_SUBSTATION",
         "classId": "SMALL_SUBSTATION",
         "displayName": "북안 배전 변전소",
-        "position": { "xUnit": 2150, "yUnit": 650 },
+        "position": { "xUnit": 1875, "yUnit": 700 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -188,7 +217,7 @@
         "nodeId": "EAST_JUNCTION",
         "classId": "REINFORCED_POLE",
         "displayName": "동부 분기 접속부",
-        "position": { "xUnit": 2400, "yUnit": 900 },
+        "position": { "xUnit": 2100, "yUnit": 950 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -196,7 +225,7 @@
         "nodeId": "SOUTH_WEST_POLE",
         "classId": "REINFORCED_POLE",
         "displayName": "남안 서측 접속부",
-        "position": { "xUnit": 750, "yUnit": 1250 },
+        "position": { "xUnit": 750, "yUnit": 1400 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -204,7 +233,7 @@
         "nodeId": "SOUTH_APPROACH_POLE",
         "classId": "REINFORCED_POLE",
         "displayName": "남쪽 교량 진입 접속부",
-        "position": { "xUnit": 1120, "yUnit": 1400 },
+        "position": { "xUnit": 1200, "yUnit": 1400 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -212,7 +241,7 @@
         "nodeId": "BRIDGE_SOUTH_FOUNDATION",
         "classId": "REINFORCED_POLE",
         "displayName": "남쪽 교량 보호기초",
-        "position": { "xUnit": 1450, "yUnit": 1500 },
+        "position": { "xUnit": 1480, "yUnit": 1500 },
         "commissioned": true,
         "authoredFoundation": true
       },
@@ -220,7 +249,7 @@
         "nodeId": "SOUTH_EAST_POLE",
         "classId": "REINFORCED_POLE",
         "displayName": "남안 동측 접속부",
-        "position": { "xUnit": 1800, "yUnit": 1500 },
+        "position": { "xUnit": 1750, "yUnit": 1450 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -228,7 +257,7 @@
         "nodeId": "SOUTH_SUBSTATION",
         "classId": "SMALL_SUBSTATION",
         "displayName": "남안 배전 변전소",
-        "position": { "xUnit": 2100, "yUnit": 1350 },
+        "position": { "xUnit": 1950, "yUnit": 1300 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -236,7 +265,7 @@
         "nodeId": "EAST_RESIDENTIAL_TERMINAL",
         "classId": "LOAD_TERMINAL",
         "displayName": "동부 생활권 접속점",
-        "position": { "xUnit": 2600, "yUnit": 800 },
+        "position": { "xUnit": 2350, "yUnit": 800 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -244,7 +273,7 @@
         "nodeId": "HOSPITAL_TERMINAL",
         "classId": "LOAD_TERMINAL",
         "displayName": "청류의료원 접속점",
-        "position": { "xUnit": 2280, "yUnit": 1500 },
+        "position": { "xUnit": 2250, "yUnit": 1450 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -252,7 +281,7 @@
         "nodeId": "WATER_TERMINAL",
         "classId": "LOAD_TERMINAL",
         "displayName": "청류정수장 접속점",
-        "position": { "xUnit": 2500, "yUnit": 1150 },
+        "position": { "xUnit": 2450, "yUnit": 1150 },
         "commissioned": true,
         "authoredFoundation": false
       },
@@ -260,7 +289,7 @@
         "nodeId": "INDUSTRY_TERMINAL",
         "classId": "LOAD_TERMINAL",
         "displayName": "동부 산업단지 접속점",
-        "position": { "xUnit": 3000, "yUnit": 1150 },
+        "position": { "xUnit": 2950, "yUnit": 1150 },
         "commissioned": true,
         "authoredFoundation": false
       }

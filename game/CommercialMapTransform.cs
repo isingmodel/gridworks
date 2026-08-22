@@ -30,7 +30,7 @@ internal readonly record struct CommercialWorldPosition(double X, double Y);
 /// </summary>
 internal sealed class CommercialMapTransform
 {
-    private static readonly double[] ZoomMultipliers = [1d, 1.5d, 2.25d];
+    private static readonly double[] ZoomMultipliers = [1.00d, 1.50d, 2.25d];
     private const float PlotPadding = 28f;
 
     private CommercialMapBounds _bounds;
@@ -43,7 +43,7 @@ internal sealed class CommercialMapTransform
         bounds.Validate();
         _bounds = bounds;
         _viewportSize = ValidViewport(viewportSize);
-        _center = bounds.Center;
+        _center = ReferenceHomeCenter(bounds);
     }
 
     public CommercialMapBounds Bounds => _bounds;
@@ -148,7 +148,7 @@ internal sealed class CommercialMapTransform
     public void Home()
     {
         _zoomIndex = 0;
-        _center = _bounds.Center;
+        _center = ReferenceHomeCenter(_bounds);
     }
 
     public void Follow(double worldX, double worldY, float edgeMargin)
@@ -198,6 +198,10 @@ internal sealed class CommercialMapTransform
         }
         return (float)Math.Clamp(requested, minimum + halfVisible, maximum - halfVisible);
     }
+
+    private static Vector2 ReferenceHomeCenter(CommercialMapBounds bounds) => new(
+        (float)(bounds.MinX + (bounds.Width * 0.421875d)),
+        (float)(bounds.MinY + (bounds.Height * 0.55d)));
 
     private static Vector2 ValidViewport(Vector2 viewportSize) => new(
         Math.Max(1f, viewportSize.X),

@@ -2,7 +2,7 @@
 
 > 상태: **G.3 ACTIVE — G.2 TECHNICAL RECORD PRESERVED**
 > 구현 권한: **OPEN — G.3 reference parity, `ReferenceParity >96`까지 반복**
-> 현재 작업: **개별 tile/object·isometric world·river·grid·HUD/timeline 재구축**
+> 현재 작업: **Step 2 원자 river water/bank/effect kit — Step 1 원자 도시 PASS**
 > 승인 근거: 사용자는 2026-08-18 보이는 격자를 없앤 자유 배치와 전선·변전소·전신주 접속부의
 > 열 한계를 채택했고, 이어서 상용 재기획서 전체를 개발 완료하라고 지시했다.
 

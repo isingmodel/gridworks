@@ -215,6 +215,7 @@ internal sealed partial class CommercialMain : Control
                 "마지막 선로 지점을 되돌렸습니다.");
         _map.DraftPointMoveRequested += MoveDraftPoint;
         _map.DraftPointDragPreviewChanged += OnDraftPointDragPreviewChanged;
+        _map.BuildRailActionRequested += OnPanelAction;
         _map.CameraChanged += () =>
         {
             _zoomLabel.Text = $"지도 · {_map.ZoomLabel}";
@@ -999,22 +1000,23 @@ internal sealed partial class CommercialMain : Control
             _settings.ReduceMotion));
         _panel.SetModel(BuildPanelModel());
         _timeline.SetPresentation(BuildTimelinePresentation(core));
-        _zoomLabel.Text = $"지도 · {_map.ZoomLabel}";
-        _titleLabel.Text = core is null
-            ? "GRIDWORKS // 열 운영 연습"
-            : $"GRIDWORKS // {_presentedResult?.ChapterDisplayName ?? core.Chapter.DisplayName}";
+        _zoomLabel.Text = _map.ZoomLabel;
+        _titleLabel.Text = "⚙";
+        _titleLabel.TooltipText = core is null
+            ? "GRIDWORKS · 열 운영"
+            : $"GRIDWORKS · {_presentedResult?.ChapterDisplayName ?? core.Chapter.DisplayName}";
         _audio.SetAtmosphere(core?.ChapterIndex ?? 0);
         int commissionedEdges = _snapshot.World.Edges.Count(edge => edge.Commissioned);
         _boundaryLabel.Text = core is null
-            ? $"국면 · {ThermalIntervalName(thermal.IntervalId)}"
+            ? $"▣ {ThermalIntervalName(thermal.IntervalId)}"
             : core.CampaignComplete
-                ? "경계 · 여덟 임무 완료"
-                : $"경계 {core.DecisionWindowIndex + 1}/{core.Chapter.DecisionWindows.Count} · " +
+                ? "▣ 여덟 임무 완료"
+                : $"▣ 경계 {core.DecisionWindowIndex + 1}/{core.Chapter.DecisionWindows.Count} · " +
                   ThermalIntervalName(thermal.IntervalId);
         _cashLabel.Text = core is null
-            ? $"공사 시각 · {_snapshot.Minute}분"
-            : $"운영 자금 · {FormatWon(core.CashUnit)}";
-        _supplyLabel.Text = HardSupplySummary(thermal)
+            ? $"◷ {_snapshot.Minute}분"
+            : $"₩ {FormatWon(core.CashUnit)}";
+        _supplyLabel.Text = "⚡ " + HardSupplySummary(thermal)
             .Replace("필수 공급 ", "필수 공급 · ", StringComparison.Ordinal);
         _summaryLabel.Text = core is null
             ? $"완공 선로 {commissionedEdges}구간 · 지도 설비를 선택해 현재와 다음 상태를 확인하세요."
@@ -1066,25 +1068,24 @@ internal sealed partial class CommercialMain : Control
             ? core.Chapter
             : _campaign.Chapters.Single(item => item.ChapterId == _presentedResult.ChapterId);
         bool showingResult = _presentedResult is not null || core.CampaignComplete;
+        int chapterIndex = _campaign.Chapters.ToList().FindIndex(item => item.ChapterId == chapter.ChapterId);
+        int activeWindowIndex = Math.Clamp(
+            core.DecisionWindowIndex,
+            0,
+            Math.Max(0, chapter.DecisionWindows.Count - 1));
+        CommercialCoreDecisionWindow activeWindow = chapter.DecisionWindows[activeWindowIndex];
+        CommercialCoreOperatingPhase activePhase = chapter.OperatingPhases.First(item =>
+            item.PhaseId == activeWindow.NextPhaseId);
         var steps = new List<CommercialTimelineStep>
         {
             new("브리핑", chapter.Briefing.Title, CommercialTimelineStepState.Completed),
+            new(
+                activePhase.DisplayName,
+                activeWindow.Story?.Title ?? $"결정 경계 {activeWindowIndex + 1}",
+                showingResult
+                    ? CommercialTimelineStepState.Completed
+                    : CommercialTimelineStepState.Current),
         };
-        for (int index = 0; index < chapter.DecisionWindows.Count; index++)
-        {
-            CommercialCoreDecisionWindow window = chapter.DecisionWindows[index];
-            CommercialCoreOperatingPhase phase = chapter.OperatingPhases.First(item =>
-                item.PhaseId == window.NextPhaseId);
-            CommercialTimelineStepState state = showingResult || index < core.DecisionWindowIndex
-                ? CommercialTimelineStepState.Completed
-                : index == core.DecisionWindowIndex
-                    ? CommercialTimelineStepState.Current
-                    : CommercialTimelineStepState.Upcoming;
-            steps.Add(new CommercialTimelineStep(
-                phase.DisplayName,
-                window.Story?.Title ?? $"결정 경계 {index + 1}",
-                state));
-        }
         CommercialChapterResultRecord? presentedResult = _presentedResult ??
             (core.CampaignComplete && core.ChapterResults.Count > 0
                 ? core.ChapterResults[^1]
@@ -1093,13 +1094,18 @@ internal sealed partial class CommercialMain : Control
             "결과",
             presentedResult?.Story.Title ?? chapter.StandardResult.Title,
             showingResult ? CommercialTimelineStepState.Current : CommercialTimelineStepState.Upcoming));
+        steps.Add(new CommercialTimelineStep(
+            "다음",
+            chapterIndex + 1 < _campaign.Chapters.Count
+                ? _campaign.Chapters[chapterIndex + 1].DisplayName
+                : _campaign.Epilogue.Title,
+            CommercialTimelineStepState.Upcoming));
         string progress = showingResult
             ? "운영 결과 확정"
             : $"공사 {_snapshot.Minute}/{chapter.DeadlineMinute}분 · {ToolName()}";
         float ratio = showingResult
             ? 1f
             : Math.Clamp(_snapshot.Minute / (float)Math.Max(1, chapter.DeadlineMinute), 0f, 1f);
-        int chapterIndex = _campaign.Chapters.ToList().FindIndex(item => item.ChapterId == chapter.ChapterId);
         return new CommercialEventTimelinePresentation(
             $"{chapterIndex + 1}/{_campaign.Chapters.Count} · {chapter.DisplayName}",
             progress,
@@ -1215,11 +1221,13 @@ internal sealed partial class CommercialMain : Control
             new CommercialActionPresentation(
                 canConstruct,
                 "변전소 놓기",
-                "소형 배전 변전소의 점유영역을 지형 위에서 자유롭게 계획합니다."),
+                "소형 배전 변전소의 점유영역을 지형 위에서 자유롭게 계획합니다.",
+                Visible: false),
             new CommercialActionPresentation(
                 canConstruct,
                 "선로 잇기",
-                "접속점에서 시작해 전신주 위치를 차례로 놓고 다른 접속점에 연결합니다."),
+                "접속점에서 시작해 전신주 위치를 차례로 놓고 다른 접속점에 연결합니다.",
+                Visible: false),
             new CommercialActionPresentation(
                 _snapshot.Phase == ConstructionPhase.LineDrafting,
                 "마지막 점 되돌리기",
@@ -1239,7 +1247,8 @@ internal sealed partial class CommercialMain : Control
                 _lineClassId == StandardLineClassId
                     ? "선종 · 일반 배전선"
                     : "선종 · 보강 배전선",
-                "일반선은 값싸고 빠르며 비상 열여유를 쓸 수 있고, 보강선은 비싸고 느리지만 연속 열여유가 큽니다."),
+                "일반선은 값싸고 빠르며 비상 열여유를 쓸 수 있고, 보강선은 비싸고 느리지만 연속 열여유가 큽니다.",
+                Visible: false),
             new CommercialActionPresentation(
                 promiseAvailable,
                 core?.PromiseDecision == PromiseDecision.Keep ? "약속 지킴 ✓" : "약속 지킴",
@@ -2140,7 +2149,10 @@ internal sealed partial class CommercialMain : Control
         GetWindow().ContentScaleFactor = 1f;
         ApplyRuntimeUiScale(this, settings.UiScalePercent / 100f);
         _timeline.SetUiScale(settings.UiScalePercent / 100f);
-        _controlHelp.Visible = settings.ShowControlHelp;
+        // The help overlay remains the authoritative visible control guide. Keeping
+        // a second footer under the event timeline weakens the reference HUD and
+        // duplicates the same instructions, so the gameplay label stays semantic-only.
+        _controlHelp.Visible = false;
         _audio.ApplyVolumes(
             settings.MasterVolumePercent,
             settings.AmbientVolumePercent,

@@ -60,10 +60,10 @@ runtime에 개별 PNG가 실제 연결됐는지 직접 보지 않으면 whole-ma
 
 | pair ID | reference board | candidate board | 주 비교 대상 |
 |---|---|---|---|
-| `PAIR-KIT-GROUND` | `01/02/04` ground·road ROI | ground·road·parcel 15종 | 2:1 angle, material, 상태 일관성 |
+| `PAIR-KIT-GROUND` | `01/02/04` ground·road ROI | 원자 ground·road 조각 최소 12종 | 2:1 angle, material, 상태 일관성 |
 | `PAIR-KIT-RIVER` | `01/02/04` river·bank ROI | water 4종+bank/effect 11종과 3×3 조립 | 굽음, bank 깊이, 반사, heat/flood |
 | `PAIR-KIT-GRID` | `01/03/04` plant·pole·substation ROI | grid 관련 개별 object와 conductor sample | camera, scale, 접속, cyan/amber 상태 |
-| `PAIR-KIT-CITY` | `01/02/04` district·hospital·industry ROI | city·facility object 10종 | silhouette, 밀도 재료, 공통 광원 |
+| `PAIR-KIT-CITY` | `01/02/04` district·hospital·industry ROI | 단독 city/building/prop object 최소 12종 | 단일 object 여부, silhouette, 재료, 공통 광원 |
 | `PAIR-KIT-UI` | `01/02/03/04` HUD·panel ROI | chrome 6종+실제 event timeline crop | 금속 frame, 정보 위계, timeline 통합감 |
 
 candidate board는 asset manifest가 가리키는 **개별 runtime PNG**에서 검증기가 직접 만든다. 각 object는
@@ -71,6 +71,13 @@ candidate board는 asset manifest가 가리키는 **개별 runtime PNG**에서 �
 outer bend 순서로 연결한다. board 단계에서 그림자·색보정·retouch를 추가하지 않는다. cell ID는 opaque
 번호만 쓰며 원래 assetId와의 대응은 manifest에만 남긴다. reference board도 predeclared ROI crop을
 원본 pixel 그대로 배열한다.
+
+`PAIR-KIT-CITY`에는 점수 rubric과 별도로 동일한 `gpt-5.6-sol` ultra가 수행하는 구조 audit을 붙인다.
+각 cell은 `singleCompositionUnit` boolean과 보이는 solid building/prop 수를 반환하고, runtime `MAP`
+crop은 `largeBakedCityRasterPresent` boolean을 반환한다. 모든 cell이 `true`, 수가 `1`, map boolean이
+`false`여야 한다. 이 audit은 `ReferenceParity` 산술에 들어가지 않고 Step 1 hard gate만 닫는다.
+`district/parcel/cluster/neighborhood/hamlet/city plate`처럼 여러 건물·도로망·도시 윤곽을 한 PNG에
+구운 자산은 label이 `PARITY`여도 즉시 실패다.
 
 UI 125%는 `PAIR-NORMAL`과 `PAIR-ROUTE`에서 clipping, hierarchy, focus만 추가 확인한다. final jury는
 미리 정한 pair를 빼거나 더 유리한 screenshot으로 교체할 수 없다.
@@ -234,6 +241,10 @@ judge는 자유로운 0~100 점수를 만들지 않고 criterion마다 다음 la
 reference에 사건 timeline 자체는 없으므로 timeline criterion은 reference 하단 strip·HUD의 재질과 위계를
 style anchor로, `briefing→window/phase→actual result` 식별성을 고정 기능 anchor로 사용한다. flood·winter도
 reference에 동일 장면이 없으므로 `STATE-CONTEXT`에서 candidate normal 상태와의 세계 연속성을 함께 본다.
+reference의 playback 기능과 candidate의 사건 단계 기능이 다른 것은 의도된 기능 차이이며 timeline 시각
+label을 낮추는 근거가 아니다. footprint·chrome·정보 위계·통합감과 candidate 내부 단계 식별성만 판정한다.
+`TIMELINE` ROI pixel은 `HUD`와 다른 criterion에서 제외한다. 특정 reference에 하단 strip이 없더라도
+필수 candidate timeline의 존재·가림 자체를 HUD·density·grid 차이로 중복 감점하지 않는다.
 
 ## 7. judge 호출 절차
 
@@ -412,7 +423,11 @@ ReferenceParity = RawJuryParity - Penalty
 소유한다. 결과는 `PASS/FAIL`뿐이며 `ReferenceParity`를 올리거나 내리지 않는다.
 
 - capture manifest·hash·exact commit·1920×1080 viewport 일치
-- 48개 asset manifest, generator run·prompt/reference/output/final SHA provenance와 실제 runtime binding
+- final asset manifest의 최소 53개 원자 raster, generator run·prompt/reference/output/final SHA
+  provenance와 실제 runtime binding
+- runtime에 `district/parcel/cluster/neighborhood/hamlet/city plate` raster 0개, 각 city cell의
+  `singleCompositionUnit=true`, visible solid count `1`, large baked city raster `false`
+- 최소 12종 atomic city/building/prop와 최소 80개 독립 runtime instance; 명시 좌표·depth key 장부
 - reference/target pixel crop의 runtime 재사용 금지, RGBA/alpha, crop·atlas boundary, seam·누락 파일 검사
 - asset-kit board가 manifest의 개별 runtime PNG만으로 재조립됐는지 확인
 - 강·장애물·facility와 배치 가능 영역이 authoritative world data와 일치

@@ -3,10 +3,13 @@
 > 상태: **ACTIVE — G.3 구현·평가 반복 중**
 > 작성 근거: 2026-08-21 G.2 실행 화면에 대한 소유자 시각 거부
 > 대상 해상도: **1920×1080, UI 100%·125%만 해당**
+> 현재 gate: **Step 1 PASS — Step 2 원자 강물·제방 활성**
 
 이 계획은 `assets/01~04`의 낮은 아이소메트릭 산업도시, 전력망, 강과 UI 위계를 실제 게임 화면에
-가깝게 옮기기 위한 G.3 후보를 정의한다. whole-map plate는 사용하지 않는다. 보이는 지형·건물·시설은
-개별 tile/object와 명시 데이터로 구성하고, 게임 규칙과 화면 표현이 어긋나지 않게 한다.
+가깝게 옮기기 위한 G.3 후보를 정의한다. whole-map plate뿐 아니라 여러 건물·도로·구획을 한 장에
+구운 `district/parcel/cluster/neighborhood/hamlet` raster도 사용하지 않는다. 보이는 도시는 **건물 한
+채, 시설 부품 하나, 도로 조각 하나, 지형·마당·잔해 prop 하나**를 각각 별도 생성한 tile/object와
+명시 배치 데이터로 조립하며, 게임 규칙과 화면 표현이 어긋나지 않게 한다.
 
 2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정 및 `ReferenceParity >96`까지의 반복을
 승인했다. 상세 비교와 종료 판정은
@@ -56,6 +59,42 @@ runtime에 포함하지 않을 1920×1080 target mockup 세 장을 먼저 만든
 각 mockup은 소유자 화면을 layout edit target으로, 위 reference를 역할별 style input으로 사용한다.
 고정 멀티모달 LLM jury가 카메라·강·밀도·UI의 첫 formative gate를 통과시키기 전에는 전체 runtime
 자산을 만들지 않는다.
+
+### 3.1 Step 1 — 원자 단위 도시 구성 하드 게이트
+
+target mockup은 방향 참고일 뿐 runtime 배경이나 큰 구획 자산이 아니다. G.3 구현의 첫 단계는 다음
+원자 단위 구성으로 다시 시작하며, 이 gate를 모두 통과하기 전에는 강·전력망·HUD의 다음 개선 단계로
+넘어가지 않는다.
+
+1. 기존 `city parcel H/I`와 모든 `district/parcel/cluster/neighborhood/hamlet` raster를 runtime에서
+   해제하고 rejected provenance로만 보존한다.
+2. 주택, 상점, 작업장, 소형 창고, 설비동, 병원동처럼 **solid building 한 채만** 담은 투명 PNG를
+   자산 하나당 ImageGen 한 호출로 만든다. 한 PNG 안의 부속건물·주택열·도시 실루엣은 금지한다.
+3. 직선 도로, 굽은 도로, T/십자 교차, 마당, 옹벽, 잔해, 가로등·케이블 릴도 각각 한 조각/한 prop인
+   독립 PNG 또는 seamless tile로 만든다. 도로망이나 여러 prop을 한 장에 미리 배열하지 않는다.
+4. renderer의 명시 배치 레코드가 각 instance의 `assetId`, world 좌표, depth key, 상태 tint를 소유한다.
+   도시 밀도·도로 연결·동네 윤곽은 이 레코드와 world data가 만들며 어느 raster도 이를 대신하지 않는다.
+5. 최소 12종의 원자 city/building/prop 자산과 최소 80개의 개별 runtime instance를 west plant→river→
+   east 생활권 vertical slice에 배치한다. 같은 자산 반복은 허용하지만 좌표·깊이순서는 각각 독립이다.
+6. 자동검사는 금지 family의 runtime path 0개, generator run과 PNG의 1:1 대응, 각 파일의 단일
+   `compositionUnit`, 실제 binding, 배치 instance 수와 projected-Y 정렬을 검사한다.
+7. `gpt-5.6-sol` ultra의 `PAIR-KIT-CITY` 구조 audit이 모든 cell을 `single solid object/tile = true`로,
+   runtime crop을 `large baked city raster = false`로 판정해야 Step 1을 닫는다. 이 boolean audit은
+   유사도 점수를 올리지 않으며 하나라도 실패하면 `FAIL_HARD_GATE`다.
+
+### 3.2 Step 1 종료 기록 — 2026-08-22
+
+Step 1은 [고정 증거](../../playtests/commercial-2d/g3-work-in-progress/atomic-step1-final/README.md)로
+닫았다. 단독 city/building/prop 12종과 road/yard 6종을 자산별 ImageGen 호출로 만들고, renderer가
+80 city + 40 road instance의 좌표와 projected depth 순서를 소유한다. `game/art/commercial/g3`에 남은
+29 PNG는 모두 실제 scene binding을 가지며, 과거 합성 후보 23개는 package 영역 밖 rejected
+provenance로 이동했다. 1920×1080 UI 100%·125% actual-input 캡처, Debug/Release build,
+CommercialChecks 22 suites/2,153 assertions가 통과했다.
+
+최종 `gpt-5.6-sol` ultra 구조 감사는 12/12 cell에서 `singleCompositionUnit=true`,
+`visibleSolidCount=1`, map에서 `largeBakedCityRasterPresent=false`, critical failure 0으로 `PASS`였다.
+이 값은 점수가 아니며 최종 ReferenceParity에 합산하지 않는다. 다음 활성 gate는 §5의 Step 2 원자
+water/bank/effect kit와 평상·폭염·범람 강 상태다.
 
 ## 4. 아이소메트릭 좌표와 입력
 
@@ -110,18 +149,21 @@ water surface는 흐름 방향이 일치하는 2:1 tile이고 bank는 transparen
 
 ## 6. 개별 art 목록
 
-G.3 예상 runtime raster는 **48종**이다. `5.2`의 river kit 15종을 모두 독립 file로 센 수치이며,
-water/bank 기반 3종으로 축약하지 않는다.
+G.3 raster 수는 큰 합성물을 소수 자산으로 세는 고정 `48종` 목표를 폐기한다. 최종 exact 수는 asset
+manifest가 소유하고, 아래 **원자 단위 최소 구성**보다 적을 수 없다.
 
-- ground·parcel 15종: diamond ground 4, neutral 2·heat 1·flood 1 water surface 4,
-  두 방향 road·교차·yard·plaza 5, residential/hospital base 2
-- transparent river edge·effect 11종: bank straight·inner bend·outer bend 6,
+- ground·road 최소 12종: diamond ground 4, 두 방향 straight road, corner 2, T/십자 교차,
+  yard, plaza. 각 road/tile은 한 연결 조각이다.
+- water surface 4종과 transparent river edge·effect 11종: bank straight·inner bend·outer bend 6,
   bridge abutment·rock/soil transition 3, reflection/ripple overlay 2
-- world object 16종: main plant, auxiliary switchyard, pole 2, bridge foundation, substation,
-  residential cluster 3, hospital 2, water facility 2, industry/warehouse 3
+- atomic city/building/prop 최소 12종: 단독 주택 3, 단독 상점 1, 단독 작업장 1, 단독 소형 창고 1,
+  단독 병원동 2, 단독 수도시설 2, 단일 옹벽·잔해/가로시설 prop 2 이상
+- atomic grid/facility part 최소 8종: 발전소 본관·굴뚝·터빈동을 각각 분리하고, switchyard,
+  pole 2, bridge foundation, substation을 각각 한 기능 object로 둔다.
 - UI chrome 6종: top metric plate, inspector 9-slice, tool slot, default/cyan/amber button plate
 
-합계는 `15 + 11 + 16 + 6 = 48`이며 manifest에서 family별 개수와 전체 개수를 모두 검사한다.
+따라서 final manifest는 최소 `53종`이며, 반복 instance 수는 asset 수와 별도로 기록한다. 한 파일에 여러
+건물을 넣어 수량을 맞추는 것은 자산 수와 무관하게 실패다.
 
 ImageGen은 atlas batch가 아니라 자산 하나당 한 호출을 사용한다. 모든 호출은 고정된 style anchor와
 해당 family에 가장 관련 있는 원본 reference를 함께 받는다. camera drift·투명 배경 실패·edge halo는
@@ -133,17 +175,19 @@ ImageGen은 atlas batch가 아니라 자산 하나당 한 호출을 사용한다
 최종 PNG SHA와 실제 runtime binding을 manifest에 남긴다. asset-sheet는 이 manifest의 개별 PNG에서
 자동 조립하며 별도의 합성 원화를 사용하지 않는다.
 
-홈 zoom 목표 표시 크기는 main plant `200~240px`, switchyard `110~130px`, substation `130~160px`,
-standard pole `70~80px`, reinforced pole `85~100px`, landmark `170~220px`, residential cluster
-`150~200px`다.
+홈 zoom 목표 표시 크기는 조립된 main plant ensemble `200~240px`, switchyard `110~130px`,
+substation `130~160px`, standard pole `70~80px`, reinforced pole `85~100px`, civic landmark
+`170~220px`, 단독 주택 `46~76px`, 단독 상점·작업장 `60~96px`다.
 
 ## 7. 도시 밀도와 공간 진실성
 
 - road paint, 균열, 낮은 토사처럼 통과 가능한 시각 요소는 별도 visual-layout authority에 둔다.
 - 건물·탱크·창고처럼 solid로 보이는 요소는 world v2 obstacle polygon을 가진다.
 - 장애물은 기존 checker-owned 성공 회랑을 먼저 표시한 뒤 그 밖에 배치한다.
-- 지도 영역의 준검정 공백은 `10%` 이하, 각 주요 district는 서로 다른 cluster 3개 이상을 가진다.
-- plant와 industry는 단일 icon이 아니라 yard·부속 건물로 읽히되 player path를 거짓으로 막지 않는다.
+- 지도 영역의 준검정 공백은 `10%` 이하로 한다. 각 주요 생활권은 단독 건물·도로·prop의 명시 배치
+  20개 이상으로 구성하고, 합성 district/cluster 이미지는 사용하지 않는다.
+- plant와 industry는 하나의 대형 합성 icon이 아니라 독립 본관·굴뚝·yard·부속 건물의 배치로 읽히되
+  player path를 거짓으로 막지 않는다.
 
 ## 8. 전력망·상태 renderer
 
@@ -172,8 +216,8 @@ timeline은 최소 `15px` 글자와 `16px` marker로 briefing→authored window/
 ## 10. LLM jury checkpoint와 종료
 
 1. target mockup 세 장: camera·river·density·HUD formative jury
-2. 48개 개별 asset-sheet와 west plant→river→east district vertical slice: asset provenance·실제 입력·
-   first-light runtime jury
+2. 원자 asset-kit sheet와 west plant→river→east 생활권 vertical slice: Step 1 atomic audit,
+   asset provenance·실제 입력·first-light runtime jury
 3. 평상·폭염·폭우·겨울밤 전체 상태: exact-tree final jury
 
 첫 번째 checkpoint를 통과하기 전에는 전체 asset family를 만들지 않는다. 최종 native evidence는
@@ -189,8 +233,8 @@ UI 125% ReduceMotion 여덟 장이다.
 | 요구사항 | 계획 소유 위치 | 종료 증거 |
 |---|---|---|
 | `assets/`와 최대한 같은 느낌·각도·설계 | §2~4, §7~9 | runtime 5 pair의 camera·density·material·HUD jury |
-| whole-map image를 뒤에 두지 않음 | §6 | 48개 provenance·runtime binding hard gate와 5개 asset-kit board jury |
-| 개별 tile/object 생성·적용 | §5.2, §6 | 개별 generator run·PNG SHA와 kit sheet jury |
+| whole-map/parcel/district image로 도시를 대신하지 않음 | §3.1, §6 | 금지 family runtime 0, atomic audit와 5개 asset-kit board jury |
+| 개별 tile/object 생성·적용 | §3.1, §5.2, §6 | 한 호출↔한 object/tile↔한 PNG↔runtime binding, instance 배치 장부 |
 | 강물·제방 품질 | §5 | `PAIR-KIT-RIVER`, `PAIR-NORMAL/HEAT/FLOOD`, river category `≥85` |
 | 독립 event timeline bar | §9 | actual-input timeline round trip과 `PAIR-KIT-UI/NORMAL/HEAT/ROUTE` |
 | 사람 review 없이 LLM judge만 사용 | §10과 평가 프로토콜 | `gpt-5.6-sol` ultra, order reversal, 독립 replicate, blind evidence verification |

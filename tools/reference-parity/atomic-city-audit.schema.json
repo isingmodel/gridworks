@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "pairId", "judgeSlot", "cells", "map", "criticalFailures", "verdict"],
+  "properties": {
+    "protocol": { "type": "string", "const": "G3-ATOMIC-CITY-AUDIT-v1" },
+    "pairId": { "type": "string", "const": "PAIR-KIT-CITY" },
+    "judgeSlot": { "type": "string", "const": "SOL-ULTRA" },
+    "cells": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cellId", "singleCompositionUnit", "visibleSolidCount", "evidenceBox", "observation"],
+        "properties": {
+          "cellId": { "enum": ["C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11", "C12"] },
+          "singleCompositionUnit": { "type": "boolean" },
+          "visibleSolidCount": { "type": "integer", "minimum": 0, "maximum": 20 },
+          "evidenceBox": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "integer", "minimum": 0, "maximum": 1000 }
+          },
+          "observation": { "type": "string" }
+        }
+      }
+    },
+    "map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["largeBakedCityRasterPresent", "evidenceBoxes", "observation"],
+      "properties": {
+        "largeBakedCityRasterPresent": { "type": "boolean" },
+        "evidenceBoxes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "integer", "minimum": 0, "maximum": 1000 }
+          }
+        },
+        "observation": { "type": "string" }
+      }
+    },
+    "criticalFailures": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "verdict": { "enum": ["PASS", "FAIL_HARD_GATE"] }
+  }
+}

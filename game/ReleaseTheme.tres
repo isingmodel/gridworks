@@ -1,81 +1,64 @@
-[gd_resource type="Theme" load_steps=12 format=3]
+[gd_resource type="Theme" load_steps=13 format=3]
+
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui/panel-frame.png" id="1_panel_frame"]
 
 [sub_resource type="SystemFont" id="SystemFont_Korean"]
 font_names = PackedStringArray("Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR", "sans-serif")
 
-[sub_resource type="StyleBoxFlat" id="StylePanel"]
-bg_color = Color(0.045, 0.052, 0.052, 0.985)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.46, 0.38, 0.25, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
-shadow_color = Color(0, 0, 0, 0.55)
-shadow_size = 3
+[sub_resource type="StyleBoxTexture" id="StylePanel"]
+texture = ExtResource("1_panel_frame")
+texture_margin_left = 20.0
+texture_margin_top = 20.0
+texture_margin_right = 20.0
+texture_margin_bottom = 20.0
+content_margin_left = 17.0
+content_margin_top = 14.0
+content_margin_right = 17.0
+content_margin_bottom = 14.0
 
-[sub_resource type="StyleBoxFlat" id="StyleButton"]
-bg_color = Color(0.075, 0.086, 0.086, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.4, 0.35, 0.25, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
+[sub_resource type="StyleBoxTexture" id="StyleButton"]
+texture = ExtResource("1_panel_frame")
+texture_margin_left = 15.0
+texture_margin_top = 15.0
+texture_margin_right = 15.0
+texture_margin_bottom = 15.0
+modulate_color = Color(0.78, 0.76, 0.7, 1)
 content_margin_left = 13.0
 content_margin_top = 8.0
 content_margin_right = 13.0
 content_margin_bottom = 8.0
 
-[sub_resource type="StyleBoxFlat" id="StyleButtonHover"]
-bg_color = Color(0.075, 0.19, 0.2, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.37, 0.76, 0.78, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
+[sub_resource type="StyleBoxTexture" id="StyleButtonHover"]
+texture = ExtResource("1_panel_frame")
+texture_margin_left = 15.0
+texture_margin_top = 15.0
+texture_margin_right = 15.0
+texture_margin_bottom = 15.0
+modulate_color = Color(0.58, 0.9, 0.92, 1)
 content_margin_left = 13.0
 content_margin_top = 8.0
 content_margin_right = 13.0
 content_margin_bottom = 8.0
 
-[sub_resource type="StyleBoxFlat" id="StyleButtonPressed"]
-bg_color = Color(0.23, 0.17, 0.08, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.87, 0.66, 0.31, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
+[sub_resource type="StyleBoxTexture" id="StyleButtonPressed"]
+texture = ExtResource("1_panel_frame")
+texture_margin_left = 15.0
+texture_margin_top = 15.0
+texture_margin_right = 15.0
+texture_margin_bottom = 15.0
+modulate_color = Color(0.98, 0.76, 0.42, 1)
 content_margin_left = 13.0
 content_margin_top = 8.0
 content_margin_right = 13.0
 content_margin_bottom = 8.0
 
-[sub_resource type="StyleBoxFlat" id="StyleButtonDisabled"]
-bg_color = Color(0.035, 0.042, 0.043, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.18, 0.18, 0.16, 1)
-corner_radius_top_left = 2
-corner_radius_top_right = 2
-corner_radius_bottom_right = 2
-corner_radius_bottom_left = 2
+[sub_resource type="StyleBoxTexture" id="StyleButtonDisabled"]
+texture = ExtResource("1_panel_frame")
+texture_margin_left = 15.0
+texture_margin_top = 15.0
+texture_margin_right = 15.0
+texture_margin_bottom = 15.0
+modulate_color = Color(0.36, 0.38, 0.36, 0.88)
 content_margin_left = 13.0
 content_margin_top = 8.0
 content_margin_right = 13.0

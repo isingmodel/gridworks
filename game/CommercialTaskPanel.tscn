@@ -1,28 +1,99 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://CommercialTaskPanel.cs" id="1_panel"]
 [ext_resource type="Script" path="res://CommercialPortrait.cs" id="2_portrait"]
+[ext_resource type="Texture2D" path="res://art/commercial/objects/substation-v1.png" id="3_substation"]
 
 [node name="CommercialTaskPanel" type="PanelContainer"]
-custom_minimum_size = Vector2(372, 0)
+custom_minimum_size = Vector2(300, 0)
 script = ExtResource("1_panel")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
 
 [node name="Column" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 7
 
 [node name="HeadingLabel" type="Label" parent="Margin/Column"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 24
 text = "첫 불빛"
+
+[node name="FacilityCard" type="PanelContainer" parent="Margin/Column"]
+custom_minimum_size = Vector2(0, 190)
+layout_mode = 2
+
+[node name="FacilityMargin" type="MarginContainer" parent="Margin/Column/FacilityCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
+
+[node name="FacilityRow" type="VBoxContainer" parent="Margin/Column/FacilityCard/FacilityMargin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="FacilityImage" type="TextureRect" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow"]
+custom_minimum_size = Vector2(0, 88)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+texture = ExtResource("3_substation")
+expand_mode = 3
+stretch_mode = 5
+tooltip_text = "선택 설비 미리보기"
+
+[node name="FacilityFacts" type="VBoxContainer" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="FacilityType" type="Label" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.68, 0.42, 1)
+text = "배전 변전소"
+
+[node name="FacilityCapacity" type="Label" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.37, 0.78, 0.79, 1)
+theme_override_font_sizes/font_size = 25
+text = "4.0 MW"
+
+[node name="CapacitySegments" type="HBoxContainer" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Segment1" type="ColorRect" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts/CapacitySegments"]
+custom_minimum_size = Vector2(20, 8)
+layout_mode = 2
+color = Color(0.32, 0.75, 0.8, 1)
+
+[node name="Segment2" type="ColorRect" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts/CapacitySegments"]
+custom_minimum_size = Vector2(20, 8)
+layout_mode = 2
+color = Color(0.32, 0.75, 0.8, 1)
+
+[node name="Segment3" type="ColorRect" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts/CapacitySegments"]
+custom_minimum_size = Vector2(20, 8)
+layout_mode = 2
+color = Color(0.32, 0.75, 0.8, 1)
+
+[node name="Segment4" type="ColorRect" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts/CapacitySegments"]
+custom_minimum_size = Vector2(20, 8)
+layout_mode = 2
+color = Color(0.18, 0.22, 0.22, 1)
+
+[node name="FacilityState" type="Label" parent="Margin/Column/FacilityCard/FacilityMargin/FacilityRow/FacilityFacts"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.72, 0.68, 1)
+text = "연속 운전 · 정상"
 
 [node name="InfoScroll" type="ScrollContainer" parent="Margin/Column"]
 layout_mode = 2

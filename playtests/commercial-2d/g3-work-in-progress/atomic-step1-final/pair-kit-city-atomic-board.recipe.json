@@ -1,0 +1,473 @@
+{
+  "boardSha256": "b152ab46e987d0fc7e9996cdad61462f4b1980481389ba1eaba2da70afd93f3b",
+  "boardSize": [
+    1600,
+    1080
+  ],
+  "cells": [
+    {
+      "alphaBounds": [
+        201,
+        88,
+        1053,
+        1151
+      ],
+      "boardCellRect": [
+        28,
+        72,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        215,
+        341
+      ],
+      "boardPasteRect": [
+        119,
+        141,
+        192,
+        239
+      ],
+      "cellId": "C01",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        627.0,
+        978.12
+      ],
+      "runtimePath": "g3/atomic/worker-house-a.png",
+      "runtimeSha256": "9159d64fbef14a6d35da1695ef5d3bf74b66cf17bdfa69e5bf7a02f66aef133c",
+      "scale": 0.22483537,
+      "sourceSize": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "alphaBounds": [
+        223,
+        114,
+        1256,
+        1063
+      ],
+      "boardCellRect": [
+        417,
+        72,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        604,
+        341
+      ],
+      "boardPasteRect": [
+        481,
+        152,
+        260,
+        239
+      ],
+      "cellId": "C02",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        710.0,
+        864.24
+      ],
+      "runtimePath": "g3/atomic/worker-house-b.png",
+      "runtimeSha256": "0f1c6d2eb9281cdb99b0291bb76ea39c5e759fb0aec6d670921c07a01882c71c",
+      "scale": 0.25184405,
+      "sourceSize": [
+        1420,
+        1108
+      ]
+    },
+    {
+      "alphaBounds": [
+        266,
+        91,
+        763,
+        1422
+      ],
+      "boardCellRect": [
+        806,
+        72,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        993,
+        341
+      ],
+      "boardPasteRect": [
+        949,
+        142,
+        89,
+        239
+      ],
+      "cellId": "C03",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        512.0,
+        1198.08
+      ],
+      "runtimePath": "g3/atomic/worker-house-c.png",
+      "runtimeSha256": "4b5e80d82193abe201c8744adb8c5a36f2f5fa8a121dbb2e38ef7900391edfd5",
+      "scale": 0.17956424,
+      "sourceSize": [
+        1024,
+        1536
+      ]
+    },
+    {
+      "alphaBounds": [
+        230,
+        112,
+        1003,
+        1152
+      ],
+      "boardCellRect": [
+        1195,
+        72,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        1382,
+        341
+      ],
+      "boardPasteRect": [
+        1291,
+        142,
+        178,
+        239
+      ],
+      "cellId": "C04",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        627.0,
+        978.12
+      ],
+      "runtimePath": "g3/atomic/row-shop-a.png",
+      "runtimeSha256": "4d75f76c62fe922d07ab90cfe684d7b062b9c997fbaf6e9a80039a7b10afb279",
+      "scale": 0.22980769,
+      "sourceSize": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "alphaBounds": [
+        87,
+        152,
+        1171,
+        1099
+      ],
+      "boardCellRect": [
+        28,
+        403,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        215,
+        672
+      ],
+      "boardPasteRect": [
+        79,
+        464,
+        274,
+        239
+      ],
+      "cellId": "C05",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        627.0,
+        978.12
+      ],
+      "runtimePath": "g3/atomic/workshop-a.png",
+      "runtimeSha256": "7471e78cdef99430d97d80bfc1eebf25afadf3c194f6dc965a5457d05716b920",
+      "scale": 0.25237592,
+      "sourceSize": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "alphaBounds": [
+        229,
+        136,
+        1263,
+        954
+      ],
+      "boardCellRect": [
+        417,
+        403,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        604,
+        672
+      ],
+      "boardPasteRect": [
+        447,
+        478,
+        302,
+        239
+      ],
+      "cellId": "C06",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        768.0,
+        798.72
+      ],
+      "runtimePath": "g3/atomic/small-warehouse-a.png",
+      "runtimeSha256": "089017630516b33dcca357cbc7aec08b3d0ff22235079459cb2bbce8beb4d221",
+      "scale": 0.29217604,
+      "sourceSize": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        303,
+        34,
+        1084,
+        1063
+      ],
+      "boardCellRect": [
+        806,
+        403,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        993,
+        672
+      ],
+      "boardPasteRect": [
+        901,
+        477,
+        181,
+        239
+      ],
+      "cellId": "C07",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        701.0,
+        875.1600000000001
+      ],
+      "runtimePath": "g3/atomic/hospital-main-a.png",
+      "runtimeSha256": "e7f50e9e970ec1172f6ca4595660fdb3bb5ce57e3dac332999f60ceda5702444",
+      "scale": 0.23226433,
+      "sourceSize": [
+        1402,
+        1122
+      ]
+    },
+    {
+      "alphaBounds": [
+        198,
+        123,
+        1096,
+        1159
+      ],
+      "boardCellRect": [
+        1195,
+        403,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        1382,
+        672
+      ],
+      "boardPasteRect": [
+        1283,
+        475,
+        207,
+        239
+      ],
+      "cellId": "C08",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        627.0,
+        978.12
+      ],
+      "runtimePath": "g3/atomic/hospital-service-a.png",
+      "runtimeSha256": "97ed4d5f889069f5587fbf70e6b6c4419eb8b154e007e28f4524f2169a08a201",
+      "scale": 0.23069498,
+      "sourceSize": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "alphaBounds": [
+        269,
+        136,
+        1182,
+        965
+      ],
+      "boardCellRect": [
+        28,
+        734,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        215,
+        1003
+      ],
+      "boardPasteRect": [
+        84,
+        798,
+        263,
+        239
+      ],
+      "cellId": "C09",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        724.0,
+        847.08
+      ],
+      "runtimePath": "g3/atomic/pump-house-a.png",
+      "runtimeSha256": "a1de39d09bb5e7a10511b5fb899b10bdc2f246340ece23eea08c82ec176d131c",
+      "scale": 0.28829916,
+      "sourceSize": [
+        1448,
+        1086
+      ]
+    },
+    {
+      "alphaBounds": [
+        170,
+        30,
+        1036,
+        1341
+      ],
+      "boardCellRect": [
+        417,
+        734,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        604,
+        1003
+      ],
+      "boardPasteRect": [
+        531,
+        813,
+        158,
+        239
+      ],
+      "cellId": "C10",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        572.5,
+        1071.72
+      ],
+      "runtimePath": "g3/atomic/water-tank-a.png",
+      "runtimeSha256": "15bf9ceb387a92c625ad7f9380c476da10b037161d2253a2eef52035114881ac",
+      "scale": 0.18230359,
+      "sourceSize": [
+        1145,
+        1374
+      ]
+    },
+    {
+      "alphaBounds": [
+        247,
+        91,
+        1360,
+        968
+      ],
+      "boardCellRect": [
+        806,
+        734,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        993,
+        1003
+      ],
+      "boardPasteRect": [
+        851,
+        810,
+        303,
+        239
+      ],
+      "cellId": "C11",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        768.0,
+        798.72
+      ],
+      "runtimePath": "g3/atomic/retaining-wall-a.png",
+      "runtimeSha256": "54e41d72dec8c8df61bd5e895885364417e0d76120236d994a5dda199eb1ea5c",
+      "scale": 0.27251995,
+      "sourceSize": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        65,
+        69,
+        986,
+        1464
+      ],
+      "boardCellRect": [
+        1195,
+        734,
+        375,
+        317
+      ],
+      "boardGroundAnchor": [
+        1382,
+        1003
+      ],
+      "boardPasteRect": [
+        1305,
+        810,
+        158,
+        239
+      ],
+      "cellId": "C12",
+      "compositionUnitCountExpected": 1,
+      "runtimeGroundPivot": [
+        512.0,
+        1198.08
+      ],
+      "runtimePath": "g3/atomic/street-lamp-a.png",
+      "runtimeSha256": "3c90099d3c08db87ceede6cc2527b6e38d23634be9b570c0ba5c69511174a0e5",
+      "scale": 0.17132616,
+      "sourceSize": [
+        1024,
+        1536
+      ]
+    }
+  ],
+  "layout": {
+    "cellCount": 12,
+    "columns": 4,
+    "rows": 3
+  },
+  "mapCaptureSha256": "aecc39767d24b6a208b8ffa1d4b7947ba4acf6cbd2238620c3d592e3ff33918e",
+  "pairId": "PAIR-KIT-CITY",
+  "protocol": "G3-ATOMIC-CITY-AUDIT-v1",
+  "rendering": {
+    "background": "#090d0e",
+    "colorCorrection": false,
+    "neutralDiamond": "#1d2422",
+    "pillowVersion": "11.3.0",
+    "resampling": "LANCZOS",
+    "retouch": false,
+    "runtimeGroundPivot": [
+      0.5,
+      0.78
+    ]
+  }
+}

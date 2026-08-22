@@ -16,8 +16,13 @@
 연결했지만, 2026-08-21 소유자 실행 screenshot에서 camera, 도시 밀도, object scale, 강물·제방,
 전력망과 UI가 `assets/01~04`와 크게 다르다고 거부됐다. [G.3 레퍼런스 정렬 계획](docs/product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md)과
 [평가 프로토콜](docs/product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)은 2026-08-21 사용자 지시로
-활성화됐다. 개별 tile/object와 게임 구현을 필요한 만큼 근본적으로 바꾸고, 고정 LLM jury
+활성화됐다. 도시를 큰 district/parcel 이미지로 만들지 않고 건물 한 채·도로 조각·시설 부품·prop을
+각각 생성해 코드가 개별 배치한다. 개별 tile/object와 게임 구현을 필요한 만큼 근본적으로 바꾸고, 고정 LLM jury
 `ReferenceParity >96`을 달성할 때까지 반복한다.
+2026-08-22 Step 1 원자 도시 hard gate는 단독 city/building/prop 12종, 단독 road 6종, 명시 배치
+80+40개, package-eligible 합성 후보 0개를 고정했다. `gpt-5.6-sol` ultra 구조 감사도 12/12 단일
+composition unit과 baked-city=false로 통과했다. 현재 작업은 Step 2 개별 water/bank/effect kit와 강
+상태 표현이며, 이 Step 1 PASS는 최종 `ReferenceParity` 점수가 아니다.
 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소 주기기·전신주
 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도 v2
 world·campaign·Core와 기본 장면에서 그 범위를 순서대로 완성했다. 단계 H의 외부 검증·공개 후보는

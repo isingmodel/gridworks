@@ -16,6 +16,13 @@ output_json="$7"
 script_dir="${0:A:h}"
 prompt_template="$script_dir/judge-prompt.template.txt"
 schema="$script_dir/judge-output.schema.json"
+expected_codex_version="${GRIDWORKS_JUDGE_CODEX_VERSION:-codex-cli 0.149.0}"
+actual_codex_version="$(codex --version)"
+
+if [[ "$actual_codex_version" != "$expected_codex_version" ]]; then
+  print -u2 "judge transport version mismatch: expected '$expected_codex_version', got '$actual_codex_version'"
+  exit 3
+fi
 
 if [[ "$order" == "REFERENCE_FIRST" ]]; then
   first_image="$reference_image"

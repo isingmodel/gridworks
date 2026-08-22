@@ -29,8 +29,13 @@ Criterion anchors:
 - scale: relative plant, pole, substation, landmark, and facility silhouette sizes.
 - material: blackened metal, concrete, soil, midtones, amber lighting, and detail cohesion.
 - grid: cyan/amber conductors, tower attachment, route readability, and energized/planned distinction.
-- hud: industrial chrome, overlay ratio, inspector hierarchy, legibility, and map integration.
+- hud: industrial chrome, overlay ratio, inspector hierarchy, legibility, and map integration,
+  excluding every pixel inside the named TIMELINE ROI. A required CANDIDATE event timeline must not
+  lower hud, density, grid, or another non-timeline label even when the REFERENCE has no bottom strip.
 - state: normal/heat/flood/winter reads as a state change of one persistent world.
-- timeline: independent event-stage bar, actual progress/result legibility, and HUD-language integration.
+- timeline: CANDIDATE must be an independent event-stage bar with actual progress/result legibility;
+  compare its footprint, chrome, hierarchy, and HUD integration to the REFERENCE bottom strip. The
+  REFERENCE strip is playback-oriented by design, so playback-versus-event semantic purpose is not a
+  visual difference and must not lower the label.
 
 Use judgeSlot "SOL-ULTRA", pairId "__PAIR_ID__", order "__ORDER__", and replicate __REPLICATE__.

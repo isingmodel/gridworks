@@ -175,6 +175,7 @@ internal sealed class CommercialChecks
             ("commercial-core-save-v3", CheckCommercialCoreSaveV3),
             ("commercial-settings-v3-migration-and-atomicity", CheckCommercialSettingsV3),
             ("strict-commercial-campaign-loader", CheckStrictCommercialCampaignLoader),
+            ("commercial-authored-copy-contract", CheckCommercialAuthoredCopy),
             ("commercial-story-part-harness", CheckCommercialStoryPartHarness),
             ("commercial-campaign-first-four-carry-save", CheckCommercialCampaignFirstFourCarrySave),
             ("commercial-campaign-final-eight-epilogue", CheckCommercialCampaignFinalEightEpilogue),
@@ -1986,6 +1987,182 @@ internal sealed class CommercialChecks
                     Object(JsonArrayProperty(root, "chapters")[0]!),
                     "operatingPhases")[0]!),
                 "loads")[0]!)["requireSubstationPath"] = false);
+    }
+
+    private void CheckCommercialAuthoredCopy()
+    {
+        string contextPath = Path.Combine(
+            _repositoryDirectory,
+            "tools",
+            "commercial-ux",
+            "text-plan-context.json");
+        string contextJson = File.ReadAllText(contextPath);
+        using JsonDocument contextDocument = JsonDocument.Parse(contextJson);
+        JsonElement[] contextChapters = contextDocument.RootElement
+            .GetProperty("chapters")
+            .EnumerateArray()
+            .ToArray();
+        Equal(8, contextChapters.Length, "text-plan authored chapter count");
+
+        string ContextField(string chapterId, string fieldName)
+        {
+            JsonElement chapter = contextChapters.Single(item =>
+                item.GetProperty("chapterId").GetString() == chapterId);
+            return chapter.GetProperty(fieldName).GetString()!;
+        }
+
+        var campaignCopy = new List<string>();
+        void AddStory(CommercialStoryCard? story)
+        {
+            if (story is null)
+            {
+                return;
+            }
+
+            campaignCopy.Add(story.Speaker);
+            campaignCopy.Add(story.Title);
+            campaignCopy.Add(story.Body);
+        }
+
+        foreach (CommercialCoreChapter chapter in _campaign.Chapters)
+        {
+            campaignCopy.Add(chapter.DisplayName);
+            AddStory(chapter.Briefing);
+            campaignCopy.Add(chapter.Objective);
+            if (chapter.Promise is not null)
+            {
+                campaignCopy.Add(chapter.Promise.DisplayName);
+            }
+            foreach (CommercialCoreDecisionWindow window in chapter.DecisionWindows)
+            {
+                AddStory(window.Story);
+            }
+            foreach (CommercialCoreOperatingPhase phase in chapter.OperatingPhases)
+            {
+                campaignCopy.Add(phase.DisplayName);
+                campaignCopy.AddRange(phase.Loads.Select(load => load.DisplayName));
+            }
+            AddStory(chapter.StandardResult);
+            AddStory(chapter.KeptResult);
+            AddStory(chapter.DeferredResult);
+        }
+        AddStory(_campaign.Epilogue);
+
+        string authoredCopy = string.Join('\n', campaignCopy) + '\n' + contextJson;
+        string[] forbiddenPhrases =
+        [
+            "draft",
+            "reset",
+            "장간 시간경과",
+            "작성된 정비 시간",
+            "사용불가",
+        ];
+        foreach (string phrase in forbiddenPhrases)
+        {
+            Check(authoredCopy.IndexOf(phrase, StringComparison.OrdinalIgnoreCase) < 0,
+                $"authored copy still contains forbidden phrase '{phrase}'");
+        }
+
+        CommercialCoreChapter firstLight = _campaign.Chapters.Single(chapter =>
+            chapter.ChapterId == "FIRST_LIGHT");
+        Check(firstLight.Briefing.Body.Contains("건설·조작 순서", StringComparison.Ordinal) &&
+            firstLight.Briefing.Body.Contains("단계별로 안내", StringComparison.Ordinal),
+            "first-light briefing did not introduce staged construction/control guidance");
+        string firstLightLearning = ContextField("FIRST_LIGHT", "learningIntent");
+        Check(firstLightLearning.Contains("건설·조작 순서 안내", StringComparison.Ordinal),
+            "first-light text plan omitted construction/control sequence guidance");
+        Check(ContextField("FIRST_LIGHT", "choiceIntent")
+                .Contains("작성 중 계획", StringComparison.Ordinal),
+            "first-light text plan omitted the Korean in-progress-plan term");
+
+        CommercialCoreChapter secondHeart = _campaign.Chapters.Single(chapter =>
+            chapter.ChapterId == "SECOND_HEART");
+        Check(secondHeart.Briefing.Body.Contains("건설·조작 순서는 되풀이하지 않고",
+                StringComparison.Ordinal) &&
+            secondHeart.Briefing.Body.Contains("차단시험", StringComparison.Ordinal) &&
+            secondHeart.Briefing.Body.Contains("경로를 확인하는 안내만", StringComparison.Ordinal),
+            "second-heart briefing did not retain route-test-only guidance");
+        string secondHeartLearning = ContextField("SECOND_HEART", "learningIntent");
+        Check(secondHeartLearning.Contains("건설·조작 순서를 되풀이하지 않고",
+                StringComparison.Ordinal) &&
+            secondHeartLearning.Contains("경로 시험 안내만 유지", StringComparison.Ordinal),
+            "second-heart text plan did not stage the route-test-only guidance");
+
+        CommercialCoreChapter secondSource = _campaign.Chapters.Single(chapter =>
+            chapter.ChapterId == "SECOND_SOURCE");
+        string tutorialHandoff = secondSource.StandardResult.Body;
+        Check(tutorialHandoff.Contains("인수시험", StringComparison.Ordinal) &&
+            tutorialHandoff.Contains("건설·조작 순서", StringComparison.Ordinal) &&
+            tutorialHandoff.Contains("경로 시험 안내", StringComparison.Ordinal) &&
+            tutorialHandoff.Contains("여기서 끝납니다", StringComparison.Ordinal),
+            "second-source result did not identify the guidance that ends after acceptance");
+        Check(tutorialHandoff.Contains("각 장의 목표", StringComparison.Ordinal) &&
+            tutorialHandoff.Contains("필수 공급 의무", StringComparison.Ordinal) &&
+            tutorialHandoff.Contains("도시 약속", StringComparison.Ordinal) &&
+            tutorialHandoff.Contains("다음 경계 예보", StringComparison.Ordinal) &&
+            tutorialHandoff.Contains("계속 표시", StringComparison.Ordinal),
+            "second-source result did not identify the information retained after tutorial handoff");
+        string secondSourceLearning = ContextField("SECOND_SOURCE", "learningIntent");
+        Check(secondSourceLearning.Contains("건설·조작 순서와 경로 시험 안내가 끝나지만",
+                StringComparison.Ordinal) &&
+            secondSourceLearning.Contains("장별 목표", StringComparison.Ordinal) &&
+            secondSourceLearning.Contains("필수 공급 의무", StringComparison.Ordinal) &&
+            secondSourceLearning.Contains("다음 경계 예보", StringComparison.Ordinal),
+            "second-source text plan did not preserve the staged tutorial handoff facts");
+
+        CommercialCoreChapter flood = _campaign.Chapters.Single(chapter =>
+            chapter.ChapterId == "BEFORE_WATER_REACHES");
+        string floodWindow = flood.DecisionWindows.Single(window =>
+            window.WindowId == "FLOOD_BYPASS_BUILD").Story!.Body;
+        Check(floodWindow.Contains("사용 불가", StringComparison.Ordinal),
+            "flood window omitted the spaced Korean unavailable label");
+
+        CommercialCoreChapter maintenance = _campaign.Chapters.Single(chapter =>
+            chapter.ChapterId == "SHUT_DOWN_TO_KEEP");
+        Check(maintenance.Briefing.Body.Contains("3주가 지나", StringComparison.Ordinal),
+            "maintenance briefing omitted the natural long-gap wording");
+        string maintenanceWindow = maintenance.DecisionWindows.Single(window =>
+            window.WindowId == "MAINTENANCE_BYPASS_BUILD").Story!.Body;
+        Check(maintenanceWindow.Contains("예정된 정비 시간", StringComparison.Ordinal),
+            "maintenance window omitted the scheduled-maintenance wording");
+        string maintenanceLearning = ContextField("SHUT_DOWN_TO_KEEP", "learningIntent");
+        Check(maintenanceLearning.Contains("초기화", StringComparison.Ordinal) &&
+            maintenanceLearning.Contains("복귀", StringComparison.Ordinal),
+            "maintenance text plan omitted the Korean reset/return terms");
+
+        CommercialCoreChapter finale = _campaign.Chapters.Single(chapter =>
+            chapter.ChapterId == "LONGEST_NIGHT");
+        CommercialStoryCard? stormStory = finale.DecisionWindows.Single(window =>
+            window.WindowId == "LAST_STORM_APPROVAL").Story;
+        Check(stormStory is not null, "last-storm approval story is missing");
+        string finalePreResult = finale.Briefing.Body + '\n' + stormStory!.Body;
+        Check(finalePreResult.Contains("첫 폭염 경계", StringComparison.Ordinal) &&
+            finalePreResult.Contains("2.6 MW", StringComparison.Ordinal) &&
+            finalePreResult.Contains("지킬지", StringComparison.Ordinal) &&
+            finalePreResult.Contains("미룰지", StringComparison.Ordinal),
+            "finale pre-result story did not introduce the 2.6 MW keep/defer promise choice");
+        Check(finale.Objective.Contains("첫 폭염 경계", StringComparison.Ordinal) &&
+            finale.Objective.Contains("2.6 MW", StringComparison.Ordinal) &&
+            finale.Objective.Contains("지킬지 미룰지", StringComparison.Ordinal),
+            "finale objective did not preserve the timed 2.6 MW promise decision");
+        string finaleChoice = ContextField("LONGEST_NIGHT", "choiceIntent");
+        Check(finaleChoice.Contains("첫 폭염 경계", StringComparison.Ordinal) &&
+            finaleChoice.Contains("2.6 MW", StringComparison.Ordinal) &&
+            finaleChoice.Contains("지킬지 미룰지", StringComparison.Ordinal),
+            "finale text plan omitted the timed 2.6 MW promise decision");
+
+        Check(finale.Promise is not null, "finale promise is missing");
+        CommercialCorePromise finalePromise = finale.Promise!;
+        CommercialCoreOperatingPhase[] promiseLoadPhases = finale.OperatingPhases
+            .Where(phase => phase.Loads.Any(load => load.LoadId == finalePromise.LoadId))
+            .ToArray();
+        SequenceEqual(
+            new[] { "LAST_HEAT" },
+            promiseLoadPhases.Select(phase => phase.PhaseId).ToArray(),
+            "finale promise load phase placement");
+        CommercialCoreLoadBundle finalePromiseLoad = promiseLoadPhases.Single().Loads.Single(load =>
+            load.LoadId == finalePromise.LoadId);
+        Equal(2600L, finalePromiseLoad.DemandKw, "finale promise load demand");
     }
 
     private void CheckCommercialStoryPartHarness()

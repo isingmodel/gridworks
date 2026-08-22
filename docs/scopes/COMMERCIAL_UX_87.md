@@ -236,3 +236,5 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
   checkout `bin/obj`를 배제한다. 따라서 candidate commit이 verifier 파일 3개의 hash를 유지한 채
   암시적 build input으로 replay report를 위조할 수 없다. 이는 gold replay verifier만 닫으며 실제 게임
   build tree와 전체 runtime resource authority는 `CANDIDATE-MANIFEST-PACKAGER` gate의 별도 P1이다.
+- replay build authority 보완 `87bad71`과 candidate project 실행 제거 `8a69b95`의 exact follow-up
+  독립 재검토는 **P0 0 / P1 0 / P2 0**이다.

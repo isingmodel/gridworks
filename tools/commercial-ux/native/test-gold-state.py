@@ -7,11 +7,10 @@ import base64
 import copy
 import hashlib
 import importlib.util
-import io
 import json
+import shutil
 import subprocess
 import sys
-import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -24,6 +23,7 @@ VALIDATOR = NATIVE / "validate-gold-state.py"
 MANIFEST = NATIVE / "gold-state-manifest.json"
 BINDING_SCHEMA = NATIVE / "gold-binding-manifest.schema.json"
 HOLDOUT_QUEUE = NATIVE / "holdout-recipes.json"
+BUILD_INPUTS = NATIVE / "gold-replay-build-inputs.json"
 
 
 def sha(digit: str) -> str:
@@ -374,10 +374,9 @@ class GoldStateContractTests(unittest.TestCase):
             "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
             "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
         }, separators=(",", ":")).encode("utf-8"))
-        project = ROOT / "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
         with validator.isolated_gold_replay_verifier_assembly(
             ROOT,
-            project,
+            BUILD_INPUTS,
         ) as verifier_assembly:
             emitted = subprocess.run(
                 [
@@ -439,7 +438,6 @@ class GoldStateContractTests(unittest.TestCase):
             ensure_ascii=False,
             indent=2,
         ).encode("utf-8")
-        project = ROOT / "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
         with tempfile.TemporaryDirectory() as temporary:
             directory = Path(temporary)
             emit_input = directory / "emit.json"
@@ -451,7 +449,7 @@ class GoldStateContractTests(unittest.TestCase):
             }, separators=(",", ":")).encode("utf-8"))
             with validator.isolated_gold_replay_verifier_assembly(
                 ROOT,
-                project,
+                BUILD_INPUTS,
             ) as verifier_assembly:
                 emitted = subprocess.run(
                     [
@@ -546,7 +544,7 @@ class GoldStateContractTests(unittest.TestCase):
             noncanonical_journal.stderr.decode(),
         )
 
-    def test_isolated_verifier_build_ignores_stale_checkout_bin_and_obj(self) -> None:
+    def test_isolated_verifier_build_uses_only_bound_source_bytes(self) -> None:
         validator = self.load_validator()
         world_bytes = (ROOT / "data/release-world-v2.json").read_bytes()
         campaign_bytes = (ROOT / "data/release-campaign-v2.json").read_bytes()
@@ -564,27 +562,53 @@ class GoldStateContractTests(unittest.TestCase):
             ensure_ascii=False,
             indent=2,
         ).encode("utf-8")
-        archive = subprocess.run(
-            [
-                "git", "archive", "--format=tar", "HEAD",
-                "tools/Gridworks.GoldReplayVerifier",
-                "tools/Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
-                "src/Gridworks.Core",
-            ],
-            cwd=ROOT,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=30,
-        )
         with tempfile.TemporaryDirectory() as temporary:
             clean_root = Path(temporary) / "checkout"
             clean_root.mkdir()
-            with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as source:
-                source.extractall(clean_root)
-            project = clean_root / (
-                "tools/Gridworks.GoldReplayVerifier/"
-                "Gridworks.GoldReplayVerifier.csproj"
+            for relative in (
+                Path("global.json"),
+                Path("tools/commercial-ux/native/gold-replay-build-inputs.json"),
+                Path("tools/Gridworks.GoldReplayVerifier"),
+                Path(
+                    "tools/Gridworks.CommercialChecks/"
+                    "CommercialGoldReplayVerifier.cs"
+                ),
+                Path("src/Gridworks.Core"),
+            ):
+                source = ROOT / relative
+                destination = clean_root / relative
+                if source.is_dir():
+                    shutil.copytree(
+                        source,
+                        destination,
+                        ignore=shutil.ignore_patterns("bin", "obj"),
+                    )
+                else:
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source, destination)
+            for build_hook in (
+                "Directory.Build.props",
+                "Directory.Build.targets",
+                "Directory.Packages.props",
+            ):
+                (clean_root / build_hook).write_text(
+                    '<Project><Import Project="HOSTILE_UNBOUND_INPUT" /></Project>\n',
+                    encoding="utf-8",
+                )
+            hostile_verifier_source = clean_root / (
+                "tools/Gridworks.GoldReplayVerifier/HostileImplicit.cs"
+            )
+            hostile_verifier_source.write_text(
+                '#error HOSTILE_UNBOUND_VERIFIER_SOURCE\n',
+                encoding="utf-8",
+            )
+            hostile_core_source = clean_root / "src/Gridworks.Core/HostileImplicit.cs"
+            hostile_core_source.write_text(
+                '#error HOSTILE_UNBOUND_CORE_SOURCE\n',
+                encoding="utf-8",
+            )
+            build_inputs = clean_root / (
+                "tools/commercial-ux/native/gold-replay-build-inputs.json"
             )
             stale_assembly = clean_root / (
                 "tools/Gridworks.GoldReplayVerifier/bin/Release/net8.0/"
@@ -606,7 +630,7 @@ class GoldStateContractTests(unittest.TestCase):
             }, separators=(",", ":")).encode("utf-8"))
             with validator.isolated_gold_replay_verifier_assembly(
                 clean_root,
-                project,
+                build_inputs,
             ) as verifier_assembly:
                 self.assertNotIn(str(clean_root), str(verifier_assembly))
                 emitted = subprocess.run(
@@ -623,8 +647,63 @@ class GoldStateContractTests(unittest.TestCase):
             self.assertEqual(0, emitted.returncode, emitted.stderr.decode())
             self.assertEqual(b"HOSTILE STALE ASSEMBLY", stale_assembly.read_bytes())
             self.assertEqual(b"HOSTILE STALE ASSETS", stale_assets.read_bytes())
+            self.assertTrue(hostile_verifier_source.is_file())
+            self.assertTrue(hostile_core_source.is_file())
+            self.assertFalse((clean_root / "HOSTILE_UNBOUND_INPUT").exists())
             snapshot = json.loads(emitted.stdout)
             self.assertEqual("FIRST_LIGHT", snapshot["chapter"]["chapterId"])
+
+    def test_build_input_manifest_rejects_bound_source_or_manifest_drift(self) -> None:
+        validator = self.load_validator()
+        manifest = json.loads(BUILD_INPUTS.read_text(encoding="utf-8"))
+        with tempfile.TemporaryDirectory() as temporary:
+            clean_root = Path(temporary) / "checkout"
+            for row in manifest["files"]:
+                source = ROOT / row["path"]
+                destination = clean_root / row["path"]
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source, destination)
+            copied_manifest = clean_root / (
+                "tools/commercial-ux/native/gold-replay-build-inputs.json"
+            )
+            copied_manifest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(BUILD_INPUTS, copied_manifest)
+            exact_sources = validator.read_gold_replay_build_inputs(
+                clean_root,
+                copied_manifest,
+            )
+            self.assertEqual(24, len(exact_sources))
+
+            bound_source = clean_root / manifest["files"][-1]["path"]
+            original_source = bound_source.read_bytes()
+            bound_source.write_bytes(original_source + b"\n")
+            with self.assertRaisesRegex(
+                validator.ContractError,
+                "raw bytes mismatch",
+            ):
+                validator.read_gold_replay_build_inputs(
+                    clean_root,
+                    copied_manifest,
+                )
+            bound_source.write_bytes(original_source)
+
+            mutated_manifest = copy.deepcopy(manifest)
+            mutated_manifest["files"][0], mutated_manifest["files"][1] = (
+                mutated_manifest["files"][1],
+                mutated_manifest["files"][0],
+            )
+            copied_manifest.write_text(
+                json.dumps(mutated_manifest, ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                validator.ContractError,
+                "path/role set or order drift",
+            ):
+                validator.read_gold_replay_build_inputs(
+                    clean_root,
+                    copied_manifest,
+                )
 
     def test_gold_bundle_disk_integrity_accepts_valid_and_rejects_mutations(self) -> None:
         validator = self.load_validator()
@@ -894,6 +973,18 @@ class GoldStateContractTests(unittest.TestCase):
             result = self.invoke(self.write_manifest(Path(temporary), value))
         self.assertNotEqual(0, result.returncode)
         self.assertIn("authorities.coverageRecipe raw SHA-256 mismatch", result.stderr)
+
+        value = copy.deepcopy(self.base)
+        value["authorities"]["goldReplayVerifier"]["buildInputsSha256"] = (
+            "sha256:" + "0" * 64
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            result = self.invoke(self.write_manifest(Path(temporary), value))
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn(
+            "authorities.goldReplayVerifier.buildInputsSha256 raw SHA mismatch",
+            result.stderr,
+        )
 
     def test_candidate_dependent_source_hash_cannot_be_frozen_in_gold(self) -> None:
         value = copy.deepcopy(self.base)

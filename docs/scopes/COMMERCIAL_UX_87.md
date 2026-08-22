@@ -224,7 +224,11 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
   복사하지 않고 finalized INITIAL attempt chain을 다시 검증해 effective 9-slot selection에 결속한다.
   receipt별 root와 `slots/`의 전체 자식 집합도 exact하게 검사하므로 미신고 slot·폐기 session sibling은
   audit 밖에 남을 수 없다.
-- 현재 결정론적 결과는 schema 35개, contract 53 시나리오, gold-state 24, session 16, aggregate 78,
+- 현재 결정론적 결과는 schema 36개, contract 53 시나리오, gold-state 25, session 16, aggregate 78,
   CommercialChecks 24 suites/2,910 assertions PASS다. 17개 deterministic producer stage와 raw hash
   binding이 아직 없으므로 `scoreBearingCaptureAllowed=false`, 공식 cold/native 점수 미실행 상태를
   유지한다.
+- gold replay verifier는 raw-hash-bound 24개 입력만 private temp source tree로 materialize하고
+  `Directory.Build.props/targets`, `Directory.Packages.props`, ambient MSBuild/NuGet 설정, implicit source,
+  checkout `bin/obj`를 배제한다. 따라서 candidate commit이 verifier 파일 3개의 hash를 유지한 채
+  암시적 build input으로 replay report를 위조할 수 없다.

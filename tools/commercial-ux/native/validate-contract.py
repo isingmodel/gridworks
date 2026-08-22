@@ -2987,6 +2987,7 @@ def validate_contract_bindings(
         "cold-journey-recipe.json": "RECIPE",
         "concept-exposure-manifest.json": "AUTHORITY",
         "coverage-recipe.json": "RECIPE",
+        "gold-replay-build-inputs.json": "AUTHORITY",
         "gold-state-manifest.json": "AUTHORITY",
         "holdout-recipes.json": "RECIPE",
         "qualification-anchors.json": "AUTHORITY",
@@ -3149,6 +3150,7 @@ def validate_contract_bindings(
         ]
         and stage_map.get("GOLD-BINDING-PACKAGER", {}).get("authorities") == [
             "canonical-hash-policy.json",
+            "gold-replay-build-inputs.json",
             "gold-state-manifest.json",
             "coverage-recipe.json",
             "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",

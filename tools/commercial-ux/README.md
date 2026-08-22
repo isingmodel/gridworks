@@ -157,12 +157,19 @@ python3 -m py_compile \
   tools/commercial-ux/native/validate-gold-state.py
 ```
 
-The current deterministic checks pass 35 schema validations, 53 contract scenarios, 24
+The current deterministic checks pass 36 schema validations, 53 contract scenarios, 25
 gold-state tests, 16 evaluation-session checks, and 78 aggregation tests. `CommercialChecks`
 passes 24 suites / 2,910
 assertions, and the Debug and Release rebuilds each finish with zero warnings and errors.
 Those results prove the pre-capture contract and product regressions, not score readiness or
 game quality.
+
+Gold replay builds are source-hermetic at the repository boundary. The raw-hash-bound
+[`native/gold-replay-build-inputs.json`](native/gold-replay-build-inputs.json) allowlists the
+pinned SDK file, two projects, verifier entrypoint/source, and 19 Commercial Core V2 sources.
+Only those 24 exact byte streams are copied to a private temporary source tree. Directory build
+props/targets/package props, user NuGet sources, ambient MSBuild properties, implicit checkout
+sources, and checkout `bin/obj` are excluded before restore and build.
 
 Immediately before any score-bearing capture, also run:
 

@@ -189,7 +189,8 @@
       "additionalProperties": false,
       "required": [
         "path", "sha256", "entrypointPath", "entrypointSha256",
-        "projectPath", "projectSha256", "referenceMode", "members"
+        "projectPath", "projectSha256", "buildInputsPath",
+        "buildInputsSha256", "referenceMode", "members"
       ],
       "properties": {
         "path": {"type": "string", "minLength": 1, "maxLength": 300},
@@ -198,6 +199,10 @@
         "entrypointSha256": {"$ref": "#/$defs/sha256"},
         "projectPath": {"type": "string", "minLength": 1, "maxLength": 300},
         "projectSha256": {"$ref": "#/$defs/sha256"},
+        "buildInputsPath": {
+          "const": "tools/commercial-ux/native/gold-replay-build-inputs.json"
+        },
+        "buildInputsSha256": {"$ref": "#/$defs/sha256"},
         "referenceMode": {"const": "EXACT_RAW_SHA_AND_CORE_REPLAY"},
         "members": {
           "type": "array",

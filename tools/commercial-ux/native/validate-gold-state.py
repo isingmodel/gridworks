@@ -20,6 +20,7 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,68 @@ EPISODES = [
     "E04-NORTH-BANK", "E05-WHOSE-MARGIN", "E06-FLOOD", "E07-MAINTENANCE",
     "E08-FINALE", "E09-MID-RESUME", "E10-COMPLETE-RESUME", "E11-AUTHORED-TEXT",
 ]
+GOLD_REPLAY_BUILD_INPUT_MANIFEST_PATH = (
+    "tools/commercial-ux/native/gold-replay-build-inputs.json"
+)
+GOLD_REPLAY_PROJECT_PATH = (
+    "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
+)
+GOLD_REPLAY_BUILD_INPUTS = (
+    ("global.json", "SDK_LOCK"),
+    (GOLD_REPLAY_PROJECT_PATH, "VERIFIER_PROJECT"),
+    ("tools/Gridworks.GoldReplayVerifier/Program.cs", "VERIFIER_ENTRYPOINT"),
+    (
+        "tools/Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
+        "VERIFIER_SOURCE",
+    ),
+    ("src/Gridworks.Core/Gridworks.Core.csproj", "CORE_PROJECT"),
+    (
+        "src/Gridworks.Core/Release/V2/CommercialCampaignContracts.cs",
+        "CORE_SOURCE",
+    ),
+    (
+        "src/Gridworks.Core/Release/V2/CommercialCampaignLoader.cs",
+        "CORE_SOURCE",
+    ),
+    (
+        "src/Gridworks.Core/Release/V2/CommercialCampaignPersistence.cs",
+        "CORE_SOURCE",
+    ),
+    ("src/Gridworks.Core/Release/V2/CommercialCoreContracts.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/CommercialCoreLoader.cs", "CORE_SOURCE"),
+    (
+        "src/Gridworks.Core/Release/V2/CommercialCorePersistence.cs",
+        "CORE_SOURCE",
+    ),
+    ("src/Gridworks.Core/Release/V2/CommercialCoreRun.cs", "CORE_SOURCE"),
+    (
+        "src/Gridworks.Core/Release/V2/CommercialCoreRunContracts.cs",
+        "CORE_SOURCE",
+    ),
+    (
+        "src/Gridworks.Core/Release/V2/CommercialSettingsPersistence.cs",
+        "CORE_SOURCE",
+    ),
+    ("src/Gridworks.Core/Release/V2/CommercialWorldContracts.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/CommercialWorldLoader.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/ConstructionContracts.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/ConstructionSession.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/FixedGeometry.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/PlacementValidator.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/SpatialContracts.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/SpatialWorldLoader.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/ThermalContracts.cs", "CORE_SOURCE"),
+    ("src/Gridworks.Core/Release/V2/ThermalEvaluator.cs", "CORE_SOURCE"),
+)
+GOLD_REPLAY_ISOLATION_POLICY = {
+    "sourceMaterialization": "COPY_EXACT_HASHED_INPUTS_TO_PRIVATE_TEMP_ROOT",
+    "directoryBuildProps": "DISABLED",
+    "directoryBuildTargets": "DISABLED",
+    "directoryPackagesProps": "DISABLED",
+    "nugetConfiguration": "GENERATED_CLEAR_SOURCES",
+    "repositoryArtifacts": "EXCLUDED",
+    "environment": "SANITIZED_ALLOWLIST",
+}
 
 
 class ContractError(ValueError):
@@ -479,30 +542,215 @@ def checkpoint_branch_id(checkpoint_id: str, promise_branch_order: list[str]) ->
     return "SHARED"
 
 
+def read_gold_replay_build_inputs(
+    repository_root: Path,
+    build_inputs_manifest_path: Path,
+) -> dict[str, bytes]:
+    """Open and validate every exact source byte allowed into the verifier build."""
+
+    root = repository_root.resolve(strict=True)
+    expected_manifest_path = root / GOLD_REPLAY_BUILD_INPUT_MANIFEST_PATH
+    try:
+        resolved_manifest_path = build_inputs_manifest_path.resolve(strict=True)
+    except OSError as error:
+        raise ContractError(
+            f"gold replay build-input manifest cannot be opened: {error}"
+        ) from error
+    if (
+        build_inputs_manifest_path.is_symlink()
+        or resolved_manifest_path != expected_manifest_path
+        or expected_manifest_path.absolute() != resolved_manifest_path
+        or not resolved_manifest_path.is_file()
+    ):
+        raise ContractError(
+            "gold replay build-input manifest must be the regular canonical "
+            f"repository file {GOLD_REPLAY_BUILD_INPUT_MANIFEST_PATH}"
+        )
+    try:
+        manifest_bytes = resolved_manifest_path.read_bytes()
+        manifest = load_json_bytes(
+            manifest_bytes,
+            "gold replay build-input manifest",
+        )
+    except OSError as error:
+        raise ContractError(
+            f"gold replay build-input manifest cannot be read: {error}"
+        ) from error
+    if not isinstance(manifest, dict):
+        raise ContractError("gold replay build-input manifest must be an object")
+    expected_top_level = {
+        "schemaVersion",
+        "protocol",
+        "sourceRoot",
+        "projectPath",
+        "sdkLockPath",
+        "fileCount",
+        "isolationPolicy",
+        "files",
+    }
+    if set(manifest) != expected_top_level:
+        raise ContractError("gold replay build-input manifest field set drift")
+    if (
+        manifest.get("schemaVersion")
+        != "gridworks.commercial-ux.gold-replay-build-inputs.v1"
+        or manifest.get("protocol") != PROTOCOL
+        or manifest.get("sourceRoot") != "REPOSITORY_ROOT"
+        or manifest.get("projectPath") != GOLD_REPLAY_PROJECT_PATH
+        or manifest.get("sdkLockPath") != "global.json"
+        or manifest.get("fileCount") != len(GOLD_REPLAY_BUILD_INPUTS)
+        or manifest.get("isolationPolicy") != GOLD_REPLAY_ISOLATION_POLICY
+    ):
+        raise ContractError("gold replay build-input manifest authority drift")
+    rows = manifest.get("files")
+    if not isinstance(rows, list) or len(rows) != len(GOLD_REPLAY_BUILD_INPUTS):
+        raise ContractError("gold replay build-input manifest must list 24 files")
+    observed_path_roles = []
+    source_bytes: dict[str, bytes] = {}
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or set(row) != {
+            "path", "role", "sha256", "byteLength"
+        }:
+            raise ContractError(
+                f"gold replay build input row {index} field set drift"
+            )
+        path_value = row.get("path")
+        role = row.get("role")
+        observed_path_roles.append((path_value, role))
+        if not isinstance(path_value, str):
+            raise ContractError(f"gold replay build input row {index} path is invalid")
+        lexical_path = root / path_value
+        try:
+            resolved_path = lexical_path.resolve(strict=True)
+            resolved_path.relative_to(root)
+        except (OSError, ValueError) as error:
+            raise ContractError(
+                f"gold replay build input cannot be opened inside the repository: "
+                f"{path_value}: {error}"
+            ) from error
+        if (
+            lexical_path.is_symlink()
+            or lexical_path.absolute() != resolved_path
+            or not resolved_path.is_file()
+        ):
+            raise ContractError(
+                "gold replay build input must be a regular canonical file without "
+                f"symlinks: {path_value}"
+            )
+        try:
+            data = resolved_path.read_bytes()
+        except OSError as error:
+            raise ContractError(
+                f"gold replay build input cannot be read: {path_value}: {error}"
+            ) from error
+        byte_length = row.get("byteLength")
+        if (
+            not isinstance(byte_length, int)
+            or isinstance(byte_length, bool)
+            or byte_length <= 0
+            or byte_length != len(data)
+            or row.get("sha256") != sha256_bytes(data)
+        ):
+            raise ContractError(
+                f"gold replay build input raw bytes mismatch: {path_value}"
+            )
+        source_bytes[path_value] = data
+    if observed_path_roles != list(GOLD_REPLAY_BUILD_INPUTS):
+        raise ContractError("gold replay build input path/role set or order drift")
+    if len(source_bytes) != len(GOLD_REPLAY_BUILD_INPUTS):
+        raise ContractError("gold replay build input paths must be unique")
+    return source_bytes
+
+
 @contextmanager
 def isolated_gold_replay_verifier_assembly(
     repository_root: Path,
-    verifier_project_path: Path,
+    build_inputs_manifest_path: Path,
 ) -> Iterator[Path]:
-    """Restore and build the replay verifier without consulting repo bin/obj."""
+    """Build the verifier from only the exact bytes in its bound input manifest."""
+
+    source_bytes = read_gold_replay_build_inputs(
+        repository_root,
+        build_inputs_manifest_path,
+    )
 
     with tempfile.TemporaryDirectory(
         prefix="gridworks-gold-replay-build-"
     ) as temporary:
         build_root = Path(temporary).resolve()
+        source_root = build_root / "source"
         artifacts_path = build_root / "artifacts"
         packages_path = build_root / "packages"
+        cli_home = build_root / "dotnet-home"
+        temporary_path = build_root / "tmp"
+        for directory in (
+            source_root,
+            artifacts_path,
+            packages_path,
+            cli_home,
+            temporary_path,
+        ):
+            directory.mkdir(parents=True, exist_ok=False)
+        for relative_path, data in source_bytes.items():
+            target = source_root / relative_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+        materialized_files = sorted(
+            path.relative_to(source_root).as_posix()
+            for path in source_root.rglob("*")
+            if path.is_file()
+        )
+        if materialized_files != sorted(source_bytes):
+            raise ContractError(
+                "isolated gold replay source tree differs from bound build inputs"
+            )
+        verifier_project_path = source_root / GOLD_REPLAY_PROJECT_PATH
+        nuget_config_path = build_root / "NuGet.Config"
+        nuget_config_path.write_bytes(
+            b'<?xml version="1.0" encoding="utf-8"?>\n'
+            b"<configuration>\n"
+            b"  <packageSources><clear /></packageSources>\n"
+            b"</configuration>\n"
+        )
+        dotnet = shutil.which("dotnet")
+        if dotnet is None:
+            raise ContractError("dotnet executable is unavailable")
+        try:
+            dotnet_path = Path(dotnet).resolve(strict=True)
+        except OSError as error:
+            raise ContractError(f"dotnet executable cannot be resolved: {error}") from error
+        build_environment = {
+            key: os.environ[key]
+            for key in ("PATH", "DOTNET_ROOT", "LANG", "LC_ALL")
+            if key in os.environ
+        }
+        build_environment.update({
+            "DOTNET_CLI_HOME": str(cli_home),
+            "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+            "DOTNET_HOST_PATH": str(dotnet_path),
+            "DOTNET_MULTILEVEL_LOOKUP": "0",
+            "DOTNET_NOLOGO": "1",
+            "DOTNET_SKIP_FIRST_TIME_EXPERIENCE": "1",
+            "NUGET_PACKAGES": str(packages_path),
+            "TMPDIR": str(temporary_path),
+        })
         isolated_properties = [
             "-p:UseArtifactsOutput=true",
             f"-p:ArtifactsPath={artifacts_path}",
             f"-p:RestorePackagesPath={packages_path}",
+            "-p:ImportDirectoryBuildProps=false",
+            "-p:ImportDirectoryBuildTargets=false",
+            "-p:ImportDirectoryPackagesProps=false",
+            "-p:ContinuousIntegrationBuild=true",
+            "-p:Deterministic=true",
         ]
         restore = subprocess.run(
             [
-                "dotnet", "restore", str(verifier_project_path),
+                str(dotnet_path), "restore", str(verifier_project_path),
+                "--configfile", str(nuget_config_path),
                 *isolated_properties,
             ],
-            cwd=repository_root,
+            cwd=source_root,
+            env=build_environment,
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -518,11 +766,12 @@ def isolated_gold_replay_verifier_assembly(
             )
         build = subprocess.run(
             [
-                "dotnet", "build", str(verifier_project_path),
-                "-c", "Release",
+                str(dotnet_path), "build", str(verifier_project_path),
+                "-c", "Release", "--no-restore",
                 *isolated_properties,
             ],
-            cwd=repository_root,
+            cwd=source_root,
+            env=build_environment,
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -721,6 +970,11 @@ def validate_gold_bundle(
             authorities.get("goldReplayVerifier", {}).get("projectPath"),
             "authorities.goldReplayVerifier.projectPath",
         )
+        verifier_build_inputs_path = repo_path(
+            repository_root,
+            authorities.get("goldReplayVerifier", {}).get("buildInputsPath"),
+            "authorities.goldReplayVerifier.buildInputsPath",
+        )
     except ContractError as error:
         failures.append(str(error))
         return {}
@@ -730,6 +984,7 @@ def validate_gold_bundle(
         verifier_path,
         verifier_entrypoint_path,
         verifier_project_path,
+        verifier_build_inputs_path,
     )):
         failures.append("gold binding semantic replay authorities are missing")
         return {}
@@ -740,10 +995,12 @@ def validate_gold_bundle(
         == sha256_bytes(verifier_entrypoint_path.read_bytes())
         and authorities.get("goldReplayVerifier", {}).get("projectSha256")
         == sha256_bytes(verifier_project_path.read_bytes())
+        and authorities.get("goldReplayVerifier", {}).get("buildInputsSha256")
+        == sha256_bytes(verifier_build_inputs_path.read_bytes())
     )
     require(
         verifier_authority_exact,
-        "gold replay verifier source/entrypoint/project raw SHA mismatch",
+        "gold replay verifier source/entrypoint/project/build-input raw SHA mismatch",
         failures,
     )
     if not verifier_authority_exact:
@@ -766,7 +1023,7 @@ def validate_gold_bundle(
             os.fsync(stream.fileno())
         with isolated_gold_replay_verifier_assembly(
             repository_root,
-            verifier_project_path,
+            verifier_build_inputs_path,
         ) as verifier_assembly:
             completed = subprocess.run(
                 [
@@ -1562,6 +1819,7 @@ def validate_exact_inputs(
             for path_field, hash_field in (
                 ("entrypointPath", "entrypointSha256"),
                 ("projectPath", "projectSha256"),
+                ("buildInputsPath", "buildInputsSha256"),
             ):
                 try:
                     exact_path = repo_path(
@@ -1584,6 +1842,19 @@ def validate_exact_inputs(
                         f"authorities.{name}.{hash_field} raw SHA mismatch",
                         failures,
                     )
+            require(
+                authority.get("buildInputsPath")
+                == GOLD_REPLAY_BUILD_INPUT_MANIFEST_PATH,
+                "authorities.goldReplayVerifier.buildInputsPath mismatch",
+                failures,
+            )
+            try:
+                read_gold_replay_build_inputs(
+                    root,
+                    root / GOLD_REPLAY_BUILD_INPUT_MANIFEST_PATH,
+                )
+            except (ContractError, OSError) as error:
+                failures.append(f"gold replay build inputs are invalid: {error}")
         if path.is_file():
             if name in immutable_json_authorities | semantic_json_authorities:
                 try:

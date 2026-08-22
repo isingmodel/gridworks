@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-gold-replay-build-inputs-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "protocol",
+    "sourceRoot",
+    "projectPath",
+    "sdkLockPath",
+    "fileCount",
+    "isolationPolicy",
+    "files"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "gridworks.commercial-ux.gold-replay-build-inputs.v1"
+    },
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "sourceRoot": {"const": "REPOSITORY_ROOT"},
+    "projectPath": {
+      "const": "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
+    },
+    "sdkLockPath": {"const": "global.json"},
+    "fileCount": {"const": 24},
+    "isolationPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceMaterialization",
+        "directoryBuildProps",
+        "directoryBuildTargets",
+        "directoryPackagesProps",
+        "nugetConfiguration",
+        "repositoryArtifacts",
+        "environment"
+      ],
+      "properties": {
+        "sourceMaterialization": {
+          "const": "COPY_EXACT_HASHED_INPUTS_TO_PRIVATE_TEMP_ROOT"
+        },
+        "directoryBuildProps": {"const": "DISABLED"},
+        "directoryBuildTargets": {"const": "DISABLED"},
+        "directoryPackagesProps": {"const": "DISABLED"},
+        "nugetConfiguration": {"const": "GENERATED_CLEAR_SOURCES"},
+        "repositoryArtifacts": {"const": "EXCLUDED"},
+        "environment": {"const": "SANITIZED_ALLOWLIST"}
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 24,
+      "maxItems": 24,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "role", "sha256", "byteLength"],
+        "properties": {
+          "path": {
+            "type": "string",
+            "pattern": "^(global\\.json|tools/Gridworks\\.GoldReplayVerifier/(Gridworks\\.GoldReplayVerifier\\.csproj|Program\\.cs)|tools/Gridworks\\.CommercialChecks/CommercialGoldReplayVerifier\\.cs|src/Gridworks\\.Core/(Gridworks\\.Core\\.csproj|Release/V2/[A-Za-z0-9]+\\.cs))$"
+          },
+          "role": {
+            "enum": [
+              "SDK_LOCK",
+              "VERIFIER_PROJECT",
+              "VERIFIER_ENTRYPOINT",
+              "VERIFIER_SOURCE",
+              "CORE_PROJECT",
+              "CORE_SOURCE"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "byteLength": {"type": "integer", "minimum": 1}
+        }
+      }
+    }
+  }
+}

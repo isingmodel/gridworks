@@ -4,9 +4,9 @@
 사용한 세부 승인 문구, 반복된 체크포인트와 도구 호출 순서는 제거했다. 압축 전 공개 문서 전체가
 필요하면 Git의 `1f8b80826d7ba0c61dc357d56bce668e5d6bc136` 시점에서 복원할 수 있다.
 
-현재 동작은 [Scope 0B 구현 기준](scopes/SCOPE_0B_PLAYABLE.md)과
-[Scope 1 구현 기준](scopes/SCOPE_1_INTERACTION.md), 앞으로의 방향은
-[2D 완성 로드맵](ROADMAP_2D.md)이 설명한다.
+현재 동작과 권한은 [루트 README](../README.md), 완료된 상용 규칙은
+[상용 2D 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 단계별 종료 증거는
+[체크리스트](ROADMAP_2D_CHECKLIST.md)가 설명한다. Scope 0B·1과 옛 `ReleaseMain`은 동결 회귀다.
 
 ## 1. 카드로 먼저 확인한 것
 
@@ -156,3 +156,28 @@ fixture loader, preview와 명령의 동일 판정, 실패 시 상태 불변, �
 경로를 완성하는 것이다. 소유자 검토는 실제 사람의 직접 사용 증거지만 외부 사용자 테스트나
 일반적인 사용성 결론은 아니므로 `OwnerPlayReviewStatus = COLLECTED`,
 `ExternalHumanValidationStatus = NOT_COLLECTED`로 구분한다.
+
+## 7. 상용 v2 B~G.3 압축 이력
+
+2026-08-17의 소유자 거부 뒤 제품을 별도 v2 world·campaign·Core와 `CommercialMain`으로 재구축했다.
+세부 커밋·assertion 증가는 체크리스트와 Git에 두고, 여기에는 방향을 바꾼 사실만 남긴다.
+
+| 단계 | 닫은 문제 | 최종 상태 |
+|---|---|---|
+| B | 보이는 격자와 셀 배치를 고정소수점 자유 좌표·점유영역·교차 비접속 선로로 교체 | 완료 |
+| C | 선로·변전소·접속부의 연속/비상 한계, 모든 발전원·단순 경로, 보호정지·냉각을 Core에 고정 | 완료 |
+| D | authored 결정 경계, 의무·약속·기한, typed 결과, 최근 공사 복구와 save v3를 한 핵심 흐름에 연결 | 완료 |
+| E~F | 같은 망을 유지하는 여덟 임무, 두 유효 원형, 실패 복구, 미래 완주와 에필로그를 고정 | 완료 |
+| G | 1920×1080 UI 100/125, 접근성·설정·오디오·초상·내부 macOS package 경계를 마감 | 완료 |
+| G.1 | whole-map plate와 event timeline으로 reference 정렬을 시도 | 소유자 거부, plate 방식 폐기 |
+| G.2 | plate를 제거하고 개별 tile/object와 construction draft를 실제 v2 좌표에 연결 | 기술 완료, 소유자 시각 거부 |
+| G.3 | 2:1 사선 시점에서 도시·도로·강·제방·전력 시설을 원자 자산으로 재구축하고 timeline을 유지 | v27 사용자 승인 종료 |
+
+G.3은 합성 도시판을 재사용하지 않고 55개 개별 runtime art, 338개 원자 도시 배치와 641개 전체
+world 배치로 끝났다. 자동·native 검증은 통과했지만 고정 `gpt-5.6-sol` ultra 10-pair formative
+proxy는 74.375였고, 공식 40-call 점수는 산출하지 않아 `referenceParity = null`이다. 사용자는
+v27까지의 결과를 점수와 무관하게 성공으로 기록하고 단계를 닫도록 지시했다. 따라서 “자동 gate
+달성”과 “사용자 승인 종료”를 구분해 보존한다.
+
+현재 활성 구현 단계는 없다. 단계 H의 소유자 전체 플레이, 전문 교정, 실제 지원 OS 확인,
+Developer ID 서명·공증과 공개 후보 동결은 새 사용자 승인과 외부 입력이 있어야 시작한다.

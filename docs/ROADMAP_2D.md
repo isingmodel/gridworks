@@ -1,12 +1,17 @@
 # Gridworks — 상용 2D 게임 완성 로드맵
 
-> 문서 상태: 현재 계획
+> 문서 상태: 완료 이력과 다음 승인 지점
 
 이 로드맵은 기술 기준선을 보이는 격자 없는 상용 2D 전력망 게임으로 교체하는 제작 순서를 정한다.
 현재 단계와 구현 권한은 루트 [README](../README.md), 정확한 규칙과 종료조건은
 [상용 2D 게임 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 제품 경험은
 [상용 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md), 증거 상태는
 [체크리스트](ROADMAP_2D_CHECKLIST.md)가 소유한다.
+
+현재 B~G.3은 완료됐고 활성 구현 단계는 없다. G.3의 최종 v27은 원래 자동 점수 gate를 넘긴 것으로
+간주하지 않고, 사용자의 명시적 종료 지시에 따라 성공 기록으로 닫았다. H는 자동으로 이어지는
+다음 작업이 아니라 외부 입력과 별도 승인이 필요한 게이트다. 현재 제품은 1920×1080 UI
+100%·125%만 지원하며 1280×720/720p는 지원하지 않는다.
 
 ## 1. 출발점
 
@@ -183,20 +188,20 @@ P0/P1/open 0으로 종료했다. 1280×720은 실행·검수하지 않았다.
 2026-08-21 소유자 실제 실행 screenshot은 자산 binding과 달리 camera, 도시 밀도, object scale,
 강물·제방, 전력망과 UI가 `assets/01~04`와 크게 다르다고 확인했다. 따라서 이 단계의 package는 현재
 시각 후보가 아니며 [G.3 계획](product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md)이 대체 후보를
-정의한다. 이 기록 당시에는 구현 권한이 아니었고, 아래 G.3 활성 기록이 이를 대체한다.
+정의한다. 이 기록 당시에는 구현 권한이 아니었고, 아래 G.3 완료 기록이 이를 대체한다.
 
-## 8.3 단계 G.3 — 레퍼런스 정렬 시각 재구축 — 활성
+## 8.3 단계 G.3 — 레퍼런스 정렬 시각 재구축 — 완료
 
 - fixed 2:1 isometric transform과 inverse input
-- 개별 diamond terrain·river bank·road·district·functional object
+- 개별 diamond terrain·river bank·road·building·prop·functional object
 - 굽은 강, 평상·폭염·범람 수면과 foundation 접합
 - full-bleed map, reference scale grid, HUD·inspector·128px event timeline
-- 48개 개별 runtime raster의 provenance·asset-kit sheet와 whole-map 합성 우회 금지
-- [평가 프로토콜](product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)의 세 multimodal LLM jury
-  checkpoint, 10개 고정 pair·bias calibration과 근거 좌표가 있는 차이 보고서
+- 55개 개별 runtime raster의 provenance·asset-kit sheet와 whole-map 합성 우회 금지
+- [평가 프로토콜](product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)의 고정 `gpt-5.6-sol` ultra
+  judge, 10개 고정 pair·bias calibration과 근거 좌표가 있는 차이 보고서
 
 2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정을 승인했고, 2026-08-22 고정 LLM jury
-종료선을 `ReferenceParity >80`으로 조정했다. 80점 정확히는 실패다. 720p는 열지 않고 1920×1080 UI 100%·125%만 검수한다.
+종료선을 `ReferenceParity >80`으로 조정했다. 80점 정확히는 실패다. 720p는 열지 않고 1920×1080 UI 100%·125%만 검수했다.
 Step 1 원자 도시·도로와 Step 2 원자 강물·제방은 각각 고정 `gpt-5.6-sol` ultra 구조 audit을
 12/12로 통과했다. Step 2는 정상·고온·홍수 수면 상태와 authoritative foundation 접합까지
 CommercialChecks 22 suites/2,265 assertions 및 native presentation smoke로 닫았다. Step 3 원자
@@ -204,19 +209,22 @@ grid/facility 부품과 전력망 상태 표현도 고정 `gpt-5.6-sol` ultra �
 CommercialChecks 22 suites/2,286 assertions와 1920×1080 native smoke로 닫았다. Step 4는 UI chrome
 6종, full-bleed HUD, 독립 event timeline, 55개 개별 runtime art, 338개 원자 도시 배치를 연결하고
 CommercialChecks 22 suites/2,331 assertions 및 같은 저장의 native 1920×1080 actual-input
-checkpoint→completion→completed-resume를 통과했다. 10-pair 단일-call formative-v26의 고정 category
-환산 proxy는 74.375로, 공식 40-call `ReferenceParity`가 아니다. density·river category가 각각
-65라 `>80` 종료 gate와 G.3 활성 상태는 유지한다.
+checkpoint→completion→completed-resume를 통과했다. 최종 v27은 55개 개별 runtime art, 338개 원자
+도시 배치와 641개 전체 world 배치를 보존했다. 10-pair 단일-call formative-v27의 고정 category
+환산 proxy는 **74.375**로, 공식 40-call `ReferenceParity`가 아니며 `referenceParity = null`이다.
+2026-08-22 사용자가 v27까지의 결과를 점수와 무관하게 성공 기록하고 이번 step을 종료하도록 최종
+지시했다. 따라서 G.3은 사용자 승인으로 완료됐지만 `>80`을 달성했다고 기록하지 않는다.
 
-## 9. 단계 H — 외부 검증과 공개 후보 — 구현 뒤 별도 게이트
+## 9. 단계 H — 외부 검증과 공개 후보 — 미승인
 
-- 상용 핵심 구간 사람 관찰
-- 소유자 전체 캠페인 플레이와 한국어 전문 교정
-- 실제 지원 환경 확인, Developer ID 서명·공증과 공개 배포 결정
-- 새 설치에서 사람이 완주한 bytes와 동일한 공개 후보
+- 소유자 전체 캠페인 플레이와 한국어 전문 교정 범위를 먼저 확정한다.
+- 실제 지원 macOS·기기 목록을 확정하고 해당 환경의 실행 증거를 수집한다.
+- 공개 배포를 원하면 Developer ID, 공증 권한과 배포 결정을 제공한다.
+- source commit·package SHA를 동결하고 clean package의 새 설치에서 저장→재개→완주를 검증한다.
 
-이 단계의 사람 결과는 G.3 LLM visual jury나 자동 증거에 합산하지 않는다. 현재 활성 구현은 G.3이며
-H 상태는 `NOT_COLLECTED` 또는 외부 자격증명 차단으로 남긴다.
+이 단계의 사람 결과는 G.3 LLM visual judge나 자동 증거에 합산하지 않는다. 현재 활성 구현 단계는
+없다. H는 사용자 승인 전에는 시작하지 않으며 상태는 `NOT_COLLECTED` 또는 외부 자격증명 차단으로
+남긴다. Developer ID·공증·실제 환경·소유자 검토를 agent가 추정하거나 자동 증거로 대체하지 않는다.
 
 ## 10. 전역 제외
 

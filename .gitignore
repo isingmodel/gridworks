@@ -19,3 +19,14 @@
 # Local-only documents and temporary artifacts.
 /temp/
 /dist/
+/.tmp/
+/storage/
+.DS_Store
+
+# Reference-parity scratch runs. Accepted evidence is explicitly committed in
+# *-final/, formative-v26/, formative-v27/, boards/, runtime/, and final-jury/.
+/playtests/commercial-2d/g3-work-in-progress/*-pass-*/
+/playtests/commercial-2d/g3-work-in-progress/*-final/storage*/
+/playtests/commercial-2d/g3-final-candidate/archive-*/
+/playtests/commercial-2d/g3-final-candidate/runtime-v*/
+/playtests/commercial-2d/g3-final-candidate/formative-v*/*.log

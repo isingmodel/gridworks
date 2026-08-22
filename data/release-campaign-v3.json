@@ -1,0 +1,174 @@
+{
+  "schemaVersion": "gridworks.realtime.campaign.v3",
+  "campaignId": "CHEONGRYU_RELEASE_CAMPAIGN",
+  "chapters": [
+    {
+      "chapterId": "FIRST_LIGHT",
+      "preparationMinutes": 240,
+      "promiseDecisionDeadlineOffsetMinutes": null,
+      "scheduledEvents": [
+        {
+          "eventId": "FIRST_LIGHT_SUPPLY",
+          "priority": 0,
+          "startOffsetMinutes": 240,
+          "durationMinutes": 60,
+          "forecastLeadMinutes": 240
+        }
+      ]
+    },
+    {
+      "chapterId": "SECOND_HEART",
+      "preparationMinutes": 360,
+      "promiseDecisionDeadlineOffsetMinutes": null,
+      "scheduledEvents": [
+        {
+          "eventId": "HOSPITAL_TRANSFER_TEST",
+          "priority": 0,
+          "startOffsetMinutes": 360,
+          "durationMinutes": 60,
+          "forecastLeadMinutes": 360
+        },
+        {
+          "eventId": "FLOOD_ISOLATION_TEST",
+          "priority": 1,
+          "startOffsetMinutes": 480,
+          "durationMinutes": 60,
+          "forecastLeadMinutes": 300
+        }
+      ]
+    },
+    {
+      "chapterId": "SECOND_SOURCE",
+      "preparationMinutes": 420,
+      "promiseDecisionDeadlineOffsetMinutes": null,
+      "scheduledEvents": [
+        {
+          "eventId": "WEST_MAIN_COMMISSIONING_TEST",
+          "priority": 0,
+          "startOffsetMinutes": 420,
+          "durationMinutes": 60,
+          "forecastLeadMinutes": 420
+        },
+        {
+          "eventId": "SOUTH_SOURCE_COMMISSIONING_TEST",
+          "priority": 1,
+          "startOffsetMinutes": 540,
+          "durationMinutes": 60,
+          "forecastLeadMinutes": 360
+        }
+      ]
+    },
+    {
+      "chapterId": "NORTH_BANK_PROMISE",
+      "preparationMinutes": 480,
+      "promiseDecisionDeadlineOffsetMinutes": 420,
+      "scheduledEvents": [
+        {
+          "eventId": "NORTH_BANK_COMMISSIONING",
+          "priority": 0,
+          "startOffsetMinutes": 480,
+          "durationMinutes": 90,
+          "forecastLeadMinutes": 480
+        },
+        {
+          "eventId": "NEXT_HOT_EVENING_FORECAST",
+          "priority": 1,
+          "startOffsetMinutes": 690,
+          "durationMinutes": 120,
+          "forecastLeadMinutes": 480
+        }
+      ]
+    },
+    {
+      "chapterId": "WHOSE_MARGIN",
+      "preparationMinutes": 360,
+      "promiseDecisionDeadlineOffsetMinutes": 480,
+      "scheduledEvents": [
+        {
+          "eventId": "HOT_BASE",
+          "priority": 0,
+          "startOffsetMinutes": 360,
+          "durationMinutes": 90,
+          "forecastLeadMinutes": 360
+        },
+        {
+          "eventId": "NIGHT_SHIFT",
+          "priority": 1,
+          "startOffsetMinutes": 510,
+          "durationMinutes": 120,
+          "forecastLeadMinutes": 390
+        },
+        {
+          "eventId": "LATE_NIGHT",
+          "priority": 2,
+          "startOffsetMinutes": 690,
+          "durationMinutes": 90,
+          "forecastLeadMinutes": 360
+        }
+      ]
+    },
+    {
+      "chapterId": "BEFORE_WATER_RISE",
+      "preparationMinutes": 300,
+      "promiseDecisionDeadlineOffsetMinutes": 240,
+      "scheduledEvents": [
+        {
+          "eventId": "FLOOD_ARRIVAL",
+          "priority": 0,
+          "startOffsetMinutes": 300,
+          "durationMinutes": 120,
+          "forecastLeadMinutes": 300
+        }
+      ]
+    },
+    {
+      "chapterId": "SWITCH_OFF_TO_PROTECT",
+      "preparationMinutes": 420,
+      "promiseDecisionDeadlineOffsetMinutes": null,
+      "scheduledEvents": [
+        {
+          "eventId": "WEST_SOURCE_PLANNED_OUTAGE",
+          "priority": 0,
+          "startOffsetMinutes": 420,
+          "durationMinutes": 120,
+          "forecastLeadMinutes": 420
+        },
+        {
+          "eventId": "WEST_SOURCE_RETURN_SERVICE",
+          "priority": 1,
+          "startOffsetMinutes": 600,
+          "durationMinutes": 120,
+          "forecastLeadMinutes": 420
+        }
+      ]
+    },
+    {
+      "chapterId": "LONGEST_NIGHT",
+      "preparationMinutes": 600,
+      "promiseDecisionDeadlineOffsetMinutes": null,
+      "scheduledEvents": [
+        {
+          "eventId": "MAX_DEMAND",
+          "priority": 0,
+          "startOffsetMinutes": 600,
+          "durationMinutes": 120,
+          "forecastLeadMinutes": 600
+        },
+        {
+          "eventId": "HEATWAVE_PEAK",
+          "priority": 1,
+          "startOffsetMinutes": 780,
+          "durationMinutes": 120,
+          "forecastLeadMinutes": 600
+        },
+        {
+          "eventId": "PROTECTIVE_STOP_FLOOD",
+          "priority": 2,
+          "startOffsetMinutes": 960,
+          "durationMinutes": 120,
+          "forecastLeadMinutes": 600
+        }
+      ]
+    }
+  ]
+}

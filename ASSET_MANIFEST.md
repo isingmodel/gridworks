@@ -1,9 +1,27 @@
-# Gridworks 상용 v2 runtime 자산 manifest
+# Gridworks 자산 manifest와 현재 시각 기준 경계
 
-이 manifest는 상용 v2 내부 후보가 직접 사용하는 시각·음향 자산의 출처와 경계를 기록한다.
+이 manifest는 상용 v2 내부 후보가 직접 사용하는 시각·음향 자산의 출처와 경계를 기록하고, 현재
+`ASSET_STYLE_REALTIME_GAME` 목표의 reference와 runtime 자산을 구분한다.
 재배포 권한이나 공개 라이선스를 새로 부여하지 않으며, Gridworks 자체 저작물의 법적 상태는
 [LICENSE.md](LICENSE.md)가 소유한다. 엔진과 runtime 고지는
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)가 소유한다.
+
+## 현재 visual reference — runtime 미포함
+
+루트 `assets/` 네 PNG는 새 목표의 카메라·밀도·재질·실루엣·조명·상태 언어를 고정하는
+**visual reference authority**다. 합성 화면 전체이므로 runtime texture·sprite·UI source가 아니며,
+개별 요소의 재사용 권리나 production provenance를 제공하지 않는다.
+
+| 경로 | 역할 | SHA-256 |
+|---|---|---|
+| `assets/01-grid-construction.png` | 정상 운전·건설·통전 reference | `23c9acec1b8026ebcb8eebf329eb6b94201179f8952451aa27a71ab38b7ebedc` |
+| `assets/02-heatwave-outage.png` | 폭염·위험·보호정지 reference | `47d4e53b9d9bad74b6afce6311acce023dc3f9642ffd0ea16609d67b6960a630` |
+| `assets/03-route-comparison.png` | 경로 비교·정보 위계 reference | `f471ac24cbab24d9b1aff89953595d70fc3ccaf4e8c08c442651125ab3c65828` |
+| `assets/04-plant-siting.png` | 지형·도시·산업 scale reference | `10908370f3a2d8403e62ce2a97e39b7ba5c43d8eb0e32073f03e5b3521c01092` |
+
+새 runtime art authority는 아직 수립되지 않았다. `game/assets/realtime/`처럼 로컬 작업 폴더에 있을
+수 있는 후보는 tracked source, provenance, camera/light/scale, alpha edge, footprint·anchor·LOD와
+state coverage를 검수해 이 manifest에 채택하기 전까지 포함되지 않는다.
 
 ## 인물 초상
 
@@ -34,7 +52,7 @@
 
 ## 포함하지 않는 자료
 
-- 루트 `assets/`의 네 콘셉트 이미지는 비권위 참고 자료이며 runtime package에 포함하지 않는다.
+- 루트 `assets/`의 네 이미지는 현재 visual reference authority지만 runtime package에는 포함하지 않는다.
 - 프로젝트가 별도로 추가한 외부 font·녹음·음악·음성·stock sprite를 포함하지 않는다. Godot의
   기본 font와 engine 내부 자산은 upstream 고지를 따른다.
 - prototype·v1 fixture와 scene은 상용 v2 runtime package에 포함하지 않는다.

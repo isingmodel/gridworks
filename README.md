@@ -1,156 +1,163 @@
 # Gridworks
 
-`Gridworks`는 이미 마을·병원·공장이 자리 잡은 지역에서 발전소, 변전소와 선로를 건설하고
-운영하는 싱글 플레이 2D 전력망 전략 게임이다. 플레이어는 필수 안전 기준을 지키면서도 비용과
-공사시간을 감당할 수 있는 망을 만든다.
+`Gridworks`는 성장하는 도시의 전력망을 직접 건설하고, 예고된 수요·폭염·설비 정지 속에서도
+사람과 필수 서비스를 지키는 싱글 플레이 2D 전략 게임이다.
 
-배전 변전소의 서비스 권역은 접속 가능 범위일 뿐 전기를 만들지 않는다. 발전소에서 수요처까지
-실제로 이어진 경로와 충분한 용량이 있어야 공급이 성립한다. 값싼 공유 경로는 사고에 취약하고,
-완전한 이중화는 다음 공사를 할 돈을 줄인다. 예고된 위기는 이전 선택을 시험하고 결과 보고서는
-어떤 설비가 멈췄고 어떤 경로가 사람들의 전력을 지켰는지 설명한다.
+## 현재 전체 목표
 
-## 현재 상태
+현재 목표는 **`./assets`의 회화적이고 고밀도인 아이소메트릭 산업도시 스타일로 실제 플레이 가능한
+실시간 전력망 게임을 완성하는 것**이다. 네 기준 이미지는 목표의 조명·재질·공간 밀도·설비 존재감과
+상태 색 언어를 정한다.
 
-현재 활성 구현 단계는 없다. [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의
-단계 B~G와 관찰 기반 선행 보정 backlog를 완료했고, 사용자 종료 조건에 따라 goal seeking을
-중단했다. 단계 H 사람 검증·전문 교정·공개 배포는 열지 않았으며 별도 승인 없이는 시작하지 않는다.
+- [망 건설](assets/01-grid-construction.png)
+- [폭염과 보호정지](assets/02-heatwave-outage.png)
+- [경로 비교](assets/03-route-comparison.png)
+- [입지 비교](assets/04-plant-siting.png)
 
-현재 기본 장면은 `CommercialMain`이다. 별도 v2 world·campaign·Core에서 보이는 격자 없는 자유
-배치, 수면·건물·설비 점유영역, 서비스 권역과 실제 발전원 경로의 분리, 선로 도체·변전소 주기기·
-전신주 접속부의 연속·비상 열 한계와 보호정지, 안전 의무·도시 약속·최근 공사 복구, 같은 망을
-이어 쓰는 여덟 임무와 에필로그·save v3가 연결돼 있다. 단계 G는 이름 붙은 병목 경로, 원자적
-배치 피드백, 승인 체크리스트와 국면 표, 누적 공사 예측·복구 미리보기, settings v3·움직임 줄이기,
-날씨·초상·사운드와 네 화면 조합의 접근성 표현을 더했다.
+이 이미지를 그대로 게임에 붙이거나 UI 배치를 복제하지 않는다. 다음 조합이 목표다.
 
-macOS 1.0.0 내부 ad-hoc 후보를 clean commit에서 만들고 저장소 밖의 빈 user-data로 새 게임→저장→
-fresh process 이어하기→8장·에필로그→완료 저장 재개→장 재설계를 한 번 끝까지 확인했다. 이 후보는
-Developer ID 서명·공증을 거치지 않았고 공개 배포가 승인되지 않았다. 자동검사·native marker·
-archive identity와 독립 감사의 정확한 기록은
-[단계 G 완료 증거](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)가
-한 곳에서 소유한다.
+- 기준 이미지의 어두운 회화적 지형, 촘촘한 도시·산업 디테일, 묵직한 설비 실루엣
+- 청록 통전·호박색 계획·주황/적색 위험, 금속 프레임과 절제된 광원
+- R1 결정론적 실시간 규칙과 R2의 상단 HUD·수평 사건 지평선·조건부 작업 패널
+- 한국어, 배전 규모 설비, 색 외 상태 표현과 실제 Core 결과
 
-단계 F 뒤의 공식 cold LLM 관찰은 8장 도중 사용자가 중단했고, 뒤이어 같은 참가자에게 회고를
-요청해 원래의 no-follow-up 완료 protocol이 무효화됐다. 관찰에서 나온 후속 task는 단계 G에서
-재현·보정했지만 그 한 실행을 사람 사용성·재미·밸런스 증거로 승격하지 않는다. 자세한 과거 경과는
-[개발 이력 요약](docs/DEVELOPMENT_HISTORY.md), 완료된 수용 기준은
-[로드맵 backlog](docs/ROADMAP_2D.md#관찰-기반-선행-보정-backlog--완료)가 소유한다.
+정확한 목표와 금지 범위는
+[에셋 스타일 실시간 게임 계약](docs/scopes/ASSET_STYLE_REALTIME_GAME.md), 표현 기준은
+[비주얼 제작 명세](docs/product/VISUAL_PRODUCTION_SPEC.md)가 소유한다.
 
-`FullCampaignHumanStatus = NOT_COLLECTED`, `ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`,
-`ExternalHumanValidationStatus = NOT_COLLECTED`,
-`KoreanProfessionalProofStatus = NOT_COLLECTED`다. LLM 관찰은 특정 build에서 보인 행동과
-혼란을 기록할 뿐 사람 사용성·재미·밸런스, 성공률이나 한국어 품질을 증명하지 않는다.
+## 현재 상태와 권한
 
-기존 `ReleaseMain`·`ProductMain`과 33×21 격자 후보, Scope 0/1 실험은 회귀·역사 자료로만
-보존한다. 과거 카드 실험, prototype, 소유자 전체 플레이와 이전 LLM 관찰의 핵심 결과는
-[개발 이력 요약](docs/DEVELOPMENT_HISTORY.md)에 압축했다. 과거 후보의 증거를 현재 v2 제품의
-검증으로 합산하지 않는다.
+이번 변경은 **목표와 문서 기준선만 전환**한다. 런타임 아트 구현 단계는 아직 열지 않았다.
 
-## 1.0 목표
-
-보이는 격자 없는 한 도시 지도와 전력망이 이어지는 여덟 임무를 목표로 한다.
-
-1. 프롤로그 `첫 불빛 · 두 번째 심장 · 두 번째 전원`: 자유 배치, 두 접속 회선·범람 시험과 연속
-   한계를 익힌다.
-2. `북안의 약속`: 서비스권역과 미래 분기 공간을 선택한다.
-3. `누구의 여유인가`: 도시 약속과 비상 열여유·다음 국면 보호정지를 비교한다.
-4. `물이 닿기 전에`: 공사 기한 안에 범람 밖 회랑을 만든다.
-5. `꺼야 지킬 수 있다`: 계획정지 중 남은 경로의 열여유로 필수시설을 지킨다.
-6. `가장 긴 밤`: 최대수요, 보호정지와 범람을 앞선 망으로 통과한다.
-
-최소 출시판에는 22.9 kV급 계획 모델, 분기·합류, 고정소수점 자유 배치, 점유영역·지형,
-연속·비상 열 한계와 국면 상태, 결정론적 공급·우회, 전문적인 한국어 UX, 실제 망을 기억하는
-이야기, 저장·설정과 설치 가능한 2D 빌드가 포함된다. 상세 범위와 현실성의 상한은
-[상용 구현 계약과 완료 기록](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이 소유한다. 단계 G
-종료 시점에는 이 기술·제품 범위와 내부 후보 gate를 닫았다. 다만 사람 전체 플레이, 전문 한국어
-교정, 실제 지원 환경, Developer ID 서명·공증과 공개 배포 결정은 단계 H의 미수집·미승인 항목이므로
-상용 release-ready라고 부르지 않는다.
-
-## 저장소 구조
+- 기본 실행 장면: `CommercialMain`
+- 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
+- R1 실시간 Core: 커밋 `3da1897`, `FIRST_LIGHT` 결정론적 vertical slice
+- R2 실시간 UX 기반: 커밋 `4c27f65`, 비기본 `RealtimeSliceMain`
+- R2 마지막 전체 harness: 사용자 지시로 중단, 종료 PASS 아님
+- 새 목표 문서 기준선: `A0` 완료
+- A1 전 구조 준비: build authority 격리, renderer-neutral world seam, 두 DEBUG checkpoint 완료
+- 활성 코드·아트 gate: 없음
+- 다음 후보: `A1 일반 운전 아트 vertical slice`, 사용자 승인 전 미개방
 
 ```text
-assets/                 비권위 콘셉트 이미지
-data/                   두 prototype과 완료된 제품 단계의 machine-readable fixture
-docs/
-  product/              제품 비전, 오브젝트와 시각 언어
-  scopes/               완료 prototype과 제품 단계의 구현 기준
-  development/          조건부 검증 도구
-  future/               1.0 이후 격리 후보
-game/                   Godot .NET 장면과 화면 adapter
-src/Gridworks.Core/     Godot을 참조하지 않는 C# 규칙
-tools/                  독립 자동검사 executable
-playtests/              동결된 실행 입력과 로컬 증거 위치
+CurrentGoal = ASSET_STYLE_REALTIME_GAME
+GoalDirection = ACTIVE
+DocumentationBaseline = A0_COMPLETE
+ArchitecturePreparation = COMPLETE
+ActiveImplementationGate = NONE
+NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
+VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
+RuntimeArtAuthority = NOT_ESTABLISHED
+LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
+TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
+FullFlowE2EPolicy = EXCEPTION_ONLY
+DefaultMainScene = CommercialMain
+R1RealtimeCore = PRESERVED
+R2RealtimeUx = PRESERVED_GATE_NOT_COMPLETED
+PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
+HumanVisualValidation = NOT_COLLECTED
+PublicReleaseStatus = NOT_AUTHORIZED
 ```
 
-문서의 읽는 순서와 질문별 소유자는 [문서 안내](docs/README.md)가 관리한다. 오브젝트가 현재 가능한지,
-제품 목표인지, 조건부 후보인지는 [오브젝트 카탈로그](docs/product/OBJECT_CATALOG.md)에서 확인한다.
+`game/assets/realtime/`, `game/realtime/world/`, production V3 data와 persistence처럼 작업 폴더에 있을 수
+있는 미래 후보는 현재 목표의 승인된 runtime 자산이나 구현이 아니다. provenance·스케일·부착점·상태
+표현 검수를 통과해 명시적으로 채택되기 전에는 포함하지 않는다.
+
+## 제품 경험
+
+플레이어는 같은 청류시 지도에서 발전 접속점, 전신주, 선로와 배전 변전소를 연결한다. 전기는 총량이
+아니라 완공된 실제 경로를 따라 흐르고, 공유 선로·접속부·변전소의 연속·비상 한계가 병목을 만든다.
+공사는 시간 속에서 진행되고 사건은 미리 보이며, 비상 운전은 노출 허용시간 뒤 보호정지와 냉각·복귀로
+이어진다.
+
+화면은 “전력망을 설명하는 도식”이 아니라 **살아 있는 도시 위에서 전력 인프라를 운영하는 게임**으로
+보여야 한다. 확대하지 않아도 주거지·의료원·정수장·산업지대·도로·하천·발전 접속점·배전망이 서로
+다른 덩어리로 읽혀야 하며, 선택·계획·공사·비상·정지 상태는 광원만이 아니라 형태·패턴·아이콘·문장으로
+구분해야 한다.
+
+## 문서와 저장소
+
+```text
+assets/                              현재 시각 방향을 고정하는 네 기준 이미지
+docs/
+  README.md                          현재 문서 지도와 질문별 소유권
+  scopes/ASSET_STYLE_REALTIME_GAME.md 현재 전체 목표·단계·권한 계약
+  product/                           현재 게임·오브젝트·비주얼 기준
+  ROADMAP_2D.md                      새 목표의 단계 순서
+  ROADMAP_2D_CHECKLIST.md            현재 상태와 종료 증거 장부
+  archive/                           완료·중단된 과거의 압축 기록
+game/                                Godot .NET 화면·adapter
+src/Gridworks.Core/                 Godot 비의존 규칙
+tools/                               결정론적 자동검사
+```
+
+읽는 순서와 질문별 소유자는 [문서 안내](docs/README.md)가 관리한다. 과거 prototype, release v1,
+상용 v2 단계 B–G와 R0–R2의 세부 문서는 Git 이력에 남고,
+[완료 이력](docs/archive/COMPLETED_HISTORY.md)은 현재 필요한 사실만 압축해 보존한다.
 
 ## 개발 원칙
 
-- 한 번에 로드맵 단계 하나만 연다. 다음 단계의 interface, schema field와 placeholder UI를 미리
-  만들지 않는다.
-- 실행 숫자는 해당 단계의 machine-readable fixture 한 곳만 소유한다.
-- 권위 규칙은 Godot을 참조하지 않는 순수 C#에 두고, Godot은 명령을 보내고 반환 상태를 그린다.
-- 현재 두 prototype의 특수 가정을 범용 제품 모델로 확장하지 않는다.
-- 제품의 권위 상태·기본 실행·검증 진입점은 하나씩 유지하되, 책임이 다른 규칙·화면·검사 파일은
-  작게 나눈다.
-- schema, 보존식, 상태전이, build, crash와 save 손상처럼 기계적인 사실만 강한 PASS/FAIL로
-  판정한다.
-- 이해·혼란·재미는 관찰로 기록한다. 숫자식 사람 통과율이나 목표 선택률을 만들지 않는다.
-- LLM 플레이는 자동검사로 답할 수 없는 상호작용 질문에 한 번만 사용하고, 추가 반복은 사용자 별도
-  지시에만 허용한다. 어느 경우도 사람 또는 출시 증거로 세지 않는다.
-- 큰 개발단위가 끝나면 자동증거와 문서를 검토하고, 다음 단계를 열기 전에 독립 검토를 마친다.
+- 한 번에 구현 gate 하나만 연다. 다음 단계의 schema·scene·placeholder를 미리 만들지 않는다.
+- Core가 규칙을 계산하고 Game은 typed 결과를 표현한다.
+- `./assets`는 시각 방향의 권위지만 수치·게임 규칙·runtime 파일의 권위는 아니다.
+- “비슷한 색의 평면 도형”을 스타일 일치로 인정하지 않는다. 카메라, 밀도, 재질, 실루엣, 조명과
+  상태 표현을 함께 검증한다.
+- 합성 화면을 runtime 배경으로 사용하지 않는다. 오브젝트는 분리된 source, alpha, 부착점, LOD와
+  provenance를 가져야 한다.
+- 자동검사는 규칙·상태·build·wiring을 판정한다. 미감·가독성·재미는 실제 화면과 사람 검토를 별도로
+  기록한다.
+- 라이브 검증은 처음부터 재생하지 않고 이름 붙은 결정론적 checkpoint에서 필요한 구간만 실행하는
+  것을 기본으로 한다. checkpoint는 실제 controller·presentation·input·render 경로를 우회하지 않는다.
+- 처음부터 실행하는 E2E는 onboarding, save/migration, 누적 상태, default scene·package와 전체
+  campaign처럼 앞선 경로 자체가 검증 대상일 때만 사용한다.
+- 과거 후보의 PASS를 새 목표의 아트·native·사람 증거로 합산하지 않는다.
 
-파라미터 분류와 정적 분석 도구의 개방 조건은
-[Static Balance Lab](docs/development/BALANCING_STATIC_SIM.md)이 소유한다. LLM이나 정책 agent가 목표
-점수에 맞춰 숫자를 무제한 조정하는 방식은 사용하지 않는다.
+## 개발 실행
 
-## 개발 도구
-
-[`global.json`](global.json)은 .NET SDK `8.0.129`를 고정하고 roll-forward를 끈다. Godot binary는 Git에
-포함하지 않는다. 현재 검증한 도구는 `Godot 4.7.1.stable.mono.official.a13da4feb`이며 다음 공식
-archive를 사용했다.
-
-- URL: `https://github.com/godotengine/godot/releases/download/4.7.1-stable/Godot_v4.7.1-stable_mono_macos.universal.zip`
-- SHA-256: `92cac516baa8ddc7756eeaa38a6d007778a968bfbf188db7c5d6e6ec21c5d52c`
-- 로컬 binary 경로: `.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot`
-
-`.tools/`는 로컬 설치 경로이며 새 checkout에서는 별도로 준비해야 한다.
-
-## 현재 확인 명령
-
-현재 상용 v2 경로는 다음 최소 명령으로 확인한다.
+[`global.json`](global.json)은 .NET SDK `8.0.129`를 고정한다. 확인한 Godot은
+`4.7.1.stable.mono.official.a13da4feb`이며 로컬 기본 경로는
+`.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot`이다.
 
 ```sh
 dotnet restore game/Gridworks.Game.csproj
-dotnet restore tools/Gridworks.CommercialChecks/Gridworks.CommercialChecks.csproj
-
-dotnet run --project tools/Gridworks.CommercialChecks/Gridworks.CommercialChecks.csproj -c Release
-dotnet build game/Gridworks.Game.csproj -c Debug -t:Rebuild
-dotnet build game/Gridworks.Game.csproj -c Release -t:Rebuild
-dotnet build game/Gridworks.Game.csproj -c ExportRelease -t:Rebuild
+dotnet build game/Gridworks.Game.csproj -c Debug
+./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path game
 ```
 
-Godot 기본 실행은 `game/project.godot`의 `CommercialMain.tscn`이다. 단계 D 종료에서 제품 장면을
-전환했으며 실행 방법은 [설치·실행 안내](INSTALL.md)에 정리했다. 동결된 회귀 장면은
-`--scene res://ProductMain.tscn`, `--scene res://Main.tscn` 또는 `--scene res://Scope1Main.tscn`을
-명시해 실행한다. 이전 runner는 영향을 받는 회귀 변경에서만 각 동결 scope의 종료 기록에 따라
-실행한다. 과거 실행 승인만 확인하던 `verify_implementation.rb`는 제거했으며 현재 검사로 사용하지
-않는다.
+현재 기본 실행은 동결 v2 `CommercialMain`이다. 비기본 R2 장면은 명시적으로만 실행한다.
 
-## 콘셉트 이미지
+```sh
+./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
+  --path game --scene res://realtime/r2/RealtimeSliceMain.tscn
+```
 
-이미지는 분위기와 공간 구도를 공유하는 참고 자료이며 현재 게임 화면이나 숫자 권위가 아니다.
+실시간 구간 검증은 전체 harness 대신 필요한 checkpoint 하나만 선택한다. 이 두 명령은 각각 실제
+`RealtimeSliceMain` controller·HUD signal·frame accumulator·presentation·world draw 경로에서 정확히
+1분만 진행하며, A1 아트나 전체 campaign PASS를 뜻하지 않는다.
 
-- [핵심 전력망 건설](assets/01-grid-construction.png)
-- [폭염과 노후 송전선 사용불가](assets/02-heatwave-outage.png)
-- [송전 경로 비교](assets/03-route-comparison.png)
-- [기존 발전소 입지 구도](assets/04-plant-siting.png)
+```sh
+./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
+  --headless --path game \
+  --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
+  -- --checkpoint=A1_NORMAL_READY
 
-## 단위와 법적 상태
+./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
+  --headless --path game \
+  --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
+  -- --checkpoint=A1_CONSTRUCTION_DUE_1M
+```
 
-출시판 화면의 운영 자금은 `370만 원`, 전력은 `2.5 MW`, 시각은 `2일차 06:45`처럼 단위와 의미를
-붙여 표시한다. `M`, `CashUnit`, `DAY 9 16:00`은 과거 내부 후보와 역사 문서에서만 사용한다.
+Core 회귀도 exact suite 하나만 선택할 수 있다.
 
-현재 법적 상태는 [LICENSE.md](LICENSE.md)에 기록했다. Gridworks 자체 저작물에는 공개 라이선스를
-부여하지 않았으며, 공개 열람이나 내부 테스트 빌드 접근은 재사용·재배포 허가를 뜻하지 않는다.
-외부 기여를 받거나 재사용을 허용하기 전에 자산별 라이선스와 기여 조건을 정해야 한다.
+```sh
+dotnet run --project tools/Gridworks.RealtimeChecks -c Release -- \
+  --suite frame-speed-canonical-hash
+```
+
+설치·저장·내부 후보 경계는 [INSTALL](INSTALL.md)을 따른다.
+
+## 법적·출시 상태
+
+`./assets`와 이후 채택할 모든 source asset은 [ASSET_MANIFEST](ASSET_MANIFEST.md)에 출처·생성 방법·
+hash·사용 경계를 기록해야 한다. 저장소 공개 열람은 재사용·재배포 허가가 아니다. 현재 공개 package,
+Developer ID 서명·공증, 사람 미감·사용성 검토, 한국어·전력설비 전문 검토는 승인되지 않았다.

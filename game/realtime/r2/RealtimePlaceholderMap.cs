@@ -1,0 +1,1196 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Gridworks.Core.Release.V2;
+using Gridworks.Game.Realtime.UI;
+using Godot;
+using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
+
+namespace Gridworks.Game.Realtime.R2;
+
+internal enum RealtimePlaceholderStateCue
+{
+    None,
+    AuthoredUnavailableBars,
+    EmergencyTriangle,
+    ProtectiveOutageCross,
+    OverLimitDiamond,
+}
+
+/// <summary>
+/// R2-only code-native map. It deliberately renders geometry and typed state without using
+/// production artwork. It consumes the same renderer-neutral contract as a future asset view.
+/// </summary>
+internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldView
+{
+    private static readonly Color Ground = Color.FromHtml("26342e");
+    private static readonly Color Grid = Color.FromHtml("34463d");
+    private static readonly Color Normal = Color.FromHtml("78c7b9");
+    private static readonly Color Planned = Color.FromHtml("d5b45c");
+    private static readonly Color Emergency = Color.FromHtml("ed964d");
+    private static readonly Color Outage = Color.FromHtml("b9bfbc");
+    private static readonly Color Danger = Color.FromHtml("ec6f68");
+    private static readonly Color Selected = Color.FromHtml("90e2d4");
+    private static readonly Color Candidate = Color.FromHtml("f4d58a");
+    private static readonly Color Text = Color.FromHtml("eef5f0");
+
+    private RealtimeWorldPresentation? _presentation;
+    private RealtimeWorldPointerFeedback _pointerFeedback =
+        RealtimeWorldPointerFeedback.Empty;
+    private CommercialMapTransform? _transform;
+    private CoreMapPoint? _pointer;
+    private IReadOnlyList<string> _candidateCycle = Array.Empty<string>();
+    private int _candidateIndex;
+    private string? _preferredCandidateId;
+    private bool _panning;
+    private Vector2 _lastCanvasPointer;
+    private bool _hasCanvasPointer;
+    private string? _lastFollowSelectionId;
+    private float _accessibilityScale = 1f;
+    private float _minimumPointerHitRadius = 22f;
+#if DEBUG
+    private readonly Dictionary<string, RealtimePlaceholderStateCue> _drawnStateCues =
+        new(StringComparer.Ordinal);
+    private readonly HashSet<string> _drawnAnalysisRiskAreaIds =
+        new(StringComparer.Ordinal);
+    private string? _drawnActiveCandidateId;
+    private bool _drawnAnalysisOverlay;
+#endif
+
+    public event Action<RealtimePointerResolution, CoreMapPoint>? PrimaryRequested;
+    public event Action<RealtimePointerResolution, CoreMapPoint>? PointerMoved;
+    public event Action? CancelRequested;
+
+    internal string ZoomLabel => _transform?.ZoomLabel ?? "지역 보기";
+    public Vector2 CameraCenter => _transform?.Center ?? Vector2.Zero;
+    public bool IsPanning => _panning;
+    public Rect2 InteractionRect => new(Position, Size);
+
+    internal int LabelFontSize => Math.Max(1, Mathf.RoundToInt(12f * _accessibilityScale));
+
+    private string? ActiveCandidateId =>
+        _candidateCycle.Count > 0 &&
+        _candidateIndex >= 0 &&
+        _candidateIndex < _candidateCycle.Count
+            ? _candidateCycle[_candidateIndex]
+            : null;
+
+    private string ActiveCandidateVisibleLabel =>
+        ActiveCandidateId is string candidateId && _presentation is not null
+            ? $"후보 {_candidateIndex + 1}/{_candidateCycle.Count} · " +
+              CandidateDisplayName(_presentation, candidateId)
+            : string.Empty;
+
+    public override void _Ready()
+    {
+        MouseFilter = MouseFilterEnum.Stop;
+        FocusMode = FocusModeEnum.All;
+        ClipContents = true;
+        AccessibilityName = "청류시 실시간 전력망";
+        AccessibilityDescription =
+            "설비와 선로 후보를 거리와 안정된 순서로 정렬하며 장식과 날씨는 클릭을 받지 않습니다.";
+        Resized += ConfigureTransform;
+    }
+
+    public void SetPresentation(RealtimeWorldPresentation presentation)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+        _presentation = presentation;
+        ConfigureTransform();
+        EnsureKeyboardCursor();
+        FollowSelection();
+        _ = RefreshPointerResolution(RealtimeWorldProbeIds.PresentationRefresh);
+        UpdateAccessibility();
+        QueueRedraw();
+    }
+
+    public void SetPointerFeedback(RealtimeWorldPointerFeedback feedback)
+    {
+        ArgumentNullException.ThrowIfNull(feedback);
+        _pointerFeedback = feedback;
+        UpdateAccessibility();
+        QueueRedraw();
+    }
+
+    internal void ApplyLayout(RealtimeLayoutProfile profile)
+    {
+        _accessibilityScale = Math.Max(1f, profile.AccessibilityScale);
+        _minimumPointerHitRadius = Math.Max(20f, profile.MinimumHitTarget / 2f);
+        _ = RefreshPointerResolution(RealtimeWorldProbeIds.LayoutRefresh);
+        QueueRedraw();
+    }
+
+    public void SetInteractionRect(Rect2 rect, RealtimeLayoutProfile profile)
+    {
+        AnchorLeft = 0;
+        AnchorTop = 0;
+        AnchorRight = 0;
+        AnchorBottom = 0;
+        Position = rect.Position;
+        Size = rect.Size;
+        ApplyLayout(profile);
+    }
+
+    public void RequestFocus() => GrabFocus();
+
+    public void CycleCandidate(int delta)
+    {
+        if (delta == 0 || !_hasCanvasPointer || _transform is null)
+        {
+            return;
+        }
+        RealtimePointerResolution? resolution = RefreshPointerResolution(
+            RealtimeWorldProbeIds.KeyboardChooser);
+        // Selection actions and draft handles own the point above any world
+        // candidates underneath them. Q/E must not announce or cycle an
+        // obscured candidate that Enter cannot actually activate.
+        if (resolution is null ||
+            resolution.Owner != RealtimePointerOwner.WorldCandidate ||
+            _candidateCycle.Count == 0)
+        {
+            return;
+        }
+        _candidateIndex = ((_candidateIndex + delta) % _candidateCycle.Count +
+            _candidateCycle.Count) % _candidateCycle.Count;
+        _preferredCandidateId = ActiveCandidateId;
+        UpdateAccessibility();
+        QueueRedraw();
+    }
+
+    public void BeginPan()
+    {
+        _panning = true;
+        MouseDefaultCursorShape = CursorShape.Drag;
+    }
+
+    public void EndPan()
+    {
+        _panning = false;
+        MouseDefaultCursorShape = CursorShape.Arrow;
+    }
+
+    public void ConfirmCurrentCandidate()
+    {
+        if (_presentation is null || _transform is null || !_hasCanvasPointer)
+        {
+            return;
+        }
+        RealtimePointerResolution? resolution = RefreshPointerResolution(
+            RealtimeWorldProbeIds.KeyboardConfirm);
+        if (resolution is not null && _pointer is CoreMapPoint point)
+        {
+            PrimaryRequested?.Invoke(resolution, point);
+        }
+    }
+
+    public RealtimeMapCameraSnapshot CaptureCamera() => new(
+        _transform?.Center ?? Vector2.Zero,
+        _transform?.ZoomIndex ?? 0);
+
+    public void RestoreCamera(RealtimeMapCameraSnapshot camera)
+    {
+        if (_transform is null)
+        {
+            return;
+        }
+        _transform.Home();
+        _transform.SetZoomAt(camera.ZoomIndex, _transform.PlotRect.GetCenter());
+        Vector2 current = _transform.Center;
+        _transform.PanByCanvasDelta(
+            new Vector2(current.X - camera.Center.X, current.Y - camera.Center.Y) *
+            (float)_transform.Scale);
+        _ = RefreshPointerResolution(RealtimeWorldProbeIds.CameraRestore);
+        QueueRedraw();
+    }
+
+    public override void _GuiInput(InputEvent inputEvent)
+    {
+        if (_presentation is null || _transform is null)
+        {
+            return;
+        }
+        switch (inputEvent)
+        {
+            case InputEventMouseMotion motion when _panning:
+                if (_hasCanvasPointer)
+                {
+                    _transform.PanByCanvasDelta(motion.Position - _lastCanvasPointer);
+                }
+                _hasCanvasPointer = true;
+                _lastCanvasPointer = motion.Position;
+                _pointer = ToWorld(motion.Position);
+                RealtimePointerResolution panResolution = ResolveCanvasPoint(
+                    RealtimeWorldProbeIds.Hover,
+                    motion.Position,
+                    _pointer.Value);
+                PointerMoved?.Invoke(panResolution, _pointer.Value);
+                UpdateAccessibility();
+                QueueRedraw();
+                AcceptEvent();
+                break;
+            case InputEventMouseMotion motion:
+                _hasCanvasPointer = true;
+                _lastCanvasPointer = motion.Position;
+                _pointer = ToWorld(motion.Position);
+                RealtimePointerResolution hoverResolution = ResolveCanvasPoint(
+                    RealtimeWorldProbeIds.Hover,
+                    motion.Position,
+                    _pointer.Value);
+                PointerMoved?.Invoke(hoverResolution, _pointer.Value);
+                UpdateAccessibility();
+                QueueRedraw();
+                break;
+            case InputEventMouseButton mouse when mouse.ButtonIndex == MouseButton.Left &&
+                mouse.Pressed:
+                CoreMapPoint worldPoint = ToWorld(mouse.Position);
+                _pointer = worldPoint;
+                _lastCanvasPointer = mouse.Position;
+                _hasCanvasPointer = true;
+                RealtimePointerResolution resolution = ResolveCanvasPoint(
+                    RealtimeWorldProbeIds.Primary,
+                    mouse.Position,
+                    worldPoint);
+                PrimaryRequested?.Invoke(resolution, worldPoint);
+                AcceptEvent();
+                break;
+            case InputEventMouseButton mouse when mouse.ButtonIndex == MouseButton.Right &&
+                mouse.Pressed:
+                CancelRequested?.Invoke();
+                AcceptEvent();
+                break;
+            case InputEventMouseButton mouse when mouse.ButtonIndex == MouseButton.WheelUp &&
+                mouse.Pressed:
+                _transform.SetZoomAt(_transform.ZoomIndex + 1, mouse.Position);
+                _ = RefreshPointerResolution(RealtimeWorldProbeIds.ZoomRefresh);
+                QueueRedraw();
+                AcceptEvent();
+                break;
+            case InputEventMouseButton mouse when mouse.ButtonIndex == MouseButton.WheelDown &&
+                mouse.Pressed:
+                _transform.SetZoomAt(_transform.ZoomIndex - 1, mouse.Position);
+                _ = RefreshPointerResolution(RealtimeWorldProbeIds.ZoomRefresh);
+                QueueRedraw();
+                AcceptEvent();
+                break;
+            // Keyboard commands deliberately remain unhandled here. The
+            // priority-aware RealtimeInputRouter is their sole owner, so a
+            // focused map cannot bypass a blocking modal/HUD context or reduce
+            // one physical key twice. The controller invokes CycleCandidate,
+            // ConfirmCurrentCandidate, and the analysis intent after routing.
+        }
+    }
+
+    public override void _Draw()
+    {
+#if DEBUG
+        _drawnStateCues.Clear();
+        _drawnAnalysisRiskAreaIds.Clear();
+        _drawnActiveCandidateId = null;
+        _drawnAnalysisOverlay = false;
+#endif
+        DrawRect(new Rect2(Vector2.Zero, Size), Ground);
+        DrawGrid();
+        if (_presentation is null || _transform is null)
+        {
+            return;
+        }
+        if (_presentation.AnalysisVisible)
+        {
+#if DEBUG
+            _drawnAnalysisOverlay = true;
+#endif
+            DrawRiskAreas(_presentation);
+        }
+        DrawEdges(_presentation);
+        DrawNodes(_presentation);
+        DrawActiveCandidate(_presentation);
+        DrawSelectionAction(_presentation);
+        DrawDraft(_presentation);
+        DrawPointer(_presentation);
+    }
+
+    internal RealtimePointerResolution ResolveWorldProbe(RealtimePointerProbe probe) =>
+        RealtimePointerOwnerResolver.Resolve(probe);
+
+    private RealtimePointerResolution ResolveCanvasPoint(
+        string probeId,
+        Vector2 canvasPoint,
+        CoreMapPoint worldPoint)
+    {
+        string? previousCandidateId = ActiveCandidateId ?? _preferredCandidateId;
+        RealtimeMapCandidate[] candidates = Candidates(canvasPoint).ToArray();
+        RealtimePointerResolution resolution = RealtimePointerOwnerResolver.Resolve(
+            new RealtimePointerProbe(
+                probeId,
+                worldPoint,
+                Array.AsReadOnly(candidates),
+                BlockingModalHit: _presentation!.Surface ==
+                    RealtimeSurface.BlockingModal,
+                OverlayVisible: _presentation.AnalysisVisible,
+                WeatherVisible: _presentation.Weather != RealtimeWorldWeather.Clear));
+        bool candidateIdIsConfirmable = _presentation!.Tool is
+            RealtimeTool.Inspect or RealtimeTool.Analysis or RealtimeTool.BuildLine;
+        if (resolution.OrderedWorldCandidateIds.Count == 0 ||
+            resolution.Owner != RealtimePointerOwner.WorldCandidate ||
+            !candidateIdIsConfirmable)
+        {
+            _candidateCycle = Array.Empty<string>();
+            _candidateIndex = 0;
+            if (resolution.Owner != RealtimePointerOwner.BlockingModal)
+            {
+                _preferredCandidateId = null;
+            }
+            UpdateAccessibility();
+            return resolution;
+        }
+        string[] candidateIds = resolution.OrderedWorldCandidateIds.ToArray();
+        _candidateCycle = Array.AsReadOnly(candidateIds);
+        int retainedIndex = previousCandidateId is null
+            ? -1
+            : Array.FindIndex(candidateIds, id => string.Equals(
+                id,
+                previousCandidateId,
+                StringComparison.Ordinal));
+        _candidateIndex = retainedIndex >= 0 ? retainedIndex : 0;
+        string selected = _candidateCycle[_candidateIndex];
+        _preferredCandidateId = selected;
+        RealtimeMapCandidate chosen = resolution.OrderedCandidates.Single(item =>
+            string.Equals(item.Id, selected, StringComparison.Ordinal));
+        UpdateAccessibility();
+        return resolution with
+        {
+            Owner = chosen.Owner,
+            ResolvedId = chosen.Id,
+        };
+    }
+
+    /// <summary>
+    /// The keyboard/mouse target is stored in world coordinates. Whenever a
+    /// responsive surface, modal, zoom, or camera change rebuilds the canvas
+    /// transform, reproject that same world point and recompute the exact hit
+    /// owner. This keeps the visible candidate badge and Enter on one authority.
+    /// </summary>
+    private RealtimePointerResolution? RefreshPointerResolution(string probeId)
+    {
+        if (!_hasCanvasPointer || _pointer is not CoreMapPoint worldPoint ||
+            _presentation is null || _transform is null)
+        {
+            return null;
+        }
+        _lastCanvasPointer = Point(worldPoint);
+        RealtimePointerResolution resolution = ResolveCanvasPoint(
+            probeId,
+            _lastCanvasPointer,
+            worldPoint);
+        QueueRedraw();
+        return resolution;
+    }
+
+    private IEnumerable<RealtimeMapCandidate> Candidates(Vector2 canvasPoint)
+    {
+        RealtimeWorldPresentation presentation = _presentation ??
+            throw new InvalidOperationException("World presentation is not ready.");
+        if (!presentation.PlacementMode &&
+            SelectionActionPoint(presentation) is
+            (string selectedAssetId, Vector2 actionPoint))
+        {
+            double actionDistance = actionPoint.DistanceSquaredTo(canvasPoint);
+            double actionRadius = Math.Max(
+                18f * _accessibilityScale,
+                _minimumPointerHitRadius);
+            if (actionDistance <= actionRadius * actionRadius)
+            {
+                yield return new RealtimeMapCandidate(
+                    RealtimeWorldIds.SelectionAction(selectedAssetId),
+                    RealtimeMapCandidateKind.SelectionAction,
+                    RealtimePointerOwner.SelectionAction,
+                    actionDistance);
+            }
+        }
+        foreach (RealtimeWorldDraftHandle handle in presentation.Draft.Handles)
+        {
+            double distance = Point(handle.Point).DistanceSquaredTo(canvasPoint);
+            double hitRadius = Math.Max(
+                24f * _accessibilityScale,
+                _minimumPointerHitRadius);
+            if (distance <= hitRadius * hitRadius)
+            {
+                yield return new RealtimeMapCandidate(
+                    handle.Id,
+                    RealtimeMapCandidateKind.DraftHandle,
+                    RealtimePointerOwner.DraftHandle,
+                    distance);
+            }
+        }
+        foreach (SpatialNodeDefinition node in presentation.World.Nodes)
+        {
+            double distance = Point(node.Position).DistanceSquaredTo(canvasPoint);
+            double hitRadius = Math.Max(
+                36f * _accessibilityScale,
+                _minimumPointerHitRadius);
+            if (distance <= hitRadius * hitRadius)
+            {
+                yield return new RealtimeMapCandidate(
+                    node.NodeId,
+                    RealtimeMapCandidateKind.Node,
+                    RealtimePointerOwner.WorldCandidate,
+                    distance);
+            }
+        }
+        foreach (SpatialEdgeDefinition edge in presentation.World.Edges)
+        {
+            SpatialNodeDefinition from = presentation.World.Nodes.Single(item =>
+                string.Equals(item.NodeId, edge.FromNodeId, StringComparison.Ordinal));
+            SpatialNodeDefinition to = presentation.World.Nodes.Single(item =>
+                string.Equals(item.NodeId, edge.ToNodeId, StringComparison.Ordinal));
+            double distance = SegmentDistanceSquared(
+                canvasPoint,
+                Point(from.Position),
+                Point(to.Position));
+            double hitRadius = Math.Max(
+                12f * _accessibilityScale,
+                _minimumPointerHitRadius);
+            if (distance <= hitRadius * hitRadius)
+            {
+                yield return new RealtimeMapCandidate(
+                    edge.EdgeId,
+                    RealtimeMapCandidateKind.Edge,
+                    RealtimePointerOwner.WorldCandidate,
+                    distance);
+            }
+        }
+    }
+
+    private void DrawGrid()
+    {
+        const int step = 52;
+        for (int x = 0; x < Size.X; x += step)
+        {
+            DrawLine(new Vector2(x, 0), new Vector2(x, Size.Y), Grid with { A = 0.28f });
+        }
+        for (int y = 0; y < Size.Y; y += step)
+        {
+            DrawLine(new Vector2(0, y), new Vector2(Size.X, y), Grid with { A = 0.28f });
+        }
+    }
+
+    private void DrawRiskAreas(RealtimeWorldPresentation presentation)
+    {
+        HashSet<string> active = presentation.ActiveRiskAreaIds.ToHashSet(StringComparer.Ordinal);
+        foreach (SpatialRiskAreaDefinition risk in presentation.World.RiskAreas.Where(item =>
+                     active.Contains(item.RiskAreaId)))
+        {
+            Vector2[] polygon = risk.Polygon.Select(Point).ToArray();
+            DrawColoredPolygon(polygon, Danger with { A = 0.14f });
+            DrawPolyline(
+                [.. polygon, polygon[0]],
+                Danger,
+                2f * _accessibilityScale,
+                true);
+#if DEBUG
+            _drawnAnalysisRiskAreaIds.Add(risk.RiskAreaId);
+#endif
+        }
+    }
+
+    private void DrawEdges(RealtimeWorldPresentation presentation)
+    {
+        HashSet<string> highlighted =
+            presentation.Highlight?.EdgeIds.ToHashSet(StringComparer.Ordinal) ?? [];
+        foreach (SpatialEdgeDefinition edge in presentation.World.Edges.OrderBy(item =>
+                     item.EdgeId,
+                     StringComparer.Ordinal))
+        {
+            SpatialNodeDefinition from = presentation.World.Nodes.Single(item =>
+                string.Equals(item.NodeId, edge.FromNodeId, StringComparison.Ordinal));
+            SpatialNodeDefinition to = presentation.World.Nodes.Single(item =>
+                string.Equals(item.NodeId, edge.ToNodeId, StringComparison.Ordinal));
+            RealtimeWorldAssetStatus? status = Status(presentation, edge.EdgeId);
+            bool selected = string.Equals(
+                presentation.SelectedAssetId,
+                edge.EdgeId,
+                StringComparison.Ordinal);
+            Color color = selected
+                ? Selected
+                : edge.Commissioned ? StateColor(status?.State) : Planned;
+            float width = (selected || highlighted.Contains(edge.EdgeId) ? 5f : 2.5f) *
+                _accessibilityScale;
+            DrawLine(Point(from.Position), Point(to.Position), color, width, true);
+            if (!edge.Commissioned)
+            {
+                DrawDashedLine(Point(from.Position), Point(to.Position), Planned);
+            }
+            else
+            {
+                DrawEdgeStateCue(
+                    edge.EdgeId,
+                    Point(from.Position),
+                    Point(to.Position),
+                    status?.State);
+            }
+        }
+    }
+
+    private void DrawNodes(RealtimeWorldPresentation presentation)
+    {
+        HashSet<string> highlighted =
+            presentation.Highlight?.NodeIds.ToHashSet(StringComparer.Ordinal) ?? [];
+        foreach (SpatialNodeDefinition node in presentation.World.Nodes.OrderBy(item =>
+                     item.NodeId,
+                     StringComparer.Ordinal))
+        {
+            RealtimeWorldAssetStatus? status = Status(presentation, node.NodeId);
+            bool selected = string.Equals(
+                presentation.SelectedAssetId,
+                node.NodeId,
+                StringComparison.Ordinal);
+            bool routeHighlighted = highlighted.Contains(node.NodeId);
+            float radius = NodeRadius(presentation.World, node);
+            Color color = node.Commissioned ? StateColor(status?.State) : Planned;
+            Vector2 center = Point(node.Position);
+            DrawCircle(center, radius, color);
+            DrawCircle(
+                center,
+                radius + (selected || routeHighlighted ? 7 : 2) * _accessibilityScale,
+                selected || routeHighlighted ? Selected : Ground,
+                false,
+                (selected || routeHighlighted ? 3 : 1) * _accessibilityScale,
+                true);
+            DrawNodeStateCue(node.NodeId, center, radius, status?.State);
+            if (selected || _transform!.ZoomIndex > 0)
+            {
+                string statusText = StatusLabel(status);
+                DrawString(
+                    ThemeDB.FallbackFont,
+                    center + new Vector2(
+                        radius + (5f * _accessibilityScale),
+                        4f * _accessibilityScale),
+                    $"{node.DisplayName} · {statusText}",
+                    HorizontalAlignment.Left,
+                    -1,
+                    LabelFontSize,
+                    Text);
+            }
+        }
+    }
+
+    private void DrawActiveCandidate(RealtimeWorldPresentation presentation)
+    {
+        if (ActiveCandidateId is not string candidateId)
+        {
+            return;
+        }
+#if DEBUG
+        _drawnActiveCandidateId = candidateId;
+#endif
+        Vector2 anchor;
+        SpatialNodeDefinition? node = presentation.World.Nodes.FirstOrDefault(item =>
+            string.Equals(item.NodeId, candidateId, StringComparison.Ordinal));
+        if (node is not null)
+        {
+            anchor = Point(node.Position);
+            float radius = NodeRadius(presentation.World, node) +
+                11f * _accessibilityScale;
+            DrawCircle(
+                anchor,
+                radius,
+                Candidate,
+                false,
+                3f * _accessibilityScale,
+                true);
+        }
+        else
+        {
+            SpatialEdgeDefinition? edge = presentation.World.Edges.FirstOrDefault(item =>
+                string.Equals(item.EdgeId, candidateId, StringComparison.Ordinal));
+            if (edge is null)
+            {
+                return;
+            }
+            SpatialNodeDefinition from = presentation.World.Nodes.Single(item =>
+                string.Equals(item.NodeId, edge.FromNodeId, StringComparison.Ordinal));
+            SpatialNodeDefinition to = presentation.World.Nodes.Single(item =>
+                string.Equals(item.NodeId, edge.ToNodeId, StringComparison.Ordinal));
+            Vector2 fromPoint = Point(from.Position);
+            Vector2 toPoint = Point(to.Position);
+            Vector2 axis = toPoint - fromPoint;
+            Vector2 normal = axis.LengthSquared() > 0.001f
+                ? new Vector2(axis.Y, -axis.X).Normalized()
+                : Vector2.Up;
+            float offset = 4f * _accessibilityScale;
+            DrawLine(
+                fromPoint + normal * offset,
+                toPoint + normal * offset,
+                Candidate,
+                2f * _accessibilityScale,
+                true);
+            DrawLine(
+                fromPoint - normal * offset,
+                toPoint - normal * offset,
+                Candidate,
+                2f * _accessibilityScale,
+                true);
+            anchor = (fromPoint + toPoint) / 2f + normal * (10f * _accessibilityScale);
+        }
+        DrawActiveCandidateBadge(anchor, ActiveCandidateVisibleLabel);
+    }
+
+    private void DrawActiveCandidateBadge(Vector2 anchor, string label)
+    {
+        if (string.IsNullOrWhiteSpace(label))
+        {
+            return;
+        }
+        int fontSize = Math.Max(LabelFontSize, Mathf.RoundToInt(13f * _accessibilityScale));
+        Vector2 textSize = ThemeDB.FallbackFont.GetStringSize(
+            label,
+            HorizontalAlignment.Left,
+            -1,
+            fontSize);
+        Vector2 padding = new(9f * _accessibilityScale, 6f * _accessibilityScale);
+        Vector2 badgeSize = textSize + padding * 2f;
+        Vector2 desired = anchor + new Vector2(12f, 12f) * _accessibilityScale;
+        Vector2 position = new(
+            Math.Clamp(
+                desired.X,
+                4f,
+                Math.Max(4f, Size.X - badgeSize.X - 4f)),
+            Math.Clamp(
+                desired.Y,
+                4f,
+                Math.Max(4f, Size.Y - badgeSize.Y - 4f)));
+        var badge = new Rect2(position, badgeSize);
+        DrawRect(badge, Ground with { A = 0.96f });
+        DrawRect(badge, Candidate, false, 2f * _accessibilityScale);
+        DrawString(
+            ThemeDB.FallbackFont,
+            position + new Vector2(padding.X, padding.Y + textSize.Y * 0.78f),
+            label,
+            HorizontalAlignment.Left,
+            -1,
+            fontSize,
+            Text);
+    }
+
+    private void DrawSelectionAction(RealtimeWorldPresentation presentation)
+    {
+        if (presentation.PlacementMode ||
+            SelectionActionPoint(presentation) is not (_, Vector2 point))
+        {
+            return;
+        }
+        float radius = 11f * _accessibilityScale;
+        DrawCircle(point, radius, Ground);
+        DrawCircle(point, radius, Selected, false, 2f * _accessibilityScale, true);
+        DrawString(
+            ThemeDB.FallbackFont,
+            point + new Vector2(-3.5f, 4.5f) * _accessibilityScale,
+            "i",
+            HorizontalAlignment.Left,
+            -1,
+            Math.Max(1, Mathf.RoundToInt(13f * _accessibilityScale)),
+            Selected);
+    }
+
+    private (string AssetId, Vector2 Point)? SelectionActionPoint(
+        RealtimeWorldPresentation presentation)
+    {
+        if (presentation.PlacementMode ||
+            presentation.SelectedAssetId is not string selectedId ||
+            _transform is null)
+        {
+            return null;
+        }
+        SpatialNodeDefinition? node = presentation.World.Nodes.FirstOrDefault(item =>
+            string.Equals(item.NodeId, selectedId, StringComparison.Ordinal));
+        if (node is not null)
+        {
+            float radius = NodeRadius(presentation.World, node);
+            Vector2 direction = new Vector2(1f, -1f).Normalized();
+            Vector2 raw = Point(node.Position) +
+                direction * (radius + (24f * _accessibilityScale));
+            return (selectedId, ClampSelectionAction(raw));
+        }
+        SpatialEdgeDefinition? edge = presentation.World.Edges.FirstOrDefault(item =>
+            string.Equals(item.EdgeId, selectedId, StringComparison.Ordinal));
+        if (edge is null)
+        {
+            return null;
+        }
+        SpatialNodeDefinition from = presentation.World.Nodes.Single(item =>
+            string.Equals(item.NodeId, edge.FromNodeId, StringComparison.Ordinal));
+        SpatialNodeDefinition to = presentation.World.Nodes.Single(item =>
+            string.Equals(item.NodeId, edge.ToNodeId, StringComparison.Ordinal));
+        Vector2 fromPoint = Point(from.Position);
+        Vector2 toPoint = Point(to.Position);
+        Vector2 axis = toPoint - fromPoint;
+        Vector2 normal = axis.LengthSquared() > 0.001f
+            ? new Vector2(axis.Y, -axis.X).Normalized()
+            : new Vector2(1f, -1f).Normalized();
+        Vector2 rawPoint = (fromPoint + toPoint) / 2f +
+            normal * (24f * _accessibilityScale);
+        return (selectedId, ClampSelectionAction(rawPoint));
+    }
+
+    private Vector2 ClampSelectionAction(Vector2 point)
+    {
+        float margin = 22f * _accessibilityScale;
+        return new Vector2(
+            Math.Clamp(point.X, margin, Math.Max(margin, Size.X - margin)),
+            Math.Clamp(point.Y, margin, Math.Max(margin, Size.Y - margin)));
+    }
+
+    private void DrawDraft(RealtimeWorldPresentation presentation)
+    {
+        if (presentation.Draft.LinePath.Count == 0)
+        {
+            return;
+        }
+        var points = presentation.Draft.LinePath.Select(Point).ToList();
+        if (presentation.Draft.ExtendLineToPointer && _pointer is CoreMapPoint pointer)
+        {
+            points.Add(Point(pointer));
+        }
+        if (points.Count > 1)
+        {
+            DrawPolyline(points.ToArray(), Planned, 4f * _accessibilityScale, true);
+        }
+        foreach (Vector2 point in points)
+        {
+            DrawCircle(point, 7f * _accessibilityScale, Planned);
+            DrawCircle(
+                point,
+                11f * _accessibilityScale,
+                Selected,
+                false,
+                2f * _accessibilityScale,
+                true);
+        }
+    }
+
+    private void DrawPointer(RealtimeWorldPresentation presentation)
+    {
+        CoreMapPoint? pointer = _pointerFeedback.Point ?? _pointer;
+        if (pointer is not CoreMapPoint value ||
+            !presentation.PlacementMode && !HasFocus())
+        {
+            return;
+        }
+        Vector2 center = Point(value);
+        Color color = presentation.PlacementMode && !_pointerFeedback.Accepted
+            ? Danger
+            : Selected;
+        float radius = (presentation.PlacementMode ? 12f : 8f) * _accessibilityScale;
+        DrawCircle(center, radius, color, false, 2f * _accessibilityScale, true);
+        float arm = 16f * _accessibilityScale;
+        DrawLine(
+            center + Vector2.Left * arm,
+            center + Vector2.Right * arm,
+            color,
+            _accessibilityScale);
+        DrawLine(
+            center + Vector2.Up * arm,
+            center + Vector2.Down * arm,
+            color,
+            _accessibilityScale);
+    }
+
+    private void DrawDashedLine(Vector2 from, Vector2 to, Color color)
+    {
+        const int segments = 12;
+        for (int index = 0; index < segments; index += 2)
+        {
+            DrawLine(from.Lerp(to, index / (float)segments),
+                from.Lerp(to, (index + 1) / (float)segments),
+                color,
+                2f * _accessibilityScale,
+                true);
+        }
+    }
+
+    private void DrawEdgeStateCue(
+        string assetId,
+        Vector2 from,
+        Vector2 to,
+        RealtimeWorldAssetState? state)
+    {
+        Vector2 axis = to - from;
+        if (axis.LengthSquared() <= 0.001f)
+        {
+            return;
+        }
+        Vector2 normal = new Vector2(axis.Y, -axis.X).Normalized();
+        Vector2 middle = (from + to) / 2f;
+        float scale = _accessibilityScale;
+        RealtimePlaceholderStateCue cue = StateCue(state);
+#if DEBUG
+        _drawnStateCues[assetId] = cue;
+#endif
+        switch (cue)
+        {
+            case RealtimePlaceholderStateCue.AuthoredUnavailableBars:
+                DrawDashedLine(from, to, Text);
+                DrawLine(
+                    middle - normal * 6f * scale,
+                    middle + normal * 6f * scale,
+                    Planned,
+                    3f * scale,
+                    true);
+                break;
+            case RealtimePlaceholderStateCue.EmergencyTriangle:
+                DrawLine(from + normal * 3f * scale, to + normal * 3f * scale,
+                    Emergency, 1.5f * scale, true);
+                DrawTriangle(middle, 6f * scale, Emergency);
+                break;
+            case RealtimePlaceholderStateCue.ProtectiveOutageCross:
+                DrawDashedLine(from, to, Text);
+                DrawX(middle, 7f * scale, Outage);
+                break;
+            case RealtimePlaceholderStateCue.OverLimitDiamond:
+                DrawDiamond(middle, 7f * scale, Danger);
+                break;
+        }
+    }
+
+    private void DrawNodeStateCue(
+        string assetId,
+        Vector2 center,
+        float radius,
+        RealtimeWorldAssetState? state)
+    {
+        float scale = _accessibilityScale;
+        Vector2 cueCenter = center + Vector2.Up * (radius + 7f * scale);
+        RealtimePlaceholderStateCue cue = StateCue(state);
+#if DEBUG
+        _drawnStateCues[assetId] = cue;
+#endif
+        switch (cue)
+        {
+            case RealtimePlaceholderStateCue.AuthoredUnavailableBars:
+                DrawLine(
+                    center + new Vector2(-radius, radius) * 0.55f,
+                    center + new Vector2(radius, -radius) * 0.55f,
+                    Text,
+                    2.5f * scale,
+                    true);
+                break;
+            case RealtimePlaceholderStateCue.EmergencyTriangle:
+                DrawTriangle(cueCenter, 6f * scale, Emergency);
+                break;
+            case RealtimePlaceholderStateCue.ProtectiveOutageCross:
+                DrawX(center, Math.Max(radius * 0.72f, 5f * scale), Text);
+                break;
+            case RealtimePlaceholderStateCue.OverLimitDiamond:
+                DrawDiamond(cueCenter, 6f * scale, Danger);
+                break;
+        }
+    }
+
+    private void DrawTriangle(Vector2 center, float radius, Color color)
+    {
+        Vector2[] points =
+        [
+            center + Vector2.Up * radius,
+            center + new Vector2(0.866f, 0.5f) * radius,
+            center + new Vector2(-0.866f, 0.5f) * radius,
+        ];
+        DrawPolyline([.. points, points[0]], color, 2f * _accessibilityScale, true);
+    }
+
+    private void DrawDiamond(Vector2 center, float radius, Color color)
+    {
+        Vector2[] points =
+        [
+            center + Vector2.Up * radius,
+            center + Vector2.Right * radius,
+            center + Vector2.Down * radius,
+            center + Vector2.Left * radius,
+        ];
+        DrawPolyline([.. points, points[0]], color, 2f * _accessibilityScale, true);
+    }
+
+    private void DrawX(Vector2 center, float radius, Color color)
+    {
+        Vector2 diagonal = new(radius, radius);
+        DrawLine(center - diagonal, center + diagonal, color,
+            2f * _accessibilityScale, true);
+        Vector2 cross = new(radius, -radius);
+        DrawLine(center - cross, center + cross, color,
+            2f * _accessibilityScale, true);
+    }
+
+    private void ConfigureTransform()
+    {
+        if (_presentation is null || Size.X <= 0 || Size.Y <= 0)
+        {
+            return;
+        }
+        MapBounds bounds = _presentation.World.Bounds;
+        var mapBounds = new CommercialMapBounds(
+            bounds.MinXUnit,
+            bounds.MaxXUnit,
+            bounds.MinYUnit,
+            bounds.MaxYUnit);
+        if (_transform is null)
+        {
+            _transform = new CommercialMapTransform(mapBounds, Size);
+        }
+        else
+        {
+            _transform.Configure(mapBounds, Size);
+        }
+        _ = RefreshPointerResolution(RealtimeWorldProbeIds.TransformRefresh);
+        QueueRedraw();
+    }
+
+    private void EnsureKeyboardCursor()
+    {
+        if (_hasCanvasPointer || _presentation is null || _transform is null)
+        {
+            return;
+        }
+        CoreMapPoint? target = SelectionTarget(_presentation) ??
+            _presentation.World.Nodes
+                .Where(item => item.Commissioned)
+                .OrderBy(item => item.NodeId, StringComparer.Ordinal)
+                .Select(item => (CoreMapPoint?)item.Position)
+                .FirstOrDefault();
+        if (!target.HasValue)
+        {
+            return;
+        }
+        _pointer = target.Value;
+        _lastCanvasPointer = Point(target.Value);
+        _hasCanvasPointer = true;
+        _ = ResolveCanvasPoint(
+            RealtimeWorldProbeIds.KeyboardDefault,
+            _lastCanvasPointer,
+            target.Value);
+    }
+
+    private void FollowSelection()
+    {
+        if (_presentation is null || _transform is null || string.Equals(
+                _lastFollowSelectionId,
+                _presentation.SelectedAssetId,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+        _lastFollowSelectionId = _presentation.SelectedAssetId;
+        CoreMapPoint? target = SelectionTarget(_presentation);
+        if (target.HasValue)
+        {
+            _transform.Follow(target.Value.XUnit, target.Value.YUnit, 80f);
+            _pointer = target;
+            _lastCanvasPointer = Point(target.Value);
+            _hasCanvasPointer = true;
+            _ = ResolveCanvasPoint(
+                RealtimeWorldProbeIds.SelectionTarget,
+                _lastCanvasPointer,
+                target.Value);
+        }
+    }
+
+    private static CoreMapPoint? SelectionTarget(
+        RealtimeWorldPresentation presentation)
+    {
+        string? selectedId = presentation.SelectedAssetId;
+        SpatialNodeDefinition? node = presentation.World.Nodes.FirstOrDefault(item =>
+            string.Equals(item.NodeId, selectedId, StringComparison.Ordinal));
+        if (node is not null)
+        {
+            return node.Position;
+        }
+        SpatialEdgeDefinition? edge = presentation.World.Edges.FirstOrDefault(item =>
+            string.Equals(item.EdgeId, selectedId, StringComparison.Ordinal));
+        if (edge is not null)
+        {
+            CoreMapPoint from = presentation.World.Nodes.Single(item => string.Equals(
+                item.NodeId,
+                edge.FromNodeId,
+                StringComparison.Ordinal)).Position;
+            CoreMapPoint to = presentation.World.Nodes.Single(item => string.Equals(
+                item.NodeId,
+                edge.ToNodeId,
+                StringComparison.Ordinal)).Position;
+            return new CoreMapPoint(
+                checked((int)(((long)from.XUnit + to.XUnit) / 2)),
+                checked((int)(((long)from.YUnit + to.YUnit) / 2)));
+        }
+        string? highlightedNode = presentation.Highlight?.NodeIds.FirstOrDefault();
+        return highlightedNode is null
+            ? null
+            : presentation.World.Nodes.FirstOrDefault(item => string.Equals(
+                item.NodeId,
+                highlightedNode,
+                StringComparison.Ordinal))?.Position;
+    }
+
+    private void UpdateAccessibility()
+    {
+        if (_presentation is null)
+        {
+            return;
+        }
+        string selection = _presentation.SelectedAssetId is string selected
+            ? $"선택 {CandidateDisplayName(_presentation, selected)}"
+            : "선택 없음";
+        string candidate = _candidateCycle.Count == 0
+            ? "후보 없음"
+            : $"후보 {_candidateIndex + 1}/{_candidateCycle.Count} " +
+              CandidateDisplayName(
+                  _presentation,
+                  _candidateCycle[_candidateIndex]);
+        string feedback = string.IsNullOrWhiteSpace(_pointerFeedback.Message)
+            ? "배치 결과 없음"
+            : (_pointerFeedback.Accepted ? "승인" : "거절") + " " +
+              _pointerFeedback.Message;
+        AccessibilityName = Accessibility(_presentation);
+        AccessibilityDescription =
+            $"{selection}. {candidate}. {feedback}. " +
+            "Q와 E로 겹친 후보를 바꾸고 Enter로 현재 후보를 선택합니다.";
+    }
+
+    private Vector2 Point(CoreMapPoint point) =>
+        _transform!.WorldToCanvas(point.XUnit, point.YUnit);
+
+    private CoreMapPoint ToWorld(Vector2 point)
+    {
+        CommercialWorldPosition world = _transform!.CanvasToWorld(point);
+        return new CoreMapPoint(
+            (int)Math.Round(world.X, MidpointRounding.AwayFromZero),
+            (int)Math.Round(world.Y, MidpointRounding.AwayFromZero));
+    }
+
+    private float NodeRadius(
+        SpatialWorldDefinition world,
+        SpatialNodeDefinition node) =>
+        (world.NodeClasses.Single(item =>
+            string.Equals(item.ClassId, node.ClassId, StringComparison.Ordinal)).Kind switch
+        {
+            SpatialNodeKind.Substation => 13f,
+            SpatialNodeKind.Pole => 7f,
+            _ => 9f,
+        }) * _accessibilityScale;
+
+    private static RealtimeWorldAssetStatus? Status(
+        RealtimeWorldPresentation presentation,
+        string id) => presentation.AssetStatuses.FirstOrDefault(item =>
+        string.Equals(item.AssetId, id, StringComparison.Ordinal));
+
+    private static Color StateColor(RealtimeWorldAssetState? state) => state switch
+    {
+        RealtimeWorldAssetState.Planned or
+            RealtimeWorldAssetState.Building or
+            RealtimeWorldAssetState.AuthoredUnavailable => Planned,
+        RealtimeWorldAssetState.Emergency => Emergency,
+        RealtimeWorldAssetState.ProtectiveOutage => Outage,
+        RealtimeWorldAssetState.OverLimit => Danger,
+        _ => Normal,
+    };
+
+    private static double SegmentDistanceSquared(Vector2 point, Vector2 start, Vector2 end)
+    {
+        Vector2 axis = end - start;
+        if (axis.LengthSquared() <= 0.001f)
+        {
+            return point.DistanceSquaredTo(start);
+        }
+        float t = Math.Clamp((point - start).Dot(axis) / axis.LengthSquared(), 0f, 1f);
+        return point.DistanceSquaredTo(start + axis * t);
+    }
+
+    private static string Accessibility(RealtimeWorldPresentation presentation)
+    {
+        int emergency = presentation.AssetStatuses.Count(item =>
+            item.State == RealtimeWorldAssetState.Emergency);
+        int outage = presentation.AssetStatuses.Count(item =>
+            item.State == RealtimeWorldAssetState.ProtectiveOutage);
+        int authoredUnavailable = presentation.AssetStatuses.Count(item =>
+            item.AuthoredUnavailable);
+        int building = presentation.AssetStatuses.Count(item =>
+            item.State == RealtimeWorldAssetState.Building);
+        return $"청류시 실시간 전력망 · 후보는 거리와 안정된 순서로 정렬 · " +
+               $"공사 중 {building}곳 · 계획 사용불가 {authoredUnavailable}곳 · " +
+               $"비상 {emergency}곳 · 보호정지 {outage}곳";
+    }
+
+    private static string CandidateDisplayName(
+        RealtimeWorldPresentation presentation,
+        string id)
+    {
+        if (RealtimeWorldIds.IsDraftPoint(id))
+        {
+            return "초안 경로점";
+        }
+        SpatialNodeDefinition? node = presentation.World.Nodes.FirstOrDefault(item =>
+            string.Equals(item.NodeId, id, StringComparison.Ordinal));
+        if (node is not null)
+        {
+            return $"{node.DisplayName} · {StatusLabel(Status(presentation, id))}";
+        }
+        SpatialEdgeDefinition? edge = presentation.World.Edges.FirstOrDefault(item =>
+            string.Equals(item.EdgeId, id, StringComparison.Ordinal));
+        if (edge is not null)
+        {
+            string lineName = presentation.World.LineClasses.FirstOrDefault(item =>
+                string.Equals(item.ClassId, edge.LineClassId, StringComparison.Ordinal))
+                ?.DisplayName ?? "배전선";
+            return $"{lineName} 구간 · {StatusLabel(Status(presentation, id))}";
+        }
+        return "지도 후보";
+    }
+
+    private static string StatusLabel(RealtimeWorldAssetStatus? status)
+    {
+        if (status is null)
+        {
+            return "정상";
+        }
+        if (status.ProtectiveOutage && status.AuthoredUnavailable)
+        {
+            return "보호정지 · 계획 사용불가 겹침";
+        }
+        return status.State switch
+        {
+            RealtimeWorldAssetState.Planned => "계획",
+            RealtimeWorldAssetState.Building => "공사 중",
+            RealtimeWorldAssetState.AuthoredUnavailable => "계획 사용불가",
+            RealtimeWorldAssetState.Emergency => "비상 운전",
+            RealtimeWorldAssetState.ProtectiveOutage => "보호정지",
+            RealtimeWorldAssetState.OverLimit => "한계 초과",
+            _ => "정상",
+        };
+    }
+
+    private static string StatusLabel(RealtimeWorldAssetState? state) =>
+        StatusLabel(state is null
+            ? null
+            : new RealtimeWorldAssetStatus(
+                "STATUS_PREVIEW",
+                state.Value,
+                0,
+                0,
+                0,
+                0,
+                0,
+                AuthoredUnavailable:
+                    state == RealtimeWorldAssetState.AuthoredUnavailable,
+                ProtectiveOutage:
+                    state == RealtimeWorldAssetState.ProtectiveOutage));
+
+    private static RealtimePlaceholderStateCue StateCue(
+        RealtimeWorldAssetState? state) => state switch
+    {
+        RealtimeWorldAssetState.AuthoredUnavailable =>
+            RealtimePlaceholderStateCue.AuthoredUnavailableBars,
+        RealtimeWorldAssetState.Emergency =>
+            RealtimePlaceholderStateCue.EmergencyTriangle,
+        RealtimeWorldAssetState.ProtectiveOutage =>
+            RealtimePlaceholderStateCue.ProtectiveOutageCross,
+        RealtimeWorldAssetState.OverLimit =>
+            RealtimePlaceholderStateCue.OverLimitDiamond,
+        _ => RealtimePlaceholderStateCue.None,
+    };
+}

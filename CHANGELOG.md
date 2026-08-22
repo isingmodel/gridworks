@@ -1,12 +1,37 @@
 # Gridworks 변경 기록
 
-## Unreleased — 상용 v2 단계 G 내부 후보
+## Unreleased — `./assets` 스타일 실시간 게임 목표 전환
+
+- 루트 `./assets` 네 이미지를 카메라·도시 밀도·재질·설비 실루엣·조명·상태 언어의 visual
+  reference authority로 고정했다. runtime 규칙·수치·개별 자산 권위로는 사용하지 않는다.
+- R1 결정론적 실시간 Core와 R2 HUD·사건 지평선·조건부 작업 UI를 보존하면서, flat graph/SVG
+  placeholder가 아니라 회화적 아이소메트릭 도시 world로 전환하는 A0–A5 로드맵을 열었다.
+- A0 문서 기준선만 완료했고 code/art 구현 gate는 열지 않았다. 기본 장면은 `CommercialMain`이다.
+- 라이브 검증은 결정론적 중간 checkpoint에서 필요한 구간만 수행하고, 처음부터 실행하는 E2E는
+  onboarding·save/migration·누적 상태·package·전체 campaign에만 쓰도록 현재 scope에 고정했다.
+- 현재 목표에 필요한 문서만 `docs/` 전면에 남기고, 완료·중단된 prototype·v1·v2·R0–R2 기록은
+  [압축 아카이브](docs/archive/COMPLETED_HISTORY.md)와 Git commit `9aceaf7`로 이동했다.
+- 기존 HTML/CSS 목표 화면은 `./assets` 스타일과 맞지 않아 현재 목표·증거에서 폐기했다.
+
+## 실시간 전면 개편 R2 중단 기록 — 아카이브
+
+- R0 기준선 `5a9e465`, R1 실시간 Core `3da1897` 뒤 R2 UX foundation·수평 사건 지평선 구현을
+  `4c27f65`에 보존했다.
+- 마지막 exact-tree 전체 harness는 사용자 지시로 중단돼 완료 gate가 아니다. 앞서 수집된 증거는
+  보존하지만 R2 PASS, 전면 개편 완료 또는 출시 증거로 승격하지 않는다.
+- R3~R7과 더 넓은 전면 개편은 `USER_STOPPED_AFTER_R2`이며 활성 revision gate는 없다. 기본 장면은
+  계속 `CommercialMain`이다.
+- 물리 UHD, 사람 사용성·미감, 한국어·전력설비 전문 검토와 공개 출시는 미수집·미승인이다. 과거
+  HTML 목표는 현 목표에서 폐기했으며 Git commit `9aceaf7`에만 보존한다.
+
+## 상용 v2 단계 G 내부 후보 — 동결 기록
 
 현재 기본 `CommercialMain`은 별도 v2 world·campaign·Core에서 보이는 격자 없는 자유 배치,
 수면·건물·설비 점유영역, 선로 도체·변전소 주기기·전신주 접속부의 연속·비상 열 한계,
 보호정지·냉각, 안전 의무·도시 약속·최근 공사 복구와 여덟 임무·에필로그를 연결한다.
 단계 G의 정확한 해시·검사·native·package·새 설치 증거는
-[상용 구현 계약](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)이 소유한다.
+[압축 완료 이력](docs/archive/COMPLETED_HISTORY.md)이 현재 필요한 상태를 보존하고, 상세 원문은 Git
+commit `9aceaf7`에 남아 있다.
 
 - 이름 붙은 발전원→수요 병목 경로, 원자적 배치 feedback, 고정 승인 checklist, 국면 비교 표,
   누적 공사 forecast와 실행 전 복구 결과를 추가했다.

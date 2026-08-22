@@ -1,61 +1,125 @@
-# Gridworks — 출시판 진행 체크리스트
+# Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
-> 이 문서는 단계 상태와 최소 종료 증거만 기록한다. 상세 규칙은
-> [로드맵](ROADMAP_2D.md)과 [상용 구현 계약·완료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)이
-> 소유한다.
+> 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
+> 현재 상태: **A0+A0.1 완료 · 활성 구현 gate 없음**
+> 다음 후보: **A1 미개방**
 
-현재 활성 단계는 없다. 루트 [README](../README.md)가 단계 B~G 완료, goal seeking 중단과 단계 H
-미개방 경계를 선언한다.
-
-## 사용 규칙
-
-- 승인된 구현 단계는 `계획·미개방 → 활성 → 검토 중 → 완료`, 별도 권한이 필요한 외부 단계는
-  `미승인`을 사용한다. 계획은 현재 구현 권한을 뜻하지 않는다.
-- 한 번에 한 단계만 활성으로 둔다.
-- 단계가 완료될 때 증거 링크를 채운다. 수치와 긴 로그를 이 표에 복사하지 않는다.
-- 기계 검증, native 확인, 소유자 플레이와 독립 검토는 서로 대신하지 않는다.
-- 옛 내부 후보의 완료는 새 출시판 단계의 완료 증거가 아니다.
+이 문서는 단계 상태와 증거 상한만 기록한다. 기능과 시각 규격은
+[현재 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)과 [로드맵](ROADMAP_2D.md)이 소유한다.
 
 ## 진행 장부
 
-| 단계 | 상태 | 계약·데이터 | 자동검사 | native 확인 | 사람 검토 | 독립 검토·종료 |
-|---|---|---|---|---|---|---|
-| 과거 내부 후보 | 보존 | [개발 이력](DEVELOPMENT_HISTORY.md)과 완료 scope | 동결 회귀 | 기존 package 실행 | 소유자 전체 플레이에서 출시 차단 문제 확인 | 출시판으로는 superseded |
-| 동결 release v1 기술 기준선 | **완료** | [과거 계약](scopes/RELEASE_REBUILD.md)·[world](../data/release-world-v1.json)·[campaign](../data/release-campaign-v1.json) | 15 suites / 481 assertions | 건설·두 프로세스 8임무·내부 package 통과 | 공식 cold LLM은 마지막 장 `BLOCKED`; v2 증거로 합산하지 않음 | 후속 기술 수정 P0/P1 0 |
-| B. 자유 좌표 기반 | **완료** | [상용 구현 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md)·Stage-B spatial fixture | CommercialChecks 7 suites / 238 assertions | 1280×720·UI 125% 자유 배치 흐름 통과 | 해당 없음 | exact-tree P0/P1 0 |
-| C. 이산 열 국면 기반 | **완료** | final world v2와 같은 상용 구현 기록 | CommercialChecks 13 suites / 350 assertions | 열 projection·설비 선택·비상→정지→복귀 통과 | 해당 없음 | P1 2건 수정 뒤 exact-tree P0/P1 0 |
-| D. 상용 핵심 흐름 | **완료** | core slice SHA `8d09a0…0842`와 같은 상용 구현 기록 | CommercialChecks 19 suites / 1,312 assertions | 두 fresh process로 첫 불빛 저장→본편 복원→5장 완료 | `CommercialSliceHumanStatus = NOT_COLLECTED` | 입력·저장 P0/P1 수정 뒤 exact-tree P0/P1 0 |
-| E. 첫 네 임무·공통 UX | **완료** | final world/campaign v2와 [상용 구현 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md) | CommercialChecks 26 suites / 2,402 assertions | Game 3구성 0/0, 두 fresh process로 4장 완료 | `NOT_COLLECTED` | exact-tree P0/P1 0 |
-| F. 후반 네 임무·에필로그 | **완료** | world SHA `c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14` / campaign SHA `078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a` | CommercialChecks 29 suites / 4,486 assertions | Game 3구성 0/0, 1280×720·UI 125% 두 process 전체 흐름 통과 | 사람 전체 플레이·전문 교정 `NOT_COLLECTED`; 공식 cold LLM은 8장 폭염 정점 2/3에서 `USER_STOPPED`, 중단 후 리뷰만 수집 | Stage F 계약 exact-tree P0/P1 0; 관찰 backlog는 종료 당시 독립 미검증·미승인이었음 |
-| G. 시청각·접근성·package | **완료** | 최종 자산·settings v3·네 layout/keyboard evidence·package와 [완료된 관찰 backlog](ROADMAP_2D.md#관찰-기반-선행-보정-backlog--완료) | Commercial·동결 회귀·3구성 build·package audit PASS | 자유 배치·열·두 process·네 layout과 저장소 밖 새 설치 전체 캠페인 PASS | 전체 사람 검토·전문 교정 `NOT_COLLECTED` | [단계 G 완료 증거](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료), 독립 P0/P1 0; goal seeking 중단 |
-| H. 외부 검증·공개 후보 | **미승인** | 별도 사용자·자격증명 gate | 자동증거로 대체하지 않음 | 공개 bytes 확정 전 미실행 | 소유자·외부·전문 교정 필요 | Developer ID·공증·배포 결정 필요 |
+| 단계 | 상태 | 핵심 결과 | 자동/native | 사람·전문 | 종료 |
+|---|---|---|---|---|---|
+| A0 목표·문서 기준선 | **완료** | 네 reference hash, 스타일 DNA, R1/R2 보존, 문서 압축 | 문서·링크·경계 검사 | 해당 없음 | 이 문서 변경 커밋 |
+| A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
+| A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
+| A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
+| A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
+| A4 campaign·save | **미개방** | 전체 실시간 campaign, save v4, default 후보 | 미실행 | 미수집 | A3 뒤 별도 승인 |
+| A5 native·release | **미개방** | FHD/UHD, package, fresh install | 미실행 | 미수집 | 별도 내부·외부 gate |
 
-`USER_STOPPED`는 native 완료, 실패 또는 막힘 판정이 아니다. 참가자는 `가장 긴 밤`의 `폭염 정점
-2/3`에서 500 kW 비상 열여유 부족을 보고 있었고 완료·에필로그는 확인하지 못했다. 사용자 중단 뒤
-같은 참가자에게 리뷰를 요청해 원래 no-follow-up 완주 관찰 protocol은 `INVALIDATED`됐다. 별도 중단
-후 리뷰의 강점과 과제는 정성 입력일 뿐 사람 검토나 Stage F 자동·native 증거에 합산하지 않는다.
+## A0 완료 확인
 
-## 단계 활성화 조건
+- [x] 루트 `./assets` 네 파일과 SHA-256을 visual reference authority로 고정
+- [x] 카메라·밀도·재질·실루엣·조명·상태 언어 정의
+- [x] reference에서 채택하지 않는 영어·송전급 설비·발전 입지·고정 panel 명시
+- [x] R1 deterministic Core와 R2 UX 기반 보존
+- [x] R2 마지막 전체 harness를 PASS로 승격하지 않음
+- [x] 기본 장면 `CommercialMain` 유지
+- [x] runtime art authority 미수립과 로컬/untracked 후보 미채택 명시
+- [x] 현재 목표 문서만 전면에 보존
+- [x] 완료·중단 과거를 압축 아카이브와 Git 이력으로 이동
+- [x] 이전 HTML/vector 목표를 current target/evidence에서 제거
+- [x] 구간 직접 진입형 live checkpoint를 기본 테스트 정책으로 고정
+- [x] onboarding·save/migration·누적 상태·package·전체 campaign만 full-flow 예외로 제한
+- [x] A1을 자동으로 열지 않음
 
-- 이전 단계가 완료됐거나 사용자가 명시적으로 삭제했다.
-- README가 현재 단계 하나만 가리킨다.
-- 해당 단계가 사용할 데이터·코드 경계와 플레이어 결과가 구현 계약에 적혀 있다.
-- 다음 단계의 schema, interface와 빈 UI를 미리 만들지 않는다.
+## A0.1 구조 준비 확인
 
-단계 B~F는 2026-08-18 구현 목표에서, 단계 G와 관찰 backlog는 2026-08-19 별도 사용자 지시에서
-완료했다. 전체 감사와 문서 최신화 뒤 goal seeking을 중단했다. 단계 H의 사람 관찰·전문 교정·
-Developer ID 서명·공증·공개 배포는 여전히 별도 미개방 외부 gate다.
+- [x] Core `ExportRelease`는 동결 V2 explicit allowlist, Game `ExportRelease`는 R2/UI 제외
+- [x] 미승인 `RealtimeCampaignPersistence.cs`는 모든 Core 구성에서 compile 제외
+- [x] package audit가 R2/UI namespace 유입을 거부
+- [x] 동일 state/horizon forecast cache와 forecast 없는 `Minute` query 사용
+- [x] caller 0 frame facade·command alias·UI event·compatibility alias 제거
+- [x] world renderer가 raw campaign snapshot·forecast 대신 `IRealtimeWorldView` DTO를 사용
+- [x] pointer 이동은 full snapshot·forecast·전체 presentation 갱신을 호출하지 않음
+- [x] RealtimeChecks가 실행 위치와 무관하게 fixture를 찾고 `--suite <exact-name>`을 지원
+- [x] `A1_NORMAL_READY` exact start/replay/end identity와 bounded live segment PASS
+- [x] `A1_CONSTRUCTION_DUE_1M` exact start/replay/end identity와 원자 완공·통전 PASS
+- [x] full R2 harness와 전체 campaign을 다시 실행하지 않음
 
-## 공통 종료조건
+두 구간의 고정 identity는 [현재 목표 계약 §8.3](scopes/ASSET_STYLE_REALTIME_GAME.md#83-표준-checkpoint-후보)가
+소유한다. 이 결과는 A1 art·native capture·사람 검토나 R2 종료 PASS로 확대하지 않는다.
 
-- 활성 단계의 대표 성공·경계·반례 자동검사가 통과한다.
-- 변경이 닿는 과거 회귀와 Game build가 통과한다.
-- Game을 바꾼 단계는 실제 입력 핵심 흐름을 한 번 확인한다.
-- 화면 단계는 대표 해상도에서 clipping, keyboard focus와 색 외 상태 표현을 확인한다.
-- 미해결 crash, data loss, softlock, critical과 다음 단계가 의존하는 core-flow major가 0이다.
-- 사용자 문구에 기계 ID, enum, 오류 코드, 원시 예외가 노출되지 않는다.
-- README와 영향받은 제품 문서를 현재 사실에 맞춘다.
-- 한 번의 독립 P0/P1 검토를 닫고 종료 증거를 연결한다.
+## A1 개방 전 체크
 
-최종 출시 후보는 비핵심을 포함한 열린 major도 0이어야 한다. LLM 플레이는 기본 종료조건이
-아니며 자동검사가 답할 수 없는 좁은 질문에 사용자가 별도 요청할 때만 수행한다.
+- [ ] 사용자 A1 구현 승인
+- [ ] exact source asset allowlist
+- [ ] source별 provenance·hash·사용 경계
+- [ ] 공통 camera·light·scale sheet
+- [x] 수정 가능한 Game/Core/data build authority 경계
+- [ ] 한 `FIRST_LIGHT` scene와 player outcome
+- [x] `A1_NORMAL_READY`·`A1_CONSTRUCTION_DUE_1M` 생성 계약과 시작 hash
+- [x] targeted live 종료 assertion·evidence label
+- [ ] FHD reference contact sheet 절차
+- [ ] frame budget와 지원 hardware
+- [ ] fallback·placeholder 금지 목록
+- [ ] 독립 리뷰 질문과 종료 gate
+
+하나라도 비어 있으면 A1은 `미개방`이다.
+
+## 단계별 증거 구분
+
+| 증거 | 증명할 수 있음 | 증명할 수 없음 |
+|---|---|---|
+| Core/자동검사 | 규칙·상태전이·동등성·save | 미감·도시 밀도·재미 |
+| targeted live checkpoint | 특정 중간 상태의 실제 입력·렌더·transition | onboarding·전체 campaign·package |
+| full-flow E2E | 시작부터 이어진 wiring·누적 상태·fresh process | 모든 중간 결함의 최소 재현 |
+| scene smoke | wiring·입력 owner·crash·clipping | 장시간 가독성·사람 이해 |
+| native capture | 실제 render·texture·depth·layout | 실제 사람의 선호·피로 |
+| reference review | 카메라·밀도·재질·실루엣·조명 방향 | 규칙 정확성·법적 권리 |
+| 사람 관찰 | 이해·조작·미감 경험 | 코드 보존식·다른 사람의 성공률 |
+| 전문 검토 | 한국어·전력설비 표현 | 재미·공개 출시 승인 |
+
+## 현재 상태 블록
+
+```text
+CurrentGoal = ASSET_STYLE_REALTIME_GAME
+DocumentationBaseline = A0_COMPLETE
+ArchitecturePreparation = COMPLETE
+ActiveImplementationGate = NONE
+NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
+VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
+RuntimeArtAuthority = NOT_ESTABLISHED
+LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
+TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
+FullFlowE2EPolicy = EXCEPTION_ONLY
+DefaultMainScene = CommercialMain
+R1RealtimeCore = PRESERVED
+R2Implementation = PRESERVED
+R2ExitGate = NOT_COMPLETED
+PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
+HumanVisualValidation = NOT_COLLECTED
+ElectricalProfessionalReview = NOT_COLLECTED
+KoreanProfessionalReview = NOT_COLLECTED
+PublicReleaseStatus = NOT_AUTHORIZED
+```
+
+## 공통 종료 기록 형식
+
+각 구현 gate를 끝낼 때 다음만 추가한다.
+
+```text
+source commit
+exact file/asset allowlist
+manifest aggregate hash
+bounded automatic/native commands and result
+checkpoint ID/start hash/end assertion or full-flow exception reason
+reference capture IDs
+human/professional status
+independent P0/P1 verdict
+explicit exclusions and next gate status
+```
+
+긴 로그와 과거 단계 수치를 이 문서에 복제하지 않는다.

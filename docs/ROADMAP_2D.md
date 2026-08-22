@@ -1,159 +1,191 @@
-# Gridworks — 상용 2D 게임 완성 로드맵
+# Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 문서 상태: 단계 B~G 완료, 활성 단계 없음, 단계 H 미개방
+> 현재 상태: **A0 문서 기준선+A0.1 구조 준비 완료 · 활성 구현 gate 없음**
+> 다음 후보: **A1 일반 운전 아트 vertical slice — 미개방**
 
-이 로드맵은 기술 기준선을 보이는 격자 없는 상용 2D 전력망 게임으로 교체하는 제작 순서를 정한다.
-현재 단계와 구현 권한은 루트 [README](../README.md), 정확한 규칙과 종료조건은
-[상용 2D 게임 구현 계약](scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 제품 경험은
-[상용 재기획서](product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md), 증거 상태는
+이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
+정한다. 로드맵의 다음 단계는 자동 구현 권한이 아니다. 권한은 루트 [README](../README.md), 정확한
+목표는 [현재 계약](scopes/ASSET_STYLE_REALTIME_GAME.md), 진행 증거는
 [체크리스트](ROADMAP_2D_CHECKLIST.md)가 소유한다.
 
-단계 G와 관찰 기반 선행 보정 backlog는 2026-08-19 사용자 승인 아래 완료됐다. 선행 보정→최종
-표현·설정→화면·키보드 증거→내부 package와 저장소 밖 새 설치 전체 실행까지 닫았고, 현재 활성
-구현 단계는 없다. 단계 H 사람 검증과 공개 배포는 열지 않았다.
+## 제작 원칙
 
-그 뒤 수행한 공식 Stage F cold LLM 관찰은 8장 `가장 긴 밤`의 `폭염 정점 2/3`, 500 kW 비상
-열여유 부족 화면에서 사용자가 중단했다.
-`USER_STOPPED`는 성공·실패·막힘이나 native 완료가 아니다. 사용자 중단 뒤 같은 참가자에게 리뷰를
-요청했으므로 원래 no-follow-up 완주 관찰 protocol은 `INVALIDATED`다. 별도로 받은 중단 후 리뷰로
-아래 관찰 기반 backlog를 정리했고 단계 G에서 독립 재현·구현·검증했다. 완료 상태는 수용 기준을
-기계적으로 닫았다는 뜻이며, 원 관찰을 결함률이나 사람 사용성 증거로 바꾸지 않는다.
+- 한 번에 한 gate만 연다.
+- 각 gate는 player outcome 하나, exact 파일 경계, 자산 allowlist와 종료 증거를 먼저 고정한다.
+- R1 Core를 UI에서 재계산하지 않고 typed snapshot·forecast·transition을 사용한다.
+- `./assets`와 비슷한 팔레트만 만드는 것을 완료로 인정하지 않는다.
+- source asset의 provenance·camera·scale·anchor 없이 world 통합을 시작하지 않는다.
+- placeholder와 production asset을 같은 scene에서 조용히 혼합하지 않는다.
+- 자동검사·native capture·사람 미감·전문 검토를 서로 대신하지 않는다.
+- 라이브 테스트는 필요한 경계 직전의 이름 붙은 deterministic checkpoint에서 시작한다.
+- 전체 시작 E2E는 onboarding, save/migration, 누적 상태, default scene·package와 전체 campaign에만 쓴다.
+- 과거 v2/R2 증거는 회귀 기반일 뿐 새 아트 gate의 PASS가 아니다.
 
-## 1. 출발점
+## A0 — 목표·문서 기준선 — 완료
 
-동결된 `release v1` 기준선은 분기·합류 그래프, 공유 용량, 사건 projection, 직접 건설, 저장·재개와
-내부 macOS package를 증명했다. 그러나 셀 격자, 고정 정격, 한 번의 장 판정과 반복되는 콘텐츠 때문에
-상용 제품의 공간 선택·운영 리듬·이야기 결과가 부족하다.
+### 결과
 
-새 제품은 기준선을 제자리 확장하지 않는다. 별도 v2 world·campaign·Core·장면에서 다음 기반을
-만들고, 기존 경로는 회귀로 보존한다.
+- `./assets` 네 이미지와 hash를 visual reference authority로 고정
+- 회화적 fixed-oblique world, 도시 밀도, 재질, 실루엣, 조명과 상태 언어 정의
+- R1 규칙·R2 UX 보존, default `CommercialMain`, no-active-code-gate 경계 기록
+- 현재 목표 문서만 남기고 완료·중단된 과거를 압축 아카이브로 이전
+- 실패한 HTML/vector 목표를 현재 목표와 증거에서 제외
 
-- 고정소수점 자유 배치와 점유영역·수면·건물·구간 기하
-- 선로·변전소·전신주 접속부의 연속·비상 열 한계
-- 작성된 운영 국면, 보호정지·냉각과 모든 공개 국면 미리보기
-- 안전 의무, 선택 가능한 도시 약속, 실제 기한과 최근 공사 복구
-- 같은 망을 이어 쓰는 프롤로그 세 임무와 본편 다섯 장
-- 실제 망 상태를 기억하는 결과·에필로그와 상용 수준의 2D 표현·사운드
+### 상한
 
-## 2. 제작 원칙
+A0는 runtime 화면, 새 sprite, native capture나 미감 검토를 만들지 않는다.
 
-- 단계 B→C→D→E/F→G 순서로 한 단계씩 연다.
-- 한 단계의 코드·데이터·검사·native 증거·문서·독립 검토를 커밋한 뒤 다음 단계로 간다.
-- v2 world와 campaign이 실행 숫자와 콘텐츠를 한 곳씩 소유한다.
-- Core가 규칙을 계산하고 Game은 typed 결과만 입력·표현한다.
-- 임무 5 이후 새 건설·열 규칙을 추가하지 않는다.
-- 검증은 대표 성공·경계·반례로 제한하고 재미를 검사 수로 대신하지 않는다.
-- 사람 관찰·전문 교정과 공개 서명·공증은 구현 완료 뒤 단계 H에서 별도로 수행한다. LLM 관찰은
-  단계 H의 의무가 아니며 사용자가 별도로 요청할 때만 수행한다.
+## A0.1 — A1 전 구조 준비 — 완료
 
-## 3. 단계 B — 자유 좌표 기반 — 완료
+### 결과
 
-고정소수점 자유 배치, 점유영역·수면·건물·선로 기하, 자석 맞춤과 세 단계 카메라를 `첫 불빛`의
-작은 흐름에서 닫았다. 과거 검사 수와 실행 marker는
-[상용 구현 완료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#36-단계-b-종료-기록--2026-08-18)이 소유한다.
+- Core와 Game의 Debug/Release 실시간 authority를 상용 `ExportRelease` v2 package에서 분리
+- 미승인 persistence·future world/data의 wildcard compile/package 유입 차단
+- 동일 state/horizon forecast cache와 cheap minute query, pointer-only world 갱신 경로
+- `IRealtimeWorldView`를 통한 placeholder/향후 asset renderer 교체 경계
+- exact Core suite filter와 `A1_NORMAL_READY`·`A1_CONSTRUCTION_DUE_1M` 단일 구간 runner
 
-## 4. 단계 C — 이산 열 국면 기반 — 완료
+### 상한
 
-선로 도체·변전소 주기기·전신주 접속부의 연속·비상 한계, 결정론적 열 우선 경로, 다음 국면
-보호정지와 한 국면 뒤 복귀를 닫았다. 실제 온도·연속 축열·수동 급전은 열지 않았다. 상세 종료
-증거는 [상용 구현 완료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#45-단계-c-종료-기록--2026-08-18)에 있다.
+A0.1은 A1의 구조·검증 진입점만 준비했다. runtime asset authority, 도시 아트, reference capture와
+사람 미감 증거는 만들지 않았고 A1은 계속 미개방이다.
 
-## 5. 단계 D — 상용 핵심 흐름 — 완료
+## A1 — 일반 운전 아트 vertical slice — 미개방
 
-`첫 불빛`과 4장 완료 상태의 `누구의 여유인가`에 결정 경계, 안전 의무·도시 약속, 공사 기한,
-전체 공개 국면 preview, 최근 공사 복구와 실제 결과를 통합했다. 사람 이해·재미는 수집하지 않았다.
-상세 종료 증거는 [상용 구현 완료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#51-단계-d-종료-기록--2026-08-18)에 있다.
+### player outcome
 
-## 6. 단계 E — 첫 네 임무와 공통 UX — 완료
+플레이어가 한 FHD 화면에서 촘촘한 청류시를 보고, 실제 R1 clock이 흐르는 동안 전신주·선로를
+계획·발주해 완공하고, 새 경로가 물리 world에서 통전되는 것을 확인한다.
 
-첫 네 임무에서 자유 배치→두 접속과 시험→연속 한계→서비스권역·미래 분기 공간으로 안내를 줄이고,
-같은 망·자금·저장과 실제 결과를 이어 쓴다. 서비스권역은 발전원 경로를 대신하지 않고 병원 gate는
-완전한 독립성을 과장하지 않는다. 상세 종료 증거는
-[상용 구현 완료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#63-단계-e-종료-기록--2026-08-18)에 있다.
+### bounded content
 
-## 7. 단계 F — 후반 네 임무와 에필로그 — 완료
+- 한 `FIRST_LIGHT` world와 exact linked fixture
+- `A1_NORMAL_READY`, `A1_CONSTRUCTION_DUE_1M` checkpoint
+- 주거지 1, 필수시설 1, 산업시설 1
+- 발전 접속점, 일반/보강 pole, 일반/보강 line, 소형 변전소
+- terrain, river/bank, road set, dense city block
+- normal, selected, draft, invalid, building, commissioned 상태
+- 상단 HUD, 수평 사건 지평선, 조건부 context/build/action
 
-후반 네 임무에서 도시 약속, 범람 밖 공사, 계획정지와 `최대수요 → 폭염 정점 → 보호정지 → 범람`을
-이어 에필로그까지 닫았다. 자동·native·독립 감사의 exact 증거는
-[상용 구현 완료 기록](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#65-단계-f-종료-기록--2026-08-18)이
-소유한다. 이후 공식 LLM 관찰은 `USER_STOPPED`였고 사람 전체 플레이·전문 교정은 여전히
-`NOT_COLLECTED`이므로 출시 준비 완료를 주장하지 않는다.
+### gate
 
-## 8. 단계 G — 시청각·접근성·패키징 마감 — 완료
+- source asset allowlist와 manifest 100%
+- 같은 camera·light·scale, alpha fringe와 anchor 오류 0
+- 합성 배경·flat SVG/tiny fallback 0
+- no-click clock과 한 건설 흐름이 actual scene에서 Core와 동일
+- 각 checkpoint의 시작 canonical hash와 종료 상태가 exact contract와 동일
+- FHD normal/construction capture와 reference contact sheet
+- 카메라·밀도·재질·실루엣·조명·상태 rubric 모두 PASS
+- 독립 P0/P1 0
 
-최종 도시 아트·날씨·인물 초상·audio cue 자산, settings v3와 움직임 줄이기, 네 화면 조합과
-키보드 동등성 evidence, 패키징·서명 경계·법적 정리와 새 설치 전체 실행을 닫았다. 정확한 실행물과
-검증 수치는 [상용 구현 단계 G 완료 증거](scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)가
-소유한다.
+## A2 — 사건·열·복귀 표현 — 미개방
 
-### 관찰 기반 선행 보정 backlog — 완료
+### player outcome
 
-현재 패널은 정보 스크롤의 최소 높이 200 px와 focus-follow를 보장하고 약속·국면·건설·편집 조작을
-그 안에 둔다. `운영안 승인`과 `공사 발주`만 고정 footer에 남긴 채 compact 상태, 승인 조건과
-typed 비교 정보를 보강했다.
+폭염 사건이 시작되면 같은 도시의 대기와 조명이 변하고, pole·line·substation의 비상 노출,
+보호정지와 복귀를 world·horizon·context에서 같은 설비·시각·원인으로 읽는다.
 
-아래 **모든 행**은 `관찰 기반 / 단계 G 완료` 상태다. P0/P1/P2는 당시 작업 순서이며, 독립 결함률
-확정이나 사람 증거를 뜻하지 않는다. 수용 기준은 typed Core, Game 표현, bounded layout/native
-증거와 독립 검토로 닫았다.
+### bounded content
 
-| ID | 관찰 증거와 영향 | 최소 수용 기준 | 상태 |
-|---|---|---|---|
-| P0-1 승인 실패 진단 | 8장 폭염 정점에서 500 kW 부족은 보였지만 실패 국면·수요·제한 설비·거부 경로가 한 설명으로 이어지지 않아 복구 판단을 막음 | 거부 문구가 `국면 / 수요·의무 / 제한 설비 / 필요·현재·부족량`을 함께 말하고 지도에서 거부 경로와 첫 제한 설비를 강조함 | **완료** |
-| P0-2 배치 결과 단일화 | 한 배치 입력 뒤 오브젝트 추가와 같은 위치 거부가 함께 보여 authoritative world 상태를 신뢰하기 어려움 | pointer·keyboard 입력 하나가 command ID 하나와 accepted/rejected 결과 하나만 만듦. 거부는 world·route·draft를 그대로 두고, 승인은 새 route-point 수를 명시하며 world·초안·문구가 같은 typed 결과를 사용함 | **완료** |
-| P0-3 승인 gate 체크 목록 | 승인 버튼 옆에 현재 국면의 진행 조건이 지속되지 않아 무엇을 고쳐야 하는지 패널을 오가며 추측함 | 고정 footer의 bounded 영역이 국면 n/N, 모든 hard demand·접속 gate·약속·열 선행조건의 pass/fail과 남은 blocker를 승인 evaluator와 같은 source로 표시함. 실패 항목을 누르면 해당 설비·수요·경로를 선택·강조하고 정보 스크롤을 200 px 아래로 줄이지 않음 | **완료** |
-| P1-1 compact 현재 도구·상태 | 보조 도구가 첫 화면 fold 아래에 있고 패널이 조밀해 현재 mode와 다음 조작을 잃기 쉬움 | Approve/Commission 고정과 focus-follow scroll은 유지하고, 고정 높이 한 줄에 현재 도구·상태와 tool palette로 이동하는 조작만 추가함; 동적 버튼을 footer에 누적하지 않음 | **완료** |
-| P1-2 조밀한 지도 선택 후보 | 인접 선로를 잘못 고르고 `Q / E`를 눌러도 후보가 바뀌었는지 알기 어려움 | 겹친 후보에서 종류·이름·위치·순번/전체 수와 지도 표식을 유지하고 `Q / E`마다 시각·문장·접근성 feedback을 함께 갱신하며 `Enter`가 표시된 후보 하나만 확정함 | **완료** |
-| P1-3 연속 공사 기한 예측 | 개별 공사 시간은 보였지만 여러 공사를 차례로 할 때 결정 경계를 넘는지 합산하기 어려움 | queue나 동시 공사반 없이 `창구에서 이미 쓴 시간 + 현재 초안 + 다음 계획 공사`의 예상 완료 경계와 남은 여유를 순서대로 비교함 | **완료** |
-| P1-4 hover 기하 판정 | click 뒤에야 공간 거부를 확인해 자유 배치가 시행착오로 느껴짐 | 입력 전 실제 점유 외곽선·구간과 최대 경간 reach를 red/green·색 외 표식으로 그리고, 배치 가능·충돌/경간 거부 또는 위험구역 교차 경고의 첫 typed 판정과 다음 행동을 authoritative geometry에서 표시함 | **완료** |
-| P1-5 국면 비교·접근성 | 결과가 긴 문단이고 지도는 접근성 tree에서 이름 없는 요소로 보여 국면·경로·열 상태 비교가 어려움 | `수요 × 국면`마다 공급원·인도량·최소 여유·현재/다음 상태를 행·열 제목이 있는 표로 제공하고, 지도에 안정된 이름·역할과 현재 선택·후보·거부 이유를 노출함 | **완료** |
-| P2-1 반복 modal 정리 | 반복되는 결과·전환 문단이 망 비교 리듬을 끊음 | 새 사람 변화·장 전환·되돌릴 수 없는 확인만 modal로 남기고 반복 운영 사실은 패널 비교 표에서 갱신함 | **완료** |
-| P2-2 일반어 상태 범례 | 연속·비상·보호정지와 현재 미사용·단절을 기억에 의존함 | 플레이 중 언제든 패널에서 여는 짧은 일반어 범례가 현재 선택 상태와 함께 보이고 modal을 추가하지 않음 | **완료** |
-| P2-3 복구 결과 미리보기 | 최근 공사·장 복구가 무엇을 지우고 되돌리는지 실행 전에 충분히 알기 어려움 | 확인 전에 제거 공사와 복원될 자금·시각·국면·약속·열 상태를 요약함 | **완료** |
+- heatwave lighting/weather layer
+- planned authored unavailable와 thermal protective outage의 별도 표현
+- emergency exposure, trip, cooling, recovery
+- pole/line/substation 세 bottleneck witness
+- `A2_HEATWAVE_PRETRIP_1M`, `A2_PROTECTIVE_OUTAGE`, `A2_RECOVERY_DUE_1M` checkpoint
+- auto-pause reason과 next event
 
-P0를 먼저 재현·수정한 뒤 나머지 typed UX와 자산·package gate를 진행했다. 완료는 자동·native·
-독립 검토 증거의 범위에 한정하며 사람 관찰의 결론을 대신하지 않는다.
+### gate
 
-### 표현
+- actual R1 transition→presentation→draw/AX identity
+- 색·형태/pattern·icon/text 3채널
+- normal→heatwave→outage→recovery native capture set
+- weather가 hit·anchor·Core state를 바꾸지 않음
+- forecast=actual과 selected target 불변
 
-- 도시 지도와 장별 조명·날씨·강 수위·정비 표식
-- 주거·의료원·정수장·산업단지의 두세 상태 반응
-- 열 상태의 색 외 선 모양·pattern·icon·문장
-- 네 인물의 작은 고정 초상과 일관된 card 색
-- 환경·날씨, 발주·완공·통전·차단·경고·결과 cue와 두 짧은 motif
+## A3 — production city·asset catalog — 미개방
 
-### 접근성·저장
+### player outcome
 
-- 1280×720·1920×1080 × UI 100/125
-- 마우스·키보드 동등성, focus 복원, 한국어 glyph, 움직임 줄이기
-- Title, Pause, 도움말, 설정, atomic 저장·재개·최근 공사·장 재시작
-- 설정 v3의 화면·세 음량·움직임 줄이기와 strict v2 one-step migration
+전체 현재 설비와 시설이 한 도시에서 일관된 카메라·재질·scale로 보이고, 어느 zoom에서도 class,
+접속과 상태를 식별할 수 있다.
 
-### 패키지
+### content
 
-clean committed checkout에서 v2 데이터와 새 제품 scene만 포함한 macOS 내부 ZIP을 만들었다.
-저장소 밖 빈 user-data에서 저장→fresh continue→전체 캠페인·에필로그·완료 저장 재개·장 재설계를
-확인하고 archive/data/build hash, license, Universal binary와 ad-hoc 서명 경계를 기록했다. Developer
-ID·공증·사람 지원 환경 증거가 없으므로 공개 배포는 주장하지 않는다.
+- 일반/보강 pole·line, 소형/대형 변전소, 발전 접속점
+- 주거·의료원·정수장·산업단지
+- terrain biome, road/bridge, riverbank, city/industrial props
+- normal/building/emergency/planned-outage/protective-outage coverage
+- 필요한 LOD와 atlas/import preset
 
-## 9. 단계 H — 외부 검증과 공개 후보 — 미개방·미승인
+### gate
 
-- 상용 핵심 구간 사람 관찰
-- 소유자 전체 캠페인 플레이와 한국어 전문 교정
-- 실제 지원 환경 확인, Developer ID 서명·공증과 공개 배포 결정
-- 새 설치에서 사람이 완주한 bytes와 동일한 공개 후보
+- catalog/manifest completeness 100%
+- missing resource·silent fallback·mixed camera/scale 0
+- depth, conductor attachment, collision/selection bounds matrix
+- FHD/UHD dense worst-case frame budget
+- independent art/UX P0/P1 0
 
-이 단계의 사람·LLM 결과는 자동 증거에 합산하지 않는다. 단계 G와 goal seeking은 완료·중단됐고
-H는 열지 않았다. 사람 전체 플레이·전문 교정은 `NOT_COLLECTED`, 외부 자격증명과 공개 배포는
-차단 상태로 남긴다.
+## A4 — 전체 실시간 campaign·save 통합 — 미개방
 
-## 10. 전역 제외
+### player outcome
 
-- 두 번째 도시, sandbox, 절차 생성, 사용자 제작 지도
-- 실시간 수동급전, 확률 고장, AC 전력조류, 전압·무효전력·보호계전
-- 여러 공사반, 공사 queue·배속, 자재·인력·연료·전력시장·기술 트리
-- 실제 섭씨, 0~100 축열, 가변 냉각·열화·화재
-- 곡선 선로, 자동 경로·전신주, line-body snap, 범용 완공망 편집기
-- 연속 줌·회전·관성·미니맵
-- 대화 선택지, 호감도, 분기 결말 엔진, 긴 컷신·음성
-- 온라인, 업적, 순위표, 다국어·게임패드·모바일 동시 출시
-- 반복 LLM 플레이와 자동 밸런스 튜닝
+같은 회화적 도시와 전력망이 프롤로그부터 마지막 사건까지 이어지고, 저장·재개 뒤에도 시각·Core·
+사건 지평선이 동일하다.
+
+### content
+
+- 여덟 장의 실시간 schedule과 authored profile
+- 비용·공사기한·도시 약속·결과·에필로그
+- strict production V3 data
+- save v4와 안전한 기존 save 보존/migration
+- 새 기본 장면 전환 후보
+
+### gate
+
+- 전체 campaign deterministic/headless
+- mid-event·mid-construction fresh-process restore
+- 이전 save 원본 보존과 migration 반례
+- default scene 전환은 이 gate 종료 때만
+
+## A5 — native·사람·전문 검토와 package — 미개방
+
+### 내부 구현 gate
+
+- FHD와 UHD render target에서 clipping·texture·anchor·focus·성능
+- macOS clean package, fresh install, save→continue→completion
+- asset/license/build manifest와 fallback audit
+- unresolved crash·data loss·softlock·P0/P1 0
+
+### 별도 외부 gate
+
+- 처음 보는 사람의 bounded flow와 소유자 전체 campaign
+- 실제 FHD/4K panel의 가독성·미감·피로도
+- 한국어 전문 교정
+- 전력설비 silhouette·용어 전문 검토
+- Developer ID 서명·공증·공개 배포 결정
+
+내부 자동 gate가 끝나도 외부 항목이 없으면 `PublicReleaseStatus = NOT_AUTHORIZED`다.
+
+## 현재 열지 않는 것
+
+- A1 이후의 interface·schema·placeholder
+- production V3 data·persistence·default scene 전환
+- `game/assets/realtime/` 또는 `game/realtime/world/` 로컬 후보의 암묵적 채택
+- 원전·석탄·재생에너지 기술 tree와 발전 입지
+- procedural city·3D·camera rotation·sandbox
+- 반복 image generation을 통한 무제한 스타일 탐색
+
+## 공통 종료조건
+
+- gate가 지정한 player outcome이 실제 scene에서 끝난다.
+- Core state와 world/HUD/horizon/context가 같은 ID·시각·원인·수치를 쓴다.
+- 거부된 입력은 world·draft·journal을 바꾸지 않고 visible result를 남긴다.
+- source·hash·권리·camera·anchor·상태 coverage가 manifest와 일치한다.
+- 지원 화면에서 clipping, 작은 hit target, focus trap과 색 전용 cue가 없다.
+- 영향을 받는 결정론 검사와 build가 통과한다.
+- 실제 capture와 독립 범위 검토에서 P0/P1이 0이다.
+- 라이브 검증은 가장 가까운 checkpoint에서 bounded하게 실행하고 evidence label을 구간 PASS로 남긴다.
+- 처음부터 실행한 경우 checkpoint로 대체할 수 없었던 이유와 전체-flow evidence label을 기록한다.
+- README, 목표 계약, 비주얼 명세와 체크리스트를 같은 변경에서 갱신한다.
+
+사람 미감·재미·전문성은 자동 assertion 수로 대신하지 않는다.

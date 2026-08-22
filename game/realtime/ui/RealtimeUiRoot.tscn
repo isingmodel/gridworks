@@ -1,0 +1,90 @@
+[gd_scene load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://realtime/ui/RealtimeUiRoot.cs" id="1_root"]
+[ext_resource type="Script" path="res://realtime/ui/RealtimeInputRouter.cs" id="2_router"]
+[ext_resource type="Theme" path="res://RealtimeTheme.tres" id="3_theme"]
+[ext_resource type="PackedScene" path="res://realtime/ui/RealtimeTopHud.tscn" id="4_top"]
+[ext_resource type="PackedScene" path="res://realtime/ui/RealtimeEventRail.tscn" id="5_rail"]
+[ext_resource type="PackedScene" path="res://realtime/ui/RealtimeContextDock.tscn" id="6_context"]
+[ext_resource type="PackedScene" path="res://realtime/ui/RealtimeBuildShelf.tscn" id="7_build"]
+[ext_resource type="PackedScene" path="res://realtime/ui/RealtimeActionDock.tscn" id="8_action"]
+[ext_resource type="PackedScene" path="res://realtime/ui/RealtimeModalHost.tscn" id="9_modal"]
+
+[node name="RealtimeUiRoot" type="Node"]
+script = ExtResource("1_root")
+
+[node name="InputRouter" type="Node" parent="."]
+unique_name_in_owner = true
+process_mode = 3
+script = ExtResource("2_router")
+
+[node name="HudLayer" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="HudSurface" type="Control" parent="HudLayer"]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="TopHud" parent="HudLayer/HudSurface" instance=ExtResource("4_top")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 1896.0
+offset_bottom = 92.0
+
+[node name="EventRail" parent="HudLayer/HudSurface" instance=ExtResource("5_rail")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 24.0
+offset_top = 104.0
+offset_right = 1896.0
+offset_bottom = 304.0
+
+[node name="ContextDock" parent="HudLayer/HudSurface" instance=ExtResource("6_context")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1448.0
+offset_top = 316.0
+offset_right = 1896.0
+offset_bottom = 1056.0
+
+[node name="BuildShelf" parent="HudLayer/HudSurface" instance=ExtResource("7_build")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 204.0
+offset_top = 992.0
+offset_right = 1244.0
+offset_bottom = 1056.0
+
+[node name="ActionDock" parent="HudLayer/HudSurface" instance=ExtResource("8_action")]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 1036.0
+offset_top = 928.0
+offset_right = 1436.0
+offset_bottom = 1056.0
+
+[node name="ModalLayer" type="CanvasLayer" parent="."]
+layer = 40
+
+[node name="ModalSurface" type="Control" parent="ModalLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="ModalHost" parent="ModalLayer/ModalSurface" instance=ExtResource("9_modal")]
+unique_name_in_owner = true
+layout_mode = 1

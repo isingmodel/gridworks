@@ -1,0 +1,120 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://realtime/ui/RealtimeModalHost.cs" id="1_host"]
+[ext_resource type="Script" path="res://realtime/ui/RealtimeFocusScope.cs" id="2_focus"]
+
+[node name="RealtimeModalHost" type="Control"]
+visible = false
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_host")
+
+[node name="InputBlocker" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.004, 0.01, 0.012, 0.82)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ModalPanel" type="PanelContainer" parent="Center"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(720, 460)
+layout_mode = 2
+theme_type_variation = &"ElevatedPanel"
+
+[node name="Margin" type="MarginContainer" parent="Center/ModalPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 24
+
+[node name="FocusScope" type="Control" parent="Center/ModalPanel/Margin"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(664, 412)
+layout_mode = 2
+script = ExtResource("2_focus")
+
+[node name="Column" type="VBoxContainer" parent="Center/ModalPanel/Margin/FocusScope"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="EyebrowLabel" type="Label" parent="Center/ModalPanel/Margin/FocusScope/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.79, 0.78, 1)
+text = "운영 결정"
+
+[node name="HeadingLabel" type="Label" parent="Center/ModalPanel/Margin/FocusScope/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "결정 제목"
+autowrap_mode = 2
+
+[node name="Separator" type="HSeparator" parent="Center/ModalPanel/Margin/FocusScope/Column"]
+layout_mode = 2
+
+[node name="BodyLabel" type="Label" parent="Center/ModalPanel/Margin/FocusScope/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 18
+text = "한 화면에 읽을 수 있도록 작성된 결정 본문입니다."
+autowrap_mode = 2
+
+[node name="PauseStatusLabel" type="Label" parent="Center/ModalPanel/Margin/FocusScope/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.77, 0.41, 1)
+theme_override_font_sizes/font_size = 16
+text = "Ⅱ 멈춘 이유 · 현재 시각 · 다음 사건"
+autowrap_mode = 2
+
+[node name="Actions" type="HBoxContainer" parent="Center/ModalPanel/Margin/FocusScope/Column"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Spacer" type="Control" parent="Center/ModalPanel/Margin/FocusScope/Column/Actions"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SecondaryButton" type="Button" parent="Center/ModalPanel/Margin/FocusScope/Column/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 54)
+layout_mode = 2
+text = "취소"
+
+[node name="PrimaryButton" type="Button" parent="Center/ModalPanel/Margin/FocusScope/Column/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 54)
+layout_mode = 2
+theme_type_variation = &"PrimaryButton"
+text = "확인"

@@ -1,5 +1,13 @@
 # Gridworks 실행·내부 후보 설치
 
+## 현재 실행 경계
+
+현재 전체 방향은 루트 `./assets` 스타일의 실시간 게임이지만 코드·아트 구현 gate는 열리지 않았다.
+저장소 기본 장면은 계속 `CommercialMain`이다. R1 실시간 Core와 R2 비기본 scene은 기반으로 보존되며,
+R2 마지막 exact-tree 전체 harness는 사용자 지시로 중단됐으므로 설치·출시 후보나 완료 gate가 아니다.
+물리 UHD, 사람·전문 검토, Developer ID 서명·공증과 공개 출시는 계속 미수집·미승인이다. 현재 경계는
+[목표 계약](docs/scopes/ASSET_STYLE_REALTIME_GAME.md)이 소유한다.
+
 ## 저장과 설정 파일
 
 현재 상용 v2 단계 G 완료 게임은 다음 Godot 사용자 폴더의 v3 파일을 사용한다.
@@ -20,7 +28,8 @@
 
 ## 저장소에서 실행
 
-현재 기본 장면은 단계 G 완료본의 `CommercialMain`이다. 저장소 루트에서 다음과 같이 실행한다.
+현재 기본 장면은 동결 v2의 `CommercialMain`이다. 새 목표 문서와 R2 참고 scene가 이를 대체하지 않는다.
+저장소 루트에서 다음과 같이 실행한다.
 
 ```sh
 ./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path game
@@ -69,8 +78,8 @@ Finder에서 control-click하고 **열기**를 선택한다. macOS가 막으면 
 `new_install_full_campaign=NOT_RUN_BY_PACKAGER`는 같은 ZIP bytes를 별도의 빈 user-data에서
 처음부터 끝까지 실행하는 별도 gate라는 뜻이다. 단계 G 완료 후보는 이 외부 UI gate에서 새 게임→
 저장→fresh continue→전체 캠페인·에필로그→완료 저장 재개→장 재설계를 통과했다. 정확한 실행 범위와
-후보 identity는 [단계 G 완료 증거](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)가
-소유한다.
+후보 identity와 증거 상한은 [압축 완료 이력](docs/archive/COMPLETED_HISTORY.md)이 현재 필요한 수준으로
+보존하며, 상세 원문은 Git commit `9aceaf7`에서 조회한다.
 
 ## 0.1.0 역사 기록
 

@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "gridworks.realtime.world.v3",
+  "worldId": "CHEONGRYU_COMMERCIAL_WORLD",
+  "thermalClasses": [
+    {
+      "assetKind": "node",
+      "classId": "LARGE_SUBSTATION",
+      "continuousKw": 5000,
+      "emergencyKw": 6200,
+      "emergencyExposureLimitMinutes": 180,
+      "emergencyExposureRecoveryPerMinute": 1,
+      "protectiveOutageMinutes": 120
+    },
+    {
+      "assetKind": "node",
+      "classId": "REINFORCED_POLE",
+      "continuousKw": 4500,
+      "emergencyKw": 5500,
+      "emergencyExposureLimitMinutes": 120,
+      "emergencyExposureRecoveryPerMinute": 1,
+      "protectiveOutageMinutes": 90
+    },
+    {
+      "assetKind": "node",
+      "classId": "SMALL_SUBSTATION",
+      "continuousKw": 3000,
+      "emergencyKw": 3800,
+      "emergencyExposureLimitMinutes": 90,
+      "emergencyExposureRecoveryPerMinute": 1,
+      "protectiveOutageMinutes": 120
+    },
+    {
+      "assetKind": "node",
+      "classId": "STANDARD_POLE",
+      "continuousKw": 2500,
+      "emergencyKw": 3200,
+      "emergencyExposureLimitMinutes": 60,
+      "emergencyExposureRecoveryPerMinute": 1,
+      "protectiveOutageMinutes": 90
+    },
+    {
+      "assetKind": "edge",
+      "classId": "REINFORCED_LINE",
+      "continuousKw": 4500,
+      "emergencyKw": 5500,
+      "emergencyExposureLimitMinutes": 150,
+      "emergencyExposureRecoveryPerMinute": 1,
+      "protectiveOutageMinutes": 90
+    },
+    {
+      "assetKind": "edge",
+      "classId": "STANDARD_LINE",
+      "continuousKw": 2500,
+      "emergencyKw": 3200,
+      "emergencyExposureLimitMinutes": 75,
+      "emergencyExposureRecoveryPerMinute": 1,
+      "protectiveOutageMinutes": 90
+    }
+  ]
+}

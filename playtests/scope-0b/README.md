@@ -1,8 +1,8 @@
 # Scope 0B historical materials
 
-Scope 0B is complete. Its current implementation rules are in
-[`docs/scopes/SCOPE_0B_PLAYABLE.md`](../../docs/scopes/SCOPE_0B_PLAYABLE.md); the execution decision, evidence
-limits and stable hashes are in [`docs/DEVELOPMENT_HISTORY.md`](../../docs/DEVELOPMENT_HISTORY.md).
+Scope 0B is complete. Its execution decision and evidence boundary are summarized in the
+[compressed history](../../docs/archive/COMPLETED_HISTORY.md). The detailed former scope and history are
+recoverable from Git commit `9aceaf7` and are not current implementation authority.
 
 This directory keeps the frozen participant `FACILITATOR_SHEET.md`, historical `record-template.csv`, the
 fixture checker and the Git-ignored `private/` evidence directory. They do not authorize another run.

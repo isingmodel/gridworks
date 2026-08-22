@@ -1,182 +1,236 @@
-# Gridworks — 상용 v2 시각·표현 명세
+# Gridworks — `./assets` 스타일 비주얼 제작 명세
 
-이 문서는 전력망 규칙과 청류시의 이야기를 어떻게 보이게 할지 정의한다. 규칙과 수치는
-[상용 구현 계약](../scopes/COMMERCIAL_2D_IMPLEMENTATION.md), 오브젝트 능력은
-[카탈로그](OBJECT_CATALOG.md)가 소유한다. 단계 G 내부 후보는 code-native 도시 표현, 장별 날씨,
-네 인물 초상·audio cue와 네 화면 조합의 접근성 증거를 닫았다.
+이 문서는 루트 `./assets` 네 이미지를 **실제 조작 가능한 Gridworks 화면**으로 번역하는 제작 규격이다.
+전체 목표와 단계 경계는 [현재 계약](../scopes/ASSET_STYLE_REALTIME_GAME.md), 제품 규칙은
+[게임 기획서](GAME_DESIGN_KO.md), 설비 능력은 [오브젝트 카탈로그](OBJECT_CATALOG.md)가 소유한다.
 
-기존 `ProductMain`·`ReleaseMain` 화면은 기술 회귀 자료이며 상용 v2 시각 기준이 아니다.
+## 1. 비주얼 선언
 
-## 1. 표현 목표
+목표는 다음 한 문장으로 판정한다.
 
-상용 v2는 “낡았지만 실제로 운영되는 지역 기반시설”의 분위기를 가진다. 지도는 장식 배경이 아니라
-경로·거리·위험을 읽는 작업면이고, UI는 개발 도구가 아니라 운영센터의 정돈된 업무 화면이어야 한다.
+> 어두운 회화적 아이소메트릭 도시 속에 배전 설비가 물리적으로 존재하고, 따뜻한 생활광과 차가운
+> 전력광 사이에서 건설·공급·비상·보호정지가 Core와 같은 사실로 읽히는 운영 전략 게임.
 
-1. 연결·분기·합류와 비접속 교차가 한눈에 보인다.
-2. 수요의 발전원→전체 경로→첫 병목과 설비별 열여유가 읽힌다.
-3. 계획·공사·연속·비상·보호정지·복귀를 색 없이도 구분한다.
-4. 브리핑과 결과가 사람·서비스·원인의 순서로 읽힌다.
-5. 산업적 분위기가 글과 전력망을 가리지 않는다.
+다음 다섯 축이 모두 맞아야 한다.
 
-## 2. 화면 구조와 오른쪽 패널
+1. **카메라** — 고정 사선 아이소메트릭/oblique, 회전 없음
+2. **밀도** — 도로·필지·건물·지형이 이어지는 도시, 큰 빈 test plane 없음
+3. **재질** — 회화적 콘크리트·강철·토양·수면, 단색 vector 도식 아님
+4. **실루엣** — 설비 class와 시설 역할이 world에서 형태로 구분됨
+5. **상태광** — cyan/amber/orange-red를 사용하되 형태·pattern·text가 함께 증명
 
-기본 16:9 화면은 상단 상태, 중앙 지도, 오른쪽 작업 패널과 story overlay로 구성한다.
+한두 축만 닮은 화면은 스타일 일치가 아니다.
 
-```text
-┌──────────────────────────────────────────────────────────────┐
-│ 장 이름 · 다음 경계 · 운영 자금 · 필수 공급 · 메뉴          │
-├───────────────────────────────────────┬──────────────────────┤
-│                                       │ 임무·의무·약속        │
-│            청류시 전력망 지도         │ 경로·열·선택 정보      │
-│                                       │ 보조 조작 ↕            │
-│                                       │ 승인 / 공사 발주       │
-└───────────────────────────────────────┴──────────────────────┘
-```
+## 2. 기준 이미지 역할
 
-- 지도는 가장 넓은 영역을 차지하고 오른쪽 패널은 현재 임무와 선택 대상 하나에 집중한다.
-- 정보 scroll viewport는 높이 200px 이상을 유지한다. 동적 버튼이 늘어도 상단 안내를 0으로
-  줄이지 않는다.
-- 약속·국면·도구·초안 편집·장 선택 같은 보조 조작은 정보와 같은 세로 scroll에 두고
-  `follow_focus`로 keyboard focus가 있는 조작을 자동으로 드러낸다.
-- `운영안 승인`과 현재 공사를 확정하는 `공사 발주`는 scroll 밖의 고정 하단 영역에 둔다.
-- 핵심 CTA와 scroll된 보조 조작을 같은 위계로 반복하지 않는다.
-- 긴 브리핑·사건·결과는 중앙 story card를 재사용한다.
-- Title, Pause, Settings, Help와 확인창은 서로 겹치지 않는 shell overlay로 연다.
-
-200px·focus-follow·고정 CTA 규칙은 패널 핫픽스 `36038a9`에서 시작해 단계 G의 고정 승인
-체크리스트·compact 상태·국면 표와 함께 네 화면 조합에서 검증됐다. 정확한 증거는
-[단계 G 완료 기록](../scopes/COMMERCIAL_2D_IMPLEMENTATION.md#8-전체-완료-증거--단계-g-완료)이 소유한다.
-
-## 3. 자유 배치 지도와 카메라
-
-- 화면에 건설 격자·셀 좌표를 표시하지 않는다.
-- 설비는 정수 고정소수점 세계좌표와 원형 점유영역을 사용한다.
-- 건설 모드에서 수면·건물·다른 설비의 점유 외곽선과 위험구역을 낮은 대비로 드러낸다.
-- 합법 위치는 초안 형태, 불법 위치는 색과 사선·아이콘·짧은 이유로 함께 표시한다.
-- 강물 위 신규 변전소·전신주는 거부하지만 육지 endpoint 사이 선로 횡단과 authored 보호기초는
-  허용한다.
-- 시작·끝 접속 후보는 화면 거리로 정렬하고 `Q / E` 순환 결과와 확정될 이름·접속 수를 표시한다.
-- 단순 교차는 bridge gap으로 전기 접속이 아님을 보인다.
-
-카메라는 `전체 보기 / 1.5배 / 2.25배` 세 단계만 사용한다. 휠 또는 `+ / -`로 확대하고 가운데
-버튼 또는 `Space+drag`로 이동하며 `Home`으로 전체 보기에 복귀한다. keyboard 자유 cursor가
-화면 안전 여백에 닿으면 카메라가 따라간다. 접속 후보 반경, 선 굵기와 선택 외곽선은 줌과 무관한
-화면 크기를 유지한다. 연속 줌·회전·관성·미니맵은 만들지 않는다.
-
-## 4. 지역 미술 방향
-
-청류시는 해온강을 중심으로 서쪽 기존 전원, 북안 주거지와 정수장, 동쪽 의료원, 남쪽 산업단지가
-있는 가상의 지방도시다.
-
-- 배경: 짙은 청회색 토지, 낮은 대비의 도로·하천·필지
-- 전력설비: 배경보다 선명한 청록·회백 실루엣
-- 계획: 호박색 점선과 반투명 footprint
-- 공사: 반복 사선과 작은 공사 표식
-- 연속 운전: 굵은 실선과 차분한 흐름
-- 비상 운전: 이중선·경고 아이콘과 다음 보호정지 표식
-- 보호정지: 끊긴 선·빗금·잠금 아이콘
-- 위험구역: 지도를 가리지 않는 투명 패턴과 분명한 경계
-
-주거지, 의료원, 정수장과 산업단지는 서로 다른 실루엣과 이름을 가진다. 현실 도시, 다른 게임이나
-영화의 UI·건물·font를 알아볼 수 있게 복제하지 않는다. 기존 `assets/` 이미지는 분위기 참고일 뿐
-runtime 화면이나 수치 권위가 아니다.
-
-## 5. 전력망 시각 문법
-
-### 접속점
-
-| 오브젝트 | 기본 형태 | 선택 시 정보 |
+| 파일 | 채택 | 채택하지 않음 |
 |---|---|---|
-| 발전 접속점 | 굵은 모선과 발전 아이콘 | 현재 출력 / 출력 한도, 운전 순서 |
-| 일반 전신주 | 작은 원형 결절과 단순 기둥 | 연결 수, 접속부 사용 / 연속 / 비상 |
-| 보강 전신주 | 이중 테두리 결절 | 연결 수, 더 큰 접속부 열 한계 |
-| 배전 변전소 | 변압기 블록과 접속 모선 | 연결 수, 주기기 열 상태, 서비스 권역 |
-| 수요 접속점 | 시설 아이콘 옆 계량 경계 | 요구량, 현재 공급, 발전원·경로·첫 병목 |
+| `01-grid-construction.png` | 야간 산업도시 밀도, cyan 통전, amber 건설, 금속 HUD | 세로 palette, 송전철탑, 영어·수치 |
+| `02-heatwave-outage.png` | 건조한 amber 대기, 위험과 정지의 공간적 분위기 | 태양 glare로 정보 가리기, 단일 색 상태 |
+| `03-route-comparison.png` | 두 경로를 지도 위에서 동시에 읽는 위계 | 현재 없는 N-1 규칙·BUILD A/B UX 복제 |
+| `04-plant-siting.png` | 지형·도시·산업의 큰 덩어리, 거리 overlay의 깊이 | 원전·석탄·발전 입지 gameplay |
 
-### 선로와 열 상태
+네 이미지는 1672×941 합성 reference다. runtime texture atlas나 배경으로 사용하지 않는다.
 
-| 상태 | 색 이외 표현 |
-|---|---|
-| 계획 | 점선, 낮은 불투명도와 footprint |
-| 공사 | 반복 사선과 공사 표식 |
-| 연속 운전 | 굵은 실선과 방향 표식 |
-| 비상 운전 | 이중선·경고 아이콘·다음 보호정지 문장 |
-| 완공·현재 미사용 | 얇은 회색 실선 |
-| 보호정지·사용불가 | 끊긴 선, 빗금과 잠금 표식 |
-| 선택 경로 | 외곽선, 발전원부터 수요까지 방향 강조 |
+## 3. 화면 구성
 
-선 굵기는 선종 두 단계와 상태 패턴을 구분한다. 실제 섭씨, 0~100 열 gauge나 연속 축열 animation을
-만들지 않는다.
-
-## 6. 건설·선택 피드백
-
-1. 도구 선택: 점유영역, 현재 최대 경간과 가까운 접속 후보를 표시한다.
-2. 위치 hover: 클릭 전에 합법·불법, typed 이유와 접속 뒤 예상 수를 표시한다.
-3. 배치 입력: 한 번의 입력은 초안 반영 또는 상태 불변의 명시적 거부·다음 행동으로 끝난다.
-4. 초안 편집: 마지막 점 되돌리기, 초안 전신주 이동과 전체 취소를 제공한다.
-5. 끝 접속점: 최종 연결 수, 전체 비용·공사기간과 공개 국면 효과를 표시한다.
-6. 발주: 비용·완공 경계와 바뀌는 공급·열 상태를 확인한 뒤 공사 패턴으로 전환한다.
-
-밀집된 접속 후보는 hover 강조, 사람용 이름과 `Q / E` 순환 위치를 함께 보여준다. 시스템은 추천
-경로나 정답 좌표를 만들지 않는다.
-
-## 7. 경로·국면·원인 설명
-
-선택한 수요나 실패 수요에는 다음 순서를 사용한다.
+R2의 정보 구조를 유지하고 reference의 재질만 번역한다.
 
 ```text
-시설과 현재 국면 n/N
-발전원 → 전체 선택 경로 → 수요
-이름 붙은 첫 병목
-현재 사용 / 연속 / 비상 · 부족량
-다음 국면 보호정지 또는 복귀
-지켜진 안전 의무·도시 약속과 승인 전 남은 조건
+┌───────────────────────────────────────────────────────────────┐
+│ 현재 목표 · 시각 · 자금 · 필수 공급 · pause/1×/2×/4×         │
+├───────────────────────────────────────────────────────────────┤
+│                                                               │
+│              회화적 아이소메트릭 청류시 world                │
+│       (선택 시 context, 건설 시 shelf/action만 등장)          │
+│                                                               │
+├───────────────────────────────────────────────────────────────┤
+│ 수평 사건 지평선 · 공사 · 사건 · 열 노출 · 정지 · 복귀       │
+└───────────────────────────────────────────────────────────────┘
 ```
 
-일반적인 “500 kW 부족”만 표시하지 않는다. 부족량은 어느 발전원 경로의 어느 설비가 제한하는지와
-함께 보여준다. 여러 국면은 행 단위로 공급, 사용불가, 비상 운전과 다음 상태를 비교할 수 있어야
-하며 같은 정보가 keyboard·screen reader 순서에서도 유지돼야 한다.
+- world가 기본 면적의 주인이다.
+- 항상 열린 오른쪽 inspector와 세로 도구막대를 두지 않는다.
+- heavy metal frame은 상단·하단 경계와 중요한 결정 panel에 집중한다.
+- tooltip·popup·inspector가 world의 같은 위치를 동시에 가리지 않는다.
+- 한 화면에서 primary CTA는 하나다.
 
-## 8. 이야기 카드와 한국어
+## 4. 월드 카메라와 스케일
 
-시작·사건·결과는 같은 카드 구조를 쓴다.
+- world는 고정 사선 투영을 사용하며 모든 asset은 같은 방위와 elevation을 따른다.
+- camera 회전·자유 pitch·원근 zoom은 사용하지 않는다.
+- `전체 보기 / 작업 보기 / 상세 보기`의 제한된 zoom을 사용한다.
+- default FHD 작업 보기에서 시설은 이름 없이도 역할이 구분되고, 전신주는 기둥·완금·도체 부착
+  방향이 읽혀야 한다.
+- 고해상도 원본을 임의 축소해 1 px 선과 검은 얼룩으로 만들지 않는다.
+- selection outline, hit target와 conductor는 zoom에 관계없이 조작 가능한 최소 화면 크기를 유지한다.
+- sprite base와 그림자는 같은 world footprint를 가리키며 선택 bounds가 보이는 실루엣을 넘지 않는다.
 
-- 시작: 발신자, 변화, 지킬 사람·서비스, 목표와 다음 경계
-- 사건: 무엇이 바뀌고 어떤 설비·수요가 영향을 받는지
-- 결과: 사람의 결과, 실제 경로·열 원인, 다음 장에 남은 망
+## 5. 월드 레이어
 
-기계 ID·enum·구현 단계·raw exception을 표시하지 않는다. 직접 안내는 `~하세요`, 상태·결과는
-짧은 평서문으로 쓴다. 돈·시간·용량에는 `운영 자금 370만 원`, `2일차 06:45`,
-`사용 2.0 / 연속 2.5 / 비상 3.2 MW`처럼 의미와 단위를 붙인다.
+아래 순서를 하나의 authority로 고정한다.
 
-## 9. 접근성과 입력
+```text
+terrain base
+→ river/water and banks
+→ roads/bridges/parcel cuts
+→ low city ground props
+→ facilities and industrial masses
+→ grid equipment bases
+→ poles/substations/source structures
+→ three-phase conductors and attachments
+→ construction/weather/thermal overlays
+→ selection/candidate/route highlights
+→ world labels and accessibility cues
+```
 
-- 모든 표준 버튼은 보이는 label, 접근성 이름과 keyboard focus를 가진다.
-- `Tab / Shift+Tab`은 표준 UI, 방향키와 `Shift+방향키`는 자유 cursor에 사용한다.
-- `Q / E`는 접속 후보, `Enter`는 확정, `+ / -`와 `Home`은 카메라에 사용한다.
-- `Esc`는 초안 취소를 먼저 처리하고 초안이 없을 때 pause를 연다.
-- 색뿐 아니라 선 모양·패턴·아이콘·문장으로 상태를 구분한다.
-- 반복 flash를 사용하지 않고 소리만으로 필수 상태를 전달하지 않는다.
-- 1280×720·1920×1080 × UI 100%·125%에서 clipping, panel hierarchy와 focus를 확인한다.
-- 움직임 줄이기와 1280×720·1920×1080 × UI 100%·125% 조합을 단계 G에서 확인했다.
+Depth sort는 asset의 임의 이미지 높이가 아니라 authored footpoint/world Y와 stable ID로 결정한다.
+도체는 pole attachment 앞·뒤 관계를 보존하고 건물 지붕을 임의로 관통하지 않는다.
 
-## 10. 사운드
+## 6. 환경 제작
 
-사운드는 정보를 보강하지만 규칙을 새로 만들지 않는다. 환경음, 발주·완공·통전·차단·경고·결과
-cue와 짧은 motif만 사용하고 필수 상태를 소리로만 전달하지 않는다. Master·Ambient·SFX 세 음량을
-유지한다. 최종 날씨 layer·audio cue와 두 motif, 자체 제작 자산의 provenance·hash·권리 기록은
-단계 G에서 `ASSET_MANIFEST.md`, credits와 package audit에 고정했다.
+### 지형
 
-## 11. 제작 검수표
+- 숯빛·갈색 토양과 암반, 낮은 채도 녹지, 콘크리트 경계를 큰 형태로 만든다.
+- 한 영역을 단색으로 채우지 않고 거친 붓결·마모·배수 흔적을 얕게 쌓는다.
+- texture 반복이 눈에 띄는 타일과 화면 전체 noise overlay를 피한다.
 
-- 자유 배치, 분기·합류와 비접속 교차를 지도만 보고 구분할 수 있는가?
-- 수면·건물·점유영역과 선로 횡단 규칙을 클릭 전에 예측할 수 있는가?
-- 선택 수요의 발전원·전체 경로·첫 병목·열 상태가 연결돼 보이는가?
-- 연속·비상·보호정지·복귀를 색 없이도 구분할 수 있는가?
-- 국면 n/N과 승인 전 남은 의무·약속·열 조건이 지속적으로 보이는가?
-- 정보 viewport가 200px 이상이고 Approve·Commission은 고정되며 보조 조작은 focus로 스크롤되는가?
-- 배치 입력 한 번이 반영 또는 명시적 거부로 끝나는가?
-- 긴 브리핑·결과와 작업 조작이 서로 밀어내거나 겹치지 않는가?
-- 기계 ID, enum, raw exception과 어색한 혼합 영문이 보이지 않는가?
-- 네 화면 조합에서 글·버튼·지도 상호작용과 keyboard focus가 잘리지 않는가?
-- runtime 자산이 자체 제작이거나 재배포 가능한 출처·license를 가지는가?
+### 하천
+
+- 물, 강둑, 제방과 교량이 별도 층으로 보인다.
+- 물은 검푸른 반사와 느린 방향성을 가지되 건설 불가 경계가 모호해지지 않는다.
+- 강 위 가공선은 허용되지만 지지 설비 ghost는 수면에서 명확히 거부된다.
+
+### 도로와 도시
+
+- 간선도로·생활도로·산업 진입로를 폭·재질·조명으로 구분한다.
+- 주거는 반복 stamp가 아니라 3–5개 roof/footprint 변형과 필지·골목·수목 조합을 사용한다.
+- 병원·정수장·산업시설은 주변 block보다 큰 silhouette와 고유 landmark를 가진다.
+- 빈 공간도 parking, yard, 제방, 나무, utility prop처럼 용도가 읽혀야 한다.
+
+## 7. 설비 제작 규격
+
+### 공통
+
+- 22.9 kV급 배전 규모를 기본으로 한다. reference의 거대한 송전철탑 비례를 그대로 쓰지 않는다.
+- 일반/보강 class는 색이 아니라 구조 부재 수, 완금, 기초, 변압기/베이 실루엣으로 구분한다.
+- 각 source에는 pivot, footprint, selection shape와 conductor anchor를 저장한다.
+- 정상 상태 art와 상태 overlay를 분리해 Core ID가 바뀌지 않아도 표현만 갱신할 수 있게 한다.
+
+### 전신주와 도체
+
+- 일반 pole은 가는 기둥·한정된 접속부, 보강 pole은 더 큰 완금·기초·분기 하드웨어를 가진다.
+- 3상 도체는 세 가닥 또는 축소 시 합의된 3상 bundle cue를 유지한다.
+- 선은 pole 중심이 아니라 authored attachment에 닿는다.
+- 교차는 비접속 gap/높이 차로, 접속은 실제 하드웨어와 node highlight로 구분한다.
+
+### 변전소
+
+- 소형은 한 주기기와 제한된 베이, 대형은 더 큰 주기기·모선·접속 bay로 읽힌다.
+- service area는 얇은 cyan 영역과 경계 pattern으로 표시하되 건물을 물에 잠긴 듯 덮지 않는다.
+- 사용량·열 상태는 선택 시 world cue와 context에서 같은 값으로 표시한다.
+
+### 시설
+
+- 주거, 의료원, 정수장, 산업단지는 지붕·설비·배관·굴뚝·탱크·표식의 고유 조합을 가진다.
+- warm window light는 생활·서비스의 존재를 보여 주되 공급 판정을 대신하지 않는다.
+- 미공급은 단순 소등만 쓰지 않고 시설 icon·edge state·문장으로 함께 표현한다.
+
+## 8. 상태 표현표
+
+| 상태 | 색/광원 | 형태·pattern | 아이콘·문장 |
+|---|---|---|---|
+| 완공·연속 | 낮은 cyan 흐름 | 단일 안정선 | `정상`·현재/연속 |
+| 선택 경로 | 밝은 cyan | 외곽선+방향 pulse | 발전원→수요·첫 병목 |
+| 초안 | amber | 점선+footprint | class·배치 가능/거부 |
+| 공사 중 | warm amber | scaffold/사선+미완성 부재 | 완공 시각 |
+| 비상 운전 | cyan+orange | 이중선/삼각 notch | 노출 남은 시간 |
+| 계획 사용불가 | muted orange | 빗금/차단 표식 | 사건명·사용불가 |
+| 보호정지 | red-orange | 끊긴 선/X·잠금 | 정지 원인·복귀 시각 |
+| 냉각 | dim blue | 점감 pattern | 남은 냉각시간 |
+| 복귀 | cyan 회복 | 짧은 재연결 cue | `복귀`·시각 |
+
+glow의 두께·밝기만으로 상태를 구분하지 않는다. motion reduction에서는 pulse를 정지 pattern으로
+대체한다.
+
+## 9. UI skin과 타이포그래피
+
+- panel base: graphite black, 미세한 냉청색 또는 갈색 편차
+- frame: dark iron/bronze, 얕은 bevel, 모서리만 제한된 rivet
+- primary: cyan, planning/secondary: amber, destructive/critical: orange-red
+- body text: warm gray/ivory, 숫자는 정렬 가능한 폭과 충분한 contrast
+- 제목은 한국어 가독성을 우선한다. reference의 condensed English를 그대로 모사하지 않는다.
+- 장식 frame가 content padding과 최소 hit target를 잠식하지 않게 한다.
+- disabled는 opacity만 낮추지 않고 pressed·focus와 다른 실루엣/명도/문장을 쓴다.
+- icon-only control은 tooltip, 접근성 이름과 44 logical px 이상의 target를 가진다.
+
+## 10. 날씨·시간과 효과
+
+- 정상: 차가운 청회색 ambient, warm city practical lights
+- 폭염: amber sky/ground bounce, 건조 haze와 미세 heat distortion
+- 비: 젖은 road highlight, 낮은 cloud, restrained rain streak
+- 야간: world detail은 유지하고 전력·생활광 대비를 높임
+
+weather layer는 hit test와 Core 상태를 바꾸지 않는다. heat distortion, smoke와 bloom은 선택 outline,
+도체 attachment, 숫자·문장을 흐리지 않는다.
+
+## 11. 자산 채택 절차
+
+1. source master의 카메라·광원·scale sheet 작성
+2. 배경 없는 RGBA와 alpha fringe 검수
+3. asset ID, source, 제작 방법, 날짜, hash와 사용 경계를 manifest에 기록
+4. footprint·pivot·attachment·selection bounds authoring
+5. normal/building/emergency/outage 또는 공통 overlay 조합 검증
+6. 세 zoom과 FHD/UI 100–200%에서 silhouette·anchor 검수
+7. 실제 scene에서 city density, depth, hit target와 frame time 검수
+8. reference와 나란히 놓고 카메라·밀도·재질·광원·상태 다섯 축을 독립 평가
+
+Git에 포함되지 않은 로컬 후보, prompt만 있는 파일, 합성 화면에서 자른 sprite와 provenance 없는
+파일은 채택할 수 없다.
+
+## 12. A1 reference sheet
+
+A1을 열면 같은 exact state에서 다음 네 장을 만든다.
+
+1. normal FHD 전체 화면
+2. construction FHD 전체 화면
+3. selected asset 상세 crop
+4. reference `01-grid-construction.png`와의 side-by-side contact sheet
+
+비교는 pixel similarity가 아니라 다음 rubric을 사용한다.
+
+| 축 | 실패 | 통과 기준 |
+|---|---|---|
+| 카메라 | 평면 top-down/혼합 방위 | 모든 asset이 같은 fixed oblique 방위 |
+| 밀도 | 큰 빈 polygon/test map | 도시·도로·지형이 연속적인 scene |
+| 재질 | 단색 vector/SVG 인상 | 회화적 표면과 물질 구분 |
+| 실루엣 | 확대해야 class 식별 | 작업 zoom에서 시설·설비 class 식별 |
+| 조명 | glow가 형태를 삼킴 | warm city/cool grid 대비와 형태 보존 |
+| 상태 | 색 또는 panel만 다름 | world에서 3채널 구분, Core copy 일치 |
+
+한 축이 실패하면 “assets 스타일 완료”라고 부르지 않는다.
+
+## 13. 해상도·접근성·성능
+
+- FHD logical canvas에서 UI 100/125/150/200%를 지원한다.
+- UHD는 2× render density에서 texture, conductor, outline과 Korean glyph가 흐려지지 않아야 한다.
+- world label·status glyph도 UI scale authority를 따른다.
+- icon/line/pattern은 색각 변화와 grayscale에서도 서로 다른 형태를 유지한다.
+- 최악의 weather·dense city·모든 state overlay의 reference hardware 예산을 A1 계약에서 수치로 고정한다.
+- 실제 4K panel과 사람의 미감·가독성은 자동 offscreen 결과로 대체하지 않는다.
+
+## 14. 제작 검수표
+
+- 첫눈에 `./assets`와 같은 계열의 세계로 보이는가?
+- 도시가 촘촘하지만 전력설비와 건설 위치가 묻히지 않는가?
+- 설비가 작은 UI icon이 아니라 물리 구조물로 보이는가?
+- 모든 도체가 올바른 attachment에 닿고 비접속 교차가 구분되는가?
+- 일반/보강 pole과 소형/대형 변전소가 색 없이 구분되는가?
+- 정상·공사·비상·계획 사용불가·보호정지·복귀가 세 채널로 구분되는가?
+- world, horizon, context의 ID·시각·원인·수치가 Core와 같은가?
+- UI frame 장식이 한국어·클릭 영역·focus를 침범하지 않는가?
+- 합성 background, tiny sprite, flat SVG fallback이 없는가?
+- 모든 runtime 자산의 source·hash·권리·camera·anchor가 기록됐는가?
+
+자동검사와 내부 리뷰가 모두 통과해도 사람 미감 검토가 없으면
+`HumanVisualValidation = NOT_COLLECTED`다.

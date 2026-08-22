@@ -5,7 +5,9 @@ that is not present in the artifact.
 
 Return JSON only and conform exactly to the supplied schema. Use judgeSlot "SOL-ULTRA",
 model "gpt-5.6-sol", reasoningEffort "ultra", judgeRunId "__JUDGE_RUN_ID__", and
-textPlanSha256 "__TEXT_PLAN_SHA256__". Do not return a numeric rating, arithmetic,
+textPlanSha256 "__TEXT_PLAN_SHA256__", promptTemplateSha256
+"__PROMPT_TEMPLATE_SHA256__", and judgmentSchemaSha256
+"__JUDGMENT_SCHEMA_SHA256__". Do not return a numeric rating, arithmetic,
 category summary, overall verdict, change request, or hidden reasoning. For every required
 cell, return only its categorical label, HIGH or MEDIUM confidence, and short grounded
 strength/gap evidence.

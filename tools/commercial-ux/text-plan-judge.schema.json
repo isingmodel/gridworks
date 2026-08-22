@@ -10,6 +10,8 @@
     "model",
     "reasoningEffort",
     "textPlanSha256",
+    "promptTemplateSha256",
+    "judgmentSchemaSha256",
     "cells"
   ],
   "properties": {
@@ -30,6 +32,14 @@
       "const": "ultra"
     },
     "textPlanSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "promptTemplateSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "judgmentSchemaSha256": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     },

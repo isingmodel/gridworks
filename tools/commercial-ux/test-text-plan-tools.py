@@ -16,12 +16,17 @@ from typing import Any
 
 
 ROOT = Path(__file__).resolve().parent
+REPOSITORY_ROOT = ROOT.parents[1]
 RUBRIC_PATH = ROOT / "rubric.json"
 SCHEMA_PATH = ROOT / "text-plan-judge.schema.json"
 PROMPT_PATH = ROOT / "text-plan-judge-prompt.template.txt"
 AGGREGATOR_PATH = ROOT / "aggregate-text-plan.py"
 BUILDER_PATH = ROOT / "build-text-plan-input.py"
 CONTEXT_PATH = ROOT / "text-plan-context.json"
+CAMPAIGN_PATH = REPOSITORY_ROOT / "data/release-campaign-v2.json"
+COMMERCIAL_CHECKS = REPOSITORY_ROOT / "tools/Gridworks.CommercialChecks/Gridworks.CommercialChecks.csproj"
+PROMPT_TEMPLATE_SHA256 = "sha256:" + hashlib.sha256(PROMPT_PATH.read_bytes()).hexdigest()
+JUDGMENT_SCHEMA_SHA256 = "sha256:" + hashlib.sha256(SCHEMA_PATH.read_bytes()).hexdigest()
 EXPECTED_SELECTORS = [
     "FIRST_LIGHT/briefing",
     "FIRST_LIGHT/result/standard",
@@ -65,6 +70,42 @@ def load_json(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     assert isinstance(value, dict)
     return value
+
+
+_REAL_STORY_MANIFEST: dict[str, Any] | None = None
+
+
+def real_story_manifest() -> dict[str, Any]:
+    global _REAL_STORY_MANIFEST
+    if _REAL_STORY_MANIFEST is None:
+        subprocess.run(
+            ["dotnet", "build", str(COMMERCIAL_CHECKS), "-c", "Release", "--nologo"],
+            cwd=REPOSITORY_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        completed = subprocess.run(
+            [
+                "dotnet",
+                "run",
+                "--project",
+                str(COMMERCIAL_CHECKS),
+                "-c",
+                "Release",
+                "--no-build",
+                "--",
+                "--story-manifest",
+            ],
+            cwd=REPOSITORY_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        value = json.loads(completed.stdout)
+        assert isinstance(value, dict)
+        _REAL_STORY_MANIFEST = value
+    return copy.deepcopy(_REAL_STORY_MANIFEST)
 
 
 def all_text_cell_ids(rubric: dict[str, Any]) -> list[str]:
@@ -211,6 +252,10 @@ def test_canonical_rubric_and_schema() -> None:
         for rule in schema["properties"]["cells"]["allOf"]
     )
     assert schema["$defs"]["cell"]["properties"]["confidence"]["enum"] == ["HIGH", "MEDIUM"]
+    assert "promptTemplateSha256" in schema["required"]
+    assert "judgmentSchemaSha256" in schema["required"]
+    assert schema["properties"]["promptTemplateSha256"]["pattern"] == "^sha256:[0-9a-f]{64}$"
+    assert schema["properties"]["judgmentSchemaSha256"]["pattern"] == "^sha256:[0-9a-f]{64}$"
     assert schema["additionalProperties"] is False
     assert schema["$defs"]["cell"]["additionalProperties"] is False
 
@@ -220,6 +265,8 @@ def test_canonical_rubric_and_schema() -> None:
         assert hidden_term not in lower_prompt
     assert "recommendedchange" not in lower_prompt
     assert "__TEXT_PLAN_ARTIFACT__" in prompt
+    assert "__PROMPT_TEMPLATE_SHA256__" in prompt
+    assert "__JUDGMENT_SCHEMA_SHA256__" in prompt
     assert "Do not return a numeric rating" in prompt
 
 
@@ -256,6 +303,8 @@ def judgment(
         "model": "gpt-5.6-sol",
         "reasoningEffort": "ultra",
         "textPlanSha256": artifact_sha,
+        "promptTemplateSha256": PROMPT_TEMPLATE_SHA256,
+        "judgmentSchemaSha256": JUDGMENT_SCHEMA_SHA256,
         "cells": cells,
     }
 
@@ -266,7 +315,7 @@ def run_aggregate(
     judgments: list[dict[str, Any]],
     text_plan: dict[str, Any],
     expect_success: bool = True,
-    replacement_panel: bool = False,
+    replacement_for: dict[str, Any] | None = None,
     rubric_payload: dict[str, Any] | None = None,
 ) -> dict[str, Any] | subprocess.CompletedProcess[str]:
     paths = []
@@ -289,8 +338,13 @@ def run_aggregate(
         "--output",
         str(output),
     ]
-    if replacement_panel:
-        command.append("--replacement-panel")
+    if replacement_for is not None:
+        initial_path = directory / f"{name}-initial-aggregate.json"
+        initial_path.write_text(
+            json.dumps(replacement_for, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
+        command.extend(["--replacement-for", str(initial_path)])
     if rubric_payload is not None:
         rubric_path = directory / f"{name}-rubric.json"
         rubric_path.write_text(
@@ -314,9 +368,10 @@ def test_aggregation() -> None:
     rubric = load_json(RUBRIC_PATH)
     builder = load_module(BUILDER_PATH, "gridworks_commercial_ux_aggregate_builder_test")
     context = load_json(CONTEXT_PATH)
-    manifest = valid_story_manifest(builder)
+    campaign = load_json(CAMPAIGN_PATH)
+    manifest = real_story_manifest()
     builder.validate_context(context)
-    builder.validate_manifest(manifest, context["campaignId"])
+    builder.validate_manifest_against_campaign(manifest, campaign, context)
     text_plan = builder.build_artifact(context, manifest)
     artifact_sha = text_plan["artifactSha256"]
     with tempfile.TemporaryDirectory(prefix="gridworks-commercial-ux-aggregate-test-") as temp:
@@ -335,6 +390,10 @@ def test_aggregation() -> None:
         assert all_strong["disagreementPenalty"] == 0.0
         assert all_strong["textPlanProxy"] == 85.0
         assert all_strong["commercialUXProxy"] is None
+        assert all_strong["panelKind"] == "INITIAL"
+        assert all_strong["replacementForPanelInputSha256"] is None
+        assert all_strong["promptTemplateSha256"] == PROMPT_TEMPLATE_SHA256
+        assert all_strong["judgmentSchemaSha256"] == JUDGMENT_SCHEMA_SHA256
 
         journey_excellent = {"TP-J1": "EXCELLENT", "TP-J2": "EXCELLENT"}
         above_threshold_example = run_aggregate(
@@ -375,7 +434,8 @@ def test_aggregation() -> None:
         assert unstable["commercialUXProxy"] is None
         assert unstable["unstableCells"] == ["TP-J1"]
         assert unstable["cellScores"]["TP-J1"]["ordinalRange"] == 2
-        assert unstable["replacementPanel"] is False
+        assert unstable["panelKind"] == "INITIAL"
+        assert unstable["replacementForPanelInputSha256"] is None
         assert unstable["rerunRequired"] is True
 
         replacement_unstable_panel = [
@@ -388,12 +448,16 @@ def test_aggregation() -> None:
             "replacement-unstable",
             replacement_unstable_panel,
             text_plan,
-            replacement_panel=True,
+            replacement_for=unstable,
         )
         assert isinstance(replacement_unstable, dict)
         assert replacement_unstable["status"] == "BLOCKED_JUDGE_INSTABILITY"
         assert replacement_unstable["textPlanProxy"] is None
-        assert replacement_unstable["replacementPanel"] is True
+        assert replacement_unstable["panelKind"] == "REPLACEMENT"
+        assert (
+            replacement_unstable["replacementForPanelInputSha256"]
+            == unstable["panelInputSha256"]
+        )
         assert replacement_unstable["rerunRequired"] is False
 
         stable_replacement = run_aggregate(
@@ -401,12 +465,16 @@ def test_aggregation() -> None:
             "replacement-stable",
             [judgment(rubric, index, artifact_sha) for index in range(4, 7)],
             text_plan,
-            replacement_panel=True,
+            replacement_for=unstable,
         )
         assert isinstance(stable_replacement, dict)
         assert stable_replacement["status"] == "SCORED_FORMATIVE"
         assert stable_replacement["textPlanProxy"] == 85.0
-        assert stable_replacement["replacementPanel"] is True
+        assert stable_replacement["panelKind"] == "REPLACEMENT"
+        assert (
+            stable_replacement["replacementForPanelInputSha256"]
+            == unstable["panelInputSha256"]
+        )
         assert stable_replacement["rerunRequired"] is False
 
         exact_ninety_cells = {
@@ -513,6 +581,90 @@ def test_aggregation() -> None:
         assert isinstance(rejected_judgment_hash, subprocess.CompletedProcess)
         assert "does not match the supplied text-plan envelope" in rejected_judgment_hash.stderr
 
+        wrong_prompt_contract = [
+            judgment(rubric, index, artifact_sha) for index in range(1, 4)
+        ]
+        wrong_prompt_contract[0]["promptTemplateSha256"] = "sha256:" + "d" * 64
+        rejected_prompt_contract = run_aggregate(
+            directory,
+            "wrong-prompt-contract",
+            wrong_prompt_contract,
+            text_plan,
+            expect_success=False,
+        )
+        assert isinstance(rejected_prompt_contract, subprocess.CompletedProcess)
+        assert "promptTemplateSha256 must be" in rejected_prompt_contract.stderr
+
+        wrong_schema_contract = [
+            judgment(rubric, index, artifact_sha) for index in range(1, 4)
+        ]
+        wrong_schema_contract[0]["judgmentSchemaSha256"] = "sha256:" + "c" * 64
+        rejected_schema_contract = run_aggregate(
+            directory,
+            "wrong-schema-contract",
+            wrong_schema_contract,
+            text_plan,
+            expect_success=False,
+        )
+        assert isinstance(rejected_schema_contract, subprocess.CompletedProcess)
+        assert "judgmentSchemaSha256 must be" in rejected_schema_contract.stderr
+
+        overlap_replacement = run_aggregate(
+            directory,
+            "overlap-replacement-runs",
+            [judgment(rubric, index, artifact_sha) for index in range(1, 4)],
+            text_plan,
+            expect_success=False,
+            replacement_for=unstable,
+        )
+        assert isinstance(overlap_replacement, subprocess.CompletedProcess)
+        assert "must be fresh and disjoint" in overlap_replacement.stderr
+
+        replacement_for_stable = run_aggregate(
+            directory,
+            "replacement-for-stable",
+            [judgment(rubric, index, artifact_sha) for index in range(4, 7)],
+            text_plan,
+            expect_success=False,
+            replacement_for=all_strong,
+        )
+        assert isinstance(replacement_for_stable, subprocess.CompletedProcess)
+        assert "initial aggregate status mismatch" in replacement_for_stable.stderr
+
+        marked_replacement_initial = copy.deepcopy(unstable)
+        marked_replacement_initial["panelKind"] = "REPLACEMENT"
+        marked_replacement_initial["replacementForPanelInputSha256"] = "sha256:" + "a" * 64
+        rejected_marked_initial = run_aggregate(
+            directory,
+            "replacement-for-marked-replacement",
+            [judgment(rubric, index, artifact_sha) for index in range(4, 7)],
+            text_plan,
+            expect_success=False,
+            replacement_for=marked_replacement_initial,
+        )
+        assert isinstance(rejected_marked_initial, subprocess.CompletedProcess)
+        assert "initial aggregate panelKind mismatch" in rejected_marked_initial.stderr
+
+        initial_hash_fields = {
+            "textPlanSha256": "sha256:" + "1" * 64,
+            "rubricSha256": "sha256:" + "2" * 64,
+            "promptTemplateSha256": "sha256:" + "3" * 64,
+            "judgmentSchemaSha256": "sha256:" + "4" * 64,
+        }
+        for hash_field, wrong_hash in initial_hash_fields.items():
+            mismatched_initial = copy.deepcopy(unstable)
+            mismatched_initial[hash_field] = wrong_hash
+            rejected_initial_hash = run_aggregate(
+                directory,
+                f"replacement-{hash_field}-mismatch",
+                [judgment(rubric, index, artifact_sha) for index in range(4, 7)],
+                text_plan,
+                expect_success=False,
+                replacement_for=mismatched_initial,
+            )
+            assert isinstance(rejected_initial_hash, subprocess.CompletedProcess)
+            assert f"initial aggregate {hash_field} mismatch" in rejected_initial_hash.stderr
+
         drifted_rubric = copy.deepcopy(rubric)
         drifted_rubric["textPlan"]["categories"][0]["cells"][0]["weight"] = 51
         drifted_rubric["textPlan"]["categories"][0]["cells"][1]["weight"] = 49
@@ -601,29 +753,8 @@ def test_aggregation() -> None:
 
 
 def valid_story_manifest(builder: ModuleType) -> dict[str, Any]:
-    parts = []
-    for expected in builder.EXPECTED_PARTS:
-        parts.append({
-            "schemaVersion": builder.PART_SCHEMA,
-            "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
-            "selector": expected.selector,
-            "kind": expected.kind,
-            "chapterId": expected.chapter_id,
-            "windowId": expected.window_id,
-            "reachable": True,
-            "requiredPromiseBranch": expected.required_promise_branch,
-            "story": {
-                "speaker": "self-test speaker",
-                "title": f"self-test title {expected.selector}",
-                "body": "candidate-independent self-test authored text",
-            },
-        })
-    return {
-        "schemaVersion": builder.MANIFEST_SCHEMA,
-        "campaignId": "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2",
-        "count": len(parts),
-        "parts": parts,
-    }
+    assert builder.MANIFEST_SCHEMA == "gridworks.commercial.story-manifest.v1"
+    return real_story_manifest()
 
 
 def run_builder(
@@ -644,6 +775,8 @@ def run_builder(
             str(BUILDER_PATH),
             "--story-manifest",
             str(manifest_path),
+            "--campaign",
+            str(CAMPAIGN_PATH),
             "--context",
             str(CONTEXT_PATH),
             "--output",
@@ -704,6 +837,16 @@ def test_text_plan_builder() -> None:
         rejected_shape, _ = run_builder(directory, "bad-shape", bad_shape, expect_success=False)
         assert "keys mismatch" in rejected_shape.stderr
 
+        altered_story = copy.deepcopy(manifest)
+        altered_story["parts"][0]["story"]["body"] = "nonempty but not campaign authority"
+        rejected_story, _ = run_builder(
+            directory,
+            "altered-story",
+            altered_story,
+            expect_success=False,
+        )
+        assert "story does not match campaign authority" in rejected_story.stderr
+
 
 def main() -> None:
     test_canonical_rubric_and_schema()
@@ -711,7 +854,7 @@ def main() -> None:
     test_text_plan_builder()
     print(
         "commercial UX text-plan self-test: PASS "
-        "(rubric/schema/prompt, 18 aggregation scenarios, 4 builder scenarios)"
+        "(rubric/schema/prompt, provenance aggregation scenarios, 5 builder scenarios)"
     )
 
 

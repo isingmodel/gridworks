@@ -19,6 +19,8 @@ TEXT_PLAN_ARTIFACT_SCHEMA = "gridworks.commercial-ux.text-plan-input.v1"
 STORY_PART_SCHEMA = "gridworks.commercial.story-part-output.v1"
 CAMPAIGN_ID = "CHEONGRYU_COMMERCIAL_CAMPAIGN_V2"
 FROZEN_RUBRIC_SHA256 = "sha256:2e50903e40255c8141513cb36407223a68b18824adc5d61a8af864ba24359b0b"
+FROZEN_PROMPT_TEMPLATE_SHA256 = "sha256:d31481546619063fcba5193d7c9043c5bb7e620d258ad3a6bc726fead6ff3be9"
+FROZEN_JUDGMENT_SCHEMA_SHA256 = "sha256:69eb5143bc4821b14b90aa479da21620ddfffb20b63070d580184dfe35e69c04"
 EXPECTED_LABELS = {
     "EXCELLENT": (4, 100),
     "STRONG": (3, 85),
@@ -103,6 +105,32 @@ def canonical_json_bytes(value: Any) -> bytes:
         sort_keys=True,
         separators=(",", ":"),
     ).encode("utf-8")
+
+
+def file_sha256(path: Path, label: str) -> str:
+    try:
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError as exception:
+        fail(f"{label} is unreadable: {exception}")
+    return f"sha256:{digest}"
+
+
+def load_judge_contract() -> tuple[str, str]:
+    prompt_path = Path(__file__).with_name("text-plan-judge-prompt.template.txt")
+    schema_path = Path(__file__).with_name("text-plan-judge.schema.json")
+    prompt_sha256 = file_sha256(prompt_path, "judge prompt template")
+    schema_sha256 = file_sha256(schema_path, "judge schema")
+    if prompt_sha256 != FROZEN_PROMPT_TEMPLATE_SHA256:
+        fail(
+            "judge prompt template hash drift: "
+            f"expected {FROZEN_PROMPT_TEMPLATE_SHA256}, got {prompt_sha256}"
+        )
+    if schema_sha256 != FROZEN_JUDGMENT_SCHEMA_SHA256:
+        fail(
+            "judge schema hash drift: "
+            f"expected {FROZEN_JUDGMENT_SCHEMA_SHA256}, got {schema_sha256}"
+        )
+    return prompt_sha256, schema_sha256
 
 
 def expected_part_metadata(selector: str) -> tuple[str, str | None, str | None, str | None]:
@@ -390,6 +418,8 @@ def validate_judgment(
     expected_cell_ids: set[str],
     labels: set[str],
     allowed_source_refs: set[str],
+    prompt_template_sha256: str,
+    judgment_schema_sha256: str,
 ) -> dict[str, dict[str, Any]]:
     prefix = str(path)
     exact_keys(
@@ -401,6 +431,8 @@ def validate_judgment(
             "model",
             "reasoningEffort",
             "textPlanSha256",
+            "promptTemplateSha256",
+            "judgmentSchemaSha256",
             "cells",
         },
         prefix,
@@ -410,6 +442,8 @@ def validate_judgment(
         "judgeSlot": "SOL-ULTRA",
         "model": "gpt-5.6-sol",
         "reasoningEffort": "ultra",
+        "promptTemplateSha256": prompt_template_sha256,
+        "judgmentSchemaSha256": judgment_schema_sha256,
     }
     for field, expected in expected_identity.items():
         if payload[field] != expected:
@@ -464,15 +498,91 @@ def rounded(value: float) -> float:
     return round(value, 4)
 
 
+AGGREGATE_KEYS = {
+    "protocol",
+    "status",
+    "textPlanProxy",
+    "commercialUXProxy",
+    "officialCommercialUX",
+    "panelKind",
+    "rerunRequired",
+    "panelInputSha256",
+    "replacementForPanelInputSha256",
+    "rubricSha256",
+    "promptTemplateSha256",
+    "judgmentSchemaSha256",
+    "textRaw",
+    "textRawSpread",
+    "disagreementPenalty",
+    "textPlanSha256",
+    "judgeRunIds",
+    "cellScores",
+    "categoryScores",
+    "unstableCells",
+    "blockers",
+}
+
+
+def validate_replacement_initial(
+    path: Path,
+    text_plan_sha256: str,
+    rubric_sha256: str,
+    prompt_template_sha256: str,
+    judgment_schema_sha256: str,
+    replacement_run_ids: list[str],
+) -> str:
+    initial = read_object(path, "initial aggregate")
+    exact_keys(initial, AGGREGATE_KEYS, "initial aggregate")
+    expected = {
+        "protocol": AGGREGATE_PROTOCOL,
+        "status": "RERUN_REQUIRED_JUDGE_INSTABILITY",
+        "textPlanProxy": None,
+        "commercialUXProxy": None,
+        "officialCommercialUX": False,
+        "panelKind": "INITIAL",
+        "rerunRequired": True,
+        "replacementForPanelInputSha256": None,
+        "textPlanSha256": text_plan_sha256,
+        "rubricSha256": rubric_sha256,
+        "promptTemplateSha256": prompt_template_sha256,
+        "judgmentSchemaSha256": judgment_schema_sha256,
+    }
+    for field, expected_value in expected.items():
+        if initial[field] != expected_value:
+            fail(
+                f"initial aggregate {field} mismatch: expected {expected_value!r}, "
+                f"got {initial[field]!r}"
+            )
+    panel_sha256 = initial["panelInputSha256"]
+    if not isinstance(panel_sha256, str) or SHA256_PATTERN.fullmatch(panel_sha256) is None:
+        fail("initial aggregate panelInputSha256 must be a lowercase sha256 identifier")
+    initial_run_ids = initial["judgeRunIds"]
+    if (
+        not isinstance(initial_run_ids, list)
+        or len(initial_run_ids) != 3
+        or len(set(initial_run_ids)) != 3
+        or any(not isinstance(run_id, str) or not run_id.strip() for run_id in initial_run_ids)
+    ):
+        fail("initial aggregate judgeRunIds must contain three distinct nonempty strings")
+    overlap = sorted(set(initial_run_ids) & set(replacement_run_ids))
+    if overlap:
+        fail(f"replacement judgeRunIds must be fresh and disjoint; overlap={overlap}")
+    unstable_cells = initial["unstableCells"]
+    if not isinstance(unstable_cells, list) or not unstable_cells:
+        fail("initial aggregate must preserve at least one unstable cell")
+    return panel_sha256
+
+
 def aggregate(
     judgment_paths: list[Path],
     rubric_path: Path,
     text_plan_path: Path,
-    replacement_panel: bool,
+    replacement_for: Path | None,
 ) -> dict[str, Any]:
     if len(judgment_paths) != 3:
         fail("exactly three judgment paths are required")
     label_data, categories, aggregation_config, rubric_sha256 = load_text_rubric(rubric_path)
+    prompt_template_sha256, judgment_schema_sha256 = load_judge_contract()
     text_plan_sha256, allowed_source_refs = load_text_plan(text_plan_path)
     expected_cell_ids = {
         cell["id"]
@@ -487,6 +597,8 @@ def aggregate(
             expected_cell_ids,
             set(label_data),
             allowed_source_refs,
+            prompt_template_sha256,
+            judgment_schema_sha256,
         )
         for payload, path in zip(payloads, judgment_paths)
     ]
@@ -501,9 +613,24 @@ def aggregate(
             "judgment textPlanSha256 does not match the supplied text-plan envelope: "
             f"expected {text_plan_sha256}, got {sorted(artifact_ids)}"
         )
+    replacement_for_panel_sha256 = None
+    if replacement_for is not None:
+        replacement_for_panel_sha256 = validate_replacement_initial(
+            replacement_for,
+            text_plan_sha256,
+            rubric_sha256,
+            prompt_template_sha256,
+            judgment_schema_sha256,
+            run_ids,
+        )
+    panel_kind = "REPLACEMENT" if replacement_for is not None else "INITIAL"
     panel_payload = {
         "textPlanSha256": text_plan_sha256,
-        "replacementPanel": replacement_panel,
+        "rubricSha256": rubric_sha256,
+        "promptTemplateSha256": prompt_template_sha256,
+        "judgmentSchemaSha256": judgment_schema_sha256,
+        "panelKind": panel_kind,
+        "replacementForPanelInputSha256": replacement_for_panel_sha256,
         "judgments": sorted(payloads, key=lambda payload: payload["judgeRunId"]),
     }
     panel_input_sha256 = (
@@ -573,7 +700,7 @@ def aggregate(
         if unstable_cells
         else []
     )
-    if unstable_cells and replacement_panel:
+    if unstable_cells and replacement_for is not None:
         status = "BLOCKED_JUDGE_INSTABILITY"
     elif unstable_cells:
         status = "RERUN_REQUIRED_JUDGE_INSTABILITY"
@@ -586,10 +713,13 @@ def aggregate(
         "textPlanProxy": text_plan_proxy,
         "commercialUXProxy": None,
         "officialCommercialUX": False,
-        "replacementPanel": replacement_panel,
-        "rerunRequired": bool(unstable_cells and not replacement_panel),
+        "panelKind": panel_kind,
+        "rerunRequired": bool(unstable_cells and replacement_for is None),
         "panelInputSha256": panel_input_sha256,
+        "replacementForPanelInputSha256": replacement_for_panel_sha256,
         "rubricSha256": rubric_sha256,
+        "promptTemplateSha256": prompt_template_sha256,
+        "judgmentSchemaSha256": judgment_schema_sha256,
         "textRaw": rounded(text_raw),
         "textRawSpread": rounded(text_raw_spread),
         "disagreementPenalty": rounded(penalty),
@@ -619,9 +749,9 @@ def main() -> None:
         default=Path(__file__).with_name("rubric.json"),
     )
     parser.add_argument(
-        "--replacement-panel",
-        action="store_true",
-        help="Mark this fresh three-judgment panel as the one allowed replacement run",
+        "--replacement-for",
+        type=Path,
+        help="Initial RERUN_REQUIRED aggregate replaced by this fresh panel",
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -629,7 +759,7 @@ def main() -> None:
         args.judgments,
         args.rubric,
         args.text_plan,
-        args.replacement_panel,
+        args.replacement_for,
     )
     output = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)

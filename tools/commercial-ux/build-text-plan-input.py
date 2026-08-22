@@ -12,6 +12,7 @@ from typing import Any
 
 
 CONTEXT_SCHEMA = "gridworks.commercial-ux.text-plan-context.v1"
+CAMPAIGN_SCHEMA = "gridworks.commercial.campaign.v2"
 MANIFEST_SCHEMA = "gridworks.commercial.story-manifest.v1"
 PART_SCHEMA = "gridworks.commercial.story-part-output.v1"
 ARTIFACT_SCHEMA = "gridworks.commercial-ux.text-plan-input.v1"
@@ -275,6 +276,172 @@ def validate_manifest(manifest: dict[str, Any], campaign_id: str) -> None:
         validate_part(part, expected, campaign_id, index)
 
 
+def require_field(value: dict[str, Any], field: str, label: str) -> Any:
+    if field not in value:
+        fail(f"{label} is missing required field {field!r}")
+    return value[field]
+
+
+def authority_story(value: Any, label: str) -> dict[str, str]:
+    validate_story(value, label)
+    assert isinstance(value, dict)
+    return value
+
+
+def extract_campaign_authority(
+    campaign: dict[str, Any],
+    expected_campaign_id: str,
+) -> list[tuple[ExpectedPart, dict[str, str]]]:
+    if campaign.get("schemaVersion") != CAMPAIGN_SCHEMA:
+        fail(f"campaign schemaVersion must be {CAMPAIGN_SCHEMA}")
+    if campaign.get("campaignId") != expected_campaign_id:
+        fail(
+            "campaign campaignId mismatch: "
+            f"expected {expected_campaign_id!r}, got {campaign.get('campaignId')!r}"
+        )
+    chapters = campaign.get("chapters")
+    if not isinstance(chapters, list) or len(chapters) != len(EXPECTED_CHAPTER_IDS):
+        fail("campaign chapters must contain exactly eight ordered chapters")
+
+    authority: list[tuple[ExpectedPart, dict[str, str]]] = []
+    actual_chapter_ids: list[str] = []
+    for chapter_index, chapter in enumerate(chapters, start=1):
+        label = f"campaign chapter {chapter_index}"
+        if not isinstance(chapter, dict):
+            fail(f"{label} must be an object")
+        chapter_id = require_nonempty_string(
+            require_field(chapter, "chapterId", label),
+            f"{label}.chapterId",
+        )
+        actual_chapter_ids.append(chapter_id)
+        authority.append((
+            ExpectedPart(f"{chapter_id}/briefing", "briefing", chapter_id),
+            authority_story(require_field(chapter, "briefing", label), f"{label}.briefing"),
+        ))
+
+        windows = require_field(chapter, "decisionWindows", label)
+        if not isinstance(windows, list):
+            fail(f"{label}.decisionWindows must be an array")
+        seen_window_ids: set[str] = set()
+        for window_index, window in enumerate(windows, start=1):
+            window_label = f"{label}.decisionWindows[{window_index - 1}]"
+            if not isinstance(window, dict):
+                fail(f"{window_label} must be an object")
+            window_id = require_nonempty_string(
+                require_field(window, "windowId", window_label),
+                f"{window_label}.windowId",
+            )
+            if window_id in seen_window_ids:
+                fail(f"{label} contains duplicate windowId {window_id!r}")
+            seen_window_ids.add(window_id)
+            story = require_field(window, "story", window_label)
+            if story is not None:
+                authority.append((
+                    ExpectedPart(
+                        f"{chapter_id}/window/{window_id}",
+                        "window",
+                        chapter_id,
+                        window_id=window_id,
+                    ),
+                    authority_story(story, f"{window_label}.story"),
+                ))
+
+        promise = require_field(chapter, "promise", label)
+        if promise is None:
+            if require_field(chapter, "keptResult", label) is not None:
+                fail(f"{label}.keptResult must be null without a promise")
+            if require_field(chapter, "deferredResult", label) is not None:
+                fail(f"{label}.deferredResult must be null without a promise")
+            authority.append((
+                ExpectedPart(f"{chapter_id}/result/standard", "result", chapter_id),
+                authority_story(
+                    require_field(chapter, "standardResult", label),
+                    f"{label}.standardResult",
+                ),
+            ))
+        else:
+            if not isinstance(promise, dict):
+                fail(f"{label}.promise must be an object or null")
+            authority_story(
+                require_field(chapter, "standardResult", label),
+                f"{label}.standardResult",
+            )
+            authority.append((
+                ExpectedPart(
+                    f"{chapter_id}/result/keep",
+                    "result",
+                    chapter_id,
+                    required_promise_branch="keep",
+                ),
+                authority_story(
+                    require_field(chapter, "keptResult", label),
+                    f"{label}.keptResult",
+                ),
+            ))
+            authority.append((
+                ExpectedPart(
+                    f"{chapter_id}/result/defer",
+                    "result",
+                    chapter_id,
+                    required_promise_branch="defer",
+                ),
+                authority_story(
+                    require_field(chapter, "deferredResult", label),
+                    f"{label}.deferredResult",
+                ),
+            ))
+
+    if tuple(actual_chapter_ids) != EXPECTED_CHAPTER_IDS:
+        fail(f"campaign chapter order mismatch: {actual_chapter_ids}")
+    authority.append((
+        ExpectedPart("campaign/epilogue", "epilogue", None),
+        authority_story(
+            require_field(campaign, "epilogue", "campaign"),
+            "campaign.epilogue",
+        ),
+    ))
+    actual_parts = tuple(part for part, _ in authority)
+    if actual_parts != EXPECTED_PARTS:
+        fail(
+            "campaign reachable story order does not match the frozen 26-part contract: "
+            f"{[part.selector for part in actual_parts]}"
+        )
+    return authority
+
+
+def validate_manifest_against_campaign(
+    manifest: dict[str, Any],
+    campaign: dict[str, Any],
+    context: dict[str, Any],
+) -> None:
+    campaign_id = context["campaignId"]
+    validate_manifest(manifest, campaign_id)
+    authority = extract_campaign_authority(campaign, campaign_id)
+    campaign_chapters = campaign["chapters"]
+    for index, (context_chapter, campaign_chapter) in enumerate(
+        zip(context["chapters"], campaign_chapters),
+        start=1,
+    ):
+        campaign_display_name = require_nonempty_string(
+            require_field(campaign_chapter, "displayName", f"campaign chapter {index}"),
+            f"campaign chapter {index}.displayName",
+        )
+        if context_chapter["displayName"] != campaign_display_name:
+            fail(
+                f"context chapter {index} displayName does not match campaign authority: "
+                f"expected {campaign_display_name!r}, got {context_chapter['displayName']!r}"
+            )
+    for index, (manifest_part, (_, expected_story)) in enumerate(
+        zip(manifest["parts"], authority),
+        start=1,
+    ):
+        if manifest_part["story"] != expected_story:
+            fail(
+                f"story manifest part {index} story does not match campaign authority "
+                f"for {manifest_part['selector']!r}"
+            )
+
+
 def canonical_json_bytes(value: Any) -> bytes:
     return json.dumps(
         value,
@@ -306,6 +473,7 @@ def main() -> None:
         description="Build the blinded commercial UX text-plan input from a strict story manifest."
     )
     parser.add_argument("--story-manifest", type=Path, required=True)
+    parser.add_argument("--campaign", type=Path, required=True)
     parser.add_argument(
         "--context",
         type=Path,
@@ -316,8 +484,9 @@ def main() -> None:
 
     context = read_object(args.context, "context")
     manifest = read_object(args.story_manifest, "story manifest")
+    campaign = read_object(args.campaign, "campaign")
     validate_context(context)
-    validate_manifest(manifest, context["campaignId"])
+    validate_manifest_against_campaign(manifest, campaign, context)
     envelope = build_artifact(context, manifest)
     output = json.dumps(envelope, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)

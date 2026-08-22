@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-text-plan-evidence-verifier-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocol",
+    "verifierRunId",
+    "verifierSlot",
+    "model",
+    "reasoningEffort",
+    "promptTemplateSha256",
+    "verifierSchemaSha256",
+    "textPlanSha256",
+    "verificationInputSha256",
+    "observations"
+  ],
+  "properties": {
+    "protocol": {
+      "const": "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-EVIDENCE-VERIFICATION-v1"
+    },
+    "verifierRunId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "verifierSlot": {
+      "const": "SOL-ULTRA"
+    },
+    "model": {
+      "const": "gpt-5.6-sol"
+    },
+    "reasoningEffort": {
+      "const": "ultra"
+    },
+    "promptTemplateSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "verifierSchemaSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "textPlanSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "verificationInputSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 480,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    }
+  },
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observationId",
+        "verdict",
+        "sourceRef",
+        "rationale"
+      ],
+      "properties": {
+        "observationId": {
+          "type": "string",
+          "pattern": "^OBS-[0-9]{4}$"
+        },
+        "verdict": {
+          "enum": ["SUPPORTED", "PARTIAL", "UNSUPPORTED"]
+        },
+        "sourceRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 800
+        }
+      }
+    }
+  }
+}

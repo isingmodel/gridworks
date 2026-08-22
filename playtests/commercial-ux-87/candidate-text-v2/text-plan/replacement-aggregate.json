@@ -1,0 +1,341 @@
+{
+  "blockers": [],
+  "categoryScores": {
+    "agency": {
+      "score": 95.5,
+      "spread": 0.0,
+      "weight": 10
+    },
+    "causality": {
+      "score": 94.0,
+      "spread": 3.0,
+      "weight": 13
+    },
+    "journey": {
+      "score": 100.0,
+      "spread": 0.0,
+      "weight": 12
+    },
+    "korean": {
+      "score": 79.75,
+      "spread": 10.5,
+      "weight": 4
+    },
+    "pacing": {
+      "score": 100.0,
+      "spread": 5.25,
+      "weight": 8
+    },
+    "tutorial": {
+      "score": 94.0,
+      "spread": 5.25,
+      "weight": 13
+    }
+  },
+  "cellScores": {
+    "TP-A1": {
+      "categoryId": "agency",
+      "labels": [
+        "STRONG",
+        "STRONG",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 30
+    },
+    "TP-A2": {
+      "categoryId": "agency",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 25
+    },
+    "TP-A3": {
+      "categoryId": "agency",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 25
+    },
+    "TP-A4": {
+      "categoryId": "agency",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C1": {
+      "categoryId": "causality",
+      "labels": [
+        "STRONG",
+        "EXCELLENT",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C2": {
+      "categoryId": "causality",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C3": {
+      "categoryId": "causality",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C4": {
+      "categoryId": "causality",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C5": {
+      "categoryId": "causality",
+      "labels": [
+        "STRONG",
+        "STRONG",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-J1": {
+      "categoryId": "journey",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 50
+    },
+    "TP-J2": {
+      "categoryId": "journey",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 50
+    },
+    "TP-K1": {
+      "categoryId": "korean",
+      "labels": [
+        "STRONG",
+        "STRONG",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 35
+    },
+    "TP-K2": {
+      "categoryId": "korean",
+      "labels": [
+        "WEAK",
+        "SERVICEABLE",
+        "SERVICEABLE"
+      ],
+      "medianLabel": "SERVICEABLE",
+      "medianScore": 70,
+      "ordinalRange": 1,
+      "spread": 30,
+      "unstable": false,
+      "weightWithinCategory": 35
+    },
+    "TP-K3": {
+      "categoryId": "korean",
+      "labels": [
+        "STRONG",
+        "STRONG",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 30
+    },
+    "TP-P1": {
+      "categoryId": "pacing",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 25
+    },
+    "TP-P2": {
+      "categoryId": "pacing",
+      "labels": [
+        "STRONG",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 35
+    },
+    "TP-P3": {
+      "categoryId": "pacing",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 40
+    },
+    "TP-T1": {
+      "categoryId": "tutorial",
+      "labels": [
+        "STRONG",
+        "STRONG",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 40
+    },
+    "TP-T2": {
+      "categoryId": "tutorial",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "STRONG"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 35
+    },
+    "TP-T3": {
+      "categoryId": "tutorial",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 25
+    }
+  },
+  "commercialUXProxy": null,
+  "disagreementPenalty": 0.6375,
+  "judgeRunIds": [
+    "candidate-text-v2-sol-ultra-r01",
+    "candidate-text-v2-sol-ultra-r02",
+    "candidate-text-v2-sol-ultra-r03"
+  ],
+  "judgmentSchemaSha256": "sha256:69eb5143bc4821b14b90aa479da21620ddfffb20b63070d580184dfe35e69c04",
+  "officialCommercialUX": false,
+  "panelInputSha256": "sha256:cfb1c0fd55f4795e75b23372fe49ba536254fa0b1cdc7ba9754367ee129e38c3",
+  "panelKind": "REPLACEMENT",
+  "promptTemplateSha256": "sha256:d31481546619063fcba5193d7c9043c5bb7e620d258ad3a6bc726fead6ff3be9",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-AGGREGATE-v1",
+  "replacementForPanelInputSha256": "sha256:36b8b6769b7d6f3b869d3188ba995e553e97024d709e0635b720ffa7f2e5c0aa",
+  "replacementReceiptPath": "/Users/fred/dev/gridworks/playtests/commercial-ux-87/candidate-text-v2/text-plan/.gridworks-commercial-ux-replacement-36b8b6769b7d6f3b869d3188ba995e553e97024d709e0635b720ffa7f2e5c0aa.receipt.json",
+  "replacementReceiptSha256": "sha256:21303f802032cd88fb20901a7e9ff8c22a9f9084951a0da594efa47aa8bc770a",
+  "rerunRequired": false,
+  "rubricSha256": "sha256:2e50903e40255c8141513cb36407223a68b18824adc5d61a8af864ba24359b0b",
+  "status": "SCORED_FORMATIVE",
+  "textPlanProxy": 94.6625,
+  "textPlanSha256": "sha256:8e63340c123862d827e5c85926cbd6ac868eac93308a40f5825fe4b9ff37315c",
+  "textRaw": 95.3,
+  "textRawSpread": 3.1875,
+  "unstableCells": []
+}

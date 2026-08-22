@@ -16,8 +16,9 @@
 | 기본 실행 | `game/project.godot`의 `CommercialMain.tscn` |
 | 규칙·공간 데이터 | `data/release-world-v2.json` |
 | 캠페인 데이터 | `data/release-campaign-v2.json` |
-| 구현 상태 | 단계 B~G.3 완료, **활성 구현 단계 없음** |
-| 다음 단계 | H는 미승인. 별도 사용자 승인과 외부 증거가 필요함 |
+| 구현 상태 | 단계 B~G.3 완료, **상용 UX 87 개선 단계 활성** |
+| 활성 계약 | `gpt-5.6-sol` ultra의 실제 게임 UX 프록시 87점 이상을 목표로 하는 [상용 UX 87](docs/scopes/COMMERCIAL_UX_87.md) |
+| 다음 외부 단계 | H는 미승인. 별도 사용자 승인과 외부 증거가 필요함 |
 | 지원 화면 | **1920×1080, UI 100%·125%만 지원**. 1280×720/720p 미지원 |
 | 사람 증거 | `ReleaseOwnerPlayReviewStatus = NOT_COLLECTED`, `ExternalHumanValidationStatus = NOT_COLLECTED` |
 
@@ -26,6 +27,12 @@
 경계를 완성했다. G.1의 whole-map plate와 G.2의 낮은 reference 정렬 결과는 소유자 검토에서
 거부됐고, G.3은 도시·도로·강·제방·전력 시설을 **각각의 tile/object 이미지로 만들고 코드가
 개별 배치**하는 구조로 다시 구현했다. 합성 도시 배경 한 장을 뒤에 까는 방식은 허용하지 않는다.
+
+사용자는 2026-08-22에 별도 [상용 UX 87 개선 계약](docs/scopes/COMMERCIAL_UX_87.md)을 열었다. 현재
+작업은 튜토리얼·여덟 장·결과·에필로그·저장 재개의 완결성을 텍스트 계획부터 실제 end-to-end
+플레이까지 평가하고, 선택한 story part만 단독 실행하는 검사 경로를 만들며, 고정
+`gpt-5.6-sol` ultra의 공식 `CommercialUXProxy >=87`까지 확정된 UX 결함을 반복 개선한다.
+이는 H의 사람 검토·전문 교정·공개 배포를 승인하지 않는다.
 
 G.3 최종 v27은 55개 개별 runtime art, 338개 원자 도시 배치와 641개 전체 world 배치, 굽은 강과
 정상·고온·범람 상태, 발전소·변전소·철탑 부품 조립, full-bleed HUD와 독립 event timeline을
@@ -46,9 +53,9 @@ UI 100%·125% presentation, checkpoint→completion→completed-resume 실제 �
 
 1. 이 README와 [문서 안내](docs/README.md)를 먼저 읽고, 현재 사용자 요청이 새 구현 범위를
    명시적으로 여는지 확인한다.
-2. 활성 단계가 없으므로 G.3을 임의로 다시 열거나 로드맵의 H를 선행 구현하지 않는다. 완료된 계획과
-   평가 프로토콜은 이력·재현 자료이지 새 권한이 아니다.
-3. 유지보수는 v2 world·campaign과 `CommercialMain`을 단일 권위로 삼는다. 화면에서 규칙을 다시
+2. 활성 범위는 [상용 UX 87 계약](docs/scopes/COMMERCIAL_UX_87.md)뿐이다. G.3 reference 목표를 다시
+   열거나 로드맵 H를 선행 구현하지 않는다.
+3. v2 world·campaign과 `CommercialMain`을 단일 권위로 삼는다. 화면에서 규칙을 다시
    계산하지 말고 Core의 typed 결과를 표현한다.
 4. 시각 변경을 다시 승인받으면 개별 object/tile 구성, 2:1 사선 시점, 굽은 강·제방 접합,
    reference-scale 도시 밀도, 전력망 상태와 event timeline을 함께 보존한다.
@@ -57,7 +64,7 @@ UI 100%·125% presentation, checkpoint→completion→completed-resume 실제 �
 
 ## 다음 승인 지점
 
-단계 H는 다음 조건을 충족할 때만 별도 사용자 지시로 연다.
+상용 UX 87 범위가 종료된 뒤에도 단계 H는 다음 조건을 충족할 때만 별도 사용자 지시로 연다.
 
 - 소유자의 전체 캠페인 플레이와 한국어 전문 교정 범위 확정
 - 실제 지원 macOS 환경과 기기 목록 확정 및 실행 증거 수집

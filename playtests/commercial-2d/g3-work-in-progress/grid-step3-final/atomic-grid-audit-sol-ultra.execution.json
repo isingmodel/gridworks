@@ -1,0 +1,10 @@
+{
+  "protocol": "G3-ATOMIC-GRID-AUDIT-v1",
+  "model": "gpt-5.6-sol",
+  "codexMode": "ultra",
+  "codexVersion": "codex-cli 0.149.0",
+  "boardSha256": "0758b6f016fe59443e4bc30727f2746d5419a957317e3dee58581448cd49cda4",
+  "mapSha256": "b058a67194569f9c69a99a5af9c45ce4dfb303f2d088051e0b08c65c8d2c4cb9",
+  "draftSha256": "6ca38edbfedd60d8f14a1acb432011c6448162a228c955d4d2224c784e6e20d5",
+  "recipeSha256": "fa05af1c54c82ee0a8b73bf84842b707710641eb969b4ec7c309658f4ec72059"
+}

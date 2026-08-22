@@ -131,7 +131,7 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal) &&
                 _map.HasIndividualTileAssets &&
                 _map.HasIndividualObjectAssets &&
-                _map.IndividualArtAssetCount == 49 &&
+                _map.IndividualArtAssetCount == 51 &&
                 _map.AtomicCityAssetCount == 12 &&
                 _map.AtomicRoadTileAssetCount == 6 &&
                 _map.AtomicWorldInstanceCount == 120 &&
@@ -549,7 +549,7 @@ internal sealed partial class CommercialMain
                 _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
                 _map.HasIndividualTileAssets &&
                 _map.HasIndividualObjectAssets &&
-                _map.IndividualArtAssetCount == 49 &&
+                _map.IndividualArtAssetCount == 51 &&
                 _map.AtomicCityAssetCount == 12 &&
                 _map.AtomicRoadTileAssetCount == 6 &&
                 _map.AtomicWorldInstanceCount == 120 &&

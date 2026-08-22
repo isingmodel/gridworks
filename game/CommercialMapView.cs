@@ -68,6 +68,14 @@ internal sealed partial class CommercialMapView : Control
         ServiceYard,
     }
 
+    private enum AtomicSourcePartKind
+    {
+        MainHall,
+        Smokestack,
+        TurbineHall,
+        BreakerBay,
+    }
+
     private readonly record struct AtomicCityInstanceSpec(
         AtomicCitySpriteKind Kind,
         int XUnit,
@@ -81,6 +89,12 @@ internal sealed partial class CommercialMapView : Control
         int YUnit,
         float MaxSide,
         float Alpha = 0.92f);
+
+    private readonly record struct AtomicSourcePartSpec(
+        AtomicSourcePartKind Kind,
+        int OffsetXUnit,
+        int OffsetYUnit,
+        float MaxSide);
 
     private static readonly Color Background = Color.FromHtml("071319");
     private static readonly Color Land = Color.FromHtml("142724");
@@ -132,6 +146,17 @@ internal sealed partial class CommercialMapView : Control
         new(1300, 580),
         new(1290, 540),
         new(1310, 500),
+    ];
+
+    // A source terminal is assembled from four independently generated objects.
+    // The authored source point remains the gameplay authority; these offsets are
+    // presentation-only placement records and never replace the facility footprint.
+    private static readonly AtomicSourcePartSpec[] AtomicSourcePartInstances =
+    [
+        new(AtomicSourcePartKind.Smokestack, 60, -150, 126f),
+        new(AtomicSourcePartKind.TurbineHall, -170, 70, 142f),
+        new(AtomicSourcePartKind.MainHall, 0, 0, 158f),
+        new(AtomicSourcePartKind.BreakerBay, 190, 110, 88f),
     ];
 
     // Step 1 city composition authority. Every record resolves to one PNG that
@@ -326,25 +351,31 @@ internal sealed partial class CommercialMapView : Control
     public Texture2D? ServiceYardATile { get; set; }
 
     [Export]
-    public Texture2D? StandardPoleSprite { get; set; }
+    public Texture2D? AtomicStandardPoleASprite { get; set; }
 
     [Export]
-    public Texture2D? ReinforcedPoleSprite { get; set; }
+    public Texture2D? AtomicReinforcedPoleASprite { get; set; }
 
     [Export]
-    public Texture2D? BridgeFoundationSprite { get; set; }
+    public Texture2D? AtomicBridgeFoundationASprite { get; set; }
 
     [Export]
     public Texture2D? IndustrialRoadBridgeASprite { get; set; }
 
     [Export]
-    public Texture2D? TallThermalPowerStationBSprite { get; set; }
+    public Texture2D? AtomicPlantMainHallASprite { get; set; }
 
     [Export]
-    public Texture2D? SubstationSprite { get; set; }
+    public Texture2D? AtomicPlantSmokestackASprite { get; set; }
 
     [Export]
-    public Texture2D? ChunkySwitchingSubstationBSprite { get; set; }
+    public Texture2D? AtomicPlantTurbineHallASprite { get; set; }
+
+    [Export]
+    public Texture2D? AtomicSwitchyardBreakerBayASprite { get; set; }
+
+    [Export]
+    public Texture2D? AtomicSubstationTransformerASprite { get; set; }
 
     [Export]
     public Texture2D? AtomicWorkerHouseASprite { get; set; }
@@ -487,13 +518,8 @@ internal sealed partial class CommercialMapView : Control
         ServiceYardATile is not null;
 
     public bool HasIndividualObjectAssets =>
-        StandardPoleSprite is not null &&
-        ReinforcedPoleSprite is not null &&
-        BridgeFoundationSprite is not null &&
+        HasAtomicGridAssets &&
         IndustrialRoadBridgeASprite is not null &&
-        TallThermalPowerStationBSprite is not null &&
-        SubstationSprite is not null &&
-        ChunkySwitchingSubstationBSprite is not null &&
         G3RiverBankRockSegmentASprite is not null &&
         G3RiverBankInnerBendASprite is not null &&
         G3RiverBankOuterBendASprite is not null &&
@@ -523,9 +549,29 @@ internal sealed partial class CommercialMapView : Control
         AtomicRetainingWallASprite is not null &&
         AtomicStreetLampASprite is not null;
 
+    public bool HasAtomicGridAssets =>
+        AtomicPlantMainHallASprite is not null &&
+        AtomicPlantSmokestackASprite is not null &&
+        AtomicPlantTurbineHallASprite is not null &&
+        AtomicSwitchyardBreakerBayASprite is not null &&
+        AtomicSubstationTransformerASprite is not null &&
+        AtomicStandardPoleASprite is not null &&
+        AtomicReinforcedPoleASprite is not null &&
+        AtomicBridgeFoundationASprite is not null;
+
+    private bool HasAtomicSourcePlantAssets =>
+        AtomicPlantMainHallASprite is not null &&
+        AtomicPlantSmokestackASprite is not null &&
+        AtomicPlantTurbineHallASprite is not null &&
+        AtomicSwitchyardBreakerBayASprite is not null;
+
     public int AtomicCityAssetCount => AtomicCityTextures().Count(texture => texture is not null);
 
     public int AtomicRoadTileAssetCount => AtomicRoadTextures().Count(texture => texture is not null);
+
+    public int AtomicGridAssetCount => AtomicGridTextures().Count(texture => texture is not null);
+
+    public int AtomicSourcePartInstanceCount => AtomicSourcePartInstances.Length;
 
     public int AtomicCityInstanceCount => AtomicCityInstances.Length;
 
@@ -580,13 +626,15 @@ internal sealed partial class CommercialMapView : Control
     public int IndividualObjectAssetCount =>
         new Texture2D?[]
         {
-            StandardPoleSprite,
-            ReinforcedPoleSprite,
-            BridgeFoundationSprite,
+            AtomicStandardPoleASprite,
+            AtomicReinforcedPoleASprite,
+            AtomicBridgeFoundationASprite,
             IndustrialRoadBridgeASprite,
-            TallThermalPowerStationBSprite,
-            SubstationSprite,
-            ChunkySwitchingSubstationBSprite,
+            AtomicPlantMainHallASprite,
+            AtomicPlantSmokestackASprite,
+            AtomicPlantTurbineHallASprite,
+            AtomicSwitchyardBreakerBayASprite,
+            AtomicSubstationTransformerASprite,
             G3RiverBankRockSegmentASprite,
             G3RiverBankInnerBendASprite,
             G3RiverBankOuterBendASprite,
@@ -1345,6 +1393,18 @@ internal sealed partial class CommercialMapView : Control
         ServiceYardATile,
     ];
 
+    private Texture2D?[] AtomicGridTextures() =>
+    [
+        AtomicPlantMainHallASprite,
+        AtomicPlantSmokestackASprite,
+        AtomicPlantTurbineHallASprite,
+        AtomicSwitchyardBreakerBayASprite,
+        AtomicSubstationTransformerASprite,
+        AtomicStandardPoleASprite,
+        AtomicReinforcedPoleASprite,
+        AtomicBridgeFoundationASprite,
+    ];
+
     private Texture2D? AtomicCityTexture(AtomicCitySpriteKind kind) => kind switch
     {
         AtomicCitySpriteKind.WorkerHouseA => AtomicWorkerHouseASprite,
@@ -1372,6 +1432,15 @@ internal sealed partial class CommercialMapView : Control
         AtomicRoadSpriteKind.TJunction => RoadTJunctionATile,
         AtomicRoadSpriteKind.CrossJunction => RoadCrossJunctionATile,
         AtomicRoadSpriteKind.ServiceYard => ServiceYardATile,
+        _ => null,
+    };
+
+    private Texture2D? AtomicSourcePartTexture(AtomicSourcePartKind kind) => kind switch
+    {
+        AtomicSourcePartKind.MainHall => AtomicPlantMainHallASprite,
+        AtomicSourcePartKind.Smokestack => AtomicPlantSmokestackASprite,
+        AtomicSourcePartKind.TurbineHall => AtomicPlantTurbineHallASprite,
+        AtomicSourcePartKind.BreakerBay => AtomicSwitchyardBreakerBayASprite,
         _ => null,
     };
 
@@ -1823,7 +1892,7 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawRiverBridgeAbutment(Vector2 center, float rotation)
     {
-        Texture2D? abutmentTexture = RiverBridgeAbutmentASprite ?? BridgeFoundationSprite ??
+        Texture2D? abutmentTexture = RiverBridgeAbutmentASprite ?? AtomicBridgeFoundationASprite ??
             G3RiverBankRockSegmentASprite;
         if (abutmentTexture is null)
         {
@@ -2091,17 +2160,17 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawPlannedSupportSprites(Vector2[] supports)
     {
-        if (ReinforcedPoleSprite is null)
+        if (AtomicReinforcedPoleASprite is null)
         {
             return;
         }
         for (int index = 0; index < supports.Length; index++)
         {
             Vector2 ground = supports[index];
-            Vector2 size = FitSpriteSize(ReinforcedPoleSprite, 96f);
+            Vector2 size = FitSpriteSize(AtomicReinforcedPoleASprite, 96f);
             DrawCircle(ground, 11f, new Color(Planned, 0.10f));
             DrawTextureRect(
-                ReinforcedPoleSprite,
+                AtomicReinforcedPoleASprite,
                 SpriteRect(ground, size),
                 false,
                 new Color(1.00f, 0.75f, 0.38f, 0.94f));
@@ -2320,6 +2389,32 @@ internal sealed partial class CommercialMapView : Control
         }
     }
 
+    private void DrawAtomicSourcePlant(CoreMapPoint sourcePoint, Color modulate)
+    {
+        foreach ((AtomicSourcePartSpec Part, CoreMapPoint Point) placement in
+                 AtomicSourcePartInstances
+                     .Select(part => (
+                         Part: part,
+                         Point: new CoreMapPoint(
+                             sourcePoint.XUnit + part.OffsetXUnit,
+                             sourcePoint.YUnit + part.OffsetYUnit)))
+                     .OrderBy(item => ToCanvas(item.Point).Y)
+                     .ThenBy(item => ToCanvas(item.Point).X)
+                     .ThenBy(item => item.Part.Kind))
+        {
+            Texture2D? texture = AtomicSourcePartTexture(placement.Part.Kind);
+            if (texture is null)
+            {
+                continue;
+            }
+            Vector2 center = ToCanvas(placement.Point);
+            Vector2 size = FitSpriteSize(
+                texture,
+                placement.Part.MaxSide * (1f + (ZoomIndex * 0.12f)));
+            DrawTextureRect(texture, SpriteRect(center, size), false, modulate);
+        }
+    }
+
     private void DrawNodes(
         SpatialWorldDefinition world,
         ThermalIntervalResult? thermalInterval,
@@ -2371,11 +2466,19 @@ internal sealed partial class CommercialMapView : Control
                 _ => 6f,
             };
             (Texture2D? texture, float maxSide) = NodeSprite(node, nodeClass);
-            Vector2 spriteSize = texture is null
+            bool sourceEnsemble = nodeClass.Kind == SpatialNodeKind.SourceTerminal &&
+                HasAtomicSourcePlantAssets;
+            Vector2 spriteSize = sourceEnsemble
+                ? new Vector2(224f, 186f) * (1f + (ZoomIndex * 0.12f))
+                : texture is null
                 ? Vector2.One * (radius * 2f)
                 : FitSpriteSize(texture, maxSide * (1f + (ZoomIndex * 0.16f)));
             float objectRadius = Math.Max(radius, Math.Max(spriteSize.X, spriteSize.Y) * 0.42f);
-            if (texture is not null)
+            if (sourceEnsemble)
+            {
+                DrawAtomicSourcePlant(node.Position, NodeSpriteModulate(node, thermal));
+            }
+            else if (texture is not null)
             {
                 Color spriteModulate = selectedPathNode &&
                     nodeClass.Kind == SpatialNodeKind.Pole
@@ -2478,16 +2581,16 @@ internal sealed partial class CommercialMapView : Control
         }
         if (node.AuthoredFoundation)
         {
-            return (BridgeFoundationSprite, 58f);
+            return (AtomicBridgeFoundationASprite, 62f);
         }
         return nodeClass.Kind switch
         {
-            SpatialNodeKind.SourceTerminal => (TallThermalPowerStationBSprite, 222f),
+            SpatialNodeKind.SourceTerminal => (AtomicPlantMainHallASprite, 158f),
             SpatialNodeKind.Substation =>
-                (ChunkySwitchingSubstationBSprite ?? SubstationSprite, 156f),
+                (AtomicSubstationTransformerASprite, 152f),
             SpatialNodeKind.Pole when node.ClassId == "STANDARD_POLE" =>
-                (StandardPoleSprite, 82f),
-            SpatialNodeKind.Pole => (ReinforcedPoleSprite, 94f),
+                (AtomicStandardPoleASprite, 84f),
+            SpatialNodeKind.Pole => (AtomicReinforcedPoleASprite, 100f),
             SpatialNodeKind.DedicatedLoadTerminal when
                 node.NodeId == "EAST_RESIDENTIAL_TERMINAL" =>
                 (AtomicRowShopASprite, 116f),
@@ -2507,8 +2610,8 @@ internal sealed partial class CommercialMapView : Control
     private (Texture2D? Texture, float MaxSide) DraftPoleSprite(string poleClassId) =>
         poleClassId switch
         {
-            "STANDARD_POLE" => (StandardPoleSprite, 82f),
-            "REINFORCED_POLE" => (ReinforcedPoleSprite, 94f),
+            "STANDARD_POLE" => (AtomicStandardPoleASprite, 84f),
+            "REINFORCED_POLE" => (AtomicReinforcedPoleASprite, 100f),
             _ => (null, 24f),
         };
 
@@ -2516,7 +2619,7 @@ internal sealed partial class CommercialMapView : Control
         nodeClassId switch
         {
             "SMALL_SUBSTATION" =>
-                (ChunkySwitchingSubstationBSprite ?? SubstationSprite, 156f),
+                (AtomicSubstationTransformerASprite, 152f),
             _ => (null, 24f),
         };
 
@@ -2738,11 +2841,11 @@ internal sealed partial class CommercialMapView : Control
     {
         (Texture2D? Texture, string Label, CommercialPanelAction? Action)[] slots =
         [
-            (TallThermalPowerStationBSprite, "발전", null),
-            (StandardPoleSprite, "1 선로", CommercialPanelAction.StartLine),
-            (ChunkySwitchingSubstationBSprite ?? SubstationSprite,
+            (AtomicPlantMainHallASprite, "발전", null),
+            (AtomicStandardPoleASprite, "1 선로", CommercialPanelAction.StartLine),
+            (AtomicSubstationTransformerASprite,
                 "2 변전", CommercialPanelAction.PlaceSubstation),
-            (ReinforcedPoleSprite, "3 보강", CommercialPanelAction.CycleLineClass),
+            (AtomicReinforcedPoleASprite, "3 보강", CommercialPanelAction.CycleLineClass),
         ];
         float height = 18f + (slots.Length * BuildRailSlotHeight) +
             ((slots.Length - 1) * BuildRailGap) + 16f;

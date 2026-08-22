@@ -1,0 +1,249 @@
+{
+  "boardSha256": "0758b6f016fe59443e4bc30727f2746d5419a957317e3dee58581448cd49cda4",
+  "boardSize": [
+    1600,
+    900
+  ],
+  "cells": [
+    {
+      "alphaBounds": [
+        196,
+        12,
+        825,
+        500
+      ],
+      "boardCellRect": [
+        28,
+        72,
+        375,
+        393
+      ],
+      "boardPasteRect": [
+        48,
+        205,
+        333,
+        258
+      ],
+      "cellId": "G01",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/grid/plant-main-hall-a.png",
+      "runtimeSha256": "06f2d29586db8768cbb768098f26567d5f06ef869e1c0b2689d8d8dbc52b7948",
+      "sourceSize": [
+        1024,
+        512
+      ]
+    },
+    {
+      "alphaBounds": [
+        310,
+        49,
+        682,
+        964
+      ],
+      "boardCellRect": [
+        417,
+        72,
+        375,
+        393
+      ],
+      "boardPasteRect": [
+        534,
+        152,
+        128,
+        315
+      ],
+      "cellId": "G02",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/grid/plant-smokestack-a.png",
+      "runtimeSha256": "9bb91e05b1814fdf57bddbfe8361925850723a8b4357591280eac4805afb6a28",
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        120,
+        61,
+        890,
+        628
+      ],
+      "boardCellRect": [
+        806,
+        72,
+        375,
+        393
+      ],
+      "boardPasteRect": [
+        823,
+        206,
+        333,
+        245
+      ],
+      "cellId": "G03",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/grid/plant-turbine-hall-a.png",
+      "runtimeSha256": "c0d392c613a9667308755f54aaac782a753a78328b97f66e1e1ea83b1d81cea0",
+      "sourceSize": [
+        1024,
+        682
+      ]
+    },
+    {
+      "alphaBounds": [
+        252,
+        23,
+        776,
+        621
+      ],
+      "boardCellRect": [
+        1195,
+        72,
+        375,
+        393
+      ],
+      "boardPasteRect": [
+        1245,
+        142,
+        276,
+        315
+      ],
+      "cellId": "G04",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/grid/switchyard-breaker-bay-a.png",
+      "runtimeSha256": "6ae34713dd868cc3c735836e8416ba054e12b4017899a215adfd6c7974066dcd",
+      "sourceSize": [
+        1024,
+        682
+      ]
+    },
+    {
+      "alphaBounds": [
+        250,
+        61,
+        770,
+        639
+      ],
+      "boardCellRect": [
+        28,
+        479,
+        375,
+        393
+      ],
+      "boardPasteRect": [
+        72,
+        560,
+        283,
+        315
+      ],
+      "cellId": "G05",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/grid/substation-transformer-a.png",
+      "runtimeSha256": "60c75dd42c66e55b66249c2a4f93ca006fbbd9afdd4b8875ae50b02ede33cfab",
+      "sourceSize": [
+        1024,
+        682
+      ]
+    },
+    {
+      "alphaBounds": [
+        435,
+        83,
+        624,
+        431
+      ],
+      "boardCellRect": [
+        417,
+        479,
+        375,
+        393
+      ],
+      "boardPasteRect": [
+        534,
+        531,
+        171,
+        315
+      ],
+      "cellId": "G06",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/grid/pole-standard-a.png",
+      "runtimeSha256": "2da582c008a07fcce47685f6132a9533ecb09fcdcc893af720ca841f63d47fd8",
+      "sourceSize": [
+        1024,
+        512
+      ]
+    },
+    {
+      "alphaBounds": [
+        70,
+        106,
+        450,
+        916
+      ],
+      "boardCellRect": [
+        806,
+        479,
+        375,
+        393
+      ],
+      "boardPasteRect": [
+        921,
+        548,
+        148,
+        315
+      ],
+      "cellId": "G07",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/grid/pole-reinforced-a.png",
+      "runtimeSha256": "c6692776ed72834e2c4c39c7a20d23b2c21a40d9a1878826aae6378d360d2b9b",
+      "sourceSize": [
+        512,
+        1024
+      ]
+    },
+    {
+      "alphaBounds": [
+        225,
+        57,
+        798,
+        474
+      ],
+      "boardCellRect": [
+        1195,
+        479,
+        375,
+        393
+      ],
+      "boardPasteRect": [
+        1215,
+        618,
+        333,
+        242
+      ],
+      "cellId": "G08",
+      "compositionUnitCountExpected": 1,
+      "runtimePath": "g3/grid/bridge-foundation-a.png",
+      "runtimeSha256": "56041864e4da3257c9f0e43d37ac2e39d3c0a3fba450af1110ba15ed74fc29f5",
+      "sourceSize": [
+        1024,
+        512
+      ]
+    }
+  ],
+  "draftSha256": "6ca38edbfedd60d8f14a1acb432011c6448162a228c955d4d2224c784e6e20d5",
+  "layout": {
+    "cellCount": 8,
+    "columns": 4,
+    "rows": 2
+  },
+  "mapSha256": "b058a67194569f9c69a99a5af9c45ce4dfb303f2d088051e0b08c65c8d2c4cb9",
+  "pairId": "PAIR-KIT-GRID",
+  "protocol": "G3-ATOMIC-GRID-AUDIT-v1",
+  "rendering": {
+    "background": "#090d0e",
+    "colorCorrection": false,
+    "pillowVersion": "11.3.0",
+    "resampling": "LANCZOS",
+    "retouch": false
+  }
+}

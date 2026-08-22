@@ -174,13 +174,9 @@ internal sealed class CommercialChecks
             ("GroundConcreteTile", "tiles/ground-concrete-v1.png", false),
             ("GroundGravelTile", "tiles/ground-gravel-v1.png", false),
             ("RiverWaterTile", "tiles/river-water-v1.png", false),
-            ("StandardPoleSprite", "objects/pole-standard-v1.png", true),
-            ("ReinforcedPoleSprite", "objects/pole-reinforced-v1.png", true),
-            ("BridgeFoundationSprite", "objects/bridge-foundation-v1.png", true),
-            ("SubstationSprite", "objects/substation-v1.png", true),
         ];
 
-        Equal(9, assets.Length, "retained discrete runtime art count");
+        Equal(5, assets.Length, "retained discrete terrain material count");
         foreach ((string property, string relativePath, bool requiresAlpha) in assets)
         {
             string filePath = Path.Combine(artDirectory, relativePath);
@@ -879,6 +875,27 @@ internal sealed class CommercialChecks
         ];
         Equal(12, atomicRiverAssets.Length, "Step 2 atomic river asset count");
 
+        (string Property, string RelativePath, string SourceName, string RunId)[] atomicGridAssets =
+        [
+            ("AtomicPlantMainHallASprite", "g3/grid/plant-main-hall-a.png",
+                "atomic-plant-main-hall-a-source.png", "exec-ff08804a-3196-4794-9c4a-fbe8fc021601"),
+            ("AtomicPlantSmokestackASprite", "g3/grid/plant-smokestack-a.png",
+                "atomic-plant-smokestack-a-source.png", "exec-822fe640-c211-45a2-adc2-1e1f1949c4f5"),
+            ("AtomicPlantTurbineHallASprite", "g3/grid/plant-turbine-hall-a.png",
+                "atomic-plant-turbine-hall-a-source.png", "exec-7e1e7885-b6af-4891-bd70-e9ff3fc92830"),
+            ("AtomicSwitchyardBreakerBayASprite", "g3/grid/switchyard-breaker-bay-a.png",
+                "atomic-switchyard-breaker-bay-a-source.png", "exec-751318e5-a19c-4fc8-811d-c0490c20e401"),
+            ("AtomicSubstationTransformerASprite", "g3/grid/substation-transformer-a.png",
+                "atomic-substation-transformer-a-source.png", "exec-525b7168-42d9-4c04-a538-4afe281489c6"),
+            ("AtomicStandardPoleASprite", "g3/grid/pole-standard-a.png",
+                "atomic-pole-standard-a-source.png", "exec-f0fe7a22-7c24-402d-9494-ad80b442073a"),
+            ("AtomicReinforcedPoleASprite", "g3/grid/pole-reinforced-a.png",
+                "atomic-pole-reinforced-a-source.png", "exec-3db19133-0dbf-42ea-b16b-8f6cf89648d4"),
+            ("AtomicBridgeFoundationASprite", "g3/grid/bridge-foundation-a.png",
+                "atomic-bridge-foundation-a-source.png", "exec-9775ee23-b362-488f-8d0e-2ab8df147252"),
+        ];
+        Equal(8, atomicGridAssets.Length, "Step 3 atomic grid/facility asset count");
+
         foreach ((string property, string relativePath, string sourceName, string runId) in
                  atomicCityAssets.Concat(atomicRoadAssets))
         {
@@ -961,6 +978,42 @@ internal sealed class CommercialChecks
             }
         }
 
+        foreach ((string property, string relativePath, string sourceName, string runId) in
+                 atomicGridAssets)
+        {
+            string runtimePath = Path.Combine(artDirectory, relativePath);
+            string sourcePath = Path.Combine(sourceDirectory, sourceName);
+            Check(File.Exists(runtimePath), $"missing Step 3 atomic grid art: {relativePath}");
+            Check(File.Exists(sourcePath), $"missing Step 3 preserved source: {sourceName}");
+            Check(File.Exists($"{runtimePath}.import") &&
+                File.ReadAllText($"{runtimePath}.import").Contains(
+                    "mipmaps/generate=true",
+                    StringComparison.Ordinal),
+                $"Step 3 grid art lacks mipmapped import: {relativePath}");
+            Check(scene.Contains($"res://art/commercial/{relativePath}", StringComparison.Ordinal) &&
+                scene.Contains($"{property} = ExtResource", StringComparison.Ordinal) &&
+                renderer.Contains(property, StringComparison.Ordinal),
+                $"Step 3 grid art is not runtime-bound: {relativePath}");
+            string runtimeHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(runtimePath))).ToLowerInvariant();
+            string sourceHash = Convert.ToHexString(
+                SHA256.HashData(File.ReadAllBytes(sourcePath))).ToLowerInvariant();
+            Check(ledger.Contains(relativePath, StringComparison.Ordinal) &&
+                ledger.Contains(sourceName, StringComparison.Ordinal) &&
+                ledger.Contains(runId, StringComparison.Ordinal) &&
+                ledger.Contains(runtimeHash, StringComparison.Ordinal) &&
+                ledger.Contains(sourceHash, StringComparison.Ordinal),
+                $"Step 3 provenance is incomplete or stale: {relativePath}");
+            PngInfo png = ReadPng(runtimePath, true);
+            Equal((byte)6, png.ColorType, $"Step 3 atomic grid RGBA: {relativePath}");
+            Check(Math.Max(png.Width, png.Height) >= 1024 &&
+                Math.Min(png.Width, png.Height) >= 512,
+                $"Step 3 grid art below source resolution: {relativePath}");
+            Check(png.TransparentFraction >= 0.30d &&
+                png.CornerAlphas.All(alpha => alpha <= 1),
+                $"Step 3 grid art lacks isolated transparent alpha: {relativePath}");
+        }
+
         foreach (string forbidden in new[]
                  {
                      "district",
@@ -989,8 +1042,8 @@ internal sealed class CommercialChecks
             g3Directory,
             "*.png",
             SearchOption.AllDirectories);
-        Equal(41, packagedG3Pngs.Length,
-            "Step 2 package-eligible G.3 PNG count");
+        Equal(47, packagedG3Pngs.Length,
+            "Step 3 package-eligible G.3 PNG count");
         foreach (string packagedG3Png in packagedG3Pngs)
         {
             string relativePath = Path.GetRelativePath(artDirectory, packagedG3Png)
@@ -1025,8 +1078,6 @@ internal sealed class CommercialChecks
             ("G3RiverBankOuterBendASprite", "g3/objects/river-bank-outer-bend-a.png"),
             ("RiverCurrentReflectionASprite", "g3/objects/river-current-reflection-a.png"),
             ("IndustrialRoadBridgeASprite", "g3/objects/industrial-road-bridge-a.png"),
-            ("TallThermalPowerStationBSprite", "g3/objects/tall-thermal-power-station-b.png"),
-            ("ChunkySwitchingSubstationBSprite", "g3/objects/chunky-switching-substation-b.png"),
         ];
         foreach ((string property, string relativePath) in retainedG3Assets)
         {
@@ -1041,13 +1092,26 @@ internal sealed class CommercialChecks
                 $"retained G.3 provenance hash is stale: {relativePath}");
         }
 
-        Equal(50,
+        Equal(52,
             scene.Split("[ext_resource type=\"Texture2D\"", StringSplitOptions.None).Length - 1,
-            "Step 2 runtime texture resource count including UI chrome");
+            "Step 3 runtime texture resource count including UI chrome");
         Check(renderer.Contains("IndividualArtAssetCount", StringComparison.Ordinal) &&
             renderer.Contains("AtomicCityAssetCount", StringComparison.Ordinal) &&
-            renderer.Contains("AtomicRoadTileAssetCount", StringComparison.Ordinal),
-            "Step 1 exact runtime asset inventory is not exposed");
+            renderer.Contains("AtomicRoadTileAssetCount", StringComparison.Ordinal) &&
+            renderer.Contains("AtomicGridAssetCount", StringComparison.Ordinal),
+            "Step 3 exact runtime asset inventory is not exposed");
+        Equal(4,
+            renderer.Split("new(AtomicSourcePartKind.", StringSplitOptions.None).Length - 1,
+            "Step 3 atomic source-part placement records");
+        Check(renderer.Contains("DrawAtomicSourcePlant", StringComparison.Ordinal) &&
+            renderer.Contains("OrderBy(item => ToCanvas(item.Point).Y)", StringComparison.Ordinal) &&
+            renderer.Contains("SpatialNodeKind.SourceTerminal => (AtomicPlantMainHallASprite", StringComparison.Ordinal) &&
+            renderer.Contains("SpatialNodeKind.Substation =>", StringComparison.Ordinal) &&
+            renderer.Contains("AtomicSubstationTransformerASprite", StringComparison.Ordinal) &&
+            renderer.Contains("AtomicBridgeFoundationASprite", StringComparison.Ordinal) &&
+            !scene.Contains("tall-thermal-power-station", StringComparison.Ordinal) &&
+            !scene.Contains("chunky-switching-substation", StringComparison.Ordinal),
+            "Step 3 atomic facility placement or composite retirement is incomplete");
         Check(renderer.Contains("RiverWaterHeatATile ?? texture", StringComparison.Ordinal) &&
             renderer.Contains("RiverWaterFloodATile ?? texture", StringComparison.Ordinal) &&
             renderer.Contains("RiverBankLeftStraightASprite", StringComparison.Ordinal) &&

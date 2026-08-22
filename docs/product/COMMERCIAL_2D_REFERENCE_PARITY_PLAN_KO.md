@@ -3,7 +3,7 @@
 > 상태: **ACTIVE — G.3 구현·평가 반복 중**
 > 작성 근거: 2026-08-21 G.2 실행 화면에 대한 소유자 시각 거부
 > 대상 해상도: **1920×1080, UI 100%·125%만 해당**
-> 현재 gate: **Step 1·2 PASS — Step 3 원자 grid/facility·전력망 활성**
+> 현재 gate: **Step 1·2·3 PASS — Step 4 UI chrome·full-bleed HUD·event timeline 활성**
 
 이 계획은 `assets/01~04`의 낮은 아이소메트릭 산업도시, 전력망, 강과 UI 위계를 실제 게임 화면에
 가깝게 옮기기 위한 G.3 후보를 정의한다. whole-map plate뿐 아니라 여러 건물·도로·구획을 한 장에
@@ -228,6 +228,31 @@ map은 1920×1080 canvas 전체를 채우고 HUD가 위에 겹친다.
 inspector는 선택·공급/열·비용/시간·현재 행동을 먼저 보여주고 긴 briefing은 펼침 영역으로 옮긴다.
 timeline은 최소 `15px` 글자와 `16px` marker로 briefing→authored window/phase→actual result를 표시한다.
 현재는 amber plate, 완료는 cyan check, 예정은 graphite empty marker다. timeline은 계속 읽기 전용이다.
+
+### 9.1 Step 3 종료 기록 — 2026-08-22
+
+Step 3은 [고정 증거](../../playtests/commercial-2d/g3-work-in-progress/grid-step3-final/README.md)로
+닫았다. 발전소 본관·굴뚝·터빈동·breaker bay, 변압기, 표준/보강 철탑, bridge foundation 8종은
+자산별 한 번의 선택된 ImageGen 호출과 실제 scene binding을 가진다. 기존 발전소/변전소 합성 sprite는
+runtime 밖 rejected provenance로 이동했고, main plant는 4개 placement record를 projected-Y로
+조립한다. player pole/substation draft도 해당 개별 class sprite를 쓴다.
+
+`gpt-5.6-sol` ultra `G3-ATOMIC-GRID-AUDIT-v1`은 G01~G08 모두
+`singleCompositionUnit=true`, whole-facility/route·atlas=false, runtime baked-grid=false,
+원자 plant·개별 pole·amber/cyan 상태 boolean=true, critical failure 0으로 `PASS`했다.
+CommercialChecks 22 suites/2,286 assertions, Debug/Release build 0 warning/error, 1920×1080 placement,
+thermal, actual-input presentation smoke가 통과했다. 이 구조 audit은 최종 ReferenceParity 점수에
+합산하지 않는다.
+
+### 9.2 Step 4 — UI chrome·full-bleed HUD·event timeline
+
+다음 활성 gate는 reference의 지도 우선 정보 위계를 runtime UI로 옮긴다. top metric plate,
+inspector 9-slice, tool slot, default/cyan/amber button plate를 각각 독립 raster로 만들고 실제 Control의
+9-slice/stylebox에 연결한다. 지도는 UI 아래까지 이어지는 full-bleed canvas를 유지하며 top HUD `80px`,
+left rail `86px`, right inspector `340px`, bottom event timeline `128px`을 기준으로 맞춘다. timeline은
+briefing→현재 decision/phase→actual result를 독립 bar와 marker로 표시하고 실제 캠페인 상태에서만
+갱신한다. UI asset board와 1920×1080 UI 100/125 actual-input 캡처가 `PAIR-KIT-UI` 구조 gate를
+통과해야 Step 4를 닫는다.
 
 ## 10. LLM jury checkpoint와 종료
 

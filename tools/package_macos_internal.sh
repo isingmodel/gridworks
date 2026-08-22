@@ -96,7 +96,7 @@ verify_release_payload() {
         'res://art/commercial/[^\"]*\.png' \
         "$repository_dir/game/CommercialMapView.tscn" \
         "$repository_dir/game/CommercialMain.tscn" | LC_ALL=C sort -u)}")
-    if [[ ${#required_commercial_art} != 50 ]]; then
+    if [[ ${#required_commercial_art} != 52 ]]; then
         print -u2 "Unexpected scene-bound commercial art count: ${#required_commercial_art}"
         return 1
     fi

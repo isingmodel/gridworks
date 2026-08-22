@@ -200,7 +200,9 @@ P0/P1/open 0으로 종료했다. 1280×720은 실행·검수하지 않았다.
 Step 1 원자 도시·도로와 Step 2 원자 강물·제방은 각각 고정 `gpt-5.6-sol` ultra 구조 audit을
 12/12로 통과했다. Step 2는 정상·고온·홍수 수면 상태와 authoritative foundation 접합까지
 CommercialChecks 22 suites/2,265 assertions 및 native presentation smoke로 닫았다. 현재 활성 단위는
-Step 3 원자 grid/facility 부품과 전력망 상태 표현이다.
+Step 3 원자 grid/facility 부품과 전력망 상태 표현도 고정 `gpt-5.6-sol` ultra 구조 audit 8/8,
+CommercialChecks 22 suites/2,286 assertions와 1920×1080 native smoke로 닫았다. 현재 활성 단위는
+Step 4 UI chrome·full-bleed HUD·독립 event timeline이다.
 
 ## 9. 단계 H — 외부 검증과 공개 후보 — 구현 뒤 별도 게이트
 

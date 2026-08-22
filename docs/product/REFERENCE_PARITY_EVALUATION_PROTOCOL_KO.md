@@ -87,6 +87,13 @@ crop은 `largeBakedCityRasterPresent` boolean을 반환한다. 모든 cell이 `t
 더 좁고 건조한 고온 수로, 더 넓고 습윤한 홍수 수로 boolean도 모두 true여야 한다. 이 audit 역시
 ReferenceParity 산술에는 들어가지 않는 hard gate다.
 
+`PAIR-KIT-GRID`에는 별도 `G3-ATOMIC-GRID-AUDIT-v1` 구조 audit을 붙인다. 발전소 본관·굴뚝·터빈동,
+breaker bay, 변압기, 표준/보강 철탑, bridge foundation의 각 cell은 한 기능 object여야 한다. 모든
+cell의 `singleCompositionUnit=true`, `containsWholeFacilityOrRoute=false`,
+`containsAtlasOrAlternatives=false`와 runtime의 `largeBakedGridFacilityRasterPresent=false`가 필요하다.
+같은 runtime 캡처에서 여러 개체로 조립된 발전소, 개별 철탑 sprite, amber 계획/cyan 통전 선로가 모두
+보여야 한다. 이 audit도 ReferenceParity 산술에는 들어가지 않는 hard gate다.
+
 UI 125%는 `PAIR-NORMAL`과 `PAIR-ROUTE`에서 clipping, hierarchy, focus만 추가 확인한다. final jury는
 미리 정한 pair를 빼거나 더 유리한 screenshot으로 교체할 수 없다.
 
@@ -437,6 +444,8 @@ ReferenceParity = RawJuryParity - Penalty
   `singleCompositionUnit=true`, visible solid count `1`, large baked city raster `false`
 - 각 river-kit cell의 `singleCompositionUnit=true`, whole-river/map·atlas `false`, runtime baked
   river raster `false`, 정상·고온·홍수 상태 비교 boolean 모두 `true`
+- 각 grid-kit cell의 `singleCompositionUnit=true`, whole-facility/route·atlas `false`, runtime baked
+  grid facility raster `false`, 원자 발전소 조립·개별 철탑·amber/cyan 상태 비교 boolean 모두 `true`
 - 최소 12종 atomic city/building/prop와 최소 80개 독립 runtime instance; 명시 좌표·depth key 장부
 - reference/target pixel crop의 runtime 재사용 금지, RGBA/alpha, crop·atlas boundary, seam·누락 파일 검사
 - asset-kit board가 manifest의 개별 runtime PNG만으로 재조립됐는지 확인

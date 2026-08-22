@@ -1,4 +1,4 @@
-[gd_scene load_steps=52 format=3]
+[gd_scene load_steps=54 format=3]
 
 [ext_resource type="Script" path="res://CommercialMapView.cs" id="1_map"]
 [ext_resource type="Texture2D" path="res://art/commercial/tiles/ground-asphalt-v1.png" id="2_ground_asphalt"]
@@ -6,10 +6,6 @@
 [ext_resource type="Texture2D" path="res://art/commercial/tiles/ground-concrete-v1.png" id="4_ground_concrete"]
 [ext_resource type="Texture2D" path="res://art/commercial/tiles/ground-gravel-v1.png" id="5_ground_gravel"]
 [ext_resource type="Texture2D" path="res://art/commercial/tiles/river-water-v1.png" id="6_river"]
-[ext_resource type="Texture2D" path="res://art/commercial/objects/pole-standard-v1.png" id="10_standard_pole"]
-[ext_resource type="Texture2D" path="res://art/commercial/objects/pole-reinforced-v1.png" id="11_reinforced_pole"]
-[ext_resource type="Texture2D" path="res://art/commercial/objects/bridge-foundation-v1.png" id="12_bridge"]
-[ext_resource type="Texture2D" path="res://art/commercial/objects/substation-v1.png" id="13_substation"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/tiles/river-water-surface-a.png" id="28_river_water_a"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/objects/river-bank-rock-segment-a.png" id="29_river_bank_rock_a"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/objects/river-bank-inner-bend-a.png" id="30_river_bank_inner_a"]
@@ -18,8 +14,6 @@
 [ext_resource type="Texture2D" path="res://art/commercial/g3/tiles/ground-rubble-mix-b.png" id="36_ground_rubble_b"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/objects/industrial-road-bridge-a.png" id="45_road_bridge_a"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/tiles/ground-rubble-relief-c.png" id="46_ground_relief_c"]
-[ext_resource type="Texture2D" path="res://art/commercial/g3/objects/tall-thermal-power-station-b.png" id="48_power_station_b"]
-[ext_resource type="Texture2D" path="res://art/commercial/g3/objects/chunky-switching-substation-b.png" id="49_substation_b"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/objects/river-current-reflection-a.png" id="50_river_reflection_a"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/roads/road-straight-nw-se-a.png" id="51_road_nw_se"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/roads/road-straight-ne-sw-a.png" id="52_road_ne_sw"]
@@ -51,6 +45,14 @@
 [ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-bridge-abutment-a.png" id="78_bridge_abutment"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-rock-soil-transition-a.png" id="79_rock_soil_transition"]
 [ext_resource type="Texture2D" path="res://art/commercial/g3/river/river-flood-ripple-a.png" id="80_flood_ripple"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/grid/plant-main-hall-a.png" id="81_plant_main_hall"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/grid/plant-smokestack-a.png" id="82_plant_smokestack"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/grid/plant-turbine-hall-a.png" id="83_plant_turbine_hall"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/grid/switchyard-breaker-bay-a.png" id="84_breaker_bay"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/grid/substation-transformer-a.png" id="85_substation_transformer"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/grid/pole-standard-a.png" id="86_pole_standard"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/grid/pole-reinforced-a.png" id="87_pole_reinforced"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/grid/bridge-foundation-a.png" id="88_bridge_foundation"]
 
 [node name="CommercialMapView" type="Control"]
 custom_minimum_size = Vector2(720, 500)
@@ -68,13 +70,15 @@ RiverWaterTile = ExtResource("6_river")
 RiverWaterNeutralBTile = ExtResource("69_river_water_b")
 RiverWaterHeatATile = ExtResource("70_river_water_heat")
 RiverWaterFloodATile = ExtResource("71_river_water_flood")
-StandardPoleSprite = ExtResource("10_standard_pole")
-ReinforcedPoleSprite = ExtResource("11_reinforced_pole")
-BridgeFoundationSprite = ExtResource("12_bridge")
+AtomicStandardPoleASprite = ExtResource("86_pole_standard")
+AtomicReinforcedPoleASprite = ExtResource("87_pole_reinforced")
+AtomicBridgeFoundationASprite = ExtResource("88_bridge_foundation")
 IndustrialRoadBridgeASprite = ExtResource("45_road_bridge_a")
-TallThermalPowerStationBSprite = ExtResource("48_power_station_b")
-SubstationSprite = ExtResource("13_substation")
-ChunkySwitchingSubstationBSprite = ExtResource("49_substation_b")
+AtomicPlantMainHallASprite = ExtResource("81_plant_main_hall")
+AtomicPlantSmokestackASprite = ExtResource("82_plant_smokestack")
+AtomicPlantTurbineHallASprite = ExtResource("83_plant_turbine_hall")
+AtomicSwitchyardBreakerBayASprite = ExtResource("84_breaker_bay")
+AtomicSubstationTransformerASprite = ExtResource("85_substation_transformer")
 G3RiverBankRockSegmentASprite = ExtResource("29_river_bank_rock_a")
 G3RiverBankInnerBendASprite = ExtResource("30_river_bank_inner_a")
 G3RiverBankOuterBendASprite = ExtResource("31_river_bank_outer_a")

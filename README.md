@@ -25,7 +25,9 @@
 composition unit과 baked-city=false로 통과했다. Step 2는 개별 water/bank/effect 12종, authored
 굽은 수로와 정상·고온·홍수 상태를 연결했다. 같은 고정 judge가 12/12 단일 composition unit,
 baked-river=false와 세 상태 식별을 모두 통과시켰고 CommercialChecks는 22 suites/2,265 assertions다.
-현재 작업은 Step 3 원자 grid/facility 부품과 전력망 표현이다. 앞선 PASS는 최종
+Step 3은 발전소 4부품 조립, 변압기·표준/보강 철탑·foundation 8종과 계획/통전 상태를
+`gpt-5.6-sol` ultra 구조 audit 8/8로 닫았고 CommercialChecks는 22 suites/2,286 assertions다.
+현재 작업은 Step 4 UI chrome·full-bleed HUD·독립 event timeline이다. 앞선 PASS는 최종
 `ReferenceParity` 점수가 아니다.
 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소 주기기·전신주
 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도 v2

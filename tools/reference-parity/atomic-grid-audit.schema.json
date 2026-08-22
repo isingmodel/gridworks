@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "pairId", "judgeSlot", "cells", "map", "criticalFailures", "verdict"],
+  "properties": {
+    "protocol": { "type": "string", "const": "G3-ATOMIC-GRID-AUDIT-v1" },
+    "pairId": { "type": "string", "const": "PAIR-KIT-GRID" },
+    "judgeSlot": { "type": "string", "const": "SOL-ULTRA" },
+    "cells": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cellId", "singleCompositionUnit", "containsWholeFacilityOrRoute", "containsAtlasOrAlternatives", "evidenceBox", "observation"],
+        "properties": {
+          "cellId": { "enum": ["G01", "G02", "G03", "G04", "G05", "G06", "G07", "G08"] },
+          "singleCompositionUnit": { "type": "boolean" },
+          "containsWholeFacilityOrRoute": { "type": "boolean" },
+          "containsAtlasOrAlternatives": { "type": "boolean" },
+          "evidenceBox": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "integer", "minimum": 0, "maximum": 1000 }
+          },
+          "observation": { "type": "string" }
+        }
+      }
+    },
+    "map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["largeBakedGridFacilityRasterPresent", "atomicPlantAssemblyVisible", "individualPoleSpritesVisible", "plannedAmberAndEnergizedCyanDistinct", "evidenceBoxes", "observation"],
+      "properties": {
+        "largeBakedGridFacilityRasterPresent": { "type": "boolean" },
+        "atomicPlantAssemblyVisible": { "type": "boolean" },
+        "individualPoleSpritesVisible": { "type": "boolean" },
+        "plannedAmberAndEnergizedCyanDistinct": { "type": "boolean" },
+        "evidenceBoxes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": { "type": "integer", "minimum": 0, "maximum": 1000 }
+          }
+        },
+        "observation": { "type": "string" }
+      }
+    },
+    "criticalFailures": { "type": "array", "items": { "type": "string" } },
+    "verdict": { "enum": ["PASS", "FAIL_HARD_GATE"] }
+  }
+}

@@ -561,3 +561,32 @@ BRIDGE_ABUTMENT_A: one compact single-bank concrete/steel bridge seat with wing 
 ROCK_SOIL_TRANSITION_A: one tapered bank piece changing from a raised rock edge into wet soil/gravel, with compatible narrow endpoints.
 FLOOD_RIPPLE_A: one sparse long cluster of separated cold ripple arcs, broken current streaks and tiny foam flecks on empty matte.
 ```
+
+## G.3 Step 3 — atomic grid/facility kit
+
+The source terminals are no longer one power-station raster. The renderer places a main hall, one stack,
+one turbine hall and one breaker bay from explicit relative world coordinates. Substations, both pole
+classes and authored crossing foundations each resolve to one additional atomic object. ImageGen was
+called once per selected asset and no selected file contains a full plant, switchyard row, route, or map.
+All eight source canvases used `extract-checkerboard-alpha.py` and a
+deterministic 1024 px max-side resize; every runtime PNG has alpha-zero corners.
+
+| runtime path | ImageGen run | preserved source / source SHA-256 | final SHA-256 | unit |
+|---|---|---|---|---|
+| `g3/grid/plant-main-hall-a.png` | `exec-ff08804a-3196-4794-9c4a-fbe8fc021601` | `atomic-plant-main-hall-a-source.png` / `48b856d4637507ad455713775572ba625573d4d2191a7035f573d022ea8d80c2` | `06f2d29586db8768cbb768098f26567d5f06ef869e1c0b2689d8d8dbc52b7948` | one main-hall building |
+| `g3/grid/plant-smokestack-a.png` | `exec-822fe640-c211-45a2-adc2-1e1f1949c4f5` | `atomic-plant-smokestack-a-source.png` / `ae2fcb13631404eba2d07aa084dcbd9a3f2a1c81c06dba5c05ef94ff09a1f5e1` | `9bb91e05b1814fdf57bddbfe8361925850723a8b4357591280eac4805afb6a28` | one smokestack with integral base |
+| `g3/grid/plant-turbine-hall-a.png` | `exec-7e1e7885-b6af-4891-bd70-e9ff3fc92830` | `atomic-plant-turbine-hall-a-source.png` / `eb97c8b8076f411797a5545224142adc6883df74ba72bb1c0af1cd023d16b4dd` | `c0d392c613a9667308755f54aaac782a753a78328b97f66e1e1ea83b1d81cea0` | one turbine-hall building |
+| `g3/grid/switchyard-breaker-bay-a.png` | `exec-751318e5-a19c-4fc8-811d-c0490c20e401` | `atomic-switchyard-breaker-bay-a-source.png` / `6d62a81973a60b75bd087addd2da51c1356358512aca60a4a11e136022650684` | `6ae34713dd868cc3c735836e8416ba054e12b4017899a215adfd6c7974066dcd` | one breaker bay |
+| `g3/grid/substation-transformer-a.png` | `exec-525b7168-42d9-4c04-a538-4afe281489c6` | `atomic-substation-transformer-a-source.png` / `bc8ab955983669e36b3f2c562e917ddccab6061a21c22387d9101189f8f4fedf` | `60c75dd42c66e55b66249c2a4f93ca006fbbd9afdd4b8875ae50b02ede33cfab` | one transformer machine |
+| `g3/grid/pole-standard-a.png` | `exec-f0fe7a22-7c24-402d-9494-ad80b442073a` | `atomic-pole-standard-a-source.png` / `f7cce0b1372b951bfff66fddd1470691c8ed6e607f9633bdc14d07b339010619` | `2da582c008a07fcce47685f6132a9533ecb09fcdcc893af720ca841f63d47fd8` | one standard lattice pole |
+| `g3/grid/pole-reinforced-a.png` | `exec-3db19133-0dbf-42ea-b16b-8f6cf89648d4` | `atomic-pole-reinforced-a-source.png` / `014eb6d8c097f8cb28abf69e992da2169d8381c89c214e352196a6eaae47ba82` | `c6692776ed72834e2c4c39c7a20d23b2c21a40d9a1878826aae6378d360d2b9b` | one reinforced lattice tower |
+| `g3/grid/bridge-foundation-a.png` | `exec-9775ee23-b362-488f-8d0e-2ab8df147252` | `atomic-bridge-foundation-a-source.png` / `0ea44ff2433a3da7de114241802eee58a7c2ce0d4235615607f8ae4f83217d42` | `56041864e4da3257c9f0e43d37ac2e39d3c0a3fba450af1110ba15ed74fc29f5` | one crossing foundation |
+
+### Atomic grid prompt contract
+
+The plant parts used `assets/01-grid-construction.png` and an accepted atomic workshop for the same
+orthographic camera and surface language. Electrical equipment and poles used `assets/01` plus
+`assets/03-route-comparison.png`; the crossing foundation used `assets/01` plus
+`assets/04-plant-siting.png`. Every prompt required exact 2:1 isometric orthographic projection,
+upper-right dim light, graphite steel/weathered concrete, exactly one independently placeable physical
+unit, and prohibited a second object, compound, full facility, route, map, atlas, UI, text and watermark.

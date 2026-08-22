@@ -209,19 +209,28 @@ internal sealed partial class CommercialMain
             await PressShellAsync(ReleaseShellAction.SettingsBack, "설정 닫기");
             await PressShellAsync(ReleaseShellAction.Resume, "게임 계속하기");
             await NextFrame();
+            Label objectiveLabel = _panel.GetNode<Label>("%ObjectiveLabel");
+            Label nextActionLabel = _panel.GetNode<Label>("%NextActionLabel");
+            ScrollContainer infoScroll = _panel.GetNode<ScrollContainer>(
+                "Margin/Column/InfoScroll");
+            BaseButton primaryAction = _panel.GetActionButton(
+                CommercialPanelAction.ApproveWindow);
+            BaseButton recoveryAction = _panel.GetActionButton(
+                CommercialPanelAction.RollbackProject);
+            primaryAction.GrabFocus();
+            await NextFrame();
             Require(
                 GetWindow().Size == new Vector2I(1920, 1080) &&
-                VisibleControlInside(
-                    _panel,
-                    _panel.GetActionButton(CommercialPanelAction.Commission)) &&
-                VisibleControlInside(
-                    _panel,
-                    _panel.GetActionButton(CommercialPanelAction.NextDemand)) &&
-                VisibleControlInside(
-                    _panel,
-                    _panel.GetActionButton(CommercialPanelAction.NextThermalPhase)) &&
+                objectiveLabel.Visible && ControlInside(_panel, objectiveLabel) &&
+                nextActionLabel.Visible && ControlInside(_panel, nextActionLabel) &&
+                infoScroll.Visible && infoScroll.Size.Y > 0f &&
+                ControlInside(_panel, infoScroll) &&
+                primaryAction.Visible && ControlInside(_panel, primaryAction) &&
+                primaryAction.HasFocus() &&
+                recoveryAction.Visible && ControlInside(_panel, recoveryAction) &&
                 _map.AccessibilityName.Contains("선택 수요 경로", StringComparison.Ordinal),
-                "1920×1080·UI 125%에서 고정 행동이나 선택 경로가 화면 밖으로 잘렸습니다.");
+                "1920×1080·UI 125%에서 목표·다음 행동·본문·주 행동·복구 행동 또는 focus가 " +
+                "화면 밖으로 잘렸습니다.");
             SaveEvidencePng(Path.Combine(evidenceDirectory, "1920x1080-ui125-path-reduce-motion.png"));
 
             await PressPanelAsync(
@@ -724,6 +733,17 @@ internal sealed partial class CommercialMain
                 $"approveInside={ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow))}, " +
                 $"rollbackInside={ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject))}");
 
+            bool initialSaveWritable = _saveWritable;
+            _saveWritable = false;
+            Require(
+                !PersistCoreRun() &&
+                _panel.HasVisibleError &&
+                _panel.AccessibilityName.Contains("저장할 수 없습니다", StringComparison.Ordinal),
+                "잠긴 Briefing에서 자동저장 실패를 상단 시각 경고와 assertive 접근성으로 알리지 않았습니다.");
+            _saveWritable = initialSaveWritable;
+            _lastError = string.Empty;
+            Render();
+
             if (_options.CampaignSmoke)
             {
                 string recoveryDirectory = Path.Combine(
@@ -1030,15 +1050,29 @@ internal sealed partial class CommercialMain
 
             if (_options.CampaignCheckpointSmoke)
             {
-                Require(_savePath is not null &&
-                    CommercialCampaignPersistenceStore.Load(_savePath).Status ==
-                        CommercialCoreDocumentLoadStatus.Loaded,
-                    "네 번째 임무 뒤 fresh-process 재개용 저장을 남기지 못했습니다.");
+                await AdvancePresentationToOperations("다섯 번째 임무 draft checkpoint");
+                await PressPanelAsync(
+                    CommercialPanelAction.StartLine,
+                    "fresh-process 재개용 선로 도구");
+                SpatialNodeDefinition draftStart = _snapshot.World.Nodes.Single(item =>
+                    item.NodeId == "INDUSTRY_TERMINAL");
+                await SelectAndClickCandidate(draftStart.Position, draftStart.NodeId);
+                checkpoint = coreRun.GetSnapshot();
+                string checkpointSavePath = _savePath
+                    ?? throw new InvalidOperationException(
+                        "Stage-F checkpoint 저장 경로가 없습니다.");
+                CommercialCampaignSaveLoadResult persisted =
+                    CommercialCampaignPersistenceStore.Load(checkpointSavePath);
+                Require(
+                    checkpoint.Construction.Phase == ConstructionPhase.LineDrafting &&
+                    checkpoint.Construction.LineDraft?.StartNodeId == "INDUSTRY_TERMINAL" &&
+                    persisted.Status == CommercialCoreDocumentLoadStatus.Loaded,
+                    "다섯 번째 임무의 작성 중 선로를 fresh-process 재개용 저장으로 남기지 못했습니다.");
                 GD.Print(
                     "COMMERCIAL_CAMPAIGN_STAGE_F_CHECKPOINT_SMOKE_PASS " +
                     $"missions={checkpoint.ChapterResults.Count} next={checkpoint.Chapter.ChapterId} " +
                     $"edges={checkpoint.Construction.World.Edges.Count} input=focus-keyboard " +
-                    "save=mission4-to-5 resolution=1920x1080");
+                    "save=mission5-line-draft resolution=1920x1080");
             }
             else
             {
@@ -1074,8 +1108,10 @@ internal sealed partial class CommercialMain
                 resumed.Chapter.ChapterId == "WHOSE_MARGIN" &&
                 resumed.ChapterResults.Count == 4 &&
                 resumed.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1") &&
+                resumed.Construction.Phase == ConstructionPhase.LineDrafting &&
+                resumed.Construction.LineDraft?.StartNodeId == "INDUSTRY_TERMINAL" &&
                 _presentationMode == CommercialPresentationMode.ResumeOrientation,
-                "별도 process가 네 번째 임무 저장에서 다섯 번째 임무로 이어지지 못했습니다.");
+                "별도 process가 다섯 번째 임무의 작성 중 선로까지 이어서 복원하지 못했습니다.");
 
             _shell.ShowTitle(true, "저장 진행 재개 확인");
             await PressShellAsync(ReleaseShellAction.Continue, "네 번째 임무 저장 이어하기");
@@ -1095,25 +1131,12 @@ internal sealed partial class CommercialMain
                 _panel.AccessibilityName.Contains($"공사 {resumed.Construction.Minute}분", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("다음 행동", StringComparison.Ordinal),
                 "Continue가 generic 도움말 대신 직전 결과·현재 위치·목표·자금·시각·다음 행동의 ResumeOrientation을 열지 못했습니다.");
-            await AdvancePresentationToOperations("저장한 다섯 번째 임무");
-
-            await PressPanelAsync(
-                CommercialPanelAction.StartLine,
-                "재개 잠금 확인용 선로 도구");
-            SpatialNodeDefinition resumeDraftStart = _snapshot.World.Nodes.Single(item =>
-                item.NodeId == "INDUSTRY_TERMINAL");
-            await SelectAndClickCandidate(resumeDraftStart.Position, resumeDraftStart.NodeId);
             int resumeDraftCommandCount = coreRun.GetSnapshot().CommandCount;
-            Require(_snapshot.Phase == ConstructionPhase.LineDrafting,
-                "재개 잠금 회귀용 선로 draft를 만들지 못했습니다.");
-            _shell.ShowTitle(true, "작성 중 저장 재개 확인");
-            await PressShellAsync(ReleaseShellAction.Continue, "작성 중 저장 이어하기");
-            await NextFrame();
             Require(
                 _presentationMode == CommercialPresentationMode.ResumeOrientation &&
                 _snapshot.Phase == ConstructionPhase.LineDrafting &&
                 coreRun.GetSnapshot().CommandCount == resumeDraftCommandCount,
-                "작성 중 저장이 ResumeOrientation에서 원형대로 복원되지 않았습니다.");
+                "fresh-process 작성 중 저장이 ResumeOrientation에서 원형대로 복원되지 않았습니다.");
             _helpButton.GrabFocus();
             await NextFrame();
             await PressKey(Key.Enter);
@@ -1136,8 +1159,20 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Require(
                 _presentationMode == CommercialPresentationMode.Operations &&
-                _snapshot.Phase == ConstructionPhase.LineDrafting,
-                "진행 재개 뒤 저장된 draft가 Operations로 돌아오지 않았습니다.");
+                _snapshot.Phase == ConstructionPhase.LineDrafting &&
+                _tool == CommercialTool.Line,
+                "진행 재개 뒤 저장된 draft와 선로 도구가 Operations로 돌아오지 않았습니다.");
+            int resumedDraftPointCount = _snapshot.LineDraft?.IntermediatePoints.Count ?? 0;
+            await ClickMap(new CoreMapPoint(2825, 1150));
+            Require(
+                _snapshot.LineDraft?.IntermediatePoints.Count == resumedDraftPointCount + 1,
+                "진행 재개 뒤 복원된 선로 draft에 실제 지도 입력으로 전신주를 이어 놓지 못했습니다.");
+            await PressPanelAsync(
+                CommercialPanelAction.UndoPoint,
+                "재개한 draft의 추가 전신주 되돌리기");
+            Require(
+                _snapshot.LineDraft?.IntermediatePoints.Count == resumedDraftPointCount,
+                "재개한 선로 draft에서 추가한 전신주를 되돌리지 못했습니다.");
             await PressPanelAsync(
                 CommercialPanelAction.CancelDraft,
                 "재개 잠금 확인용 draft 취소");
@@ -1733,9 +1768,6 @@ internal sealed partial class CommercialMain
         Rect2 innerRect = inner.GetGlobalRect();
         return outerRect.Encloses(innerRect);
     }
-
-    private static bool VisibleControlInside(Control outer, Control inner) =>
-        !inner.Visible || ControlInside(outer, inner);
 
     private static void ApplyUiScale(Node node, float scale)
     {

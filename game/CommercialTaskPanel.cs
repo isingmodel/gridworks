@@ -204,7 +204,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _thermalLabel.Text = CompactVisual(model.Thermal, 72);
         _statusLabel.Visible = operationalDetails;
         _statusLabel.Text = CompactVisual(model.Status, 78);
-        _errorLabel.Visible = operationalDetails && !string.IsNullOrWhiteSpace(model.Error);
+        _errorLabel.Visible = !string.IsNullOrWhiteSpace(model.Error);
         _errorLabel.Text = CompactVisual(model.Error, 72);
         _facilityType.Text = model.FacilityType;
         _facilityCapacity.Text = model.FacilityCapacity;
@@ -259,10 +259,13 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
             $"공사와 열 작업 패널. {model.Heading}. {model.Speaker.NameAndRole}. " +
             $"{model.Objective}. {model.NextAction}. " +
             $"{model.Instruction}. {model.Obligations}. " +
-            $"{operationalAccessibility}{operationalStatus}";
+            $"{operationalAccessibility}{operationalStatus}. {model.Error}";
     }
 
     public BaseButton GetActionButton(CommercialPanelAction action) => _buttons[action];
+
+    public bool HasVisibleError =>
+        _errorLabel.Visible && !string.IsNullOrWhiteSpace(_errorLabel.Text);
 
     private void SetButton(
         CommercialPanelAction action,

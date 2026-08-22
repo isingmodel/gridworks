@@ -600,7 +600,14 @@ internal sealed partial class CommercialMain : Control
         _frozenResult = null;
         _snapshot = core.Construction;
         _thermalProjectionIndex = 0;
-        _tool = CommercialTool.None;
+        _tool = mode == CommercialPresentationMode.Operations
+            ? _snapshot.Phase switch
+            {
+                ConstructionPhase.NodeDrafting => CommercialTool.Substation,
+                ConstructionPhase.LineDrafting => CommercialTool.Line,
+                _ => CommercialTool.None,
+            }
+            : CommercialTool.None;
         _lastStatus = status;
         _lastError = string.Empty;
         RefreshThermalProjection();

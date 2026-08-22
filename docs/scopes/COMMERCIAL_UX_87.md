@@ -169,8 +169,10 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
   story가 바뀔 때만 scroll을 맨 위로 되돌리고, 비운영 카드는 운영 상세를 접는다.
 - Continue는 저장 schema 변경 없이 Core `ChapterResults`와 현재 snapshot에서 직전 결과·현재 위치·
   목표·현금·공사시각·다음 행동을 재구성한다. 잠긴 재개 카드의 Escape·메뉴는 저장된 draft를
-  취소하지 않는다.
+  취소하지 않고, 별도 프로세스에서 Operations로 돌아가면 원래 선로 도구와 draft를 다시 편집할 수
+  있다. 비운영 presentation에서도 자동저장 실패는 고정 경고와 assertive 접근성으로 남는다.
 - 현재 합친 후보는 `CommercialChecks` 24 suites/2,910 assertions, Debug·Release rebuild,
-  text-plan 두 self-test, fresh campaign, checkpoint→fresh completion→completed-resume와 창 모드
-  1920×1080 UI 100%·125% presentation smoke를 통과했다. 공식 cold actor·blind judge 점수는 아직
-  실행하지 않았으며 이 기록은 `CommercialUXProxy`를 소유하지 않는다.
+  text-plan 두 self-test, fresh campaign, 임무 5 line-draft checkpoint→fresh completion→
+  completed-resume와 창 모드 1920×1080 UI 100%·125% presentation smoke를 통과했다. UI 125% 검사는
+  목표·다음 행동·본문·주 행동·복구 행동의 실제 표시·경계와 주 행동 focus를 확인한다. 공식 cold
+  actor·blind judge 점수는 아직 실행하지 않았으며 이 기록은 `CommercialUXProxy`를 소유하지 않는다.

@@ -47,7 +47,9 @@ result·epilogue·resume orientation을 서로 다른 presentation mode로 표�
 - `Result`는 승인 직전의 Core·공사·현금·열·지도 상태를 동결하고 다음 장 projection과 공사·복구
   입력을 숨긴다. `다음 임무`를 누른 뒤에만 별도 다음 장 `Briefing`을 연다.
 - `Continue`는 직전 결과, 현재 장·경계·목표, 현재 현금·공사시각과 다음 행동을 한 카드에 재구성한
-  `ResumeOrientation`을 열며, 진행 재개 전 저장된 draft를 취소하지 않는다.
+  `ResumeOrientation`을 연다. checkpoint 프로세스가 임무 5의 작성 중 선로를 저장하고 다음 프로세스가
+  같은 draft와 선로 도구를 복원해 실제 지도 점 추가·되돌리기까지 수행하므로, 진행 재개 전 draft를
+  취소하지 않는다는 사실은 프로세스 경계를 넘어 고정했다.
 - UI 100%·125% 창 모드 smoke에서 briefing·operations·result·resume 캡처와 실제 입력 전이를
   통과했다. macOS 화면 잠금 때문에 이 후보의 두 번째 Computer Use 직접 조작은 아직 공식 평가 전에
   다시 실행해야 한다.

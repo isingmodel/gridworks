@@ -12,14 +12,14 @@
 ## 현재 상태
 
 [상용 2D 게임 구현](docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md)의 단계 B부터 G.2까지는 기술 완료
-기록이다. 현재 활성 구현 단계는 **G.3 reference parity 재구축**이다. G.2는 whole-map plate를 제거하고 개별 tile/object를
+기록이다. **G.3 reference parity 재구축도 2026-08-22 v27에서 사용자 승인으로 종료됐다.** G.2는 whole-map plate를 제거하고 개별 tile/object를
 연결했지만, 2026-08-21 소유자 실행 screenshot에서 camera, 도시 밀도, object scale, 강물·제방,
 전력망과 UI가 `assets/01~04`와 크게 다르다고 거부됐다. [G.3 레퍼런스 정렬 계획](docs/product/COMMERCIAL_2D_REFERENCE_PARITY_PLAN_KO.md)과
 [평가 프로토콜](docs/product/REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)은 2026-08-21 사용자 지시로
 활성화됐다. 도시를 큰 district/parcel 이미지로 만들지 않고 건물 한 채·도로 조각·시설 부품·prop을
-각각 생성해 코드가 개별 배치한다. 개별 tile/object와 게임 구현을 필요한 만큼 근본적으로 바꾸고, 고정 LLM jury
-`ReferenceParity >80`을 달성할 때까지 반복한다. 2026-08-22 사용자가 종료선을
-`>80`으로 조정했으며, 80점 정확히는 통과가 아니다.
+각각 생성해 코드가 개별 배치한다. 평가 프로토콜의 원래 자동 gate는 고정 LLM jury
+`ReferenceParity >80`이었지만, 2026-08-22 사용자가 v27까지 구현·평가한 뒤 점수와 무관하게 이
+단계를 성공 종료하도록 명시적으로 대체했다. 공식 점수를 달성한 것으로 소급 표기하지 않는다.
 2026-08-22 Step 1 원자 도시 hard gate는 단독 city/building/prop 12종, 단독 road 6종, 명시 배치
 80+40개, package-eligible 합성 후보 0개를 고정했다. `gpt-5.6-sol` ultra 구조 감사도 12/12 단일
 composition unit과 baked-city=false로 통과했다. Step 2는 개별 water/bank/effect 12종, authored
@@ -28,11 +28,14 @@ baked-river=false와 세 상태 식별을 모두 통과시켰고 CommercialCheck
 Step 3은 발전소 4부품 조립, 변압기·표준/보강 철탑·foundation 8종과 계획/통전 상태를
 `gpt-5.6-sol` ultra 구조 audit 8/8로 닫았고 CommercialChecks는 22 suites/2,286 assertions다.
 Step 4는 UI chrome 6종, full-bleed HUD, 독립 event timeline, 55개 개별 runtime art와 338개
-원자 도시 배치를 연결하고 2026-08-22 formative-v26까지 완료했다. CommercialChecks는 22 suites /
-2,331 assertions, 같은 저장의 native 1920×1080 checkpoint→completion→completed-resume는 모두
-actual-input으로 통과했다. `gpt-5.6-sol` ultra 10-pair 단일-call formative의 고정 category 환산
-proxy는 74.375이며 density=65, river=65가 남은 병목이다. 이는 공식 40-call jury나 최종
-`ReferenceParity`가 아니므로 G.3와 `>80` 목표는 계속 활성이다.
+원자 도시 배치를 연결했다. 최종 v27은 도시 질량 분포, 폭염 조명, 범람 수면·제방, 두 authored
+교량의 상대 scale을 다시 맞추고 진짜 alpha의 단일 제방 오브젝트를 교체 적용했다. CommercialChecks
+22 suites/2,331 assertions, Debug·Release build, native 1920×1080 UI 100%·125% presentation과
+checkpoint→completion→completed-resume 실제 입력이 통과했다. `gpt-5.6-sol` ultra 10-pair
+단일-call formative proxy는 74.375(camera 85, density 65, river 65, scale 75, material 85,
+grid 65, HUD 85, state 65, timeline 92.5)다. 이는 공식 40-call `ReferenceParity`가 아니며
+`referenceParity=null`이다. [v27 종료 증거](playtests/commercial-2d/g3-final-candidate/FORMATIVE_V27_SUMMARY.md)에
+사용자 승인에 따른 종료와 남은 차이를 함께 보존했다. 현재 활성 구현 단계는 없고, 단계 H는 미승인이다.
 사용자는 보이는 격자를 없앤 자유 배치, 선로 도체·변전소 주기기·전신주
 접속부의 연속·비상 열 한계와 상용 재기획서 전체 구현을 승인했다. 새 제품은 별도 v2
 world·campaign·Core와 기본 장면에서 그 범위를 순서대로 완성했다. 단계 H의 외부 검증·공개 후보는

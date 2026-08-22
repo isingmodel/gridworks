@@ -1517,7 +1517,7 @@ internal sealed partial class CommercialMapView : Control
         // Mission 2 is an explicit two-route comparison. Keep the authored cut
         // facts in the inspector, but do not lay the large diagnostic risk mask
         // over both alternatives; it destroys the reference's clean A/B read.
-        if (_presentation.ChapterIndex != 1)
+        if (_presentation.ChapterIndex is not 1 and not 5)
         {
             DrawRiskAreas(snapshot.World, _presentation.ActiveRiskAreaIds);
         }
@@ -1897,7 +1897,10 @@ internal sealed partial class CommercialMapView : Control
         {
             0 => new Color(Color.FromHtml("304b59"), 0.12f),
             3 => new Color(Color.FromHtml("855f38"), 0.08f),
-            4 => new Color(Color.FromHtml("ba6c3e"), 0.22f),
+            // Preserve the localized hot sun and material response below. A
+            // stronger full-map veil flattened every object into one orange
+            // sheet and erased the reference's charcoal/amber separation.
+            4 => new Color(Color.FromHtml("ba6c3e"), 0.14f),
             5 => new Color(Color.FromHtml("264a62"), 0.16f),
             7 => new Color(Color.FromHtml("1b2851"), 0.20f),
             _ => new Color(Color.FromHtml("31564f"), 0.06f),
@@ -2242,6 +2245,7 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawAtomicCity()
     {
+        int chapter = _presentation?.ChapterIndex ?? 0;
         foreach (AtomicCityInstanceSpec instance in AtomicCityInstances
             .OrderBy(item => ToCanvas(new CoreMapPoint(item.XUnit, item.YUnit)).Y)
             .ThenBy(item => ToCanvas(new CoreMapPoint(item.XUnit, item.YUnit)).X)
@@ -2261,16 +2265,27 @@ internal sealed partial class CommercialMapView : Control
                 instance.XUnit is >= 1400 and <= 1980 &&
                 instance.YUnit is >= 650 and <= 1250;
             float districtMassScale = heavyIndustrialDistrict
-                ? 1.42f
-                : denseEasternDistrict ? 1.05f
-                : centralInfillDistrict ? 1.05f : 1f;
-            if (_presentation?.ChapterIndex == 1 && centralInfillDistrict)
+                ? 1.48f
+                : denseEasternDistrict ? 1.10f
+                : centralInfillDistrict ? 1.14f : 1.06f;
+            if (chapter == 1 && centralInfillDistrict)
             {
-                // Route comparison needs a readable open decision corridor between
-                // two occupied edges. The buildings remain individual objects and
-                // present in the persistent world; only this mission's overview
-                // scale is reduced so the A/B routes are not buried underneath.
-                districtMassScale = 0.82f;
+                // Keep both route corridors readable without hollowing out the
+                // city mass. Each house remains a separate placed object.
+                districtMassScale = 1.08f;
+            }
+            if (chapter == 2)
+            {
+                // The siting reference deliberately separates an eastern town
+                // and a lower industrial mass with an open river valley. Express
+                // that distribution by scaling the same atomic placements, not by
+                // covering them with a precomposed valley/city plate.
+                bool openSitingValley =
+                    instance.XUnit is >= 700 and <= 2200 && instance.YUnit <= 1580;
+                districtMassScale = heavyIndustrialDistrict
+                    ? 1.62f
+                    : denseEasternDistrict ? 1.20f
+                    : openSitingValley ? 0.58f : 0.88f;
             }
             Vector2 size = FitSpriteSize(
                 texture,
@@ -2286,7 +2301,7 @@ internal sealed partial class CommercialMapView : Control
                     new Color(1.00f, 0.94f, 0.76f, instance.Alpha),
                 _ => new Color(0.92f, 0.87f, 0.79f, instance.Alpha),
             };
-            if (_presentation?.ChapterIndex == 4 &&
+            if (chapter == 4 &&
                 instance.Kind != AtomicCitySpriteKind.StreetLampA)
             {
                 modulate = new Color(
@@ -2395,7 +2410,7 @@ internal sealed partial class CommercialMapView : Control
             // Flooding darkens and roughens the same persistent channel. It does
             // not replace the valley with a hard polygon sheet; wet-bank cues and
             // reflections carry the state while bridge attachment stays fixed.
-            5 => 0.10f,
+            5 => 0.18f,
             // The siting reference is the one intentionally broad rural valley;
             // route and heat views keep the same channel much narrower.
             7 => 0.25f,
@@ -2422,7 +2437,7 @@ internal sealed partial class CommercialMapView : Control
         {
             2 => 0.42f,
             4 => 0.48f,
-            5 => 0.68f,
+            5 => 0.56f,
             7 => 0.55f,
             _ => 0.36f,
         };
@@ -2467,8 +2482,8 @@ internal sealed partial class CommercialMapView : Control
         DrawPolyline(rightLedge, new Color(Color.FromHtml("9b805d"), 0.14f), 1.0f, true);
         if (chapter == 5)
         {
-            DrawPolyline(outerLeft, new Color(Color.FromHtml("4b8192"), 0.20f), 7.0f, true);
-            DrawPolyline(outerRight, new Color(Color.FromHtml("4b8192"), 0.20f), 7.0f, true);
+            DrawPolyline(outerLeft, new Color(Color.FromHtml("4b8192"), 0.10f), 4.0f, true);
+            DrawPolyline(outerRight, new Color(Color.FromHtml("4b8192"), 0.10f), 4.0f, true);
         }
         // Bank sprites are terrain objects, so composite them before the water.
         // The water then masks each sprite's irregular inner edge while its outer
@@ -2526,7 +2541,10 @@ internal sealed partial class CommercialMapView : Control
         }
         DrawRiverReflections(surface, chapter);
         DrawRiverShoals(surfaceLeft, surfaceRightAscending);
-        DrawRiverBridgeDeck(new CoreMapPoint(1330, 500), 1.18f, chapter);
+        // Both authored foundations stay visibly attached to the river. The
+        // northern crossing is subordinate so the lower crossing remains the
+        // persistent landmark instead of reading as a repeated bridge showcase.
+        DrawRiverBridgeDeck(new CoreMapPoint(1330, 500), 1.18f, chapter, 0.58f);
         DrawRiverBridgeDeck(new CoreMapPoint(1480, 1500), 1.18f, chapter);
     }
 
@@ -2733,13 +2751,13 @@ internal sealed partial class CommercialMapView : Control
                 : bankTexture == RiverRockSoilTransitionASprite
                     ? 54f
                     : index % 22 == 7 ? 38f : 32f;
-            Vector2 size = FitSpriteSize(bankTexture, maxSide * 1.24f);
+            Vector2 size = FitSpriteSize(bankTexture, maxSide * 0.94f);
             DrawSetTransform(objectCenter, rotation, Vector2.One);
             DrawTextureRect(
                 bankTexture,
                 new Rect2(size * -0.5f, size),
                 false,
-                new Color(0.78f, 0.71f, 0.59f, 0.90f));
+                new Color(0.74f, 0.69f, 0.60f, 0.72f));
         }
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
@@ -2786,13 +2804,13 @@ internal sealed partial class CommercialMapView : Control
             }
             Vector2 size = FitSpriteSize(
                 texture,
-                placement.Spec.MaxSide * 1.42f * (1f + (ZoomIndex * 0.10f)));
+                placement.Spec.MaxSide * 1.08f * (1f + (ZoomIndex * 0.10f)));
             DrawSpriteGroundShadow(placement.Anchor, size);
             DrawTextureRect(
                 texture,
                 SpriteRect(placement.Anchor, size),
                 false,
-                new Color(1.00f, 0.96f, 0.86f, placement.Spec.Alpha));
+                new Color(0.92f, 0.88f, 0.78f, placement.Spec.Alpha * 0.82f));
         }
     }
 
@@ -2849,48 +2867,57 @@ internal sealed partial class CommercialMapView : Control
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
 
-    private void DrawRiverBridgeDeck(CoreMapPoint position, float rotation, int chapter)
+    private void DrawRiverBridgeDeck(
+        CoreMapPoint position,
+        float rotation,
+        int chapter,
+        float visualScale = 1f)
     {
         Vector2 center = ToCanvas(position);
         Vector2 bridgeAxis = new(Mathf.Cos(rotation), Mathf.Sin(rotation));
         float bridgeMaxSide = chapter switch
         {
-            1 => 120f,
-            2 => 170f,
-            4 => 150f,
-            5 => 190f,
-            _ => 150f,
+            1 => 78f,
+            2 => 108f,
+            4 => 82f,
+            5 => 114f,
+            7 => 104f,
+            _ => 86f,
         };
         float abutmentMaxSide = chapter switch
         {
-            1 => 42f,
-            2 => 68f,
-            4 => 64f,
-            5 => 76f,
-            _ => 58f,
+            1 => 30f,
+            2 => 42f,
+            4 => 32f,
+            5 => 44f,
+            7 => 40f,
+            _ => 34f,
         };
         float anchorOffset = chapter switch
         {
-            1 => 26f,
-            2 => 42f,
-            4 => 40f,
-            5 => 48f,
-            _ => 36f,
+            1 => 21f,
+            2 => 30f,
+            4 => 22f,
+            5 => 31f,
+            7 => 29f,
+            _ => 23f,
         };
         DrawRiverBridgeAbutment(
-            center - (bridgeAxis * anchorOffset),
+            center - (bridgeAxis * anchorOffset * visualScale),
             rotation,
-            abutmentMaxSide);
+            abutmentMaxSide * visualScale);
         DrawRiverBridgeAbutment(
-            center + (bridgeAxis * anchorOffset),
+            center + (bridgeAxis * anchorOffset * visualScale),
             rotation + Mathf.Pi,
-            abutmentMaxSide);
+            abutmentMaxSide * visualScale);
         if (IndustrialRoadBridgeBSprite is null)
         {
             return;
         }
 
-        Vector2 size = FitSpriteSize(IndustrialRoadBridgeBSprite, bridgeMaxSide);
+        Vector2 size = FitSpriteSize(
+            IndustrialRoadBridgeBSprite,
+            bridgeMaxSide * visualScale);
         // B is generated as one transparent, steep NW-SE isometric bridge object.
         // Its baked long axis matches this crossing's authored bridge axis, so it
         // is placed directly rather than rotating a shallow deck into a wall.
@@ -2899,7 +2926,7 @@ internal sealed partial class CommercialMapView : Control
             IndustrialRoadBridgeBSprite,
             new Rect2(size * -0.5f, size),
             false,
-            new Color(0.92f, 0.86f, 0.74f, 0.98f));
+            new Color(0.76f, 0.72f, 0.64f, 0.94f));
         DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
     }
 

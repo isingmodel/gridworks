@@ -103,19 +103,20 @@ Create exactly ONE production-ready isolated 2D runtime overlay object: a narrow
 
 ## `g3/objects/river-bank-rock-segment-a.png`
 
-- built-in ImageGen source run: `exec-f67eadea-97a1-4583-8122-2c735dad1979`
-- preserved source: `playtests/commercial-2d/g3-runtime-sources/river-bank-rock-segment-a-source.png`
-- inputs: `assets/01-grid-construction.png`
-- source SHA-256: `7879485d1c95c938db38c3afefc2cce5dba10f95f2dbac6d6ccd9d02665020cc`
-- source contained a baked neutral checkerboard and was not accepted directly.
-- deterministic extraction: `tools/reference-parity/extract-checkerboard-alpha.py`; output proves
-  64.13% fully transparent pixels and alpha-zero corners.
+- accepted built-in ImageGen revision run: `exec-e9f4465a-4bfc-45ef-ae58-a0fed72d3822`
+- preserved source: `playtests/commercial-2d/g3-runtime-sources/river-bank-rock-segment-a-v27-source.png`
+- inputs: the previous atomic `river-bank-rock-segment-a.png` as object/camera target and
+  `assets/04-plant-siting.png` as style-only reference.
+- source and runtime SHA-256: `68e47a2a142f150b90c4d91474b08c3d430f98fd11c1d401ed82375e49feef9a`
+- direct RGBA inspection proves 76.10% fully transparent pixels, alpha range 0–255, and
+  alpha-zero corners; no matte extraction or scene crop was used.
 - runtime class: one short individually placed bank-rock segment; repeated placement follows the
   authoritative river banks and never supplies the river geometry or a whole-map background.
-- final SHA-256: `e00eed392eb8bcc73f6ed206fe951d754790c42d93c1751fbc6eed0726f8c504`
+- rejected predecessor retained in git history: `exec-f67eadea-97a1-4583-8122-2c735dad1979`;
+  it needed checkerboard extraction and had a flatter rectangular slab silhouette.
 
 ```text
-Using the attached Gridworks screenshot only as the strict visual-style and camera reference, create ONE isolated short riverbank rock segment as a reusable individual 2D game object. Match the reference's classic 2:1 isometric orthographic angle, yaw 45 degrees, pitch 35.264 degrees, upper-right key light, soot-black graphite rocks, wet dark soil, weathered concrete fragments, sparse muted amber glints, embossed painterly relief, and dense hand-painted industrial detail. The object must be a compact irregular strip of deep rocky bank, approximately 3.2 times wider than tall in its isometric footprint, suitable for placing along one curved river edge. Include a clear 6–12 pixel-looking vertical dark bank drop on the water-facing lower-right edge and a rough soil transition on the land-facing upper-left edge. No water surface, no river, no bridge, no buildings, no power poles, no cables, no UI, no text, no symbols, no grid, no checkerboard, no colored matte, no scene background. Output exactly one centered object with generous padding and a genuinely transparent background (RGBA), clean antialiased edges, no green or white halo, and no baked shadow outside the object footprint.
+Create one new atomic game object variant: a single short wet rocky river-bank ledge segment on a true transparent background. IMAGE 1 is the exact object, camera, footprint, and isolation target: preserve its steep 3/4 isometric angle and long narrow placement footprint, but do not copy its rectangular slab or checkerboard. IMAGE 2 is style guidance only: match its charcoal-brown painterly industrial valley, softly blended soil, recessed river-bank depth, muted sepia midtones, and restrained wet highlights. The object must contain only one continuous bank ledge segment: broken dark basalt stones at the outer side, a low eroded soil shelf tapering naturally on all ends, subtle moisture at the inner river edge. No water surface, no river, no bridge, no city, no road, no power infrastructure, no UI, no labels, no scenery, no base tile, no shadow rectangle. Orthographic steep isometric 3/4 view, directional light from upper left, softened painterly texture, readable at about 48 pixels. Real alpha transparency all around irregular silhouette; no white, gray, checkerboard, or colored background. Centered with generous transparent padding, 1:1 square PNG.
 ```
 
 ## `g3/objects/irregular-residential-parcel-c.png`

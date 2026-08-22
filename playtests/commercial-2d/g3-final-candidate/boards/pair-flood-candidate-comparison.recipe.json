@@ -1,6 +1,6 @@
 {
   "atomicAssetBindings": [],
-  "boardSha256": "f9c6a69eaf09e75b3c015fbaa3136896425ec58bc8db2c84fa4e12861cef78d9",
+  "boardSha256": "388d87561f611ca642e6616b215fe3868ef5326a4588f045d04d6553d16a0bb8",
   "boardSize": [
     1600,
     1080
@@ -18,7 +18,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood-baseline.png",
-      "runtimeCaptureSha256": "5a87efba258dbe821015010d9a5415764468aae961c5ff2fea29a3aac3ae56ff",
+      "runtimeCaptureSha256": "18010f21a77f504246fea5f2a218b8a866e495a95c8ae025b91e899ef5bc97fb",
       "sourceBox": [
         500,
         110,
@@ -38,7 +38,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
-      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "runtimeCaptureSha256": "0276194c87cc9d3f1e6a340fb00679f19457174136c158e16448c2d246575dc3",
       "sourceBox": [
         500,
         110,

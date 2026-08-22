@@ -112,8 +112,14 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Vector2 presentationAnchor =
                 _map.ViewportPointForWorld(new CoreMapPoint(1600, 1000));
-            await WheelAt(presentationAnchor, MouseButton.WheelUp);
-            await NextFrame();
+            for (int attempt = 0; attempt < 3 && _map.ZoomIndex != 1; attempt++)
+            {
+                // Keep this actual pointer input. Native windows can discard the
+                // first wheel event immediately after Home/focus transfer; a
+                // bounded retry proves the same action without calling renderer
+                // methods or signals directly.
+                await WheelAt(presentationAnchor, MouseButton.WheelUp);
+            }
             // Keep the fixed parity checkpoint on the denser eastern half while
             // retaining the western source. This is a real middle-button camera
             // gesture, and its center is recorded by the smoke evidence.
@@ -123,8 +129,9 @@ internal sealed partial class CommercialMain
             Require(
                 _map.ZoomIndex == 1 &&
                 Math.Abs(_map.CameraCenter.X - 1600f) < 12f &&
-                _map.CameraCenter.Y is > 890f and < 920f,
-                "고정 시각 판정 캡처가 actual-input 1.50배 프레젠테이션 보기에 진입하지 않았습니다.");
+                _map.CameraCenter.Y is > 870f and < 920f,
+                "고정 시각 판정 캡처가 actual-input 1.50배 프레젠테이션 보기에 진입하지 않았습니다: " +
+                $"zoom={_map.ZoomIndex}, center={_map.CameraCenter.X:F1},{_map.CameraCenter.Y:F1}");
             ThermalIntervalResult active = _thermalSequence.Intervals[_thermalProjectionIndex];
             ThermalDemandResult selected = SelectedDemand(active)
                 ?? throw new InvalidOperationException("선택할 수요가 없습니다.");

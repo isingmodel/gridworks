@@ -73,7 +73,7 @@
       "runtimeSha256": "40677a9358d6e52f9630a08d174c6ed94505c551c4d46d081872d0d0232223b4"
     }
   ],
-  "boardSha256": "ea541c7dbd82f6c1111cc55d65b9aeb25c06a9a009a0f1010d0cdb06b368a536",
+  "boardSha256": "c5017595dd7bce43d6bd6d011db8e3cef200548d7b95a1992a086cfdd68f1d19",
   "boardSize": [
     1600,
     1080
@@ -91,7 +91,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
-      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "runtimeCaptureSha256": "b6984076944446e3b49fe11e8bf552380ae53f6b62615f2d660a7bee520f6fa0",
       "sourceBox": [
         260,
         300,
@@ -111,7 +111,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
-      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "runtimeCaptureSha256": "b6984076944446e3b49fe11e8bf552380ae53f6b62615f2d660a7bee520f6fa0",
       "sourceBox": [
         560,
         400,
@@ -131,7 +131,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
-      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "runtimeCaptureSha256": "b6984076944446e3b49fe11e8bf552380ae53f6b62615f2d660a7bee520f6fa0",
       "sourceBox": [
         840,
         500,
@@ -151,7 +151,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-normal.png",
-      "runtimeCaptureSha256": "b5a05d143c036790a12bbe91801806895988b87767d796d801179a2ac4c8abec",
+      "runtimeCaptureSha256": "b6984076944446e3b49fe11e8bf552380ae53f6b62615f2d660a7bee520f6fa0",
       "sourceBox": [
         320,
         680,
@@ -171,7 +171,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
-      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "runtimeCaptureSha256": "8d99654f76a7f47a4a64a1fd080ac4bec1f76a3ce3130619a51a893170572a55",
       "sourceBox": [
         250,
         300,
@@ -191,7 +191,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
-      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "runtimeCaptureSha256": "8d99654f76a7f47a4a64a1fd080ac4bec1f76a3ce3130619a51a893170572a55",
       "sourceBox": [
         600,
         420,
@@ -211,7 +211,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
-      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "runtimeCaptureSha256": "8d99654f76a7f47a4a64a1fd080ac4bec1f76a3ce3130619a51a893170572a55",
       "sourceBox": [
         900,
         560,
@@ -231,7 +231,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-heat.png",
-      "runtimeCaptureSha256": "c7a8a9e6784ad648d5b42c702f89a36b4e1a1d21595252e2b71e2cbec0680443",
+      "runtimeCaptureSha256": "8d99654f76a7f47a4a64a1fd080ac4bec1f76a3ce3130619a51a893170572a55",
       "sourceBox": [
         300,
         700,
@@ -251,7 +251,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
-      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "runtimeCaptureSha256": "0276194c87cc9d3f1e6a340fb00679f19457174136c158e16448c2d246575dc3",
       "sourceBox": [
         260,
         300,
@@ -271,7 +271,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
-      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "runtimeCaptureSha256": "0276194c87cc9d3f1e6a340fb00679f19457174136c158e16448c2d246575dc3",
       "sourceBox": [
         560,
         420,
@@ -291,7 +291,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
-      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "runtimeCaptureSha256": "0276194c87cc9d3f1e6a340fb00679f19457174136c158e16448c2d246575dc3",
       "sourceBox": [
         820,
         500,
@@ -311,7 +311,7 @@
       "resized": false,
       "retouched": false,
       "runtimeCapture": "/Users/fred/dev/gridworks/playtests/commercial-2d/g3-final-candidate/runtime/pair-flood.png",
-      "runtimeCaptureSha256": "4c78face4916fab1c18c71ab5ec85018a13e476a41970cf97bfea990b2fe2640",
+      "runtimeCaptureSha256": "0276194c87cc9d3f1e6a340fb00679f19457174136c158e16448c2d246575dc3",
       "sourceBox": [
         1030,
         650,

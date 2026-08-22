@@ -1,6 +1,6 @@
 # Gridworks GPT-5.6-sol ultra 레퍼런스 정렬 평가 프로토콜
 
-> 상태: **ACTIVE — G.3 LLM-as-a-judge 전용 시각 평가 절차**
+> 상태: **FROZEN — G.3 v27 종료 당시 평가 절차**
 > 사람 평가: **사용하지 않음**
 > 기본 캔버스: **native 1920×1080, UI 100%**; UI 125%는 접근성 보조 세트
 
@@ -12,6 +12,12 @@ hard gate로만 남긴다.
 reference는 서로 다른 장면의 제품 concept이므로 whole-frame pixel match를 요구하지 않는다. 같은
 의미 영역을 camera, density, river, object scale, material, grid, HUD, state, timeline으로 나누고
 reference와 candidate를 직접 pairwise 비교한다.
+
+2026-08-22 사용자는 마지막 v27 구현·평가 뒤 점수가 80을 넘지 않더라도 G.3를 성공 종료하도록 기존
+자동 gate를 대체했다. 아래 `>80` 규칙과 공식 output 정의는 프로토콜 자체의 원형을 보존하기 위해
+바꾸지 않는다. 다만 v27은 10쌍 reference-first replicate 1만 실행한 formative이므로 공식 output을
+위조하지 않고 `officialReferenceParity=null`, `formativeProxy=74.375`,
+`closure=user-approved-v27`로 기록한다. 사람 review는 여전히 사용하지 않았다.
 
 ## 1. 설계 근거와 한계
 
@@ -471,6 +477,10 @@ ReferenceParity = RawJuryParity - Penalty
 
 G.3 visual pass는 다음을 모두 만족해야 한다. 사용자는 2026-08-22 최종 `ReferenceParity`
 threshold를 `>80`으로 조정했다. 80점 정확히는 실패다.
+
+이 절은 **공식 40-call 판정을 실행할 때의 자동 verdict 규칙**이다. 최종 v27에는 40-call 판정을
+실행하지 않았으므로 `PASS`나 `FAIL_VISUAL`을 부여하지 않는다. G.3 단계 완료는 이 절의 PASS가 아니라
+그 뒤에 내려진 사용자의 점수 무관 v27 종료 지시가 소유한다.
 
 - `ReferenceParity >80`
 - camera, density, river의 `FinalCategoryScore`가 각각 `≥85`

@@ -1,0 +1,36 @@
+{
+  "protocol": "G3-REFERENCE-PARITY-v2",
+  "status": "formative-single-call",
+  "judge": {
+    "model": "gpt-5.6-sol",
+    "reasoningEffort": "ultra",
+    "order": "REFERENCE_FIRST",
+    "replicate": 1
+  },
+  "pairScores": {
+    "PAIR-NORMAL": 79.1667,
+    "PAIR-HEAT": 78.5,
+    "PAIR-ROUTE": 76.9444,
+    "PAIR-SITING": 69.7059,
+    "PAIR-FLOOD": 68.3333,
+    "PAIR-KIT-GROUND": 65.0,
+    "PAIR-KIT-RIVER": 71.0,
+    "PAIR-KIT-GRID": 71.6667,
+    "PAIR-KIT-CITY": 73.5714,
+    "PAIR-KIT-UI": 77.0
+  },
+  "categoryMedians": {
+    "camera": 85,
+    "density": 65.0,
+    "river": 65.0,
+    "scale": 75.0,
+    "material": 85.0,
+    "grid": 65.0,
+    "hud": 85,
+    "state": 65.0,
+    "timeline": 92.5
+  },
+  "proxy": 74.375,
+  "officialReferenceParity": null,
+  "userApprovedCloseRegardlessOfScore": true
+}

@@ -1,9 +1,9 @@
 # Gridworks 상용 2D 레퍼런스 정렬 재구축 계획
 
-> 상태: **ACTIVE — G.3 구현·평가 반복 중**
+> 상태: **COMPLETE — v27 사용자 승인 종료**
 > 작성 근거: 2026-08-21 G.2 실행 화면에 대한 소유자 시각 거부
 > 대상 해상도: **1920×1080, UI 100%·125%만 해당**
-> 현재 gate: **Step 1·2·3 PASS — Step 4 구현·formative 완료, 최종 `ReferenceParity` 미달**
+> 종료 상태: **Step 1~4와 v27 구현·formative 완료; 공식 `ReferenceParity`는 산출하지 않음**
 
 이 계획은 `assets/01~04`의 낮은 아이소메트릭 산업도시, 전력망, 강과 UI 위계를 실제 게임 화면에
 가깝게 옮기기 위한 G.3 후보를 정의한다. whole-map plate뿐 아니라 여러 건물·도로·구획을 한 장에
@@ -11,18 +11,23 @@
 채, 시설 부품 하나, 도로 조각 하나, 지형·마당·잔해 prop 하나**를 각각 별도 생성한 tile/object와
 명시 배치 데이터로 조립하며, 게임 규칙과 화면 표현이 어긋나지 않게 한다.
 
-2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정을 승인했고, 2026-08-22 최종 반복 종료선을
-`ReferenceParity >80`으로 조정했다. 80점 정확히는 실패다. 상세 비교와 종료 판정은
-[레퍼런스 정렬 평가 프로토콜](REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)이 소유한다.
+2026-08-21 사용자는 개별 asset과 게임 구현의 근본 수정을 승인했고, 2026-08-22 처음에는 최종 반복
+종료선을 `ReferenceParity >80`으로 조정했다. 같은 날 사용자는 이를 다시 대체해 **v27까지 구현·평가한
+뒤 80점을 넘지 않더라도 성공으로 기록하고 다음 단계로 넘어가라**고 명시했다. 따라서 프로토콜의
+`>80` 계산 규칙은 보존하지만 G.3 종료에는 적용하지 않는다. 공식 점수를 달성했다고 소급 주장하지
+않으며 상세 비교는 [레퍼런스 정렬 평가 프로토콜](REFERENCE_PARITY_EVALUATION_PROTOCOL_KO.md)이 소유한다.
 
-2026-08-22 Step 4 경계에서는 UI chrome 6종과 독립 event timeline, 개별 runtime art 55종,
-원자 도시 338개/전체 world 641개 배치를 동일 v26 화면에 고정했다. native 1920×1080 actual-input
-checkpoint→completion→completed-resume와 CommercialChecks 22 suites/2,331 assertions는 통과했다.
-`gpt-5.6-sol` ultra의 10-pair 단일-call formative category proxy는 74.375
-(camera 85, density 65, river 65, scale 65, material 85, grid 65, HUD 85, state 75,
-timeline 92.5)다. 이것은 order reversal·replicate·spread penalty가 없는 진단값이지 공식
-`ReferenceParity`가 아니다. 이번 Step 4 구현/formative만 완료하며 density·river 개선과 최종
-10×4 jury는 다음 반복으로 남긴다.
+2026-08-22 최종 v27은 UI chrome 6종과 독립 event timeline, 개별 runtime art 55종,
+원자 도시 338개/전체 world 641개 배치를 유지하면서 도시 질량 분포, 폭염 전역 tint, 범람 강 폭·제방,
+두 authored 교량의 상대 scale을 수정했다. `river-bank-rock-segment-a`는 전체 강이 아닌 진짜 alpha의
+단일 젖은 암석 제방 오브젝트로 다시 생성·교체했다. native 1920×1080 UI 100%·125% presentation,
+actual-input checkpoint→completion→completed-resume, CommercialChecks 22 suites/2,331 assertions,
+Debug·Release build가 통과했다. `gpt-5.6-sol` ultra의 10-pair 단일-call formative category proxy는
+74.375(camera 85, density 65, river 65, scale 75, material 85, grid 65, HUD 85, state 65,
+timeline 92.5)다. order reversal·두 번째 replicate·spread penalty가 없으므로 공식
+`ReferenceParity`는 `null`이다. 사용자의 v27 종료 지시에 따라 추가 반복과 10×4 jury 없이 G.3를 닫고,
+남은 density·river·grid·state 차이는 [v27 증거](../../playtests/commercial-2d/g3-final-candidate/FORMATIVE_V27_SUMMARY.md)에
+보존한다.
 
 ## 1. G.2 실패 진단
 
@@ -254,15 +259,16 @@ CommercialChecks 22 suites/2,286 assertions, Debug/Release build 0 warning/error
 thermal, actual-input presentation smoke가 통과했다. 이 구조 audit은 최종 ReferenceParity 점수에
 합산하지 않는다.
 
-### 9.2 Step 4 — UI chrome·full-bleed HUD·event timeline
+### 9.2 Step 4 종료 기록 — UI chrome·full-bleed HUD·event timeline
 
-다음 활성 gate는 reference의 지도 우선 정보 위계를 runtime UI로 옮긴다. top metric plate,
+reference의 지도 우선 정보 위계를 runtime UI로 옮겼다. top metric plate,
 inspector 9-slice, tool slot, default/cyan/amber button plate를 각각 독립 raster로 만들고 실제 Control의
 9-slice/stylebox에 연결한다. 지도는 UI 아래까지 이어지는 full-bleed canvas를 유지하며 top HUD `80px`,
 left rail `86px`, right inspector `340px`, bottom event timeline `128px`을 기준으로 맞춘다. timeline은
 briefing→현재 decision/phase→actual result를 독립 bar와 marker로 표시하고 실제 캠페인 상태에서만
 갱신한다. UI asset board와 1920×1080 UI 100/125 actual-input 캡처가 `PAIR-KIT-UI` 구조 gate를
-통과해야 Step 4를 닫는다.
+통과했다. v26에서 구현을 고정했고 v27의 density·river 보정 뒤에도 같은 1920×1080 UI 100%·125%
+actual-input presentation smoke로 회귀를 닫았다.
 
 ## 10. LLM jury checkpoint와 종료
 

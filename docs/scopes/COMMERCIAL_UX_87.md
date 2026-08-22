@@ -241,3 +241,4 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
 - cold observation/trace/recording과 coverage trace/recording packager는 session claim·start receipt를
   받은 뒤 role output과 supporting artifact를 먼저 완성한다. attempt ledger가 그 tree와 output을 읽어
   terminal을 봉인하고, terminal은 이후 downstream stage만 소비한다.
+- pre-terminal DAG 교정 `61c1df5`의 exact 독립 재검토는 **P0 0 / P1 0 / P2 0**이다.

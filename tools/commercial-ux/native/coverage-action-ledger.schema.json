@@ -1,23 +1,22 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-coverage-trace-v1.json",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-coverage-action-ledger-v1.json",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schemaVersion", "protocol", "coverageArtifactId", "candidateManifestSha256",
+    "schemaVersion", "protocol", "coverageActionLedgerSha256",
+    "coverageActionLedgerSchemaSha256", "candidateManifestSha256",
     "executionArtifactSha256", "coverageRecipeSha256", "holdoutQueueSha256",
     "selectedRecipeId", "selectedRecipeSha256", "holdoutConsumptionReceiptSha256",
-    "holdoutRealization", "conceptManifestSha256", "goldBindingManifestSha256",
-    "coveragePresentationEpisodeIds", "coverageRunId", "processTreeId", "runnerId", "userDataSha256",
-    "journalBundleSha256", "coverageActionLedgerSha256",
-    "coverageActionLedgerRawSha256", "coverageActionLedgerSchemaSha256",
-    "recordingManifestSha256", "recordingManifestRawSha256",
-    "episodes"
+    "goldBindingManifestSha256", "holdoutRealization", "coverageRunId",
+    "processTreeId", "userDataSha256", "journalBundleSha256",
+    "episodeLedgerHashRule", "episodes"
   ],
   "properties": {
-    "schemaVersion": {"const": "gridworks.commercial-ux.native-coverage-trace.v1"},
+    "schemaVersion": {"const": "gridworks.commercial-ux.coverage-action-ledger.v1"},
     "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
-    "coverageArtifactId": {"$ref": "#/$defs/sha256"},
+    "coverageActionLedgerSha256": {"$ref": "#/$defs/sha256"},
+    "coverageActionLedgerSchemaSha256": {"$ref": "#/$defs/sha256"},
     "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
     "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
     "coverageRecipeSha256": {"$ref": "#/$defs/sha256"},
@@ -25,27 +24,15 @@
     "selectedRecipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
     "selectedRecipeSha256": {"$ref": "#/$defs/sha256"},
     "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
-    "holdoutRealization": {"$ref": "#/$defs/holdoutRealization"},
-    "conceptManifestSha256": {"$ref": "#/$defs/sha256"},
     "goldBindingManifestSha256": {"$ref": "#/$defs/sha256"},
-    "coveragePresentationEpisodeIds": {
-      "type": "array", "minItems": 12, "maxItems": 12, "uniqueItems": true,
-      "items": {"$ref": "#/$defs/episodeId"}
-    },
+    "holdoutRealization": {"$ref": "#/$defs/holdoutRealization"},
     "coverageRunId": {"type": "string", "minLength": 1, "maxLength": 200},
     "processTreeId": {"type": "string", "minLength": 1, "maxLength": 200},
-    "runnerId": {"const": "COVERAGE_FINAL_PACKAGER"},
     "userDataSha256": {"$ref": "#/$defs/sha256"},
     "journalBundleSha256": {"$ref": "#/$defs/sha256"},
-    "coverageActionLedgerSha256": {"$ref": "#/$defs/sha256"},
-    "coverageActionLedgerRawSha256": {"$ref": "#/$defs/sha256"},
-    "coverageActionLedgerSchemaSha256": {"$ref": "#/$defs/sha256"},
-    "recordingManifestSha256": {"$ref": "#/$defs/sha256"},
-    "recordingManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "episodeLedgerHashRule": {"const": "SHA256_OF_RFC8785_EPISODE_WITH_EPISODE_LEDGER_SHA256_NULL"},
     "episodes": {
-      "type": "array",
-      "minItems": 12,
-      "maxItems": 12,
+      "type": "array", "minItems": 12, "maxItems": 12,
       "prefixItems": [
         {"$ref": "#/$defs/episode", "properties": {"episodeId": {"const": "E00-TITLE"}}},
         {"$ref": "#/$defs/episode", "properties": {"episodeId": {"const": "E01-FIRST-LIGHT"}}},
@@ -65,16 +52,8 @@
   },
   "$defs": {
     "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
-    "episodeId": {
-      "enum": [
-        "E00-TITLE", "E01-FIRST-LIGHT", "E02-SECOND-HEART", "E03-SECOND-SOURCE",
-        "E04-NORTH-BANK", "E05-WHOSE-MARGIN", "E06-FLOOD", "E07-MAINTENANCE",
-        "E08-FINALE", "E09-MID-RESUME", "E10-COMPLETE-RESUME", "E11-AUTHORED-TEXT"
-      ]
-    },
     "holdoutRealization": {
-      "type": "object",
-      "additionalProperties": false,
+      "type": "object", "additionalProperties": false,
       "required": [
         "missionPrototypeBits", "promiseBranchOrder",
         "actorArtifactPermutation", "coverageArtifactOrder"
@@ -93,15 +72,19 @@
       }
     },
     "artifactRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["artifactId", "kind", "sha256", "mimeType", "locator"],
+      "type": "object", "additionalProperties": false,
+      "required": ["artifactId", "kind", "locator", "rawSha256", "byteLength", "mimeType"],
       "properties": {
         "artifactId": {"type": "string", "minLength": 1, "maxLength": 200},
         "kind": {"enum": ["FRAME", "AUDIO", "ACTION_LEDGER", "VISIBLE_TEXT"]},
-        "sha256": {"$ref": "#/$defs/sha256"},
-        "mimeType": {"enum": ["image/png", "audio/wav", "application/json"]},
-        "locator": {"type": "string", "minLength": 1, "maxLength": 300}
+        "locator": {
+          "type": "string",
+          "pattern": "^(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+          "maxLength": 500
+        },
+        "rawSha256": {"$ref": "#/$defs/sha256"},
+        "byteLength": {"type": "integer", "minimum": 1, "maximum": 10737418240},
+        "mimeType": {"enum": ["image/png", "audio/wav", "application/json"]}
       },
       "allOf": [
         {"if": {"properties": {"kind": {"const": "FRAME"}}, "required": ["kind"]}, "then": {"properties": {"mimeType": {"const": "image/png"}}}},
@@ -109,9 +92,8 @@
         {"if": {"properties": {"kind": {"enum": ["ACTION_LEDGER", "VISIBLE_TEXT"]}}, "required": ["kind"]}, "then": {"properties": {"mimeType": {"const": "application/json"}}}}
       ]
     },
-    "traceRow": {
-      "type": "object",
-      "additionalProperties": false,
+    "action": {
+      "type": "object", "additionalProperties": false,
       "required": [
         "traceRowId", "checkpoint", "checkpointBranchId", "actionOccurrenceId",
         "semanticActionKind", "prototypeSlot", "prototypeKind",
@@ -141,30 +123,20 @@
       }
     },
     "episode": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "episodeId", "prefixId", "checkpointIds", "actionLedgerSha256",
-        "traceRows", "mediaArtifacts", "terminalState", "terminalIncidentKey"
-      ],
+      "type": "object", "additionalProperties": false,
+      "required": ["episodeId", "prefixId", "checkpointIds", "episodeLedgerSha256", "actions"],
       "properties": {
-        "episodeId": {"$ref": "#/$defs/episodeId"},
+        "episodeId": {"pattern": "^E(0[0-9]|1[01])-[A-Z0-9-]+$"},
         "prefixId": {"type": "string", "pattern": "^PREFIX-[A-Z0-9-]+$"},
         "checkpointIds": {
           "type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true,
           "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"}
         },
-        "actionLedgerSha256": {"$ref": "#/$defs/sha256"},
-        "traceRows": {
+        "episodeLedgerSha256": {"$ref": "#/$defs/sha256"},
+        "actions": {
           "type": "array", "minItems": 1, "maxItems": 4096, "uniqueItems": true,
-          "items": {"$ref": "#/$defs/traceRow"}
-        },
-        "mediaArtifacts": {
-          "type": "array", "minItems": 1, "maxItems": 4096, "uniqueItems": true,
-          "items": {"$ref": "#/$defs/artifactRef"}
-        },
-        "terminalState": {"const": "COMPLETED"},
-        "terminalIncidentKey": {"type": "null"}
+          "items": {"$ref": "#/$defs/action"}
+        }
       }
     }
   }

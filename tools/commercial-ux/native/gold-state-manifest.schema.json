@@ -11,6 +11,7 @@
     "bindingComplete",
     "scoreBearingCaptureAllowed",
     "candidateExecutionPolicy",
+    "candidateBindingOverlay",
     "nextRequiredGenerator",
     "authorities",
     "hashPolicy",
@@ -26,6 +27,7 @@
     "bindingComplete": {"type": "boolean"},
     "scoreBearingCaptureAllowed": {"type": "boolean"},
     "candidateExecutionPolicy": {"$ref": "#/$defs/candidateExecutionPolicy"},
+    "candidateBindingOverlay": {"$ref": "#/$defs/candidateBindingOverlay"},
     "nextRequiredGenerator": {"$ref": "#/$defs/nextRequiredGenerator"},
     "authorities": {"$ref": "#/$defs/authorities"},
     "hashPolicy": {"$ref": "#/$defs/hashPolicy"},
@@ -97,6 +99,34 @@
         },
         "requiredCandidateBindingHashes": {"type": "string", "minLength": 1, "maxLength": 600},
         "candidateManifestValidation": {"type": "string", "minLength": 1, "maxLength": 600}
+      }
+    },
+    "candidateBindingOverlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema", "selfHashField", "rawHashOwner", "prefixCount",
+        "checkpointCount", "applicableBindingCount", "notApplicableBindingCount",
+        "e09WitnessRequired", "rawBundleRequired", "rawBundleEntryCount",
+        "rawBundleValidation", "immutableTemplateBindingsRemainPending",
+        "scoreReadyCommandRequires"
+      ],
+      "properties": {
+        "schema": {"const": "gold-binding-manifest.schema.json"},
+        "selfHashField": {"const": "goldBindingManifestSha256"},
+        "rawHashOwner": {"const": "evaluation-run manifest artifacts.goldBindingManifestRawSha256"},
+        "prefixCount": {"const": 12},
+        "checkpointCount": {"const": 49},
+        "applicableBindingCount": {"const": 56},
+        "notApplicableBindingCount": {"const": 5},
+        "e09WitnessRequired": {"const": true},
+        "rawBundleRequired": {"const": true},
+        "rawBundleEntryCount": {"const": 112},
+        "rawBundleValidation": {"const": "OPEN_EVERY_CANONICAL_LOCATOR_RECOMPUTE_RAW_HASH_AND_LENGTH_REJECT_EXTRA_OR_SYMLINK"},
+        "immutableTemplateBindingsRemainPending": {"const": true},
+        "scoreReadyCommandRequires": {
+          "const": ["--binding-manifest", "--candidate-manifest", "--require-score-ready"]
+        }
       }
     },
     "nextRequiredGenerator": {

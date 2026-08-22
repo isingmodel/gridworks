@@ -20,31 +20,39 @@
     "toolBindingPolicy": {"$ref": "#/$defs/toolBindingPolicy"},
     "fileHashes": {
       "type": "array",
-      "minItems": 35,
-      "maxItems": 35,
+      "minItems": 47,
+      "maxItems": 47,
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/fileHash"}
     },
     "stageBindings": {
       "type": "array",
-      "minItems": 15,
-      "maxItems": 15,
+      "minItems": 23,
+      "maxItems": 23,
       "prefixItems": [
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "CANDIDATE-MANIFEST-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "HOLDOUT-CONSUMPTION-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "GOLD-BINDING-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COLD-ACTOR"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COLD-OBSERVATION-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COLD-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "QUALIFICATION-INPUT-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "QUALIFICATION-JUDGE"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "QUALIFICATION-RECEIPT-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COVERAGE-ACTION-LEDGER-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COVERAGE-RUN-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "ANONYMIZATION-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "EVIDENCE-SET-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "CANDIDATE-JUDGE-INPUT-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "CANDIDATE-JUDGE"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "JUDGE-PANEL-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "VERIFICATION-INPUT-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "EVIDENCE-VERIFIER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "ORACLE-HARD-GATES"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "EVALUATION-RUN-PACKAGER"}}},
-        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "NATIVE-AGGREGATE"}}}
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "AGGREGATION-INPUT-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "NATIVE-AGGREGATE"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "PANEL-FINALIZATION-SEAL-PACKAGER"}}}
       ],
       "items": false
     }
@@ -61,24 +69,33 @@
       ],
       "properties": {
         "boundImplementedTools": {
-          "const": ["../aggregate-native.py", "validate-contract.py"]
+          "const": ["../aggregate-native.py", "validate-contract.py", "validate-gold-state.py"]
         },
         "requiredProducerStagesBeforeScoreBearing": {
           "const": [
-            "CANDIDATE-MANIFEST-PACKAGER", "COLD-PACKAGER",
+            "CANDIDATE-MANIFEST-PACKAGER", "HOLDOUT-CONSUMPTION-PACKAGER",
+            "GOLD-BINDING-PACKAGER", "COLD-OBSERVATION-PACKAGER", "COLD-PACKAGER",
             "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-RECEIPT-PACKAGER",
-            "COVERAGE-RUN-PACKAGER", "EVIDENCE-SET-PACKAGER",
+            "COVERAGE-ACTION-LEDGER-PACKAGER", "COVERAGE-RUN-PACKAGER",
+            "ANONYMIZATION-PACKAGER",
+            "EVIDENCE-SET-PACKAGER", "CANDIDATE-JUDGE-INPUT-PACKAGER",
             "JUDGE-PANEL-PACKAGER", "VERIFICATION-INPUT-PACKAGER",
-            "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER", "NATIVE-AGGREGATE"
+            "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER",
+            "AGGREGATION-INPUT-PACKAGER", "NATIVE-AGGREGATE",
+            "PANEL-FINALIZATION-SEAL-PACKAGER"
           ]
         },
         "currentlyUnboundProducerStages": {
           "const": [
-            "CANDIDATE-MANIFEST-PACKAGER", "COLD-PACKAGER",
+            "CANDIDATE-MANIFEST-PACKAGER", "HOLDOUT-CONSUMPTION-PACKAGER",
+            "GOLD-BINDING-PACKAGER", "COLD-OBSERVATION-PACKAGER", "COLD-PACKAGER",
             "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-RECEIPT-PACKAGER",
-            "COVERAGE-RUN-PACKAGER", "EVIDENCE-SET-PACKAGER",
+            "COVERAGE-ACTION-LEDGER-PACKAGER", "COVERAGE-RUN-PACKAGER",
+            "ANONYMIZATION-PACKAGER",
+            "EVIDENCE-SET-PACKAGER", "CANDIDATE-JUDGE-INPUT-PACKAGER",
             "JUDGE-PANEL-PACKAGER", "VERIFICATION-INPUT-PACKAGER",
-            "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER"
+            "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER",
+            "AGGREGATION-INPUT-PACKAGER"
           ]
         },
         "unboundImplementationStatus": {
@@ -101,28 +118,45 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "stageId", "producerType", "promptFile", "inputSchemas", "outputSchema",
+        "stageId", "producerType", "implementationTool", "promptFile", "inputSchemas", "outputSchema",
         "packagedOutputSchema", "authorities"
       ],
       "properties": {
         "stageId": {
           "enum": [
-            "CANDIDATE-MANIFEST-PACKAGER", "COLD-ACTOR", "COLD-PACKAGER",
+            "CANDIDATE-MANIFEST-PACKAGER", "HOLDOUT-CONSUMPTION-PACKAGER",
+            "GOLD-BINDING-PACKAGER", "COLD-ACTOR", "COLD-OBSERVATION-PACKAGER",
+            "COLD-PACKAGER",
             "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-JUDGE",
-            "QUALIFICATION-RECEIPT-PACKAGER", "COVERAGE-RUN-PACKAGER",
-            "EVIDENCE-SET-PACKAGER", "CANDIDATE-JUDGE", "JUDGE-PANEL-PACKAGER",
+            "QUALIFICATION-RECEIPT-PACKAGER", "COVERAGE-ACTION-LEDGER-PACKAGER",
+            "COVERAGE-RUN-PACKAGER",
+            "ANONYMIZATION-PACKAGER",
+            "EVIDENCE-SET-PACKAGER", "CANDIDATE-JUDGE-INPUT-PACKAGER",
+            "CANDIDATE-JUDGE", "JUDGE-PANEL-PACKAGER",
             "VERIFICATION-INPUT-PACKAGER", "EVIDENCE-VERIFIER",
-            "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER", "NATIVE-AGGREGATE"
+            "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER",
+            "AGGREGATION-INPUT-PACKAGER", "NATIVE-AGGREGATE",
+            "PANEL-FINALIZATION-SEAL-PACKAGER"
           ]
         },
         "producerType": {"enum": ["LLM", "DETERMINISTIC"]},
+        "implementationTool": {
+          "type": ["string", "null"],
+          "pattern": "^(\\.\\./aggregate-native\\.py|[a-z0-9][a-z0-9.-]+\\.py)$"
+        },
         "promptFile": {
           "type": ["string", "null"],
           "pattern": "^[a-z0-9][a-z0-9.-]+$"
         },
         "inputSchemas": {
           "type": "array",
-          "maxItems": 16,
+          "maxItems": 24,
+          "uniqueItems": true,
+          "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]+\\.schema\\.json$"}
+        },
+        "modelVisibleInputSchemas": {
+          "type": "array",
+          "maxItems": 8,
           "uniqueItems": true,
           "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]+\\.schema\\.json$"}
         },
@@ -137,7 +171,14 @@
           "uniqueItems": true,
           "items": {"type": "string", "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|[a-z0-9][a-z0-9.-]+)$"}
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"producerType": {"const": "LLM"}}, "required": ["producerType"]},
+          "then": {"required": ["modelVisibleInputSchemas"]},
+          "else": {"not": {"required": ["modelVisibleInputSchemas"]}}
+        }
+      ]
     }
   }
 }

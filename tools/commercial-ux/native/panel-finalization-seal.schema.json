@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-panel-finalization-seal-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "panelFinalizationSealSha256",
+    "panelFinalizationSealSchemaSha256", "claimPolicy", "sealPathRule",
+    "canonicalSealPath", "panelKind", "initialPanelSha256", "judgePanelSha256",
+    "scorecardId", "recipeId", "officialCommercialUX", "sourceCommit",
+    "candidateManifestSha256", "candidateManifestRawSha256",
+    "holdoutConsumptionReceiptSha256", "holdoutConsumptionReceiptRawSha256",
+    "goldBindingManifestSha256", "goldBindingManifestRawSha256",
+    "qualificationReceiptSha256", "qualificationReceiptRawSha256",
+    "evaluationRunManifestSha256", "evaluationRunManifestRawSha256",
+    "anonymizationManifestSha256", "anonymizationManifestRawSha256",
+    "evidenceSetSha256", "evidenceSetRawSha256",
+    "sanitizedEvidenceBundleManifestSha256",
+    "sanitizedEvidenceBundleManifestRawSha256", "sanitizedEvidenceContentRootSha256",
+    "verificationInputSha256", "verificationInputRawSha256",
+    "aggregationInputRawSha256", "scorecardPath", "scorecardRawSha256",
+    "scorecardStatus", "replacementReceiptPath", "replacementReceiptRawSha256",
+    "sealStatus"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.panel-finalization-seal.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "panelFinalizationSealSha256": {"$ref": "#/$defs/sha256"},
+    "panelFinalizationSealSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "claimPolicy": {"const": "SCORECARD_EXCLUSIVE_WRITE_THEN_O_EXCL_SEAL_FSYNC"},
+    "sealPathRule": {"const": "GIT_COMMON_DIR/gridworks-commercial-ux/panel-finalizations/{initialPanelSha256Hex}-{panelKindLower}.json"},
+    "canonicalSealPath": {"$ref": "#/$defs/absolutePath"},
+    "panelKind": {"enum": ["INITIAL", "REPLACEMENT"]},
+    "initialPanelSha256": {"$ref": "#/$defs/sha256"},
+    "judgePanelSha256": {"$ref": "#/$defs/sha256"},
+    "scorecardId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "recipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "officialCommercialUX": {"type": "boolean"},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+    "goldBindingManifestSha256": {"$ref": "#/$defs/sha256"},
+    "goldBindingManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationRunManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "anonymizationManifestSha256": {"$ref": "#/$defs/sha256"},
+    "anonymizationManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+    "evidenceSetRawSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceBundleManifestSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceBundleManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceContentRootSha256": {"$ref": "#/$defs/sha256"},
+    "verificationInputSha256": {"$ref": "#/$defs/sha256"},
+    "verificationInputRawSha256": {"$ref": "#/$defs/sha256"},
+    "aggregationInputRawSha256": {"$ref": "#/$defs/sha256"},
+    "scorecardPath": {"$ref": "#/$defs/absolutePath"},
+    "scorecardRawSha256": {"$ref": "#/$defs/sha256"},
+    "scorecardStatus": {"$ref": "#/$defs/scorecardStatus"},
+    "replacementReceiptPath": {
+      "oneOf": [{"$ref": "#/$defs/absolutePath"}, {"type": "null"}]
+    },
+    "replacementReceiptRawSha256": {
+      "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+    },
+    "sealStatus": {"const": "FINALIZED"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"panelKind": {"const": "INITIAL"}}, "required": ["panelKind"]},
+      "then": {
+        "properties": {
+          "replacementReceiptPath": {"type": "null"},
+          "replacementReceiptRawSha256": {"type": "null"}
+        }
+      },
+      "else": {
+        "properties": {
+          "replacementReceiptPath": {"$ref": "#/$defs/absolutePath"},
+          "replacementReceiptRawSha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"recipeId": {"const": "FORMATIVE-01"}}, "required": ["recipeId"]},
+      "then": {"properties": {"officialCommercialUX": {"const": false}}},
+      "else": {"properties": {"officialCommercialUX": {"const": true}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+      "maxLength": 1200
+    },
+    "scorecardStatus": {
+      "enum": [
+        "SCORED_FORMATIVE", "PASS", "FAIL_UX", "FAIL_HARD_GATE",
+        "RERUN_REQUIRED_COLD_INSTABILITY", "RERUN_REQUIRED_COVERAGE_INSTABILITY",
+        "RERUN_REQUIRED_PANEL_INSTABILITY", "BLOCKED_JUDGE_UNAVAILABLE",
+        "BLOCKED_JUDGE_QUALIFICATION", "BLOCKED_JUDGE_SCHEMA",
+        "BLOCKED_JUDGE_INSTABILITY", "BLOCKED_EVIDENCE_VERIFICATION",
+        "BLOCKED_MISSING_EVIDENCE", "BLOCKED_HARNESS",
+        "BLOCKED_HOLDOUT_EXHAUSTED", "BLOCKED_PRE_CAPTURE"
+      ]
+    }
+  }
+}

@@ -105,6 +105,8 @@
         "nativeAggregatorSha256",
         "rubricSha256",
         "coldActorPromptSha256",
+        "coldActorResponseSchemaSha256",
+        "actorActionLedgerSchemaSha256",
         "actorObservationSchemaSha256",
         "actorTraceSchemaSha256",
         "coverageTraceSchemaSha256",
@@ -129,6 +131,8 @@
         "nativeAggregatorSha256": {"$ref": "#/$defs/sha256"},
         "rubricSha256": {"$ref": "#/$defs/sha256"},
         "coldActorPromptSha256": {"$ref": "#/$defs/sha256"},
+        "coldActorResponseSchemaSha256": {"$ref": "#/$defs/sha256"},
+        "actorActionLedgerSchemaSha256": {"$ref": "#/$defs/sha256"},
         "actorObservationSchemaSha256": {"$ref": "#/$defs/sha256"},
         "actorTraceSchemaSha256": {"$ref": "#/$defs/sha256"},
         "coverageTraceSchemaSha256": {"$ref": "#/$defs/sha256"},
@@ -208,10 +212,16 @@
         "reduceMotionValues",
         "audioPercent",
         "godotVersion",
+        "componentPathPolicy",
+        "executionArtifactHashRule",
+        "godotExecutablePath",
         "godotExecutableSha256",
+        "managedAssemblyPath",
         "managedAssemblySha256",
+        "pckResourceManifestPath",
         "pckResourceManifestSha256",
         "executionArtifactSha256",
+        "packagePath",
         "packageSha256",
         "packageStatus"
       ],
@@ -226,15 +236,33 @@
         "reduceMotionValues": {"const": [false, true]},
         "audioPercent": {"const": 100},
         "godotVersion": {"type": "string", "minLength": 1, "maxLength": 200},
+        "componentPathPolicy": {"const": "CANONICAL_ABSOLUTE_REGULAR_FILE_REJECT_SYMLINKS"},
+        "executionArtifactHashRule": {"const": "SHA256_OF_RFC8785_GODOT_EXECUTABLE_SHA256_MANAGED_ASSEMBLY_SHA256_PCK_RESOURCE_MANIFEST_SHA256_PACKAGE_SHA256_PACKAGE_STATUS"},
+        "godotExecutablePath": {"$ref": "#/$defs/absolutePath"},
         "godotExecutableSha256": {"$ref": "#/$defs/sha256"},
+        "managedAssemblyPath": {"$ref": "#/$defs/absolutePath"},
         "managedAssemblySha256": {"$ref": "#/$defs/sha256"},
+        "pckResourceManifestPath": {"$ref": "#/$defs/absolutePath"},
         "pckResourceManifestSha256": {"$ref": "#/$defs/sha256"},
         "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "packagePath": {"oneOf": [{"$ref": "#/$defs/absolutePath"}, {"type": "null"}]},
         "packageSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
         "packageStatus": {
           "enum": ["EDITOR_NATIVE_NOT_PUBLIC_PACKAGE", "INTERNAL_APP_BUNDLE"]
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"packageStatus": {"const": "EDITOR_NATIVE_NOT_PUBLIC_PACKAGE"}}, "required": ["packageStatus"]},
+          "then": {"properties": {"packagePath": {"type": "null"}, "packageSha256": {"type": "null"}}},
+          "else": {"properties": {"packagePath": {"$ref": "#/$defs/absolutePath"}, "packageSha256": {"$ref": "#/$defs/sha256"}}}
+        }
+      ]
+    },
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+      "maxLength": 1200
     }
   }
 }

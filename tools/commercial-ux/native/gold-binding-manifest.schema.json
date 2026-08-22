@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-gold-binding-manifest-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "goldBindingManifestSha256",
+    "goldBindingSchemaSha256", "goldStateContractSha256", "coverageRecipeSha256",
+    "candidateManifestSha256", "holdoutConsumptionReceiptSha256",
+    "selectedRecipeId", "selectedRecipeSha256", "executionArtifactSha256",
+    "holdoutRealization", "generatorToolSha256", "canonicalGoldBundleRoot",
+    "goldBundleRootSha256", "goldBundleRootHashRule", "goldBundleLocatorPolicy",
+    "goldBundleEntryCount", "goldBundleExtraFileCount", "goldBundleSymlinkCount",
+    "prefixBindings", "checkpointBindings",
+    "bindingSummary", "e09NorthBankTwoProcessWitness", "scoreBearingReady"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.gold-binding-manifest.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "goldBindingManifestSha256": {"$ref": "#/$defs/sha256"},
+    "goldBindingSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "goldStateContractSha256": {"$ref": "#/$defs/sha256"},
+    "coverageRecipeSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "selectedRecipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "selectedRecipeSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutRealization": {"$ref": "#/$defs/holdoutRealization"},
+    "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
+    "generatorToolSha256": {"$ref": "#/$defs/sha256"},
+    "canonicalGoldBundleRoot": {"$ref": "#/$defs/absolutePath"},
+    "goldBundleRootSha256": {"$ref": "#/$defs/sha256"},
+    "goldBundleRootHashRule": {"const": "SHA256_OF_UTF8_RFC8785_CANONICAL_LOCATOR_SORTED_ROWS_LOCATOR_RAW_SHA256_BYTE_LENGTH"},
+    "goldBundleLocatorPolicy": {"const": "CANONICAL_RELATIVE_NO_DOTDOT_REJECT_ALL_SYMLINKS_COMPLETE_RECURSIVE_FILE_SET"},
+    "goldBundleEntryCount": {"const": 112},
+    "goldBundleExtraFileCount": {"const": 0},
+    "goldBundleSymlinkCount": {"const": 0},
+    "prefixBindings": {
+      "type": "array", "minItems": 12, "maxItems": 12, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/prefixBinding"}
+    },
+    "checkpointBindings": {
+      "type": "array", "minItems": 49, "maxItems": 49, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/checkpointBinding"}
+    },
+    "bindingSummary": {"$ref": "#/$defs/bindingSummary"},
+    "e09NorthBankTwoProcessWitness": {"$ref": "#/$defs/e09Witness"},
+    "scoreBearingReady": {"const": true}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "holdoutRealization": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "missionPrototypeBits", "promiseBranchOrder",
+        "actorArtifactPermutation", "coverageArtifactOrder",
+        "coveragePresentationEpisodeIds"
+      ],
+      "properties": {
+        "missionPrototypeBits": {"type": "string", "pattern": "^[01]{3}$"},
+        "promiseBranchOrder": {
+          "type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+          "items": {"enum": ["keep", "defer"]}
+        },
+        "actorArtifactPermutation": {
+          "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true,
+          "items": {"type": "integer", "minimum": 0, "maximum": 2}
+        },
+        "coverageArtifactOrder": {"enum": ["EPISODE_ASCENDING", "EPISODE_DESCENDING"]},
+        "coveragePresentationEpisodeIds": {
+          "type": "array", "minItems": 12, "maxItems": 12, "uniqueItems": true,
+          "items": {"pattern": "^E(0[0-9]|1[01])-[A-Z0-9-]+$"}
+        }
+      }
+    },
+    "journalBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "sha256", "commandCount", "locator", "byteLength"],
+      "properties": {
+        "status": {"enum": ["BOUND_NATIVE_REPLAY", "NOT_APPLICABLE"]},
+        "sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "commandCount": {"type": ["integer", "null"], "minimum": 0},
+        "locator": {"oneOf": [{"$ref": "#/$defs/relativeLocator"}, {"type": "null"}]},
+        "byteLength": {"type": ["integer", "null"], "minimum": 1, "maximum": 10737418240}
+      },
+      "allOf": [{
+        "if": {"properties": {"status": {"const": "BOUND_NATIVE_REPLAY"}}, "required": ["status"]},
+        "then": {"properties": {"sha256": {"$ref": "#/$defs/sha256"}, "commandCount": {"type": "integer", "minimum": 0}, "locator": {"$ref": "#/$defs/relativeLocator"}, "byteLength": {"type": "integer", "minimum": 1}}},
+        "else": {"properties": {"sha256": {"type": "null"}, "commandCount": {"type": "null"}, "locator": {"type": "null"}, "byteLength": {"type": "null"}}}
+      }]
+    },
+    "snapshotBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "sha256", "locator", "byteLength"],
+      "properties": {
+        "status": {"enum": ["BOUND_NATIVE_REPLAY", "NOT_APPLICABLE"]},
+        "sha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "locator": {"oneOf": [{"$ref": "#/$defs/relativeLocator"}, {"type": "null"}]},
+        "byteLength": {"type": ["integer", "null"], "minimum": 1, "maximum": 10737418240}
+      },
+      "allOf": [{
+        "if": {"properties": {"status": {"const": "BOUND_NATIVE_REPLAY"}}, "required": ["status"]},
+        "then": {"properties": {"sha256": {"$ref": "#/$defs/sha256"}, "locator": {"$ref": "#/$defs/relativeLocator"}, "byteLength": {"type": "integer", "minimum": 1}}},
+        "else": {"properties": {"sha256": {"type": "null"}, "locator": {"type": "null"}, "byteLength": {"type": "null"}}}
+      }]
+    },
+    "prefixBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["prefixId", "journalBinding", "snapshotBinding"],
+      "properties": {
+        "prefixId": {"type": "string", "pattern": "^PREFIX-[A-Z0-9-]+$"},
+        "journalBinding": {"$ref": "#/$defs/journalBinding"},
+        "snapshotBinding": {"$ref": "#/$defs/snapshotBinding"}
+      }
+    },
+    "checkpointBinding": {
+      "type": "object", "additionalProperties": false,
+      "required": ["episodeId", "checkpointId", "checkpointBranchId", "journalBinding", "snapshotBinding"],
+      "properties": {
+        "episodeId": {"pattern": "^E(0[0-9]|1[01])-[A-Z0-9-]+$"},
+        "checkpointId": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "checkpointBranchId": {"enum": ["SHARED", "KEEP", "DEFER"]},
+        "journalBinding": {"$ref": "#/$defs/journalBinding"},
+        "snapshotBinding": {"$ref": "#/$defs/snapshotBinding"}
+      }
+    },
+    "bindingSummary": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "prefixCount", "checkpointCount", "applicableBindingCount",
+        "boundBindingCount", "notApplicableBindingCount", "allApplicableBindingsExact"
+      ],
+      "properties": {
+        "prefixCount": {"const": 12},
+        "checkpointCount": {"const": 49},
+        "applicableBindingCount": {"const": 56},
+        "boundBindingCount": {"const": 56},
+        "notApplicableBindingCount": {"const": 5},
+        "allApplicableBindingsExact": {"const": true}
+      }
+    },
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+      "maxLength": 1200
+    },
+    "relativeLocator": {
+      "type": "string",
+      "pattern": "^(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+      "maxLength": 500
+    },
+    "e09Witness": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "status", "chapterId", "decisionWindowId", "constructionPhase",
+        "preExitProcessTreeId", "postResumeProcessTreeId",
+        "preExitCommandCount", "postResumeCommandCount",
+        "preExitJournalSha256", "postResumeJournalSha256",
+        "preExitSnapshotSha256", "postResumeSnapshotSha256",
+        "journalExactEquality", "snapshotExactEquality",
+        "resumedEditableDraftJournalSha256", "resumedEditableDraftSnapshotSha256",
+        "resumedEditableDraftCommandCount", "geometryRestoredAfterAddUndo",
+        "projectionRestoredAfterAddUndo",
+        "draftGeometryHashRule", "draftProjectionHashRule",
+        "preExitDraftGeometrySha256", "postResumeDraftGeometrySha256",
+        "resumedEditableDraftGeometrySha256", "preExitDraftProjectionSha256",
+        "postResumeDraftProjectionSha256", "resumedEditableDraftProjectionSha256"
+      ],
+      "properties": {
+        "status": {"const": "EXACT_TWO_PROCESS_REPLAY"},
+        "chapterId": {"const": "NORTH_BANK_PROMISE"},
+        "decisionWindowId": {"const": "NORTH_BANK_BUILD"},
+        "constructionPhase": {"const": "LineDrafting"},
+        "preExitProcessTreeId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "postResumeProcessTreeId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "preExitCommandCount": {"type": "integer", "minimum": 0},
+        "postResumeCommandCount": {"type": "integer", "minimum": 0},
+        "preExitJournalSha256": {"$ref": "#/$defs/sha256"},
+        "postResumeJournalSha256": {"$ref": "#/$defs/sha256"},
+        "preExitSnapshotSha256": {"$ref": "#/$defs/sha256"},
+        "postResumeSnapshotSha256": {"$ref": "#/$defs/sha256"},
+        "journalExactEquality": {"const": true},
+        "snapshotExactEquality": {"const": true},
+        "resumedEditableDraftJournalSha256": {"$ref": "#/$defs/sha256"},
+        "resumedEditableDraftSnapshotSha256": {"$ref": "#/$defs/sha256"},
+        "resumedEditableDraftCommandCount": {"type": "integer", "minimum": 1},
+        "geometryRestoredAfterAddUndo": {"const": true},
+        "projectionRestoredAfterAddUndo": {"const": true}
+        ,"draftGeometryHashRule": {"const": "SHA256_OF_RFC8785_CANONICAL_DRAFT_GEOMETRY_COMPONENT_EXTRACTED_FROM_SNAPSHOT"}
+        ,"draftProjectionHashRule": {"const": "SHA256_OF_RFC8785_CANONICAL_DRAFT_PROJECTION_COMPONENT_EXTRACTED_FROM_SNAPSHOT"}
+        ,"preExitDraftGeometrySha256": {"$ref": "#/$defs/sha256"}
+        ,"postResumeDraftGeometrySha256": {"$ref": "#/$defs/sha256"}
+        ,"resumedEditableDraftGeometrySha256": {"$ref": "#/$defs/sha256"}
+        ,"preExitDraftProjectionSha256": {"$ref": "#/$defs/sha256"}
+        ,"postResumeDraftProjectionSha256": {"$ref": "#/$defs/sha256"}
+        ,"resumedEditableDraftProjectionSha256": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

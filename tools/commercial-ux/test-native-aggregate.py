@@ -4,14 +4,18 @@
 from __future__ import annotations
 
 import copy
+import contextlib
 import importlib.util
 import inspect
 import json
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 from typing import Any, Callable
+from unittest import mock
 
 
 TOOL_DIRECTORY = Path(__file__).resolve().parent
@@ -152,6 +156,8 @@ def make_candidate_manifest(
         "canonicalHashPolicySha256": "canonical-hash-policy.json",
         "rubricSha256": "../rubric.json",
         "coldActorPromptSha256": "cold-actor-prompt.template.txt",
+        "coldActorResponseSchemaSha256": "cold-actor-response.schema.json",
+        "actorActionLedgerSchemaSha256": "actor-action-ledger.schema.json",
         "actorObservationSchemaSha256": "actor-observation.schema.json",
         "actorTraceSchemaSha256": "actor-trace.schema.json",
         "coverageTraceSchemaSha256": "coverage-trace.schema.json",
@@ -231,10 +237,21 @@ def make_candidate_manifest(
             "reduceMotionValues": [False, True],
             "audioPercent": 100,
             "godotVersion": "4.7.1.stable.mono.official.a13da4feb",
+            "componentPathPolicy": "CANONICAL_ABSOLUTE_REGULAR_FILE_REJECT_SYMLINKS",
+            "executionArtifactHashRule": (
+                "SHA256_OF_RFC8785_GODOT_EXECUTABLE_SHA256_MANAGED_ASSEMBLY_SHA256_"
+                "PCK_RESOURCE_MANIFEST_SHA256_PACKAGE_SHA256_PACKAGE_STATUS"
+            ),
+            "godotExecutablePath": str((TOOL_DIRECTORY / "fixture-godot").resolve()),
             "godotExecutableSha256": identity_sha("godot-executable"),
+            "managedAssemblyPath": str((TOOL_DIRECTORY / "fixture-assembly.dll").resolve()),
             "managedAssemblySha256": identity_sha("managed-assembly"),
+            "pckResourceManifestPath": str(
+                (TOOL_DIRECTORY / "fixture-pck-manifest.json").resolve()
+            ),
             "pckResourceManifestSha256": identity_sha("pck-manifest"),
             "executionArtifactSha256": execution_artifact_sha,
+            "packagePath": None,
             "packageSha256": None,
             "packageStatus": "EDITOR_NATIVE_NOT_PUBLIC_PACKAGE",
         },
@@ -329,7 +346,7 @@ def make_actor_observation(
         {
             "actionIndex": next_action,
             "episode": "E01-FIRST-LIGHT",
-            "checkpoint": "fixture-checkpoint",
+            "checkpoint": "first-operations",
             "actionKind": "OPEN_BRIEFING",
             "inputEvent": "fixture input",
             "visibleFeedback": "fixture visible response",
@@ -356,7 +373,7 @@ def make_actor_observation(
                     {
                         "actionIndex": next_action,
                         "episode": "E01-FIRST-LIGHT",
-                        "checkpoint": "fixture-checkpoint-1",
+                        "checkpoint": "first-operations",
                         "actionKind": action_kind,
                         "inputEvent": f"recovery input {offset}",
                         "visibleFeedback": "state remained visibly unchanged",
@@ -375,7 +392,7 @@ def make_actor_observation(
                     {
                         "actionIndex": next_action,
                         "episode": "E01-FIRST-LIGHT",
-                        "checkpoint": "fixture-checkpoint-1",
+                        "checkpoint": "first-operations",
                         "actionKind": f"STALL_ACTION_{offset + 1}",
                         "inputEvent": f"stall input {offset}",
                         "visibleFeedback": "no progress state change",
@@ -396,6 +413,7 @@ def make_actor_observation(
         actor_incidents.append(
             {
                 "incidentKey": incident["incidentKey"],
+                "incidentOrdinal": len(actor_incidents) + 1,
                 "episode": "E01-FIRST-LIGHT",
                 "checkpointOrdinals": [1, 2] if kind == "CONFUSION" else [1],
                 "incidentType": kind,
@@ -407,9 +425,23 @@ def make_actor_observation(
             }
         )
     terminal_state, terminal_key = terminal
+    terminal_ordinal = next(
+        (
+            row["incidentOrdinal"]
+            for row in actor_incidents
+            if row["incidentKey"] == terminal_key
+        ),
+        None,
+    )
     return {
         "schemaVersion": aggregator.ACTOR_OBSERVATION_SCHEMA,
         "protocol": aggregator.PROTOCOL,
+        "coldActorResponseSha256": identity_sha(
+            f"pending-cold-response-{actor_index}-{panel_suffix}"
+        ),
+        "coldActorResponseRawSha256": identity_sha(
+            f"pending-cold-response-raw-{actor_index}-{panel_suffix}"
+        ),
         "actorRunId": f"actor-{panel_suffix}-{actor_index}",
         "actorSlot": "SOL-ULTRA",
         "model": "gpt-5.6-sol",
@@ -420,30 +452,35 @@ def make_actor_observation(
             {
                 "ordinal": ordinal,
                 "episode": "E01-FIRST-LIGHT",
-                "checkpoint": f"fixture-checkpoint-{ordinal}",
+                "checkpoint": checkpoint,
+                "recipeCheckpointSequenceOrdinal": recipe_ordinal,
                 "appActiveActionIndex": 1,
-                "progressStateSha256": identity_sha(
-                    f"actor-checkpoint-{actor_index}-{ordinal}-{panel_suffix}"
-                ),
+                "progressStateSha256": actions[0]["postStateSha256"],
                 "artifactRefs": [actor_artifact_ref(actor_index)],
             }
-            for ordinal in (1, 2)
+            for ordinal, checkpoint, recipe_ordinal in (
+                (1, "first-operations", 4),
+                (2, "first-energized-path", 8),
+            )
         ],
         "firstUseRecords": [
             {
                 "probeId": "PX01-FIXTURE",
+                "firstUseOrdinal": 1,
                 "episode": "E01-FIRST-LIGHT",
-                "checkpoint": "fixture-checkpoint-1",
+                "checkpoint": "first-operations",
                 "checkpointOrdinal": 1,
                 "currentGoal": "Finish the fixture journey.",
                 "expectedVisibleConsequence": "The fixture state should advance.",
                 "citedVisibleSource": actor_artifact_ref(actor_index),
+                "citedVisibleSourceDescription": "The fixture frame shows the first use.",
             }
         ],
         "approvalRecords": [
             {
+                "approvalOrdinal": 1,
                 "episode": "E01-FIRST-LIGHT",
-                "checkpoint": "fixture-checkpoint-1",
+                "checkpoint": "first-operations",
                 "checkpointOrdinal": 1,
                 "predictionImmediatelyBeforeApproval": "The fixture will complete.",
                 "observedResult": "The fixture completed.",
@@ -451,8 +488,9 @@ def make_actor_observation(
                 "artifactRefs": [actor_artifact_ref(actor_index)],
             },
             {
+                "approvalOrdinal": 2,
                 "episode": "E01-FIRST-LIGHT",
-                "checkpoint": "fixture-checkpoint-2",
+                "checkpoint": "first-energized-path",
                 "checkpointOrdinal": 2,
                 "predictionImmediatelyBeforeApproval": "The second fixture step will complete.",
                 "observedResult": "The second fixture step completed.",
@@ -464,6 +502,7 @@ def make_actor_observation(
         "incidents": actor_incidents,
         "terminalState": terminal_state,
         "terminalIncidentKey": terminal_key,
+        "terminalIncidentOrdinal": terminal_ordinal,
     }
 
 
@@ -1245,6 +1284,743 @@ def refresh_fixture_authorities(
     fixture["judgmentRawSha256"] = judgment_raw_shas
 
 
+_legacy_make_fixture = make_fixture
+_legacy_refresh_fixture_authorities = refresh_fixture_authorities
+
+
+def _make_synthetic_envelope(
+    path: Path,
+    schema_version: str,
+    self_field: str,
+    **fields: Any,
+) -> tuple[dict[str, Any], str]:
+    value = {
+        "schemaVersion": schema_version,
+        "protocol": aggregator.PROTOCOL,
+        self_field: identity_sha(f"placeholder-{path.name}"),
+        **fields,
+    }
+    _, raw_sha = write_self_hashed_json(path, value, self_field)
+    return value, raw_sha
+
+
+def _upgrade_synthetic_runtime_fixture(fixture: dict[str, Any]) -> None:
+    """Add opaque producer inputs used only by legacy scoring-core tests.
+
+    The P1 regressions below exercise each real validator directly.  Existing
+    arithmetic/replacement tests keep their narrow historical fixtures and use
+    test-scoped dependency injection; production aggregate_to_path has no bypass.
+    """
+
+    directory = fixture["directory"]
+    candidate = fixture["candidate"]
+    evaluation = fixture["evaluationRun"]
+    artifacts = evaluation["artifacts"]
+
+    cold_actor_response_paths: list[Path] = []
+    cold_actor_responses: list[dict[str, Any]] = []
+    cold_actor_response_raw: list[str] = []
+    actor_observation_raw: list[str] = []
+    for slot, observation in enumerate(fixture["actorObservations"]):
+        response_path = directory / f"cold-actor-response-{slot + 1}.json"
+        response = {
+            "schemaVersion": aggregator.COLD_ACTOR_RESPONSE_SCHEMA,
+            "protocol": aggregator.PROTOCOL,
+            "coldActorResponseSha256": identity_sha(
+                f"cold-response-placeholder-{slot}"
+            ),
+            "actorRunId": observation["actorRunId"],
+            "actorSlot": observation["actorSlot"],
+            "model": observation["model"],
+            "reasoningEffort": observation["reasoningEffort"],
+            "objective": observation["objective"],
+            "firstUseRecords": [
+                {
+                    field: row[field]
+                    for field in (
+                        "firstUseOrdinal",
+                        "probeId",
+                        "currentGoal",
+                        "expectedVisibleConsequence",
+                        "citedVisibleSourceDescription",
+                    )
+                }
+                for row in observation["firstUseRecords"]
+            ],
+            "approvalRecords": [
+                {
+                    field: row[field]
+                    for field in (
+                        "approvalOrdinal",
+                        "predictionImmediatelyBeforeApproval",
+                        "observedResult",
+                        "causalAccount",
+                    )
+                }
+                for row in observation["approvalRecords"]
+            ],
+            "incidents": [
+                {
+                    field: row[field]
+                    for field in (
+                        "incidentOrdinal",
+                        "incidentType",
+                        "confusionBoundary",
+                        "severity",
+                        "description",
+                    )
+                }
+                for row in observation["incidents"]
+            ],
+            "terminalState": observation["terminalState"],
+            "terminalIncidentOrdinal": observation["terminalIncidentOrdinal"],
+        }
+        response_self, response_raw = write_self_hashed_json(
+            response_path,
+            response,
+            "coldActorResponseSha256",
+        )
+        observation["coldActorResponseSha256"] = response_self
+        observation["coldActorResponseRawSha256"] = response_raw
+        observation_raw = write_json(
+            fixture["actorObservationPaths"][slot],
+            observation,
+        )
+        cold_actor_response_paths.append(response_path)
+        cold_actor_responses.append(response)
+        cold_actor_response_raw.append(response_raw)
+        actor_observation_raw.append(observation_raw)
+        evaluation["terminalStates"][slot][
+            "actorObservationRawSha256"
+        ] = observation_raw
+    artifacts["actorObservationRawSha256"] = actor_observation_raw
+    artifacts["coldActorResponseSha256"] = [
+        row["coldActorResponseSha256"] for row in cold_actor_responses
+    ]
+    artifacts["coldActorResponseRawSha256"] = cold_actor_response_raw
+
+    registry_path = directory / "holdout-registry.json"
+    registry_before_path = directory / "holdout-registry-before.json"
+    write_json(registry_path, {})
+    write_json(registry_before_path, {})
+    receipt_path = directory / "holdout-consumption-receipt.json"
+    receipt, receipt_raw = _make_synthetic_envelope(
+        receipt_path,
+        aggregator.HOLDOUT_CONSUMPTION_RECEIPT_SCHEMA,
+        "holdoutConsumptionReceiptSha256",
+        atomicClaim={"canonicalRegistryPath": str(registry_path.resolve())},
+    )
+    gold_path = directory / "gold-binding-manifest.json"
+    gold, gold_raw = _make_synthetic_envelope(
+        gold_path,
+        aggregator.GOLD_BINDING_SCHEMA,
+        "goldBindingManifestSha256",
+        scoreBearingReady=True,
+    )
+
+    actor_trace_paths: list[Path] = []
+    actor_traces: list[dict[str, Any]] = []
+    actor_trace_raw: list[str] = []
+    recording_paths: list[Path] = []
+    recording_values: list[dict[str, Any]] = []
+    recording_raw: list[str] = []
+    for slot in range(3):
+        recording_path = directory / f"actor-recording-{slot + 1}.json"
+        recording, raw_sha = _make_synthetic_envelope(
+            recording_path,
+            aggregator.RECORDING_MANIFEST_SCHEMA,
+            "recordingManifestSha256",
+            sourceArtifactKind="ACTOR_OBSERVATION",
+            sourceArtifactSha256=artifacts["actorObservationRawSha256"][slot],
+        )
+        recording_paths.append(recording_path)
+        recording_values.append(recording)
+        recording_raw.append(raw_sha)
+        trace_path = directory / f"actor-trace-{slot + 1}.json"
+        trace, trace_raw = _make_synthetic_envelope(
+            trace_path,
+            aggregator.ACTOR_TRACE_SCHEMA,
+            "actorTraceSha256",
+            actorCaptureSlot=slot,
+            actorArtifactId=artifacts["actorArtifactIds"][slot],
+            coldActorResponseSha256=cold_actor_responses[slot][
+                "coldActorResponseSha256"
+            ],
+            coldActorResponseRawSha256=cold_actor_response_raw[slot],
+            recordingManifestSha256=recording["recordingManifestSha256"],
+            recordingManifestRawSha256=raw_sha,
+        )
+        actor_trace_paths.append(trace_path)
+        actor_traces.append(trace)
+        actor_trace_raw.append(trace_raw)
+    coverage_action_ledger_path = directory / "coverage-action-ledger.json"
+    coverage_action_ledger, coverage_action_ledger_raw = _make_synthetic_envelope(
+        coverage_action_ledger_path,
+        aggregator.COVERAGE_ACTION_LEDGER_SCHEMA,
+        "coverageActionLedgerSha256",
+    )
+    coverage_recording_path = directory / "coverage-recording.json"
+    coverage_recording, coverage_recording_raw = _make_synthetic_envelope(
+        coverage_recording_path,
+        aggregator.RECORDING_MANIFEST_SCHEMA,
+        "recordingManifestSha256",
+        sourceArtifactKind="COVERAGE_CAPTURE",
+        sourceArtifactSha256=coverage_action_ledger_raw,
+    )
+    recording_paths.append(coverage_recording_path)
+    recording_values.append(coverage_recording)
+    recording_raw.append(coverage_recording_raw)
+
+    coverage_trace = fixture["coverageTrace"]
+    selected = selected_recipe(candidate["recipeId"])
+    coverage_trace.update({
+        "holdoutConsumptionReceiptSha256": receipt[
+            "holdoutConsumptionReceiptSha256"
+        ],
+        "holdoutRealization": {
+            "missionPrototypeBits": selected["missionPrototypeBits"],
+            "promiseBranchOrder": selected["promiseBranchOrder"],
+            "actorArtifactPermutation": selected["actorArtifactPermutation"],
+            "coverageArtifactOrder": selected["coverageArtifactOrder"],
+        },
+        "coveragePresentationEpisodeIds": (
+            list(EPISODE_IDS)
+            if selected["coverageArtifactOrder"] == "EPISODE_ASCENDING"
+            else list(reversed(EPISODE_IDS))
+        ),
+        "goldBindingManifestSha256": gold["goldBindingManifestSha256"],
+        "coverageRunId": "fixture-coverage-run",
+        "coverageActionLedgerSha256": coverage_action_ledger[
+            "coverageActionLedgerSha256"
+        ],
+        "coverageActionLedgerRawSha256": coverage_action_ledger_raw,
+        "coverageActionLedgerSchemaSha256": native_file_sha(
+            "coverage-action-ledger.schema.json"
+        ),
+        "recordingManifestSha256": coverage_recording[
+            "recordingManifestSha256"
+        ],
+        "recordingManifestRawSha256": coverage_recording_raw,
+    })
+    coverage_recipe = json.loads(
+        (aggregator.NATIVE_DIRECTORY / "coverage-recipe.json").read_text()
+    )
+    actions_by_episode = {
+        row["id"]: row["actions"] for row in coverage_recipe["episodes"]
+    }
+    for episode in coverage_trace["episodes"]:
+        realized = aggregator._realized_coverage_actions(
+            episode["episodeId"],
+            actions_by_episode[episode["episodeId"]],
+            selected,
+        )
+        for action_index, (row, occurrence_id) in enumerate(
+            zip(episode["traceRows"], realized), start=1
+        ):
+            row["actionOccurrenceId"] = occurrence_id
+            row["actionIndex"] = action_index
+            row.update(aggregator._expected_action_realization(
+                episode["episodeId"], occurrence_id, selected
+            ))
+    coverage_self, coverage_raw = write_self_hashed_json(
+        fixture["coverageTracePath"],
+        coverage_trace,
+        "coverageArtifactId",
+    )
+    artifacts["coverageArtifactId"] = coverage_self
+    artifacts["coverageTraceRawSha256"] = coverage_raw
+
+    anonymization_path = directory / "anonymization-manifest.json"
+    anonymization, anonymization_raw = _make_synthetic_envelope(
+        anonymization_path,
+        aggregator.ANONYMIZATION_MANIFEST_SCHEMA,
+        "anonymizationManifestSha256",
+    )
+    fixture["evidenceSet"]["anonymizationManifestSha256"] = anonymization[
+        "anonymizationManifestSha256"
+    ]
+    _, evidence_raw = write_self_hashed_json(
+        fixture["evidenceSetPath"],
+        fixture["evidenceSet"],
+        "evidenceSetSha256",
+    )
+    evidence_sha = fixture["evidenceSet"]["evidenceSetSha256"]
+    candidate["provenance"]["evidenceSetSha256"] = evidence_sha
+    for judgment in fixture["judgments"]:
+        judgment["evidenceSetSha256"] = evidence_sha
+    for judgment, path in zip(fixture["judgments"], fixture["judgmentPaths"]):
+        write_json(path, judgment)
+    fixture["judgePanel"]["evidenceSetSha256"] = evidence_sha
+    evaluation["artifacts"]["evidenceSetSha256"] = evidence_sha
+
+    sanitized_bundle_path = directory / "sanitized-evidence-bundle-manifest.json"
+    sanitized_bundle, sanitized_bundle_raw = _make_synthetic_envelope(
+        sanitized_bundle_path,
+        aggregator.SANITIZED_EVIDENCE_BUNDLE_MANIFEST_SCHEMA,
+        "sanitizedEvidenceBundleManifestSha256",
+        contentRootSha256=identity_sha("sanitized-evidence-content-root"),
+    )
+
+    candidate_judge_input_path = directory / "candidate-judge-input.json"
+    candidate_judge_input, candidate_judge_input_raw = _make_synthetic_envelope(
+        candidate_judge_input_path,
+        aggregator.CANDIDATE_JUDGE_INPUT_SCHEMA,
+        "judgeInputSha256",
+        candidateManifestSha256=fixture["candidateManifest"][
+            "candidateManifestSha256"
+        ],
+        candidateManifestRawSha256=candidate["provenance"][
+            "candidateManifestRawSha256"
+        ],
+        qualificationReceiptSha256=fixture["qualificationReceipt"][
+            "qualificationReceiptSha256"
+        ],
+        qualificationReceiptRawSha256=candidate["provenance"][
+            "qualificationReceiptRawSha256"
+        ],
+        qualificationStatus=fixture["qualificationReceipt"]["status"],
+        holdoutConsumptionReceiptSha256=receipt[
+            "holdoutConsumptionReceiptSha256"
+        ],
+        holdoutConsumptionReceiptRawSha256=receipt_raw,
+        goldBindingManifestSha256=gold["goldBindingManifestSha256"],
+        goldBindingManifestRawSha256=gold_raw,
+        evidenceSetSha256=evidence_sha,
+        evidenceSetRawSha256=evidence_raw,
+        sanitizedEvidenceBundleManifestSha256=sanitized_bundle[
+            "sanitizedEvidenceBundleManifestSha256"
+        ],
+        sanitizedEvidenceBundleManifestRawSha256=sanitized_bundle_raw,
+        sanitizedEvidenceContentRootSha256=sanitized_bundle[
+            "contentRootSha256"
+        ],
+        recipeId=candidate["recipeId"],
+        selectedRecipeSha256=fixture["candidateManifest"]["recipes"][
+            "selectedRecipeSha256"
+        ],
+        artifactOrder=[
+            row["anonymousArtifactId"] for row in candidate["artifactBindings"]
+        ],
+        promptTemplateSha256=candidate["provenance"]["promptTemplateSha256"],
+        judgmentSchemaSha256=candidate["provenance"]["judgmentSchemaSha256"],
+        rubricSha256=candidate["provenance"]["rubricSha256"],
+        model=candidate["provenance"]["model"],
+        reasoningEffort=candidate["provenance"]["reasoningEffort"],
+    )
+    for judgment in fixture["judgments"]:
+        judgment["judgeInputSha256"] = candidate_judge_input["judgeInputSha256"]
+    for judgment, path in zip(fixture["judgments"], fixture["judgmentPaths"]):
+        write_json(path, judgment)
+    for slot in fixture["judgePanel"]["slots"]:
+        slot["judgeInputSha256"] = candidate_judge_input["judgeInputSha256"]
+
+    verification_path = directory / "verification-input.json"
+    observations = [
+        {
+            "observationId": observation_id,
+            "claim": f"Synthetic scoring-core claim {observation_id}.",
+            "citedSources": [{
+                "anonymousArtifactId": "ARTIFACT-A",
+                "artifactId": "frame-fixture",
+                "locator": "fixture/frame-fixture.png",
+            }],
+        }
+        for observation_id in candidate["expectedObservationIds"]
+    ]
+    verification, verification_raw = _make_synthetic_envelope(
+        verification_path,
+        aggregator.VERIFICATION_INPUT_SCHEMA,
+        "verificationInputSha256",
+        observations=observations,
+    )
+    candidate["verificationInputSha256"] = verification["verificationInputSha256"]
+    fixture["verifier"]["verificationInputSha256"] = verification[
+        "verificationInputSha256"
+    ]
+    fixture["verifier"]["evidenceSetSha256"] = evidence_sha
+
+    story_path = directory / "story-manifest.json"
+    write_json(story_path, {"fixture": True})
+
+    evaluation["goldBindings"] = {
+        "bindingManifestSha256": gold["goldBindingManifestSha256"],
+        "prefixCount": 12,
+        "checkpointCount": 49,
+        "applicableBindingCount": 56,
+        "boundBindingCount": 56,
+        "notApplicableBindingCount": 5,
+        "allApplicableBindingsExact": True,
+        "e09NorthBankTwoProcessWitness": True,
+        "bindingRequired": True,
+        "derivedReady": True,
+    }
+    artifacts.update({
+        "actorTraceSha256": [row["actorTraceSha256"] for row in actor_traces],
+        "actorTraceRawSha256": actor_trace_raw,
+        "recordingManifestSha256": [
+            row["recordingManifestSha256"] for row in recording_values[:3]
+        ],
+        "recordingManifestRawSha256": recording_raw[:3],
+        "coverageRecordingManifestSha256": coverage_recording[
+            "recordingManifestSha256"
+        ],
+        "coverageRecordingManifestRawSha256": coverage_recording_raw,
+        "coverageActionLedgerSha256": coverage_action_ledger[
+            "coverageActionLedgerSha256"
+        ],
+        "coverageActionLedgerRawSha256": coverage_action_ledger_raw,
+        "anonymizationManifestSha256": anonymization[
+            "anonymizationManifestSha256"
+        ],
+        "anonymizationManifestRawSha256": anonymization_raw,
+        "evidenceSetRawSha256": evidence_raw,
+        "sanitizedEvidenceBundleManifestSha256": sanitized_bundle[
+            "sanitizedEvidenceBundleManifestSha256"
+        ],
+        "sanitizedEvidenceBundleManifestRawSha256": sanitized_bundle_raw,
+        "sanitizedEvidenceContentRootSha256": sanitized_bundle[
+            "contentRootSha256"
+        ],
+        "verificationInputSha256": verification["verificationInputSha256"],
+        "verificationInputRawSha256": verification_raw,
+        "candidateJudgeInputSha256": candidate_judge_input["judgeInputSha256"],
+        "candidateJudgeInputRawSha256": candidate_judge_input_raw,
+        "goldBindingManifestSha256": gold["goldBindingManifestSha256"],
+        "goldBindingManifestRawSha256": gold_raw,
+        "holdoutConsumptionReceiptSha256": receipt[
+            "holdoutConsumptionReceiptSha256"
+        ],
+        "holdoutConsumptionReceiptRawSha256": receipt_raw,
+    })
+
+    candidate["provenance"].update({
+        "coldActorResponseSha256": [
+            row["coldActorResponseSha256"] for row in cold_actor_responses
+        ],
+        "coldActorResponseRawSha256": cold_actor_response_raw,
+        "holdoutConsumptionReceiptSha256": receipt[
+            "holdoutConsumptionReceiptSha256"
+        ],
+        "holdoutConsumptionReceiptRawSha256": receipt_raw,
+        "goldBindingManifestSha256": gold["goldBindingManifestSha256"],
+        "goldBindingManifestRawSha256": gold_raw,
+        "anonymizationManifestSha256": anonymization[
+            "anonymizationManifestSha256"
+        ],
+        "anonymizationManifestRawSha256": anonymization_raw,
+        "evidenceSetSha256": evidence_sha,
+        "evidenceSetRawSha256": evidence_raw,
+        "sanitizedEvidenceBundleManifestSha256": sanitized_bundle[
+            "sanitizedEvidenceBundleManifestSha256"
+        ],
+        "sanitizedEvidenceBundleManifestRawSha256": sanitized_bundle_raw,
+        "sanitizedEvidenceContentRootSha256": sanitized_bundle[
+            "contentRootSha256"
+        ],
+        "coverageActionLedgerSha256": coverage_action_ledger[
+            "coverageActionLedgerSha256"
+        ],
+        "coverageActionLedgerRawSha256": coverage_action_ledger_raw,
+        "verificationInputRawSha256": verification_raw,
+        "candidateJudgeInputSha256": candidate_judge_input["judgeInputSha256"],
+        "candidateJudgeInputRawSha256": candidate_judge_input_raw,
+    })
+
+    ledger = fixture["ledger"]
+    ledger.update({
+        "holdoutConsumptionReceiptSha256": receipt[
+            "holdoutConsumptionReceiptSha256"
+        ],
+        "goldBindingManifestSha256": gold["goldBindingManifestSha256"],
+        "coldActorResponseSha256": [
+            row["coldActorResponseSha256"] for row in cold_actor_responses
+        ],
+        "coldActorResponseRawSha256": cold_actor_response_raw,
+        "actorTraceSha256": [row["actorTraceSha256"] for row in actor_traces],
+        "coverageActionLedgerSha256": coverage_action_ledger[
+            "coverageActionLedgerSha256"
+        ],
+        "coverageArtifactId": coverage_trace["coverageArtifactId"],
+        "recordingManifestSha256": [
+            *[row["recordingManifestSha256"] for row in recording_values[:3]],
+            coverage_recording["recordingManifestSha256"],
+        ],
+        "anonymizationManifestSha256": anonymization[
+            "anonymizationManifestSha256"
+        ],
+        "verificationInputSha256": verification["verificationInputSha256"],
+        "evidenceSetSha256": evidence_sha,
+        "sanitizedEvidenceBundleManifestSha256": sanitized_bundle[
+            "sanitizedEvidenceBundleManifestSha256"
+        ],
+        "sanitizedEvidenceContentRootSha256": sanitized_bundle[
+            "contentRootSha256"
+        ],
+        "candidateJudgeInputSha256": candidate_judge_input["judgeInputSha256"],
+        "contractBindingsSha256": native_file_sha("contract-bindings.json"),
+        "canonicalHashPolicySha256": native_file_sha("canonical-hash-policy.json"),
+        "goldStateContractSha256": native_file_sha("gold-state-manifest.json"),
+        "coverageRecipeSha256": native_file_sha("coverage-recipe.json"),
+        "conceptManifestSha256": native_file_sha(
+            "concept-exposure-manifest.json"
+        ),
+        "nativeAggregatorSha256": aggregator.file_sha256(
+            AGGREGATOR_PATH,
+            "native aggregator",
+        ),
+        "contractValidatorSha256": native_file_sha("validate-contract.py"),
+        "goldValidatorSha256": native_file_sha("validate-gold-state.py"),
+    })
+
+    fixture.update({
+        "actorTraces": actor_traces,
+        "actorTracePaths": actor_trace_paths,
+        "recordingManifests": recording_values,
+        "recordingManifestPaths": recording_paths,
+        "verificationInput": verification,
+        "verificationInputPath": verification_path,
+        "goldBinding": gold,
+        "goldBindingPath": gold_path,
+        "holdoutReceipt": receipt,
+        "holdoutReceiptPath": receipt_path,
+        "registryBeforePath": registry_before_path,
+        "registryAfterPath": registry_path,
+        "anonymizationManifest": anonymization,
+        "anonymizationManifestPath": anonymization_path,
+        "coverageActionLedger": coverage_action_ledger,
+        "coverageActionLedgerPath": coverage_action_ledger_path,
+        "sanitizedEvidenceBundleManifest": sanitized_bundle,
+        "sanitizedEvidenceBundleManifestPath": sanitized_bundle_path,
+        "candidateJudgeInput": candidate_judge_input,
+        "candidateJudgeInputPath": candidate_judge_input_path,
+        "storyManifestPath": story_path,
+        "coldActorResponses": cold_actor_responses,
+        "coldActorResponsePaths": cold_actor_response_paths,
+    })
+
+
+def make_fixture(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    fixture = _legacy_make_fixture(*args, **kwargs)
+    _upgrade_synthetic_runtime_fixture(fixture)
+    refresh_fixture_authorities(fixture, None)
+    return fixture
+
+
+def refresh_fixture_authorities(
+    fixture: dict[str, Any],
+    replacement_for: Path | None,
+    *,
+    retry_reason: str | None = None,
+    retry_slots: tuple[str, ...] | None = None,
+) -> None:
+    _legacy_refresh_fixture_authorities(
+        fixture,
+        replacement_for,
+        retry_reason=retry_reason,
+        retry_slots=retry_slots,
+    )
+    candidate = fixture["candidate"]
+    provenance = candidate["provenance"]
+    if replacement_for is not None:
+        initial = json.loads(replacement_for.read_text())
+        for field in (
+            "holdoutConsumptionReceiptSha256",
+            "holdoutConsumptionReceiptRawSha256",
+            "goldBindingManifestSha256",
+            "goldBindingManifestRawSha256",
+        ):
+            provenance[field] = initial["provenance"][field]
+    verification = fixture["verificationInput"]
+    verification["observations"] = [
+        {
+            "observationId": observation_id,
+            "claim": f"Synthetic scoring-core claim {observation_id}.",
+            "citedSources": [{
+                "anonymousArtifactId": "ARTIFACT-A",
+                "artifactId": "frame-fixture",
+                "locator": "fixture/frame-fixture.png",
+            }],
+        }
+        for observation_id in candidate["expectedObservationIds"]
+    ]
+    verification_self, verification_raw = write_self_hashed_json(
+        fixture["verificationInputPath"],
+        verification,
+        "verificationInputSha256",
+    )
+    candidate["verificationInputSha256"] = verification_self
+    verifier = fixture["verifier"]
+    verifier["verificationInputSha256"] = verification_self
+    verifier_raw = write_json(fixture["verifierPath"], verifier)
+    provenance["verificationOutputSha256"] = verifier_raw
+    ledger = fixture["ledger"]
+    ledger["verificationInputSha256"] = verification_self
+    ledger["verificationOutputSha256"] = verifier_raw
+    ledger["contractBindingsSha256"] = native_file_sha("contract-bindings.json")
+    ledger_raw = write_json(fixture["ledgerPath"], ledger)
+    provenance["oracleHardGateLedgerSha256"] = ledger_raw
+    evaluation = fixture["evaluationRun"]
+    evaluation["artifacts"].update({
+        "verificationInputSha256": verification_self,
+        "verificationInputRawSha256": verification_raw,
+        "verificationOutputSha256": verifier_raw,
+        "oracleHardGateLedgerSha256": ledger_raw,
+    })
+    evaluation_self, evaluation_raw = write_self_hashed_json(
+        fixture["evaluationRunPath"],
+        evaluation,
+        "evaluationRunManifestSha256",
+    )
+    provenance["evaluationRunManifestSha256"] = evaluation_self
+    provenance["evaluationRunManifestRawSha256"] = evaluation_raw
+    write_json(fixture["candidatePath"], candidate)
+
+
+def _synthetic_full_authority_patches(fixture: dict[str, Any], *, patch_preflight: bool):
+    stack = contextlib.ExitStack()
+    real_envelope = aggregator.validate_self_hashed_envelope
+    directory = fixture["directory"]
+    shared_names = ("initial", "replacement", "corrected")
+    authority_parent = (
+        directory.parent
+        if directory.name.startswith(shared_names)
+        else directory
+    )
+    synthetic_authority_root = (
+        authority_parent / ".commercial-ux-authority"
+    ).resolve(strict=False)
+
+    def envelope(value: Any, raw_bytes: bytes, **kwargs: Any) -> dict[str, Any]:
+        label = kwargs.get("label", "")
+        if label.startswith((
+            "candidate gold binding", "native evidence verification input",
+            "actor trace", "recording manifest", "coverage action ledger",
+            "anonymization manifest", "evidence set",
+            "sanitized evidence bundle manifest",
+            "candidate judge input",
+        )):
+            field = kwargs["self_field"]
+            return {
+                "value": value,
+                "selfSha256": value[field],
+                "rawSha256": aggregator.bytes_sha256(raw_bytes),
+            }
+        return real_envelope(value, raw_bytes, **kwargs)
+
+    def holdout(value: Any, raw_bytes: bytes, *_args: Any) -> dict[str, Any]:
+        return {
+            "value": value,
+            "selfSha256": value["holdoutConsumptionReceiptSha256"],
+            "rawSha256": aggregator.bytes_sha256(raw_bytes),
+        }
+
+    def gold(
+        value: Any,
+        raw_bytes: bytes,
+        *_args: Any,
+        **_kwargs: Any,
+    ) -> dict[str, Any]:
+        return {
+            "value": value,
+            "selfSha256": value["goldBindingManifestSha256"],
+            "rawSha256": aggregator.bytes_sha256(raw_bytes),
+            "derivedReady": True,
+        }
+
+    def actor_traces(_inputs: Any, actor_rows: Any, *_args: Any) -> list[dict[str, Any]]:
+        return [
+            {
+                "value": fixture["actorTraces"][slot],
+                "selfSha256": fixture["actorTraces"][slot]["actorTraceSha256"],
+                "rawSha256": aggregator.file_sha256(
+                    fixture["actorTracePaths"][slot], "synthetic actor trace"
+                ),
+                "slot": slot,
+                "actor": actor_rows[slot],
+            }
+            for slot in range(3)
+        ]
+
+    def coverage(value: Any, raw_bytes: bytes, *_args: Any) -> dict[str, Any]:
+        return {
+            "value": value,
+            "selfSha256": value["coverageArtifactId"],
+            "rawSha256": aggregator.bytes_sha256(raw_bytes),
+        }
+
+    def anonymization(value: Any, raw_bytes: bytes, *_args: Any) -> dict[str, Any]:
+        return {
+            "value": value,
+            "selfSha256": value["anonymizationManifestSha256"],
+            "rawSha256": aggregator.bytes_sha256(raw_bytes),
+        }
+
+    def evidence(value: Any, raw_bytes: bytes, candidate: Any, *_args: Any) -> dict[str, Any]:
+        actor_rows = _args[2]
+        return {
+            "value": value,
+            "selfSha256": value["evidenceSetSha256"],
+            "rawSha256": aggregator.bytes_sha256(raw_bytes),
+            "artifactsById": {
+                row["anonymousArtifactId"]: row for row in value["artifacts"]
+            },
+            "actorAuthoritiesByAnonymousId": {
+                f"ARTIFACT-{chr(ord('A') + slot)}": actor_rows[slot]
+                for slot in range(3)
+            },
+        }
+
+    def verification(value: Any, raw_bytes: bytes, *_args: Any) -> dict[str, Any]:
+        return {
+            "value": value,
+            "selfSha256": value["verificationInputSha256"],
+            "rawSha256": aggregator.bytes_sha256(raw_bytes),
+            "observations": value["observations"],
+        }
+
+    def evaluation(value: Any, raw_bytes: bytes, *_args: Any, **_kwargs: Any) -> dict[str, Any]:
+        return {
+            "value": value,
+            "selfSha256": value["evaluationRunManifestSha256"],
+            "rawSha256": aggregator.bytes_sha256(raw_bytes),
+        }
+
+    def coverage_ledger(envelope: Any, *_args: Any) -> dict[str, Any]:
+        return envelope
+
+    def sanitized(envelope: Any, *_args: Any) -> dict[str, Any]:
+        return envelope
+
+    def candidate_judge_input(envelope: Any, *_args: Any) -> dict[str, Any]:
+        return envelope
+
+    stack.enter_context(mock.patch.object(aggregator, "validate_self_hashed_envelope", side_effect=envelope))
+    stack.enter_context(mock.patch.object(
+        aggregator,
+        "_commercial_ux_authority_root",
+        return_value=synthetic_authority_root,
+    ))
+    stack.enter_context(mock.patch.object(aggregator, "validate_candidate_authority_hashes"))
+    stack.enter_context(mock.patch.object(aggregator, "validate_candidate_execution_authority"))
+    stack.enter_context(mock.patch.object(aggregator, "validate_runtime_contract_authority"))
+    if patch_preflight:
+        stack.enter_context(mock.patch.object(aggregator, "validate_official_score_bearing_preflight"))
+    stack.enter_context(mock.patch.object(aggregator, "validate_holdout_consumption_authority", side_effect=holdout))
+    stack.enter_context(mock.patch.object(aggregator, "validate_gold_binding_authority", side_effect=gold))
+    stack.enter_context(mock.patch.object(aggregator, "validate_evaluation_run_authority", side_effect=evaluation))
+    stack.enter_context(mock.patch.object(aggregator, "validate_required_cold_probes"))
+    stack.enter_context(mock.patch.object(aggregator, "validate_actor_trace_authorities", side_effect=actor_traces))
+    stack.enter_context(mock.patch.object(aggregator, "validate_coverage_trace_authority", side_effect=coverage))
+    stack.enter_context(mock.patch.object(aggregator, "validate_coverage_action_ledger_authority", side_effect=coverage_ledger))
+    stack.enter_context(mock.patch.object(aggregator, "validate_recording_manifest_authorities", return_value={}))
+    stack.enter_context(mock.patch.object(aggregator, "validate_anonymization_authority", side_effect=anonymization))
+    stack.enter_context(mock.patch.object(aggregator, "validate_evidence_set_authority", side_effect=evidence))
+    stack.enter_context(mock.patch.object(aggregator, "validate_verification_input_authority", side_effect=verification))
+    stack.enter_context(mock.patch.object(aggregator, "validate_sanitized_evidence_bundle_authority", side_effect=sanitized))
+    stack.enter_context(mock.patch.object(aggregator, "validate_candidate_judge_input_authority", side_effect=candidate_judge_input))
+    return stack
+
+
 def aggregate_fixture(
     fixture: dict[str, Any],
     *,
@@ -1253,6 +2029,7 @@ def aggregate_fixture(
     retry_reason: str | None = None,
     retry_slots: tuple[str, ...] | None = None,
     refresh_authorities: bool = True,
+    patch_preflight: bool = True,
 ) -> dict[str, Any]:
     if refresh_authorities:
         refresh_fixture_authorities(
@@ -1261,28 +2038,124 @@ def aggregate_fixture(
             retry_reason=retry_reason,
             retry_slots=retry_slots,
         )
-    return aggregator.aggregate_to_path(
-        fixture["judgmentPaths"],
-        fixture["verifierPath"],
-        fixture["ledgerPath"],
-        fixture["candidatePath"],
-        fixture["candidateManifestPath"],
-        fixture["qualificationReceiptPath"],
-        fixture["judgePanelPath"],
-        fixture["evaluationRunPath"],
-        fixture["actorObservationPaths"],
-        fixture["coverageTracePath"],
-        fixture["evidenceSetPath"],
-        fixture["rubricPath"],
-        fixture["directory"] / output_name,
-        replacement_for,
-    )
+    with _synthetic_full_authority_patches(
+        fixture,
+        patch_preflight=patch_preflight,
+    ):
+        return aggregator.aggregate_to_path(
+            fixture["judgmentPaths"],
+            fixture["verifierPath"],
+            fixture["ledgerPath"],
+            fixture["candidatePath"],
+            fixture["candidateManifestPath"],
+            fixture["qualificationReceiptPath"],
+            fixture["judgePanelPath"],
+            fixture["evaluationRunPath"],
+            fixture["actorObservationPaths"],
+            fixture["coverageTracePath"],
+            fixture["evidenceSetPath"],
+            fixture["rubricPath"],
+            fixture["directory"] / output_name,
+            replacement_for,
+            verification_input_path=fixture["verificationInputPath"],
+            cold_actor_response_paths=fixture["coldActorResponsePaths"],
+            actor_trace_paths=fixture["actorTracePaths"],
+            gold_binding_path=fixture["goldBindingPath"],
+            holdout_consumption_receipt_path=fixture["holdoutReceiptPath"],
+            holdout_registry_before_path=fixture["registryBeforePath"],
+            holdout_registry_after_path=fixture["registryAfterPath"],
+            anonymization_manifest_path=fixture["anonymizationManifestPath"],
+            story_manifest_path=fixture["storyManifestPath"],
+            recording_manifest_paths=fixture["recordingManifestPaths"],
+            coverage_action_ledger_path=fixture["coverageActionLedgerPath"],
+            sanitized_evidence_bundle_manifest_path=(
+                fixture["sanitizedEvidenceBundleManifestPath"]
+            ),
+            candidate_judge_input_path=fixture["candidateJudgeInputPath"],
+        )
 
 
 def actor_inputs_for_authority_test(
     fixture: dict[str, Any],
     observations: list[dict[str, Any]],
-) -> tuple[list[tuple[dict[str, Any], bytes]], dict[str, Any]]:
+) -> tuple[
+    list[tuple[dict[str, Any], bytes]],
+    dict[str, Any],
+    list[dict[str, Any]],
+]:
+    evaluation = copy.deepcopy(fixture["evaluationRun"])
+    response_inputs: list[tuple[dict[str, Any], bytes]] = []
+    response_self_shas: list[str] = []
+    response_raw_shas: list[str] = []
+    for base_response, observation in zip(
+        fixture["coldActorResponses"],
+        observations,
+    ):
+        response = copy.deepcopy(base_response)
+        for field in (
+            "actorRunId",
+            "actorSlot",
+            "model",
+            "reasoningEffort",
+            "objective",
+            "terminalState",
+            "terminalIncidentOrdinal",
+        ):
+            response[field] = observation[field]
+        response["firstUseRecords"] = [
+            {
+                field: row[field]
+                for field in (
+                    "firstUseOrdinal",
+                    "probeId",
+                    "currentGoal",
+                    "expectedVisibleConsequence",
+                    "citedVisibleSourceDescription",
+                )
+            }
+            for row in observation["firstUseRecords"]
+        ]
+        response["approvalRecords"] = [
+            {
+                field: row[field]
+                for field in (
+                    "approvalOrdinal",
+                    "predictionImmediatelyBeforeApproval",
+                    "observedResult",
+                    "causalAccount",
+                )
+            }
+            for row in observation["approvalRecords"]
+        ]
+        response["incidents"] = [
+            {
+                field: row[field]
+                for field in (
+                    "incidentOrdinal",
+                    "incidentType",
+                    "confusionBoundary",
+                    "severity",
+                    "description",
+                )
+            }
+            for row in observation["incidents"]
+        ]
+        response["coldActorResponseSha256"] = aggregator.self_sha256(
+            response,
+            "coldActorResponseSha256",
+            "cold actor response fixture",
+        )
+        response_raw = (
+            json.dumps(response, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8")
+            + b"\n"
+        )
+        response_raw_sha = aggregator.bytes_sha256(response_raw)
+        observation["coldActorResponseSha256"] = response["coldActorResponseSha256"]
+        observation["coldActorResponseRawSha256"] = response_raw_sha
+        response_inputs.append((response, response_raw))
+        response_self_shas.append(response["coldActorResponseSha256"])
+        response_raw_shas.append(response_raw_sha)
+
     inputs: list[tuple[dict[str, Any], bytes]] = []
     raw_shas: list[str] = []
     for observation in observations:
@@ -1292,11 +2165,16 @@ def actor_inputs_for_authority_test(
         )
         inputs.append((observation, raw_bytes))
         raw_shas.append(aggregator.bytes_sha256(raw_bytes))
-    evaluation = copy.deepcopy(fixture["evaluationRun"])
     evaluation["artifacts"]["actorObservationRawSha256"] = raw_shas
+    evaluation["artifacts"]["coldActorResponseSha256"] = response_self_shas
+    evaluation["artifacts"]["coldActorResponseRawSha256"] = response_raw_shas
     for index, raw_sha in enumerate(raw_shas):
         evaluation["terminalStates"][index]["actorObservationRawSha256"] = raw_sha
-    return inputs, evaluation
+    responses = aggregator.validate_cold_actor_response_authorities(
+        response_inputs,
+        evaluation,
+    )
+    return inputs, evaluation, responses
 
 
 def rebind_evaluation_fixture(fixture: dict[str, Any]) -> None:
@@ -1311,6 +2189,733 @@ def rebind_evaluation_fixture(fixture: dict[str, Any]) -> None:
 
 
 class NativeAggregateTests(unittest.TestCase):
+    def test_official_scoring_rejects_checked_in_blocked_pre_capture_contract(self) -> None:
+        """Self-declared gold/oracle readiness cannot bypass the frozen block."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = make_fixture(
+                Path(raw),
+                labeler=constant_label("EXCELLENT"),
+                score_bearing_ready=True,
+            )
+            with self.assertRaisesRegex(
+                aggregator.ValidationFailure,
+                "BLOCKED_PRE_CAPTURE|score-bearing capture",
+            ):
+                aggregate_fixture(fixture, patch_preflight=False)
+
+    def test_candidate_execution_identity_is_recomputed_from_component_bytes(self) -> None:
+        """A resealed manifest cannot preserve a declared execution identity after byte drift."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw).resolve()
+            components = {
+                "godotExecutable": directory / "godot",
+                "managedAssembly": directory / "Gridworks.dll",
+                "pckResourceManifest": directory / "resources.json",
+            }
+            for name, path in components.items():
+                path.write_bytes(f"exact-{name}".encode("utf-8"))
+            execution = {
+                "godotExecutablePath": str(components["godotExecutable"]),
+                "godotExecutableSha256": aggregator.file_sha256(
+                    components["godotExecutable"], "test Godot executable"
+                ),
+                "managedAssemblyPath": str(components["managedAssembly"]),
+                "managedAssemblySha256": aggregator.file_sha256(
+                    components["managedAssembly"], "test managed assembly"
+                ),
+                "pckResourceManifestPath": str(components["pckResourceManifest"]),
+                "pckResourceManifestSha256": aggregator.file_sha256(
+                    components["pckResourceManifest"], "test PCK manifest"
+                ),
+                "packagePath": None,
+                "packageSha256": None,
+                "packageStatus": "EDITOR_NATIVE_NOT_PUBLIC_PACKAGE",
+            }
+            execution["executionArtifactSha256"] = aggregator.canonical_sha256({
+                "godotExecutableSha256": execution["godotExecutableSha256"],
+                "managedAssemblySha256": execution["managedAssemblySha256"],
+                "pckResourceManifestSha256": execution[
+                    "pckResourceManifestSha256"
+                ],
+                "packageSha256": None,
+                "packageStatus": execution["packageStatus"],
+            })
+            manifest = {"execution": execution}
+            aggregator.validate_candidate_execution_authority(manifest)
+            components["managedAssembly"].write_bytes(b"mutated-assembly")
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "managedAssemblySha256 raw SHA mismatch",
+            ):
+                aggregator.validate_candidate_execution_authority(manifest)
+
+    def test_runtime_contract_preflight_receives_the_complete_runtime_dag(self) -> None:
+        """Production preflight cannot silently fall back to checked-in booleans."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            paths = [directory / f"authority-{index}.json" for index in range(6)]
+            raw_inputs = [f'{{"row":{index}}}\n'.encode() for index in range(6)]
+            captured: dict[str, Any] = {}
+
+            def validate_exact(_native, _rubric, **kwargs):
+                captured.update(kwargs)
+                return [], {
+                    "status": "PASS",
+                    "observedRawSha256": {
+                        "candidateManifestRawSha256": aggregator.bytes_sha256(
+                            kwargs["candidate_manifest_bytes"]
+                        ),
+                        "qualificationReceiptRawSha256": aggregator.bytes_sha256(
+                            kwargs["qualification_receipt_bytes"]
+                        ),
+                        "goldBindingManifestRawSha256": aggregator.bytes_sha256(
+                            kwargs["gold_binding_manifest_bytes"]
+                        ),
+                        "holdoutConsumptionReceiptRawSha256": aggregator.bytes_sha256(
+                            kwargs["holdout_consumption_receipt_bytes"]
+                        ),
+                        "registryBeforeRawSha256": aggregator.bytes_sha256(
+                            kwargs["registry_before_bytes"]
+                        ),
+                        "registryAfterRawSha256": aggregator.bytes_sha256(
+                            kwargs["registry_after_bytes"]
+                        ),
+                    },
+                }
+
+            validator = mock.Mock(
+                validate_runtime_contract_bytes=validate_exact,
+            )
+            with mock.patch.object(
+                aggregator,
+                "_load_exact_validator",
+                return_value=validator,
+            ):
+                aggregator.validate_runtime_contract_authority(
+                    *paths,
+                    candidate_manifest_raw_bytes=raw_inputs[0],
+                    qualification_receipt_raw_bytes=raw_inputs[1],
+                    gold_binding_raw_bytes=raw_inputs[2],
+                    holdout_consumption_receipt_raw_bytes=raw_inputs[3],
+                    holdout_registry_before_raw_bytes=raw_inputs[4],
+                    holdout_registry_after_raw_bytes=raw_inputs[5],
+                )
+            byte_fields = (
+                "candidate_manifest_bytes",
+                "qualification_receipt_bytes",
+                "gold_binding_manifest_bytes",
+                "holdout_consumption_receipt_bytes",
+                "registry_before_bytes",
+                "registry_after_bytes",
+            )
+            path_fields = (
+                "candidate_manifest_path_label",
+                "qualification_receipt_path_label",
+                "gold_binding_manifest_path_label",
+                "holdout_consumption_receipt_path_label",
+                "registry_before_path_label",
+                "registry_after_path_label",
+            )
+            for field, expected in zip(byte_fields, raw_inputs):
+                self.assertEqual(captured[field], expected)
+            for field, path in zip(path_fields, paths):
+                self.assertEqual(captured[field], path.resolve(strict=False))
+
+    def test_shared_validators_freeze_relative_paths_before_changing_cwd(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            caller = Path(raw).resolve()
+            relative_paths = [Path(f"authority-{index}.json") for index in range(6)]
+            raw_inputs = [f'{{"row":{index}}}'.encode() for index in range(6)]
+            captured: dict[str, Any] = {}
+
+            def validate_exact(_native, _rubric, **kwargs):
+                captured.update(kwargs)
+                return [], {
+                    "status": "PASS",
+                    "observedRawSha256": {
+                        "candidateManifestRawSha256": aggregator.bytes_sha256(raw_inputs[0]),
+                        "qualificationReceiptRawSha256": aggregator.bytes_sha256(raw_inputs[1]),
+                        "goldBindingManifestRawSha256": aggregator.bytes_sha256(raw_inputs[2]),
+                        "holdoutConsumptionReceiptRawSha256": aggregator.bytes_sha256(raw_inputs[3]),
+                        "registryBeforeRawSha256": aggregator.bytes_sha256(raw_inputs[4]),
+                        "registryAfterRawSha256": aggregator.bytes_sha256(raw_inputs[5]),
+                    },
+                }
+
+            prior_cwd = Path.cwd()
+            try:
+                os.chdir(caller)
+                with mock.patch.object(
+                    aggregator,
+                    "_load_exact_validator",
+                    return_value=mock.Mock(
+                        validate_runtime_contract_bytes=validate_exact,
+                    ),
+                ):
+                    aggregator.validate_runtime_contract_authority(
+                        *relative_paths,
+                        candidate_manifest_raw_bytes=raw_inputs[0],
+                        qualification_receipt_raw_bytes=raw_inputs[1],
+                        gold_binding_raw_bytes=raw_inputs[2],
+                        holdout_consumption_receipt_raw_bytes=raw_inputs[3],
+                        holdout_registry_before_raw_bytes=raw_inputs[4],
+                        holdout_registry_after_raw_bytes=raw_inputs[5],
+                    )
+            finally:
+                os.chdir(prior_cwd)
+            labels = [
+                captured[field]
+                for field in (
+                    "candidate_manifest_path_label",
+                    "qualification_receipt_path_label",
+                    "gold_binding_manifest_path_label",
+                    "holdout_consumption_receipt_path_label",
+                    "registry_before_path_label",
+                    "registry_after_path_label",
+                )
+            ]
+            self.assertEqual(
+                labels,
+                [(caller / path).resolve(strict=False) for path in relative_paths],
+            )
+
+    def test_exact_validator_observed_raw_sha_cannot_be_substituted(self) -> None:
+        paths = [Path(f"/tmp/exact-authority-{index}.json") for index in range(6)]
+        raw_inputs = [f'{{"row":{index}}}'.encode() for index in range(6)]
+        wrong_contract_observed = {
+            "candidateManifestRawSha256": identity_sha("wrong-candidate"),
+            "qualificationReceiptRawSha256": aggregator.bytes_sha256(raw_inputs[1]),
+            "goldBindingManifestRawSha256": aggregator.bytes_sha256(raw_inputs[2]),
+            "holdoutConsumptionReceiptRawSha256": aggregator.bytes_sha256(raw_inputs[3]),
+            "registryBeforeRawSha256": aggregator.bytes_sha256(raw_inputs[4]),
+            "registryAfterRawSha256": aggregator.bytes_sha256(raw_inputs[5]),
+        }
+        with mock.patch.object(
+            aggregator,
+            "_load_exact_validator",
+            return_value=mock.Mock(
+                validate_runtime_contract_bytes=mock.Mock(
+                    return_value=([], {
+                        "status": "PASS",
+                        "observedRawSha256": wrong_contract_observed,
+                    })
+                ),
+            ),
+        ), self.assertRaisesRegex(
+            aggregator.ProvenanceFailure,
+            "observed raw SHA projection mismatch",
+        ):
+            aggregator.validate_runtime_contract_authority(
+                *paths,
+                candidate_manifest_raw_bytes=raw_inputs[0],
+                qualification_receipt_raw_bytes=raw_inputs[1],
+                gold_binding_raw_bytes=raw_inputs[2],
+                holdout_consumption_receipt_raw_bytes=raw_inputs[3],
+                holdout_registry_before_raw_bytes=raw_inputs[4],
+                holdout_registry_after_raw_bytes=raw_inputs[5],
+            )
+
+        candidate_raw, binding_raw, story_raw = raw_inputs[:3]
+        with mock.patch.object(
+            aggregator,
+            "_load_exact_validator",
+            return_value=mock.Mock(
+                validate_exact_inputs=mock.Mock(
+                    return_value=([], {
+                        "scoreBearingReady": True,
+                        "observedRawSha256": {
+                            "goldStateManifestRawSha256": aggregator.file_sha256(
+                                aggregator.GOLD_STATE_MANIFEST_PATH,
+                                "test checked-in gold-state manifest",
+                            ),
+                            "candidateManifestRawSha256": aggregator.bytes_sha256(candidate_raw),
+                            "goldBindingManifestRawSha256": aggregator.bytes_sha256(binding_raw),
+                            "storyManifestRawSha256": aggregator.bytes_sha256(story_raw),
+                            "unexpectedRawSha256": identity_sha("unexpected"),
+                        },
+                    })
+                ),
+            ),
+        ), self.assertRaisesRegex(
+            aggregator.ProvenanceFailure,
+            "observed raw SHA projection mismatch",
+        ):
+            aggregator.validate_gold_state_score_ready_authority(
+                paths[0],
+                paths[2],
+                candidate_manifest_raw_bytes=candidate_raw,
+                gold_binding_raw_bytes=binding_raw,
+                story_manifest_raw_bytes=story_raw,
+                require_score_ready=True,
+            )
+
+    def test_semantic_preflights_use_the_current_absolute_interpreter(self) -> None:
+        completed_json = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=json.dumps({"status": "PASS"}),
+            stderr="",
+        )
+        ready_contract = {
+            "toolBindingPolicy": {
+                "scoreBearingCaptureAllowed": True,
+                "currentlyUnboundProducerStages": [],
+            }
+        }
+        frozen_gold = {
+            "candidateIndependent": True,
+            "bindingComplete": False,
+            "scoreBearingCaptureAllowed": False,
+        }
+        with mock.patch.object(
+            aggregator,
+            "read_json_bytes",
+            side_effect=[(ready_contract, b"{}"), (frozen_gold, b"{}")],
+        ), mock.patch.object(
+            aggregator.subprocess,
+            "run",
+            return_value=completed_json,
+        ) as run:
+            aggregator.validate_official_score_bearing_preflight(
+                {"recipeId": "HOLDOUT-01"}
+            )
+        self.assertEqual(run.call_args.args[0][0], sys.executable)
+
+        candidate_raw = b'{"candidate":"exact"}\n'
+        binding_raw = b'{"binding":"exact"}\n'
+        story_raw = b'{"story":"exact"}\n'
+        captured: dict[str, Any] = {}
+
+        def validate_gold_exact(_root, _manifest, story, _run, candidate, binding, _required, **_labels):
+            captured.update({"story": story, "candidate": candidate, "binding": binding})
+            return [], {
+                "scoreBearingReady": True,
+                "observedRawSha256": {
+                    "goldStateManifestRawSha256": aggregator.file_sha256(
+                        aggregator.GOLD_STATE_MANIFEST_PATH,
+                        "test checked-in gold-state manifest",
+                    ),
+                    "candidateManifestRawSha256": aggregator.bytes_sha256(candidate),
+                    "goldBindingManifestRawSha256": aggregator.bytes_sha256(binding),
+                    "storyManifestRawSha256": aggregator.bytes_sha256(story),
+                },
+            }
+
+        with mock.patch.object(
+            aggregator,
+            "_load_exact_validator",
+            return_value=mock.Mock(validate_exact_inputs=validate_gold_exact),
+        ):
+            aggregator.validate_gold_state_score_ready_authority(
+                Path("candidate.json"),
+                Path("gold.json"),
+                candidate_manifest_raw_bytes=candidate_raw,
+                gold_binding_raw_bytes=binding_raw,
+                story_manifest_raw_bytes=story_raw,
+                require_score_ready=True,
+            )
+        self.assertEqual(
+            captured,
+            {"story": story_raw, "candidate": candidate_raw, "binding": binding_raw},
+        )
+
+    def test_shared_gold_validator_rejects_e09_geometry_mutation(self) -> None:
+        """Aggregate gold readiness delegates to the full raw-bundle/E09 validator."""
+
+        test_path = aggregator.NATIVE_DIRECTORY / "test-gold-state.py"
+        spec = importlib.util.spec_from_file_location(
+            "gridworks_native_gold_state_fixture_for_aggregate",
+            test_path,
+        )
+        if spec is None or spec.loader is None:
+            self.fail(f"could not load {test_path}")
+        gold_tests = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(gold_tests)
+        gold_tests.GoldStateContractTests.setUpClass()
+        fixture_builder = gold_tests.GoldStateContractTests()
+        valid_binding = fixture_builder.binding_fixture()
+        changed_binding = copy.deepcopy(valid_binding)
+        changed_binding["e09NorthBankTwoProcessWitness"][
+            "postResumeDraftGeometrySha256"
+        ] = gold_tests.sha("9")
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            binding_path = fixture_builder.write_binding(directory, changed_binding)
+            changed_binding_raw = binding_path.read_bytes()
+            fixture_builder.write_binding(directory, valid_binding)
+            candidate_path = directory / "candidate-manifest.json"
+            candidate_path.write_text("{}\n", encoding="utf-8")
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "content-derived draft geometry/projection hashes",
+            ):
+                aggregator.validate_gold_state_score_ready_authority(
+                    candidate_path,
+                    binding_path,
+                    candidate_manifest_raw_bytes=candidate_path.read_bytes(),
+                    gold_binding_raw_bytes=changed_binding_raw,
+                    story_manifest_raw_bytes=b"{}\n",
+                    require_score_ready=True,
+                )
+
+    def test_artifact_binding_order_is_not_candidate_controlled(self) -> None:
+        bindings = [
+            {
+                "anonymousArtifactId": f"ARTIFACT-{letter}",
+                "artifactKind": "COVERAGE" if letter == "D" else "COLD_ACTOR",
+                "artifactSha256": identity_sha(f"artifact-{letter}"),
+            }
+            for letter in "ABCD"
+        ]
+        aggregator._validate_artifact_bindings(bindings)
+        bindings[0], bindings[1] = bindings[1], bindings[0]
+        with self.assertRaisesRegex(
+            aggregator.ValidationFailure,
+            "deterministic anonymized A/B/C/D order",
+        ):
+            aggregator._validate_artifact_bindings(bindings)
+
+    def test_verifier_must_cover_every_judge_claim_with_real_cited_sources(self) -> None:
+        """One invented SUPPORTED row cannot validate an otherwise complete panel."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            directory = Path(raw)
+            artifact_order = [f"ARTIFACT-{letter}" for letter in "ABCD"]
+            artifacts_by_id: dict[str, dict[str, Any]] = {}
+            for anonymous_id in artifact_order:
+                artifact_id = f"frame-{anonymous_id[-1].lower()}"
+                locator = f"frames/{artifact_id}.png"
+                artifacts_by_id[anonymous_id] = {
+                    "anonymousArtifactId": anonymous_id,
+                    "sanitizedArtifactSha256": identity_sha(f"sanitized-{anonymous_id}"),
+                    "traceRows": [{
+                        "traceRowId": f"TRACE-{len(artifacts_by_id) + 1:04d}",
+                        "checkpoint": "exact-checkpoint",
+                        "citedVisibleSources": [{
+                            "artifactId": artifact_id,
+                            "locator": locator,
+                        }],
+                    }],
+                    "mediaArtifacts": [{
+                        "artifactId": artifact_id,
+                        "kind": "FRAME",
+                        "sha256": identity_sha(f"raw-{anonymous_id}"),
+                        "mimeType": "image/png",
+                        "locator": locator,
+                    }],
+                }
+            claims = [f"Exact visible claim for {cell_id}." for cell_id in aggregator.ALL_CELLS]
+            panel = {
+                "panelSha256": identity_sha("direct-panel"),
+                "judgments": [{
+                    "artifactJudgments": [{
+                        "anonymousArtifactId": "ARTIFACT-A",
+                        "cells": [{
+                            "strengthEvidence": [{
+                                "checkpoint": "exact-checkpoint",
+                                "artifact": "frame-a",
+                                "observation": claim,
+                            }],
+                            "gapEvidence": [],
+                        } for claim in claims],
+                    }],
+                }],
+            }
+            evidence = {
+                "selfSha256": identity_sha("direct-evidence"),
+                "value": {"artifactOrder": artifact_order},
+                "artifactsById": artifacts_by_id,
+                "bundleRootsById": {
+                    anonymous_id: str(directory / anonymous_id)
+                    for anonymous_id in artifact_order
+                },
+            }
+            expected = aggregator._derive_verification_observations(panel, evidence)
+            self.assertEqual(len(expected), len(aggregator.ALL_CELLS))
+            candidate_manifest = {"candidateManifestSha256": identity_sha("direct-candidate")}
+            holdout = {"selfSha256": identity_sha("direct-receipt")}
+            gold = {"selfSha256": identity_sha("direct-gold")}
+            sanitized_bundles = {
+                anonymous_id: {
+                    "anonymousArtifactId": anonymous_id,
+                    "bundleId": f"bundle-{anonymous_id[-1].lower()}",
+                    "artifactBundleSha256": identity_sha(
+                        f"bundle-{anonymous_id}"
+                    ),
+                    "bundleRootSha256": identity_sha(f"root-{anonymous_id}"),
+                    "canonicalBundleRoot": evidence["bundleRootsById"][anonymous_id],
+                    "bundleRootPathTail": anonymous_id,
+                }
+                for anonymous_id in artifact_order
+            }
+            sanitized = {
+                "selfSha256": identity_sha("direct-sanitized-manifest"),
+                "rawSha256": identity_sha("direct-sanitized-manifest-raw"),
+                "value": {"contentRootSha256": identity_sha("direct-content-root")},
+                "bundlesById": sanitized_bundles,
+            }
+            verification = {
+                "schemaVersion": aggregator.VERIFICATION_INPUT_SCHEMA,
+                "protocol": aggregator.PROTOCOL,
+                "verificationScope": "VISIBLE_OR_AUDIBLE_OBSERVATION_ONLY",
+                "verificationInputSha256": identity_sha("verification-placeholder"),
+                "candidateManifestSha256": candidate_manifest["candidateManifestSha256"],
+                "holdoutConsumptionReceiptSha256": holdout["selfSha256"],
+                "goldBindingManifestSha256": gold["selfSha256"],
+                "evidenceSetSha256": evidence["selfSha256"],
+                "sanitizedEvidenceBundleManifestSha256": sanitized["selfSha256"],
+                "sanitizedEvidenceBundleManifestRawSha256": sanitized["rawSha256"],
+                "sanitizedEvidenceContentRootSha256": sanitized["value"][
+                    "contentRootSha256"
+                ],
+                "opaqueJudgePanelSha256": panel["panelSha256"],
+                "artifactBundles": [sanitized_bundles[anonymous_id]
+                    for anonymous_id in artifact_order],
+                # The original defect accepted this one invented row for all 39 claims.
+                "observations": [{
+                    "observationId": "OBS-0001",
+                    "claim": "Invented blanket support.",
+                    "citedSources": expected[0]["citedSources"],
+                }],
+            }
+            verification["verificationInputSha256"] = aggregator.self_sha256(
+                verification,
+                "verificationInputSha256",
+                "direct verification input",
+            )
+            raw_bytes = aggregator.canonical_json_bytes(verification) + b"\n"
+            candidate = {
+                "verificationInputSha256": verification["verificationInputSha256"],
+                "expectedObservationIds": ["OBS-0001"],
+            }
+            evaluation = {"artifacts": {
+                "verificationInputSha256": verification["verificationInputSha256"],
+                "verificationInputRawSha256": aggregator.bytes_sha256(raw_bytes),
+            }}
+            with self.assertRaisesRegex(
+                aggregator.ValidationFailure,
+                "observation set/order/content/citations",
+            ):
+                aggregator.validate_verification_input_authority(
+                    verification,
+                    raw_bytes,
+                    candidate,
+                    candidate_manifest,
+                    evaluation,
+                    evidence,
+                    panel,
+                    holdout,
+                    gold,
+                    sanitized,
+                )
+
+    def test_selected_holdout_semantics_and_consumption_are_enforced(self) -> None:
+        """A hash label alone cannot substitute for the selected holdout recipe."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = make_fixture(
+                Path(raw),
+                recipe_id="HOLDOUT-01",
+                labeler=constant_label("EXCELLENT"),
+            )
+            trace = copy.deepcopy(fixture["coverageTrace"])
+            selected = selected_recipe("HOLDOUT-01")
+            trace.update({
+                "holdoutConsumptionReceiptSha256": fixture["holdoutReceipt"][
+                    "holdoutConsumptionReceiptSha256"
+                ],
+                "holdoutRealization": {
+                    "missionPrototypeBits": selected["missionPrototypeBits"],
+                    "promiseBranchOrder": selected["promiseBranchOrder"],
+                    "actorArtifactPermutation": selected["actorArtifactPermutation"],
+                    "coverageArtifactOrder": selected["coverageArtifactOrder"],
+                },
+                "coveragePresentationEpisodeIds": list(reversed(EPISODE_IDS)),
+                "goldBindingManifestSha256": fixture["goldBinding"][
+                    "goldBindingManifestSha256"
+                ],
+                "coverageActionLedgerRawSha256": identity_sha("direct-coverage-ledger"),
+                "recordingManifestRawSha256": identity_sha("direct-coverage-recording-raw"),
+            })
+            recipe = json.loads(
+                (aggregator.NATIVE_DIRECTORY / "coverage-recipe.json").read_text()
+            )
+            actions_by_episode = {row["id"]: row["actions"] for row in recipe["episodes"]}
+            for episode in trace["episodes"]:
+                realized = aggregator._realized_coverage_actions(
+                    episode["episodeId"],
+                    actions_by_episode[episode["episodeId"]],
+                    selected,
+                )
+                for action_index, (row, occurrence_id) in enumerate(
+                    zip(episode["traceRows"], realized), start=1
+                ):
+                    row["actionOccurrenceId"] = occurrence_id
+                    row["actionIndex"] = action_index
+                    row.update(aggregator._expected_action_realization(
+                        episode["episodeId"], occurrence_id, selected
+                    ))
+            episode = next(
+                row
+                for row in trace["episodes"]
+                if row["episodeId"] == "E04-NORTH-BANK"
+            )
+            branch_actions = [
+                row["actionOccurrenceId"]
+                for row in episode["traceRows"]
+                if "APPLY_" in row["actionOccurrenceId"]
+            ]
+            self.assertEqual(
+                branch_actions,
+                ["NORTH_BANK_APPLY_DEFER_BRANCH", "NORTH_BANK_APPLY_KEEP_BRANCH"],
+            )
+            self.assertEqual(
+                selected_recipe("HOLDOUT-01")["promiseBranchOrder"],
+                ["defer", "keep"],
+            )
+            # Reorder the realized branch blocks to KEEP-first while the selected
+            # receipt remains HOLDOUT-01/DEFER-first.
+            keep_first = copy.deepcopy(selected)
+            keep_first["promiseBranchOrder"] = ["keep", "defer"]
+            wrong = aggregator._realized_coverage_actions(
+                episode["episodeId"],
+                actions_by_episode[episode["episodeId"]],
+                keep_first,
+            )
+            for row, occurrence_id in zip(episode["traceRows"], wrong):
+                row["actionOccurrenceId"] = occurrence_id
+                row.update(aggregator._expected_action_realization(
+                    episode["episodeId"], occurrence_id, keep_first
+                ))
+            trace["coverageArtifactId"] = aggregator.self_sha256(
+                trace, "coverageArtifactId", "wrong holdout coverage trace"
+            )
+            raw_bytes = aggregator.canonical_json_bytes(trace) + b"\n"
+            evaluation = copy.deepcopy(fixture["evaluationRun"])
+            evaluation["artifacts"].update({
+                "coverageArtifactId": trace["coverageArtifactId"],
+                "coverageTraceRawSha256": aggregator.bytes_sha256(raw_bytes),
+                "coverageActionLedgerRawSha256": trace[
+                    "coverageActionLedgerRawSha256"
+                ],
+                "coverageRecordingManifestSha256": trace["recordingManifestSha256"],
+                "coverageRecordingManifestRawSha256": trace[
+                    "recordingManifestRawSha256"
+                ],
+            })
+            with self.assertRaisesRegex(aggregator.ProvenanceFailure, "branch/action order"):
+                aggregator.validate_coverage_trace_authority(
+                    trace,
+                    raw_bytes,
+                    fixture["candidateManifest"],
+                    evaluation,
+                    {"selfSha256": trace["holdoutConsumptionReceiptSha256"]},
+                    {"selfSha256": trace["goldBindingManifestSha256"]},
+                    {"selfSha256": trace["coverageActionLedgerSha256"]},
+                )
+
+    def test_required_cold_probes_and_actor_trace_are_enforced(self) -> None:
+        """A fake single probe cannot stand in for the frozen cold concept set."""
+
+        concept = json.loads(
+            (aggregator.NATIVE_DIRECTORY / "concept-exposure-manifest.json").read_text()
+        )
+        required = [row["id"] for row in concept["probes"] if row["requiredForCold"]]
+        self.assertEqual(len(required), 18)
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = make_fixture(
+                Path(raw),
+                labeler=constant_label("EXCELLENT"),
+            )
+            self.assertEqual(
+                [row["probeId"] for row in fixture["actorObservations"][0]["firstUseRecords"]],
+                ["PX01-FIXTURE"],
+            )
+            actor_rows = [{"value": row} for row in fixture["actorObservations"]]
+            with self.assertRaisesRegex(
+                aggregator.ValidationFailure,
+                "required cold concept probe|required cold probes",
+            ):
+                aggregator.validate_required_cold_probes(actor_rows, fixture["candidate"])
+
+    def test_required_cold_probe_prefix_uses_explicit_chronological_order(self) -> None:
+        concept = json.loads(
+            (aggregator.NATIVE_DIRECTORY / "concept-exposure-manifest.json").read_text()
+        )
+        by_id = {row["id"]: row for row in concept["probes"]}
+        chronological = concept["coldProbeOrder"]
+        manifest_row_order = [
+            row["id"] for row in concept["probes"] if row["requiredForCold"]
+        ]
+        self.assertNotEqual(chronological, manifest_row_order)
+        cold_recipe = json.loads(aggregator.COLD_RECIPE_PATH.read_text())
+        checkpoint_rank = {
+            (row["episode"], row["checkpoint"]): row["sequenceOrdinal"]
+            for row in cold_recipe["checkpointSequence"]
+        }
+
+        def actor_with(probe_ids: list[str]) -> dict[str, Any]:
+            records = [
+                {
+                    "checkpointOrdinal": index,
+                    "probeId": probe_id,
+                    "episode": by_id[probe_id]["firstEpisode"],
+                    "checkpoint": by_id[probe_id]["firstCheckpoint"],
+                }
+                for index, probe_id in enumerate(probe_ids, start=1)
+            ]
+            return {"value": {
+                "firstUseRecords": records,
+                "terminalState": "COMPLETED",
+                "terminalIncidentKey": None,
+                "checkpoints": [
+                    {
+                        "episode": record["episode"],
+                        "checkpoint": record["checkpoint"],
+                        "recipeCheckpointSequenceOrdinal": checkpoint_rank[
+                            (record["episode"], record["checkpoint"])
+                        ],
+                    }
+                    for record in records
+                ],
+            }}
+
+        candidate = {"notReachedByProductCellIds": []}
+        aggregator.validate_required_cold_probes(
+            [actor_with(chronological) for _ in range(3)],
+            candidate,
+        )
+        with self.assertRaisesRegex(
+            aggregator.ProvenanceFailure,
+            "exact manifest IDs/order",
+        ):
+            aggregator.validate_required_cold_probes(
+                [actor_with(manifest_row_order) for _ in range(3)],
+                candidate,
+            )
+
+        stalled_after_finale = actor_with(chronological[:2])
+        stalled_after_finale["value"]["terminalState"] = "PLAYER_STALLED"
+        stalled_after_finale["value"]["terminalIncidentKey"] = (
+            "E08-FINALE/finale-heat/OPERATIONS/UX_STALL"
+        )
+        stalled_after_finale["value"]["checkpoints"].append({
+            "episode": "E08-FINALE",
+            "checkpoint": "finale-heat",
+            "recipeCheckpointSequenceOrdinal": 37,
+        })
+        with self.assertRaisesRegex(
+            aggregator.ProvenanceFailure,
+            "advanced to or beyond the first omitted",
+        ):
+            aggregator.validate_required_cold_probes(
+                [copy.deepcopy(stalled_after_finale) for _ in range(3)],
+                candidate,
+            )
+
     def test_all_strong_is_85_and_fails_target(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             fixture = make_fixture(Path(raw), labeler=constant_label("STRONG"))
@@ -1868,13 +3473,14 @@ class NativeAggregateTests(unittest.TestCase):
     def test_actor_authority_is_order_independent_but_pair_exact(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             fixture = make_fixture(Path(raw))
-            inputs, evaluation = actor_inputs_for_authority_test(
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
                 fixture,
                 copy.deepcopy(fixture["actorObservations"]),
             )
             rows = aggregator.validate_actor_observation_authorities(
                 list(reversed(inputs)),
                 evaluation,
+                responses,
             )
             self.assertEqual(len(rows), 3)
             evaluation["terminalStates"][0]["actorArtifactId"], evaluation["terminalStates"][1][
@@ -1884,12 +3490,16 @@ class NativeAggregateTests(unittest.TestCase):
                 evaluation["terminalStates"][0]["actorArtifactId"],
             )
             with self.assertRaisesRegex(aggregator.ProvenanceFailure, "exactly map"):
-                aggregator.validate_actor_observation_authorities(inputs, evaluation)
+                aggregator.validate_actor_observation_authorities(
+                    inputs,
+                    evaluation,
+                    responses,
+                )
 
     def test_actor_terminal_state_and_incident_key_are_exact(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             fixture = make_fixture(Path(raw))
-            inputs, evaluation = actor_inputs_for_authority_test(
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
                 fixture,
                 copy.deepcopy(fixture["actorObservations"]),
             )
@@ -1898,7 +3508,11 @@ class NativeAggregateTests(unittest.TestCase):
                 "FIRST_LIGHT/NONE/OPERATIONS/UX_STALL"
             )
             with self.assertRaisesRegex(aggregator.ProvenanceFailure, "terminal state mismatch"):
-                aggregator.validate_actor_observation_authorities(inputs, evaluation)
+                aggregator.validate_actor_observation_authorities(
+                    inputs,
+                    evaluation,
+                    responses,
+                )
 
     def test_actor_action_index_and_incident_checkpoint_mapping_are_exact(self) -> None:
         recovery = make_incident("RECOVERY_FRICTION", 69, ["ARTIFACT-A"])
@@ -1906,16 +3520,202 @@ class NativeAggregateTests(unittest.TestCase):
             fixture = make_fixture(Path(raw), incidents=[recovery])
             observations = copy.deepcopy(fixture["actorObservations"])
             observations[0]["actionLedger"][0]["actionIndex"] = 2
-            inputs, evaluation = actor_inputs_for_authority_test(fixture, observations)
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
+                fixture,
+                observations,
+            )
             with self.assertRaisesRegex(aggregator.ProvenanceFailure, "exactly 1..N"):
-                aggregator.validate_actor_observation_authorities(inputs, evaluation)
+                aggregator.validate_actor_observation_authorities(
+                    inputs,
+                    evaluation,
+                    responses,
+                )
 
             observations = copy.deepcopy(fixture["actorObservations"])
             cited_index = observations[0]["incidents"][0]["actionIndexes"][0]
             observations[0]["actionLedger"][cited_index - 1]["checkpoint"] = "outside-checkpoint"
-            inputs, evaluation = actor_inputs_for_authority_test(fixture, observations)
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
+                fixture,
+                observations,
+            )
             with self.assertRaisesRegex(aggregator.ProvenanceFailure, "outside its cited"):
-                aggregator.validate_actor_observation_authorities(inputs, evaluation)
+                aggregator.validate_actor_observation_authorities(
+                    inputs,
+                    evaluation,
+                    responses,
+                )
+
+            observations = copy.deepcopy(fixture["actorObservations"])
+            observations[0]["checkpoints"][0]["progressStateSha256"] = identity_sha(
+                "fabricated-checkpoint-progress"
+            )
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
+                fixture,
+                observations,
+            )
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "progress state is not the cited action post-state",
+            ):
+                aggregator.validate_actor_observation_authorities(
+                    inputs,
+                    evaluation,
+                    responses,
+                )
+
+            observations = copy.deepcopy(fixture["actorObservations"])
+            observations[0]["approvalRecords"][0]["checkpointOrdinal"] = 2
+            observations[0]["approvalRecords"][0]["checkpoint"] = (
+                "first-energized-path"
+            )
+            observations[0]["approvalRecords"][1]["checkpointOrdinal"] = 1
+            observations[0]["approvalRecords"][1]["checkpoint"] = "first-operations"
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
+                fixture,
+                observations,
+            )
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "approvalRecords must follow checkpoint chronology",
+            ):
+                aggregator.validate_actor_observation_authorities(
+                    inputs,
+                    evaluation,
+                    responses,
+                )
+
+    def test_cold_actor_response_semantics_are_exact_bound_to_observation(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = make_fixture(Path(raw))
+            observations = copy.deepcopy(fixture["actorObservations"])
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
+                fixture,
+                observations,
+            )
+            mutated = copy.deepcopy(responses[0]["value"])
+            mutated["firstUseRecords"][0]["currentGoal"] = (
+                "A different goal was shown to the recorder."
+            )
+            mutated["coldActorResponseSha256"] = aggregator.self_sha256(
+                mutated,
+                "coldActorResponseSha256",
+                "mutated cold actor response",
+            )
+            mutated_raw = (
+                json.dumps(mutated, ensure_ascii=False, indent=2, sort_keys=True).encode(
+                    "utf-8"
+                )
+                + b"\n"
+            )
+            mutated_raw_sha = aggregator.bytes_sha256(mutated_raw)
+            responses[0] = {
+                "value": mutated,
+                "selfSha256": mutated["coldActorResponseSha256"],
+                "rawSha256": mutated_raw_sha,
+                "slot": 0,
+            }
+            evaluation["artifacts"]["coldActorResponseSha256"][0] = mutated[
+                "coldActorResponseSha256"
+            ]
+            evaluation["artifacts"]["coldActorResponseRawSha256"][0] = mutated_raw_sha
+            observations[0]["coldActorResponseSha256"] = mutated[
+                "coldActorResponseSha256"
+            ]
+            observations[0]["coldActorResponseRawSha256"] = mutated_raw_sha
+            rebound_raw = (
+                json.dumps(
+                    observations[0],
+                    ensure_ascii=False,
+                    indent=2,
+                    sort_keys=True,
+                ).encode("utf-8")
+                + b"\n"
+            )
+            inputs[0] = (observations[0], rebound_raw)
+            rebound_raw_sha = aggregator.bytes_sha256(rebound_raw)
+            evaluation["artifacts"]["actorObservationRawSha256"][0] = rebound_raw_sha
+            evaluation["terminalStates"][0]["actorObservationRawSha256"] = (
+                rebound_raw_sha
+            )
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "semantic projection differs",
+            ):
+                aggregator.validate_actor_observation_authorities(
+                    inputs,
+                    evaluation,
+                    responses,
+                )
+
+    def test_actor_action_ledger_is_observation_derived(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = make_fixture(Path(raw))
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
+                fixture,
+                copy.deepcopy(fixture["actorObservations"]),
+            )
+            actor = aggregator.validate_actor_observation_authorities(
+                inputs,
+                evaluation,
+                responses,
+            )[0]
+            process_tree_id = "actor-ledger-process-tree"
+            observation = actor["value"]
+            action_ledger = {
+                "schemaVersion": aggregator.ACTOR_ACTION_LEDGER_SCHEMA,
+                "protocol": aggregator.PROTOCOL,
+                "candidateManifestSha256": fixture["candidateManifest"][
+                    "candidateManifestSha256"
+                ],
+                "coldActorResponseSha256": actor["coldActorResponse"][
+                    "selfSha256"
+                ],
+                "actorRunId": observation["actorRunId"],
+                "processTreeId": process_tree_id,
+                "actionCount": len(observation["actionLedger"]),
+                "checkpointCount": len(observation["checkpoints"]),
+                "actions": copy.deepcopy(observation["actionLedger"]),
+                "checkpointPostStates": [
+                    {
+                        "checkpointOrdinal": checkpoint["ordinal"],
+                        "recipeCheckpointSequenceOrdinal": checkpoint[
+                            "recipeCheckpointSequenceOrdinal"
+                        ],
+                        "appActiveActionIndex": checkpoint[
+                            "appActiveActionIndex"
+                        ],
+                        "progressStateSha256": checkpoint["progressStateSha256"],
+                        "actionPostStateSha256": observation["actionLedger"][
+                            checkpoint["appActiveActionIndex"] - 1
+                        ]["postStateSha256"],
+                    }
+                    for checkpoint in observation["checkpoints"]
+                ],
+                "projectionRule": (
+                    "ACTIONS_EXACT_OBSERVATION_ACTION_LEDGER_AND_CHECKPOINT_"
+                    "PROGRESS_EQUALS_INDEXED_POST_STATE"
+                ),
+            }
+            aggregator.validate_actor_action_ledger_authority(
+                action_ledger,
+                fixture["candidateManifest"],
+                actor,
+                process_tree_id,
+            )
+            fabricated = copy.deepcopy(action_ledger)
+            fabricated["actions"][0]["visibleFeedback"] = (
+                "Unrelated recorder-owned ledger content."
+            )
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "not the exact observation",
+            ):
+                aggregator.validate_actor_action_ledger_authority(
+                    fabricated,
+                    fixture["candidateManifest"],
+                    actor,
+                    process_tree_id,
+                )
 
     def test_recovery_severity_is_derived_per_actor_without_cross_actor_sum(self) -> None:
         recovery = make_incident(
@@ -1930,21 +3730,29 @@ class NativeAggregateTests(unittest.TestCase):
                 observations[actor_index]["actionLedger"].pop()
                 observations[actor_index]["incidents"][0]["actionIndexes"].pop()
                 observations[actor_index]["incidents"][0]["severity"] = "LOCAL"
-            inputs, evaluation = actor_inputs_for_authority_test(fixture, observations)
-            rows = aggregator.validate_actor_observation_authorities(inputs, evaluation)
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
+                fixture,
+                observations,
+            )
+            rows = aggregator.validate_actor_observation_authorities(
+                inputs,
+                evaluation,
+                responses,
+            )
             self.assertEqual(rows[0]["severeIncidentKeys"], [])
             self.assertEqual(rows[1]["severeIncidentKeys"], [])
 
             severe_fixture = make_fixture(Path(raw) / "severe", incidents=[make_incident(
                 "RECOVERY_FRICTION", 69, ["ARTIFACT-A"]
             )])
-            severe_inputs, severe_evaluation = actor_inputs_for_authority_test(
+            severe_inputs, severe_evaluation, severe_responses = actor_inputs_for_authority_test(
                 severe_fixture,
                 copy.deepcopy(severe_fixture["actorObservations"]),
             )
             severe_rows = aggregator.validate_actor_observation_authorities(
                 severe_inputs,
                 severe_evaluation,
+                severe_responses,
             )
             self.assertEqual(severe_rows[0]["severeIncidentKeys"], [recovery["incidentKey"]])
 
@@ -1999,7 +3807,11 @@ class NativeAggregateTests(unittest.TestCase):
             for actor_index in (0, 1):
                 observations[actor_index]["terminalState"] = "COMPLETED"
                 observations[actor_index]["terminalIncidentKey"] = None
-            inputs, evaluation = actor_inputs_for_authority_test(fixture, observations)
+                observations[actor_index]["terminalIncidentOrdinal"] = None
+            inputs, evaluation, responses = actor_inputs_for_authority_test(
+                fixture,
+                observations,
+            )
             for actor_index in (0, 1):
                 evaluation["terminalStates"][actor_index]["state"] = "COMPLETED"
                 evaluation["terminalStates"][actor_index]["terminalIncidentKey"] = None
@@ -2007,7 +3819,11 @@ class NativeAggregateTests(unittest.TestCase):
                 aggregator.ProvenanceFailure,
                 "severity is not derivable",
             ):
-                aggregator.validate_actor_observation_authorities(inputs, evaluation)
+                aggregator.validate_actor_observation_authorities(
+                    inputs,
+                    evaluation,
+                    responses,
+                )
 
     def test_coverage_action_occurrence_sequence_is_frozen(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -2027,12 +3843,18 @@ class NativeAggregateTests(unittest.TestCase):
             evaluation = copy.deepcopy(fixture["evaluationRun"])
             evaluation["artifacts"]["coverageArtifactId"] = trace["coverageArtifactId"]
             evaluation["artifacts"]["coverageTraceRawSha256"] = aggregator.bytes_sha256(raw_bytes)
-            with self.assertRaisesRegex(aggregator.ProvenanceFailure, "occurrences/order"):
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "branch/action order|occurrences/order",
+            ):
                 aggregator.validate_coverage_trace_authority(
                     trace,
                     raw_bytes,
                     fixture["candidateManifest"],
                     evaluation,
+                    {"selfSha256": trace["holdoutConsumptionReceiptSha256"]},
+                    {"selfSha256": trace["goldBindingManifestSha256"]},
+                    {"selfSha256": trace["coverageActionLedgerSha256"]},
                 )
 
     def test_every_malformed_replacement_consumes_its_only_slot(self) -> None:
@@ -2243,6 +4065,135 @@ class NativeAggregateTests(unittest.TestCase):
             with self.assertRaisesRegex(aggregator.ValidationFailure, "already consumed"):
                 aggregate_fixture(corrected, replacement_for=initial_path)
 
+    def test_post_claim_oracle_failure_terminalizes_both_singletons(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = make_fixture(Path(raw) / "oracle-case")
+            receipt = fixture["holdoutReceipt"]
+            holdout_path = (
+                Path(receipt["atomicClaim"]["canonicalRegistryPath"]).parent
+                / (
+                    ".gridworks-commercial-ux-native-finalization-"
+                    + receipt["holdoutConsumptionReceiptSha256"].removeprefix(
+                        "sha256:"
+                    )
+                    + "-initial.receipt.json"
+                )
+            )
+            panel_hex = fixture["candidate"]["provenance"][
+                "judgePanelSha256"
+            ].removeprefix("sha256:")
+            panel_path = (
+                fixture["directory"]
+                / ".commercial-ux-authority"
+                / "panel-finalizations"
+                / f"{panel_hex}-initial.json"
+            )
+            with mock.patch.object(
+                aggregator,
+                "validate_oracle_ledger",
+                side_effect=aggregator.ProvenanceFailure("forced oracle failure"),
+            ):
+                with self.assertRaisesRegex(
+                    aggregator.ProvenanceFailure,
+                    "forced oracle failure",
+                ):
+                    aggregate_fixture(fixture)
+            for path in (holdout_path, panel_path):
+                self.assertTrue(path.exists())
+                self.assertGreater(path.stat().st_size, 0)
+                terminal = json.loads(path.read_text())
+                self.assertEqual(
+                    terminal["outcome"],
+                    "POST_CLAIM_VALIDATION_FAILURE",
+                )
+
+    def test_malformed_replacement_outcome_writes_schema_valid_receipt(self) -> None:
+        def unstable_labeler(judge: int, kind: str, artifact: str, cell: str) -> str:
+            if kind == "COLD_ACTOR" and artifact == "ARTIFACT-A" and cell == "J1":
+                return ("EXCELLENT", "SERVICEABLE", "STRONG")[judge]
+            return "STRONG"
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            initial = make_fixture(
+                root / "initial",
+                labeler=unstable_labeler,
+                cold_suffix="malformed-outcome-initial",
+                coverage_suffix="shared",
+                panel_suffix="malformed-outcome-initial",
+            )
+            initial_result = aggregate_fixture(initial)
+            initial_path = initial["directory"] / "scorecard.json"
+            replacement = make_fixture(
+                root / "replacement",
+                cold_suffix="malformed-outcome-replacement",
+                coverage_suffix="shared",
+                panel_suffix="malformed-outcome-replacement",
+            )
+            refresh_fixture_authorities(
+                replacement,
+                initial_path,
+                retry_reason="SCHEMA",
+            )
+            malformed_judge_raw = write_json(replacement["judgmentPaths"][0], {})
+            replacement["evaluationRun"]["artifacts"][
+                "judgeJudgmentRawSha256"
+            ][0] = malformed_judge_raw
+            rebind_evaluation_fixture(replacement)
+            replacement["verifierPath"].write_bytes(b"{bad")
+            with self.assertRaisesRegex(
+                aggregator.ValidationFailure,
+                "native verifier output failed before validation",
+            ):
+                aggregate_fixture(
+                    replacement,
+                    replacement_for=initial_path,
+                    refresh_authorities=False,
+                )
+            receipt_path = Path(initial_result["replacementReceiptPath"])
+            self.assertGreater(receipt_path.stat().st_size, 0)
+            receipt = json.loads(receipt_path.read_text())
+            self.assertEqual(receipt["attemptOutcome"], "SCHEMA_FAILURE")
+            self.assertEqual(
+                receipt["judgmentAttempts"][0]["attemptOutcome"],
+                "SCHEMA_FAILURE",
+            )
+            aggregator.validate_native_replacement_receipt_schema(receipt)
+
+    def test_partial_singleton_reservation_is_terminalized(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = make_fixture(Path(raw) / "reservation-case")
+            panel_hex = fixture["candidate"]["provenance"][
+                "judgePanelSha256"
+            ].removeprefix("sha256:")
+            panel_path = (
+                fixture["directory"]
+                / ".commercial-ux-authority"
+                / "panel-finalizations"
+                / f"{panel_hex}-initial.json"
+            )
+            panel_path.parent.mkdir(parents=True, exist_ok=True)
+            panel_path.write_text("already-finalized\n")
+            receipt = fixture["holdoutReceipt"]
+            holdout_path = (
+                Path(receipt["atomicClaim"]["canonicalRegistryPath"]).parent
+                / (
+                    ".gridworks-commercial-ux-native-finalization-"
+                    + receipt["holdoutConsumptionReceiptSha256"].removeprefix(
+                        "sha256:"
+                    )
+                    + "-initial.receipt.json"
+                )
+            )
+            with self.assertRaisesRegex(
+                aggregator.ValidationFailure,
+                "already finalized",
+            ):
+                aggregate_fixture(fixture)
+            self.assertGreater(holdout_path.stat().st_size, 0)
+            terminal = json.loads(holdout_path.read_text())
+            self.assertEqual(terminal["outcome"], "SINGLETON_RESERVATION_FAILURE")
+
     def test_failed_judge_slot_cannot_use_valid_other_slot_retry_attribution(self) -> None:
         def unstable_labeler(judge: int, kind: str, artifact: str, cell: str) -> str:
             if kind == "COLD_ACTOR" and artifact == "ARTIFACT-A" and cell == "J1":
@@ -2294,6 +4245,74 @@ class NativeAggregateTests(unittest.TestCase):
             )
             with self.assertRaisesRegex(aggregator.ValidationFailure, "already consumed"):
                 aggregate_fixture(corrected, replacement_for=initial_path)
+
+    def test_copied_initial_scorecard_cannot_mint_a_replacement(self) -> None:
+        """Replacement authority is the canonical INITIAL seal, not copied JSON."""
+
+        def unstable_labeler(judge: int, kind: str, artifact: str, cell: str) -> str:
+            if kind == "COLD_ACTOR" and artifact == "ARTIFACT-A" and cell == "J1":
+                return ("EXCELLENT", "SERVICEABLE", "STRONG")[judge]
+            return "STRONG"
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            initial = make_fixture(
+                root / "initial",
+                labeler=unstable_labeler,
+                cold_suffix="sealed-initial",
+                coverage_suffix="shared",
+                panel_suffix="sealed-initial",
+            )
+            result = aggregate_fixture(initial)
+            self.assertTrue(result["rerunRequired"])
+            initial_path = initial["directory"] / "scorecard.json"
+            copied_path = root / "copied-scorecard.json"
+            copied_path.write_bytes(initial_path.read_bytes())
+            replacement = make_fixture(
+                root / "replacement",
+                cold_suffix="sealed-replacement",
+                coverage_suffix="shared",
+                panel_suffix="sealed-replacement",
+            )
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "panel finalization seal scorecardPath mismatch",
+            ):
+                aggregate_fixture(replacement, replacement_for=copied_path)
+
+    def test_same_holdout_lane_cannot_be_rerolled_with_a_different_panel(self) -> None:
+        """The INITIAL singleton key is the receipt/lane, not the panel hash."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            first = make_fixture(
+                root / "initial",
+                labeler=constant_label("EXCELLENT"),
+                panel_suffix="first-panel",
+            )
+            first_result = aggregate_fixture(first)
+            self.assertEqual(first_result["status"], "PASS")
+            second = make_fixture(
+                root / "replacement",
+                labeler=constant_label("EXCELLENT"),
+                panel_suffix="different-panel",
+            )
+            self.assertNotEqual(
+                first["candidate"]["provenance"]["judgePanelSha256"],
+                second["candidate"]["provenance"]["judgePanelSha256"],
+            )
+            second["holdoutReceipt"]["atomicClaim"]["canonicalRegistryPath"] = (
+                first["holdoutReceipt"]["atomicClaim"]["canonicalRegistryPath"]
+            )
+            second["holdoutReceipt"]["holdoutConsumptionReceiptSha256"] = first[
+                "holdoutReceipt"
+            ]["holdoutConsumptionReceiptSha256"]
+            write_json(second["holdoutReceiptPath"], second["holdoutReceipt"])
+            with self.assertRaisesRegex(
+                aggregator.ValidationFailure,
+                "already finalized",
+            ):
+                aggregate_fixture(second, output_name="fresh-scorecard.json")
 
 
 if __name__ == "__main__":

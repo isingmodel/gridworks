@@ -8,7 +8,13 @@
     "protocol",
     "verificationScope",
     "verificationInputSha256",
+    "candidateManifestSha256",
+    "holdoutConsumptionReceiptSha256",
+    "goldBindingManifestSha256",
     "evidenceSetSha256",
+    "sanitizedEvidenceBundleManifestSha256",
+    "sanitizedEvidenceBundleManifestRawSha256",
+    "sanitizedEvidenceContentRootSha256",
     "opaqueJudgePanelSha256",
     "artifactBundles",
     "observations"
@@ -22,14 +28,25 @@
     },
     "verificationScope": {"const": "VISIBLE_OR_AUDIBLE_OBSERVATION_ONLY"},
     "verificationInputSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "goldBindingManifestSha256": {"$ref": "#/$defs/sha256"},
     "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceBundleManifestSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceBundleManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceContentRootSha256": {"$ref": "#/$defs/sha256"},
     "opaqueJudgePanelSha256": {"$ref": "#/$defs/sha256"},
     "artifactBundles": {
       "type": "array",
       "minItems": 4,
       "maxItems": 4,
-      "uniqueItems": true,
-      "items": {"$ref": "#/$defs/artifactBundle"}
+      "prefixItems": [
+        {"$ref": "#/$defs/artifactBundle", "properties": {"anonymousArtifactId": {"const": "ARTIFACT-A"}}},
+        {"$ref": "#/$defs/artifactBundle", "properties": {"anonymousArtifactId": {"const": "ARTIFACT-B"}}},
+        {"$ref": "#/$defs/artifactBundle", "properties": {"anonymousArtifactId": {"const": "ARTIFACT-C"}}},
+        {"$ref": "#/$defs/artifactBundle", "properties": {"anonymousArtifactId": {"const": "ARTIFACT-D"}}}
+      ],
+      "items": false
     },
     "observations": {
       "type": "array",
@@ -44,11 +61,21 @@
     "artifactBundle": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["anonymousArtifactId", "artifactBundleSha256", "locator"],
+      "required": [
+        "anonymousArtifactId", "bundleId", "artifactBundleSha256",
+        "bundleRootSha256", "canonicalBundleRoot", "bundleRootPathTail"
+      ],
       "properties": {
         "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "bundleId": {"type": "string", "minLength": 1, "maxLength": 200},
         "artifactBundleSha256": {"$ref": "#/$defs/sha256"},
-        "locator": {"type": "string", "minLength": 1, "maxLength": 300}
+        "bundleRootSha256": {"$ref": "#/$defs/sha256"},
+        "canonicalBundleRoot": {
+          "type": "string",
+          "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+          "maxLength": 1000
+        },
+        "bundleRootPathTail": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$"}
       }
     },
     "sourceRef": {

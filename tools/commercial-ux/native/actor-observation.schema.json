@@ -6,6 +6,8 @@
   "required": [
     "schemaVersion",
     "protocol",
+    "coldActorResponseSha256",
+    "coldActorResponseRawSha256",
     "actorRunId",
     "actorSlot",
     "model",
@@ -18,11 +20,14 @@
     "actionLedger",
     "incidents",
     "terminalState",
-    "terminalIncidentKey"
+    "terminalIncidentKey",
+    "terminalIncidentOrdinal"
   ],
   "properties": {
     "schemaVersion": {"const": "gridworks.commercial-ux.native-actor-observation.v1"},
     "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "coldActorResponseSha256": {"$ref": "#/$defs/sha256"},
+    "coldActorResponseRawSha256": {"$ref": "#/$defs/sha256"},
     "actorRunId": {"type": "string", "minLength": 1, "maxLength": 200},
     "actorSlot": {"const": "SOL-ULTRA"},
     "model": {"const": "gpt-5.6-sol"},
@@ -38,7 +43,7 @@
     "firstUseRecords": {
       "type": "array",
       "minItems": 1,
-      "maxItems": 21,
+      "maxItems": 18,
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/firstUseRecord"}
     },
@@ -69,19 +74,35 @@
         {"$ref": "#/$defs/incidentKey"},
         {"type": "null"}
       ]
+    },
+    "terminalIncidentOrdinal": {
+      "oneOf": [
+        {"type": "integer", "minimum": 1, "maximum": 256},
+        {"type": "null"}
+      ]
     }
   },
   "allOf": [
     {
       "if": {"properties": {"terminalState": {"const": "COMPLETED"}}, "required": ["terminalState"]},
-      "then": {"properties": {"terminalIncidentKey": {"type": "null"}}}
+      "then": {
+        "properties": {
+          "terminalIncidentKey": {"type": "null"},
+          "terminalIncidentOrdinal": {"type": "null"}
+        }
+      }
     },
     {
       "if": {
         "properties": {"terminalState": {"enum": ["PLAYER_STALLED", "HARNESS_BLOCKED"]}},
         "required": ["terminalState"]
       },
-      "then": {"properties": {"terminalIncidentKey": {"$ref": "#/$defs/incidentKey"}}}
+      "then": {
+        "properties": {
+          "terminalIncidentKey": {"$ref": "#/$defs/incidentKey"},
+          "terminalIncidentOrdinal": {"type": "integer", "minimum": 1, "maximum": 256}
+        }
+      }
     }
   ],
   "$defs": {
@@ -112,7 +133,7 @@
       "properties": {
         "artifactId": {"type": "string", "minLength": 1, "maxLength": 200},
         "kind": {
-          "enum": ["FRAME", "VIDEO", "AUDIO", "VISIBLE_TEXT", "ACTION_LEDGER"]
+          "enum": ["FRAME", "AUDIO", "VISIBLE_TEXT", "ACTION_LEDGER"]
         },
         "locator": {"type": "string", "minLength": 1, "maxLength": 300}
       }
@@ -124,6 +145,7 @@
         "ordinal",
         "episode",
         "checkpoint",
+        "recipeCheckpointSequenceOrdinal",
         "appActiveActionIndex",
         "progressStateSha256",
         "artifactRefs"
@@ -132,6 +154,7 @@
         "ordinal": {"type": "integer", "minimum": 1, "maximum": 256},
         "episode": {"$ref": "#/$defs/episodeId"},
         "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "recipeCheckpointSequenceOrdinal": {"type": "integer", "minimum": 1, "maximum": 41},
         "appActiveActionIndex": {"type": "integer", "minimum": 0, "maximum": 4096},
         "progressStateSha256": {"$ref": "#/$defs/sha256"},
         "artifactRefs": {
@@ -148,21 +171,25 @@
       "additionalProperties": false,
       "required": [
         "probeId",
+        "firstUseOrdinal",
         "episode",
         "checkpoint",
         "checkpointOrdinal",
         "currentGoal",
         "expectedVisibleConsequence",
-        "citedVisibleSource"
+        "citedVisibleSource",
+        "citedVisibleSourceDescription"
       ],
       "properties": {
-        "probeId": {"pattern": "^PX[0-9]{2}-[A-Z0-9-]+$"},
+        "probeId": {"type": "string", "pattern": "^PX[0-9]{2}-[A-Z0-9-]+$"},
+        "firstUseOrdinal": {"type": "integer", "minimum": 1, "maximum": 18},
         "episode": {"$ref": "#/$defs/episodeId"},
         "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
         "checkpointOrdinal": {"type": "integer", "minimum": 1, "maximum": 256},
         "currentGoal": {"type": "string", "minLength": 1, "maxLength": 600},
         "expectedVisibleConsequence": {"type": "string", "minLength": 1, "maxLength": 800},
-        "citedVisibleSource": {"$ref": "#/$defs/artifactRef"}
+        "citedVisibleSource": {"$ref": "#/$defs/artifactRef"},
+        "citedVisibleSourceDescription": {"type": "string", "minLength": 1, "maxLength": 600}
       }
     },
     "approvalRecord": {
@@ -170,6 +197,7 @@
       "additionalProperties": false,
       "required": [
         "episode",
+        "approvalOrdinal",
         "checkpoint",
         "checkpointOrdinal",
         "predictionImmediatelyBeforeApproval",
@@ -178,6 +206,7 @@
         "artifactRefs"
       ],
       "properties": {
+        "approvalOrdinal": {"type": "integer", "minimum": 1, "maximum": 64},
         "episode": {"$ref": "#/$defs/episodeId"},
         "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
         "checkpointOrdinal": {"type": "integer", "minimum": 1, "maximum": 256},
@@ -236,6 +265,7 @@
       "additionalProperties": false,
       "required": [
         "incidentKey",
+        "incidentOrdinal",
         "episode",
         "checkpointOrdinals",
         "incidentType",
@@ -247,6 +277,7 @@
       ],
       "properties": {
         "incidentKey": {"$ref": "#/$defs/incidentKey"},
+        "incidentOrdinal": {"type": "integer", "minimum": 1, "maximum": 256},
         "episode": {"$ref": "#/$defs/episodeId"},
         "checkpointOrdinals": {
           "type": "array",

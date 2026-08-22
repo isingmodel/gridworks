@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-actor-action-ledger-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "candidateManifestSha256", "coldActorResponseSha256",
+    "actorRunId", "processTreeId", "actionCount", "checkpointCount", "actions",
+    "checkpointPostStates", "projectionRule"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-actor-action-ledger.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "coldActorResponseSha256": {"$ref": "#/$defs/sha256"},
+    "actorRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "processTreeId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "actionCount": {"type": "integer", "minimum": 1, "maximum": 4096},
+    "checkpointCount": {"type": "integer", "minimum": 1, "maximum": 256},
+    "actions": {
+      "type": "array", "minItems": 1, "maxItems": 4096, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/action"}
+    },
+    "checkpointPostStates": {
+      "type": "array", "minItems": 1, "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/checkpointPostState"}
+    },
+    "projectionRule": {
+      "const": "ACTIONS_EXACT_OBSERVATION_ACTION_LEDGER_AND_CHECKPOINT_PROGRESS_EQUALS_INDEXED_POST_STATE"
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "episodeId": {
+      "enum": [
+        "E00-TITLE", "E01-FIRST-LIGHT", "E02-SECOND-HEART", "E03-SECOND-SOURCE",
+        "E04-NORTH-BANK", "E05-WHOSE-MARGIN", "E06-FLOOD", "E07-MAINTENANCE",
+        "E08-FINALE", "E09-MID-RESUME", "E10-COMPLETE-RESUME", "E11-AUTHORED-TEXT"
+      ]
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actionIndex", "episode", "checkpoint", "actionKind", "inputEvent",
+        "visibleFeedback", "audibleFeedback", "preStateSha256", "postStateSha256",
+        "appActive", "rationalInProductAction"
+      ],
+      "properties": {
+        "actionIndex": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "episode": {"$ref": "#/$defs/episodeId"},
+        "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "actionKind": {"type": "string", "pattern": "^[A-Z][A-Z0-9_]{1,79}$"},
+        "inputEvent": {"type": "string", "minLength": 1, "maxLength": 500},
+        "visibleFeedback": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "audibleFeedback": {"type": "string", "maxLength": 1000},
+        "preStateSha256": {"$ref": "#/$defs/sha256"},
+        "postStateSha256": {"$ref": "#/$defs/sha256"},
+        "appActive": {"const": true},
+        "rationalInProductAction": {"type": "boolean"}
+      }
+    },
+    "checkpointPostState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checkpointOrdinal", "recipeCheckpointSequenceOrdinal", "appActiveActionIndex", "progressStateSha256",
+        "actionPostStateSha256"
+      ],
+      "properties": {
+        "checkpointOrdinal": {"type": "integer", "minimum": 1, "maximum": 256},
+        "recipeCheckpointSequenceOrdinal": {"type": "integer", "minimum": 1, "maximum": 41},
+        "appActiveActionIndex": {"type": "integer", "minimum": 0, "maximum": 4096},
+        "progressStateSha256": {"$ref": "#/$defs/sha256"},
+        "actionPostStateSha256": {
+          "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"appActiveActionIndex": {"const": 0}}, "required": ["appActiveActionIndex"]},
+          "then": {"properties": {"actionPostStateSha256": {"type": "null"}}},
+          "else": {"properties": {"actionPostStateSha256": {"$ref": "#/$defs/sha256"}}}
+        }
+      ]
+    }
+  }
+}

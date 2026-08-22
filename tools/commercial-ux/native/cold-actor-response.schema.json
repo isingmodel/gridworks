@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-native-cold-actor-response-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "coldActorResponseSha256", "actorRunId",
+    "actorSlot", "model", "reasoningEffort", "objective", "firstUseRecords",
+    "approvalRecords", "incidents", "terminalState", "terminalIncidentOrdinal"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.native-cold-actor-response.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "coldActorResponseSha256": {"$ref": "#/$defs/sha256"},
+    "actorRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "actorSlot": {"const": "SOL-ULTRA"},
+    "model": {"const": "gpt-5.6-sol"},
+    "reasoningEffort": {"const": "ultra"},
+    "objective": {"const": "에필로그까지 플레이하세요."},
+    "firstUseRecords": {
+      "type": "array", "minItems": 1, "maxItems": 18, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/firstUseRecord"}
+    },
+    "approvalRecords": {
+      "type": "array", "minItems": 1, "maxItems": 64,
+      "items": {"$ref": "#/$defs/approvalRecord"}
+    },
+    "incidents": {
+      "type": "array", "maxItems": 256, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/incident"}
+    },
+    "terminalState": {
+      "enum": ["COMPLETED", "PLAYER_STALLED", "HARNESS_BLOCKED", "INVALID"]
+    },
+    "terminalIncidentOrdinal": {
+      "oneOf": [
+        {"type": "integer", "minimum": 1, "maximum": 256},
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"terminalState": {"const": "COMPLETED"}}, "required": ["terminalState"]},
+      "then": {"properties": {"terminalIncidentOrdinal": {"type": "null"}}}
+    },
+    {
+      "if": {
+        "properties": {"terminalState": {"enum": ["PLAYER_STALLED", "HARNESS_BLOCKED"]}},
+        "required": ["terminalState"]
+      },
+      "then": {
+        "properties": {
+          "terminalIncidentOrdinal": {"type": "integer", "minimum": 1, "maximum": 256}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "firstUseRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "firstUseOrdinal", "probeId", "currentGoal", "expectedVisibleConsequence",
+        "citedVisibleSourceDescription"
+      ],
+      "properties": {
+        "firstUseOrdinal": {"type": "integer", "minimum": 1, "maximum": 18},
+        "probeId": {"type": "string", "pattern": "^PX[0-9]{2}-[A-Z0-9-]+$"},
+        "currentGoal": {"type": "string", "minLength": 1, "maxLength": 600},
+        "expectedVisibleConsequence": {"type": "string", "minLength": 1, "maxLength": 800},
+        "citedVisibleSourceDescription": {"type": "string", "minLength": 1, "maxLength": 600}
+      }
+    },
+    "approvalRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "approvalOrdinal", "predictionImmediatelyBeforeApproval", "observedResult",
+        "causalAccount"
+      ],
+      "properties": {
+        "approvalOrdinal": {"type": "integer", "minimum": 1, "maximum": 64},
+        "predictionImmediatelyBeforeApproval": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "observedResult": {"type": "string", "minLength": 1, "maxLength": 1000},
+        "causalAccount": {"type": "string", "minLength": 1, "maxLength": 1000}
+      }
+    },
+    "incident": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "incidentOrdinal", "incidentType", "confusionBoundary", "severity", "description"
+      ],
+      "properties": {
+        "incidentOrdinal": {"type": "integer", "minimum": 1, "maximum": 256},
+        "incidentType": {
+          "enum": [
+            "CONFUSION", "RECOVERY_FRICTION", "UX_STALL",
+            "EXTERNAL_HINT_ATTEMPT", "HARNESS_FAILURE"
+          ]
+        },
+        "confusionBoundary": {
+          "oneOf": [
+            {"enum": ["ACTUAL_PROJECTION", "MUST_PROMISE", "THERMAL_RESULT"]},
+            {"type": "null"}
+          ]
+        },
+        "severity": {"enum": ["LOCAL", "SEVERE"]},
+        "description": {"type": "string", "minLength": 1, "maxLength": 1200}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"incidentType": {"const": "UX_STALL"}}, "required": ["incidentType"]},
+          "then": {
+            "properties": {
+              "severity": {"const": "SEVERE"},
+              "confusionBoundary": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"incidentType": {"enum": ["EXTERNAL_HINT_ATTEMPT"]}},
+            "required": ["incidentType"]
+          },
+          "then": {
+            "properties": {
+              "severity": {"const": "SEVERE"},
+              "confusionBoundary": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"incidentType": {"enum": ["RECOVERY_FRICTION", "HARNESS_FAILURE"]}},
+            "required": ["incidentType"]
+          },
+          "then": {"properties": {"confusionBoundary": {"type": "null"}}}
+        },
+        {
+          "if": {"properties": {"incidentType": {"const": "HARNESS_FAILURE"}}, "required": ["incidentType"]},
+          "then": {"properties": {"severity": {"const": "LOCAL"}}}
+        }
+      ]
+    }
+  }
+}

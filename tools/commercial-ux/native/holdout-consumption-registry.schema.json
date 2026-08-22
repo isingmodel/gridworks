@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-holdout-consumption-registry-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "holdoutConsumptionRegistrySha256",
+    "queueAuthorityId", "holdoutQueueSha256", "registryScope",
+    "registryAuthorityLimit", "registryPathRule", "canonicalRegistryPath",
+    "revision", "consumptions"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.holdout-consumption-registry.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "holdoutConsumptionRegistrySha256": {"$ref": "#/$defs/sha256"},
+    "queueAuthorityId": {"const": "GRIDWORKS-COMMERCIAL-UX-HOLDOUT-QUEUE-v1.1"},
+    "holdoutQueueSha256": {"$ref": "#/$defs/sha256"},
+    "registryScope": {"const": "LOCAL_REPOSITORY_REGISTRY_ONLY"},
+    "registryAuthorityLimit": {"const": "NOT_GLOBAL_ACROSS_REPOSITORY_CLONES"},
+    "registryPathRule": {"const": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-consumption-registry-v1.json"},
+    "canonicalRegistryPath": {
+      "type": "string",
+      "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+      "maxLength": 1000
+    },
+    "revision": {"type": "integer", "minimum": 0, "maximum": 8},
+    "consumptions": {
+      "type": "array", "maxItems": 8, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/consumption"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "consumption": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "ordinal", "recipeId", "candidateReuseSha256", "candidateManifestSha256",
+        "sourceCommit", "transactionId"
+      ],
+      "properties": {
+        "ordinal": {"type": "integer", "minimum": 1, "maximum": 8},
+        "recipeId": {"pattern": "^HOLDOUT-0[1-8]$"},
+        "candidateReuseSha256": {"$ref": "#/$defs/sha256"},
+        "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+        "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "transactionId": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}

@@ -1,14 +1,27 @@
 {
   "schemaVersion": "gridworks.commercial-ux.holdout-queue.v1",
   "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "queueAuthorityId": "GRIDWORKS-COMMERCIAL-UX-HOLDOUT-QUEUE-v1.1",
   "selectionRule": "LOWEST_UNUSED_ORDINAL",
   "reuseAllowed": false,
+  "registryPolicy": {
+    "scope": "LOCAL_REPOSITORY_REGISTRY_ONLY",
+    "authorityLimit": "NOT_GLOBAL_ACROSS_REPOSITORY_CLONES",
+    "registryPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-consumption-registry-v1.json",
+    "receiptPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-receipts/{transactionSha256Hex}-{candidateReuseSha256Hex}.json",
+    "receiptCreatePolicy": "O_EXCL_CREATE_AND_FSYNC_BEFORE_ATOMIC_REGISTRY_RENAME",
+    "transaction": "LOCKED_COMPARE_LOWEST_UNUSED_APPEND_FSYNC_ATOMIC_RENAME",
+    "recipeReuseKeyFields": ["queueAuthorityId", "recipeId"],
+    "candidateReuseKeyField": "candidateReuseSha256",
+    "candidateReuseKeyUnique": true
+  },
   "exhaustionStatus": "BLOCKED_HOLDOUT_EXHAUSTED",
   "baseCoverageRecipe": "coverage-recipe.json",
   "formative": {
     "id": "FORMATIVE-01",
     "officialCommercialUX": false,
     "routeFamily": "NATIVE_SMOKE_WITNESS",
+    "missionPrototypeBits": "001",
     "promiseBranchOrder": ["keep", "defer"],
     "actorArtifactPermutation": [2, 0, 1],
     "coverageArtifactOrder": "EPISODE_ASCENDING"

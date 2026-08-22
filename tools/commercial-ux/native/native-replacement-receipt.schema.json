@@ -5,10 +5,18 @@
   "additionalProperties": false,
   "required": [
     "schemaVersion", "protocol", "claimPolicy", "authorityPreflightStatus",
-    "replacementReceiptPath", "initialAggregatePath", "initialAggregateRawSha256",
+    "replacementReceiptPathRule", "replacementReceiptPath",
+    "initialAggregatePath", "initialAggregateRawSha256",
+    "initialPanelFinalizationSealPath", "initialPanelFinalizationSealSha256",
+    "initialPanelFinalizationSealRawSha256",
     "initialPanelSha256", "initialEvaluationRunManifestSha256",
     "replacementRequiredLanes", "candidateManifestSha256",
     "qualificationReceiptSha256", "evaluationRunManifestSha256", "recipeId",
+    "holdoutConsumptionReceiptSha256", "holdoutConsumptionReceiptRawSha256",
+    "goldBindingManifestSha256", "goldBindingManifestRawSha256",
+    "evidenceSetSha256", "evidenceSetRawSha256",
+    "sanitizedEvidenceBundleManifestSha256",
+    "sanitizedEvidenceBundleManifestRawSha256", "sanitizedEvidenceContentRootSha256",
     "rubricSha256", "promptTemplateSha256", "judgmentSchemaSha256",
     "rawAggregationInputSha256", "rawCandidateManifestSha256",
     "rawQualificationReceiptSha256", "rawEvaluationRunManifestSha256",
@@ -19,12 +27,16 @@
     "schemaVersion": {"const": "gridworks.commercial-ux.native-replacement-receipt.v1"},
     "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
     "claimPolicy": {
-      "const": "O_EXCL_AFTER_AUTHORITY_PREFLIGHT_BEFORE_ATTEMPT_READ_THEN_FINALIZE_SAME_DESCRIPTOR"
+      "const": "VERIFIED_INITIAL_FINALIZATION_SEAL_THEN_O_EXCL_BEFORE_ATTEMPT_READ_AND_FINALIZE_SAME_DESCRIPTOR"
     },
     "authorityPreflightStatus": {"const": "EXACT_BEFORE_CLAIM"},
-    "replacementReceiptPath": {"type": "string", "minLength": 1, "maxLength": 1200},
-    "initialAggregatePath": {"type": "string", "minLength": 1, "maxLength": 1200},
+    "replacementReceiptPathRule": {"const": "GIT_COMMON_DIR/gridworks-commercial-ux/replacement-receipts/{initialPanelSha256Hex}.json"},
+    "replacementReceiptPath": {"$ref": "#/$defs/absolutePath"},
+    "initialAggregatePath": {"$ref": "#/$defs/absolutePath"},
     "initialAggregateRawSha256": {"$ref": "#/$defs/sha256"},
+    "initialPanelFinalizationSealPath": {"$ref": "#/$defs/absolutePath"},
+    "initialPanelFinalizationSealSha256": {"$ref": "#/$defs/sha256"},
+    "initialPanelFinalizationSealRawSha256": {"$ref": "#/$defs/sha256"},
     "initialPanelSha256": {"$ref": "#/$defs/sha256"},
     "initialEvaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
     "replacementRequiredLanes": {
@@ -35,6 +47,15 @@
     "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
     "evaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
     "recipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+    "goldBindingManifestSha256": {"$ref": "#/$defs/sha256"},
+    "goldBindingManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+    "evidenceSetRawSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceBundleManifestSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceBundleManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceContentRootSha256": {"$ref": "#/$defs/sha256"},
     "rubricSha256": {"$ref": "#/$defs/sha256"},
     "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
     "judgmentSchemaSha256": {"$ref": "#/$defs/sha256"},
@@ -259,6 +280,11 @@
   ],
   "$defs": {
     "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "absolutePath": {
+      "type": "string",
+      "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+      "maxLength": 1200
+    },
     "inputAttempt": {
       "type": "object",
       "additionalProperties": false,

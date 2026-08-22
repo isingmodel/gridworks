@@ -12,8 +12,13 @@
   },
   "bindings": [
     {
+      "artifactSchema": "cold-actor-response.schema.json",
+      "field": "coldActorResponseSha256",
+      "producer": "COLD_ACTOR_TRANSPORT"
+    },
+    {
       "artifactSchema": "actor-trace.schema.json",
-      "field": "actorArtifactId",
+      "field": "actorTraceSha256",
       "producer": "HARNESS_FINAL_PACKAGER"
     },
     {
@@ -32,6 +37,11 @@
       "producer": "VERIFICATION_INPUT_PACKAGER"
     },
     {
+      "artifactSchema": "candidate-judge-input.schema.json",
+      "field": "judgeInputSha256",
+      "producer": "CANDIDATE_JUDGE_INPUT_PACKAGER"
+    },
+    {
       "artifactSchema": "candidate-manifest.schema.json",
       "field": "candidateManifestSha256",
       "producer": "CANDIDATE_MANIFEST_PACKAGER"
@@ -47,6 +57,11 @@
       "producer": "COVERAGE_FINAL_PACKAGER"
     },
     {
+      "artifactSchema": "coverage-action-ledger.schema.json",
+      "field": "coverageActionLedgerSha256",
+      "producer": "COVERAGE_ACTION_LEDGER_PACKAGER"
+    },
+    {
       "artifactSchema": "qualification-receipt.schema.json",
       "field": "qualificationReceiptSha256",
       "producer": "QUALIFICATION_RECEIPT_PACKAGER"
@@ -55,14 +70,58 @@
       "artifactSchema": "judge-panel.schema.json",
       "field": "judgePanelSha256",
       "producer": "JUDGE_PANEL_PACKAGER"
+    },
+    {
+      "artifactSchema": "holdout-consumption-receipt.schema.json",
+      "field": "holdoutConsumptionReceiptSha256",
+      "producer": "HOLDOUT_CONSUMPTION_PACKAGER"
+    },
+    {
+      "artifactSchema": "holdout-consumption-registry.schema.json",
+      "field": "holdoutConsumptionRegistrySha256",
+      "producer": "HOLDOUT_CONSUMPTION_PACKAGER"
+    },
+    {
+      "artifactSchema": "gold-binding-manifest.schema.json",
+      "field": "goldBindingManifestSha256",
+      "producer": "GOLD_BINDING_PACKAGER"
+    },
+    {
+      "artifactSchema": "anonymization-manifest.schema.json",
+      "field": "anonymizationManifestSha256",
+      "producer": "ANONYMIZATION_PACKAGER"
+    },
+    {
+      "artifactSchema": "sanitized-evidence-bundle-manifest.schema.json",
+      "field": "sanitizedEvidenceBundleManifestSha256",
+      "producer": "EVIDENCE_SET_PACKAGER"
+    },
+    {
+      "artifactSchema": "recording-manifest.schema.json",
+      "field": "recordingManifestSha256",
+      "producer": "ACTOR_RECORDING_PACKAGER"
+    },
+    {
+      "artifactSchema": "recording-manifest.schema.json",
+      "field": "recordingManifestSha256",
+      "producer": "COVERAGE_RECORDING_PACKAGER"
+    },
+    {
+      "artifactSchema": "panel-finalization-seal.schema.json",
+      "field": "panelFinalizationSealSha256",
+      "producer": "PANEL_FINALIZATION_SEAL_PACKAGER"
     }
   ],
   "postRunActorFields": [
+    "coldActorResponseSha256",
+    "coldActorResponseRawSha256",
     "userDataSha256",
     "saveSha256",
     "journalSha256",
     "recordingManifestSha256",
-    "actorArtifactId"
+    "recordingManifestRawSha256",
+    "actorArtifactId",
+    "actorTraceSha256"
   ],
   "verification": {
     "requireExactRecomputation": true,

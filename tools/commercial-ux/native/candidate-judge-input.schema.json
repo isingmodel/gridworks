@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-candidate-judge-input-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "judgeInputSha256", "candidateManifestSha256",
+    "candidateManifestRawSha256", "qualificationReceiptSha256",
+    "qualificationReceiptRawSha256", "qualificationStatus",
+    "holdoutConsumptionReceiptSha256",
+    "holdoutConsumptionReceiptRawSha256", "goldBindingManifestSha256",
+    "goldBindingManifestRawSha256", "evidenceSetSha256", "evidenceSetRawSha256",
+    "sanitizedEvidenceBundleManifestSha256",
+    "sanitizedEvidenceBundleManifestRawSha256", "sanitizedEvidenceContentRootSha256",
+    "recipeId", "selectedRecipeSha256", "artifactOrder", "promptTemplateSha256",
+    "judgmentSchemaSha256", "rubricSha256", "model", "reasoningEffort"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.candidate-judge-input.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "judgeInputSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+    "qualificationStatus": {"const": "PASS"},
+    "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+    "goldBindingManifestSha256": {"$ref": "#/$defs/sha256"},
+    "goldBindingManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+    "evidenceSetRawSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceBundleManifestSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceBundleManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceContentRootSha256": {"$ref": "#/$defs/sha256"},
+    "recipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "selectedRecipeSha256": {"$ref": "#/$defs/sha256"},
+    "artifactOrder": {
+      "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"}
+    },
+    "promptTemplateSha256": {"$ref": "#/$defs/sha256"},
+    "judgmentSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "rubricSha256": {"$ref": "#/$defs/sha256"},
+    "model": {"const": "gpt-5.6-sol"},
+    "reasoningEffort": {"const": "ultra"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

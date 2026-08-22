@@ -3,14 +3,17 @@
 
 This validator deliberately treats an honest pre-execution manifest as valid while
 reporting it as not score-ready.  Callers that are about to capture score-bearing
-evidence must pass --require-score-ready; pending or unbound bindings then fail
-closed.
+evidence must pass --require-score-ready with both --candidate-manifest and the
+candidate-specific --binding-manifest.  The immutable pending template is never
+rewritten to impersonate captured native evidence.
 """
 
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
+import importlib.util
 import json
 import re
 import shlex
@@ -30,6 +33,11 @@ BOUND = "BOUND_NATIVE_REPLAY"
 ALLOWED_BINDING_STATUSES = {PENDING, UNBOUND, NOT_APPLICABLE, BOUND}
 BLOCKING_BINDING_STATUSES = {PENDING, UNBOUND}
 SHA256_PATTERN = re.compile(r"sha256:[0-9a-f]{64}\Z")
+EPISODES = [
+    "E00-TITLE", "E01-FIRST-LIGHT", "E02-SECOND-HEART", "E03-SECOND-SOURCE",
+    "E04-NORTH-BANK", "E05-WHOSE-MARGIN", "E06-FLOOD", "E07-MAINTENANCE",
+    "E08-FINALE", "E09-MID-RESUME", "E10-COMPLETE-RESUME", "E11-AUTHORED-TEXT",
+]
 
 
 class ContractError(ValueError):
@@ -64,6 +72,24 @@ def load_json_bytes(data: bytes, label: str) -> Any:
 
 def sha256_bytes(data: bytes) -> str:
     return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
+def canonical_json_bytes(value: Any) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        allow_nan=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def canonical_self_hash(value: dict[str, Any], field: str) -> str:
+    payload = copy.deepcopy(value)
+    if field not in payload:
+        raise ContractError(f"self-hash field absent: {field}")
+    payload[field] = None
+    return sha256_bytes(canonical_json_bytes(payload))
 
 
 def repo_path(root: Path, value: Any, label: str) -> Path:
@@ -313,47 +339,14 @@ def validate_story_manifest_bytes(
 
 def validate_candidate_execution_manifest(
     root: Path,
-    path: Path,
-    gold_manifest_path: Path,
+    candidate: dict[str, Any],
+    gold_manifest_raw_sha256: str,
     gold_manifest: dict[str, Any],
     observed_story_sha256: str | None,
     failures: list[str],
 ) -> bool:
     """Validate the pre-capture candidate identity and gold-contract links."""
     failure_count_before = len(failures)
-    contract_validator = gold_manifest_path.parent / "validate-contract.py"
-    if contract_validator.is_file():
-        completed = subprocess.run(
-            [
-                sys.executable,
-                str(contract_validator),
-                "--candidate-manifest",
-                str(path),
-                "--json",
-            ],
-            cwd=root,
-            check=False,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=30,
-        )
-        require(
-            completed.returncode == 0,
-            "candidate manifest failed native contract schema/self-hash validation: "
-            + (completed.stdout.strip() or completed.stderr.strip()),
-            failures,
-        )
-    else:
-        failures.append("native contract validator is missing; candidate manifest cannot be trusted")
-    try:
-        candidate = load_json(path)
-    except ContractError as error:
-        failures.append(str(error))
-        return False
-    require(isinstance(candidate, dict), "candidate manifest must be an object", failures)
-    if not isinstance(candidate, dict):
-        return False
     require(
         candidate.get("schemaVersion")
         == "gridworks.commercial-ux.candidate-manifest.v1",
@@ -437,7 +430,7 @@ def validate_candidate_execution_manifest(
         )
         require(
             recipes.get("goldStateContractSha256")
-            == sha256_bytes(gold_manifest_path.read_bytes()),
+            == gold_manifest_raw_sha256,
             "candidate recipes.goldStateContractSha256 mismatch",
             failures,
         )
@@ -462,21 +455,505 @@ def validate_candidate_execution_manifest(
     return len(failures) == failure_count_before
 
 
-def validate(
+def checkpoint_branch_id(checkpoint_id: str, promise_branch_order: list[str]) -> str:
+    if "keep-result" in checkpoint_id:
+        return "KEEP"
+    if "defer-result" in checkpoint_id:
+        return "DEFER"
+    if checkpoint_id == "north-bank-first-result":
+        return promise_branch_order[0].upper()
+    if checkpoint_id in {
+        "emergency-use",
+        "protective-shutdown",
+        "planned-source-outage",
+        "finale-heat",
+        "finale-storm",
+        "finale-result-to-epilogue",
+    }:
+        return "KEEP"
+    return "SHARED"
+
+
+def validate_gold_bundle(
+    binding: dict[str, Any],
+    prefix_rows: list[Any],
+    checkpoint_rows: list[Any],
+    failures: list[str],
+) -> None:
+    root_value = binding.get("canonicalGoldBundleRoot")
+    if not isinstance(root_value, str):
+        failures.append("gold binding canonicalGoldBundleRoot must be an absolute path")
+        return
+    root = Path(root_value)
+    try:
+        resolved_root = root.resolve(strict=True)
+    except OSError as error:
+        failures.append(f"gold binding bundle root cannot be opened: {error}")
+        return
+    require(
+        root.is_absolute() and root_value == str(resolved_root) and resolved_root.is_dir(),
+        "gold binding bundle root must be a canonical directory without symlinks",
+        failures,
+    )
+    referenced: list[str] = []
+    root_rows: list[dict[str, Any]] = []
+    for row in [*prefix_rows, *checkpoint_rows]:
+        if not isinstance(row, dict):
+            continue
+        for field in ("journalBinding", "snapshotBinding"):
+            component = row.get(field)
+            if not isinstance(component, dict) or component.get("status") != BOUND:
+                continue
+            locator = component.get("locator")
+            byte_length = component.get("byteLength")
+            expected_sha = component.get("sha256")
+            if not isinstance(locator, str):
+                failures.append(f"gold binding {field} is missing its raw locator")
+                continue
+            referenced.append(locator)
+            target = resolved_root / locator
+            try:
+                resolved_target = target.resolve(strict=True)
+            except OSError as error:
+                failures.append(f"gold binding locator cannot be opened: {locator}: {error}")
+                continue
+            require(
+                str(target) == str(resolved_target)
+                and resolved_target.is_file()
+                and resolved_root in resolved_target.parents,
+                f"gold binding locator escapes its canonical root or uses a symlink: {locator}",
+                failures,
+            )
+            if not resolved_target.is_file():
+                continue
+            data = resolved_target.read_bytes()
+            observed_sha = sha256_bytes(data)
+            require(
+                expected_sha == observed_sha and byte_length == len(data),
+                f"gold binding raw bytes mismatch: {locator}",
+                failures,
+            )
+            root_rows.append({
+                "locator": locator,
+                "rawSha256": observed_sha,
+                "byteLength": len(data),
+            })
+    require(
+        len(referenced) == 112
+        and len(referenced) == len(set(referenced))
+        and binding.get("goldBundleEntryCount") == len(referenced),
+        "gold binding bundle must contain 112 unique applicable journal/snapshot locators",
+        failures,
+    )
+    disk_files: list[str] = []
+    symlink_count = 0
+    if resolved_root.is_dir():
+        for path in resolved_root.rglob("*"):
+            if path.is_symlink():
+                symlink_count += 1
+            elif path.is_file():
+                disk_files.append(path.relative_to(resolved_root).as_posix())
+    require(
+        symlink_count == 0
+        and binding.get("goldBundleSymlinkCount") == 0,
+        "gold binding bundle must reject every symlink",
+        failures,
+    )
+    require(
+        sorted(disk_files) == sorted(referenced)
+        and binding.get("goldBundleExtraFileCount") == 0,
+        "gold binding bundle recursive file set has missing or extra files",
+        failures,
+    )
+    root_rows.sort(key=lambda row: row["locator"])
+    require(
+        binding.get("goldBundleRootSha256")
+        == sha256_bytes(canonical_json_bytes(root_rows)),
+        "gold binding bundle content-root SHA mismatch",
+        failures,
+    )
+
+
+def validate_candidate_binding_overlay(
+    root: Path,
+    binding: dict[str, Any],
+    manifest_path: Path,
+    manifest_raw_sha256: str,
+    manifest: dict[str, Any],
+    candidate: dict[str, Any] | None,
+    failures: list[str],
+) -> bool:
+    failure_count_before = len(failures)
+    require(
+        binding.get("goldStateContractSha256")
+        == manifest_raw_sha256,
+        "gold binding manifest gold-state contract raw SHA mismatch",
+        failures,
+    )
+    require(
+        binding.get("coverageRecipeSha256")
+        == manifest.get("authorities", {}).get("coverageRecipe", {}).get("sha256"),
+        "gold binding manifest coverage recipe raw SHA mismatch",
+        failures,
+    )
+    try:
+        queue = load_json(manifest_path.parent / "holdout-recipes.json")
+    except ContractError as error:
+        failures.append(str(error))
+        queue = {}
+    selected_rows = [
+        row for row in [queue.get("formative"), *queue.get("holdouts", [])]
+        if isinstance(row, dict) and row.get("id") == binding.get("selectedRecipeId")
+    ]
+    if len(selected_rows) != 1:
+        failures.append("gold binding selected recipe is absent or duplicated")
+        expected_realization: dict[str, Any] = {}
+    else:
+        selected_row = selected_rows[0]
+        require(
+            binding.get("selectedRecipeSha256")
+            == sha256_bytes(canonical_json_bytes(selected_row)),
+            "gold binding selected recipe projection hash mismatch",
+            failures,
+        )
+        expected_realization = {
+            "missionPrototypeBits": selected_row.get("missionPrototypeBits"),
+            "promiseBranchOrder": selected_row.get("promiseBranchOrder"),
+            "actorArtifactPermutation": selected_row.get("actorArtifactPermutation"),
+            "coverageArtifactOrder": selected_row.get("coverageArtifactOrder"),
+            "coveragePresentationEpisodeIds": (
+                EPISODES
+                if selected_row.get("coverageArtifactOrder") == "EPISODE_ASCENDING"
+                else list(reversed(EPISODES))
+            ),
+        }
+        require(
+            binding.get("holdoutRealization") == expected_realization,
+            "gold binding holdoutRealization exact projection mismatch",
+            failures,
+        )
+    promise_branch_order = expected_realization.get("promiseBranchOrder")
+    if not isinstance(promise_branch_order, list) or len(promise_branch_order) != 2:
+        promise_branch_order = ["keep", "defer"]
+    template_prefixes = manifest.get("prefixes", [])
+    expected_prefix_ids = [
+        row.get("prefixId") for row in template_prefixes if isinstance(row, dict)
+    ]
+    prefix_rows = binding.get("prefixBindings")
+    require(isinstance(prefix_rows, list), "gold binding prefixBindings must be an array", failures)
+    prefix_rows = prefix_rows if isinstance(prefix_rows, list) else []
+    require(
+        [row.get("prefixId") for row in prefix_rows if isinstance(row, dict)]
+        == expected_prefix_ids,
+        "gold binding prefix ids/order must exactly match the immutable template",
+        failures,
+    )
+    expected_checkpoints = [
+        (episode.get("id"), row.get("checkpointId"))
+        for episode in manifest.get("episodes", []) if isinstance(episode, dict)
+        for row in episode.get("checkpointBindings", []) if isinstance(row, dict)
+    ]
+    checkpoint_rows = binding.get("checkpointBindings")
+    require(
+        isinstance(checkpoint_rows, list),
+        "gold binding checkpointBindings must be an array",
+        failures,
+    )
+    checkpoint_rows = checkpoint_rows if isinstance(checkpoint_rows, list) else []
+    require(
+        [
+            (row.get("episodeId"), row.get("checkpointId"))
+            for row in checkpoint_rows if isinstance(row, dict)
+        ] == expected_checkpoints,
+        "gold binding checkpoint ids/order must exactly match the immutable template",
+        failures,
+    )
+    template_statuses = {
+        f"prefix:{row.get('prefixId')}": row.get("journalBinding", {}).get("status")
+        for row in template_prefixes if isinstance(row, dict)
+    }
+    template_statuses.update({
+        f"checkpoint:{episode.get('id')}/{row.get('checkpointId')}":
+            row.get("journalBinding", {}).get("status")
+        for episode in manifest.get("episodes", []) if isinstance(episode, dict)
+        for row in episode.get("checkpointBindings", []) if isinstance(row, dict)
+    })
+    observed_statuses: dict[str, str | None] = {}
+    for row in prefix_rows:
+        if not isinstance(row, dict):
+            failures.append("gold binding prefix row must be an object")
+            continue
+        owner = f"prefix:{row.get('prefixId')}"
+        observed_statuses[owner] = validate_binding(
+            owner, row.get("journalBinding"), row.get("snapshotBinding"), failures
+        )
+    for row in checkpoint_rows:
+        if not isinstance(row, dict):
+            failures.append("gold binding checkpoint row must be an object")
+            continue
+        owner = f"checkpoint:{row.get('episodeId')}/{row.get('checkpointId')}"
+        observed_statuses[owner] = validate_binding(
+            owner, row.get("journalBinding"), row.get("snapshotBinding"), failures
+        )
+        if isinstance(row.get("checkpointId"), str):
+            require(
+                row.get("checkpointBranchId")
+                == checkpoint_branch_id(row["checkpointId"], promise_branch_order),
+                f"{owner} checkpointBranchId mismatch",
+                failures,
+            )
+    for owner, template_status in template_statuses.items():
+        expected_status = NOT_APPLICABLE if template_status == NOT_APPLICABLE else BOUND
+        require(
+            observed_statuses.get(owner) == expected_status,
+            f"{owner} overlay status must be {expected_status}",
+            failures,
+        )
+    bound_count = sum(status == BOUND for status in observed_statuses.values())
+    not_applicable_count = sum(
+        status == NOT_APPLICABLE for status in observed_statuses.values()
+    )
+    require(
+        binding.get("bindingSummary") == {
+            "prefixCount": 12,
+            "checkpointCount": 49,
+            "applicableBindingCount": 56,
+            "boundBindingCount": bound_count,
+            "notApplicableBindingCount": not_applicable_count,
+            "allApplicableBindingsExact": bound_count == 56,
+        },
+        "gold binding summary is not the exact derived 12/49/56/5 projection",
+        failures,
+    )
+    validate_gold_bundle(binding, prefix_rows, checkpoint_rows, failures)
+    witness = binding.get("e09NorthBankTwoProcessWitness")
+    require(isinstance(witness, dict), "gold binding E09 witness must be an object", failures)
+    if isinstance(witness, dict):
+        require(
+            witness.get("preExitProcessTreeId")
+            != witness.get("postResumeProcessTreeId"),
+            "gold binding E09 pre-exit and post-resume process trees must be distinct",
+            failures,
+        )
+        require(
+            witness.get("preExitJournalSha256")
+            == witness.get("postResumeJournalSha256")
+            and witness.get("preExitSnapshotSha256")
+            == witness.get("postResumeSnapshotSha256")
+            and witness.get("preExitCommandCount")
+            == witness.get("postResumeCommandCount"),
+            "gold binding E09 mid-save and resume-orientation bytes/count must be exact",
+            failures,
+        )
+        require(
+            isinstance(witness.get("resumedEditableDraftCommandCount"), int)
+            and witness.get("resumedEditableDraftCommandCount")
+            == witness.get("postResumeCommandCount", -2) + 2
+            and witness.get("resumedEditableDraftJournalSha256")
+            != witness.get("postResumeJournalSha256"),
+            "gold binding E09 resumed editable add+undo journal must differ and advance by two commands",
+            failures,
+        )
+        require(
+            witness.get("preExitDraftGeometrySha256")
+            == witness.get("postResumeDraftGeometrySha256")
+            == witness.get("resumedEditableDraftGeometrySha256")
+            and witness.get("preExitDraftProjectionSha256")
+            == witness.get("postResumeDraftProjectionSha256")
+            == witness.get("resumedEditableDraftProjectionSha256"),
+            "gold binding E09 content-derived draft geometry/projection hashes must restore exactly",
+            failures,
+        )
+        e09_rows = {
+            row.get("checkpointId"): row
+            for row in checkpoint_rows
+            if isinstance(row, dict) and row.get("episodeId") == "E09-MID-RESUME"
+        }
+        for checkpoint_id in ("mid-save-before-exit", "resume-orientation"):
+            row = e09_rows.get(checkpoint_id, {})
+            require(
+                row.get("journalBinding", {}).get("sha256")
+                == witness.get("preExitJournalSha256")
+                and row.get("snapshotBinding", {}).get("sha256")
+                == witness.get("preExitSnapshotSha256")
+                and row.get("journalBinding", {}).get("commandCount")
+                == witness.get("preExitCommandCount"),
+                f"gold binding E09 {checkpoint_id} does not match exact pre/resume bytes",
+                failures,
+            )
+        e09_prefix = next(
+            (
+                row
+                for row in prefix_rows
+                if isinstance(row, dict)
+                and row.get("prefixId") == "PREFIX-NORTH-BANK-MID-DRAFT"
+            ),
+            {},
+        )
+        require(
+            e09_prefix.get("journalBinding", {}).get("sha256")
+            == witness.get("preExitJournalSha256")
+            and e09_prefix.get("snapshotBinding", {}).get("sha256")
+            == witness.get("preExitSnapshotSha256")
+            and e09_prefix.get("journalBinding", {}).get("commandCount")
+            == witness.get("preExitCommandCount"),
+            "gold binding E09 mid-draft prefix does not match exact pre-exit bytes",
+            failures,
+        )
+        editable = e09_rows.get("resumed-editable-draft", {})
+        require(
+            editable.get("journalBinding", {}).get("sha256")
+            == witness.get("resumedEditableDraftJournalSha256")
+            and editable.get("snapshotBinding", {}).get("sha256")
+            == witness.get("resumedEditableDraftSnapshotSha256")
+            and editable.get("journalBinding", {}).get("commandCount")
+            == witness.get("resumedEditableDraftCommandCount"),
+            "gold binding E09 resumed editable add+undo bytes are not separately bound",
+            failures,
+        )
+    if candidate is not None:
+        require(
+            binding.get("candidateManifestSha256")
+            == candidate.get("candidateManifestSha256"),
+            "gold binding manifest candidate self-hash mismatch",
+            failures,
+        )
+    generator = manifest.get("nextRequiredGenerator", {})
+    try:
+        generator_path = repo_path(root, generator.get("path"), "nextRequiredGenerator.path")
+    except ContractError as error:
+        failures.append(str(error))
+    else:
+        require(generator_path.is_file(), "gold binding generator tool is missing", failures)
+        if generator_path.is_file():
+            require(
+                binding.get("generatorToolSha256")
+                == sha256_bytes(generator_path.read_bytes()),
+                "gold binding generator tool raw SHA mismatch",
+                failures,
+            )
+    return len(failures) == failure_count_before
+
+
+def _load_contract_validator(path: Path) -> Any:
+    """Load the sibling validator in-process so runtime paths are never reopened."""
+    spec = importlib.util.spec_from_file_location(
+        "gridworks_commercial_ux_validate_contract",
+        path,
+    )
+    if spec is None or spec.loader is None:
+        raise ContractError(f"cannot load native contract validator: {path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def validate_exact_inputs(
     root: Path,
     manifest_path: Path,
-    story_manifest_path: Path | None,
+    story_manifest_bytes: bytes | None,
     run_story_manifest: bool,
-    candidate_execution_manifest_path: Path | None,
+    candidate_manifest_bytes: bytes | None,
+    binding_manifest_bytes: bytes | None,
     require_score_ready: bool,
+    *,
+    story_manifest_path_label: Path | None = None,
+    candidate_manifest_path_label: Path | None = None,
+    binding_manifest_path_label: Path | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
+    """Validate already-opened candidate/gold bytes and report their raw hashes.
+
+    The three path-label arguments are diagnostic only and are never opened.
+    Candidate component files and the gold replay bundle are still opened from
+    their content-addressed declarations because validating those bytes is the
+    purpose of this authority.
+    """
+
     failures: list[str] = []
     try:
-        manifest = load_json(manifest_path)
-    except ContractError as error:
+        manifest_bytes = manifest_path.read_bytes()
+        manifest = load_json_bytes(manifest_bytes, str(manifest_path))
+    except (OSError, ContractError) as error:
         return [str(error)], {}
     if not isinstance(manifest, dict):
         return ["gold-state manifest must be a JSON object"], {}
+    manifest_raw_sha256 = sha256_bytes(manifest_bytes)
+    observed_raw_sha256: dict[str, str] = {
+        "goldStateManifestRawSha256": manifest_raw_sha256,
+    }
+
+    candidate: dict[str, Any] | None = None
+    if candidate_manifest_bytes is not None:
+        observed_raw_sha256["candidateManifestRawSha256"] = sha256_bytes(
+            candidate_manifest_bytes
+        )
+        try:
+            candidate_value = load_json_bytes(
+                candidate_manifest_bytes,
+                str(candidate_manifest_path_label or "candidate manifest bytes"),
+            )
+        except ContractError as error:
+            failures.append(str(error))
+        else:
+            if isinstance(candidate_value, dict):
+                candidate = candidate_value
+            else:
+                failures.append("candidate manifest must be a JSON object")
+
+    binding_manifest: dict[str, Any] | None = None
+    if binding_manifest_bytes is not None:
+        observed_raw_sha256["goldBindingManifestRawSha256"] = sha256_bytes(
+            binding_manifest_bytes
+        )
+        try:
+            binding_value = load_json_bytes(
+                binding_manifest_bytes,
+                str(binding_manifest_path_label or "gold binding manifest bytes"),
+            )
+        except ContractError as error:
+            failures.append(str(error))
+        else:
+            if isinstance(binding_value, dict):
+                binding_manifest = binding_value
+            else:
+                failures.append("gold binding manifest must be a JSON object")
+
+    if candidate_manifest_bytes is not None or binding_manifest_bytes is not None:
+        contract_validator_path = manifest_path.parent / "validate-contract.py"
+        try:
+            contract_validator = _load_contract_validator(contract_validator_path)
+            contract_errors, contract_summary = (
+                contract_validator.validate_runtime_contract_bytes(
+                    manifest_path.parent,
+                    manifest_path.parent.parent / "rubric.json",
+                    candidate_manifest_bytes=candidate_manifest_bytes,
+                    gold_binding_manifest_bytes=binding_manifest_bytes,
+                    candidate_manifest_path_label=candidate_manifest_path_label,
+                    gold_binding_manifest_path_label=binding_manifest_path_label,
+                )
+            )
+        except (OSError, AttributeError, ContractError) as error:
+            failures.append(f"native contract exact-byte validation did not run: {error}")
+        else:
+            failures.extend(
+                f"native contract exact-byte validation: {error}"
+                for error in contract_errors
+            )
+            contract_observed = contract_summary.get("observedRawSha256", {})
+            expected_contract_observed: dict[str, str] = {}
+            if candidate_manifest_bytes is not None:
+                expected_contract_observed["candidateManifestRawSha256"] = (
+                    observed_raw_sha256["candidateManifestRawSha256"]
+                )
+            if binding_manifest_bytes is not None:
+                expected_contract_observed["goldBindingManifestRawSha256"] = (
+                    observed_raw_sha256["goldBindingManifestRawSha256"]
+                )
+            require(
+                contract_observed == expected_contract_observed,
+                "native contract observed raw SHA projection mismatch",
+                failures,
+            )
 
     require(manifest.get("schemaVersion") == SCHEMA_VERSION, "schemaVersion mismatch", failures)
     require(manifest.get("protocol") == PROTOCOL, "protocol mismatch", failures)
@@ -513,6 +990,28 @@ def validate(
             "candidateExecutionPolicy.requiredCandidateAuthorityHashes mismatch",
             failures,
         )
+
+    require(
+        manifest.get("candidateBindingOverlay") == {
+            "schema": "gold-binding-manifest.schema.json",
+            "selfHashField": "goldBindingManifestSha256",
+            "rawHashOwner": "evaluation-run manifest artifacts.goldBindingManifestRawSha256",
+            "prefixCount": 12,
+            "checkpointCount": 49,
+            "applicableBindingCount": 56,
+            "notApplicableBindingCount": 5,
+            "e09WitnessRequired": True,
+            "rawBundleRequired": True,
+            "rawBundleEntryCount": 112,
+            "rawBundleValidation": "OPEN_EVERY_CANONICAL_LOCATOR_RECOMPUTE_RAW_HASH_AND_LENGTH_REJECT_EXTRA_OR_SYMLINK",
+            "immutableTemplateBindingsRemainPending": True,
+            "scoreReadyCommandRequires": [
+                "--binding-manifest", "--candidate-manifest", "--require-score-ready"
+            ],
+        },
+        "candidateBindingOverlay contract drift",
+        failures,
+    )
 
     authorities = manifest.get("authorities")
     require(isinstance(authorities, dict), "authorities must be an object", failures)
@@ -834,14 +1333,12 @@ def validate(
             "E11 must defer exact story output hash to the candidate execution manifest",
             failures,
         )
-        story_data: bytes | None = None
-        story_label = "story manifest"
-        if story_manifest_path is not None:
-            try:
-                story_data = story_manifest_path.read_bytes()
-                story_label = str(story_manifest_path)
-            except OSError as error:
-                failures.append(f"cannot read story manifest {story_manifest_path}: {error}")
+        story_data = story_manifest_bytes
+        story_label = str(story_manifest_path_label or "story manifest bytes")
+        if story_manifest_bytes is not None:
+            observed_raw_sha256["storyManifestRawSha256"] = sha256_bytes(
+                story_manifest_bytes
+            )
         if run_story_manifest:
             command = story_authority.get("generator")
             require(isinstance(command, str) and bool(command), "story manifest generator command is missing", failures)
@@ -878,19 +1375,31 @@ def validate(
             )
 
     candidate_execution_valid = False
-    if candidate_execution_manifest_path is not None:
+    if candidate is not None:
         candidate_execution_valid = validate_candidate_execution_manifest(
             root,
-            candidate_execution_manifest_path,
-            manifest_path,
+            candidate,
+            manifest_raw_sha256,
             manifest,
             observed_story_sha256,
             failures,
         )
 
+    binding_manifest_valid = False
+    if binding_manifest is not None:
+        binding_manifest_valid = validate_candidate_binding_overlay(
+            root,
+            binding_manifest,
+            manifest_path,
+            manifest_raw_sha256,
+            manifest,
+            candidate,
+            failures,
+        )
+
     if require_score_ready:
         require(
-            candidate_execution_manifest_path is not None,
+            candidate_manifest_bytes is not None,
             "score-bearing readiness requires --candidate-manifest; gold template bindings never substitute for candidate execution hashes",
             failures,
         )
@@ -900,8 +1409,13 @@ def validate(
             failures,
         )
         require(
-            not has_blockers,
-            "score-bearing readiness blocked by PENDING_NATIVE_REPLAY or UNBOUND_REQUIRED_WITNESS; a future binding-manifest validator must resolve these without mutating candidate-independent predicates",
+            binding_manifest_bytes is not None,
+            "score-bearing readiness requires --binding-manifest; immutable template bindings are never mutated",
+            failures,
+        )
+        require(
+            binding_manifest_valid,
+            "score-bearing readiness requires a valid candidate-specific binding manifest",
             failures,
         )
         generator_path: Path | None = None
@@ -928,13 +1442,71 @@ def validate(
         "unboundOwners": sum(status == UNBOUND for status in status_owners.values()),
         "scoreBearingReady": (
             candidate_execution_valid
-            and not has_blockers
+            and binding_manifest_valid
             and isinstance(next_generator, dict)
             and (root / str(next_generator.get("path", ""))).is_file()
         ),
         "storyOutputSha256": observed_story_sha256,
+        "observedRawSha256": observed_raw_sha256,
     }
     return failures, summary
+
+
+def _read_optional_bytes(
+    path: Path | None,
+    label: str,
+    failures: list[str],
+) -> tuple[bytes | None, Path | None]:
+    if path is None:
+        return None, None
+    resolved = path.resolve(strict=False)
+    try:
+        return resolved.read_bytes(), resolved
+    except OSError as error:
+        failures.append(f"cannot read {label} {resolved}: {error}")
+        return None, resolved
+
+
+def validate(
+    root: Path,
+    manifest_path: Path,
+    story_manifest_path: Path | None,
+    run_story_manifest: bool,
+    candidate_execution_manifest_path: Path | None,
+    binding_manifest_path: Path | None,
+    require_score_ready: bool,
+) -> tuple[list[str], dict[str, Any]]:
+    """Path-based CLI compatibility wrapper that opens each runtime file once."""
+
+    read_failures: list[str] = []
+    story_bytes, story_label = _read_optional_bytes(
+        story_manifest_path,
+        "story manifest",
+        read_failures,
+    )
+    candidate_bytes, candidate_label = _read_optional_bytes(
+        candidate_execution_manifest_path,
+        "candidate manifest",
+        read_failures,
+    )
+    binding_bytes, binding_label = _read_optional_bytes(
+        binding_manifest_path,
+        "gold binding manifest",
+        read_failures,
+    )
+    failures, summary = validate_exact_inputs(
+        root,
+        manifest_path,
+        story_bytes,
+        run_story_manifest,
+        candidate_bytes,
+        binding_bytes,
+        require_score_ready,
+        story_manifest_path_label=story_label,
+        candidate_manifest_path_label=candidate_label,
+        binding_manifest_path_label=binding_label,
+    )
+    return [*read_failures, *failures], summary
 
 
 def main() -> int:
@@ -950,7 +1522,9 @@ def main() -> int:
         dest="candidate_execution_manifest",
         type=Path,
     )
+    parser.add_argument("--binding-manifest", type=Path)
     parser.add_argument("--require-score-ready", action="store_true")
+    parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     root = args.root.resolve()
     manifest_path = (
@@ -968,8 +1542,22 @@ def main() -> int:
             if args.candidate_execution_manifest is not None
             else None
         ),
+        args.binding_manifest.resolve() if args.binding_manifest is not None else None,
         args.require_score_ready,
     )
+    if args.json:
+        print(
+            json.dumps(
+                {
+                    **summary,
+                    "status": "PASS" if not failures else "FAIL",
+                    "errors": failures,
+                },
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return 1 if failures else 0
     if failures:
         for failure in failures:
             print(f"ERROR: {failure}", file=sys.stderr)

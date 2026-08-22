@@ -13,6 +13,7 @@ import hashlib
 import json
 import math
 import re
+import subprocess
 import sys
 from collections import Counter
 from pathlib import Path
@@ -35,6 +36,53 @@ EPISODES = [
     "E09-MID-RESUME",
     "E10-COMPLETE-RESUME",
     "E11-AUTHORED-TEXT",
+]
+EXPECTED_PROBE_IDS = [
+    "PX01-ROLE-START",
+    "PX02-GOAL-NEXT-ACTION",
+    "PX03-PLACEMENT-RECOVERY",
+    "PX03-COLD-PLACEMENT-COMMIT",
+    "PX04-LINE-DRAFT",
+    "PX04-COLD-LINE-COMMIT",
+    "PX05-SUPPLY-ENERGIZATION",
+    "PX06-CONTINUOUS-LIMIT",
+    "PX07-CORRIDOR-INDEPENDENCE",
+    "PX08-SOURCE-BOTTLENECK",
+    "PX09-TUTORIAL-WITHDRAWAL",
+    "PX10-MUST-PROMISE",
+    "PX11-RESULT-BOUNDARY",
+    "PX12-EMERGENCY-SHUTDOWN",
+    "PX13-FLOOD-DEADLINE-RECOVERY",
+    "PX13-COLD-FLOOD-OUTCOME",
+    "PX14-RESET-MAINTENANCE",
+    "PX15-FINALE-PROMISE",
+    "PX16-FINALE-PAYOFF",
+    "PX17-MID-RESUME",
+    "PX18-COMPLETE-RESUME",
+    "PX19-ACCESSIBILITY",
+    "PX20-AUDIOVISUAL",
+    "PX21-COLD-KOREAN-STORY",
+    "PX22-AUTHORED-KOREAN-STORY",
+]
+EXPECTED_COLD_PROBE_ORDER = [
+    "PX01-ROLE-START",
+    "PX21-COLD-KOREAN-STORY",
+    "PX02-GOAL-NEXT-ACTION",
+    "PX03-COLD-PLACEMENT-COMMIT",
+    "PX04-COLD-LINE-COMMIT",
+    "PX05-SUPPLY-ENERGIZATION",
+    "PX06-CONTINUOUS-LIMIT",
+    "PX07-CORRIDOR-INDEPENDENCE",
+    "PX08-SOURCE-BOTTLENECK",
+    "PX09-TUTORIAL-WITHDRAWAL",
+    "PX10-MUST-PROMISE",
+    "PX17-MID-RESUME",
+    "PX11-RESULT-BOUNDARY",
+    "PX12-EMERGENCY-SHUTDOWN",
+    "PX13-COLD-FLOOD-OUTCOME",
+    "PX14-RESET-MAINTENANCE",
+    "PX15-FINALE-PROMISE",
+    "PX16-FINALE-PAYOFF",
 ]
 HARD_GATES = [
     "HG01-AUTHORITY",
@@ -149,8 +197,26 @@ def read_json(path: Path) -> dict[str, Any]:
     return value
 
 
+def read_json_bytes(data: bytes, label: str) -> dict[str, Any]:
+    """Parse one already-opened runtime artifact without reopening its path."""
+    try:
+        value = json.loads(
+            data,
+            object_pairs_hook=duplicate_rejector,
+        )
+    except (UnicodeError, json.JSONDecodeError, ContractError) as error:
+        raise ContractError(f"cannot read strict JSON {label}: {error}") from error
+    if not isinstance(value, dict):
+        raise ContractError(f"{label} must contain a JSON object")
+    return value
+
+
+def bytes_sha256(data: bytes) -> str:
+    return "sha256:" + hashlib.sha256(data).hexdigest()
+
+
 def raw_sha256(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    return bytes_sha256(path.read_bytes())
 
 
 def canonical_json_bytes(value: Any) -> bytes:
@@ -276,6 +342,19 @@ def validate_actor_observation_semantics(
         errors.append(
             "actor checkpoint ordinals must be exact, unique, and strictly increasing from 1"
         )
+    recipe_checkpoint_ordinals = [
+        row.get("recipeCheckpointSequenceOrdinal")
+        for row in checkpoint_rows
+        if isinstance(row, dict)
+    ]
+    if not all(
+        isinstance(value, int) and not isinstance(value, bool)
+        for value in recipe_checkpoint_ordinals
+    ) or any(
+        right <= left
+        for left, right in zip(recipe_checkpoint_ordinals, recipe_checkpoint_ordinals[1:])
+    ):
+        errors.append("actor recipe checkpoint sequence ordinals must be strictly increasing")
     checkpoint_by_ordinal = {
         row.get("ordinal"): row
         for row in checkpoint_rows
@@ -284,6 +363,20 @@ def validate_actor_observation_semantics(
     action_index_set = {
         index for index in action_indexes if isinstance(index, int) and not isinstance(index, bool)
     }
+    first_use_rows = observation.get("firstUseRecords")
+    if isinstance(first_use_rows, list):
+        first_use_ordinals = [
+            row.get("firstUseOrdinal") for row in first_use_rows if isinstance(row, dict)
+        ]
+        if first_use_ordinals != list(range(1, len(first_use_rows) + 1)):
+            errors.append("actor firstUseOrdinal values must be contiguous from 1")
+    approval_rows = observation.get("approvalRecords")
+    if isinstance(approval_rows, list):
+        approval_ordinals = [
+            row.get("approvalOrdinal") for row in approval_rows if isinstance(row, dict)
+        ]
+        if approval_ordinals != list(range(1, len(approval_rows) + 1)):
+            errors.append("actor approvalOrdinal values must be contiguous from 1")
     incidents = observation.get("incidents")
     incident_rows = incidents if isinstance(incidents, list) else []
     incident_keys = [
@@ -293,6 +386,11 @@ def validate_actor_observation_semantics(
     ]
     if len(incident_keys) != len(set(incident_keys)):
         errors.append("actor incidentKey values must be unique")
+    incident_ordinals = [
+        row.get("incidentOrdinal") for row in incident_rows if isinstance(row, dict)
+    ]
+    if incident_ordinals != list(range(1, len(incident_rows) + 1)):
+        errors.append("actor incidentOrdinal values must be contiguous from 1")
     for index, incident in enumerate(incident_rows):
         if not isinstance(incident, dict):
             continue
@@ -309,13 +407,23 @@ def validate_actor_observation_semantics(
             if not set(cited_checkpoints).issubset(checkpoint_by_ordinal):
                 errors.append(f"actor incident {index} cites an unknown checkpoint ordinal")
     terminal_key = observation.get("terminalIncidentKey")
+    terminal_ordinal = observation.get("terminalIncidentOrdinal")
     if terminal_key is not None and terminal_key not in incident_keys:
         errors.append("actor terminalIncidentKey must name one of its incidents")
+    if terminal_ordinal is not None:
+        terminal_rows = [
+            row for row in incident_rows
+            if isinstance(row, dict) and row.get("incidentOrdinal") == terminal_ordinal
+        ]
+        if len(terminal_rows) != 1 or terminal_rows[0].get("incidentKey") != terminal_key:
+            errors.append("actor terminal incident ordinal/key linkage mismatch")
     terminal_state = observation.get("terminalState")
-    if terminal_state == "COMPLETED" and terminal_key is not None:
-        errors.append("actor COMPLETED terminal state requires terminalIncidentKey=null")
-    if terminal_state in {"PLAYER_STALLED", "HARNESS_BLOCKED"} and terminal_key is None:
-        errors.append(f"actor {terminal_state} terminal state requires an incident key")
+    if terminal_state == "COMPLETED" and (terminal_key is not None or terminal_ordinal is not None):
+        errors.append("actor COMPLETED terminal state requires null terminal incident linkage")
+    if terminal_state in {"PLAYER_STALLED", "HARNESS_BLOCKED"} and (
+        terminal_key is None or terminal_ordinal is None
+    ):
+        errors.append(f"actor {terminal_state} terminal state requires an incident key and ordinal")
 
 
 def validate_candidate_manifest_semantics(
@@ -331,6 +439,8 @@ def validate_candidate_manifest_semantics(
         "nativeAggregatorSha256": native.parent / "aggregate-native.py",
         "rubricSha256": rubric_path,
         "coldActorPromptSha256": native / "cold-actor-prompt.template.txt",
+        "coldActorResponseSchemaSha256": native / "cold-actor-response.schema.json",
+        "actorActionLedgerSchemaSha256": native / "actor-action-ledger.schema.json",
         "actorObservationSchemaSha256": native / "actor-observation.schema.json",
         "actorTraceSchemaSha256": native / "actor-trace.schema.json",
         "coverageTraceSchemaSha256": native / "coverage-trace.schema.json",
@@ -393,6 +503,379 @@ def validate_candidate_manifest_semantics(
         ).hexdigest()
         if recipes.get("selectedRecipeSha256") != selected_hash:
             errors.append("candidate selectedRecipeSha256 projection mismatch")
+
+    execution = candidate.get("execution")
+    if not isinstance(execution, dict):
+        errors.append("candidate execution must be an object")
+        return
+    component_fields = (
+        ("godotExecutablePath", "godotExecutableSha256"),
+        ("managedAssemblyPath", "managedAssemblySha256"),
+        ("pckResourceManifestPath", "pckResourceManifestSha256"),
+    )
+    if execution.get("packagePath") is not None:
+        component_fields = (*component_fields, ("packagePath", "packageSha256"))
+    for path_field, hash_field in component_fields:
+        raw_path = execution.get(path_field)
+        if not isinstance(raw_path, str):
+            errors.append(f"candidate execution.{path_field} must be an absolute path")
+            continue
+        path = Path(raw_path)
+        try:
+            resolved = path.resolve(strict=True)
+        except OSError as error:
+            errors.append(f"candidate execution.{path_field} cannot be opened: {error}")
+            continue
+        require(
+            path.is_absolute() and raw_path == str(resolved) and resolved.is_file(),
+            f"candidate execution.{path_field} must be a canonical regular file without symlinks",
+            errors,
+        )
+        if resolved.is_file():
+            require(
+                execution.get(hash_field) == raw_sha256(resolved),
+                f"candidate execution.{hash_field} raw SHA mismatch",
+                errors,
+            )
+    execution_projection = {
+        "godotExecutableSha256": execution.get("godotExecutableSha256"),
+        "managedAssemblySha256": execution.get("managedAssemblySha256"),
+        "pckResourceManifestSha256": execution.get("pckResourceManifestSha256"),
+        "packageSha256": execution.get("packageSha256"),
+        "packageStatus": execution.get("packageStatus"),
+    }
+    require(
+        execution.get("executionArtifactSha256")
+        == "sha256:" + hashlib.sha256(
+            canonical_json_bytes(execution_projection)
+        ).hexdigest(),
+        "candidate executionArtifactSha256 canonical component projection mismatch",
+        errors,
+    )
+
+
+def candidate_reuse_sha256(candidate: dict[str, Any]) -> str:
+    source = candidate.get("source", {})
+    execution = candidate.get("execution", {})
+    projection = {
+        "authorityHashes": candidate.get("authorityHashes"),
+        "executionArtifactSha256": execution.get("executionArtifactSha256"),
+        "sourceCommit": source.get("commit"),
+    }
+    return "sha256:" + hashlib.sha256(canonical_json_bytes(projection)).hexdigest()
+
+
+def selected_recipe_projection(row: dict[str, Any]) -> dict[str, Any]:
+    presentation_ids = (
+        EPISODES
+        if row.get("coverageArtifactOrder") == "EPISODE_ASCENDING"
+        else list(reversed(EPISODES))
+    )
+    return {
+        "recipeId": row.get("id"),
+        "ordinal": row.get("ordinal"),
+        "selectedRecipeSha256": "sha256:" + hashlib.sha256(
+            canonical_json_bytes(row)
+        ).hexdigest(),
+        "missionPrototypeBits": row.get("missionPrototypeBits"),
+        "routeFamily": row.get("routeFamily"),
+        "promiseBranchOrder": row.get("promiseBranchOrder"),
+        "actorArtifactPermutation": row.get("actorArtifactPermutation"),
+        "coverageArtifactOrder": row.get("coverageArtifactOrder"),
+        "coveragePresentationEpisodeIds": presentation_ids,
+    }
+
+
+def canonical_holdout_registry_path(native: Path) -> Path:
+    repository_root = native.parents[2]
+    try:
+        common_dir = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=repository_root,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=10,
+        ).stdout.strip()
+    except (OSError, subprocess.SubprocessError) as error:
+        raise ContractError(
+            f"cannot resolve repository-local holdout registry authority: {error}"
+        ) from error
+    common_path = Path(common_dir)
+    if not common_path.is_absolute():
+        common_path = repository_root / common_path
+    return (
+        common_path.resolve(strict=False)
+        / "gridworks-commercial-ux"
+        / "holdout-consumption-registry-v1.json"
+    )
+
+
+def holdout_claim_transaction_sha256(
+    receipt: dict[str, Any],
+    registry_before: dict[str, Any],
+) -> str:
+    selected = receipt.get("selectedRecipe", {})
+    projection = {
+        "queueAuthorityId": receipt.get("queueAuthorityId"),
+        "registryBeforeSha256": registry_before.get(
+            "holdoutConsumptionRegistrySha256"
+        ),
+        "candidateReuseSha256": receipt.get("candidateReuseSha256"),
+        "candidateManifestSha256": receipt.get("candidateManifestSha256"),
+        "selectedRecipeSha256": (
+            selected.get("selectedRecipeSha256")
+            if isinstance(selected, dict)
+            else None
+        ),
+        "ordinal": selected.get("ordinal") if isinstance(selected, dict) else None,
+    }
+    return "sha256:" + hashlib.sha256(canonical_json_bytes(projection)).hexdigest()
+
+
+def canonical_holdout_receipt_path(
+    native: Path,
+    transaction_id: str,
+    candidate_reuse_sha256: str,
+) -> Path:
+    if (
+        SHA_PATTERN.fullmatch(transaction_id) is None
+        or SHA_PATTERN.fullmatch(candidate_reuse_sha256) is None
+    ):
+        raise ContractError("holdout receipt path requires canonical SHA-256 claim keys")
+    return (
+        canonical_holdout_registry_path(native).parent
+        / "holdout-receipts"
+        / (
+            transaction_id.removeprefix("sha256:")
+            + "-"
+            + candidate_reuse_sha256.removeprefix("sha256:")
+            + ".json"
+        )
+    )
+
+
+def validate_registry_semantics(
+    registry: dict[str, Any],
+    queue: dict[str, Any],
+    label: str,
+    errors: list[str],
+) -> None:
+    rows = registry.get("consumptions")
+    if not isinstance(rows, list):
+        errors.append(f"{label} consumptions must be an array")
+        return
+    ordinals = [row.get("ordinal") for row in rows if isinstance(row, dict)]
+    recipe_ids = [row.get("recipeId") for row in rows if isinstance(row, dict)]
+    candidate_keys = [
+        row.get("candidateReuseSha256") for row in rows if isinstance(row, dict)
+    ]
+    require(
+        registry.get("revision") == len(rows),
+        f"{label} revision must equal consumption count",
+        errors,
+    )
+    require(
+        ordinals == list(range(1, len(rows) + 1)),
+        f"{label} ordinals must be the contiguous consumed prefix",
+        errors,
+    )
+    require(
+        recipe_ids == [f"HOLDOUT-{ordinal:02d}" for ordinal in ordinals],
+        f"{label} recipe IDs must match their ordinals",
+        errors,
+    )
+    require(
+        len(candidate_keys) == len(set(candidate_keys)),
+        f"{label} candidateReuseSha256 values must be unique",
+        errors,
+    )
+    require(
+        registry.get("queueAuthorityId") == queue.get("queueAuthorityId")
+        and registry.get("holdoutQueueSha256")
+        == queue.get("_observedRawSha256")
+        and registry.get("registryScope")
+        == queue.get("registryPolicy", {}).get("scope")
+        and registry.get("registryAuthorityLimit")
+        == queue.get("registryPolicy", {}).get("authorityLimit")
+        and registry.get("registryPathRule")
+        == queue.get("registryPolicy", {}).get("registryPathRule"),
+        f"{label} queue authority binding mismatch",
+        errors,
+    )
+    transaction_ids = [
+        row.get("transactionId") for row in rows if isinstance(row, dict)
+    ]
+    require(
+        len(transaction_ids) == len(set(transaction_ids))
+        and all(
+            isinstance(value, str) and SHA_PATTERN.fullmatch(value) is not None
+            for value in transaction_ids
+        ),
+        f"{label} transactionId values must be unique canonical SHA-256 claims",
+        errors,
+    )
+
+
+def validate_holdout_consumption_semantics(
+    receipt: dict[str, Any],
+    receipt_path: Path,
+    native: Path,
+    candidate: dict[str, Any] | None,
+    queue: dict[str, Any],
+    registry_before: dict[str, Any] | None,
+    registry_after: dict[str, Any] | None,
+    errors: list[str],
+) -> None:
+    atomic = receipt.get("atomicClaim", {})
+    canonical_receipt_path = str(receipt_path.resolve())
+    require(
+        isinstance(atomic, dict)
+        and atomic.get("receiptInputPath") == canonical_receipt_path
+        and atomic.get("canonicalReceiptPath") == canonical_receipt_path,
+        "holdout receipt embedded receipt paths must equal the exact canonical input path",
+        errors,
+    )
+    require(
+        receipt.get("holdoutConsumptionReceiptSchemaSha256")
+        == raw_sha256(native / "holdout-consumption-receipt.schema.json"),
+        "holdout receipt schema raw SHA mismatch",
+        errors,
+    )
+    require(
+        receipt.get("holdoutQueueSha256") == queue.get("_observedRawSha256")
+        and receipt.get("queueAuthorityId") == queue.get("queueAuthorityId"),
+        "holdout receipt queue authority mismatch",
+        errors,
+    )
+    selected = receipt.get("selectedRecipe")
+    queue_rows = [queue.get("formative"), *queue.get("holdouts", [])]
+    matches = [
+        row for row in queue_rows
+        if isinstance(row, dict)
+        and isinstance(selected, dict)
+        and row.get("id") == selected.get("recipeId")
+    ]
+    if len(matches) != 1:
+        errors.append("holdout receipt selected recipe is absent or duplicated")
+    else:
+        require(
+            selected == selected_recipe_projection(matches[0]),
+            "holdout receipt selectedRecipe exact projection mismatch",
+            errors,
+        )
+    if candidate is not None:
+        require(
+            receipt.get("candidateId") == candidate.get("candidateId")
+            and receipt.get("candidateManifestSha256")
+            == candidate.get("candidateManifestSha256")
+            and receipt.get("sourceCommit") == candidate.get("source", {}).get("commit")
+            and receipt.get("candidateReuseSha256") == candidate_reuse_sha256(candidate),
+            "holdout receipt candidate binding mismatch",
+            errors,
+        )
+        recipes = candidate.get("recipes", {})
+        if isinstance(selected, dict):
+            require(
+                selected.get("recipeId") == recipes.get("selectedRecipeId")
+                and selected.get("selectedRecipeSha256")
+                == recipes.get("selectedRecipeSha256"),
+                "holdout receipt selected recipe does not match candidate manifest",
+                errors,
+            )
+    if registry_before is None or registry_after is None:
+        errors.append("holdout receipt validation requires registry before and after envelopes")
+        return
+    validate_registry_semantics(registry_before, queue, "registry before", errors)
+    validate_registry_semantics(registry_after, queue, "registry after", errors)
+    before_rows = registry_before.get("consumptions", [])
+    after_rows = registry_after.get("consumptions", [])
+    require(
+        receipt.get("priorConsumptions") == before_rows,
+        "holdout receipt priorConsumptions must equal registry-before rows",
+        errors,
+    )
+    if isinstance(atomic, dict):
+        require(
+            atomic.get("priorConsumptionSetSha256")
+            == "sha256:" + hashlib.sha256(
+                canonical_json_bytes(before_rows)
+            ).hexdigest(),
+            "holdout receipt priorConsumptionSetSha256 projection mismatch",
+            errors,
+        )
+    if isinstance(atomic, dict):
+        try:
+            expected_registry_path = str(canonical_holdout_registry_path(native))
+            expected_receipt_path = str(
+                canonical_holdout_receipt_path(
+                    native,
+                    atomic.get("transactionId"),
+                    receipt.get("candidateReuseSha256"),
+                )
+            )
+        except ContractError as error:
+            errors.append(str(error))
+        else:
+            require(
+                atomic.get("canonicalRegistryPath")
+                == registry_before.get("canonicalRegistryPath")
+                == registry_after.get("canonicalRegistryPath")
+                == atomic.get("registryInputPath")
+                == expected_registry_path,
+                "holdout registry canonical/input path must equal the git-common-dir singleton",
+                errors,
+            )
+            require(
+                atomic.get("receiptInputPath")
+                == atomic.get("canonicalReceiptPath")
+                == canonical_receipt_path
+                == expected_receipt_path,
+                "holdout receipt path must be the transaction/candidate-derived git-common-dir singleton",
+                errors,
+            )
+        require(
+            atomic.get("transactionId")
+            == holdout_claim_transaction_sha256(receipt, registry_before),
+            "holdout transactionId must be the exact canonical claim projection",
+            errors,
+        )
+    if receipt.get("evaluationPhase") == "FORMATIVE":
+        require(
+            after_rows == before_rows,
+            "formative receipt must not consume the official holdout registry",
+            errors,
+        )
+    elif isinstance(selected, dict):
+        selected_ordinal = selected.get("ordinal")
+        require(
+            selected_ordinal == len(before_rows) + 1,
+            "holdout receipt must select the lowest unused ordinal",
+            errors,
+        )
+        expected_append = {
+            "ordinal": selected_ordinal,
+            "recipeId": selected.get("recipeId"),
+            "candidateReuseSha256": receipt.get("candidateReuseSha256"),
+            "candidateManifestSha256": receipt.get("candidateManifestSha256"),
+            "sourceCommit": receipt.get("sourceCommit"),
+            "transactionId": atomic.get("transactionId") if isinstance(atomic, dict) else None,
+        }
+        require(
+            after_rows == [*before_rows, expected_append],
+            "holdout registry-after must be exactly registry-before plus one atomic consumption",
+            errors,
+        )
+        require(
+            receipt.get("candidateReuseSha256")
+            not in {
+                row.get("candidateReuseSha256")
+                for row in before_rows if isinstance(row, dict)
+            },
+            "candidateReuseSha256 has already consumed a holdout ordinal",
+            errors,
+        )
 
 
 def require(condition: bool, message: str, errors: list[str]) -> None:
@@ -648,9 +1131,12 @@ def validate_coverage_and_concepts(
     require(coverage.get("protocol") == PROTOCOL, "coverage protocol mismatch", errors)
     require(concept.get("requiredCells") == ALL_CELLS, "concept requiredCells must equal rubric order", errors)
     probes = concept.get("probes", [])
-    require(isinstance(probes, list) and len(probes) == 21, "concept must contain 21 probes", errors)
+    require(isinstance(probes, list) and len(probes) == 25, "concept must contain 25 probes", errors)
     probe_ids = [probe.get("id") for probe in probes if isinstance(probe, dict)]
-    require(len(probe_ids) == len(set(probe_ids)) == 21, "concept probe IDs must be unique", errors)
+    require(probe_ids == EXPECTED_PROBE_IDS, "concept probe IDs/order drift", errors)
+    require(len(probe_ids) == len(set(probe_ids)) == 25, "concept probe IDs must be unique", errors)
+    cold_probe_order = unique_strings(concept.get("coldProbeOrder"), "concept.coldProbeOrder", errors)
+    require(cold_probe_order == EXPECTED_COLD_PROBE_ORDER, "concept coldProbeOrder drift", errors)
 
     episodes = coverage.get("episodes", [])
     episode_ids = [episode.get("id") for episode in episodes if isinstance(episode, dict)]
@@ -701,6 +1187,12 @@ def validate_coverage_and_concepts(
                 f"concept.{probe_id} first checkpoint is not in coverage recipe",
                 errors,
             )
+        if probe.get("requiredForCold") is True:
+            require(
+                episode in EPISODES[:10],
+                f"concept.{probe_id} requiredForCold firstEpisode must be reachable in E00..E09",
+                errors,
+            )
     cold_probe_union = {
         cell
         for probe in probes
@@ -713,10 +1205,125 @@ def validate_coverage_and_concepts(
         if isinstance(probe, dict) and probe.get("requiredForCoverage") is True
         for cell in probe.get("cells", [])
     }
+    require(
+        sum(1 for probe in probes if isinstance(probe, dict) and probe.get("requiredForCold") is True) == 18,
+        "concept must contain exactly 18 required cold probes",
+        errors,
+    )
+    required_cold_ids = {
+        probe.get("id")
+        for probe in probes
+        if isinstance(probe, dict) and probe.get("requiredForCold") is True
+    }
+    require(
+        len(cold_probe_order) == 18 and set(cold_probe_order) == required_cold_ids,
+        "concept coldProbeOrder must exactly permute required cold probe IDs",
+        errors,
+    )
+    authored_error_ids = {
+        "PX03-PLACEMENT-RECOVERY",
+        "PX04-LINE-DRAFT",
+        "PX13-FLOOD-DEADLINE-RECOVERY",
+    }
+    require(
+        all(
+            probe.get("requiredForCold") is False and probe.get("requiredForCoverage") is True
+            for probe in probes
+            if isinstance(probe, dict) and probe.get("id") in authored_error_ids
+        ),
+        "authored error probes must be coverage-only",
+        errors,
+    )
     require(set(COLD_CELLS).issubset(cold_probe_union), "required cold probes do not cover all 30 cold cells", errors)
     require(
         set(COVERAGE_CELLS).issubset(coverage_probe_union),
         "required coverage probes do not cover all 34 coverage cells",
+        errors,
+    )
+
+
+def validate_cold_checkpoint_sequence(
+    cold_recipe: dict[str, Any],
+    coverage: dict[str, Any],
+    concept: dict[str, Any],
+    errors: list[str],
+) -> None:
+    """Freeze the actual cold timeline, including the E09 restart inside E04."""
+    episode_map = {
+        row.get("id"): row
+        for row in coverage.get("episodes", [])
+        if isinstance(row, dict)
+    }
+    ordered_pairs: list[tuple[str, str]] = []
+
+    def extend_episode(episode_id: str, start: int = 0, stop: int | None = None) -> None:
+        episode = episode_map.get(episode_id, {})
+        checkpoints = episode.get("checkpoints", []) if isinstance(episode, dict) else []
+        if isinstance(checkpoints, list):
+            ordered_pairs.extend((episode_id, checkpoint) for checkpoint in checkpoints[start:stop])
+
+    for episode_id in EPISODES[:4]:
+        extend_episode(episode_id)
+    extend_episode("E04-NORTH-BANK", 0, 1)
+    extend_episode("E09-MID-RESUME")
+    extend_episode("E04-NORTH-BANK", 1)
+    for episode_id in EPISODES[5:9]:
+        extend_episode(episode_id)
+
+    branch_groups = {
+        ("E04-NORTH-BANK", "north-bank-keep-result"): "E04-RESULT",
+        ("E04-NORTH-BANK", "north-bank-defer-result"): "E04-RESULT",
+        ("E05-WHOSE-MARGIN", "whose-margin-keep-result"): "E05-RESULT",
+        ("E05-WHOSE-MARGIN", "whose-margin-defer-result"): "E05-RESULT",
+        ("E07-MAINTENANCE", "maintenance-keep-result"): "E07-RESULT",
+        ("E07-MAINTENANCE", "maintenance-defer-result"): "E07-RESULT",
+        ("E08-FINALE", "finale-keep-result"): "E08-RESULT",
+        ("E08-FINALE", "finale-defer-result"): "E08-RESULT",
+    }
+    expected: list[dict[str, Any]] = []
+    ordinal = 0
+    previous_group: str | None = None
+    for episode_id, checkpoint in ordered_pairs:
+        group = branch_groups.get((episode_id, checkpoint))
+        if group is None or group != previous_group:
+            ordinal += 1
+        expected.append({
+            "sequenceOrdinal": ordinal,
+            "episode": episode_id,
+            "checkpoint": checkpoint,
+            "branchAlternativeGroup": group,
+        })
+        previous_group = group
+    actual = cold_recipe.get("checkpointSequence")
+    require(
+        actual == expected and len(expected) == 45 and ordinal == 41,
+        "cold checkpoint sequence must equal the 45-row/41-rank E09-inside-E04 authority",
+        errors,
+    )
+    rank_by_checkpoint = {
+        (row["episode"], row["checkpoint"]): row["sequenceOrdinal"]
+        for row in expected
+    }
+    probe_by_id = {
+        row.get("id"): row
+        for row in concept.get("probes", [])
+        if isinstance(row, dict)
+    }
+    cold_order = concept.get("coldProbeOrder", [])
+    cold_ranks = [
+        rank_by_checkpoint.get(
+            (
+                probe_by_id.get(probe_id, {}).get("firstEpisode"),
+                probe_by_id.get(probe_id, {}).get("firstCheckpoint"),
+            )
+        )
+        for probe_id in cold_order
+    ] if isinstance(cold_order, list) else []
+    require(
+        len(cold_ranks) == 18
+        and all(isinstance(rank, int) for rank in cold_ranks)
+        and cold_ranks == sorted(cold_ranks),
+        "coldProbeOrder must be monotonic in the frozen cold checkpoint sequence",
         errors,
     )
 
@@ -726,6 +1333,35 @@ def validate_holdouts(holdouts: dict[str, Any], errors: list[str]) -> None:
     require(holdouts.get("selectionRule") == "LOWEST_UNUSED_ORDINAL", "holdout selection rule drift", errors)
     require(holdouts.get("reuseAllowed") is False, "holdout reuse must be false", errors)
     require(holdouts.get("baseCoverageRecipe") == "coverage-recipe.json", "holdout base recipe drift", errors)
+    require(
+        holdouts.get("queueAuthorityId")
+        == "GRIDWORKS-COMMERCIAL-UX-HOLDOUT-QUEUE-v1.1",
+        "holdout queue authority ID drift",
+        errors,
+    )
+    require(
+        holdouts.get("registryPolicy") == {
+            "scope": "LOCAL_REPOSITORY_REGISTRY_ONLY",
+            "authorityLimit": "NOT_GLOBAL_ACROSS_REPOSITORY_CLONES",
+            "registryPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-consumption-registry-v1.json",
+            "receiptPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-receipts/{transactionSha256Hex}-{candidateReuseSha256Hex}.json",
+            "receiptCreatePolicy": "O_EXCL_CREATE_AND_FSYNC_BEFORE_ATOMIC_REGISTRY_RENAME",
+            "transaction": "LOCKED_COMPARE_LOWEST_UNUSED_APPEND_FSYNC_ATOMIC_RENAME",
+            "recipeReuseKeyFields": ["queueAuthorityId", "recipeId"],
+            "candidateReuseKeyField": "candidateReuseSha256",
+            "candidateReuseKeyUnique": True,
+        },
+        "holdout local registry policy drift",
+        errors,
+    )
+    formative = holdouts.get("formative", {})
+    require(
+        isinstance(formative, dict)
+        and formative.get("routeFamily") == "NATIVE_SMOKE_WITNESS"
+        and formative.get("missionPrototypeBits") == "001",
+        "formative native-smoke prototype realization must be exact 001",
+        errors,
+    )
     rows = holdouts.get("holdouts", [])
     require(isinstance(rows, list) and len(rows) == 8, "holdout queue must contain 8 rows", errors)
     expected_bits = ["000", "111", "010", "101", "001", "110", "011", "100"]
@@ -898,6 +1534,26 @@ def validate_schema_bindings(native: Path, errors: list[str]) -> dict[str, dict[
     gate_prefix = schemas.get("oracle-hard-gate-ledger.schema.json", {}).get("properties", {}).get("hardGates", {}).get("prefixItems", [])
     gate_ids = [row.get("properties", {}).get("gateId", {}).get("const") for row in gate_prefix]
     require(gate_ids == HARD_GATES, "oracle ledger hard-gate order drift", errors)
+    oracle_required = set(
+        schemas.get("oracle-hard-gate-ledger.schema.json", {}).get("required", [])
+    )
+    require(
+        {
+            "candidateManifestSha256", "holdoutConsumptionReceiptSha256",
+            "goldBindingManifestSha256", "coldActorResponseSha256",
+            "coldActorResponseRawSha256", "actorTraceSha256",
+            "coverageActionLedgerSha256", "coverageArtifactId",
+            "recordingManifestSha256", "anonymizationManifestSha256",
+            "evidenceSetSha256", "sanitizedEvidenceBundleManifestSha256",
+            "sanitizedEvidenceContentRootSha256", "candidateJudgeInputSha256",
+            "verificationInputSha256", "verificationOutputSha256",
+            "rubricSha256", "contractBindingsSha256", "canonicalHashPolicySha256",
+            "goldStateContractSha256", "coverageRecipeSha256", "conceptManifestSha256",
+            "nativeAggregatorSha256", "contractValidatorSha256", "goldValidatorSha256",
+        }.issubset(oracle_required),
+        "oracle ledger does not bind its complete artifact/tool/authority DAG",
+        errors,
+    )
     coverage_trace = schemas.get("coverage-trace.schema.json", {})
     coverage_prefix = coverage_trace.get("properties", {}).get("episodes", {}).get("prefixItems", [])
     coverage_episode_ids = [row.get("properties", {}).get("episodeId", {}).get("const") for row in coverage_prefix]
@@ -918,7 +1574,14 @@ def validate_schema_bindings(native: Path, errors: list[str]) -> dict[str, dict[
     replacement_properties = replacement_receipt.get("properties", {})
     require(
         replacement_properties.get("claimPolicy", {}).get("const")
-        == "O_EXCL_AFTER_AUTHORITY_PREFLIGHT_BEFORE_ATTEMPT_READ_THEN_FINALIZE_SAME_DESCRIPTOR",
+        == "VERIFIED_INITIAL_FINALIZATION_SEAL_THEN_O_EXCL_BEFORE_ATTEMPT_READ_AND_FINALIZE_SAME_DESCRIPTOR"
+        and replacement_properties.get("replacementReceiptPathRule", {}).get("const")
+        == "GIT_COMMON_DIR/gridworks-commercial-ux/replacement-receipts/{initialPanelSha256Hex}.json"
+        and {
+            "initialPanelFinalizationSealPath",
+            "initialPanelFinalizationSealSha256",
+            "initialPanelFinalizationSealRawSha256",
+        }.issubset(set(replacement_receipt.get("required", []))),
         "replacement receipt does not freeze authority-preflight/O_EXCL/read/finalize ordering",
         errors,
     )
@@ -960,6 +1623,9 @@ def validate_schema_bindings(native: Path, errors: list[str]) -> dict[str, dict[
     )
     evaluation_run = schemas.get("evaluation-run-manifest.schema.json", {})
     run_artifact_properties = evaluation_run.get("$defs", {}).get("artifacts", {}).get("properties", {})
+    run_artifact_required = set(
+        evaluation_run.get("$defs", {}).get("artifacts", {}).get("required", [])
+    )
     retry_schema = evaluation_run.get("$defs", {}).get("retry", {})
     retry_required = set(retry_schema.get("required", []))
     retry_all_of = retry_schema.get("allOf", [])
@@ -973,6 +1639,284 @@ def validate_schema_bindings(native: Path, errors: list[str]) -> dict[str, dict[
         "scorecardSha256" not in run_artifact_properties
         and "aggregationInputSha256" not in run_artifact_properties,
         "pre-aggregate evaluation run contains a post-aggregate hash cycle",
+        errors,
+    )
+    require(
+        {
+            "coldActorResponseSha256", "coldActorResponseRawSha256",
+            "actorTraceSha256", "actorTraceRawSha256",
+            "verificationInputSha256", "verificationInputRawSha256",
+            "goldBindingManifestSha256", "goldBindingManifestRawSha256",
+            "holdoutConsumptionReceiptSha256",
+            "holdoutConsumptionReceiptRawSha256",
+            "coverageActionLedgerSha256", "coverageActionLedgerRawSha256",
+            "anonymizationManifestSha256", "anonymizationManifestRawSha256",
+            "evidenceSetSha256", "evidenceSetRawSha256",
+            "sanitizedEvidenceBundleManifestSha256",
+            "sanitizedEvidenceBundleManifestRawSha256",
+            "sanitizedEvidenceContentRootSha256",
+            "candidateJudgeInputSha256", "candidateJudgeInputRawSha256",
+        }.issubset(run_artifact_required),
+        "evaluation run does not bind required raw/self pre-aggregate artifacts",
+        errors,
+    )
+    require(
+        {
+            "coldActorResponseSha256", "coldActorResponseRawSha256",
+        }.issubset(set(schemas.get("actor-observation.schema.json", {}).get("required", [])))
+        and {
+            "coldActorResponseSha256", "coldActorResponseRawSha256",
+        }.issubset(set(schemas.get("actor-trace.schema.json", {}).get("required", [])))
+        and "coldActorResponseSha256"
+        in schemas.get("cold-actor-response.schema.json", {}).get("required", []),
+        "cold actor semantic response lacks exact raw/self observation/trace binding",
+        errors,
+    )
+    require(
+        "recipeCheckpointSequenceOrdinal"
+        in schemas.get("actor-observation.schema.json", {})
+        .get("$defs", {}).get("checkpoint", {}).get("required", []),
+        "actor observation checkpoint lacks recorder-owned recipe sequence rank",
+        errors,
+    )
+    response = schemas.get("cold-actor-response.schema.json", {})
+    response_first_use = set(response.get("$defs", {}).get("firstUseRecord", {}).get("required", []))
+    observation_schema = schemas.get("actor-observation.schema.json", {})
+    observation_first_use = set(
+        observation_schema.get("$defs", {}).get("firstUseRecord", {}).get("required", [])
+    )
+    require(
+        {
+            "firstUseOrdinal", "probeId", "currentGoal", "expectedVisibleConsequence",
+            "citedVisibleSourceDescription",
+        }.issubset(response_first_use)
+        and response_first_use.issubset(observation_first_use),
+        "cold actor response semantic first-use projection drift",
+        errors,
+    )
+    semantic_projection_fields = {
+        "firstUseRecord": {
+            "firstUseOrdinal", "probeId", "currentGoal", "expectedVisibleConsequence",
+            "citedVisibleSourceDescription",
+        },
+        "approvalRecord": {
+            "approvalOrdinal", "predictionImmediatelyBeforeApproval", "observedResult",
+            "causalAccount",
+        },
+        "incident": {
+            "incidentOrdinal", "incidentType", "confusionBoundary", "severity", "description",
+        },
+    }
+    for definition, fields in semantic_projection_fields.items():
+        response_definition = response.get("$defs", {}).get(definition, {})
+        observation_definition = observation_schema.get("$defs", {}).get(definition, {})
+        require(
+            set(response_definition.get("required", [])) == fields
+            and fields.issubset(set(observation_definition.get("required", [])))
+            and all(
+                response_definition.get("properties", {}).get(field)
+                == observation_definition.get("properties", {}).get(field)
+                for field in fields
+            ),
+            f"cold actor response {definition} exact semantic projection drift",
+            errors,
+        )
+    require(
+        "actorTraceSha256"
+        in schemas.get("actor-trace.schema.json", {}).get("required", []),
+        "actor trace lacks a distinct canonical self-hash",
+        errors,
+    )
+    require(
+        "recordingManifestRawSha256"
+        in schemas.get("actor-trace.schema.json", {}).get("required", [])
+        and "recordingManifestRawSha256"
+        in schemas.get("coverage-trace.schema.json", {}).get("required", []),
+        "actor/coverage traces must bind recording manifest raw and self hashes",
+        errors,
+    )
+    evidence_trace_required = set(
+        evidence.get("$defs", {}).get("traceRow", {}).get("required", [])
+    )
+    require(
+        {
+            "checkpointBranchId", "semanticActionKind", "actionOccurrenceId",
+            "prototypeSlot", "prototypeKind", "branchSequenceOrdinal",
+            "branchDecision",
+        }.issubset(evidence_trace_required),
+        "sanitized evidence trace rows do not preserve exact action realization fields",
+        errors,
+    )
+    anonymization = schemas.get("anonymization-manifest.schema.json", {})
+    require(
+        "sanitizedArtifactSha256"
+        not in anonymization.get("$defs", {}).get("sourceActor", {}).get("properties", {})
+        and "sanitizedArtifactSha256"
+        not in anonymization.get("$defs", {}).get("sourceCoverage", {}).get("properties", {}),
+        "anonymization manifest reintroduces a sanitized-evidence hash cycle",
+        errors,
+    )
+    recording = schemas.get("recording-manifest.schema.json", {})
+    recording_required = set(recording.get("required", []))
+    recording_artifact = recording.get("$defs", {}).get("artifact", {})
+    recording_actor_rule = recording.get("allOf", [{}])[0]
+    actor_artifact_rule = (
+        recording_actor_rule.get("then", {}).get("properties", {}).get("artifacts", {})
+        if isinstance(recording_actor_rule, dict)
+        else {}
+    )
+    valid_frame = {
+        "artifactId": "frame-1", "kind": "FRAME", "locator": "frames/one.png",
+        "rawSha256": "sha256:" + "1" * 64, "byteLength": 1,
+        "mimeType": "image/png",
+    }
+    invalid_frame = {**valid_frame, "mimeType": "text/plain"}
+    require(
+        recording.get("properties", {}).get("locatorPolicy", {}).get("const")
+        == "CANONICAL_RELATIVE_NO_DOTDOT_REJECT_ALL_SYMLINKS"
+        and recording.get("properties", {}).get("mimePolicy", {}).get("const")
+        == "PNG_WAV_OR_STRICT_JSON_OBJECT_MATCHING_MAGIC_AND_SCHEMA"
+        and {"actorCaptureSlot", "actorRunId", "coverageRunId", "processTreeId"}
+        .issubset(recording_required)
+        and {"actionLedgerSchemaSha256", "actionLedgerArtifactRawSha256"}
+        .issubset(recording_required)
+        and actor_artifact_rule.get("minContains") == 1
+        and actor_artifact_rule.get("maxContains") == 1
+        and actor_artifact_rule.get("contains", {}).get("properties", {}).get("kind", {}).get("const")
+        == "ACTION_LEDGER"
+        and not instance_errors(valid_frame, recording_artifact, recording)
+        and bool(instance_errors(invalid_frame, recording_artifact, recording))
+        and bool(instance_errors("../escape.png", recording_artifact.get("properties", {}).get("locator", {}), recording)),
+        "recording manifest path/symlink/MIME verification policy drift",
+        errors,
+    )
+    actor_action_ledger = schemas.get("actor-action-ledger.schema.json", {})
+    actor_ledger_required = set(actor_action_ledger.get("required", []))
+    actor_ledger_action_required = set(
+        actor_action_ledger.get("$defs", {}).get("action", {}).get("required", [])
+    )
+    observation_action_schema = (
+        schemas.get("actor-observation.schema.json", {}).get("$defs", {}).get("action", {})
+    )
+    actor_ledger_checkpoint_required = set(
+        actor_action_ledger.get("$defs", {}).get("checkpointPostState", {}).get("required", [])
+    )
+    require(
+        {
+            "candidateManifestSha256", "coldActorResponseSha256", "actorRunId",
+            "processTreeId", "actionCount", "checkpointCount", "actions",
+            "checkpointPostStates", "projectionRule",
+        }.issubset(actor_ledger_required)
+        and {
+            "actionIndex", "preStateSha256", "postStateSha256", "appActive",
+            "rationalInProductAction",
+        }.issubset(actor_ledger_action_required)
+        and {
+            "checkpointOrdinal", "recipeCheckpointSequenceOrdinal",
+            "appActiveActionIndex", "progressStateSha256", "actionPostStateSha256",
+        }.issubset(actor_ledger_checkpoint_required)
+        and actor_action_ledger.get("$defs", {}).get("action") == observation_action_schema,
+        "actor action ledger cannot derive observation actions/checkpoint post-state linkage",
+        errors,
+    )
+    coverage_required = set(
+        schemas.get("coverage-trace.schema.json", {}).get("required", [])
+    )
+    require(
+        {
+            "coverageRunId", "coverageActionLedgerSha256",
+            "coverageActionLedgerRawSha256", "coverageActionLedgerSchemaSha256",
+        }.issubset(coverage_required),
+        "coverage trace does not bind the strict raw/self action ledger",
+        errors,
+    )
+    sanitized = schemas.get("sanitized-evidence-bundle-manifest.schema.json", {})
+    require(
+        sanitized.get("properties", {}).get("sourceRecordingRootsExposedToJudge", {}).get("const")
+        is False
+        and sanitized.get("properties", {}).get("bundles", {}).get("minItems") == 4
+        and sanitized.get("$defs", {}).get("bundle", {}).get("properties", {}).get("extraFileCount", {}).get("const") == 0
+        and sanitized.get("$defs", {}).get("bundle", {}).get("properties", {}).get("symlinkCount", {}).get("const") == 0,
+        "sanitized verifier bundle does not own four complete identity-free content roots",
+        errors,
+    )
+    candidate_judge_input_required = set(
+        schemas.get("candidate-judge-input.schema.json", {}).get("required", [])
+    )
+    require(
+        {
+            "judgeInputSha256", "qualificationReceiptSha256", "qualificationStatus",
+            "evidenceSetSha256", "evidenceSetRawSha256",
+            "sanitizedEvidenceBundleManifestSha256",
+            "sanitizedEvidenceBundleManifestRawSha256",
+            "sanitizedEvidenceContentRootSha256", "artifactOrder",
+            "promptTemplateSha256", "judgmentSchemaSha256", "rubricSha256",
+        }.issubset(candidate_judge_input_required),
+        "candidate judge input lacks its exact qualified evidence/prompt/schema projection",
+        errors,
+    )
+    scorecard_provenance_required = set(
+        scorecard.get("$defs", {}).get("provenance", {}).get("required", [])
+    )
+    require(
+        {
+            "holdoutConsumptionReceiptSha256", "holdoutConsumptionReceiptRawSha256",
+            "goldBindingManifestSha256", "goldBindingManifestRawSha256",
+            "coldActorResponseSha256", "coldActorResponseRawSha256",
+            "anonymizationManifestSha256", "anonymizationManifestRawSha256",
+            "evidenceSetSha256", "evidenceSetRawSha256",
+            "sanitizedEvidenceBundleManifestSha256",
+            "sanitizedEvidenceBundleManifestRawSha256",
+            "sanitizedEvidenceContentRootSha256",
+            "candidateJudgeInputSha256", "candidateJudgeInputRawSha256",
+        }.issubset(scorecard_provenance_required),
+        "scorecard provenance cannot prove replacement uses the same holdout/evidence authority",
+        errors,
+    )
+    finalization = schemas.get("panel-finalization-seal.schema.json", {})
+    require(
+        finalization.get("properties", {}).get("claimPolicy", {}).get("const")
+        == "SCORECARD_EXCLUSIVE_WRITE_THEN_O_EXCL_SEAL_FSYNC"
+        and finalization.get("properties", {}).get("sealPathRule", {}).get("const")
+        == "GIT_COMMON_DIR/gridworks-commercial-ux/panel-finalizations/{initialPanelSha256Hex}-{panelKindLower}.json",
+        "panel finalization seal path/claim policy drift",
+        errors,
+    )
+    candidate_execution = schemas.get("candidate-manifest.schema.json", {}).get(
+        "$defs", {}
+    ).get("execution", {})
+    require(
+        candidate_execution.get("properties", {}).get("componentPathPolicy", {}).get("const")
+        == "CANONICAL_ABSOLUTE_REGULAR_FILE_REJECT_SYMLINKS"
+        and candidate_execution.get("properties", {}).get("executionArtifactHashRule", {}).get("const")
+        == "SHA256_OF_RFC8785_GODOT_EXECUTABLE_SHA256_MANAGED_ASSEMBLY_SHA256_PCK_RESOURCE_MANIFEST_SHA256_PACKAGE_SHA256_PACKAGE_STATUS"
+        and {
+            "godotExecutablePath", "managedAssemblyPath",
+            "pckResourceManifestPath", "packagePath",
+        }.issubset(set(candidate_execution.get("required", []))),
+        "candidate execution identity is not derived from opened canonical component bytes",
+        errors,
+    )
+    gold_binding = schemas.get("gold-binding-manifest.schema.json", {})
+    require(
+        gold_binding.get("properties", {}).get("goldBundleEntryCount", {}).get("const") == 112
+        and gold_binding.get("properties", {}).get("goldBundleExtraFileCount", {}).get("const") == 0
+        and gold_binding.get("properties", {}).get("goldBundleSymlinkCount", {}).get("const") == 0
+        and {"locator", "byteLength"}.issubset(
+            set(gold_binding.get("$defs", {}).get("journalBinding", {}).get("required", []))
+        )
+        and {"locator", "byteLength"}.issubset(
+            set(gold_binding.get("$defs", {}).get("snapshotBinding", {}).get("required", []))
+        ),
+        "gold overlay hashes are not backed by a complete opened raw bundle",
+        errors,
+    )
+    require(
+        "BLOCKED_PRE_CAPTURE"
+        in scorecard.get("$defs", {}).get("status", {}).get("enum", [])
+        and "BLOCKED_PRE_CAPTURE"
+        in scorecard.get("$defs", {}).get("finalVerdict", {}).get("enum", []),
+        "scorecard lacks the scoreless BLOCKED_PRE_CAPTURE state",
         errors,
     )
     require(
@@ -1079,15 +2023,25 @@ def validate_hash_policy(native: Path, policy: dict[str, Any], schemas: dict[str
         errors,
     )
     expected = {
-        ("actor-trace.schema.json", "actorArtifactId"),
+        ("cold-actor-response.schema.json", "coldActorResponseSha256"),
+        ("actor-trace.schema.json", "actorTraceSha256"),
         ("evidence-set.schema.json", "evidenceSetSha256"),
         ("qualification-input.schema.json", "judgeInputSha256"),
         ("native-evidence-verification-input.schema.json", "verificationInputSha256"),
+        ("candidate-judge-input.schema.json", "judgeInputSha256"),
         ("candidate-manifest.schema.json", "candidateManifestSha256"),
         ("evaluation-run-manifest.schema.json", "evaluationRunManifestSha256"),
         ("coverage-trace.schema.json", "coverageArtifactId"),
+        ("coverage-action-ledger.schema.json", "coverageActionLedgerSha256"),
         ("qualification-receipt.schema.json", "qualificationReceiptSha256"),
         ("judge-panel.schema.json", "judgePanelSha256"),
+        ("holdout-consumption-receipt.schema.json", "holdoutConsumptionReceiptSha256"),
+        ("holdout-consumption-registry.schema.json", "holdoutConsumptionRegistrySha256"),
+        ("gold-binding-manifest.schema.json", "goldBindingManifestSha256"),
+        ("anonymization-manifest.schema.json", "anonymizationManifestSha256"),
+        ("recording-manifest.schema.json", "recordingManifestSha256"),
+        ("sanitized-evidence-bundle-manifest.schema.json", "sanitizedEvidenceBundleManifestSha256"),
+        ("panel-finalization-seal.schema.json", "panelFinalizationSealSha256"),
     }
     actual = {
         (row.get("artifactSchema"), row.get("field"))
@@ -1102,7 +2056,12 @@ def validate_hash_policy(native: Path, policy: dict[str, Any], schemas: dict[str
             require(field in schema.get("properties", {}), f"self-hash field {field} absent in {schema_name}", errors)
     post_fields = policy.get("postRunActorFields")
     require(
-        post_fields == ["userDataSha256", "saveSha256", "journalSha256", "recordingManifestSha256", "actorArtifactId"],
+        post_fields == [
+            "coldActorResponseSha256", "coldActorResponseRawSha256",
+            "userDataSha256", "saveSha256", "journalSha256",
+            "recordingManifestSha256", "recordingManifestRawSha256",
+            "actorArtifactId", "actorTraceSha256",
+        ],
         "post-run actor packager fields drift",
         errors,
     )
@@ -1119,7 +2078,7 @@ def validate_contract_bindings(
     tool_policy = bindings.get("toolBindingPolicy", {})
     require(
         tool_policy.get("boundImplementedTools")
-        == ["../aggregate-native.py", "validate-contract.py"]
+        == ["../aggregate-native.py", "validate-contract.py", "validate-gold-state.py"]
         and tool_policy.get("unboundImplementationStatus")
         == "BLOCKED_UNTIL_IMPLEMENTED_AND_RAW_HASH_BOUND"
         and tool_policy.get("scoreBearingCaptureAllowed") is False,
@@ -1130,6 +2089,7 @@ def validate_contract_bindings(
         "../rubric.json": "RUBRIC",
         "../aggregate-native.py": "TOOL",
         "validate-contract.py": "TOOL",
+        "validate-gold-state.py": "TOOL",
         **{name: "SCHEMA" for name in schemas},
         "canonical-hash-policy.json": "POLICY",
         "cold-journey-recipe.json": "RECIPE",
@@ -1160,12 +2120,18 @@ def validate_contract_bindings(
             require(row.get("sha256") == raw_sha256(target), f"contract binding raw SHA mismatch: {path}", errors)
 
     expected_stage_ids = [
-        "CANDIDATE-MANIFEST-PACKAGER", "COLD-ACTOR", "COLD-PACKAGER",
+        "CANDIDATE-MANIFEST-PACKAGER", "HOLDOUT-CONSUMPTION-PACKAGER",
+        "GOLD-BINDING-PACKAGER", "COLD-ACTOR", "COLD-OBSERVATION-PACKAGER",
+        "COLD-PACKAGER",
         "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-JUDGE",
-        "QUALIFICATION-RECEIPT-PACKAGER", "COVERAGE-RUN-PACKAGER",
-        "EVIDENCE-SET-PACKAGER", "CANDIDATE-JUDGE", "JUDGE-PANEL-PACKAGER",
+        "QUALIFICATION-RECEIPT-PACKAGER", "COVERAGE-ACTION-LEDGER-PACKAGER",
+        "COVERAGE-RUN-PACKAGER", "ANONYMIZATION-PACKAGER",
+        "EVIDENCE-SET-PACKAGER", "CANDIDATE-JUDGE-INPUT-PACKAGER",
+        "CANDIDATE-JUDGE", "JUDGE-PANEL-PACKAGER",
         "VERIFICATION-INPUT-PACKAGER", "EVIDENCE-VERIFIER",
-        "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER", "NATIVE-AGGREGATE",
+        "ORACLE-HARD-GATES", "EVALUATION-RUN-PACKAGER",
+        "AGGREGATION-INPUT-PACKAGER", "NATIVE-AGGREGATE",
+        "PANEL-FINALIZATION-SEAL-PACKAGER",
     ]
     stages = bindings.get("stageBindings", [])
     require(
@@ -1180,6 +2146,7 @@ def validate_contract_bindings(
         if isinstance(row, dict)
     }
     producer_stage_map = {
+        "COLD_ACTOR_TRANSPORT": "COLD-ACTOR",
         "HARNESS_FINAL_PACKAGER": "COLD-PACKAGER",
         "QUALIFICATION_INPUT_PACKAGER": "QUALIFICATION-INPUT-PACKAGER",
         "EVIDENCE_SET_PACKAGER": "EVIDENCE-SET-PACKAGER",
@@ -1187,8 +2154,16 @@ def validate_contract_bindings(
         "CANDIDATE_MANIFEST_PACKAGER": "CANDIDATE-MANIFEST-PACKAGER",
         "EVALUATION_RUN_PACKAGER": "EVALUATION-RUN-PACKAGER",
         "COVERAGE_FINAL_PACKAGER": "COVERAGE-RUN-PACKAGER",
+        "COVERAGE_ACTION_LEDGER_PACKAGER": "COVERAGE-ACTION-LEDGER-PACKAGER",
         "QUALIFICATION_RECEIPT_PACKAGER": "QUALIFICATION-RECEIPT-PACKAGER",
         "JUDGE_PANEL_PACKAGER": "JUDGE-PANEL-PACKAGER",
+        "HOLDOUT_CONSUMPTION_PACKAGER": "HOLDOUT-CONSUMPTION-PACKAGER",
+        "GOLD_BINDING_PACKAGER": "GOLD-BINDING-PACKAGER",
+        "ANONYMIZATION_PACKAGER": "ANONYMIZATION-PACKAGER",
+        "ACTOR_RECORDING_PACKAGER": "COLD-OBSERVATION-PACKAGER",
+        "COVERAGE_RECORDING_PACKAGER": "COVERAGE-RUN-PACKAGER",
+        "CANDIDATE_JUDGE_INPUT_PACKAGER": "CANDIDATE-JUDGE-INPUT-PACKAGER",
+        "PANEL_FINALIZATION_SEAL_PACKAGER": "PANEL-FINALIZATION-SEAL-PACKAGER",
     }
     require(set(producer_stage_map) == policy_producers, "canonical producer set lacks an explicit stage", errors)
     require(
@@ -1198,10 +2173,105 @@ def validate_contract_bindings(
     )
     require("JUDGE-PANEL-PACKAGER" in stage_map, "judge-panel packager stage is missing", errors)
     require(
+        stage_map.get("CANDIDATE-MANIFEST-PACKAGER", {}).get("inputSchemas") == []
+        and stage_map.get("HOLDOUT-CONSUMPTION-PACKAGER", {}).get("inputSchemas") == [
+            "candidate-manifest.schema.json",
+            "holdout-consumption-registry.schema.json",
+        ]
+        and stage_map.get("GOLD-BINDING-PACKAGER", {}).get("inputSchemas") == [
+            "candidate-manifest.schema.json",
+            "holdout-consumption-receipt.schema.json",
+        ],
+        "candidate -> receipt -> gold-binding DAG must remain exact and acyclic",
+        errors,
+    )
+    require(
+        stage_map.get("COLD-ACTOR", {}).get("inputSchemas") == [
+            "candidate-manifest.schema.json",
+            "holdout-consumption-receipt.schema.json",
+            "gold-binding-manifest.schema.json",
+        ]
+        and stage_map.get("COLD-ACTOR", {}).get("modelVisibleInputSchemas") == []
+        and stage_map.get("COLD-ACTOR", {}).get("outputSchema")
+        == "cold-actor-response.schema.json",
+        "cold actor must be exposed only after candidate, holdout claim, and gold readiness",
+        errors,
+    )
+    require(
+        stage_map.get("COLD-OBSERVATION-PACKAGER", {}).get("inputSchemas") == [
+            "candidate-manifest.schema.json",
+            "holdout-consumption-receipt.schema.json",
+            "gold-binding-manifest.schema.json",
+            "cold-actor-response.schema.json",
+        ]
+        and stage_map.get("COLD-OBSERVATION-PACKAGER", {}).get("outputSchema")
+        == "actor-observation.schema.json"
+        and stage_map.get("COLD-OBSERVATION-PACKAGER", {}).get("packagedOutputSchema")
+        == "recording-manifest.schema.json"
+        and stage_map.get("COLD-OBSERVATION-PACKAGER", {}).get("authorities") == [
+            "canonical-hash-policy.json", "cold-journey-recipe.json",
+            "concept-exposure-manifest.json", "actor-action-ledger.schema.json",
+        ]
+        and stage_map.get("COLD-PACKAGER", {}).get("inputSchemas") == [
+            "candidate-manifest.schema.json",
+            "holdout-consumption-receipt.schema.json",
+            "gold-binding-manifest.schema.json",
+            "cold-actor-response.schema.json",
+            "actor-observation.schema.json",
+            "recording-manifest.schema.json",
+        ]
+        and stage_map.get("COLD-PACKAGER", {}).get("packagedOutputSchema") is None,
+        "cold actor response must pass through the recorder-owned observation packager",
+        errors,
+    )
+    require(
+        stage_map.get("COVERAGE-RUN-PACKAGER", {}).get("inputSchemas") == [
+            "candidate-manifest.schema.json",
+            "holdout-consumption-receipt.schema.json",
+            "gold-binding-manifest.schema.json",
+            "coverage-action-ledger.schema.json",
+        ],
+        "coverage trace must be derived from the opened strict action ledger",
+        errors,
+    )
+    require(
+        stage_map.get("CANDIDATE-JUDGE-INPUT-PACKAGER", {}).get("inputSchemas") == [
+            "candidate-manifest.schema.json", "qualification-receipt.schema.json",
+            "holdout-consumption-receipt.schema.json", "gold-binding-manifest.schema.json",
+            "evidence-set.schema.json", "sanitized-evidence-bundle-manifest.schema.json",
+        ]
+        and stage_map.get("CANDIDATE-JUDGE", {}).get("inputSchemas") == [
+            "candidate-judge-input.schema.json", "evidence-set.schema.json",
+            "sanitized-evidence-bundle-manifest.schema.json",
+        ]
+        and stage_map.get("CANDIDATE-JUDGE", {}).get("modelVisibleInputSchemas") == [
+            "candidate-judge-input.schema.json", "evidence-set.schema.json",
+            "sanitized-evidence-bundle-manifest.schema.json",
+        ],
+        "candidate judges must receive canonical input plus exact evidence bodies after qualification PASS",
+        errors,
+    )
+    require(
+        stage_map.get("QUALIFICATION-JUDGE", {}).get("modelVisibleInputSchemas")
+        == ["qualification-input.schema.json"]
+        and stage_map.get("EVIDENCE-VERIFIER", {}).get("inputSchemas") == [
+            "native-evidence-verification-input.schema.json", "evidence-set.schema.json",
+            "sanitized-evidence-bundle-manifest.schema.json",
+        ]
+        and stage_map.get("EVIDENCE-VERIFIER", {}).get("modelVisibleInputSchemas") == [
+            "native-evidence-verification-input.schema.json", "evidence-set.schema.json",
+            "sanitized-evidence-bundle-manifest.schema.json",
+        ],
+        "LLM stages must expose only their exact model-visible input bodies",
+        errors,
+    )
+    require(
         stage_map.get("JUDGE-PANEL-PACKAGER", {}).get("inputSchemas") == [
             "candidate-manifest.schema.json",
             "qualification-receipt.schema.json",
+            "candidate-judge-input.schema.json",
             "evidence-set.schema.json",
+            "sanitized-evidence-bundle-manifest.schema.json",
             "native-judge.schema.json",
         ],
         "judge-panel packager must bind candidate, qualification, evidence, and judgments",
@@ -1209,20 +2279,34 @@ def validate_contract_bindings(
     )
     require(
         stage_map.get("EVIDENCE-SET-PACKAGER", {}).get("inputSchemas")
-        == ["actor-trace.schema.json", "coverage-trace.schema.json"],
+        == [
+            "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
+            "gold-binding-manifest.schema.json", "actor-trace.schema.json",
+            "coverage-action-ledger.schema.json", "coverage-trace.schema.json",
+            "recording-manifest.schema.json", "anonymization-manifest.schema.json",
+        ],
         "evidence-set packager must bind cold and coverage source envelopes",
         errors,
     )
     require(
         stage_map.get("EVALUATION-RUN-PACKAGER", {}).get("inputSchemas") == [
             "candidate-manifest.schema.json",
+            "holdout-consumption-receipt.schema.json",
+            "gold-binding-manifest.schema.json",
             "qualification-receipt.schema.json",
+            "cold-actor-response.schema.json",
             "actor-observation.schema.json",
             "actor-trace.schema.json",
+            "coverage-action-ledger.schema.json",
             "coverage-trace.schema.json",
+            "recording-manifest.schema.json",
+            "anonymization-manifest.schema.json",
             "evidence-set.schema.json",
+            "sanitized-evidence-bundle-manifest.schema.json",
+            "candidate-judge-input.schema.json",
             "native-judge.schema.json",
             "judge-panel.schema.json",
+            "native-evidence-verification-input.schema.json",
             "native-evidence-verifier.schema.json",
             "oracle-hard-gate-ledger.schema.json",
         ],
@@ -1233,13 +2317,23 @@ def validate_contract_bindings(
         stage_map.get("NATIVE-AGGREGATE", {}).get("inputSchemas") == [
             "native-aggregation-input.schema.json",
             "candidate-manifest.schema.json",
+            "holdout-consumption-receipt.schema.json",
+            "gold-binding-manifest.schema.json",
             "qualification-receipt.schema.json",
             "judge-panel.schema.json",
             "evaluation-run-manifest.schema.json",
+            "cold-actor-response.schema.json",
             "actor-observation.schema.json",
+            "actor-trace.schema.json",
+            "coverage-action-ledger.schema.json",
             "coverage-trace.schema.json",
+            "recording-manifest.schema.json",
+            "anonymization-manifest.schema.json",
             "evidence-set.schema.json",
+            "sanitized-evidence-bundle-manifest.schema.json",
+            "candidate-judge-input.schema.json",
             "native-judge.schema.json",
+            "native-evidence-verification-input.schema.json",
             "native-evidence-verifier.schema.json",
             "oracle-hard-gate-ledger.schema.json",
         ],
@@ -1247,18 +2341,90 @@ def validate_contract_bindings(
         errors,
     )
     require(
+        stage_map.get("ORACLE-HARD-GATES", {}).get("inputSchemas") == [
+            "candidate-manifest.schema.json",
+            "holdout-consumption-receipt.schema.json",
+            "gold-binding-manifest.schema.json",
+            "cold-actor-response.schema.json",
+            "actor-observation.schema.json",
+            "actor-trace.schema.json",
+            "coverage-action-ledger.schema.json",
+            "coverage-trace.schema.json",
+            "recording-manifest.schema.json",
+            "anonymization-manifest.schema.json",
+            "evidence-set.schema.json",
+            "sanitized-evidence-bundle-manifest.schema.json",
+            "candidate-judge-input.schema.json",
+            "native-evidence-verification-input.schema.json",
+            "native-evidence-verifier.schema.json",
+        ]
+        and stage_map.get("ORACLE-HARD-GATES", {}).get("authorities") == [
+            "gold-state-manifest.json", "coverage-recipe.json",
+            "concept-exposure-manifest.json", "../rubric.json",
+            "contract-bindings.json", "canonical-hash-policy.json",
+            "validate-gold-state.py",
+        ],
+        "oracle stage does not bind its complete candidate/verifier/rubric/contract DAG",
+        errors,
+    )
+    aggregation_inputs = stage_map.get("AGGREGATION-INPUT-PACKAGER", {}).get(
+        "inputSchemas"
+    )
+    require(
+        isinstance(aggregation_inputs, list)
+        and set(aggregation_inputs)
+        == set(stage_map.get("NATIVE-AGGREGATE", {}).get("inputSchemas", []))
+        - {"native-aggregation-input.schema.json"},
+        "aggregation-input packager must own every pre-aggregate authority",
+        errors,
+    )
+    require(
         stage_map.get("NATIVE-AGGREGATE", {}).get("authorities")
-        == ["../rubric.json", "../aggregate-native.py", "validate-contract.py"],
+        == [
+            "../rubric.json", "../aggregate-native.py", "validate-contract.py",
+            "validate-gold-state.py",
+        ],
         "native aggregate stage does not bind its exact score-producing tool bytes",
         errors,
     )
+    require(
+        stage_map.get("PANEL-FINALIZATION-SEAL-PACKAGER", {}).get("implementationTool")
+        == "../aggregate-native.py"
+        and stage_map.get("PANEL-FINALIZATION-SEAL-PACKAGER", {}).get("outputSchema")
+        == "panel-finalization-seal.schema.json",
+        "initial/replacement scorecards must end in a canonical aggregate-produced finalization seal",
+        errors,
+    )
     hashed_paths = set(row_map)
+    unbound_stages = set(tool_policy.get("currentlyUnboundProducerStages", []))
     for stage_id, row in stage_map.items():
-        references = [row.get("promptFile"), row.get("outputSchema"), row.get("packagedOutputSchema")]
+        implementation_tool = row.get("implementationTool")
+        if row.get("producerType") == "LLM" or stage_id in unbound_stages:
+            require(
+                implementation_tool is None,
+                f"contract stage {stage_id} must remain honestly implementationTool=null",
+                errors,
+            )
+        else:
+            require(
+                implementation_tool == "../aggregate-native.py",
+                f"implemented deterministic stage {stage_id} tool binding mismatch",
+                errors,
+            )
+        references = [
+            row.get("implementationTool"), row.get("promptFile"),
+            row.get("outputSchema"), row.get("packagedOutputSchema"),
+        ]
         references.extend(row.get("inputSchemas", []))
+        references.extend(row.get("modelVisibleInputSchemas", []))
         references.extend(row.get("authorities", []))
         require(
-            all(reference is None or reference in hashed_paths for reference in references),
+            all(
+                reference is None
+                or reference in hashed_paths
+                or reference == "contract-bindings.json"
+                for reference in references
+            ),
             f"contract stage {stage_id} has an unhashed reference",
             errors,
         )
@@ -1323,6 +2489,17 @@ def validate_contract(native: Path, rubric_path: Path) -> tuple[list[str], dict[
     cold_schema = schemas.get("cold-journey-recipe.schema.json")
     if cold_recipe is not None and cold_schema is not None:
         errors.extend(f"cold recipe {error}" for error in instance_errors(cold_recipe, cold_schema))
+    if (
+        cold_recipe is not None
+        and "coverage-recipe.json" in documents
+        and "concept-exposure-manifest.json" in documents
+    ):
+        validate_cold_checkpoint_sequence(
+            cold_recipe,
+            documents["coverage-recipe.json"],
+            documents["concept-exposure-manifest.json"],
+            errors,
+        )
     map_document = documents.get("qualification-transport-map.json")
     map_schema = schemas.get("qualification-transport-map.schema.json")
     if map_document is not None and map_schema is not None:
@@ -1396,20 +2573,61 @@ def validate_contract(native: Path, rubric_path: Path) -> tuple[list[str], dict[
     return errors, summary
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    default_native = Path(__file__).resolve().parent
-    parser.add_argument("--native-dir", type=Path, default=default_native)
-    parser.add_argument("--rubric", type=Path, default=default_native.parent / "rubric.json")
-    parser.add_argument("--candidate-manifest", type=Path)
-    parser.add_argument("--qualification-receipt", type=Path)
-    parser.add_argument("--json", action="store_true")
-    args = parser.parse_args()
-    native = args.native_dir.resolve()
-    errors, summary = validate_contract(native, args.rubric.resolve())
-    if args.candidate_manifest is not None:
+def validate_runtime_contract_bytes(
+    native: Path,
+    rubric_path: Path,
+    *,
+    candidate_manifest_bytes: bytes | None = None,
+    qualification_receipt_bytes: bytes | None = None,
+    gold_binding_manifest_bytes: bytes | None = None,
+    holdout_consumption_receipt_bytes: bytes | None = None,
+    registry_before_bytes: bytes | None = None,
+    registry_after_bytes: bytes | None = None,
+    candidate_manifest_path_label: Path | None = None,
+    qualification_receipt_path_label: Path | None = None,
+    gold_binding_manifest_path_label: Path | None = None,
+    holdout_consumption_receipt_path_label: Path | None = None,
+    registry_before_path_label: Path | None = None,
+    registry_after_path_label: Path | None = None,
+) -> tuple[list[str], dict[str, Any]]:
+    """Validate exact runtime bytes supplied by an already-opened caller.
+
+    Runtime path arguments are diagnostic/canonical-path labels only.  This API
+    never reopens them, so a caller can bind the result to the exact bytes it
+    previously read.  Candidate execution components and checked-in contract
+    authorities remain independently opened because their bytes are themselves
+    the semantic authorities being recomputed.
+    """
+
+    native = native.resolve()
+    rubric_path = rubric_path.resolve()
+    errors, summary = validate_contract(native, rubric_path)
+    observed: dict[str, str] = {}
+
+    def parse_runtime(
+        data: bytes | None,
+        key: str,
+        default_label: str,
+        path_label: Path | None,
+    ) -> dict[str, Any] | None:
+        if data is None:
+            return None
+        observed[key] = bytes_sha256(data)
+        label = str(path_label) if path_label is not None else default_label
         try:
-            candidate = read_json(args.candidate_manifest.resolve())
+            return read_json_bytes(data, label)
+        except ContractError as error:
+            errors.append(str(error))
+            return None
+
+    candidate = parse_runtime(
+        candidate_manifest_bytes,
+        "candidateManifestRawSha256",
+        "candidate manifest bytes",
+        candidate_manifest_path_label,
+    )
+    if candidate_manifest_bytes is not None and candidate is not None:
+        try:
             schema = read_json(native / "candidate-manifest.schema.json")
         except ContractError as error:
             errors.append(str(error))
@@ -1418,42 +2636,290 @@ def main() -> int:
                 f"candidate manifest {error}"
                 for error in instance_errors(candidate, schema)
             )
-            validate_candidate_manifest_semantics(
-                candidate,
-                native,
-                args.rubric.resolve(),
-                errors,
-            )
+            validate_candidate_manifest_semantics(candidate, native, rubric_path, errors)
             expected = candidate.get("candidateManifestSha256")
             try:
                 actual = self_hash(candidate, "candidateManifestSha256")
             except ContractError as error:
                 errors.append(str(error))
             else:
-                require(expected == actual, "candidate manifest canonical self-hash mismatch", errors)
-    if args.qualification_receipt is not None:
+                require(
+                    expected == actual,
+                    "candidate manifest canonical self-hash mismatch",
+                    errors,
+                )
+
+    qualification = parse_runtime(
+        qualification_receipt_bytes,
+        "qualificationReceiptRawSha256",
+        "qualification receipt bytes",
+        qualification_receipt_path_label,
+    )
+    if qualification_receipt_bytes is not None and qualification is not None:
         try:
-            receipt = read_json(args.qualification_receipt.resolve())
             schema = read_json(native / "qualification-receipt.schema.json")
         except ContractError as error:
             errors.append(str(error))
         else:
             errors.extend(
                 f"qualification receipt {error}"
-                for error in instance_errors(receipt, schema)
+                for error in instance_errors(qualification, schema)
             )
-            validate_qualification_receipt_semantics(receipt, errors)
-            expected = receipt.get("qualificationReceiptSha256")
+            validate_qualification_receipt_semantics(qualification, errors)
             try:
-                actual = self_hash(receipt, "qualificationReceiptSha256")
+                actual = self_hash(qualification, "qualificationReceiptSha256")
             except ContractError as error:
                 errors.append(str(error))
             else:
                 require(
-                    expected == actual,
+                    qualification.get("qualificationReceiptSha256") == actual,
                     "qualification receipt canonical self-hash mismatch",
                     errors,
                 )
+
+    binding = parse_runtime(
+        gold_binding_manifest_bytes,
+        "goldBindingManifestRawSha256",
+        "gold binding manifest bytes",
+        gold_binding_manifest_path_label,
+    )
+    if gold_binding_manifest_bytes is not None and binding is not None:
+        try:
+            binding_schema = read_json(native / "gold-binding-manifest.schema.json")
+        except ContractError as error:
+            errors.append(str(error))
+        else:
+            errors.extend(
+                f"gold binding manifest {error}"
+                for error in instance_errors(binding, binding_schema)
+            )
+            try:
+                binding_self_hash = self_hash(
+                    binding,
+                    "goldBindingManifestSha256",
+                )
+            except ContractError as error:
+                errors.append(str(error))
+            else:
+                require(
+                    binding.get("goldBindingManifestSha256") == binding_self_hash,
+                    "gold binding manifest canonical self-hash mismatch",
+                    errors,
+                )
+            require(
+                binding.get("goldBindingSchemaSha256")
+                == raw_sha256(native / "gold-binding-manifest.schema.json"),
+                "gold binding manifest schema raw SHA mismatch",
+                errors,
+            )
+            if candidate is not None:
+                require(
+                    binding.get("candidateManifestSha256")
+                    == candidate.get("candidateManifestSha256")
+                    and binding.get("selectedRecipeId")
+                    == candidate.get("recipes", {}).get("selectedRecipeId")
+                    and binding.get("selectedRecipeSha256")
+                    == candidate.get("recipes", {}).get("selectedRecipeSha256")
+                    and binding.get("executionArtifactSha256")
+                    == candidate.get("execution", {}).get("executionArtifactSha256"),
+                    "gold binding manifest candidate/recipe/execution binding mismatch",
+                    errors,
+                )
+
+    receipt = parse_runtime(
+        holdout_consumption_receipt_bytes,
+        "holdoutConsumptionReceiptRawSha256",
+        "holdout consumption receipt bytes",
+        holdout_consumption_receipt_path_label,
+    )
+    registry_before = parse_runtime(
+        registry_before_bytes,
+        "registryBeforeRawSha256",
+        "registry before bytes",
+        registry_before_path_label,
+    )
+    registry_after = parse_runtime(
+        registry_after_bytes,
+        "registryAfterRawSha256",
+        "registry after bytes",
+        registry_after_path_label,
+    )
+    if holdout_consumption_receipt_bytes is not None and receipt is not None:
+        try:
+            receipt_schema = read_json(
+                native / "holdout-consumption-receipt.schema.json"
+            )
+            registry_schema = read_json(
+                native / "holdout-consumption-registry.schema.json"
+            )
+            queue = read_json(native / "holdout-recipes.json")
+        except ContractError as error:
+            errors.append(str(error))
+        else:
+            queue["_observedRawSha256"] = raw_sha256(
+                native / "holdout-recipes.json"
+            )
+            errors.extend(
+                f"holdout consumption receipt {error}"
+                for error in instance_errors(receipt, receipt_schema)
+            )
+            try:
+                receipt_self_hash = self_hash(
+                    receipt,
+                    "holdoutConsumptionReceiptSha256",
+                )
+            except ContractError as error:
+                errors.append(str(error))
+            else:
+                require(
+                    receipt.get("holdoutConsumptionReceiptSha256")
+                    == receipt_self_hash,
+                    "holdout consumption receipt canonical self-hash mismatch",
+                    errors,
+                )
+            for label, registry, raw_bytes, raw_field, self_field in (
+                (
+                    "registry before",
+                    registry_before,
+                    registry_before_bytes,
+                    "registryBeforeRawSha256",
+                    "registryBeforeSha256",
+                ),
+                (
+                    "registry after",
+                    registry_after,
+                    registry_after_bytes,
+                    "registryAfterRawSha256",
+                    "registryAfterSha256",
+                ),
+            ):
+                if registry is None or raw_bytes is None:
+                    continue
+                errors.extend(
+                    f"{label} {error}"
+                    for error in instance_errors(registry, registry_schema)
+                )
+                try:
+                    registry_self_hash = self_hash(
+                        registry,
+                        "holdoutConsumptionRegistrySha256",
+                    )
+                except ContractError as error:
+                    errors.append(str(error))
+                else:
+                    require(
+                        registry.get("holdoutConsumptionRegistrySha256")
+                        == registry_self_hash,
+                        f"{label} canonical self-hash mismatch",
+                        errors,
+                    )
+                atomic = receipt.get("atomicClaim", {})
+                require(
+                    isinstance(atomic, dict)
+                    and atomic.get(raw_field) == bytes_sha256(raw_bytes)
+                    and atomic.get(self_field)
+                    == registry.get("holdoutConsumptionRegistrySha256"),
+                    f"{label} raw/self receipt binding mismatch",
+                    errors,
+                )
+            if holdout_consumption_receipt_path_label is None:
+                errors.append(
+                    "holdout receipt exact-byte validation requires its canonical path label"
+                )
+            else:
+                validate_holdout_consumption_semantics(
+                    receipt,
+                    holdout_consumption_receipt_path_label,
+                    native,
+                    candidate,
+                    queue,
+                    registry_before,
+                    registry_after,
+                    errors,
+                )
+
+    summary["observedRawSha256"] = observed
+    summary["status"] = "PASS" if not errors else "FAIL"
+    return errors, summary
+
+
+def _read_cli_bytes(
+    path: Path | None,
+    label: str,
+    errors: list[str],
+) -> tuple[bytes | None, Path | None]:
+    if path is None:
+        return None, None
+    resolved = path.resolve(strict=False)
+    try:
+        return resolved.read_bytes(), resolved
+    except OSError as error:
+        errors.append(f"cannot read {label} {resolved}: {error}")
+        return None, resolved
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    default_native = Path(__file__).resolve().parent
+    parser.add_argument("--native-dir", type=Path, default=default_native)
+    parser.add_argument("--rubric", type=Path, default=default_native.parent / "rubric.json")
+    parser.add_argument("--candidate-manifest", type=Path)
+    parser.add_argument("--qualification-receipt", type=Path)
+    parser.add_argument("--gold-binding-manifest", type=Path)
+    parser.add_argument("--holdout-consumption-receipt", type=Path)
+    parser.add_argument("--registry-before", type=Path)
+    parser.add_argument("--registry-after", type=Path)
+    parser.add_argument("--json", action="store_true")
+    args = parser.parse_args()
+    native = args.native_dir.resolve()
+    cli_errors: list[str] = []
+    candidate_bytes, candidate_path = _read_cli_bytes(
+        args.candidate_manifest,
+        "candidate manifest",
+        cli_errors,
+    )
+    qualification_bytes, qualification_path = _read_cli_bytes(
+        args.qualification_receipt,
+        "qualification receipt",
+        cli_errors,
+    )
+    binding_bytes, binding_path = _read_cli_bytes(
+        args.gold_binding_manifest,
+        "gold binding manifest",
+        cli_errors,
+    )
+    receipt_bytes, receipt_path = _read_cli_bytes(
+        args.holdout_consumption_receipt,
+        "holdout consumption receipt",
+        cli_errors,
+    )
+    registry_before_bytes, registry_before_path = _read_cli_bytes(
+        args.registry_before,
+        "registry before",
+        cli_errors,
+    )
+    registry_after_bytes, registry_after_path = _read_cli_bytes(
+        args.registry_after,
+        "registry after",
+        cli_errors,
+    )
+    errors, summary = validate_runtime_contract_bytes(
+        native,
+        args.rubric.resolve(),
+        candidate_manifest_bytes=candidate_bytes,
+        qualification_receipt_bytes=qualification_bytes,
+        gold_binding_manifest_bytes=binding_bytes,
+        holdout_consumption_receipt_bytes=receipt_bytes,
+        registry_before_bytes=registry_before_bytes,
+        registry_after_bytes=registry_after_bytes,
+        candidate_manifest_path_label=candidate_path,
+        qualification_receipt_path_label=qualification_path,
+        gold_binding_manifest_path_label=binding_path,
+        holdout_consumption_receipt_path_label=receipt_path,
+        registry_before_path_label=registry_before_path,
+        registry_after_path_label=registry_after_path,
+    )
+    errors = [*cli_errors, *errors]
     summary["status"] = "PASS" if not errors else "FAIL"
     if args.json:
         print(json.dumps({**summary, "errors": errors}, ensure_ascii=False, sort_keys=True))

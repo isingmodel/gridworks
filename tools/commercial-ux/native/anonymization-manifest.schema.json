@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-anonymization-manifest-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "anonymizationManifestSha256",
+    "candidateManifestSha256", "holdoutConsumptionReceiptSha256",
+    "selectedRecipeSha256", "actorArtifactPermutation", "sourceActors",
+    "sourceCoverage", "artifactOrder"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.anonymization-manifest.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "anonymizationManifestSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "selectedRecipeSha256": {"$ref": "#/$defs/sha256"},
+    "actorArtifactPermutation": {
+      "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true,
+      "items": {"type": "integer", "minimum": 0, "maximum": 2}
+    },
+    "sourceActors": {
+      "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/sourceActor"}
+    },
+    "sourceCoverage": {"$ref": "#/$defs/sourceCoverage"},
+    "artifactOrder": {
+      "type": "array", "minItems": 4, "maxItems": 4, "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "sourceActor": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "actorCaptureSlot", "actorTraceSha256", "actorTraceRawSha256",
+        "recordingManifestSha256", "recordingManifestRawSha256",
+        "anonymousArtifactId"
+      ],
+      "properties": {
+        "actorCaptureSlot": {"type": "integer", "minimum": 0, "maximum": 2},
+        "actorTraceSha256": {"$ref": "#/$defs/sha256"},
+        "actorTraceRawSha256": {"$ref": "#/$defs/sha256"},
+        "recordingManifestSha256": {"$ref": "#/$defs/sha256"},
+        "recordingManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"}
+      }
+    },
+    "sourceCoverage": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "coverageArtifactId", "coverageTraceRawSha256", "recordingManifestSha256",
+        "recordingManifestRawSha256", "anonymousArtifactId",
+        "coveragePresentationEpisodeIds"
+      ],
+      "properties": {
+        "coverageArtifactId": {"$ref": "#/$defs/sha256"},
+        "coverageTraceRawSha256": {"$ref": "#/$defs/sha256"},
+        "recordingManifestSha256": {"$ref": "#/$defs/sha256"},
+        "recordingManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "coveragePresentationEpisodeIds": {
+          "type": "array", "minItems": 12, "maxItems": 12, "uniqueItems": true,
+          "items": {"pattern": "^E(0[0-9]|1[01])-[A-Z0-9-]+$"}
+        }
+      }
+    }
+  }
+}

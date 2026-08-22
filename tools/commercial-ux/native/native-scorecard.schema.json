@@ -146,7 +146,8 @@
     {"properties": {"status": {"const": "BLOCKED_EVIDENCE_VERIFICATION"}, "verdict": {"const": "BLOCKED_EVIDENCE_VERIFICATION"}}},
     {"properties": {"status": {"const": "BLOCKED_MISSING_EVIDENCE"}, "verdict": {"const": "BLOCKED_MISSING_EVIDENCE"}}},
     {"properties": {"status": {"const": "BLOCKED_HARNESS"}, "verdict": {"const": "BLOCKED_HARNESS"}}},
-    {"properties": {"status": {"const": "BLOCKED_HOLDOUT_EXHAUSTED"}, "verdict": {"const": "BLOCKED_HOLDOUT_EXHAUSTED"}}}
+    {"properties": {"status": {"const": "BLOCKED_HOLDOUT_EXHAUSTED"}, "verdict": {"const": "BLOCKED_HOLDOUT_EXHAUSTED"}}},
+    {"properties": {"status": {"const": "BLOCKED_PRE_CAPTURE"}, "verdict": {"const": "BLOCKED_PRE_CAPTURE"}}}
   ],
   "allOf": [
     {
@@ -166,7 +167,7 @@
               "BLOCKED_JUDGE_UNAVAILABLE", "BLOCKED_JUDGE_QUALIFICATION",
               "BLOCKED_JUDGE_SCHEMA", "BLOCKED_JUDGE_INSTABILITY",
               "BLOCKED_EVIDENCE_VERIFICATION", "BLOCKED_MISSING_EVIDENCE",
-              "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED"
+              "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED", "BLOCKED_PRE_CAPTURE"
             ]
           }
         }
@@ -189,7 +190,7 @@
               "BLOCKED_JUDGE_UNAVAILABLE", "BLOCKED_JUDGE_QUALIFICATION",
               "BLOCKED_JUDGE_SCHEMA", "BLOCKED_JUDGE_INSTABILITY",
               "BLOCKED_EVIDENCE_VERIFICATION", "BLOCKED_MISSING_EVIDENCE",
-              "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED"
+              "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED", "BLOCKED_PRE_CAPTURE"
             ]
           }
         },
@@ -305,7 +306,7 @@
         "BLOCKED_JUDGE_UNAVAILABLE", "BLOCKED_JUDGE_QUALIFICATION",
         "BLOCKED_JUDGE_SCHEMA", "BLOCKED_JUDGE_INSTABILITY",
         "BLOCKED_EVIDENCE_VERIFICATION", "BLOCKED_MISSING_EVIDENCE",
-        "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED"
+        "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED", "BLOCKED_PRE_CAPTURE"
       ]
     },
     "finalVerdict": {
@@ -314,7 +315,7 @@
         "BLOCKED_JUDGE_UNAVAILABLE", "BLOCKED_JUDGE_QUALIFICATION",
         "BLOCKED_JUDGE_SCHEMA", "BLOCKED_JUDGE_INSTABILITY",
         "BLOCKED_EVIDENCE_VERIFICATION", "BLOCKED_MISSING_EVIDENCE",
-        "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED"
+        "BLOCKED_HARNESS", "BLOCKED_HOLDOUT_EXHAUSTED", "BLOCKED_PRE_CAPTURE"
       ]
     },
     "laneIds": {
@@ -731,6 +732,12 @@
         "nativeAggregatorSha256",
         "qualificationReceiptSha256",
         "qualificationReceiptRawSha256",
+        "holdoutConsumptionReceiptSha256",
+        "holdoutConsumptionReceiptRawSha256",
+        "goldBindingManifestSha256",
+        "goldBindingManifestRawSha256",
+        "coldActorResponseSha256",
+        "coldActorResponseRawSha256",
         "judgePanelRawSha256",
         "evaluationRunManifestSha256",
         "evaluationRunManifestRawSha256",
@@ -747,8 +754,20 @@
         "coldRecipeSha256",
         "coverageRecipeSha256",
         "holdoutRecipeSha256",
+        "anonymizationManifestSha256",
+        "anonymizationManifestRawSha256",
         "evidenceSetSha256",
+        "evidenceSetRawSha256",
+        "sanitizedEvidenceBundleManifestSha256",
+        "sanitizedEvidenceBundleManifestRawSha256",
+        "sanitizedEvidenceContentRootSha256",
+        "coverageActionLedgerSha256",
+        "coverageActionLedgerRawSha256",
+        "candidateJudgeInputSha256",
+        "candidateJudgeInputRawSha256",
         "judgePanelSha256",
+        "verificationInputSha256",
+        "verificationInputRawSha256",
         "verificationOutputSha256",
         "oracleHardGateLedgerSha256",
         "executionArtifactSha256",
@@ -761,6 +780,18 @@
         "nativeAggregatorSha256": {"$ref": "#/$defs/sha256"},
         "qualificationReceiptSha256": {"$ref": "#/$defs/sha256"},
         "qualificationReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+        "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+        "holdoutConsumptionReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+        "goldBindingManifestSha256": {"$ref": "#/$defs/sha256"},
+        "goldBindingManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "coldActorResponseSha256": {
+          "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/sha256"}
+        },
+        "coldActorResponseRawSha256": {
+          "type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/sha256"}
+        },
         "judgePanelRawSha256": {"$ref": "#/$defs/sha256"},
         "evaluationRunManifestSha256": {"$ref": "#/$defs/sha256"},
         "evaluationRunManifestRawSha256": {"$ref": "#/$defs/sha256"},
@@ -777,8 +808,20 @@
         "coldRecipeSha256": {"$ref": "#/$defs/sha256"},
         "coverageRecipeSha256": {"$ref": "#/$defs/sha256"},
         "holdoutRecipeSha256": {"$ref": "#/$defs/sha256"},
+        "anonymizationManifestSha256": {"$ref": "#/$defs/sha256"},
+        "anonymizationManifestRawSha256": {"$ref": "#/$defs/sha256"},
         "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+        "evidenceSetRawSha256": {"$ref": "#/$defs/sha256"},
+        "sanitizedEvidenceBundleManifestSha256": {"$ref": "#/$defs/sha256"},
+        "sanitizedEvidenceBundleManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "sanitizedEvidenceContentRootSha256": {"$ref": "#/$defs/sha256"},
+        "coverageActionLedgerSha256": {"$ref": "#/$defs/sha256"},
+        "coverageActionLedgerRawSha256": {"$ref": "#/$defs/sha256"},
+        "candidateJudgeInputSha256": {"$ref": "#/$defs/sha256"},
+        "candidateJudgeInputRawSha256": {"$ref": "#/$defs/sha256"},
         "judgePanelSha256": {"$ref": "#/$defs/sha256"},
+        "verificationInputSha256": {"$ref": "#/$defs/sha256"},
+        "verificationInputRawSha256": {"$ref": "#/$defs/sha256"},
         "verificationOutputSha256": {"$ref": "#/$defs/sha256"},
         "oracleHardGateLedgerSha256": {"$ref": "#/$defs/sha256"},
         "executionArtifactSha256": {"$ref": "#/$defs/sha256"},

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-recording-manifest-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "recordingManifestSha256", "candidateManifestSha256",
+    "sourceArtifactKind", "sourceArtifactHashKind", "sourceArtifactSha256",
+    "actionLedgerSchemaSha256", "actionLedgerArtifactRawSha256",
+    "actorCaptureSlot", "actorRunId", "coverageRunId", "processTreeId",
+    "bundleId", "canonicalBundleRoot",
+    "bundleRootSha256", "bundleRootHashRule", "locatorPolicy", "mimePolicy", "artifacts"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.recording-manifest.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "recordingManifestSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "sourceArtifactKind": {"enum": ["ACTOR_OBSERVATION", "COVERAGE_CAPTURE"]},
+    "sourceArtifactHashKind": {"enum": ["ACTOR_OBSERVATION_RAW", "COVERAGE_ACTION_LEDGER_RAW"]},
+    "sourceArtifactSha256": {"$ref": "#/$defs/sha256"},
+    "actionLedgerSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "actionLedgerArtifactRawSha256": {"$ref": "#/$defs/sha256"},
+    "actorCaptureSlot": {"type": ["integer", "null"], "minimum": 0, "maximum": 2},
+    "actorRunId": {"type": ["string", "null"], "minLength": 1, "maxLength": 200},
+    "coverageRunId": {"type": ["string", "null"], "minLength": 1, "maxLength": 200},
+    "processTreeId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "bundleId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "canonicalBundleRoot": {
+      "type": "string",
+      "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+      "maxLength": 1000
+    },
+    "bundleRootSha256": {"$ref": "#/$defs/sha256"},
+    "bundleRootHashRule": {"const": "SHA256_OF_UTF8_RFC8785_CANONICAL_LOCATOR_SORTED_ROWS_LOCATOR_RAW_SHA256_BYTE_LENGTH"},
+    "locatorPolicy": {"const": "CANONICAL_RELATIVE_NO_DOTDOT_REJECT_ALL_SYMLINKS"},
+    "mimePolicy": {"const": "PNG_WAV_OR_STRICT_JSON_OBJECT_MATCHING_MAGIC_AND_SCHEMA"},
+    "artifacts": {
+      "type": "array", "minItems": 1, "maxItems": 4096, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/artifact"}
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "artifact": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifactId", "kind", "locator", "rawSha256", "byteLength", "mimeType"],
+      "properties": {
+        "artifactId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "kind": {"enum": ["FRAME", "AUDIO", "ACTION_LEDGER", "VISIBLE_TEXT"]},
+        "locator": {
+          "type": "string",
+          "pattern": "^(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+          "maxLength": 500
+        },
+        "rawSha256": {"$ref": "#/$defs/sha256"},
+        "byteLength": {"type": "integer", "minimum": 1, "maximum": 10737418240},
+        "mimeType": {
+          "enum": ["image/png", "audio/wav", "application/json"]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"const": "FRAME"}}, "required": ["kind"]},
+          "then": {"properties": {"mimeType": {"const": "image/png"}}}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "AUDIO"}}, "required": ["kind"]},
+          "then": {"properties": {"mimeType": {"const": "audio/wav"}}}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "ACTION_LEDGER"}}, "required": ["kind"]},
+          "then": {"properties": {"mimeType": {"const": "application/json"}}}
+        },
+        {
+          "if": {"properties": {"kind": {"const": "VISIBLE_TEXT"}}, "required": ["kind"]},
+          "then": {"properties": {"mimeType": {"const": "application/json"}}}
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"sourceArtifactKind": {"const": "ACTOR_OBSERVATION"}}, "required": ["sourceArtifactKind"]},
+      "then": {
+        "properties": {
+          "sourceArtifactHashKind": {"const": "ACTOR_OBSERVATION_RAW"},
+          "actorCaptureSlot": {"type": "integer", "minimum": 0, "maximum": 2},
+          "actorRunId": {"type": "string", "minLength": 1},
+          "coverageRunId": {"type": "null"},
+          "artifacts": {
+            "contains": {
+              "$ref": "#/$defs/artifact",
+              "properties": {"kind": {"const": "ACTION_LEDGER"}}
+            },
+            "minContains": 1,
+            "maxContains": 1
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "sourceArtifactHashKind": {"const": "COVERAGE_ACTION_LEDGER_RAW"},
+          "actorCaptureSlot": {"type": "null"},
+          "actorRunId": {"type": "null"},
+          "coverageRunId": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  ]
+}

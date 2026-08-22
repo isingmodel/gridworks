@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-sanitized-evidence-bundle-manifest-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "sanitizedEvidenceBundleManifestSha256",
+    "sanitizedEvidenceBundleManifestSchemaSha256", "candidateManifestSha256",
+    "holdoutConsumptionReceiptSha256", "goldBindingManifestSha256",
+    "anonymizationManifestSha256", "evidenceSetSha256",
+    "sourceRecordingRootsExposedToJudge", "bundleRootHashRule",
+    "artifactBundleHashRule", "contentRootHashRule", "contentRootSha256",
+    "locatorPolicy", "mimePolicy", "bundles"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.sanitized-evidence-bundle-manifest.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "sanitizedEvidenceBundleManifestSha256": {"$ref": "#/$defs/sha256"},
+    "sanitizedEvidenceBundleManifestSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "goldBindingManifestSha256": {"$ref": "#/$defs/sha256"},
+    "anonymizationManifestSha256": {"$ref": "#/$defs/sha256"},
+    "evidenceSetSha256": {"$ref": "#/$defs/sha256"},
+    "sourceRecordingRootsExposedToJudge": {"const": false},
+    "bundleRootHashRule": {"const": "SHA256_OF_UTF8_RFC8785_CANONICAL_LOCATOR_SORTED_ROWS_LOCATOR_RAW_SHA256_BYTE_LENGTH"},
+    "artifactBundleHashRule": {"const": "SHA256_OF_RFC8785_BUNDLE_WITH_ARTIFACT_BUNDLE_SHA256_NULL"},
+    "contentRootHashRule": {"const": "SHA256_OF_RFC8785_ANONYMOUS_ID_SORTED_ROWS_ANONYMOUS_ID_BUNDLE_ID_BUNDLE_ROOT_SHA256_ARTIFACT_BUNDLE_SHA256"},
+    "contentRootSha256": {"$ref": "#/$defs/sha256"},
+    "locatorPolicy": {"const": "SANITIZED_CANONICAL_RELATIVE_NO_DOTDOT_REJECT_ALL_SYMLINKS_COMPLETE_RECURSIVE_FILE_SET"},
+    "mimePolicy": {"const": "PNG_WAV_OR_STRICT_JSON_OBJECT_MATCHING_MAGIC_AND_SCHEMA"},
+    "bundles": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "prefixItems": [
+        {"$ref": "#/$defs/bundle", "properties": {"anonymousArtifactId": {"const": "ARTIFACT-A"}}},
+        {"$ref": "#/$defs/bundle", "properties": {"anonymousArtifactId": {"const": "ARTIFACT-B"}}},
+        {"$ref": "#/$defs/bundle", "properties": {"anonymousArtifactId": {"const": "ARTIFACT-C"}}},
+        {"$ref": "#/$defs/bundle", "properties": {"anonymousArtifactId": {"const": "ARTIFACT-D"}}}
+      ],
+      "items": false
+    }
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "absoluteRoot": {
+      "type": "string",
+      "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+      "maxLength": 1000
+    },
+    "relativeLocator": {
+      "type": "string",
+      "pattern": "^(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+      "maxLength": 500
+    },
+    "file": {
+      "type": "object", "additionalProperties": false,
+      "required": ["artifactId", "kind", "locator", "rawSha256", "byteLength", "mimeType"],
+      "properties": {
+        "artifactId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "kind": {"enum": ["FRAME", "AUDIO", "ACTION_LEDGER", "VISIBLE_TEXT"]},
+        "locator": {"$ref": "#/$defs/relativeLocator"},
+        "rawSha256": {"$ref": "#/$defs/sha256"},
+        "byteLength": {"type": "integer", "minimum": 1, "maximum": 10737418240},
+        "mimeType": {"enum": ["image/png", "audio/wav", "application/json"]}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "FRAME"}}, "required": ["kind"]}, "then": {"properties": {"mimeType": {"const": "image/png"}}}},
+        {"if": {"properties": {"kind": {"const": "AUDIO"}}, "required": ["kind"]}, "then": {"properties": {"mimeType": {"const": "audio/wav"}}}},
+        {"if": {"properties": {"kind": {"enum": ["ACTION_LEDGER", "VISIBLE_TEXT"]}}, "required": ["kind"]}, "then": {"properties": {"mimeType": {"const": "application/json"}}}}
+      ]
+    },
+    "bundle": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "anonymousArtifactId", "sanitizedArtifactSha256", "bundleId",
+        "canonicalBundleRoot", "bundleRootPathTail", "bundleRootSha256",
+        "artifactBundleSha256", "artifactOrderRule", "recursiveFileSetComplete",
+        "extraFileCount", "symlinkCount", "fileCount", "files"
+      ],
+      "properties": {
+        "anonymousArtifactId": {"type": "string", "pattern": "^ARTIFACT-[A-D]$"},
+        "sanitizedArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "bundleId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "canonicalBundleRoot": {"$ref": "#/$defs/absoluteRoot"},
+        "bundleRootPathTail": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$"},
+        "bundleRootSha256": {"$ref": "#/$defs/sha256"},
+        "artifactBundleSha256": {"$ref": "#/$defs/sha256"},
+        "artifactOrderRule": {"const": "LEXICOGRAPHIC_UNICODE_CODE_POINT_LOCATOR_ASCENDING"},
+        "recursiveFileSetComplete": {"const": true},
+        "extraFileCount": {"const": 0},
+        "symlinkCount": {"const": 0},
+        "fileCount": {"type": "integer", "minimum": 1, "maximum": 4096},
+        "files": {
+          "type": "array", "minItems": 1, "maxItems": 4096, "uniqueItems": true,
+          "items": {"$ref": "#/$defs/file"}
+        }
+      }
+    }
+  }
+}

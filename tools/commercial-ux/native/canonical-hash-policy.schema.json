@@ -40,8 +40,8 @@
     },
     "bindings": {
       "type": "array",
-      "minItems": 9,
-      "maxItems": 9,
+      "minItems": 20,
+      "maxItems": 20,
       "uniqueItems": true,
       "items": {
         "type": "object",
@@ -56,11 +56,15 @@
     },
     "postRunActorFields": {
       "const": [
+        "coldActorResponseSha256",
+        "coldActorResponseRawSha256",
         "userDataSha256",
         "saveSha256",
         "journalSha256",
         "recordingManifestSha256",
-        "actorArtifactId"
+        "recordingManifestRawSha256",
+        "actorArtifactId",
+        "actorTraceSha256"
       ]
     },
     "verification": {

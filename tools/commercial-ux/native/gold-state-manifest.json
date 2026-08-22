@@ -22,12 +22,28 @@
     "requiredCandidateBindingHashes": "accepted journal and canonical snapshot for every applicable prefix and checkpoint",
     "candidateManifestValidation": "required before --require-score-ready can pass"
   },
+  "candidateBindingOverlay": {
+    "schema": "gold-binding-manifest.schema.json",
+    "selfHashField": "goldBindingManifestSha256",
+    "rawHashOwner": "evaluation-run manifest artifacts.goldBindingManifestRawSha256",
+    "prefixCount": 12,
+    "checkpointCount": 49,
+    "applicableBindingCount": 56,
+    "notApplicableBindingCount": 5,
+    "e09WitnessRequired": true,
+    "rawBundleRequired": true,
+    "rawBundleEntryCount": 112,
+    "rawBundleValidation": "OPEN_EVERY_CANONICAL_LOCATOR_RECOMPUTE_RAW_HASH_AND_LENGTH_REJECT_EXTRA_OR_SYMLINK",
+    "immutableTemplateBindingsRemainPending": true,
+    "scoreReadyCommandRequires": ["--binding-manifest", "--candidate-manifest", "--require-score-ready"]
+  },
   "nextRequiredGenerator": {
     "status": "MISSING_IN_CURRENT_SCOPE",
     "path": "tools/commercial-ux/native/capture-gold-state.py",
     "commandTemplate": "python3 tools/commercial-ux/native/capture-gold-state.py --recipe tools/commercial-ux/native/coverage-recipe.json --holdout-recipe-id {RECIPE_ID} --native-executable {ABSOLUTE_NATIVE_EXECUTABLE} --output {ABSOLUTE_OUTPUT_DIRECTORY}",
     "requiredOutputs": [
       "candidate manifest with exact candidate source/output hashes",
+      "candidate-specific gold-binding manifest conforming to gold-binding-manifest.schema.json",
       "CommercialCampaignSaveCodec accepted-journal bytes, command count and SHA-256 at every applicable prefix and checkpoint",
       "canonical CommercialCoreSnapshot plus typed Game presentation-state bytes and SHA-256 at every applicable prefix and checkpoint",
       "process-separated pre-exit and post-resume equality records for E09 and E10"
@@ -53,7 +69,7 @@
     },
     "conceptExposure": {
       "path": "tools/commercial-ux/native/concept-exposure-manifest.json",
-      "sha256": "sha256:f010334c1ef5941e693ddf6ab8646e49ca261efae1c6c2c85cee090f30f58493"
+      "sha256": "sha256:1a5bffddcf78c8952f1d5a47ee5f5926c0bc5c5c6e0fbf2cbc0291c24783e9f5"
     },
     "coreReplay": {
       "path": "src/Gridworks.Core/Release/V2/CommercialCoreRun.cs",

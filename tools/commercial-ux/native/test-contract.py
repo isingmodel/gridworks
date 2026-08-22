@@ -56,6 +56,7 @@ def mutated_errors(
         native = Path(temporary) / "native"
         shutil.copytree(ROOT, native)
         shutil.copy2(ROOT.parent / "aggregate-native.py", native.parent / "aggregate-native.py")
+        shutil.copy2(RUBRIC, native.parent / "rubric.json")
         mutate(native)
         errors, _ = module.validate_contract(native, RUBRIC)
         return errors
@@ -87,7 +88,7 @@ def main() -> int:
     assert report["nativeCellCount"] == 39
     assert report["coldAssignedCellCount"] == 30
     assert report["coverageAssignedCellCount"] == 34
-    assert report["probeCount"] == 21
+    assert report["probeCount"] == 25
     assert report["episodeCount"] == 12
     assert report["holdoutCount"] == 8
     assert report["qualificationAnchorCount"] == 20
@@ -125,6 +126,104 @@ def main() -> int:
     assert_rejected(module, break_probe_checkpoint, "first checkpoint is not in coverage recipe")
     checks += 1
 
+    def make_cold_probe_unreachable(native: Path) -> None:
+        path = native / "concept-exposure-manifest.json"
+        value = read_json(path)
+        probe = next(row for row in value["probes"] if row["id"] == "PX21-COLD-KOREAN-STORY")
+        probe["firstEpisode"] = "E11-AUTHORED-TEXT"
+        probe["firstCheckpoint"] = "native-story-manifest-binding"
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        make_cold_probe_unreachable,
+        "requiredForCold firstEpisode must be reachable in E00..E09",
+    )
+    checks += 1
+
+    def require_authored_error_from_cold_actor(native: Path) -> None:
+        path = native / "concept-exposure-manifest.json"
+        value = read_json(path)
+        probe = next(row for row in value["probes"] if row["id"] == "PX03-PLACEMENT-RECOVERY")
+        probe["requiredForCold"] = True
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        require_authored_error_from_cold_actor,
+        "authored error probes must be coverage-only",
+    )
+    checks += 1
+
+    def reorder_outcome_neutral_probe(native: Path) -> None:
+        path = native / "concept-exposure-manifest.json"
+        value = read_json(path)
+        value["probes"][3], value["probes"][4] = value["probes"][4], value["probes"][3]
+        write_json(path, value)
+
+    assert_rejected(module, reorder_outcome_neutral_probe, "concept probe IDs/order drift")
+    checks += 1
+
+    def drift_cold_probe_chronology(native: Path) -> None:
+        path = native / "concept-exposure-manifest.json"
+        value = read_json(path)
+        value["coldProbeOrder"][10], value["coldProbeOrder"][11] = (
+            value["coldProbeOrder"][11],
+            value["coldProbeOrder"][10],
+        )
+        write_json(path, value)
+
+    assert_rejected(module, drift_cold_probe_chronology, "concept coldProbeOrder drift")
+    checks += 1
+
+    def omit_required_cold_probe_from_order(native: Path) -> None:
+        path = native / "concept-exposure-manifest.json"
+        value = read_json(path)
+        value["coldProbeOrder"][-1] = "PX18-COMPLETE-RESUME"
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        omit_required_cold_probe_from_order,
+        "coldProbeOrder must exactly permute required cold probe IDs",
+    )
+    checks += 1
+
+    def move_mid_resume_after_north_bank_result(native: Path) -> None:
+        path = native / "cold-journey-recipe.json"
+        value = read_json(path)
+        sequence = value["checkpointSequence"]
+        resume_index = next(
+            index for index, row in enumerate(sequence)
+            if row["checkpoint"] == "resume-orientation"
+        )
+        result_index = next(
+            index for index, row in enumerate(sequence)
+            if row["checkpoint"] == "north-bank-first-result"
+        )
+        sequence[resume_index], sequence[result_index] = sequence[result_index], sequence[resume_index]
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        move_mid_resume_after_north_bank_result,
+        "45-row/41-rank E09-inside-E04 authority",
+    )
+    checks += 1
+
+    def remove_recorder_checkpoint_rank(native: Path) -> None:
+        path = native / "actor-observation.schema.json"
+        value = read_json(path)
+        value["$defs"]["checkpoint"]["required"].remove("recipeCheckpointSequenceOrdinal")
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        remove_recorder_checkpoint_rank,
+        "actor observation checkpoint lacks recorder-owned recipe sequence rank",
+    )
+    checks += 1
+
     def drift_holdout_bits(native: Path) -> None:
         path = native / "holdout-recipes.json"
         value = read_json(path)
@@ -132,6 +231,15 @@ def main() -> int:
         write_json(path, value)
 
     assert_rejected(module, drift_holdout_bits, "bits drift")
+    checks += 1
+
+    def make_holdout_registry_caller_chosen(native: Path) -> None:
+        path = native / "holdout-recipes.json"
+        value = read_json(path)
+        value["registryPolicy"]["registryPathRule"] = "CALLER_CHOSEN"
+        write_json(path, value)
+
+    assert_rejected(module, make_holdout_registry_caller_chosen, "local registry policy drift")
     checks += 1
 
     def leak_qualification_band_in_id(native: Path) -> None:
@@ -189,6 +297,220 @@ def main() -> int:
         write_json(path, value)
 
     assert_rejected(module, remove_required_packager_stage, "stage DAG/order drift")
+    checks += 1
+
+    def fake_unimplemented_tool_binding(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(
+            row for row in value["stageBindings"]
+            if row["stageId"] == "GOLD-BINDING-PACKAGER"
+        )
+        stage["implementationTool"] = "validate-contract.py"
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        fake_unimplemented_tool_binding,
+        "must remain honestly implementationTool=null",
+    )
+    checks += 1
+
+    def omit_aggregation_input_producer(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        value["stageBindings"] = [
+            row for row in value["stageBindings"]
+            if row["stageId"] != "AGGREGATION-INPUT-PACKAGER"
+        ]
+        write_json(path, value)
+
+    assert_rejected(module, omit_aggregation_input_producer, "stage DAG/order drift")
+    checks += 1
+
+    def omit_verifier_from_oracle(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(
+            row for row in value["stageBindings"]
+            if row["stageId"] == "ORACLE-HARD-GATES"
+        )
+        stage["inputSchemas"].remove("native-evidence-verifier.schema.json")
+        write_json(path, value)
+
+    assert_rejected(module, omit_verifier_from_oracle, "complete candidate/verifier/rubric/contract DAG")
+    checks += 1
+
+    def reverse_candidate_receipt_gold_dag(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(
+            row for row in value["stageBindings"]
+            if row["stageId"] == "CANDIDATE-MANIFEST-PACKAGER"
+        )
+        stage["inputSchemas"] = ["gold-binding-manifest.schema.json"]
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        reverse_candidate_receipt_gold_dag,
+        "candidate -> receipt -> gold-binding DAG must remain exact and acyclic",
+    )
+    checks += 1
+
+    def expose_cold_actor_before_holdout_claim(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(row for row in value["stageBindings"] if row["stageId"] == "COLD-ACTOR")
+        stage["inputSchemas"].remove("holdout-consumption-receipt.schema.json")
+        write_json(path, value)
+
+    assert_rejected(module, expose_cold_actor_before_holdout_claim, "cold actor must be exposed only after")
+    checks += 1
+
+    def omit_recordings_from_sanitized_packager(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(
+            row for row in value["stageBindings"]
+            if row["stageId"] == "EVIDENCE-SET-PACKAGER"
+        )
+        stage["inputSchemas"].remove("recording-manifest.schema.json")
+        write_json(path, value)
+
+    assert_rejected(module, omit_recordings_from_sanitized_packager, "bind cold and coverage source envelopes")
+    checks += 1
+
+    def bypass_candidate_judge_qualification(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(
+            row for row in value["stageBindings"]
+            if row["stageId"] == "CANDIDATE-JUDGE-INPUT-PACKAGER"
+        )
+        stage["inputSchemas"].remove("qualification-receipt.schema.json")
+        write_json(path, value)
+
+    assert_rejected(module, bypass_candidate_judge_qualification, "after qualification PASS")
+    checks += 1
+
+    def bypass_cold_observation_packager(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(row for row in value["stageBindings"] if row["stageId"] == "COLD-PACKAGER")
+        stage["inputSchemas"].remove("cold-actor-response.schema.json")
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        bypass_cold_observation_packager,
+        "response must pass through the recorder-owned observation packager",
+    )
+    checks += 1
+
+    def expose_candidate_authority_to_cold_actor(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(row for row in value["stageBindings"] if row["stageId"] == "COLD-ACTOR")
+        stage["modelVisibleInputSchemas"] = ["candidate-manifest.schema.json"]
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        expose_candidate_authority_to_cold_actor,
+        "cold actor must be exposed only after candidate, holdout claim, and gold readiness",
+    )
+    checks += 1
+
+    def hide_evidence_body_from_candidate_judge(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(row for row in value["stageBindings"] if row["stageId"] == "CANDIDATE-JUDGE")
+        stage["modelVisibleInputSchemas"].remove("evidence-set.schema.json")
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        hide_evidence_body_from_candidate_judge,
+        "exact evidence bodies after qualification PASS",
+    )
+    checks += 1
+
+    def loosen_recording_frame_mime(native: Path) -> None:
+        path = native / "recording-manifest.schema.json"
+        value = read_json(path)
+        value["$defs"]["artifact"]["properties"]["mimeType"]["enum"].append("text/plain")
+        frame_rule = value["$defs"]["artifact"]["allOf"][0]
+        frame_rule["then"]["properties"]["mimeType"] = {"enum": ["image/png", "text/plain"]}
+        write_json(path, value)
+
+    assert_rejected(module, loosen_recording_frame_mime, "path/symlink/MIME verification policy drift")
+    checks += 1
+
+    def allow_multiple_actor_action_ledgers(native: Path) -> None:
+        path = native / "recording-manifest.schema.json"
+        value = read_json(path)
+        value["allOf"][0]["then"]["properties"]["artifacts"]["maxContains"] = 2
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        allow_multiple_actor_action_ledgers,
+        "path/symlink/MIME verification policy drift",
+    )
+    checks += 1
+
+    def remove_actor_ledger_post_state_authority(native: Path) -> None:
+        path = native / "actor-action-ledger.schema.json"
+        value = read_json(path)
+        value["$defs"]["action"]["required"].remove("postStateSha256")
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        remove_actor_ledger_post_state_authority,
+        "actor action ledger cannot derive observation actions/checkpoint post-state linkage",
+    )
+    checks += 1
+
+    def remove_actor_response_semantic_ordinal(native: Path) -> None:
+        path = native / "cold-actor-response.schema.json"
+        value = read_json(path)
+        value["$defs"]["firstUseRecord"]["required"].remove("firstUseOrdinal")
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        remove_actor_response_semantic_ordinal,
+        "cold actor response semantic first-use projection drift",
+    )
+    checks += 1
+
+    def remove_gold_raw_locator_authority(native: Path) -> None:
+        path = native / "gold-binding-manifest.schema.json"
+        value = read_json(path)
+        value["$defs"]["journalBinding"]["required"].remove("locator")
+        write_json(path, value)
+
+    assert_rejected(module, remove_gold_raw_locator_authority, "complete opened raw bundle")
+    checks += 1
+
+    def drift_execution_artifact_projection(native: Path) -> None:
+        path = native / "candidate-manifest.schema.json"
+        value = read_json(path)
+        value["$defs"]["execution"]["properties"]["executionArtifactHashRule"]["const"] = "DECLARED_ONLY"
+        write_json(path, value)
+
+    assert_rejected(module, drift_execution_artifact_projection, "opened canonical component bytes")
+    checks += 1
+
+    def drift_panel_finalization_path(native: Path) -> None:
+        path = native / "panel-finalization-seal.schema.json"
+        value = read_json(path)
+        value["properties"]["sealPathRule"]["const"] = "CALLER_CHOSEN"
+        write_json(path, value)
+
+    assert_rejected(module, drift_panel_finalization_path, "finalization seal path/claim policy drift")
     checks += 1
 
     def make_run_provenance_post_aggregate(native: Path) -> None:
@@ -250,6 +572,35 @@ def main() -> int:
         assert module.raw_sha256(path_a) != module.raw_sha256(path_b)
     checks += 1
 
+    candidate_runtime_bytes = b'{"runtime":"candidate-a"}\n'
+    binding_runtime_bytes = b'{"runtime":"binding-a"}\n'
+    _, exact_summary = module.validate_runtime_contract_bytes(
+        ROOT,
+        RUBRIC,
+        candidate_manifest_bytes=candidate_runtime_bytes,
+        gold_binding_manifest_bytes=binding_runtime_bytes,
+        candidate_manifest_path_label=Path("same-candidate-path.json"),
+        gold_binding_manifest_path_label=Path("same-binding-path.json"),
+    )
+    assert exact_summary["observedRawSha256"] == {
+        "candidateManifestRawSha256": module.bytes_sha256(candidate_runtime_bytes),
+        "goldBindingManifestRawSha256": module.bytes_sha256(binding_runtime_bytes),
+    }
+    changed_candidate_bytes = b'{"runtime":"candidate-b"}\n'
+    _, changed_exact_summary = module.validate_runtime_contract_bytes(
+        ROOT,
+        RUBRIC,
+        candidate_manifest_bytes=changed_candidate_bytes,
+        gold_binding_manifest_bytes=binding_runtime_bytes,
+        candidate_manifest_path_label=Path("same-candidate-path.json"),
+        gold_binding_manifest_path_label=Path("same-binding-path.json"),
+    )
+    assert (
+        changed_exact_summary["observedRawSha256"]["candidateManifestRawSha256"]
+        != exact_summary["observedRawSha256"]["candidateManifestRawSha256"]
+    )
+    checks += 1
+
     envelope = {
         "schemaVersion": "self-test",
         "candidateManifestSha256": "sha256:" + "0" * 64,
@@ -274,6 +625,7 @@ def main() -> int:
     statuses = scorecard_schema["$defs"]["status"]["enum"]
     final_verdicts = scorecard_schema["$defs"]["finalVerdict"]["enum"]
     assert "SCORED_FORMATIVE" in statuses and "PASS" in final_verdicts
+    assert "BLOCKED_PRE_CAPTURE" in statuses and "BLOCKED_PRE_CAPTURE" in final_verdicts
     formative_pair = scorecard_schema["oneOf"][0]["properties"]
     assert formative_pair["status"]["const"] == "SCORED_FORMATIVE"
     assert formative_pair["verdict"]["type"] == "null"
@@ -299,19 +651,134 @@ def main() -> int:
     run_artifacts = set(run_schema["$defs"]["artifacts"]["required"])
     assert "scorecardSha256" not in run_artifacts
     assert "aggregationInputSha256" not in run_artifacts
+    assert {
+        "actorTraceSha256", "actorTraceRawSha256",
+        "verificationInputSha256", "verificationInputRawSha256",
+        "goldBindingManifestSha256", "goldBindingManifestRawSha256",
+        "holdoutConsumptionReceiptSha256",
+        "holdoutConsumptionReceiptRawSha256",
+        "recordingManifestRawSha256", "coverageRecordingManifestSha256",
+        "coverageRecordingManifestRawSha256",
+        "coverageActionLedgerSha256", "coverageActionLedgerRawSha256",
+        "anonymizationManifestSha256", "anonymizationManifestRawSha256",
+        "evidenceSetRawSha256", "sanitizedEvidenceBundleManifestSha256",
+        "sanitizedEvidenceBundleManifestRawSha256",
+        "sanitizedEvidenceContentRootSha256",
+        "candidateJudgeInputSha256", "candidateJudgeInputRawSha256",
+    }.issubset(run_artifacts)
     scorecard_provenance = set(scorecard_schema["$defs"]["provenance"]["required"])
     assert {
         "nativeAggregatorSha256",
         "qualificationReceiptSha256",
         "evaluationRunManifestSha256",
         "aggregationInputRawSha256",
+        "holdoutConsumptionReceiptSha256", "holdoutConsumptionReceiptRawSha256",
+        "goldBindingManifestSha256", "goldBindingManifestRawSha256",
+        "coldActorResponseSha256", "coldActorResponseRawSha256",
+        "anonymizationManifestSha256", "anonymizationManifestRawSha256",
+        "evidenceSetRawSha256", "sanitizedEvidenceBundleManifestSha256",
+        "sanitizedEvidenceBundleManifestRawSha256",
+        "candidateJudgeInputSha256", "candidateJudgeInputRawSha256",
     }.issubset(scorecard_provenance)
     assert "nativeAggregatorSha256" in set(
+        candidate_schema["$defs"]["contractHashes"]["required"]
+    )
+    assert "coldActorResponseSchemaSha256" in set(
         candidate_schema["$defs"]["contractHashes"]["required"]
     )
     aggregation_schema = read_json(ROOT / "native-aggregation-input.schema.json")
     assert "nativeAggregatorSha256" in set(
         aggregation_schema["$defs"]["provenance"]["required"]
+    )
+    checks += 1
+
+    bindings = read_json(ROOT / "contract-bindings.json")
+    stage_ids = [row["stageId"] for row in bindings["stageBindings"]]
+    assert stage_ids.index("CANDIDATE-MANIFEST-PACKAGER") < stage_ids.index(
+        "HOLDOUT-CONSUMPTION-PACKAGER"
+    ) < stage_ids.index("GOLD-BINDING-PACKAGER") < stage_ids.index(
+        "COLD-ACTOR"
+    ) < stage_ids.index("COLD-OBSERVATION-PACKAGER") < stage_ids.index("COLD-PACKAGER")
+    assert stage_ids.index("QUALIFICATION-RECEIPT-PACKAGER") < stage_ids.index(
+        "CANDIDATE-JUDGE-INPUT-PACKAGER"
+    ) < stage_ids.index("CANDIDATE-JUDGE")
+    assert stage_ids[-1] == "PANEL-FINALIZATION-SEAL-PACKAGER"
+    assert next(
+        row for row in bindings["stageBindings"] if row["stageId"] == "NATIVE-AGGREGATE"
+    )["implementationTool"] == "../aggregate-native.py"
+    assert all(
+        row["implementationTool"] is None
+        for row in bindings["stageBindings"]
+        if row["stageId"] in bindings["toolBindingPolicy"]["currentlyUnboundProducerStages"]
+    )
+    checks += 1
+
+    candidate_reuse_fixture = {
+        "candidateId": "candidate-a",
+        "source": {"commit": "1" * 40},
+        "execution": {"executionArtifactSha256": "sha256:" + "a" * 64},
+        "authorityHashes": {"world": "sha256:" + "2" * 64},
+        "recipes": {"selectedRecipeId": "HOLDOUT-01"},
+    }
+    reuse_hash = module.candidate_reuse_sha256(candidate_reuse_fixture)
+    renamed = copy.deepcopy(candidate_reuse_fixture)
+    renamed["candidateId"] = "candidate-b"
+    renamed["recipes"]["selectedRecipeId"] = "HOLDOUT-08"
+    assert module.candidate_reuse_sha256(renamed) == reuse_hash
+    changed_authority = copy.deepcopy(candidate_reuse_fixture)
+    changed_authority["authorityHashes"]["world"] = "sha256:" + "3" * 64
+    assert module.candidate_reuse_sha256(changed_authority) != reuse_hash
+    queue = read_json(ROOT / "holdout-recipes.json")
+    formative_projection = module.selected_recipe_projection(queue["formative"])
+    holdout_one_projection = module.selected_recipe_projection(queue["holdouts"][0])
+    assert formative_projection["coveragePresentationEpisodeIds"] == module.EPISODES
+    assert holdout_one_projection["coveragePresentationEpisodeIds"] == list(
+        reversed(module.EPISODES)
+    )
+    queue["_observedRawSha256"] = module.raw_sha256(ROOT / "holdout-recipes.json")
+    duplicate_candidate_registry = {
+        "revision": 2,
+        "queueAuthorityId": queue["queueAuthorityId"],
+        "holdoutQueueSha256": queue["_observedRawSha256"],
+        "registryScope": queue["registryPolicy"]["scope"],
+        "registryAuthorityLimit": queue["registryPolicy"]["authorityLimit"],
+        "registryPathRule": queue["registryPolicy"]["registryPathRule"],
+        "consumptions": [
+            {"ordinal": 1, "recipeId": "HOLDOUT-01", "candidateReuseSha256": reuse_hash, "transactionId": "sha256:" + "1" * 64},
+            {"ordinal": 2, "recipeId": "HOLDOUT-02", "candidateReuseSha256": reuse_hash, "transactionId": "sha256:" + "2" * 64},
+        ],
+    }
+    registry_errors: list[str] = []
+    module.validate_registry_semantics(
+        duplicate_candidate_registry, queue, "registry fixture", registry_errors
+    )
+    assert any("candidateReuseSha256 values must be unique" in error for error in registry_errors)
+    duplicate_transaction_registry = copy.deepcopy(duplicate_candidate_registry)
+    duplicate_transaction_registry["consumptions"][1]["candidateReuseSha256"] = "sha256:" + "3" * 64
+    duplicate_transaction_registry["consumptions"][1]["transactionId"] = "sha256:" + "1" * 64
+    transaction_errors: list[str] = []
+    module.validate_registry_semantics(
+        duplicate_transaction_registry, queue, "registry fixture", transaction_errors
+    )
+    assert any("transactionId values must be unique" in error for error in transaction_errors)
+    canonical_receipt = module.canonical_holdout_receipt_path(
+        ROOT, "sha256:" + "4" * 64, "sha256:" + "5" * 64
+    )
+    assert canonical_receipt.name == "4" * 64 + "-" + "5" * 64 + ".json"
+    checks += 1
+
+    recording_schema = read_json(ROOT / "recording-manifest.schema.json")
+    locator_schema = recording_schema["$defs"]["artifact"]["properties"]["locator"]
+    assert module.instance_errors("../escape.png", locator_schema, recording_schema)
+    assert module.instance_errors("frames/./frame-0001.png", locator_schema, recording_schema)
+    assert not module.instance_errors("frames/frame-0001.png", locator_schema, recording_schema)
+    frame = {
+        "artifactId": "frame-1", "kind": "FRAME",
+        "locator": "frames/frame-0001.png", "rawSha256": "sha256:" + "1" * 64,
+        "byteLength": 1, "mimeType": "text/plain",
+    }
+    assert module.instance_errors(
+        frame, recording_schema["$defs"]["artifact"], recording_schema
     )
     checks += 1
 
@@ -428,6 +895,7 @@ def main() -> int:
     artifact_ref = {"artifactId": "frame-1", "kind": "FRAME", "locator": "frame://1"}
     stall_incident = {
         "incidentKey": "FIRST_LIGHT/WINDOW/OPERATIONS/UX_STALL",
+        "incidentOrdinal": 1,
         "episode": "E01-FIRST-LIGHT",
         "checkpointOrdinals": [1],
         "incidentType": "UX_STALL",
@@ -440,10 +908,11 @@ def main() -> int:
     assert not module.instance_errors(stall_incident, incident_schema, actor_schema)
     actor_semantic_fixture = {
         "actionLedger": [{"actionIndex": index} for index in range(1, 13)],
-        "checkpoints": [{"ordinal": 1}],
+        "checkpoints": [{"ordinal": 1, "recipeCheckpointSequenceOrdinal": 4}],
         "incidents": [stall_incident],
         "terminalState": "PLAYER_STALLED",
         "terminalIncidentKey": stall_incident["incidentKey"],
+        "terminalIncidentOrdinal": 1,
     }
     actor_semantic_errors: list[str] = []
     module.validate_actor_observation_semantics(
@@ -512,13 +981,20 @@ def main() -> int:
         "schemaVersion": "gridworks.commercial-ux.native-replacement-receipt.v1",
         "protocol": module.PROTOCOL,
         "claimPolicy": (
-            "O_EXCL_AFTER_AUTHORITY_PREFLIGHT_BEFORE_ATTEMPT_READ_"
-            "THEN_FINALIZE_SAME_DESCRIPTOR"
+            "VERIFIED_INITIAL_FINALIZATION_SEAL_THEN_O_EXCL_BEFORE_"
+            "ATTEMPT_READ_AND_FINALIZE_SAME_DESCRIPTOR"
         ),
         "authorityPreflightStatus": "EXACT_BEFORE_CLAIM",
+        "replacementReceiptPathRule": (
+            "GIT_COMMON_DIR/gridworks-commercial-ux/replacement-receipts/"
+            "{initialPanelSha256Hex}.json"
+        ),
         "replacementReceiptPath": "/tmp/replacement.receipt.json",
         "initialAggregatePath": "/tmp/initial-scorecard.json",
         "initialAggregateRawSha256": fixture_hash,
+        "initialPanelFinalizationSealPath": "/tmp/initial-panel-seal.json",
+        "initialPanelFinalizationSealSha256": fixture_hash,
+        "initialPanelFinalizationSealRawSha256": fixture_hash,
         "initialPanelSha256": fixture_hash,
         "initialEvaluationRunManifestSha256": fixture_hash,
         "replacementRequiredLanes": ["COLD-JOURNEY"],
@@ -526,6 +1002,15 @@ def main() -> int:
         "qualificationReceiptSha256": fixture_hash,
         "evaluationRunManifestSha256": fixture_hash,
         "recipeId": "HOLDOUT-01",
+        "holdoutConsumptionReceiptSha256": fixture_hash,
+        "holdoutConsumptionReceiptRawSha256": fixture_hash,
+        "goldBindingManifestSha256": fixture_hash,
+        "goldBindingManifestRawSha256": fixture_hash,
+        "evidenceSetSha256": fixture_hash,
+        "evidenceSetRawSha256": fixture_hash,
+        "sanitizedEvidenceBundleManifestSha256": fixture_hash,
+        "sanitizedEvidenceBundleManifestRawSha256": fixture_hash,
+        "sanitizedEvidenceContentRootSha256": fixture_hash,
         "rubricSha256": fixture_hash,
         "promptTemplateSha256": fixture_hash,
         "judgmentSchemaSha256": fixture_hash,

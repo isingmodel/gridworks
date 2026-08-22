@@ -23,6 +23,26 @@
     "web",
     "developmentConversation"
   ],
+  "coldProbeOrder": [
+    "PX01-ROLE-START",
+    "PX21-COLD-KOREAN-STORY",
+    "PX02-GOAL-NEXT-ACTION",
+    "PX03-COLD-PLACEMENT-COMMIT",
+    "PX04-COLD-LINE-COMMIT",
+    "PX05-SUPPLY-ENERGIZATION",
+    "PX06-CONTINUOUS-LIMIT",
+    "PX07-CORRIDOR-INDEPENDENCE",
+    "PX08-SOURCE-BOTTLENECK",
+    "PX09-TUTORIAL-WITHDRAWAL",
+    "PX10-MUST-PROMISE",
+    "PX17-MID-RESUME",
+    "PX11-RESULT-BOUNDARY",
+    "PX12-EMERGENCY-SHUTDOWN",
+    "PX13-COLD-FLOOD-OUTCOME",
+    "PX14-RESET-MAINTENANCE",
+    "PX15-FINALE-PROMISE",
+    "PX16-FINALE-PAYOFF"
+  ],
   "probes": [
     {
       "id": "PX01-ROLE-START",
@@ -49,20 +69,40 @@
       "concept": "land placement, invalid water placement and correction",
       "firstEpisode": "E01-FIRST-LIGHT",
       "firstCheckpoint": "first-invalid-placement",
-      "requiredForCold": true,
+      "requiredForCold": false,
       "requiredForCoverage": true,
       "visibleSourceKinds": ["mapCue", "error", "nextAction"],
       "cells": ["T1", "I1", "R1"]
+    },
+    {
+      "id": "PX03-COLD-PLACEMENT-COMMIT",
+      "concept": "outcome-neutral land placement commitment observed on the first energized path",
+      "firstEpisode": "E01-FIRST-LIGHT",
+      "firstCheckpoint": "first-energized-path",
+      "requiredForCold": true,
+      "requiredForCoverage": false,
+      "visibleSourceKinds": ["draftState", "mapCue", "actualPath"],
+      "cells": ["I1"]
     },
     {
       "id": "PX04-LINE-DRAFT",
       "concept": "line endpoints, intermediate poles, undo and cancel",
       "firstEpisode": "E01-FIRST-LIGHT",
       "firstCheckpoint": "first-line-draft-correction",
-      "requiredForCold": true,
+      "requiredForCold": false,
       "requiredForCoverage": true,
       "visibleSourceKinds": ["draftState", "mapCue", "undoAction", "cancelAction"],
       "cells": ["T1", "I1"]
+    },
+    {
+      "id": "PX04-COLD-LINE-COMMIT",
+      "concept": "outcome-neutral line commitment and connection feedback observed on the first energized path",
+      "firstEpisode": "E01-FIRST-LIGHT",
+      "firstCheckpoint": "first-energized-path",
+      "requiredForCold": true,
+      "requiredForCoverage": false,
+      "visibleSourceKinds": ["draftState", "mapCue", "actualPath", "nonColorStateCue"],
+      "cells": ["I1"]
     },
     {
       "id": "PX05-SUPPLY-ENERGIZATION",
@@ -149,10 +189,20 @@
       "concept": "construction deadline, flood loss, rejected route and safe recovery",
       "firstEpisode": "E06-FLOOD",
       "firstCheckpoint": "flood-invalid-approval",
-      "requiredForCold": true,
+      "requiredForCold": false,
       "requiredForCoverage": true,
       "visibleSourceKinds": ["deadline", "hazardCue", "error", "actualPath", "recoveryAction"],
       "cells": ["H4", "I3", "C4", "R1", "V3"]
+    },
+    {
+      "id": "PX13-COLD-FLOOD-OUTCOME",
+      "concept": "outcome-neutral flood approval feedback resolved through success or visible rejection and recovery",
+      "firstEpisode": "E06-FLOOD",
+      "firstCheckpoint": "flood-result",
+      "requiredForCold": true,
+      "requiredForCoverage": false,
+      "visibleSourceKinds": ["approvalFeedback", "resultFact", "actualPath", "nextAction"],
+      "cells": ["I3"]
     },
     {
       "id": "PX14-RESET-MAINTENANCE",
@@ -225,13 +275,23 @@
       "cells": ["V1", "V2", "V3", "V4"]
     },
     {
-      "id": "PX21-KOREAN-STORY",
-      "concept": "tutorial, operational, error, result, authored story and epilogue Korean",
+      "id": "PX21-COLD-KOREAN-STORY",
+      "concept": "Korean player-facing language and terminology begins at the title and remains observable through the cold journey",
+      "firstEpisode": "E00-TITLE",
+      "firstCheckpoint": "title-default-focus",
+      "requiredForCold": true,
+      "requiredForCoverage": false,
+      "visibleSourceKinds": ["nativeText", "error", "resultStory", "epilogue"],
+      "cells": ["K1", "K2", "K3"]
+    },
+    {
+      "id": "PX22-AUTHORED-KOREAN-STORY",
+      "concept": "coverage-only authored briefing, window, result and epilogue Korean selector corpus",
       "firstEpisode": "E11-AUTHORED-TEXT",
       "firstCheckpoint": "native-story-manifest-binding",
-      "requiredForCold": true,
+      "requiredForCold": false,
       "requiredForCoverage": true,
-      "visibleSourceKinds": ["nativeText", "error", "resultStory", "epilogue", "storySelector"],
+      "visibleSourceKinds": ["nativeText", "storySelector"],
       "cells": ["K1", "K2", "K3"]
     }
   ],

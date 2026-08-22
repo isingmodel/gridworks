@@ -12,16 +12,19 @@ modify the harness. Normal in-product settings, help, cancel, undo, restart, sav
 and continue actions are allowed.
 
 At each just-in-time first-use checkpoint supplied by the harness, pause before acting and
-record only a short currentGoal, expectedVisibleConsequence, and citedVisibleSource that
-is readable in the captured game artifact. Do not expose private chain-of-thought. Before
+record only a short currentGoal, expectedVisibleConsequence, and
+citedVisibleSourceDescription that is readable in the game window. Number these semantic
+records consecutively with firstUseOrdinal. Do not expose private chain-of-thought. Before
 each approval, record a short prediction; immediately afterward, record the observed
-result and a short causal account grounded in visible game evidence.
+result and a short causal account grounded in visible game evidence. Number the completed
+approval records consecutively with approvalOrdinal.
 
-For each incident, cite only this actor's action indexes and checkpoint ordinals. Set
-confusionBoundary to ACTUAL_PROJECTION, MUST_PROMISE, or THERMAL_RESULT only when that
-exact visible boundary was misunderstood; otherwise use null. A UX_STALL incident must
-cite exactly the twelve distinct actions at its one unchanged checkpoint. HARNESS_FAILURE
-is local transport evidence, never a severe product incident.
+For each incident, return only its consecutive incidentOrdinal, type, confusion boundary,
+severity, and short semantic description. Set confusionBoundary to ACTUAL_PROJECTION,
+MUST_PROMISE, or THERMAL_RESULT only when that exact visible boundary was misunderstood;
+otherwise use null. HARNESS_FAILURE is local transport evidence, never a severe product
+incident. The deterministic recorder owns action indexes, checkpoint ordinals, artifact
+references, progress hashes, and the exact twelve-action UX_STALL proof.
 
 Increment app-active action index only for a distinct reasonable action actually delivered
 to the game. Focus inspection, tool waiting, and inference time do not count. If progress
@@ -30,10 +33,13 @@ checkpoint, stop as PLAYER_STALLED. Input-delivery or capture failure is HARNESS
 not a product stall. Otherwise continue through the epilogue and chapter selection and
 finish as COMPLETED.
 
-Return JSON only at the end and conform exactly to the supplied actor-observation schema.
-Use actorSlot "SOL-ULTRA", model "gpt-5.6-sol", reasoningEffort "ultra", and actorRunId
-"__ACTOR_RUN_ID__". Do not return filesystem paths, provenance hashes, or packager fields.
-The deterministic harness packager separately validates this observation, hashes its exact
-transport, and wraps it with the pre-frozen candidate/recipe plus post-run user-data, save,
-journal, recording, and process hashes in actor-trace.schema.json. Do not add a quality
+Return JSON only at the end with the semantic fields defined by the supplied
+cold-actor-response schema. Use actorSlot "SOL-ULTRA", model "gpt-5.6-sol",
+reasoningEffort "ultra", and actorRunId "__ACTOR_RUN_ID__". Omit the transport-owned
+coldActorResponseSha256 field; the capture transport inserts and recomputes that one
+canonical self-hash before schema validation. Do not return filesystem paths, recorder
+provenance hashes, or packager fields. The deterministic observation packager preserves
+the semantic fields exactly, merges only recorder-owned checkpoints, action indexes,
+artifact references, progress hashes, terminal incident key, and recording provenance,
+then the final packager binds the result in actor-trace.schema.json. Do not add a quality
 verdict, label, recommendation, numeric rating, or hidden reasoning.

@@ -3100,6 +3100,15 @@ def validate_contract_bindings(
         "evaluation-attempt-receipt.schema.json",
         "evaluation-attempt-terminal.schema.json",
     }
+    pre_terminal_session_inputs = {
+        "evaluation-session-claim.schema.json",
+        "evaluation-attempt-receipt.schema.json",
+    }
+    pre_terminal_packager_ids = {
+        "COLD-OBSERVATION-PACKAGER",
+        "COLD-PACKAGER",
+        "COVERAGE-RUN-PACKAGER",
+    }
 
     def legacy_inputs(stage_id: str) -> list[Any]:
         return [
@@ -3114,13 +3123,13 @@ def validate_contract_bindings(
             "evaluation-session-claim.schema.json",
             "evaluation-attempt-receipt.schema.json",
         },
-        "COLD-OBSERVATION-PACKAGER": session_schema_names,
-        "COLD-PACKAGER": session_schema_names,
+        "COLD-OBSERVATION-PACKAGER": pre_terminal_session_inputs,
+        "COLD-PACKAGER": pre_terminal_session_inputs,
         "COVERAGE-ACTION-LEDGER-PACKAGER": {
             "evaluation-session-claim.schema.json",
             "evaluation-attempt-receipt.schema.json",
         },
-        "COVERAGE-RUN-PACKAGER": session_schema_names,
+        "COVERAGE-RUN-PACKAGER": pre_terminal_session_inputs,
         "ANONYMIZATION-PACKAGER": session_schema_names,
         "EVIDENCE-SET-PACKAGER": session_schema_names,
         "CANDIDATE-JUDGE-INPUT-PACKAGER": session_schema_names,
@@ -3151,6 +3160,16 @@ def validate_contract_bindings(
             f"contract stage {stage_id} session claim/attempt lifecycle binding drift",
             errors,
         )
+    require(
+        all(
+            "evaluation-attempt-terminal.schema.json"
+            not in stage_map.get(stage_id, {}).get("inputSchemas", [])
+            for stage_id in pre_terminal_packager_ids
+        ),
+        "cold and coverage packagers must complete role outputs and supporting "
+        "artifacts before terminal sealing",
+        errors,
+    )
     policy_producers = {
         row.get("producer")
         for row in read_json(native / "canonical-hash-policy.json").get("bindings", [])

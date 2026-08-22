@@ -224,7 +224,7 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
   복사하지 않고 finalized INITIAL attempt chain을 다시 검증해 effective 9-slot selection에 결속한다.
   receipt별 root와 `slots/`의 전체 자식 집합도 exact하게 검사하므로 미신고 slot·폐기 session sibling은
   audit 밖에 남을 수 없다.
-- 현재 결정론적 결과는 schema 36개, contract 53 시나리오, gold-state 25, session 16, aggregate 78,
+- 현재 결정론적 결과는 schema 36개, contract 54 시나리오, gold-state 25, session 16, aggregate 78,
   CommercialChecks 24 suites/2,910 assertions PASS다. 17개 deterministic producer stage와 raw hash
   binding이 아직 없으므로 `scoreBearingCaptureAllowed=false`, 공식 cold/native 점수 미실행 상태를
   유지한다.
@@ -238,3 +238,6 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
   build tree와 전체 runtime resource authority는 `CANDIDATE-MANIFEST-PACKAGER` gate의 별도 P1이다.
 - replay build authority 보완 `87bad71`과 candidate project 실행 제거 `8a69b95`의 exact follow-up
   독립 재검토는 **P0 0 / P1 0 / P2 0**이다.
+- cold observation/trace/recording과 coverage trace/recording packager는 session claim·start receipt를
+  받은 뒤 role output과 supporting artifact를 먼저 완성한다. attempt ledger가 그 tree와 output을 읽어
+  terminal을 봉인하고, terminal은 이후 downstream stage만 소비한다.

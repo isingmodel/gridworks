@@ -157,7 +157,7 @@ python3 -m py_compile \
   tools/commercial-ux/native/validate-gold-state.py
 ```
 
-The current deterministic checks pass 36 schema validations, 53 contract scenarios, 25
+The current deterministic checks pass 36 schema validations, 54 contract scenarios, 25
 gold-state tests, 16 evaluation-session checks, and 78 aggregation tests. `CommercialChecks`
 passes 24 suites / 2,910
 assertions, and the Debug and Release rebuilds each finish with zero warnings and errors.
@@ -175,6 +175,11 @@ props/targets/package props, user NuGet sources, ambient MSBuild properties, imp
 sources, and checkout `bin/obj` are excluded before restore and build.
 This closes only the gold replay verifier build. Candidate game-build inputs and the complete
 runtime resource tree remain a separate `CANDIDATE-MANIFEST-PACKAGER` gate.
+
+Attempt-local cold observation/trace/recording and coverage trace/recording packagers consume
+the immutable session claim plus start receipt, then finish their role output and supporting
+artifacts before the attempt ledger seals the terminal receipt. Only downstream stages consume
+that terminal receipt; a pre-terminal packager may never depend on it.
 
 Immediately before any score-bearing capture, also run:
 

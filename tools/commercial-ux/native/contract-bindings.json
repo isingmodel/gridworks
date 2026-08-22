@@ -63,7 +63,7 @@
     {"path": "../rubric.json", "kind": "RUBRIC", "sha256": "sha256:9a5f80c42870b475a4c3955cdf7d4fe610383bff994baa60e2c9b5ec7f131f4b"},
     {"path": "../aggregate-native.py", "kind": "TOOL", "sha256": "sha256:85d03816ef739463e5eb52df79f18e360596600a5f6ea9d115bd92c425f7a9ed"},
     {"path": "claim-evaluation-session.py", "kind": "TOOL", "sha256": "sha256:718a3b387779988f0737171c2f0cea8c4a11e187cc0cb2e79c751d3718b14fc2"},
-    {"path": "validate-contract.py", "kind": "TOOL", "sha256": "sha256:f875cd5179f54b7a94ad5fbb42f06abb7898d8a05487078563a8f95d43ecfb93"},
+    {"path": "validate-contract.py", "kind": "TOOL", "sha256": "sha256:d783634046f3c6929723aee2a6be81cff0a9d42c2fa51f1c8e164f0b30590f66"},
     {"path": "validate-gold-state.py", "kind": "TOOL", "sha256": "sha256:d51072c67779550e31deb480db8a5576188898fd3fbda4c683b12aa3f9687449"},
     {"path": "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs", "kind": "TOOL", "sha256": "sha256:0e40668e66d2a9b45999dd443c2344bccdd8171ccaa2c683d1207be20a521d77"},
     {"path": "../../Gridworks.GoldReplayVerifier/Program.cs", "kind": "TOOL", "sha256": "sha256:56a3ce93484aa69fe90ddafeb01a09e2cae500bcb46333c53397c8708f0c1b79"},
@@ -218,7 +218,7 @@
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
         "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
-        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "gold-binding-manifest.schema.json",
         "cold-actor-response.schema.json"
       ],
       "outputSchema": "actor-observation.schema.json",
@@ -236,7 +236,7 @@
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
         "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
-        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "gold-binding-manifest.schema.json",
         "cold-actor-response.schema.json",
         "actor-observation.schema.json", "recording-manifest.schema.json"
       ],
@@ -300,7 +300,7 @@
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
         "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
-        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "gold-binding-manifest.schema.json",
         "coverage-action-ledger.schema.json"
       ],
       "outputSchema": "coverage-trace.schema.json",

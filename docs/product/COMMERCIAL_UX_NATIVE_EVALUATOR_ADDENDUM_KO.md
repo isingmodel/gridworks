@@ -176,6 +176,9 @@ rubric, target, label anchor, category/cell weight, floor, cap 수치 또는 집
 - attempt root와 artifact root를 exclusive mkdir하고, output 0-byte 예약과 start receipt를 producer
   시작 전에 내구화한다. terminal receipt 경로는 output을 읽기 전에 0-byte `O_EXCL`로 예약한다.
   terminal 쓰기가 실패하면 그 0-byte 파일은 삭제·복구·재분류하지 않는 영구 tombstone이다.
+- 각 attempt의 순서는 `reserve/start → role output·supporting packager → terminal finalize → downstream`
+  로 고정한다. cold observation/trace/recording과 coverage trace/recording packager는 terminal 이전 단계라
+  session claim과 start receipt만 소비하며, 아직 존재하지 않는 terminal receipt를 입력으로 요구할 수 없다.
 - retry는 frozen role output의 strict JSON transport failure 또는 schema failure만 허용한다. valid하지만
   불리한 출력, `INPUT_UNREADABLE`, harness failure와 oracle failure는 다음 attempt를 열지 않는다.
 - terminal은 output exact bytes와 두 번 동일하게 읽힌 전체 artifact tree의 locator/raw SHA/length

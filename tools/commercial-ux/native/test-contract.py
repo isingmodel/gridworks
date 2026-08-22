@@ -73,7 +73,11 @@ def mutated_errors(
         )
         replay_project_root = workspace / "tools" / "Gridworks.GoldReplayVerifier"
         replay_project_root.mkdir(parents=True)
-        for name in ("Program.cs", "Gridworks.GoldReplayVerifier.csproj"):
+        for name in (
+            "Program.cs",
+            "Gridworks.GoldReplayVerifier.csproj",
+            "Gridworks.ReplayCore.csproj",
+        ):
             shutil.copy2(
                 ROOT.parents[1] / "Gridworks.GoldReplayVerifier" / name,
                 replay_project_root / name,
@@ -444,6 +448,33 @@ def main() -> int:
         bypass_cold_observation_packager,
         "response must pass through the recorder-owned observation packager",
     )
+    checks += 1
+
+    for pre_terminal_stage_id in (
+        "COLD-OBSERVATION-PACKAGER",
+        "COLD-PACKAGER",
+        "COVERAGE-RUN-PACKAGER",
+    ):
+        def add_terminal_dependency(
+            native: Path,
+            stage_id: str = pre_terminal_stage_id,
+        ) -> None:
+            path = native / "contract-bindings.json"
+            value = read_json(path)
+            stage = next(
+                row for row in value["stageBindings"]
+                if row["stageId"] == stage_id
+            )
+            stage["inputSchemas"].append(
+                "evaluation-attempt-terminal.schema.json"
+            )
+            write_json(path, value)
+
+        assert_rejected(
+            module,
+            add_terminal_dependency,
+            "must complete role outputs and supporting artifacts before terminal sealing",
+        )
     checks += 1
 
     def expose_candidate_authority_to_cold_actor(native: Path) -> None:

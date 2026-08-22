@@ -1259,6 +1259,257 @@ def _read_session_artifact_files(
     return second_files, second_hashes
 
 
+def _discover_evaluation_session_attempts(
+    *,
+    session_tool: Any,
+    validator: Any,
+    claim: dict[str, Any],
+    claim_raw: bytes,
+) -> dict[str, Any]:
+    """Discover and validate exactly the attempts authorized by one claim."""
+
+    session_root = Path(claim["canonicalSessionRoot"])
+    try:
+        resolved_session_root = session_root.resolve(strict=True)
+    except OSError as exception:
+        raise ProvenanceFailure(
+            f"evaluation session root is unreadable: {exception}"
+        ) from exception
+    if (
+        session_root != resolved_session_root
+        or session_root.is_symlink()
+        or not resolved_session_root.is_dir()
+    ):
+        raise ProvenanceFailure("evaluation session root must be a canonical directory")
+    try:
+        session_tool.reject_symlink_components(session_root, "evaluation session root")
+    except Exception as exception:
+        raise ProvenanceFailure(str(exception)) from exception
+
+    expected_root_children = {"session.lock", "slots", "artifacts"}
+    try:
+        root_children = {child.name for child in session_root.iterdir()}
+    except OSError as exception:
+        raise ProvenanceFailure(
+            f"evaluation session root is unreadable: {exception}"
+        ) from exception
+    if root_children != expected_root_children:
+        raise ProvenanceFailure(
+            "evaluation session root must contain exactly the declared lock, slots, "
+            f"and fixed artifacts roots: {sorted(root_children)}"
+        )
+    lock_path = session_root / "session.lock"
+    slots_root = session_root / "slots"
+    fixed_artifact_root = session_root / "artifacts"
+    try:
+        session_tool.read_regular_exact(lock_path, "evaluation session lock")
+        resolved_slots_root = slots_root.resolve(strict=True)
+        resolved_fixed_root = fixed_artifact_root.resolve(strict=True)
+    except Exception as exception:
+        raise ProvenanceFailure(str(exception)) from exception
+    if (
+        slots_root != resolved_slots_root
+        or slots_root.is_symlink()
+        or not resolved_slots_root.is_dir()
+        or fixed_artifact_root != resolved_fixed_root
+        or fixed_artifact_root.is_symlink()
+        or not resolved_fixed_root.is_dir()
+    ):
+        raise ProvenanceFailure(
+            "evaluation session slots and artifacts roots must be canonical directories"
+        )
+
+    required_slots = claim["requiredFreshSlotIds"]
+    expected_slot_names = {
+        Path(slot["slotRoot"]).name
+        for slot in claim["slots"]
+        if slot["slotId"] in required_slots
+    }
+    try:
+        actual_slot_children = {child.name for child in slots_root.iterdir()}
+    except OSError as exception:
+        raise ProvenanceFailure(
+            f"evaluation session slots root is unreadable: {exception}"
+        ) from exception
+    if actual_slot_children != expected_slot_names:
+        raise ProvenanceFailure(
+            "evaluation session slots root must contain exactly the required fresh "
+            f"slot directories: {sorted(actual_slot_children)}"
+        )
+
+    attempt_envelopes: list[dict[str, Any]] = []
+    audit_rows: list[dict[str, Any]] = []
+    rows_by_slot: dict[str, list[dict[str, Any]]] = {}
+    for slot in claim["slots"]:
+        slot_root = Path(slot["slotRoot"])
+        if slot["slotId"] not in required_slots:
+            if os.path.lexists(str(slot_root)):
+                raise ProvenanceFailure(
+                    f"evaluation session reused stable {slot['slotId']} must be absent"
+                )
+            continue
+        try:
+            resolved_slot_root = slot_root.resolve(strict=True)
+        except OSError as exception:
+            raise ProvenanceFailure(
+                f"evaluation session {slot['slotId']} root is unreadable: {exception}"
+            ) from exception
+        if (
+            slot_root != resolved_slot_root
+            or slot_root.is_symlink()
+            or not resolved_slot_root.is_dir()
+        ):
+            raise ProvenanceFailure(
+                f"evaluation session {slot['slotId']} root is not canonical"
+            )
+        declared_attempt_names = {
+            Path(attempt["attemptRoot"]).name for attempt in slot["attempts"]
+        }
+        unexpected_attempts = {
+            child.name for child in slot_root.iterdir()
+        } - declared_attempt_names
+        if unexpected_attempts:
+            raise ProvenanceFailure(
+                f"evaluation session {slot['slotId']} contains undeclared attempts: "
+                f"{sorted(unexpected_attempts)}"
+            )
+        for attempt in slot["attempts"]:
+            attempt_root = Path(attempt["attemptRoot"])
+            start_path = Path(attempt["startReceiptPath"])
+            output_path = Path(attempt["outputPath"])
+            artifact_root = Path(attempt["artifactRoot"])
+            terminal_path = Path(attempt["terminalReceiptPath"])
+            declared_paths = (
+                attempt_root,
+                start_path,
+                output_path,
+                artifact_root,
+                terminal_path,
+            )
+            present = [os.path.lexists(str(path)) for path in declared_paths]
+            if not any(present):
+                continue
+            if not all(present):
+                raise ProvenanceFailure(
+                    f"evaluation session {slot['slotId']}/{attempt['attemptOrdinal']} "
+                    "is present but not fully terminalized"
+                )
+            expected_attempt_children = {
+                start_path.name,
+                output_path.name,
+                artifact_root.name,
+                terminal_path.name,
+            }
+            try:
+                actual_attempt_children = {
+                    child.name for child in attempt_root.iterdir()
+                }
+            except OSError as exception:
+                raise ProvenanceFailure(
+                    f"evaluation attempt root is unreadable: {exception}"
+                ) from exception
+            if actual_attempt_children != expected_attempt_children:
+                raise ProvenanceFailure(
+                    f"evaluation session {slot['slotId']}/{attempt['attemptOrdinal']} "
+                    "contains undeclared or missing attempt files"
+                )
+            try:
+                _, start_raw, start = session_tool.read_exact(
+                    start_path,
+                    "evaluation attempt start receipt",
+                )
+                _, terminal_raw, terminal = session_tool.read_exact(
+                    terminal_path,
+                    "evaluation attempt terminal receipt",
+                )
+                output_raw = session_tool.read_regular_exact(
+                    output_path,
+                    "evaluation attempt output",
+                )
+            except Exception as exception:
+                raise ProvenanceFailure(str(exception)) from exception
+            artifact_files, artifact_hashes = _read_session_artifact_files(
+                session_tool,
+                artifact_root,
+            )
+            attempt_envelopes.append({
+                "startReceiptBytes": start_raw,
+                "terminalReceiptBytes": terminal_raw,
+                "outputBytes": output_raw,
+                "artifactFiles": artifact_files,
+                "startReceiptPathLabel": start_path,
+                "terminalReceiptPathLabel": terminal_path,
+                "outputPathLabel": output_path,
+                "artifactRootPathLabel": artifact_root,
+            })
+            audit = {
+                "slotId": slot["slotId"],
+                "role": slot["role"],
+                "roleOrdinal": slot["roleOrdinal"],
+                "attemptOrdinal": attempt["attemptOrdinal"],
+                "startReceiptSha256": start.get("evaluationAttemptReceiptSha256"),
+                "startReceiptRawSha256": bytes_sha256(start_raw),
+                "terminalReceiptSha256": terminal.get(
+                    "evaluationAttemptTerminalSha256"
+                ),
+                "terminalReceiptRawSha256": bytes_sha256(terminal_raw),
+                "outputRawSha256": bytes_sha256(output_raw),
+                "artifactContentRootSha256": terminal.get(
+                    "artifactContentRootSha256"
+                ),
+                "outcome": terminal.get("outcome"),
+            }
+            row = {
+                "audit": audit,
+                "outputPath": output_path,
+                "outputRawBytes": output_raw,
+                "artifactRoot": artifact_root,
+                "artifactHashesByPath": artifact_hashes,
+            }
+            audit_rows.append(audit)
+            rows_by_slot.setdefault(slot["slotId"], []).append(row)
+
+    try:
+        chain_errors, selected = validator.validate_attempt_chain_bytes(
+            NATIVE_DIRECTORY,
+            session_claim=claim,
+            session_claim_raw_bytes=claim_raw,
+            attempts=attempt_envelopes,
+            require_all_success_slots=False,
+            required_success_slot_ids=required_slots,
+        )
+    except Exception as exception:
+        raise ProvenanceFailure(
+            f"evaluation attempt chain validation did not run: {exception}"
+        ) from exception
+    if chain_errors:
+        raise ProvenanceFailure(
+            "evaluation attempt chain failed: " + "; ".join(chain_errors)
+        )
+
+    selected_rows: list[dict[str, Any]] = []
+    selected_by_slot: dict[str, dict[str, Any]] = {}
+    for selected_row in selected:
+        matches = [
+            row
+            for row in rows_by_slot.get(selected_row["slotId"], [])
+            if row["audit"]["attemptOrdinal"] == selected_row["attemptOrdinal"]
+            and row["audit"]["outcome"] == "SUCCESS"
+        ]
+        if len(matches) != 1:
+            raise ProvenanceFailure(
+                f"evaluation selected attempt {selected_row['slotId']} is ambiguous"
+            )
+        row = matches[0]
+        selected_rows.append(copy.deepcopy(row["audit"]))
+        selected_by_slot[selected_row["slotId"]] = row
+    return {
+        "attemptAuditRows": audit_rows,
+        "selectedRows": selected_rows,
+        "selectedBySlot": selected_by_slot,
+    }
+
+
 def validate_evaluation_session_authority(
     session_claim_path: Path,
     candidate_manifest: dict[str, Any],
@@ -1270,8 +1521,9 @@ def validate_evaluation_session_authority(
     """Validate the pre-capture claim and every fixed producer attempt exactly.
 
     The filesystem is discovered from the claim, never from a caller-supplied
-    subset.  Every present attempt must therefore be terminalized and the chain
-    must contain one schema-valid SUCCESS for each of the nine opaque slots.
+    subset. Every authorized fresh attempt must therefore be terminalized. A
+    REPLACEMENT revalidates and reuses unchanged slots from the exact sealed
+    INITIAL chain, then composes one effective nine-slot selection.
     """
 
     session_tool = _load_exact_validator(
@@ -1387,168 +1639,100 @@ def validate_evaluation_session_authority(
                 "replacement session does not link the exact initial scorecard and seal"
             )
 
-    session_root = Path(claim["canonicalSessionRoot"])
-    expected_root_children = {"session.lock", "slots", "artifacts"}
+    receipt_root = resolved_claim_path.parent
+    expected_receipt_children = {"initial-claim.json", "initial"}
+    if claim["sessionMode"] == "REPLACEMENT":
+        expected_receipt_children.update({
+            "replacement-01-claim.json",
+            "replacement-01",
+        })
     try:
-        root_children = {child.name for child in session_root.iterdir()}
+        resolved_receipt_root = receipt_root.resolve(strict=True)
+        actual_receipt_children = {child.name for child in receipt_root.iterdir()}
     except OSError as exception:
         raise ProvenanceFailure(
-            f"evaluation session root is unreadable: {exception}"
+            f"evaluation receipt session hierarchy is unreadable: {exception}"
         ) from exception
-    if root_children != expected_root_children:
+    if (
+        receipt_root != resolved_receipt_root
+        or receipt_root.is_symlink()
+        or actual_receipt_children != expected_receipt_children
+    ):
         raise ProvenanceFailure(
-            "evaluation session root must contain exactly the declared lock, slots, "
-            f"and fixed artifacts roots: {sorted(root_children)}"
+            "evaluation receipt session hierarchy must contain exactly the claimed "
+            f"session roots and claims: {sorted(actual_receipt_children)}"
         )
 
-    attempt_envelopes: list[dict[str, Any]] = []
-    audit_rows: list[dict[str, Any]] = []
-    rows_by_slot: dict[str, list[dict[str, Any]]] = {}
-    for slot in claim["slots"]:
-        slot_root = Path(slot["slotRoot"])
-        declared_attempt_names = {
-            Path(attempt["attemptRoot"]).name for attempt in slot["attempts"]
-        }
-        if slot_root.exists():
-            unexpected_attempts = {
-                child.name for child in slot_root.iterdir()
-            } - declared_attempt_names
-            if unexpected_attempts:
-                raise ProvenanceFailure(
-                    f"evaluation session {slot['slotId']} contains undeclared attempts: "
-                    f"{sorted(unexpected_attempts)}"
-                )
-        for attempt in slot["attempts"]:
-            attempt_root = Path(attempt["attemptRoot"])
-            start_path = Path(attempt["startReceiptPath"])
-            output_path = Path(attempt["outputPath"])
-            artifact_root = Path(attempt["artifactRoot"])
-            terminal_path = Path(attempt["terminalReceiptPath"])
-            declared_paths = (
-                attempt_root,
-                start_path,
-                output_path,
-                artifact_root,
-                terminal_path,
-            )
-            present = [os.path.lexists(str(path)) for path in declared_paths]
-            if not any(present):
-                continue
-            if not all(present):
-                raise ProvenanceFailure(
-                    f"evaluation session {slot['slotId']}/{attempt['attemptOrdinal']} "
-                    "is present but not fully terminalized"
-                )
-            expected_attempt_children = {
-                start_path.name,
-                output_path.name,
-                artifact_root.name,
-                terminal_path.name,
-            }
-            try:
-                actual_attempt_children = {
-                    child.name for child in attempt_root.iterdir()
-                }
-            except OSError as exception:
-                raise ProvenanceFailure(
-                    f"evaluation attempt root is unreadable: {exception}"
-                ) from exception
-            if actual_attempt_children != expected_attempt_children:
-                raise ProvenanceFailure(
-                    f"evaluation session {slot['slotId']}/{attempt['attemptOrdinal']} "
-                    "contains undeclared or missing attempt files"
-                )
-            try:
-                _, start_raw, start = session_tool.read_exact(
-                    start_path,
-                    "evaluation attempt start receipt",
-                )
-                _, terminal_raw, terminal = session_tool.read_exact(
-                    terminal_path,
-                    "evaluation attempt terminal receipt",
-                )
-                output_raw = session_tool.read_regular_exact(
-                    output_path,
-                    "evaluation attempt output",
-                )
-            except Exception as exception:
-                raise ProvenanceFailure(str(exception)) from exception
-            artifact_files, artifact_hashes = _read_session_artifact_files(
-                session_tool,
-                artifact_root,
-            )
-            envelope = {
-                "startReceiptBytes": start_raw,
-                "terminalReceiptBytes": terminal_raw,
-                "outputBytes": output_raw,
-                "artifactFiles": artifact_files,
-                "startReceiptPathLabel": start_path,
-                "terminalReceiptPathLabel": terminal_path,
-                "outputPathLabel": output_path,
-                "artifactRootPathLabel": artifact_root,
-            }
-            attempt_envelopes.append(envelope)
-            audit = {
-                "slotId": slot["slotId"],
-                "role": slot["role"],
-                "roleOrdinal": slot["roleOrdinal"],
-                "attemptOrdinal": attempt["attemptOrdinal"],
-                "startReceiptSha256": start.get("evaluationAttemptReceiptSha256"),
-                "startReceiptRawSha256": bytes_sha256(start_raw),
-                "terminalReceiptSha256": terminal.get(
-                    "evaluationAttemptTerminalSha256"
-                ),
-                "terminalReceiptRawSha256": bytes_sha256(terminal_raw),
-                "outputRawSha256": bytes_sha256(output_raw),
-                "artifactContentRootSha256": terminal.get(
-                    "artifactContentRootSha256"
-                ),
-                "outcome": terminal.get("outcome"),
-            }
-            row = {
-                "audit": audit,
-                "outputPath": output_path,
-                "outputRawBytes": output_raw,
-                "artifactRoot": artifact_root,
-                "artifactHashesByPath": artifact_hashes,
-            }
-            audit_rows.append(audit)
-            rows_by_slot.setdefault(slot["slotId"], []).append(row)
+    discovered = _discover_evaluation_session_attempts(
+        session_tool=session_tool,
+        validator=validator,
+        claim=claim,
+        claim_raw=claim_raw,
+    )
+    audit_rows = discovered["attemptAuditRows"]
+    selected_rows = discovered["selectedRows"]
+    selected_by_slot = discovered["selectedBySlot"]
 
-    try:
-        chain_errors, selected = validator.validate_attempt_chain_bytes(
-            NATIVE_DIRECTORY,
-            session_claim=claim,
-            session_claim_raw_bytes=claim_raw,
-            attempts=attempt_envelopes,
-            require_all_success_slots=True,
+    if claim["sessionMode"] == "REPLACEMENT":
+        assert initial_value is not None and initial_raw is not None
+        initial_discovered = _discover_evaluation_session_attempts(
+            session_tool=session_tool,
+            validator=validator,
+            claim=initial_value,
+            claim_raw=initial_raw,
         )
-    except Exception as exception:
-        raise ProvenanceFailure(
-            f"evaluation attempt chain validation did not run: {exception}"
-        ) from exception
-    if chain_errors:
-        raise ProvenanceFailure(
-            "evaluation attempt chain failed: " + "; ".join(chain_errors)
+        initial_audit_sha = canonical_sha256(
+            initial_discovered["attemptAuditRows"]
         )
-
-    selected_rows: list[dict[str, Any]] = []
-    selected_by_slot: dict[str, dict[str, Any]] = {}
-    for selected_row in selected:
-        matches = [
-            row
-            for row in rows_by_slot.get(selected_row["slotId"], [])
-            if row["audit"]["attemptOrdinal"] == selected_row["attemptOrdinal"]
-            and row["audit"]["outcome"] == "SUCCESS"
-        ]
-        if len(matches) != 1:
+        initial_selected_sha = canonical_sha256(
+            initial_discovered["selectedRows"]
+        )
+        initial_link = claim["initialSession"]
+        if (
+            initial_audit_sha != initial_link["evaluationAttemptAuditSha256"]
+            or initial_selected_sha
+            != initial_link["evaluationSelectedAttemptsSha256"]
+        ):
             raise ProvenanceFailure(
-                f"evaluation selected attempt {selected_row['slotId']} is ambiguous"
+                "replacement session INITIAL attempt chain differs from its finalized seal"
             )
-        row = matches[0]
-        selected_projection = copy.deepcopy(row["audit"])
-        selected_rows.append(selected_projection)
-        selected_by_slot[selected_row["slotId"]] = row
+
+        fresh_slots = set(claim["requiredFreshSlotIds"])
+        effective_rows: list[dict[str, Any]] = []
+        effective_by_slot: dict[str, dict[str, Any]] = {}
+        for slot in claim["slots"]:
+            slot_id = slot["slotId"]
+            if slot_id in fresh_slots:
+                source = discovered["selectedBySlot"]
+                source_claim = claim
+            else:
+                source = initial_discovered["selectedBySlot"]
+                source_claim = initial_value
+            row = source[slot_id]
+            projection = copy.deepcopy(row["audit"])
+            projection.update({
+                "sourceSessionId": source_claim["sessionId"],
+                "sourceSessionMode": source_claim["sessionMode"],
+            })
+            effective_rows.append(projection)
+            effective_by_slot[slot_id] = row
+        selected_rows = effective_rows
+        selected_by_slot = effective_by_slot
+        audit_sha = canonical_sha256({
+            "initialEvaluationAttemptAuditSha256": initial_audit_sha,
+            "replacementAttemptAuditRows": audit_rows,
+            "replacementSessionId": claim["sessionId"],
+            "requiredFreshSlotIds": claim["requiredFreshSlotIds"],
+        })
+        selected_sha = canonical_sha256({
+            "effectiveSelectedAttempts": selected_rows,
+            "initialEvaluationSelectedAttemptsSha256": initial_selected_sha,
+            "replacementSessionId": claim["sessionId"],
+            "requiredFreshSlotIds": claim["requiredFreshSlotIds"],
+        })
+    else:
+        audit_sha = canonical_sha256(audit_rows)
+        selected_sha = canonical_sha256(selected_rows)
 
     provenance = {
         "evaluationSessionClaimSha256": claim["evaluationSessionClaimSha256"],
@@ -1557,8 +1741,8 @@ def validate_evaluation_session_authority(
         "evaluationSessionClaimToolSha256": claim["sessionClaimToolSha256"],
         "evaluationSessionId": claim["sessionId"],
         "evaluationSessionMode": claim["sessionMode"],
-        "evaluationAttemptAuditSha256": canonical_sha256(audit_rows),
-        "evaluationSelectedAttemptsSha256": canonical_sha256(selected_rows),
+        "evaluationAttemptAuditSha256": audit_sha,
+        "evaluationSelectedAttemptsSha256": selected_sha,
     }
     return {
         "claim": claim,
@@ -7274,9 +7458,9 @@ def _receipt_bytes(
         "replacementReceiptPath": str(receipt_path),
         "initialAggregatePath": str(initial_path.resolve(strict=True)),
         "initialAggregateRawSha256": bytes_sha256(initial_bytes),
-        "initialPanelFinalizationSealPath": str(
-            _panel_finalization_seal_path(initial["judgePanelSha256"], "INITIAL")
-        ),
+        "initialPanelFinalizationSealPath": initial_seal["value"][
+            "canonicalSealPath"
+        ],
         "initialPanelFinalizationSealSha256": initial_seal["selfSha256"],
         "initialPanelFinalizationSealRawSha256": initial_seal["rawSha256"],
         "initialPanelSha256": initial["judgePanelSha256"],

@@ -204,8 +204,10 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
 
 - gold binding의 journal/snapshot 56쌍은 후보 Core로 실제 deserialize→restore→canonical snapshot
   replay하고, E09 저장·재개·draft add+undo의 geometry/projection을 replay 결과에서 유도한다. raw hash가
-  맞는 임의 JSON이나 조작된 journal/snapshot은 거부된다. checked-in template 자체는 여전히 52 pending,
-  4 unbound이며 candidate-specific generator가 이를 별도 binding으로 닫아야 한다.
+  맞는 임의 JSON이나 조작된 journal/snapshot은 거부된다. replay verifier는 repository의 기존
+  `bin/obj`를 실행하지 않고 매번 격리된 packages/artifacts root에서 restore·build한 DLL만 실행한다.
+  checked-in template 자체는 여전히 52 pending, 4 unbound이며 candidate-specific generator가 이를
+  별도 binding으로 닫아야 한다.
 - holdout 확인 직후 capture 전에 evaluation-session claim을 `O_EXCL`+`fsync`로 먼저 만든다. initial과
   replacement는 각각 한 canonical root를 쓰고, 3 cold actor·coverage·3 judge·verifier·oracle의 9개
   opaque slot은 최대 3 attempt를 가진다. strict JSON/schema 또는 transport failure만 retry 가능하고,
@@ -217,7 +219,12 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
 - replacement claim은 exact INITIAL claim뿐 아니라 finalized scorecard와 panel-finalization seal의
   canonical path, raw/self hash, rerun status·required lane, session attempt audit까지 결속한다. scorecard는
   먼저 0-byte로 선점하고 holdout receipt와 panel seal을 내구화한 뒤 마지막에 기록한다.
-- 현재 결정론적 결과는 schema 35개, contract 53 시나리오, gold-state 22, session 16, aggregate 76,
+- INITIAL은 9개 slot을 모두 실행한다. REPLACEMENT는 불안정 판정을 받은 cold 3개 또는 coverage 1개만
+  새로 실행하고 judge 3개·verifier·oracle은 항상 새로 실행한다. 변경되지 않은 evidence lane은 새 root에
+  복사하지 않고 finalized INITIAL attempt chain을 다시 검증해 effective 9-slot selection에 결속한다.
+  receipt별 root와 `slots/`의 전체 자식 집합도 exact하게 검사하므로 미신고 slot·폐기 session sibling은
+  audit 밖에 남을 수 없다.
+- 현재 결정론적 결과는 schema 35개, contract 53 시나리오, gold-state 24, session 16, aggregate 78,
   CommercialChecks 24 suites/2,910 assertions PASS다. 17개 deterministic producer stage와 raw hash
   binding이 아직 없으므로 `scoreBearingCaptureAllowed=false`, 공식 cold/native 점수 미실행 상태를
   유지한다.

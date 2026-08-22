@@ -50,7 +50,7 @@ Gate D는 [native evaluator v1.1 실행 부록](docs/product/COMMERCIAL_UX_NATIV
 provenance·집계 계약을 첫 score-bearing capture 전에 동결했다. 고정
 `gpt-5.6-sol` ultra, qualification 20 anchors, 3 cold actors+coverage, 동일 evidence set을 보는
 3 blind judges, 별도 verifier/oracle, `FORMATIVE-01`+8 holdout을 계약으로 묶었다. 현재 35개 schema,
-contract 53 시나리오, gold-state 22, evaluation-session 16, aggregate 76 결정론적 검사와
+contract 53 시나리오, gold-state 24, evaluation-session 16, aggregate 78 결정론적 검사와
 CommercialChecks 24/2,910이 통과한다. candidate-specific overlay의 journal/snapshot 56쌍은 exact
 Core replay로 검증되며 E09 geometry/projection도 replay 결과에서 유도한다. 그러나 checked-in gold
 template의 owner 52개는 pending, E09 owner 4개는 unbound 상태이고 17개 deterministic producer

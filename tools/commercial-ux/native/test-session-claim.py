@@ -112,6 +112,9 @@ def make_claim(
             receipt_root / "replacement-01-claim.json"
         ),
         "sessionLockPath": str(root / "session.lock"),
+        "requiredFreshSlotIds": session.required_fresh_slot_ids(
+            "INITIAL", None, policy
+        ),
         "slots": session.build_slots(root, policy),
         "fixedArtifactPaths": fixed_paths,
         "atomicClaim": {
@@ -224,6 +227,9 @@ def make_replacement_claim(
         "initialSession": copy.deepcopy(reference),
         "replacementClaimPath": str(replacement_path),
         "sessionLockPath": str(replacement_root / "session.lock"),
+        "requiredFreshSlotIds": session.required_fresh_slot_ids(
+            "REPLACEMENT", reference, policy
+        ),
         "slots": session.build_slots(replacement_root, policy),
         "fixedArtifactPaths": {
             key: str(replacement_root / "artifacts" / filename)

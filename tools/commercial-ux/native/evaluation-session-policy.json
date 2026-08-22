@@ -14,6 +14,14 @@
   "attemptTerminalRule": "TERMINAL_PATH_ZERO_BYTE_O_EXCL_FSYNC_BEFORE_OUTPUT_OBSERVATION_THEN_EXACT_TERMINAL_WRITE_FSYNC_BEFORE_SCHEMA_OR_TRANSPORT_RETRY",
   "outcomeClassificationRule": "ROLE_OUTPUT_STRICT_JSON_AND_FROZEN_SCHEMA_DERIVE_SUCCESS_OR_ONLY_SCHEMA_OR_TRANSPORT_RETRY_CALLER_CANNOT_CLASSIFY",
   "attemptBudgetPerSlot": 3,
+  "freshSlotRule": {
+    "initial": ["SLOT-01", "SLOT-02", "SLOT-03", "SLOT-04", "SLOT-05", "SLOT-06", "SLOT-07", "SLOT-08", "SLOT-09"],
+    "replacementAlways": ["SLOT-05", "SLOT-06", "SLOT-07", "SLOT-08", "SLOT-09"],
+    "replacementByLane": {
+      "COLD-JOURNEY": ["SLOT-01", "SLOT-02", "SLOT-03"],
+      "COVERAGE-JOURNEY": ["SLOT-04"]
+    }
+  },
   "slots": [
     {"slotId": "SLOT-01", "role": "COLD_ACTOR", "roleOrdinal": 1},
     {"slotId": "SLOT-02", "role": "COLD_ACTOR", "roleOrdinal": 2},

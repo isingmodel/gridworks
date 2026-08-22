@@ -7,9 +7,11 @@ import base64
 import copy
 import hashlib
 import importlib.util
+import io
 import json
 import subprocess
 import sys
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -62,6 +64,18 @@ class GoldStateContractTests(unittest.TestCase):
             stderr=subprocess.PIPE,
             timeout=180,
         )
+
+    def load_validator(self) -> Any:
+        spec = importlib.util.spec_from_file_location(
+            "gridworks_gold_state_test",
+            VALIDATOR,
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader if spec is not None else None)
+        assert spec is not None and spec.loader is not None
+        validator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(validator)
+        return validator
 
     def write_manifest(self, directory: Path, value: Any) -> Path:
         path = directory / "gold-state-manifest.json"
@@ -331,7 +345,84 @@ class GoldStateContractTests(unittest.TestCase):
             sorted(root_rows, key=lambda row: row["locator"])
         )
 
+    def materialize_valid_bundle(
+        self,
+        directory: Path,
+        value: dict[str, Any],
+    ) -> None:
+        validator = self.load_validator()
+        world_bytes = (ROOT / "data/release-world-v2.json").read_bytes()
+        campaign_bytes = (ROOT / "data/release-campaign-v2.json").read_bytes()
+        world = json.loads(world_bytes)
+        campaign = json.loads(campaign_bytes)
+        journal = json.dumps(
+            {
+                "schemaVersion": "gridworks.commercial.campaign-save.v3",
+                "campaignId": campaign["campaignId"],
+                "campaignSha256": hashlib.sha256(campaign_bytes).hexdigest(),
+                "worldId": world["worldId"],
+                "worldSha256": hashlib.sha256(world_bytes).hexdigest(),
+                "commands": [],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ).encode("utf-8")
+        emit_input = directory / "emit.json"
+        emit_input.write_bytes(json.dumps({
+            "schemaVersion": "gridworks.commercial-ux.gold-snapshot-input.v1",
+            "worldBytesBase64": base64.b64encode(world_bytes).decode("ascii"),
+            "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
+            "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
+        }, separators=(",", ":")).encode("utf-8"))
+        project = ROOT / "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
+        with validator.isolated_gold_replay_verifier_assembly(
+            ROOT,
+            project,
+        ) as verifier_assembly:
+            emitted = subprocess.run(
+                [
+                    "dotnet", str(verifier_assembly),
+                    "--emit-snapshot", str(emit_input.resolve()),
+                ],
+                cwd=ROOT,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=180,
+            )
+        self.assertEqual(0, emitted.returncode, emitted.stderr.decode())
+        emit_input.unlink()
+
+        root = directory / "raw-gold"
+        root_rows: list[dict[str, Any]] = []
+        for row in [*value["prefixBindings"], *value["checkpointBindings"]]:
+            for field, data in (
+                ("journalBinding", journal),
+                ("snapshotBinding", emitted.stdout),
+            ):
+                component = row[field]
+                if component["status"] != "BOUND_NATIVE_REPLAY":
+                    continue
+                target = root / component["locator"]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+                observed = "sha256:" + hashlib.sha256(data).hexdigest()
+                component["sha256"] = observed
+                component["byteLength"] = len(data)
+                if field == "journalBinding":
+                    component["commandCount"] = 0
+                root_rows.append({
+                    "locator": component["locator"],
+                    "rawSha256": observed,
+                    "byteLength": len(data),
+                })
+        value["canonicalGoldBundleRoot"] = str(root.resolve())
+        value["goldBundleRootSha256"] = canonical_sha256(
+            sorted(root_rows, key=lambda row: row["locator"])
+        )
+
     def test_core_replay_emits_and_verifies_exact_snapshot_bytes(self) -> None:
+        validator = self.load_validator()
         world_bytes = (ROOT / "data/release-world-v2.json").read_bytes()
         campaign_bytes = (ROOT / "data/release-campaign-v2.json").read_bytes()
         world = json.loads(world_bytes)
@@ -358,88 +449,88 @@ class GoldStateContractTests(unittest.TestCase):
                 "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
                 "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
             }, separators=(",", ":")).encode("utf-8"))
-            emitted = subprocess.run(
-                [
-                    "dotnet", "run", "--project", str(project), "-c", "Release",
-                    "--no-restore", "--", "--emit-snapshot",
-                    str(emit_input.resolve()),
-                ],
-                cwd=ROOT,
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=180,
-            )
-            self.assertEqual(0, emitted.returncode, emitted.stderr.decode())
-            batch_input = directory / "batch.json"
-            batch_input.write_bytes(json.dumps({
-                "schemaVersion": "gridworks.commercial-ux.gold-replay-batch-input.v1",
-                "worldBytesBase64": base64.b64encode(world_bytes).decode("ascii"),
-                "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
-                "entries": [{
-                    "owner": "test:fresh",
-                    "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
-                    "snapshotBytesBase64": base64.b64encode(emitted.stdout).decode("ascii"),
-                }],
-            }, separators=(",", ":")).encode("utf-8"))
-            verified = subprocess.run(
-                [
-                    "dotnet", "run", "--project", str(project), "-c", "Release",
-                    "--no-restore", "--", "--verify-batch",
-                    str(batch_input.resolve()),
-                ],
-                cwd=ROOT,
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=180,
-            )
-            mutated_batch = json.loads(batch_input.read_text(encoding="utf-8"))
-            mutated_batch["entries"][0]["snapshotBytesBase64"] = base64.b64encode(
-                b"{}"
-            ).decode("ascii")
-            batch_input.write_text(
-                json.dumps(mutated_batch, separators=(",", ":")),
-                encoding="utf-8",
-            )
-            rejected = subprocess.run(
-                [
-                    "dotnet", "run", "--project", str(project), "-c", "Release",
-                    "--no-restore", "--", "--verify-batch",
-                    str(batch_input.resolve()),
-                ],
-                cwd=ROOT,
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=180,
-            )
-            mutated_batch["entries"][0]["journalBytesBase64"] = base64.b64encode(
-                json.dumps(
-                    json.loads(journal),
-                    ensure_ascii=False,
-                    separators=(",", ":"),
-                ).encode("utf-8")
-            ).decode("ascii")
-            mutated_batch["entries"][0]["snapshotBytesBase64"] = base64.b64encode(
-                emitted.stdout
-            ).decode("ascii")
-            batch_input.write_text(
-                json.dumps(mutated_batch, separators=(",", ":")),
-                encoding="utf-8",
-            )
-            noncanonical_journal = subprocess.run(
-                [
-                    "dotnet", "run", "--project", str(project), "-c", "Release",
-                    "--no-restore", "--", "--verify-batch",
-                    str(batch_input.resolve()),
-                ],
-                cwd=ROOT,
-                check=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                timeout=180,
-            )
+            with validator.isolated_gold_replay_verifier_assembly(
+                ROOT,
+                project,
+            ) as verifier_assembly:
+                emitted = subprocess.run(
+                    [
+                        "dotnet", str(verifier_assembly), "--emit-snapshot",
+                        str(emit_input.resolve()),
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=180,
+                )
+                self.assertEqual(0, emitted.returncode, emitted.stderr.decode())
+                batch_input = directory / "batch.json"
+                batch_input.write_bytes(json.dumps({
+                    "schemaVersion": "gridworks.commercial-ux.gold-replay-batch-input.v1",
+                    "worldBytesBase64": base64.b64encode(world_bytes).decode("ascii"),
+                    "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
+                    "entries": [{
+                        "owner": "test:fresh",
+                        "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
+                        "snapshotBytesBase64": base64.b64encode(emitted.stdout).decode("ascii"),
+                    }],
+                }, separators=(",", ":")).encode("utf-8"))
+                verified = subprocess.run(
+                    [
+                        "dotnet", str(verifier_assembly), "--verify-batch",
+                        str(batch_input.resolve()),
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=180,
+                )
+                mutated_batch = json.loads(batch_input.read_text(encoding="utf-8"))
+                mutated_batch["entries"][0]["snapshotBytesBase64"] = base64.b64encode(
+                    b"{}"
+                ).decode("ascii")
+                batch_input.write_text(
+                    json.dumps(mutated_batch, separators=(",", ":")),
+                    encoding="utf-8",
+                )
+                rejected = subprocess.run(
+                    [
+                        "dotnet", str(verifier_assembly), "--verify-batch",
+                        str(batch_input.resolve()),
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=180,
+                )
+                mutated_batch["entries"][0]["journalBytesBase64"] = base64.b64encode(
+                    json.dumps(
+                        json.loads(journal),
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    ).encode("utf-8")
+                ).decode("ascii")
+                mutated_batch["entries"][0]["snapshotBytesBase64"] = base64.b64encode(
+                    emitted.stdout
+                ).decode("ascii")
+                batch_input.write_text(
+                    json.dumps(mutated_batch, separators=(",", ":")),
+                    encoding="utf-8",
+                )
+                noncanonical_journal = subprocess.run(
+                    [
+                        "dotnet", str(verifier_assembly), "--verify-batch",
+                        str(batch_input.resolve()),
+                    ],
+                    cwd=ROOT,
+                    check=False,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=180,
+                )
         self.assertEqual(0, verified.returncode, verified.stderr.decode())
         report = json.loads(verified.stdout)
         self.assertEqual(0, report["entries"][0]["commandCount"])
@@ -454,6 +545,152 @@ class GoldStateContractTests(unittest.TestCase):
             "journal bytes are not canonical CommercialCampaignSaveCodec output",
             noncanonical_journal.stderr.decode(),
         )
+
+    def test_isolated_verifier_build_ignores_stale_checkout_bin_and_obj(self) -> None:
+        validator = self.load_validator()
+        world_bytes = (ROOT / "data/release-world-v2.json").read_bytes()
+        campaign_bytes = (ROOT / "data/release-campaign-v2.json").read_bytes()
+        world = json.loads(world_bytes)
+        campaign = json.loads(campaign_bytes)
+        journal = json.dumps(
+            {
+                "schemaVersion": "gridworks.commercial.campaign-save.v3",
+                "campaignId": campaign["campaignId"],
+                "campaignSha256": hashlib.sha256(campaign_bytes).hexdigest(),
+                "worldId": world["worldId"],
+                "worldSha256": hashlib.sha256(world_bytes).hexdigest(),
+                "commands": [],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ).encode("utf-8")
+        archive = subprocess.run(
+            [
+                "git", "archive", "--format=tar", "HEAD",
+                "tools/Gridworks.GoldReplayVerifier",
+                "tools/Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
+                "src/Gridworks.Core",
+            ],
+            cwd=ROOT,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=30,
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            clean_root = Path(temporary) / "checkout"
+            clean_root.mkdir()
+            with tarfile.open(fileobj=io.BytesIO(archive.stdout), mode="r:") as source:
+                source.extractall(clean_root)
+            project = clean_root / (
+                "tools/Gridworks.GoldReplayVerifier/"
+                "Gridworks.GoldReplayVerifier.csproj"
+            )
+            stale_assembly = clean_root / (
+                "tools/Gridworks.GoldReplayVerifier/bin/Release/net8.0/"
+                "Gridworks.GoldReplayVerifier.dll"
+            )
+            stale_assembly.parent.mkdir(parents=True)
+            stale_assembly.write_bytes(b"HOSTILE STALE ASSEMBLY")
+            stale_assets = clean_root / (
+                "tools/Gridworks.GoldReplayVerifier/obj/project.assets.json"
+            )
+            stale_assets.parent.mkdir(parents=True)
+            stale_assets.write_bytes(b"HOSTILE STALE ASSETS")
+            emit_input = clean_root / "emit.json"
+            emit_input.write_bytes(json.dumps({
+                "schemaVersion": "gridworks.commercial-ux.gold-snapshot-input.v1",
+                "worldBytesBase64": base64.b64encode(world_bytes).decode("ascii"),
+                "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
+                "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
+            }, separators=(",", ":")).encode("utf-8"))
+            with validator.isolated_gold_replay_verifier_assembly(
+                clean_root,
+                project,
+            ) as verifier_assembly:
+                self.assertNotIn(str(clean_root), str(verifier_assembly))
+                emitted = subprocess.run(
+                    [
+                        "dotnet", str(verifier_assembly), "--emit-snapshot",
+                        str(emit_input.resolve()),
+                    ],
+                    cwd=clean_root,
+                    check=False,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    timeout=180,
+                )
+            self.assertEqual(0, emitted.returncode, emitted.stderr.decode())
+            self.assertEqual(b"HOSTILE STALE ASSEMBLY", stale_assembly.read_bytes())
+            self.assertEqual(b"HOSTILE STALE ASSETS", stale_assets.read_bytes())
+            snapshot = json.loads(emitted.stdout)
+            self.assertEqual("FIRST_LIGHT", snapshot["chapter"]["chapterId"])
+
+    def test_gold_bundle_disk_integrity_accepts_valid_and_rejects_mutations(self) -> None:
+        validator = self.load_validator()
+        value = self.binding_fixture()
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            self.materialize_valid_bundle(directory, value)
+            root = Path(value["canonicalGoldBundleRoot"])
+
+            failures: list[str] = []
+            reports = validator.validate_gold_bundle(
+                ROOT,
+                self.base,
+                value,
+                value["prefixBindings"],
+                value["checkpointBindings"],
+                failures,
+            )
+            self.assertEqual([], failures)
+            self.assertEqual(56, len(reports))
+
+            extra = root / "extra.bin"
+            extra.write_bytes(b"extra")
+            failures = []
+            reports = validator.validate_gold_bundle(
+                ROOT,
+                self.base,
+                value,
+                value["prefixBindings"],
+                value["checkpointBindings"],
+                failures,
+            )
+            self.assertEqual({}, reports)
+            self.assertIn(
+                "gold binding bundle recursive file set has missing or extra files",
+                failures,
+            )
+            extra.unlink()
+
+            symlink = root / "hostile-link"
+            symlink.symlink_to("journals/binding-001.bin")
+            failures = []
+            reports = validator.validate_gold_bundle(
+                ROOT,
+                self.base,
+                value,
+                value["prefixBindings"],
+                value["checkpointBindings"],
+                failures,
+            )
+            self.assertEqual({}, reports)
+            self.assertIn("gold binding bundle must reject every symlink", failures)
+            symlink.unlink()
+
+            value["goldBundleRootSha256"] = sha("f")
+            failures = []
+            reports = validator.validate_gold_bundle(
+                ROOT,
+                self.base,
+                value,
+                value["prefixBindings"],
+                value["checkpointBindings"],
+                failures,
+            )
+            self.assertEqual({}, reports)
+            self.assertIn("gold binding bundle content-root SHA mismatch", failures)
 
     def test_raw_hash_correct_garbage_journal_snapshot_bundle_is_rejected(self) -> None:
         value = self.binding_fixture()

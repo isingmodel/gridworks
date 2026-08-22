@@ -14,7 +14,7 @@
     "holdoutConsumptionReceiptRawSha256", "selectedRecipeId",
     "selectedRecipeSha256", "canonicalSessionRoot", "canonicalClaimPath",
     "initialSession", "replacementClaimPath", "sessionLockPath",
-    "slots", "fixedArtifactPaths", "atomicClaim", "status"
+    "requiredFreshSlotIds", "slots", "fixedArtifactPaths", "atomicClaim", "status"
   ],
   "properties": {
     "schemaVersion": {"const": "gridworks.commercial-ux.evaluation-session-claim.v1"},
@@ -44,6 +44,10 @@
     "initialSession": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/initialSession"}]},
     "replacementClaimPath": {"$ref": "#/$defs/absolutePath"},
     "sessionLockPath": {"$ref": "#/$defs/absolutePath"},
+    "requiredFreshSlotIds": {
+      "type": "array", "minItems": 6, "maxItems": 9, "uniqueItems": true,
+      "items": {"pattern": "^SLOT-0[1-9]$"}
+    },
     "slots": {
       "type": "array", "minItems": 9, "maxItems": 9,
       "prefixItems": [

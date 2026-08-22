@@ -434,6 +434,33 @@ def build_slots(root: Path, policy: dict[str, Any]) -> list[dict[str, Any]]:
     return result
 
 
+def required_fresh_slot_ids(
+    mode: str,
+    initial_reference: dict[str, Any] | None,
+    policy: dict[str, Any],
+) -> list[str]:
+    """Derive the only slots that a claimed session may execute.
+
+    INITIAL captures every lane.  REPLACEMENT captures only the unstable
+    evidence lane(s), while judges, the evidence verifier, and the oracle are
+    always fresh.  Stable evidence lanes are reused from the exact sealed
+    INITIAL attempt chain rather than copied into a new attempt root.
+    """
+
+    rule = policy["freshSlotRule"]
+    if mode == "INITIAL":
+        return list(rule["initial"])
+    if mode != "REPLACEMENT" or initial_reference is None:
+        raise SessionClaimError("replacement fresh slots require initial finalization")
+    selected = set(rule["replacementAlways"])
+    for lane in initial_reference["replacementRequiredLanes"]:
+        try:
+            selected.update(rule["replacementByLane"][lane])
+        except KeyError as error:
+            raise SessionClaimError(f"unknown replacement lane: {lane}") from error
+    return [slot_id for slot_id in rule["initial"] if slot_id in selected]
+
+
 def validate_schema(
     validator: ModuleType,
     value: dict[str, Any],
@@ -892,6 +919,11 @@ def create_session_claim(
         "initialSession": initial_reference,
         "replacementClaimPath": str(replacement_claim_path),
         "sessionLockPath": str(root / "session.lock"),
+        "requiredFreshSlotIds": required_fresh_slot_ids(
+            mode,
+            initial_reference,
+            policy,
+        ),
         "slots": build_slots(root, policy),
         "fixedArtifactPaths": fixed_paths,
         "atomicClaim": {
@@ -1153,6 +1185,10 @@ def reserve_attempt(
     validator, _, claim_bytes, claim = read_and_validate_claim(
         claim_path, native=native, common_dir_override=common_dir_override
     )
+    if slot_id not in claim["requiredFreshSlotIds"]:
+        raise SessionClaimError(
+            f"{slot_id} is a reused stable lane and cannot be reserved in this session"
+        )
     slot, attempt = find_attempt(claim, slot_id, attempt_ordinal)
     predecessor_sha: str | None = None
     if attempt_ordinal > 1:
@@ -1223,6 +1259,10 @@ def finalize_attempt(
     validator, _, _, claim = read_and_validate_claim(
         claim_path, native=native, common_dir_override=common_dir_override
     )
+    if slot_id not in claim["requiredFreshSlotIds"]:
+        raise SessionClaimError(
+            f"{slot_id} is a reused stable lane and cannot be finalized in this session"
+        )
     slot, attempt = find_attempt(claim, slot_id, attempt_ordinal)
     output_path = Path(attempt["outputPath"])
     terminal_path = Path(attempt["terminalReceiptPath"])

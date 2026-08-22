@@ -2628,6 +2628,9 @@ def make_production_session_authority_fixture(
         "initialSession": None,
         "replacementClaimPath": str(receipt_root / "replacement-01-claim.json"),
         "sessionLockPath": str(session_root / "session.lock"),
+        "requiredFreshSlotIds": session_tool.required_fresh_slot_ids(
+            "INITIAL", None, policy
+        ),
         "slots": session_tool.build_slots(session_root, policy),
         "fixedArtifactPaths": fixed_paths,
         "atomicClaim": {
@@ -2735,6 +2738,7 @@ def make_production_replacement_session_authority_fixture(
     common_root: Path,
     *,
     tag: str,
+    unstable_lane: str = "COLD-JOURNEY",
 ) -> dict[str, Any]:
     """Extend a real INITIAL session with exact scorecard/seal and REPLACEMENT."""
 
@@ -2749,7 +2753,18 @@ def make_production_replacement_session_authority_fixture(
     initial_claim_raw = initial_claim_path.read_bytes()
 
     def unstable_labeler(judge: int, kind: str, artifact: str, cell: str) -> str:
-        if kind == "COLD_ACTOR" and artifact == "ARTIFACT-A" and cell == "J1":
+        cold_target = (
+            unstable_lane == "COLD-JOURNEY"
+            and kind == "COLD_ACTOR"
+            and artifact == "ARTIFACT-A"
+            and cell == "J1"
+        )
+        coverage_target = (
+            unstable_lane == "COVERAGE-JOURNEY"
+            and kind == "COVERAGE"
+            and cell == "V1"
+        )
+        if cold_target or coverage_target:
             return ("EXCELLENT", "SERVICEABLE", "STRONG")[judge]
         return "STRONG"
 
@@ -2759,7 +2774,11 @@ def make_production_replacement_session_authority_fixture(
         panel_suffix=f"replacement-scorecard-template-{tag}",
     )
     scorecard = aggregate_fixture(scorecard_template)
-    if scorecard["status"] != "RERUN_REQUIRED_COLD_INSTABILITY":
+    expected_status = {
+        "COLD-JOURNEY": "RERUN_REQUIRED_COLD_INSTABILITY",
+        "COVERAGE-JOURNEY": "RERUN_REQUIRED_COVERAGE_INSTABILITY",
+    }[unstable_lane]
+    if scorecard["status"] != expected_status:
         raise AssertionError("replacement fixture did not produce a rerun scorecard")
     provenance = scorecard["provenance"]
     provenance.update(initial_authority["provenance"])
@@ -2864,6 +2883,9 @@ def make_production_replacement_session_authority_fixture(
         "canonicalClaimPath": str(replacement_claim_path),
         "initialSession": initial_reference,
         "sessionLockPath": str(replacement_root / "session.lock"),
+        "requiredFreshSlotIds": session_tool.required_fresh_slot_ids(
+            "REPLACEMENT", initial_reference, policy
+        ),
         "slots": session_tool.build_slots(replacement_root, policy),
         "fixedArtifactPaths": fixed_paths,
     }
@@ -2876,6 +2898,8 @@ def make_production_replacement_session_authority_fixture(
     (replacement_root / "artifacts").mkdir()
     for slot_index in range(1, 10):
         slot_id = f"SLOT-{slot_index:02d}"
+        if slot_id not in replacement_claim["requiredFreshSlotIds"]:
+            continue
         session_tool.reserve_attempt(
             native=aggregator.NATIVE_DIRECTORY,
             claim_path=replacement_claim_path,
@@ -3687,6 +3711,36 @@ class NativeAggregateTests(unittest.TestCase):
             ):
                 validate_production_session_authority(undeclared_root)
 
+            undeclared_slot = make_production_session_authority_fixture(
+                common_root,
+                tag="undeclared-slot-root",
+            )
+            slots_root = (
+                Path(undeclared_slot["claim"]["canonicalSessionRoot"]) / "slots"
+            )
+            (slots_root / "slot-10" / "attempt-01").mkdir(parents=True)
+            (slots_root / "slot-10" / "attempt-01" / "output.json").write_text(
+                "{}\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "slots root must contain exactly",
+            ):
+                validate_production_session_authority(undeclared_slot)
+
+            undeclared_sibling = make_production_session_authority_fixture(
+                common_root,
+                tag="undeclared-session-sibling",
+            )
+            receipt_root = undeclared_sibling["claimPath"].parent
+            (receipt_root / "initial-discarded" / "slots").mkdir(parents=True)
+            with self.assertRaisesRegex(
+                aggregator.ProvenanceFailure,
+                "receipt session hierarchy must contain exactly",
+            ):
+                validate_production_session_authority(undeclared_sibling)
+
     def test_evaluation_session_authority_rejects_attempt_and_fixed_symlink_aliases(self) -> None:
         """Neither captured output nor a fixed artifact may be a symlink alias."""
 
@@ -3760,6 +3814,72 @@ class NativeAggregateTests(unittest.TestCase):
                     fixture,
                     drifted_context,
                 )
+
+    def test_replacement_session_executes_only_cold_fresh_slots_and_reuses_coverage(self) -> None:
+        """Cold-only replacement selects INITIAL coverage without copying its root."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = make_production_replacement_session_authority_fixture(
+                Path(raw).resolve(),
+                tag="cold-only-fresh-slots",
+                unstable_lane="COLD-JOURNEY",
+            )
+            authority = validate_production_session_authority(
+                fixture,
+                fixture["replacementContext"],
+            )
+            self.assertEqual(
+                fixture["claim"]["requiredFreshSlotIds"],
+                [
+                    "SLOT-01", "SLOT-02", "SLOT-03", "SLOT-05",
+                    "SLOT-06", "SLOT-07", "SLOT-08", "SLOT-09",
+                ],
+            )
+            self.assertEqual(len(authority["attemptAuditRows"]), 8)
+            selected = {row["slotId"]: row for row in authority["selectedRows"]}
+            self.assertEqual(selected["SLOT-04"]["sourceSessionMode"], "INITIAL")
+            self.assertEqual(selected["SLOT-01"]["sourceSessionMode"], "REPLACEMENT")
+            with self.assertRaisesRegex(
+                fixture["sessionTool"].SessionClaimError,
+                "reused stable lane",
+            ):
+                fixture["sessionTool"].reserve_attempt(
+                    native=aggregator.NATIVE_DIRECTORY,
+                    claim_path=fixture["claimPath"],
+                    slot_id="SLOT-04",
+                    attempt_ordinal=1,
+                    common_dir_override=fixture["commonRoot"],
+                )
+
+    def test_replacement_session_executes_only_coverage_fresh_slots_and_reuses_cold(self) -> None:
+        """Coverage-only replacement selects three INITIAL cold attempts exactly."""
+
+        with tempfile.TemporaryDirectory() as raw:
+            fixture = make_production_replacement_session_authority_fixture(
+                Path(raw).resolve(),
+                tag="coverage-only-fresh-slots",
+                unstable_lane="COVERAGE-JOURNEY",
+            )
+            authority = validate_production_session_authority(
+                fixture,
+                fixture["replacementContext"],
+            )
+            self.assertEqual(
+                fixture["claim"]["requiredFreshSlotIds"],
+                [
+                    "SLOT-04", "SLOT-05", "SLOT-06",
+                    "SLOT-07", "SLOT-08", "SLOT-09",
+                ],
+            )
+            self.assertEqual(len(authority["attemptAuditRows"]), 6)
+            selected = {row["slotId"]: row for row in authority["selectedRows"]}
+            self.assertTrue(
+                all(
+                    selected[f"SLOT-{index:02d}"]["sourceSessionMode"] == "INITIAL"
+                    for index in range(1, 4)
+                )
+            )
+            self.assertEqual(selected["SLOT-04"]["sourceSessionMode"], "REPLACEMENT")
 
     def test_shared_validators_freeze_relative_paths_before_changing_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -4836,6 +4956,11 @@ class NativeAggregateTests(unittest.TestCase):
             self.assertEqual(result["status"], "FAIL_UX")
             receipt_path = Path(result["replacementReceiptPath"])
             self.assertTrue(receipt_path.exists())
+            replacement_receipt = json.loads(receipt_path.read_bytes())
+            self.assertEqual(
+                replacement_receipt["initialPanelFinalizationSealPath"],
+                str((initial["directory"] / "panel-finalization-seal.json").resolve()),
+            )
             self.assertEqual(
                 aggregator.file_sha256(receipt_path, "replacement receipt"),
                 result["replacementReceiptSha256"],

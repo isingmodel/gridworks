@@ -146,17 +146,20 @@ Validate the candidate-independent contract and current gold-state declarations 
 python3 tools/commercial-ux/native/validate-contract.py
 python3 tools/commercial-ux/native/test-contract.py
 python3 tools/commercial-ux/native/test-gold-state.py
+python3 tools/commercial-ux/native/test-session-claim.py
 python3 tools/commercial-ux/native/validate-gold-state.py --run-story-manifest
 python3 tools/commercial-ux/test-native-aggregate.py
 python3 -m py_compile \
   tools/commercial-ux/aggregate-native.py \
   tools/commercial-ux/test-native-aggregate.py \
+  tools/commercial-ux/native/claim-evaluation-session.py \
   tools/commercial-ux/native/validate-contract.py \
   tools/commercial-ux/native/validate-gold-state.py
 ```
 
-The current deterministic checks pass 21 schema validations, 23 contract tests, 11
-gold-state tests, and 44 aggregation tests. `CommercialChecks` passes 24 suites / 2,910
+The current deterministic checks pass 35 schema validations, 53 contract scenarios, 24
+gold-state tests, 16 evaluation-session checks, and 78 aggregation tests. `CommercialChecks`
+passes 24 suites / 2,910
 assertions, and the Debug and Release rebuilds each finish with zero warnings and errors.
 Those results prove the pre-capture contract and product regressions, not score readiness or
 game quality.
@@ -171,19 +174,26 @@ python3 tools/commercial-ux/native/validate-gold-state.py \
 
 This command is expected to fail closed in the current pre-capture state. The gold-state
 manifest still has 52 pending native-replay owners and four unbound E09 witnesses. In
-addition, the following ten deterministic producer stages are not implemented and bound by
+addition, the following 17 deterministic producer stages are not implemented and bound by
 their exact raw tool SHA yet:
 
 - `CANDIDATE-MANIFEST-PACKAGER`
+- `HOLDOUT-CONSUMPTION-PACKAGER`
+- `GOLD-BINDING-PACKAGER`
+- `COLD-OBSERVATION-PACKAGER`
 - `COLD-PACKAGER`
 - `QUALIFICATION-INPUT-PACKAGER`
 - `QUALIFICATION-RECEIPT-PACKAGER`
+- `COVERAGE-ACTION-LEDGER-PACKAGER`
 - `COVERAGE-RUN-PACKAGER`
+- `ANONYMIZATION-PACKAGER`
 - `EVIDENCE-SET-PACKAGER`
+- `CANDIDATE-JUDGE-INPUT-PACKAGER`
 - `JUDGE-PANEL-PACKAGER`
 - `VERIFICATION-INPUT-PACKAGER`
 - `ORACLE-HARD-GATES`
 - `EVALUATION-RUN-PACKAGER`
+- `AGGREGATION-INPUT-PACKAGER`
 
 Until all of those blockers are closed, the evaluator status is `BLOCKED_PRE_CAPTURE` and
 no official cold/native score exists. Do not create placeholder artifacts or invent hashes

@@ -24,8 +24,9 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator
 
 
 SCHEMA_VERSION = "gridworks.commercial-ux.gold-state-manifest.v1"
@@ -478,6 +479,86 @@ def checkpoint_branch_id(checkpoint_id: str, promise_branch_order: list[str]) ->
     return "SHARED"
 
 
+@contextmanager
+def isolated_gold_replay_verifier_assembly(
+    repository_root: Path,
+    verifier_project_path: Path,
+) -> Iterator[Path]:
+    """Restore and build the replay verifier without consulting repo bin/obj."""
+
+    with tempfile.TemporaryDirectory(
+        prefix="gridworks-gold-replay-build-"
+    ) as temporary:
+        build_root = Path(temporary).resolve()
+        artifacts_path = build_root / "artifacts"
+        packages_path = build_root / "packages"
+        isolated_properties = [
+            "-p:UseArtifactsOutput=true",
+            f"-p:ArtifactsPath={artifacts_path}",
+            f"-p:RestorePackagesPath={packages_path}",
+        ]
+        restore = subprocess.run(
+            [
+                "dotnet", "restore", str(verifier_project_path),
+                *isolated_properties,
+            ],
+            cwd=repository_root,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=180,
+        )
+        if restore.returncode != 0:
+            details = (
+                restore.stderr.decode("utf-8", errors="replace").strip()
+                or restore.stdout.decode("utf-8", errors="replace").strip()
+            )
+            raise ContractError(
+                "isolated gold Core replay verifier restore failed: " + details
+            )
+        build = subprocess.run(
+            [
+                "dotnet", "build", str(verifier_project_path),
+                "-c", "Release",
+                *isolated_properties,
+            ],
+            cwd=repository_root,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=180,
+        )
+        if build.returncode != 0:
+            details = (
+                build.stderr.decode("utf-8", errors="replace").strip()
+                or build.stdout.decode("utf-8", errors="replace").strip()
+            )
+            raise ContractError(
+                "isolated gold Core replay verifier build failed: " + details
+            )
+        assembly_path = (
+            artifacts_path
+            / "bin"
+            / verifier_project_path.stem
+            / "release"
+            / f"{verifier_project_path.stem}.dll"
+        )
+        try:
+            resolved_assembly = assembly_path.resolve(strict=True)
+            resolved_assembly.relative_to(build_root)
+        except (OSError, ValueError) as error:
+            raise ContractError(
+                "isolated gold Core replay verifier assembly is missing or escaped "
+                f"the clean build root: {error}"
+            ) from error
+        if assembly_path.is_symlink() or not resolved_assembly.is_file():
+            raise ContractError(
+                "isolated gold Core replay verifier assembly must be a regular "
+                "newly built DLL"
+            )
+        yield resolved_assembly
+
+
 def validate_gold_bundle(
     repository_root: Path,
     manifest: dict[str, Any],
@@ -570,6 +651,7 @@ def validate_gold_bundle(
                     exact_components["snapshotBinding"]
                 ).decode("ascii"),
             })
+    bundle_integrity_failure_count = len(failures)
     require(
         len(referenced) == 112
         and len(referenced) == len(set(referenced))
@@ -577,6 +659,35 @@ def validate_gold_bundle(
         "gold binding bundle must contain 112 unique applicable journal/snapshot locators",
         failures,
     )
+    disk_files: list[str] = []
+    symlink_count = 0
+    if resolved_root.is_dir():
+        for path in resolved_root.rglob("*"):
+            if path.is_symlink():
+                symlink_count += 1
+            elif path.is_file():
+                disk_files.append(path.relative_to(resolved_root).as_posix())
+    require(
+        symlink_count == 0
+        and binding.get("goldBundleSymlinkCount") == 0,
+        "gold binding bundle must reject every symlink",
+        failures,
+    )
+    require(
+        sorted(disk_files) == sorted(referenced)
+        and binding.get("goldBundleExtraFileCount") == 0,
+        "gold binding bundle recursive file set has missing or extra files",
+        failures,
+    )
+    root_rows.sort(key=lambda row: row["locator"])
+    require(
+        binding.get("goldBundleRootSha256")
+        == sha256_bytes(canonical_json_bytes(root_rows)),
+        "gold binding bundle content-root SHA mismatch",
+        failures,
+    )
+    if len(failures) != bundle_integrity_failure_count:
+        return {}
     if len(replay_entries) != 56 or len(root_rows) != 112:
         failures.append(
             "gold binding semantic replay requires 56 exact journal/snapshot pairs"
@@ -653,20 +764,22 @@ def validate_gold_bundle(
             stream.write(batch_bytes)
             stream.flush()
             os.fsync(stream.fileno())
-        completed = subprocess.run(
-            [
-                "dotnet", "run", "--project",
-                str(verifier_project_path),
-                "-c", "Release", "--no-restore", "--",
-                "--verify-batch", str(batch_path),
-            ],
-            cwd=repository_root,
-            check=False,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            timeout=180,
-        )
-    except (OSError, subprocess.TimeoutExpired) as error:
+        with isolated_gold_replay_verifier_assembly(
+            repository_root,
+            verifier_project_path,
+        ) as verifier_assembly:
+            completed = subprocess.run(
+                [
+                    "dotnet", str(verifier_assembly),
+                    "--verify-batch", str(batch_path),
+                ],
+                cwd=repository_root,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=180,
+            )
+    except (ContractError, OSError, subprocess.TimeoutExpired) as error:
         failures.append(f"gold Core replay verifier failed to execute: {error}")
         return {}
     finally:
@@ -836,33 +949,6 @@ def validate_replay_derived_e09(
         len(set(geometry_hashes.values())) == 1
         and len(set(projection_hashes.values())) == 1,
         "gold binding E09 add+undo did not restore replay-derived geometry/projection",
-        failures,
-    )
-    disk_files: list[str] = []
-    symlink_count = 0
-    if resolved_root.is_dir():
-        for path in resolved_root.rglob("*"):
-            if path.is_symlink():
-                symlink_count += 1
-            elif path.is_file():
-                disk_files.append(path.relative_to(resolved_root).as_posix())
-    require(
-        symlink_count == 0
-        and binding.get("goldBundleSymlinkCount") == 0,
-        "gold binding bundle must reject every symlink",
-        failures,
-    )
-    require(
-        sorted(disk_files) == sorted(referenced)
-        and binding.get("goldBundleExtraFileCount") == 0,
-        "gold binding bundle recursive file set has missing or extra files",
-        failures,
-    )
-    root_rows.sort(key=lambda row: row["locator"])
-    require(
-        binding.get("goldBundleRootSha256")
-        == sha256_bytes(canonical_json_bytes(root_rows)),
-        "gold binding bundle content-root SHA mismatch",
         failures,
     )
 

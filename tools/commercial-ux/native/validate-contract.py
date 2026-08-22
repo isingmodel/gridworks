@@ -738,6 +738,16 @@ def validate_evaluation_session_policy(
             "attemptTerminalRule": "TERMINAL_PATH_ZERO_BYTE_O_EXCL_FSYNC_BEFORE_OUTPUT_OBSERVATION_THEN_EXACT_TERMINAL_WRITE_FSYNC_BEFORE_SCHEMA_OR_TRANSPORT_RETRY",
             "outcomeClassificationRule": "ROLE_OUTPUT_STRICT_JSON_AND_FROZEN_SCHEMA_DERIVE_SUCCESS_OR_ONLY_SCHEMA_OR_TRANSPORT_RETRY_CALLER_CANNOT_CLASSIFY",
             "attemptBudgetPerSlot": 3,
+            "freshSlotRule": {
+                "initial": [f"SLOT-{index:02d}" for index in range(1, 10)],
+                "replacementAlways": [
+                    "SLOT-05", "SLOT-06", "SLOT-07", "SLOT-08", "SLOT-09",
+                ],
+                "replacementByLane": {
+                    "COLD-JOURNEY": ["SLOT-01", "SLOT-02", "SLOT-03"],
+                    "COVERAGE-JOURNEY": ["SLOT-04"],
+                },
+            },
             "slots": [
                 {"slotId": "SLOT-01", "role": "COLD_ACTOR", "roleOrdinal": 1},
                 {"slotId": "SLOT-02", "role": "COLD_ACTOR", "roleOrdinal": 2},
@@ -851,6 +861,24 @@ def validate_evaluation_session_claim_semantics(
     require(
         claim.get("slots") == _expected_session_slots(expected_root, policy),
         "evaluation session fixed opaque slot/attempt paths drift",
+        errors,
+    )
+    fresh_rule = policy.get("freshSlotRule", {})
+    if mode == "INITIAL":
+        expected_fresh_slots = fresh_rule.get("initial")
+    else:
+        selected_fresh_slots = set(fresh_rule.get("replacementAlways", []))
+        lane_slots = fresh_rule.get("replacementByLane", {})
+        for lane in initial.get("replacementRequiredLanes", []) if isinstance(initial, dict) else []:
+            selected_fresh_slots.update(lane_slots.get(lane, []))
+        expected_fresh_slots = [
+            slot_id
+            for slot_id in fresh_rule.get("initial", [])
+            if slot_id in selected_fresh_slots
+        ]
+    require(
+        claim.get("requiredFreshSlotIds") == expected_fresh_slots,
+        "evaluation session required fresh slot projection mismatch",
         errors,
     )
     expected_artifacts = {
@@ -1128,6 +1156,7 @@ def validate_attempt_chain_bytes(
     session_claim_raw_bytes: bytes,
     attempts: list[dict[str, Any]],
     require_all_success_slots: bool = True,
+    required_success_slot_ids: list[str] | None = None,
 ) -> tuple[list[str], list[dict[str, Any]]]:
     """Validate an already-opened nine-slot attempt chain without reopening paths.
 
@@ -1333,6 +1362,21 @@ def validate_attempt_chain_bytes(
         "attempt chain contains a slot outside the session claim",
         errors,
     )
+    if required_success_slot_ids is None:
+        required_slots = set(expected_slots) if require_all_success_slots else set()
+    else:
+        required_slots = set(required_success_slot_ids)
+        require(
+            len(required_success_slot_ids) == len(required_slots)
+            and required_slots.issubset(set(expected_slots)),
+            "attempt chain required-success slot projection is invalid",
+            errors,
+        )
+        require(
+            set(by_slot).issubset(required_slots),
+            "attempt chain contains a stable reused slot in this session",
+            errors,
+        )
     for slot_id in expected_slots:
         rows = sorted(
             by_slot.get(slot_id, []),
@@ -1388,12 +1432,13 @@ def validate_attempt_chain_bytes(
                     "artifactContentRootSha256"
                 ],
             })
-        elif require_all_success_slots:
+        elif slot_id in required_slots:
             errors.append(f"attempt chain {slot_id} lacks one successful terminal attempt")
-    if require_all_success_slots:
+    if required_slots:
         require(
-            len(selected) == 9,
-            "attempt chain must select exactly nine successful opaque slots",
+            len(selected) == len(required_slots)
+            and {row["slotId"] for row in selected} == required_slots,
+            "attempt chain must select exactly every required fresh opaque slot",
             errors,
         )
     return errors, selected

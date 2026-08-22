@@ -53,6 +53,26 @@ The replacement must match the initial text-plan, rubric, prompt, and schema has
 second unstable panel becomes `BLOCKED_JUDGE_INSTABILITY`; a stable replacement is scored
 and records the exact initial `panelInputSha256` it replaced.
 
+Replacement is single-use and fail-closed. Before writing replacement output, the
+aggregator resolves the initial aggregate path and atomically creates this sibling with
+exclusive-create semantics:
+
+```text
+<resolved-initial-filename>.replacement-receipt.json
+```
+
+The receipt binds the initial and replacement panel hashes, the three fresh replacement
+run IDs, and the text-plan/rubric/prompt/schema hashes. `replacementReceiptSha256` is null
+for an initial aggregate and is the SHA-256 of the exact compact receipt bytes (including
+its trailing newline) for a replacement. An existing or concurrently claimed receipt
+rejects reuse. Every aggregate output must be a fresh path and is created with
+exclusive-create semantics, so rerunning into an existing initial or replacement output
+cannot overwrite prior evidence. A replacement additionally rejects existing paths and
+inode aliases of the initial before claiming the receipt. Any output race or I/O failure
+after that claim deliberately leaves the receipt consumed. The initial aggregate is never
+modified; copying it to a different path is outside this local single-path receipt boundary
+and must be prevented by the candidate evidence manifest/provenance process.
+
 Run deterministic checks with:
 
 ```sh
@@ -68,8 +88,15 @@ label-blind observations:
 python3 tools/commercial-ux/prepare-text-plan-evidence.py \
   /tmp/judge-01.json /tmp/judge-02.json /tmp/judge-03.json \
   --text-plan /tmp/gridworks-text-plan.json \
+  --aggregate /tmp/text-plan-initial.json \
   --output /tmp/text-plan-evidence-input.json
 ```
+
+The aggregate must be the exact `SCORED_FORMATIVE` output for those same three judgment
+files in the same argument order. If instability required a replacement, pass the three
+replacement judgments and the scored replacement aggregate instead. The preparer
+recomputes `panelInputSha256`, validates its initial/replacement linkage and receipt shape,
+then exposes only the opaque `judgePanelInputSha256` to the verifier.
 
 Render `text-plan-evidence-verifier-prompt.template.txt` once for a fresh
 `gpt-5.6-sol`/`ultra` verifier and require

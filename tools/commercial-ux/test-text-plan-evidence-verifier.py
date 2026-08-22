@@ -17,6 +17,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 PREPARE_PATH = ROOT / "prepare-text-plan-evidence.py"
 AGGREGATE_PATH = ROOT / "aggregate-text-plan-evidence.py"
+JUDGE_AGGREGATOR_PATH = ROOT / "aggregate-text-plan.py"
+RUBRIC_PATH = ROOT / "rubric.json"
 PROMPT_PATH = ROOT / "text-plan-evidence-verifier-prompt.template.txt"
 SCHEMA_PATH = ROOT / "text-plan-evidence-verifier.schema.json"
 CONTEXT_PATH = ROOT / "text-plan-context.json"
@@ -105,21 +107,30 @@ def valid_judgment(
     prepare: ModuleType,
     run_number: int,
     text_plan_sha256: str,
+    default_label: str = "STRONG",
+    overrides: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    overrides = overrides or {}
     cells = []
     for cell_id in prepare.EXPECTED_CELL_IDS:
+        judgment_label = overrides.get(cell_id, default_label)
         cells.append(
             {
                 "cellId": cell_id,
-                "label": "STRONG",
+                "label": judgment_label,
                 "confidence": "HIGH",
-                "strengthEvidence": [
+                "strengthEvidence": [] if judgment_label == "BROKEN" else [
                     {
                         "sourceRef": "context:premise",
                         "observation": f"The premise explicitly identifies the game setting for {cell_id}.",
                     }
                 ],
-                "gapEvidence": [],
+                "gapEvidence": [
+                    {
+                        "sourceRef": "context:premise",
+                        "observation": f"The premise omits the self-test detail for {cell_id}.",
+                    }
+                ] if judgment_label == "BROKEN" else [],
             }
         )
     return {
@@ -139,11 +150,42 @@ def valid_judgment(
     }
 
 
+def build_judge_aggregate(
+    aggregate_module: ModuleType,
+    directory: Path,
+    name: str,
+    text_plan: dict[str, Any],
+    judgments: list[dict[str, Any]],
+    replacement_for: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    text_plan_path = directory / f"{name}-panel-text-plan.json"
+    write_json(text_plan_path, text_plan)
+    judgment_paths = []
+    for index, judgment in enumerate(judgments, start=1):
+        path = directory / f"{name}-panel-judgment-{index}.json"
+        write_json(path, judgment)
+        judgment_paths.append(path)
+    replacement_path = None
+    if replacement_for is not None:
+        replacement_path = directory / f"{name}-initial-aggregate.json"
+        write_json(replacement_path, replacement_for)
+    result = aggregate_module.aggregate(
+        judgment_paths,
+        RUBRIC_PATH,
+        text_plan_path,
+        replacement_path,
+        directory / f"{name}-panel-aggregate-output.json",
+    )
+    assert isinstance(result, dict)
+    return result
+
+
 def run_prepare(
     directory: Path,
     name: str,
     text_plan: dict[str, Any],
     judgments: list[dict[str, Any]],
+    judge_aggregate: dict[str, Any],
     expect_success: bool = True,
 ) -> tuple[subprocess.CompletedProcess[str], Path]:
     text_plan_path = directory / f"{name}-text-plan.json"
@@ -153,6 +195,8 @@ def run_prepare(
         path = directory / f"{name}-judgment-{index}.json"
         write_json(path, judgment)
         judgment_paths.append(path)
+    aggregate_path = directory / f"{name}-aggregate.json"
+    write_json(aggregate_path, judge_aggregate)
     output_path = directory / f"{name}-evidence-input.json"
     completed = subprocess.run(
         [
@@ -161,6 +205,8 @@ def run_prepare(
             *(str(path) for path in judgment_paths),
             "--text-plan",
             str(text_plan_path),
+            "--aggregate",
+            str(aggregate_path),
             "--output",
             str(output_path),
         ],
@@ -186,6 +232,7 @@ def valid_verification(evidence_envelope: dict[str, Any]) -> dict[str, Any]:
         "promptTemplateSha256": verification_input["promptTemplateSha256"],
         "verifierSchemaSha256": verification_input["verifierSchemaSha256"],
         "textPlanSha256": verification_input["textPlanSha256"],
+        "judgePanelInputSha256": verification_input["judgePanelInputSha256"],
         "verificationInputSha256": evidence_envelope["verificationInputSha256"],
         "observations": [
             {
@@ -241,6 +288,7 @@ def test_prompt_and_schema() -> None:
         "__VERIFICATION_INPUT_SHA256__",
         "__PROMPT_TEMPLATE_SHA256__",
         "__VERIFIER_SCHEMA_SHA256__",
+        "__JUDGE_PANEL_INPUT_SHA256__",
         "__VERIFICATION_INPUT__",
     ):
         assert placeholder in prompt
@@ -270,6 +318,9 @@ def test_prompt_and_schema() -> None:
     assert schema["properties"]["verifierSchemaSha256"]["pattern"] == (
         "^sha256:[0-9a-f]{64}$"
     )
+    assert schema["properties"]["judgePanelInputSha256"]["pattern"] == (
+        "^sha256:[0-9a-f]{64}$"
+    )
     assert schema["properties"]["observations"]["minItems"] == 1
     assert schema["properties"]["observations"]["maxItems"] == 480
     observation = schema["$defs"]["observation"]
@@ -283,6 +334,10 @@ def test_prompt_and_schema() -> None:
 
 def test_prepare_and_aggregate() -> None:
     prepare = load_module(PREPARE_PATH, "gridworks_text_plan_evidence_prepare_test")
+    judge_aggregator = load_module(
+        JUDGE_AGGREGATOR_PATH,
+        "gridworks_text_plan_judge_aggregate_binding_test",
+    )
     text_plan = valid_text_plan(prepare)
     judgments = [
         valid_judgment(prepare, index, text_plan["artifactSha256"])
@@ -290,7 +345,21 @@ def test_prepare_and_aggregate() -> None:
     ]
     with tempfile.TemporaryDirectory(prefix="gridworks-text-plan-evidence-test-") as temp:
         directory = Path(temp)
-        _, first_path = run_prepare(directory, "valid", text_plan, judgments)
+        scored_aggregate = build_judge_aggregate(
+            judge_aggregator,
+            directory,
+            "valid",
+            text_plan,
+            judgments,
+        )
+        assert scored_aggregate["status"] == "SCORED_FORMATIVE"
+        _, first_path = run_prepare(
+            directory,
+            "valid",
+            text_plan,
+            judgments,
+            scored_aggregate,
+        )
         evidence_envelope = read_json(first_path)
         verification_input = evidence_envelope["verificationInput"]
         assert evidence_envelope["schemaVersion"] == prepare.EVIDENCE_ENVELOPE_SCHEMA
@@ -299,6 +368,9 @@ def test_prepare_and_aggregate() -> None:
             verification_input
         )
         assert verification_input["textPlanSha256"] == text_plan["artifactSha256"]
+        assert verification_input["judgePanelInputSha256"] == (
+            scored_aggregate["panelInputSha256"]
+        )
         assert verification_input["promptTemplateSha256"] == (
             "sha256:" + hashlib.sha256(PROMPT_PATH.read_bytes()).hexdigest()
         )
@@ -311,25 +383,195 @@ def test_prepare_and_aggregate() -> None:
             f"OBS-{index:04d}" for index in range(1, 21)
         ]
 
+        swapped_judgments = [judgments[2], judgments[0], judgments[1]]
+        swapped_aggregate = build_judge_aggregate(
+            judge_aggregator,
+            directory,
+            "swapped",
+            text_plan,
+            swapped_judgments,
+        )
         _, swapped_path = run_prepare(
             directory,
             "swapped",
             text_plan,
-            [judgments[2], judgments[0], judgments[1]],
+            swapped_judgments,
+            swapped_aggregate,
         )
         assert first_path.read_bytes() == swapped_path.read_bytes()
-        serialized = first_path.read_text(encoding="utf-8")
-        for hidden_fragment in (
-            "private-judge-",
-            '"cellId"',
-            '"label"',
-            '"confidence"',
-            '"strengthEvidence"',
-            '"gapEvidence"',
-            '"recommendedChange"',
-            '"score"',
-        ):
-            assert hidden_fragment not in serialized
+
+        forged_panel_hash = copy.deepcopy(scored_aggregate)
+        forged_panel_hash["panelInputSha256"] = "sha256:" + "f" * 64
+        forged_panel_completed, _ = run_prepare(
+            directory,
+            "forged-panel-hash",
+            text_plan,
+            judgments,
+            forged_panel_hash,
+            expect_success=False,
+        )
+        assert "panelInputSha256 mismatch" in forged_panel_completed.stderr
+
+        forged_run_ids = copy.deepcopy(scored_aggregate)
+        forged_run_ids["judgeRunIds"] = ["forged-1", "forged-2", "forged-3"]
+        forged_runs_completed, _ = run_prepare(
+            directory,
+            "forged-run-ids",
+            text_plan,
+            judgments,
+            forged_run_ids,
+            expect_success=False,
+        )
+        assert "judgeRunIds do not exactly match" in forged_runs_completed.stderr
+
+        unstable_judgments = [
+            valid_judgment(
+                prepare,
+                11,
+                text_plan["artifactSha256"],
+                overrides={"TP-J1": "BROKEN"},
+            ),
+            valid_judgment(
+                prepare,
+                12,
+                text_plan["artifactSha256"],
+                overrides={"TP-J1": "SERVICEABLE"},
+            ),
+            valid_judgment(
+                prepare,
+                13,
+                text_plan["artifactSha256"],
+                overrides={"TP-J1": "BROKEN"},
+            ),
+        ]
+        unstable_aggregate = build_judge_aggregate(
+            judge_aggregator,
+            directory,
+            "unstable-initial",
+            text_plan,
+            unstable_judgments,
+        )
+        assert unstable_aggregate["status"] == "RERUN_REQUIRED_JUDGE_INSTABILITY"
+        unscored_completed, _ = run_prepare(
+            directory,
+            "unscored-initial",
+            text_plan,
+            unstable_judgments,
+            unstable_aggregate,
+            expect_success=False,
+        )
+        assert "status mismatch" in unscored_completed.stderr
+
+        replacement_judgments = [
+            valid_judgment(prepare, index, text_plan["artifactSha256"])
+            for index in range(14, 17)
+        ]
+        replacement_aggregate = build_judge_aggregate(
+            judge_aggregator,
+            directory,
+            "stable-replacement",
+            text_plan,
+            replacement_judgments,
+            replacement_for=unstable_aggregate,
+        )
+        assert replacement_aggregate["status"] == "SCORED_FORMATIVE"
+        assert replacement_aggregate["panelKind"] == "REPLACEMENT"
+        assert replacement_aggregate["replacementReceiptSha256"].startswith("sha256:")
+        _, replacement_path = run_prepare(
+            directory,
+            "valid-replacement",
+            text_plan,
+            replacement_judgments,
+            replacement_aggregate,
+        )
+        replacement_input = read_json(replacement_path)["verificationInput"]
+        assert replacement_input["judgePanelInputSha256"] == (
+            replacement_aggregate["panelInputSha256"]
+        )
+
+        replacement_as_initial_completed, _ = run_prepare(
+            directory,
+            "replacement-as-initial",
+            text_plan,
+            replacement_judgments,
+            scored_aggregate,
+            expect_success=False,
+        )
+        assert "judgeRunIds do not exactly match" in replacement_as_initial_completed.stderr
+        initial_as_replacement_completed, _ = run_prepare(
+            directory,
+            "initial-as-replacement",
+            text_plan,
+            judgments,
+            replacement_aggregate,
+            expect_success=False,
+        )
+        assert "judgeRunIds do not exactly match" in initial_as_replacement_completed.stderr
+
+        forged_initial_as_replacement = copy.deepcopy(scored_aggregate)
+        forged_initial_as_replacement["panelKind"] = "REPLACEMENT"
+        forged_initial_as_replacement["replacementForPanelInputSha256"] = (
+            unstable_aggregate["panelInputSha256"]
+        )
+        forged_initial_as_replacement["replacementReceiptSha256"] = (
+            replacement_aggregate["replacementReceiptSha256"]
+        )
+        forged_initial_kind_completed, _ = run_prepare(
+            directory,
+            "forged-initial-as-replacement",
+            text_plan,
+            judgments,
+            forged_initial_as_replacement,
+            expect_success=False,
+        )
+        assert "panelInputSha256 mismatch" in forged_initial_kind_completed.stderr
+
+        forged_replacement_as_initial = copy.deepcopy(replacement_aggregate)
+        forged_replacement_as_initial["panelKind"] = "INITIAL"
+        forged_replacement_as_initial["replacementForPanelInputSha256"] = None
+        forged_replacement_as_initial["replacementReceiptSha256"] = None
+        forged_replacement_kind_completed, _ = run_prepare(
+            directory,
+            "forged-replacement-as-initial",
+            text_plan,
+            replacement_judgments,
+            forged_replacement_as_initial,
+            expect_success=False,
+        )
+        assert "panelInputSha256 mismatch" in forged_replacement_kind_completed.stderr
+
+        missing_replacement_receipt = copy.deepcopy(replacement_aggregate)
+        missing_replacement_receipt["replacementReceiptSha256"] = None
+        missing_receipt_completed, _ = run_prepare(
+            directory,
+            "missing-replacement-receipt",
+            text_plan,
+            replacement_judgments,
+            missing_replacement_receipt,
+            expect_success=False,
+        )
+        assert "replacementReceiptSha256" in missing_receipt_completed.stderr
+
+        serialized_inputs = (
+            first_path.read_text(encoding="utf-8"),
+            replacement_path.read_text(encoding="utf-8"),
+        )
+        for serialized in serialized_inputs:
+            for hidden_fragment in (
+                "private-judge-",
+                '"cellId"',
+                '"label"',
+                '"confidence"',
+                '"strengthEvidence"',
+                '"gapEvidence"',
+                '"recommendedChange"',
+                '"score"',
+                '"panelKind"',
+                '"replacementForPanelInputSha256"',
+                '"replacementReceiptSha256"',
+                '"judgeRunIds"',
+            ):
+                assert hidden_fragment not in serialized
 
         verification = valid_verification(evidence_envelope)
         verified = run_aggregate(
@@ -343,6 +585,7 @@ def test_prepare_and_aggregate() -> None:
         assert verified["formativeConclusionsAllowed"] is True
         assert verified["promptTemplateSha256"] == verification_input["promptTemplateSha256"]
         assert verified["verifierSchemaSha256"] == verification_input["verifierSchemaSha256"]
+        assert verified["judgePanelInputSha256"] == scored_aggregate["panelInputSha256"]
         assert verified["supportedObservationCount"] == 20
         assert verified["partialObservationCount"] == 0
         assert verified["unsupportedObservationCount"] == 0
@@ -454,6 +697,18 @@ def test_prepare_and_aggregate() -> None:
         )
         assert prompt_hash_result["blockers"][0]["code"] == "HASH_MISMATCH"
 
+        wrong_panel_binding = copy.deepcopy(verification)
+        wrong_panel_binding["judgePanelInputSha256"] = "sha256:" + "d" * 64
+        panel_binding_result = run_aggregate(
+            directory,
+            "wrong-panel-binding",
+            evidence_envelope,
+            wrong_panel_binding,
+            2,
+        )
+        assert panel_binding_result["status"] == "BLOCKED_EVIDENCE_VERIFICATION"
+        assert panel_binding_result["blockers"][0]["code"] == "HASH_MISMATCH"
+
         malformed_result = run_aggregate(
             directory,
             "malformed",
@@ -484,6 +739,7 @@ def test_prepare_and_aggregate() -> None:
             "bad-ref",
             text_plan,
             bad_ref_judgments,
+            scored_aggregate,
             expect_success=False,
         )
         assert "does not exist in the text-plan artifact" in bad_ref_completed.stderr
@@ -497,6 +753,7 @@ def test_prepare_and_aggregate() -> None:
             "metadata-leak",
             text_plan,
             leaking_judgments,
+            scored_aggregate,
             expect_success=False,
         )
         assert "leaks hidden judgment metadata" in leaking_completed.stderr
@@ -508,6 +765,7 @@ def test_prepare_and_aggregate() -> None:
             "duplicate-run",
             text_plan,
             duplicate_run_judgments,
+            scored_aggregate,
             expect_success=False,
         )
         assert "distinct judgeRunId" in duplicate_run_completed.stderr
@@ -518,7 +776,7 @@ def main() -> None:
     test_prepare_and_aggregate()
     print(
         "commercial UX text-plan evidence verifier self-test: PASS "
-        "(prompt/schema, blinded input, 12 gate outcomes, 3 input rejections)"
+        "(prompt/schema, scored-panel binding, blinded input, verifier gate outcomes)"
     )
 
 

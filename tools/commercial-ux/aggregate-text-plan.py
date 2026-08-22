@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -14,6 +15,7 @@ from typing import Any
 RUBRIC_SCHEMA = "gridworks.commercial-ux.rubric.v1"
 JUDGMENT_PROTOCOL = "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-JUDGMENT-v1"
 AGGREGATE_PROTOCOL = "GRIDWORKS-COMMERCIAL-UX-TEXT-PLAN-AGGREGATE-v1"
+REPLACEMENT_RECEIPT_SCHEMA = "gridworks.commercial-ux.text-plan-replacement-receipt.v1"
 TEXT_PLAN_ENVELOPE_SCHEMA = "gridworks.commercial-ux.text-plan-envelope.v1"
 TEXT_PLAN_ARTIFACT_SCHEMA = "gridworks.commercial-ux.text-plan-input.v1"
 STORY_PART_SCHEMA = "gridworks.commercial.story-part-output.v1"
@@ -508,6 +510,7 @@ AGGREGATE_KEYS = {
     "rerunRequired",
     "panelInputSha256",
     "replacementForPanelInputSha256",
+    "replacementReceiptSha256",
     "rubricSha256",
     "promptTemplateSha256",
     "judgmentSchemaSha256",
@@ -530,8 +533,12 @@ def validate_replacement_initial(
     prompt_template_sha256: str,
     judgment_schema_sha256: str,
     replacement_run_ids: list[str],
-) -> str:
-    initial = read_object(path, "initial aggregate")
+) -> tuple[str, Path]:
+    try:
+        resolved_path = path.resolve(strict=True)
+    except OSError as exception:
+        fail(f"initial aggregate path cannot be resolved: {exception}")
+    initial = read_object(resolved_path, "initial aggregate")
     exact_keys(initial, AGGREGATE_KEYS, "initial aggregate")
     expected = {
         "protocol": AGGREGATE_PROTOCOL,
@@ -542,6 +549,7 @@ def validate_replacement_initial(
         "panelKind": "INITIAL",
         "rerunRequired": True,
         "replacementForPanelInputSha256": None,
+        "replacementReceiptSha256": None,
         "textPlanSha256": text_plan_sha256,
         "rubricSha256": rubric_sha256,
         "promptTemplateSha256": prompt_template_sha256,
@@ -570,7 +578,101 @@ def validate_replacement_initial(
     unstable_cells = initial["unstableCells"]
     if not isinstance(unstable_cells, list) or not unstable_cells:
         fail("initial aggregate must preserve at least one unstable cell")
-    return panel_sha256
+    return panel_sha256, resolved_path
+
+
+def replacement_receipt_path(initial_aggregate_path: Path) -> Path:
+    return initial_aggregate_path.with_name(
+        initial_aggregate_path.name + ".replacement-receipt.json"
+    )
+
+
+def validate_replacement_output_path(
+    output_path: Path,
+    initial_aggregate_path: Path,
+) -> None:
+    receipt_path = replacement_receipt_path(initial_aggregate_path)
+    resolved_output_path = output_path.resolve()
+    if resolved_output_path in {initial_aggregate_path, receipt_path}:
+        fail(
+            "replacement output must not overwrite the initial aggregate or its receipt: "
+            f"{resolved_output_path}"
+        )
+    try:
+        output_path.lstat()
+    except FileNotFoundError:
+        return
+    except OSError as exception:
+        fail(f"replacement output path cannot be inspected: {exception}")
+
+    try:
+        aliases_initial = os.path.samefile(output_path, initial_aggregate_path)
+    except OSError:
+        aliases_initial = False
+    if aliases_initial:
+        fail(
+            "replacement output aliases the initial aggregate inode and would modify it: "
+            f"{output_path}"
+        )
+    fail(
+        "replacement output path must not already exist; a fresh path is required for "
+        f"exclusive output creation: {output_path}"
+    )
+
+
+def create_replacement_receipt(
+    initial_aggregate_path: Path,
+    initial_panel_input_sha256: str,
+    replacement_panel_input_sha256: str,
+    replacement_run_ids: list[str],
+    text_plan_sha256: str,
+    rubric_sha256: str,
+    prompt_template_sha256: str,
+    judgment_schema_sha256: str,
+) -> str:
+    receipt = {
+        "schemaVersion": REPLACEMENT_RECEIPT_SCHEMA,
+        "initialAggregatePath": str(initial_aggregate_path),
+        "initialPanelInputSha256": initial_panel_input_sha256,
+        "replacementPanelInputSha256": replacement_panel_input_sha256,
+        "replacementJudgeRunIds": sorted(replacement_run_ids),
+        "textPlanSha256": text_plan_sha256,
+        "rubricSha256": rubric_sha256,
+        "promptTemplateSha256": prompt_template_sha256,
+        "judgmentSchemaSha256": judgment_schema_sha256,
+    }
+    receipt_bytes = canonical_json_bytes(receipt) + b"\n"
+    receipt_sha256 = "sha256:" + hashlib.sha256(receipt_bytes).hexdigest()
+    path = replacement_receipt_path(initial_aggregate_path)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    try:
+        descriptor = os.open(path, flags, 0o600)
+    except FileExistsError:
+        fail(
+            "initial aggregate replacement was already consumed; "
+            f"receipt exists: {path}"
+        )
+    except OSError as exception:
+        fail(f"could not atomically claim replacement receipt {path}: {exception}")
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(receipt_bytes)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except OSError as exception:
+        fail(
+            "replacement receipt claim was created but could not be completed; "
+            f"it remains consumed at {path}: {exception}"
+        )
+    try:
+        persisted = path.read_bytes()
+    except OSError as exception:
+        fail(f"replacement receipt could not be verified at {path}: {exception}")
+    if persisted != receipt_bytes:
+        fail(f"replacement receipt bytes changed before verification: {path}")
+    if "sha256:" + hashlib.sha256(persisted).hexdigest() != receipt_sha256:
+        fail(f"replacement receipt hash verification failed: {path}")
+    return receipt_sha256
 
 
 def aggregate(
@@ -578,6 +680,7 @@ def aggregate(
     rubric_path: Path,
     text_plan_path: Path,
     replacement_for: Path | None,
+    output_path: Path,
 ) -> dict[str, Any]:
     if len(judgment_paths) != 3:
         fail("exactly three judgment paths are required")
@@ -614,8 +717,9 @@ def aggregate(
             f"expected {text_plan_sha256}, got {sorted(artifact_ids)}"
         )
     replacement_for_panel_sha256 = None
+    replacement_initial_path = None
     if replacement_for is not None:
-        replacement_for_panel_sha256 = validate_replacement_initial(
+        replacement_for_panel_sha256, replacement_initial_path = validate_replacement_initial(
             replacement_for,
             text_plan_sha256,
             rubric_sha256,
@@ -707,6 +811,20 @@ def aggregate(
     else:
         status = "SCORED_FORMATIVE"
     text_plan_proxy = None if unstable_cells else rounded(text_raw - penalty)
+    replacement_receipt_sha256 = None
+    if replacement_initial_path is not None:
+        assert replacement_for_panel_sha256 is not None
+        validate_replacement_output_path(output_path, replacement_initial_path)
+        replacement_receipt_sha256 = create_replacement_receipt(
+            replacement_initial_path,
+            replacement_for_panel_sha256,
+            panel_input_sha256,
+            run_ids,
+            text_plan_sha256,
+            rubric_sha256,
+            prompt_template_sha256,
+            judgment_schema_sha256,
+        )
     return {
         "protocol": AGGREGATE_PROTOCOL,
         "status": status,
@@ -717,6 +835,7 @@ def aggregate(
         "rerunRequired": bool(unstable_cells and replacement_for is None),
         "panelInputSha256": panel_input_sha256,
         "replacementForPanelInputSha256": replacement_for_panel_sha256,
+        "replacementReceiptSha256": replacement_receipt_sha256,
         "rubricSha256": rubric_sha256,
         "promptTemplateSha256": prompt_template_sha256,
         "judgmentSchemaSha256": judgment_schema_sha256,
@@ -730,6 +849,37 @@ def aggregate(
         "unstableCells": unstable_cells,
         "blockers": blockers,
     }
+
+
+def write_output(path: Path, output: str, replacement_receipt_claimed: bool) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    try:
+        descriptor = os.open(path, flags, 0o600)
+    except FileExistsError:
+        if replacement_receipt_claimed:
+            fail(
+                "aggregate output path already exists after the replacement receipt claim; "
+                f"the replacement remains consumed: {path}"
+            )
+        fail(f"aggregate output path already exists and will not be overwritten: {path}")
+    except OSError as exception:
+        if replacement_receipt_claimed:
+            fail(
+                "replacement receipt was claimed but output could not be exclusively "
+                f"created; the replacement remains consumed at {path}: {exception}"
+            )
+        fail(f"aggregate output could not be exclusively created at {path}: {exception}")
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="") as stream:
+            stream.write(output)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except OSError as exception:
+        fail(
+            "replacement output was created but could not be completed; "
+            f"the replacement remains consumed at {path}: {exception}"
+        )
 
 
 def main() -> None:
@@ -760,10 +910,14 @@ def main() -> None:
         args.rubric,
         args.text_plan,
         args.replacement_for,
+        args.output,
     )
     output = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(output, encoding="utf-8")
+    write_output(
+        args.output,
+        output,
+        replacement_receipt_claimed=args.replacement_for is not None,
+    )
     print(output, end="")
 
 

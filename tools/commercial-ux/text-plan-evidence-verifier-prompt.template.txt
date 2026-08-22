@@ -7,7 +7,8 @@ Return JSON only and conform exactly to the supplied schema. Use verifierSlot
 "__VERIFIER_RUN_ID__", textPlanSha256 "__TEXT_PLAN_SHA256__", and
 verificationInputSha256 "__VERIFICATION_INPUT_SHA256__". Echo the raw checked-in file
 hashes as promptTemplateSha256 "__PROMPT_TEMPLATE_SHA256__" and
-verifierSchemaSha256 "__VERIFIER_SCHEMA_SHA256__".
+verifierSchemaSha256 "__VERIFIER_SCHEMA_SHA256__". Echo the opaque scored judge-panel
+binding as judgePanelInputSha256 "__JUDGE_PANEL_INPUT_SHA256__".
 
 The input contains a hash-pinned text-plan artifact and anonymized observations. It does
 not identify their author, assigned cell, polarity, or conclusion. Evaluate every unique

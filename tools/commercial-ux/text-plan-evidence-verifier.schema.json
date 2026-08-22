@@ -12,6 +12,7 @@
     "promptTemplateSha256",
     "verifierSchemaSha256",
     "textPlanSha256",
+    "judgePanelInputSha256",
     "verificationInputSha256",
     "observations"
   ],
@@ -42,6 +43,10 @@
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "textPlanSha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "judgePanelInputSha256": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     },

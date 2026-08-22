@@ -36,6 +36,7 @@ class ValidationFailure(Exception):
 @dataclass(frozen=True)
 class EvidenceInput:
     text_plan_sha256: str
+    judge_panel_input_sha256: str
     verification_input_sha256: str
     prompt_template_sha256: str
     verifier_schema_sha256: str
@@ -207,6 +208,7 @@ def load_evidence_input(path: Path) -> EvidenceInput:
             "schemaVersion",
             "protocol",
             "textPlanSha256",
+            "judgePanelInputSha256",
             "promptTemplateSha256",
             "verifierSchemaSha256",
             "artifact",
@@ -232,6 +234,14 @@ def load_evidence_input(path: Path) -> EvidenceInput:
     if not isinstance(text_plan_sha, str) or SHA256_PATTERN.fullmatch(text_plan_sha) is None:
         raise ValidationFailure(
             "verification input textPlanSha256 must be a lowercase sha256 identifier"
+        )
+    judge_panel_input_sha = verification_input["judgePanelInputSha256"]
+    if (
+        not isinstance(judge_panel_input_sha, str)
+        or SHA256_PATTERN.fullmatch(judge_panel_input_sha) is None
+    ):
+        raise ValidationFailure(
+            "verification input judgePanelInputSha256 must be a lowercase sha256 identifier"
         )
     prompt_template_sha = verification_input["promptTemplateSha256"]
     verifier_schema_sha = verification_input["verifierSchemaSha256"]
@@ -299,6 +309,7 @@ def load_evidence_input(path: Path) -> EvidenceInput:
         )
     return EvidenceInput(
         text_plan_sha256=text_plan_sha,
+        judge_panel_input_sha256=judge_panel_input_sha,
         verification_input_sha256=declared_input_sha,
         prompt_template_sha256=prompt_template_sha,
         verifier_schema_sha256=verifier_schema_sha,
@@ -324,6 +335,9 @@ def empty_result(
         "protocol": AGGREGATE_PROTOCOL,
         "status": BLOCKED_STATUS,
         "textPlanSha256": evidence_input.text_plan_sha256 if evidence_input else None,
+        "judgePanelInputSha256": (
+            evidence_input.judge_panel_input_sha256 if evidence_input else None
+        ),
         "verificationInputSha256": (
             evidence_input.verification_input_sha256 if evidence_input else None
         ),
@@ -369,6 +383,7 @@ def aggregate_verification(
         "promptTemplateSha256",
         "verifierSchemaSha256",
         "textPlanSha256",
+        "judgePanelInputSha256",
         "verificationInputSha256",
         "observations",
     }
@@ -411,6 +426,8 @@ def aggregate_verification(
     hash_errors: list[str] = []
     if verification["textPlanSha256"] != evidence_input.text_plan_sha256:
         hash_errors.append("textPlanSha256 does not match the verification input")
+    if verification["judgePanelInputSha256"] != evidence_input.judge_panel_input_sha256:
+        hash_errors.append("judgePanelInputSha256 does not match the verification input")
     if verification["verificationInputSha256"] != evidence_input.verification_input_sha256:
         hash_errors.append("verificationInputSha256 does not match the verification input")
     if verification["promptTemplateSha256"] != evidence_input.prompt_template_sha256:
@@ -595,6 +612,7 @@ def aggregate_verification(
         "protocol": AGGREGATE_PROTOCOL,
         "status": SUCCESS_STATUS if is_verified else BLOCKED_STATUS,
         "textPlanSha256": evidence_input.text_plan_sha256,
+        "judgePanelInputSha256": evidence_input.judge_panel_input_sha256,
         "verificationInputSha256": evidence_input.verification_input_sha256,
         "promptTemplateSha256": evidence_input.prompt_template_sha256,
         "verifierSchemaSha256": evidence_input.verifier_schema_sha256,

@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import copy
+import concurrent.futures
 import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -315,15 +317,16 @@ def run_aggregate(
     judgments: list[dict[str, Any]],
     text_plan: dict[str, Any],
     expect_success: bool = True,
-    replacement_for: dict[str, Any] | None = None,
+    replacement_for: dict[str, Any] | Path | None = None,
     rubric_payload: dict[str, Any] | None = None,
+    output_path: Path | None = None,
 ) -> dict[str, Any] | subprocess.CompletedProcess[str]:
     paths = []
     for index, payload in enumerate(judgments, start=1):
         path = directory / f"{name}-judge-{index}.json"
         path.write_text(json.dumps(payload, ensure_ascii=False) + "\n", encoding="utf-8")
         paths.append(path)
-    output = directory / f"{name}-aggregate.json"
+    output = output_path or directory / f"{name}-aggregate.json"
     text_plan_path = directory / f"{name}-text-plan.json"
     text_plan_path.write_text(
         json.dumps(text_plan, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
@@ -339,11 +342,14 @@ def run_aggregate(
         str(output),
     ]
     if replacement_for is not None:
-        initial_path = directory / f"{name}-initial-aggregate.json"
-        initial_path.write_text(
-            json.dumps(replacement_for, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
+        if isinstance(replacement_for, Path):
+            initial_path = replacement_for
+        else:
+            initial_path = directory / f"{name}-initial-aggregate.json"
+            initial_path.write_text(
+                json.dumps(replacement_for, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
         command.extend(["--replacement-for", str(initial_path)])
     if rubric_payload is not None:
         rubric_path = directory / f"{name}-rubric.json"
@@ -392,8 +398,31 @@ def test_aggregation() -> None:
         assert all_strong["commercialUXProxy"] is None
         assert all_strong["panelKind"] == "INITIAL"
         assert all_strong["replacementForPanelInputSha256"] is None
+        assert all_strong["replacementReceiptSha256"] is None
         assert all_strong["promptTemplateSha256"] == PROMPT_TEMPLATE_SHA256
         assert all_strong["judgmentSchemaSha256"] == JUDGMENT_SCHEMA_SHA256
+
+        rerun_output_path = directory / "initial-output-once.json"
+        initial_output_first = run_aggregate(
+            directory,
+            "initial-output-first",
+            [judgment(rubric, index, artifact_sha) for index in range(50, 53)],
+            text_plan,
+            output_path=rerun_output_path,
+        )
+        assert isinstance(initial_output_first, dict)
+        initial_output_bytes = rerun_output_path.read_bytes()
+        initial_output_second = run_aggregate(
+            directory,
+            "initial-output-second",
+            [judgment(rubric, index, artifact_sha) for index in range(53, 56)],
+            text_plan,
+            expect_success=False,
+            output_path=rerun_output_path,
+        )
+        assert isinstance(initial_output_second, subprocess.CompletedProcess)
+        assert "already exists and will not be overwritten" in initial_output_second.stderr
+        assert rerun_output_path.read_bytes() == initial_output_bytes
 
         journey_excellent = {"TP-J1": "EXCELLENT", "TP-J2": "EXCELLENT"}
         above_threshold_example = run_aggregate(
@@ -436,6 +465,7 @@ def test_aggregation() -> None:
         assert unstable["cellScores"]["TP-J1"]["ordinalRange"] == 2
         assert unstable["panelKind"] == "INITIAL"
         assert unstable["replacementForPanelInputSha256"] is None
+        assert unstable["replacementReceiptSha256"] is None
         assert unstable["rerunRequired"] is True
 
         replacement_unstable_panel = [
@@ -458,6 +488,7 @@ def test_aggregation() -> None:
             replacement_unstable["replacementForPanelInputSha256"]
             == unstable["panelInputSha256"]
         )
+        assert replacement_unstable["replacementReceiptSha256"].startswith("sha256:")
         assert replacement_unstable["rerunRequired"] is False
 
         stable_replacement = run_aggregate(
@@ -475,7 +506,149 @@ def test_aggregation() -> None:
             stable_replacement["replacementForPanelInputSha256"]
             == unstable["panelInputSha256"]
         )
+        assert stable_replacement["replacementReceiptSha256"].startswith("sha256:")
         assert stable_replacement["rerunRequired"] is False
+
+        single_use_initial_path = directory / "single-use-initial.json"
+        single_use_initial_bytes = (
+            json.dumps(unstable, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        ).encode("utf-8")
+        single_use_initial_path.write_bytes(single_use_initial_bytes)
+        single_use_first = run_aggregate(
+            directory,
+            "single-use-first",
+            [judgment(rubric, index, artifact_sha) for index in range(7, 10)],
+            text_plan,
+            replacement_for=single_use_initial_path,
+        )
+        assert isinstance(single_use_first, dict)
+        single_use_receipt_path = single_use_initial_path.resolve().with_name(
+            single_use_initial_path.name + ".replacement-receipt.json"
+        )
+        receipt_bytes = single_use_receipt_path.read_bytes()
+        assert single_use_first["replacementReceiptSha256"] == (
+            "sha256:" + hashlib.sha256(receipt_bytes).hexdigest()
+        )
+        receipt = json.loads(receipt_bytes)
+        assert receipt == {
+            "schemaVersion": "gridworks.commercial-ux.text-plan-replacement-receipt.v1",
+            "initialAggregatePath": str(single_use_initial_path.resolve()),
+            "initialPanelInputSha256": unstable["panelInputSha256"],
+            "replacementPanelInputSha256": single_use_first["panelInputSha256"],
+            "replacementJudgeRunIds": ["fresh-run-7", "fresh-run-8", "fresh-run-9"],
+            "textPlanSha256": artifact_sha,
+            "rubricSha256": single_use_first["rubricSha256"],
+            "promptTemplateSha256": PROMPT_TEMPLATE_SHA256,
+            "judgmentSchemaSha256": JUDGMENT_SCHEMA_SHA256,
+        }
+        assert single_use_initial_path.read_bytes() == single_use_initial_bytes
+
+        single_use_second = run_aggregate(
+            directory,
+            "single-use-second",
+            [judgment(rubric, index, artifact_sha) for index in range(10, 13)],
+            text_plan,
+            expect_success=False,
+            replacement_for=single_use_initial_path,
+        )
+        assert isinstance(single_use_second, subprocess.CompletedProcess)
+        assert "replacement was already consumed" in single_use_second.stderr
+        assert single_use_initial_path.read_bytes() == single_use_initial_bytes
+        assert not (directory / "single-use-second-aggregate.json").exists()
+
+        preclaimed_initial_path = directory / "preclaimed-initial.json"
+        preclaimed_initial_bytes = (
+            json.dumps(unstable, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        ).encode("utf-8")
+        preclaimed_initial_path.write_bytes(preclaimed_initial_bytes)
+        preclaimed_receipt_path = preclaimed_initial_path.resolve().with_name(
+            preclaimed_initial_path.name + ".replacement-receipt.json"
+        )
+        preclaimed_receipt_path.write_bytes(b"preexisting-receipt\n")
+        preclaimed = run_aggregate(
+            directory,
+            "preclaimed-receipt",
+            [judgment(rubric, index, artifact_sha) for index in range(13, 16)],
+            text_plan,
+            expect_success=False,
+            replacement_for=preclaimed_initial_path,
+        )
+        assert isinstance(preclaimed, subprocess.CompletedProcess)
+        assert "replacement was already consumed" in preclaimed.stderr
+        assert preclaimed_receipt_path.read_bytes() == b"preexisting-receipt\n"
+        assert preclaimed_initial_path.read_bytes() == preclaimed_initial_bytes
+        assert not (directory / "preclaimed-receipt-aggregate.json").exists()
+
+        concurrent_initial_path = directory / "concurrent-initial.json"
+        concurrent_initial_bytes = (
+            json.dumps(unstable, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        ).encode("utf-8")
+        concurrent_initial_path.write_bytes(concurrent_initial_bytes)
+
+        def concurrent_replacement(name: str, first_run: int) -> tuple[str, Any]:
+            try:
+                value = run_aggregate(
+                    directory,
+                    name,
+                    [
+                        judgment(rubric, index, artifact_sha)
+                        for index in range(first_run, first_run + 3)
+                    ],
+                    text_plan,
+                    replacement_for=concurrent_initial_path,
+                )
+                return "PASS", value
+            except AssertionError as exception:
+                return "FAIL", str(exception)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            concurrent_results = list(executor.map(
+                lambda item: concurrent_replacement(*item),
+                (("concurrent-a", 20), ("concurrent-b", 30)),
+            ))
+        assert sorted(status for status, _ in concurrent_results) == ["FAIL", "PASS"]
+        concurrent_failure = next(value for status, value in concurrent_results if status == "FAIL")
+        concurrent_success = next(value for status, value in concurrent_results if status == "PASS")
+        assert "replacement was already consumed" in concurrent_failure
+        assert isinstance(concurrent_success, dict)
+        concurrent_receipt_path = concurrent_initial_path.resolve().with_name(
+            concurrent_initial_path.name + ".replacement-receipt.json"
+        )
+        concurrent_receipt_bytes = concurrent_receipt_path.read_bytes()
+        assert concurrent_success["replacementReceiptSha256"] == (
+            "sha256:" + hashlib.sha256(concurrent_receipt_bytes).hexdigest()
+        )
+        assert concurrent_initial_path.read_bytes() == concurrent_initial_bytes
+        concurrent_outputs = [
+            directory / "concurrent-a-aggregate.json",
+            directory / "concurrent-b-aggregate.json",
+        ]
+        assert sum(path.exists() for path in concurrent_outputs) == 1
+
+        hardlink_initial_path = directory / "hardlink-initial.json"
+        hardlink_initial_bytes = (
+            json.dumps(unstable, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        ).encode("utf-8")
+        hardlink_initial_path.write_bytes(hardlink_initial_bytes)
+        hardlink_output_path = directory / "hardlink-output.json"
+        os.link(hardlink_initial_path, hardlink_output_path)
+        hardlink_rejected = run_aggregate(
+            directory,
+            "hardlink-output-alias",
+            [judgment(rubric, index, artifact_sha) for index in range(40, 43)],
+            text_plan,
+            expect_success=False,
+            replacement_for=hardlink_initial_path,
+            output_path=hardlink_output_path,
+        )
+        assert isinstance(hardlink_rejected, subprocess.CompletedProcess)
+        assert "aliases the initial aggregate inode" in hardlink_rejected.stderr
+        assert hardlink_initial_path.read_bytes() == hardlink_initial_bytes
+        assert hardlink_output_path.read_bytes() == hardlink_initial_bytes
+        hardlink_receipt_path = hardlink_initial_path.resolve().with_name(
+            hardlink_initial_path.name + ".replacement-receipt.json"
+        )
+        assert not hardlink_receipt_path.exists()
 
         exact_ninety_cells = {
             "TP-J1": "EXCELLENT",

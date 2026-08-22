@@ -28,6 +28,7 @@ internal sealed record CommercialMapPresentation(
     string ToolLabel,
     int? PointerFootprintRadiusUnit,
     bool NodeSnapEnabled,
+    bool OperationsLocked,
     ThermalIntervalResult? ThermalInterval,
     string? SelectedThermalAssetId,
     string? SelectedDemandNodeId,
@@ -1090,6 +1091,8 @@ internal sealed partial class CommercialMapView : Control
 
     public IReadOnlyList<string> CandidateNodeIds => _candidateNodeIds.AsReadOnly();
 
+    public bool OperationsLocked => _presentation?.OperationsLocked == true;
+
     public bool HasIndividualTileAssets =>
         GroundAsphaltTile is not null &&
         GroundScrubTile is not null &&
@@ -1320,6 +1323,12 @@ internal sealed partial class CommercialMapView : Control
     {
         ArgumentNullException.ThrowIfNull(presentation);
         _presentation = presentation;
+        if (presentation.OperationsLocked && _draggingDraftPoint)
+        {
+            _draggingDraftPoint = false;
+            _draggedDraftPointIndex = -1;
+            DraftPointDragPreviewChanged?.Invoke(null);
+        }
         SetProcess(!presentation.ReduceMotion);
         MapBounds bounds = presentation.Snapshot.World.Bounds;
         var gameBounds = new CommercialMapBounds(
@@ -1344,6 +1353,11 @@ internal sealed partial class CommercialMapView : Control
         }
         RefreshCandidates(notify: false);
         AccessibilityName = BuildAccessibilityName(presentation);
+        AccessibilityDescription = presentation.OperationsLocked
+            ? "읽기 전용 지도입니다. 공사 도구, 접속점 선택, 되돌리기는 잠겨 있습니다. " +
+              "마우스 가운데 버튼 또는 Space+드래그로 이동하고 휠이나 +/-로 확대하며 Home으로 전체 보기를 복원합니다."
+            : "청류시 자유 배치 지도. 건물 한 채와 도로 한 조각 단위의 원자 자산이 v2 좌표에 배치됩니다. " +
+              "방향키로 커서를 움직이고 Enter로 선택합니다. Q와 E로 가까운 접속점을 바꿉니다.";
         QueueRedraw();
     }
 
@@ -1470,15 +1484,19 @@ internal sealed partial class CommercialMapView : Control
 
             case InputEventMouseButton button when
                 button.ButtonIndex == MouseButton.Right && button.Pressed:
-                UndoRequested?.Invoke();
+                if (!OperationsLocked)
+                {
+                    UndoRequested?.Invoke();
+                }
                 AcceptEvent();
                 return;
 
             case InputEventMouseButton button when
                 button.ButtonIndex == MouseButton.Left && button.Pressed:
-                if (TryMapPoint(button.Position, out CoreMapPoint clicked))
+                GrabFocus();
+                if (!OperationsLocked &&
+                    TryMapPoint(button.Position, out CoreMapPoint clicked))
                 {
-                    GrabFocus();
                     _keyboardPoint = clicked;
                     SetPointer(clicked);
                     PointRequested?.Invoke(clicked, SelectedCandidateId);
@@ -1589,6 +1607,11 @@ internal sealed partial class CommercialMapView : Control
             AcceptEvent();
             return;
         }
+        if (OperationsLocked && IsConstructionKey(key))
+        {
+            AcceptEvent();
+            return;
+        }
         if (key.Keycode is Key.Key1 or Key.Kp1)
         {
             BuildRailActionRequested?.Invoke(CommercialPanelAction.StartLine);
@@ -1674,6 +1697,7 @@ internal sealed partial class CommercialMapView : Control
         _candidateNodeIds.Clear();
         if (_pointerPoint is CoreMapPoint pointer &&
             _presentation is { NodeSnapEnabled: true } &&
+            !_presentation.OperationsLocked &&
             !_draggingDraftPoint &&
             _transform is not null)
         {
@@ -1702,7 +1726,7 @@ internal sealed partial class CommercialMapView : Control
 
     private void CycleCandidate(int direction)
     {
-        if (_candidateNodeIds.Count == 0)
+        if (OperationsLocked || _candidateNodeIds.Count == 0)
         {
             return;
         }
@@ -3875,6 +3899,10 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawPointer(CommercialMapPresentation presentation)
     {
+        if (presentation.OperationsLocked)
+        {
+            return;
+        }
         if (_pointerPoint is not CoreMapPoint point)
         {
             return;
@@ -3957,13 +3985,16 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawMapLegend()
     {
-        string label = $"{ZoomLabel}  ·  자유 배치  ·  1 = 100단위";
+        string label = OperationsLocked
+            ? $"{ZoomLabel}  ·  읽기 전용  ·  이동/확대 가능"
+            : $"{ZoomLabel}  ·  자유 배치  ·  1 = 100단위";
         DrawString(GetThemeDefaultFont(), new Vector2(18f, Size.Y - 13f), label,
             HorizontalAlignment.Left, -1f, 11, Muted);
     }
 
     private void DrawBuildRail()
     {
+        bool locked = OperationsLocked;
         (Texture2D? Texture, string Label, CommercialPanelAction? Action)[] slots =
         [
             (AtomicPlantMainHallASprite, "발전", null),
@@ -3977,7 +4008,18 @@ internal sealed partial class CommercialMapView : Control
         Rect2 outer = new(
             new Vector2(BuildRailLeft, BuildRailTop - 18f),
             new Vector2(BuildRailSlotWidth + 16f, height));
-        DrawChromeFrame(outer, Colors.White, 17f);
+        DrawChromeFrame(
+            outer,
+            locked ? new Color(0.48f, 0.49f, 0.46f, 0.82f) : Colors.White,
+            17f);
+        DrawString(
+            GetThemeDefaultFont(),
+            new Vector2(outer.Position.X + 8f, BuildRailTop - 4f),
+            locked ? "공사 잠금 · 읽기 전용" : "건설 도구",
+            HorizontalAlignment.Left,
+            outer.Size.X - 16f,
+            11,
+            locked ? Color.FromHtml("a59f91") : Focus);
 
         for (int index = 0; index < slots.Length; index++)
         {
@@ -3985,7 +4027,7 @@ internal sealed partial class CommercialMapView : Control
             Rect2 slot = new(
                 new Vector2(BuildRailLeft + 8f, top),
                 new Vector2(BuildRailSlotWidth, BuildRailSlotHeight));
-            bool active = slots[index].Action switch
+            bool active = !locked && (slots[index].Action switch
             {
                 CommercialPanelAction.StartLine =>
                     _presentation?.ToolLabel.Contains("선로", StringComparison.Ordinal) == true,
@@ -3994,11 +4036,19 @@ internal sealed partial class CommercialMapView : Control
                 CommercialPanelAction.CycleLineClass =>
                     _presentation?.ToolLabel.Contains("보강", StringComparison.Ordinal) == true,
                 _ => false,
-            };
-            Color accent = active ? Focus : Color.FromHtml("685b48");
+            });
+            Color accent = locked
+                ? Color.FromHtml("403f3a")
+                : active
+                    ? Focus
+                    : Color.FromHtml("685b48");
             DrawChromeFrame(
                 slot,
-                active ? new Color(0.96f, 0.78f, 0.43f, 1f) : new Color(0.76f, 0.72f, 0.65f, 1f),
+                locked
+                    ? new Color(0.42f, 0.43f, 0.40f, 0.72f)
+                    : active
+                        ? new Color(0.96f, 0.78f, 0.43f, 1f)
+                        : new Color(0.76f, 0.72f, 0.65f, 1f),
                 14f,
                 UiToolSlotTexture);
             DrawRect(slot, accent, false, active ? 2.4f : 1.3f);
@@ -4007,7 +4057,9 @@ internal sealed partial class CommercialMapView : Control
                 Vector2 iconSize = FitSpriteSize(texture, index == 0 ? 104f : 98f);
                 Vector2 anchor = slot.GetCenter() + new Vector2(0f, 16f);
                 DrawTextureRect(texture, SpriteRect(anchor, iconSize), false,
-                    index == 0
+                    locked
+                        ? new Color(0.36f, 0.37f, 0.35f, 0.55f)
+                        : index == 0
                         ? new Color(0.60f, 0.61f, 0.58f, 0.74f)
                         : new Color(0.92f, 0.91f, 0.84f, 0.96f));
             }
@@ -4018,7 +4070,7 @@ internal sealed partial class CommercialMapView : Control
                 HorizontalAlignment.Center,
                 slot.Size.X,
                 11,
-                active ? Focus : Text);
+                locked ? Muted : active ? Focus : Text);
         }
     }
 
@@ -4102,7 +4154,7 @@ internal sealed partial class CommercialMapView : Control
             3 => CommercialPanelAction.CycleLineClass,
             _ => null,
         };
-        if (action is CommercialPanelAction selected)
+        if (!OperationsLocked && action is CommercialPanelAction selected)
         {
             BuildRailActionRequested?.Invoke(selected);
         }
@@ -4204,9 +4256,11 @@ internal sealed partial class CommercialMapView : Control
 
     private string BuildAccessibilityName(CommercialMapPresentation presentation)
     {
-        string pointer = _pointerPoint is CoreMapPoint
-            ? CandidateLabel(presentation.Snapshot.World) ?? presentation.PointerMessage
-            : "지도 밖";
+        string pointer = presentation.OperationsLocked
+            ? "공사 포인터 비활성"
+            : _pointerPoint is CoreMapPoint
+                ? CandidateLabel(presentation.Snapshot.World) ?? presentation.PointerMessage
+                : "지도 밖";
         string thermal = string.Empty;
         if (presentation.ThermalInterval is ThermalIntervalResult interval)
         {
@@ -4232,10 +4286,13 @@ internal sealed partial class CommercialMapView : Control
                     $"{(nodeNames.TryGetValue(item.NodeId, out string? name) ? name : "수요 시설")} " +
                     item.StatusText)) + ".";
         string motion = presentation.ReduceMotion ? " 지도 움직임 줄임 적용." : string.Empty;
+        string operations = presentation.OperationsLocked
+            ? " 공사 조작 잠금. 지도는 읽기 전용이며 이동, 확대, 전체 보기만 사용할 수 있습니다."
+            : " 공사 조작 가능.";
         int reserved = presentation.Snapshot.World.Nodes.Count(item => item.Reserved);
         string reservedText = reserved == 0 ? string.Empty : $" 예정 시설 {reserved}곳.";
         return $"청류시 자유 배치 지도. {presentation.ToolLabel}. {pointer}. 지도 {ZoomLabel}." +
-               $"{reservedText}{thermal}{selectedPath}{facilities}{motion}";
+               $"{operations}{reservedText}{thermal}{selectedPath}{facilities}{motion}";
     }
 
     private Vector2 KeyboardAnchor() => RequireTransform().WorldToCanvas(
@@ -4282,6 +4339,10 @@ internal sealed partial class CommercialMapView : Control
 
     private bool TryBeginDraftPointDrag(Vector2 canvasPoint)
     {
+        if (OperationsLocked)
+        {
+            return false;
+        }
         LineDraftSnapshot? draft = _presentation?.Snapshot.LineDraft;
         if (draft is null || draft.IntermediatePoints.Count == 0)
         {
@@ -4306,6 +4367,18 @@ internal sealed partial class CommercialMapView : Control
             nearest.Index,
             draft.IntermediatePoints[nearest.Index]));
         return true;
+    }
+
+    private static bool IsConstructionKey(InputEventKey key)
+    {
+        Key physical = key.PhysicalKeycode;
+        return physical is Key.Q or Key.E ||
+            key.Keycode is Key.Key1 or Key.Kp1 or
+                Key.Key2 or Key.Kp2 or
+                Key.Key3 or Key.Kp3 or
+                Key.Backspace or
+                Key.Left or Key.Right or Key.Up or Key.Down or
+                Key.Enter or Key.KpEnter;
     }
 
     private Vector2 ToCanvas(CoreMapPoint point) => RequireTransform().WorldToCanvas(

@@ -40,12 +40,24 @@ internal sealed partial class CommercialMain
 
             await PressShellAsync(ReleaseShellAction.NewGame, "새 게임");
             await NextFrame();
-            Require(_shell.Page == ReleaseShellPage.Help,
-                "새 게임의 조작 도움말이 같은 shell overlay에 열리지 않았습니다.");
-            await PressShellAsync(ReleaseShellAction.HelpBack, "조작 도움말 닫기");
-            await NextFrame();
-            Require(_shell.Page == ReleaseShellPage.Hidden && _map.HasFocus(),
-                "조작 도움말 뒤 지도로 keyboard focus가 돌아오지 않았습니다.");
+            Require(
+                _shell.Page == ReleaseShellPage.Hidden &&
+                _presentationMode == CommercialPresentationMode.Briefing &&
+                _map.OperationsLocked &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "임무 시작" &&
+                !_panel.GetActionButton(CommercialPanelAction.StartLine).Visible,
+                "새 게임이 generic 조작 도움말 대신 잠긴 첫 임무 브리핑을 열지 않았습니다.");
+            SaveEvidencePng(Path.Combine(
+                evidenceDirectory,
+                "1920x1080-ui100-first-briefing.png"));
+            await AdvancePresentationToOperations("첫 불빛 브리핑");
+            Require(
+                _panel.AccessibilityName.Contains("변전소 놓기(2)", StringComparison.Ordinal),
+                "첫 운영 화면이 변전소 배치라는 단계별 다음 행동을 표시하지 않았습니다.");
+            SaveEvidencePng(Path.Combine(
+                evidenceDirectory,
+                "1920x1080-ui100-first-operations.png"));
 
             // Construction input is exercised at the closest authored zoom. The
             // final parity captures return Home to the full-map composition so all
@@ -212,6 +224,22 @@ internal sealed partial class CommercialMain
                 "1920×1080·UI 125%에서 고정 행동이나 선택 경로가 화면 밖으로 잘렸습니다.");
             SaveEvidencePng(Path.Combine(evidenceDirectory, "1920x1080-ui125-path-reduce-motion.png"));
 
+            await PressPanelAsync(
+                CommercialPanelAction.ApproveWindow,
+                "첫 불빛 동결 결과 확인");
+            await NextFrame();
+            Require(
+                _presentationMode == CommercialPresentationMode.Result &&
+                _map.OperationsLocked &&
+                HeadingText() == "첫 불빛 · 결과" &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "다음 임무" &&
+                !_panel.GetActionButton(CommercialPanelAction.RollbackProject).Visible,
+                "UI 125% 표현 smoke가 다음 장 상태와 분리된 첫 불빛 동결 결과를 열지 못했습니다.");
+            SaveEvidencePng(Path.Combine(
+                evidenceDirectory,
+                "1920x1080-ui125-first-result.png"));
+
             await PressKey(Key.Escape);
             await PressShellAsync(ReleaseShellAction.SaveAndQuit, "저장하고 제목으로");
             Require(
@@ -221,15 +249,33 @@ internal sealed partial class CommercialMain
                 !File.Exists(_savePath + ".tmp") &&
                 !File.Exists(_settingsPath + ".tmp"),
                 "Save & Quit이 성공한 원자적 저장 뒤에만 제목으로 이동하지 않았습니다.");
+            await PressShellAsync(ReleaseShellAction.Continue, "저장 진행 재개 안내");
+            await NextFrame();
+            Require(
+                _presentationMode == CommercialPresentationMode.ResumeOrientation &&
+                _map.OperationsLocked &&
+                _panel.AccessibilityName.Contains("동부 생활권 첫 점등", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("두 번째 심장", StringComparison.Ordinal) &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "진행 재개",
+                "저장 뒤 Continue가 직전 결과와 현재 장을 구분한 재개 안내를 열지 못했습니다.");
+            SaveEvidencePng(Path.Combine(
+                evidenceDirectory,
+                "1920x1080-ui125-resume-orientation.png"));
+            await PressKey(Key.Escape);
+            await PressShellAsync(ReleaseShellAction.SaveAndQuit, "재개 안내에서 저장하고 제목으로");
+            Require(_shell.Page == ReleaseShellPage.Title,
+                "재개 안내 캡처 뒤 제목 화면으로 돌아오지 못했습니다.");
             GD.Print(
                 "COMMERCIAL_STAGE_G_PRESENTATION_SMOKE_PASS " +
-                "screens=title-ui100|substation-draft-ui100|pole-draft-ui100|" +
-                "art-path-ui100|river-heat-ui100|river-flood-ui100|art-path-ui125 " +
+                "screens=title-ui100|briefing-ui100|operations-ui100|substation-draft-ui100|" +
+                "pole-draft-ui100|art-path-ui100|river-heat-ui100|river-flood-ui100|" +
+                "art-path-ui125|result-ui125|resume-ui125 " +
                 $"visual=discrete-tiles-{_map.IndividualTileAssetCount}|" +
                 $"discrete-objects-{_map.IndividualObjectAssetCount}|" +
                 "planned-class-sprites|event-timeline " +
                 "input=focus-keyboard reduce-motion=on " +
-                "save-and-quit=atomic resolution=1920x1080 " +
+                "save-and-quit=atomic resume=orientation resolution=1920x1080 " +
                 $"camera={_map.CameraCenter.X:0.0},{_map.CameraCenter.Y:0.0} " +
                 $"buildIdentity={CommercialCoreSaveCodec.ComputeSha256(_buildIdentityBytes)}");
             GetTree().Quit(0);
@@ -647,8 +693,11 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "FIRST_LIGHT" &&
+                _presentationMode == CommercialPresentationMode.Briefing &&
+                _map.OperationsLocked &&
                 _audio.GetChildCount() == 4 &&
                 !_panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
+                !_panel.GetActionButton(CommercialPanelAction.StartLine).Visible &&
                 _panel.AccessibilityName.Contains("현재 의무", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("조작 ·", StringComparison.Ordinal) &&
                 _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
@@ -659,8 +708,10 @@ internal sealed partial class CommercialMain
                 _map.AtomicRoadTileAssetCount == 6 &&
                 _map.AtomicWorldInstanceCount == 641 &&
                 _timeline.StepCount == 4 &&
-                _timeline.CurrentStepLabel == "첫 입주 점등" &&
+                _timeline.CurrentStepLabel == "브리핑" &&
                 _timeline.AccessibilityName.Contains("시간을 진행하지 않습니다", StringComparison.Ordinal) &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "임무 시작" &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow)) &&
                 ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject)) &&
                 !_panel.GetActionButton(CommercialPanelAction.RestartChapter).Visible &&
@@ -669,7 +720,7 @@ internal sealed partial class CommercialMain
                 $"chapter={coreRun.GetSnapshot().Chapter.ChapterId}, audio={_audio.GetChildCount()}, " +
                 $"art={_map.IndividualArtAssetCount}, atomic={_map.AtomicCityAssetCount}/" +
                 $"{_map.AtomicRoadTileAssetCount}/{_map.AtomicWorldInstanceCount}, " +
-                $"timeline={_timeline.StepCount}/{_timeline.CurrentStepLabel}, " +
+                $"mode={_presentationMode}, timeline={_timeline.StepCount}/{_timeline.CurrentStepLabel}, " +
                 $"approveInside={ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.ApproveWindow))}, " +
                 $"rollbackInside={ControlInside(_panel, _panel.GetActionButton(CommercialPanelAction.RollbackProject))}");
 
@@ -711,9 +762,18 @@ internal sealed partial class CommercialMain
                 _savePath = null;
             }
 
+            await AdvancePresentationToOperations("첫 불빛 단계 안내");
+            Require(
+                _panel.AccessibilityName.Contains("변전소 놓기(2)", StringComparison.Ordinal),
+                "첫 불빛 운영 시작이 변전소 배치라는 첫 행동을 고정 안내하지 않았습니다.");
             await BuildCampaignSmokeSubstation(
                 new CoreMapPoint(2200, 750),
                 "첫 불빛 변전소");
+            Require(
+                _panel.AccessibilityName.Contains(
+                    "서부 발전 접속점에서 새 변전소",
+                    StringComparison.Ordinal),
+                "첫 불빛 변전소 완공 뒤 발전원 연결이라는 다음 행동으로 바뀌지 않았습니다.");
             await BuildCampaignSmokeLine(
                 "WEST_SOURCE",
                 "PLAYER_SUBSTATION_1",
@@ -724,6 +784,11 @@ internal sealed partial class CommercialMain
                     new CoreMapPoint(1900, 600),
                 ],
                 "첫 불빛 간선");
+            Require(
+                _panel.AccessibilityName.Contains(
+                    "동부 생활권 접속점까지 인입선",
+                    StringComparison.Ordinal),
+                "첫 불빛 발전원 연결 뒤 생활권 인입이라는 다음 행동으로 바뀌지 않았습니다.");
             await BuildCampaignSmokeLine(
                 "PLAYER_SUBSTATION_1",
                 "EAST_RESIDENTIAL_TERMINAL",
@@ -731,11 +796,18 @@ internal sealed partial class CommercialMain
                 "첫 불빛 인입선");
             Require(_thermalSequence.Intervals.SelectMany(item => item.Assets).Any(item =>
                     item.AssetId == "PLAYER_EDGE_6") &&
-                _panel.AccessibilityName.Contains("공급할 수 있습니다", StringComparison.Ordinal),
+                _panel.AccessibilityName.Contains("공급할 수 있습니다", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("필수 공급 1/1 ✓", StringComparison.Ordinal),
                 "예약 시설이 남은 임무에서 완공 선로의 열·경로 projection을 즉시 갱신하지 못했습니다.");
             CommercialDecisionPreview firstPreview = coreRun.PreviewDecisionWindow();
             Require(firstPreview.Accepted && firstPreview.ProjectedMinute <= 800,
                 "첫 불빛 운영안이 안전 의무와 기한을 만족하지 못했습니다.");
+            CommercialCoreSnapshot firstResultCore = coreRun.GetSnapshot();
+            ConstructionSnapshot firstResultConstruction = _snapshot;
+            ThermalSequenceResult firstResultThermal = _thermalSequence;
+            int firstResultThermalIndex = _thermalProjectionIndex;
+            string firstResultCash = _cashLabel.Text;
+            string firstResultMap = _map.AccessibilityName;
             await CaptureG3FinalPair("pair-normal.png");
             // The flood comparison needs a genuine before-state of the same
             // persistent world at the same regional Home camera. Keep this as a
@@ -747,13 +819,69 @@ internal sealed partial class CommercialMain
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "SECOND_HEART" &&
                 coreRun.GetSnapshot().ChapterResults.Count == 1 &&
+                _presentationMode == CommercialPresentationMode.Result &&
+                _map.OperationsLocked &&
+                ReferenceEquals(_snapshot, firstResultConstruction) &&
+                ReferenceEquals(_thermalSequence, firstResultThermal) &&
+                _thermalProjectionIndex == firstResultThermalIndex &&
+                _frozenResult?.CoreSnapshot.Chapter.ChapterId ==
+                    firstResultCore.Chapter.ChapterId &&
+                _frozenResult.CoreSnapshot.CommandCount == firstResultCore.CommandCount &&
+                _frozenResult.CashUnit == firstResultCore.CashUnit &&
+                HeadingText() == "첫 불빛 · 결과" &&
+                _cashLabel.Text == firstResultCash &&
+                _map.AccessibilityName.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
+                firstResultMap.Contains("예정 시설 4곳", StringComparison.Ordinal) &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "다음 임무" &&
+                !_panel.GetActionButton(CommercialPanelAction.StartLine).Visible &&
+                !_panel.GetActionButton(CommercialPanelAction.RollbackProject).Visible &&
+                !_panel.GetActionButton(CommercialPanelAction.NextThermalPhase).Visible &&
+                !_panel.GetActionButton(CommercialPanelAction.NextDemand).Visible &&
                 _timeline.CurrentStepLabel == "결과" &&
                 _timeline.AccessibilityName.Contains("동부 생활권 첫 점등", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("동부 생활권 첫 점등", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("실제 경로", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("서부 발전 접속점", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("동부 생활권", StringComparison.Ordinal),
-                "첫 불빛 결과와 실제 공급 사실을 제시한 뒤 두 번째 심장으로 전환하지 못했습니다.");
+                "첫 불빛의 현금·열 projection·지도를 동결한 결과로 제시하지 못했습니다. " +
+                $"mode={_presentationMode}, locked={_map.OperationsLocked}, " +
+                $"snapshot={ReferenceEquals(_snapshot, firstResultConstruction)}, " +
+                $"thermal={ReferenceEquals(_thermalSequence, firstResultThermal)}/" +
+                $"{_thermalProjectionIndex}/{firstResultThermalIndex}, " +
+                $"frozen={_frozenResult?.CoreSnapshot.Chapter.ChapterId}/" +
+                $"{_frozenResult?.CoreSnapshot.CommandCount}/{firstResultCore.CommandCount}, " +
+                $"cash={_cashLabel.Text}/{firstResultCash}, heading={HeadingText()}, " +
+                $"map={_map.AccessibilityName}, action=" +
+                $"{_panel.GetActionButton(CommercialPanelAction.ApproveWindow).AccessibilityName}, " +
+                $"timeline={_timeline.CurrentStepLabel}, panel={_panel.AccessibilityName}");
+
+            _helpButton.GrabFocus();
+            await NextFrame();
+            await PressKey(Key.Enter);
+            Require(
+                _shell.Page == ReleaseShellPage.Pause &&
+                _shell.GetActionButton(ReleaseShellAction.RestartChapter).Disabled &&
+                _shell.GetActionButton(ReleaseShellAction.RewindPreviousChapter).Disabled &&
+                _presentationMode == CommercialPresentationMode.Result &&
+                ReferenceEquals(_snapshot, firstResultConstruction),
+                "동결된 Result의 메뉴가 다음 장을 현재 임무로 노출하거나 재시작 우회를 허용했습니다.");
+            await PressShellAsync(ReleaseShellAction.Resume, "첫 결과 메뉴 닫기");
+
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "두 번째 심장 브리핑 열기");
+            await NextFrame();
+            Require(
+                _presentationMode == CommercialPresentationMode.Briefing &&
+                _map.OperationsLocked &&
+                HeadingText() == "두 번째 심장 · 브리핑" &&
+                _panel.AccessibilityName.Contains("두 번째 심장", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains(
+                    coreRun.GetSnapshot().Chapter.Briefing.Title,
+                    StringComparison.Ordinal) &&
+                _timeline.CurrentStepLabel == "브리핑" &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "임무 시작",
+                "첫 결과 뒤 다음 장 상태를 섞지 않은 명시적 두 번째 심장 브리핑을 열지 못했습니다.");
 
             await BuildCampaignSmokeLine(
                 "PLAYER_SUBSTATION_1",
@@ -792,10 +920,35 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "SECOND_SOURCE" &&
+                _presentationMode == CommercialPresentationMode.Result &&
                 !_panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
                 !_panel.AccessibilityName.Contains("조작 ·", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("수술실 전환시험 완료", StringComparison.Ordinal),
                 "두 번째 심장 결과와 다음 임무 전환을 제시하지 못했습니다.");
+
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "두 번째 전원 브리핑 열기");
+            await NextFrame();
+            Require(
+                _presentationMode == CommercialPresentationMode.Briefing &&
+                _panel.AccessibilityName.Contains(
+                    coreRun.GetSnapshot().Chapter.Briefing.Title,
+                    StringComparison.Ordinal) &&
+                !_panel.AccessibilityName.Contains(
+                    coreRun.GetSnapshot().DecisionWindow!.Story!.Title,
+                    StringComparison.Ordinal),
+                "첫 경계 이야기가 두 번째 전원 브리핑을 다시 대체했습니다.");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "두 번째 전원 첫 운영 이야기");
+            await NextFrame();
+            Require(
+                _presentationMode == CommercialPresentationMode.WindowStory &&
+                _map.OperationsLocked &&
+                _panel.AccessibilityName.Contains(
+                    coreRun.GetSnapshot().DecisionWindow!.Story!.Title,
+                    StringComparison.Ordinal) &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "운영 시작" &&
+                !_panel.GetActionButton(CommercialPanelAction.StartLine).Visible,
+                "첫 경계의 authored 이야기를 별도 잠긴 WindowStory mode로 열지 못했습니다.");
 
             await BuildCampaignSmokeLine(
                 "WEST_AUXILIARY",
@@ -817,12 +970,17 @@ internal sealed partial class CommercialMain
             await NextFrame();
             Require(
                 coreRun.GetSnapshot().Chapter.ChapterId == "NORTH_BANK_PROMISE" &&
-                _panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
-                _panel.AccessibilityName.Contains("선택 필요", StringComparison.Ordinal) &&
-                _map.AccessibilityName.Contains("예정 시설 1곳", StringComparison.Ordinal) &&
+                _presentationMode == CommercialPresentationMode.Result &&
+                !_panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
                 _panel.AccessibilityName.Contains("운영 인수 완료", StringComparison.Ordinal),
                 "두 번째 전원 결과와 본편 전환을 제시하지 못했습니다.");
 
+            await AdvancePresentationToOperations("북안의 약속");
+            Require(
+                _panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
+                _panel.AccessibilityName.Contains("선택 필요", StringComparison.Ordinal) &&
+                _map.AccessibilityName.Contains("예정 시설 1곳", StringComparison.Ordinal),
+                "북안의 약속 브리핑 뒤 운영 선택을 열지 못했습니다.");
             await PressPanelAsync(CommercialPanelAction.KeepPromise, "북안 입주 약속 지킴");
             await NextFrame();
             await BuildCampaignSmokeLine(
@@ -916,8 +1074,74 @@ internal sealed partial class CommercialMain
                 resumed.Chapter.ChapterId == "WHOSE_MARGIN" &&
                 resumed.ChapterResults.Count == 4 &&
                 resumed.Construction.World.Edges.Any(item => item.EdgeId == "PLAYER_EDGE_1") &&
-                _panel.AccessibilityName.Contains("더운 저녁의 여유", StringComparison.Ordinal),
+                _presentationMode == CommercialPresentationMode.ResumeOrientation,
                 "별도 process가 네 번째 임무 저장에서 다섯 번째 임무로 이어지지 못했습니다.");
+
+            _shell.ShowTitle(true, "저장 진행 재개 확인");
+            await PressShellAsync(ReleaseShellAction.Continue, "네 번째 임무 저장 이어하기");
+            await NextFrame();
+            CommercialChapterResultRecord resumedPrevious = resumed.ChapterResults[^1];
+            Require(
+                _shell.Page == ReleaseShellPage.Hidden &&
+                _presentationMode == CommercialPresentationMode.ResumeOrientation &&
+                _map.OperationsLocked &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "진행 재개" &&
+                _panel.AccessibilityName.Contains(resumedPrevious.Story.Title, StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("도시 약속 지킴", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains(resumed.Chapter.DisplayName, StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains(resumed.Chapter.Objective, StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains(FormatWon(resumed.CashUnit), StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains($"공사 {resumed.Construction.Minute}분", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("다음 행동", StringComparison.Ordinal),
+                "Continue가 generic 도움말 대신 직전 결과·현재 위치·목표·자금·시각·다음 행동의 ResumeOrientation을 열지 못했습니다.");
+            await AdvancePresentationToOperations("저장한 다섯 번째 임무");
+
+            await PressPanelAsync(
+                CommercialPanelAction.StartLine,
+                "재개 잠금 확인용 선로 도구");
+            SpatialNodeDefinition resumeDraftStart = _snapshot.World.Nodes.Single(item =>
+                item.NodeId == "INDUSTRY_TERMINAL");
+            await SelectAndClickCandidate(resumeDraftStart.Position, resumeDraftStart.NodeId);
+            int resumeDraftCommandCount = coreRun.GetSnapshot().CommandCount;
+            Require(_snapshot.Phase == ConstructionPhase.LineDrafting,
+                "재개 잠금 회귀용 선로 draft를 만들지 못했습니다.");
+            _shell.ShowTitle(true, "작성 중 저장 재개 확인");
+            await PressShellAsync(ReleaseShellAction.Continue, "작성 중 저장 이어하기");
+            await NextFrame();
+            Require(
+                _presentationMode == CommercialPresentationMode.ResumeOrientation &&
+                _snapshot.Phase == ConstructionPhase.LineDrafting &&
+                coreRun.GetSnapshot().CommandCount == resumeDraftCommandCount,
+                "작성 중 저장이 ResumeOrientation에서 원형대로 복원되지 않았습니다.");
+            _helpButton.GrabFocus();
+            await NextFrame();
+            await PressKey(Key.Enter);
+            Require(
+                _shell.Page == ReleaseShellPage.Pause &&
+                _snapshot.Phase == ConstructionPhase.LineDrafting &&
+                coreRun.GetSnapshot().CommandCount == resumeDraftCommandCount,
+                "잠긴 ResumeOrientation의 메뉴가 저장된 draft를 취소하거나 기록을 바꿨습니다.");
+            await PressShellAsync(ReleaseShellAction.Resume, "작성 중 재개 화면으로 돌아가기");
+            await PressKey(Key.Escape);
+            Require(
+                _shell.Page == ReleaseShellPage.Pause &&
+                _snapshot.Phase == ConstructionPhase.LineDrafting &&
+                coreRun.GetSnapshot().CommandCount == resumeDraftCommandCount,
+                "잠긴 ResumeOrientation의 Escape가 저장된 draft를 취소하거나 기록을 바꿨습니다.");
+            await PressShellAsync(ReleaseShellAction.Resume, "작성 중 재개 화면 닫기");
+            await PressPanelAsync(
+                CommercialPanelAction.ApproveWindow,
+                "작성 중 진행 재개");
+            await NextFrame();
+            Require(
+                _presentationMode == CommercialPresentationMode.Operations &&
+                _snapshot.Phase == ConstructionPhase.LineDrafting,
+                "진행 재개 뒤 저장된 draft가 Operations로 돌아오지 않았습니다.");
+            await PressPanelAsync(
+                CommercialPanelAction.CancelDraft,
+                "재개 잠금 확인용 draft 취소");
+            await NextFrame();
 
             await PressPanelAsync(
                 CommercialPanelAction.CycleLineClass,
@@ -961,6 +1185,11 @@ internal sealed partial class CommercialMain
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "폭염 운영 승인");
             await NextFrame();
             Require(coreRun.GetSnapshot().DecisionWindowIndex == 1 &&
+                _presentationMode == CommercialPresentationMode.WindowStory &&
+                _map.OperationsLocked &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "운영 시작" &&
+                !_panel.GetActionButton(CommercialPanelAction.KeepPromise).Visible &&
                 _timeline.CurrentStepLabel == "다음 아침 안전 경계" &&
                 _timeline.AccessibilityName.Contains(
                     "더운 저녁의 여유는 한 번만 쓸 수 있습니다",
@@ -986,6 +1215,7 @@ internal sealed partial class CommercialMain
             // authored protective-outage boundary, not the preceding successful
             // emergency-use preview, so the visual state and factual panel agree.
             await CaptureG3FinalPair("pair-heat.png");
+            await AdvancePresentationToOperations("보호정지 뒤 아침 경계");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "보호정지 뒤 아침 운영 승인");
             await NextFrame();
             Require(coreRun.GetSnapshot().Chapter.ChapterId == "BEFORE_WATER_REACHES" &&
@@ -1021,8 +1251,9 @@ internal sealed partial class CommercialMain
                 coreRun.GetSnapshot().ThermalMemory.All(item => !item.ProtectiveOutage) &&
                 coreRun.GetSnapshot().Chapter.ResetThermalMemoryAtStart &&
                 coreRun.GetSnapshot().Chapter.Briefing.Title.Contains("3주 뒤", StringComparison.Ordinal),
-                "작성된 장간 시간경과가 일곱 번째 임무의 열 상태를 복귀시키지 못했습니다.");
+                "장 시작 전 시간 경과가 일곱 번째 임무의 열 상태를 복귀시키지 못했습니다.");
 
+            await AdvancePresentationToOperations("꺼야 지킬 수 있다");
             await PressPanelAsync(
                 CommercialPanelAction.CycleLineClass,
                 "계획정지 보강 선종 선택");
@@ -1037,7 +1268,7 @@ internal sealed partial class CommercialMain
                 "계획정지 변전소 연계");
             Require(_panel.AccessibilityName.Contains("3주 뒤", StringComparison.Ordinal) &&
                 _panel.AccessibilityName.Contains("모든 설비가 연속 운전 가능 상태로 복귀", StringComparison.Ordinal),
-                "일곱 번째 임무 화면이 작성된 장간 열 상태 복귀를 알리지 못했습니다.");
+                "일곱 번째 임무 화면이 장 시작 전 열 상태 복귀를 알리지 못했습니다.");
             await PressPanelAsync(CommercialPanelAction.KeepPromise, "계획정지 복구 약속 지킴");
             Require(coreRun.PreviewDecisionWindow().Accepted,
                 "일곱 번째 임무의 계획정지 우회 운영안을 승인할 수 없습니다.");
@@ -1058,8 +1289,11 @@ internal sealed partial class CommercialMain
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "마지막 폭염 운영 승인");
             await NextFrame();
             Require(coreRun.GetSnapshot().DecisionWindowIndex == 1 &&
+                _presentationMode == CommercialPresentationMode.WindowStory &&
+                _map.OperationsLocked &&
                 _panel.AccessibilityName.Contains("강변 통제와 서부 전원 정지", StringComparison.Ordinal),
                 "여덟 번째 임무의 복합재난 전환 이야기를 표시하지 못했습니다.");
+            await AdvancePresentationToOperations("마지막 복합재난 경계");
             Require(coreRun.PreviewDecisionWindow().Accepted,
                 "여덟 번째 임무의 복합재난 운영안을 승인할 수 없습니다.");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "마지막 복합재난 운영 승인");
@@ -1068,16 +1302,24 @@ internal sealed partial class CommercialMain
             CommercialCoreSnapshot complete = coreRun.GetSnapshot();
             Require(complete.CampaignComplete && complete.ChapterResults.Count == 8 &&
                 complete.ChapterStartCommandCounts.Count == 8 &&
-                _panel.AccessibilityName.Contains("여덟 임무 실제 기록", StringComparison.Ordinal) &&
-                _panel.AccessibilityName.Contains("약속 미룸", StringComparison.Ordinal) &&
-                _panel.AccessibilityName.Contains("잔액", StringComparison.Ordinal),
-                "여덟 임무를 실제 사실 비교 기록으로 완료하지 못했습니다.");
+                _presentationMode == CommercialPresentationMode.Result &&
+                _map.OperationsLocked &&
+                HeadingText() == "가장 긴 밤 · 결과" &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "에필로그 보기" &&
+                !_panel.GetActionButton(CommercialPanelAction.NextThermalPhase).Visible &&
+                _panel.AccessibilityName.Contains("도시 약속 · 미룸", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("실제 경로", StringComparison.Ordinal),
+                "여덟 번째 임무를 동결된 마지막 Result mode로 완료하지 못했습니다.");
             await PressPanelAsync(CommercialPanelAction.ApproveWindow, "완주 에필로그 열기");
             await NextFrame();
-            Require(_showEpilogue &&
+            Require(_presentationMode == CommercialPresentationMode.Epilogue &&
+                _map.OperationsLocked &&
                 _panel.AccessibilityName.Contains("청류시 전력망 운영 인계", StringComparison.Ordinal) &&
-                _panel.AccessibilityName.Contains("원하는 장의 시작 상태", StringComparison.Ordinal),
-                "완주 뒤 작성된 에필로그와 장 선택 안내를 표시하지 못했습니다.");
+                _panel.AccessibilityName.Contains("여덟 임무 실제 기록", StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("원하는 장의 시작 상태", StringComparison.Ordinal) &&
+                !_panel.GetActionButton(CommercialPanelAction.ApproveWindow).Visible,
+                "마지막 Result의 에필로그 보기 행동이 작성된 Epilogue mode를 열지 못했습니다.");
             string completedSavePath = _savePath
                 ?? throw new InvalidOperationException("완료 저장 경로가 없습니다.");
             CommercialCampaignSaveLoadResult completedLoad =
@@ -1120,10 +1362,28 @@ internal sealed partial class CommercialMain
                 ?? throw new InvalidOperationException("상용 핵심 흐름 runner가 없습니다.");
             CommercialCoreSnapshot restored = coreRun.GetSnapshot();
             Require(restored.CampaignComplete && restored.ChapterResults.Count == 8 &&
-                _showEpilogue &&
-                _panel.AccessibilityName.Contains("청류시 전력망 운영 인계", StringComparison.Ordinal) &&
+                _presentationMode == CommercialPresentationMode.ResumeOrientation &&
                 _panel.AccessibilityName.Contains("첫 불빛 · 안전 의무", StringComparison.Ordinal),
-                "새 process가 완료 저장의 에필로그와 여덟 사실 기록을 복원하지 못했습니다.");
+                "새 process가 완료 저장의 ResumeOrientation과 여덟 사실 기록을 복원하지 못했습니다.");
+            _shell.ShowTitle(true, "완료 저장 재개 확인");
+            await PressShellAsync(ReleaseShellAction.Continue, "완료 저장 이어하기");
+            await NextFrame();
+            Require(
+                _presentationMode == CommercialPresentationMode.ResumeOrientation &&
+                _map.OperationsLocked &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "진행 재개" &&
+                _panel.AccessibilityName.Contains(
+                    restored.ChapterResults[^1].Story.Title,
+                    StringComparison.Ordinal) &&
+                _panel.AccessibilityName.Contains("캠페인 완료", StringComparison.Ordinal),
+                "완료 저장 Continue가 마지막 결과와 완료 위치를 ResumeOrientation으로 복원하지 못했습니다.");
+            await PressPanelAsync(CommercialPanelAction.ApproveWindow, "완료 저장 에필로그 재개");
+            await NextFrame();
+            Require(
+                _presentationMode == CommercialPresentationMode.Epilogue &&
+                _panel.AccessibilityName.Contains("청류시 전력망 운영 인계", StringComparison.Ordinal),
+                "완료 ResumeOrientation의 진행 재개가 에필로그를 열지 못했습니다.");
             for (int index = 1; index < _campaign.Chapters.Count; index++)
             {
                 await PressPanelAsync(
@@ -1144,6 +1404,10 @@ internal sealed partial class CommercialMain
             CommercialCoreSnapshot selected = _coreRun!.GetSnapshot();
             Require(!selected.CampaignComplete && selected.Chapter.ChapterId == "LONGEST_NIGHT" &&
                 selected.ChapterResults.Count == 7 && selected.DecisionWindowIndex == 0 &&
+                _presentationMode == CommercialPresentationMode.Briefing &&
+                _map.OperationsLocked &&
+                _panel.GetActionButton(CommercialPanelAction.ApproveWindow)
+                    .AccessibilityName == "임무 시작" &&
                 _panel.AccessibilityName.Contains("앞서 만든 망과 약속", StringComparison.Ordinal),
                 "선택한 여덟 번째 장의 정확한 시작 journal 상태로 돌아가지 못했습니다.");
             Require(_savePath is not null &&
@@ -1171,6 +1435,7 @@ internal sealed partial class CommercialMain
         string label,
         string? draftEvidencePath = null)
     {
+        await AdvancePresentationToOperations(label);
         await PressPanelAsync(CommercialPanelAction.StartLine, $"{label} 선로 도구");
         await NextFrame();
         SpatialNodeDefinition start = _snapshot.World.Nodes.Single(item =>
@@ -1210,6 +1475,7 @@ internal sealed partial class CommercialMain
         string label,
         string? draftEvidencePath = null)
     {
+        await AdvancePresentationToOperations(label);
         await PressPanelAsync(CommercialPanelAction.PlaceSubstation, $"{label} 도구");
         await NextFrame();
         await ClickMap(position);
@@ -1225,6 +1491,34 @@ internal sealed partial class CommercialMain
         await NextFrame();
         await PressPanelAsync(CommercialPanelAction.Commission, $"{label} 공사 완공");
         await NextFrame();
+    }
+
+    private async Task AdvancePresentationToOperations(string description)
+    {
+        for (int transition = 0;
+             transition < 4 && _presentationMode != CommercialPresentationMode.Operations;
+             transition++)
+        {
+            if (_presentationMode == CommercialPresentationMode.Epilogue)
+            {
+                throw new InvalidOperationException(
+                    $"에필로그에서는 공사를 시작할 수 없습니다: {description}");
+            }
+            BaseButton primary = _panel.GetActionButton(CommercialPanelAction.ApproveWindow);
+            Require(
+                primary.Visible && !primary.Disabled && _map.OperationsLocked,
+                $"잠긴 presentation의 기본 진행 행동을 사용할 수 없습니다: {description}; " +
+                $"mode={_presentationMode}, action={primary.AccessibilityName}");
+            await PressPanelAsync(
+                CommercialPanelAction.ApproveWindow,
+                $"{description} presentation 진행");
+            await NextFrame();
+        }
+        Require(
+            _presentationMode == CommercialPresentationMode.Operations &&
+            !_map.OperationsLocked,
+            $"공사 전에 Operations mode에 진입하지 못했습니다: {description}; " +
+            $"mode={_presentationMode}");
     }
 
     private async Task RequireRejectedPlacement(

@@ -154,3 +154,23 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
 - fresh storage의 개발자 직접 플레이는 첫 불빛 결산이 다음 장 현금·경계·실패 projection과
   섞이는 결함을 재현했다. 이는 공식 cold actor 증거가 아니며
   [`developer-pilot-v1`](../../playtests/commercial-ux-87/developer-pilot-v1/README.md)에 관찰만 남겼다.
+
+## 9. 진행 기록 — 2026-08-23 Gate C 후보 1
+
+- campaign authored text는 첫 장의 건설·조작 안내 도입, 두 번째 장의 경로시험만 남기는 축소,
+  세 번째 장 결과의 안내 종료와 계속 제공되는 목표·의무·예보를 명시했다. 마지막 장은 첫 폭염
+  경계 전에 산업단지 2.6 MW 약속을 지킬지 미룰지 제시한다. 규칙·경제 숫자와 26 selector는
+  바꾸지 않았다.
+- Game adapter는 `Briefing`, `WindowStory`, `Operations`, `ResumeOrientation`, `Result`,
+  `Epilogue` 여섯 presentation mode를 분리했다. 결과는 승인 직전 Core·공사·현금·열·지도 권위를
+  동결하고, 다음 장·공사·복구 입력은 명시적 전환 전까지 잠근다.
+- 우측 패널은 목표와 다음 행동을 고정하고 주 진행 행동과 복구 행동을 세로로 분리했다. 첫 불빛은
+  실제 완공 그래프에 따라 변전소 배치, 발전원 연결, 생활권 인입, 공급 확인·승인을 단계별로 안내한다.
+  story가 바뀔 때만 scroll을 맨 위로 되돌리고, 비운영 카드는 운영 상세를 접는다.
+- Continue는 저장 schema 변경 없이 Core `ChapterResults`와 현재 snapshot에서 직전 결과·현재 위치·
+  목표·현금·공사시각·다음 행동을 재구성한다. 잠긴 재개 카드의 Escape·메뉴는 저장된 draft를
+  취소하지 않는다.
+- 현재 합친 후보는 `CommercialChecks` 24 suites/2,910 assertions, Debug·Release rebuild,
+  text-plan 두 self-test, fresh campaign, checkpoint→fresh completion→completed-resume와 창 모드
+  1920×1080 UI 100%·125% presentation smoke를 통과했다. 공식 cold actor·blind judge 점수는 아직
+  실행하지 않았으며 이 기록은 `CommercialUXProxy`를 소유하지 않는다.

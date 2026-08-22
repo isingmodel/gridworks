@@ -34,6 +34,12 @@
 `gpt-5.6-sol` ultra의 공식 `CommercialUXProxy >=87`까지 확정된 UX 결함을 반복 개선한다.
 이는 H의 사람 검토·전문 교정·공개 배포를 승인하지 않는다.
 
+현재 Gate C 후보는 briefing·window story·operations·result·epilogue·resume orientation을 분리하고,
+첫 장의 목표·단계별 다음 행동, 승인 직전 상태를 동결한 결산, 직전 결과와 현재 목표를 함께 복원하는
+재개 카드를 연결했다. story selector 26개와 17개 typed failure, CommercialChecks 24/2,910 및 관련
+native 회귀는 통과했지만 공식 cold actor·blind judge는 아직 실행 전이므로 87점이나 종료를 선언하지
+않는다.
+
 G.3 최종 v27은 55개 개별 runtime art, 338개 원자 도시 배치와 641개 전체 world 배치, 굽은 강과
 정상·고온·범람 상태, 발전소·변전소·철탑 부품 조립, full-bleed HUD와 독립 event timeline을
 연결했다. `CommercialChecks` 22 suites/2,331 assertions, Debug·Release build, native 1920×1080

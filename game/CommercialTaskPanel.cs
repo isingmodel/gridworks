@@ -37,6 +37,10 @@ internal sealed record CommercialTaskPanelModel(
     string Heading,
     CommercialSpeakerPresentation Speaker,
     string Instruction,
+    string Objective,
+    string NextAction,
+    bool FullInstruction,
+    bool ShowOperationalCards,
     string Obligations,
     string Selection,
     string Quote,
@@ -72,6 +76,8 @@ internal sealed record CommercialTaskPanelModel(
 internal sealed partial class CommercialTaskPanel : PanelContainer
 {
     private Label _headingLabel = null!;
+    private Label _objectiveLabel = null!;
+    private Label _nextActionLabel = null!;
     private CommercialPortrait _portrait = null!;
     private Label _speakerLabel = null!;
     private Label _instructionLabel = null!;
@@ -87,7 +93,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     private Label _facilityState = null!;
     private Control _facilityCard = null!;
     private Control _comparisonCards = null!;
-    private Control _infoScroll = null!;
+    private ScrollContainer _infoScroll = null!;
     private Label _comparisonATitle = null!;
     private Label _comparisonAMetric = null!;
     private Label _comparisonADetail = null!;
@@ -95,12 +101,15 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     private Label _comparisonBMetric = null!;
     private Label _comparisonBDetail = null!;
     private IReadOnlyDictionary<CommercialPanelAction, Button> _buttons = null!;
+    private string _narrativeIdentity = string.Empty;
 
     public event Action<CommercialPanelAction>? ActionRequested;
 
     public override void _Ready()
     {
         _headingLabel = GetNode<Label>("%HeadingLabel");
+        _objectiveLabel = GetNode<Label>("%ObjectiveLabel");
+        _nextActionLabel = GetNode<Label>("%NextActionLabel");
         _portrait = GetNode<CommercialPortrait>("%Portrait");
         _speakerLabel = GetNode<Label>("%SpeakerLabel");
         _instructionLabel = GetNode<Label>("%InstructionLabel");
@@ -116,7 +125,7 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _facilityState = GetNode<Label>("%FacilityState");
         _facilityCard = GetNode<Control>("%FacilityCard");
         _comparisonCards = GetNode<Control>("%ComparisonCards");
-        _infoScroll = GetNode<Control>("Margin/Column/InfoScroll");
+        _infoScroll = GetNode<ScrollContainer>("Margin/Column/InfoScroll");
         _comparisonATitle = GetNode<Label>("%ComparisonATitle");
         _comparisonAMetric = GetNode<Label>("%ComparisonAMetric");
         _comparisonADetail = GetNode<Label>("%ComparisonADetail");
@@ -155,21 +164,47 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
     public void SetModel(CommercialTaskPanelModel model)
     {
         ArgumentNullException.ThrowIfNull(model);
+        string narrativeIdentity = string.Join(
+            '\u001f',
+            model.Heading,
+            model.Speaker.PersonId,
+            model.Instruction,
+            model.FullInstruction ? "full" : "compact");
+        if (!string.Equals(_narrativeIdentity, narrativeIdentity, StringComparison.Ordinal))
+        {
+            _narrativeIdentity = narrativeIdentity;
+            // ScrollContainer keeps its offset when the same inspector node is
+            // reused. Reset only when the authored card identity changes so a
+            // new briefing/result starts at its first paragraph without making
+            // an actively read card impossible to scroll.
+            _infoScroll.SetDeferred(ScrollContainer.PropertyName.ScrollVertical, 0);
+        }
         _headingLabel.Text = model.Heading;
+        _objectiveLabel.Text = model.Objective;
+        _nextActionLabel.Text = model.NextAction;
         _portrait.SetPerson(
             model.Speaker.PersonId,
             model.Speaker.NameAndRole,
             model.Speaker.CardColor);
         _speakerLabel.Text = model.Speaker.NameAndRole;
         _speakerLabel.AddThemeColorOverride("font_color", model.Speaker.CardColor);
-        _instructionLabel.Text = CompactVisual(model.Instruction, 92);
-        _obligationsLabel.Text = CompactVisual(model.Obligations, 38);
+        _instructionLabel.Text = model.FullInstruction
+            ? model.Instruction
+            : CompactVisual(model.Instruction, 92);
+        _obligationsLabel.Text = model.FullInstruction
+            ? model.Obligations
+            : CompactVisual(model.Obligations, 38);
+        _obligationsLabel.Visible = !string.IsNullOrWhiteSpace(model.Obligations);
+        bool operationalDetails = model.ShowOperationalCards;
+        _selectionLabel.Visible = operationalDetails;
         _selectionLabel.Text = CompactVisual(model.Selection, 72);
-        _quoteLabel.Visible = !string.IsNullOrWhiteSpace(model.Quote);
+        _quoteLabel.Visible = operationalDetails && !string.IsNullOrWhiteSpace(model.Quote);
         _quoteLabel.Text = CompactVisual(model.Quote, 62);
+        _thermalLabel.Visible = operationalDetails;
         _thermalLabel.Text = CompactVisual(model.Thermal, 72);
+        _statusLabel.Visible = operationalDetails;
         _statusLabel.Text = CompactVisual(model.Status, 78);
-        _errorLabel.Visible = !string.IsNullOrWhiteSpace(model.Error);
+        _errorLabel.Visible = operationalDetails && !string.IsNullOrWhiteSpace(model.Error);
         _errorLabel.Text = CompactVisual(model.Error, 72);
         _facilityType.Text = model.FacilityType;
         _facilityCapacity.Text = model.FacilityCapacity;
@@ -184,12 +219,14 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         _facilityImage.Modulate = model.FacilityUnavailable
             ? new Color(0.82f, 0.40f, 0.38f, 0.86f)
             : Colors.White;
-        _facilityCard.Visible = !model.ShowComparisonCards;
-        _comparisonCards.Visible = model.ShowComparisonCards;
-        // Comparison missions use the reference's dedicated A/B inspector. The
-        // authored briefing remains in accessibility output, but does not crowd
-        // the visible metric cards with a second long narrative hierarchy.
-        _infoScroll.Visible = !model.ShowComparisonCards;
+        _facilityCard.Visible = model.ShowOperationalCards && !model.ShowComparisonCards;
+        _comparisonCards.Visible = model.ShowOperationalCards && model.ShowComparisonCards;
+        // Full briefings and non-operational states keep their authored narrative.
+        // Operational A/B comparisons may dedicate the inspector body to their
+        // cards, while the pinned objective and next action remain visible above.
+        _infoScroll.Visible = model.FullInstruction ||
+            !model.ShowOperationalCards ||
+            !model.ShowComparisonCards;
         _comparisonATitle.Text = model.ComparisonATitle;
         _comparisonAMetric.Text = model.ComparisonAMetric;
         _comparisonADetail.Text = model.ComparisonADetail;
@@ -210,11 +247,19 @@ internal sealed partial class CommercialTaskPanel : PanelContainer
         SetButton(CommercialPanelAction.NewGame, model.NewGame);
         SetButton(CommercialPanelAction.NextThermalPhase, model.NextThermalPhase);
         SetButton(CommercialPanelAction.NextDemand, model.NextDemand);
+        string operationalAccessibility = operationalDetails
+            ? model.ShowComparisonCards
+                ? $"{model.Thermal}. {model.ComparisonATitle} {model.ComparisonAMetric}. " +
+                  $"{model.ComparisonBTitle} {model.ComparisonBMetric}. "
+                : $"{model.Thermal}. {model.FacilityType} {model.FacilityCapacity}. " +
+                  $"{model.FacilityState}. "
+            : string.Empty;
+        string operationalStatus = operationalDetails ? model.Status : string.Empty;
         AccessibilityName =
             $"공사와 열 작업 패널. {model.Heading}. {model.Speaker.NameAndRole}. " +
+            $"{model.Objective}. {model.NextAction}. " +
             $"{model.Instruction}. {model.Obligations}. " +
-            $"{model.Thermal}. {model.ComparisonATitle} {model.ComparisonAMetric} " +
-            $"{model.ComparisonBTitle} {model.ComparisonBMetric}. {model.Status}";
+            $"{operationalAccessibility}{operationalStatus}";
     }
 
     public BaseButton GetActionButton(CommercialPanelAction action) => _buttons[action];

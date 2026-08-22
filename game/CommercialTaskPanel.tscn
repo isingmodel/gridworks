@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://CommercialTaskPanel.cs" id="1_panel"]
 [ext_resource type="Script" path="res://CommercialPortrait.cs" id="2_portrait"]
@@ -40,6 +40,48 @@ corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
+[sub_resource type="StyleBoxFlat" id="StyleObjective"]
+bg_color = Color(0.055, 0.095, 0.10, 0.94)
+border_width_left = 3
+border_color = Color(0.29, 0.70, 0.72, 0.95)
+content_margin_left = 10.0
+content_margin_top = 7.0
+content_margin_right = 10.0
+content_margin_bottom = 7.0
+
+[sub_resource type="StyleBoxFlat" id="StyleNextAction"]
+bg_color = Color(0.13, 0.105, 0.055, 0.96)
+border_width_left = 3
+border_color = Color(0.95, 0.72, 0.31, 0.96)
+content_margin_left = 10.0
+content_margin_top = 7.0
+content_margin_right = 10.0
+content_margin_bottom = 7.0
+
+[sub_resource type="StyleBoxFlat" id="StylePrimaryAction"]
+bg_color = Color(0.15, 0.43, 0.46, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.94, 0.75, 0.36, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleRecoveryAction"]
+bg_color = Color(0.075, 0.085, 0.084, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.42, 0.43, 0.40, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
 [node name="CommercialTaskPanel" type="PanelContainer"]
 custom_minimum_size = Vector2(300, 0)
 script = ExtResource("1_panel")
@@ -61,6 +103,26 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "첫 불빛"
+autowrap_mode = 2
+
+[node name="ObjectiveLabel" type="Label" parent="Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.69, 0.91, 0.91, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleObjective")
+text = "목표 · 발전소에서 필수 시설까지 실제 공급 경로를 완성하세요."
+autowrap_mode = 2
+
+[node name="NextActionLabel" type="Label" parent="Margin/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.87, 0.56, 1)
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleNextAction")
+text = "다음 행동 · 지도에서 시작 접속점을 선택하세요."
 autowrap_mode = 2
 
 [node name="ComparisonCards" type="VBoxContainer" parent="Margin/Column"]
@@ -363,22 +425,28 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "약속 미룸"
 
-[node name="DecisionRow" type="HBoxContainer" parent="Margin/Column"]
+[node name="DecisionRow" type="VBoxContainer" parent="Margin/Column"]
 layout_mode = 2
-theme_override_constants/separation = 7
+theme_override_constants/separation = 5
 
 [node name="ApproveWindowButton" type="Button" parent="Margin/Column/DecisionRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.94, 0.78, 1)
+theme_override_font_sizes/font_size = 17
+theme_override_styles/normal = SubResource("StylePrimaryAction")
 text = "다음 경계 승인"
 
 [node name="RollbackProjectButton" type="Button" parent="Margin/Column/DecisionRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.72, 0.73, 0.69, 1)
+theme_override_font_sizes/font_size = 14
+theme_override_styles/normal = SubResource("StyleRecoveryAction")
 text = "최근 공사 복구"
 
 [node name="RestartChapterButton" type="Button" parent="Margin/Column"]

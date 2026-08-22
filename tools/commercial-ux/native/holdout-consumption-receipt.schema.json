@@ -6,7 +6,7 @@
   "required": [
     "schemaVersion", "protocol", "holdoutConsumptionReceiptSha256",
     "holdoutConsumptionReceiptSchemaSha256", "candidateId", "candidateManifestSha256",
-    "candidateReuseSha256",
+    "candidateReuseSha256", "candidatePlayableFingerprintSha256",
     "sourceCommit", "evaluationPhase", "officialCommercialUX", "holdoutQueueSha256",
     "queueAuthorityId", "registryScope", "registryAuthorityLimit",
     "selectionRule", "reuseAllowed", "selectedRecipe", "priorConsumptions",
@@ -20,6 +20,7 @@
     "candidateId": {"type": "string", "minLength": 1, "maxLength": 200},
     "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
     "candidateReuseSha256": {"$ref": "#/$defs/sha256"},
+    "candidatePlayableFingerprintSha256": {"$ref": "#/$defs/sha256"},
     "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
     "evaluationPhase": {"enum": ["FORMATIVE", "OFFICIAL_HOLDOUT"]},
     "officialCommercialUX": {"type": "boolean"},
@@ -86,13 +87,14 @@
     "priorConsumption": {
       "type": "object", "additionalProperties": false,
       "required": [
-        "ordinal", "recipeId", "candidateReuseSha256", "candidateManifestSha256",
+        "ordinal", "recipeId", "candidateReuseSha256", "candidatePlayableFingerprintSha256", "candidateManifestSha256",
         "sourceCommit", "transactionId"
       ],
       "properties": {
         "ordinal": {"type": "integer", "minimum": 1, "maximum": 7},
         "recipeId": {"pattern": "^HOLDOUT-0[1-7]$"},
         "candidateReuseSha256": {"$ref": "#/$defs/sha256"},
+        "candidatePlayableFingerprintSha256": {"$ref": "#/$defs/sha256"},
         "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
         "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
         "transactionId": {"$ref": "#/$defs/sha256"}
@@ -118,7 +120,7 @@
         "canonicalReceiptPath": {"$ref": "#/$defs/absolutePath"},
         "transactionId": {"$ref": "#/$defs/sha256"},
         "registryPathRule": {"const": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-consumption-registry-v1.json"},
-        "receiptPathRule": {"const": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-receipts/{transactionSha256Hex}-{candidateReuseSha256Hex}.json"},
+        "receiptPathRule": {"const": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-receipts/{transactionSha256Hex}-{candidatePlayableFingerprintSha256Hex}.json"},
         "receiptCreatePolicy": {"const": "O_EXCL_CREATE_AND_FSYNC_BEFORE_ATOMIC_REGISTRY_RENAME"},
         "registryBeforeSha256": {"$ref": "#/$defs/sha256"},
         "registryBeforeRawSha256": {"$ref": "#/$defs/sha256"},

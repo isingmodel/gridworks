@@ -140,7 +140,13 @@
     "checkpointSequenceRow": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["sequenceOrdinal", "episode", "checkpoint", "branchAlternativeGroup"],
+      "required": [
+        "sequenceOrdinal",
+        "episode",
+        "checkpoint",
+        "completionRequirement",
+        "branchAlternativeGroup"
+      ],
       "properties": {
         "sequenceOrdinal": {"type": "integer", "minimum": 1, "maximum": 41},
         "episode": {
@@ -151,6 +157,7 @@
           ]
         },
         "checkpoint": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{1,99}$"},
+        "completionRequirement": {"enum": ["MANDATORY", "OPTIONAL"]},
         "branchAlternativeGroup": {
           "oneOf": [
             {"enum": ["E04-RESULT", "E05-RESULT", "E07-RESULT", "E08-RESULT"]},

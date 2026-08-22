@@ -191,12 +191,33 @@ judge를 실행할 수 없거나 판정이 프로토콜 허용 범위를 넘어 
   envelope, 동일 evidence set의 3 blind judge, label-blind verifier와 deterministic oracle를 정의한다.
   `FORMATIVE-01`과 `HOLDOUT-01`~`HOLDOUT-08`, 호출·artifact·receipt·replacement·집계 provenance를
   첫 score-bearing native capture 전에 함께 동결했다.
-- native schema 21개·contract 23개·gold-state 11개·aggregate 44개 결정론적 검사,
+- 첫 무결성 보강 전 기준은 native schema 21개·contract 23개·gold-state 11개·aggregate 44개였고,
   CommercialChecks 24/2,910, Debug·Release 0 warning/error는 통과했지만 score-ready 상태가
-  아니다. gold-state에
-  native replay owner 52개가 `PENDING_NATIVE_REPLAY` 상태이고 E09 alternate-future witness 4개가
-  미바인딩이며, 스코어 입력을 생성하는 deterministic producer stage 10개의 구현과 exact raw
-  SHA binding이 남아 있다. 모두 닫히기 전 상태는 `BLOCKED_PRE_CAPTURE`이다.
+  아니었다. checked-in gold-state의 native replay owner 52개는 `PENDING_NATIVE_REPLAY`, E09
+  alternate-future owner 4개는 unbound였으며, 스코어 입력을 생성하는 deterministic producer가
+  없었다. 모두 닫히기 전 상태는 `BLOCKED_PRE_CAPTURE`이다.
 - Gate C의 fresh campaign·resume·viewport smoke는 결정론적 개발 증거로만 보존한다. v1.1
   계약 동결 전에 생성된 화면·pilot·smoke를 official cold/coverage artifact나 score evidence로
   승격시키지 않는다. 현재 official cold actor, blind judge, native `CommercialUXProxy`는 미실행이다.
+
+## 11. 진행 기록 — 2026-08-23 Gate D 무결성 보강
+
+- gold binding의 journal/snapshot 56쌍은 후보 Core로 실제 deserialize→restore→canonical snapshot
+  replay하고, E09 저장·재개·draft add+undo의 geometry/projection을 replay 결과에서 유도한다. raw hash가
+  맞는 임의 JSON이나 조작된 journal/snapshot은 거부된다. checked-in template 자체는 여전히 52 pending,
+  4 unbound이며 candidate-specific generator가 이를 별도 binding으로 닫아야 한다.
+- holdout 확인 직후 capture 전에 evaluation-session claim을 `O_EXCL`+`fsync`로 먼저 만든다. initial과
+  replacement는 각각 한 canonical root를 쓰고, 3 cold actor·coverage·3 judge·verifier·oracle의 9개
+  opaque slot은 최대 3 attempt를 가진다. strict JSON/schema 또는 transport failure만 retry 가능하고,
+  valid한 불리한 출력, 빈 입력, harness/oracle failure는 retry할 수 없다.
+- attempt는 root/artifact/output/start receipt를 선점하고 terminal path를 output 관찰 전에 0-byte로
+  선점한다. 중간 실패는 지우거나 재분류할 수 없는 tombstone이 된다. 공식 집계는 caller가 건넨
+  subset이 아니라 claim의 전체 filesystem을 발견하고, symlink·사전 주입·누락·추가 attempt와 mutable
+  artifact tree를 fail-closed 처리한다.
+- replacement claim은 exact INITIAL claim뿐 아니라 finalized scorecard와 panel-finalization seal의
+  canonical path, raw/self hash, rerun status·required lane, session attempt audit까지 결속한다. scorecard는
+  먼저 0-byte로 선점하고 holdout receipt와 panel seal을 내구화한 뒤 마지막에 기록한다.
+- 현재 결정론적 결과는 schema 35개, contract 53 시나리오, gold-state 22, session 16, aggregate 76,
+  CommercialChecks 24 suites/2,910 assertions PASS다. 17개 deterministic producer stage와 raw hash
+  binding이 아직 없으므로 `scoreBearingCaptureAllowed=false`, 공식 cold/native 점수 미실행 상태를
+  유지한다.

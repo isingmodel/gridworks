@@ -4,10 +4,20 @@
   "candidateIndependent": true,
   "checkedInFileHashRule": "SHA256_OF_EXACT_RAW_BYTES",
   "toolBindingPolicy": {
-    "boundImplementedTools": ["../aggregate-native.py", "validate-contract.py", "validate-gold-state.py"],
+    "boundImplementedTools": [
+      "../aggregate-native.py",
+      "claim-evaluation-session.py",
+      "validate-contract.py",
+      "validate-gold-state.py",
+      "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
+      "../../Gridworks.GoldReplayVerifier/Program.cs",
+      "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
+    ],
     "requiredProducerStagesBeforeScoreBearing": [
       "CANDIDATE-MANIFEST-PACKAGER",
       "HOLDOUT-CONSUMPTION-PACKAGER",
+      "EVALUATION-SESSION-CLAIM",
+      "EVALUATION-ATTEMPT-LEDGER",
       "GOLD-BINDING-PACKAGER",
       "COLD-OBSERVATION-PACKAGER",
       "COLD-PACKAGER",
@@ -50,52 +60,60 @@
   },
   "fileHashes": [
     {"path": "../rubric.json", "kind": "RUBRIC", "sha256": "sha256:9a5f80c42870b475a4c3955cdf7d4fe610383bff994baa60e2c9b5ec7f131f4b"},
-    {"path": "../aggregate-native.py", "kind": "TOOL", "sha256": "sha256:b493459ba57c1294cc8072eccca8f7bba9f126f1a55aa252e4b35e09dd2fd5c1"},
-    {"path": "validate-contract.py", "kind": "TOOL", "sha256": "sha256:50e1f3c60db47d8fa980370c42b530c1eb9501edaa9f9594194bf9a4ce4d1bd9"},
-    {"path": "validate-gold-state.py", "kind": "TOOL", "sha256": "sha256:fd72af3e7f30bdfd162bd9c74fe51d2fa2e63cc1ab367d2031903d1b82000249"},
+    {"path": "../aggregate-native.py", "kind": "TOOL", "sha256": "sha256:74b32770ef67c5d18af742980d56ca7b5139bce10b4d6c1018e108c86bbace10"},
+    {"path": "claim-evaluation-session.py", "kind": "TOOL", "sha256": "sha256:33a49c885e57c15b27c7d30e32dec0063d5474a26add7b159da8a08aa6b291e5"},
+    {"path": "validate-contract.py", "kind": "TOOL", "sha256": "sha256:b5dce1acadd7d347d279b9f7178f383dba32755f607f2c3d178aab6853d01bcc"},
+    {"path": "validate-gold-state.py", "kind": "TOOL", "sha256": "sha256:16a9d305357f3a850d46ce893825de9c4bebecda80a1b34634e8d553473c1e1e"},
+    {"path": "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs", "kind": "TOOL", "sha256": "sha256:0e40668e66d2a9b45999dd443c2344bccdd8171ccaa2c683d1207be20a521d77"},
+    {"path": "../../Gridworks.GoldReplayVerifier/Program.cs", "kind": "TOOL", "sha256": "sha256:56a3ce93484aa69fe90ddafeb01a09e2cae500bcb46333c53397c8708f0c1b79"},
+    {"path": "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj", "kind": "TOOL", "sha256": "sha256:669ccf19d61c25fdec1898b6c49558d9b0ca3c7222bea84486220d70decaa200"},
     {"path": "actor-action-ledger.schema.json", "kind": "SCHEMA", "sha256": "sha256:088c49f08a58bda0373441229bc386fc0109511496a2a64b9eb159c425488e59"},
     {"path": "actor-observation.schema.json", "kind": "SCHEMA", "sha256": "sha256:e02aee6392908a24eb5930a36b6acb49f3ce4a6e392f3c4fb77cdcc64b380fb7"},
     {"path": "actor-trace.schema.json", "kind": "SCHEMA", "sha256": "sha256:befa17221743aaebe6bd595215e7b30e709b4fc3aa87db277005d39809c4556d"},
     {"path": "anonymization-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:caf5a059936fb7adfc5628844b32c9c98f26fae70ff3f37b2e07ed8fd34c347c"},
     {"path": "candidate-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:b40de3abd1d02b1fa2b248581638a0c8a18b2bada2df36719f5d09fd986f9959"},
     {"path": "candidate-judge-input.schema.json", "kind": "SCHEMA", "sha256": "sha256:e5beedd2300df2cc48df831b038d5e80726b110da8743eb56588ed8fe249a193"},
-    {"path": "canonical-hash-policy.schema.json", "kind": "SCHEMA", "sha256": "sha256:2f434d917e8fb779c9b0ec0cc647f0749a453e67174832addb3ec999dce2cd5a"},
+    {"path": "canonical-hash-policy.schema.json", "kind": "SCHEMA", "sha256": "sha256:463d1a93366dc379d8d2f5e17e095bca02fd02f3bcdcae1890a5e10cd055b8fc"},
     {"path": "cold-actor-response.schema.json", "kind": "SCHEMA", "sha256": "sha256:63989c32bbf100638f428356f6eef59bd5eba189706e252f35e003d9ada4fdd2"},
-    {"path": "cold-journey-recipe.schema.json", "kind": "SCHEMA", "sha256": "sha256:1f570d62c051792404220c7a331fd77c9fcbd01f11c6498ca7a006c8e7d0a844"},
-    {"path": "contract-bindings.schema.json", "kind": "SCHEMA", "sha256": "sha256:0585db5b95a1fc2605e0920ff1fc9458003a523d412bdaba3210789195f6326c"},
-    {"path": "coverage-action-ledger.schema.json", "kind": "SCHEMA", "sha256": "sha256:6f6106fb653217ae3fd5b9ff94bbbfcd74cb9d5fb498a9b9d009a15ea4aabf1b"},
+    {"path": "cold-journey-recipe.schema.json", "kind": "SCHEMA", "sha256": "sha256:47bb63b050fdb3534cd5cdbd0ceb85d90fcdbf5adf5588d59bc046e297579d20"},
+    {"path": "contract-bindings.schema.json", "kind": "SCHEMA", "sha256": "sha256:99d9a7100164f7f2ed162ab0120a6412f48bd43ace943f116ab805a626ae9186"},
+    {"path": "coverage-action-ledger.schema.json", "kind": "SCHEMA", "sha256": "sha256:5b5ea66ac70d49ab72319c74dd0ee37d13ea8530a49428337358d75217adc65d"},
     {"path": "coverage-trace.schema.json", "kind": "SCHEMA", "sha256": "sha256:f4cae0337607bf4c56bc47af252292621cc6951f03fe333733971b7c6d7eae95"},
     {"path": "evaluation-run-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:70db951a9ab0ca3dd7d9edc9c02b4814ea174a8cba1194be60cccf9e22b365e6"},
     {"path": "evidence-set.schema.json", "kind": "SCHEMA", "sha256": "sha256:68a6a010c2e98bbbff801797ff7c1b017f2f2e48d7eba08f01700b146077a4c7"},
+    {"path": "evaluation-attempt-receipt.schema.json", "kind": "SCHEMA", "sha256": "sha256:00f22f606601c650e2d60162cbdbff1766c5b74a2b97ccfbd35a8ba29942d447"},
+    {"path": "evaluation-attempt-terminal.schema.json", "kind": "SCHEMA", "sha256": "sha256:cb3e6ba6932f0b513de3508c6b9abeef11981aea8497dc8f7e87abe092731189"},
+    {"path": "evaluation-session-claim.schema.json", "kind": "SCHEMA", "sha256": "sha256:5ca9a163578849234e716f4b6354341dbbf0c0d78f074e1e1dbc6d7ace2c9fd5"},
     {"path": "gold-binding-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:c74c4e7687b387c05d053afebd95d4cb878ded68fb36ccc8f833cb1a274e6604"},
-    {"path": "gold-state-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:fa17cf54011d07c14e6fb54abb0d2c5d254250432c0cda0e96ab05eecc95c28a"},
-    {"path": "holdout-consumption-receipt.schema.json", "kind": "SCHEMA", "sha256": "sha256:b89309b87d3c9e2b46b4b2667c38baf2a658909a4acf4d86f752641bec1c7d6e"},
-    {"path": "holdout-consumption-registry.schema.json", "kind": "SCHEMA", "sha256": "sha256:54a22d2d74d58d321e6acdf8fe93772ee43093e40c63a04c2c24fb3a45e9db37"},
+    {"path": "gold-state-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:ca1f13ea45a05469cd3f6f8029edd8a53b1027834378e504d57cd1e7a7669e9d"},
+    {"path": "holdout-consumption-receipt.schema.json", "kind": "SCHEMA", "sha256": "sha256:1bdb9b42cf71c4f2c450ff6deaac40feff4b72892bb263eed3e925e9d4569516"},
+    {"path": "holdout-consumption-registry.schema.json", "kind": "SCHEMA", "sha256": "sha256:9fc2ce1fefc1a380dac65bc04d7156d67f5fe8135d8ebe2cec9570324429da00"},
     {"path": "judge-panel.schema.json", "kind": "SCHEMA", "sha256": "sha256:62bfadd55ea094e8896d69d34394d5a97cb22ca3000b741a23bc47fc9993bb8c"},
-    {"path": "native-aggregation-input.schema.json", "kind": "SCHEMA", "sha256": "sha256:6c335a731b99f3ad96717d145363e7cea4939396661e990e5fe42ae91adc0341"},
-    {"path": "native-evidence-verification-input.schema.json", "kind": "SCHEMA", "sha256": "sha256:851f53e1d22f24240d9a2bf5ff6100476fafad074a9163b274f229e0d8fa26c5"},
-    {"path": "native-evidence-verifier.schema.json", "kind": "SCHEMA", "sha256": "sha256:e71a248a21a9ac8789318db3cbd028739500288d67359b175d3f9016e3fb05d2"},
+    {"path": "native-aggregation-input.schema.json", "kind": "SCHEMA", "sha256": "sha256:5a12bcd5bdbfc96152f7e7c12878e2933c135cdc6e093521abd769d6f5aff282"},
+    {"path": "native-evidence-verification-input.schema.json", "kind": "SCHEMA", "sha256": "sha256:b451624446ca67a7017a5c1e4f92f3b2e5050f17d3243bffa4f03efd5d1352c6"},
+    {"path": "native-evidence-verifier.schema.json", "kind": "SCHEMA", "sha256": "sha256:18be36ecec6c0d63ec47a0919ee9d202644152745714762fde095bfd8456c8f8"},
     {"path": "native-judge.schema.json", "kind": "SCHEMA", "sha256": "sha256:01279824464aa02ded6e10c00b2f044fdf772f084b4c163e576cfe4c0aaa94e2"},
     {"path": "native-replacement-receipt.schema.json", "kind": "SCHEMA", "sha256": "sha256:2d8a27152c7b1359f7c68ea1f8ae65ae0afdaf9aa639a5db771114b73dc8ac08"},
-    {"path": "native-scorecard.schema.json", "kind": "SCHEMA", "sha256": "sha256:8b1a288fe84643e9cd77d39052029290597e0d7e00180e1c4ab79acda5c922a0"},
-    {"path": "oracle-hard-gate-ledger.schema.json", "kind": "SCHEMA", "sha256": "sha256:043ae753bcf152ce4c7e7b8bc47a12a02b5c8e463bdc26375bb9de320a68d98c"},
-    {"path": "panel-finalization-seal.schema.json", "kind": "SCHEMA", "sha256": "sha256:c5d293bbf1b2d399a398dcff400db0cf003285b4617d064113ea5699c624c2ca"},
+    {"path": "native-scorecard.schema.json", "kind": "SCHEMA", "sha256": "sha256:1ba652dd1cf7f666e6e450cd3e8e3adeeab7099aeaa8551a3d48c1279799c06b"},
+    {"path": "oracle-hard-gate-ledger.schema.json", "kind": "SCHEMA", "sha256": "sha256:cbb8205310c28ddef92046ea76b6c762ce216a17664fa0aa5ec3f839ae5bce80"},
+    {"path": "panel-finalization-seal.schema.json", "kind": "SCHEMA", "sha256": "sha256:7449eb2e25330915293b5ccfb30b470172a636c33a3a35038bc58c1cdfe7f6e5"},
     {"path": "qualification-input.schema.json", "kind": "SCHEMA", "sha256": "sha256:c92f6a9262d938c24b6b532c4bd51de5949b4a9cc6e9eb58fdefc18b15ea2618"},
     {"path": "qualification-receipt.schema.json", "kind": "SCHEMA", "sha256": "sha256:46a665f83faa460a900fa5b42f1f8ff5d36bc7e8387038c60c5a4b0809e8eaca"},
     {"path": "qualification-transport-map.schema.json", "kind": "SCHEMA", "sha256": "sha256:31514cd4601e827acd8f8a243b9341f0448dafbc04b0d6453ec2dcb504eb8dd8"},
-    {"path": "recording-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:e9310ab0ee0b1f4424956974db4a17d1777c5d55037acf918c709611817773f3"},
+    {"path": "recording-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:520e46266eb032dd08d2ca9ddaa9c75352e2471ecb5203d0a1b4a1f746e55583"},
     {"path": "sanitized-evidence-bundle-manifest.schema.json", "kind": "SCHEMA", "sha256": "sha256:220b044e43128b58600c85ffa6da04a018b8917d3552bdc72b80a0f175c74736"},
-    {"path": "canonical-hash-policy.json", "kind": "POLICY", "sha256": "sha256:3ccb17cc0b2f0d24b43b8dd9c60901aa83bb751c8f9b46286d820d71b2617506"},
-    {"path": "cold-journey-recipe.json", "kind": "RECIPE", "sha256": "sha256:be6c56d3d05539e0640b8ecad8f301f69f6552d41c2b0c73a1171a438c66da3a"},
+    {"path": "canonical-hash-policy.json", "kind": "POLICY", "sha256": "sha256:2b4b82c82e4bc862790d0ec3ad3c34ee6d9d994e0cff99aa93377b42a3533d84"},
+    {"path": "evaluation-session-policy.json", "kind": "POLICY", "sha256": "sha256:2f0c3e4d68db2f8c04f11a488dd025eb24c9b6785ee000e15ac7d1549927e797"},
+    {"path": "cold-journey-recipe.json", "kind": "RECIPE", "sha256": "sha256:2ed0a537049d237b6acaf3b0e55fe828dfa18d600211ddf8481b236032298a20"},
     {"path": "concept-exposure-manifest.json", "kind": "AUTHORITY", "sha256": "sha256:1a5bffddcf78c8952f1d5a47ee5f5926c0bc5c5c6e0fbf2cbc0291c24783e9f5"},
     {"path": "coverage-recipe.json", "kind": "RECIPE", "sha256": "sha256:dfb2e7950defe8d50073f26529b0ae2d0b2418f92884a412a802afd64d271c7d"},
-    {"path": "gold-state-manifest.json", "kind": "AUTHORITY", "sha256": "sha256:e2dd791d55c99ef2c09868f57a979ef20519a39cca8498b8eaa9295e09f6cfa4"},
-    {"path": "holdout-recipes.json", "kind": "RECIPE", "sha256": "sha256:bc6638ec5ff2a7aa814ec2dd67637fb3b7ac62998b5bbd7883df0d08c85aa56c"},
+    {"path": "gold-state-manifest.json", "kind": "AUTHORITY", "sha256": "sha256:bfdd8a2b999d5e5a6c2b745ee848f8139e28f2004361fea4c23675f63d4d1cd4"},
+    {"path": "holdout-recipes.json", "kind": "RECIPE", "sha256": "sha256:b46c39e2ec1cec46453d12caf3ab5ff6e4f016d4e910eafdb8aada9720441a16"},
     {"path": "qualification-anchors.json", "kind": "AUTHORITY", "sha256": "sha256:8c0cc3a57568edf50c9afc2151df4cb17d130c3c3ce92ef37a9f2c65165c2d41"},
     {"path": "qualification-transport-map.json", "kind": "AUTHORITY", "sha256": "sha256:3816cb466c2ef7387d24f6791b9dee51ad725139ab24a01ae8a462298ef533de"},
     {"path": "cold-actor-prompt.template.txt", "kind": "PROMPT", "sha256": "sha256:dce822fb71212de47da6a020201d157e3a3305c0ad565df2bedf08b44cbe9fbe"},
     {"path": "native-judge-prompt.template.txt", "kind": "PROMPT", "sha256": "sha256:4a57bbdfdfa4d32e9fd59f4a016c20dfbfd14a6b9cfd40d322e3597a122095a7"},
-    {"path": "native-evidence-verifier-prompt.template.txt", "kind": "PROMPT", "sha256": "sha256:c9c9d3cdad026f0d94e0bba957bca4ae85d9ce5c4f9bd627a77b6f71c5af5afd"}
+    {"path": "native-evidence-verifier-prompt.template.txt", "kind": "PROMPT", "sha256": "sha256:853d9aac1fc3e080723be8765f28feced08d1c89dc92c0b4a33ad6f5b3728c26"}
   ],
   "stageBindings": [
     {
@@ -125,18 +143,50 @@
       "authorities": ["canonical-hash-policy.json", "holdout-recipes.json"]
     },
     {
+      "stageId": "EVALUATION-SESSION-CLAIM",
+      "producerType": "DETERMINISTIC",
+      "implementationTool": "claim-evaluation-session.py",
+      "promptFile": null,
+      "inputSchemas": [
+        "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
+        "holdout-consumption-registry.schema.json"
+      ],
+      "outputSchema": "evaluation-session-claim.schema.json",
+      "packagedOutputSchema": null,
+      "authorities": [
+        "evaluation-session-policy.json", "canonical-hash-policy.json",
+        "holdout-recipes.json", "claim-evaluation-session.py"
+      ]
+    },
+    {
+      "stageId": "EVALUATION-ATTEMPT-LEDGER",
+      "producerType": "DETERMINISTIC",
+      "implementationTool": "claim-evaluation-session.py",
+      "promptFile": null,
+      "inputSchemas": ["evaluation-session-claim.schema.json"],
+      "outputSchema": "evaluation-attempt-receipt.schema.json",
+      "packagedOutputSchema": "evaluation-attempt-terminal.schema.json",
+      "authorities": ["evaluation-session-policy.json", "claim-evaluation-session.py"]
+    },
+    {
       "stageId": "GOLD-BINDING-PACKAGER",
       "producerType": "DETERMINISTIC",
       "implementationTool": null,
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json",
-        "holdout-consumption-receipt.schema.json"
+        "holdout-consumption-receipt.schema.json",
+        "evaluation-session-claim.schema.json"
       ],
       "outputSchema": "gold-binding-manifest.schema.json",
       "packagedOutputSchema": null,
       "authorities": [
-        "canonical-hash-policy.json", "gold-state-manifest.json", "coverage-recipe.json"
+        "canonical-hash-policy.json",
+        "gold-state-manifest.json",
+        "coverage-recipe.json",
+        "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
+        "../../Gridworks.GoldReplayVerifier/Program.cs",
+        "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
       ]
     },
     {
@@ -146,6 +196,7 @@
       "promptFile": "cold-actor-prompt.template.txt",
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
         "gold-binding-manifest.schema.json"
       ],
       "modelVisibleInputSchemas": [],
@@ -160,7 +211,9 @@
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
-        "gold-binding-manifest.schema.json", "cold-actor-response.schema.json"
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "cold-actor-response.schema.json"
       ],
       "outputSchema": "actor-observation.schema.json",
       "packagedOutputSchema": "recording-manifest.schema.json",
@@ -176,7 +229,9 @@
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
-        "gold-binding-manifest.schema.json", "cold-actor-response.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "cold-actor-response.schema.json",
         "actor-observation.schema.json", "recording-manifest.schema.json"
       ],
       "outputSchema": "actor-trace.schema.json",
@@ -221,6 +276,7 @@
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
         "gold-binding-manifest.schema.json"
       ],
       "outputSchema": "coverage-action-ledger.schema.json",
@@ -237,7 +293,9 @@
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
-        "gold-binding-manifest.schema.json", "coverage-action-ledger.schema.json"
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "coverage-action-ledger.schema.json"
       ],
       "outputSchema": "coverage-trace.schema.json",
       "packagedOutputSchema": "recording-manifest.schema.json",
@@ -252,7 +310,9 @@
       "implementationTool": null,
       "promptFile": null,
       "inputSchemas": [
-        "holdout-consumption-receipt.schema.json", "actor-trace.schema.json",
+        "holdout-consumption-receipt.schema.json", "evaluation-session-claim.schema.json",
+        "evaluation-attempt-receipt.schema.json", "evaluation-attempt-terminal.schema.json",
+        "actor-trace.schema.json",
         "coverage-action-ledger.schema.json", "coverage-trace.schema.json",
         "recording-manifest.schema.json"
       ],
@@ -267,7 +327,9 @@
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
-        "gold-binding-manifest.schema.json", "actor-trace.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "actor-trace.schema.json",
         "coverage-action-ledger.schema.json", "coverage-trace.schema.json",
         "recording-manifest.schema.json", "anonymization-manifest.schema.json"
       ],
@@ -282,7 +344,9 @@
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json", "qualification-receipt.schema.json",
-        "holdout-consumption-receipt.schema.json", "gold-binding-manifest.schema.json",
+        "holdout-consumption-receipt.schema.json", "evaluation-session-claim.schema.json",
+        "evaluation-attempt-receipt.schema.json", "evaluation-attempt-terminal.schema.json",
+        "gold-binding-manifest.schema.json",
         "evidence-set.schema.json", "sanitized-evidence-bundle-manifest.schema.json"
       ],
       "outputSchema": "candidate-judge-input.schema.json",
@@ -299,7 +363,8 @@
       "promptFile": "native-judge-prompt.template.txt",
       "inputSchemas": [
         "candidate-judge-input.schema.json", "evidence-set.schema.json",
-        "sanitized-evidence-bundle-manifest.schema.json"
+        "sanitized-evidence-bundle-manifest.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json"
       ],
       "modelVisibleInputSchemas": [
         "candidate-judge-input.schema.json", "evidence-set.schema.json",
@@ -317,6 +382,9 @@
       "inputSchemas": [
         "candidate-manifest.schema.json",
         "qualification-receipt.schema.json",
+        "evaluation-session-claim.schema.json",
+        "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json",
         "candidate-judge-input.schema.json",
         "evidence-set.schema.json",
         "sanitized-evidence-bundle-manifest.schema.json",
@@ -333,7 +401,9 @@
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
-        "gold-binding-manifest.schema.json", "evidence-set.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "evidence-set.schema.json",
         "sanitized-evidence-bundle-manifest.schema.json",
         "candidate-judge-input.schema.json", "native-judge.schema.json",
         "judge-panel.schema.json"
@@ -349,7 +419,8 @@
       "promptFile": "native-evidence-verifier-prompt.template.txt",
       "inputSchemas": [
         "native-evidence-verification-input.schema.json", "evidence-set.schema.json",
-        "sanitized-evidence-bundle-manifest.schema.json"
+        "sanitized-evidence-bundle-manifest.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json"
       ],
       "modelVisibleInputSchemas": [
         "native-evidence-verification-input.schema.json", "evidence-set.schema.json",
@@ -366,7 +437,9 @@
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
-        "gold-binding-manifest.schema.json", "cold-actor-response.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "cold-actor-response.schema.json",
         "actor-observation.schema.json",
         "actor-trace.schema.json", "coverage-action-ledger.schema.json",
         "coverage-trace.schema.json",
@@ -393,6 +466,9 @@
       "inputSchemas": [
         "candidate-manifest.schema.json",
         "holdout-consumption-receipt.schema.json",
+        "evaluation-session-claim.schema.json",
+        "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json",
         "gold-binding-manifest.schema.json",
         "qualification-receipt.schema.json",
         "cold-actor-response.schema.json",
@@ -422,7 +498,9 @@
       "promptFile": null,
       "inputSchemas": [
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
-        "gold-binding-manifest.schema.json", "qualification-receipt.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json", "gold-binding-manifest.schema.json",
+        "qualification-receipt.schema.json",
         "judge-panel.schema.json", "evaluation-run-manifest.schema.json",
         "cold-actor-response.schema.json", "actor-observation.schema.json",
         "actor-trace.schema.json",
@@ -447,6 +525,9 @@
         "native-aggregation-input.schema.json",
         "candidate-manifest.schema.json",
         "holdout-consumption-receipt.schema.json",
+        "evaluation-session-claim.schema.json",
+        "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json",
         "gold-binding-manifest.schema.json",
         "qualification-receipt.schema.json",
         "judge-panel.schema.json",
@@ -481,6 +562,8 @@
       "inputSchemas": [
         "native-scorecard.schema.json", "native-aggregation-input.schema.json",
         "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
+        "evaluation-session-claim.schema.json", "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json",
         "gold-binding-manifest.schema.json", "qualification-receipt.schema.json",
         "judge-panel.schema.json", "evaluation-run-manifest.schema.json",
         "anonymization-manifest.schema.json", "evidence-set.schema.json",

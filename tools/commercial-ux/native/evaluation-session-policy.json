@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "gridworks.commercial-ux.evaluation-session-policy.v1",
+  "protocol": "GRIDWORKS-COMMERCIAL-UX-v1.1",
+  "candidateIndependent": true,
+  "policyId": "GRIDWORKS-COMMERCIAL-UX-EVALUATION-SESSION-v1.1",
+  "claimOrder": "HOLDOUT_CONSUMPTION_CONFIRMED_THEN_CLAIM_FILE_O_EXCL_FSYNC_BEFORE_SESSION_ROOT_MKDIR_GOLD_CAPTURE_OR_ANY_ACTOR_JUDGE_VERIFIER_OR_ORACLE_EXPOSURE",
+  "playableFingerprintHashRule": "SHA256_OF_RFC8785_EXECUTION_ARTIFACT_SHA256_AND_AUTHORITY_HASHES_EXCLUDING_SOURCE_COMMIT",
+  "officialUniquenessRule": "SOURCE_COMMIT_AND_PLAYABLE_FINGERPRINT_EACH_UNIQUE_IN_OFFICIAL_LOCAL_REGISTRY",
+  "formativeRegistryRule": "FORMATIVE_DOES_NOT_CONSUME_OFFICIAL_SOURCE_COMMIT_OR_PLAYABLE_FINGERPRINT",
+  "sessionRootRule": "GIT_COMMON_DIR/gridworks-commercial-ux/evaluation-sessions/{holdoutConsumptionReceiptSha256Hex}/{initial|replacement-01}",
+  "initialClaimPathRule": "{receiptSessionRoot}/initial-claim.json_AND_{receiptSessionRoot}/replacement-01-claim.json",
+  "replacementRule": "ONE_REPLACEMENT_SESSION_REUSES_EXACT_INITIAL_CANDIDATE_HOLDOUT_SESSION_CLAIM_SCORECARD_AND_PANEL_FINALIZATION_SEAL",
+  "attemptReservationRule": "SESSION_LOCK_THEN_ATTEMPT_ROOT_AND_ARTIFACT_ROOT_EXCLUSIVE_MKDIR_THEN_ZERO_BYTE_OUTPUT_O_EXCL_FSYNC_THEN_START_RECEIPT_O_EXCL_FSYNC_BEFORE_PRODUCER_START",
+  "attemptTerminalRule": "TERMINAL_PATH_ZERO_BYTE_O_EXCL_FSYNC_BEFORE_OUTPUT_OBSERVATION_THEN_EXACT_TERMINAL_WRITE_FSYNC_BEFORE_SCHEMA_OR_TRANSPORT_RETRY",
+  "outcomeClassificationRule": "ROLE_OUTPUT_STRICT_JSON_AND_FROZEN_SCHEMA_DERIVE_SUCCESS_OR_ONLY_SCHEMA_OR_TRANSPORT_RETRY_CALLER_CANNOT_CLASSIFY",
+  "attemptBudgetPerSlot": 3,
+  "slots": [
+    {"slotId": "SLOT-01", "role": "COLD_ACTOR", "roleOrdinal": 1},
+    {"slotId": "SLOT-02", "role": "COLD_ACTOR", "roleOrdinal": 2},
+    {"slotId": "SLOT-03", "role": "COLD_ACTOR", "roleOrdinal": 3},
+    {"slotId": "SLOT-04", "role": "COVERAGE", "roleOrdinal": 1},
+    {"slotId": "SLOT-05", "role": "CANDIDATE_JUDGE", "roleOrdinal": 1},
+    {"slotId": "SLOT-06", "role": "CANDIDATE_JUDGE", "roleOrdinal": 2},
+    {"slotId": "SLOT-07", "role": "CANDIDATE_JUDGE", "roleOrdinal": 3},
+    {"slotId": "SLOT-08", "role": "EVIDENCE_VERIFIER", "roleOrdinal": 1},
+    {"slotId": "SLOT-09", "role": "ORACLE", "roleOrdinal": 1}
+  ],
+  "fixedArtifactNames": {
+    "goldBinding": "gold-binding.json",
+    "anonymization": "anonymization.json",
+    "evidenceSet": "evidence-set.json",
+    "sanitizedEvidenceBundle": "sanitized-evidence-bundle.json",
+    "candidateJudgeInput": "candidate-judge-input.json",
+    "judgePanel": "judge-panel.json",
+    "verificationInput": "verification-input.json",
+    "evaluationRun": "evaluation-run.json",
+    "aggregationInput": "aggregation-input.json",
+    "scorecard": "scorecard.json",
+    "panelFinalizationSeal": "panel-finalization-seal.json"
+  }
+}

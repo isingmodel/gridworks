@@ -8,12 +8,15 @@
     "scope": "LOCAL_REPOSITORY_REGISTRY_ONLY",
     "authorityLimit": "NOT_GLOBAL_ACROSS_REPOSITORY_CLONES",
     "registryPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-consumption-registry-v1.json",
-    "receiptPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-receipts/{transactionSha256Hex}-{candidateReuseSha256Hex}.json",
+    "receiptPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-receipts/{transactionSha256Hex}-{candidatePlayableFingerprintSha256Hex}.json",
     "receiptCreatePolicy": "O_EXCL_CREATE_AND_FSYNC_BEFORE_ATOMIC_REGISTRY_RENAME",
     "transaction": "LOCKED_COMPARE_LOWEST_UNUSED_APPEND_FSYNC_ATOMIC_RENAME",
     "recipeReuseKeyFields": ["queueAuthorityId", "recipeId"],
-    "candidateReuseKeyField": "candidateReuseSha256",
-    "candidateReuseKeyUnique": true
+    "candidateReuseKeyField": "candidatePlayableFingerprintSha256",
+    "candidateReuseKeyUnique": true,
+    "sourceCommitKeyField": "sourceCommit",
+    "sourceCommitKeyUnique": true,
+    "playableFingerprintRule": "SHA256_OF_EXECUTION_ARTIFACT_AND_AUTHORITY_HASHES_EXCLUDING_SOURCE_COMMIT"
   },
   "exhaustionStatus": "BLOCKED_HOLDOUT_EXHAUSTED",
   "baseCoverageRecipe": "coverage-recipe.json",

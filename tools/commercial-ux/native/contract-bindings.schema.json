@@ -20,18 +20,20 @@
     "toolBindingPolicy": {"$ref": "#/$defs/toolBindingPolicy"},
     "fileHashes": {
       "type": "array",
-      "minItems": 47,
-      "maxItems": 47,
+      "minItems": 55,
+      "maxItems": 55,
       "uniqueItems": true,
       "items": {"$ref": "#/$defs/fileHash"}
     },
     "stageBindings": {
       "type": "array",
-      "minItems": 23,
-      "maxItems": 23,
+      "minItems": 25,
+      "maxItems": 25,
       "prefixItems": [
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "CANDIDATE-MANIFEST-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "HOLDOUT-CONSUMPTION-PACKAGER"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "EVALUATION-SESSION-CLAIM"}}},
+        {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "EVALUATION-ATTEMPT-LEDGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "GOLD-BINDING-PACKAGER"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COLD-ACTOR"}}},
         {"$ref": "#/$defs/stageBinding", "properties": {"stageId": {"const": "COLD-OBSERVATION-PACKAGER"}}},
@@ -69,11 +71,20 @@
       ],
       "properties": {
         "boundImplementedTools": {
-          "const": ["../aggregate-native.py", "validate-contract.py", "validate-gold-state.py"]
+          "const": [
+            "../aggregate-native.py",
+            "claim-evaluation-session.py",
+            "validate-contract.py",
+            "validate-gold-state.py",
+            "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
+            "../../Gridworks.GoldReplayVerifier/Program.cs",
+            "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
+          ]
         },
         "requiredProducerStagesBeforeScoreBearing": {
           "const": [
             "CANDIDATE-MANIFEST-PACKAGER", "HOLDOUT-CONSUMPTION-PACKAGER",
+            "EVALUATION-SESSION-CLAIM", "EVALUATION-ATTEMPT-LEDGER",
             "GOLD-BINDING-PACKAGER", "COLD-OBSERVATION-PACKAGER", "COLD-PACKAGER",
             "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-RECEIPT-PACKAGER",
             "COVERAGE-ACTION-LEDGER-PACKAGER", "COVERAGE-RUN-PACKAGER",
@@ -109,7 +120,10 @@
       "additionalProperties": false,
       "required": ["path", "kind", "sha256"],
       "properties": {
-        "path": {"type": "string", "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|[a-z0-9][a-z0-9.-]+)$"},
+        "path": {
+          "type": "string",
+          "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|\\.\\./\\.\\./Gridworks\\.CommercialChecks/CommercialGoldReplayVerifier\\.cs|\\.\\./\\.\\./Gridworks\\.GoldReplayVerifier/(Program\\.cs|Gridworks\\.GoldReplayVerifier\\.csproj)|[a-z0-9][a-z0-9.-]+)$"
+        },
         "kind": {"enum": ["RUBRIC", "PROMPT", "SCHEMA", "AUTHORITY", "RECIPE", "POLICY", "TOOL"]},
         "sha256": {"$ref": "#/$defs/sha256"}
       }
@@ -125,6 +139,7 @@
         "stageId": {
           "enum": [
             "CANDIDATE-MANIFEST-PACKAGER", "HOLDOUT-CONSUMPTION-PACKAGER",
+            "EVALUATION-SESSION-CLAIM", "EVALUATION-ATTEMPT-LEDGER",
             "GOLD-BINDING-PACKAGER", "COLD-ACTOR", "COLD-OBSERVATION-PACKAGER",
             "COLD-PACKAGER",
             "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-JUDGE",
@@ -150,7 +165,7 @@
         },
         "inputSchemas": {
           "type": "array",
-          "maxItems": 24,
+          "maxItems": 32,
           "uniqueItems": true,
           "items": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]+\\.schema\\.json$"}
         },
@@ -169,7 +184,10 @@
           "type": "array",
           "maxItems": 8,
           "uniqueItems": true,
-          "items": {"type": "string", "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|[a-z0-9][a-z0-9.-]+)$"}
+          "items": {
+            "type": "string",
+            "pattern": "^(\\.\\./(rubric\\.json|aggregate-native\\.py)|\\.\\./\\.\\./Gridworks\\.CommercialChecks/CommercialGoldReplayVerifier\\.cs|\\.\\./\\.\\./Gridworks\\.GoldReplayVerifier/(Program\\.cs|Gridworks\\.GoldReplayVerifier\\.csproj)|[a-z0-9][a-z0-9.-]+)$"
+          }
         }
       },
       "allOf": [

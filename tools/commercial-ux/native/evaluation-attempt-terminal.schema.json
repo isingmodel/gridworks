@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-evaluation-attempt-terminal-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "evaluationAttemptTerminalSha256",
+    "evaluationAttemptTerminalSchemaSha256", "evaluationSessionPolicySha256",
+    "sessionClaimToolSha256", "evaluationAttemptReceiptSha256",
+    "evaluationAttemptReceiptRawSha256", "evaluationSessionClaimSha256",
+    "sessionId", "sessionMode", "slotId", "role", "roleOrdinal",
+    "attemptOrdinal", "canonicalTerminalReceiptPath", "canonicalOutputPath",
+    "canonicalArtifactRoot", "artifactEntries", "artifactEntryCount",
+    "artifactContentRootSha256", "outputRawSha256", "outputByteLength", "outcome", "failureCode",
+    "nextAttemptAllowed", "terminalization", "status"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.evaluation-attempt-terminal.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "evaluationAttemptTerminalSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationAttemptTerminalSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationSessionPolicySha256": {"$ref": "#/$defs/sha256"},
+    "sessionClaimToolSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationAttemptReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationAttemptReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationSessionClaimSha256": {"$ref": "#/$defs/sha256"},
+    "sessionId": {"$ref": "#/$defs/sha256"},
+    "sessionMode": {"enum": ["INITIAL", "REPLACEMENT"]},
+    "slotId": {"pattern": "^SLOT-0[1-9]$"},
+    "role": {"enum": ["COLD_ACTOR", "COVERAGE", "CANDIDATE_JUDGE", "EVIDENCE_VERIFIER", "ORACLE"]},
+    "roleOrdinal": {"type": "integer", "minimum": 1, "maximum": 3},
+    "attemptOrdinal": {"type": "integer", "minimum": 1, "maximum": 3},
+    "canonicalTerminalReceiptPath": {"$ref": "#/$defs/absolutePath"},
+    "canonicalOutputPath": {"$ref": "#/$defs/absolutePath"},
+    "canonicalArtifactRoot": {"$ref": "#/$defs/absolutePath"},
+    "artifactEntries": {
+      "type": "array", "maxItems": 5000, "uniqueItems": true,
+      "items": {"$ref": "#/$defs/artifactEntry"}
+    },
+    "artifactEntryCount": {"type": "integer", "minimum": 0, "maximum": 5000},
+    "artifactContentRootSha256": {"$ref": "#/$defs/sha256"},
+    "outputRawSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+    "outputByteLength": {"type": "integer", "minimum": 0},
+    "outcome": {"enum": ["SUCCESS", "SCHEMA_FAILURE", "TRANSPORT_FAILURE", "HARNESS_FAILURE", "ORACLE_FAILURE", "INPUT_UNREADABLE"]},
+    "failureCode": {"type": ["string", "null"], "minLength": 1, "maxLength": 200},
+    "nextAttemptAllowed": {"type": "boolean"},
+    "terminalization": {"$ref": "#/$defs/terminalization"},
+    "status": {"const": "TERMINAL"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"outcome": {"const": "SUCCESS"}}, "required": ["outcome"]},
+      "then": {"properties": {"outputRawSha256": {"$ref": "#/$defs/sha256"}, "outputByteLength": {"minimum": 1}, "failureCode": {"type": "null"}, "nextAttemptAllowed": {"const": false}}},
+      "else": {"properties": {"failureCode": {"type": "string", "minLength": 1}, "nextAttemptAllowed": {"type": "boolean"}}}
+    },
+    {
+      "if": {"properties": {"attemptOrdinal": {"const": 3}}, "required": ["attemptOrdinal"]},
+      "then": {"properties": {"nextAttemptAllowed": {"const": false}}}
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {"enum": ["SCHEMA_FAILURE", "TRANSPORT_FAILURE"]},
+          "attemptOrdinal": {"maximum": 2}
+        },
+        "required": ["outcome", "attemptOrdinal"]
+      },
+      "then": {"properties": {"nextAttemptAllowed": {"const": true}}},
+      "else": {"properties": {"nextAttemptAllowed": {"const": false}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "absolutePath": {"type": "string", "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$", "maxLength": 1400},
+    "artifactEntry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["locator", "rawSha256", "byteLength"],
+      "properties": {
+        "locator": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*$", "maxLength": 1000},
+        "rawSha256": {"$ref": "#/$defs/sha256"},
+        "byteLength": {"type": "integer", "minimum": 0}
+      }
+    },
+    "terminalization": {
+      "type": "object", "additionalProperties": false,
+      "required": ["policy", "sessionLockAcquired", "terminalPathAbsentBeforeOpen", "terminalReservedBeforeOutputObservation", "exclusiveCreateCompleted", "terminalFsyncCompleted", "parentDirectoryFsyncCompleted"],
+      "properties": {
+        "policy": {"const": "TERMINAL_PATH_ZERO_BYTE_O_EXCL_FSYNC_BEFORE_OUTPUT_OBSERVATION_THEN_EXACT_TERMINAL_WRITE_FSYNC"},
+        "sessionLockAcquired": {"const": true},
+        "terminalPathAbsentBeforeOpen": {"const": true},
+        "terminalReservedBeforeOutputObservation": {"const": true},
+        "exclusiveCreateCompleted": {"const": true},
+        "terminalFsyncCompleted": {"const": true},
+        "parentDirectoryFsyncCompleted": {"const": true}
+      }
+    }
+  }
+}

@@ -15,8 +15,10 @@ verificationInputSha256 "__VERIFICATION_INPUT_SHA256__", evidenceSetSha256
 
 The input contains deduplicated observations and source references, but no author identity,
 label, confidence, cell, category, polarity, recommendation, numeric rating, threshold, or
-previous build. Evaluate every observation exactly once in supplied order. Echo its
-observationId and citedSources unchanged. Return only a verdict and short grounded
+previous build. Some rows are blinded judge-evidence claims and some are raw actor-incident
+claims; both require the same cited-media standard. Evaluate every observation exactly once
+in supplied order. Echo its observationId, claimType, incidentKey, and citedSources unchanged.
+Return only a verdict and short grounded
 rationale; do not assess overall quality, propose changes, infer counterfactual learning,
 or add observations.
 

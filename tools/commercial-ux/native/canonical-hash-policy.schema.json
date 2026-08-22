@@ -40,8 +40,8 @@
     },
     "bindings": {
       "type": "array",
-      "minItems": 20,
-      "maxItems": 20,
+      "minItems": 23,
+      "maxItems": 23,
       "uniqueItems": true,
       "items": {
         "type": "object",

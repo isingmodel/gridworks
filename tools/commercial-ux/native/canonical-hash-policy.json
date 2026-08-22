@@ -82,6 +82,21 @@
       "producer": "HOLDOUT_CONSUMPTION_PACKAGER"
     },
     {
+      "artifactSchema": "evaluation-session-claim.schema.json",
+      "field": "evaluationSessionClaimSha256",
+      "producer": "EVALUATION_SESSION_CLAIM_PACKAGER"
+    },
+    {
+      "artifactSchema": "evaluation-attempt-receipt.schema.json",
+      "field": "evaluationAttemptReceiptSha256",
+      "producer": "EVALUATION_ATTEMPT_LEDGER"
+    },
+    {
+      "artifactSchema": "evaluation-attempt-terminal.schema.json",
+      "field": "evaluationAttemptTerminalSha256",
+      "producer": "EVALUATION_ATTEMPT_LEDGER"
+    },
+    {
       "artifactSchema": "gold-binding-manifest.schema.json",
       "field": "goldBindingManifestSha256",
       "producer": "GOLD_BINDING_PACKAGER"

@@ -122,7 +122,7 @@
         "e09WitnessRequired": {"const": true},
         "rawBundleRequired": {"const": true},
         "rawBundleEntryCount": {"const": 112},
-        "rawBundleValidation": {"const": "OPEN_EVERY_CANONICAL_LOCATOR_RECOMPUTE_RAW_HASH_AND_LENGTH_REJECT_EXTRA_OR_SYMLINK"},
+        "rawBundleValidation": {"const": "OPEN_EXACT_BYTES_RECOMPUTE_RAW_HASH_LENGTH_REJECT_EXTRA_SYMLINK_THEN_CORE_DESERIALIZE_RESTORE_AND_EXACT_CANONICAL_SNAPSHOT_COMPARE"},
         "immutableTemplateBindingsRemainPending": {"const": true},
         "scoreReadyCommandRequires": {
           "const": ["--binding-manifest", "--candidate-manifest", "--require-score-ready"]
@@ -184,6 +184,30 @@
         "candidateExecutionSha256": {"type": "null"}
       }
     },
+    "immutableReplayVerifierAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path", "sha256", "entrypointPath", "entrypointSha256",
+        "projectPath", "projectSha256", "referenceMode", "members"
+      ],
+      "properties": {
+        "path": {"type": "string", "minLength": 1, "maxLength": 300},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "entrypointPath": {"type": "string", "minLength": 1, "maxLength": 300},
+        "entrypointSha256": {"$ref": "#/$defs/sha256"},
+        "projectPath": {"type": "string", "minLength": 1, "maxLength": 300},
+        "projectSha256": {"$ref": "#/$defs/sha256"},
+        "referenceMode": {"const": "EXACT_RAW_SHA_AND_CORE_REPLAY"},
+        "members": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 16,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 300}
+        }
+      }
+    },
     "storyManifestAuthority": {
       "type": "object",
       "additionalProperties": false,
@@ -209,6 +233,7 @@
         "deterministicWitness",
         "nativeSmokeWitness",
         "storyHarness",
+        "goldReplayVerifier",
         "storyManifest"
       ],
       "properties": {
@@ -221,6 +246,7 @@
         "deterministicWitness": {"$ref": "#/$defs/semanticCodeAuthority"},
         "nativeSmokeWitness": {"$ref": "#/$defs/semanticCodeAuthority"},
         "storyHarness": {"$ref": "#/$defs/semanticCodeAuthority"},
+        "goldReplayVerifier": {"$ref": "#/$defs/immutableReplayVerifierAuthority"},
         "storyManifest": {"$ref": "#/$defs/storyManifestAuthority"}
       }
     },

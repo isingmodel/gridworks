@@ -12,7 +12,9 @@ import copy
 import hashlib
 import json
 import math
+import os
 import re
+import stat
 import subprocess
 import sys
 from collections import Counter
@@ -555,14 +557,17 @@ def validate_candidate_manifest_semantics(
 
 
 def candidate_reuse_sha256(candidate: dict[str, Any]) -> str:
-    source = candidate.get("source", {})
+    """Legacy field name for the playable fingerprint; source commit is excluded."""
     execution = candidate.get("execution", {})
     projection = {
         "authorityHashes": candidate.get("authorityHashes"),
         "executionArtifactSha256": execution.get("executionArtifactSha256"),
-        "sourceCommit": source.get("commit"),
     }
     return "sha256:" + hashlib.sha256(canonical_json_bytes(projection)).hexdigest()
+
+
+def candidate_playable_fingerprint_sha256(candidate: dict[str, Any]) -> str:
+    return candidate_reuse_sha256(candidate)
 
 
 def selected_recipe_projection(row: dict[str, Any]) -> dict[str, Any]:
@@ -623,6 +628,9 @@ def holdout_claim_transaction_sha256(
             "holdoutConsumptionRegistrySha256"
         ),
         "candidateReuseSha256": receipt.get("candidateReuseSha256"),
+        "candidatePlayableFingerprintSha256": receipt.get(
+            "candidatePlayableFingerprintSha256"
+        ),
         "candidateManifestSha256": receipt.get("candidateManifestSha256"),
         "selectedRecipeSha256": (
             selected.get("selectedRecipeSha256")
@@ -656,6 +664,741 @@ def canonical_holdout_receipt_path(
     )
 
 
+def canonical_evaluation_session_base_path(
+    native: Path,
+    common_dir_override: Path | None = None,
+) -> Path:
+    if common_dir_override is None:
+        common_root = canonical_holdout_registry_path(native).parent
+    else:
+        common_root = (
+            common_dir_override.resolve(strict=False) / "gridworks-commercial-ux"
+        )
+    return common_root / "evaluation-sessions"
+
+
+def _session_id_sha256(
+    holdout_receipt_sha256: str,
+    session_mode: str,
+    initial_claim_sha256: str | None,
+    policy_sha256: str,
+) -> str:
+    return "sha256:" + hashlib.sha256(canonical_json_bytes({
+        "evaluationSessionPolicySha256": policy_sha256,
+        "holdoutConsumptionReceiptSha256": holdout_receipt_sha256,
+        "initialSessionClaimSha256": initial_claim_sha256,
+        "sessionMode": session_mode,
+    })).hexdigest()
+
+
+def _expected_session_slots(root: Path, policy: dict[str, Any]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    for frozen in policy.get("slots", []):
+        if not isinstance(frozen, dict):
+            continue
+        slot_root = root / "slots" / str(frozen.get("slotId", "")).lower()
+        attempts = []
+        for attempt_ordinal in range(1, 4):
+            attempt_root = slot_root / f"attempt-{attempt_ordinal:02d}"
+            attempts.append({
+                "attemptOrdinal": attempt_ordinal,
+                "attemptRoot": str(attempt_root),
+                "startReceiptPath": str(attempt_root / "start-receipt.json"),
+                "outputPath": str(attempt_root / "output.json"),
+                "artifactRoot": str(attempt_root / "artifacts"),
+                "terminalReceiptPath": str(attempt_root / "terminal-receipt.json"),
+            })
+        result.append({
+            **frozen,
+            "slotRoot": str(slot_root),
+            "attemptBudget": 3,
+            "attempts": attempts,
+        })
+    return result
+
+
+def validate_evaluation_session_policy(
+    policy: dict[str, Any],
+    errors: list[str],
+) -> None:
+    require(
+        policy == {
+            "schemaVersion": "gridworks.commercial-ux.evaluation-session-policy.v1",
+            "protocol": PROTOCOL,
+            "candidateIndependent": True,
+            "policyId": "GRIDWORKS-COMMERCIAL-UX-EVALUATION-SESSION-v1.1",
+            "claimOrder": "HOLDOUT_CONSUMPTION_CONFIRMED_THEN_CLAIM_FILE_O_EXCL_FSYNC_BEFORE_SESSION_ROOT_MKDIR_GOLD_CAPTURE_OR_ANY_ACTOR_JUDGE_VERIFIER_OR_ORACLE_EXPOSURE",
+            "playableFingerprintHashRule": "SHA256_OF_RFC8785_EXECUTION_ARTIFACT_SHA256_AND_AUTHORITY_HASHES_EXCLUDING_SOURCE_COMMIT",
+            "officialUniquenessRule": "SOURCE_COMMIT_AND_PLAYABLE_FINGERPRINT_EACH_UNIQUE_IN_OFFICIAL_LOCAL_REGISTRY",
+            "formativeRegistryRule": "FORMATIVE_DOES_NOT_CONSUME_OFFICIAL_SOURCE_COMMIT_OR_PLAYABLE_FINGERPRINT",
+            "sessionRootRule": "GIT_COMMON_DIR/gridworks-commercial-ux/evaluation-sessions/{holdoutConsumptionReceiptSha256Hex}/{initial|replacement-01}",
+            "initialClaimPathRule": "{receiptSessionRoot}/initial-claim.json_AND_{receiptSessionRoot}/replacement-01-claim.json",
+            "replacementRule": "ONE_REPLACEMENT_SESSION_REUSES_EXACT_INITIAL_CANDIDATE_HOLDOUT_SESSION_CLAIM_SCORECARD_AND_PANEL_FINALIZATION_SEAL",
+            "attemptReservationRule": "SESSION_LOCK_THEN_ATTEMPT_ROOT_AND_ARTIFACT_ROOT_EXCLUSIVE_MKDIR_THEN_ZERO_BYTE_OUTPUT_O_EXCL_FSYNC_THEN_START_RECEIPT_O_EXCL_FSYNC_BEFORE_PRODUCER_START",
+            "attemptTerminalRule": "TERMINAL_PATH_ZERO_BYTE_O_EXCL_FSYNC_BEFORE_OUTPUT_OBSERVATION_THEN_EXACT_TERMINAL_WRITE_FSYNC_BEFORE_SCHEMA_OR_TRANSPORT_RETRY",
+            "outcomeClassificationRule": "ROLE_OUTPUT_STRICT_JSON_AND_FROZEN_SCHEMA_DERIVE_SUCCESS_OR_ONLY_SCHEMA_OR_TRANSPORT_RETRY_CALLER_CANNOT_CLASSIFY",
+            "attemptBudgetPerSlot": 3,
+            "slots": [
+                {"slotId": "SLOT-01", "role": "COLD_ACTOR", "roleOrdinal": 1},
+                {"slotId": "SLOT-02", "role": "COLD_ACTOR", "roleOrdinal": 2},
+                {"slotId": "SLOT-03", "role": "COLD_ACTOR", "roleOrdinal": 3},
+                {"slotId": "SLOT-04", "role": "COVERAGE", "roleOrdinal": 1},
+                {"slotId": "SLOT-05", "role": "CANDIDATE_JUDGE", "roleOrdinal": 1},
+                {"slotId": "SLOT-06", "role": "CANDIDATE_JUDGE", "roleOrdinal": 2},
+                {"slotId": "SLOT-07", "role": "CANDIDATE_JUDGE", "roleOrdinal": 3},
+                {"slotId": "SLOT-08", "role": "EVIDENCE_VERIFIER", "roleOrdinal": 1},
+                {"slotId": "SLOT-09", "role": "ORACLE", "roleOrdinal": 1},
+            ],
+            "fixedArtifactNames": {
+                "goldBinding": "gold-binding.json",
+                "anonymization": "anonymization.json",
+                "evidenceSet": "evidence-set.json",
+                "sanitizedEvidenceBundle": "sanitized-evidence-bundle.json",
+                "candidateJudgeInput": "candidate-judge-input.json",
+                "judgePanel": "judge-panel.json",
+                "verificationInput": "verification-input.json",
+                "evaluationRun": "evaluation-run.json",
+                "aggregationInput": "aggregation-input.json",
+                "scorecard": "scorecard.json",
+                "panelFinalizationSeal": "panel-finalization-seal.json",
+            },
+        },
+        "evaluation session policy drift",
+        errors,
+    )
+
+
+def validate_evaluation_session_claim_semantics(
+    claim: dict[str, Any],
+    claim_path: Path,
+    native: Path,
+    candidate: dict[str, Any] | None,
+    holdout_receipt: dict[str, Any] | None,
+    errors: list[str],
+    *,
+    common_dir_override: Path | None = None,
+    initial_session_claim: dict[str, Any] | None = None,
+    initial_session_claim_raw_bytes: bytes | None = None,
+    initial_session_claim_path_label: Path | None = None,
+) -> None:
+    try:
+        policy = read_json(native / "evaluation-session-policy.json")
+    except ContractError as error:
+        errors.append(str(error))
+        return
+    validate_evaluation_session_policy(policy, errors)
+    require(
+        claim.get("evaluationSessionClaimSchemaSha256")
+        == raw_sha256(native / "evaluation-session-claim.schema.json")
+        and claim.get("evaluationSessionPolicySha256")
+        == raw_sha256(native / "evaluation-session-policy.json")
+        and claim.get("sessionClaimToolSha256")
+        == raw_sha256(native / "claim-evaluation-session.py"),
+        "evaluation session claim schema/policy/tool raw SHA mismatch",
+        errors,
+    )
+    try:
+        claim_self_hash = self_hash(claim, "evaluationSessionClaimSha256")
+    except ContractError as error:
+        errors.append(str(error))
+    else:
+        require(
+            claim.get("evaluationSessionClaimSha256") == claim_self_hash,
+            "evaluation session claim canonical self-hash mismatch",
+            errors,
+        )
+    receipt_sha = claim.get("holdoutConsumptionReceiptSha256")
+    mode = claim.get("sessionMode")
+    initial = claim.get("initialSession")
+    initial_sha = (
+        initial.get("claimSha256") if isinstance(initial, dict) else None
+    )
+    if not isinstance(receipt_sha, str) or SHA_PATTERN.fullmatch(receipt_sha) is None:
+        errors.append("evaluation session claim holdout receipt SHA is invalid")
+        return
+    base = canonical_evaluation_session_base_path(native, common_dir_override)
+    receipt_root = base / receipt_sha.removeprefix("sha256:")
+    expected_root = receipt_root / (
+        "initial" if mode == "INITIAL" else "replacement-01"
+    )
+    expected_claim_path = receipt_root / (
+        "initial-claim.json" if mode == "INITIAL" else "replacement-01-claim.json"
+    )
+    require(
+        claim.get("canonicalSessionRoot") == str(expected_root)
+        and claim.get("canonicalClaimPath") == str(expected_claim_path)
+        and str(claim_path.resolve(strict=False)) == str(expected_claim_path),
+        "evaluation session claim path is not the holdout-derived git-common singleton",
+        errors,
+    )
+    require(
+        claim.get("replacementClaimPath")
+        == str(receipt_root / "replacement-01-claim.json")
+        and claim.get("sessionLockPath") == str(expected_root / "session.lock"),
+        "evaluation session replacement/lock path drift",
+        errors,
+    )
+    require(
+        claim.get("sessionId") == _session_id_sha256(
+            receipt_sha,
+            mode,
+            initial_sha,
+            claim.get("evaluationSessionPolicySha256"),
+        ),
+        "evaluation session ID projection mismatch",
+        errors,
+    )
+    require(
+        claim.get("slots") == _expected_session_slots(expected_root, policy),
+        "evaluation session fixed opaque slot/attempt paths drift",
+        errors,
+    )
+    expected_artifacts = {
+        key: str(expected_root / "artifacts" / filename)
+        for key, filename in policy.get("fixedArtifactNames", {}).items()
+    }
+    require(
+        claim.get("fixedArtifactPaths") == expected_artifacts,
+        "evaluation session fixed artifact paths drift",
+        errors,
+    )
+    if mode == "INITIAL":
+        require(initial is None, "INITIAL session must not link another session", errors)
+    else:
+        require(
+            isinstance(initial, dict)
+            and initial.get("claimPath")
+            == str(receipt_root / "initial-claim.json")
+            and initial.get("sessionId") != claim.get("sessionId"),
+            "REPLACEMENT session must link the canonical distinct INITIAL session",
+            errors,
+        )
+        if (
+            initial_session_claim is None
+            or initial_session_claim_raw_bytes is None
+            or initial_session_claim_path_label is None
+        ):
+            errors.append(
+                "REPLACEMENT session validation requires exact INITIAL claim bytes and path label"
+            )
+        else:
+            validate_evaluation_session_claim_semantics(
+                initial_session_claim,
+                initial_session_claim_path_label,
+                native,
+                candidate,
+                holdout_receipt,
+                errors,
+                common_dir_override=common_dir_override,
+            )
+            require(
+                initial_session_claim.get("sessionMode") == "INITIAL"
+                and isinstance(initial, dict)
+                and initial.get("claimPath")
+                == str(initial_session_claim_path_label.resolve(strict=False))
+                and initial.get("claimSha256")
+                == initial_session_claim.get("evaluationSessionClaimSha256")
+                and initial.get("claimRawSha256")
+                == bytes_sha256(initial_session_claim_raw_bytes)
+                and initial.get("sessionId")
+                == initial_session_claim.get("sessionId")
+                and claim.get("candidateManifestSha256")
+                == initial_session_claim.get("candidateManifestSha256")
+                and claim.get("candidateId")
+                == initial_session_claim.get("candidateId")
+                and claim.get("candidateManifestRawSha256")
+                == initial_session_claim.get("candidateManifestRawSha256")
+                and claim.get("candidatePlayableFingerprintSha256")
+                == initial_session_claim.get("candidatePlayableFingerprintSha256")
+                and claim.get("sourceCommit")
+                == initial_session_claim.get("sourceCommit")
+                and claim.get("executionArtifactSha256")
+                == initial_session_claim.get("executionArtifactSha256")
+                and claim.get("authorityHashesSha256")
+                == initial_session_claim.get("authorityHashesSha256")
+                and claim.get("holdoutConsumptionReceiptSha256")
+                == initial_session_claim.get("holdoutConsumptionReceiptSha256")
+                and claim.get("holdoutConsumptionReceiptRawSha256")
+                == initial_session_claim.get("holdoutConsumptionReceiptRawSha256")
+                and claim.get("selectedRecipeId")
+                == initial_session_claim.get("selectedRecipeId")
+                and claim.get("selectedRecipeSha256")
+                == initial_session_claim.get("selectedRecipeSha256")
+                and claim.get("evaluationPhase")
+                == initial_session_claim.get("evaluationPhase")
+                and claim.get("officialCommercialUX")
+                == initial_session_claim.get("officialCommercialUX"),
+                "REPLACEMENT session exact INITIAL claim reuse/link mismatch",
+                errors,
+            )
+    if candidate is not None:
+        fingerprint = candidate_playable_fingerprint_sha256(candidate)
+        require(
+            claim.get("candidateId") == candidate.get("candidateId")
+            and claim.get("candidateManifestSha256")
+            == candidate.get("candidateManifestSha256")
+            and claim.get("sourceCommit") == candidate.get("source", {}).get("commit")
+            and claim.get("candidatePlayableFingerprintSha256") == fingerprint
+            and claim.get("executionArtifactSha256")
+            == candidate.get("execution", {}).get("executionArtifactSha256")
+            and claim.get("authorityHashesSha256")
+            == "sha256:" + hashlib.sha256(
+                canonical_json_bytes(candidate.get("authorityHashes"))
+            ).hexdigest(),
+            "evaluation session claim candidate/fingerprint binding mismatch",
+            errors,
+        )
+    if holdout_receipt is not None:
+        selected = holdout_receipt.get("selectedRecipe", {})
+        require(
+            claim.get("holdoutConsumptionReceiptSha256")
+            == holdout_receipt.get("holdoutConsumptionReceiptSha256")
+            and claim.get("candidatePlayableFingerprintSha256")
+            == holdout_receipt.get("candidatePlayableFingerprintSha256")
+            and claim.get("sourceCommit") == holdout_receipt.get("sourceCommit")
+            and claim.get("selectedRecipeId") == selected.get("recipeId")
+            and claim.get("selectedRecipeSha256")
+            == selected.get("selectedRecipeSha256")
+            and claim.get("evaluationPhase")
+            == holdout_receipt.get("evaluationPhase")
+            and claim.get("officialCommercialUX")
+            == holdout_receipt.get("officialCommercialUX"),
+            "evaluation session claim holdout binding mismatch",
+            errors,
+        )
+
+
+def _canonical_path_label_matches(
+    path: Path,
+    expected: Any,
+    *,
+    expect_directory: bool,
+) -> bool:
+    if not isinstance(expected, str) or not path.is_absolute():
+        return False
+    try:
+        resolved = path.resolve(strict=True)
+    except OSError:
+        return False
+    if path != resolved or str(path) != expected or path.is_symlink():
+        return False
+    current = Path(path.anchor)
+    for component in path.parts[1:]:
+        current = current / component
+        try:
+            if stat.S_ISLNK(current.lstat().st_mode):
+                return False
+        except OSError:
+            return False
+    return resolved.is_dir() if expect_directory else resolved.is_file()
+
+
+def validate_evaluation_attempt_receipt_semantics(
+    receipt: dict[str, Any],
+    receipt_path: Path,
+    claim: dict[str, Any],
+    claim_raw_bytes: bytes,
+    native: Path,
+    errors: list[str],
+) -> None:
+    require(
+        receipt.get("evaluationAttemptReceiptSchemaSha256")
+        == raw_sha256(native / "evaluation-attempt-receipt.schema.json")
+        and receipt.get("evaluationSessionPolicySha256")
+        == raw_sha256(native / "evaluation-session-policy.json")
+        and receipt.get("sessionClaimToolSha256")
+        == raw_sha256(native / "claim-evaluation-session.py"),
+        "evaluation attempt receipt schema/policy/tool raw SHA mismatch",
+        errors,
+    )
+    try:
+        receipt_self_hash = self_hash(receipt, "evaluationAttemptReceiptSha256")
+    except ContractError as error:
+        errors.append(str(error))
+    else:
+        require(
+            receipt.get("evaluationAttemptReceiptSha256") == receipt_self_hash,
+            "evaluation attempt receipt canonical self-hash mismatch",
+            errors,
+        )
+    slot_rows = [
+        row for row in claim.get("slots", [])
+        if isinstance(row, dict) and row.get("slotId") == receipt.get("slotId")
+    ]
+    attempt_rows = [
+        row
+        for slot in slot_rows
+        for row in slot.get("attempts", [])
+        if isinstance(row, dict)
+        and row.get("attemptOrdinal") == receipt.get("attemptOrdinal")
+    ]
+    if len(slot_rows) != 1 or len(attempt_rows) != 1:
+        errors.append("evaluation attempt receipt names an unknown fixed session slot")
+        return
+    slot = slot_rows[0]
+    attempt = attempt_rows[0]
+    require(
+        receipt.get("evaluationSessionClaimSha256")
+        == claim.get("evaluationSessionClaimSha256")
+        and receipt.get("evaluationSessionClaimRawSha256")
+        == bytes_sha256(claim_raw_bytes)
+        and receipt.get("sessionId") == claim.get("sessionId")
+        and receipt.get("sessionMode") == claim.get("sessionMode")
+        and receipt.get("candidateManifestSha256")
+        == claim.get("candidateManifestSha256")
+        and receipt.get("candidatePlayableFingerprintSha256")
+        == claim.get("candidatePlayableFingerprintSha256")
+        and receipt.get("sourceCommit") == claim.get("sourceCommit")
+        and receipt.get("holdoutConsumptionReceiptSha256")
+        == claim.get("holdoutConsumptionReceiptSha256")
+        and receipt.get("role") == slot.get("role")
+        and receipt.get("roleOrdinal") == slot.get("roleOrdinal"),
+        "evaluation attempt receipt session/candidate/role binding mismatch",
+        errors,
+    )
+    require(
+        receipt.get("attemptRoot") == attempt.get("attemptRoot")
+        and receipt.get("canonicalReceiptPath") == attempt.get("startReceiptPath")
+        and receipt.get("canonicalOutputPath") == attempt.get("outputPath")
+        and receipt.get("canonicalArtifactRoot") == attempt.get("artifactRoot")
+        and receipt.get("canonicalTerminalReceiptPath")
+        == attempt.get("terminalReceiptPath")
+        and _canonical_path_label_matches(
+            receipt_path,
+            attempt.get("startReceiptPath"),
+            expect_directory=False,
+        )
+        and _canonical_path_label_matches(
+            Path(receipt.get("attemptRoot") or ""),
+            attempt.get("attemptRoot"),
+            expect_directory=True,
+        )
+        and _canonical_path_label_matches(
+            Path(receipt.get("canonicalOutputPath") or ""),
+            attempt.get("outputPath"),
+            expect_directory=False,
+        )
+        and _canonical_path_label_matches(
+            Path(receipt.get("canonicalArtifactRoot") or ""),
+            attempt.get("artifactRoot"),
+            expect_directory=True,
+        )
+        and _canonical_path_label_matches(
+            Path(receipt.get("canonicalTerminalReceiptPath") or ""),
+            attempt.get("terminalReceiptPath"),
+            expect_directory=False,
+        ),
+        "evaluation attempt receipt canonical path binding mismatch",
+        errors,
+    )
+
+
+def _derived_attempt_outcome(
+    native: Path,
+    role: str,
+    output_bytes: bytes,
+) -> str:
+    role_schema = {
+        "COLD_ACTOR": "cold-actor-response.schema.json",
+        "COVERAGE": "coverage-trace.schema.json",
+        "CANDIDATE_JUDGE": "native-judge.schema.json",
+        "EVIDENCE_VERIFIER": "native-evidence-verifier.schema.json",
+        "ORACLE": "oracle-hard-gate-ledger.schema.json",
+    }
+    if not output_bytes:
+        return "INPUT_UNREADABLE"
+    try:
+        value = read_json_bytes(output_bytes, f"{role} attempt output")
+    except ContractError:
+        return "TRANSPORT_FAILURE"
+    schema_name = role_schema.get(role)
+    if schema_name is None:
+        return "HARNESS_FAILURE"
+    try:
+        schema = read_json(native / schema_name)
+    except ContractError:
+        return "HARNESS_FAILURE"
+    return "SCHEMA_FAILURE" if instance_errors(value, schema) else "SUCCESS"
+
+
+def validate_attempt_chain_bytes(
+    native: Path,
+    *,
+    session_claim: dict[str, Any],
+    session_claim_raw_bytes: bytes,
+    attempts: list[dict[str, Any]],
+    require_all_success_slots: bool = True,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """Validate an already-opened nine-slot attempt chain without reopening paths.
+
+    Each attempt row must contain exact ``startReceiptBytes``,
+    ``terminalReceiptBytes``, ``outputBytes``, path labels for those three files,
+    and ``artifactFiles`` as a list of ``(relative_locator, exact_bytes)`` pairs.
+    The returned rows are the one accepted SUCCESS attempt for every slot.
+    """
+
+    errors: list[str] = []
+    selected: list[dict[str, Any]] = []
+    try:
+        start_schema = read_json(native / "evaluation-attempt-receipt.schema.json")
+        terminal_schema = read_json(native / "evaluation-attempt-terminal.schema.json")
+    except ContractError as error:
+        return [str(error)], []
+    parsed_rows: list[dict[str, Any]] = []
+    for row_index, envelope in enumerate(attempts, start=1):
+        if not isinstance(envelope, dict):
+            errors.append(f"attempt chain row {row_index} must be an object")
+            continue
+        start_bytes = envelope.get("startReceiptBytes")
+        terminal_bytes = envelope.get("terminalReceiptBytes")
+        output_bytes = envelope.get("outputBytes")
+        artifact_files = envelope.get("artifactFiles")
+        start_path = envelope.get("startReceiptPathLabel")
+        terminal_path = envelope.get("terminalReceiptPathLabel")
+        output_path = envelope.get("outputPathLabel")
+        artifact_root = envelope.get("artifactRootPathLabel")
+        if not all(isinstance(value, bytes) for value in (
+            start_bytes, terminal_bytes, output_bytes
+        )):
+            errors.append(f"attempt chain row {row_index} lacks exact byte inputs")
+            continue
+        if not all(isinstance(value, Path) for value in (
+            start_path, terminal_path, output_path, artifact_root
+        )):
+            errors.append(f"attempt chain row {row_index} lacks canonical path labels")
+            continue
+        try:
+            start = read_json_bytes(start_bytes, f"attempt {row_index} start receipt")
+            terminal = read_json_bytes(
+                terminal_bytes, f"attempt {row_index} terminal receipt"
+            )
+        except ContractError as error:
+            errors.append(str(error))
+            continue
+        errors.extend(
+            f"attempt chain row {row_index} start {error}"
+            for error in instance_errors(start, start_schema)
+        )
+        errors.extend(
+            f"attempt chain row {row_index} terminal {error}"
+            for error in instance_errors(terminal, terminal_schema)
+        )
+        validate_evaluation_attempt_receipt_semantics(
+            start,
+            start_path,
+            session_claim,
+            session_claim_raw_bytes,
+            native,
+            errors,
+        )
+        try:
+            terminal_self_hash = self_hash(
+                terminal, "evaluationAttemptTerminalSha256"
+            )
+        except ContractError as error:
+            errors.append(str(error))
+            continue
+        require(
+            terminal.get("evaluationAttemptTerminalSha256") == terminal_self_hash,
+            f"attempt chain row {row_index} terminal self-hash mismatch",
+            errors,
+        )
+        require(
+            terminal.get("evaluationAttemptTerminalSchemaSha256")
+            == raw_sha256(native / "evaluation-attempt-terminal.schema.json")
+            and terminal.get("evaluationSessionPolicySha256")
+            == raw_sha256(native / "evaluation-session-policy.json")
+            and terminal.get("sessionClaimToolSha256")
+            == raw_sha256(native / "claim-evaluation-session.py"),
+            f"attempt chain row {row_index} terminal schema/policy/tool SHA mismatch",
+            errors,
+        )
+        require(
+            terminal.get("evaluationAttemptReceiptSha256")
+            == start.get("evaluationAttemptReceiptSha256")
+            and terminal.get("evaluationAttemptReceiptRawSha256")
+            == bytes_sha256(start_bytes)
+            and terminal.get("evaluationSessionClaimSha256")
+            == session_claim.get("evaluationSessionClaimSha256")
+            and terminal.get("sessionId") == session_claim.get("sessionId")
+            and terminal.get("sessionMode") == session_claim.get("sessionMode")
+            and terminal.get("slotId") == start.get("slotId")
+            and terminal.get("role") == start.get("role")
+            and terminal.get("roleOrdinal") == start.get("roleOrdinal")
+            and terminal.get("attemptOrdinal") == start.get("attemptOrdinal"),
+            f"attempt chain row {row_index} start/terminal identity mismatch",
+            errors,
+        )
+        require(
+            terminal.get("canonicalTerminalReceiptPath")
+            == start.get("canonicalTerminalReceiptPath")
+            and _canonical_path_label_matches(
+                terminal_path,
+                terminal.get("canonicalTerminalReceiptPath"),
+                expect_directory=False,
+            )
+            and terminal.get("canonicalOutputPath")
+            == start.get("canonicalOutputPath")
+            and _canonical_path_label_matches(
+                output_path,
+                terminal.get("canonicalOutputPath"),
+                expect_directory=False,
+            )
+            and terminal.get("canonicalArtifactRoot")
+            == start.get("canonicalArtifactRoot")
+            and _canonical_path_label_matches(
+                artifact_root,
+                terminal.get("canonicalArtifactRoot"),
+                expect_directory=True,
+            ),
+            f"attempt chain row {row_index} path-label binding mismatch",
+            errors,
+        )
+        require(
+            terminal.get("outputRawSha256")
+            == (bytes_sha256(output_bytes) if output_bytes else None)
+            and terminal.get("outputByteLength") == len(output_bytes),
+            f"attempt chain row {row_index} output exact-byte binding mismatch",
+            errors,
+        )
+        if not isinstance(artifact_files, list):
+            errors.append(f"attempt chain row {row_index} artifactFiles must be a list")
+            artifact_files = []
+        artifact_entries: list[dict[str, Any]] = []
+        locators: list[str] = []
+        for artifact_index, artifact in enumerate(artifact_files, start=1):
+            if (
+                not isinstance(artifact, (list, tuple))
+                or len(artifact) != 2
+                or not isinstance(artifact[0], str)
+                or not isinstance(artifact[1], bytes)
+            ):
+                errors.append(
+                    f"attempt chain row {row_index} artifact {artifact_index} invalid"
+                )
+                continue
+            locator, artifact_bytes = artifact
+            locators.append(locator)
+            artifact_entries.append({
+                "locator": locator,
+                "rawSha256": bytes_sha256(artifact_bytes),
+                "byteLength": len(artifact_bytes),
+            })
+        artifact_entries.sort(key=lambda value: value["locator"])
+        require(
+            len(locators) == len(set(locators)),
+            f"attempt chain row {row_index} artifact locators must be unique",
+            errors,
+        )
+        require(
+            terminal.get("artifactEntries") == artifact_entries
+            and terminal.get("artifactEntryCount") == len(artifact_entries)
+            and terminal.get("artifactContentRootSha256")
+            == "sha256:" + hashlib.sha256(
+                canonical_json_bytes(artifact_entries)
+            ).hexdigest(),
+            f"attempt chain row {row_index} artifact content-root binding mismatch",
+            errors,
+        )
+        derived = _derived_attempt_outcome(native, start.get("role"), output_bytes)
+        if start.get("status") == "RESERVATION_FAILED_TERMINAL_REQUIRED":
+            require(
+                terminal.get("outcome") == "HARNESS_FAILURE",
+                f"attempt chain row {row_index} failed reservation must terminalize as HARNESS_FAILURE",
+                errors,
+            )
+        else:
+            require(
+                terminal.get("outcome") == derived,
+                f"attempt chain row {row_index} caller-controlled outcome disagrees with frozen schema derivation",
+                errors,
+            )
+        parsed_rows.append({
+            "start": start,
+            "terminal": terminal,
+            "outputRawSha256": bytes_sha256(output_bytes),
+            "artifactContentRootSha256": terminal.get("artifactContentRootSha256"),
+        })
+
+    by_slot: dict[str, list[dict[str, Any]]] = {}
+    for row in parsed_rows:
+        by_slot.setdefault(row["start"].get("slotId"), []).append(row)
+    expected_slots = [
+        row.get("slotId")
+        for row in session_claim.get("slots", [])
+        if isinstance(row, dict)
+    ]
+    require(
+        set(by_slot).issubset(set(expected_slots)),
+        "attempt chain contains a slot outside the session claim",
+        errors,
+    )
+    for slot_id in expected_slots:
+        rows = sorted(
+            by_slot.get(slot_id, []),
+            key=lambda value: value["start"].get("attemptOrdinal", 0),
+        )
+        ordinals = [row["start"].get("attemptOrdinal") for row in rows]
+        require(
+            ordinals == list(range(1, len(rows) + 1)),
+            f"attempt chain {slot_id} must be a contiguous prefix",
+            errors,
+        )
+        for index, row in enumerate(rows):
+            terminal = row["terminal"]
+            if index == 0:
+                require(
+                    row["start"].get("predecessorTerminalReceiptSha256") is None,
+                    f"attempt chain {slot_id} first attempt must have no predecessor",
+                    errors,
+                )
+            else:
+                previous = rows[index - 1]["terminal"]
+                require(
+                    previous.get("nextAttemptAllowed") is True
+                    and row["start"].get("predecessorTerminalReceiptSha256")
+                    == previous.get("evaluationAttemptTerminalSha256"),
+                    f"attempt chain {slot_id} retry predecessor binding mismatch",
+                    errors,
+                )
+            if terminal.get("outcome") == "SUCCESS":
+                require(
+                    index == len(rows) - 1,
+                    f"attempt chain {slot_id} cannot retry after a valid output",
+                    errors,
+                )
+        successes = [row for row in rows if row["terminal"].get("outcome") == "SUCCESS"]
+        require(
+            len(successes) <= 1,
+            f"attempt chain {slot_id} has multiple selected SUCCESS attempts",
+            errors,
+        )
+        if successes:
+            success = successes[0]
+            selected.append({
+                "slotId": slot_id,
+                "role": success["start"].get("role"),
+                "roleOrdinal": success["start"].get("roleOrdinal"),
+                "attemptOrdinal": success["start"].get("attemptOrdinal"),
+                "terminalReceiptSha256": success["terminal"].get(
+                    "evaluationAttemptTerminalSha256"
+                ),
+                "outputRawSha256": success["outputRawSha256"],
+                "artifactContentRootSha256": success[
+                    "artifactContentRootSha256"
+                ],
+            })
+        elif require_all_success_slots:
+            errors.append(f"attempt chain {slot_id} lacks one successful terminal attempt")
+    if require_all_success_slots:
+        require(
+            len(selected) == 9,
+            "attempt chain must select exactly nine successful opaque slots",
+            errors,
+        )
+    return errors, selected
+
+
 def validate_registry_semantics(
     registry: dict[str, Any],
     queue: dict[str, Any],
@@ -670,6 +1413,14 @@ def validate_registry_semantics(
     recipe_ids = [row.get("recipeId") for row in rows if isinstance(row, dict)]
     candidate_keys = [
         row.get("candidateReuseSha256") for row in rows if isinstance(row, dict)
+    ]
+    playable_fingerprints = [
+        row.get("candidatePlayableFingerprintSha256")
+        for row in rows
+        if isinstance(row, dict)
+    ]
+    source_commits = [
+        row.get("sourceCommit") for row in rows if isinstance(row, dict)
     ]
     require(
         registry.get("revision") == len(rows),
@@ -689,6 +1440,21 @@ def validate_registry_semantics(
     require(
         len(candidate_keys) == len(set(candidate_keys)),
         f"{label} candidateReuseSha256 values must be unique",
+        errors,
+    )
+    require(
+        candidate_keys == playable_fingerprints,
+        f"{label} candidateReuseSha256 must be the playable fingerprint compatibility alias",
+        errors,
+    )
+    require(
+        len(playable_fingerprints) == len(set(playable_fingerprints)),
+        f"{label} candidate playable fingerprints must be unique",
+        errors,
+    )
+    require(
+        len(source_commits) == len(set(source_commits)),
+        f"{label} sourceCommit values must be unique",
         errors,
     )
     require(
@@ -775,6 +1541,13 @@ def validate_holdout_consumption_semantics(
             "holdout receipt candidate binding mismatch",
             errors,
         )
+        require(
+            receipt.get("candidatePlayableFingerprintSha256")
+            == candidate_playable_fingerprint_sha256(candidate)
+            == receipt.get("candidateReuseSha256"),
+            "holdout receipt playable fingerprint binding mismatch",
+            errors,
+        )
         recipes = candidate.get("recipes", {})
         if isinstance(selected, dict):
             require(
@@ -858,6 +1631,9 @@ def validate_holdout_consumption_semantics(
             "ordinal": selected_ordinal,
             "recipeId": selected.get("recipeId"),
             "candidateReuseSha256": receipt.get("candidateReuseSha256"),
+            "candidatePlayableFingerprintSha256": receipt.get(
+                "candidatePlayableFingerprintSha256"
+            ),
             "candidateManifestSha256": receipt.get("candidateManifestSha256"),
             "sourceCommit": receipt.get("sourceCommit"),
             "transactionId": atomic.get("transactionId") if isinstance(atomic, dict) else None,
@@ -961,6 +1737,9 @@ def instance_errors(
         )
         if matches != 1:
             errors.append(f"{path}: expected exactly one oneOf match, got {matches}")
+    if "not" in schema:
+        if not instance_errors(instance, schema["not"], root, path):
+            errors.append(f"{path}: matched forbidden not schema")
     if "if" in schema:
         condition_matches = not instance_errors(instance, schema["if"], root, path)
         selected = schema.get("then") if condition_matches else schema.get("else")
@@ -1280,6 +2059,14 @@ def validate_cold_checkpoint_sequence(
         ("E08-FINALE", "finale-keep-result"): "E08-RESULT",
         ("E08-FINALE", "finale-defer-result"): "E08-RESULT",
     }
+    optional_checkpoints = {
+        ("E00-TITLE", "settings-ui125-reduce-motion"),
+        ("E01-FIRST-LIGHT", "first-invalid-placement"),
+        ("E01-FIRST-LIGHT", "first-node-draft-correction"),
+        ("E01-FIRST-LIGHT", "first-line-draft-correction"),
+        ("E02-SECOND-HEART", "shared-risk-rejection"),
+        ("E06-FLOOD", "flood-invalid-approval"),
+    }
     expected: list[dict[str, Any]] = []
     ordinal = 0
     previous_group: str | None = None
@@ -1291,6 +2078,11 @@ def validate_cold_checkpoint_sequence(
             "sequenceOrdinal": ordinal,
             "episode": episode_id,
             "checkpoint": checkpoint,
+            "completionRequirement": (
+                "OPTIONAL"
+                if (episode_id, checkpoint) in optional_checkpoints
+                else "MANDATORY"
+            ),
             "branchAlternativeGroup": group,
         })
         previous_group = group
@@ -1344,12 +2136,15 @@ def validate_holdouts(holdouts: dict[str, Any], errors: list[str]) -> None:
             "scope": "LOCAL_REPOSITORY_REGISTRY_ONLY",
             "authorityLimit": "NOT_GLOBAL_ACROSS_REPOSITORY_CLONES",
             "registryPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-consumption-registry-v1.json",
-            "receiptPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-receipts/{transactionSha256Hex}-{candidateReuseSha256Hex}.json",
+            "receiptPathRule": "GIT_COMMON_DIR/gridworks-commercial-ux/holdout-receipts/{transactionSha256Hex}-{candidatePlayableFingerprintSha256Hex}.json",
             "receiptCreatePolicy": "O_EXCL_CREATE_AND_FSYNC_BEFORE_ATOMIC_REGISTRY_RENAME",
             "transaction": "LOCKED_COMPARE_LOWEST_UNUSED_APPEND_FSYNC_ATOMIC_RENAME",
             "recipeReuseKeyFields": ["queueAuthorityId", "recipeId"],
-            "candidateReuseKeyField": "candidateReuseSha256",
+            "candidateReuseKeyField": "candidatePlayableFingerprintSha256",
             "candidateReuseKeyUnique": True,
+            "sourceCommitKeyField": "sourceCommit",
+            "sourceCommitKeyUnique": True,
+            "playableFingerprintRule": "SHA256_OF_EXECUTION_ARTIFACT_AND_AUTHORITY_HASHES_EXCLUDING_SOURCE_COMMIT",
         },
         "holdout local registry policy drift",
         errors,
@@ -1759,12 +2554,45 @@ def validate_schema_bindings(native: Path, errors: list[str]) -> dict[str, dict[
     recording = schemas.get("recording-manifest.schema.json", {})
     recording_required = set(recording.get("required", []))
     recording_artifact = recording.get("$defs", {}).get("artifact", {})
-    recording_actor_rule = recording.get("allOf", [{}])[0]
+    recording_source_rule = recording.get("allOf", [{}])[0]
     actor_artifact_rule = (
-        recording_actor_rule.get("then", {}).get("properties", {}).get("artifacts", {})
-        if isinstance(recording_actor_rule, dict)
+        recording_source_rule.get("then", {}).get("properties", {}).get("artifacts", {})
+        if isinstance(recording_source_rule, dict)
         else {}
     )
+    coverage_artifact_rule = (
+        recording_source_rule.get("else", {}).get("properties", {}).get("artifacts", {})
+        if isinstance(recording_source_rule, dict)
+        else {}
+    )
+    actor_contains_rules = actor_artifact_rule.get("allOf", [])
+    coverage_contains_rules = coverage_artifact_rule.get("allOf", [])
+
+    def contains_rule(
+        rules: list[Any],
+        kind: str,
+    ) -> dict[str, Any]:
+        for rule in rules:
+            if not isinstance(rule, dict):
+                continue
+            observed_kind = (
+                rule.get("contains", {})
+                .get("properties", {})
+                .get("kind", {})
+                .get("const")
+            )
+            if observed_kind == kind:
+                return rule
+        return {}
+
+    actor_action_rule = contains_rule(actor_contains_rules, "ACTION_LEDGER")
+    actor_sync_rule = contains_rule(actor_contains_rules, "AUDIO_SYNC_LEDGER")
+    coverage_action_rule = contains_rule(coverage_contains_rules, "ACTION_LEDGER")
+    coverage_sync_rule = contains_rule(
+        coverage_contains_rules,
+        "AUDIO_SYNC_LEDGER",
+    )
+    coverage_audio_rule = contains_rule(coverage_contains_rules, "AUDIO")
     valid_frame = {
         "artifactId": "frame-1", "kind": "FRAME", "locator": "frames/one.png",
         "rawSha256": "sha256:" + "1" * 64, "byteLength": 1,
@@ -1775,15 +2603,20 @@ def validate_schema_bindings(native: Path, errors: list[str]) -> dict[str, dict[
         recording.get("properties", {}).get("locatorPolicy", {}).get("const")
         == "CANONICAL_RELATIVE_NO_DOTDOT_REJECT_ALL_SYMLINKS"
         and recording.get("properties", {}).get("mimePolicy", {}).get("const")
-        == "PNG_WAV_OR_STRICT_JSON_OBJECT_MATCHING_MAGIC_AND_SCHEMA"
+        == "RESTRICTED_PNG_WAV_OR_STRICT_ACTION_OR_AUDIO_SYNC_JSON_MATCHING_MAGIC_AND_SCHEMA"
         and {"actorCaptureSlot", "actorRunId", "coverageRunId", "processTreeId"}
         .issubset(recording_required)
         and {"actionLedgerSchemaSha256", "actionLedgerArtifactRawSha256"}
         .issubset(recording_required)
-        and actor_artifact_rule.get("minContains") == 1
-        and actor_artifact_rule.get("maxContains") == 1
-        and actor_artifact_rule.get("contains", {}).get("properties", {}).get("kind", {}).get("const")
-        == "ACTION_LEDGER"
+        and actor_action_rule.get("minContains") == 1
+        and actor_action_rule.get("maxContains") == 1
+        and actor_sync_rule.get("minContains") == 0
+        and actor_sync_rule.get("maxContains") == 0
+        and coverage_action_rule.get("minContains") == 1
+        and coverage_action_rule.get("maxContains") == 1
+        and coverage_sync_rule.get("minContains") == 1
+        and coverage_sync_rule.get("maxContains") == 1
+        and coverage_audio_rule.get("minContains") == 1
         and not instance_errors(valid_frame, recording_artifact, recording)
         and bool(instance_errors(invalid_frame, recording_artifact, recording))
         and bool(instance_errors("../escape.png", recording_artifact.get("properties", {}).get("locator", {}), recording)),
@@ -1876,9 +2709,9 @@ def validate_schema_bindings(native: Path, errors: list[str]) -> dict[str, dict[
     finalization = schemas.get("panel-finalization-seal.schema.json", {})
     require(
         finalization.get("properties", {}).get("claimPolicy", {}).get("const")
-        == "SCORECARD_EXCLUSIVE_WRITE_THEN_O_EXCL_SEAL_FSYNC"
+        == "O_EXCL_SCORECARD_RESERVE_FSYNC_THEN_HOLDOUT_AND_PANEL_SEAL_FSYNC_THEN_SCORECARD_WRITE_FSYNC"
         and finalization.get("properties", {}).get("sealPathRule", {}).get("const")
-        == "GIT_COMMON_DIR/gridworks-commercial-ux/panel-finalizations/{initialPanelSha256Hex}-{panelKindLower}.json",
+        == "EVALUATION_SESSION_CLAIM.fixedArtifactPaths.panelFinalizationSeal",
         "panel finalization seal path/claim policy drift",
         errors,
     )
@@ -2037,6 +2870,9 @@ def validate_hash_policy(native: Path, policy: dict[str, Any], schemas: dict[str
         ("judge-panel.schema.json", "judgePanelSha256"),
         ("holdout-consumption-receipt.schema.json", "holdoutConsumptionReceiptSha256"),
         ("holdout-consumption-registry.schema.json", "holdoutConsumptionRegistrySha256"),
+        ("evaluation-session-claim.schema.json", "evaluationSessionClaimSha256"),
+        ("evaluation-attempt-receipt.schema.json", "evaluationAttemptReceiptSha256"),
+        ("evaluation-attempt-terminal.schema.json", "evaluationAttemptTerminalSha256"),
         ("gold-binding-manifest.schema.json", "goldBindingManifestSha256"),
         ("anonymization-manifest.schema.json", "anonymizationManifestSha256"),
         ("recording-manifest.schema.json", "recordingManifestSha256"),
@@ -2078,7 +2914,13 @@ def validate_contract_bindings(
     tool_policy = bindings.get("toolBindingPolicy", {})
     require(
         tool_policy.get("boundImplementedTools")
-        == ["../aggregate-native.py", "validate-contract.py", "validate-gold-state.py"]
+        == [
+            "../aggregate-native.py", "claim-evaluation-session.py",
+            "validate-contract.py", "validate-gold-state.py",
+            "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
+            "../../Gridworks.GoldReplayVerifier/Program.cs",
+            "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj",
+        ]
         and tool_policy.get("unboundImplementationStatus")
         == "BLOCKED_UNTIL_IMPLEMENTED_AND_RAW_HASH_BOUND"
         and tool_policy.get("scoreBearingCaptureAllowed") is False,
@@ -2088,10 +2930,15 @@ def validate_contract_bindings(
     expected_kinds = {
         "../rubric.json": "RUBRIC",
         "../aggregate-native.py": "TOOL",
+        "claim-evaluation-session.py": "TOOL",
         "validate-contract.py": "TOOL",
         "validate-gold-state.py": "TOOL",
+        "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs": "TOOL",
+        "../../Gridworks.GoldReplayVerifier/Program.cs": "TOOL",
+        "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj": "TOOL",
         **{name: "SCHEMA" for name in schemas},
         "canonical-hash-policy.json": "POLICY",
+        "evaluation-session-policy.json": "POLICY",
         "cold-journey-recipe.json": "RECIPE",
         "concept-exposure-manifest.json": "AUTHORITY",
         "coverage-recipe.json": "RECIPE",
@@ -2121,6 +2968,7 @@ def validate_contract_bindings(
 
     expected_stage_ids = [
         "CANDIDATE-MANIFEST-PACKAGER", "HOLDOUT-CONSUMPTION-PACKAGER",
+        "EVALUATION-SESSION-CLAIM", "EVALUATION-ATTEMPT-LEDGER",
         "GOLD-BINDING-PACKAGER", "COLD-ACTOR", "COLD-OBSERVATION-PACKAGER",
         "COLD-PACKAGER",
         "QUALIFICATION-INPUT-PACKAGER", "QUALIFICATION-JUDGE",
@@ -2140,6 +2988,62 @@ def validate_contract_bindings(
         errors,
     )
     stage_map = {row.get("stageId"): row for row in stages if isinstance(row, dict)}
+    session_schema_names = {
+        "evaluation-session-claim.schema.json",
+        "evaluation-attempt-receipt.schema.json",
+        "evaluation-attempt-terminal.schema.json",
+    }
+
+    def legacy_inputs(stage_id: str) -> list[Any]:
+        return [
+            value
+            for value in stage_map.get(stage_id, {}).get("inputSchemas", [])
+            if value not in session_schema_names
+        ]
+
+    expected_session_inputs = {
+        "GOLD-BINDING-PACKAGER": {"evaluation-session-claim.schema.json"},
+        "COLD-ACTOR": {
+            "evaluation-session-claim.schema.json",
+            "evaluation-attempt-receipt.schema.json",
+        },
+        "COLD-OBSERVATION-PACKAGER": session_schema_names,
+        "COLD-PACKAGER": session_schema_names,
+        "COVERAGE-ACTION-LEDGER-PACKAGER": {
+            "evaluation-session-claim.schema.json",
+            "evaluation-attempt-receipt.schema.json",
+        },
+        "COVERAGE-RUN-PACKAGER": session_schema_names,
+        "ANONYMIZATION-PACKAGER": session_schema_names,
+        "EVIDENCE-SET-PACKAGER": session_schema_names,
+        "CANDIDATE-JUDGE-INPUT-PACKAGER": session_schema_names,
+        "CANDIDATE-JUDGE": {
+            "evaluation-session-claim.schema.json",
+            "evaluation-attempt-receipt.schema.json",
+        },
+        "JUDGE-PANEL-PACKAGER": session_schema_names,
+        "VERIFICATION-INPUT-PACKAGER": session_schema_names,
+        "EVIDENCE-VERIFIER": {
+            "evaluation-session-claim.schema.json",
+            "evaluation-attempt-receipt.schema.json",
+        },
+        "ORACLE-HARD-GATES": session_schema_names,
+        "EVALUATION-RUN-PACKAGER": session_schema_names,
+        "AGGREGATION-INPUT-PACKAGER": session_schema_names,
+        "NATIVE-AGGREGATE": session_schema_names,
+        "PANEL-FINALIZATION-SEAL-PACKAGER": session_schema_names,
+    }
+    for stage_id, expected_session in expected_session_inputs.items():
+        actual_session = {
+            value
+            for value in stage_map.get(stage_id, {}).get("inputSchemas", [])
+            if value in session_schema_names
+        }
+        require(
+            actual_session == expected_session,
+            f"contract stage {stage_id} session claim/attempt lifecycle binding drift",
+            errors,
+        )
     policy_producers = {
         row.get("producer")
         for row in read_json(native / "canonical-hash-policy.json").get("bindings", [])
@@ -2158,6 +3062,8 @@ def validate_contract_bindings(
         "QUALIFICATION_RECEIPT_PACKAGER": "QUALIFICATION-RECEIPT-PACKAGER",
         "JUDGE_PANEL_PACKAGER": "JUDGE-PANEL-PACKAGER",
         "HOLDOUT_CONSUMPTION_PACKAGER": "HOLDOUT-CONSUMPTION-PACKAGER",
+        "EVALUATION_SESSION_CLAIM_PACKAGER": "EVALUATION-SESSION-CLAIM",
+        "EVALUATION_ATTEMPT_LEDGER": "EVALUATION-ATTEMPT-LEDGER",
         "GOLD_BINDING_PACKAGER": "GOLD-BINDING-PACKAGER",
         "ANONYMIZATION_PACKAGER": "ANONYMIZATION-PACKAGER",
         "ACTOR_RECORDING_PACKAGER": "COLD-OBSERVATION-PACKAGER",
@@ -2173,20 +3079,42 @@ def validate_contract_bindings(
     )
     require("JUDGE-PANEL-PACKAGER" in stage_map, "judge-panel packager stage is missing", errors)
     require(
-        stage_map.get("CANDIDATE-MANIFEST-PACKAGER", {}).get("inputSchemas") == []
-        and stage_map.get("HOLDOUT-CONSUMPTION-PACKAGER", {}).get("inputSchemas") == [
+        legacy_inputs("CANDIDATE-MANIFEST-PACKAGER") == []
+        and legacy_inputs("HOLDOUT-CONSUMPTION-PACKAGER") == [
             "candidate-manifest.schema.json",
             "holdout-consumption-registry.schema.json",
         ]
-        and stage_map.get("GOLD-BINDING-PACKAGER", {}).get("inputSchemas") == [
+        and stage_map.get("EVALUATION-SESSION-CLAIM", {}).get("inputSchemas") == [
             "candidate-manifest.schema.json",
             "holdout-consumption-receipt.schema.json",
+            "holdout-consumption-registry.schema.json",
+        ]
+        and stage_map.get("EVALUATION-SESSION-CLAIM", {}).get("outputSchema")
+        == "evaluation-session-claim.schema.json"
+        and stage_map.get("EVALUATION-ATTEMPT-LEDGER", {}).get("inputSchemas") == [
+            "evaluation-session-claim.schema.json",
+        ]
+        and stage_map.get("EVALUATION-ATTEMPT-LEDGER", {}).get("outputSchema")
+        == "evaluation-attempt-receipt.schema.json"
+        and stage_map.get("EVALUATION-ATTEMPT-LEDGER", {}).get("packagedOutputSchema")
+        == "evaluation-attempt-terminal.schema.json"
+        and legacy_inputs("GOLD-BINDING-PACKAGER") == [
+            "candidate-manifest.schema.json",
+            "holdout-consumption-receipt.schema.json",
+        ]
+        and stage_map.get("GOLD-BINDING-PACKAGER", {}).get("authorities") == [
+            "canonical-hash-policy.json",
+            "gold-state-manifest.json",
+            "coverage-recipe.json",
+            "../../Gridworks.CommercialChecks/CommercialGoldReplayVerifier.cs",
+            "../../Gridworks.GoldReplayVerifier/Program.cs",
+            "../../Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj",
         ],
-        "candidate -> receipt -> gold-binding DAG must remain exact and acyclic",
+        "candidate -> receipt -> session -> attempt -> gold-binding DAG must remain exact and acyclic",
         errors,
     )
     require(
-        stage_map.get("COLD-ACTOR", {}).get("inputSchemas") == [
+        legacy_inputs("COLD-ACTOR") == [
             "candidate-manifest.schema.json",
             "holdout-consumption-receipt.schema.json",
             "gold-binding-manifest.schema.json",
@@ -2198,7 +3126,7 @@ def validate_contract_bindings(
         errors,
     )
     require(
-        stage_map.get("COLD-OBSERVATION-PACKAGER", {}).get("inputSchemas") == [
+        legacy_inputs("COLD-OBSERVATION-PACKAGER") == [
             "candidate-manifest.schema.json",
             "holdout-consumption-receipt.schema.json",
             "gold-binding-manifest.schema.json",
@@ -2212,7 +3140,7 @@ def validate_contract_bindings(
             "canonical-hash-policy.json", "cold-journey-recipe.json",
             "concept-exposure-manifest.json", "actor-action-ledger.schema.json",
         ]
-        and stage_map.get("COLD-PACKAGER", {}).get("inputSchemas") == [
+        and legacy_inputs("COLD-PACKAGER") == [
             "candidate-manifest.schema.json",
             "holdout-consumption-receipt.schema.json",
             "gold-binding-manifest.schema.json",
@@ -2225,7 +3153,7 @@ def validate_contract_bindings(
         errors,
     )
     require(
-        stage_map.get("COVERAGE-RUN-PACKAGER", {}).get("inputSchemas") == [
+        legacy_inputs("COVERAGE-RUN-PACKAGER") == [
             "candidate-manifest.schema.json",
             "holdout-consumption-receipt.schema.json",
             "gold-binding-manifest.schema.json",
@@ -2235,12 +3163,12 @@ def validate_contract_bindings(
         errors,
     )
     require(
-        stage_map.get("CANDIDATE-JUDGE-INPUT-PACKAGER", {}).get("inputSchemas") == [
+        legacy_inputs("CANDIDATE-JUDGE-INPUT-PACKAGER") == [
             "candidate-manifest.schema.json", "qualification-receipt.schema.json",
             "holdout-consumption-receipt.schema.json", "gold-binding-manifest.schema.json",
             "evidence-set.schema.json", "sanitized-evidence-bundle-manifest.schema.json",
         ]
-        and stage_map.get("CANDIDATE-JUDGE", {}).get("inputSchemas") == [
+        and legacy_inputs("CANDIDATE-JUDGE") == [
             "candidate-judge-input.schema.json", "evidence-set.schema.json",
             "sanitized-evidence-bundle-manifest.schema.json",
         ]
@@ -2254,7 +3182,7 @@ def validate_contract_bindings(
     require(
         stage_map.get("QUALIFICATION-JUDGE", {}).get("modelVisibleInputSchemas")
         == ["qualification-input.schema.json"]
-        and stage_map.get("EVIDENCE-VERIFIER", {}).get("inputSchemas") == [
+        and legacy_inputs("EVIDENCE-VERIFIER") == [
             "native-evidence-verification-input.schema.json", "evidence-set.schema.json",
             "sanitized-evidence-bundle-manifest.schema.json",
         ]
@@ -2266,7 +3194,7 @@ def validate_contract_bindings(
         errors,
     )
     require(
-        stage_map.get("JUDGE-PANEL-PACKAGER", {}).get("inputSchemas") == [
+        legacy_inputs("JUDGE-PANEL-PACKAGER") == [
             "candidate-manifest.schema.json",
             "qualification-receipt.schema.json",
             "candidate-judge-input.schema.json",
@@ -2278,7 +3206,7 @@ def validate_contract_bindings(
         errors,
     )
     require(
-        stage_map.get("EVIDENCE-SET-PACKAGER", {}).get("inputSchemas")
+        legacy_inputs("EVIDENCE-SET-PACKAGER")
         == [
             "candidate-manifest.schema.json", "holdout-consumption-receipt.schema.json",
             "gold-binding-manifest.schema.json", "actor-trace.schema.json",
@@ -2289,7 +3217,7 @@ def validate_contract_bindings(
         errors,
     )
     require(
-        stage_map.get("EVALUATION-RUN-PACKAGER", {}).get("inputSchemas") == [
+        legacy_inputs("EVALUATION-RUN-PACKAGER") == [
             "candidate-manifest.schema.json",
             "holdout-consumption-receipt.schema.json",
             "gold-binding-manifest.schema.json",
@@ -2314,7 +3242,7 @@ def validate_contract_bindings(
         errors,
     )
     require(
-        stage_map.get("NATIVE-AGGREGATE", {}).get("inputSchemas") == [
+        legacy_inputs("NATIVE-AGGREGATE") == [
             "native-aggregation-input.schema.json",
             "candidate-manifest.schema.json",
             "holdout-consumption-receipt.schema.json",
@@ -2341,7 +3269,7 @@ def validate_contract_bindings(
         errors,
     )
     require(
-        stage_map.get("ORACLE-HARD-GATES", {}).get("inputSchemas") == [
+        legacy_inputs("ORACLE-HARD-GATES") == [
             "candidate-manifest.schema.json",
             "holdout-consumption-receipt.schema.json",
             "gold-binding-manifest.schema.json",
@@ -2397,6 +3325,12 @@ def validate_contract_bindings(
     )
     hashed_paths = set(row_map)
     unbound_stages = set(tool_policy.get("currentlyUnboundProducerStages", []))
+    implemented_stage_tools = {
+        "EVALUATION-SESSION-CLAIM": "claim-evaluation-session.py",
+        "EVALUATION-ATTEMPT-LEDGER": "claim-evaluation-session.py",
+        "NATIVE-AGGREGATE": "../aggregate-native.py",
+        "PANEL-FINALIZATION-SEAL-PACKAGER": "../aggregate-native.py",
+    }
     for stage_id, row in stage_map.items():
         implementation_tool = row.get("implementationTool")
         if row.get("producerType") == "LLM" or stage_id in unbound_stages:
@@ -2407,7 +3341,7 @@ def validate_contract_bindings(
             )
         else:
             require(
-                implementation_tool == "../aggregate-native.py",
+                implementation_tool == implemented_stage_tools.get(stage_id),
                 f"implemented deterministic stage {stage_id} tool binding mismatch",
                 errors,
             )
@@ -2461,6 +3395,7 @@ def validate_contract(native: Path, rubric_path: Path) -> tuple[list[str], dict[
         "canonical-hash-policy.json",
         "contract-bindings.json",
         "gold-state-manifest.json",
+        "evaluation-session-policy.json",
     ]
     documents: dict[str, dict[str, Any]] = {}
     for filename in required_json:
@@ -2484,6 +3419,10 @@ def validate_contract(native: Path, rubric_path: Path) -> tuple[list[str], dict[
         )
     if "holdout-recipes.json" in documents:
         validate_holdouts(documents["holdout-recipes.json"], errors)
+    if "evaluation-session-policy.json" in documents:
+        validate_evaluation_session_policy(
+            documents["evaluation-session-policy.json"], errors
+        )
     schemas = validate_schema_bindings(native, errors)
     cold_recipe = documents.get("cold-journey-recipe.json")
     cold_schema = schemas.get("cold-journey-recipe.schema.json")
@@ -2563,6 +3502,9 @@ def validate_contract(native: Path, rubric_path: Path) -> tuple[list[str], dict[
         "episodeCount": len(documents.get("coverage-recipe.json", {}).get("episodes", [])),
         "holdoutCount": len(documents.get("holdout-recipes.json", {}).get("holdouts", [])),
         "qualificationAnchorCount": len(documents.get("qualification-anchors.json", {}).get("anchors", [])),
+        "evaluationSessionSlotCount": len(
+            documents.get("evaluation-session-policy.json", {}).get("slots", [])
+        ),
         "schemaCount": len(schemas),
         "scoreBearingReady": False,
         "scoreBearingBlocker": (
@@ -2583,12 +3525,17 @@ def validate_runtime_contract_bytes(
     holdout_consumption_receipt_bytes: bytes | None = None,
     registry_before_bytes: bytes | None = None,
     registry_after_bytes: bytes | None = None,
+    evaluation_session_claim_bytes: bytes | None = None,
+    initial_evaluation_session_claim_bytes: bytes | None = None,
     candidate_manifest_path_label: Path | None = None,
     qualification_receipt_path_label: Path | None = None,
     gold_binding_manifest_path_label: Path | None = None,
     holdout_consumption_receipt_path_label: Path | None = None,
     registry_before_path_label: Path | None = None,
     registry_after_path_label: Path | None = None,
+    evaluation_session_claim_path_label: Path | None = None,
+    initial_evaluation_session_claim_path_label: Path | None = None,
+    common_dir_override: Path | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
     """Validate exact runtime bytes supplied by an already-opened caller.
 
@@ -2838,9 +3785,108 @@ def validate_runtime_contract_bytes(
                     errors,
                 )
 
+    session_claim = parse_runtime(
+        evaluation_session_claim_bytes,
+        "evaluationSessionClaimRawSha256",
+        "evaluation session claim bytes",
+        evaluation_session_claim_path_label,
+    )
+    initial_session_claim = parse_runtime(
+        initial_evaluation_session_claim_bytes,
+        "initialEvaluationSessionClaimRawSha256",
+        "initial evaluation session claim bytes",
+        initial_evaluation_session_claim_path_label,
+    )
+    session_errors_before = len(errors)
+    if evaluation_session_claim_bytes is not None and session_claim is not None:
+        try:
+            session_schema = read_json(
+                native / "evaluation-session-claim.schema.json"
+            )
+        except ContractError as error:
+            errors.append(str(error))
+        else:
+            errors.extend(
+                f"evaluation session claim {error}"
+                for error in instance_errors(session_claim, session_schema)
+            )
+            if evaluation_session_claim_path_label is None:
+                errors.append(
+                    "evaluation session claim exact-byte validation requires its canonical path label"
+                )
+            else:
+                validate_evaluation_session_claim_semantics(
+                    session_claim,
+                    evaluation_session_claim_path_label,
+                    native,
+                    candidate,
+                    receipt,
+                    errors,
+                    common_dir_override=common_dir_override,
+                    initial_session_claim=initial_session_claim,
+                    initial_session_claim_raw_bytes=initial_evaluation_session_claim_bytes,
+                    initial_session_claim_path_label=initial_evaluation_session_claim_path_label,
+                )
+            if candidate_manifest_bytes is not None:
+                require(
+                    session_claim.get("candidateManifestRawSha256")
+                    == bytes_sha256(candidate_manifest_bytes),
+                    "evaluation session claim candidate raw SHA mismatch",
+                    errors,
+                )
+            if holdout_consumption_receipt_bytes is not None:
+                require(
+                    session_claim.get("holdoutConsumptionReceiptRawSha256")
+                    == bytes_sha256(holdout_consumption_receipt_bytes),
+                    "evaluation session claim holdout receipt raw SHA mismatch",
+                    errors,
+                )
+
     summary["observedRawSha256"] = observed
+    summary["evaluationSessionReady"] = (
+        evaluation_session_claim_bytes is not None
+        and session_claim is not None
+        and len(errors) == session_errors_before
+    )
     summary["status"] = "PASS" if not errors else "FAIL"
     return errors, summary
+
+
+def score_bearing_contract_readiness_errors(
+    native: Path,
+    *,
+    evaluation_session_claim: dict[str, Any] | None,
+) -> list[str]:
+    """Return global blockers that a --require-score-ready caller must enforce.
+
+    Gold validation remains owned by validate-gold-state.py.  This helper closes
+    the contract/session half so that a caller cannot report READY merely because
+    one generator exists or one session-shaped JSON document was supplied.
+    """
+
+    errors: list[str] = []
+    try:
+        bindings = read_json(native / "contract-bindings.json")
+    except ContractError as error:
+        return [str(error)]
+    policy = bindings.get("toolBindingPolicy", {})
+    require(
+        policy.get("scoreBearingCaptureAllowed") is True,
+        "contract tool policy still blocks score-bearing capture",
+        errors,
+    )
+    require(
+        policy.get("currentlyUnboundProducerStages") == [],
+        "contract still has unbound required producer stages",
+        errors,
+    )
+    require(
+        evaluation_session_claim is not None
+        and evaluation_session_claim.get("status") == "CLAIMED_BEFORE_CAPTURE",
+        "canonical evaluation session claim is required before score-bearing capture",
+        errors,
+    )
+    return errors
 
 
 def _read_cli_bytes(
@@ -2869,6 +3915,8 @@ def main() -> int:
     parser.add_argument("--holdout-consumption-receipt", type=Path)
     parser.add_argument("--registry-before", type=Path)
     parser.add_argument("--registry-after", type=Path)
+    parser.add_argument("--evaluation-session-claim", type=Path)
+    parser.add_argument("--initial-evaluation-session-claim", type=Path)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     native = args.native_dir.resolve()
@@ -2903,6 +3951,16 @@ def main() -> int:
         "registry after",
         cli_errors,
     )
+    session_claim_bytes, session_claim_path = _read_cli_bytes(
+        args.evaluation_session_claim,
+        "evaluation session claim",
+        cli_errors,
+    )
+    initial_session_claim_bytes, initial_session_claim_path = _read_cli_bytes(
+        args.initial_evaluation_session_claim,
+        "initial evaluation session claim",
+        cli_errors,
+    )
     errors, summary = validate_runtime_contract_bytes(
         native,
         args.rubric.resolve(),
@@ -2912,12 +3970,16 @@ def main() -> int:
         holdout_consumption_receipt_bytes=receipt_bytes,
         registry_before_bytes=registry_before_bytes,
         registry_after_bytes=registry_after_bytes,
+        evaluation_session_claim_bytes=session_claim_bytes,
+        initial_evaluation_session_claim_bytes=initial_session_claim_bytes,
         candidate_manifest_path_label=candidate_path,
         qualification_receipt_path_label=qualification_path,
         gold_binding_manifest_path_label=binding_path,
         holdout_consumption_receipt_path_label=receipt_path,
         registry_before_path_label=registry_before_path,
         registry_after_path_label=registry_after_path,
+        evaluation_session_claim_path_label=session_claim_path,
+        initial_evaluation_session_claim_path_label=initial_session_claim_path,
     )
     errors = [*cli_errors, *errors]
     summary["status"] = "PASS" if not errors else "FAIL"

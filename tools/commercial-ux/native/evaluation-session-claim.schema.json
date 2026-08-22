@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-evaluation-session-claim-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "evaluationSessionClaimSha256",
+    "evaluationSessionClaimSchemaSha256", "evaluationSessionPolicySha256",
+    "sessionClaimToolSha256", "policyId", "sessionId", "sessionMode",
+    "evaluationPhase", "officialCommercialUX", "candidateId",
+    "candidateManifestSha256", "candidateManifestRawSha256", "sourceCommit",
+    "candidatePlayableFingerprintSha256", "executionArtifactSha256",
+    "authorityHashesSha256", "holdoutConsumptionReceiptSha256",
+    "holdoutConsumptionReceiptRawSha256", "selectedRecipeId",
+    "selectedRecipeSha256", "canonicalSessionRoot", "canonicalClaimPath",
+    "initialSession", "replacementClaimPath", "sessionLockPath",
+    "slots", "fixedArtifactPaths", "atomicClaim", "status"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.evaluation-session-claim.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "evaluationSessionClaimSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationSessionClaimSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationSessionPolicySha256": {"$ref": "#/$defs/sha256"},
+    "sessionClaimToolSha256": {"$ref": "#/$defs/sha256"},
+    "policyId": {"const": "GRIDWORKS-COMMERCIAL-UX-EVALUATION-SESSION-v1.1"},
+    "sessionId": {"$ref": "#/$defs/sha256"},
+    "sessionMode": {"enum": ["INITIAL", "REPLACEMENT"]},
+    "evaluationPhase": {"enum": ["FORMATIVE", "OFFICIAL_HOLDOUT"]},
+    "officialCommercialUX": {"type": "boolean"},
+    "candidateId": {"type": "string", "minLength": 1, "maxLength": 200},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "candidateManifestRawSha256": {"$ref": "#/$defs/sha256"},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "candidatePlayableFingerprintSha256": {"$ref": "#/$defs/sha256"},
+    "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
+    "authorityHashesSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "holdoutConsumptionReceiptRawSha256": {"$ref": "#/$defs/sha256"},
+    "selectedRecipeId": {"pattern": "^(FORMATIVE-01|HOLDOUT-0[1-8])$"},
+    "selectedRecipeSha256": {"$ref": "#/$defs/sha256"},
+    "canonicalSessionRoot": {"$ref": "#/$defs/absolutePath"},
+    "canonicalClaimPath": {"$ref": "#/$defs/absolutePath"},
+    "initialSession": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/initialSession"}]},
+    "replacementClaimPath": {"$ref": "#/$defs/absolutePath"},
+    "sessionLockPath": {"$ref": "#/$defs/absolutePath"},
+    "slots": {
+      "type": "array", "minItems": 9, "maxItems": 9,
+      "prefixItems": [
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "SLOT-01"}, "role": {"const": "COLD_ACTOR"}, "roleOrdinal": {"const": 1}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "SLOT-02"}, "role": {"const": "COLD_ACTOR"}, "roleOrdinal": {"const": 2}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "SLOT-03"}, "role": {"const": "COLD_ACTOR"}, "roleOrdinal": {"const": 3}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "SLOT-04"}, "role": {"const": "COVERAGE"}, "roleOrdinal": {"const": 1}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "SLOT-05"}, "role": {"const": "CANDIDATE_JUDGE"}, "roleOrdinal": {"const": 1}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "SLOT-06"}, "role": {"const": "CANDIDATE_JUDGE"}, "roleOrdinal": {"const": 2}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "SLOT-07"}, "role": {"const": "CANDIDATE_JUDGE"}, "roleOrdinal": {"const": 3}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "SLOT-08"}, "role": {"const": "EVIDENCE_VERIFIER"}, "roleOrdinal": {"const": 1}}},
+        {"$ref": "#/$defs/slot", "properties": {"slotId": {"const": "SLOT-09"}, "role": {"const": "ORACLE"}, "roleOrdinal": {"const": 1}}}
+      ],
+      "items": false
+    },
+    "fixedArtifactPaths": {"$ref": "#/$defs/fixedArtifactPaths"},
+    "atomicClaim": {"$ref": "#/$defs/atomicClaim"},
+    "status": {"const": "CLAIMED_BEFORE_CAPTURE"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"evaluationPhase": {"const": "FORMATIVE"}}, "required": ["evaluationPhase"]},
+      "then": {"properties": {"officialCommercialUX": {"const": false}, "selectedRecipeId": {"const": "FORMATIVE-01"}}},
+      "else": {"properties": {"officialCommercialUX": {"const": true}, "selectedRecipeId": {"pattern": "^HOLDOUT-0[1-8]$"}}}
+    },
+    {
+      "if": {"properties": {"sessionMode": {"const": "INITIAL"}}, "required": ["sessionMode"]},
+      "then": {"properties": {"initialSession": {"type": "null"}}},
+      "else": {"properties": {"initialSession": {"$ref": "#/$defs/initialSession"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "absolutePath": {"type": "string", "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$", "maxLength": 1400},
+    "initialSession": {
+      "type": "object", "additionalProperties": false,
+      "required": [
+        "claimPath", "claimSha256", "claimRawSha256", "sessionId",
+        "scorecardPath", "scorecardRawSha256", "scorecardStatus",
+        "scorecardId", "judgePanelSha256", "replacementRequiredLanes",
+        "panelFinalizationSealPath", "panelFinalizationSealSha256",
+        "panelFinalizationSealRawSha256", "evaluationSessionPolicySha256",
+        "evaluationSessionClaimToolSha256", "evaluationSessionMode",
+        "evaluationAttemptAuditSha256", "evaluationSelectedAttemptsSha256"
+      ],
+      "properties": {
+        "claimPath": {"$ref": "#/$defs/absolutePath"},
+        "claimSha256": {"$ref": "#/$defs/sha256"},
+        "claimRawSha256": {"$ref": "#/$defs/sha256"},
+        "sessionId": {"$ref": "#/$defs/sha256"},
+        "scorecardPath": {"$ref": "#/$defs/absolutePath"},
+        "scorecardRawSha256": {"$ref": "#/$defs/sha256"},
+        "scorecardStatus": {
+          "enum": [
+            "RERUN_REQUIRED_COLD_INSTABILITY",
+            "RERUN_REQUIRED_COVERAGE_INSTABILITY",
+            "RERUN_REQUIRED_PANEL_INSTABILITY"
+          ]
+        },
+        "scorecardId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "judgePanelSha256": {"$ref": "#/$defs/sha256"},
+        "replacementRequiredLanes": {
+          "type": "array", "minItems": 1, "maxItems": 2, "uniqueItems": true,
+          "items": {"enum": ["COLD-JOURNEY", "COVERAGE-JOURNEY"]}
+        },
+        "panelFinalizationSealPath": {"$ref": "#/$defs/absolutePath"},
+        "panelFinalizationSealSha256": {"$ref": "#/$defs/sha256"},
+        "panelFinalizationSealRawSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionPolicySha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionClaimToolSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionMode": {"const": "INITIAL"},
+        "evaluationAttemptAuditSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSelectedAttemptsSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "slot": {
+      "type": "object", "additionalProperties": false,
+      "required": ["slotId", "role", "roleOrdinal", "slotRoot", "attemptBudget", "attempts"],
+      "properties": {
+        "slotId": {"pattern": "^SLOT-0[1-9]$"},
+        "role": {"enum": ["COLD_ACTOR", "COVERAGE", "CANDIDATE_JUDGE", "EVIDENCE_VERIFIER", "ORACLE"]},
+        "roleOrdinal": {"type": "integer", "minimum": 1, "maximum": 3},
+        "slotRoot": {"$ref": "#/$defs/absolutePath"},
+        "attemptBudget": {"const": 3},
+        "attempts": {
+          "type": "array", "minItems": 3, "maxItems": 3,
+          "prefixItems": [
+            {"$ref": "#/$defs/attemptPath", "properties": {"attemptOrdinal": {"const": 1}}},
+            {"$ref": "#/$defs/attemptPath", "properties": {"attemptOrdinal": {"const": 2}}},
+            {"$ref": "#/$defs/attemptPath", "properties": {"attemptOrdinal": {"const": 3}}}
+          ],
+          "items": false
+        }
+      }
+    },
+    "attemptPath": {
+      "type": "object", "additionalProperties": false,
+      "required": ["attemptOrdinal", "attemptRoot", "startReceiptPath", "outputPath", "artifactRoot", "terminalReceiptPath"],
+      "properties": {
+        "attemptOrdinal": {"type": "integer", "minimum": 1, "maximum": 3},
+        "attemptRoot": {"$ref": "#/$defs/absolutePath"},
+        "startReceiptPath": {"$ref": "#/$defs/absolutePath"},
+        "outputPath": {"$ref": "#/$defs/absolutePath"},
+        "artifactRoot": {"$ref": "#/$defs/absolutePath"},
+        "terminalReceiptPath": {"$ref": "#/$defs/absolutePath"}
+      }
+    },
+    "fixedArtifactPaths": {
+      "type": "object", "additionalProperties": false,
+      "required": ["goldBinding", "anonymization", "evidenceSet", "sanitizedEvidenceBundle", "candidateJudgeInput", "judgePanel", "verificationInput", "evaluationRun", "aggregationInput", "scorecard", "panelFinalizationSeal"],
+      "properties": {
+        "goldBinding": {"$ref": "#/$defs/absolutePath"},
+        "anonymization": {"$ref": "#/$defs/absolutePath"},
+        "evidenceSet": {"$ref": "#/$defs/absolutePath"},
+        "sanitizedEvidenceBundle": {"$ref": "#/$defs/absolutePath"},
+        "candidateJudgeInput": {"$ref": "#/$defs/absolutePath"},
+        "judgePanel": {"$ref": "#/$defs/absolutePath"},
+        "verificationInput": {"$ref": "#/$defs/absolutePath"},
+        "evaluationRun": {"$ref": "#/$defs/absolutePath"},
+        "aggregationInput": {"$ref": "#/$defs/absolutePath"},
+        "scorecard": {"$ref": "#/$defs/absolutePath"},
+        "panelFinalizationSeal": {"$ref": "#/$defs/absolutePath"}
+      }
+    },
+    "atomicClaim": {
+      "type": "object", "additionalProperties": false,
+      "required": ["claimPolicy", "holdoutValidatedBeforeClaim", "sessionRootAbsentBeforeClaim", "claimPrecedesSessionRootCreation", "claimPathAbsentBeforeOpen", "exclusiveCreateCompleted", "claimFsyncCompleted", "parentDirectoryFsyncCompleted"],
+      "properties": {
+        "claimPolicy": {"const": "HOLDOUT_EXACT_BYTES_VALIDATED_THEN_CLAIM_O_EXCL_FSYNC_BEFORE_SESSION_ROOT_MKDIR_OR_ARTIFACTS"},
+        "holdoutValidatedBeforeClaim": {"const": true},
+        "sessionRootAbsentBeforeClaim": {"const": true},
+        "claimPrecedesSessionRootCreation": {"const": true},
+        "claimPathAbsentBeforeOpen": {"const": true},
+        "exclusiveCreateCompleted": {"const": true},
+        "claimFsyncCompleted": {"const": true},
+        "parentDirectoryFsyncCompleted": {"const": true}
+      }
+    }
+  }
+}

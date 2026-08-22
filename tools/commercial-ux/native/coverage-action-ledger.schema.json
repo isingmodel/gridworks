@@ -9,7 +9,7 @@
     "executionArtifactSha256", "coverageRecipeSha256", "holdoutQueueSha256",
     "selectedRecipeId", "selectedRecipeSha256", "holdoutConsumptionReceiptSha256",
     "goldBindingManifestSha256", "holdoutRealization", "coverageRunId",
-    "processTreeId", "userDataSha256", "journalBundleSha256",
+    "processTreeId", "userDataSha256", "journalBundleSha256", "clockDomainId",
     "episodeLedgerHashRule", "episodes"
   ],
   "properties": {
@@ -30,6 +30,7 @@
     "processTreeId": {"type": "string", "minLength": 1, "maxLength": 200},
     "userDataSha256": {"$ref": "#/$defs/sha256"},
     "journalBundleSha256": {"$ref": "#/$defs/sha256"},
+    "clockDomainId": {"type": "string", "minLength": 1, "maxLength": 200},
     "episodeLedgerHashRule": {"const": "SHA256_OF_RFC8785_EPISODE_WITH_EPISODE_LEDGER_SHA256_NULL"},
     "episodes": {
       "type": "array", "minItems": 12, "maxItems": 12,
@@ -98,6 +99,7 @@
         "traceRowId", "checkpoint", "checkpointBranchId", "actionOccurrenceId",
         "semanticActionKind", "prototypeSlot", "prototypeKind",
         "branchSequenceOrdinal", "branchDecision", "actionIndex",
+        "deliveredMonotonicNanoseconds",
         "preStateSha256", "postStateSha256", "visibleFeedback", "audibleFeedback",
         "artifactRefs"
       ],
@@ -112,6 +114,9 @@
         "branchSequenceOrdinal": {"type": ["integer", "null"], "minimum": 0, "maximum": 1},
         "branchDecision": {"type": ["string", "null"], "enum": ["keep", "defer", null]},
         "actionIndex": {"type": "integer", "minimum": 0, "maximum": 4096},
+        "deliveredMonotonicNanoseconds": {
+          "type": "integer", "minimum": 0, "maximum": 9223372036854775807
+        },
         "preStateSha256": {"$ref": "#/$defs/sha256"},
         "postStateSha256": {"$ref": "#/$defs/sha256"},
         "visibleFeedback": {"type": "string", "minLength": 1, "maxLength": 1000},

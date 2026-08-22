@@ -34,13 +34,14 @@
     "consumption": {
       "type": "object", "additionalProperties": false,
       "required": [
-        "ordinal", "recipeId", "candidateReuseSha256", "candidateManifestSha256",
+        "ordinal", "recipeId", "candidateReuseSha256", "candidatePlayableFingerprintSha256", "candidateManifestSha256",
         "sourceCommit", "transactionId"
       ],
       "properties": {
         "ordinal": {"type": "integer", "minimum": 1, "maximum": 8},
         "recipeId": {"pattern": "^HOLDOUT-0[1-8]$"},
         "candidateReuseSha256": {"$ref": "#/$defs/sha256"},
+        "candidatePlayableFingerprintSha256": {"$ref": "#/$defs/sha256"},
         "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
         "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
         "transactionId": {"$ref": "#/$defs/sha256"}

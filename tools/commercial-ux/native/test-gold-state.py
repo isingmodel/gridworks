@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import base64
 import copy
 import hashlib
 import importlib.util
@@ -270,6 +271,201 @@ class GoldStateContractTests(unittest.TestCase):
         )
         return path
 
+    def materialize_garbage_bundle(
+        self,
+        directory: Path,
+        value: dict[str, Any],
+    ) -> None:
+        root = directory / "raw-gold"
+        pre_journal_sha: str | None = None
+        pre_snapshot_sha: str | None = None
+        editable_journal_sha: str | None = None
+        editable_snapshot_sha: str | None = None
+        root_rows: list[dict[str, Any]] = []
+        for row in [*value["prefixBindings"], *value["checkpointBindings"]]:
+            checkpoint_id = row.get("checkpointId")
+            for field in ("journalBinding", "snapshotBinding"):
+                component = row[field]
+                if component["status"] != "BOUND_NATIVE_REPLAY":
+                    continue
+                is_editable = checkpoint_id == "resumed-editable-draft"
+                data = (
+                    b"not-an-editable-journal"
+                    if field == "journalBinding" and is_editable
+                    else b"not-an-editable-snapshot"
+                    if field == "snapshotBinding" and is_editable
+                    else b"not-a-journal"
+                    if field == "journalBinding"
+                    else b"not-a-snapshot"
+                )
+                target = root / component["locator"]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+                observed = "sha256:" + hashlib.sha256(data).hexdigest()
+                component["sha256"] = observed
+                component["byteLength"] = len(data)
+                root_rows.append({
+                    "locator": component["locator"],
+                    "rawSha256": observed,
+                    "byteLength": len(data),
+                })
+                if row.get("prefixId") == "PREFIX-NORTH-BANK-MID-DRAFT":
+                    if field == "journalBinding":
+                        pre_journal_sha = observed
+                    else:
+                        pre_snapshot_sha = observed
+                if is_editable:
+                    if field == "journalBinding":
+                        editable_journal_sha = observed
+                    else:
+                        editable_snapshot_sha = observed
+        witness = value["e09NorthBankTwoProcessWitness"]
+        witness["preExitJournalSha256"] = pre_journal_sha
+        witness["postResumeJournalSha256"] = pre_journal_sha
+        witness["preExitSnapshotSha256"] = pre_snapshot_sha
+        witness["postResumeSnapshotSha256"] = pre_snapshot_sha
+        witness["resumedEditableDraftJournalSha256"] = editable_journal_sha
+        witness["resumedEditableDraftSnapshotSha256"] = editable_snapshot_sha
+        value["canonicalGoldBundleRoot"] = str(root.resolve())
+        value["goldBundleRootSha256"] = canonical_sha256(
+            sorted(root_rows, key=lambda row: row["locator"])
+        )
+
+    def test_core_replay_emits_and_verifies_exact_snapshot_bytes(self) -> None:
+        world_bytes = (ROOT / "data/release-world-v2.json").read_bytes()
+        campaign_bytes = (ROOT / "data/release-campaign-v2.json").read_bytes()
+        world = json.loads(world_bytes)
+        campaign = json.loads(campaign_bytes)
+        journal = json.dumps(
+            {
+                "schemaVersion": "gridworks.commercial.campaign-save.v3",
+                "campaignId": campaign["campaignId"],
+                "campaignSha256": hashlib.sha256(campaign_bytes).hexdigest(),
+                "worldId": world["worldId"],
+                "worldSha256": hashlib.sha256(world_bytes).hexdigest(),
+                "commands": [],
+            },
+            ensure_ascii=False,
+            indent=2,
+        ).encode("utf-8")
+        project = ROOT / "tools/Gridworks.GoldReplayVerifier/Gridworks.GoldReplayVerifier.csproj"
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            emit_input = directory / "emit.json"
+            emit_input.write_bytes(json.dumps({
+                "schemaVersion": "gridworks.commercial-ux.gold-snapshot-input.v1",
+                "worldBytesBase64": base64.b64encode(world_bytes).decode("ascii"),
+                "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
+                "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
+            }, separators=(",", ":")).encode("utf-8"))
+            emitted = subprocess.run(
+                [
+                    "dotnet", "run", "--project", str(project), "-c", "Release",
+                    "--no-restore", "--", "--emit-snapshot",
+                    str(emit_input.resolve()),
+                ],
+                cwd=ROOT,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=180,
+            )
+            self.assertEqual(0, emitted.returncode, emitted.stderr.decode())
+            batch_input = directory / "batch.json"
+            batch_input.write_bytes(json.dumps({
+                "schemaVersion": "gridworks.commercial-ux.gold-replay-batch-input.v1",
+                "worldBytesBase64": base64.b64encode(world_bytes).decode("ascii"),
+                "campaignBytesBase64": base64.b64encode(campaign_bytes).decode("ascii"),
+                "entries": [{
+                    "owner": "test:fresh",
+                    "journalBytesBase64": base64.b64encode(journal).decode("ascii"),
+                    "snapshotBytesBase64": base64.b64encode(emitted.stdout).decode("ascii"),
+                }],
+            }, separators=(",", ":")).encode("utf-8"))
+            verified = subprocess.run(
+                [
+                    "dotnet", "run", "--project", str(project), "-c", "Release",
+                    "--no-restore", "--", "--verify-batch",
+                    str(batch_input.resolve()),
+                ],
+                cwd=ROOT,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=180,
+            )
+            mutated_batch = json.loads(batch_input.read_text(encoding="utf-8"))
+            mutated_batch["entries"][0]["snapshotBytesBase64"] = base64.b64encode(
+                b"{}"
+            ).decode("ascii")
+            batch_input.write_text(
+                json.dumps(mutated_batch, separators=(",", ":")),
+                encoding="utf-8",
+            )
+            rejected = subprocess.run(
+                [
+                    "dotnet", "run", "--project", str(project), "-c", "Release",
+                    "--no-restore", "--", "--verify-batch",
+                    str(batch_input.resolve()),
+                ],
+                cwd=ROOT,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=180,
+            )
+            mutated_batch["entries"][0]["journalBytesBase64"] = base64.b64encode(
+                json.dumps(
+                    json.loads(journal),
+                    ensure_ascii=False,
+                    separators=(",", ":"),
+                ).encode("utf-8")
+            ).decode("ascii")
+            mutated_batch["entries"][0]["snapshotBytesBase64"] = base64.b64encode(
+                emitted.stdout
+            ).decode("ascii")
+            batch_input.write_text(
+                json.dumps(mutated_batch, separators=(",", ":")),
+                encoding="utf-8",
+            )
+            noncanonical_journal = subprocess.run(
+                [
+                    "dotnet", "run", "--project", str(project), "-c", "Release",
+                    "--no-restore", "--", "--verify-batch",
+                    str(batch_input.resolve()),
+                ],
+                cwd=ROOT,
+                check=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=180,
+            )
+        self.assertEqual(0, verified.returncode, verified.stderr.decode())
+        report = json.loads(verified.stdout)
+        self.assertEqual(0, report["entries"][0]["commandCount"])
+        self.assertEqual("FIRST_LIGHT", report["entries"][0]["state"]["chapterId"])
+        self.assertNotEqual(0, rejected.returncode)
+        self.assertIn(
+            "snapshot bytes are not the canonical replay result",
+            rejected.stderr.decode(),
+        )
+        self.assertNotEqual(0, noncanonical_journal.returncode)
+        self.assertIn(
+            "journal bytes are not canonical CommercialCampaignSaveCodec output",
+            noncanonical_journal.stderr.decode(),
+        )
+
+    def test_raw_hash_correct_garbage_journal_snapshot_bundle_is_rejected(self) -> None:
+        value = self.binding_fixture()
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            self.materialize_garbage_bundle(directory, value)
+            path = self.write_binding(directory, value)
+            result = self.invoke(MANIFEST, "--binding-manifest", str(path))
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn("gold Core replay verifier rejected the bundle", result.stderr)
+        self.assertIn("not-a-journal", result.stderr)
+
     def test_honest_pre_execution_contract_passes_but_reports_blocked(self) -> None:
         result = self.invoke(MANIFEST)
         self.assertEqual(0, result.returncode, result.stderr)
@@ -281,6 +477,32 @@ class GoldStateContractTests(unittest.TestCase):
         self.assertNotEqual(0, result.returncode)
         self.assertIn("requires --candidate-manifest", result.stderr)
         self.assertIn("requires --binding-manifest", result.stderr)
+        self.assertIn("requires --holdout-consumption-receipt", result.stderr)
+        self.assertIn("requires --registry-before and --registry-after", result.stderr)
+        self.assertIn("requires --evaluation-session-claim", result.stderr)
+
+    def test_contract_tool_policy_is_part_of_gold_score_readiness(self) -> None:
+        spec = importlib.util.spec_from_file_location(
+            "gridworks_contract_readiness_test",
+            NATIVE / "validate-contract.py",
+        )
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader if spec is not None else None)
+        assert spec is not None and spec.loader is not None
+        contract = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(contract)
+        errors = contract.score_bearing_contract_readiness_errors(
+            NATIVE,
+            evaluation_session_claim={"status": "CLAIMED_BEFORE_CAPTURE"},
+        )
+        self.assertTrue(
+            any("tool policy still blocks" in error for error in errors),
+            errors,
+        )
+        self.assertTrue(
+            any("unbound required producer stages" in error for error in errors),
+            errors,
+        )
 
     def test_overlay_prefix_order_mutation_is_rejected(self) -> None:
         value = self.binding_fixture()

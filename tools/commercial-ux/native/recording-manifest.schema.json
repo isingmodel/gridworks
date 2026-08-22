@@ -34,7 +34,7 @@
     "bundleRootSha256": {"$ref": "#/$defs/sha256"},
     "bundleRootHashRule": {"const": "SHA256_OF_UTF8_RFC8785_CANONICAL_LOCATOR_SORTED_ROWS_LOCATOR_RAW_SHA256_BYTE_LENGTH"},
     "locatorPolicy": {"const": "CANONICAL_RELATIVE_NO_DOTDOT_REJECT_ALL_SYMLINKS"},
-    "mimePolicy": {"const": "PNG_WAV_OR_STRICT_JSON_OBJECT_MATCHING_MAGIC_AND_SCHEMA"},
+    "mimePolicy": {"const": "RESTRICTED_PNG_WAV_OR_STRICT_ACTION_OR_AUDIO_SYNC_JSON_MATCHING_MAGIC_AND_SCHEMA"},
     "artifacts": {
       "type": "array", "minItems": 1, "maxItems": 4096, "uniqueItems": true,
       "items": {"$ref": "#/$defs/artifact"}
@@ -47,7 +47,9 @@
       "required": ["artifactId", "kind", "locator", "rawSha256", "byteLength", "mimeType"],
       "properties": {
         "artifactId": {"type": "string", "minLength": 1, "maxLength": 200},
-        "kind": {"enum": ["FRAME", "AUDIO", "ACTION_LEDGER", "VISIBLE_TEXT"]},
+        "kind": {
+          "enum": ["FRAME", "AUDIO", "ACTION_LEDGER", "AUDIO_SYNC_LEDGER", "VISIBLE_TEXT"]
+        },
         "locator": {
           "type": "string",
           "pattern": "^(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
@@ -73,6 +75,10 @@
           "then": {"properties": {"mimeType": {"const": "application/json"}}}
         },
         {
+          "if": {"properties": {"kind": {"const": "AUDIO_SYNC_LEDGER"}}, "required": ["kind"]},
+          "then": {"properties": {"mimeType": {"const": "application/json"}}}
+        },
+        {
           "if": {"properties": {"kind": {"const": "VISIBLE_TEXT"}}, "required": ["kind"]},
           "then": {"properties": {"mimeType": {"const": "application/json"}}}
         }
@@ -89,12 +95,24 @@
           "actorRunId": {"type": "string", "minLength": 1},
           "coverageRunId": {"type": "null"},
           "artifacts": {
-            "contains": {
-              "$ref": "#/$defs/artifact",
-              "properties": {"kind": {"const": "ACTION_LEDGER"}}
-            },
-            "minContains": 1,
-            "maxContains": 1
+            "allOf": [
+              {
+                "contains": {
+                  "$ref": "#/$defs/artifact",
+                  "properties": {"kind": {"const": "ACTION_LEDGER"}}
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "contains": {
+                  "$ref": "#/$defs/artifact",
+                  "properties": {"kind": {"const": "AUDIO_SYNC_LEDGER"}}
+                },
+                "minContains": 0,
+                "maxContains": 0
+              }
+            ]
           }
         }
       },
@@ -103,7 +121,34 @@
           "sourceArtifactHashKind": {"const": "COVERAGE_ACTION_LEDGER_RAW"},
           "actorCaptureSlot": {"type": "null"},
           "actorRunId": {"type": "null"},
-          "coverageRunId": {"type": "string", "minLength": 1}
+          "coverageRunId": {"type": "string", "minLength": 1},
+          "artifacts": {
+            "allOf": [
+              {
+                "contains": {
+                  "$ref": "#/$defs/artifact",
+                  "properties": {"kind": {"const": "ACTION_LEDGER"}}
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "contains": {
+                  "$ref": "#/$defs/artifact",
+                  "properties": {"kind": {"const": "AUDIO_SYNC_LEDGER"}}
+                },
+                "minContains": 1,
+                "maxContains": 1
+              },
+              {
+                "contains": {
+                  "$ref": "#/$defs/artifact",
+                  "properties": {"kind": {"const": "AUDIO"}}
+                },
+                "minContains": 1
+              }
+            ]
+          }
         }
       }
     }

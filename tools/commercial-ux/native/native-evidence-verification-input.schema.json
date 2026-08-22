@@ -91,9 +91,19 @@
     "observation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["observationId", "claim", "citedSources"],
+      "required": ["observationId", "claimType", "incidentKey", "claim", "citedSources"],
       "properties": {
         "observationId": {"type": "string", "pattern": "^OBS-[0-9]{4}$"},
+        "claimType": {"enum": ["JUDGE_EVIDENCE", "ACTOR_INCIDENT"]},
+        "incidentKey": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+            },
+            {"type": "null"}
+          ]
+        },
         "claim": {"type": "string", "minLength": 1, "maxLength": 1200},
         "citedSources": {
           "type": "array",
@@ -102,7 +112,24 @@
           "uniqueItems": true,
           "items": {"$ref": "#/$defs/sourceRef"}
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"claimType": {"const": "ACTOR_INCIDENT"}},
+            "required": ["claimType"]
+          },
+          "then": {
+            "properties": {
+              "incidentKey": {
+                "type": "string",
+                "pattern": "^[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+/[A-Z0-9_-]+$"
+              }
+            }
+          },
+          "else": {"properties": {"incidentKey": {"type": "null"}}}
+        }
+      ]
     }
   }
 }

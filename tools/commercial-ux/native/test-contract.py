@@ -53,10 +53,31 @@ def mutated_errors(
     mutate: Callable[[Path], None],
 ) -> list[str]:
     with tempfile.TemporaryDirectory(prefix="gridworks-native-contract-test-") as temporary:
-        native = Path(temporary) / "native"
+        workspace = Path(temporary) / "workspace"
+        native = workspace / "tools" / "commercial-ux" / "native"
         shutil.copytree(ROOT, native)
         shutil.copy2(ROOT.parent / "aggregate-native.py", native.parent / "aggregate-native.py")
         shutil.copy2(RUBRIC, native.parent / "rubric.json")
+        replay_source = (
+            workspace
+            / "tools"
+            / "Gridworks.CommercialChecks"
+            / "CommercialGoldReplayVerifier.cs"
+        )
+        replay_source.parent.mkdir(parents=True)
+        shutil.copy2(
+            ROOT.parents[1]
+            / "Gridworks.CommercialChecks"
+            / "CommercialGoldReplayVerifier.cs",
+            replay_source,
+        )
+        replay_project_root = workspace / "tools" / "Gridworks.GoldReplayVerifier"
+        replay_project_root.mkdir(parents=True)
+        for name in ("Program.cs", "Gridworks.GoldReplayVerifier.csproj"):
+            shutil.copy2(
+                ROOT.parents[1] / "Gridworks.GoldReplayVerifier" / name,
+                replay_project_root / name,
+            )
         mutate(native)
         errors, _ = module.validate_contract(native, RUBRIC)
         return errors
@@ -316,6 +337,23 @@ def main() -> int:
     )
     checks += 1
 
+    def expose_model_input_on_deterministic_stage(native: Path) -> None:
+        path = native / "contract-bindings.json"
+        value = read_json(path)
+        stage = next(
+            row for row in value["stageBindings"]
+            if row["stageId"] == "EVALUATION-SESSION-CLAIM"
+        )
+        stage["modelVisibleInputSchemas"] = []
+        write_json(path, value)
+
+    assert_rejected(
+        module,
+        expose_model_input_on_deterministic_stage,
+        "matched forbidden not schema",
+    )
+    checks += 1
+
     def omit_aggregation_input_producer(native: Path) -> None:
         path = native / "contract-bindings.json"
         value = read_json(path)
@@ -354,7 +392,7 @@ def main() -> int:
     assert_rejected(
         module,
         reverse_candidate_receipt_gold_dag,
-        "candidate -> receipt -> gold-binding DAG must remain exact and acyclic",
+        "candidate -> receipt -> session -> attempt -> gold-binding DAG must remain exact and acyclic",
     )
     checks += 1
 
@@ -450,7 +488,9 @@ def main() -> int:
     def allow_multiple_actor_action_ledgers(native: Path) -> None:
         path = native / "recording-manifest.schema.json"
         value = read_json(path)
-        value["allOf"][0]["then"]["properties"]["artifacts"]["maxContains"] = 2
+        value["allOf"][0]["then"]["properties"]["artifacts"]["allOf"][0][
+            "maxContains"
+        ] = 2
         write_json(path, value)
 
     assert_rejected(
@@ -696,6 +736,8 @@ def main() -> int:
     stage_ids = [row["stageId"] for row in bindings["stageBindings"]]
     assert stage_ids.index("CANDIDATE-MANIFEST-PACKAGER") < stage_ids.index(
         "HOLDOUT-CONSUMPTION-PACKAGER"
+    ) < stage_ids.index("EVALUATION-SESSION-CLAIM") < stage_ids.index(
+        "EVALUATION-ATTEMPT-LEDGER"
     ) < stage_ids.index("GOLD-BINDING-PACKAGER") < stage_ids.index(
         "COLD-ACTOR"
     ) < stage_ids.index("COLD-OBSERVATION-PACKAGER") < stage_ids.index("COLD-PACKAGER")
@@ -706,6 +748,13 @@ def main() -> int:
     assert next(
         row for row in bindings["stageBindings"] if row["stageId"] == "NATIVE-AGGREGATE"
     )["implementationTool"] == "../aggregate-native.py"
+    assert {
+        row["implementationTool"]
+        for row in bindings["stageBindings"]
+        if row["stageId"] in {
+            "EVALUATION-SESSION-CLAIM", "EVALUATION-ATTEMPT-LEDGER"
+        }
+    } == {"claim-evaluation-session.py"}
     assert all(
         row["implementationTool"] is None
         for row in bindings["stageBindings"]
@@ -725,6 +774,9 @@ def main() -> int:
     renamed["candidateId"] = "candidate-b"
     renamed["recipes"]["selectedRecipeId"] = "HOLDOUT-08"
     assert module.candidate_reuse_sha256(renamed) == reuse_hash
+    recommitted = copy.deepcopy(candidate_reuse_fixture)
+    recommitted["source"]["commit"] = "9" * 40
+    assert module.candidate_reuse_sha256(recommitted) == reuse_hash
     changed_authority = copy.deepcopy(candidate_reuse_fixture)
     changed_authority["authorityHashes"]["world"] = "sha256:" + "3" * 64
     assert module.candidate_reuse_sha256(changed_authority) != reuse_hash
@@ -744,8 +796,8 @@ def main() -> int:
         "registryAuthorityLimit": queue["registryPolicy"]["authorityLimit"],
         "registryPathRule": queue["registryPolicy"]["registryPathRule"],
         "consumptions": [
-            {"ordinal": 1, "recipeId": "HOLDOUT-01", "candidateReuseSha256": reuse_hash, "transactionId": "sha256:" + "1" * 64},
-            {"ordinal": 2, "recipeId": "HOLDOUT-02", "candidateReuseSha256": reuse_hash, "transactionId": "sha256:" + "2" * 64},
+            {"ordinal": 1, "recipeId": "HOLDOUT-01", "candidateReuseSha256": reuse_hash, "candidatePlayableFingerprintSha256": reuse_hash, "candidateManifestSha256": "sha256:" + "4" * 64, "sourceCommit": "1" * 40, "transactionId": "sha256:" + "1" * 64},
+            {"ordinal": 2, "recipeId": "HOLDOUT-02", "candidateReuseSha256": reuse_hash, "candidatePlayableFingerprintSha256": reuse_hash, "candidateManifestSha256": "sha256:" + "5" * 64, "sourceCommit": "2" * 40, "transactionId": "sha256:" + "2" * 64},
         ],
     }
     registry_errors: list[str] = []
@@ -755,12 +807,21 @@ def main() -> int:
     assert any("candidateReuseSha256 values must be unique" in error for error in registry_errors)
     duplicate_transaction_registry = copy.deepcopy(duplicate_candidate_registry)
     duplicate_transaction_registry["consumptions"][1]["candidateReuseSha256"] = "sha256:" + "3" * 64
+    duplicate_transaction_registry["consumptions"][1]["candidatePlayableFingerprintSha256"] = "sha256:" + "3" * 64
     duplicate_transaction_registry["consumptions"][1]["transactionId"] = "sha256:" + "1" * 64
     transaction_errors: list[str] = []
     module.validate_registry_semantics(
         duplicate_transaction_registry, queue, "registry fixture", transaction_errors
     )
     assert any("transactionId values must be unique" in error for error in transaction_errors)
+    duplicate_source_registry = copy.deepcopy(duplicate_transaction_registry)
+    duplicate_source_registry["consumptions"][1]["transactionId"] = "sha256:" + "2" * 64
+    duplicate_source_registry["consumptions"][1]["sourceCommit"] = "1" * 40
+    source_errors: list[str] = []
+    module.validate_registry_semantics(
+        duplicate_source_registry, queue, "registry fixture", source_errors
+    )
+    assert any("sourceCommit values must be unique" in error for error in source_errors)
     canonical_receipt = module.canonical_holdout_receipt_path(
         ROOT, "sha256:" + "4" * 64, "sha256:" + "5" * 64
     )

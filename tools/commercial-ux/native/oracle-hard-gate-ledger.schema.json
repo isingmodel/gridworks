@@ -237,6 +237,7 @@
         "incidentType",
         "actorArtifactIds",
         "checkpointRefs",
+        "verifierObservationId",
         "verifierStatus",
         "oracleStatus",
         "capCandidate",
@@ -271,12 +272,43 @@
           "uniqueItems": true,
           "items": {"type": "string", "minLength": 1, "maxLength": 240}
         },
+        "verifierObservationId": {
+          "oneOf": [
+            {"type": "string", "pattern": "^OBS-[0-9]{4}$"},
+            {"type": "null"}
+          ]
+        },
         "verifierStatus": {"enum": ["SUPPORTED", "PARTIAL", "UNSUPPORTED", "NOT_APPLICABLE"]},
         "oracleStatus": {"enum": ["EXACT", "MISMATCH", "MISSING", "NOT_APPLICABLE"]},
         "capCandidate": {"enum": [100, 79, 69, 49]},
         "critical": {"type": "boolean"},
         "description": {"type": "string", "minLength": 1, "maxLength": 1600}
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"incidentType": {"const": "HARD_GATE_FAILURE"}},
+            "required": ["incidentType"]
+          },
+          "then": {
+            "properties": {
+              "verifierObservationId": {"type": "null"},
+              "verifierStatus": {"const": "NOT_APPLICABLE"}
+            }
+          },
+          "else": {
+            "properties": {
+              "verifierObservationId": {
+                "type": "string",
+                "pattern": "^OBS-[0-9]{4}$"
+              },
+              "verifierStatus": {
+                "enum": ["SUPPORTED", "PARTIAL", "UNSUPPORTED"]
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

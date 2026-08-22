@@ -158,7 +158,11 @@
         "candidateJudgeInputSha256", "candidateJudgeInputRawSha256",
         "verificationInputRawSha256", "verificationOutputSha256",
         "oracleHardGateLedgerSha256", "executionArtifactSha256",
-        "packageSha256", "packageStatus"
+        "packageSha256", "packageStatus", "evaluationSessionClaimSha256",
+        "evaluationSessionClaimRawSha256", "evaluationSessionPolicySha256",
+        "evaluationSessionClaimToolSha256", "evaluationSessionId",
+        "evaluationSessionMode", "evaluationAttemptAuditSha256",
+        "evaluationSelectedAttemptsSha256"
       ],
       "properties": {
         "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
@@ -214,7 +218,15 @@
         },
         "packageStatus": {
           "enum": ["EDITOR_NATIVE_NOT_PUBLIC_PACKAGE", "INTERNAL_APP_BUNDLE"]
-        }
+        },
+        "evaluationSessionClaimSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionClaimRawSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionPolicySha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionClaimToolSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionId": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionMode": {"enum": ["INITIAL", "REPLACEMENT"]},
+        "evaluationAttemptAuditSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSelectedAttemptsSha256": {"$ref": "#/$defs/sha256"}
       }
     }
   }

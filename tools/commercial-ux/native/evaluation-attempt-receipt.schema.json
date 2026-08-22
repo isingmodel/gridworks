@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/commercial-ux-evaluation-attempt-receipt-v1.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion", "protocol", "evaluationAttemptReceiptSha256",
+    "evaluationAttemptReceiptSchemaSha256", "evaluationSessionPolicySha256",
+    "sessionClaimToolSha256", "evaluationSessionClaimSha256",
+    "evaluationSessionClaimRawSha256", "sessionId", "sessionMode",
+    "candidateManifestSha256", "candidatePlayableFingerprintSha256",
+    "sourceCommit", "holdoutConsumptionReceiptSha256", "slotId", "role",
+    "roleOrdinal", "attemptOrdinal", "attemptRoot", "canonicalReceiptPath",
+    "canonicalOutputPath", "canonicalArtifactRoot", "canonicalTerminalReceiptPath",
+    "predecessorTerminalReceiptSha256", "reservation", "status"
+  ],
+  "properties": {
+    "schemaVersion": {"const": "gridworks.commercial-ux.evaluation-attempt-receipt.v1"},
+    "protocol": {"const": "GRIDWORKS-COMMERCIAL-UX-v1.1"},
+    "evaluationAttemptReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationAttemptReceiptSchemaSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationSessionPolicySha256": {"$ref": "#/$defs/sha256"},
+    "sessionClaimToolSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationSessionClaimSha256": {"$ref": "#/$defs/sha256"},
+    "evaluationSessionClaimRawSha256": {"$ref": "#/$defs/sha256"},
+    "sessionId": {"$ref": "#/$defs/sha256"},
+    "sessionMode": {"enum": ["INITIAL", "REPLACEMENT"]},
+    "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
+    "candidatePlayableFingerprintSha256": {"$ref": "#/$defs/sha256"},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "holdoutConsumptionReceiptSha256": {"$ref": "#/$defs/sha256"},
+    "slotId": {"pattern": "^SLOT-0[1-9]$"},
+    "role": {"enum": ["COLD_ACTOR", "COVERAGE", "CANDIDATE_JUDGE", "EVIDENCE_VERIFIER", "ORACLE"]},
+    "roleOrdinal": {"type": "integer", "minimum": 1, "maximum": 3},
+    "attemptOrdinal": {"type": "integer", "minimum": 1, "maximum": 3},
+    "attemptRoot": {"$ref": "#/$defs/absolutePath"},
+    "canonicalReceiptPath": {"$ref": "#/$defs/absolutePath"},
+    "canonicalOutputPath": {"$ref": "#/$defs/absolutePath"},
+    "canonicalArtifactRoot": {"$ref": "#/$defs/absolutePath"},
+    "canonicalTerminalReceiptPath": {"$ref": "#/$defs/absolutePath"},
+    "predecessorTerminalReceiptSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+    "reservation": {"$ref": "#/$defs/reservation"},
+    "status": {"enum": ["STARTED_BEFORE_PRODUCER", "RESERVATION_FAILED_TERMINAL_REQUIRED"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"attemptOrdinal": {"const": 1}}, "required": ["attemptOrdinal"]},
+      "then": {"properties": {"predecessorTerminalReceiptSha256": {"type": "null"}}},
+      "else": {"properties": {"predecessorTerminalReceiptSha256": {"$ref": "#/$defs/sha256"}}}
+    }
+  ],
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "absolutePath": {"type": "string", "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$", "maxLength": 1400},
+    "reservation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["policy", "sessionLockAcquired", "receiptPathAbsentBeforeOpen", "outputPathAbsentBeforeOpen", "outputReservationExclusiveCreateCompleted", "outputReservationFsyncCompleted", "outputReservationParentDirectoryFsyncCompleted", "receiptExclusiveCreateCompleted", "receiptFsyncCompleted", "receiptParentDirectoryFsyncCompleted", "outputReservationByteLength"],
+      "properties": {
+        "policy": {"const": "SESSION_LOCK_THEN_ZERO_BYTE_OUTPUT_O_EXCL_FSYNC_THEN_START_RECEIPT_O_EXCL_FSYNC_BEFORE_PRODUCER_START"},
+        "sessionLockAcquired": {"const": true},
+        "receiptPathAbsentBeforeOpen": {"const": true},
+        "outputPathAbsentBeforeOpen": {"type": "boolean"},
+        "receiptExclusiveCreateCompleted": {"const": true},
+        "receiptFsyncCompleted": {"const": true},
+        "receiptParentDirectoryFsyncCompleted": {"const": true},
+        "outputReservationExclusiveCreateCompleted": {"type": "boolean"},
+        "outputReservationFsyncCompleted": {"type": "boolean"},
+        "outputReservationParentDirectoryFsyncCompleted": {"type": "boolean"},
+        "outputReservationByteLength": {"const": 0}
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "outputPathAbsentBeforeOpen": {"const": true},
+            "outputReservationExclusiveCreateCompleted": {"const": true},
+            "outputReservationFsyncCompleted": {"const": true},
+            "outputReservationParentDirectoryFsyncCompleted": {"const": true}
+          }
+        },
+        {
+          "properties": {
+            "outputPathAbsentBeforeOpen": {"const": false},
+            "outputReservationExclusiveCreateCompleted": {"const": false},
+            "outputReservationFsyncCompleted": {"const": false},
+            "outputReservationParentDirectoryFsyncCompleted": {"const": false}
+          }
+        }
+      ]
+    }
+  }
+}

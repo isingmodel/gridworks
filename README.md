@@ -49,12 +49,13 @@
 Gate D는 [native evaluator v1.1 실행 부록](docs/product/COMMERCIAL_UX_NATIVE_EVALUATOR_ADDENDUM_KO.md)과
 provenance·집계 계약을 첫 score-bearing capture 전에 동결했다. 고정
 `gpt-5.6-sol` ultra, qualification 20 anchors, 3 cold actors+coverage, 동일 evidence set을 보는
-3 blind judges, 별도 verifier/oracle, `FORMATIVE-01`+8 holdout을 계약으로 묶었고 native 집계
-schema 21개·contract 23개·gold-state 11개·aggregate 44개 결정론적 검사와
-CommercialChecks 24/2,910, Debug·Release 0 warning/error는 통과했다. 현재 gold native replay
-owner 52개가 pending이고 E09 witness 4개가 미바인딩이며,
-10개 deterministic producer stage의 구현·raw hash binding이 남아 `BLOCKED_PRE_CAPTURE`이다.
-따라서 공식 cold/native 점수는 아직 없으며, 기존 Gate C smoke는 score evidence에 포함하지 않는다.
+3 blind judges, 별도 verifier/oracle, `FORMATIVE-01`+8 holdout을 계약으로 묶었다. 현재 35개 schema,
+contract 53 시나리오, gold-state 22, evaluation-session 16, aggregate 76 결정론적 검사와
+CommercialChecks 24/2,910이 통과한다. candidate-specific overlay의 journal/snapshot 56쌍은 exact
+Core replay로 검증되며 E09 geometry/projection도 replay 결과에서 유도한다. 그러나 checked-in gold
+template의 owner 52개는 pending, E09 owner 4개는 unbound 상태이고 17개 deterministic producer
+stage의 구현·raw hash binding이 남아 `BLOCKED_PRE_CAPTURE`이다. 따라서 공식 cold/native 점수는
+아직 없으며, 기존 Gate C smoke는 score evidence에 포함하지 않는다.
 
 G.3 최종 v27은 55개 개별 runtime art, 338개 원자 도시 배치와 641개 전체 world 배치, 굽은 강과
 정상·고온·범람 상태, 발전소·변전소·철탑 부품 조립, full-bleed HUD와 독립 event timeline을
@@ -83,8 +84,9 @@ UI 100%·125% presentation, checkpoint→completion→completed-resume 실제 �
    reference-scale 도시 밀도, 전력망 상태와 event timeline을 함께 보존한다.
 5. 변경 전후에 `CommercialChecks`, Debug·Release rebuild와 관련 native actual-input smoke를
    실행한다. 큰 단위가 끝나면 독립 검토와 현재 문서 갱신까지 같은 단위로 닫는다.
-6. Gate D score-bearing capture는 `BLOCKED_PRE_CAPTURE`의 gold replay·E09 witness·10 producer binding을
-   모두 닫고 native 계약을 commit·독립 검토한 뒤에만 시작한다. 기존 developer smoke를 재사용하지 않는다.
+6. Gate D score-bearing capture는 candidate-specific gold binding과 E09 witness를 생성하는 17개
+   deterministic producer의 구현·raw hash binding을 모두 닫고 native 계약을 commit·독립 검토한 뒤에만
+   시작한다. 이미 검증한 56-pair Core replay나 기존 developer smoke를 score evidence로 재사용하지 않는다.
 
 ## 다음 승인 지점
 

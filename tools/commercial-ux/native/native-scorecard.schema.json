@@ -770,9 +770,14 @@
         "verificationInputRawSha256",
         "verificationOutputSha256",
         "oracleHardGateLedgerSha256",
+        "laneExecutionIdentities",
         "executionArtifactSha256",
         "packageSha256",
-        "packageStatus"
+        "packageStatus",
+        "evaluationSessionClaimSha256", "evaluationSessionClaimRawSha256",
+        "evaluationSessionPolicySha256", "evaluationSessionClaimToolSha256",
+        "evaluationSessionId", "evaluationSessionMode",
+        "evaluationAttemptAuditSha256", "evaluationSelectedAttemptsSha256"
       ],
       "properties": {
         "candidateManifestSha256": {"$ref": "#/$defs/sha256"},
@@ -824,13 +829,90 @@
         "verificationInputRawSha256": {"$ref": "#/$defs/sha256"},
         "verificationOutputSha256": {"$ref": "#/$defs/sha256"},
         "oracleHardGateLedgerSha256": {"$ref": "#/$defs/sha256"},
+        "laneExecutionIdentities": {"$ref": "#/$defs/laneExecutionIdentities"},
         "executionArtifactSha256": {"$ref": "#/$defs/sha256"},
         "packageSha256": {
           "oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]
         },
         "packageStatus": {
           "enum": ["EDITOR_NATIVE_NOT_PUBLIC_PACKAGE", "INTERNAL_APP_BUNDLE"]
+        },
+        "evaluationSessionClaimSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionClaimRawSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionPolicySha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionClaimToolSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionId": {"$ref": "#/$defs/sha256"},
+        "evaluationSessionMode": {"enum": ["INITIAL", "REPLACEMENT"]},
+        "evaluationAttemptAuditSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationSelectedAttemptsSha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "actorExecutionIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actorCaptureSlot", "actorRunId", "processTreeId", "userDataSha256",
+        "saveSha256", "journalSha256", "recordingManifestSha256",
+        "recordingManifestRawSha256", "recordingContentRootSha256",
+        "canonicalRecordingRoot"
+      ],
+      "properties": {
+        "actorCaptureSlot": {"type": "integer", "minimum": 0, "maximum": 2},
+        "actorRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "processTreeId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "userDataSha256": {"$ref": "#/$defs/sha256"},
+        "saveSha256": {"oneOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]},
+        "journalSha256": {"$ref": "#/$defs/sha256"},
+        "recordingManifestSha256": {"$ref": "#/$defs/sha256"},
+        "recordingManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "recordingContentRootSha256": {"$ref": "#/$defs/sha256"},
+        "canonicalRecordingRoot": {
+          "type": "string",
+          "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+          "maxLength": 1000
         }
+      }
+    },
+    "coverageExecutionIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coverageRunId", "processTreeId", "userDataSha256", "journalBundleSha256",
+        "recordingManifestSha256", "recordingManifestRawSha256",
+        "recordingContentRootSha256", "canonicalRecordingRoot"
+      ],
+      "properties": {
+        "coverageRunId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "processTreeId": {"type": "string", "minLength": 1, "maxLength": 200},
+        "userDataSha256": {"$ref": "#/$defs/sha256"},
+        "journalBundleSha256": {"$ref": "#/$defs/sha256"},
+        "recordingManifestSha256": {"$ref": "#/$defs/sha256"},
+        "recordingManifestRawSha256": {"$ref": "#/$defs/sha256"},
+        "recordingContentRootSha256": {"$ref": "#/$defs/sha256"},
+        "canonicalRecordingRoot": {
+          "type": "string",
+          "pattern": "^/(?!\\.{1,2}(?:/|$))(?!.*(?:/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\\\)[^\\u0000/]+(?:/[^\\u0000/]+)*$",
+          "maxLength": 1000
+        }
+      }
+    },
+    "laneExecutionIdentities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cold", "coverage"],
+      "properties": {
+        "cold": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "prefixItems": [
+            {"$ref": "#/$defs/actorExecutionIdentity", "properties": {"actorCaptureSlot": {"const": 0}}},
+            {"$ref": "#/$defs/actorExecutionIdentity", "properties": {"actorCaptureSlot": {"const": 1}}},
+            {"$ref": "#/$defs/actorExecutionIdentity", "properties": {"actorCaptureSlot": {"const": 2}}}
+          ],
+          "items": false
+        },
+        "coverage": {"$ref": "#/$defs/coverageExecutionIdentity"}
       }
     }
   }

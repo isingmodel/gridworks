@@ -3,22 +3,26 @@
 
 This validator deliberately treats an honest pre-execution manifest as valid while
 reporting it as not score-ready.  Callers that are about to capture score-bearing
-evidence must pass --require-score-ready with both --candidate-manifest and the
-candidate-specific --binding-manifest.  The immutable pending template is never
-rewritten to impersonate captured native evidence.
+evidence must pass --require-score-ready with the candidate, candidate-specific
+gold binding, exact holdout registry transition, and canonical pre-capture session
+claim.  The immutable pending template is never rewritten to impersonate captured
+native evidence.
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import copy
 import hashlib
 import importlib.util
 import json
+import os
 import re
 import shlex
 import subprocess
 import sys
+import tempfile
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -475,21 +479,23 @@ def checkpoint_branch_id(checkpoint_id: str, promise_branch_order: list[str]) ->
 
 
 def validate_gold_bundle(
+    repository_root: Path,
+    manifest: dict[str, Any],
     binding: dict[str, Any],
     prefix_rows: list[Any],
     checkpoint_rows: list[Any],
     failures: list[str],
-) -> None:
+) -> dict[str, dict[str, Any]]:
     root_value = binding.get("canonicalGoldBundleRoot")
     if not isinstance(root_value, str):
         failures.append("gold binding canonicalGoldBundleRoot must be an absolute path")
-        return
+        return {}
     root = Path(root_value)
     try:
         resolved_root = root.resolve(strict=True)
     except OSError as error:
         failures.append(f"gold binding bundle root cannot be opened: {error}")
-        return
+        return {}
     require(
         root.is_absolute() and root_value == str(resolved_root) and resolved_root.is_dir(),
         "gold binding bundle root must be a canonical directory without symlinks",
@@ -497,9 +503,24 @@ def validate_gold_bundle(
     )
     referenced: list[str] = []
     root_rows: list[dict[str, Any]] = []
-    for row in [*prefix_rows, *checkpoint_rows]:
+    replay_entries: list[dict[str, Any]] = []
+    row_pairs = [
+        *(
+            (f"prefix:{row.get('prefixId')}", row)
+            for row in prefix_rows if isinstance(row, dict)
+        ),
+        *(
+            (
+                f"checkpoint:{row.get('episodeId')}/{row.get('checkpointId')}",
+                row,
+            )
+            for row in checkpoint_rows if isinstance(row, dict)
+        ),
+    ]
+    for owner, row in row_pairs:
         if not isinstance(row, dict):
             continue
+        exact_components: dict[str, bytes] = {}
         for field in ("journalBinding", "snapshotBinding"):
             component = row.get(field)
             if not isinstance(component, dict) or component.get("status") != BOUND:
@@ -538,11 +559,283 @@ def validate_gold_bundle(
                 "rawSha256": observed_sha,
                 "byteLength": len(data),
             })
+            exact_components[field] = data
+        if set(exact_components) == {"journalBinding", "snapshotBinding"}:
+            replay_entries.append({
+                "owner": owner,
+                "journalBytesBase64": base64.b64encode(
+                    exact_components["journalBinding"]
+                ).decode("ascii"),
+                "snapshotBytesBase64": base64.b64encode(
+                    exact_components["snapshotBinding"]
+                ).decode("ascii"),
+            })
     require(
         len(referenced) == 112
         and len(referenced) == len(set(referenced))
         and binding.get("goldBundleEntryCount") == len(referenced),
         "gold binding bundle must contain 112 unique applicable journal/snapshot locators",
+        failures,
+    )
+    if len(replay_entries) != 56 or len(root_rows) != 112:
+        failures.append(
+            "gold binding semantic replay requires 56 exact journal/snapshot pairs"
+        )
+        return {}
+
+    authorities = manifest.get("authorities", {})
+    try:
+        world_path = repo_path(
+            repository_root,
+            authorities.get("world", {}).get("path"),
+            "authorities.world.path",
+        )
+        campaign_path = repo_path(
+            repository_root,
+            authorities.get("campaign", {}).get("path"),
+            "authorities.campaign.path",
+        )
+        verifier_path = repo_path(
+            repository_root,
+            authorities.get("goldReplayVerifier", {}).get("path"),
+            "authorities.goldReplayVerifier.path",
+        )
+        verifier_entrypoint_path = repo_path(
+            repository_root,
+            authorities.get("goldReplayVerifier", {}).get("entrypointPath"),
+            "authorities.goldReplayVerifier.entrypointPath",
+        )
+        verifier_project_path = repo_path(
+            repository_root,
+            authorities.get("goldReplayVerifier", {}).get("projectPath"),
+            "authorities.goldReplayVerifier.projectPath",
+        )
+    except ContractError as error:
+        failures.append(str(error))
+        return {}
+    if not all(path.is_file() for path in (
+        world_path,
+        campaign_path,
+        verifier_path,
+        verifier_entrypoint_path,
+        verifier_project_path,
+    )):
+        failures.append("gold binding semantic replay authorities are missing")
+        return {}
+    verifier_sha = sha256_bytes(verifier_path.read_bytes())
+    verifier_authority_exact = (
+        authorities.get("goldReplayVerifier", {}).get("sha256") == verifier_sha
+        and authorities.get("goldReplayVerifier", {}).get("entrypointSha256")
+        == sha256_bytes(verifier_entrypoint_path.read_bytes())
+        and authorities.get("goldReplayVerifier", {}).get("projectSha256")
+        == sha256_bytes(verifier_project_path.read_bytes())
+    )
+    require(
+        verifier_authority_exact,
+        "gold replay verifier source/entrypoint/project raw SHA mismatch",
+        failures,
+    )
+    if not verifier_authority_exact:
+        return {}
+
+    batch = {
+        "schemaVersion": "gridworks.commercial-ux.gold-replay-batch-input.v1",
+        "worldBytesBase64": base64.b64encode(world_path.read_bytes()).decode("ascii"),
+        "campaignBytesBase64": base64.b64encode(campaign_path.read_bytes()).decode("ascii"),
+        "entries": replay_entries,
+    }
+    batch_path: Path | None = None
+    try:
+        descriptor, raw_path = tempfile.mkstemp(prefix="gridworks-gold-replay-", suffix=".json")
+        batch_path = Path(raw_path)
+        batch_bytes = canonical_json_bytes(batch)
+        with os.fdopen(descriptor, "wb", closefd=True) as stream:
+            stream.write(batch_bytes)
+            stream.flush()
+            os.fsync(stream.fileno())
+        completed = subprocess.run(
+            [
+                "dotnet", "run", "--project",
+                str(verifier_project_path),
+                "-c", "Release", "--no-restore", "--",
+                "--verify-batch", str(batch_path),
+            ],
+            cwd=repository_root,
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=180,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        failures.append(f"gold Core replay verifier failed to execute: {error}")
+        return {}
+    finally:
+        if batch_path is not None:
+            try:
+                batch_path.unlink()
+            except OSError:
+                pass
+    if completed.returncode != 0:
+        failures.append(
+            "gold Core replay verifier rejected the bundle: "
+            + completed.stderr.decode("utf-8", errors="replace").strip()
+        )
+        return {}
+    try:
+        report = load_json_bytes(completed.stdout, "gold Core replay verifier report")
+    except ContractError as error:
+        failures.append(str(error))
+        return {}
+    if not isinstance(report, dict) or report.get("schemaVersion") != (
+        "gridworks.commercial-ux.gold-replay-batch-report.v1"
+    ):
+        failures.append("gold Core replay verifier report schema mismatch")
+        return {}
+    report_rows = report.get("entries")
+    if not isinstance(report_rows, list):
+        failures.append("gold Core replay verifier entries must be an array")
+        return {}
+    reports_by_owner = {
+        row.get("owner"): row for row in report_rows if isinstance(row, dict)
+    }
+    require(
+        len(report_rows) == 56
+        and len(reports_by_owner) == 56
+        and set(reports_by_owner) == {entry["owner"] for entry in replay_entries},
+        "gold Core replay verifier owner set mismatch",
+        failures,
+    )
+    binding_rows = {owner: row for owner, row in row_pairs}
+    for owner, report_row in reports_by_owner.items():
+        binding_row = binding_rows.get(owner, {})
+        journal = binding_row.get("journalBinding", {})
+        snapshot = binding_row.get("snapshotBinding", {})
+        require(
+            report_row.get("journalRawSha256") == journal.get("sha256")
+            and report_row.get("commandCount") == journal.get("commandCount")
+            and report_row.get("state", {}).get("commandCount")
+            == journal.get("commandCount")
+            and report_row.get("snapshotRawSha256") == snapshot.get("sha256"),
+            f"{owner} replay-derived hash/count mismatch",
+            failures,
+        )
+    return reports_by_owner
+
+
+def _enum_equal(observed: Any, expected: Any) -> bool:
+    if observed is None or expected is None:
+        return observed is expected
+    return str(observed).casefold() == str(expected).casefold()
+
+
+def validate_replay_derived_core_expectations(
+    manifest: dict[str, Any],
+    reports_by_owner: dict[str, dict[str, Any]],
+    failures: list[str],
+) -> None:
+    """Check every replay-derivable typed core expectation against Core output."""
+
+    expectations_by_owner: dict[str, dict[str, Any]] = {}
+    for row in manifest.get("prefixes", []):
+        if isinstance(row, dict):
+            expectations_by_owner[f"prefix:{row.get('prefixId')}"] = (
+                row.get("expectedStart", {})
+            )
+    for episode in manifest.get("episodes", []):
+        if not isinstance(episode, dict):
+            continue
+        for row in episode.get("checkpointBindings", []):
+            if isinstance(row, dict):
+                expectations_by_owner[
+                    f"checkpoint:{episode.get('id')}/{row.get('checkpointId')}"
+                ] = row.get("typedExpectations", {}).get("core", {})
+
+    direct_fields = {
+        "chapterId": "chapterId",
+        "decisionWindowId": "decisionWindowId",
+        "decisionWindowIndex": "decisionWindowIndex",
+        "chapterResultsCount": "chapterResultsCount",
+        "campaignComplete": "campaignComplete",
+        "nodeDraftPresent": "nodeDraftPresent",
+        "lineDraftPresent": "lineDraftPresent",
+        "thermalMemoryProtectiveOutageCount": "thermalMemoryProtectiveOutageCount",
+    }
+    enum_fields = {
+        "constructionPhase": "constructionPhase",
+        "promiseDecision": "promiseDecision",
+    }
+    for owner, report in reports_by_owner.items():
+        state = report.get("state")
+        expected = expectations_by_owner.get(owner, {})
+        if not isinstance(state, dict) or not isinstance(expected, dict):
+            failures.append(f"{owner} replay-derived state/expectation is malformed")
+            continue
+        for expectation_key, state_key in direct_fields.items():
+            if expectation_key in expected:
+                require(
+                    state.get(state_key) == expected.get(expectation_key),
+                    f"{owner} replay-derived {expectation_key} mismatch",
+                    failures,
+                )
+        for expectation_key, state_key in enum_fields.items():
+            if expectation_key in expected:
+                require(
+                    _enum_equal(state.get(state_key), expected.get(expectation_key)),
+                    f"{owner} replay-derived {expectation_key} mismatch",
+                    failures,
+                )
+        if expected.get("lineDraftRequired") is True:
+            require(
+                state.get("lineDraftPresent") is True,
+                f"{owner} replay-derived lineDraftRequired mismatch",
+                failures,
+            )
+
+
+def validate_replay_derived_e09(
+    reports_by_owner: dict[str, dict[str, Any]],
+    witness: dict[str, Any],
+    failures: list[str],
+) -> None:
+    owners = {
+        "pre": "checkpoint:E09-MID-RESUME/mid-save-before-exit",
+        "resume": "checkpoint:E09-MID-RESUME/resume-orientation",
+        "editable": "checkpoint:E09-MID-RESUME/resumed-editable-draft",
+        "prefix": "prefix:PREFIX-NORTH-BANK-MID-DRAFT",
+    }
+    reports = {key: reports_by_owner.get(owner) for key, owner in owners.items()}
+    if not all(isinstance(row, dict) for row in reports.values()):
+        failures.append("gold binding E09 semantic replay reports are incomplete")
+        return
+
+    geometry_hashes = {
+        key: sha256_bytes(canonical_json_bytes(row.get("draftGeometry")))
+        for key, row in reports.items() if isinstance(row, dict)
+    }
+    projection_hashes = {
+        key: sha256_bytes(canonical_json_bytes(row.get("draftProjection")))
+        for key, row in reports.items() if isinstance(row, dict)
+    }
+    require(
+        witness.get("preExitDraftGeometrySha256") == geometry_hashes.get("pre")
+        and witness.get("postResumeDraftGeometrySha256") == geometry_hashes.get("resume")
+        and witness.get("resumedEditableDraftGeometrySha256") == geometry_hashes.get("editable")
+        and geometry_hashes.get("prefix") == geometry_hashes.get("pre"),
+        "gold binding E09 draft geometry hashes must be derived from replayed snapshots",
+        failures,
+    )
+    require(
+        witness.get("preExitDraftProjectionSha256") == projection_hashes.get("pre")
+        and witness.get("postResumeDraftProjectionSha256") == projection_hashes.get("resume")
+        and witness.get("resumedEditableDraftProjectionSha256") == projection_hashes.get("editable")
+        and projection_hashes.get("prefix") == projection_hashes.get("pre"),
+        "gold binding E09 draft projection hashes must be derived from replayed Core previews",
+        failures,
+    )
+    require(
+        len(set(geometry_hashes.values())) == 1
+        and len(set(projection_hashes.values())) == 1,
+        "gold binding E09 add+undo did not restore replay-derived geometry/projection",
         failures,
     )
     disk_files: list[str] = []
@@ -725,7 +1018,15 @@ def validate_candidate_binding_overlay(
         "gold binding summary is not the exact derived 12/49/56/5 projection",
         failures,
     )
-    validate_gold_bundle(binding, prefix_rows, checkpoint_rows, failures)
+    replay_reports = validate_gold_bundle(
+        root,
+        manifest,
+        binding,
+        prefix_rows,
+        checkpoint_rows,
+        failures,
+    )
+    validate_replay_derived_core_expectations(manifest, replay_reports, failures)
     witness = binding.get("e09NorthBankTwoProcessWitness")
     require(isinstance(witness, dict), "gold binding E09 witness must be an object", failures)
     if isinstance(witness, dict):
@@ -811,6 +1112,7 @@ def validate_candidate_binding_overlay(
             "gold binding E09 resumed editable add+undo bytes are not separately bound",
             failures,
         )
+        validate_replay_derived_e09(replay_reports, witness, failures)
     if candidate is not None:
         require(
             binding.get("candidateManifestSha256")
@@ -860,6 +1162,14 @@ def validate_exact_inputs(
     story_manifest_path_label: Path | None = None,
     candidate_manifest_path_label: Path | None = None,
     binding_manifest_path_label: Path | None = None,
+    holdout_consumption_receipt_bytes: bytes | None = None,
+    registry_before_bytes: bytes | None = None,
+    registry_after_bytes: bytes | None = None,
+    evaluation_session_claim_bytes: bytes | None = None,
+    holdout_consumption_receipt_path_label: Path | None = None,
+    registry_before_path_label: Path | None = None,
+    registry_after_path_label: Path | None = None,
+    evaluation_session_claim_path_label: Path | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
     """Validate already-opened candidate/gold bytes and report their raw hashes.
 
@@ -918,7 +1228,46 @@ def validate_exact_inputs(
             else:
                 failures.append("gold binding manifest must be a JSON object")
 
-    if candidate_manifest_bytes is not None or binding_manifest_bytes is not None:
+    session_claim: dict[str, Any] | None = None
+    runtime_inputs = (
+        (
+            "holdoutConsumptionReceiptRawSha256",
+            holdout_consumption_receipt_bytes,
+        ),
+        ("registryBeforeRawSha256", registry_before_bytes),
+        ("registryAfterRawSha256", registry_after_bytes),
+        ("evaluationSessionClaimRawSha256", evaluation_session_claim_bytes),
+    )
+    for field, data in runtime_inputs:
+        if data is not None:
+            observed_raw_sha256[field] = sha256_bytes(data)
+    if evaluation_session_claim_bytes is not None:
+        try:
+            session_value = load_json_bytes(
+                evaluation_session_claim_bytes,
+                str(evaluation_session_claim_path_label or "evaluation session claim bytes"),
+            )
+        except ContractError as error:
+            failures.append(str(error))
+        else:
+            if isinstance(session_value, dict):
+                session_claim = session_value
+            else:
+                failures.append("evaluation session claim must be a JSON object")
+
+    contract_validator: Any | None = None
+    contract_runtime_valid = False
+    if any(
+        data is not None
+        for data in (
+            candidate_manifest_bytes,
+            binding_manifest_bytes,
+            holdout_consumption_receipt_bytes,
+            registry_before_bytes,
+            registry_after_bytes,
+            evaluation_session_claim_bytes,
+        )
+    ):
         contract_validator_path = manifest_path.parent / "validate-contract.py"
         try:
             contract_validator = _load_contract_validator(contract_validator_path)
@@ -928,13 +1277,28 @@ def validate_exact_inputs(
                     manifest_path.parent.parent / "rubric.json",
                     candidate_manifest_bytes=candidate_manifest_bytes,
                     gold_binding_manifest_bytes=binding_manifest_bytes,
+                    holdout_consumption_receipt_bytes=(
+                        holdout_consumption_receipt_bytes
+                    ),
+                    registry_before_bytes=registry_before_bytes,
+                    registry_after_bytes=registry_after_bytes,
+                    evaluation_session_claim_bytes=evaluation_session_claim_bytes,
                     candidate_manifest_path_label=candidate_manifest_path_label,
                     gold_binding_manifest_path_label=binding_manifest_path_label,
+                    holdout_consumption_receipt_path_label=(
+                        holdout_consumption_receipt_path_label
+                    ),
+                    registry_before_path_label=registry_before_path_label,
+                    registry_after_path_label=registry_after_path_label,
+                    evaluation_session_claim_path_label=(
+                        evaluation_session_claim_path_label
+                    ),
                 )
             )
         except (OSError, AttributeError, ContractError) as error:
             failures.append(f"native contract exact-byte validation did not run: {error}")
         else:
+            contract_runtime_valid = not contract_errors
             failures.extend(
                 f"native contract exact-byte validation: {error}"
                 for error in contract_errors
@@ -949,6 +1313,9 @@ def validate_exact_inputs(
                 expected_contract_observed["goldBindingManifestRawSha256"] = (
                     observed_raw_sha256["goldBindingManifestRawSha256"]
                 )
+            for field, data in runtime_inputs:
+                if data is not None:
+                    expected_contract_observed[field] = observed_raw_sha256[field]
             require(
                 contract_observed == expected_contract_observed,
                 "native contract observed raw SHA projection mismatch",
@@ -1003,7 +1370,7 @@ def validate_exact_inputs(
             "e09WitnessRequired": True,
             "rawBundleRequired": True,
             "rawBundleEntryCount": 112,
-            "rawBundleValidation": "OPEN_EVERY_CANONICAL_LOCATOR_RECOMPUTE_RAW_HASH_AND_LENGTH_REJECT_EXTRA_OR_SYMLINK",
+            "rawBundleValidation": "OPEN_EXACT_BYTES_RECOMPUTE_RAW_HASH_LENGTH_REJECT_EXTRA_SYMLINK_THEN_CORE_DESERIALIZE_RESTORE_AND_EXACT_CANONICAL_SNAPSHOT_COMPARE",
             "immutableTemplateBindingsRemainPending": True,
             "scoreReadyCommandRequires": [
                 "--binding-manifest", "--candidate-manifest", "--require-score-ready"
@@ -1027,8 +1394,12 @@ def validate_exact_inputs(
         "deterministicWitness",
         "nativeSmokeWitness",
         "storyHarness",
+        "goldReplayVerifier",
     )
-    immutable_file_authorities = {"coverageRecipe", "conceptExposure"}
+    immutable_file_authorities = {
+        "coverageRecipe", "conceptExposure", "goldReplayVerifier"
+    }
+    immutable_json_authorities = {"coverageRecipe", "conceptExposure"}
     semantic_json_authorities = {"world", "campaign"}
     semantic_code_authorities = {
         "coreReplay",
@@ -1036,6 +1407,7 @@ def validate_exact_inputs(
         "deterministicWitness",
         "nativeSmokeWitness",
         "storyHarness",
+        "goldReplayVerifier",
     }
     authority_documents: dict[str, Any] = {}
     for name in required_file_authorities:
@@ -1071,8 +1443,13 @@ def validate_exact_inputs(
                 failures,
             )
         if name in semantic_code_authorities:
+            expected_reference_mode = (
+                "EXACT_RAW_SHA_AND_CORE_REPLAY"
+                if name == "goldReplayVerifier"
+                else "PATH_AND_MEMBER_SEMANTIC"
+            )
             require(
-                authority.get("referenceMode") == "PATH_AND_MEMBER_SEMANTIC",
+                authority.get("referenceMode") == expected_reference_mode,
                 f"authorities.{name}.referenceMode mismatch",
                 failures,
             )
@@ -1095,8 +1472,34 @@ def validate_exact_inputs(
                             f"authorities.{name}.members contains an absent source member: {member!r}",
                             failures,
                         )
+        if name == "goldReplayVerifier":
+            for path_field, hash_field in (
+                ("entrypointPath", "entrypointSha256"),
+                ("projectPath", "projectSha256"),
+            ):
+                try:
+                    exact_path = repo_path(
+                        root,
+                        authority.get(path_field),
+                        f"authorities.{name}.{path_field}",
+                    )
+                except ContractError as error:
+                    failures.append(str(error))
+                    continue
+                require(
+                    exact_path.is_file(),
+                    f"authorities.{name}.{path_field} does not exist",
+                    failures,
+                )
+                if exact_path.is_file():
+                    require(
+                        authority.get(hash_field)
+                        == sha256_bytes(exact_path.read_bytes()),
+                        f"authorities.{name}.{hash_field} raw SHA mismatch",
+                        failures,
+                    )
         if path.is_file():
-            if name in immutable_file_authorities | semantic_json_authorities:
+            if name in immutable_json_authorities | semantic_json_authorities:
                 try:
                     authority_documents[name] = load_json(path)
                 except ContractError as error:
@@ -1418,6 +1821,26 @@ def validate_exact_inputs(
             "score-bearing readiness requires a valid candidate-specific binding manifest",
             failures,
         )
+        require(
+            holdout_consumption_receipt_bytes is not None,
+            "score-bearing readiness requires --holdout-consumption-receipt",
+            failures,
+        )
+        require(
+            registry_before_bytes is not None and registry_after_bytes is not None,
+            "score-bearing readiness requires --registry-before and --registry-after exact transition bytes",
+            failures,
+        )
+        require(
+            evaluation_session_claim_bytes is not None,
+            "score-bearing readiness requires --evaluation-session-claim created before capture",
+            failures,
+        )
+        require(
+            contract_runtime_valid,
+            "score-bearing readiness requires a valid canonical holdout transition and evaluation session claim",
+            failures,
+        )
         generator_path: Path | None = None
         if isinstance(next_generator, dict):
             try:
@@ -1433,6 +1856,29 @@ def validate_exact_inputs(
             "score-bearing readiness blocked until the deterministic candidate binding generator exists",
             failures,
         )
+        if contract_validator is None:
+            failures.append(
+                "score-bearing readiness could not load the native contract readiness authority"
+            )
+            contract_readiness_errors = ["contract validator unavailable"]
+        else:
+            try:
+                contract_readiness_errors = (
+                    contract_validator.score_bearing_contract_readiness_errors(
+                        manifest_path.parent,
+                        evaluation_session_claim=session_claim,
+                    )
+                )
+            except (OSError, AttributeError, ContractError) as error:
+                contract_readiness_errors = [
+                    f"native contract readiness authority failed: {error}"
+                ]
+            failures.extend(
+                f"score-bearing readiness: {error}"
+                for error in contract_readiness_errors
+            )
+    else:
+        contract_readiness_errors = ["not requested"]
 
     summary = {
         "episodes": len(manifest_episode_ids),
@@ -1443,6 +1889,8 @@ def validate_exact_inputs(
         "scoreBearingReady": (
             candidate_execution_valid
             and binding_manifest_valid
+            and contract_runtime_valid
+            and not contract_readiness_errors
             and isinstance(next_generator, dict)
             and (root / str(next_generator.get("path", ""))).is_file()
         ),
@@ -1475,6 +1923,10 @@ def validate(
     candidate_execution_manifest_path: Path | None,
     binding_manifest_path: Path | None,
     require_score_ready: bool,
+    holdout_consumption_receipt_path: Path | None = None,
+    registry_before_path: Path | None = None,
+    registry_after_path: Path | None = None,
+    evaluation_session_claim_path: Path | None = None,
 ) -> tuple[list[str], dict[str, Any]]:
     """Path-based CLI compatibility wrapper that opens each runtime file once."""
 
@@ -1494,6 +1946,26 @@ def validate(
         "gold binding manifest",
         read_failures,
     )
+    receipt_bytes, receipt_label = _read_optional_bytes(
+        holdout_consumption_receipt_path,
+        "holdout consumption receipt",
+        read_failures,
+    )
+    registry_before_bytes, registry_before_label = _read_optional_bytes(
+        registry_before_path,
+        "registry before",
+        read_failures,
+    )
+    registry_after_bytes, registry_after_label = _read_optional_bytes(
+        registry_after_path,
+        "registry after",
+        read_failures,
+    )
+    session_bytes, session_label = _read_optional_bytes(
+        evaluation_session_claim_path,
+        "evaluation session claim",
+        read_failures,
+    )
     failures, summary = validate_exact_inputs(
         root,
         manifest_path,
@@ -1505,6 +1977,14 @@ def validate(
         story_manifest_path_label=story_label,
         candidate_manifest_path_label=candidate_label,
         binding_manifest_path_label=binding_label,
+        holdout_consumption_receipt_bytes=receipt_bytes,
+        registry_before_bytes=registry_before_bytes,
+        registry_after_bytes=registry_after_bytes,
+        evaluation_session_claim_bytes=session_bytes,
+        holdout_consumption_receipt_path_label=receipt_label,
+        registry_before_path_label=registry_before_label,
+        registry_after_path_label=registry_after_label,
+        evaluation_session_claim_path_label=session_label,
     )
     return [*read_failures, *failures], summary
 
@@ -1523,6 +2003,10 @@ def main() -> int:
         type=Path,
     )
     parser.add_argument("--binding-manifest", type=Path)
+    parser.add_argument("--holdout-consumption-receipt", type=Path)
+    parser.add_argument("--registry-before", type=Path)
+    parser.add_argument("--registry-after", type=Path)
+    parser.add_argument("--evaluation-session-claim", type=Path)
     parser.add_argument("--require-score-ready", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -1544,6 +2028,18 @@ def main() -> int:
         ),
         args.binding_manifest.resolve() if args.binding_manifest is not None else None,
         args.require_score_ready,
+        (
+            args.holdout_consumption_receipt.resolve()
+            if args.holdout_consumption_receipt is not None
+            else None
+        ),
+        args.registry_before.resolve() if args.registry_before is not None else None,
+        args.registry_after.resolve() if args.registry_after is not None else None,
+        (
+            args.evaluation_session_claim.resolve()
+            if args.evaluation_session_claim is not None
+            else None
+        ),
     )
     if args.json:
         print(

@@ -159,3 +159,29 @@ reroll하지 않고 `BLOCKED_HOLDOUT_EXHAUSTED`로 닫는다.
 이 부록은 native 실행 모호성에 한해 v1보다 우선한다. 서로 충돌하지 않는 v1 조항은 그대로다.
 rubric, target, label anchor, category/cell weight, floor, cap 수치 또는 집계 수식을 바꾸려면 v1.1을
 수정하지 않고 새 protocol major와 새 candidate sequence를 열어야 한다.
+
+## 11. 첫 capture 전 session·attempt 단일성 명확화
+
+첫 score-bearing capture 전 무결성 감사에서, holdout claim과 최종 panel seal 사이의 실행을 caller가
+선택한 파일 목록만으로 증명할 수 없다는 공백을 닫았다. 이는 10절의 점수·rubric 계약을 바꾸지 않고
+이미 금지한 reroll을 filesystem 수준에서 증명한다.
+
+- canonical holdout receipt를 검증한 직후, gold capture나 actor/judge/verifier/oracle 노출보다 먼저
+  evaluation-session claim 파일을 `O_EXCL`로 만들고 파일과 부모 디렉터리를 `fsync`한다. claim 파일은
+  아직 존재하지 않는 session root 밖의 receipt별 singleton 경로를 사용한다.
+- INITIAL 하나와 허용된 REPLACEMENT 하나는 서로 다른 canonical root를 쓴다. 각 root에는 역할이
+  고정된 9개 opaque slot이 있고, attempt ordinal은 1~3의 연속 prefix만 허용한다.
+- attempt root와 artifact root를 exclusive mkdir하고, output 0-byte 예약과 start receipt를 producer
+  시작 전에 내구화한다. terminal receipt 경로는 output을 읽기 전에 0-byte `O_EXCL`로 예약한다.
+  terminal 쓰기가 실패하면 그 0-byte 파일은 삭제·복구·재분류하지 않는 영구 tombstone이다.
+- retry는 frozen role output의 strict JSON transport failure 또는 schema failure만 허용한다. valid하지만
+  불리한 출력, `INPUT_UNREADABLE`, harness failure와 oracle failure는 다음 attempt를 열지 않는다.
+- terminal은 output exact bytes와 두 번 동일하게 읽힌 전체 artifact tree의 locator/raw SHA/length
+  content root를 결속한다. 집계기는 claim에서 모든 존재하는 attempt를 직접 발견하며 caller subset,
+  symlink alias, 추가 root/file, 불완전 terminal과 변경 중인 artifact tree를 거부한다.
+- REPLACEMENT claim은 INITIAL claim의 exact bytes와 함께 finalized scorecard·panel seal의 canonical
+  path, raw/self SHA, rerun status, replacementRequiredLanes, attempt audit와 selected-attempt projection을
+  결속한다. copied/resealed scorecard나 일부 field만 같은 initial은 replacement 권위를 만들 수 없다.
+- 최종 집계는 scorecard 경로를 먼저 0-byte로 선점하고, holdout finalization과 claimed fixed panel seal을
+  `fsync`한 뒤 scorecard bytes를 마지막에 기록한다. 어느 단계에서든 실패하면 schema-valid PASS
+  scorecard가 남지 않는다.

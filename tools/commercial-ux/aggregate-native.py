@@ -110,6 +110,7 @@ CONCEPT_MANIFEST_PATH = NATIVE_DIRECTORY / "concept-exposure-manifest.json"
 COLD_RECIPE_PATH = NATIVE_DIRECTORY / "cold-journey-recipe.json"
 HOLDOUT_QUEUE_PATH = NATIVE_DIRECTORY / "holdout-recipes.json"
 CONTRACT_VALIDATOR_PATH = NATIVE_DIRECTORY / "validate-contract.py"
+SESSION_CLAIM_TOOL_PATH = NATIVE_DIRECTORY / "claim-evaluation-session.py"
 
 PROTOCOL = "GRIDWORKS-COMMERCIAL-UX-v1.1"
 SCORECARD_SCHEMA = "gridworks.commercial-ux.native-scorecard.v1"
@@ -302,11 +303,20 @@ INPUT_PROVENANCE_KEYS = {
     "executionArtifactSha256",
     "packageSha256",
     "packageStatus",
+    "evaluationSessionClaimSha256",
+    "evaluationSessionClaimRawSha256",
+    "evaluationSessionPolicySha256",
+    "evaluationSessionClaimToolSha256",
+    "evaluationSessionId",
+    "evaluationSessionMode",
+    "evaluationAttemptAuditSha256",
+    "evaluationSelectedAttemptsSha256",
 }
 
 OUTPUT_PROVENANCE_KEYS = INPUT_PROVENANCE_KEYS | {
     "aggregationInputRawSha256",
     "verificationInputSha256",
+    "laneExecutionIdentities",
 }
 
 JUDGMENT_KEYS = {
@@ -360,7 +370,14 @@ VERIFIER_KEYS = {
     "observations",
 }
 
-VERIFIER_ROW_KEYS = {"observationId", "verdict", "citedSources", "rationale"}
+VERIFIER_ROW_KEYS = {
+    "observationId",
+    "claimType",
+    "incidentKey",
+    "verdict",
+    "citedSources",
+    "rationale",
+}
 VERIFIER_SOURCE_KEYS = {"anonymousArtifactId", "artifactId", "locator"}
 
 LEDGER_KEYS = {
@@ -425,6 +442,7 @@ INCIDENT_KEYS = {
     "incidentType",
     "actorArtifactIds",
     "checkpointRefs",
+    "verifierObservationId",
     "verifierStatus",
     "oracleStatus",
     "capCandidate",
@@ -811,7 +829,8 @@ def validate_candidate(value: Any) -> dict[str, Any]:
             require_sha(value, f"candidate.provenance.{field}[{index}]")
     for field in INPUT_PROVENANCE_KEYS - {
         "sourceCommit", "cleanTree", "model", "reasoningEffort",
-        "packageSha256", "packageStatus", *array_hash_fields,
+        "packageSha256", "packageStatus", "evaluationSessionMode",
+        *array_hash_fields,
     }:
         require_sha(provenance[field], f"candidate.provenance.{field}")
     if not isinstance(provenance["sourceCommit"], str) or SOURCE_COMMIT_PATTERN.fullmatch(provenance["sourceCommit"]) is None:
@@ -820,6 +839,10 @@ def validate_candidate(value: Any) -> dict[str, Any]:
         raise ValidationFailure("candidate.provenance.cleanTree must be boolean")
     if provenance["model"] != "gpt-5.6-sol" or provenance["reasoningEffort"] != "ultra":
         raise ValidationFailure("candidate provenance must bind gpt-5.6-sol ultra")
+    if provenance["evaluationSessionMode"] not in {"INITIAL", "REPLACEMENT"}:
+        raise ValidationFailure(
+            "candidate.provenance.evaluationSessionMode must be INITIAL or REPLACEMENT"
+        )
     if provenance["packageSha256"] is not None:
         require_sha(provenance["packageSha256"], "candidate.provenance.packageSha256")
     if provenance["packageStatus"] not in {
@@ -1082,6 +1105,7 @@ def validate_runtime_contract_authority(
     holdout_consumption_receipt_path: Path,
     holdout_registry_before_path: Path,
     holdout_registry_after_path: Path,
+    evaluation_session_claim_path: Path,
     *,
     candidate_manifest_raw_bytes: bytes,
     qualification_receipt_raw_bytes: bytes,
@@ -1089,6 +1113,9 @@ def validate_runtime_contract_authority(
     holdout_consumption_receipt_raw_bytes: bytes,
     holdout_registry_before_raw_bytes: bytes,
     holdout_registry_after_raw_bytes: bytes,
+    evaluation_session_claim_raw_bytes: bytes,
+    initial_evaluation_session_claim_path: Path | None,
+    initial_evaluation_session_claim_raw_bytes: bytes | None,
 ) -> None:
     """Run the shared contract validator over the exact already-read bytes."""
 
@@ -1100,6 +1127,7 @@ def validate_runtime_contract_authority(
     )
     holdout_registry_before_path = holdout_registry_before_path.resolve(strict=False)
     holdout_registry_after_path = holdout_registry_after_path.resolve(strict=False)
+    evaluation_session_claim_path = evaluation_session_claim_path.resolve(strict=False)
 
     validator = _load_exact_validator(
         CONTRACT_VALIDATOR_PATH,
@@ -1117,6 +1145,10 @@ def validate_runtime_contract_authority(
             ),
             registry_before_bytes=holdout_registry_before_raw_bytes,
             registry_after_bytes=holdout_registry_after_raw_bytes,
+            evaluation_session_claim_bytes=evaluation_session_claim_raw_bytes,
+            initial_evaluation_session_claim_bytes=(
+                initial_evaluation_session_claim_raw_bytes
+            ),
             candidate_manifest_path_label=candidate_manifest_path,
             qualification_receipt_path_label=qualification_receipt_path,
             gold_binding_manifest_path_label=gold_binding_path,
@@ -1125,6 +1157,10 @@ def validate_runtime_contract_authority(
             ),
             registry_before_path_label=holdout_registry_before_path,
             registry_after_path_label=holdout_registry_after_path,
+            evaluation_session_claim_path_label=evaluation_session_claim_path,
+            initial_evaluation_session_claim_path_label=(
+                initial_evaluation_session_claim_path
+            ),
         )
     except (AttributeError, ImportError, OSError, SyntaxError) as exception:
         raise ProvenanceFailure(
@@ -1143,7 +1179,14 @@ def validate_runtime_contract_authority(
             holdout_registry_before_raw_bytes
         ),
         "registryAfterRawSha256": bytes_sha256(holdout_registry_after_raw_bytes),
+        "evaluationSessionClaimRawSha256": bytes_sha256(
+            evaluation_session_claim_raw_bytes
+        ),
     }
+    if initial_evaluation_session_claim_raw_bytes is not None:
+        expected_observed["initialEvaluationSessionClaimRawSha256"] = bytes_sha256(
+            initial_evaluation_session_claim_raw_bytes
+        )
     if result.get("observedRawSha256") != expected_observed:
         raise ProvenanceFailure(
             "runtime native contract observed raw SHA projection mismatch"
@@ -1155,19 +1198,579 @@ def validate_runtime_contract_authority(
         )
 
 
+def _read_session_artifact_files(
+    session_tool: Any,
+    artifact_root: Path,
+) -> tuple[list[tuple[str, bytes]], dict[Path, str]]:
+    """Read one stable attempt artifact tree twice and reject aliases/symlinks."""
+
+    try:
+        resolved = artifact_root.resolve(strict=True)
+    except OSError as exception:
+        raise ProvenanceFailure(
+            f"evaluation attempt artifact root is missing: {artifact_root}: {exception}"
+        ) from exception
+    if artifact_root != resolved or not resolved.is_dir() or artifact_root.is_symlink():
+        raise ProvenanceFailure(
+            f"evaluation attempt artifact root is not a canonical directory: {artifact_root}"
+        )
+    try:
+        session_tool.reject_symlink_components(resolved, "evaluation attempt artifact root")
+    except Exception as exception:
+        raise ProvenanceFailure(str(exception)) from exception
+    def read_pass() -> tuple[list[tuple[str, bytes]], dict[Path, str]]:
+        files: list[tuple[str, bytes]] = []
+        hashes_by_path: dict[Path, str] = {}
+        for directory, directory_names, filenames in os.walk(
+            resolved,
+            followlinks=False,
+        ):
+            directory_names.sort()
+            filenames.sort()
+            directory_path = Path(directory)
+            for name in [*directory_names, *filenames]:
+                child = directory_path / name
+                if child.is_symlink():
+                    raise ProvenanceFailure(
+                        "symlink is forbidden in evaluation attempt artifacts: "
+                        f"{child}"
+                    )
+            for filename in filenames:
+                child = directory_path / filename
+                relative = child.relative_to(resolved).as_posix()
+                try:
+                    raw = session_tool.read_regular_exact(
+                        child,
+                        f"evaluation attempt artifact {relative}",
+                    )
+                except Exception as exception:
+                    raise ProvenanceFailure(str(exception)) from exception
+                files.append((relative, raw))
+                hashes_by_path[child] = bytes_sha256(raw)
+        files.sort(key=lambda row: row[0])
+        return files, hashes_by_path
+
+    first_files, first_hashes = read_pass()
+    second_files, second_hashes = read_pass()
+    if first_files != second_files or first_hashes != second_hashes:
+        raise ProvenanceFailure(
+            "evaluation attempt artifact root changed across the two-pass read"
+        )
+    return second_files, second_hashes
+
+
+def validate_evaluation_session_authority(
+    session_claim_path: Path,
+    candidate_manifest: dict[str, Any],
+    candidate_manifest_raw_bytes: bytes,
+    holdout_receipt: dict[str, Any],
+    holdout_receipt_raw_bytes: bytes,
+    replacement_context: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Validate the pre-capture claim and every fixed producer attempt exactly.
+
+    The filesystem is discovered from the claim, never from a caller-supplied
+    subset.  Every present attempt must therefore be terminalized and the chain
+    must contain one schema-valid SUCCESS for each of the nine opaque slots.
+    """
+
+    session_tool = _load_exact_validator(
+        SESSION_CLAIM_TOOL_PATH,
+        "gridworks_commercial_ux_evaluation_session_tool",
+    )
+    try:
+        validator, resolved_claim_path, claim_raw, claim = (
+            session_tool.read_and_validate_claim(
+                session_claim_path,
+                native=NATIVE_DIRECTORY,
+            )
+        )
+    except Exception as exception:
+        raise ProvenanceFailure(
+            f"evaluation session claim validation failed: {exception}"
+        ) from exception
+
+    initial_value: dict[str, Any] | None = None
+    initial_raw: bytes | None = None
+    initial_path: Path | None = None
+    if claim.get("sessionMode") == "REPLACEMENT":
+        initial_link = claim.get("initialSession")
+        if not isinstance(initial_link, dict) or not isinstance(
+            initial_link.get("claimPath"), str
+        ):
+            raise ProvenanceFailure(
+                "replacement evaluation session lacks its exact initial claim link"
+            )
+        try:
+            initial_path, initial_raw, initial_value = session_tool.read_exact(
+                Path(initial_link["claimPath"]),
+                "initial evaluation session claim",
+            )
+        except Exception as exception:
+            raise ProvenanceFailure(str(exception)) from exception
+    semantic_errors: list[str] = []
+    validator.validate_evaluation_session_claim_semantics(
+        claim,
+        resolved_claim_path,
+        NATIVE_DIRECTORY,
+        candidate_manifest,
+        holdout_receipt,
+        semantic_errors,
+        initial_session_claim=initial_value,
+        initial_session_claim_raw_bytes=initial_raw,
+        initial_session_claim_path_label=initial_path,
+    )
+    if semantic_errors:
+        raise ProvenanceFailure(
+            "evaluation session claim candidate/holdout binding failed: "
+            + "; ".join(semantic_errors)
+        )
+    if (
+        claim.get("candidateManifestRawSha256")
+        != bytes_sha256(candidate_manifest_raw_bytes)
+        or claim.get("holdoutConsumptionReceiptRawSha256")
+        != bytes_sha256(holdout_receipt_raw_bytes)
+    ):
+        raise ProvenanceFailure(
+            "evaluation session claim does not bind the exact candidate/holdout bytes"
+        )
+    expected_mode = "REPLACEMENT" if replacement_context is not None else "INITIAL"
+    if claim.get("sessionMode") != expected_mode:
+        raise ProvenanceFailure(
+            f"evaluation session mode must be {expected_mode} for this aggregate"
+        )
+    if replacement_context is not None:
+        initial_scorecard = replacement_context["initial"]
+        initial_provenance = initial_scorecard["provenance"]
+        initial_seal = replacement_context["initialSeal"]
+        initial_link = claim["initialSession"]
+        expected_initial_link = {
+            "claimPath": str(initial_path),
+            "claimSha256": initial_provenance[
+                "evaluationSessionClaimSha256"
+            ],
+            "claimRawSha256": initial_provenance[
+                "evaluationSessionClaimRawSha256"
+            ],
+            "sessionId": initial_provenance["evaluationSessionId"],
+            "scorecardPath": initial_seal["value"]["scorecardPath"],
+            "scorecardRawSha256": bytes_sha256(
+                replacement_context["initialBytes"]
+            ),
+            "scorecardStatus": initial_scorecard["status"],
+            "scorecardId": initial_scorecard["scorecardId"],
+            "judgePanelSha256": initial_scorecard["judgePanelSha256"],
+            "replacementRequiredLanes": initial_scorecard[
+                "replacementRequiredLanes"
+            ],
+            "panelFinalizationSealPath": initial_seal["value"][
+                "canonicalSealPath"
+            ],
+            "panelFinalizationSealSha256": initial_seal["selfSha256"],
+            "panelFinalizationSealRawSha256": initial_seal["rawSha256"],
+            "evaluationSessionPolicySha256": initial_provenance[
+                "evaluationSessionPolicySha256"
+            ],
+            "evaluationSessionClaimToolSha256": initial_provenance[
+                "evaluationSessionClaimToolSha256"
+            ],
+            "evaluationSessionMode": "INITIAL",
+            "evaluationAttemptAuditSha256": initial_provenance[
+                "evaluationAttemptAuditSha256"
+            ],
+            "evaluationSelectedAttemptsSha256": initial_provenance[
+                "evaluationSelectedAttemptsSha256"
+            ],
+        }
+        if initial_link != expected_initial_link:
+            raise ProvenanceFailure(
+                "replacement session does not link the exact initial scorecard and seal"
+            )
+
+    session_root = Path(claim["canonicalSessionRoot"])
+    expected_root_children = {"session.lock", "slots", "artifacts"}
+    try:
+        root_children = {child.name for child in session_root.iterdir()}
+    except OSError as exception:
+        raise ProvenanceFailure(
+            f"evaluation session root is unreadable: {exception}"
+        ) from exception
+    if root_children != expected_root_children:
+        raise ProvenanceFailure(
+            "evaluation session root must contain exactly the declared lock, slots, "
+            f"and fixed artifacts roots: {sorted(root_children)}"
+        )
+
+    attempt_envelopes: list[dict[str, Any]] = []
+    audit_rows: list[dict[str, Any]] = []
+    rows_by_slot: dict[str, list[dict[str, Any]]] = {}
+    for slot in claim["slots"]:
+        slot_root = Path(slot["slotRoot"])
+        declared_attempt_names = {
+            Path(attempt["attemptRoot"]).name for attempt in slot["attempts"]
+        }
+        if slot_root.exists():
+            unexpected_attempts = {
+                child.name for child in slot_root.iterdir()
+            } - declared_attempt_names
+            if unexpected_attempts:
+                raise ProvenanceFailure(
+                    f"evaluation session {slot['slotId']} contains undeclared attempts: "
+                    f"{sorted(unexpected_attempts)}"
+                )
+        for attempt in slot["attempts"]:
+            attempt_root = Path(attempt["attemptRoot"])
+            start_path = Path(attempt["startReceiptPath"])
+            output_path = Path(attempt["outputPath"])
+            artifact_root = Path(attempt["artifactRoot"])
+            terminal_path = Path(attempt["terminalReceiptPath"])
+            declared_paths = (
+                attempt_root,
+                start_path,
+                output_path,
+                artifact_root,
+                terminal_path,
+            )
+            present = [os.path.lexists(str(path)) for path in declared_paths]
+            if not any(present):
+                continue
+            if not all(present):
+                raise ProvenanceFailure(
+                    f"evaluation session {slot['slotId']}/{attempt['attemptOrdinal']} "
+                    "is present but not fully terminalized"
+                )
+            expected_attempt_children = {
+                start_path.name,
+                output_path.name,
+                artifact_root.name,
+                terminal_path.name,
+            }
+            try:
+                actual_attempt_children = {
+                    child.name for child in attempt_root.iterdir()
+                }
+            except OSError as exception:
+                raise ProvenanceFailure(
+                    f"evaluation attempt root is unreadable: {exception}"
+                ) from exception
+            if actual_attempt_children != expected_attempt_children:
+                raise ProvenanceFailure(
+                    f"evaluation session {slot['slotId']}/{attempt['attemptOrdinal']} "
+                    "contains undeclared or missing attempt files"
+                )
+            try:
+                _, start_raw, start = session_tool.read_exact(
+                    start_path,
+                    "evaluation attempt start receipt",
+                )
+                _, terminal_raw, terminal = session_tool.read_exact(
+                    terminal_path,
+                    "evaluation attempt terminal receipt",
+                )
+                output_raw = session_tool.read_regular_exact(
+                    output_path,
+                    "evaluation attempt output",
+                )
+            except Exception as exception:
+                raise ProvenanceFailure(str(exception)) from exception
+            artifact_files, artifact_hashes = _read_session_artifact_files(
+                session_tool,
+                artifact_root,
+            )
+            envelope = {
+                "startReceiptBytes": start_raw,
+                "terminalReceiptBytes": terminal_raw,
+                "outputBytes": output_raw,
+                "artifactFiles": artifact_files,
+                "startReceiptPathLabel": start_path,
+                "terminalReceiptPathLabel": terminal_path,
+                "outputPathLabel": output_path,
+                "artifactRootPathLabel": artifact_root,
+            }
+            attempt_envelopes.append(envelope)
+            audit = {
+                "slotId": slot["slotId"],
+                "role": slot["role"],
+                "roleOrdinal": slot["roleOrdinal"],
+                "attemptOrdinal": attempt["attemptOrdinal"],
+                "startReceiptSha256": start.get("evaluationAttemptReceiptSha256"),
+                "startReceiptRawSha256": bytes_sha256(start_raw),
+                "terminalReceiptSha256": terminal.get(
+                    "evaluationAttemptTerminalSha256"
+                ),
+                "terminalReceiptRawSha256": bytes_sha256(terminal_raw),
+                "outputRawSha256": bytes_sha256(output_raw),
+                "artifactContentRootSha256": terminal.get(
+                    "artifactContentRootSha256"
+                ),
+                "outcome": terminal.get("outcome"),
+            }
+            row = {
+                "audit": audit,
+                "outputPath": output_path,
+                "outputRawBytes": output_raw,
+                "artifactRoot": artifact_root,
+                "artifactHashesByPath": artifact_hashes,
+            }
+            audit_rows.append(audit)
+            rows_by_slot.setdefault(slot["slotId"], []).append(row)
+
+    try:
+        chain_errors, selected = validator.validate_attempt_chain_bytes(
+            NATIVE_DIRECTORY,
+            session_claim=claim,
+            session_claim_raw_bytes=claim_raw,
+            attempts=attempt_envelopes,
+            require_all_success_slots=True,
+        )
+    except Exception as exception:
+        raise ProvenanceFailure(
+            f"evaluation attempt chain validation did not run: {exception}"
+        ) from exception
+    if chain_errors:
+        raise ProvenanceFailure(
+            "evaluation attempt chain failed: " + "; ".join(chain_errors)
+        )
+
+    selected_rows: list[dict[str, Any]] = []
+    selected_by_slot: dict[str, dict[str, Any]] = {}
+    for selected_row in selected:
+        matches = [
+            row
+            for row in rows_by_slot.get(selected_row["slotId"], [])
+            if row["audit"]["attemptOrdinal"] == selected_row["attemptOrdinal"]
+            and row["audit"]["outcome"] == "SUCCESS"
+        ]
+        if len(matches) != 1:
+            raise ProvenanceFailure(
+                f"evaluation selected attempt {selected_row['slotId']} is ambiguous"
+            )
+        row = matches[0]
+        selected_projection = copy.deepcopy(row["audit"])
+        selected_rows.append(selected_projection)
+        selected_by_slot[selected_row["slotId"]] = row
+
+    provenance = {
+        "evaluationSessionClaimSha256": claim["evaluationSessionClaimSha256"],
+        "evaluationSessionClaimRawSha256": bytes_sha256(claim_raw),
+        "evaluationSessionPolicySha256": claim["evaluationSessionPolicySha256"],
+        "evaluationSessionClaimToolSha256": claim["sessionClaimToolSha256"],
+        "evaluationSessionId": claim["sessionId"],
+        "evaluationSessionMode": claim["sessionMode"],
+        "evaluationAttemptAuditSha256": canonical_sha256(audit_rows),
+        "evaluationSelectedAttemptsSha256": canonical_sha256(selected_rows),
+    }
+    return {
+        "claim": claim,
+        "claimPath": resolved_claim_path,
+        "claimRawBytes": claim_raw,
+        "initialClaimPath": initial_path,
+        "initialClaimRawBytes": initial_raw,
+        "attemptAuditRows": audit_rows,
+        "selectedRows": selected_rows,
+        "selectedBySlot": selected_by_slot,
+        "provenance": provenance,
+    }
+
+
+def validate_evaluation_session_candidate_provenance(
+    session: dict[str, Any],
+    candidate: dict[str, Any],
+) -> None:
+    expected = session["provenance"]
+    observed = {
+        field: candidate["provenance"][field]
+        for field in expected
+    }
+    if observed != expected:
+        raise ProvenanceFailure(
+            "candidate aggregation input does not bind the exact evaluation session chain"
+        )
+
+
+def validate_evaluation_session_fixed_artifacts(
+    session: dict[str, Any],
+    paths: dict[str, Path],
+) -> None:
+    fixed = session["claim"]["fixedArtifactPaths"]
+    if set(paths) != set(fixed):
+        raise ProvenanceFailure(
+            "aggregate fixed-artifact mapping differs from the evaluation session policy"
+        )
+    for key, path in paths.items():
+        expected = Path(fixed[key])
+        if path != path.resolve(strict=False) or path != expected:
+            raise ProvenanceFailure(
+                f"aggregate {key} path is not its claimed fixed artifact path"
+            )
+    artifact_root = Path(next(iter(fixed.values()))).parent
+    declared_names = {Path(path).name for path in fixed.values()}
+    try:
+        actual_names = {child.name for child in artifact_root.iterdir()}
+    except OSError as exception:
+        raise ProvenanceFailure(
+            f"evaluation session fixed-artifact root is unreadable: {exception}"
+        ) from exception
+    expected_before_finalization = declared_names - {
+        Path(fixed["scorecard"]).name,
+        Path(fixed["panelFinalizationSeal"]).name,
+    }
+    if actual_names != expected_before_finalization:
+        raise ProvenanceFailure(
+            "evaluation session fixed-artifact root must contain exactly the "
+            "declared pre-finalization artifacts"
+        )
+
+
+def validate_evaluation_session_primary_outputs(
+    session: dict[str, Any],
+    outputs: dict[str, tuple[Path, bytes | None]],
+) -> None:
+    expected_slots = {f"SLOT-{index:02d}" for index in range(1, 10)}
+    if set(outputs) != expected_slots or set(session["selectedBySlot"]) != expected_slots:
+        raise ProvenanceFailure(
+            "evaluation session primary output mapping must cover exactly nine slots"
+        )
+    for slot_id in sorted(expected_slots):
+        path, raw = outputs[slot_id]
+        selected = session["selectedBySlot"][slot_id]
+        if (
+            raw is None
+            or path != selected["outputPath"]
+            or bytes_sha256(raw) != selected["audit"]["outputRawSha256"]
+        ):
+            raise ProvenanceFailure(
+                f"aggregate primary output does not equal selected {slot_id} exact bytes"
+            )
+
+
+def _require_session_supporting_artifact(
+    session: dict[str, Any],
+    slot_id: str,
+    path: Path,
+    raw_bytes: bytes | None,
+    label: str,
+) -> None:
+    if raw_bytes is None:
+        raise ProvenanceFailure(f"{label} has no exact bytes")
+    selected = session["selectedBySlot"][slot_id]
+    expected_hash = selected["artifactHashesByPath"].get(path)
+    if expected_hash is None or expected_hash != bytes_sha256(raw_bytes):
+        raise ProvenanceFailure(
+            f"{label} is not sealed inside selected {slot_id} artifacts"
+        )
+
+
+def validate_evaluation_session_supporting_artifacts(
+    session: dict[str, Any],
+    *,
+    actor_observation_attempts: list[dict[str, Any]],
+    actor_trace_attempts: list[dict[str, Any]],
+    recording_manifest_attempts: list[dict[str, Any]],
+    coverage_action_ledger_attempt: dict[str, Any],
+) -> None:
+    for index in range(3):
+        slot_id = f"SLOT-{index + 1:02d}"
+        _require_session_supporting_artifact(
+            session,
+            slot_id,
+            actor_observation_attempts[index]["path"],
+            actor_observation_attempts[index]["rawBytes"],
+            f"actor observation {index + 1}",
+        )
+        _require_session_supporting_artifact(
+            session,
+            slot_id,
+            actor_trace_attempts[index]["path"],
+            actor_trace_attempts[index]["rawBytes"],
+            f"actor trace {index + 1}",
+        )
+        _require_session_supporting_artifact(
+            session,
+            slot_id,
+            recording_manifest_attempts[index]["path"],
+            recording_manifest_attempts[index]["rawBytes"],
+            f"actor recording manifest {index + 1}",
+        )
+    _require_session_supporting_artifact(
+        session,
+        "SLOT-04",
+        coverage_action_ledger_attempt["path"],
+        coverage_action_ledger_attempt["rawBytes"],
+        "coverage action ledger",
+    )
+    _require_session_supporting_artifact(
+        session,
+        "SLOT-04",
+        recording_manifest_attempts[3]["path"],
+        recording_manifest_attempts[3]["rawBytes"],
+        "coverage recording manifest",
+    )
+
+    for index, attempt in enumerate(recording_manifest_attempts):
+        value = attempt["value"]
+        if not isinstance(value, dict) or not isinstance(
+            value.get("canonicalBundleRoot"), str
+        ):
+            raise ProvenanceFailure(
+                f"recording manifest {index + 1} lacks a canonical bundle root"
+            )
+        slot_id = f"SLOT-{index + 1:02d}" if index < 3 else "SLOT-04"
+        selected = session["selectedBySlot"][slot_id]
+        root = Path(value["canonicalBundleRoot"])
+        try:
+            resolved_root = root.resolve(strict=True)
+            resolved_root.relative_to(selected["artifactRoot"])
+        except (OSError, ValueError) as exception:
+            raise ProvenanceFailure(
+                f"recording manifest {index + 1} bundle root escapes selected {slot_id}"
+            ) from exception
+        if root != resolved_root or root.is_symlink():
+            raise ProvenanceFailure(
+                f"recording manifest {index + 1} bundle root is not canonical"
+            )
+        for artifact in value.get("artifacts", []):
+            locator = artifact.get("locator") if isinstance(artifact, dict) else None
+            raw_sha = artifact.get("rawSha256") if isinstance(artifact, dict) else None
+            if not isinstance(locator, str):
+                raise ProvenanceFailure(
+                    f"recording manifest {index + 1} artifact locator is invalid"
+                )
+            artifact_path = (resolved_root / locator).resolve(strict=False)
+            if selected["artifactHashesByPath"].get(artifact_path) != raw_sha:
+                raise ProvenanceFailure(
+                    f"recording manifest {index + 1} artifact {locator} is not "
+                    f"sealed inside selected {slot_id}"
+                )
+
+
 def validate_gold_state_score_ready_authority(
     candidate_manifest_path: Path,
     gold_binding_path: Path,
+    holdout_consumption_receipt_path: Path,
+    registry_before_path: Path,
+    registry_after_path: Path,
+    evaluation_session_claim_path: Path,
     *,
     candidate_manifest_raw_bytes: bytes,
     gold_binding_raw_bytes: bytes,
     story_manifest_raw_bytes: bytes,
+    holdout_consumption_receipt_raw_bytes: bytes,
+    registry_before_raw_bytes: bytes,
+    registry_after_raw_bytes: bytes,
+    evaluation_session_claim_raw_bytes: bytes,
     require_score_ready: bool,
 ) -> None:
     """Delegate exact candidate/gold bytes and E09 semantics to one authority."""
 
     candidate_manifest_path = candidate_manifest_path.resolve(strict=False)
     gold_binding_path = gold_binding_path.resolve(strict=False)
+    holdout_consumption_receipt_path = holdout_consumption_receipt_path.resolve(
+        strict=False
+    )
+    registry_before_path = registry_before_path.resolve(strict=False)
+    registry_after_path = registry_after_path.resolve(strict=False)
+    evaluation_session_claim_path = evaluation_session_claim_path.resolve(strict=False)
 
     validator = _load_exact_validator(
         GOLD_STATE_VALIDATOR_PATH,
@@ -1185,6 +1788,18 @@ def validate_gold_state_score_ready_authority(
             story_manifest_path_label=None,
             candidate_manifest_path_label=candidate_manifest_path,
             binding_manifest_path_label=gold_binding_path,
+            holdout_consumption_receipt_bytes=(
+                holdout_consumption_receipt_raw_bytes
+            ),
+            registry_before_bytes=registry_before_raw_bytes,
+            registry_after_bytes=registry_after_raw_bytes,
+            evaluation_session_claim_bytes=evaluation_session_claim_raw_bytes,
+            holdout_consumption_receipt_path_label=(
+                holdout_consumption_receipt_path
+            ),
+            registry_before_path_label=registry_before_path,
+            registry_after_path_label=registry_after_path,
+            evaluation_session_claim_path_label=evaluation_session_claim_path,
         )
     except (AttributeError, ImportError, OSError, SyntaxError) as exception:
         raise ProvenanceFailure(
@@ -1199,6 +1814,14 @@ def validate_gold_state_score_ready_authority(
         "candidateManifestRawSha256": bytes_sha256(candidate_manifest_raw_bytes),
         "goldBindingManifestRawSha256": bytes_sha256(gold_binding_raw_bytes),
         "storyManifestRawSha256": bytes_sha256(story_manifest_raw_bytes),
+        "holdoutConsumptionReceiptRawSha256": bytes_sha256(
+            holdout_consumption_receipt_raw_bytes
+        ),
+        "registryBeforeRawSha256": bytes_sha256(registry_before_raw_bytes),
+        "registryAfterRawSha256": bytes_sha256(registry_after_raw_bytes),
+        "evaluationSessionClaimRawSha256": bytes_sha256(
+            evaluation_session_claim_raw_bytes
+        ),
     }
     if observed != expected_observed:
         raise ProvenanceFailure(
@@ -1904,6 +2527,14 @@ def validate_gold_binding_authority(
     gold_binding_path: Path,
     candidate_manifest_raw_bytes: bytes,
     story_manifest_raw_bytes: bytes,
+    holdout_consumption_receipt_path: Path,
+    registry_before_path: Path,
+    registry_after_path: Path,
+    evaluation_session_claim_path: Path,
+    holdout_consumption_receipt_raw_bytes: bytes,
+    registry_before_raw_bytes: bytes,
+    registry_after_raw_bytes: bytes,
+    evaluation_session_claim_raw_bytes: bytes,
 ) -> dict[str, Any]:
     wrapped = validate_self_hashed_envelope(
         value,
@@ -2025,9 +2656,19 @@ def validate_gold_binding_authority(
     validate_gold_state_score_ready_authority(
         candidate_manifest_path,
         gold_binding_path,
+        holdout_consumption_receipt_path,
+        registry_before_path,
+        registry_after_path,
+        evaluation_session_claim_path,
         candidate_manifest_raw_bytes=candidate_manifest_raw_bytes,
         gold_binding_raw_bytes=raw_bytes,
         story_manifest_raw_bytes=story_manifest_raw_bytes,
+        holdout_consumption_receipt_raw_bytes=(
+            holdout_consumption_receipt_raw_bytes
+        ),
+        registry_before_raw_bytes=registry_before_raw_bytes,
+        registry_after_raw_bytes=registry_after_raw_bytes,
+        evaluation_session_claim_raw_bytes=evaluation_session_claim_raw_bytes,
         require_score_ready=candidate_manifest["officialCommercialUX"],
     )
     wrapped["derivedReady"] = True
@@ -2442,7 +3083,7 @@ def _validate_cold_response_observation_projection(
         )
 
 
-def _cold_checkpoint_sequence_authority() -> dict[tuple[str, str], int]:
+def _cold_checkpoint_completion_authority() -> dict[str, Any]:
     recipe, _ = read_json_bytes(COLD_RECIPE_PATH, "checked-in cold journey recipe")
     rows = recipe.get("checkpointSequence") if isinstance(recipe, dict) else None
     if not isinstance(rows, list) or not rows:
@@ -2450,6 +3091,7 @@ def _cold_checkpoint_sequence_authority() -> dict[tuple[str, str], int]:
             "checked-in cold checkpoint sequence authority is invalid"
         )
     by_checkpoint: dict[tuple[str, str], int] = {}
+    rows_by_checkpoint: dict[tuple[str, str], dict[str, Any]] = {}
     ordinals: list[int] = []
     groups_by_ordinal: dict[int, list[str | None]] = {}
     for row in rows:
@@ -2461,6 +3103,7 @@ def _cold_checkpoint_sequence_authority() -> dict[tuple[str, str], int]:
         checkpoint = row.get("checkpoint")
         ordinal = row.get("sequenceOrdinal")
         group = row.get("branchAlternativeGroup")
+        completion_requirement = row.get("completionRequirement")
         if (
             not isinstance(episode, str)
             or not isinstance(checkpoint, str)
@@ -2469,11 +3112,13 @@ def _cold_checkpoint_sequence_authority() -> dict[tuple[str, str], int]:
             or ordinal < 1
             or (episode, checkpoint) in by_checkpoint
             or (group is not None and not isinstance(group, str))
+            or completion_requirement not in {"MANDATORY", "OPTIONAL"}
         ):
             raise ProvenanceFailure(
                 "checked-in cold checkpoint sequence row is invalid"
             )
         by_checkpoint[(episode, checkpoint)] = ordinal
+        rows_by_checkpoint[(episode, checkpoint)] = row
         ordinals.append(ordinal)
         groups_by_ordinal.setdefault(ordinal, []).append(group)
     if ordinals != sorted(ordinals) or set(ordinals) != set(
@@ -2493,7 +3138,102 @@ def _cold_checkpoint_sequence_authority() -> dict[tuple[str, str], int]:
             raise ProvenanceFailure(
                 f"checked-in cold checkpoint sequence alternatives are invalid at {ordinal}"
             )
-    return by_checkpoint
+        requirements = {
+            rows_by_checkpoint[key]["completionRequirement"]
+            for key, row_ordinal in by_checkpoint.items()
+            if row_ordinal == ordinal
+        }
+        if len(requirements) != 1:
+            raise ProvenanceFailure(
+                f"checked-in cold checkpoint alternatives disagree on requirement at {ordinal}"
+            )
+    mandatory_ordinals = [
+        ordinal
+        for ordinal in sorted(groups_by_ordinal)
+        if any(
+            row["sequenceOrdinal"] == ordinal
+            and row["completionRequirement"] == "MANDATORY"
+            for row in rows
+        )
+    ]
+    if not mandatory_ordinals or mandatory_ordinals[-1] != max(ordinals):
+        raise ProvenanceFailure(
+            "checked-in cold completion sequence must end at a mandatory checkpoint"
+        )
+    return {
+        "byCheckpoint": by_checkpoint,
+        "rowsByCheckpoint": rows_by_checkpoint,
+        "mandatoryOrdinals": mandatory_ordinals,
+        "terminalOrdinal": max(ordinals),
+    }
+
+
+def _cold_checkpoint_sequence_authority() -> dict[tuple[str, str], int]:
+    return _cold_checkpoint_completion_authority()["byCheckpoint"]
+
+
+def _validate_cold_terminal_checkpoint_sequence(
+    observation: dict[str, Any],
+    authority: dict[str, Any],
+    label: str,
+) -> None:
+    """Require a completed journey or an exact mandatory terminal prefix.
+
+    Optional error/settings observations may appear, but they cannot substitute
+    for any progression milestone.  Branch-result ordinals are alternatives:
+    the strict ordinal check already permits exactly one realized branch row.
+    """
+
+    checkpoints = observation["checkpoints"]
+    rows_by_checkpoint = authority["rowsByCheckpoint"]
+    observed_mandatory_ordinals = [
+        checkpoint["recipeCheckpointSequenceOrdinal"]
+        for checkpoint in checkpoints
+        if rows_by_checkpoint[(checkpoint["episode"], checkpoint["checkpoint"])][
+            "completionRequirement"
+        ]
+        == "MANDATORY"
+    ]
+    terminal_state = observation["terminalState"]
+    if terminal_state == "COMPLETED":
+        frontier = authority["terminalOrdinal"]
+        last = checkpoints[-1]
+        if (
+            last["recipeCheckpointSequenceOrdinal"] != frontier
+            or (last["episode"], last["checkpoint"])
+            != ("E08-FINALE", "completed-chapter-select")
+        ):
+            raise ProvenanceFailure(
+                f"{label} COMPLETED must terminate at completed-chapter-select"
+            )
+    elif terminal_state in {"PLAYER_STALLED", "HARNESS_BLOCKED"}:
+        terminal_key = observation["terminalIncidentKey"]
+        terminal_incident = next(
+            (
+                row
+                for row in observation["incidents"]
+                if row["incidentKey"] == terminal_key
+            ),
+            None,
+        )
+        if (
+            terminal_incident is None
+            or max(terminal_incident["checkpointOrdinals"]) != len(checkpoints)
+        ):
+            raise ProvenanceFailure(
+                f"{label} stalled terminal incident must cite the last checkpoint"
+            )
+        frontier = checkpoints[-1]["recipeCheckpointSequenceOrdinal"]
+    else:
+        return
+    expected_mandatory_ordinals = [
+        ordinal for ordinal in authority["mandatoryOrdinals"] if ordinal <= frontier
+    ]
+    if observed_mandatory_ordinals != expected_mandatory_ordinals:
+        kind = "completion" if terminal_state == "COMPLETED" else "terminal prefix"
+        raise ProvenanceFailure(
+            f"{label} does not exactly realize the frozen mandatory {kind} sequence"
+        )
 
 
 def validate_actor_observation_authorities(
@@ -2505,7 +3245,8 @@ def validate_actor_observation_authorities(
         raise ProvenanceFailure("exactly three actor observations are required")
     if len(cold_actor_responses) != 3:
         raise ProvenanceFailure("exactly three cold actor response authorities are required")
-    checkpoint_sequence = _cold_checkpoint_sequence_authority()
+    checkpoint_authority = _cold_checkpoint_completion_authority()
+    checkpoint_sequence = checkpoint_authority["byCheckpoint"]
     artifacts = evaluation_run["artifacts"]
     terminal_rows = evaluation_run["terminalStates"]
     expected_pairs = set(zip(
@@ -2694,6 +3435,11 @@ def validate_actor_observation_authorities(
                 raise ProvenanceFailure(
                     f"{label} terminal incident type must be {expected_terminal_type}"
                 )
+        _validate_cold_terminal_checkpoint_sequence(
+            value,
+            checkpoint_authority,
+            label,
+        )
         results.append({
             "value": value,
             "rawSha256": raw_sha,
@@ -2723,8 +3469,40 @@ RECORDING_MIME_BY_KIND = {
     "VIDEO": set(),
     "AUDIO": {"audio/wav"},
     "ACTION_LEDGER": {"application/json"},
+    "AUDIO_SYNC_LEDGER": {"application/json"},
     "VISIBLE_TEXT": {"application/json"},
 }
+
+AUDIO_SYNC_LEDGER_KEYS = {
+    "schemaVersion",
+    "protocol",
+    "sourceActionLedgerRawSha256",
+    "clockDomainId",
+    "events",
+}
+
+AUDIO_SYNC_EVENT_KEYS = {
+    "syncEventId",
+    "cellId",
+    "episodeId",
+    "checkpoint",
+    "actionOccurrenceId",
+    "actionIndex",
+    "actionDeliveredMonotonicNanoseconds",
+    "audioArtifactId",
+    "audioArtifactRawSha256",
+    "audioCaptureStartedMonotonicNanoseconds",
+    "cueOnsetSampleIndex",
+}
+
+AUDIO_SYNC_CELLS = ("V1", "V2", "V3", "V4")
+AUDIO_SYNC_EPISODE_BY_CELL = {
+    "V1": "E01-FIRST-LIGHT",
+    "V2": "E05-WHOSE-MARGIN",
+    "V3": "E06-FLOOD",
+    "V4": "E08-FINALE",
+}
+AUDIO_SYNC_MAX_LATENCY_NS = 100_000_000
 
 
 def _valid_png_bytes(raw: bytes) -> bool:
@@ -2734,6 +3512,10 @@ def _valid_png_bytes(raw: bytes) -> bool:
     saw_ihdr = False
     saw_idat = False
     saw_iend = False
+    idat_closed = False
+    width = 0
+    height = 0
+    bytes_per_pixel = 0
     compressed = bytearray()
     while offset + 12 <= len(raw):
         length = struct.unpack(">I", raw[offset:offset + 4])[0]
@@ -2748,27 +3530,70 @@ def _valid_png_bytes(raw: bytes) -> bool:
         if not saw_ihdr:
             if chunk_type != b"IHDR" or length != 13:
                 return False
-            width, height = struct.unpack(">II", data[:8])
-            if width == 0 or height == 0:
+            width, height, bit_depth, color_type, compression, png_filter, interlace = (
+                struct.unpack(">IIBBBBB", data)
+            )
+            if (
+                width == 0
+                or height == 0
+                or width > 32768
+                or height > 32768
+                or bit_depth != 8
+                or color_type not in {2, 6}
+                or compression != 0
+                or png_filter != 0
+                or interlace != 0
+            ):
                 return False
+            bytes_per_pixel = 3 if color_type == 2 else 4
             saw_ihdr = True
         elif chunk_type == b"IHDR":
             return False
         if chunk_type == b"IDAT":
+            if idat_closed or length == 0:
+                return False
             saw_idat = True
             compressed.extend(data)
+        elif saw_idat and chunk_type != b"IEND":
+            # This deliberately restricted decoder accepts one consecutive
+            # IDAT run only.  It never silently ignores a post-image chunk.
+            idat_closed = True
         if chunk_type == b"IEND":
             if length != 0 or end != len(raw):
                 return False
             saw_iend = True
             break
+        if chunk_type not in {b"IHDR", b"IDAT", b"IEND"}:
+            # Score-bearing frames use the frozen 8-bit RGB/RGBA subset.  A
+            # producer must normalize ancillary/critical chunks before capture.
+            return False
         offset = end
     if not (saw_ihdr and saw_idat and saw_iend and compressed):
         return False
+    expected_scanline_length = height * (1 + width * bytes_per_pixel)
+    if expected_scanline_length > 512 * 1024 * 1024:
+        return False
     try:
-        return bool(zlib.decompress(bytes(compressed)))
+        decoder = zlib.decompressobj()
+        decoded = decoder.decompress(
+            bytes(compressed),
+            expected_scanline_length + 1,
+        )
+        decoded += decoder.flush()
     except zlib.error:
         return False
+    if (
+        not decoder.eof
+        or decoder.unused_data
+        or decoder.unconsumed_tail
+        or len(decoded) != expected_scanline_length
+    ):
+        return False
+    scanline_length = 1 + width * bytes_per_pixel
+    return all(
+        decoded[offset] in {0, 1, 2, 3, 4}
+        for offset in range(0, expected_scanline_length, scanline_length)
+    )
 
 
 def _recording_bytes_match_mime(raw: bytes, mime_type: str) -> bool:
@@ -2801,6 +3626,188 @@ def _recording_bytes_match_mime(raw: bytes, mime_type: str) -> bool:
             return False
         return isinstance(parsed, (dict, list))
     return False
+
+
+def _wav_metadata(raw: bytes) -> dict[str, int]:
+    try:
+        with wave.open(io.BytesIO(raw), "rb") as stream:
+            frame_count = stream.getnframes()
+            sample_rate = stream.getframerate()
+            channel_count = stream.getnchannels()
+            sample_width = stream.getsampwidth()
+            compression = stream.getcomptype()
+            frame_bytes = stream.readframes(frame_count)
+    except (EOFError, wave.Error) as exception:
+        raise ProvenanceFailure("recording WAV cannot be decoded deterministically") from exception
+    expected_bytes = frame_count * channel_count * sample_width
+    if (
+        frame_count <= 0
+        or sample_rate <= 0
+        or channel_count <= 0
+        or sample_width <= 0
+        or compression != "NONE"
+        or len(frame_bytes) != expected_bytes
+    ):
+        raise ProvenanceFailure("recording WAV metadata/frame payload is incomplete")
+    return {
+        "frameCount": frame_count,
+        "sampleRateHz": sample_rate,
+        "channelCount": channel_count,
+        "sampleWidthBytes": sample_width,
+    }
+
+
+def _validate_audio_sync_ledger(
+    coverage_recording: dict[str, Any],
+    coverage_action_ledger: dict[str, Any],
+) -> dict[str, Any]:
+    manifest = coverage_recording["value"]
+    sync_rows = [
+        row for row in manifest["artifacts"] if row["kind"] == "AUDIO_SYNC_LEDGER"
+    ]
+    if len(sync_rows) != 1:
+        raise ProvenanceFailure(
+            "coverage recording must contain exactly one AUDIO_SYNC_LEDGER"
+        )
+    sync_artifact = sync_rows[0]
+    sync_raw = coverage_recording["artifactRawByKey"][
+        (sync_artifact["artifactId"], sync_artifact["locator"])
+    ]
+    sync = exact_keys(
+        parse_strict_json_bytes(sync_raw, "coverage AUDIO_SYNC_LEDGER"),
+        AUDIO_SYNC_LEDGER_KEYS,
+        "coverage AUDIO_SYNC_LEDGER",
+    )
+    if (
+        sync["schemaVersion"]
+        != "gridworks.commercial-ux.native-audio-sync-ledger.v1"
+        or sync["protocol"] != PROTOCOL
+        or sync["sourceActionLedgerRawSha256"]
+        != manifest["actionLedgerArtifactRawSha256"]
+        or sync["sourceActionLedgerRawSha256"]
+        != coverage_action_ledger["rawSha256"]
+    ):
+        raise ProvenanceFailure("coverage audio-sync ledger identity/action binding mismatch")
+    require_string(sync["clockDomainId"], "coverage audio-sync clockDomainId", 200)
+    if sync["clockDomainId"] != coverage_action_ledger["value"]["clockDomainId"]:
+        raise ProvenanceFailure(
+            "coverage audio-sync clock domain is not action-ledger-derived"
+        )
+    events = sync["events"]
+    if not isinstance(events, list) or len(events) != 4:
+        raise ProvenanceFailure("coverage audio-sync ledger must contain V1..V4 exactly once")
+
+    actions_by_occurrence: dict[tuple[str, str], dict[str, Any]] = {}
+    for episode in coverage_action_ledger["value"]["episodes"]:
+        for action in episode["actions"]:
+            key = (episode["episodeId"], action["actionOccurrenceId"])
+            if key in actions_by_occurrence:
+                raise ProvenanceFailure(
+                    "coverage action ledger duplicates an audio-sync action occurrence"
+                )
+            actions_by_occurrence[key] = action
+    artifact_by_id = {
+        row["artifactId"]: row for row in manifest["artifacts"]
+    }
+    derived_events: list[dict[str, Any]] = []
+    evidence_refs = [{
+        "artifactId": sync_artifact["artifactId"],
+        "locator": sync_artifact["locator"],
+        "sha256": sync_artifact["rawSha256"],
+    }]
+    input_hashes = [sync_artifact["rawSha256"]]
+    seen_audio_refs: set[str] = set()
+    for index, (item, expected_cell) in enumerate(zip(events, AUDIO_SYNC_CELLS), start=1):
+        event = exact_keys(
+            item,
+            AUDIO_SYNC_EVENT_KEYS,
+            f"coverage AUDIO_SYNC_LEDGER.events[{index - 1}]",
+        )
+        if (
+            event["syncEventId"] != f"AVSYNC-{expected_cell}"
+            or event["cellId"] != expected_cell
+            or event["episodeId"] != AUDIO_SYNC_EPISODE_BY_CELL[expected_cell]
+        ):
+            raise ProvenanceFailure("coverage audio-sync V1..V4 identity/order mismatch")
+        action = actions_by_occurrence.get(
+            (event["episodeId"], event["actionOccurrenceId"])
+        )
+        if (
+            action is None
+            or event["checkpoint"] != action["checkpoint"]
+            or event["actionIndex"] != action["actionIndex"]
+            or event["actionDeliveredMonotonicNanoseconds"]
+            != action["deliveredMonotonicNanoseconds"]
+        ):
+            raise ProvenanceFailure(
+                "coverage audio-sync action occurrence/timestamp is not ledger-derived"
+            )
+        for field in (
+            "actionDeliveredMonotonicNanoseconds",
+            "audioCaptureStartedMonotonicNanoseconds",
+            "cueOnsetSampleIndex",
+        ):
+            if (
+                not isinstance(event[field], int)
+                or isinstance(event[field], bool)
+                or event[field] < 0
+            ):
+                raise ProvenanceFailure(f"coverage audio-sync {field} is invalid")
+        audio_artifact = artifact_by_id.get(event["audioArtifactId"])
+        if (
+            audio_artifact is None
+            or audio_artifact["kind"] != "AUDIO"
+            or audio_artifact["rawSha256"] != event["audioArtifactRawSha256"]
+        ):
+            raise ProvenanceFailure("coverage audio-sync WAV reference/raw hash mismatch")
+        audio_raw = coverage_recording["artifactRawByKey"][
+            (audio_artifact["artifactId"], audio_artifact["locator"])
+        ]
+        wav = _wav_metadata(audio_raw)
+        if wav["sampleRateHz"] != 48_000:
+            raise ProvenanceFailure("coverage audio-sync WAV sample rate must be 48000 Hz")
+        cue_sample = event["cueOnsetSampleIndex"]
+        if cue_sample >= wav["frameCount"]:
+            raise ProvenanceFailure("coverage audio-sync cue onset is outside WAV frames")
+        cue_ns = event["audioCaptureStartedMonotonicNanoseconds"] + (
+            cue_sample * 1_000_000_000 // wav["sampleRateHz"]
+        )
+        latency_ns = cue_ns - event["actionDeliveredMonotonicNanoseconds"]
+        derived_events.append({
+            "syncEventId": event["syncEventId"],
+            "cellId": expected_cell,
+            "actionOccurrenceId": event["actionOccurrenceId"],
+            "actionDeliveredMonotonicNanoseconds": event[
+                "actionDeliveredMonotonicNanoseconds"
+            ],
+            "cueOnsetMonotonicNanoseconds": cue_ns,
+            "latencyMicroseconds": latency_ns // 1000,
+            "within100Milliseconds": 0 <= latency_ns <= AUDIO_SYNC_MAX_LATENCY_NS,
+        })
+        if audio_artifact["rawSha256"] not in input_hashes:
+            input_hashes.append(audio_artifact["rawSha256"])
+        if audio_artifact["artifactId"] not in seen_audio_refs:
+            seen_audio_refs.add(audio_artifact["artifactId"])
+            evidence_refs.append({
+                "artifactId": audio_artifact["artifactId"],
+                "locator": audio_artifact["locator"],
+                "sha256": audio_artifact["rawSha256"],
+            })
+    passed = all(row["within100Milliseconds"] for row in derived_events)
+    return {
+        "status": "PASS" if passed else "FAIL",
+        "failureCode": None if passed else "AUDIO_SYNC_OVER_100MS",
+        "inputHashes": input_hashes,
+        "evidenceRefs": evidence_refs,
+        "observed": json.dumps(
+            derived_events,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
+        "events": derived_events,
+        "syncLedgerRawSha256": sync_artifact["rawSha256"],
+    }
 
 
 def _resolve_recording_artifact(
@@ -2957,6 +3964,7 @@ def validate_recording_manifest_authorities(
     actor_rows: list[dict[str, Any]],
     actor_traces: list[dict[str, Any]],
     coverage_trace: dict[str, Any],
+    coverage_action_ledger: dict[str, Any],
 ) -> dict[str, Any]:
     if len(envelopes) != 4:
         raise ProvenanceFailure("exactly four recording manifests are required")
@@ -3078,7 +4086,75 @@ def validate_recording_manifest_authorities(
         raise ProvenanceFailure(
             "coverage recording action-ledger source/evaluation raw/self binding mismatch"
         )
-    return {"actorBySlot": actor_by_slot, "coverage": coverage}
+    audio_sync = _validate_audio_sync_ledger(
+        coverage,
+        coverage_action_ledger,
+    )
+    return {
+        "actorBySlot": actor_by_slot,
+        "coverage": coverage,
+        "audioSync": audio_sync,
+    }
+
+
+def derive_lane_execution_identities(
+    actor_traces: list[dict[str, Any]],
+    coverage_action_ledger: dict[str, Any],
+    recordings: dict[str, Any],
+) -> dict[str, Any]:
+    trace_by_slot = {row["slot"]: row for row in actor_traces}
+    recording_by_slot = recordings["actorBySlot"]
+    if set(trace_by_slot) != {0, 1, 2} or set(recording_by_slot) != {0, 1, 2}:
+        raise ProvenanceFailure("lane execution identity requires exact actor slots 0,1,2")
+    cold: list[dict[str, Any]] = []
+    for slot in range(3):
+        trace = trace_by_slot[slot]["value"]
+        recording = recording_by_slot[slot]
+        manifest = recording["value"]
+        cold.append({
+            "actorCaptureSlot": slot,
+            "actorRunId": trace["observation"]["actorRunId"],
+            "processTreeId": trace["processTreeId"],
+            "userDataSha256": trace["userDataSha256"],
+            "saveSha256": trace["saveSha256"],
+            "journalSha256": trace["journalSha256"],
+            "recordingManifestSha256": recording["selfSha256"],
+            "recordingManifestRawSha256": recording["rawSha256"],
+            "recordingContentRootSha256": manifest["bundleRootSha256"],
+            "canonicalRecordingRoot": manifest["canonicalBundleRoot"],
+        })
+    coverage = coverage_action_ledger["value"]
+    coverage_recording = recordings["coverage"]
+    coverage_manifest = coverage_recording["value"]
+    identities = {
+        "cold": cold,
+        "coverage": {
+            "coverageRunId": coverage["coverageRunId"],
+            "processTreeId": coverage["processTreeId"],
+            "userDataSha256": coverage["userDataSha256"],
+            "journalBundleSha256": coverage["journalBundleSha256"],
+            "recordingManifestSha256": coverage_recording["selfSha256"],
+            "recordingManifestRawSha256": coverage_recording["rawSha256"],
+            "recordingContentRootSha256": coverage_manifest["bundleRootSha256"],
+            "canonicalRecordingRoot": coverage_manifest["canonicalBundleRoot"],
+        },
+    }
+    uniqueness_fields = (
+        "actorRunId",
+        "processTreeId",
+        "userDataSha256",
+        "journalSha256",
+        "recordingManifestSha256",
+        "recordingManifestRawSha256",
+        "recordingContentRootSha256",
+        "canonicalRecordingRoot",
+    )
+    for field in uniqueness_fields:
+        if len({row[field] for row in cold}) != 3:
+            raise ProvenanceFailure(
+                f"cold lane execution identity field {field} must be distinct per actor"
+            )
+    return identities
 
 
 def validate_actor_trace_authorities(
@@ -4236,8 +5312,64 @@ def _derive_verification_observations(
             )
         observations.append({
             "observationId": f"OBS-{index:04d}",
+            "claimType": "JUDGE_EVIDENCE",
+            "incidentKey": None,
             "claim": claim,
             "citedSources": citations,
+        })
+    incident_rows: dict[str, dict[str, Any]] = {}
+    actor_authorities = evidence_authority.get("actorAuthoritiesByAnonymousId")
+    for anonymous_id in (
+        ("ARTIFACT-A", "ARTIFACT-B", "ARTIFACT-C")
+        if isinstance(actor_authorities, dict)
+        else ()
+    ):
+        actor = actor_authorities.get(anonymous_id)
+        artifact = evidence_by_id.get(anonymous_id)
+        if actor is None or artifact is None:
+            raise ProvenanceFailure(
+                "incident verification has no exact actor/evidence authority"
+            )
+        media = {
+            (row["artifactId"], row["locator"]): row
+            for row in artifact["mediaArtifacts"]
+        }
+        for incident in actor["value"]["incidents"]:
+            key = incident["incidentKey"]
+            row = incident_rows.setdefault(key, {
+                "incidentType": incident["incidentType"],
+                "actorIds": [],
+                "citations": [],
+            })
+            if row["incidentType"] != incident["incidentType"]:
+                raise ProvenanceFailure(
+                    f"actor incident {key} has conflicting incident types"
+                )
+            row["actorIds"].append(anonymous_id)
+            # One exact raw-media citation per actor occurrence is sufficient
+            # to ask the verifier whether that occurrence is supported.  The
+            # actor/evidence validator separately proves that every incident
+            # reference belongs to the immutable recording bundle.
+            source = incident["artifactRefs"][0]
+            if (source["artifactId"], source["locator"]) not in media:
+                raise ProvenanceFailure(
+                    f"actor incident {key} cites media absent from evidence"
+                )
+            row["citations"].append({
+                "anonymousArtifactId": anonymous_id,
+                "artifactId": source["artifactId"],
+                "locator": source["locator"],
+            })
+    for incident_key, row in incident_rows.items():
+        observations.append({
+            "observationId": f"OBS-{len(observations) + 1:04d}",
+            "claimType": "ACTOR_INCIDENT",
+            "incidentKey": incident_key,
+            "claim": (
+                f"Actor incident {incident_key} ({row['incidentType']}) is visibly or "
+                f"audibly supported for {','.join(row['actorIds'])}."
+            ),
+            "citedSources": row["citations"],
         })
     if not observations:
         raise ProvenanceFailure("judge panel produced no verification observations")
@@ -5043,6 +6175,8 @@ def validate_oracle_ledger(
     gold_binding: dict[str, Any],
     verification_input: dict[str, Any],
     evaluation_run: dict[str, Any],
+    recordings: dict[str, Any],
+    verified_verifier: dict[str, Any] | None,
 ) -> dict[str, Any]:
     validate_checked_in_schema(
         value,
@@ -5176,6 +6310,29 @@ def validate_oracle_ledger(
             raise ValidationFailure(f"hardGates[{index}].evidenceRefs is invalid")
         for ref_index, ref in enumerate(row["evidenceRefs"]):
             _validate_artifact_ref(ref, f"hardGates[{index}].evidenceRefs[{ref_index}]")
+        if expected_gate_id == "HG09-AUDIO":
+            audio_sync = recordings.get("audioSync")
+            if not isinstance(audio_sync, dict):
+                raise ProvenanceFailure(
+                    "HG09-AUDIO has no raw recording audio-sync authority"
+                )
+            expected_audio_gate = {
+                "producer": "RECORDING_AV_SYNC_VALIDATOR",
+                "predicate": (
+                    "FOUR_V1_V4_ACTION_TO_CUE_ONSETS_DERIVED_FROM_RAW_LEDGER_"
+                    "AND_48000HZ_WAV_WITHIN_100_MS"
+                ),
+                "inputHashes": audio_sync["inputHashes"],
+                "status": audio_sync["status"],
+                "observed": audio_sync["observed"],
+                "failureCode": audio_sync["failureCode"],
+                "evidenceRefs": audio_sync["evidenceRefs"],
+            }
+            for field, expected_value in expected_audio_gate.items():
+                if row[field] != expected_value:
+                    raise ProvenanceFailure(
+                        f"HG09-AUDIO {field} is not raw recording-derived"
+                    )
     incidents = ledger["incidents"]
     if not isinstance(incidents, list) or len(incidents) > 512:
         raise ValidationFailure("oracle ledger.incidents must contain at most 512 rows")
@@ -5205,6 +6362,19 @@ def validate_oracle_ledger(
             minimum=1,
             maximum=32,
         )
+        verifier_observation_id = row["verifierObservationId"]
+        if row["incidentType"] == "HARD_GATE_FAILURE":
+            if verifier_observation_id is not None or row["verifierStatus"] != "NOT_APPLICABLE":
+                raise ProvenanceFailure(
+                    f"incidents[{index}] hard-gate incident cannot claim actor verification"
+                )
+        elif (
+            not isinstance(verifier_observation_id, str)
+            or OBSERVATION_ID_PATTERN.fullmatch(verifier_observation_id) is None
+        ):
+            raise ProvenanceFailure(
+                f"incidents[{index}] actor incident lacks verifier observation authority"
+            )
         if row["verifierStatus"] not in {"SUPPORTED", "PARTIAL", "UNSUPPORTED", "NOT_APPLICABLE"}:
             raise ValidationFailure(f"incidents[{index}].verifierStatus is invalid")
         if row["oracleStatus"] not in {"EXACT", "MISMATCH", "MISSING", "NOT_APPLICABLE"}:
@@ -5214,6 +6384,43 @@ def validate_oracle_ledger(
         if type(row["critical"]) is not bool:
             raise ValidationFailure(f"incidents[{index}].critical must be boolean")
         require_string(row["description"], f"incidents[{index}].description")
+    if verified_verifier is not None:
+        incident_observation_rows = [
+            row
+            for row in verification_input["observations"]
+            if row["claimType"] == "ACTOR_INCIDENT"
+        ]
+        incident_observations = {
+            row["incidentKey"]: row
+            for row in incident_observation_rows
+        }
+        expected_actor_incident_count = sum(
+            row["incidentType"] != "HARD_GATE_FAILURE" for row in incidents
+        )
+        if (
+            len(incident_observation_rows) != len(incident_observations)
+            or len(incident_observations) != expected_actor_incident_count
+        ):
+            raise ProvenanceFailure(
+                "verifier input does not exactly cover every actor incident"
+            )
+        verdict_by_id = verified_verifier["verdictByObservationId"]
+        for incident in incidents:
+            if incident["incidentType"] == "HARD_GATE_FAILURE":
+                continue
+            observation = incident_observations.get(incident["incidentKey"])
+            if observation is None:
+                raise ProvenanceFailure(
+                    f"incident {incident['incidentKey']} has no verifier input observation"
+                )
+            observation_id = observation["observationId"]
+            if (
+                incident["verifierObservationId"] != observation_id
+                or incident["verifierStatus"] != verdict_by_id.get(observation_id)
+            ):
+                raise ProvenanceFailure(
+                    f"incident {incident['incidentKey']} verifier status is not output-derived"
+                )
     derived_score_bearing_ready = (
         gold_binding.get("derivedReady") is True
         and all(row["status"] != "MISSING" for row in checks)
@@ -5293,6 +6500,22 @@ def validate_verifier(
         if row["verdict"] not in {"SUPPORTED", "PARTIAL", "UNSUPPORTED"}:
             raise VerifierValidationFailure(f"native verifier observations[{index}].verdict is invalid")
         verdicts.append(row["verdict"])
+        if row["claimType"] not in {"JUDGE_EVIDENCE", "ACTOR_INCIDENT"}:
+            raise VerifierValidationFailure(
+                f"native verifier observations[{index}].claimType is invalid"
+            )
+        if row["claimType"] == "ACTOR_INCIDENT":
+            if (
+                not isinstance(row["incidentKey"], str)
+                or INCIDENT_KEY_PATTERN.fullmatch(row["incidentKey"]) is None
+            ):
+                raise VerifierValidationFailure(
+                    f"native verifier observations[{index}].incidentKey is invalid"
+                )
+        elif row["incidentKey"] is not None:
+            raise VerifierValidationFailure(
+                f"native verifier observations[{index}] judge claim cannot cite incidentKey"
+            )
         sources = row["citedSources"]
         if not isinstance(sources, list) or not 1 <= len(sources) <= 8:
             raise VerifierValidationFailure(f"native verifier observations[{index}].citedSources is invalid")
@@ -5327,6 +6550,8 @@ def validate_verifier(
     for index, (row, expected_row) in enumerate(zip(rows, expected_rows)):
         if (
             row["observationId"] != expected_row["observationId"]
+            or row["claimType"] != expected_row["claimType"]
+            or row["incidentKey"] != expected_row["incidentKey"]
             or row["citedSources"] != expected_row["citedSources"]
         ):
             raise VerifierValidationFailure(
@@ -5336,6 +6561,9 @@ def validate_verifier(
         "value": verifier,
         "supportedOnly": all(verdict == "SUPPORTED" for verdict in verdicts),
         "verdicts": verdicts,
+        "verdictByObservationId": {
+            row["observationId"]: row["verdict"] for row in rows
+        },
     }
 
 
@@ -5616,11 +6844,11 @@ def _panel_finalization_seal_bytes(
             PANEL_FINALIZATION_SEAL_SCHEMA_PATH,
             "checked-in panel finalization seal schema",
         ),
-        "claimPolicy": "SCORECARD_EXCLUSIVE_WRITE_THEN_O_EXCL_SEAL_FSYNC",
-        "sealPathRule": (
-            "GIT_COMMON_DIR/gridworks-commercial-ux/panel-finalizations/"
-            "{initialPanelSha256Hex}-{panelKindLower}.json"
+        "claimPolicy": (
+            "O_EXCL_SCORECARD_RESERVE_FSYNC_THEN_HOLDOUT_AND_PANEL_SEAL_"
+            "FSYNC_THEN_SCORECARD_WRITE_FSYNC"
         ),
+        "sealPathRule": "EVALUATION_SESSION_CLAIM.fixedArtifactPaths.panelFinalizationSeal",
         "canonicalSealPath": str(seal_path),
         "panelKind": panel_kind,
         "initialPanelSha256": initial_panel_sha256,
@@ -5669,6 +6897,26 @@ def _panel_finalization_seal_bytes(
         "verificationInputSha256": scorecard["verificationInputSha256"],
         "verificationInputRawSha256": provenance["verificationInputRawSha256"],
         "aggregationInputRawSha256": provenance["aggregationInputRawSha256"],
+        "evaluationSessionClaimSha256": provenance[
+            "evaluationSessionClaimSha256"
+        ],
+        "evaluationSessionClaimRawSha256": provenance[
+            "evaluationSessionClaimRawSha256"
+        ],
+        "evaluationSessionPolicySha256": provenance[
+            "evaluationSessionPolicySha256"
+        ],
+        "evaluationSessionClaimToolSha256": provenance[
+            "evaluationSessionClaimToolSha256"
+        ],
+        "evaluationSessionId": provenance["evaluationSessionId"],
+        "evaluationSessionMode": provenance["evaluationSessionMode"],
+        "evaluationAttemptAuditSha256": provenance[
+            "evaluationAttemptAuditSha256"
+        ],
+        "evaluationSelectedAttemptsSha256": provenance[
+            "evaluationSelectedAttemptsSha256"
+        ],
         "scorecardPath": str(scorecard_path.resolve(strict=False)),
         "scorecardRawSha256": scorecard_raw_sha256,
         "scorecardStatus": scorecard["status"],
@@ -5714,10 +6962,7 @@ def _validate_initial_for_replacement(
     expected_path = _replacement_receipt_path(initial["judgePanelSha256"])
     if receipt_path != receipt_path.resolve(strict=False) or receipt_path != expected_path:
         raise ProvenanceFailure("initial replacement receipt path is not canonical/content-addressed")
-    seal_path = _panel_finalization_seal_path(
-        initial["judgePanelSha256"],
-        "INITIAL",
-    )
+    seal_path = resolved.parent / "panel-finalization-seal.json"
     seal_value, seal_raw = read_json_bytes(
         seal_path.resolve(strict=True),
         "initial panel finalization seal",
@@ -5736,11 +6981,11 @@ def _validate_initial_for_replacement(
             PANEL_FINALIZATION_SEAL_SCHEMA_PATH,
             "checked-in panel finalization seal schema",
         ),
-        "claimPolicy": "SCORECARD_EXCLUSIVE_WRITE_THEN_O_EXCL_SEAL_FSYNC",
-        "sealPathRule": (
-            "GIT_COMMON_DIR/gridworks-commercial-ux/panel-finalizations/"
-            "{initialPanelSha256Hex}-{panelKindLower}.json"
+        "claimPolicy": (
+            "O_EXCL_SCORECARD_RESERVE_FSYNC_THEN_HOLDOUT_AND_PANEL_SEAL_"
+            "FSYNC_THEN_SCORECARD_WRITE_FSYNC"
         ),
+        "sealPathRule": "EVALUATION_SESSION_CLAIM.fixedArtifactPaths.panelFinalizationSeal",
         "canonicalSealPath": str(seal_path),
         "panelKind": "INITIAL",
         "initialPanelSha256": initial["judgePanelSha256"],
@@ -5789,6 +7034,26 @@ def _validate_initial_for_replacement(
         "verificationInputSha256": initial["verificationInputSha256"],
         "verificationInputRawSha256": provenance["verificationInputRawSha256"],
         "aggregationInputRawSha256": provenance["aggregationInputRawSha256"],
+        "evaluationSessionClaimSha256": provenance[
+            "evaluationSessionClaimSha256"
+        ],
+        "evaluationSessionClaimRawSha256": provenance[
+            "evaluationSessionClaimRawSha256"
+        ],
+        "evaluationSessionPolicySha256": provenance[
+            "evaluationSessionPolicySha256"
+        ],
+        "evaluationSessionClaimToolSha256": provenance[
+            "evaluationSessionClaimToolSha256"
+        ],
+        "evaluationSessionId": provenance["evaluationSessionId"],
+        "evaluationSessionMode": provenance["evaluationSessionMode"],
+        "evaluationAttemptAuditSha256": provenance[
+            "evaluationAttemptAuditSha256"
+        ],
+        "evaluationSelectedAttemptsSha256": provenance[
+            "evaluationSelectedAttemptsSha256"
+        ],
         "scorecardPath": str(resolved),
         "scorecardRawSha256": bytes_sha256(raw),
         "scorecardStatus": initial["status"],
@@ -5846,6 +7111,7 @@ def _validate_replacement_candidate_stability(
 def _validate_replacement_artifact_freshness(
     initial: dict[str, Any],
     candidate: dict[str, Any],
+    new_execution_identities: dict[str, Any],
 ) -> None:
     required_lanes = initial["replacementRequiredLanes"]
     old_bindings = initial["panelArtifactBindings"]
@@ -5891,6 +7157,68 @@ def _validate_replacement_artifact_freshness(
         )
     if "COVERAGE-JOURNEY" not in required_lanes and old_coverage != new_coverage:
         raise ProvenanceFailure("cold-only replacement must preserve the coverage artifact")
+    old_execution_identities = initial["provenance"]["laneExecutionIdentities"]
+
+    def require_lane_fresh(
+        old_rows: list[dict[str, Any]],
+        new_rows: list[dict[str, Any]],
+        fields: tuple[str, ...],
+        label: str,
+    ) -> None:
+        for field in fields:
+            # Nullable execution components (currently only actor save state)
+            # carry no reusable identity when absent.  Every concrete value is
+            # nevertheless part of the replacement-disjointness authority.
+            old_values = {row[field] for row in old_rows if row[field] is not None}
+            new_values = {row[field] for row in new_rows if row[field] is not None}
+            if old_values & new_values:
+                raise ProvenanceFailure(
+                    f"{label} replacement execution identity {field} must be disjoint"
+                )
+
+    cold_fields = (
+        "actorRunId",
+        "processTreeId",
+        "userDataSha256",
+        "saveSha256",
+        "journalSha256",
+        "recordingManifestSha256",
+        "recordingManifestRawSha256",
+        "recordingContentRootSha256",
+        "canonicalRecordingRoot",
+    )
+    coverage_fields = (
+        "coverageRunId",
+        "processTreeId",
+        "userDataSha256",
+        "journalBundleSha256",
+        "recordingManifestSha256",
+        "recordingManifestRawSha256",
+        "recordingContentRootSha256",
+        "canonicalRecordingRoot",
+    )
+    if "COLD-JOURNEY" in required_lanes:
+        require_lane_fresh(
+            old_execution_identities["cold"],
+            new_execution_identities["cold"],
+            cold_fields,
+            "cold",
+        )
+    elif old_execution_identities["cold"] != new_execution_identities["cold"]:
+        raise ProvenanceFailure(
+            "coverage-only replacement must preserve exact cold execution identities"
+        )
+    if "COVERAGE-JOURNEY" in required_lanes:
+        require_lane_fresh(
+            [old_execution_identities["coverage"]],
+            [new_execution_identities["coverage"]],
+            coverage_fields,
+            "coverage",
+        )
+    elif old_execution_identities["coverage"] != new_execution_identities["coverage"]:
+        raise ProvenanceFailure(
+            "cold-only replacement must preserve exact coverage execution identity"
+        )
 
 
 def _receipt_bytes(
@@ -6006,18 +7334,35 @@ def _receipt_bytes(
 def _reserve_receipt(path: Path) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        return os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError as exception:
         raise ValidationFailure(f"native replacement was already consumed: {path}") from exception
+    _fsync_parent_directory(path)
+    return descriptor
 
 
 def _reserve_holdout_finalization(path: Path) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
-        return os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError as exception:
         raise ValidationFailure(
             f"native holdout receipt/panel was already finalized: {path}"
+        ) from exception
+    _fsync_parent_directory(path)
+    return descriptor
+
+
+def _fsync_parent_directory(path: Path) -> None:
+    try:
+        descriptor = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+    except OSError as exception:
+        raise ValidationFailure(
+            f"native authority parent directory could not be fsynced: {path.parent}: {exception}"
         ) from exception
 
 
@@ -6031,22 +7376,73 @@ def _finalize_reserved_receipt(descriptor: int, path: Path, content: bytes) -> N
         raise ValidationFailure(
             f"native replacement receipt claim was created but incomplete: {path}: {exception}"
         ) from exception
+    _fsync_parent_directory(path)
 
 
-def _exclusive_write(path: Path, content: bytes, replacement_claimed: bool) -> None:
+def _reserve_scorecard_output(path: Path, replacement_claimed: bool) -> int:
     path.parent.mkdir(parents=True, exist_ok=True)
     try:
         descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError as exception:
         detail = " after replacement receipt claim" if replacement_claimed else ""
         raise ValidationFailure(f"native aggregate output already exists{detail}: {path}") from exception
+    _fsync_parent_directory(path)
+    return descriptor
+
+
+def _close_reserved_scorecard_output(descriptor: int, path: Path) -> None:
+    # This helper is only used on a failed aggregation/finalization path.  The
+    # reserved output must remain a schema-invalid tombstone even if the final
+    # writer managed to place a complete PASS document before reporting an
+    # fsync error.  Prefer the still-open reserved descriptor, then fall back
+    # to the already-reserved path when the writer closed it while unwinding.
     try:
-        with os.fdopen(descriptor, "wb") as stream:
-            stream.write(content)
-            stream.flush()
-            os.fsync(stream.fileno())
+        os.ftruncate(descriptor, 0)
+        os.fsync(descriptor)
+    except OSError:
+        try:
+            recovery_descriptor = os.open(path, os.O_WRONLY | os.O_TRUNC)
+            try:
+                os.fsync(recovery_descriptor)
+            finally:
+                os.close(recovery_descriptor)
+        except OSError:
+            pass
+    try:
+        os.close(descriptor)
+    except OSError:
+        pass
+    try:
+        _fsync_parent_directory(path)
+    except ValidationFailure:
+        pass
+
+
+def _finalize_reserved_scorecard_output(
+    descriptor: int,
+    path: Path,
+    content: bytes,
+) -> None:
+    try:
+        offset = 0
+        while offset < len(content):
+            written = os.write(descriptor, content[offset:])
+            if written <= 0:
+                raise OSError("scorecard descriptor made no write progress")
+            offset += written
+        os.fsync(descriptor)
     except OSError as exception:
         raise ValidationFailure(f"native aggregate output could not be completed: {path}: {exception}") from exception
+    # Keep the descriptor open until directory durability succeeds.  If that
+    # final step faults, the caller still owns the exact O_EXCL descriptor and
+    # can atomically truncate the would-be PASS back to its reserved tombstone.
+    _fsync_parent_directory(path)
+    try:
+        os.close(descriptor)
+    except OSError as exception:
+        raise ValidationFailure(
+            f"native aggregate output descriptor could not be closed: {path}: {exception}"
+        ) from exception
 
 
 def _base_output(
@@ -6064,12 +7460,16 @@ def _base_output(
     aggregation_input_raw_sha256: str,
     output_path: Path,
     replacement_for_panel: str | None,
+    lane_execution_identities: dict[str, Any],
 ) -> dict[str, Any]:
     receipt_path = _replacement_receipt_path(panel_sha256)
     provenance = copy.deepcopy(candidate["provenance"])
     provenance["judgePanelSha256"] = panel_sha256
     provenance["aggregationInputRawSha256"] = aggregation_input_raw_sha256
     provenance["verificationInputSha256"] = candidate["verificationInputSha256"]
+    provenance["laneExecutionIdentities"] = copy.deepcopy(
+        lane_execution_identities
+    )
     hard_gates = dict(ledger["hardGates"])
     return {
         "schemaVersion": SCORECARD_SCHEMA,
@@ -6140,6 +7540,7 @@ def _schema_blocked_output(
     replacement_for_panel_sha256: str | None,
     receipt_path: Path | None,
     receipt_sha256: str | None,
+    lane_execution_identities: dict[str, Any],
 ) -> dict[str, Any]:
     panel_sha = candidate["provenance"]["judgePanelSha256"]
     run_ids: list[str] = []
@@ -6163,6 +7564,7 @@ def _schema_blocked_output(
         aggregation_input_raw_sha256,
         output_path,
         replacement_for_panel_sha256,
+        lane_execution_identities,
     )
     if receipt_path is not None:
         base["replacementReceiptPath"] = str(receipt_path)
@@ -6555,6 +7957,8 @@ def compute_native_result(
     actor_by_anonymous_id: dict[str, dict[str, Any]],
     incident_evidence: dict[str, dict[str, set[str]]],
     verification_input: dict[str, Any],
+    verified_verifier: dict[str, Any] | None,
+    lane_execution_identities: dict[str, Any],
     *,
     panel_kind: str,
     replacement_for_panel_sha256: str | None = None,
@@ -6582,6 +7986,7 @@ def compute_native_result(
             replacement_for_panel_sha256,
             receipt_path,
             receipt_sha256,
+            lane_execution_identities,
         )
         blocker = choose_blocker((
             candidate["operationalBlocker"],
@@ -6615,6 +8020,7 @@ def compute_native_result(
         aggregation_input_raw_sha256,
         output_path,
         replacement_for_panel_sha256,
+        lane_execution_identities,
     )
     if receipt_path is not None:
         base["replacementReceiptPath"] = str(receipt_path)
@@ -6650,17 +8056,7 @@ def compute_native_result(
         return base
 
     verifier_blocker: str | None = None
-    try:
-        verified = validate_verifier(
-            verifier,
-            verifier_raw_sha256,
-            candidate,
-            panel["panelSha256"],
-            verification_input,
-        )
-        if not verified["supportedOnly"]:
-            verifier_blocker = "BLOCKED_EVIDENCE_VERIFICATION"
-    except VerifierValidationFailure:
+    if verified_verifier is None or not verified_verifier["supportedOnly"]:
         verifier_blocker = "BLOCKED_EVIDENCE_VERIFICATION"
     base["evidenceVerificationStatus"] = (
         "VERIFIED_SUPPORTED_ONLY"
@@ -6740,6 +8136,7 @@ def aggregate_to_path(
     coverage_action_ledger_path: Path,
     sanitized_evidence_bundle_manifest_path: Path,
     candidate_judge_input_path: Path,
+    evaluation_session_claim_path: Path,
 ) -> dict[str, Any]:
     # Freeze the caller's path interpretation before any shared validator runs
     # with REPOSITORY_ROOT as its working directory.  Without this, a relative
@@ -6794,6 +8191,9 @@ def aggregate_to_path(
         sanitized_evidence_bundle_manifest_path
     ).resolve(strict=False)
     candidate_judge_input_path = Path(candidate_judge_input_path).resolve(strict=False)
+    evaluation_session_claim_path = Path(evaluation_session_claim_path).resolve(
+        strict=False
+    )
 
     if output_path.exists():
         raise ValidationFailure(f"native aggregate output path must be fresh: {output_path}")
@@ -6818,6 +8218,7 @@ def aggregate_to_path(
     holdout_finalization_descriptor: int | None = None
     panel_finalization_path: Path | None = None
     panel_finalization_descriptor: int | None = None
+    scorecard_output_descriptor: int | None = None
     if replacement_for is not None:
         initial, initial_bytes, receipt_path, initial_seal = _validate_initial_for_replacement(
             replacement_for,
@@ -6992,6 +8393,45 @@ def aggregate_to_path(
         holdout_registry_after_path,
         candidate_authority["value"],
     )
+    session_authority = validate_evaluation_session_authority(
+        evaluation_session_claim_path,
+        candidate_authority["value"],
+        manifest_attempt["rawBytes"],
+        holdout_authority["value"],
+        holdout_receipt_attempt["rawBytes"],
+        replacement_context,
+    )
+    validate_evaluation_session_candidate_provenance(
+        session_authority,
+        candidate,
+    )
+    validate_evaluation_session_fixed_artifacts(
+        session_authority,
+        {
+            "goldBinding": gold_binding_path,
+            "anonymization": anonymization_manifest_path,
+            "evidenceSet": evidence_set_path,
+            "sanitizedEvidenceBundle": sanitized_evidence_bundle_manifest_path,
+            "candidateJudgeInput": candidate_judge_input_path,
+            "judgePanel": judge_panel_path,
+            "verificationInput": verification_input_path,
+            "evaluationRun": evaluation_run_path,
+            "aggregationInput": candidate_path,
+            "scorecard": output_path,
+            "panelFinalizationSeal": Path(
+                session_authority["claim"]["fixedArtifactPaths"][
+                    "panelFinalizationSeal"
+                ]
+            ),
+        },
+    )
+    validate_evaluation_session_supporting_artifacts(
+        session_authority,
+        actor_observation_attempts=actor_attempts,
+        actor_trace_attempts=actor_trace_attempts,
+        recording_manifest_attempts=recording_manifest_attempts,
+        coverage_action_ledger_attempt=coverage_action_ledger_attempt,
+    )
     gold_binding_envelope = validate_self_hashed_envelope(
         gold_binding_value,
         gold_binding_attempt["rawBytes"],
@@ -7107,6 +8547,16 @@ def aggregate_to_path(
         gold_binding_path=gold_binding_path,
         candidate_manifest_raw_bytes=manifest_attempt["rawBytes"],
         story_manifest_raw_bytes=story_manifest_attempt["rawBytes"],
+        holdout_consumption_receipt_path=holdout_consumption_receipt_path,
+        registry_before_path=holdout_registry_before_path,
+        registry_after_path=holdout_registry_after_path,
+        evaluation_session_claim_path=evaluation_session_claim_path,
+        holdout_consumption_receipt_raw_bytes=holdout_receipt_attempt[
+            "rawBytes"
+        ],
+        registry_before_raw_bytes=registry_before_attempt["rawBytes"],
+        registry_after_raw_bytes=registry_after_attempt["rawBytes"],
+        evaluation_session_claim_raw_bytes=session_authority["claimRawBytes"],
     )
     validate_runtime_contract_authority(
         candidate_manifest_path,
@@ -7115,6 +8565,7 @@ def aggregate_to_path(
         holdout_consumption_receipt_path,
         holdout_registry_before_path,
         holdout_registry_after_path,
+        evaluation_session_claim_path,
         candidate_manifest_raw_bytes=manifest_attempt["rawBytes"],
         qualification_receipt_raw_bytes=qualification_attempt["rawBytes"],
         gold_binding_raw_bytes=gold_binding_attempt["rawBytes"],
@@ -7123,6 +8574,13 @@ def aggregate_to_path(
         ],
         holdout_registry_before_raw_bytes=registry_before_attempt["rawBytes"],
         holdout_registry_after_raw_bytes=registry_after_attempt["rawBytes"],
+        evaluation_session_claim_raw_bytes=session_authority["claimRawBytes"],
+        initial_evaluation_session_claim_path=session_authority[
+            "initialClaimPath"
+        ],
+        initial_evaluation_session_claim_raw_bytes=session_authority[
+            "initialClaimRawBytes"
+        ],
     )
     _validate_evaluation_replacement_authority(
         evaluation_authority,
@@ -7178,6 +8636,12 @@ def aggregate_to_path(
         actor_rows,
         actor_trace_authorities,
         coverage_authority,
+        coverage_action_ledger_authority,
+    )
+    lane_execution_identities = derive_lane_execution_identities(
+        actor_trace_authorities,
+        coverage_action_ledger_authority,
+        recording_authorities,
     )
     anonymization_authority = validate_anonymization_authority(
         anonymization_value,
@@ -7233,6 +8697,7 @@ def aggregate_to_path(
         _validate_replacement_artifact_freshness(
             replacement_context["initial"],
             candidate,
+            lane_execution_identities,
         )
 
     panel_kind = "REPLACEMENT" if replacement_context is not None else "INITIAL"
@@ -7260,9 +8725,10 @@ def aggregate_to_path(
     holdout_finalization_descriptor = _reserve_holdout_finalization(
         holdout_finalization_path
     )
-    panel_finalization_path = _panel_finalization_seal_path(
-        initial_panel_sha256,
-        panel_kind,
+    panel_finalization_path = Path(
+        session_authority["claim"]["fixedArtifactPaths"][
+            "panelFinalizationSeal"
+        ]
     )
     try:
         panel_finalization_descriptor = _reserve_holdout_finalization(
@@ -7375,6 +8841,11 @@ def aggregate_to_path(
         nonlocal receipt_descriptor
         nonlocal holdout_finalization_descriptor
         nonlocal panel_finalization_descriptor
+        nonlocal scorecard_output_descriptor
+        if scorecard_output_descriptor is not None:
+            descriptor = scorecard_output_descriptor
+            scorecard_output_descriptor = None
+            _close_reserved_scorecard_output(descriptor, output_path)
         if receipt_descriptor is not None:
             attempt_outcome, failure_code = _attempt_failure(
                 [panel_attempt, *judgment_attempts]
@@ -7446,6 +8917,29 @@ def aggregate_to_path(
     # Any rejection after this point is terminalized, including the replacement
     # receipt, so a zero-byte partial claim cannot be deleted and rerolled.
     try:
+        validate_evaluation_session_primary_outputs(
+            session_authority,
+            {
+                "SLOT-01": (
+                    cold_actor_response_paths[0],
+                    cold_actor_response_attempts[0]["rawBytes"],
+                ),
+                "SLOT-02": (
+                    cold_actor_response_paths[1],
+                    cold_actor_response_attempts[1]["rawBytes"],
+                ),
+                "SLOT-03": (
+                    cold_actor_response_paths[2],
+                    cold_actor_response_attempts[2]["rawBytes"],
+                ),
+                "SLOT-04": (coverage_trace_path, coverage_attempt["rawBytes"]),
+                "SLOT-05": (judgment_paths[0], judgment_attempts[0]["rawBytes"]),
+                "SLOT-06": (judgment_paths[1], judgment_attempts[1]["rawBytes"]),
+                "SLOT-07": (judgment_paths[2], judgment_attempts[2]["rawBytes"]),
+                "SLOT-08": (verifier_path, verifier_attempt["rawBytes"]),
+                "SLOT-09": (oracle_path, oracle_attempt["rawBytes"]),
+            },
+        )
         bind_judge_attempt_transports(
             evaluation_authority["value"],
             panel_attempt,
@@ -7549,6 +9043,7 @@ def aggregate_to_path(
 
     try:
         verification_input_authority = verification_input_envelope
+        verified_verifier_authority: dict[str, Any] | None = None
         if panel is not None:
             if panel_authority is None:
                 raise ValidationFailure("validated judge panel is missing its raw authority")
@@ -7564,6 +9059,18 @@ def aggregate_to_path(
                 gold_binding_authority,
                 sanitized_bundle_authority,
             )
+            try:
+                verified_verifier_authority = validate_verifier(
+                    verifier_value,
+                    verifier_attempt["rawSha256"],
+                    candidate,
+                    panel["panelSha256"],
+                    verification_input_authority,
+                )
+            except VerifierValidationFailure:
+                # A schema/semantic verifier failure is a score blocker, not an
+                # authority exception.  No incident/cap status is trusted.
+                verified_verifier_authority = None
         oracle = validate_oracle_ledger(
             oracle_value,
             oracle_attempt["rawSha256"],
@@ -7573,6 +9080,8 @@ def aggregate_to_path(
             gold_binding_authority,
             verification_input_authority,
             evaluation_authority,
+            recording_authorities,
+            verified_verifier_authority,
         )
         incident_evidence = validate_incident_actor_evidence(
             oracle["incidents"],
@@ -7607,6 +9116,8 @@ def aggregate_to_path(
             evidence_authority["actorAuthoritiesByAnonymousId"],
             incident_evidence,
             verification_input_authority,
+            verified_verifier_authority,
+            lane_execution_identities,
             panel_kind="REPLACEMENT" if replacement_context is not None else "INITIAL",
             replacement_for_panel_sha256=(
                 replacement_context["initial"]["judgePanelSha256"]
@@ -7620,15 +9131,6 @@ def aggregate_to_path(
         )
         output = json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True).encode("utf-8") + b"\n"
         output_sha256 = bytes_sha256(output)
-        _exclusive_write(
-            output_path,
-            output,
-            replacement_claimed=replacement_context is not None,
-        )
-    except Exception:
-        terminalize_claimed_failure("AGGREGATION_FAILURE")
-        raise
-    try:
         holdout_success_bytes = _holdout_finalization_bytes(
             holdout_authority,
             evaluation_authority,
@@ -7644,27 +9146,47 @@ def aggregate_to_path(
             output_path,
             output_sha256,
         )
+        # Reserve the user-visible scorecard before either success authority is
+        # finalized.  Until both receipts are durable this path remains a
+        # zero-byte, schema-invalid tombstone; it can never expose a valid PASS.
+        scorecard_output_descriptor = _reserve_scorecard_output(
+            output_path,
+            replacement_claimed=replacement_context is not None,
+        )
+    except Exception:
+        terminalize_claimed_failure("AGGREGATION_FAILURE")
+        raise
+    try:
+        if holdout_finalization_descriptor is None:
+            raise ValidationFailure("holdout finalization singleton was not reserved")
+        descriptor = holdout_finalization_descriptor
+        holdout_finalization_descriptor = None
+        _finalize_reserved_receipt(
+            descriptor,
+            holdout_finalization_path,
+            holdout_success_bytes,
+        )
+        if panel_finalization_descriptor is None:
+            raise ValidationFailure("panel finalization singleton was not reserved")
+        descriptor = panel_finalization_descriptor
+        panel_finalization_descriptor = None
+        _finalize_reserved_receipt(
+            descriptor,
+            panel_finalization_path,
+            panel_success_bytes,
+        )
+        if scorecard_output_descriptor is None:
+            raise ValidationFailure("native aggregate output was not reserved")
+        descriptor = scorecard_output_descriptor
+        _finalize_reserved_scorecard_output(
+            descriptor,
+            output_path,
+            output,
+        )
+        scorecard_output_descriptor = None
     except Exception:
         terminalize_claimed_failure("FINALIZATION_FAILURE")
         raise
-    if holdout_finalization_descriptor is None:
-        raise ValidationFailure("holdout finalization singleton was not reserved")
-    descriptor = holdout_finalization_descriptor
-    holdout_finalization_descriptor = None
-    _finalize_reserved_receipt(
-        descriptor,
-        holdout_finalization_path,
-        holdout_success_bytes,
-    )
-    if panel_finalization_descriptor is None:
-        raise ValidationFailure("panel finalization singleton was not reserved")
-    descriptor = panel_finalization_descriptor
-    panel_finalization_descriptor = None
-    _finalize_reserved_receipt(
-        descriptor,
-        panel_finalization_path,
-        panel_success_bytes,
-    )
     return result
 
 
@@ -7700,6 +9222,7 @@ def main() -> None:
         type=Path,
     )
     parser.add_argument("--candidate-judge-input", required=True, type=Path)
+    parser.add_argument("--evaluation-session-claim", required=True, type=Path)
     parser.add_argument("--rubric", type=Path, default=DEFAULT_RUBRIC_PATH)
     parser.add_argument("--replacement-for", type=Path)
     parser.add_argument("--output", required=True, type=Path)
@@ -7735,6 +9258,7 @@ def main() -> None:
                 args.sanitized_evidence_bundle_manifest
             ),
             candidate_judge_input_path=args.candidate_judge_input,
+            evaluation_session_claim_path=args.evaluation_session_claim,
         )
     except ValidationFailure as exception:
         raise SystemExit(str(exception)) from exception

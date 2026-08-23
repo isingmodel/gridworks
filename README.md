@@ -27,8 +27,9 @@
 
 87점 평가 계약과 고정 judge 조건은 [실시간 상용 UX 87 계약](docs/scopes/COMMERCIAL_UX_87.md)이 보존한다.
 다만 최신 사용자 지시는 그 반복과 native 직접 플레이를 여기서 멈추고, 지금까지 구현·review된 R2.3을
-유지한 채 기존 G3 아이소메트릭 디자인을 live R2 화면에 적용한 뒤 중단하는 것이다. 현재 단일 활성
-구현 범위는 [에셋 스타일 계약의 A1-G3 carve-out](docs/scopes/ASSET_STYLE_REALTIME_GAME.md#a1-g3--기존-g3-시각-적용-carve-out--활성)이다.
+유지한 채 기존 G3 아이소메트릭 디자인을 live R2 화면에 적용한 뒤 중단하는 것이다. 그 bounded
+적용은 완료됐으며, 현재 추가 구현 범위는 없다. 정확한 경계와 완료 증거는
+[에셋 스타일 계약의 A1-G3 carve-out](docs/scopes/ASSET_STYLE_REALTIME_GAME.md)에 보존한다.
 
 ## 현재 상태와 권한
 
@@ -49,8 +50,8 @@ record까지 확인해 이 gate를 비점수 완료했다. A1 art, 5–8장, per
 capture는 열지 않았다. UX-R2.3은 누적 상태를 위조하지 않는 exact 4장 route로
 `NORTH_BANK_PROMISE`의 명시적 6개월 달력 전환과 한 줄 rail의 최초 약속 마감·Keep/Defer 분기를
 source `aee4932`와 truth-preservation fix `d85bb3f`에 구현했다. 두 source/fix 독립 검토는 모두
-P0 0/P1 0이며, 사용자 지시로 native direct-play 관찰은 보류했다. 대신 현재 한 번만 local `main`의
-provenanced G3 visual layer를 같은 live R2 route에 적용한다.
+P0 0/P1 0이며, 사용자 지시로 native direct-play 관찰은 보류했다. local `main`의 provenanced G3
+visual layer는 같은 live R2 route에 bounded 적용을 마쳤고, 다음 gate는 열지 않는다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -70,22 +71,24 @@ provenanced G3 visual layer를 같은 live R2 route에 적용한다.
   주장하지 않는다.
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
 - 평가 gate: UX-R2.3 source/fix review 뒤 user-requested native 관찰 보류; official 점수 작업 중단
-- 활성 제품 아트 gate: `A1_G3_EXISTING_VISUAL_APPLICATION` — existing G3 assets만 live R2 renderer에 적용
+- 완료 제품 아트 gate: `A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE` — existing G3 assets 35개만 live R2 renderer에 적용
 - native/score capture: 이번 작업에서 수행하지 않음; score-bearing capture 계속 미허용
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
-GoalDirection = ACTIVE
-ActiveScope = A1_G3_EXISTING_VISUAL_APPLICATION
+GoalDirection = PAUSED_USER_REQUESTED_STOP_AFTER_A1_G3_COMPLETION
+ActiveScope = NONE_USER_STOP_AFTER_A1_G3_COMPLETION
 ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
 NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
-UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP
+UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP_COMPLETE
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_ACTIVE
-NextCandidate = G3_R2_VISUAL_LAYER_ONLY
+ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE
+NextCandidate = NONE_USER_REQUESTED_STOP
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
-RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_PENDING_INTEGRATION
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_APPLIED_35_SHA256_VERIFIED
+A1G3ProductSource = COMMITS_1D8095D_AND_FD60141
+A1G3SourceReview = PASS_FOR_A1_G3_SOURCE_FIX_P0_0_P1_0
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL

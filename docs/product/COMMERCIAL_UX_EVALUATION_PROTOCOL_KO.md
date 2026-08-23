@@ -215,8 +215,8 @@ forecast flood 표시를 source `659709d`와 fix `40ed3fa`에서 구현하고, �
 fresh-process 세 장 actual-input 경로로 비점수 완료했다. 이 gate에서도 official score는 만들지 않았다.
 UX-R2.3은 `NORTH_BANK_PROMISE` 한 장의 누적 4장 route, 명시적 calendar transition, 약속 마감
 Decision marker와 Keep/Defer 분기를 source `aee4932`과 fix `d85bb3f`에 구현했다. source/fix independent
-review는 P0 0/P1 0이며, 최신 사용자 지시는 native direct-play·judge 반복을 보류하고 existing G3
-visual layer를 live R2에 적용한 뒤 중단하는 것이다. 본편 5–8장·save/finale/epilogue와 score-bearing
+review는 P0 0/P1 0이다. 최신 사용자 지시의 existing G3 visual layer live R2 적용은 완료됐고, native
+direct-play·judge 반복은 계속 보류한다. 본편 5–8장·save/finale/epilogue와 score-bearing
 judge lane은 계속 미개방이다.
 
 ```text
@@ -227,8 +227,8 @@ ScoreBearingCaptureAllowed = false
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
 NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
-NextCandidate = G3_R2_VISUAL_LAYER_ONLY
-UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP
+NextCandidate = NONE_USER_REQUESTED_STOP
+UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP_COMPLETE
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY

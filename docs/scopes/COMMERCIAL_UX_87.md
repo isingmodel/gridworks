@@ -7,8 +7,8 @@
 > 목표: 고정 `gpt-5.6-sol` + reasoning effort `ultra`의 공식
 > `CommercialUXProxy >= 87`
 
-이 문서는 고정 judge·UX 평가 계약을 보존한다. 현재 단일 구현 scope는 제품 방향 계약의
-`A1_G3_EXISTING_VISUAL_APPLICATION`이며, 제품 방향은 turn 단위 진행이 아니라
+이 문서는 고정 judge·UX 평가 계약을 보존한다. A1-G3 bounded visual application은 완료됐고 현재 추가 구현
+scope는 없다. 제품 방향은 turn 단위 진행이 아니라
 pause·1×·2×·4× 속도, 계속 흐르는 시계, 미리 보이는 사건과 시간에 따른 공사·열 노출·정지·회복을
 가진 실시간 전력망 게임으로 고정한다. `origin/main`의 Release.V3/R2 기반을 이 방향의 권위로
 사용하며, 과거 `codex/commercial-ux-87`의 V2 runtime 구현을 합치지 않는다.
@@ -716,13 +716,16 @@ NORTH_BANK_PROMISE/result/defer                      f6f8657f3f223724dbeb749ab80
 ## 9. 현재 상태
 
 ```text
-ActiveScope = A1_G3_EXISTING_VISUAL_APPLICATION
+ActiveScope = NONE_USER_STOP_AFTER_A1_G3_COMPLETION
 ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
 NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
-NextCandidate = G3_R2_VISUAL_LAYER_ONLY
-UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP
+NextCandidate = NONE_USER_REQUESTED_STOP
+UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP_COMPLETE
 ProductDirection = ASSET_STYLE_REALTIME_GAME
-ProductArtGate = A1_G3_EXISTING_VISUAL_APPLICATION_ACTIVE
+ProductArtGate = A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_APPLIED_35_SHA256_VERIFIED
+A1G3ProductSource = COMMITS_1D8095D_AND_FD60141
+A1G3SourceReview = PASS_FOR_A1_G3_SOURCE_FIX_P0_0_P1_0
 RealtimeAuthority = RELEASE_V3_PLUS_R2
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL

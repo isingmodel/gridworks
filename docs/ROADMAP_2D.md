@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · A1-G3 visual application 활성**
-> 제품 아트: **A1-G3 existing visual layer만 개방; 일반 A1/A2–A5 미개방**
+> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · A1-G3 visual application 완료·사용자 중단**
+> 제품 아트: **A1-G3 existing visual layer 적용 완료; 일반 A1/A2–A5 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
 정한다. 로드맵의 다음 단계는 자동 구현 권한이 아니다. 권한은 루트 [README](../README.md), 정확한
@@ -146,12 +146,12 @@ full deterministic suites, story hashes, UI matrix와 두 bounded source/fix rev
 통과했다. user-requested native KEEP observation은 보류하며, source와 review 사실은
 [실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md)가 보존한다.
 
-## A1-G3 — 기존 visual layer 적용 — 활성
+## A1-G3 — 기존 visual layer 적용 — 완료·사용자 중단
 
 current live R2의 controller/input/event rail/Core를 유지하고, local `main` `cf5da56`의 provenanced G3
-asset tree만 `RealtimePlaceholderMap` rendering layer에 적용한다. V2 `CommercialMain`, data/world, map
-input과 default/package를 합치지 않는다. exact allowlist, provenance 및 종료 조건은
-[제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md#a1-g3--기존-g3-시각-적용-carve-out--활성)이 소유한다.
+asset tree 35개만 `RealtimePlaceholderMap` rendering layer에 적용했다. V2 `CommercialMain`, data/world,
+map input과 default/package를 합치지 않았다. exact allowlist, provenance 및 종료 증거는
+[제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)이 소유한다. 사용자 지시로 다음 단계는 열지 않는다.
 
 ## A1 — 일반 운전 아트 vertical slice — A1-G3 외 범위는 미개방
 

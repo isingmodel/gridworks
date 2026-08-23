@@ -29,7 +29,7 @@ docs/
 | 질문 | 소유 문서 | 경계 |
 |---|---|---|
 | 지금 무엇을 할 수 있는가? | [루트 README](../README.md) | 목표와 코드 구현 권한을 구분 |
-| 현재 단일 작업 scope와 gate는 무엇인가? | [에셋 스타일 실시간 게임 계약](scopes/ASSET_STYLE_REALTIME_GAME.md#a1-g3--기존-g3-시각-적용-carve-out--활성) | 기존 G3 visual layer만 R2에 적용; V2 gameplay 병합 금지 |
+| 마지막 bounded 작업 scope와 gate는 무엇이었는가? | [에셋 스타일 실시간 게임 계약](scopes/ASSET_STYLE_REALTIME_GAME.md) | G3 visual layer R2 적용 완료; V2 gameplay 병합 금지, 다음 gate 중단 |
 | LLM 점수와 증거를 어떻게 만드는가? | [상용 UX 평가 프로토콜](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md) | 사람 검토·공식 출시 승인을 대신하지 않음 |
 | 스토리 파트 하나만 어떻게 검사하는가? | [평가 도구 안내](../tools/commercial-ux/README.md) | authored reachability를 native reachability로 주장하지 않음 |
 | 최종적으로 어떤 게임을 만드는가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 단계별 파일·절차는 만들지 않음 |
@@ -54,14 +54,14 @@ docs/
 ## 현재 경계
 
 - `CurrentGoal = ASSET_STYLE_REALTIME_GAME`
-- `ActiveScope = A1_G3_EXISTING_VISUAL_APPLICATION`
+- `ActiveScope = NONE_USER_STOP_AFTER_A1_G3_COMPLETION`
 - `ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW`
 - `NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION`
-- `UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP`
-- `ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_ACTIVE`
+- `UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP_COMPLETE`
+- `ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE`
 - `DocumentationBaseline = A0_COMPLETE`
 - `ArchitecturePreparation = COMPLETE`
-- `NextCandidate = G3_R2_VISUAL_LAYER_ONLY`
+- `NextCandidate = NONE_USER_REQUESTED_STOP`
 - `RealtimeRuleAuthority = RELEASE_V3`
 - `RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3`
 - `FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL`
@@ -133,7 +133,7 @@ docs/
 ## 작업 읽기 순서
 
 1. 루트 [README](../README.md)를 읽는다.
-2. 루트가 지목한 [활성 A1-G3 scope](scopes/ASSET_STYLE_REALTIME_GAME.md#a1-g3--기존-g3-시각-적용-carve-out--활성)를
+2. 현재 구현 권한은 없다. 재개를 승인할 때만 [마지막 A1-G3 scope](scopes/ASSET_STYLE_REALTIME_GAME.md)를
    처음부터 끝까지 읽는다.
 3. UX 평가 사실을 다루면 [실시간 상용 UX 87 계약](scopes/COMMERCIAL_UX_87.md)을 추가로 읽는다.
 4. 작업 질문의 소유 문서 하나만 추가로 읽는다.

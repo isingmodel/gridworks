@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 목표 계약
 
-> 문서 상태: **UX-R2.3 source/review 완료·native 관찰 보류 · A1-G3 existing visual application carve-out 활성**
-> 제품 아트: `A1_G3_EXISTING_VISUAL_APPLICATION` — 사용자 명시 승인
+> 문서 상태: **UX-R2.3 source/review 완료·native 관찰 보류 · A1-G3 existing visual application carve-out 완료·사용자 중단**
+> 제품 아트: `A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE` — 사용자 명시 승인 범위 완료
 
 ## 1. 목표
 
@@ -341,12 +341,19 @@ exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.3](COMMERCI
 save/persistence, promise ledger/epilogue, default/export/package와 score-bearing capture는 금지한다.
 source commit·build·독립 review 전 native capture도 금지한다. 이 gate는 A1 art 채택 승인이 아니다.
 
-### A1-G3 — 기존 G3 시각 적용 carve-out — 활성
+### A1-G3 — 기존 G3 시각 적용 carve-out — 완료·사용자 중단
 
 사용자는 UX-R2.3의 구현·결정론 검증·독립 source/fix review까지의 결과를 유지하고,
 더 이상의 87점 반복·native 직접 플레이·새 캠페인 작업 대신 **기존의 멋진 G3 아이소메트릭 디자인을
 현재 live R2 route에 적용한 뒤 중단**하도록 명시했다. 이 지시는 일반 A1–A5를 자동으로 열지 않고,
 아래의 이미 존재하는 visual-only 자산과 renderer만 한 번 적용하도록 범위를 좁힌다.
+
+적용은 `1d8095d`와 geometry truth fix `fd60141`로 완료됐다. 35개 allowlisted PNG는
+`RealtimePlaceholderMap`의 draw-only layer에만 사용했고, independent source review는
+`PASS_FOR_A1_G3_SOURCE_FIX — P0 0 / P1 0`이다. deterministic evidence는 Debug build 0 warning,
+G3 35-asset/provenance check, Realtime 25 suites/1,077 assertions, Commercial 31 suites/7,084 assertions,
+34-part text-plan tools 및 full headless R2 UI harness PASS다. 사용자 지시대로 이 완료 사실은 다음 구현
+gate를 열지 않는다.
 
 player outcome은 `RealtimeSliceMain`의 현재 real-time clock, 한 줄 future-event rail, ContextDock,
 pointer/keyboard ownership과 Core 결과를 그대로 둔 채, FHD 작업 보기에서 숯빛 재질의 지형·강·도로·
@@ -450,8 +457,8 @@ evaluator는 수정하지 않는다. 새 art 생성, composite background, map p
 - 한국어·전력설비 전문 검토
 - 권리·서명·공증·공개 배포의 별도 승인
 
-로드맵 항목은 구현 권한이 아니다. A0·A0.1·UX-R2.1·UX-R2.2는 완료됐고 UX-R2.3은 source/fix review를
-통과했으나 user-requested native observation은 보류됐다. 현재 추가 코드 권한은 위 A1-G3 exact allowlist뿐이며,
+로드맵 항목은 구현 권한이 아니다. A0·A0.1·UX-R2.1·UX-R2.2와 A1-G3 carve-out은 완료됐고 UX-R2.3은
+source/fix review를 통과했으나 user-requested native observation은 보류됐다. 현재 추가 코드 권한은 없으며,
 일반 A1의 나머지와 A2–A5는 열지 않았다.
 
 현재 사용자의 A1-G3 지시는 [실시간 상용 UX 87 scope](COMMERCIAL_UX_87.md)의 실시간 제품 방향을

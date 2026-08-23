@@ -1,8 +1,8 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · A1-G3 visual application 활성**
-> 제품 아트: **A1-G3만 개방; 일반 A1/A2–A5 미개방**
+> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · A1-G3 visual application 완료·사용자 중단**
+> 제품 아트: **A1-G3 적용 완료; 일반 A1/A2–A5 미개방**
 
 이 문서는 단계 상태와 증거 상한만 기록한다. 제품 기능과 시각 규격은
 [제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)과 [로드맵](ROADMAP_2D.md), 현재 평가 작업은
@@ -19,7 +19,7 @@
 | UX-R2.1 FIRST_LIGHT release tutorial/rail | **완료** | 실제 release 1장 briefing→live→authored result, 단일 chronological rail, interactive checkpoint host | source `e385707`, build·회귀·독립 P0/P1 0 | FIRST_LIGHT+두 checkpoint actual-input PASS | 이 문서 종료 commit |
 | UX-R2.2 tutorial prefix | **완료** | FIRST_LIGHT→SECOND_HEART→SECOND_SOURCE 누적 진행, 2회선 조건, result/briefing, forecast flood | source `659709d`+fix `40ed3fa`, build·회귀·UI PASS | fresh-process 세 장+full-flow record | source/fix와 closure `cf6398a` 독립 P0/P1 0 |
 | UX-R2.3 NORTH_BANK promise | **구현·review 완료 / native 보류** | 누적 4장, 명시적 6개월 전환, deadline rail, Keep/Defer branch | source `aee4932` + fix `d85bb3f`, P0 0/P1 0 | user-requested native 보류 | score/evaluation 작업 중단 |
-| A1-G3 기존 visual layer | **활성** | existing G3 city/grid/terrain assets를 live R2 map에 적용 | build·R2/UI regressions 예정 | 미수집 | 적용·review 뒤 사용자 지시대로 중단 |
+| A1-G3 기존 visual layer | **완료 / 사용자 중단** | existing G3 city/grid/terrain assets 35개를 live R2 map에 적용 | build·R2/UI regressions·source review PASS | native/score 미수집 | 다음 gate 열지 않음 |
 | A1 일반 운전 아트 slice | **A1-G3 외 미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 별도 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -186,12 +186,12 @@ default/export/package와 score-bearing capture를 열지 않는다.
 - [x] 사용자 승인: existing G3 design만 적용 후 중단
 - [x] source tree `main:cf5da56`·provenance ledger·R2-only boundary 고정
 - [x] Core/data/V2 gameplay/default/package/evaluator 비수정 경계 고정
-- [ ] G3 terrain/river/road/city/grid asset import와 manifest 결속
-- [ ] `RealtimePlaceholderMap` draw layer 적용; input/hit/focus/AX owner 보존
-- [ ] neutral/heat/rain draw presence와 existing state/risk cue smoke
-- [ ] build·full Realtime/Commercial/text/UI regression
-- [ ] independent review P0/P1 0과 current-state commit
-- [ ] 다음 gate 금지 / user-requested stop 기록
+- [x] G3 terrain/river/road/city/grid asset import와 35-asset SHA manifest 결속
+- [x] `RealtimePlaceholderMap` draw layer 적용; input/hit/focus/AX owner 보존
+- [x] neutral/heat/rain draw presence와 existing state/risk cue smoke
+- [x] build·full Realtime/Commercial/text/UI regression 및 independent source review
+- [x] independent review P0/P1 0과 current-state commit
+- [x] 다음 gate 금지 / user-requested stop 기록
 
 ## A1 개방 전 체크
 
@@ -227,16 +227,18 @@ default/export/package와 score-bearing capture를 열지 않는다.
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
-ActiveScope = A1_G3_EXISTING_VISUAL_APPLICATION
+ActiveScope = NONE_USER_STOP_AFTER_A1_G3_COMPLETION
 ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
 NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
-UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP
+UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP_COMPLETE
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_ACTIVE
-NextCandidate = G3_R2_VISUAL_LAYER_ONLY
+ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE
+NextCandidate = NONE_USER_REQUESTED_STOP
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
-RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_PENDING_INTEGRATION
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_APPLIED_35_SHA256_VERIFIED
+A1G3ProductSource = COMMITS_1D8095D_AND_FD60141
+A1G3SourceReview = PASS_FOR_A1_G3_SOURCE_FIX_P0_0_P1_0
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL

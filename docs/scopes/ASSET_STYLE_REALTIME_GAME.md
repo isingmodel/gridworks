@@ -269,8 +269,9 @@ harness가 처음부터 시작한다는 이유는 충분하지 않다.
 - 처음부터 실제 흐름: `FULL_FLOW_E2E_PASS:<FlowId>`
 - save/fresh process: `FRESH_PROCESS_RESTORE_PASS:<SaveId>`
 
-현재 UX-R2.1의 위 한 장·두 구간 actual-input label은 아직 생성되지 않았다. source/controller/headless
-검사만으로 label을 문서에 PASS로 적지 않는다.
+UX-R2.1의 위 한 장·두 구간 actual-input label은 production mouse/keyboard 입력으로 생성됐다. label은
+source/controller/headless 검사만으로 만들지 않았으며 exact record는 상용 UX scope가 소유한다. 세 record는
+모두 non-score 증거이고 official capture나 `CommercialUXProxy` 근거가 아니다.
 
 구간 PASS를 onboarding·전체 campaign·package PASS로 확대하지 않고, 전체 E2E를 좁은 결함 재현에
 매번 반복하지 않는다. 실패한 구간은 가장 가까운 앞 checkpoint까지 좁혀 재현한다.
@@ -342,18 +343,18 @@ official capture나 `CommercialUXProxy` 증거가 아니며 UX-R2.2를 자동으
 - 한국어·전력설비 전문 검토
 - 권리·서명·공증·공개 배포의 별도 승인
 
-로드맵 항목은 구현 권한이 아니다. A0와 사용자가 별도로 승인한 A0.1 구조 준비는 완료됐고, 현재 추가
-코드 권한은 위 UX-R2.1 exact carve-out 하나뿐이다. art gate는 없다.
+로드맵 항목은 구현 권한이 아니다. A0·A0.1·UX-R2.1은 완료됐고 `ActiveEvaluationGate = NONE`이다.
+현재 추가 코드 권한은 없으며 art gate도 없다.
 
 현재 사용자가 별도로 승인한 [실시간 상용 UX 87 scope](COMMERCIAL_UX_87.md)는 이 계약의 실시간
-제품 방향을 바꾸지 않는다. UX-R0·UX-R1은 완료됐고 UX-R2.1만 위 경계의 runtime 파일을 소유한다.
-이후 runtime gate는 UX scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서 명시적으로 재조정한
-뒤에만 열린다.
+제품 방향을 바꾸지 않는다. UX-R0·UX-R1·UX-R2.1은 완료됐고 UX-R2.2는 아직 열리지 않았다. 이후
+runtime gate는 UX scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서 명시적으로 재조정한 뒤에만
+열린다.
 
 ## 10. A1 개방 조건
 
-현재 UX-R2.1 승인은 logic/presentation carve-out이며 A1 art 채택 승인이 아니다. A1을 별도 gate로
-개방하기 전에는 그 범위를 넘어 runtime asset/world 파일을 추가·수정하지 않는다. 개방 시 계약은
+완료된 UX-R2.1은 logic/presentation carve-out이었으며 A1 art 채택 승인이 아니었다. A1을 별도 gate로
+개방하기 전에는 완료 범위를 넘어 runtime asset/world 파일을 추가·수정하지 않는다. 개방 시 계약은
 다음을 먼저 고정해야 한다.
 
 - exact source asset allowlist와 provenance

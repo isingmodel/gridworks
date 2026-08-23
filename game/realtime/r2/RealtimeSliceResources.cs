@@ -11,6 +11,7 @@ internal enum RealtimeSliceSourceRoute
 {
     TechnicalCheckpointFixture,
     ReleaseFirstLight,
+    ReleaseTutorialThroughSecondSource,
 }
 
 internal sealed record RealtimeSliceData(
@@ -109,6 +110,49 @@ internal static class RealtimeSliceResources
             Sha256(worldBytes),
             identity.SelectedComposedCampaignSha256,
             RealtimeSliceSourceRoute.ReleaseFirstLight,
+            identity.RealtimeOverlaySha256,
+            identity.FullComposedCampaignSha256);
+    }
+
+    internal static RealtimeSliceData LoadReleaseTutorialThroughSecondSource(
+        Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        byte[] baseWorldBytes = Read(assembly, BaseWorldResource);
+        byte[] baseCampaignBytes = Read(assembly, BaseCampaignResource);
+        byte[] worldBytes = Read(assembly, ReleaseWorldResource);
+        byte[] campaignOverlayBytes = Read(
+            assembly,
+            ReleaseCampaignOverlayResource);
+
+        CommercialWorldDefinition baseWorld = CommercialWorldLoader.Load(baseWorldBytes);
+        RealtimeWorldDefinition world = RealtimeWorldLoader.Load(worldBytes, baseWorld);
+        RealtimeCampaignOverlayLoadResult loaded =
+            RealtimeCampaignOverlayLoader.LoadPrefix(
+                baseCampaignBytes,
+                campaignOverlayBytes,
+                world,
+                chapterCount: 3);
+        RealtimeCampaignOverlaySourceIdentity identity = loaded.SourceIdentity;
+        if (!string.Equals(
+                identity.BaseCampaignSha256,
+                Sha256(baseCampaignBytes),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Release tutorial base-campaign source identity drifted.");
+        }
+
+        return new RealtimeSliceData(
+            baseWorld,
+            loaded.Campaign.Content,
+            world,
+            loaded.Campaign,
+            Sha256(baseWorldBytes),
+            identity.BaseCampaignSha256,
+            Sha256(worldBytes),
+            identity.SelectedComposedCampaignSha256,
+            RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource,
             identity.RealtimeOverlaySha256,
             identity.FullComposedCampaignSha256);
     }

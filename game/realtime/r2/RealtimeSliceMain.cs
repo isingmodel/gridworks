@@ -171,8 +171,10 @@ internal sealed partial class RealtimeSliceMain : Control
 {
     private static readonly Vector2I RequiredLogicalCanvas = new(1920, 1080);
     private const string ReleaseChapterArgumentPrefix = "--release-chapter=";
+    private const string ReleaseThroughArgumentPrefix = "--release-through=";
     private const string FirstReleaseChapterId =
         RealtimeCampaignOverlayLoader.FirstReleaseChapterId;
+    private const string TutorialFinalChapterId = "SECOND_SOURCE";
     private const int VirtualFramesPerSecond = 60;
     private const long NanosecondsPerSecond = 1_000_000_000;
     private const long CatchUpCeilingMinutes = 30;
@@ -181,6 +183,9 @@ internal sealed partial class RealtimeSliceMain : Control
     private readonly HashSet<string> _autoPausedIncidentKeys = new(StringComparer.Ordinal);
     private readonly Dictionary<RealtimePointerOwner, int> _clickCounters = [];
     private readonly Queue<PendingFrameBatch> _retainedFrameDebt = [];
+    private readonly RealtimeTutorialChapterFlow _tutorialFlow = new();
+    private readonly HashSet<string> _formativeTutorialResultChapterIds =
+        new(StringComparer.Ordinal);
     private RealtimeSliceData? _data;
     private RealtimeCampaignRun? _run;
     private RealtimeFrameAccumulator? _frame;
@@ -207,6 +212,7 @@ internal sealed partial class RealtimeSliceMain : Control
     private RealtimeSliceSourceRoute _sourceRoute =
         RealtimeSliceSourceRoute.TechnicalCheckpointFixture;
     private bool _formativeDirectPlayRecorded;
+    private bool _formativeTutorialFullFlowRecorded;
 
 #if DEBUG
     private RealtimeSmokeLinePlan? _smokeLinePlan;
@@ -254,10 +260,16 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void Bootstrap()
     {
-        _data = _sourceRoute == RealtimeSliceSourceRoute.ReleaseFirstLight
-            ? RealtimeSliceResources.LoadReleaseFirstLight(
-                typeof(RealtimeSliceMain).Assembly)
-            : RealtimeSliceResources.Load(typeof(RealtimeSliceMain).Assembly);
+        _data = _sourceRoute switch
+        {
+            RealtimeSliceSourceRoute.ReleaseFirstLight =>
+                RealtimeSliceResources.LoadReleaseFirstLight(
+                    typeof(RealtimeSliceMain).Assembly),
+            RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource =>
+                RealtimeSliceResources.LoadReleaseTutorialThroughSecondSource(
+                    typeof(RealtimeSliceMain).Assembly),
+            _ => RealtimeSliceResources.Load(typeof(RealtimeSliceMain).Assembly),
+        };
         if (_data.SourceRoute != _sourceRoute)
         {
             throw new InvalidOperationException(
@@ -288,6 +300,9 @@ internal sealed partial class RealtimeSliceMain : Control
         _timelineClusterIndex = 0;
         _draftCancelArmed = false;
         _formativeDirectPlayRecorded = false;
+        _formativeTutorialResultChapterIds.Clear();
+        _formativeTutorialFullFlowRecorded = false;
+        _tutorialFlow.Reset();
 #if DEBUG
         if (_data.SourceRoute == RealtimeSliceSourceRoute.TechnicalCheckpointFixture)
         {
@@ -712,6 +727,14 @@ internal sealed partial class RealtimeSliceMain : Control
         foreach (RealtimeTransition transition in transitions)
         {
             _emittedTransitions.Add(transition);
+            if (_data?.SourceRoute ==
+                RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource)
+            {
+                _tutorialFlow.Observe(
+                    transition,
+                    _run!.GetSnapshot(),
+                    _data.BaseCampaign);
+            }
             if (transition.Kind == RealtimeTransitionKind.ThermalProtectiveTrip)
             {
                 string key = $"{transition.Minute}:{transition.AssetKind}:{transition.AssetId}";
@@ -724,7 +747,9 @@ internal sealed partial class RealtimeSliceMain : Control
                     _frame!.Pause();
                 }
             }
-            else if (transition.Kind == RealtimeTransitionKind.CampaignCompleted)
+            else if (transition.Kind == RealtimeTransitionKind.CampaignCompleted &&
+                     _data?.SourceRoute !=
+                         RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource)
             {
                 _interaction = RealtimeInteractionReducer.AutoPause(
                     _interaction!,
@@ -743,6 +768,7 @@ internal sealed partial class RealtimeSliceMain : Control
                 _frame!.Pause();
             }
         }
+        TryOpenTutorialModal();
     }
 
     private void Present()
@@ -1128,6 +1154,12 @@ internal sealed partial class RealtimeSliceMain : Control
         if (result.Accepted)
         {
             TryRecordFormativeDirectPlay(modal);
+            if (_data?.SourceRoute ==
+                    RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource &&
+                _tutorialFlow.Close(modalId))
+            {
+                TryOpenTutorialModal();
+            }
         }
     }
 
@@ -1145,14 +1177,79 @@ internal sealed partial class RealtimeSliceMain : Control
         if (result.Accepted)
         {
             TryRecordFormativeDirectPlay(modal);
+            if (_data?.SourceRoute ==
+                    RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource &&
+                _tutorialFlow.Close(modalId))
+            {
+                TryOpenTutorialModal();
+            }
         }
+    }
+
+    private void TryOpenTutorialModal()
+    {
+        if (_data?.SourceRoute !=
+                RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource ||
+            _interaction?.ActiveModalId is not null)
+        {
+            return;
+        }
+        RealtimeTutorialModalRequest? request = _tutorialFlow.ActivateNext();
+        if (request is null)
+        {
+            return;
+        }
+
+        RealtimeInteractionState before = _interaction!;
+        if (request.FinalResult)
+        {
+            _interaction = RealtimeInteractionReducer.AutoPause(
+                _interaction!,
+                RealtimePauseReason.CampaignResult);
+        }
+        RealtimeInteractionReduction reduction = RealtimeInteractionReducer.Reduce(
+            _interaction!,
+            RealtimeR2Intent.OpenModal(
+                request.ModalId,
+                RealtimeModalKind.ChapterStory,
+                request.PauseReason,
+                "WORLD"));
+        if (!reduction.Accepted)
+        {
+            throw new InvalidOperationException(
+                $"Tutorial modal '{request.ModalId}' could not be opened: " +
+                reduction.Error);
+        }
+        _interaction = reduction.State;
+        SynchronizeFramePause(before, _interaction);
+        Present();
     }
 
     private RealtimeModalPresentation? AuthoredReleaseModal(
         RealtimeModalPresentation? modal)
     {
-        if (modal is null ||
-            _data?.SourceRoute != RealtimeSliceSourceRoute.ReleaseFirstLight)
+        if (modal is null)
+        {
+            return modal;
+        }
+        if (_data?.SourceRoute ==
+            RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource)
+        {
+            RealtimeTutorialModalRequest? request = string.Equals(
+                    modal.Id,
+                    "CHAPTER_BRIEFING",
+                    StringComparison.Ordinal)
+                ? RealtimeTutorialChapterFlow.InitialBriefing(
+                    _run!.GetSnapshot().Chapter.Content.ChapterId)
+                : _tutorialFlow.Active;
+            return request is null || !string.Equals(
+                    request.ModalId,
+                    modal.Id,
+                    StringComparison.Ordinal)
+                ? modal
+                : AuthoredTutorialModal(modal, request);
+        }
+        if (_data?.SourceRoute != RealtimeSliceSourceRoute.ReleaseFirstLight)
         {
             return modal;
         }
@@ -1179,8 +1276,92 @@ internal sealed partial class RealtimeSliceMain : Control
             };
     }
 
+    private RealtimeModalPresentation AuthoredTutorialModal(
+        RealtimeModalPresentation modal,
+        RealtimeTutorialModalRequest request)
+    {
+        CommercialCampaignChapterDefinition chapter = _data!.BaseCampaign.Chapters
+            .Single(item => string.Equals(
+                item.ChapterId,
+                request.ChapterId,
+                StringComparison.Ordinal));
+        if (request.Purpose == RealtimeTutorialModalPurpose.ChapterResult)
+        {
+            RealtimeChapterOutcome outcome = _run!.GetSnapshot().CompletedChapters
+                .Single(item => string.Equals(
+                    item.ChapterId,
+                    request.ChapterId,
+                    StringComparison.Ordinal));
+            CommercialStoryCard? authored = outcome.ObjectiveSatisfied
+                ? chapter.ResultCards.Standard
+                : null;
+            string requirement = outcome.ConnectionRequirementAssessment is null
+                ? string.Empty
+                : " · 접속 조건 " + string.Join(
+                    ", ",
+                    outcome.ConnectionRequirementAssessment.Facts.Select(item =>
+                        $"{RealtimeSlicePresenter.AssetDisplayName(
+                            _data.BaseWorld,
+                            _run!.GetSnapshot(),
+                            item.NodeId)} " +
+                        $"{item.CurrentConnections}/{item.RequiredConnections}"));
+            int satisfiedEvents = outcome.Events.Count(item =>
+                item.SafetySatisfied && item.PromiseSatisfied);
+            return modal with
+            {
+                Eyebrow = authored?.Speaker ?? "계통운영 기록",
+                Heading = authored?.Title ?? $"{chapter.DisplayName} 목표 미달",
+                Body = authored?.Body ??
+                    $"안전·약속 의무 {satisfiedEvents}/{outcome.Events.Count}" +
+                    requirement +
+                    $" · 운영 자금 {outcome.EndingCashUnit:N0}만 원. " +
+                    "충족하지 못한 사실을 확인한 뒤 다음 장에서 망을 보완하세요.",
+                PrimaryAction = new RealtimeActionPresentation(
+                    "RESULT_CLOSE",
+                    request.FinalResult ? "튜토리얼 결과 확인" : "다음 장으로",
+                    request.FinalResult
+                        ? "세 tutorial 장의 누적 운영 결과를 확인합니다."
+                        : "결과를 확인하고 다음 임무 안내로 이동합니다.",
+                    true),
+                DismissOnCancel = true,
+            };
+        }
+
+        CommercialStoryCard card = request.Purpose ==
+            RealtimeTutorialModalPurpose.ChapterBriefing
+            ? chapter.Briefing
+            : chapter.OperatingPhases
+                .Single(item => string.Equals(
+                    item.PhaseId,
+                    request.EventId,
+                    StringComparison.Ordinal))
+                .Story ?? throw new InvalidOperationException(
+                    $"Tutorial event '{request.EventId}' has no authored story.");
+        bool eventStory = request.Purpose == RealtimeTutorialModalPurpose.EventStory;
+        return modal with
+        {
+            Eyebrow = card.Speaker,
+            Heading = card.Title,
+            Body = card.Body,
+            PrimaryAction = new RealtimeActionPresentation(
+                eventStory ? "EVENT_STORY_CONTINUE" : "BRIEFING_CONTINUE",
+                eventStory ? "시험 계속" : "도시 운영 시작",
+                eventStory
+                    ? "사건 설명을 닫고 정지 전의 실시간 속도로 돌아갑니다."
+                    : "임무 안내를 닫고 실시간 운영을 시작합니다.",
+                true),
+            DismissOnCancel = false,
+        };
+    }
+
     private void TryRecordFormativeDirectPlay(RealtimeModalPresentation closedModal)
     {
+        if (_data?.SourceRoute ==
+            RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource)
+        {
+            TryRecordTutorialDirectPlay(closedModal);
+            return;
+        }
         if (_formativeDirectPlayRecorded ||
             _data?.SourceRoute != RealtimeSliceSourceRoute.ReleaseFirstLight ||
             !string.Equals(closedModal.Id, "CAMPAIGN_RESULT", StringComparison.Ordinal) ||
@@ -1220,6 +1401,85 @@ internal sealed partial class RealtimeSliceMain : Control
         }
 #endif
         GD.Print($"FORMATIVE_DIRECT_PLAY_PASS:{FirstReleaseChapterId}");
+    }
+
+    private void TryRecordTutorialDirectPlay(RealtimeModalPresentation closedModal)
+    {
+        RealtimeTutorialModalRequest? request = _tutorialFlow.Active;
+        if (request is not
+            {
+                Purpose: RealtimeTutorialModalPurpose.ChapterResult,
+            } ||
+            !string.Equals(request.ModalId, closedModal.Id, StringComparison.Ordinal))
+        {
+            return;
+        }
+        RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
+        RealtimeChapterOutcome outcome = snapshot.CompletedChapters.Single(item =>
+            string.Equals(item.ChapterId, request.ChapterId, StringComparison.Ordinal));
+        if (!outcome.ObjectiveSatisfied)
+        {
+            return;
+        }
+        CommercialCampaignChapterDefinition chapter = _data!.BaseCampaign.Chapters.Single(
+            item => string.Equals(
+                item.ChapterId,
+                request.ChapterId,
+                StringComparison.Ordinal));
+        CommercialStoryCard authored = chapter.ResultCards.Standard ??
+            throw new InvalidOperationException(
+                $"Tutorial chapter '{request.ChapterId}' has no standard result.");
+        if (!string.Equals(closedModal.Eyebrow, authored.Speaker, StringComparison.Ordinal) ||
+            !string.Equals(closedModal.Heading, authored.Title, StringComparison.Ordinal) ||
+            !string.Equals(closedModal.Body, authored.Body, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Tutorial result '{request.ChapterId}' did not carry its exact authored card.");
+        }
+        int chapterIndex = _data.Campaign.Chapters.ToList().FindIndex(chapter =>
+            string.Equals(
+                chapter.Content.ChapterId,
+                request.ChapterId,
+                StringComparison.Ordinal));
+        if (chapterIndex < 0 ||
+            _formativeTutorialResultChapterIds.Contains(request.ChapterId))
+        {
+            throw new InvalidOperationException(
+                "Tutorial formative result chapter is unknown or was closed more than once.");
+        }
+        if (chapterIndex != _formativeTutorialResultChapterIds.Count)
+        {
+            // A prior failed chapter deliberately breaks the positive evidence
+            // chain. Later successful chapters remain playable, but cannot mint
+            // a partial sequence or the full-flow record.
+            return;
+        }
+        if (!_formativeTutorialResultChapterIds.Add(request.ChapterId))
+        {
+            throw new InvalidOperationException(
+                "Tutorial formative result close was repeated.");
+        }
+#if DEBUG
+        if (!_suppressFormativeDirectPlayOutputForSmoke)
+#endif
+        {
+            GD.Print($"FORMATIVE_DIRECT_PLAY_PASS:{request.ChapterId}");
+        }
+        if (_formativeTutorialResultChapterIds.Count != 3 ||
+            !request.FinalResult ||
+            !snapshot.CampaignComplete ||
+            _formativeTutorialFullFlowRecorded)
+        {
+            return;
+        }
+        _formativeTutorialFullFlowRecorded = true;
+#if DEBUG
+        if (_suppressFormativeDirectPlayOutputForSmoke)
+        {
+            return;
+        }
+#endif
+        GD.Print("FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE");
     }
 
     private static bool IsSuccessfulFirstLightCompletion(
@@ -1628,7 +1888,7 @@ internal sealed partial class RealtimeSliceMain : Control
         ConstructionSnapshot construction = _run!.GetSnapshot().Construction;
         if (_interaction!.ActiveModalId is string modalId)
         {
-            _ = ApplyIntent(RealtimeR2Intent.CloseModal(modalId));
+            HandleModalDismiss(modalId);
         }
         else if (!IsCampaignReadOnlyShell &&
                  (construction.NodeDraft is not null || construction.LineDraft is not null))
@@ -1967,29 +2227,56 @@ internal sealed partial class RealtimeSliceMain : Control
     internal static RealtimeSliceSourceRoute ParseSourceRoute(string[] arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);
-        string[] releaseArguments = arguments.Where(argument =>
+        string[] releaseChapterArguments = arguments.Where(argument =>
                 argument.StartsWith(
                     ReleaseChapterArgumentPrefix,
                     StringComparison.Ordinal))
             .ToArray();
-        if (releaseArguments.Length == 0)
+        string[] releaseThroughArguments = arguments.Where(argument =>
+                argument.StartsWith(
+                    ReleaseThroughArgumentPrefix,
+                    StringComparison.Ordinal))
+            .ToArray();
+        int releaseArgumentCount = checked(
+            releaseChapterArguments.Length + releaseThroughArguments.Length);
+        if (releaseArgumentCount == 0)
         {
+            if (arguments.Length != 0)
+            {
+                throw new ArgumentException(
+                    "Unknown realtime release route user argument.");
+            }
             return RealtimeSliceSourceRoute.TechnicalCheckpointFixture;
         }
-        if (arguments.Length != 1 || releaseArguments.Length != 1)
+        if (arguments.Length != 1 || releaseArgumentCount != 1)
         {
             throw new ArgumentException(
-                $"Exactly one {ReleaseChapterArgumentPrefix}{FirstReleaseChapterId} " +
-                "user argument is required for the release route.");
+                "Exactly one supported release route user argument is required.");
         }
-        string chapterId = releaseArguments[0][ReleaseChapterArgumentPrefix.Length..];
-        if (!string.Equals(chapterId, FirstReleaseChapterId, StringComparison.Ordinal))
+        if (releaseChapterArguments.Length == 1)
+        {
+            string chapterId = releaseChapterArguments[0][
+                ReleaseChapterArgumentPrefix.Length..];
+            if (!string.Equals(chapterId, FirstReleaseChapterId, StringComparison.Ordinal))
+            {
+                throw new ArgumentException(
+                    $"Unknown release chapter '{chapterId}'. This gate exposes only " +
+                    $"{FirstReleaseChapterId}.");
+            }
+            return RealtimeSliceSourceRoute.ReleaseFirstLight;
+        }
+        string throughChapterId = releaseThroughArguments[0][
+            ReleaseThroughArgumentPrefix.Length..];
+        if (!string.Equals(
+                throughChapterId,
+                TutorialFinalChapterId,
+                StringComparison.Ordinal))
         {
             throw new ArgumentException(
-                $"Unknown release chapter '{chapterId}'. This gate exposes only " +
-                $"{FirstReleaseChapterId}.");
+                $"Unknown release prefix end '{throughChapterId}'. This gate exposes only " +
+                $"{TutorialFinalChapterId}.");
         }
-        return RealtimeSliceSourceRoute.ReleaseFirstLight;
+        return RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource;
     }
 
     private RealtimeCampaignSnapshot PresentedCoreSnapshot =>
@@ -2022,6 +2309,12 @@ internal sealed partial class RealtimeSliceMain : Control
     internal void BootstrapReleaseFirstLightForSmoke()
     {
         _sourceRoute = RealtimeSliceSourceRoute.ReleaseFirstLight;
+        Bootstrap();
+    }
+
+    internal void BootstrapReleaseTutorialForSmoke()
+    {
+        _sourceRoute = RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource;
         Bootstrap();
     }
 

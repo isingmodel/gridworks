@@ -149,7 +149,7 @@ internal static class RealtimeSlicePresenter
                 pointerPoint,
                 pointerAccepted,
                 pointerMessage),
-            Hud(snapshot, interaction, pause),
+            Hud(displayWorld, snapshot, interaction, pause),
             rail,
             Context(
                 displayWorld,
@@ -164,6 +164,7 @@ internal static class RealtimeSlicePresenter
                 lineOrderQuote,
                 history),
             BuildShelf(
+                realtimeWorld,
                 snapshot,
                 interaction,
                 pointerAccepted,
@@ -431,6 +432,20 @@ internal static class RealtimeSlicePresenter
             .Distinct(StringComparer.Ordinal)
             .OrderBy(item => item, StringComparer.Ordinal)
             .ToArray();
+        string[] forecastRiskIds = interaction.Tool == RealtimeTool.Analysis
+            ? baseForecast.Events
+                .Where(item =>
+                    item.Status == RealtimeForecastStatus.Upcoming &&
+                    string.Equals(
+                        item.EventId,
+                        interaction.TimelineSelectedItemId,
+                        StringComparison.Ordinal))
+                .SelectMany(item => item.OperatingProfile.ActiveRiskAreaIds)
+                .Distinct(StringComparer.Ordinal)
+                .Except(riskIds, StringComparer.Ordinal)
+                .OrderBy(item => item, StringComparer.Ordinal)
+                .ToArray()
+            : Array.Empty<string>();
         return new RealtimeWorldPresentation(
             snapshot.Construction.World,
             Array.AsReadOnly(statuses),
@@ -449,6 +464,7 @@ internal static class RealtimeSlicePresenter
             interaction.Tool == RealtimeTool.Analysis,
             Weather(snapshot),
             snapshot.Minute,
+            Array.AsReadOnly(forecastRiskIds),
             Array.AsReadOnly(riskIds),
             Highlight(
                 displayWorld,
@@ -509,6 +525,7 @@ internal static class RealtimeSlicePresenter
     }
 
     private static RealtimeTopHudPresentation Hud(
+        CommercialWorldDefinition displayWorld,
         RealtimeCampaignSnapshot snapshot,
         RealtimeInteractionState interaction,
         RealtimePausePresentation pause)
@@ -529,9 +546,20 @@ internal static class RealtimeSlicePresenter
                 : snapshot.Thermal.Evaluation.Loads.Any(item => item.DeliveredKw < item.DemandKw)
                     ? "필수 수요 미공급 · 경로 확인"
                     : null;
+        RealtimeConnectionRequirementAssessment? connection =
+            snapshot.Forecast.ConnectionRequirementAssessment;
+        string objective = connection is null
+            ? snapshot.Chapter.Content.Objective
+            : snapshot.Chapter.Content.Objective + " · 접속 조건 " +
+              string.Join(
+                  ", ",
+                  connection.Facts.Select(item =>
+                      $"{AssetDisplayName(displayWorld, snapshot, item.NodeId)} " +
+                      $"{item.CurrentConnections}/{item.RequiredConnections}")) +
+              (connection.FrozenForChapter ? " · 시험 시작 시점 고정" : " · 현재 망");
         return new RealtimeTopHudPresentation(
             snapshot.Chapter.Content.DisplayName,
-            snapshot.Chapter.Content.Objective,
+            objective,
             Time(snapshot.Minute),
             $"운영 자금 {Cash(snapshot.CashUnit)}",
             reliabilityLabel,
@@ -1371,6 +1399,7 @@ internal static class RealtimeSlicePresenter
     }
 
     private static RealtimeBuildShelfPresentation BuildShelf(
+        RealtimeWorldDefinition realtimeWorld,
         RealtimeCampaignSnapshot snapshot,
         RealtimeInteractionState interaction,
         bool pointerAccepted,
@@ -1446,6 +1475,9 @@ internal static class RealtimeSlicePresenter
                     item.ClassId,
                     plan.PoleClassId,
                     StringComparison.Ordinal));
+            ThermalProtectionDefinition lineProtection = realtimeWorld.ProtectionFor(
+                ThermalAssetKind.Edge,
+                plan.LineClassId);
             string toolId = $"LINE:{plan.LineClassId}:{plan.PoleClassId}";
             bool enabled = !ended && (draftToolLock is null || string.Equals(
                 draftToolLock.RequiredBuildToolId,
@@ -1458,7 +1490,11 @@ internal static class RealtimeSlicePresenter
                 : snapshot.Construction.ActiveConstruction is
                 ActiveConstructionSnapshot active
                 ? $"비교 경로는 그릴 수 있습니다. {Time(active.CompletionMinute)}까지 두 번째 발주는 대기합니다."
-                : $"{lineClass.DisplayName} · {poleClass.DisplayName} 접속부로 경로를 만듭니다.";
+                : string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"{lineClass.DisplayName} · 비용 {Cash(lineClass.CostCashUnitPerDesignUnit)}/설계단위 · " +
+                    $"공기 {lineClass.BuildMinutesPerDesignUnit}분/설계단위 · " +
+                    $"연속 {lineProtection.ContinuousKw:N0} kW · {poleClass.DisplayName} 접속부");
             tools.Add(new RealtimeBuildToolPresentation(
                 toolId,
                 $"{lineClass.DisplayName} 건설",

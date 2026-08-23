@@ -21,6 +21,7 @@ internal sealed record RealtimeWorldPresentation(
     bool AnalysisVisible,
     RealtimeWorldWeather Weather,
     long Minute,
+    IReadOnlyList<string> ForecastRiskAreaIds,
     IReadOnlyList<string> ActiveRiskAreaIds,
     RealtimeWorldHighlight? Highlight,
     bool ReduceMotion,
@@ -29,6 +30,7 @@ internal sealed record RealtimeWorldPresentation(
 {
     private IReadOnlyList<RealtimeWorldAssetStatus> _assetStatuses =
         Freeze(AssetStatuses);
+    private IReadOnlyList<string> _forecastRiskAreaIds = Freeze(ForecastRiskAreaIds);
     private IReadOnlyList<string> _activeRiskAreaIds = Freeze(ActiveRiskAreaIds);
 
     public IReadOnlyList<RealtimeWorldAssetStatus> AssetStatuses
@@ -41,6 +43,12 @@ internal sealed record RealtimeWorldPresentation(
     {
         get => _activeRiskAreaIds;
         init => _activeRiskAreaIds = Freeze(value);
+    }
+
+    public IReadOnlyList<string> ForecastRiskAreaIds
+    {
+        get => _forecastRiskAreaIds;
+        init => _forecastRiskAreaIds = Freeze(value);
     }
 
     private static IReadOnlyList<T> Freeze<T>(IReadOnlyList<T> values)

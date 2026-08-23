@@ -34,6 +34,23 @@ internal sealed partial class RealtimePlaceholderMap
             .OrderBy(id => id, StringComparer.Ordinal)
             .ToArray());
 
+    internal IReadOnlyList<string> DrawnForecastRiskAreaIdsForSmoke =>
+        Array.AsReadOnly(_drawnForecastRiskAreaIds
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray());
+
+    internal IReadOnlyList<string> DrawnActiveRiskAreaIdsForSmoke =>
+        Array.AsReadOnly(_drawnActiveRiskAreaIds
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray());
+
+    internal bool ForecastRiskUsesPatternWithoutFillForSmoke =>
+        _drawnForecastRiskAreaIds.Count > 0 &&
+        _drawnActiveRiskAreaIds.Count == 0;
+
+    internal bool ActiveRiskUsesSolidFillForSmoke =>
+        _drawnActiveRiskAreaIds.Count > 0;
+
     internal RealtimePlaceholderStateCue? DrawnStateCueForSmoke(string assetId) =>
         _drawnStateCues.TryGetValue(assetId, out RealtimePlaceholderStateCue cue)
             ? cue

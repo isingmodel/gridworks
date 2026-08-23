@@ -623,6 +623,48 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             "planned-outage target did not preserve its independently authored " +
             $"unavailable node {authoredUnavailableNodeId}",
             failures);
+
+            SpatialRiskAreaDefinition authoredRisk = typedPresentation.World.World
+                .RiskAreas.First();
+            var riskMap = new RealtimePlaceholderMap
+            {
+                Size = new Vector2(960, 540),
+            };
+            typedViewport.AddChild(riskMap);
+            riskMap.SetPresentation(typedPresentation.World with
+            {
+                AnalysisVisible = true,
+                ForecastRiskAreaIds = new[] { authoredRisk.RiskAreaId },
+                ActiveRiskAreaIds = Array.Empty<string>(),
+            });
+            await ForceActualMapDraw(typedViewport, riskMap);
+            Require(riskMap.DrawnForecastRiskAreaIdsForSmoke.SequenceEqual(
+                        new[] { authoredRisk.RiskAreaId },
+                        StringComparer.Ordinal) &&
+                    riskMap.DrawnActiveRiskAreaIdsForSmoke.Count == 0 &&
+                    riskMap.ForecastRiskUsesPatternWithoutFillForSmoke &&
+                    riskMap.AccessibilityName.Contains(
+                        "범람 예고 점선 윤곽",
+                        StringComparison.Ordinal),
+                "forecast risk did not render as the named pattern-only outline",
+                failures);
+            riskMap.SetPresentation(typedPresentation.World with
+            {
+                AnalysisVisible = false,
+                ForecastRiskAreaIds = Array.Empty<string>(),
+                ActiveRiskAreaIds = new[] { authoredRisk.RiskAreaId },
+            });
+            await ForceActualMapDraw(typedViewport, riskMap);
+            Require(riskMap.DrawnForecastRiskAreaIdsForSmoke.Count == 0 &&
+                    riskMap.DrawnActiveRiskAreaIdsForSmoke.SequenceEqual(
+                        new[] { authoredRisk.RiskAreaId },
+                        StringComparer.Ordinal) &&
+                    riskMap.ActiveRiskUsesSolidFillForSmoke &&
+                    riskMap.AccessibilityName.Contains(
+                        "활성 범람 실선 채움",
+                        StringComparison.Ordinal),
+                "active risk did not replace forecast with the named solid fill",
+                failures);
         }
         finally
         {

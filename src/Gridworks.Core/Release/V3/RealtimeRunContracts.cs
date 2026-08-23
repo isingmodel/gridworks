@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Text.Json.Serialization;
 using Gridworks.Core.Release.V2;
 
 namespace Gridworks.Core.Release.V3;
@@ -286,13 +287,39 @@ public sealed record RealtimeActiveEventState(
     RealtimeScheduledEventDefinition Event,
     RealtimeEventDutyProgress Duty);
 
+public sealed record RealtimeConnectionRequirementFact(
+    string NodeId,
+    int CurrentConnections,
+    int RequiredConnections)
+{
+    public bool Satisfied => CurrentConnections >= RequiredConnections;
+}
+
+public sealed record RealtimeConnectionRequirementAssessment(
+    long EvaluatedMinute,
+    bool FrozenForChapter,
+    IReadOnlyList<RealtimeConnectionRequirementFact> Facts)
+{
+    private IReadOnlyList<RealtimeConnectionRequirementFact> _facts =
+        RealtimeStructural.Freeze(Facts);
+
+    public IReadOnlyList<RealtimeConnectionRequirementFact> Facts
+    {
+        get => _facts;
+        init => _facts = RealtimeStructural.Freeze(value);
+    }
+
+    public bool Satisfied => Facts.All(item => item.Satisfied);
+}
+
 public sealed record RealtimeChapterOutcome(
     string ChapterId,
     long StartMinute,
     long EndMinute,
     CommercialPromiseDecision PromiseDecision,
     IReadOnlyList<RealtimeEventOutcome> Events,
-    long EndingCashUnit)
+    long EndingCashUnit,
+    RealtimeConnectionRequirementAssessment? ConnectionRequirementAssessment = null)
 {
     private IReadOnlyList<RealtimeEventOutcome> _events =
         RealtimeStructural.Freeze(Events);
@@ -302,6 +329,11 @@ public sealed record RealtimeChapterOutcome(
         get => _events;
         init => _events = RealtimeStructural.Freeze(value);
     }
+
+    [JsonIgnore]
+    public bool ObjectiveSatisfied =>
+        Events.All(item => item.SafetySatisfied && item.PromiseSatisfied) &&
+        (ConnectionRequirementAssessment?.Satisfied ?? true);
 }
 
 public sealed record RealtimeTransition(
@@ -385,7 +417,8 @@ public sealed record RealtimeTemporalEventProjection(
 public sealed record RealtimeForecastSnapshot(
     long NowMinute,
     long? ConstructionCompletionMinute,
-    IReadOnlyList<RealtimeForecastEvent> Events)
+    IReadOnlyList<RealtimeForecastEvent> Events,
+    RealtimeConnectionRequirementAssessment? ConnectionRequirementAssessment = null)
 {
     private IReadOnlyList<RealtimeForecastEvent> _events =
         RealtimeStructural.Freeze(Events);

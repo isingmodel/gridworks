@@ -33,6 +33,8 @@ public sealed class RealtimeCampaignRun
     private bool _chapterStarted;
     private int _nextEventIndex;
     private CommercialPromiseDecision _promiseDecision = CommercialPromiseDecision.Unset;
+    private RealtimeConnectionRequirementAssessment?
+        _frozenConnectionRequirementAssessment;
     private bool _campaignComplete;
 
     public RealtimeCampaignRun(
@@ -186,7 +188,9 @@ public sealed class RealtimeCampaignRun
             _minute,
             (constructionOverride ?? _construction).GetSnapshot()
                 .ActiveConstruction?.CompletionMinute,
-            items);
+            items,
+            ConnectionRequirementAssessmentFor(
+                constructionOverride ?? _construction));
     }
 
     public RealtimeAdvanceResult AdvanceTo(long targetMinute)
@@ -455,6 +459,7 @@ public sealed class RealtimeCampaignRun
         _activeEventIndexes.Clear();
         _activeDuties.Clear();
         _promiseDecision = CommercialPromiseDecision.Unset;
+        _frozenConnectionRequirementAssessment = null;
         _currentEventOutcomes.Clear();
         _cashUnit = checked(_cashUnit + Chapter.Content.BudgetGrantCashUnit);
         if (Chapter.Content.ResetThermalStateBeforeChapter)
@@ -501,6 +506,22 @@ public sealed class RealtimeCampaignRun
     private void StartEvent(int eventIndex, List<RealtimeTransition> transitions)
     {
         RealtimeScheduledEventDefinition item = Chapter.ScheduledEvents[eventIndex];
+        if (eventIndex == 0 && Chapter.Content.ConnectionRequirements.Count > 0)
+        {
+            if (_frozenConnectionRequirementAssessment is not null)
+            {
+                throw new InvalidOperationException(
+                    "Connection requirements were frozen before the first authored event.");
+            }
+            _frozenConnectionRequirementAssessment =
+                RealtimeConnectionRequirementEvaluator.Evaluate(
+                    Chapter.Content.ConnectionRequirements,
+                    _construction.GetSnapshot().World,
+                    _minute,
+                    frozenForChapter: true) ??
+                throw new InvalidOperationException(
+                    "Authored connection requirements produced no frozen assessment.");
+        }
         if (!_activeEventIndexes.Add(eventIndex))
         {
             throw new InvalidOperationException($"Event '{item.EventId}' started twice.");
@@ -543,13 +564,20 @@ public sealed class RealtimeCampaignRun
     private void CompleteChapter(List<RealtimeTransition> transitions)
     {
         string chapterId = Chapter.Content.ChapterId;
+        RealtimeConnectionRequirementAssessment? connectionAssessment =
+            Chapter.Content.ConnectionRequirements.Count == 0
+                ? null
+                : _frozenConnectionRequirementAssessment ??
+                  throw new InvalidOperationException(
+                      $"Chapter '{chapterId}' completed without a frozen connection assessment.");
         var outcome = new RealtimeChapterOutcome(
             chapterId,
             _chapterStartMinute,
             _minute,
             _promiseDecision,
             _currentEventOutcomes,
-            _cashUnit);
+            _cashUnit,
+            connectionAssessment);
         _completedChapters.Add(outcome);
         transitions.Add(new RealtimeTransition(
             _minute,
@@ -565,6 +593,7 @@ public sealed class RealtimeCampaignRun
                 chapterId));
             return;
         }
+        _frozenConnectionRequirementAssessment = null;
         _chapterIndex++;
         _chapterStartMinute = checked(
             _minute + Chapter.Content.TimeAdvanceBeforeChapterMinutes);
@@ -799,6 +828,19 @@ public sealed class RealtimeCampaignRun
 
     private CommercialWorldDefinition CurrentCommercialWorld()
         => CommercialWorldFor(_construction);
+
+    private RealtimeConnectionRequirementAssessment?
+        ConnectionRequirementAssessmentFor(RealtimeConstructionSession construction)
+    {
+        if (_frozenConnectionRequirementAssessment is not null)
+        {
+            return _frozenConnectionRequirementAssessment;
+        }
+        return RealtimeConnectionRequirementEvaluator.Evaluate(
+            Chapter.Content.ConnectionRequirements,
+            construction.GetSnapshot().World,
+            _minute);
+    }
 
     private CommercialWorldDefinition CommercialWorldFor(
         RealtimeConstructionSession construction)

@@ -53,6 +53,10 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         new(StringComparer.Ordinal);
     private readonly HashSet<string> _drawnAnalysisRiskAreaIds =
         new(StringComparer.Ordinal);
+    private readonly HashSet<string> _drawnForecastRiskAreaIds =
+        new(StringComparer.Ordinal);
+    private readonly HashSet<string> _drawnActiveRiskAreaIds =
+        new(StringComparer.Ordinal);
     private string? _drawnActiveCandidateId;
     private bool _drawnAnalysisOverlay;
 #endif
@@ -285,6 +289,8 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
 #if DEBUG
         _drawnStateCues.Clear();
         _drawnAnalysisRiskAreaIds.Clear();
+        _drawnForecastRiskAreaIds.Clear();
+        _drawnActiveRiskAreaIds.Clear();
         _drawnActiveCandidateId = null;
         _drawnAnalysisOverlay = false;
 #endif
@@ -299,7 +305,11 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
 #if DEBUG
             _drawnAnalysisOverlay = true;
 #endif
-            DrawRiskAreas(_presentation);
+            DrawForecastRiskAreas(_presentation);
+        }
+        if (_presentation.ActiveRiskAreaIds.Count > 0)
+        {
+            DrawActiveRiskAreas(_presentation);
         }
         DrawEdges(_presentation);
         DrawNodes(_presentation);
@@ -474,7 +484,29 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         }
     }
 
-    private void DrawRiskAreas(RealtimeWorldPresentation presentation)
+    private void DrawForecastRiskAreas(RealtimeWorldPresentation presentation)
+    {
+        HashSet<string> forecast = presentation.ForecastRiskAreaIds.ToHashSet(
+            StringComparer.Ordinal);
+        foreach (SpatialRiskAreaDefinition risk in presentation.World.RiskAreas.Where(item =>
+                     forecast.Contains(item.RiskAreaId)))
+        {
+            Vector2[] polygon = risk.Polygon.Select(Point).ToArray();
+            for (int index = 0; index < polygon.Length; index++)
+            {
+                DrawDashedLine(
+                    polygon[index],
+                    polygon[(index + 1) % polygon.Length],
+                    Planned);
+            }
+#if DEBUG
+            _drawnAnalysisRiskAreaIds.Add(risk.RiskAreaId);
+            _drawnForecastRiskAreaIds.Add(risk.RiskAreaId);
+#endif
+        }
+    }
+
+    private void DrawActiveRiskAreas(RealtimeWorldPresentation presentation)
     {
         HashSet<string> active = presentation.ActiveRiskAreaIds.ToHashSet(StringComparer.Ordinal);
         foreach (SpatialRiskAreaDefinition risk in presentation.World.RiskAreas.Where(item =>
@@ -489,6 +521,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 true);
 #if DEBUG
             _drawnAnalysisRiskAreaIds.Add(risk.RiskAreaId);
+            _drawnActiveRiskAreaIds.Add(risk.RiskAreaId);
 #endif
         }
     }
@@ -1111,9 +1144,28 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             item.AuthoredUnavailable);
         int building = presentation.AssetStatuses.Count(item =>
             item.State == RealtimeWorldAssetState.Building);
+        string forecastRisk = presentation.ForecastRiskAreaIds.Count == 0
+            ? "범람 예고 선택 없음"
+            : "범람 예고 점선 윤곽 " + string.Join(
+                ", ",
+                presentation.World.RiskAreas
+                    .Where(item => presentation.ForecastRiskAreaIds.Contains(
+                        item.RiskAreaId,
+                        StringComparer.Ordinal))
+                    .Select(item => item.DisplayName));
+        string activeRisk = presentation.ActiveRiskAreaIds.Count == 0
+            ? "활성 범람 없음"
+            : "활성 범람 실선 채움 " + string.Join(
+                ", ",
+                presentation.World.RiskAreas
+                    .Where(item => presentation.ActiveRiskAreaIds.Contains(
+                        item.RiskAreaId,
+                        StringComparer.Ordinal))
+                    .Select(item => item.DisplayName));
         return $"청류시 실시간 전력망 · 후보는 거리와 안정된 순서로 정렬 · " +
                $"공사 중 {building}곳 · 계획 사용불가 {authoredUnavailable}곳 · " +
-               $"비상 {emergency}곳 · 보호정지 {outage}곳";
+               $"비상 {emergency}곳 · 보호정지 {outage}곳 · " +
+               $"{forecastRisk} · {activeRisk}";
     }
 
     private static string CandidateDisplayName(

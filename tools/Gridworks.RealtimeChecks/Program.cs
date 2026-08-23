@@ -150,6 +150,7 @@ internal sealed class Checks
         [
             ("strict-v3-loaders-first-light-schedule", StrictLoadersAndSchedule),
             ("strict-release-v2-v3-overlay-composition", StrictReleaseOverlayComposition),
+            ("release-tutorial-connection-objective", ReleaseTutorialConnectionObjective),
             ("concurrent-same-minute-event-composition", ConcurrentSameMinuteEvents),
             ("atomic-command-and-auto-construction", AtomicCommandAndConstruction),
             ("forecast-actual-same-minute-order", ForecastActualSameMinuteOrder),
@@ -524,6 +525,227 @@ internal sealed class Checks
                 _releaseWorld,
                 chapterCount: 9),
             "release overlay noncanonical overlong prefix");
+    }
+
+    private void ReleaseTutorialConnectionObjective()
+    {
+        RealtimeCampaignDefinition tutorial = RealtimeCampaignOverlayLoader.LoadPrefix(
+            _releaseBaseCampaignBytes,
+            _releaseCampaignOverlayBytes,
+            _releaseWorld,
+            chapterCount: 3).Campaign;
+        SequenceEqual(
+            new[] { "FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE" },
+            tutorial.Chapters.Select(item => item.Content.ChapterId),
+            "tutorial release prefix chapter identity");
+        SequenceEqual(
+            new[]
+            {
+                "FIRST_LIGHT_SUPPLY",
+                "HOSPITAL_TRANSFER_TEST",
+                "FLOOD_ISOLATION_TEST",
+                "WEST_MAIN_COMMISSIONING_TEST",
+                "SOUTH_SOURCE_COMMISSIONING_TEST",
+            },
+            tutorial.Chapters.SelectMany(item => item.ScheduledEvents)
+                .Select(item => item.EventId),
+            "tutorial release prefix event identity");
+
+        CommercialCampaignConnectionRequirement hospitalRequirement =
+            tutorial.Chapters[1].Content.ConnectionRequirements.Single();
+        Equal(null, RealtimeConnectionRequirementEvaluator.Evaluate(
+                tutorial.Chapters[0].Content.ConnectionRequirements,
+                CommercialCampaignLoader.BuildInitialWorld(
+                    _releaseWorld.Network,
+                    tutorial.InitialSeed).ToSpatialWorld(),
+                tutorial.InitialSeed.StartMinute),
+            "empty authored requirements must remain absent");
+
+        var run = new RealtimeCampaignRun(tutorial, _releaseWorld);
+        string substationId = BuildPlayableFirstLightNetwork(run);
+        RealtimeAdvanceResult secondHeart = run.AdvanceTo(1320);
+        RealtimeChapterOutcome firstLight =
+            secondHeart.Snapshot.CompletedChapters.Single();
+        Check(firstLight.ObjectiveSatisfied,
+            "FIRST_LIGHT derived objective unexpectedly failed");
+        string firstLightJson = Json(firstLight);
+        Check(!firstLightJson.Contains("objectiveSatisfied", StringComparison.Ordinal) &&
+              !firstLightJson.Contains(
+                  "connectionRequirementAssessment",
+                  StringComparison.Ordinal),
+            "requirement-free FIRST_LIGHT canonical shape drifted");
+
+        BuildHospitalLine(
+            run,
+            substationId,
+            [new MapPoint(2350, 1050)],
+            order: true);
+        RealtimeProjectQuote firstHospitalQuote = run.PreviewLineOrder();
+        Check(!firstHospitalQuote.Accepted,
+            "completed hospital line unexpectedly retained an orderable draft");
+        RealtimeConnectionRequirementAssessment actualOne =
+            run.GetForecast().ConnectionRequirementAssessment ??
+            throw new InvalidOperationException(
+                "SECOND_HEART actual connection assessment is absent.");
+        RealtimeConnectionRequirementFact actualOneFact = actualOne.Facts.Single();
+        Check(actualOne.EvaluatedMinute == run.Minute && !actualOne.FrozenForChapter &&
+              actualOneFact.NodeId == hospitalRequirement.NodeId &&
+              actualOneFact.CurrentConnections == 1 &&
+              actualOneFact.RequiredConnections == 2 &&
+              !actualOne.Satisfied,
+            "SECOND_HEART actual connection fact is not exact 1/2");
+
+        BuildHospitalLine(
+            run,
+            "EAST_RESIDENTIAL_TERMINAL",
+            [new MapPoint(2550, 1050)],
+            order: false);
+        RealtimeComparisonDraftForecast comparison = run.GetComparisonDraftForecast();
+        RealtimeConnectionRequirementAssessment comparisonTwo =
+            comparison.Forecast?.ConnectionRequirementAssessment ??
+            throw new InvalidOperationException(
+                "SECOND_HEART comparison connection assessment is absent.");
+        Check(comparison.Available && !comparisonTwo.FrozenForChapter &&
+              comparisonTwo.EvaluatedMinute == run.Minute &&
+              comparisonTwo.Facts.Single().CurrentConnections == 2 &&
+              comparisonTwo.Satisfied,
+            "comparison draft did not use the Core evaluator for exact 2/2");
+
+        RealtimeAdvanceResult frozenBoundary = run.AdvanceTo(1680);
+        RealtimeConnectionRequirementAssessment frozenOne =
+            frozenBoundary.Snapshot.Forecast.ConnectionRequirementAssessment ??
+            throw new InvalidOperationException(
+                "SECOND_HEART frozen connection assessment is absent.");
+        Check(frozenOne.FrozenForChapter && frozenOne.EvaluatedMinute == 1680 &&
+              frozenOne.Facts.Single().CurrentConnections == 1 &&
+              !frozenOne.Satisfied,
+            "first authored test did not freeze the actual 1/2 fact");
+        RealtimeConnectionRequirementAssessment frozenComparison =
+            run.GetComparisonDraftForecast().Forecast?.ConnectionRequirementAssessment ??
+            throw new InvalidOperationException(
+                "frozen comparison connection assessment is absent.");
+        Equal(Json(frozenOne), Json(frozenComparison),
+            "comparison forecast escaped the frozen chapter assessment");
+
+        RealtimeProjectQuote lateQuote = run.PreviewLineOrder();
+        Check(lateQuote.Accepted && lateQuote.CompletionMinute > 1680,
+            "late hospital line quote unavailable after requirement freeze");
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderLine()),
+            "late second hospital line order");
+        run.AdvanceTo(lateQuote.CompletionMinute!.Value);
+        RealtimeConnectionRequirementAssessment physicalTwo =
+            RealtimeConnectionRequirementEvaluator.Evaluate(
+                tutorial.Chapters[1].Content.ConnectionRequirements,
+                run.GetSnapshot().Construction.World,
+                run.Minute) ??
+            throw new InvalidOperationException("physical 2/2 assessment is absent.");
+        Check(physicalTwo.Satisfied &&
+              physicalTwo.Facts.Single().CurrentConnections == 2,
+            "late construction did not physically create 2/2");
+        RealtimeAdvanceResult failedChapter = run.AdvanceTo(1860);
+        RealtimeChapterOutcome secondHeartOutcome =
+            failedChapter.Snapshot.CompletedChapters.Single(item =>
+                item.ChapterId == "SECOND_HEART");
+        Check(secondHeartOutcome.ConnectionRequirementAssessment is
+              {
+                  FrozenForChapter: true,
+                  Satisfied: false,
+              } &&
+              secondHeartOutcome.ConnectionRequirementAssessment.Facts.Single()
+                  .CurrentConnections == 1 &&
+              !secondHeartOutcome.ObjectiveSatisfied,
+            "late 2/2 construction retroactively forged a positive chapter outcome");
+
+        var dueRun = new RealtimeCampaignRun(tutorial, _releaseWorld);
+        string dueSubstation = BuildPlayableFirstLightNetwork(dueRun);
+        dueRun.AdvanceTo(1320);
+        BuildHospitalLine(
+            dueRun,
+            dueSubstation,
+            [new MapPoint(2350, 1050)],
+            order: true);
+        BuildHospitalLine(
+            dueRun,
+            "EAST_RESIDENTIAL_TERMINAL",
+            [new MapPoint(2550, 1050)],
+            order: false);
+        RealtimeProjectQuote dueQuote = dueRun.PreviewLineOrder();
+        long dueOrderMinute = checked(1680 - dueQuote.BuildMinutes!.Value);
+        dueRun.AdvanceTo(dueOrderMinute);
+        RealtimeProjectQuote dueOrderQuote = dueRun.PreviewLineOrder();
+        Check(dueOrderQuote.CompletionMinute == 1680,
+            "same-minute hospital line quote did not land on the authored boundary");
+        Accepted(dueRun.ApplyCommand(RealtimeCommand.OrderLine()),
+            "same-minute second hospital line order");
+        RealtimeAdvanceResult dueBoundary = dueRun.AdvanceTo(1680);
+        RealtimeConnectionRequirementAssessment dueTwo =
+            dueBoundary.Snapshot.Forecast.ConnectionRequirementAssessment ??
+            throw new InvalidOperationException(
+                "same-minute frozen connection assessment is absent.");
+        Check(dueOrderQuote.CompletionMinute == 1680 && dueTwo.FrozenForChapter &&
+              dueTwo.EvaluatedMinute == 1680 && dueTwo.Satisfied &&
+              dueTwo.Facts.Single().CurrentConnections == 2,
+            "same-minute commissioning did not precede the authored requirement freeze");
+
+        var floodRun = new RealtimeCampaignRun(tutorial, _releaseWorld);
+        string floodRootSubstation = BuildPlayableFirstLightNetwork(floodRun);
+        floodRun.AdvanceTo(1320);
+        string floodSubstationOne = BuildTutorialNode(
+            floodRun,
+            new MapPoint(2000, 1250));
+        RealtimeProjectQuote feedOne = BuildTutorialLine(
+            floodRun,
+            floodRootSubstation,
+            [new MapPoint(2050, 1000)],
+            floodSubstationOne);
+        RealtimeProjectQuote hospitalOne = BuildTutorialLine(
+            floodRun,
+            floodSubstationOne,
+            Array.Empty<MapPoint>(),
+            "HOSPITAL_TERMINAL");
+        string floodSubstationTwo = BuildTutorialNode(
+            floodRun,
+            new MapPoint(2000, 1550));
+        RealtimeProjectQuote feedTwo = BuildTutorialLine(
+            floodRun,
+            floodRootSubstation,
+            [new MapPoint(1850, 850), new MapPoint(1800, 1350)],
+            floodSubstationTwo);
+        RealtimeProjectQuote hospitalTwo = BuildTutorialLine(
+            floodRun,
+            floodSubstationTwo,
+            Array.Empty<MapPoint>(),
+            "HOSPITAL_TERMINAL");
+        Check(new[] { feedOne, hospitalOne, feedTwo, hospitalTwo }
+                .Count(quote => quote.RiskAreaIds.Contains(
+                    "RIVER_FLOOD_ZONE",
+                    StringComparer.Ordinal)) >= 2 &&
+              hospitalOne.RiskAreaIds.Contains(
+                  "RIVER_FLOOD_ZONE",
+                  StringComparer.Ordinal) &&
+              hospitalTwo.RiskAreaIds.Contains(
+                  "RIVER_FLOOD_ZONE",
+                  StringComparer.Ordinal),
+            "two hospital routes were not both authored flood-exposed");
+        RealtimeAdvanceResult floodFreeze = floodRun.AdvanceTo(1680);
+        RealtimeConnectionRequirementAssessment floodTwo =
+            floodFreeze.Snapshot.Forecast.ConnectionRequirementAssessment ??
+            throw new InvalidOperationException(
+                "flood-route frozen connection assessment is absent.");
+        Check(floodTwo.Satisfied && floodTwo.Facts.Single().CurrentConnections == 2,
+            "two flood-exposed hospital routes did not freeze exact 2/2");
+        RealtimeAdvanceResult floodComplete = floodRun.AdvanceTo(1860);
+        RealtimeChapterOutcome floodOutcome = floodComplete.Snapshot.CompletedChapters
+            .Single(item => item.ChapterId == "SECOND_HEART");
+        RealtimeEventOutcome transfer = floodOutcome.Events.Single(item =>
+            item.EventId == "HOSPITAL_TRANSFER_TEST");
+        RealtimeEventOutcome isolation = floodOutcome.Events.Single(item =>
+            item.EventId == "FLOOD_ISOLATION_TEST");
+        Check(transfer.SafetySatisfied && !isolation.SafetySatisfied &&
+              isolation.SafetyUnservedMinutes > 0 &&
+              floodOutcome.ConnectionRequirementAssessment?.Satisfied == true &&
+              !floodOutcome.ObjectiveSatisfied,
+            "physical 2/2 with both hospital routes flood-exposed forged a positive result");
     }
 
     private void ConcurrentSameMinuteEvents()
@@ -3309,7 +3531,146 @@ internal sealed class Checks
     private RealtimeThermalAssetSnapshot Asset(
         RealtimeThermalSession session,
         string assetId) => session.GetSnapshot().Assets.Single(item =>
-        string.Equals(item.AssetId, assetId, StringComparison.Ordinal));
+            string.Equals(item.AssetId, assetId, StringComparison.Ordinal));
+
+    private string BuildPlayableFirstLightNetwork(RealtimeCampaignRun run)
+    {
+        Accepted(run.ApplyCommand(RealtimeCommand.SetNodeDraft(
+                "SMALL_SUBSTATION",
+                new MapPoint(2100, 700))),
+            "tutorial FIRST_LIGHT substation draft");
+        RealtimeProjectQuote nodeQuote = run.PreviewNodeOrder();
+        Check(nodeQuote is
+              {
+                  Accepted: true,
+                  CompletionMinute: 1140,
+              },
+            "tutorial FIRST_LIGHT substation quote");
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderNode()),
+            "tutorial FIRST_LIGHT substation order");
+        string substationId = run.GetSnapshot().Construction.ActiveConstruction!
+            .NodeIds.Single();
+        run.AdvanceTo(nodeQuote.CompletionMinute!.Value);
+
+        Accepted(run.ApplyCommand(RealtimeCommand.StartLineDraft(
+                "WEST_SOURCE_NODE",
+                "STANDARD_LINE",
+                "STANDARD_POLE")),
+            "tutorial FIRST_LIGHT west line start");
+        foreach (MapPoint point in new[]
+                 {
+                     new MapPoint(750, 650),
+                     new MapPoint(1050, 650),
+                     new MapPoint(1600, 650),
+                 })
+        {
+            Accepted(run.ApplyCommand(RealtimeCommand.AddLinePoint(point)),
+                "tutorial FIRST_LIGHT west line point");
+        }
+        Accepted(run.ApplyCommand(RealtimeCommand.FinishLineDraft(substationId)),
+            "tutorial FIRST_LIGHT west line finish");
+        RealtimeProjectQuote westQuote = run.PreviewLineOrder();
+        Check(westQuote is { Accepted: true, CompletionMinute: 1238 },
+            "tutorial FIRST_LIGHT west line quote");
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderLine()),
+            "tutorial FIRST_LIGHT west line order");
+        run.AdvanceTo(westQuote.CompletionMinute!.Value);
+
+        Accepted(run.ApplyCommand(RealtimeCommand.StartLineDraft(
+                substationId,
+                "STANDARD_LINE",
+                "STANDARD_POLE")),
+            "tutorial FIRST_LIGHT service line start");
+        Accepted(run.ApplyCommand(RealtimeCommand.FinishLineDraft(
+                "EAST_RESIDENTIAL_TERMINAL")),
+            "tutorial FIRST_LIGHT service line finish");
+        RealtimeProjectQuote serviceQuote = run.PreviewLineOrder();
+        Check(serviceQuote is { Accepted: true, CompletionMinute: 1248 },
+            "tutorial FIRST_LIGHT service line quote");
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderLine()),
+            "tutorial FIRST_LIGHT service line order");
+        run.AdvanceTo(serviceQuote.CompletionMinute!.Value);
+        return substationId;
+    }
+
+    private void BuildHospitalLine(
+        RealtimeCampaignRun run,
+        string startNodeId,
+        IReadOnlyList<MapPoint> intermediatePoints,
+        bool order)
+    {
+        Accepted(run.ApplyCommand(RealtimeCommand.StartLineDraft(
+                startNodeId,
+                "STANDARD_LINE",
+                "STANDARD_POLE")),
+            "tutorial hospital line start");
+        foreach (MapPoint point in intermediatePoints)
+        {
+            Accepted(run.ApplyCommand(RealtimeCommand.AddLinePoint(point)),
+                "tutorial hospital line point");
+        }
+        Accepted(run.ApplyCommand(RealtimeCommand.FinishLineDraft(
+                "HOSPITAL_TERMINAL")),
+            "tutorial hospital line finish");
+        RealtimeProjectQuote quote = run.PreviewLineOrder();
+        Check(quote.Accepted && quote.BuildMinutes is > 0 &&
+              quote.CompletionMinute.HasValue,
+            "tutorial hospital line quote");
+        if (!order)
+        {
+            return;
+        }
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderLine()),
+            "tutorial hospital line order");
+        run.AdvanceTo(quote.CompletionMinute!.Value);
+    }
+
+    private string BuildTutorialNode(
+        RealtimeCampaignRun run,
+        MapPoint position)
+    {
+        Accepted(run.ApplyCommand(RealtimeCommand.SetNodeDraft(
+                "SMALL_SUBSTATION",
+                position)),
+            "tutorial flood substation draft");
+        RealtimeProjectQuote quote = run.PreviewNodeOrder();
+        Check(quote.Accepted && quote.CompletionMinute.HasValue,
+            "tutorial flood substation quote");
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderNode()),
+            "tutorial flood substation order");
+        string nodeId = run.GetSnapshot().Construction.ActiveConstruction!
+            .NodeIds.Single();
+        run.AdvanceTo(quote.CompletionMinute!.Value);
+        return nodeId;
+    }
+
+    private RealtimeProjectQuote BuildTutorialLine(
+        RealtimeCampaignRun run,
+        string startNodeId,
+        IReadOnlyList<MapPoint> points,
+        string endNodeId)
+    {
+        Accepted(run.ApplyCommand(RealtimeCommand.StartLineDraft(
+                startNodeId,
+                "STANDARD_LINE",
+                "STANDARD_POLE")),
+            "tutorial flood line start");
+        foreach (MapPoint point in points)
+        {
+            Accepted(run.ApplyCommand(RealtimeCommand.AddLinePoint(point)),
+                $"tutorial flood line point {startNodeId}->{endNodeId} " +
+                $"({point.XUnit},{point.YUnit})");
+        }
+        Accepted(run.ApplyCommand(RealtimeCommand.FinishLineDraft(endNodeId)),
+            "tutorial flood line finish");
+        RealtimeProjectQuote quote = run.PreviewLineOrder();
+        Check(quote.Accepted && quote.CompletionMinute.HasValue,
+            "tutorial flood line quote");
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderLine()),
+            "tutorial flood line order");
+        run.AdvanceTo(quote.CompletionMinute!.Value);
+        return quote;
+    }
 
     private void StartJitLine(RealtimeCampaignRun run)
     {

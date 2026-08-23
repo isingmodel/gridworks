@@ -58,6 +58,10 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseFirstLightControllerStory(failures), failures);
         RunCase("release-first-light-no-action-result",
             () => ValidateReleaseFirstLightNoActionResult(failures), failures);
+        RunCase("release-tutorial-through-second-source",
+            () => ValidateReleaseTutorialThroughSecondSource(failures), failures);
+        RunCase("release-tutorial-connection-failure-result",
+            () => ValidateReleaseTutorialConnectionFailureResult(failures), failures);
         RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
         RunCase("pointer-priority", () => ValidatePointerPriority(failures), failures);
     }
@@ -2116,6 +2120,670 @@ internal static class RealtimeR2Smoke
             "direct-play PASS record",
             failures);
     }
+
+    private static void ValidateReleaseTutorialThroughSecondSource(
+        ICollection<string> failures)
+    {
+        var slice = new RealtimeSliceMain();
+        try
+        {
+            slice.BootstrapReleaseTutorialForSmoke();
+        }
+        catch
+        {
+            slice.Free();
+            throw;
+        }
+        using var sliceLifetime = slice.FreeAfterSmoke();
+        RealtimeSliceData data = slice.SliceDataForSmoke;
+        Check(data.Campaign.Chapters.Select(item => item.Content.ChapterId).SequenceEqual(
+                new[] { "FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE" },
+                StringComparer.Ordinal),
+            "tutorial native prefix chapter identity",
+            failures);
+        Check(data.SourceRoute ==
+                  RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource &&
+              RealtimeSliceMain.ParseSourceRoute(
+                  ["--release-through=SECOND_SOURCE"]) ==
+                  RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource &&
+              RealtimeSliceMain.ParseSourceRoute(
+                  ["--release-chapter=FIRST_LIGHT"]) ==
+                  RealtimeSliceSourceRoute.ReleaseFirstLight,
+            "tutorial exact launch route or FIRST_LIGHT preservation drifted",
+            failures);
+        string[][] rejectedRoutes =
+        [
+            ["--release-through=SECOND_HEART"],
+            ["--release-through"],
+            ["--bogus"],
+            ["--release-chapter=FIRST_LIGHT", "--release-through=SECOND_SOURCE"],
+        ];
+        foreach (string[] rejectedRoute in rejectedRoutes)
+        {
+            bool rejected = false;
+            try
+            {
+                _ = RealtimeSliceMain.ParseSourceRoute(rejectedRoute);
+            }
+            catch (ArgumentException)
+            {
+                rejected = true;
+            }
+            Check(rejected,
+                $"tutorial invalid route was accepted: {string.Join(' ', rejectedRoute)}",
+                failures);
+        }
+
+        var observedRailEvents = new List<string>();
+        ObserveTutorialRail(slice, observedRailEvents);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterBriefing,
+            "FIRST_LIGHT",
+            null,
+            data.BaseCampaign.Chapters[0].Briefing,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            "tutorial FIRST_LIGHT briefing did not close into realtime play",
+            failures);
+
+        string substationId = BuildTutorialFirstLightNetwork(slice, failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1320,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        ObserveTutorialRail(slice, observedRailEvents);
+        RealtimeChapterOutcome firstOutcome = slice.CoreSnapshot.CompletedChapters
+            .Single(item => item.ChapterId == "FIRST_LIGHT");
+        Check(firstOutcome.ObjectiveSatisfied,
+            "tutorial FIRST_LIGHT positive route failed its derived objective",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterResult,
+            "FIRST_LIGHT",
+            null,
+            data.BaseCampaign.Chapters[0].ResultCards.Standard!,
+            failures);
+        RealtimeModalPresentation? secondBriefing =
+            slice.ClosePresentedTutorialModalForSmoke();
+        Check(secondBriefing is not null &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
+                  new[] { "FIRST_LIGHT" },
+                  StringComparer.Ordinal),
+            "FIRST_LIGHT result did not synchronously queue SECOND_HEART briefing",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterBriefing,
+            "SECOND_HEART",
+            null,
+            data.BaseCampaign.Chapters[1].Briefing,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running &&
+              slice.InteractionState.PresentedSpeed == RealtimeSimulationSpeed.VeryFast,
+            "SECOND_HEART briefing did not restore the prior realtime speed",
+            failures);
+
+        string hospitalSubstationId = OrderTutorialNode(
+            slice,
+            new CoreMapPoint(2250, 1300),
+            failures,
+            "hospital service substation");
+        _ = OrderTutorialLine(
+            slice,
+            substationId,
+            [new CoreMapPoint(2250, 1000)],
+            hospitalSubstationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "safe hospital substation feed");
+        _ = OrderTutorialLine(
+            slice,
+            hospitalSubstationId,
+            Array.Empty<CoreMapPoint>(),
+            "HOSPITAL_TERMINAL",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "safe hospital corridor one");
+        _ = OrderTutorialLine(
+            slice,
+            "EAST_RESIDENTIAL_TERMINAL",
+            [new CoreMapPoint(2550, 1050)],
+            "HOSPITAL_TERMINAL",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "safe hospital corridor two");
+        RealtimeConnectionRequirementAssessment currentTwo =
+            slice.CoreSnapshot.Forecast.ConnectionRequirementAssessment ??
+            throw new InvalidOperationException(
+                "SECOND_HEART HUD connection assessment is absent.");
+        Check(currentTwo.Satisfied &&
+              currentTwo.Facts.Single().CurrentConnections == 2 &&
+              slice.LatestPresentation.Hud.Objective.Contains(
+                  "2/2",
+                  StringComparison.Ordinal),
+            "SECOND_HEART did not show the Core-owned current hospital 2/2",
+            failures);
+
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1500,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.SetTimelineMarker(
+                "FLOOD_ISOLATION_TEST",
+                "HOSPITAL_TERMINAL",
+                null,
+                slice.InteractionState.TimelineHorizon)),
+            "tutorial flood marker selection", failures, coreCommandExpected: false);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                new RealtimeR2Intent(RealtimeR2IntentKind.ToggleAnalysis)),
+            "tutorial flood analysis", failures, coreCommandExpected: false);
+        Check(slice.LatestPresentation.World.ForecastRiskAreaIds.SequenceEqual(
+                  new[] { "RIVER_FLOOD_ZONE" },
+                  StringComparer.Ordinal) &&
+              slice.LatestPresentation.World.ActiveRiskAreaIds.Count == 0,
+            "selected announced flood did not expose forecast-only risk geometry",
+            failures);
+
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1680,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeConnectionRequirementAssessment frozenTwo =
+            slice.CoreSnapshot.Forecast.ConnectionRequirementAssessment ??
+            throw new InvalidOperationException(
+                "SECOND_HEART frozen connection assessment is absent.");
+        Check(frozenTwo is { FrozenForChapter: true, Satisfied: true } &&
+              frozenTwo.EvaluatedMinute == 1680 &&
+              frozenTwo.Facts.Single().CurrentConnections == 2,
+            "SECOND_HEART did not freeze exact 2/2 at the first test",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1800,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        ObserveTutorialRail(slice, observedRailEvents);
+        CommercialStoryCard floodStory = data.BaseCampaign.Chapters[1]
+            .OperatingPhases.Single(item =>
+                item.PhaseId == "FLOOD_ISOLATION_TEST").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.EventStory,
+            "SECOND_HEART",
+            "FLOOD_ISOLATION_TEST",
+            floodStory,
+            failures);
+        Check(slice.LatestPresentation.World.ForecastRiskAreaIds.Count == 0 &&
+              slice.LatestPresentation.World.ActiveRiskAreaIds.SequenceEqual(
+                  new[] { "RIVER_FLOOD_ZONE" },
+                  StringComparer.Ordinal),
+            "active flood did not replace forecast geometry with active geometry",
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            "flood story did not restore realtime play",
+            failures);
+
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1860,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeChapterOutcome heartOutcome = slice.CoreSnapshot.CompletedChapters
+            .Single(item => item.ChapterId == "SECOND_HEART");
+        Check(heartOutcome.ObjectiveSatisfied,
+            "safe SECOND_HEART route failed its authored objective: " +
+            TutorialOutcomeDiagnostic(heartOutcome),
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterResult,
+            "SECOND_HEART",
+            null,
+            data.BaseCampaign.Chapters[1].ResultCards.Standard!,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is not null &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
+                  new[] { "FIRST_LIGHT", "SECOND_HEART" },
+                  StringComparer.Ordinal),
+            "SECOND_HEART result did not queue SECOND_SOURCE briefing",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterBriefing,
+            "SECOND_SOURCE",
+            null,
+            data.BaseCampaign.Chapters[2].Briefing,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "SECOND_SOURCE briefing did not close into realtime play",
+            failures);
+        ObserveTutorialRail(slice, observedRailEvents);
+        RealtimeBuildToolPresentation standardLine = slice.LatestPresentation.BuildShelf.Tools
+            .Single(item => item.Id == "LINE:STANDARD_LINE:STANDARD_POLE");
+        Check(standardLine.Description.Contains("비용", StringComparison.Ordinal) &&
+              standardLine.Description.Contains("공기", StringComparison.Ordinal) &&
+              standardLine.Description.Contains("연속 2,500 kW", StringComparison.Ordinal) &&
+              !standardLine.Description.Contains("경로:", StringComparison.Ordinal),
+            "SECOND_SOURCE did not withdraw route hints while preserving typed line facts",
+            failures);
+
+        RealtimeProjectQuote southQuote = OrderTutorialLine(
+            slice,
+            "SOUTH_SOURCE_NODE",
+            [
+                new CoreMapPoint(700, 1650),
+                new CoreMapPoint(1150, 1650),
+                new CoreMapPoint(1750, 1650),
+                new CoreMapPoint(2050, 1450),
+            ],
+            hospitalSubstationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "south source commissioning corridor");
+        Check(southQuote.CompletionMinute < 2280,
+            "south source corridor missed the first SECOND_SOURCE test",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            2400,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        ObserveTutorialRail(slice, observedRailEvents);
+        CommercialStoryCard southStory = data.BaseCampaign.Chapters[2]
+            .OperatingPhases.Single(item =>
+                item.PhaseId == "SOUTH_SOURCE_COMMISSIONING_TEST").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.EventStory,
+            "SECOND_SOURCE",
+            "SOUTH_SOURCE_COMMISSIONING_TEST",
+            southStory,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "south-source story did not restore realtime play",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            2460,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeChapterOutcome sourceOutcome = slice.CoreSnapshot.CompletedChapters
+            .Single(item => item.ChapterId == "SECOND_SOURCE");
+        Check(sourceOutcome.ObjectiveSatisfied && slice.CoreSnapshot.CampaignComplete,
+            "SECOND_SOURCE positive route did not complete the tutorial campaign: " +
+            TutorialOutcomeDiagnostic(sourceOutcome),
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterResult,
+            "SECOND_SOURCE",
+            null,
+            data.BaseCampaign.Chapters[2].ResultCards.Standard!,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Ended &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
+                  new[] { "FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE" },
+                  StringComparer.Ordinal) &&
+              slice.FormativeTutorialFullFlowRecordedForSmoke,
+            "final tutorial close did not record the ordered three results/full flow",
+            failures);
+        string[] exactEventOrder =
+        [
+            "FIRST_LIGHT_SUPPLY",
+            "HOSPITAL_TRANSFER_TEST",
+            "FLOOD_ISOLATION_TEST",
+            "WEST_MAIN_COMMISSIONING_TEST",
+            "SOUTH_SOURCE_COMMISSIONING_TEST",
+        ];
+        Check(slice.EmittedTransitions
+                .Where(item => item.Kind == RealtimeTransitionKind.EventStarted)
+                .Select(item => item.EventId!)
+                .SequenceEqual(exactEventOrder, StringComparer.Ordinal),
+            "tutorial native event-start order",
+            failures);
+        Check(observedRailEvents.SequenceEqual(exactEventOrder, StringComparer.Ordinal),
+            "tutorial cumulative one-line rail event order",
+            failures);
+    }
+
+    private static void ValidateReleaseTutorialConnectionFailureResult(
+        ICollection<string> failures)
+    {
+        var slice = new RealtimeSliceMain();
+        try
+        {
+            slice.BootstrapReleaseTutorialForSmoke();
+        }
+        catch
+        {
+            slice.Free();
+            throw;
+        }
+        using var sliceLifetime = slice.FreeAfterSmoke();
+        RealtimeSliceData data = slice.SliceDataForSmoke;
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "failure route FIRST_LIGHT briefing did not close",
+            failures);
+        _ = BuildTutorialFirstLightNetwork(slice, failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1320,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterResult,
+            "FIRST_LIGHT",
+            null,
+            data.BaseCampaign.Chapters[0].ResultCards.Standard!,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is not null,
+            "failure route FIRST_LIGHT result did not queue SECOND_HEART briefing",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterBriefing,
+            "SECOND_HEART",
+            null,
+            data.BaseCampaign.Chapters[1].Briefing,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "failure route SECOND_HEART briefing did not close",
+            failures);
+
+        RealtimeProjectQuote oneRoute = OrderTutorialLine(
+            slice,
+            "EAST_RESIDENTIAL_TERMINAL",
+            [new CoreMapPoint(2550, 1050)],
+            "HOSPITAL_TERMINAL",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "single hospital corridor");
+        Check(oneRoute.CompletionMinute < 1680,
+            "single hospital corridor missed the connection-freeze boundary",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1680,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeConnectionRequirementAssessment frozenOne =
+            slice.CoreSnapshot.Forecast.ConnectionRequirementAssessment ??
+            throw new InvalidOperationException(
+                "SECOND_HEART failure route has no frozen connection assessment.");
+        Check(frozenOne is { FrozenForChapter: true, Satisfied: false } &&
+              frozenOne.Facts.Single() is
+              {
+                  CurrentConnections: 1,
+                  RequiredConnections: 2,
+              } &&
+              slice.LatestPresentation.Hud.Objective.Contains(
+                  "1/2",
+                  StringComparison.Ordinal),
+            "SECOND_HEART failure route did not freeze/show exact Core-owned 1/2",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1800,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        CommercialStoryCard floodStory = data.BaseCampaign.Chapters[1]
+            .OperatingPhases.Single(item =>
+                item.PhaseId == "FLOOD_ISOLATION_TEST").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.EventStory,
+            "SECOND_HEART",
+            "FLOOD_ISOLATION_TEST",
+            floodStory,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "failure route flood story did not close",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1860,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+
+        RealtimeChapterOutcome outcome = slice.CoreSnapshot.CompletedChapters.Single(item =>
+            item.ChapterId == "SECOND_HEART");
+        CommercialStoryCard standard = data.BaseCampaign.Chapters[1]
+            .ResultCards.Standard!;
+        RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException(
+                "SECOND_HEART failure route did not present its factual result.");
+        Check(!outcome.ObjectiveSatisfied &&
+              outcome.ConnectionRequirementAssessment is
+              {
+                  FrozenForChapter: true,
+                  Satisfied: false,
+              } &&
+              result.Id == "TUTORIAL_RESULT:SECOND_HEART" &&
+              result.Eyebrow == "계통운영 기록" &&
+              result.Heading.Contains("목표 미달", StringComparison.Ordinal) &&
+              result.Body.Contains("1/2", StringComparison.Ordinal) &&
+              (!string.Equals(result.Eyebrow, standard.Speaker, StringComparison.Ordinal) ||
+               !string.Equals(result.Heading, standard.Title, StringComparison.Ordinal) ||
+               !string.Equals(result.Body, standard.Body, StringComparison.Ordinal)),
+            "SECOND_HEART 1/2 failure counterfeited the authored positive result",
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is not null &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
+                  new[] { "FIRST_LIGHT" },
+                  StringComparer.Ordinal) &&
+              !slice.FormativeTutorialFullFlowRecordedForSmoke,
+            "failed SECOND_HEART minted a formative token or blocked the next briefing",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterBriefing,
+            "SECOND_SOURCE",
+            null,
+            data.BaseCampaign.Chapters[2].Briefing,
+            failures);
+    }
+
+    private static string BuildTutorialFirstLightNetwork(
+        RealtimeSliceMain slice,
+        ICollection<string> failures)
+    {
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildNode,
+                    "NODE:SMALL_SUBSTATION")),
+            "tutorial node tool", failures, coreCommandExpected: false);
+        RequireIntent(slice.ApplyIntentForSmoke(new RealtimeR2Intent(
+                RealtimeR2IntentKind.SetNodeDraft,
+                FirstId: "SMALL_SUBSTATION",
+                Position: new CoreMapPoint(2100, 700))),
+            "tutorial substation draft", failures);
+        RealtimeProjectQuote nodeQuote = slice.PreviewNodeOrderForSmoke();
+        RequireIntent(slice.ApplyIntentForSmoke(
+                new RealtimeR2Intent(RealtimeR2IntentKind.OrderNode)),
+            "tutorial substation order", failures);
+        string substationId = slice.CoreSnapshot.Construction.ActiveConstruction!
+            .NodeIds.Single();
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
+            "tutorial first-light speed", failures, coreCommandExpected: false);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            nodeQuote.CompletionMinute!.Value,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        _ = OrderTutorialLine(
+            slice,
+            "WEST_SOURCE_NODE",
+            [
+                new CoreMapPoint(750, 650),
+                new CoreMapPoint(1050, 650),
+                new CoreMapPoint(1600, 650),
+            ],
+            substationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "tutorial west source corridor");
+        _ = OrderTutorialLine(
+            slice,
+            substationId,
+            Array.Empty<CoreMapPoint>(),
+            "EAST_RESIDENTIAL_TERMINAL",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "tutorial east service corridor");
+        return substationId;
+    }
+
+    private static RealtimeProjectQuote OrderTutorialLine(
+        RealtimeSliceMain slice,
+        string startNodeId,
+        IReadOnlyList<CoreMapPoint> points,
+        string endNodeId,
+        string lineClassId,
+        string poleClassId,
+        ICollection<string> failures,
+        string label)
+    {
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildLine,
+                    $"LINE:{lineClassId}:{poleClassId}")),
+            $"{label} tool", failures, coreCommandExpected: false);
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.StartLineDraft(
+                startNodeId,
+                lineClassId,
+                poleClassId)),
+            $"{label} start", failures);
+        foreach (CoreMapPoint point in points)
+        {
+            RequireIntent(slice.ApplyIntentForSmoke(
+                    RealtimeR2Intent.AddLinePoint(point)),
+                $"{label} point", failures);
+        }
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.FinishLineDraft(endNodeId)),
+            $"{label} finish", failures);
+        RealtimeProjectQuote quote = slice.PreviewLineOrderForSmoke();
+        Check(quote.Accepted && quote.BuildMinutes is > 0 &&
+              quote.CompletionMinute.HasValue,
+            $"{label} quote rejected", failures);
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.OrderLine()),
+            $"{label} order", failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            quote.CompletionMinute!.Value,
+            slice.InteractionState.PresentedSpeed,
+            failures);
+        return quote;
+    }
+
+    private static string OrderTutorialNode(
+        RealtimeSliceMain slice,
+        CoreMapPoint position,
+        ICollection<string> failures,
+        string label)
+    {
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildNode,
+                    "NODE:SMALL_SUBSTATION")),
+            $"{label} tool", failures, coreCommandExpected: false);
+        RequireIntent(slice.ApplyIntentForSmoke(new RealtimeR2Intent(
+                RealtimeR2IntentKind.SetNodeDraft,
+                FirstId: "SMALL_SUBSTATION",
+                Position: position)),
+            $"{label} draft", failures);
+        RealtimeProjectQuote quote = slice.PreviewNodeOrderForSmoke();
+        Check(quote.Accepted && quote.CompletionMinute.HasValue,
+            $"{label} quote rejected", failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                new RealtimeR2Intent(RealtimeR2IntentKind.OrderNode)),
+            $"{label} order", failures);
+        string nodeId = slice.CoreSnapshot.Construction.ActiveConstruction!
+            .NodeIds.Single();
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            quote.CompletionMinute!.Value,
+            slice.InteractionState.PresentedSpeed,
+            failures);
+        return nodeId;
+    }
+
+    private static void RequireAuthoredTutorialModal(
+        RealtimeSliceMain slice,
+        RealtimeTutorialModalPurpose purpose,
+        string chapterId,
+        string? eventId,
+        CommercialStoryCard card,
+        ICollection<string> failures)
+    {
+        RealtimeModalPresentation? modal = slice.LatestPresentation.Modal;
+        RealtimeTutorialModalRequest request = string.Equals(
+                modal?.Id,
+                "CHAPTER_BRIEFING",
+                StringComparison.Ordinal)
+            ? RealtimeTutorialChapterFlow.InitialBriefing(chapterId)
+            : slice.ActiveTutorialModalForSmoke ??
+              throw new InvalidOperationException("Tutorial flow has no active modal step.");
+        Check(modal is not null && request.Purpose == purpose &&
+              request.ChapterId == chapterId && request.EventId == eventId &&
+              modal.Eyebrow == card.Speaker && modal.Heading == card.Title &&
+              modal.Body == card.Body,
+            $"tutorial authored modal mismatch: {purpose}/{chapterId}/{eventId}",
+            failures);
+    }
+
+    private static void ObserveTutorialRail(
+        RealtimeSliceMain slice,
+        List<string> observed)
+    {
+        HashSet<string> authored = new(StringComparer.Ordinal)
+        {
+            "FIRST_LIGHT_SUPPLY",
+            "HOSPITAL_TRANSFER_TEST",
+            "FLOOD_ISOLATION_TEST",
+            "WEST_MAIN_COMMISSIONING_TEST",
+            "SOUTH_SOURCE_COMMISSIONING_TEST",
+        };
+        foreach (RealtimeTimelineItemPresentation item in slice.LatestPresentation.Rail.Items)
+        {
+            if (authored.Contains(item.Id) &&
+                !observed.Contains(item.Id, StringComparer.Ordinal))
+            {
+                observed.Add(item.Id);
+            }
+        }
+    }
+
+    private static string TutorialOutcomeDiagnostic(RealtimeChapterOutcome outcome) =>
+        string.Join(
+            "; ",
+            outcome.Events.Select(item =>
+                $"{item.EventId}:safety={item.SafetySatisfied}," +
+                $"promise={item.PromiseSatisfied}," +
+                $"safety-unserved={item.SafetyUnservedMinutes}," +
+                $"promise-unserved={item.PromiseUnservedMinutes}," +
+                $"loads=[{string.Join(",", item.FinalEvaluation.Loads.Select(load =>
+                    $"{load.LoadId}:{load.DeliveredKw}/{load.DemandKw}:" +
+                    $"{load.Failure?.Kind.ToString() ?? "ok"}"))}]")) +
+        $"; connection={outcome.ConnectionRequirementAssessment?.Satisfied}";
 
     private static void AssertNoUnknownRailTargets(
         RealtimeSliceMain slice,

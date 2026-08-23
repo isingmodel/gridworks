@@ -1,5 +1,6 @@
 #if DEBUG
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Gridworks.Core.Release.V2;
@@ -36,6 +37,38 @@ internal sealed partial class RealtimeSliceMain
     internal RealtimeComparisonDraftForecast ComparisonDraftForecastForSmoke =>
         _run?.GetComparisonDraftForecast() ??
         throw new InvalidOperationException("Slice Core is not ready.");
+
+    internal IReadOnlyList<string> FormativeTutorialResultChapterIdsForSmoke =>
+        Array.AsReadOnly(_formativeTutorialResultChapterIds
+            .OrderBy(id => _data!.Campaign.Chapters.ToList().FindIndex(chapter =>
+                string.Equals(
+                    chapter.Content.ChapterId,
+                    id,
+                    StringComparison.Ordinal)))
+            .ToArray());
+
+    internal bool FormativeTutorialFullFlowRecordedForSmoke =>
+        _formativeTutorialFullFlowRecorded;
+
+    internal RealtimeTutorialModalRequest? ActiveTutorialModalForSmoke =>
+        _tutorialFlow.Active;
+
+    internal RealtimeModalPresentation? ClosePresentedTutorialModalForSmoke()
+    {
+        RealtimeModalPresentation modal = _latestPresentation?.Modal ??
+            throw new InvalidOperationException(
+                "No tutorial modal is available for the production close handler.");
+        _suppressFormativeDirectPlayOutputForSmoke = true;
+        try
+        {
+            HandleModalAction(modal.Id, modal.PrimaryAction.Id);
+            return _latestPresentation?.Modal;
+        }
+        finally
+        {
+            _suppressFormativeDirectPlayOutputForSmoke = false;
+        }
+    }
 
     internal RealtimeForecastSnapshot ForecastForHorizonForSmoke(
         long horizonMinutes) =>

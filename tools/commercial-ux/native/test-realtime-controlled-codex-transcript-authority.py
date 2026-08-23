@@ -296,6 +296,65 @@ class ControlledTranscriptHarness:
             ),
         }
 
+    def set_route_kind(self, route_kind: str) -> None:
+        digest = lambda label: AUTHORITY.sha256_bytes(label.encode("utf-8"))
+        if route_kind == "STORY_PART_UNIT":
+            route = {
+                "routeKind": route_kind,
+                "candidateProfileId": None,
+                "sessionProfileId": route_kind,
+                "selector": "chapter-01.introduction",
+                "availability": "AVAILABLE_CONTENT_UNIT_ONLY",
+                "executionAuthorized": True,
+                "routeDisposition": "CONTENT_UNIT_ATTEMPT_AUTHORIZED",
+                "routeBindingSha256": digest("story-route-binding"),
+                "evidenceClass": "AUTHORED_CONTENT_UNIT_ONLY",
+                "nativePresentationObserved": False,
+                "scoreBearingEvidence": False,
+                "futureEventStatusBar": None,
+                "authoredReachabilityOnly": True,
+                "nativeReachabilityClaim": False,
+                "routeBoundarySha256": "",
+            }
+        elif route_kind == "FULL_FLOW_EXCEPTION":
+            route = {
+                "routeKind": route_kind,
+                "candidateProfileId": route_kind,
+                "sessionProfileId": route_kind,
+                "selector": None,
+                "availability": "UNAVAILABLE_NOT_IMPLEMENTED",
+                "executionAuthorized": False,
+                "routeDisposition": "ROUTE_UNAVAILABLE_NO_EXECUTION",
+                "routeBindingSha256": digest("full-flow-route-binding"),
+                "evidenceClass": "UNAVAILABLE_ROUTE_TERMINAL_ONLY",
+                "nativePresentationObserved": False,
+                "scoreBearingEvidence": False,
+                "futureEventStatusBar": None,
+                "authoredReachabilityOnly": False,
+                "nativeReachabilityClaim": False,
+                "routeBoundarySha256": "",
+            }
+        else:
+            raise AssertionError(f"unsupported fixture route {route_kind}")
+        route["routeBoundarySha256"] = AUTHORITY.self_hash(
+            route,
+            "routeBoundarySha256",
+        )
+        claim = copy.deepcopy(self.parent_context.parent.claim)
+        claim["routeBoundary"] = route
+        claim_bytes = AUTHORITY.json_file_bytes(claim)
+        self.chain_claim_path.write_bytes(claim_bytes)
+        self.parent_context = AUTHORITY.ParentArtifactContext(
+            parent=types.SimpleNamespace(claim=claim, claim_bytes=claim_bytes),
+            artifact_producer=self.parent_context.artifact_producer,
+            aggregate_path=self.parent_context.aggregate_path,
+            aggregate=self.parent_context.aggregate,
+            aggregate_bytes=self.parent_context.aggregate_bytes,
+            artifacts=self.parent_context.artifacts,
+            chain_claim_path=self.parent_context.chain_claim_path,
+            session_claim_path=self.parent_context.session_claim_path,
+        )
+
     @contextlib.contextmanager
     def claim_lock(self, _path: Path):
         with self._claim_mutex:
@@ -779,6 +838,54 @@ for (const row of JSON.parse(fs.readFileSync(fixture, 'utf8'))) {
                 }
             )
         self._assert_schema_instances(instances)
+
+    def test_story_and_full_flow_boundaries_remain_authored_only_or_unavailable(self) -> None:
+        schema_instances = []
+        for route_kind in ("STORY_PART_UNIT", "FULL_FLOW_EXCEPTION"):
+            with self.subTest(route_kind=route_kind):
+                harness = self.harness()
+                harness.set_route_kind(route_kind)
+                with harness.patched_authority():
+                    path, receipt = harness.create()
+                    verified, _raw_hash = harness.verify(path)
+                self.assertTrue(AUTHORITY.strict_typed_equal(receipt, verified))
+                route = receipt["parentAuthority"]["routeBoundary"]
+                self.assertEqual(route_kind, route["routeKind"])
+                self.assertFalse(route["nativeReachabilityClaim"])
+                self.assertFalse(route["nativePresentationObserved"])
+                self.assertFalse(route["scoreBearingEvidence"])
+                self.assertIsNone(route["futureEventStatusBar"])
+                if route_kind == "STORY_PART_UNIT":
+                    self.assertTrue(route["authoredReachabilityOnly"])
+                    self.assertEqual(
+                        "AVAILABLE_CONTENT_UNIT_ONLY",
+                        route["availability"],
+                    )
+                else:
+                    self.assertFalse(route["executionAuthorized"])
+                    self.assertEqual(
+                        "UNAVAILABLE_NOT_IMPLEMENTED",
+                        route["availability"],
+                    )
+                start = json.loads(
+                    (path.parent / "probe-start-receipt.json").read_bytes()
+                )
+                for schema_path, valid in (
+                    (AUTHORITY.START_SCHEMA_PATH, start),
+                    (AUTHORITY.FINAL_SCHEMA_PATH, receipt),
+                ):
+                    promoted = copy.deepcopy(valid)
+                    promoted["parentAuthority"]["routeBoundary"][
+                        "nativeReachabilityClaim"
+                    ] = True
+                    schema_instances.append(
+                        {
+                            "schema": str(schema_path),
+                            "valid": valid,
+                            "invalid": [promoted],
+                        }
+                    )
+        self._assert_schema_instances(schema_instances)
 
     def test_semantic_forged_output_model_effort_thread_usage_prompt_and_tool_fail(self) -> None:
         harness, path, _receipt = self._happy()

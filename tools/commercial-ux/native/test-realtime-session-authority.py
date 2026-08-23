@@ -6,6 +6,7 @@ from __future__ import annotations
 import concurrent.futures
 import contextlib
 import copy
+import io
 import importlib.util
 import inspect
 import json
@@ -452,6 +453,32 @@ class RealtimeSessionAuthorityTests(unittest.TestCase):
                 )
             )
 
+        success_path, success_claim = self.create_session(
+            "TARGETED_CHECKPOINT",
+            "A1_CONSTRUCTION_DUE_1M",
+        )
+        for ordinal in (1, 2):
+            AUTHORITY.reserve_attempt(REPOSITORY_ROOT, success_path, ordinal)
+            _path, retry_terminal = AUTHORITY.finalize_attempt(
+                REPOSITORY_ROOT,
+                success_path,
+                ordinal,
+            )
+            self.assertTrue(retry_terminal["nextAttemptAllowed"])
+        AUTHORITY.reserve_attempt(REPOSITORY_ROOT, success_path, 3)
+        AUTHORITY.write_expected_attempt_output(REPOSITORY_ROOT, success_path, 3)
+        _path, success_terminal = AUTHORITY.finalize_attempt(
+            REPOSITORY_ROOT,
+            success_path,
+            3,
+        )
+        self.assertEqual("SUCCESS", success_terminal["outcome"])
+        self.assertFalse(success_terminal["nextAttemptAllowed"])
+        self.assertEqual(
+            success_claim["routeBinding"]["routeBindingSha256"],
+            success_terminal["routeBindingSha256"],
+        )
+
     def test_every_valid_but_different_json_shape_is_integrity_failure(self) -> None:
         other_part = self.story_manifest["parts"][1]
         variants = (
@@ -498,6 +525,26 @@ class RealtimeSessionAuthorityTests(unittest.TestCase):
         self.assertEqual(self.manifest["packageAuthority"]["treeSha256"], claim["candidateAuthority"]["candidatePackageTreeSha256"])
         self.assertEqual(self.manifest["evaluatorProducerAuthority"]["filesSha256"], claim["candidateAuthority"]["candidateEvaluatorProducerFilesSha256"])
 
+        disposable_candidate = self.root / "disposable-candidate.json"
+        disposable_candidate.write_bytes(self.manifest_bytes)
+        disposable_context = AUTHORITY.dataclasses.replace(
+            self.context,
+            manifest_path=disposable_candidate.resolve(strict=True),
+        )
+        with mock.patch.object(AUTHORITY.secrets, "token_bytes", return_value=b"d" * 32):
+            disposable_claim_path, _disposable_claim = AUTHORITY.create_session_claim(
+                disposable_context,
+                self.root / "disposable-session",
+                "STORY_PART_UNIT",
+                "FIRST_LIGHT/briefing",
+                session_authority_revision=self.session_authority_commit,
+            )
+        disposable_candidate.unlink()
+        AUTHORITY.verify_session_claim_against_reconstructed_authority(
+            REPOSITORY_ROOT,
+            disposable_claim_path,
+        )
+
         candidate_snapshot.write_bytes(self.manifest_bytes + b" ")
         self.assertRejected(
             lambda: AUTHORITY.verify_session_claim_against_reconstructed_authority(
@@ -518,6 +565,16 @@ class RealtimeSessionAuthorityTests(unittest.TestCase):
             "differs from candidate-bound Git bytes",
         )
 
+        claim_path, _claim = self.create_session("STORY_PART_UNIT", "FIRST_LIGHT/briefing")
+        (claim_path.parent / "inputs" / "extra.json").write_text("{}\n", encoding="utf-8")
+        self.assertRejected(
+            lambda: AUTHORITY.verify_session_claim_against_reconstructed_authority(
+                REPOSITORY_ROOT,
+                claim_path,
+            ),
+            "snapshot directory field set drift",
+        )
+
         claim_path, claim = self.create_session("STORY_PART_UNIT", "FIRST_LIGHT/briefing")
         forged = copy.deepcopy(claim)
         forged["sessionNonce"] = "f" * 64
@@ -531,6 +588,69 @@ class RealtimeSessionAuthorityTests(unittest.TestCase):
             ),
             "differs from reconstructed",
         )
+
+        claim_path, claim = self.create_session("STORY_PART_UNIT", "FIRST_LIGHT/briefing")
+        forged_route = copy.deepcopy(claim)
+        forged_route["routeBinding"]["selector"] = "FIRST_LIGHT/result/standard"
+        forged_route["routeBinding"]["routeBindingSha256"] = AUTHORITY.self_hash(
+            forged_route["routeBinding"],
+            "routeBindingSha256",
+        )
+        forged_route["sessionClaimSha256"] = AUTHORITY.self_hash(
+            forged_route,
+            "sessionClaimSha256",
+        )
+        claim_path.write_bytes(AUTHORITY.json_file_bytes(forged_route))
+        validate_schema_subset(
+            forged_route,
+            self.schemas["claim"],
+            self.schemas["claim"],
+        )
+        self.assertRejected(
+            lambda: AUTHORITY.verify_session_claim_against_reconstructed_authority(
+                REPOSITORY_ROOT,
+                claim_path,
+            ),
+            "differs from reconstructed",
+        )
+
+    def test_interrupted_claim_never_materializes_its_commit_marker(self) -> None:
+        session_root = self.root / "interrupted-session"
+        original_exclusive_write = AUTHORITY.exclusive_write
+
+        def interrupt_claim(path: Path, content: bytes, label: str) -> None:
+            if label == "session claim":
+                raise AUTHORITY.SessionAuthorityError("injected pre-claim interruption")
+            original_exclusive_write(path, content, label)
+
+        with (
+            mock.patch.object(AUTHORITY, "exclusive_write", side_effect=interrupt_claim),
+            mock.patch.object(AUTHORITY.secrets, "token_bytes", return_value=b"i" * 32),
+        ):
+            self.assertRejected(
+                lambda: AUTHORITY.create_session_claim(
+                    self.context,
+                    session_root,
+                    "TARGETED_CHECKPOINT",
+                    "A1_NORMAL_READY",
+                    session_authority_revision=self.session_authority_commit,
+                ),
+                "injected pre-claim interruption",
+            )
+        self.assertTrue((session_root / "inputs" / "candidate-manifest.json").is_file())
+        self.assertTrue((session_root / "inputs" / "story-manifest.json").is_file())
+        self.assertFalse((session_root / "session-claim.json").exists())
+        with mock.patch.object(AUTHORITY.secrets, "token_bytes", return_value=b"r" * 32):
+            self.assertRejected(
+                lambda: AUTHORITY.create_session_claim(
+                    self.context,
+                    session_root,
+                    "TARGETED_CHECKPOINT",
+                    "A1_NORMAL_READY",
+                    session_authority_revision=self.session_authority_commit,
+                ),
+                "exclusive create failed",
+            )
 
     def test_symlink_prepopulation_interruption_and_concurrency_fail_closed(self) -> None:
         real_parent = self.root / "real-parent"
@@ -583,6 +703,28 @@ class RealtimeSessionAuthorityTests(unittest.TestCase):
         self.assertEqual(["REJECTED", "SUCCESS"], outcomes)
         state = AUTHORITY.verify_session_state(REPOSITORY_ROOT, claim_path)
         self.assertEqual("STARTED_NOT_TERMINAL", state["attempts"][0]["state"])
+
+        finalize_path, _finalize_claim = self.create_session(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+        )
+        AUTHORITY.reserve_attempt(REPOSITORY_ROOT, finalize_path, 1)
+        AUTHORITY.write_expected_attempt_output(REPOSITORY_ROOT, finalize_path, 1)
+
+        def finalize_once():
+            try:
+                AUTHORITY.finalize_attempt(REPOSITORY_ROOT, finalize_path, 1)
+                return "SUCCESS"
+            except AUTHORITY.SessionAuthorityError:
+                return "REJECTED"
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            finalize_outcomes = sorted(executor.map(lambda _index: finalize_once(), range(2)))
+        self.assertEqual(["REJECTED", "SUCCESS"], finalize_outcomes)
+        self.assertEqual(
+            "SUCCESS",
+            AUTHORITY.verify_session_state(REPOSITORY_ROOT, finalize_path)["attempts"][0]["outcome"],
+        )
 
     def test_exact_inventory_rejects_future_gate_artifacts(self) -> None:
         forbidden_names = (
@@ -639,7 +781,7 @@ class RealtimeSessionAuthorityTests(unittest.TestCase):
 
     def test_cli_and_function_surfaces_cannot_accept_outcome_or_route_aliases(self) -> None:
         parser = AUTHORITY.build_argument_parser()
-        with self.assertRaises(SystemExit):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             parser.parse_args([
                 "finalize-attempt",
                 "--session-claim",

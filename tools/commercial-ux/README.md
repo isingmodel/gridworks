@@ -6,9 +6,9 @@
 
 ## 현재 상태
 
-현재 포팅된 권위는 **text plan → blinded text evaluation**과 UX-R1의 첫 단위인
-**Debug R2 candidate·targeted route authority**다. session/evidence/judge hash chain은 아직 포팅하지
-않았다.
+현재 포팅된 권위는 **text plan → blinded text evaluation**, UX-R1의
+**Debug R2 candidate·targeted route authority**, **non-score session/attempt authority**다.
+evidence/actor/judge/aggregate finalized hash chain은 아직 포팅하지 않았다.
 
 - 콘텐츠 권위: `data/release-campaign-v2.json`
 - 실시간 일정 권위: `data/release-campaign-v3.json`
@@ -70,6 +70,32 @@ manifest는 다음을 결속한다.
 probe를 다시 실행해야 한다. .NET 권위도 resolved wrapper+host 두 파일에 한정되며 transitive
 SDK/runtime closure는 결속하지 않았다. Git도 직접 실행 파일만 결속하며 system dylib transitive
 closure는 결속하지 않았고, 이 경계에서 score-bearing capture는 계속 금지된다.
+
+## Non-score session/attempt authority
+
+```sh
+python3 tools/commercial-ux/native/test-realtime-session-authority.py
+python3 tools/commercial-ux/native/realtime-session-authority.py --help
+```
+
+source revision `5a31ff35a6e2d293c2f1800e4297945ecf3a5584`의 session evaluator는 tool, policy, 세
+structural schema, candidate verifier dependency와 adversarial test를 포함한 7개 Git blob을 결속한다.
+aggregate는 `sha256:faea99acbc3a09334ccc8fbb9140a894f99fbfb0340ce224e9f12cba9b54b3e9`다.
+
+- `create-session targeted-checkpoint`는 `A1_NORMAL_READY` 또는
+  `A1_CONSTRUCTION_DUE_1M` 하나와 future-event bar 6-signal receipt를 고정한다.
+- `create-session story-part-unit`는 canonical selector 하나와 exact 34-part row를 고정하며 native
+  reachability를 주장하지 않는다.
+- `create-session full-flow-exception`은 `UNAVAILABLE_NOT_IMPLEMENTED`를 기록하고 attempt나 output을
+  만들지 않는다.
+- executable route의 최대 세 attempt는 이전 terminal raw/self-hash를 연결한다. empty/malformed
+  transport만 retry 가능하고, 유효하지만 다른 JSON은 즉시 nonretryable integrity failure다.
+- claim은 candidate/story snapshot 뒤 마지막 `O_EXCL + fsync` commit marker이며 session/input/attempt
+  root에 evidence·judge·score 파일을 미리 둘 수 없다.
+
+root suite는 12/12 PASS, 세 schema는 AJV 8.20.0 Draft 2020-12 strict PASS이고 독립 재실행도 12/12,
+P0 0/P1 0이다. 이 authority는 producer 실행을 외부 attestation하지 않으며 capture·judge·점수를 만들지
+않는다.
 
 ## Story part 단독 실행
 
@@ -143,8 +169,9 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 
 1. 완료 — R2 checkpoint와 full-flow 예외를 분리한 actor recipe (`379e980`)
 2. 완료 — V3+필요 V2 의존성을 exact bytes로 닫은 replay/candidate authority (`379e980`)
-3. evidence item·actor/judge input·aggregate를 같은 finalized session에 결속하는 hash chain
-4. model identity를 자기선언 JSON이 아닌 platform/API receipt 또는 동등한 transcript에 결속하는 권위
+3. 완료 — candidate/story snapshot, 34-part unit route와 append-only session/attempt authority (`5a31ff3`)
+4. evidence item·actor/judge input·aggregate를 같은 finalized session에 결속하는 hash chain
+5. model identity를 자기선언 JSON이 아닌 platform/API receipt 또는 동등한 transcript에 결속하는 권위
 
 native presentation과 실제 입력·화면·audio capture는 이후 gate다. UX-R1에서도
 `ScoreBearingCaptureAllowed=false`이며 `CommercialUXProxy >= 87`을 선언하지 않는다.

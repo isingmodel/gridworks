@@ -193,7 +193,27 @@ root 전체 suite는 16/16 PASS했고 두 fresh manifest의 raw SHA-256은 모�
 P0 0/P1 0이다. schema-only 검증, .NET·Git transitive runtime closure, future-event bar의 native 품질,
 full flow와 공식 점수는 이 종료 증거에 포함되지 않는다.
 
-남은 UX-R1 단위는 session/attempt claim, evidence/actor/judge/aggregate finalized hash chain과
+두 번째 session/attempt 단위는 source revision
+`5a31ff35a6e2d293c2f1800e4297945ecf3a5584`에서 완료했다. 고정 candidate와 story bytes를 session 내부
+`inputs/`에 먼저 exclusive-write+fsync하고 finalized claim을 마지막 commit marker로 쓴다. session
+evaluator 7개 Git blob과 running bytes aggregate는
+`sha256:faea99acbc3a09334ccc8fbb9140a894f99fbfb0340ce224e9f12cba9b54b3e9`다. candidate source와 session
+authority source는 별도 필드이며 package tree·candidate producer hash도 claim에 직접 결속한다.
+
+route는 두 targeted checkpoint, authored-only `STORY_PART_UNIT` 34개, 실행 불가
+`FULL_FLOW_EXCEPTION`만 허용한다. story part는 `nativeReachabilityClaim=false`이고 full-flow는 attempt,
+producer output, producer start가 모두 0이다. executable route는 최대 세 append-only attempt를 가지며
+`PRODUCER_NO_OUTPUT`·`TRANSPORT_FAILURE`만 다음 attempt를 허용한다. 유효하지만 다른 JSON은
+nonretryable `INTEGRITY_FAILURE`이고 세 번째 retryable outcome도 네 번째 attempt를 열지 않는다. terminal
+path는 output을 읽기 전에 zero-byte로 예약되며 caller는 outcome을 공급할 수 없다.
+
+root session suite는 12/12 PASS(74.211초), candidate 회귀는 16/16 PASS(220.046초), 세 schema는 AJV
+8.20.0 Draft 2020-12 strict compile PASS다. 독립 재실행은 session 12/12 PASS(82.335초), P0 0/P1 0으로
+`PASS_FOR_UX_R1_SESSION_ATTEMPT_MAJOR_UNIT_ONLY`를 판정했다. 두 대표 `--story-part` 실행도 exact JSON과
+exit 0을 재현했다. future-event status bar는 여섯 signal과 두 checkpoint headless wiring만 결속하며
+native 품질은 계속 `NOT_OBSERVED`다.
+
+남은 UX-R1 단위는 evidence/actor/judge/aggregate finalized hash chain과
 `gpt-5.6-sol` `ultra` platform/API receipt 또는 동등한 transcript authority다. full-flow는
 `UNAVAILABLE_NOT_IMPLEMENTED`, native capture는 계속 금지다.
 
@@ -262,6 +282,8 @@ NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
 EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
 TargetedCheckpointAuthority = TWO_POSITIVE_THREE_REJECTION_INDEPENDENT_REPLAY_PASS
 UXR1CandidateRouteReview = PASS_P0_0_P1_0_SOURCE_379E980
-NativeEvaluatorAuthority = CANDIDATE_ROUTE_COMPLETE_SESSION_EVIDENCE_PENDING
+SessionAttemptAuthority = PASS_SOURCE_REVISION_5A31FF3_PRODUCER_SHA256_FAEA99AC
+UXR1SessionAttemptReview = PASS_P0_0_P1_0_SOURCE_5A31FF3
+NativeEvaluatorAuthority = CANDIDATE_ROUTE_AND_SESSION_ATTEMPT_COMPLETE_EVIDENCE_PENDING
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

@@ -7,11 +7,13 @@ import contextlib
 import copy
 import importlib.util
 import json
+import os
 from pathlib import Path
 import re
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -23,6 +25,18 @@ if SPEC is None or SPEC.loader is None:
 AUTHORITY = importlib.util.module_from_spec(SPEC)
 sys.modules[SPEC.name] = AUTHORITY
 SPEC.loader.exec_module(AUTHORITY)
+
+
+def run_fixture_git(arguments: list[str], cwd: Path) -> bytes:
+    fixture_environment = AUTHORITY.git_execution_environment()
+    fixture_environment.pop("GIT_NO_REPLACE_OBJECTS")
+    return AUTHORITY.run_command(
+        [str(AUTHORITY.GIT_EXECUTABLE_PATH), *arguments],
+        cwd=cwd,
+        env=fixture_environment,
+        timeout=60,
+        label="adversarial Git fixture setup",
+    )
 
 
 def _resolve_local_ref(root: dict, reference: str):
@@ -198,6 +212,142 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
         self.assertIn("DECLARED_NONRUNTIME_FULL_V3_AUTHORITY", roles)
         self.assertIn("STORED_STORY_MANIFEST", roles)
 
+    def test_git_provenance_ignores_replace_refs_and_ambient_environment(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="realtime-git-provenance-") as raw:
+            base = Path(raw)
+            clone = base / "candidate"
+            run_fixture_git(
+                ["clone", "--no-hardlinks", "--quiet", str(REPOSITORY_ROOT), str(clone)],
+                base,
+            )
+            source_commit = AUTHORITY.resolve_source_commit(clone, "HEAD")
+            self.assertEqual(self.build.source.source_commit, source_commit)
+            replaced_with = AUTHORITY.resolve_source_commit(
+                clone,
+                "8ea74f08c373799b62596ce62eb2e4a9930d87b1",
+            )
+            authority_path = (
+                "tools/commercial-ux/native/"
+                "build-realtime-candidate-authority.py"
+            )
+            current_object = next(
+                row[2]
+                for row in AUTHORITY.git_tree_entries(clone, source_commit)
+                if row[3] == authority_path
+            )
+            replaced_object = next(
+                row[2]
+                for row in AUTHORITY.git_tree_entries(clone, replaced_with)
+                if row[3] == authority_path
+            )
+            self.assertNotEqual(current_object, replaced_object)
+            git_directory = AUTHORITY.resolve_git_directory(clone)
+            run_fixture_git(
+                [
+                    f"--git-dir={git_directory}",
+                    f"--work-tree={clone}",
+                    "update-ref",
+                    f"refs/replace/{source_commit}",
+                    replaced_with,
+                ],
+                clone,
+            )
+            vulnerable_row = run_fixture_git(
+                [
+                    f"--git-dir={git_directory}",
+                    f"--work-tree={clone}",
+                    "ls-tree",
+                    "-r",
+                    "--full-tree",
+                    source_commit,
+                    "--",
+                    authority_path,
+                ],
+                clone,
+            )
+            vulnerable_object = vulnerable_row.split(maxsplit=3)[2].decode("ascii")
+            self.assertEqual(replaced_object, vulnerable_object)
+
+            poison = {
+                "PATH": str(base / "missing-bin"),
+                "GIT_DIR": str(base / "wrong-git-dir"),
+                "GIT_WORK_TREE": str(base / "wrong-work-tree"),
+                "GIT_COMMON_DIR": str(base / "wrong-common-dir"),
+                "GIT_OBJECT_DIRECTORY": str(base / "wrong-object-directory"),
+                "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(base / "wrong-alternates"),
+                "GIT_REPLACE_REF_BASE": "refs/poison/",
+                "GIT_CONFIG_GLOBAL": str(base / "wrong-global-config"),
+            }
+            with mock.patch.dict(os.environ, poison, clear=False):
+                self.assertEqual(
+                    source_commit,
+                    AUTHORITY.resolve_source_commit(clone, "HEAD"),
+                )
+                hardened_object = next(
+                    row[2]
+                    for row in AUTHORITY.git_tree_entries(clone, source_commit)
+                    if row[3] == authority_path
+                )
+                hardened_bytes = AUTHORITY.run_git_command(
+                    clone,
+                    ["cat-file", "blob", hardened_object],
+                    label="hardened evaluator producer blob",
+                )
+            self.assertEqual(current_object, hardened_object)
+            self.assertEqual((clone / authority_path).read_bytes(), hardened_bytes)
+
+    def test_git_directory_resolution_supports_linked_worktrees_and_rejects_aliases(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory(prefix="realtime-gitdir-") as raw:
+            base = Path(raw)
+            clone = base / "candidate"
+            linked = base / "linked"
+            run_fixture_git(
+                ["clone", "--no-hardlinks", "--quiet", str(REPOSITORY_ROOT), str(clone)],
+                base,
+            )
+            source_commit = AUTHORITY.resolve_source_commit(clone, "HEAD")
+            git_directory = AUTHORITY.resolve_git_directory(clone)
+            run_fixture_git(
+                [
+                    f"--git-dir={git_directory}",
+                    f"--work-tree={clone}",
+                    "worktree",
+                    "add",
+                    "--detach",
+                    "--quiet",
+                    str(linked),
+                    source_commit,
+                ],
+                clone,
+            )
+            self.assertTrue((linked / ".git").is_file())
+            self.assertEqual(
+                source_commit,
+                AUTHORITY.resolve_source_commit(linked, "HEAD"),
+            )
+            self.assertGreater(len(AUTHORITY.git_tree_entries(linked, source_commit)), 0)
+
+            alias_root = base / "alias-root"
+            alias_root.mkdir()
+            (alias_root / ".git").symlink_to(git_directory, target_is_directory=True)
+            self.assertRejected(
+                lambda: AUTHORITY.resolve_repository_root(alias_root),
+                "must not be a symlink",
+            )
+
+            malformed_root = base / "malformed-root"
+            malformed_root.mkdir()
+            (malformed_root / ".git").write_text(
+                f"gitdir: {git_directory}\ntrailing attack\n",
+                encoding="utf-8",
+            )
+            self.assertRejected(
+                lambda: AUTHORITY.resolve_repository_root(malformed_root),
+                "non-canonical syntax",
+            )
+
     def test_manifest_tells_current_product_truth(self) -> None:
         manifest = self.manifest
         self.assertEqual(
@@ -219,6 +369,18 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
             [row["role"] for row in producer["files"]],
         )
         self.assertTrue(producer["runningFilesMatchGitBlobs"])
+        self.assertEqual(
+            AUTHORITY.expected_git_command_authority(),
+            producer["gitCommandAuthority"],
+        )
+        self.assertEqual(
+            "DISABLED_BY_CLI_AND_ENV",
+            producer["gitCommandAuthority"]["replacementObjectPolicy"],
+        )
+        self.assertEqual(
+            "FRESH_ALLOWLIST_DROPS_AMBIENT_GIT_ENV",
+            producer["gitCommandAuthority"]["environmentPolicy"],
+        )
         self.assertEqual(
             "verify_manifest_against_reconstructed_authority",
             producer["semanticVerifierEntryPoint"],
@@ -364,6 +526,12 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
             "rawSha256"
         ] = "sha256:" + "9" * 64
         mutations.append(replaced_producer)
+
+        replaced_git_command = copy.deepcopy(self.manifest)
+        replaced_git_command["evaluatorProducerAuthority"][
+            "gitCommandAuthority"
+        ]["rawSha256"] = "sha256:" + "8" * 64
+        mutations.append(replaced_git_command)
 
         replaced_package_file = copy.deepcopy(self.manifest)
         replaced_package_file["packageAuthority"]["files"][0]["rawSha256"] = (
@@ -767,6 +935,18 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
             "semanticVerifierReexecutesHeadlessProbes"
         ] = False
         mutations.append(disabled_probe_reexecution)
+
+        enabled_git_replacements = copy.deepcopy(self.policy)
+        enabled_git_replacements["evaluatorProducerAuthority"][
+            "gitCommandAuthority"
+        ]["replacementObjectPolicy"] = "AMBIENT"
+        mutations.append(enabled_git_replacements)
+
+        inherited_git_environment = copy.deepcopy(self.policy)
+        inherited_git_environment["evaluatorProducerAuthority"][
+            "gitCommandAuthority"
+        ]["environmentPolicy"] = "INHERIT_PARENT"
+        mutations.append(inherited_git_environment)
 
         for mutation in mutations:
             self.assertRejected(

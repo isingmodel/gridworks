@@ -168,7 +168,7 @@
       "additionalProperties": false,
       "required": [
         "schemaVersion", "sourceCommit", "fileCount", "files", "filesSha256",
-        "runningFilesMatchGitBlobs", "semanticVerifierEntryPoint",
+        "runningFilesMatchGitBlobs", "gitCommandAuthority", "semanticVerifierEntryPoint",
         "semanticVerifierReexecutesHeadlessProbes", "structuralSchemaAuthority"
       ],
       "properties": {
@@ -214,6 +214,38 @@
         },
         "filesSha256": {"$ref": "#/$defs/sha256"},
         "runningFilesMatchGitBlobs": {"const": true},
+        "gitCommandAuthority": {"const": {
+          "path": "/usr/bin/git",
+          "rawSha256": "sha256:44a68ddc1983d6cff3fd35ba3f9ba5f82004216f1dcde69892b3d1b06e408698",
+          "byteLength": 118640,
+          "versionOutput": "git version 2.50.1 (Apple Git-155)",
+          "commandBindingScope": "EXACT_USR_BIN_GIT_BYTES_AND_VERSION_OUTPUT",
+          "allowedReadOnlySubcommands": [
+            "--version", "cat-file", "ls-tree", "rev-parse"
+          ],
+          "globalArguments": [
+            "--no-replace-objects",
+            "--git-dir=<RESOLVED_GIT_DIRECTORY>",
+            "--work-tree=<RESOLVED_REPOSITORY_ROOT>",
+            "-c",
+            "core.hooksPath=/dev/null"
+          ],
+          "environment": {
+            "PATH": "/usr/bin:/bin",
+            "LANG": "C",
+            "LC_ALL": "C",
+            "GIT_CONFIG_GLOBAL": "/dev/null",
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_SYSTEM": "/dev/null",
+            "GIT_NO_REPLACE_OBJECTS": "1",
+            "GIT_OPTIONAL_LOCKS": "0",
+            "GIT_TERMINAL_PROMPT": "0"
+          },
+          "environmentPolicy": "FRESH_ALLOWLIST_DROPS_AMBIENT_GIT_ENV",
+          "repositoryLocationPolicy": "EXPLICIT_RESOLVED_GIT_DIR_AND_WORK_TREE",
+          "gitDirectoryEntryPolicy": "NON_SYMLINK_DIRECTORY_OR_STRICT_GITDIR_FILE_TO_NON_SYMLINK_DIRECTORY",
+          "replacementObjectPolicy": "DISABLED_BY_CLI_AND_ENV"
+        }},
         "semanticVerifierEntryPoint": {"const": "verify_manifest_against_reconstructed_authority"},
         "semanticVerifierReexecutesHeadlessProbes": {"const": true},
         "structuralSchemaAuthority": {"const": "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"}

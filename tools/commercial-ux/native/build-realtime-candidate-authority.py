@@ -40,12 +40,22 @@ GODOT_VERSION_OUTPUT = "4.7.1.stable.mono.official.a13da4feb"
 GODOT_BANNER = (
     f"Godot Engine v{GODOT_VERSION_OUTPUT} - https://godotengine.org"
 )
+GIT_EXECUTABLE_PATH = Path("/usr/bin/git")
+GIT_EXECUTABLE_RAW_SHA256 = (
+    "sha256:44a68ddc1983d6cff3fd35ba3f9ba5f82004216f1dcde69892b3d1b06e408698"
+)
+GIT_EXECUTABLE_BYTE_LENGTH = 118640
+GIT_VERSION_OUTPUT = "git version 2.50.1 (Apple Git-155)"
+GIT_COMMAND_BINDING_SCOPE = "EXACT_USR_BIN_GIT_BYTES_AND_VERSION_OUTPUT"
+GIT_REPOSITORY_LOCATION_POLICY = "EXPLICIT_RESOLVED_GIT_DIR_AND_WORK_TREE"
+GIT_ENVIRONMENT_POLICY = "FRESH_ALLOWLIST_DROPS_AMBIENT_GIT_ENV"
+GIT_REPLACEMENT_OBJECT_POLICY = "DISABLED_BY_CLI_AND_ENV"
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_REPOSITORY_ROOT = SCRIPT_DIR.parents[2]
 POLICY_PATH = SCRIPT_DIR / "realtime-candidate-policy.json"
 EXPECTED_POLICY_RAW_SHA256 = (
-    "sha256:559a57356af7ca90a250918f0cff489265999eb52b20cd0e04e4ee0e4633daa4"
+    "sha256:3a648f8dd1832834af47defb4e6d8ad73e75b02527510ae967aebd4d70846818"
 )
 
 POLICY_TOP_LEVEL_KEYS = frozenset({
@@ -79,6 +89,7 @@ POLICY_OBJECT_KEYS: dict[str, frozenset[str]] = {
         "schemaVersion", "expectedFileCount", "paths",
         "sourceMaterialization", "semanticVerifierEntryPoint",
         "semanticVerifierReexecutesHeadlessProbes", "structuralSchemaAuthority",
+        "gitCommandAuthority",
     }),
     "sourceAuthority": frozenset({
         "expectedFileCount", "expectedSourceInputsSha256", "expectedRoleCounts",
@@ -750,6 +761,184 @@ def read_regular_file(path: Path, label: str) -> tuple[Path, bytes]:
         os.close(descriptor)
 
 
+def git_execution_environment() -> dict[str, str]:
+    """Return the complete environment used by authority-bearing Git reads."""
+
+    return {
+        "PATH": "/usr/bin:/bin",
+        "LANG": "C",
+        "LC_ALL": "C",
+        "GIT_CONFIG_GLOBAL": "/dev/null",
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_CONFIG_SYSTEM": "/dev/null",
+        "GIT_NO_REPLACE_OBJECTS": "1",
+        "GIT_OPTIONAL_LOCKS": "0",
+        "GIT_TERMINAL_PROMPT": "0",
+    }
+
+
+def resolve_git_directory(repository_root: Path) -> Path:
+    """Resolve only canonical worktree .git forms without consulting Git."""
+
+    git_entry = repository_root / ".git"
+    try:
+        entry_stat = git_entry.lstat()
+    except OSError as error:
+        raise CandidateAuthorityError(
+            f"repository .git entry cannot be opened: {error}"
+        ) from error
+    if stat.S_ISLNK(entry_stat.st_mode):
+        raise CandidateAuthorityError("repository .git entry must not be a symlink")
+    if stat.S_ISDIR(entry_stat.st_mode):
+        try:
+            resolved = git_entry.resolve(strict=True)
+        except OSError as error:
+            raise CandidateAuthorityError(
+                f"repository Git directory cannot be resolved: {error}"
+            ) from error
+        if not resolved.is_dir():
+            raise CandidateAuthorityError("repository .git entry is not a directory")
+        return resolved
+    if not stat.S_ISREG(entry_stat.st_mode):
+        raise CandidateAuthorityError(
+            "repository .git entry must be a directory or strict gitdir file"
+        )
+    _resolved_entry, data = read_regular_file(
+        git_entry,
+        "repository linked-worktree .git file",
+    )
+    try:
+        text = data.decode("utf-8", errors="strict")
+    except UnicodeError as error:
+        raise CandidateAuthorityError(
+            "repository linked-worktree .git file is not UTF-8"
+        ) from error
+    match = re.fullmatch(r"gitdir: ([^\r\n]+)\r?\n?", text)
+    if match is None:
+        raise CandidateAuthorityError(
+            "repository linked-worktree .git file has non-canonical syntax"
+        )
+    raw_target = Path(match.group(1))
+    target = raw_target if raw_target.is_absolute() else git_entry.parent / raw_target
+    try:
+        target_stat = target.lstat()
+    except OSError as error:
+        raise CandidateAuthorityError(
+            f"repository linked-worktree Git directory cannot be opened: {error}"
+        ) from error
+    if stat.S_ISLNK(target_stat.st_mode) or not stat.S_ISDIR(target_stat.st_mode):
+        raise CandidateAuthorityError(
+            "repository linked-worktree Git directory must be a non-symlink directory"
+        )
+    try:
+        return target.resolve(strict=True)
+    except OSError as error:
+        raise CandidateAuthorityError(
+            f"repository linked-worktree Git directory cannot be resolved: {error}"
+        ) from error
+
+
+def verify_git_executable_binding() -> None:
+    resolved, data = read_regular_file(
+        GIT_EXECUTABLE_PATH,
+        "authority Git executable",
+    )
+    if (
+        resolved != GIT_EXECUTABLE_PATH
+        or len(data) != GIT_EXECUTABLE_BYTE_LENGTH
+        or sha256_bytes(data) != GIT_EXECUTABLE_RAW_SHA256
+        or not os.access(resolved, os.X_OK)
+    ):
+        raise CandidateAuthorityError("authority Git executable binding drift")
+
+
+def run_git_command(
+    repository_root: Path,
+    arguments: Sequence[str],
+    *,
+    label: str,
+    timeout: int = 30,
+) -> bytes:
+    """Run one allowlisted read-only Git command with no ambient Git state."""
+
+    if not arguments or arguments[0] not in {
+        "--version",
+        "cat-file",
+        "ls-tree",
+        "rev-parse",
+    }:
+        raise CandidateAuthorityError("authority Git subcommand is not allowlisted")
+    try:
+        root = repository_root.resolve(strict=True)
+    except OSError as error:
+        raise CandidateAuthorityError(
+            f"authority Git work tree cannot be resolved: {error}"
+        ) from error
+    if not root.is_dir():
+        raise CandidateAuthorityError("authority Git work tree must be a directory")
+    git_directory = resolve_git_directory(root)
+    verify_git_executable_binding()
+    output = run_command(
+        [
+            str(GIT_EXECUTABLE_PATH),
+            "--no-replace-objects",
+            f"--git-dir={git_directory}",
+            f"--work-tree={root}",
+            "-c",
+            "core.hooksPath=/dev/null",
+            *arguments,
+        ],
+        cwd=root,
+        env=git_execution_environment(),
+        timeout=timeout,
+        label=label,
+    )
+    verify_git_executable_binding()
+    return output
+
+
+def expected_git_command_authority() -> dict[str, Any]:
+    return {
+        "path": str(GIT_EXECUTABLE_PATH),
+        "rawSha256": GIT_EXECUTABLE_RAW_SHA256,
+        "byteLength": GIT_EXECUTABLE_BYTE_LENGTH,
+        "versionOutput": GIT_VERSION_OUTPUT,
+        "commandBindingScope": GIT_COMMAND_BINDING_SCOPE,
+        "allowedReadOnlySubcommands": [
+            "--version",
+            "cat-file",
+            "ls-tree",
+            "rev-parse",
+        ],
+        "globalArguments": [
+            "--no-replace-objects",
+            "--git-dir=<RESOLVED_GIT_DIRECTORY>",
+            "--work-tree=<RESOLVED_REPOSITORY_ROOT>",
+            "-c",
+            "core.hooksPath=/dev/null",
+        ],
+        "environment": git_execution_environment(),
+        "environmentPolicy": GIT_ENVIRONMENT_POLICY,
+        "repositoryLocationPolicy": GIT_REPOSITORY_LOCATION_POLICY,
+        "gitDirectoryEntryPolicy": (
+            "NON_SYMLINK_DIRECTORY_OR_STRICT_GITDIR_FILE_TO_NON_SYMLINK_DIRECTORY"
+        ),
+        "replacementObjectPolicy": GIT_REPLACEMENT_OBJECT_POLICY,
+    }
+
+
+def bind_git_command_authority(repository_root: Path) -> dict[str, Any]:
+    version = run_git_command(
+        repository_root,
+        ["--version"],
+        timeout=10,
+        label="authority Git version probe",
+    ).decode("ascii", errors="strict").strip()
+    if version != GIT_VERSION_OUTPUT:
+        raise CandidateAuthorityError("authority Git version output drift")
+    return expected_git_command_authority()
+
+
 def write_exclusive(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
@@ -834,15 +1023,21 @@ def resolve_repository_root(path: Path) -> Path:
         root = path.resolve(strict=True)
     except OSError as error:
         raise CandidateAuthorityError(f"repository root cannot be opened: {error}") from error
-    if not root.is_dir() or not (root / ".git").exists():
+    if not root.is_dir():
         raise CandidateAuthorityError("repository root must be an existing Git worktree")
+    resolve_git_directory(root)
     return root
 
 
 def resolve_source_commit(repository_root: Path, revision: str) -> str:
-    commit = run_command(
-        ["git", "rev-parse", "--verify", f"{revision}^{{commit}}"],
-        cwd=repository_root,
+    commit = run_git_command(
+        repository_root,
+        [
+            "rev-parse",
+            "--verify",
+            "--end-of-options",
+            f"{revision}^{{commit}}",
+        ],
         timeout=10,
         label="candidate source commit resolution",
     ).decode("ascii").strip()
@@ -868,9 +1063,11 @@ def git_tree_entries(
     repository_root: Path,
     commit: str,
 ) -> list[tuple[str, str, str, str]]:
-    raw = run_command(
-        ["git", "ls-tree", "-rz", "--full-tree", commit],
-        cwd=repository_root,
+    if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+        raise CandidateAuthorityError("candidate tree commit is not a full SHA-1")
+    raw = run_git_command(
+        repository_root,
+        ["ls-tree", "-rz", "--full-tree", commit],
         timeout=30,
         label="candidate Git tree enumeration",
     )
@@ -1030,9 +1227,9 @@ def read_source_authority(
         mode, object_type, object_id, _path = by_path[path]
         if mode not in {"100644", "100755"} or object_type != "blob":
             raise CandidateAuthorityError(f"candidate input is not a regular blob: {path}")
-        data = run_command(
-            ["git", "cat-file", "blob", object_id],
-            cwd=root,
+        data = run_git_command(
+            root,
+            ["cat-file", "blob", object_id],
             timeout=30,
             label=f"candidate Git blob {path}",
         )
@@ -1067,6 +1264,7 @@ def bind_evaluator_producer_authority(
         raise CandidateAuthorityError(
             "running evaluator producer path differs from canonical Git path"
         )
+    git_command_authority = bind_git_command_authority(source.repository_root)
     entries = git_tree_entries(source.repository_root, source.source_commit)
     by_path = {path: (mode, object_type, object_id) for mode, object_type, object_id, path in entries}
     rows: list[dict[str, Any]] = []
@@ -1081,9 +1279,9 @@ def bind_evaluator_producer_authority(
             raise CandidateAuthorityError(
                 f"evaluator producer authority is not a regular Git blob: {path}"
             )
-        git_data = run_command(
-            ["git", "cat-file", "blob", object_id],
-            cwd=source.repository_root,
+        git_data = run_git_command(
+            source.repository_root,
+            ["cat-file", "blob", object_id],
             timeout=30,
             label=f"evaluator producer Git blob {path}",
         )
@@ -1104,6 +1302,7 @@ def bind_evaluator_producer_authority(
         "files": rows,
         "filesSha256": canonical_sha256(rows),
         "runningFilesMatchGitBlobs": True,
+        "gitCommandAuthority": git_command_authority,
         "semanticVerifierEntryPoint": (
             "verify_manifest_against_reconstructed_authority"
         ),
@@ -2986,6 +3185,7 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
             "structuralSchemaAuthority": (
                 "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"
             ),
+            "gitCommandAuthority": expected_git_command_authority(),
         },
         manifest["evaluatorProducerAuthority"]["sourceCommit"]
         == manifest["sourceCommit"],
@@ -3002,6 +3202,8 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
         == canonical_sha256(manifest["evaluatorProducerAuthority"]["files"]),
         manifest["evaluatorProducerAuthority"]["runningFilesMatchGitBlobs"]
         is True,
+        manifest["evaluatorProducerAuthority"]["gitCommandAuthority"]
+        == expected_git_command_authority(),
         manifest["evaluatorProducerAuthority"]["semanticVerifierEntryPoint"]
         == "verify_manifest_against_reconstructed_authority",
         manifest["evaluatorProducerAuthority"][

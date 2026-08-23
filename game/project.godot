@@ -1,12 +1,12 @@
 ; Engine configuration file.
-; This file is deliberately small: CommercialMain is the single product entry scene.
+; This file is deliberately small: RealtimeSliceMain is the single product entry scene.
 
 config_version=5
 
 [application]
 
 config/name="Gridworks"
-run/main_scene="res://CommercialMain.tscn"
+run/main_scene="res://realtime/r2/RealtimeSliceMain.tscn"
 
 [display]
 

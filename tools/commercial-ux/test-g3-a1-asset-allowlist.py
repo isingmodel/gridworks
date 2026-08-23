@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministically verify the bounded A1 G3 visual import."""
+"""Deterministically verify the canonical realtime G3 visual import."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ ASSET_ROOT = ROOT / "game/art/commercial/g3"
 MANIFEST = ASSET_ROOT / "a1-g3-allowlist.sha256"
 LEDGER = ROOT / "game/art/commercial/g3-assets.prompts.md"
 LEDGER_BLOB_SHA1 = "e4cde08c90605e6144dbc18604dcbc939a597201"
-EXPECTED_PNG_COUNT = 35
+EXPECTED_PNG_COUNT = 57
 
 
 def relative(path: Path) -> Path:
@@ -46,7 +46,7 @@ def pinned_bytes(path: Path) -> bytes:
 
 
 def parse_manifest() -> dict[Path, str]:
-    assert MANIFEST.is_file(), f"missing A1 G3 allowlist: {MANIFEST}"
+    assert MANIFEST.is_file(), f"missing realtime G3 allowlist: {MANIFEST}"
     entries: dict[Path, str] = {}
     for line_number, raw in enumerate(MANIFEST.read_text(encoding="utf-8").splitlines(), start=1):
         line = raw.strip()
@@ -74,7 +74,7 @@ def main() -> None:
     expected_pngs = set(entries)
     actual_pngs = {relative(path) for path in ASSET_ROOT.rglob("*.png")}
     assert actual_pngs == expected_pngs, (
-        "G3 PNG tree must be exactly the A1 allowlist; "
+        "G3 PNG tree must be exactly the canonical realtime allowlist; "
         f"missing={sorted(str(path) for path in expected_pngs - actual_pngs)}, "
         f"unlisted={sorted(str(path) for path in actual_pngs - expected_pngs)}"
     )
@@ -101,7 +101,7 @@ def main() -> None:
     ledger_blob = git_output(["hash-object", "--no-filters", str(LEDGER)]).decode().strip()
     assert ledger_blob == LEDGER_BLOB_SHA1, "G3 provenance ledger blob differs from pinned source"
     assert LEDGER.read_bytes() == pinned_bytes(relative(LEDGER)), "G3 provenance ledger bytes differ"
-    print(f"PASS: A1 G3 allowlist ({len(entries)} PNGs), import sidecars, hashes, and pinned provenance")
+    print(f"PASS: canonical realtime G3 allowlist ({len(entries)} PNGs), import sidecars, hashes, and pinned provenance")
 
 
 if __name__ == "__main__":

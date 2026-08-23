@@ -544,7 +544,7 @@ def validate_context(context: Any) -> dict[str, Any]:
     if authority["realtimeCampaignSchemaVersion"] != REALTIME_CAMPAIGN_SCHEMA:
         fail("context realtime campaign schema mismatch")
     exact_runtime_authority = {
-        "defaultScene": "CommercialMain",
+        "defaultScene": "RealtimeSliceMain",
         "evaluationTargetScene": "RealtimeSliceMain",
         "nativePresentationCoverage": "FIRST_LIGHT_TARGETED_R2_SLICE_ONLY",
         "fullCampaignNativeE2EStatus": "NOT_IMPLEMENTED",

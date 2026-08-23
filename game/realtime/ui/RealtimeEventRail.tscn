@@ -4,6 +4,7 @@
 
 [node name="RealtimeEventRail" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 106)
+theme_type_variation = &"EventRailPanel"
 script = ExtResource("1_script")
 
 [node name="Margin" type="MarginContainer" parent="."]

@@ -4,6 +4,7 @@
 
 [node name="RealtimeTopHud" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 68)
+theme_type_variation = &"TopHudPanel"
 script = ExtResource("1_script")
 
 [node name="Margin" type="MarginContainer" parent="."]

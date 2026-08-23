@@ -1,109 +1,111 @@
-[gd_resource type="Theme" load_steps=20 format=3]
+[gd_resource type="Theme" load_steps=25 format=3]
+
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui/panel-frame.png" id="1_panel_frame"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/button-default-a.png" id="2_button_default"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/button-cyan-a.png" id="3_button_cyan"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/button-amber-a.png" id="4_button_amber"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/inspector-frame-a.png" id="5_inspector_frame"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/tool-slot-a.png" id="6_tool_slot"]
+[ext_resource type="Texture2D" path="res://art/commercial/g3/ui-v2/top-metric-plate-a.png" id="7_top_metric"]
 
 [sub_resource type="SystemFont" id="SystemFont_Realtime"]
 font_names = PackedStringArray("Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR", "sans-serif")
 
-[sub_resource type="StyleBoxFlat" id="Panel_Default"]
-bg_color = Color(0.031, 0.055, 0.066, 0.96)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.19, 0.28, 0.31, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+[sub_resource type="StyleBoxTexture" id="Panel_Default"]
+texture = ExtResource("1_panel_frame")
+texture_margin_left = 20.0
+texture_margin_top = 20.0
+texture_margin_right = 20.0
+texture_margin_bottom = 20.0
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
 
-[sub_resource type="StyleBoxFlat" id="Panel_Elevated"]
-bg_color = Color(0.045, 0.075, 0.085, 0.985)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.28, 0.4, 0.42, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-shadow_color = Color(0, 0, 0, 0.36)
-shadow_size = 10
+[sub_resource type="StyleBoxTexture" id="Panel_Elevated"]
+texture = ExtResource("5_inspector_frame")
+texture_margin_left = 42.0
+texture_margin_top = 42.0
+texture_margin_right = 42.0
+texture_margin_bottom = 42.0
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
 
-[sub_resource type="StyleBoxFlat" id="Button_Secondary"]
-bg_color = Color(0.075, 0.12, 0.135, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.26, 0.39, 0.41, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxTexture" id="Panel_TopHud"]
+texture = ExtResource("7_top_metric")
+texture_margin_left = 36.0
+texture_margin_top = 36.0
+texture_margin_right = 36.0
+texture_margin_bottom = 36.0
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+
+[sub_resource type="StyleBoxTexture" id="Button_Secondary"]
+texture = ExtResource("2_button_default")
+texture_margin_left = 48.0
+texture_margin_top = 48.0
+texture_margin_right = 48.0
+texture_margin_bottom = 48.0
 content_margin_left = 14.0
 content_margin_top = 9.0
 content_margin_right = 14.0
 content_margin_bottom = 9.0
 
-[sub_resource type="StyleBoxFlat" id="Button_SecondaryHover"]
-bg_color = Color(0.11, 0.18, 0.195, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.39, 0.65, 0.64, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxTexture" id="Button_SecondaryHover"]
+texture = ExtResource("3_button_cyan")
+texture_margin_left = 48.0
+texture_margin_top = 48.0
+texture_margin_right = 48.0
+texture_margin_bottom = 48.0
 content_margin_left = 14.0
 content_margin_top = 9.0
 content_margin_right = 14.0
 content_margin_bottom = 9.0
 
-[sub_resource type="StyleBoxFlat" id="Button_Primary"]
-bg_color = Color(0.48, 0.34, 0.13, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.91, 0.68, 0.28, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxTexture" id="Button_SecondaryPressed"]
+texture = ExtResource("4_button_amber")
+texture_margin_left = 48.0
+texture_margin_top = 48.0
+texture_margin_right = 48.0
+texture_margin_bottom = 48.0
+content_margin_left = 13.0
+content_margin_top = 8.0
+content_margin_right = 13.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="Button_Primary"]
+texture = ExtResource("3_button_cyan")
+texture_margin_left = 48.0
+texture_margin_top = 48.0
+texture_margin_right = 48.0
+texture_margin_bottom = 48.0
 content_margin_left = 18.0
 content_margin_top = 11.0
 content_margin_right = 18.0
 content_margin_bottom = 11.0
 
-[sub_resource type="StyleBoxFlat" id="Button_PrimaryHover"]
-bg_color = Color(0.61, 0.43, 0.15, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(1, 0.78, 0.38, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxTexture" id="Button_PrimaryHover"]
+texture = ExtResource("4_button_amber")
+texture_margin_left = 48.0
+texture_margin_top = 48.0
+texture_margin_right = 48.0
+texture_margin_bottom = 48.0
 content_margin_left = 18.0
 content_margin_top = 11.0
 content_margin_right = 18.0
 content_margin_bottom = 11.0
 
-[sub_resource type="StyleBoxFlat" id="Button_PrimaryPressed"]
-bg_color = Color(0.36, 0.25, 0.09, 1)
-border_width_left = 3
-border_width_top = 3
-border_width_right = 3
-border_width_bottom = 3
-border_color = Color(1, 0.82, 0.43, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxTexture" id="Button_PrimaryPressed"]
+texture = ExtResource("4_button_amber")
+texture_margin_left = 48.0
+texture_margin_top = 48.0
+texture_margin_right = 48.0
+texture_margin_bottom = 48.0
+modulate_color = Color(0.80, 0.72, 0.56, 1)
 content_margin_left = 17.0
 content_margin_top = 10.0
 content_margin_right = 17.0
@@ -157,65 +159,48 @@ content_margin_top = 8.0
 content_margin_right = 14.0
 content_margin_bottom = 8.0
 
-[sub_resource type="StyleBoxFlat" id="Button_SecondaryPressed"]
-bg_color = Color(0.055, 0.09, 0.1, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.48, 0.78, 0.76, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
-content_margin_left = 13.0
-content_margin_top = 8.0
-content_margin_right = 13.0
-content_margin_bottom = 8.0
-
-[sub_resource type="StyleBoxFlat" id="Button_Tool"]
-bg_color = Color(0.045, 0.08, 0.09, 0.96)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.2, 0.31, 0.33, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxTexture" id="Button_Tool"]
+texture = ExtResource("6_tool_slot")
+texture_margin_left = 34.0
+texture_margin_top = 34.0
+texture_margin_right = 34.0
+texture_margin_bottom = 34.0
 content_margin_left = 12.0
 content_margin_top = 8.0
 content_margin_right = 12.0
 content_margin_bottom = 8.0
 
-[sub_resource type="StyleBoxFlat" id="Button_ToolPressed"]
-bg_color = Color(0.08, 0.22, 0.22, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.41, 0.82, 0.77, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxTexture" id="Button_ToolHover"]
+texture = ExtResource("6_tool_slot")
+texture_margin_left = 34.0
+texture_margin_top = 34.0
+texture_margin_right = 34.0
+texture_margin_bottom = 34.0
+modulate_color = Color(0.76, 1, 0.98, 1)
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="Button_ToolPressed"]
+texture = ExtResource("6_tool_slot")
+texture_margin_left = 34.0
+texture_margin_top = 34.0
+texture_margin_right = 34.0
+texture_margin_bottom = 34.0
+modulate_color = Color(1, 0.81, 0.48, 1)
 content_margin_left = 11.0
 content_margin_top = 7.0
 content_margin_right = 11.0
 content_margin_bottom = 7.0
 
-[sub_resource type="StyleBoxFlat" id="Button_Disabled"]
-bg_color = Color(0.035, 0.052, 0.058, 0.8)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.11, 0.16, 0.17, 1)
-corner_radius_top_left = 6
-corner_radius_top_right = 6
-corner_radius_bottom_right = 6
-corner_radius_bottom_left = 6
+[sub_resource type="StyleBoxTexture" id="Button_Disabled"]
+texture = ExtResource("2_button_default")
+texture_margin_left = 48.0
+texture_margin_top = 48.0
+texture_margin_right = 48.0
+texture_margin_bottom = 48.0
+modulate_color = Color(0.36, 0.38, 0.36, 0.88)
 content_margin_left = 14.0
 content_margin_top = 9.0
 content_margin_right = 14.0
@@ -254,7 +239,7 @@ expand_margin_left = 2.0
 expand_margin_right = 2.0
 
 [sub_resource type="StyleBoxLine" id="Separator"]
-color = Color(0.18, 0.29, 0.31, 1)
+color = Color(0.34, 0.29, 0.22, 1)
 thickness = 1
 
 [resource]
@@ -285,20 +270,24 @@ DestructiveButton/styles/hover = SubResource("Button_DestructiveHover")
 DestructiveButton/styles/pressed = SubResource("Button_DestructivePressed")
 ToolButton/base_type = &"Button"
 ToolButton/styles/normal = SubResource("Button_Tool")
-ToolButton/styles/hover = SubResource("Button_SecondaryHover")
+ToolButton/styles/hover = SubResource("Button_ToolHover")
 ToolButton/styles/pressed = SubResource("Button_ToolPressed")
 ToolButton/styles/hover_pressed = SubResource("Button_ToolPressed")
 ToolButton/styles/focus = SubResource("Focus")
 TimelineMarkerButton/base_type = &"Button"
 TimelineMarkerButton/font_sizes/font_size = 14
 TimelineMarkerButton/styles/normal = SubResource("Button_Tool")
-TimelineMarkerButton/styles/hover = SubResource("Button_SecondaryHover")
+TimelineMarkerButton/styles/hover = SubResource("Button_ToolHover")
 TimelineMarkerButton/styles/pressed = SubResource("Button_ToolPressed")
 TimelineMarkerButton/styles/focus = SubResource("Focus")
 ElevatedPanel/base_type = &"PanelContainer"
 ElevatedPanel/styles/panel = SubResource("Panel_Elevated")
+TopHudPanel/base_type = &"PanelContainer"
+TopHudPanel/styles/panel = SubResource("Panel_TopHud")
+EventRailPanel/base_type = &"PanelContainer"
+EventRailPanel/styles/panel = SubResource("Panel_TopHud")
 HSeparator/styles/separator = SubResource("Separator")
 VScrollBar/styles/scroll = SubResource("ScrollTrack")
 VScrollBar/styles/grabber = SubResource("ScrollGrabber")
-VScrollBar/styles/grabber_highlight = SubResource("Button_SecondaryHover")
-VScrollBar/styles/grabber_pressed = SubResource("Button_SecondaryHover")
+VScrollBar/styles/grabber_highlight = SubResource("ScrollGrabber")
+VScrollBar/styles/grabber_pressed = SubResource("ScrollGrabber")

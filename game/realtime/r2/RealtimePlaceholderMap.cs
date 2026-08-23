@@ -18,8 +18,8 @@ internal enum RealtimePlaceholderStateCue
 }
 
 /// <summary>
-/// R2-only code-native map. It deliberately renders geometry and typed state without using
-/// production artwork. It consumes the same renderer-neutral contract as a future asset view.
+/// R2-only world owner. It renders the Release.V3 typed state with the canonical G3 presentation
+/// layer while retaining the same renderer-neutral contract for geometry, hit testing, and input.
 /// </summary>
 internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldView
 {
@@ -80,6 +80,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         G3RetainingWall, G3StreetLamp, G3PlantMainHall, G3PlantSmokestack,
         G3PlantTurbineHall, G3SwitchyardBreakerBay, G3SubstationTransformer,
         G3StandardPole, G3ReinforcedPole, G3BridgeFoundation,
+        .. G3ExtendedMapAssetPaths,
     ];
 
     // These placements decorate the same release-world coordinates used by the R2 Core.
@@ -599,6 +600,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             new Rect2(Vector2.Zero, Size),
             new Rect2(Vector2.Zero, Size * 1.62f),
             new Color(0.76f, 0.75f, 0.67f, 1f));
+        DrawG3GroundVariation();
         DrawRect(new Rect2(Vector2.Zero, Size), new Color(Color.FromHtml("090d0e"), 0.12f));
         RecordG3Asset(G3GroundRubble);
     }
@@ -655,6 +657,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         DrawG3Placements(
             G3RiverPlacements,
             new Color(0.84f, 0.80f, 0.72f, 1f));
+        DrawG3FullRiverDetails(presentation);
     }
 
     private void DrawG3Roads()
@@ -663,6 +666,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         DrawG3Placements(
             G3RoadPlacements,
             new Color(0.87f, 0.82f, 0.72f, 1f));
+        DrawG3DenseRoads();
     }
 
     private void DrawG3City()
@@ -671,6 +675,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         DrawG3Placements(
             G3CityPlacements,
             new Color(0.92f, 0.88f, 0.78f, 1f));
+        DrawG3DenseCity();
     }
 
     private void DrawG3Placements(

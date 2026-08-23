@@ -1,9 +1,9 @@
-# Gridworks A1-G3 immutable visual import. Do not add or remove entries without a new scope gate.
+# Gridworks realtime G3 immutable visual import. Expanded only by REALTIME_G3_MAIN_CONSOLIDATION.
 # source_commit=cf5da56
 # source_tree=75b27b02580de2c60c50666497d9807ed0ff8b27
 # ledger_path=game/art/commercial/g3-assets.prompts.md
 # ledger_blob_sha1=e4cde08c90605e6144dbc18604dcbc939a597201
-# selected_png_count=35
+# selected_png_count=57
 # format=sha256<two spaces>repository-relative-path
 e7f50e9e970ec1172f6ca4595660fdb3bb5ce57e3dac332999f60ceda5702444  game/art/commercial/g3/atomic/hospital-main-a.png
 97ed4d5f889069f5587fbf70e6b6c4419eb8b154e007e28f4524f2169a08a201  game/art/commercial/g3/atomic/hospital-service-a.png
@@ -25,10 +25,24 @@ c0d392c613a9667308755f54aaac782a753a78328b97f66e1e1ea83b1d81cea0  game/art/comme
 95211238e68b27a6d3a4256006ecc245af1727b584834537e472cda6ebcb0655  game/art/commercial/g3/grid/pole-standard-a.png
 60c75dd42c66e55b66249c2a4f93ca006fbbd9afdd4b8875ae50b02ede33cfab  game/art/commercial/g3/grid/substation-transformer-a.png
 6ae34713dd868cc3c735836e8416ba054e12b4017899a215adfd6c7974066dcd  game/art/commercial/g3/grid/switchyard-breaker-bay-a.png
+a15b2ddb6cc93603a72c8b4c2c5c53d278d5a283114c9f1cb836c2dce44a9983  game/art/commercial/g3/objects/industrial-road-bridge-a.png
+b6c7e7899b8411b69bb45f2cbb1687fb7ca5df3ded472ce7cd5aee13ac8e7ff4  game/art/commercial/g3/objects/industrial-road-bridge-b.png
+df5ea949041197a3e1cbcec0c18ad043bed68e06170be66e89a397788a0da587  game/art/commercial/g3/objects/river-bank-inner-bend-a.png
+0e100f4e057af9627261d64ce61c2b256faa42d172ff99cfe52b7b7f894fc01a  game/art/commercial/g3/objects/river-bank-outer-bend-a.png
+68e47a2a142f150b90c4d91474b08c3d430f98fd11c1d401ed82375e49feef9a  game/art/commercial/g3/objects/river-bank-rock-segment-a.png
+966add7347d8a7196db9495dffc84581ad198d4dc08bd652a5b066c28e87274b  game/art/commercial/g3/objects/river-current-reflection-a.png
 7a00a7776daefa647404a42b176b137654656e9193f2b5aa78edf3c2d9f8af6c  game/art/commercial/g3/river/river-bank-conifer-a.png
+c71abc22419942f85b16939b19a30f3210bc2b4edb640979469a5e6b685c8305  game/art/commercial/g3/river/river-bank-left-inner-a.png
+dde92ee9a6a8c9d0343cff95add892a2b970a20da6c527f6a0078062ed620291  game/art/commercial/g3/river/river-bank-left-outer-a.png
+100fa39f890229122fceebc26f0280cc876c8501937364b72467c722909ce655  game/art/commercial/g3/river/river-bank-left-straight-a.png
 1c4f8431e0fd88a6b9b011d6940055c35a646d36406ad7da966b719ef940c3a4  game/art/commercial/g3/river/river-bank-outcrop-a.png
+75920f6117c333cff9b9bc9d6d48d5bf64adc433a1f60985a6f30c86eea179bc  game/art/commercial/g3/river/river-bank-right-inner-a.png
+1ea5ca9d12fbfd2e18ff82465e7ebcc80b36e1c64c68ad2480b2453f3e4325fb  game/art/commercial/g3/river/river-bank-right-outer-a.png
+58bdc74f54cc65ebece5423c8d86ee319e08a7270acc8e3486e5b833a51c5204  game/art/commercial/g3/river/river-bank-right-straight-a.png
 1107e80b4c660a2a93801c3d2588d1512bfaf741fc7811231d6f53fa763d24b5  game/art/commercial/g3/river/river-bank-scrub-a.png
 8d9943ed6441b6ef0ade0a82ffd65e523f11a2f8d6f03010756e6f440dfb3ce1  game/art/commercial/g3/river/river-bridge-abutment-a.png
+9107d3af98121878c9e331b6f1633fee699f75d17d227876bde87c46eb86979f  game/art/commercial/g3/river/river-flood-ripple-a.png
+a083c1d9549c9a42a0f2c00ad6d78aaa2055ebf98063f0a0606272226c7875bf  game/art/commercial/g3/river/river-rock-soil-transition-a.png
 872e6ffd201fa1fcca98c08a284d42332abd0515033fff76a623175894f8e324  game/art/commercial/g3/river/river-water-flood-a.png
 797627b40d75b87883c1da55793655537af99ccb435d14c93a4a047c21f1f240  game/art/commercial/g3/river/river-water-heat-a.png
 9b5d408f7b263ff123280607331d4a20cfdc327555ff17b25ab58721357b3780  game/art/commercial/g3/river/river-water-neutral-b.png
@@ -38,5 +52,13 @@ ac9ac6e508d587ab5a4b08cf21214f8f19f1911992240adfa5d0bb1e48ddca86  game/art/comme
 da4b42795e46a9e888d935855d1aa861b54c93f9bb71f2f2f75981603a12b1b9  game/art/commercial/g3/roads/road-straight-nw-se-a.png
 b24dfc1f246c7eb50db452730194ab0fcdb7d0350ac47f153ca2a26ef7b75b91  game/art/commercial/g3/roads/road-t-junction-a.png
 40677a9358d6e52f9630a08d174c6ed94505c551c4d46d081872d0d0232223b4  game/art/commercial/g3/roads/service-yard-tile-a.png
+436fde50506ccb7758bb70abd6d2a8301bd4ba9ff5e0db2a0075e3b88cf80ee3  game/art/commercial/g3/tiles/ground-rubble-mix-b.png
 9dbd83fdc9300077db9643c4671623e8464b8ad7b47c9698d24e79247b11aaf1  game/art/commercial/g3/tiles/ground-rubble-relief-c.png
 42f6bdf046a1c859e89b7b4530d56c45504d46f219495bac64dde7e63fb3c98b  game/art/commercial/g3/tiles/river-water-surface-a.png
+34ce3829b04b2fcd93ada985a84bfa18b7f6172e7c569d55075758b109ed10f3  game/art/commercial/g3/ui-v2/button-amber-a.png
+b742f12e67878a4a43541616ff4e5b7cbf1ac85d1635177eaac2515856b4ec7d  game/art/commercial/g3/ui-v2/button-cyan-a.png
+98ab1764cb4c756ac1b8475974a808ea2a6e345629217837f3ca09c1993a4611  game/art/commercial/g3/ui-v2/button-default-a.png
+6ec52f4d0febb6faeb38f0af28921312755cddeb15c29a3e91ccaa11f8b4e41f  game/art/commercial/g3/ui-v2/inspector-frame-a.png
+6553702e16c3da9412a07b39eeeb05dbe6c168b302aae829c5d04069c62503ba  game/art/commercial/g3/ui-v2/tool-slot-a.png
+f2d11c83c7830d9c9edd83c2ba72d04f855f8b258a0fa32c92809dea892e848f  game/art/commercial/g3/ui-v2/top-metric-plate-a.png
+2b946bbc6de12d77f98af2482b60e413a30c953771fe23d550a50885787fbdb8  game/art/commercial/g3/ui/panel-frame.png

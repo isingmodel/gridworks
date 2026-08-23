@@ -29,7 +29,7 @@ live R2 surface로 이식하고 R2를 기본 제품 진입점으로 만든다.
 - `game/art/commercial/g3/**`의 exact accepted G3 assets 및 `.import`, SHA manifest/provenance test
 - `game/realtime/r2/RealtimePlaceholderMap*`, `game/realtime/r2/RealtimeSliceMain*`
 - `game/realtime/ui/**`, `game/RealtimeTheme.tres`, `game/project.godot`
-- 해당 deterministic smoke/UI harness와 current-state docs
+- 해당 deterministic smoke/UI harness, default-entry validator와 current-state docs
 
 다음은 금지한다.
 
@@ -41,8 +41,9 @@ live R2 surface로 이식하고 R2를 기본 제품 진입점으로 만든다.
 ## 3. 완료 조건
 
 1. default scene이 `RealtimeSliceMain`이며, V2 `CommercialMain`이 runtime entry가 아니다.
-2. R2 map의 full G3 asset union은 exact 57 path/source hash이며 clear/heat/rain/storm의 terrain·river·road·city·grid
-   presentation이 draw-only로 확인된다.
+2. R2 runtime의 full G3 union은 exact 57 path/source hash다. 이 중 map 50개는
+   clear/heat/rain/storm의 terrain·river·road·city·grid presentation에서 draw-only로 확인되고,
+   UI 7개는 live R2 chrome에 style resource로 연결된다.
 3. R2 UI는 G3 UI chrome을 사용하되 TopHud, 한 줄 EventRail, ContextDock, Build/Action dock와 modal의
    geometry, keyboard/pointer/AX contract를 보존한다.
 4. Debug build, G3 provenance test, Realtime/Commercial deterministic suites, text-plan tool, full R2 UI harness와

@@ -7,7 +7,7 @@
     "ruleMode": "CONTINUOUS_REALTIME",
     "baseCampaignSchemaVersion": "gridworks.release.campaign.v2",
     "realtimeCampaignSchemaVersion": "gridworks.realtime.campaign.v3",
-    "defaultScene": "CommercialMain",
+    "defaultScene": "RealtimeSliceMain",
     "evaluationTargetScene": "RealtimeSliceMain",
     "nativePresentationCoverage": "FIRST_LIGHT_TARGETED_R2_SLICE_ONLY",
     "fullCampaignNativeE2EStatus": "NOT_IMPLEMENTED",

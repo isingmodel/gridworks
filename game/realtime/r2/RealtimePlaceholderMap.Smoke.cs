@@ -29,6 +29,26 @@ internal sealed partial class RealtimePlaceholderMap
 
     internal bool DrawnAnalysisOverlayForSmoke => _drawnAnalysisOverlay;
 
+    internal IReadOnlyList<string> G3AssetPathsForSmoke =>
+        Array.AsReadOnly(G3AssetPaths.ToArray());
+
+    internal IReadOnlyList<string> DrawnG3AssetPathsForSmoke =>
+        Array.AsReadOnly(_drawnG3AssetPaths
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray());
+
+    internal IReadOnlyList<string> DrawnG3LayersForSmoke =>
+        Array.AsReadOnly(_drawnG3Layers
+            .OrderBy(layer => layer, StringComparer.Ordinal)
+            .ToArray());
+
+    internal string? DrawnG3WaterMaterialForSmoke => _drawnG3WaterMaterial;
+
+    internal int DrawnG3SpriteCountForSmoke => _drawnG3SpriteCount;
+
+    internal bool AllG3AssetsLoadableForSmoke =>
+        G3AssetPaths.All(path => G3Texture(path) is not null);
+
     internal IReadOnlyList<string> DrawnAnalysisRiskAreaIdsForSmoke =>
         Array.AsReadOnly(_drawnAnalysisRiskAreaIds
             .OrderBy(id => id, StringComparer.Ordinal)

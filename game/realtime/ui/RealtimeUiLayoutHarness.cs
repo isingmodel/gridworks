@@ -70,6 +70,9 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             GD.Print("REALTIME_R2_SMOKE_PHASE live-presentation-state-matrix begin");
             await ValidatePresentationStates(presentationStates, failures);
             GD.Print("REALTIME_R2_SMOKE_PHASE live-presentation-state-matrix end");
+            GD.Print("REALTIME_R2_SMOKE_PHASE g3-visual-renderer begin");
+            await ValidateG3VisualRenderer(presentation, failures);
+            GD.Print("REALTIME_R2_SMOKE_PHASE g3-visual-renderer end");
             GD.Print("REALTIME_R2_SMOKE_PHASE audit-presentation-semantics begin");
             await ValidateAuditPresentationSemantics(presentation, failures);
             GD.Print("REALTIME_R2_SMOKE_PHASE audit-presentation-semantics end");
@@ -647,6 +650,109 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 RemoveAndFree(viewport);
                 await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             }
+        }
+    }
+
+    private async Task ValidateG3VisualRenderer(
+        RealtimeSlicePresentation baseline,
+        ICollection<string> failures)
+    {
+        var viewport = new SubViewport
+        {
+            Name = "G3VisualRendererSmokeViewport",
+            Size = new Vector2I(1280, 720),
+            Size2DOverride = new Vector2I(1280, 720),
+            Size2DOverrideStretch = true,
+            RenderTargetUpdateMode = SubViewport.UpdateMode.Disabled,
+            HandleInputLocally = true,
+        };
+        AddChild(viewport);
+        var map = new RealtimePlaceholderMap
+        {
+            Name = "G3VisualRendererSmokeMap",
+            Size = new Vector2(1280, 720),
+        };
+        viewport.AddChild(map);
+        try
+        {
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            SpatialRiskAreaDefinition risk = baseline.World.World.RiskAreas.First();
+            (RealtimeWorldWeather Weather, string WaterMaterial, bool Forecast, bool Active)[]
+                states =
+                [
+                    (RealtimeWorldWeather.Clear,
+                        "res://art/commercial/g3/river/river-water-neutral-b.png", true, false),
+                    (RealtimeWorldWeather.Heat,
+                        "res://art/commercial/g3/river/river-water-heat-a.png", false, false),
+                    (RealtimeWorldWeather.Rain,
+                        "res://art/commercial/g3/river/river-water-flood-a.png", false, true),
+                ];
+            var drawnUnion = new HashSet<string>(StringComparer.Ordinal);
+            foreach ((RealtimeWorldWeather weather, string waterMaterial, bool forecast, bool active)
+                     in states)
+            {
+                map.SetPresentation(baseline.World with
+                {
+                    Weather = weather,
+                    AnalysisVisible = forecast,
+                    ForecastRiskAreaIds = forecast
+                        ? new[] { risk.RiskAreaId }
+                        : Array.Empty<string>(),
+                    ActiveRiskAreaIds = active
+                        ? new[] { risk.RiskAreaId }
+                        : Array.Empty<string>(),
+                });
+                await ForceActualMapDraw(viewport, map);
+                drawnUnion.UnionWith(map.DrawnG3AssetPathsForSmoke);
+                Require(map.AllG3AssetsLoadableForSmoke &&
+                        map.DrawnG3LayersForSmoke.SequenceEqual(
+                            new[]
+                            {
+                                "city", "conductors", "grid", "ground", "roads", "terrain",
+                                "weather",
+                            },
+                            StringComparer.Ordinal) &&
+                        string.Equals(
+                            map.DrawnG3WaterMaterialForSmoke,
+                            waterMaterial,
+                            StringComparison.Ordinal) &&
+                        map.DrawnG3SpriteCountForSmoke >= 40,
+                    $"G3 {weather} map draw omitted a required asset/layer/material " +
+                    $"(layers=[{string.Join(',', map.DrawnG3LayersForSmoke)}], " +
+                    $"water={map.DrawnG3WaterMaterialForSmoke}, " +
+                    $"sprites={map.DrawnG3SpriteCountForSmoke})",
+                    failures);
+                if (forecast)
+                {
+                    Require(map.DrawnForecastRiskAreaIdsForSmoke.SequenceEqual(
+                                new[] { risk.RiskAreaId }, StringComparer.Ordinal) &&
+                            map.ForecastRiskUsesPatternWithoutFillForSmoke,
+                        "G3 clear draw hid the existing forecast risk pattern",
+                        failures);
+                }
+                if (active)
+                {
+                    Require(map.DrawnActiveRiskAreaIdsForSmoke.SequenceEqual(
+                                new[] { risk.RiskAreaId }, StringComparer.Ordinal) &&
+                            map.ActiveRiskUsesSolidFillForSmoke,
+                        "G3 rain draw hid the existing active risk fill",
+                        failures);
+                }
+            }
+            string missingG3Assets = string.Join(
+                ',',
+                map.G3AssetPathsForSmoke.Where(path => !drawnUnion.Contains(path)));
+            Require(drawnUnion.SetEquals(map.G3AssetPathsForSmoke) &&
+                    map.G3AssetPathsForSmoke.Count == 35,
+                "G3 clear/heat/rain draw union did not exactly match the 35-file A1 allowlist " +
+                $"(drawn={drawnUnion.Count}, allowed={map.G3AssetPathsForSmoke.Count}, " +
+                $"missing=[{missingG3Assets}])",
+                failures);
+        }
+        finally
+        {
+            RemoveAndFree(viewport);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         }
     }
 

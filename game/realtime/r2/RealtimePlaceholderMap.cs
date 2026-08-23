@@ -23,8 +23,109 @@ internal enum RealtimePlaceholderStateCue
 /// </summary>
 internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldView
 {
+    private const string G3Root = "res://art/commercial/g3/";
+    private const string G3GroundRubble = G3Root + "tiles/ground-rubble-relief-c.png";
+    private const string G3RiverWaterSurface = G3Root + "tiles/river-water-surface-a.png";
+    private const string G3RiverWaterNeutral = G3Root + "river/river-water-neutral-b.png";
+    private const string G3RiverWaterHeat = G3Root + "river/river-water-heat-a.png";
+    private const string G3RiverWaterFlood = G3Root + "river/river-water-flood-a.png";
+    private const string G3RiverConifer = G3Root + "river/river-bank-conifer-a.png";
+    private const string G3RiverScrub = G3Root + "river/river-bank-scrub-a.png";
+    private const string G3RiverOutcrop = G3Root + "river/river-bank-outcrop-a.png";
+    private const string G3RiverBridgeAbutment = G3Root + "river/river-bridge-abutment-a.png";
+    private const string G3RoadNorthWestSouthEast =
+        G3Root + "roads/road-straight-nw-se-a.png";
+    private const string G3RoadNorthEastSouthWest =
+        G3Root + "roads/road-straight-ne-sw-a.png";
+    private const string G3RoadCornerNorthEast = G3Root + "roads/road-corner-n-e-a.png";
+    private const string G3RoadTJunction = G3Root + "roads/road-t-junction-a.png";
+    private const string G3RoadCrossJunction = G3Root + "roads/road-cross-junction-a.png";
+    private const string G3ServiceYard = G3Root + "roads/service-yard-tile-a.png";
+    private const string G3WorkerHouseA = G3Root + "atomic/worker-house-a.png";
+    private const string G3WorkerHouseB = G3Root + "atomic/worker-house-b.png";
+    private const string G3WorkerHouseC = G3Root + "atomic/worker-house-c.png";
+    private const string G3RowShop = G3Root + "atomic/row-shop-a.png";
+    private const string G3Workshop = G3Root + "atomic/workshop-a.png";
+    private const string G3SmallWarehouse = G3Root + "atomic/small-warehouse-a.png";
+    private const string G3HospitalMain = G3Root + "atomic/hospital-main-a.png";
+    private const string G3HospitalService = G3Root + "atomic/hospital-service-a.png";
+    private const string G3PumpHouse = G3Root + "atomic/pump-house-a.png";
+    private const string G3WaterTank = G3Root + "atomic/water-tank-a.png";
+    private const string G3RetainingWall = G3Root + "atomic/retaining-wall-a.png";
+    private const string G3StreetLamp = G3Root + "atomic/street-lamp-a.png";
+    private const string G3PlantMainHall = G3Root + "grid/plant-main-hall-a.png";
+    private const string G3PlantSmokestack = G3Root + "grid/plant-smokestack-a.png";
+    private const string G3PlantTurbineHall = G3Root + "grid/plant-turbine-hall-a.png";
+    private const string G3SwitchyardBreakerBay = G3Root + "grid/switchyard-breaker-bay-a.png";
+    private const string G3SubstationTransformer =
+        G3Root + "grid/substation-transformer-a.png";
+    private const string G3StandardPole = G3Root + "grid/pole-standard-a.png";
+    private const string G3ReinforcedPole = G3Root + "grid/pole-reinforced-a.png";
+    private const string G3BridgeFoundation = G3Root + "grid/bridge-foundation-a.png";
+
+    private readonly record struct G3Placement(
+        string AssetPath,
+        CoreMapPoint Position,
+        float WorldMaxSide,
+        float Alpha = 1f);
+
+    private static readonly string[] G3AssetPaths =
+    [
+        G3GroundRubble, G3RiverWaterSurface, G3RiverWaterNeutral, G3RiverWaterHeat,
+        G3RiverWaterFlood, G3RiverConifer, G3RiverScrub, G3RiverOutcrop,
+        G3RiverBridgeAbutment, G3RoadNorthWestSouthEast, G3RoadNorthEastSouthWest,
+        G3RoadCornerNorthEast, G3RoadTJunction, G3RoadCrossJunction, G3ServiceYard,
+        G3WorkerHouseA, G3WorkerHouseB, G3WorkerHouseC, G3RowShop, G3Workshop,
+        G3SmallWarehouse, G3HospitalMain, G3HospitalService, G3PumpHouse, G3WaterTank,
+        G3RetainingWall, G3StreetLamp, G3PlantMainHall, G3PlantSmokestack,
+        G3PlantTurbineHall, G3SwitchyardBreakerBay, G3SubstationTransformer,
+        G3StandardPole, G3ReinforcedPole, G3BridgeFoundation,
+    ];
+
+    // These placements decorate the same release-world coordinates used by the R2 Core.
+    // They are individual G3 units, not a baked map plate or replacement world data.
+    private static readonly G3Placement[] G3RoadPlacements =
+    [
+        new(G3RoadNorthWestSouthEast, new CoreMapPoint(2440, 710), 640f, 0.72f),
+        new(G3RoadNorthEastSouthWest, new CoreMapPoint(2680, 1020), 620f, 0.72f),
+        new(G3RoadCornerNorthEast, new CoreMapPoint(2320, 520), 470f, 0.78f),
+        new(G3RoadTJunction, new CoreMapPoint(2560, 1320), 520f, 0.76f),
+        new(G3RoadCrossJunction, new CoreMapPoint(2800, 1570), 500f, 0.74f),
+        new(G3ServiceYard, new CoreMapPoint(2410, 1780), 500f, 0.82f),
+    ];
+
+    private static readonly G3Placement[] G3CityPlacements =
+    [
+        new(G3WorkerHouseA, new CoreMapPoint(2890, 570), 265f),
+        new(G3WorkerHouseB, new CoreMapPoint(3040, 610), 245f),
+        new(G3WorkerHouseC, new CoreMapPoint(2910, 780), 270f),
+        new(G3RowShop, new CoreMapPoint(3060, 800), 275f),
+        new(G3Workshop, new CoreMapPoint(2730, 930), 285f),
+        new(G3SmallWarehouse, new CoreMapPoint(2800, 1800), 350f),
+        new(G3HospitalMain, new CoreMapPoint(2780, 1300), 430f),
+        new(G3HospitalService, new CoreMapPoint(2960, 1430), 320f),
+        new(G3PumpHouse, new CoreMapPoint(2440, 250), 330f),
+        new(G3WaterTank, new CoreMapPoint(2620, 230), 290f),
+        new(G3RetainingWall, new CoreMapPoint(2690, 1040), 360f, 0.88f),
+        new(G3StreetLamp, new CoreMapPoint(2860, 1010), 160f),
+    ];
+
+    private static readonly G3Placement[] G3RiverPlacements =
+    [
+        new(G3RiverConifer, new CoreMapPoint(930, 320), 250f, 0.82f),
+        new(G3RiverScrub, new CoreMapPoint(1690, 400), 210f, 0.82f),
+        new(G3RiverOutcrop, new CoreMapPoint(1080, 1120), 240f, 0.86f),
+        new(G3RiverConifer, new CoreMapPoint(1720, 1320), 260f, 0.82f),
+        new(G3RiverScrub, new CoreMapPoint(1170, 1730), 210f, 0.80f),
+        new(G3BridgeFoundation, new CoreMapPoint(1300, 500), 350f, 0.92f),
+        new(G3RiverBridgeAbutment, new CoreMapPoint(1300, 500), 330f, 0.92f),
+        new(G3BridgeFoundation, new CoreMapPoint(1450, 1500), 370f, 0.92f),
+        new(G3RiverBridgeAbutment, new CoreMapPoint(1450, 1500), 350f, 0.92f),
+    ];
+
     private static readonly Color Ground = Color.FromHtml("26342e");
-    private static readonly Color Grid = Color.FromHtml("34463d");
+    private static readonly Color G3WaterEdge = Color.FromHtml("111817");
+    private static readonly Color G3BuildingBase = Color.FromHtml("151b1c");
     private static readonly Color Normal = Color.FromHtml("78c7b9");
     private static readonly Color Planned = Color.FromHtml("d5b45c");
     private static readonly Color Emergency = Color.FromHtml("ed964d");
@@ -48,6 +149,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private string? _lastFollowSelectionId;
     private float _accessibilityScale = 1f;
     private float _minimumPointerHitRadius = 22f;
+    private readonly Dictionary<string, Texture2D> _g3Textures = new(StringComparer.Ordinal);
 #if DEBUG
     private readonly Dictionary<string, RealtimePlaceholderStateCue> _drawnStateCues =
         new(StringComparer.Ordinal);
@@ -59,6 +161,10 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         new(StringComparer.Ordinal);
     private string? _drawnActiveCandidateId;
     private bool _drawnAnalysisOverlay;
+    private readonly HashSet<string> _drawnG3AssetPaths = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _drawnG3Layers = new(StringComparer.Ordinal);
+    private string? _drawnG3WaterMaterial;
+    private int _drawnG3SpriteCount;
 #endif
 
     public event Action<RealtimePointerResolution, CoreMapPoint>? PrimaryRequested;
@@ -90,6 +196,8 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         MouseFilter = MouseFilterEnum.Stop;
         FocusMode = FocusModeEnum.All;
         ClipContents = true;
+        TextureFilter = TextureFilterEnum.LinearWithMipmaps;
+        TextureRepeat = TextureRepeatEnum.Enabled;
         AccessibilityName = "청류시 실시간 전력망";
         AccessibilityDescription =
             "설비와 선로 후보를 거리와 안정된 순서로 정렬하며 장식과 날씨는 클릭을 받지 않습니다.";
@@ -293,13 +401,20 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         _drawnActiveRiskAreaIds.Clear();
         _drawnActiveCandidateId = null;
         _drawnAnalysisOverlay = false;
+        _drawnG3AssetPaths.Clear();
+        _drawnG3Layers.Clear();
+        _drawnG3WaterMaterial = null;
+        _drawnG3SpriteCount = 0;
 #endif
-        DrawRect(new Rect2(Vector2.Zero, Size), Ground);
-        DrawGrid();
+        DrawG3Ground();
         if (_presentation is null || _transform is null)
         {
             return;
         }
+        DrawG3Terrain(_presentation);
+        DrawG3Roads();
+        DrawG3City();
+        DrawG3Weather(_presentation);
         if (_presentation.AnalysisVisible)
         {
 #if DEBUG
@@ -471,17 +586,266 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         }
     }
 
-    private void DrawGrid()
+    private void DrawG3Ground()
     {
-        const int step = 52;
-        for (int x = 0; x < Size.X; x += step)
+        RecordG3Layer("ground");
+        if (G3Texture(G3GroundRubble) is not Texture2D ground)
         {
-            DrawLine(new Vector2(x, 0), new Vector2(x, Size.Y), Grid with { A = 0.28f });
+            DrawRect(new Rect2(Vector2.Zero, Size), Ground);
+            return;
         }
-        for (int y = 0; y < Size.Y; y += step)
+        DrawTextureRectRegion(
+            ground,
+            new Rect2(Vector2.Zero, Size),
+            new Rect2(Vector2.Zero, Size * 1.62f),
+            new Color(0.76f, 0.75f, 0.67f, 1f));
+        DrawRect(new Rect2(Vector2.Zero, Size), new Color(Color.FromHtml("090d0e"), 0.12f));
+        RecordG3Asset(G3GroundRubble);
+    }
+
+    private void DrawG3Terrain(RealtimeWorldPresentation presentation)
+    {
+        RecordG3Layer("terrain");
+        string weatherMaterial = WeatherWaterMaterial(presentation.Weather);
+        _ = G3Texture(G3RiverWaterSurface);
+        Texture2D? weatherWater = G3Texture(weatherMaterial);
+#if DEBUG
+        _drawnG3WaterMaterial = weatherMaterial;
+#endif
+        foreach (TerrainPolygonDefinition terrain in presentation.World.Terrain.OrderBy(item =>
+                     item.TerrainId,
+                     StringComparer.Ordinal))
         {
-            DrawLine(new Vector2(0, y), new Vector2(Size.X, y), Grid with { A = 0.28f });
+            Vector2[] polygon = terrain.Polygon.Select(Point).ToArray();
+            if (terrain.Kind == TerrainKind.Water)
+            {
+                if (G3Texture(G3RiverWaterSurface) is Texture2D baseWater)
+                {
+                    DrawG3TexturedPolygon(
+                        polygon,
+                        baseWater,
+                        G3RiverWaterSurface,
+                        new Color(0.54f, 0.68f, 0.72f, 0.86f));
+                }
+                if (weatherWater is not null)
+                {
+                    DrawG3TexturedPolygon(
+                        polygon,
+                        weatherWater,
+                        weatherMaterial,
+                        WeatherWaterModulate(presentation.Weather));
+                }
+                DrawPolyline(
+                    [.. polygon, polygon[0]],
+                    G3WaterEdge with { A = 0.76f },
+                    3f * _accessibilityScale,
+                    true);
+                continue;
+            }
+            if (terrain.Kind == TerrainKind.Building)
+            {
+                DrawColoredPolygon(polygon, G3BuildingBase with { A = 0.76f });
+                DrawPolyline(
+                    [.. polygon, polygon[0]],
+                    new Color(Color.FromHtml("70807d"), 0.28f),
+                    1.2f * _accessibilityScale,
+                    true);
+            }
         }
+        DrawG3Placements(
+            G3RiverPlacements,
+            new Color(0.84f, 0.80f, 0.72f, 1f));
+    }
+
+    private void DrawG3Roads()
+    {
+        RecordG3Layer("roads");
+        DrawG3Placements(
+            G3RoadPlacements,
+            new Color(0.87f, 0.82f, 0.72f, 1f));
+    }
+
+    private void DrawG3City()
+    {
+        RecordG3Layer("city");
+        DrawG3Placements(
+            G3CityPlacements,
+            new Color(0.92f, 0.88f, 0.78f, 1f));
+    }
+
+    private void DrawG3Placements(
+        IEnumerable<G3Placement> placements,
+        Color modulate)
+    {
+        foreach (G3Placement placement in placements
+            .OrderBy(item => Point(item.Position).Y)
+            .ThenBy(item => Point(item.Position).X)
+            .ThenBy(item => item.AssetPath, StringComparer.Ordinal))
+        {
+            DrawG3Sprite(
+                placement.AssetPath,
+                Point(placement.Position),
+                WorldPixels(placement.WorldMaxSide),
+                modulate with { A = modulate.A * placement.Alpha });
+        }
+    }
+
+    private void DrawG3Weather(RealtimeWorldPresentation presentation)
+    {
+        RecordG3Layer("weather");
+        switch (presentation.Weather)
+        {
+            case RealtimeWorldWeather.Heat:
+                DrawRect(
+                    new Rect2(Vector2.Zero, Size),
+                    new Color(Color.FromHtml("a55c2d"), 0.12f));
+                for (int index = 0; index < 11; index++)
+                {
+                    float x = ((index * 97) % Math.Max(1f, Size.X - 24f)) + 12f;
+                    float y = ((index * 131) % Math.Max(1f, Size.Y - 20f)) + 10f;
+                    Vector2 start = new(x, y);
+                    Vector2 end = start + new Vector2(9f + (index % 3) * 3f, 4f);
+                    DrawLine(start, end, new Color(Color.FromHtml("261710"), 0.38f), 1.2f, true);
+                }
+                break;
+            case RealtimeWorldWeather.Rain:
+            case RealtimeWorldWeather.Storm:
+                bool storm = presentation.Weather == RealtimeWorldWeather.Storm;
+                DrawRect(
+                    new Rect2(Vector2.Zero, Size),
+                    new Color(Color.FromHtml(storm ? "18313b" : "315963"),
+                        storm ? 0.18f : 0.10f));
+                long minutePhase = Math.Abs(presentation.Minute % 997L);
+                int streakCount = storm ? 34 : 20;
+                for (int index = 0; index < streakCount; index++)
+                {
+                    float x = (float)((minutePhase * 31L + index * 97L) %
+                        Math.Max(1, (int)Math.Ceiling(Size.X)));
+                    float y = (float)((minutePhase * 17L + index * 53L) %
+                        Math.Max(1, (int)Math.Ceiling(Size.Y)));
+                    Vector2 start = new(x, y);
+                    DrawLine(
+                        start,
+                        start + new Vector2(-7f, 15f),
+                        new Color(Color.FromHtml("a9c7cf"), storm ? 0.28f : 0.20f),
+                        storm ? 1.15f : 0.85f,
+                        true);
+                }
+                break;
+        }
+    }
+
+    private void DrawG3TexturedPolygon(
+        Vector2[] polygon,
+        Texture2D texture,
+        string assetPath,
+        Color modulate)
+    {
+        DrawColoredPolygon(polygon, modulate, TiledG3TextureUvs(polygon, texture), texture);
+        RecordG3Asset(assetPath);
+    }
+
+    private void DrawG3Sprite(
+        string assetPath,
+        Vector2 center,
+        float maxSide,
+        Color modulate)
+    {
+        if (G3Texture(assetPath) is not Texture2D texture || maxSide <= 0f)
+        {
+            return;
+        }
+        Vector2 spriteSize = FitG3SpriteSize(texture, maxSide);
+        DrawG3SpriteShadow(center, spriteSize);
+        DrawTextureRect(
+            texture,
+            G3SpriteRect(center, spriteSize),
+            false,
+            modulate);
+        RecordG3Asset(assetPath);
+#if DEBUG
+        _drawnG3SpriteCount++;
+#endif
+    }
+
+    private void DrawG3SpriteShadow(Vector2 center, Vector2 spriteSize)
+    {
+        float halfWidth = Math.Clamp(spriteSize.X * 0.30f, 4f, 54f);
+        float halfDepth = Math.Clamp(spriteSize.Y * 0.08f, 2f, 13f);
+        Vector2[] shadow =
+        [
+            center + new Vector2(-halfWidth, 0f),
+            center + new Vector2(0f, -halfDepth),
+            center + new Vector2(halfWidth, 0f),
+            center + new Vector2(0f, halfDepth),
+        ];
+        DrawColoredPolygon(shadow, new Color(0f, 0f, 0f, 0.30f));
+    }
+
+    private Texture2D? G3Texture(string assetPath)
+    {
+        if (_g3Textures.TryGetValue(assetPath, out Texture2D? cached))
+        {
+            return cached;
+        }
+        Texture2D? loaded = GD.Load<Texture2D>(assetPath);
+        if (loaded is not null)
+        {
+            _g3Textures.Add(assetPath, loaded);
+        }
+        return loaded;
+    }
+
+    private float WorldPixels(float worldSize) =>
+        Math.Max(8f, worldSize * (float)_transform!.Scale);
+
+    private static Vector2 FitG3SpriteSize(Texture2D texture, float maxSide)
+    {
+        float longest = Math.Max(texture.GetWidth(), texture.GetHeight());
+        return new Vector2(
+            texture.GetWidth() / longest,
+            texture.GetHeight() / longest) * maxSide;
+    }
+
+    private static Rect2 G3SpriteRect(Vector2 groundAnchor, Vector2 spriteSize) => new(
+        groundAnchor - new Vector2(spriteSize.X * 0.5f, spriteSize.Y * 0.78f),
+        spriteSize);
+
+    private static Vector2[] TiledG3TextureUvs(Vector2[] polygon, Texture2D texture)
+    {
+        const float screenRepeatPeriod = 96f;
+        return polygon.Select(point => new Vector2(
+            (point.X / screenRepeatPeriod) * Math.Max(1, texture.GetWidth() - 1),
+            (point.Y / screenRepeatPeriod) * Math.Max(1, texture.GetHeight() - 1))).ToArray();
+    }
+
+    private static string WeatherWaterMaterial(RealtimeWorldWeather weather) => weather switch
+    {
+        RealtimeWorldWeather.Heat => G3RiverWaterHeat,
+        RealtimeWorldWeather.Rain or RealtimeWorldWeather.Storm => G3RiverWaterFlood,
+        _ => G3RiverWaterNeutral,
+    };
+
+    private static Color WeatherWaterModulate(RealtimeWorldWeather weather) => weather switch
+    {
+        RealtimeWorldWeather.Heat => new Color(0.72f, 0.60f, 0.44f, 0.92f),
+        RealtimeWorldWeather.Rain => new Color(0.68f, 0.82f, 0.88f, 0.92f),
+        RealtimeWorldWeather.Storm => new Color(0.56f, 0.72f, 0.80f, 0.96f),
+        _ => new Color(0.70f, 0.80f, 0.82f, 0.94f),
+    };
+
+    private void RecordG3Layer(string layer)
+    {
+#if DEBUG
+        _drawnG3Layers.Add(layer);
+#endif
+    }
+
+    private void RecordG3Asset(string assetPath)
+    {
+#if DEBUG
+        _drawnG3AssetPaths.Add(assetPath);
+#endif
     }
 
     private void DrawForecastRiskAreas(RealtimeWorldPresentation presentation)
@@ -528,6 +892,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
 
     private void DrawEdges(RealtimeWorldPresentation presentation)
     {
+        RecordG3Layer("conductors");
         HashSet<string> highlighted =
             presentation.Highlight?.EdgeIds.ToHashSet(StringComparer.Ordinal) ?? [];
         foreach (SpatialEdgeDefinition edge in presentation.World.Edges.OrderBy(item =>
@@ -548,17 +913,19 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 : edge.Commissioned ? StateColor(status?.State) : Planned;
             float width = (selected || highlighted.Contains(edge.EdgeId) ? 5f : 2.5f) *
                 _accessibilityScale;
-            DrawLine(Point(from.Position), Point(to.Position), color, width, true);
+            Vector2 fromAnchor = G3ConductorAnchor(presentation, from);
+            Vector2 toAnchor = G3ConductorAnchor(presentation, to);
+            DrawG3ConductorSpan(fromAnchor, toAnchor, color, width);
             if (!edge.Commissioned)
             {
-                DrawDashedLine(Point(from.Position), Point(to.Position), Planned);
+                DrawDashedLine(fromAnchor, toAnchor, Planned);
             }
             else
             {
                 DrawEdgeStateCue(
                     edge.EdgeId,
-                    Point(from.Position),
-                    Point(to.Position),
+                    fromAnchor,
+                    toAnchor,
                     status?.State);
             }
         }
@@ -566,6 +933,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
 
     private void DrawNodes(RealtimeWorldPresentation presentation)
     {
+        RecordG3Layer("grid");
         HashSet<string> highlighted =
             presentation.Highlight?.NodeIds.ToHashSet(StringComparer.Ordinal) ?? [];
         foreach (SpatialNodeDefinition node in presentation.World.Nodes.OrderBy(item =>
@@ -581,7 +949,8 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             float radius = NodeRadius(presentation.World, node);
             Color color = node.Commissioned ? StateColor(status?.State) : Planned;
             Vector2 center = Point(node.Position);
-            DrawCircle(center, radius, color);
+            DrawG3NodeEquipment(presentation, node, status);
+            DrawCircle(center, radius, color with { A = 0.26f });
             DrawCircle(
                 center,
                 radius + (selected || routeHighlighted ? 7 : 2) * _accessibilityScale,
@@ -606,6 +975,162 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             }
         }
     }
+
+    private void DrawG3ConductorSpan(Vector2 from, Vector2 to, Color color, float width)
+    {
+        Vector2 axis = to - from;
+        if (axis.LengthSquared() <= 0.001f)
+        {
+            return;
+        }
+        Vector2 normal = new Vector2(-axis.Y, axis.X).Normalized() *
+            (2.8f * _accessibilityScale);
+        float sag = Math.Clamp(axis.Length() * 0.13f, 5f, 28f) * _accessibilityScale;
+        Vector2[] center = Enumerable.Range(0, 17)
+            .Select(index =>
+            {
+                float t = index / 16f;
+                return from.Lerp(to, t) + new Vector2(0f, 4f * t * (1f - t) * sag);
+            })
+            .ToArray();
+        Vector2[][] strands =
+        [
+            center.Select(point => point + normal).ToArray(),
+            center,
+            center.Select(point => point - normal).ToArray(),
+        ];
+        float conductorWidth = Math.Max(0.9f, width * 0.44f);
+        foreach (Vector2[] strand in strands)
+        {
+            DrawPolyline(
+                strand,
+                new Color(Color.FromHtml("071012"), 0.82f),
+                conductorWidth + 1.35f,
+                true);
+            DrawPolyline(strand, color with { A = 0.96f }, conductorWidth, true);
+        }
+    }
+
+    private Vector2 G3ConductorAnchor(
+        RealtimeWorldPresentation presentation,
+        SpatialNodeDefinition node)
+    {
+        SpatialNodeKind kind = presentation.World.NodeClasses.Single(item => string.Equals(
+            item.ClassId,
+            node.ClassId,
+            StringComparison.Ordinal)).Kind;
+        float liftWorld = node.AuthoredFoundation
+            ? 150f
+            : kind switch
+            {
+                SpatialNodeKind.SourceTerminal => 205f,
+                SpatialNodeKind.Substation => 150f,
+                SpatialNodeKind.Pole when node.ClassId == "STANDARD_POLE" => 145f,
+                SpatialNodeKind.Pole => 165f,
+                SpatialNodeKind.DedicatedLoadTerminal => 95f,
+                _ => 0f,
+            };
+        return Point(node.Position) - Vector2.Up * WorldPixels(liftWorld);
+    }
+
+    private void DrawG3NodeEquipment(
+        RealtimeWorldPresentation presentation,
+        SpatialNodeDefinition node,
+        RealtimeWorldAssetStatus? status)
+    {
+        Color modulate = G3NodeModulate(node.Commissioned ? status?.State :
+            RealtimeWorldAssetState.Planned);
+        SpatialNodeKind kind = presentation.World.NodeClasses.Single(item => string.Equals(
+            item.ClassId,
+            node.ClassId,
+            StringComparison.Ordinal)).Kind;
+        if (kind == SpatialNodeKind.SourceTerminal)
+        {
+            DrawG3SourcePlant(node.Position, modulate);
+            return;
+        }
+        if (node.AuthoredFoundation)
+        {
+            DrawG3Sprite(G3BridgeFoundation, Point(node.Position), WorldPixels(330f), modulate);
+            return;
+        }
+        switch (kind)
+        {
+            case SpatialNodeKind.Pole:
+                DrawG3Sprite(
+                    node.ClassId == "STANDARD_POLE" ? G3StandardPole : G3ReinforcedPole,
+                    Point(node.Position),
+                    WorldPixels(node.ClassId == "STANDARD_POLE" ? 160f : 185f),
+                    modulate);
+                return;
+            case SpatialNodeKind.Substation:
+                DrawG3Sprite(
+                    G3SubstationTransformer,
+                    Point(node.Position),
+                    WorldPixels(350f),
+                    modulate);
+                return;
+            case SpatialNodeKind.DedicatedLoadTerminal:
+                DrawG3LoadTerminal(node, modulate);
+                return;
+        }
+    }
+
+    private void DrawG3SourcePlant(CoreMapPoint origin, Color modulate)
+    {
+        DrawG3Sprite(
+            G3PlantSmokestack,
+            Point(new CoreMapPoint(origin.XUnit + 60, origin.YUnit - 150)),
+            WorldPixels(480f),
+            modulate);
+        DrawG3Sprite(
+            G3PlantTurbineHall,
+            Point(new CoreMapPoint(origin.XUnit - 170, origin.YUnit + 70)),
+            WorldPixels(520f),
+            modulate);
+        DrawG3Sprite(G3PlantMainHall, Point(origin), WorldPixels(590f), modulate);
+        DrawG3Sprite(
+            G3SwitchyardBreakerBay,
+            Point(new CoreMapPoint(origin.XUnit + 190, origin.YUnit + 110)),
+            WorldPixels(360f),
+            modulate);
+    }
+
+    private void DrawG3LoadTerminal(SpatialNodeDefinition node, Color modulate)
+    {
+        Vector2 center = Point(node.Position);
+        switch (node.NodeId)
+        {
+            case "WATER_TERMINAL":
+                DrawG3Sprite(G3PumpHouse, center, WorldPixels(340f), modulate);
+                break;
+            case "HOSPITAL_TERMINAL":
+                DrawG3Sprite(G3HospitalMain, center, WorldPixels(440f), modulate);
+                break;
+            case "FACTORY_TERMINAL":
+                DrawG3Sprite(G3SmallWarehouse, center, WorldPixels(390f), modulate);
+                break;
+            case "NORTH_RESIDENTIAL_TERMINAL":
+                DrawG3Sprite(G3WorkerHouseA, center, WorldPixels(300f), modulate);
+                break;
+            case "EAST_RESIDENTIAL_TERMINAL":
+                DrawG3Sprite(G3RowShop, center, WorldPixels(320f), modulate);
+                break;
+            default:
+                DrawG3Sprite(G3Workshop, center, WorldPixels(300f), modulate);
+                break;
+        }
+    }
+
+    private static Color G3NodeModulate(RealtimeWorldAssetState? state) => state switch
+    {
+        RealtimeWorldAssetState.Planned or RealtimeWorldAssetState.Building or
+            RealtimeWorldAssetState.AuthoredUnavailable => new Color(1f, 0.74f, 0.38f, 0.94f),
+        RealtimeWorldAssetState.Emergency => new Color(1f, 0.64f, 0.34f, 0.96f),
+        RealtimeWorldAssetState.ProtectiveOutage => new Color(0.68f, 0.70f, 0.70f, 0.88f),
+        RealtimeWorldAssetState.OverLimit => new Color(1f, 0.42f, 0.37f, 0.96f),
+        _ => new Color(0.92f, 0.88f, 0.78f, 0.98f),
+    };
 
     private void DrawActiveCandidate(RealtimeWorldPresentation presentation)
     {

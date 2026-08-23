@@ -212,6 +212,7 @@ internal sealed partial class RealtimeSliceMain : Control
     private RealtimeSmokeLinePlan? _smokeLinePlan;
     private RealtimeSmokeBoundaryFacts? _smokeBoundaryFacts;
     private RealtimeInputRequest? _lastInputRequest;
+    private bool _suppressFormativeDirectPlayOutputForSmoke;
 #endif
 
     public override void _Ready()
@@ -301,6 +302,7 @@ internal sealed partial class RealtimeSliceMain : Control
             _smokeBoundaryFacts = null;
         }
         _lastInputRequest = null;
+        _suppressFormativeDirectPlayOutputForSmoke = false;
 #endif
         Present();
     }
@@ -1159,10 +1161,12 @@ internal sealed partial class RealtimeSliceMain : Control
                 item.ChapterId,
                 FirstReleaseChapterId,
                 StringComparison.Ordinal));
+        RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
         CommercialStoryCard? card = modal.Id switch
         {
             "CHAPTER_BRIEFING" => chapter.Briefing,
-            "CAMPAIGN_RESULT" => chapter.ResultCards.Standard,
+            "CAMPAIGN_RESULT" when IsSuccessfulFirstLightCompletion(snapshot) =>
+                chapter.ResultCards.Standard,
             _ => null,
         };
         return card is null
@@ -1181,6 +1185,10 @@ internal sealed partial class RealtimeSliceMain : Control
             _data?.SourceRoute != RealtimeSliceSourceRoute.ReleaseFirstLight ||
             !string.Equals(closedModal.Id, "CAMPAIGN_RESULT", StringComparison.Ordinal) ||
             _run?.GetSnapshot() is not { CampaignComplete: true } snapshot)
+        {
+            return;
+        }
+        if (!IsSuccessfulFirstLightCompletion(snapshot))
         {
             return;
         }
@@ -1205,7 +1213,39 @@ internal sealed partial class RealtimeSliceMain : Control
                 "FORMATIVE direct-play close did not carry the exact authored FIRST_LIGHT result.");
         }
         _formativeDirectPlayRecorded = true;
+#if DEBUG
+        if (_suppressFormativeDirectPlayOutputForSmoke)
+        {
+            return;
+        }
+#endif
         GD.Print($"FORMATIVE_DIRECT_PLAY_PASS:{FirstReleaseChapterId}");
+    }
+
+    private static bool IsSuccessfulFirstLightCompletion(
+        RealtimeCampaignSnapshot snapshot)
+    {
+        if (!snapshot.CampaignComplete || snapshot.CompletedChapters.Count != 1)
+        {
+            return false;
+        }
+        RealtimeChapterOutcome chapter = snapshot.CompletedChapters[0];
+        if (!string.Equals(
+                chapter.ChapterId,
+                FirstReleaseChapterId,
+                StringComparison.Ordinal) ||
+            chapter.Events.Count != 1)
+        {
+            return false;
+        }
+        RealtimeEventOutcome outcome = chapter.Events[0];
+        return string.Equals(
+                   outcome.EventId,
+                   RealtimeCampaignOverlayLoader.FirstReleaseEventId,
+                   StringComparison.Ordinal) &&
+               outcome.SafetySatisfied &&
+               outcome.SafetyUnservedMinutes == 0 &&
+               outcome.PromiseSatisfied;
     }
 
     private void HandleBuildTool(string id)
@@ -1983,6 +2023,28 @@ internal sealed partial class RealtimeSliceMain : Control
     {
         _sourceRoute = RealtimeSliceSourceRoute.ReleaseFirstLight;
         Bootstrap();
+    }
+
+    internal bool ClosePresentedPrimaryModalForSmoke()
+    {
+        RealtimeModalPresentation modal = _latestPresentation?.Modal ??
+            throw new InvalidOperationException(
+                "No presented modal is available for the production close handler.");
+        _suppressFormativeDirectPlayOutputForSmoke = true;
+        try
+        {
+            HandleModalAction(modal.Id, modal.PrimaryAction.Id);
+            if (_latestPresentation?.Modal is not null)
+            {
+                throw new InvalidOperationException(
+                    "Production modal close handler did not close the presented modal.");
+            }
+            return _formativeDirectPlayRecorded;
+        }
+        finally
+        {
+            _suppressFormativeDirectPlayOutputForSmoke = false;
+        }
     }
 
     internal void SetSpeedForSmoke(RealtimeSimulationSpeed speed)

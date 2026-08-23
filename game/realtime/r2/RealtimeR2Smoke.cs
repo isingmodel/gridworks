@@ -56,6 +56,8 @@ internal static class RealtimeR2Smoke
             () => ValidateFutureEventActualDraftConstruction(failures), failures);
         RunCase("release-first-light-controller-story",
             () => ValidateReleaseFirstLightControllerStory(failures), failures);
+        RunCase("release-first-light-no-action-result",
+            () => ValidateReleaseFirstLightNoActionResult(failures), failures);
         RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
         RunCase("pointer-priority", () => ValidatePointerPriority(failures), failures);
     }
@@ -2039,6 +2041,79 @@ internal static class RealtimeR2Smoke
               result.Heading == standardResult.Title &&
               result.Body == standardResult.Body,
             "release FIRST_LIGHT native result did not reuse the exact authored story card",
+            failures);
+        bool formativeRecord = slice.ClosePresentedPrimaryModalForSmoke();
+        Check(formativeRecord && slice.LatestPresentation.Modal is null,
+            "successful FIRST_LIGHT result did not close through the production " +
+            "handler and authorize its formative direct-play record",
+            failures);
+    }
+
+    private static void ValidateReleaseFirstLightNoActionResult(
+        ICollection<string> failures)
+    {
+        var slice = new RealtimeSliceMain();
+        try
+        {
+            slice.BootstrapReleaseFirstLightForSmoke();
+        }
+        catch
+        {
+            slice.Free();
+            throw;
+        }
+        using var sliceLifetime = slice.FreeAfterSmoke();
+        CommercialCampaignChapterDefinition chapter = slice.SliceDataForSmoke
+            .BaseCampaign.Chapters.Single(item => string.Equals(
+                item.ChapterId,
+                RealtimeCampaignOverlayLoader.FirstReleaseChapterId,
+                StringComparison.Ordinal));
+        CommercialStoryCard standardResult = chapter.ResultCards.Standard ??
+            throw new InvalidOperationException(
+                "Release FIRST_LIGHT has no standard authored result card.");
+
+        bool briefingRecord = slice.ClosePresentedPrimaryModalForSmoke();
+        Check(!briefingRecord && slice.LatestPresentation.Modal is null,
+            "briefing close incorrectly authorized a formative completion record",
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
+            "no-action release 4x", failures, coreCommandExpected: false);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1320,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+
+        RealtimeCampaignSnapshot completed = slice.CoreSnapshot;
+        RealtimeEventOutcome eventOutcome = completed.CompletedChapters
+            .Single().Events.Single();
+        RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException(
+                "No-action FIRST_LIGHT completion did not present a factual result.");
+        Check(completed.CampaignComplete &&
+              string.Equals(
+                  eventOutcome.EventId,
+                  RealtimeCampaignOverlayLoader.FirstReleaseEventId,
+                  StringComparison.Ordinal) &&
+              !eventOutcome.SafetySatisfied &&
+              eventOutcome.SafetyUnservedMinutes > 0 &&
+              result.Id == "CAMPAIGN_RESULT" &&
+              result.Eyebrow == "운영 결과" &&
+              result.Heading == "캠페인 운영 완료" &&
+              result.Body.Contains("안전 의무 0/1 충족", StringComparison.Ordinal) &&
+              (!string.Equals(result.Eyebrow, standardResult.Speaker,
+                   StringComparison.Ordinal) ||
+               !string.Equals(result.Heading, standardResult.Title,
+                   StringComparison.Ordinal) ||
+               !string.Equals(result.Body, standardResult.Body,
+                   StringComparison.Ordinal)),
+            "no-action FIRST_LIGHT completion counterfeited the positive authored result",
+            failures);
+        bool formativeRecord = slice.ClosePresentedPrimaryModalForSmoke();
+        Check(!formativeRecord && slice.LatestPresentation.Modal is null,
+            "no-action FIRST_LIGHT result close counterfeited the formative " +
+            "direct-play PASS record",
             failures);
     }
 

@@ -18,7 +18,7 @@
 | UX-R1 native evaluator authority | **완료** | candidate·route·session/attempt·non-score chain parent·blocked artifact·local controlled transcript | candidate 16/16 + session 12/12 + chain 14/14 + artifact 11/11 + transcript 13/13·strict schema | capture 금지 | `2b0b6ee`, 전체 review P0 0/P1 0 |
 | UX-R2.1 FIRST_LIGHT release tutorial/rail | **완료** | 실제 release 1장 briefing→live→authored result, 단일 chronological rail, interactive checkpoint host | source `e385707`, build·회귀·독립 P0/P1 0 | FIRST_LIGHT+두 checkpoint actual-input PASS | 이 문서 종료 commit |
 | UX-R2.2 tutorial prefix | **완료** | FIRST_LIGHT→SECOND_HEART→SECOND_SOURCE 누적 진행, 2회선 조건, result/briefing, forecast flood | source `659709d`+fix `40ed3fa`, build·회귀·UI PASS | fresh-process 세 장+full-flow record | source/fix와 closure `cf6398a` 독립 P0/P1 0 |
-| UX-R2.3 NORTH_BANK promise | **scope 활성** | 누적 4장, 명시적 6개월 전환, deadline rail, Keep/Defer branch | 구현 전 | source/review 전 capture 금지 | exact allowlist·gate review 먼저 |
+| UX-R2.3 NORTH_BANK promise | **source 구현 활성** | 누적 4장, 명시적 6개월 전환, deadline rail, Keep/Defer branch | gate-opening review P0 0/P1 0 | source/review 전 capture 금지 | exact allowlist만 구현 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -165,7 +165,7 @@ default/export/package와 score-bearing capture를 열지 않는다.
 - [x] UX-R2.2 source·actual-input·closure review P0 0/P1 0 뒤 개방
 - [x] exact cumulative 4장 route와 단독 NORTH_BANK route 금지 경계 고정
 - [x] exact Game/test/doc allowlist와 Core/data/loader·5–8장·save·epilogue 금지 경계 고정
-- [ ] gate-opening 독립 review P0 0/P1 0
+- [x] gate-opening 독립 review `PASS_FOR_UX_R2_3_GATE_OPENING`, P0 0/P1 0 (`b0383d6`)
 - [ ] 2460→265260 명시적 calendar transition과 실제 망·현금·공사·thermal reset 보존
 - [ ] promise deadline 265680 한 줄 Decision marker, next summary, hover·AX·keyboard·ContextDock 두 action
 - [ ] unset Keep 가정, explicit Keep/Defer, auto-Defer와 deadline 전/후 Core truth를 UI에 구분
@@ -279,8 +279,8 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
-UXR23GateStatus = ACTIVE_SCOPE_ONLY_IMPLEMENTATION_PENDING
-UXR23GateOpeningReview = PENDING_BOUNDED_REVIEW
+UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED
+UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6
 UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
 NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
 NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE

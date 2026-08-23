@@ -333,6 +333,9 @@ Core를 통해 명시적으로 이동하고, 기존 한 줄 rail의 Decision mar
 도시 약속의 deadline·Keep/Defer를 다룬다. NORTH_BANK planning-window story, 두 operating event와 exact
 kept/deferred 또는 factual failure result까지만 presentation한다.
 
+gate-opening 독립 검토 `PASS_FOR_UX_R2_3_GATE_OPENING`, P0 0/P1 0 (`b0383d6`)을 통과해 아래
+exact source allowlist만 구현할 수 있다.
+
 exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.3](COMMERCIAL_UX_87.md#ux-r23--north_bank_promise-branchdeadline--scope-활성)가
 소유한다. `data/**`, loader/Core source, event-rail source/scene, runtime asset/world, 5–8장,
 save/persistence, promise ledger/epilogue, default/export/package와 score-bearing capture는 금지한다.

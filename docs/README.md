@@ -94,8 +94,8 @@ docs/
 - `UXR22ActiveFloodSolidFillObservation = PASS`
 - `UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A`
 - `TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE`
-- `UXR23GateStatus = ACTIVE_SCOPE_ONLY_IMPLEMENTATION_PENDING`
-- `UXR23GateOpeningReview = PENDING_BOUNDED_REVIEW`
+- `UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED`
+- `UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6`
 - `UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING`
 - `NorthBankPromiseNativeReachability = NOT_IMPLEMENTED`
 - `NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE`
@@ -122,7 +122,8 @@ docs/
 - 기본 장면은 `CommercialMain`이다.
 - R1/R2 기반과 완료된 UX-R2.1·UX-R2.2 source 및 실제 입력 record는 보존한다. UX-R2.3은 exact 누적
   4장 route의 `NORTH_BANK_PROMISE` 한 장, 명시적 달력 전환, 한 줄 rail 약속 마감과 Keep/Defer만
-  구현하도록 scope를 열었다. source 구현·native capture는 아직 금지한다. 기존 개발 관찰을
+  구현하도록 scope를 열었고 gate-opening 독립 검토 P0 0/P1 0을 통과했다. exact source allowlist만
+  구현할 수 있고 native capture는 source commit·build·독립 review 전까지 금지한다. 기존 개발 관찰을
   `CommercialUXProxy`나 사람 미감 증거로 승격하지 않고 custom hover-only popup 출현도 native 관찰로
   주장하지 않는다.
 - `./assets` 네 이미지는 visual reference authority이며 runtime·규칙·숫자 authority가 아니다.

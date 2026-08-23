@@ -141,7 +141,8 @@ Keep/Defer 중 직접 정하고, 그 마감·두 운영 사건·분기 결과를
   explicit-choice PASS를 만들지 않음
 - A1 art, 5–8장, save/persistence, promise ledger/epilogue, default/export/package와 official score 미개방
 
-source 구현·native capture는 gate-opening review 전 금지한다. exact allowlist와 종료 증거는
+gate-opening 독립 검토 `PASS_FOR_UX_R2_3_GATE_OPENING`, P0 0/P1 0을 통과해 exact source allowlist
+구현만 열었다. native capture는 source commit·build·독립 review 전 금지한다. 종료 증거는
 [실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r23--north_bank_promise-branchdeadline--scope-활성)가
 소유한다.
 

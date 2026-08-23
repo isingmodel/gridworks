@@ -214,7 +214,8 @@ runner, headless UI PASS와 actual-input 관찰은 서로 대신하지 않으며
 forecast flood 표시를 source `659709d`와 fix `40ed3fa`에서 구현하고, 전체 회귀·source/fix 독립 검토와
 fresh-process 세 장 actual-input 경로로 비점수 완료했다. 이 gate에서도 official score는 만들지 않았다.
 현재 UX-R2.3은 `NORTH_BANK_PROMISE` 한 장의 누적 4장 route, 명시적 calendar transition, 약속 마감
-Decision marker와 Keep/Defer 분기까지만 scope를 열었다. source 구현과 native capture는 아직 금지하며,
+Decision marker와 Keep/Defer 분기까지만 scope를 열었고 gate-opening 독립 검토 P0 0/P1 0을 통과했다.
+exact source allowlist 구현만 허용하며 native capture는 source commit·build·독립 review 전까지 금지한다.
 본편 5–8장·save/finale/epilogue와 score-bearing judge lane은 계속 미개방이다.
 
 ```text
@@ -254,8 +255,8 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
-UXR23GateStatus = ACTIVE_SCOPE_ONLY_IMPLEMENTATION_PENDING
-UXR23GateOpeningReview = PENDING_BOUNDED_REVIEW
+UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED
+UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6
 UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
 NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
 NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE

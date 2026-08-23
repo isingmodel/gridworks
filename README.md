@@ -48,7 +48,8 @@ fix `40ed3fa`에서 같은 상태를 잇는 tutorial 3장 prefix를 구현했다
 record까지 확인해 이 gate를 비점수 완료했다. A1 art, 5–8장, persistence, 기본 장면과 score-bearing
 capture는 열지 않았다. 현재 UX-R2.3은 누적 상태를 위조하지 않는 exact 4장 route로
 `NORTH_BANK_PROMISE` 한 장만 열어, 명시적 6개월 달력 전환과 한 줄 rail의 최초 약속 마감·Keep/Defer
-분기를 구현하도록 범위를 고정했다. source 구현·native capture는 아직 시작하지 않았다.
+분기를 구현하도록 범위를 고정했고 gate-opening 독립 검토 P0 0/P1 0을 통과했다. exact source
+allowlist 구현은 승인됐지만 native capture는 아직 시작하지 않았다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -138,8 +139,8 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
-UXR23GateStatus = ACTIVE_SCOPE_ONLY_IMPLEMENTATION_PENDING
-UXR23GateOpeningReview = PENDING_BOUNDED_REVIEW
+UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED
+UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6
 UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
 NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
 NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE

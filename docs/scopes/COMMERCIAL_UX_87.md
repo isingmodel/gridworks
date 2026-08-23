@@ -25,7 +25,9 @@ technical-route fix `40ed3fa`에서 구현했다. 전체 결정론 회귀, 두 b
 fresh-process 세 장 actual-input record로 비점수 완료했다. A1 runtime art, 5–8장, persistence, 기본
 장면과 score-bearing capture는 열지 않았다. 현재 UX-R2.3은 누적 상태를 보존한
 `NORTH_BANK_PROMISE` 한 장, 명시적 6개월 calendar transition, 한 줄 rail의 최초 promise deadline과
-Keep/Defer branch만 열었다. source 구현과 native capture는 gate-opening review 전 금지한다.
+Keep/Defer branch만 열었다. gate-opening 독립 검토 `PASS_FOR_UX_R2_3_GATE_OPENING`, P0 0/P1 0을
+통과해 exact source allowlist 구현만 승인됐다. native capture는 source commit·build·독립 review 전
+금지한다.
 
 ## 1. 플레이어 결과
 
@@ -768,8 +770,8 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
-UXR23GateStatus = ACTIVE_SCOPE_ONLY_IMPLEMENTATION_PENDING
-UXR23GateOpeningReview = PENDING_BOUNDED_REVIEW
+UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED
+UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6
 UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
 NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
 NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE

@@ -36,7 +36,8 @@ local rollout이 일치했음을 결속하지만 platform/API attestation이나 
   custom hover 상세/AX 계약은 deterministic full UI matrix만 근거로 사용
 - 활성 UX-R2.3 scope: exact cumulative `--release-through=NORTH_BANK_PROMISE` 4장/7 event route,
   명시적 6개월 calendar transition, 기존 한 줄 rail의 promise deadline Decision marker와
-  ContextDock Keep/Defer branch만 허용; source commit·build·독립 review 전 native capture 금지
+  ContextDock Keep/Defer branch만 허용; gate-opening review P0 0/P1 0 (`b0383d6`) 통과, source
+  commit·build·독립 review 전 native capture 금지
 - 현재 candidate: 비기본 Debug/editor 39-file exact project tree, public package 아님
 - 현재 실행 영수증: 두 checkpoint 성공 + missing/extra/FULL_FLOW selector 거부를 독립 verifier가
   fresh process로 재실행

@@ -126,7 +126,7 @@
             "type": "object",
             "properties": {
               "fileCount": {"type": "integer", "const": 4},
-              "files": {"type": "array", "minItems": 4, "maxItems": 4}
+              "files": {"$ref": "#/$defs/fullFlowSnapshotFiles"}
             }
           }
         }
@@ -154,6 +154,13 @@
       "then": {
         "type": "object",
         "properties": {
+          "attemptAudit": {"$ref": "#/$defs/oneAttemptAudit"},
+          "selectedRouteTerminal": {
+            "type": "object",
+            "properties": {
+              "terminalSnapshotRelativePath": {"type": "string", "const": "inputs/session/attempts/01/terminal-receipt.json"}
+            }
+          },
           "inputSnapshot": {
             "type": "object",
             "properties": {
@@ -179,6 +186,13 @@
       "then": {
         "type": "object",
         "properties": {
+          "attemptAudit": {"$ref": "#/$defs/twoAttemptAudit"},
+          "selectedRouteTerminal": {
+            "type": "object",
+            "properties": {
+              "terminalSnapshotRelativePath": {"type": "string", "const": "inputs/session/attempts/02/terminal-receipt.json"}
+            }
+          },
           "inputSnapshot": {
             "type": "object",
             "properties": {
@@ -204,6 +218,13 @@
       "then": {
         "type": "object",
         "properties": {
+          "attemptAudit": {"$ref": "#/$defs/threeAttemptAudit"},
+          "selectedRouteTerminal": {
+            "type": "object",
+            "properties": {
+              "terminalSnapshotRelativePath": {"type": "string", "const": "inputs/session/attempts/03/terminal-receipt.json"}
+            }
+          },
           "inputSnapshot": {
             "type": "object",
             "properties": {
@@ -534,7 +555,8 @@
         {"type": "object", "properties": {
           "outcome": {"type": "string", "enum": ["PRODUCER_NO_OUTPUT", "TRANSPORT_FAILURE"]},
           "outcomeRetryable": {"type": "boolean", "const": true},
-          "nextAttemptAllowed": {"type": "boolean", "const": true}
+          "nextAttemptAllowed": {"type": "boolean", "const": true},
+          "outputCanonicalSha256": {"type": "null"}
         }}
       ]
     },
@@ -706,6 +728,62 @@
           }
         }
       ]
+    },
+    "fullFlowSnapshotFiles": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "prefixItems": [
+        {
+          "allOf": [
+            {"$ref": "#/$defs/snapshotFile"},
+            {"type": "object", "properties": {
+              "sourcePath": {"allOf": [{"$ref": "#/$defs/absolutePath"}, {"type": "string", "pattern": "/session-claim\\.json$"}]},
+              "sourceLogicalPath": {"type": "string", "const": "session-claim.json"},
+              "snapshotRelativePath": {"type": "string", "const": "inputs/session/session-claim.json"},
+              "role": {"type": "string", "const": "FINALIZED_PARENT_SESSION_CLAIM"},
+              "materialization": {"type": "string", "const": "EXACT_PARENT_FILE_BYTES_UNDER_SESSION_CLAIM_FLOCK"}
+            }}
+          ]
+        },
+        {
+          "allOf": [
+            {"$ref": "#/$defs/snapshotFile"},
+            {"type": "object", "properties": {
+              "sourcePath": {"allOf": [{"$ref": "#/$defs/absolutePath"}, {"type": "string", "pattern": "/inputs/candidate-manifest\\.json$"}]},
+              "sourceLogicalPath": {"type": "string", "const": "inputs/candidate-manifest.json"},
+              "snapshotRelativePath": {"type": "string", "const": "inputs/session/inputs/candidate-manifest.json"},
+              "role": {"type": "string", "const": "BOUND_CANDIDATE_MANIFEST"},
+              "materialization": {"type": "string", "const": "EXACT_PARENT_FILE_BYTES_UNDER_SESSION_CLAIM_FLOCK"}
+            }}
+          ]
+        },
+        {
+          "allOf": [
+            {"$ref": "#/$defs/snapshotFile"},
+            {"type": "object", "properties": {
+              "sourcePath": {"allOf": [{"$ref": "#/$defs/absolutePath"}, {"type": "string", "pattern": "/inputs/story-manifest\\.json$"}]},
+              "sourceLogicalPath": {"type": "string", "const": "inputs/story-manifest.json"},
+              "snapshotRelativePath": {"type": "string", "const": "inputs/session/inputs/story-manifest.json"},
+              "role": {"type": "string", "const": "BOUND_STORY_MANIFEST"},
+              "materialization": {"type": "string", "const": "EXACT_PARENT_FILE_BYTES_UNDER_SESSION_CLAIM_FLOCK"}
+            }}
+          ]
+        },
+        {
+          "allOf": [
+            {"$ref": "#/$defs/snapshotFile"},
+            {"type": "object", "properties": {
+              "sourcePath": {"type": "null"},
+              "sourceLogicalPath": {"type": "string", "const": "unavailable-route-terminal.json"},
+              "snapshotRelativePath": {"type": "string", "const": "inputs/session/unavailable-route-terminal.json"},
+              "role": {"type": "string", "const": "CANONICAL_NESTED_UNAVAILABLE_ROUTE_TERMINAL"},
+              "materialization": {"type": "string", "const": "CANONICAL_EXTRACTION_FROM_FINALIZED_SESSION_CLAIM"}
+            }}
+          ]
+        }
+      ],
+      "items": false
     },
     "fixedFutureArtifactPaths": {
       "type": "array",

@@ -787,9 +787,10 @@ def _validate_preclaim_inventory(
     if {path.name for path in canonical_root.iterdir()} != {"inputs"}:
         raise ChainAuthorityError("preclaim evaluation chain root inventory drift")
     inputs = canonical_existing_directory(root / "inputs", "preclaim inputs root")
-    expected_files = {
-        snapshot.snapshot_relative_path for snapshot in prefix.files
+    expected_by_relative = {
+        snapshot.snapshot_relative_path: snapshot for snapshot in prefix.files
     }
+    expected_files = set(expected_by_relative)
     actual_files: set[str] = set()
     actual_directories: set[str] = {"inputs"}
     for directory, directory_names, file_names in os.walk(inputs, followlinks=False):
@@ -801,11 +802,17 @@ def _validate_preclaim_inventory(
             )
             actual_directories.add(str(child.relative_to(root)))
         for name in file_names:
-            child, _data = read_regular_exact(
+            child, data = read_regular_exact(
                 base / name,
                 f"preclaim input file {name}",
             )
-            actual_files.add(str(child.relative_to(root)))
+            relative = str(child.relative_to(root))
+            actual_files.add(relative)
+            expected_snapshot = expected_by_relative.get(relative)
+            if expected_snapshot is None or data != expected_snapshot.data:
+                raise ChainAuthorityError(
+                    "preclaim input snapshot byte drift"
+                )
     expected_directories = {"inputs"}
     for relative in expected_files:
         current = Path(relative).parent

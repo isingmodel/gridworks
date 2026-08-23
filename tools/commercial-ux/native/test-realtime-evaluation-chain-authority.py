@@ -573,6 +573,32 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
         injected_root = Path(f"{parent['canonicalSessionRoot']}.evaluation-chain-v1")
         self.assertFalse((injected_root / "evaluation-chain-claim.json").exists())
 
+        byte_race_parent, parent = self.create_parent(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+            ["EXPECTED"],
+        )
+
+        def inject_snapshot_byte_drift(prefix, evaluator, root, nonce):
+            claim = real_compose(prefix, evaluator, root, nonce)
+            target = root / "inputs" / "session" / "session-claim.json"
+            target.write_bytes(target.read_bytes() + b" ")
+            return claim
+
+        with mock.patch.object(
+            AUTHORITY,
+            "compose_chain_claim",
+            side_effect=inject_snapshot_byte_drift,
+        ):
+            self.assertRejected(
+                lambda: self.create_chain(byte_race_parent),
+                "preclaim input snapshot byte drift",
+            )
+        byte_race_root = Path(
+            f"{parent['canonicalSessionRoot']}.evaluation-chain-v1"
+        )
+        self.assertFalse((byte_race_root / "evaluation-chain-claim.json").exists())
+
     def test_session_lock_spans_all_snapshots_and_claim_commit(self) -> None:
         parent_path, _ = self.create_parent(
             "TARGETED_CHECKPOINT",
@@ -648,6 +674,61 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
             validate_schema_subset(forged, self.schema, self.schema)
         self.rewrite_claim(chain_path, forged)
         self.assertRejected(lambda: self.verify_chain(chain_path), "reconstructed authority")
+
+    def test_schema_couples_attempt_ordinal_retry_and_full_flow_tuple(self) -> None:
+        first_parent, _ = self.create_parent(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+            ["EXPECTED"],
+        )
+        _first_path, first = self.create_chain(first_parent)
+        validate_schema_subset(first, self.schema, self.schema)
+        ordinal_forgery = copy.deepcopy(first)
+        ordinal_forgery["selectedRouteTerminal"]["attemptOrdinal"] = 2
+        ordinal_forgery["selectedRouteTerminal"][
+            "terminalSnapshotRelativePath"
+        ] = "inputs/session/attempts/02/terminal-receipt.json"
+        ordinal_forgery["inputSnapshot"]["fileCount"] = 9
+        ordinal_forgery["inputSnapshot"]["files"] = (
+            ordinal_forgery["inputSnapshot"]["files"]
+            + ordinal_forgery["inputSnapshot"]["files"][:3]
+        )
+        with self.assertRaises(AssertionError):
+            validate_schema_subset(ordinal_forgery, self.schema, self.schema)
+
+        retry_parent, _ = self.create_parent(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+            [b"", "EXPECTED"],
+        )
+        _retry_path, retry = self.create_chain(retry_parent)
+        validate_schema_subset(retry, self.schema, self.schema)
+        retry_forgery = copy.deepcopy(retry)
+        retry_forgery["attemptAudit"][0]["outputCanonicalSha256"] = (
+            "sha256:" + "1" * 64
+        )
+        with self.assertRaises(AssertionError):
+            validate_schema_subset(retry_forgery, self.schema, self.schema)
+
+        full_parent, _ = self.create_parent("FULL_FLOW_EXCEPTION", None, None)
+        _full_path, full = self.create_chain(full_parent)
+        validate_schema_subset(full, self.schema, self.schema)
+        for mutation in ("reorder", "role", "materialization"):
+            forged = copy.deepcopy(full)
+            if mutation == "reorder":
+                forged["inputSnapshot"]["files"][0:2] = reversed(
+                    forged["inputSnapshot"]["files"][0:2]
+                )
+            elif mutation == "role":
+                forged["inputSnapshot"]["files"][1]["role"] = (
+                    "BOUND_STORY_MANIFEST"
+                )
+            else:
+                forged["inputSnapshot"]["files"][3]["materialization"] = (
+                    "EXACT_PARENT_FILE_BYTES_UNDER_SESSION_CLAIM_FLOCK"
+                )
+            with self.assertRaises(AssertionError):
+                validate_schema_subset(forged, self.schema, self.schema)
 
     def test_future_signal_and_full_flow_terminal_mutations_fail_closed(self) -> None:
         parent_path, _ = self.create_parent(

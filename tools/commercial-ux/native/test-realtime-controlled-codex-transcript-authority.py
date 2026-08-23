@@ -148,11 +148,9 @@ class ControlledTranscriptHarness:
             "artifactAuthoritySourceCommit": (
                 "a270339a778e49ce0458c61cef383fc96283a596"
             ),
-            "artifactEvaluatorAuthority": {
-                "filesSha256": (
-                    "sha256:225696ad11902e33213693e75e9576368a091b1a16ba32a3c0a449e6179dea1d"
-                )
-            },
+            "artifactProducerFilesSha256": (
+                "sha256:225696ad11902e33213693e75e9576368a091b1a16ba32a3c0a449e6179dea1d"
+            ),
         }
         aggregate_bytes = AUTHORITY.json_file_bytes(aggregate)
         self.aggregate_path.write_bytes(aggregate_bytes)

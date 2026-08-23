@@ -766,9 +766,7 @@ def _reconstruct_parent_artifacts_without_lock(
     )
     expected_parent = policy["parentCurrentRouteArtifactAuthority"]
     source_commit = submitted_object.get("artifactAuthoritySourceCommit")
-    producer_hash = submitted_object.get("artifactEvaluatorAuthority", {}).get(
-        "filesSha256"
-    )
+    producer_hash = submitted_object.get("artifactProducerFilesSha256")
     if (
         source_commit != expected_parent["sourceCommit"]
         or producer_hash != expected_parent["producerFilesSha256"]
@@ -904,8 +902,8 @@ def _parent_projection(context: ParentArtifactContext) -> dict[str, Any]:
             "artifactAuthoritySourceCommit"
         ],
         "artifactProducerFilesSha256": context.aggregate[
-            "artifactEvaluatorAuthority"
-        ]["filesSha256"],
+            "artifactProducerFilesSha256"
+        ],
         "blockedJudgeInputPath": str(judge_path),
         "blockedJudgeInputRawSha256": sha256_bytes(judge_bytes),
         "blockedJudgeInputArtifactSha256": judge["artifactSha256"],

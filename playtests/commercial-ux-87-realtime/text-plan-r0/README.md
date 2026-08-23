@@ -103,8 +103,8 @@ aggregate regeneration
 ```
 
 독립 score-integrity 검증은 두 panel을 현재 동결 권위에서 다시 계산해 P0/P1 0으로 판정했다. 저장소에
-서명된 model execution receipt가 없다는 P2 한계는 아래 상한에 반영한다. UX-R0 종료 커밋 자체의 최종
-독립 검토는 아직 남아 있다.
+서명된 model execution receipt가 없다는 P2 한계는 아래 상한에 반영한다. UX-R0 종료 증거 커밋
+`746c0aa`의 최종 독립 검토도 P0 0/P1 0으로 PASS했다.
 
 ```text
 TextPlanProxy = 83.4475_FORMATIVE
@@ -112,5 +112,5 @@ TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 ScoreBearingCaptureAllowed = false
 NativeCapture = BLOCKED_MAC_LOCKED
-UXR0ClosureReview = PENDING
+UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
 ```

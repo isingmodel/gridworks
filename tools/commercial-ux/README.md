@@ -93,13 +93,15 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 `playtests/commercial-ux-87-realtime/text-plan-r0/README.md`가 소유한다. 첫 panel의 raw 값은 불안정성으로
 무효이며, 두 번째 panel의 83.4475도 native 관찰이 아닌 형성평가다.
 
-## 다음 gate
+## 현재 UX-R1 gate
 
-다음 단위는 generic session/provenance machinery를 포팅한 뒤 다음을 새로 만든다.
+현재 단위는 generic session/provenance machinery를 V3/R2 권위에 포팅하되, 실제 capture나 runtime
+콘텐츠 구현 없이 다음 경계만 닫는다.
 
 1. R2 checkpoint와 full-flow 예외를 분리한 actor recipe
 2. V3+필요 V2 의존성을 exact bytes로 닫은 replay/candidate authority
-3. FIRST_LIGHT뿐 아니라 tutorial 3장·본편 5장·결과·epilogue·save/resume의 native presentation
-4. 실제 입력·화면·audio evidence를 보는 cold actor 3명, coverage, blind judge 3명
+3. evidence item·actor/judge input·aggregate를 같은 finalized session에 결속하는 hash chain
+4. model identity를 자기선언 JSON이 아닌 platform/API receipt 또는 동등한 transcript에 결속하는 권위
 
-이 네 경계와 실제 macOS capture가 닫히기 전에는 `CommercialUXProxy >= 87`을 선언하지 않는다.
+native presentation과 실제 입력·화면·audio capture는 이후 gate다. UX-R1에서도
+`ScoreBearingCaptureAllowed=false`이며 `CommercialUXProxy >= 87`을 선언하지 않는다.

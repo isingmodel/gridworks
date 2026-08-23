@@ -1,6 +1,6 @@
 # Gridworks — 실시간 상용 UX 87 활성 계약
 
-> 상태: **활성 — UX-R0 실시간 텍스트 기준선**
+> 상태: **활성 — UX-R1 native evaluator authority port**
 >
 > 제품 방향 권위: [에셋 스타일 실시간 게임 계약](ASSET_STYLE_REALTIME_GAME.md)
 >
@@ -12,9 +12,10 @@ pause·1×·2×·4× 속도, 계속 흐르는 시계, 미리 보이는 사건과
 가진 실시간 전력망 게임으로 고정한다. `origin/main`의 Release.V3/R2 기반을 이 방향의 권위로
 사용하며, 과거 `codex/commercial-ux-87`의 V2 runtime 구현을 합치지 않는다.
 
-현재 gate는 평가 계약, 작성 콘텐츠와 실시간 일정의 결속, 스토리 파트 단독 실행, 세 fresh text
-judge의 기준점 생성까지만 허용한다. A1 runtime art gate는 열지 않는다. 다음 gate의 native
-packager·capture·전체 캠페인 presentation을 미리 만들지 않는다.
+UX-R0는 source-bound 텍스트 artifact, 스토리 파트 단독 실행과 세 fresh text judge 기준점을 닫았다.
+현재 gate는 V3/R2 candidate bytes, replay, session claim과 evidence provenance를 fail-closed로 포팅하는
+UX-R1만 허용한다. A1 runtime art와 전체 캠페인 presentation은 열지 않으며 실제 score-bearing capture도
+UX-R1 종료 전 실행하지 않는다.
 
 ## 1. 플레이어 결과
 
@@ -148,7 +149,7 @@ audio/video를 포함한다.
 한 번에 아래 gate 하나만 연다. 현재 사용자 지시의 “87점 이상까지 개선”은 순서대로 계속할 권한이지만,
 각 gate의 종료 증거와 현재 상태 문서를 갱신하기 전 다음 gate 파일을 미리 만들지 않는다.
 
-### UX-R0 — 실시간 텍스트 기준선 — 활성
+### UX-R0 — 실시간 텍스트 기준선 — 완료
 
 - protocol/rubric/model identity를 후보 수정 전에 고정한다.
 - base campaign과 V3 full event schedule에서 34-part manifest와 source-bound artifact를 만든다.
@@ -159,11 +160,30 @@ audio/video를 포함한다.
 종료: exact build/suite, text tooling test, 3-judge aggregate, 독립 P0/P1 review와 문서 상태가 모두
 일치한다.
 
-### UX-R1 — native evaluator authority port — 미개방
+종료 증거는 커밋 `746c0aa`와
+`playtests/commercial-ux-87-realtime/text-plan-r0/`에 있다. 첫 INITIAL panel은 불안정으로 보존했고,
+두 번째 INITIAL panel은 `TextPlanProxy = 83.4475`, `officialCommercialUX=false`다. 독립 종료 검토는
+P0 0/P1 0으로 PASS했다.
+
+### UX-R1 — native evaluator authority port — 활성
 
 - V3/R2 candidate bytes, replay authority, session claim과 evidence provenance를 새 권위에 맞게 닫는다.
 - targeted checkpoint와 full-flow 예외의 actor recipe를 분리한다.
 - score-bearing capture 전 독립 fail-closed review를 통과한다.
+
+수정 allowlist는 `tools/commercial-ux/native/`, 그 디렉터리의 deterministic test, 이 scope와 현재 상태
+문서, `tools/commercial-ux/README.md`다. 기존 untracked native 파일과 과거 V2 branch는 설계 참고일 뿐
+자동 채택하지 않는다. `game/`, `src/`, `data/`와 제품 art asset은 이 gate에서 수정하지 않는다.
+
+종료 조건은 다음과 같다.
+
+- candidate manifest가 V3/R2의 exact source·project·runtime bytes와 기본/비기본 scene 사실을 결속한다.
+- replay/checkpoint authority와 full-flow exception이 서로를 사칭할 수 없다.
+- model/effort/freshness를 repository JSON 자기선언만으로 공식화하지 않고 platform/API receipt 또는
+  동등한 transcript authority를 session hash에 결속한다.
+- evidence item, actor result, judge input과 aggregate가 같은 finalized session과 candidate bytes를
+  참조하며 누락·교체·경로 이동·재집계를 mutation test가 거부한다.
+- 실제 native capture는 계속 금지하고 독립 P0/P1 review와 문서 상태를 먼저 닫는다.
 
 ### UX-R2 — 실시간 게임 완결성 — 미개방
 
@@ -199,7 +219,7 @@ audio/video를 포함한다.
 
 ```text
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R0_REALTIME_TEXT_BASELINE
+ActiveEvaluationGate = UX_R1_NATIVE_EVALUATOR_AUTHORITY_PORT
 ProductDirection = ASSET_STYLE_REALTIME_GAME
 ProductArtGate = NONE_A1_NOT_OPENED
 RealtimeAuthority = RELEASE_V3_PLUS_R2
@@ -211,6 +231,7 @@ CommercialUXProxy = null
 FullCampaignNativeE2E = NOT_IMPLEMENTED
 ScoreBearingCaptureAllowed = false
 NativeCapture = BLOCKED_MAC_LOCKED
-UXR0ClosureReview = PENDING
+UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
+NativeEvaluatorAuthority = PORT_IN_PROGRESS
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

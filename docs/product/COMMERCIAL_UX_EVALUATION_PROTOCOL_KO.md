@@ -201,10 +201,11 @@ candidate/replay authority, 8장 R2 presentation과 실제 macOS capture가 아�
 ```text
 TextPlanProxy = 83.4475_FORMATIVE
 CommercialUXProxy = null
-OfficialScoreStatus = BLOCKED_PRE_NATIVE_PORT
+OfficialScoreStatus = BLOCKED_UX_R1_AUTHORITY_PORT
 ScoreBearingCaptureAllowed = false
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
+ActiveEvaluationGate = UX_R1_NATIVE_EVALUATOR_AUTHORITY_PORT
 ```
 
-이 문서의 다음 개정은 native provenance 계약을 포팅하고 독립 검토로 닫은 뒤에만 score-bearing
-capture를 허용할 수 있다.
+현재 UX-R1이 native provenance 계약을 포팅한다. 이를 독립 검토로 닫은 뒤에도 다음 runtime gate가
+필수 presentation을 구현하기 전에는 score-bearing capture를 허용할 수 없다.

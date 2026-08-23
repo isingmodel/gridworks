@@ -55,7 +55,7 @@ docs/
 
 - `CurrentGoal = ASSET_STYLE_REALTIME_GAME`
 - `ActiveScope = COMMERCIAL_UX_87_REALTIME`
-- `ActiveEvaluationGate = UX_R0_REALTIME_TEXT_BASELINE`
+- `ActiveEvaluationGate = UX_R1_NATIVE_EVALUATOR_AUTHORITY_PORT`
 - `ProductArtImplementationGate = NONE`
 - `DocumentationBaseline = A0_COMPLETE`
 - `ArchitecturePreparation = COMPLETE`
@@ -68,7 +68,8 @@ docs/
 - `TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY`
 - `CommercialUXProxy = null`
 - `ScoreBearingCaptureAllowed = false`
-- `UXR0ClosureReview = PENDING`
+- `UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA`
+- `NativeEvaluatorAuthority = PORT_IN_PROGRESS`
 - `LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT`
 - `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`

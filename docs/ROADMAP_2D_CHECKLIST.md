@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **A0+A0.1 완료 · UX-R0 실시간 텍스트 기준선 활성**
+> 현재 상태: **A0+A0.1+UX-R0 완료 · UX-R1 native evaluator authority port 활성**
 > 제품 아트: **A1 미개방**
 
 이 문서는 단계 상태와 증거 상한만 기록한다. 제품 기능과 시각 규격은
@@ -14,7 +14,8 @@
 |---|---|---|---|---|---|
 | A0 목표·문서 기준선 | **완료** | 네 reference hash, 스타일 DNA, R1/R2 보존, 문서 압축 | 문서·링크·경계 검사 | 해당 없음 | 이 문서 변경 커밋 |
 | A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
-| UX-R0 실시간 텍스트 기준선 | **종료 검토 중** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | `TextPlanProxy 83.4475` 형성평가 | 종료 증거 독립 검토 필요 |
+| UX-R0 실시간 텍스트 기준선 | **완료** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | `TextPlanProxy 83.4475` 형성평가 | `746c0aa`, 독립 P0 0/P1 0 |
+| UX-R1 native evaluator authority | **활성** | V3/R2 candidate·replay·session·evidence provenance | 미실행 | capture 금지 | fail-closed tests+독립 review 필요 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -66,10 +67,24 @@
 - [x] hash-bound text artifact와 mutation 검사
 - [x] source binding+artifact 통합 hash와 원본 4종 deterministic aggregate rebuild
 - [x] 불안정 첫 INITIAL panel 보존 뒤 별도 세 fresh blinded judge로 `TextPlanProxy = 83.4475`
-- [ ] 전체 UX-R0 변경의 독립 P0/P1 review와 종료 커밋
+- [x] 전체 UX-R0 변경의 독립 P0/P1 review와 종료 커밋 `746c0aa`
 
 현재 R2 `RealtimeEventRail`의 코드 존재와 deterministic UI 검사는 native 이해·가독성 증거가 아니다.
 실제 화면 관찰은 native evaluator port와 Mac 잠금 해제 뒤 수행한다.
+
+## UX-R1 native evaluator authority port
+
+- [x] UX-R0 종료 증거와 독립 P0/P1 review 뒤 gate 개방
+- [ ] V3/R2 candidate source·project·runtime byte allowlist와 manifest
+- [ ] targeted checkpoint replay와 full-flow exception의 typed 분리
+- [ ] session claim·evidence index·actor/judge input의 단일 hash chain
+- [ ] platform/API receipt 또는 동등한 transcript authority 결속
+- [ ] 누락·교체·path traversal·stale candidate·cross-session 재사용 mutation 거부
+- [ ] score-bearing capture를 계속 fail-closed로 유지
+- [ ] exact test와 독립 P0/P1 review 뒤 종료 문서 갱신
+
+이 gate는 `tools/commercial-ux/native/`와 관련 문서만 수정한다. `game/`, `src/`, `data/`와 제품 art는
+수정하지 않으며 실제 Mac 조작·capture도 실행하지 않는다.
 
 ## A1 개방 전 체크
 
@@ -106,7 +121,7 @@
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R0_REALTIME_TEXT_BASELINE
+ActiveEvaluationGate = UX_R1_NATIVE_EVALUATOR_AUTHORITY_PORT
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
 ProductArtImplementationGate = NONE
@@ -124,7 +139,8 @@ TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 ScoreBearingCaptureAllowed = false
-UXR0ClosureReview = PENDING
+UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
+NativeEvaluatorAuthority = PORT_IN_PROGRESS
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED

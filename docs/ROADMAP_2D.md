@@ -69,6 +69,16 @@ event start/end와 actual/draft construction completion을 한 축으로 비교�
 - non-score Debug 직접 관찰은 허용하되 candidate/E2E/official score 증거로 승격하지 않음
 - art asset/world, 2–8장, promise, thermal presentation, persistence, default/export/package는 미개방
 
+### 현재 증거
+
+- product source `ec265999bc849ff494d14011f04c718b03a7664a`, 독립 review P0 0/P1 0
+- Debug build 0 warnings, Realtime 23/673, Commercial 31/7084, 34 story part와 전체 UI 행렬 PASS
+- 두 automated checkpoint의 동결 start/replay/end hash 유지와 interactive host scene-load PASS
+- 실제 FIRST_LIGHT와 두 interactive checkpoint 입력은 macOS console 잠금으로 아직 `PENDING`
+
+따라서 이 gate는 source-ready지만 완료가 아니다. headless oracle은 실제 mouse/keyboard record를 대신하지
+않으며 `CommercialUXProxy`는 계속 `null`이다.
+
 exact 파일 allowlist와 종료 증거는
 [실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--활성)가 소유한다.
 

@@ -38,21 +38,25 @@ evaluation-chain parent, finalized blocked current-route artifact chain과 local
 `gpt-5.6-sol`/`ultra` transcript authority까지 닫았다. 이는 platform attestation이나 judge 점수가 아니며,
 UX-R1 전체 독립 검토도 P0 0/P1 0으로 통과했다. 다음 UX-R2는 작은 순차 단위로 진행한다. 현재
 UX-R2.1은 실제 release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의
-briefing→live→authored result, future-event rail과 사람이 직접 조작하는 Debug checkpoint host만 열었다.
-A1 art, 2–8장, persistence, 기본 장면과 score-bearing capture는 열지 않았다.
+briefing→live→authored result, future-event rail과 사람이 직접 조작하는 Debug checkpoint host를
+source revision `ec265999bc849ff494d14011f04c718b03a7664a`에서 구현하고 독립 검토 P0 0/P1 0을
+통과했다. 실제 macOS 입력 관찰은 console 잠금 해제 전이라 아직 수행하지 않았다. A1 art, 2–8장,
+persistence, 기본 장면과 score-bearing capture는 열지 않았다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
 - R1 실시간 Core: 커밋 `3da1897`, `FIRST_LIGHT` 결정론적 vertical slice
 - R2 실시간 UX 기반: 커밋 `4c27f65`, 비기본 `RealtimeSliceMain`
-- R2 마지막 전체 harness: 사용자 지시로 중단, 종료 PASS 아님
+- UX-R2.1 전체 headless UI harness: FHD/UHD 100/125/150/200%, QHD 100/200% PASS;
+  실제 OS window·hardware 입력·physical UHD 증거는 아님
 - 새 목표 문서 기준선: `A0` 완료
 - A1 전 구조 준비: build authority 격리, renderer-neutral world seam, 두 DEBUG checkpoint 완료
 - UX-R0: V2 authored content와 V3 실시간 일정에 결속한 34-part story 단독 실행, 형성평가
   `TextPlanProxy = 83.4475`
 - UX-R1: 39-file candidate·두 checkpoint·세 거부 route, session/attempt, non-score chain parent와
   7-artifact blocked non-score chain, local controlled transcript, 전체 gate review 완료
-- future-event status bar: 두 checkpoint scene-load wiring PASS, 실제 플레이 품질은 아직 미관찰
+- future-event status bar: 현재·countdown·event start/end·actual/draft/completed construction의 typed
+  controller/UI 회귀 PASS, 실제 플레이 품질은 console 잠금으로 아직 미관찰
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
 - 활성 평가 gate: `UX-R2.1_FIRST_LIGHT_RELEASE_TUTORIAL_RAIL`
 - 활성 제품 아트 gate: 없음, A1 미개방
@@ -102,10 +106,12 @@ DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2RealtimeUx = PRESERVED_GATE_NOT_COMPLETED
 NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_TCC_NOT_PREFLIGHTED
-UXR21ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
-InteractiveCheckpointHost = NOT_IMPLEMENTED
-FirstLightNativeStoryReachability = NOT_IMPLEMENTED
+NativeCaptureEnvironment = MAC_CONSOLE_LOCKED_ACTUAL_INPUT_PENDING
+UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_EC265999BC849FF494D14011F04C718B03A7664A
+UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0
+InteractiveCheckpointHost = IMPLEMENTED_HEADLESS_READY_ACTUAL_INPUT_PENDING
+FirstLightNativeStoryReachability = DETERMINISTIC_CONTROLLER_PASS_ACTUAL_INPUT_PENDING
+UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 PublicReleaseStatus = NOT_AUTHORIZED
@@ -202,6 +208,12 @@ dotnet build game/Gridworks.Game.csproj -c Debug
   --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
   -- --checkpoint=A1_CONSTRUCTION_DUE_1M
 ```
+
+검토된 UX-R2.1 source에서 실제 입력 관찰은 release 장면 하나와
+`RealtimeInteractiveCheckpointHost.tscn`의 두 checkpoint만 사용한다. 현재 source·build·독립 review는
+PASS지만 macOS console이 잠겨 있어 세 record는 아직 `PENDING`이다. headless runner 출력을 actual-input
+record로 대체하지 않는다. 고정 명령은 [활성 scope의 UX-R2.1](docs/scopes/COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--활성)이
+소유한다.
 
 Core 회귀도 exact suite 하나만 선택할 수 있다.
 

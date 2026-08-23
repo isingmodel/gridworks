@@ -16,7 +16,7 @@
 | A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
 | UX-R0 실시간 텍스트 기준선 | **완료** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | `TextPlanProxy 83.4475` 형성평가 | `746c0aa`, 독립 P0 0/P1 0 |
 | UX-R1 native evaluator authority | **완료** | candidate·route·session/attempt·non-score chain parent·blocked artifact·local controlled transcript | candidate 16/16 + session 12/12 + chain 14/14 + artifact 11/11 + transcript 13/13·strict schema | capture 금지 | `2b0b6ee`, 전체 review P0 0/P1 0 |
-| UX-R2.1 FIRST_LIGHT release tutorial/rail | **활성** | 실제 release 1장 briefing→live→authored result, countdown·event·construction rail, interactive checkpoint host | 구현 전 | source commit 뒤 non-score Debug 직접 플레이 | allowlist 구현·회귀·독립 P0/P1 0 필요 |
+| UX-R2.1 FIRST_LIGHT release tutorial/rail | **활성** | 실제 release 1장 briefing→live→authored result, countdown·event·construction rail, interactive checkpoint host | source `ec26599`, build·회귀·독립 P0/P1 0 | macOS console 잠금으로 non-score Debug 직접 플레이 pending | 세 actual-input record와 문서 종료 commit 필요 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -104,16 +104,25 @@ source revision `379e980`의 exact candidate는 두 checkpoint scene-load wiring
 - [x] UX-R1 전체 gate P0 0/P1 0 종료 뒤 개방
 - [x] exact Core/Game/UI/test/doc allowlist와 A1–A4 미개방 경계 고정
 - [x] gate-opening 독립 review `PASS_FOR_UX_R2_1_GATE_OPENING`, P0 0/P1 0
-- [ ] shared strict V2+V3 overlay loader와 actual `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event) prefix
-- [ ] briefing→production input/reducer→clock·construction·event→authored standard result native wiring
-- [ ] FIRST_LIGHT briefing/result가 기존 exact story-part unit bytes와 동일
-- [ ] future-event bar 현재 시각·persistent countdown·event start/end·actual/draft construction completion
-- [ ] actual/draft 형태·문장 구분과 completed construction history 유지
-- [ ] Debug interactive checkpoint host가 exact start에서 paused 대기하고 real input만 수용
-- [ ] 기존 A1 두 checkpoint hash/headless oracle·34 story unit·speed chunk invariance 무변경
-- [ ] FHD UI 100/125%, keyboard/focus와 unknown marker target 0
+- [x] shared strict V2+V3 overlay loader와 actual `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event) prefix
+- [x] briefing→production input/reducer→clock·construction·event→authored standard result native wiring
+- [x] FIRST_LIGHT briefing/result가 기존 exact story-part unit bytes와 동일
+- [x] future-event bar 현재 시각·persistent countdown·event start/end·actual/draft construction completion
+- [x] actual/draft 형태·문장 구분과 completed construction history 유지
+- [x] Debug interactive checkpoint host가 exact start에서 paused 대기하고 real input만 수용
+- [x] 기존 A1 두 checkpoint hash/headless oracle·34 story unit·speed chunk invariance 무변경
+- [x] FHD/UI scale 행렬, keyboard/focus와 unknown marker target 0
 - [ ] source commit 뒤 직접 플레이한 비점수 FIRST_LIGHT/checkpoint 관찰
 - [ ] 독립 P0/P1 0, 현재 상태 문서와 종료 commit
+
+현재 source checkpoint는 `ec265999bc849ff494d14011f04c718b03a7664a`다. shared loader identity는
+V2 `078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a`, V3 overlay
+`ef962a272683bfd6761fbf10a0ca14cb6c8bf90cdfde810b468ad451088f2258`, full composed
+`7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09`, FIRST_LIGHT prefix
+`94379c0e8e4dae54b760a55df8c1143c975eaa12f11079e675b2e67ba57df88e`, world V3
+`a0a837717bbd6d35f655d8094dfa6daac182d47b2d03f24b18c4883c04feecdf`다. package manifest는
+`N/A — non-package carve-out`이며 source revision과 이 identity를 권위로 쓴다. 첫 독립 review의 P1
+무공사 가짜 positive result를 수정했고 최종 재검토는 `PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`, P0 0/P1 0이다.
 
 이 단위는 `data/**`, runtime art/world, 2–8장, promise·thermal presentation, persistence, default scene,
 export/package와 score-bearing capture를 열지 않는다.
@@ -194,10 +203,12 @@ R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED
 R2ExitGate = NOT_COMPLETED
 NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_TCC_NOT_PREFLIGHTED
-UXR21ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
-InteractiveCheckpointHost = NOT_IMPLEMENTED
-FirstLightNativeStoryReachability = NOT_IMPLEMENTED
+NativeCaptureEnvironment = MAC_CONSOLE_LOCKED_ACTUAL_INPUT_PENDING
+UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_EC265999BC849FF494D14011F04C718B03A7664A
+UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0
+InteractiveCheckpointHost = IMPLEMENTED_HEADLESS_READY_ACTUAL_INPUT_PENDING
+FirstLightNativeStoryReachability = DETERMINISTIC_CONTROLLER_PASS_ACTUAL_INPUT_PENDING
+UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 ElectricalProfessionalReview = NOT_COLLECTED

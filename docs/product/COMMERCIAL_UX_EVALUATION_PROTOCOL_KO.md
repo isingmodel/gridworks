@@ -46,6 +46,11 @@ LLM 점수는 내부 product-risk proxy다. 사람 사용성, 재미, 미감, �
 `RealtimeEventRail`이 존재한다는 사실은 native 품질 증거가 아니다. 실제 gameplay에서 다음 사건과
 공사·결정·열 경계를 지속적으로 찾고 비교할 수 있는지를 cold/coverage evidence로 별도 판정한다.
 
+UX-R2.1 source `ec265999bc849ff494d14011f04c718b03a7664a`는 actual release FIRST_LIGHT loader,
+controller story, typed future-event rail과 interactive checkpoint host의 deterministic 검사를 통과했고
+독립 review는 P0 0/P1 0이다. 이는 native lane evidence가 아니다. macOS console 잠금으로 한 장과 두
+checkpoint의 실제 mouse/keyboard observation은 아직 없다.
+
 ## 3. 두 평가 lane
 
 ### 3.1 TEXT-PLAN
@@ -200,8 +205,9 @@ deterministic failure / blinded observation
 session/attempt, evaluation chain, blocked seven-artifact chain과 local controlled transcript authority는
 완료했고 전체 gate review도 P0 0/P1 0으로 통과했다. 그러나 8장 R2 presentation과 실제 macOS capture가
 아직 없다. 현재 UX-R2.1은 actual release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의 native
-wiring과 future-event rail, interactive
-checkpoint host를 구현하며 비점수 Debug 개발 관찰만 허용한다.
+wiring과 future-event rail, interactive checkpoint host를 source `ec26599`에서 구현했고 build·전체
+회귀·독립 review P0 0/P1 0까지 닫았다. 비점수 Debug 실제 입력 관찰은 macOS console 잠금으로
+pending이다. automated runner와 headless UI PASS를 native observation으로 승격하지 않는다.
 
 ```text
 TextPlanProxy = 83.4475_FORMATIVE
@@ -216,7 +222,10 @@ ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECE
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 UXR21GateOpeningReview = PASS_P0_0_P1_0
 NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_TCC_NOT_PREFLIGHTED
+NativeCaptureEnvironment = MAC_CONSOLE_LOCKED_ACTUAL_INPUT_PENDING
+UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_EC265999BC849FF494D14011F04C718B03A7664A
+UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0
+UXR21ActualInputObservation = PENDING_MAC_CONSOLE_UNLOCK
 ```
 
 UX-R1 native provenance 계약은 독립 검토로 닫혔다. UX-R2.1의 직접 플레이는 formative 개발 관찰이며,

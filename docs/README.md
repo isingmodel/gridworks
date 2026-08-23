@@ -71,10 +71,12 @@ docs/
 - `CommercialUXProxy = null`
 - `ScoreBearingCaptureAllowed = false`
 - `NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS`
-- `NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_TCC_NOT_PREFLIGHTED`
-- `UXR21ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING`
-- `InteractiveCheckpointHost = NOT_IMPLEMENTED`
-- `FirstLightNativeStoryReachability = NOT_IMPLEMENTED`
+- `NativeCaptureEnvironment = MAC_CONSOLE_LOCKED_ACTUAL_INPUT_PENDING`
+- `UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_EC265999BC849FF494D14011F04C718B03A7664A`
+- `UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0`
+- `InteractiveCheckpointHost = IMPLEMENTED_HEADLESS_READY_ACTUAL_INPUT_PENDING`
+- `FirstLightNativeStoryReachability = DETERMINISTIC_CONTROLLER_PASS_ACTUAL_INPUT_PENDING`
+- `UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34`
 - `UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA`
 - `NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4`
 - `EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED`
@@ -95,7 +97,8 @@ docs/
 - `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`
 - 기본 장면은 `CommercialMain`이다.
-- R1/R2는 기반으로 보존하지만 R2 종료 gate를 새로 PASS로 만들지 않는다.
+- R1/R2 기반과 UX-R2.1 검토 완료 source는 보존하지만, 세 실제 입력 record 전에는 UX-R2.1 종료
+  gate나 native 품질을 PASS로 만들지 않는다.
 - `./assets` 네 이미지는 visual reference authority이며 runtime·규칙·숫자 authority가 아니다.
 - 이전 HTML/CSS 목표 화면은 현재 스타일 목표에서 폐기했다. 파일은 Git commit `9aceaf7`로 복구할 수
   있고 현재 증거로 사용하지 않는다.

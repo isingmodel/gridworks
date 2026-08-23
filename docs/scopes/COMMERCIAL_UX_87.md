@@ -17,8 +17,9 @@ UX-R1은 V3/R2 candidate bytes, replay, session claim, evaluation-chain parent�
 provenance, local controlled transcript authority를 fail-closed로 포팅하고 전체 종료 검토까지 완료했다.
 사용자의 “87점 이상까지 계속 개선”과 직접 플레이 지시에 따라 UX-R2를 작은 순차 단위로 열었다.
 현재는 실제 release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의 briefing→live→authored result,
-future-event rail과 사람이
-조작하는 Debug checkpoint host만 허용하는 UX-R2.1이다. A1 runtime art, 2–8장, persistence, 기본 장면과
+future-event rail과 사람이 조작하는 Debug checkpoint host만 허용하는 UX-R2.1이다. source revision
+`ec265999bc849ff494d14011f04c718b03a7664a`와 독립 review P0 0/P1 0은 닫혔지만 actual-input
+관찰은 macOS console 잠금으로 pending이다. A1 runtime art, 2–8장, persistence, 기본 장면과
 score-bearing capture는 열지 않는다.
 
 ## 1. 플레이어 결과
@@ -41,7 +42,8 @@ score-bearing capture는 열지 않는다.
 - 실시간 일정 권위는 `data/release-campaign-v3.json`의 8장·16 event다.
 - 실시간 규칙 권위는 `src/Gridworks.Core/Release/V3/`다.
 - 현재 native 평가 대상은 비기본 `RealtimeSliceMain`이다.
-- R2 native presentation은 `FIRST_LIGHT` targeted slice만 확인됐다.
+- R2 presentation은 `FIRST_LIGHT` targeted slice의 deterministic controller/UI까지 확인됐고 실제
+  macOS mouse/keyboard 관찰은 아직 없다.
 - `A1_NORMAL_READY`, `A1_CONSTRUCTION_DUE_1M` 두 checkpoint만 구현됐다.
 - source revision `379e980`의 evaluator가 39-file Debug/editor candidate와 두 성공·세 인자 거부 probe를 exact
   bytes로 결속하고 독립 verifier에서 다시 실행한다. 이는 score-bearing native capture가 아니다.
@@ -56,6 +58,11 @@ score-bearing capture는 열지 않는다.
   안정 집계됐다. 플랫폼 서명 execution receipt는 저장소에 내보내지 못했다.
 - UX-R1 local controlled transcript는 별도 fresh `gpt-5.6-sol`/`ultra` semantic-echo rollout을
   source-bound parent에 결속했다. 이는 platform attestation, judge 실행 또는 점수 증거가 아니다.
+- UX-R2.1 product source는 `ec265999bc849ff494d14011f04c718b03a7664a`다. Debug build 0 warnings,
+  Realtime 23 suites/673 assertions, Commercial 31 suites/7084 assertions, 34 story atom, full UI scale
+  matrix와 두 automated checkpoint hash가 PASS했고 독립 source review는 P0 0/P1 0이다.
+- `FORMATIVE_DIRECT_PLAY_PASS:FIRST_LIGHT`와 두 interactive checkpoint actual-input record는 macOS
+  console 잠금 때문에 아직 생성되지 않았다. headless runner PASS로 대신하지 않는다.
 
 따라서 text judge의 결과는 개선 우선순위를 정하는 `TextPlanProxy`일 뿐 공식 87점이 아니다.
 
@@ -388,6 +395,16 @@ A3 catalog와 A4 campaign/save는 계속 미개방이다.
   -- --checkpoint=A1_CONSTRUCTION_DUE_1M
 ```
 
+현재 source authority는 위 `ec26599`이고 shared loader source identity는 V2
+`078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a`, V3 overlay
+`ef962a272683bfd6761fbf10a0ca14cb6c8bf90cdfde810b468ad451088f2258`, full composed
+`7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09`, FIRST_LIGHT prefix
+`94379c0e8e4dae54b760a55df8c1143c975eaa12f11079e675b2e67ba57df88e`, release world V3
+`a0a837717bbd6d35f655d8094dfa6daac182d47b2d03f24b18c4883c04feecdf`다. 이는 package가 아닌
+logic/presentation carve-out이므로 manifest aggregate는 `N/A — non-package carve-out`이다. 첫 source
+review가 찾은 무공사 positive-result 위조 P1을 수정한 뒤 최종 재검토는
+`PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`, P0 0/P1 0이다. 세 actual-input record 전까지 gate는 활성 상태다.
+
 ### UX-R3 — actual E2E와 87 반복 — 미개방
 
 - fresh user-data와 actual input으로 cold 3 + coverage를 실행한다.
@@ -429,7 +446,7 @@ CommercialUXProxy = null
 FullCampaignNativeE2E = NOT_IMPLEMENTED
 ScoreBearingCaptureAllowed = false
 NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_TCC_NOT_PREFLIGHTED
+NativeCaptureEnvironment = MAC_CONSOLE_LOCKED_ACTUAL_INPUT_PENDING
 UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
 NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
 EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
@@ -446,5 +463,10 @@ UXR1ControlledTranscriptReview = PASS_SUBUNIT_P0_0_P1_0_SOURCE_2B0B6EE
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED_ARTIFACT_AND_CONTROLLED_TRANSCRIPT
 UXR21GateOpeningReview = PASS_P0_0_P1_0
+UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_EC265999BC849FF494D14011F04C718B03A7664A
+UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0
+InteractiveCheckpointHost = IMPLEMENTED_HEADLESS_READY_ACTUAL_INPUT_PENDING
+FirstLightNativeStoryReachability = DETERMINISTIC_CONTROLLER_PASS_ACTUAL_INPUT_PENDING
+UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

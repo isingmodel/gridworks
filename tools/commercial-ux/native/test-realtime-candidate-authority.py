@@ -201,6 +201,26 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
         self.assertFalse(manifest["officialCommercialUX"])
         self.assertFalse(manifest["scoreBearingCaptureAllowed"])
         self.assertEqual("Debug", manifest["configuration"])
+        producer = manifest["evaluatorProducerAuthority"]
+        self.assertEqual(manifest["sourceCommit"], producer["sourceCommit"])
+        self.assertEqual(4, producer["fileCount"])
+        self.assertEqual(
+            [path for path, _role in AUTHORITY.EVALUATOR_PRODUCER_PATH_ROLES],
+            [row["path"] for row in producer["files"]],
+        )
+        self.assertEqual(
+            [role for _path, role in AUTHORITY.EVALUATOR_PRODUCER_PATH_ROLES],
+            [row["role"] for row in producer["files"]],
+        )
+        self.assertTrue(producer["runningFilesMatchGitBlobs"])
+        self.assertEqual(
+            "verify_manifest_against_reconstructed_authority",
+            producer["semanticVerifierEntryPoint"],
+        )
+        self.assertEqual(
+            "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY",
+            producer["structuralSchemaAuthority"],
+        )
         self.assertEqual(
             "res://CommercialMain.tscn",
             manifest["sceneAuthority"]["projectDefaultScene"],
@@ -332,6 +352,12 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
             "sha256:" + "0" * 64
         )
         mutations.append(replaced_output)
+
+        replaced_producer = copy.deepcopy(self.manifest)
+        replaced_producer["evaluatorProducerAuthority"]["files"][0][
+            "rawSha256"
+        ] = "sha256:" + "9" * 64
+        mutations.append(replaced_producer)
 
         replaced_package_file = copy.deepcopy(self.manifest)
         replaced_package_file["packageAuthority"]["files"][0]["rawSha256"] = (
@@ -723,6 +749,12 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
         disabled_package_tree = copy.deepcopy(self.policy)
         disabled_package_tree["packageAuthority"]["treeHashRule"] = "NONE"
         mutations.append(disabled_package_tree)
+
+        aliased_semantic_verifier = copy.deepcopy(self.policy)
+        aliased_semantic_verifier["evaluatorProducerAuthority"][
+            "semanticVerifierEntryPoint"
+        ] = "verify_manifest"
+        mutations.append(aliased_semantic_verifier)
 
         for mutation in mutations:
             self.assertRejected(

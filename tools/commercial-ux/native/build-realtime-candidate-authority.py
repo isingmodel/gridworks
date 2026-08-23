@@ -29,6 +29,9 @@ from typing import Any, Iterator, Sequence
 SHA256_PREFIX = "sha256:"
 CANONICALIZATION = "GRIDWORKS_CANONICAL_JSON_V1"
 MANIFEST_SCHEMA = "gridworks.realtime-evaluator-candidate-manifest.v1"
+EVALUATOR_PRODUCER_SCHEMA = (
+    "gridworks.realtime-evaluator-producer-authority.v1"
+)
 CANDIDATE_KIND = "EDITOR_NATIVE_NONDEFAULT_DEBUG_FIRST_LIGHT"
 CONFIGURATION = "Debug"
 DOTNET_VERSION = "8.0.129"
@@ -42,13 +45,14 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_REPOSITORY_ROOT = SCRIPT_DIR.parents[2]
 POLICY_PATH = SCRIPT_DIR / "realtime-candidate-policy.json"
 EXPECTED_POLICY_RAW_SHA256 = (
-    "sha256:86b032733273b87677dbb401cbba7c1ba69d69b8a2aa9cc1df991b5fe5b1d723"
+    "sha256:a362d16e20609e88107a05206c810a0cf926158b1a1c34917115595344005fb4"
 )
 
 POLICY_TOP_LEVEL_KEYS = frozenset({
     "schemaVersion",
     "canonicalization",
     "candidate",
+    "evaluatorProducerAuthority",
     "sourceAuthority",
     "managedBuild",
     "engineAuthority",
@@ -70,6 +74,11 @@ POLICY_OBJECT_KEYS: dict[str, frozenset[str]] = {
         "candidateKind", "configuration", "officialCommercialUX",
         "scoreBearingCaptureAllowed", "sourceMaterialization",
         "candidatePackageStatus",
+    }),
+    "evaluatorProducerAuthority": frozenset({
+        "schemaVersion", "expectedFileCount", "paths",
+        "sourceMaterialization", "semanticVerifierEntryPoint",
+        "structuralSchemaAuthority",
     }),
     "sourceAuthority": frozenset({
         "expectedFileCount", "expectedSourceInputsSha256", "expectedRoleCounts",
@@ -141,6 +150,24 @@ STORY_PROGRAM_PATH = "tools/Gridworks.CommercialChecks/Program.cs"
 STORY_HARNESS_PATH = "tools/Gridworks.CommercialChecks/CommercialStoryPartHarness.cs"
 STORED_STORY_MANIFEST_PATH = (
     "playtests/commercial-ux-87-realtime/text-plan-r0/story-manifest.json"
+)
+EVALUATOR_PRODUCER_PATH_ROLES = (
+    (
+        "tools/commercial-ux/native/build-realtime-candidate-authority.py",
+        "EVALUATOR_PRODUCER_AND_SEMANTIC_VERIFIER",
+    ),
+    (
+        "tools/commercial-ux/native/realtime-candidate-manifest.schema.json",
+        "STRUCTURAL_SCHEMA_NON_AUTHORITY",
+    ),
+    (
+        "tools/commercial-ux/native/realtime-candidate-policy.json",
+        "EVALUATOR_POLICY",
+    ),
+    (
+        "tools/commercial-ux/native/test-realtime-candidate-authority.py",
+        "ADVERSARIAL_TEST_SPEC_NON_RUNTIME",
+    ),
 )
 
 DEFAULT_SCENE = "res://CommercialMain.tscn"
@@ -790,6 +817,7 @@ class FileBinding:
 
 @dataclasses.dataclass(frozen=True)
 class SourceAuthority:
+    repository_root: Path
     source_commit: str
     blobs: dict[str, GitBlob]
     game_sources: tuple[str, ...]
@@ -1014,12 +1042,75 @@ def read_source_authority(
             raise CandidateAuthorityError(f"frozen declaration hash drift: {path}")
         blobs[path] = blob
     return SourceAuthority(
+        repository_root=root,
         source_commit=commit,
         blobs=blobs,
         game_sources=tuple(sorted(game_sources)),
         core_sources=tuple(sorted(core_sources)),
         embedded_resources=tuple(sorted(embedded)),
     )
+
+
+def bind_evaluator_producer_authority(
+    source: SourceAuthority,
+) -> dict[str, Any]:
+    expected_script_dir = (
+        source.repository_root / "tools" / "commercial-ux" / "native"
+    ).resolve(strict=True)
+    if SCRIPT_DIR != expected_script_dir:
+        raise CandidateAuthorityError(
+            "running evaluator producer is outside the candidate repository"
+        )
+    if Path(__file__).resolve(strict=True) != (
+        expected_script_dir / "build-realtime-candidate-authority.py"
+    ).resolve(strict=True):
+        raise CandidateAuthorityError(
+            "running evaluator producer path differs from canonical Git path"
+        )
+    entries = git_tree_entries(source.repository_root, source.source_commit)
+    by_path = {path: (mode, object_type, object_id) for mode, object_type, object_id, path in entries}
+    rows: list[dict[str, Any]] = []
+    for path, role in EVALUATOR_PRODUCER_PATH_ROLES:
+        entry = by_path.get(path)
+        if entry is None:
+            raise CandidateAuthorityError(
+                f"source commit lacks evaluator producer authority file: {path}"
+            )
+        mode, object_type, object_id = entry
+        if mode not in {"100644", "100755"} or object_type != "blob":
+            raise CandidateAuthorityError(
+                f"evaluator producer authority is not a regular Git blob: {path}"
+            )
+        git_data = run_command(
+            ["git", "cat-file", "blob", object_id],
+            cwd=source.repository_root,
+            timeout=30,
+            label=f"evaluator producer Git blob {path}",
+        )
+        _resolved, running_data = read_regular_file(
+            source.repository_root / path,
+            f"running evaluator producer authority {path}",
+        )
+        if running_data != git_data:
+            raise CandidateAuthorityError(
+                f"running evaluator authority differs from source commit: {path}"
+            )
+        rows.append(GitBlob(path, mode, object_id, role, git_data).row())
+    rows.sort(key=lambda row: row["path"])
+    return {
+        "schemaVersion": EVALUATOR_PRODUCER_SCHEMA,
+        "sourceCommit": source.source_commit,
+        "fileCount": len(rows),
+        "files": rows,
+        "filesSha256": canonical_sha256(rows),
+        "runningFilesMatchGitBlobs": True,
+        "semanticVerifierEntryPoint": (
+            "verify_manifest_against_reconstructed_authority"
+        ),
+        "structuralSchemaAuthority": (
+            "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"
+        ),
+    }
 
 
 def materialize_blobs(source_root: Path, blobs: dict[str, GitBlob]) -> None:
@@ -2651,11 +2742,13 @@ def build_manifest(
         or len(export_core_sources) != 20
     ):
         raise CandidateAuthorityError("negative ExportRelease source authority drift")
+    evaluator_producer_authority = bind_evaluator_producer_authority(build.source)
     manifest: dict[str, Any] = {
         "schemaVersion": MANIFEST_SCHEMA,
         "canonicalization": CANONICALIZATION,
         "policySha256": sha256_bytes(policy_bytes),
         "sourceCommit": build.source.source_commit,
+        "evaluatorProducerAuthority": evaluator_producer_authority,
         "candidateKind": CANDIDATE_KIND,
         "configuration": CONFIGURATION,
         "officialCommercialUX": False,
@@ -2775,6 +2868,7 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
             )
         require_exact_keys(value, expected_keys, f"candidate policy {object_name}")
     candidate = policy.get("candidate")
+    evaluator_producer = policy.get("evaluatorProducerAuthority")
     canonicalization = policy.get("canonicalization")
     source = policy.get("sourceAuthority")
     managed = policy.get("managedBuild")
@@ -2787,6 +2881,7 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
     scenes = policy.get("sceneAuthority")
     required_objects = (
         candidate,
+        evaluator_producer,
         canonicalization,
         source,
         managed,
@@ -2853,6 +2948,39 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
         candidate.get("sourceMaterialization") == "EXACT_GIT_COMMIT_BLOBS",
         candidate.get("candidatePackageStatus")
         == "EDITOR_NATIVE_NOT_PUBLIC_PACKAGE",
+        evaluator_producer == {
+            "schemaVersion": EVALUATOR_PRODUCER_SCHEMA,
+            "expectedFileCount": 4,
+            "paths": [path for path, _role in EVALUATOR_PRODUCER_PATH_ROLES],
+            "sourceMaterialization": (
+                "EXACT_SOURCE_COMMIT_GIT_BLOBS_MATCH_RUNNING_WORKTREE_BYTES"
+            ),
+            "semanticVerifierEntryPoint": (
+                "verify_manifest_against_reconstructed_authority"
+            ),
+            "structuralSchemaAuthority": (
+                "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"
+            ),
+        },
+        manifest["evaluatorProducerAuthority"]["sourceCommit"]
+        == manifest["sourceCommit"],
+        manifest["evaluatorProducerAuthority"]["fileCount"] == 4,
+        [
+            row["path"]
+            for row in manifest["evaluatorProducerAuthority"]["files"]
+        ] == [path for path, _role in EVALUATOR_PRODUCER_PATH_ROLES],
+        [
+            row["role"]
+            for row in manifest["evaluatorProducerAuthority"]["files"]
+        ] == [role for _path, role in EVALUATOR_PRODUCER_PATH_ROLES],
+        manifest["evaluatorProducerAuthority"]["filesSha256"]
+        == canonical_sha256(manifest["evaluatorProducerAuthority"]["files"]),
+        manifest["evaluatorProducerAuthority"]["runningFilesMatchGitBlobs"]
+        is True,
+        manifest["evaluatorProducerAuthority"]["semanticVerifierEntryPoint"]
+        == "verify_manifest_against_reconstructed_authority",
+        manifest["evaluatorProducerAuthority"]["structuralSchemaAuthority"]
+        == "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY",
         source.get("expectedFileCount") == len(manifest["sourceAuthority"]["files"]),
         source.get("expectedSourceInputsSha256")
         == manifest["sourceAuthority"]["sourceInputsSha256"],
@@ -3105,7 +3233,14 @@ def main() -> int:
                 policy,
                 policy_bytes,
             )
-            build.verify_outputs()
+            verify_manifest_against_reconstructed_authority(
+                manifest,
+                build,
+                godot_app_root,
+                headless_execution,
+                policy,
+                policy_bytes,
+            )
             write_manifest(args.output, manifest)
         print(json.dumps({
             "status": "PASS_EDITOR_NATIVE_NONDEFAULT_DEBUG_FIRST_LIGHT_AUTHORITY",

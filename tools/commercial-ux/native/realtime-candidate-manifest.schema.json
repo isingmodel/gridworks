@@ -10,6 +10,7 @@
     "canonicalization",
     "policySha256",
     "sourceCommit",
+    "evaluatorProducerAuthority",
     "candidateKind",
     "configuration",
     "officialCommercialUX",
@@ -31,6 +32,7 @@
     "canonicalization": {"const": "GRIDWORKS_CANONICAL_JSON_V1"},
     "policySha256": {"$ref": "#/$defs/sha256"},
     "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "evaluatorProducerAuthority": {"$ref": "#/$defs/evaluatorProducerAuthority"},
     "candidateKind": {"const": "EDITOR_NATIVE_NONDEFAULT_DEBUG_FIRST_LIGHT"},
     "configuration": {"const": "Debug"},
     "officialCommercialUX": {"const": false},
@@ -160,6 +162,81 @@
       "minLength": 1,
       "maxLength": 1200,
       "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.?(?:/|$))(?!.*//)(?!.*\\\\)(?!.*[\\u0000-\\u001f\\u007f])[^\\u0000]+$"
+    },
+    "evaluatorProducerAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion", "sourceCommit", "fileCount", "files", "filesSha256",
+        "runningFilesMatchGitBlobs", "semanticVerifierEntryPoint",
+        "structuralSchemaAuthority"
+      ],
+      "properties": {
+        "schemaVersion": {"const": "gridworks.realtime-evaluator-producer-authority.v1"},
+        "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "fileCount": {"const": 4},
+        "files": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true,
+          "prefixItems": [
+            {"allOf": [
+              {"$ref": "#/$defs/evaluatorProducerFileRow"},
+              {"type": "object", "properties": {
+                "path": {"const": "tools/commercial-ux/native/build-realtime-candidate-authority.py"},
+                "role": {"const": "EVALUATOR_PRODUCER_AND_SEMANTIC_VERIFIER"}
+              }, "required": ["path", "role"]}
+            ]},
+            {"allOf": [
+              {"$ref": "#/$defs/evaluatorProducerFileRow"},
+              {"type": "object", "properties": {
+                "path": {"const": "tools/commercial-ux/native/realtime-candidate-manifest.schema.json"},
+                "role": {"const": "STRUCTURAL_SCHEMA_NON_AUTHORITY"}
+              }, "required": ["path", "role"]}
+            ]},
+            {"allOf": [
+              {"$ref": "#/$defs/evaluatorProducerFileRow"},
+              {"type": "object", "properties": {
+                "path": {"const": "tools/commercial-ux/native/realtime-candidate-policy.json"},
+                "role": {"const": "EVALUATOR_POLICY"}
+              }, "required": ["path", "role"]}
+            ]},
+            {"allOf": [
+              {"$ref": "#/$defs/evaluatorProducerFileRow"},
+              {"type": "object", "properties": {
+                "path": {"const": "tools/commercial-ux/native/test-realtime-candidate-authority.py"},
+                "role": {"const": "ADVERSARIAL_TEST_SPEC_NON_RUNTIME"}
+              }, "required": ["path", "role"]}
+            ]}
+          ],
+          "items": false
+        },
+        "filesSha256": {"$ref": "#/$defs/sha256"},
+        "runningFilesMatchGitBlobs": {"const": true},
+        "semanticVerifierEntryPoint": {"const": "verify_manifest_against_reconstructed_authority"},
+        "structuralSchemaAuthority": {"const": "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"}
+      }
+    },
+    "evaluatorProducerFileRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path", "role", "gitMode", "gitObjectId", "rawSha256", "byteLength"
+      ],
+      "properties": {
+        "path": {"$ref": "#/$defs/relativePath"},
+        "role": {"enum": [
+          "EVALUATOR_PRODUCER_AND_SEMANTIC_VERIFIER",
+          "STRUCTURAL_SCHEMA_NON_AUTHORITY",
+          "EVALUATOR_POLICY",
+          "ADVERSARIAL_TEST_SPEC_NON_RUNTIME"
+        ]},
+        "gitMode": {"enum": ["100644", "100755"]},
+        "gitObjectId": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "rawSha256": {"$ref": "#/$defs/sha256"},
+        "byteLength": {"type": "integer", "minimum": 1}
+      }
     },
     "gitFileRow": {
       "type": "object",

@@ -16,6 +16,19 @@
     "sourceMaterialization": "EXACT_GIT_COMMIT_BLOBS",
     "candidatePackageStatus": "EDITOR_NATIVE_NOT_PUBLIC_PACKAGE"
   },
+  "evaluatorProducerAuthority": {
+    "schemaVersion": "gridworks.realtime-evaluator-producer-authority.v1",
+    "expectedFileCount": 4,
+    "paths": [
+      "tools/commercial-ux/native/build-realtime-candidate-authority.py",
+      "tools/commercial-ux/native/realtime-candidate-manifest.schema.json",
+      "tools/commercial-ux/native/realtime-candidate-policy.json",
+      "tools/commercial-ux/native/test-realtime-candidate-authority.py"
+    ],
+    "sourceMaterialization": "EXACT_SOURCE_COMMIT_GIT_BLOBS_MATCH_RUNNING_WORKTREE_BYTES",
+    "semanticVerifierEntryPoint": "verify_manifest_against_reconstructed_authority",
+    "structuralSchemaAuthority": "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"
+  },
   "sourceAuthority": {
     "expectedFileCount": 170,
     "expectedSourceInputsSha256": "sha256:30573f95d267179bee7adccd7f2ca42dce9aea3bd9278bb10dbaf6b3c16fc141",

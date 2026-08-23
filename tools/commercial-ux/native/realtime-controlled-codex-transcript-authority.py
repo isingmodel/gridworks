@@ -1065,7 +1065,7 @@ def bind_codex_cli_authority() -> dict[str, Any]:
         "Codex codesign designated requirement",
     )
     try:
-        requirement_lines = requirement_stderr.decode("utf-8").splitlines()
+        requirement_lines = requirement_stdout.decode("utf-8").splitlines()
     except UnicodeDecodeError as error:
         raise ControlledCodexTranscriptAuthorityError(
             "Codex designated requirement output is not UTF-8"
@@ -1079,7 +1079,8 @@ def bind_codex_cli_authority() -> dict[str, Any]:
         or team != expected["codesignTeamIdentifier"]
         or cdhash != expected["codesignCDHash"]
         or requirement_code != 0
-        or requirement_stdout != b""
+        or requirement_stdout != f"designated => {designated}\n".encode("utf-8")
+        or requirement_stderr != f"Executable={executable}\n".encode("utf-8")
         or designated != expected["codesignDesignatedRequirement"]
     ):
         raise ControlledCodexTranscriptAuthorityError(
@@ -1389,6 +1390,9 @@ def _transcript_authority_id(
 ) -> str:
     return canonical_sha256({
         "schemaVersion": FINAL_SCHEMA,
+        "parentEvaluationChainClaimRawSha256": parent[
+            "evaluationChainClaimRawSha256"
+        ],
         "parentAggregateRawSha256": parent["aggregateRawSha256"],
         "blockedJudgeInputRawSha256": parent["blockedJudgeInputRawSha256"],
         "transcriptPolicyRawSha256": sha256_bytes(policy_bytes),

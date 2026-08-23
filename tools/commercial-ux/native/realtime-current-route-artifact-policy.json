@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "gridworks.realtime-current-route-artifact-policy.v1",
+  "canonicalization": {
+    "name": "GRIDWORKS_CANONICAL_JSON_V1",
+    "rawFileHash": "SHA256_RAW_BYTES",
+    "selfHashRule": "SHA256_GRIDWORKS_CANONICAL_JSON_V1_WITH_ARTIFACT_SHA256_OMITTED",
+    "jsonFileEncoding": "UTF8_SORT_KEYS_INDENT_2_ONE_TRAILING_LF"
+  },
+  "parentEvaluationChainAuthority": {
+    "sourceCommit": "74ba7256766f41c1398fba98f59c1c942a4cb96e",
+    "producerFilesSha256": "sha256:d87e605449e558d5debd2652f3cf0282f851da45eb19b85e1b0d811af18d218f",
+    "chainPolicyRawSha256": "sha256:accef28faf6583f844e082e0a4c22f2087810111897cfb4c7bbf8c287a37e6d0",
+    "semanticVerifierEntryPoint": "verify_chain_claim_against_reconstructed_authority",
+    "prephaseInventory": "EXACT_INPUTS_AND_CHAIN_CLAIM_NO_ARTIFACT_ROOT",
+    "finalizedPhaseInventory": "EXACT_INPUTS_CHAIN_CLAIM_AND_SEVEN_FINALIZED_ARTIFACTS",
+    "artifactRootRelaxationOnParentVerifierForbidden": true
+  },
+  "evaluatorProducerAuthority": {
+    "expectedFileCount": 11,
+    "paths": [
+      "tools/commercial-ux/native/realtime-actor-terminal.schema.json",
+      "tools/commercial-ux/native/realtime-aggregate.schema.json",
+      "tools/commercial-ux/native/realtime-current-route-artifact-authority.py",
+      "tools/commercial-ux/native/realtime-current-route-artifact-policy.json",
+      "tools/commercial-ux/native/realtime-evaluation-chain-authority.py",
+      "tools/commercial-ux/native/realtime-evidence-index.schema.json",
+      "tools/commercial-ux/native/realtime-judge-input.schema.json",
+      "tools/commercial-ux/native/realtime-judge-terminal.schema.json",
+      "tools/commercial-ux/native/realtime-oracle-ledger.schema.json",
+      "tools/commercial-ux/native/realtime-verifier-result.schema.json",
+      "tools/commercial-ux/native/test-realtime-current-route-artifact-authority.py"
+    ],
+    "sourceMaterialization": "EXACT_ARTIFACT_AUTHORITY_COMMIT_GIT_BLOBS_MATCH_RUNNING_WORKTREE_BYTES",
+    "semanticVerifierEntryPoint": "verify_current_route_artifact_chain_against_reconstructed_authority",
+    "structuralSchemasAuthority": "STRUCTURAL_ONLY_NOT_ARTIFACT_AUTHORITY"
+  },
+  "artifactChain": {
+    "artifactRootRelativePath": "artifacts",
+    "artifactChainIdDerivation": "PARENT_CLAIM_POLICY_AND_PRODUCER_CANONICAL_SHA256",
+    "resumeAllowed": false,
+    "partialChainRecoveryAllowed": false,
+    "deletionByAuthorityAllowed": false,
+    "aggregateIsLastCommitMarker": true,
+    "officialCommercialUX": false,
+    "scoreBearingCaptureAllowed": false,
+    "commercialUXProxy": null,
+    "filesystemPolicy": "CANONICAL_ABSOLUTE_NO_SYMLINK_COMPONENTS_O_EXCL_FSYNC_APPEND_ONLY"
+  },
+  "orderedArtifacts": [
+    {
+      "ordinal": 1,
+      "kind": "EVIDENCE_INDEX",
+      "relativePath": "artifacts/evidence-index.json",
+      "schemaVersion": "gridworks.realtime-current-route-evidence-index.v1",
+      "schemaPath": "tools/commercial-ux/native/realtime-evidence-index.schema.json",
+      "status": "FINALIZED_CURRENT_ROUTE_INDEX_NON_SCORE"
+    },
+    {
+      "ordinal": 2,
+      "kind": "ACTOR_TERMINAL",
+      "relativePath": "artifacts/actor-terminal.json",
+      "schemaVersion": "gridworks.realtime-current-route-actor-terminal.v1",
+      "schemaPath": "tools/commercial-ux/native/realtime-actor-terminal.schema.json",
+      "status": "BLOCKED_NO_NATIVE_CAPTURE"
+    },
+    {
+      "ordinal": 3,
+      "kind": "JUDGE_INPUT",
+      "relativePath": "artifacts/judge-input.json",
+      "schemaVersion": "gridworks.realtime-current-route-judge-input.v1",
+      "schemaPath": "tools/commercial-ux/native/realtime-judge-input.schema.json",
+      "status": "BLOCKED_NO_EXECUTABLE_JUDGE_INPUT"
+    },
+    {
+      "ordinal": 4,
+      "kind": "JUDGE_TERMINAL",
+      "relativePath": "artifacts/judge-terminal.json",
+      "schemaVersion": "gridworks.realtime-current-route-judge-terminal.v1",
+      "schemaPath": "tools/commercial-ux/native/realtime-judge-terminal.schema.json",
+      "status": "BLOCKED_MODEL_EXECUTION_UNAUTHORIZED"
+    },
+    {
+      "ordinal": 5,
+      "kind": "VERIFIER_RESULT",
+      "relativePath": "artifacts/verifier-result.json",
+      "schemaVersion": "gridworks.realtime-current-route-verifier-result.v1",
+      "schemaPath": "tools/commercial-ux/native/realtime-verifier-result.schema.json",
+      "status": "BLOCKED_NO_JUDGE_OUTPUT"
+    },
+    {
+      "ordinal": 6,
+      "kind": "ORACLE_LEDGER",
+      "relativePath": "artifacts/oracle-ledger.json",
+      "schemaVersion": "gridworks.realtime-current-route-oracle-ledger.v1",
+      "schemaPath": "tools/commercial-ux/native/realtime-oracle-ledger.schema.json",
+      "status": "BLOCKED_NO_NATIVE_ORACLE_INPUT"
+    },
+    {
+      "ordinal": 7,
+      "kind": "AGGREGATE",
+      "relativePath": "artifacts/aggregate.json",
+      "schemaVersion": "gridworks.realtime-current-route-aggregate.v1",
+      "schemaPath": "tools/commercial-ux/native/realtime-aggregate.schema.json",
+      "status": "FINALIZED_BLOCKED_NON_SCORE"
+    }
+  ],
+  "commonBlockers": [
+    "NO_INTERACTIVE_NATIVE_CAPTURE",
+    "NO_SCORE_BEARING_NATIVE_EVIDENCE",
+    "MODEL_EXECUTION_UNAUTHORIZED_NO_RECEIPT",
+    "SCORE_AGGREGATION_NOT_PERFORMED"
+  ],
+  "routeBlockers": {
+    "TARGETED_CHECKPOINT": "TARGETED_CHECKPOINT_IS_HEADLESS_DIAGNOSTIC_ONLY_NATIVE_QUALITY_NOT_OBSERVED",
+    "STORY_PART_UNIT": "STORY_PART_UNIT_IS_AUTHORED_ONLY_NATIVE_REACHABILITY_NOT_CLAIMED",
+    "FULL_FLOW_EXCEPTION": "FULL_FLOW_UNAVAILABLE_NOT_IMPLEMENTED"
+  },
+  "nativeEvidenceStatuses": {
+    "TARGETED_CHECKPOINT": "HEADLESS_DIAGNOSTIC_ONLY_NATIVE_NOT_OBSERVED",
+    "STORY_PART_UNIT": "AUTHORED_CONTENT_UNIT_ONLY_NATIVE_REACHABILITY_NOT_CLAIMED",
+    "FULL_FLOW_EXCEPTION": "FULL_FLOW_UNAVAILABLE_NOT_IMPLEMENTED"
+  },
+  "requiredFutureModel": "gpt-5.6-sol",
+  "requiredFutureReasoningEffort": "ultra",
+  "limitations": [
+    "CURRENT_ROUTE_ARTIFACTS_ARE_FINALIZED_BUT_BLOCKED",
+    "NO_INTERACTIVE_NATIVE_CAPTURE",
+    "NO_NATIVE_EVIDENCE_ITEMS",
+    "NO_MODEL_CALL_OR_EXECUTION_RECEIPT",
+    "NO_JUDGMENT_OR_EVIDENCE_VERIFICATION_OUTPUT",
+    "ORACLE_HARD_GATES_NOT_EVALUATED",
+    "NO_AGGREGATION_OR_SCORE",
+    "FULL_FLOW_UNAVAILABLE_NOT_IMPLEMENTED",
+    "STORY_PART_UNIT_NATIVE_REACHABILITY_NOT_CLAIMED",
+    "FUTURE_EVENT_STATUS_BAR_NATIVE_QUALITY_NOT_OBSERVED",
+    "SCORE_BEARING_CAPTURE_FORBIDDEN"
+  ]
+}

@@ -1,0 +1,601 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/realtime-oracle-ledger.schema.json",
+  "title": "Gridworks realtime current-route product oracle ledger",
+  "$comment": "STRUCTURAL VALIDATION ONLY; NON-AUTHORITATIVE. Success never establishes parent finality, native capture, model execution, judgment, verification, oracle evaluation, aggregation, or score. Consumers MUST run verify_current_route_artifact_chain_against_reconstructed_authority. artifactSha256 omits itself under GRIDWORKS_CANONICAL_JSON_V1.",
+  "allOf": [
+    {
+      "$ref": "#/$defs/commonEnvelope"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "type": "string",
+          "const": "gridworks.realtime-current-route-oracle-ledger.v1"
+        },
+        "status": {
+          "type": "string",
+          "const": "BLOCKED_NO_NATIVE_ORACLE_INPUT"
+        },
+        "artifactOrdinal": {
+          "type": "integer",
+          "const": 6
+        },
+        "artifactKind": {
+          "type": "string",
+          "const": "ORACLE_LEDGER"
+        },
+        "artifactRelativePath": {
+          "type": "string",
+          "const": "artifacts/oracle-ledger.json"
+        },
+        "canonicalArtifactPath": {
+          "type": "string",
+          "pattern": "/artifacts/oracle-ledger\\.json$"
+        },
+        "priorArtifacts": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "prefixItems": [
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/priorArtifact"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "artifactOrdinal": {
+                      "type": "integer",
+                      "const": 1
+                    },
+                    "artifactKind": {
+                      "type": "string",
+                      "const": "EVIDENCE_INDEX"
+                    },
+                    "artifactPath": {
+                      "type": "string",
+                      "pattern": "/artifacts/evidence-index\\.json$"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/priorArtifact"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "artifactOrdinal": {
+                      "type": "integer",
+                      "const": 2
+                    },
+                    "artifactKind": {
+                      "type": "string",
+                      "const": "ACTOR_TERMINAL"
+                    },
+                    "artifactPath": {
+                      "type": "string",
+                      "pattern": "/artifacts/actor-terminal\\.json$"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/priorArtifact"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "artifactOrdinal": {
+                      "type": "integer",
+                      "const": 3
+                    },
+                    "artifactKind": {
+                      "type": "string",
+                      "const": "JUDGE_INPUT"
+                    },
+                    "artifactPath": {
+                      "type": "string",
+                      "pattern": "/artifacts/judge-input\\.json$"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/priorArtifact"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "artifactOrdinal": {
+                      "type": "integer",
+                      "const": 4
+                    },
+                    "artifactKind": {
+                      "type": "string",
+                      "const": "JUDGE_TERMINAL"
+                    },
+                    "artifactPath": {
+                      "type": "string",
+                      "pattern": "/artifacts/judge-terminal\\.json$"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "allOf": [
+                {
+                  "$ref": "#/$defs/priorArtifact"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "artifactOrdinal": {
+                      "type": "integer",
+                      "const": 5
+                    },
+                    "artifactKind": {
+                      "type": "string",
+                      "const": "VERIFIER_RESULT"
+                    },
+                    "artifactPath": {
+                      "type": "string",
+                      "pattern": "/artifacts/verifier-result\\.json$"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "items": false
+        },
+        "payload": {
+          "$ref": "#/$defs/payload"
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "routeKind": {
+            "type": "string",
+            "const": "TARGETED_CHECKPOINT"
+          }
+        },
+        "required": [
+          "routeKind"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "blockers": {
+                "type": "array",
+                "const": [
+                  "NO_INTERACTIVE_NATIVE_CAPTURE",
+                  "NO_SCORE_BEARING_NATIVE_EVIDENCE",
+                  "MODEL_EXECUTION_UNAUTHORIZED_NO_RECEIPT",
+                  "SCORE_AGGREGATION_NOT_PERFORMED",
+                  "TARGETED_CHECKPOINT_IS_HEADLESS_DIAGNOSTIC_ONLY_NATIVE_QUALITY_NOT_OBSERVED"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "routeKind": {
+            "type": "string",
+            "const": "STORY_PART_UNIT"
+          }
+        },
+        "required": [
+          "routeKind"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "blockers": {
+                "type": "array",
+                "const": [
+                  "NO_INTERACTIVE_NATIVE_CAPTURE",
+                  "NO_SCORE_BEARING_NATIVE_EVIDENCE",
+                  "MODEL_EXECUTION_UNAUTHORIZED_NO_RECEIPT",
+                  "SCORE_AGGREGATION_NOT_PERFORMED",
+                  "STORY_PART_UNIT_IS_AUTHORED_ONLY_NATIVE_REACHABILITY_NOT_CLAIMED"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "routeKind": {
+            "type": "string",
+            "const": "FULL_FLOW_EXCEPTION"
+          }
+        },
+        "required": [
+          "routeKind"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "object",
+            "properties": {
+              "blockers": {
+                "type": "array",
+                "const": [
+                  "NO_INTERACTIVE_NATIVE_CAPTURE",
+                  "NO_SCORE_BEARING_NATIVE_EVIDENCE",
+                  "MODEL_EXECUTION_UNAUTHORIZED_NO_RECEIPT",
+                  "SCORE_AGGREGATION_NOT_PERFORMED",
+                  "FULL_FLOW_UNAVAILABLE_NOT_IMPLEMENTED"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "absolutePath": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 4096,
+      "pattern": "^/(?!.*(?:/\\.\\.?)(?:/|$))(?!.*//)(?!.*[\\u0000-\\u001f\\u007f])[^\\u0000]+$"
+    },
+    "priorArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifactOrdinal",
+        "artifactKind",
+        "artifactPath",
+        "artifactSha256",
+        "artifactRawSha256",
+        "byteLength"
+      ],
+      "properties": {
+        "artifactOrdinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "artifactKind": {
+          "type": "string",
+          "enum": [
+            "EVIDENCE_INDEX",
+            "ACTOR_TERMINAL",
+            "JUDGE_INPUT",
+            "JUDGE_TERMINAL",
+            "VERIFIER_RESULT",
+            "ORACLE_LEDGER"
+          ]
+        },
+        "artifactPath": {
+          "$ref": "#/$defs/absolutePath"
+        },
+        "artifactSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "artifactRawSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "byteLength": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "prefixItems": [
+        {
+          "type": "string",
+          "const": "NO_INTERACTIVE_NATIVE_CAPTURE"
+        },
+        {
+          "type": "string",
+          "const": "NO_SCORE_BEARING_NATIVE_EVIDENCE"
+        },
+        {
+          "type": "string",
+          "const": "MODEL_EXECUTION_UNAUTHORIZED_NO_RECEIPT"
+        },
+        {
+          "type": "string",
+          "const": "SCORE_AGGREGATION_NOT_PERFORMED"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "TARGETED_CHECKPOINT_IS_HEADLESS_DIAGNOSTIC_ONLY_NATIVE_QUALITY_NOT_OBSERVED",
+            "STORY_PART_UNIT_IS_AUTHORED_ONLY_NATIVE_REACHABILITY_NOT_CLAIMED",
+            "FULL_FLOW_UNAVAILABLE_NOT_IMPLEMENTED"
+          ]
+        }
+      ],
+      "items": false
+    },
+    "commonEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "canonicalization",
+        "status",
+        "artifactOrdinal",
+        "artifactKind",
+        "artifactRelativePath",
+        "artifactPolicyRawSha256",
+        "artifactSchemaRawSha256",
+        "artifactAuthoritySourceCommit",
+        "artifactProducerFilesSha256",
+        "artifactChainId",
+        "parentEvaluationChainId",
+        "parentEvaluationChainClaimSha256",
+        "parentEvaluationChainClaimRawSha256",
+        "parentChainRootBindingSha256",
+        "parentInputSnapshotTreeSha256",
+        "parentRouteBoundarySha256",
+        "selectedRouteTerminalSelfSha256",
+        "selectedRouteTerminalRawSha256",
+        "candidateSha256",
+        "routeBindingSha256",
+        "routeKind",
+        "canonicalArtifactPath",
+        "priorArtifacts",
+        "priorArtifactsTreeSha256",
+        "payload",
+        "officialCommercialUX",
+        "scoreBearingCaptureAllowed",
+        "commercialUXProxy",
+        "artifactProducerExecutionAttested",
+        "limitations",
+        "artifactSha256"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "string"
+        },
+        "canonicalization": {
+          "type": "string",
+          "const": "GRIDWORKS_CANONICAL_JSON_V1"
+        },
+        "status": {
+          "type": "string"
+        },
+        "artifactOrdinal": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "artifactKind": {
+          "type": "string",
+          "enum": [
+            "EVIDENCE_INDEX",
+            "ACTOR_TERMINAL",
+            "JUDGE_INPUT",
+            "JUDGE_TERMINAL",
+            "VERIFIER_RESULT",
+            "ORACLE_LEDGER",
+            "AGGREGATE"
+          ]
+        },
+        "artifactRelativePath": {
+          "type": "string",
+          "pattern": "^artifacts/[a-z-]+\\.json$"
+        },
+        "artifactPolicyRawSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "artifactSchemaRawSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "artifactAuthoritySourceCommit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "artifactProducerFilesSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "artifactChainId": {
+          "$ref": "#/$defs/sha256"
+        },
+        "parentEvaluationChainId": {
+          "$ref": "#/$defs/sha256"
+        },
+        "parentEvaluationChainClaimSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "parentEvaluationChainClaimRawSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "parentChainRootBindingSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "parentInputSnapshotTreeSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "parentRouteBoundarySha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "selectedRouteTerminalSelfSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "selectedRouteTerminalRawSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidateSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "routeBindingSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "routeKind": {
+          "type": "string",
+          "enum": [
+            "TARGETED_CHECKPOINT",
+            "STORY_PART_UNIT",
+            "FULL_FLOW_EXCEPTION"
+          ]
+        },
+        "canonicalArtifactPath": {
+          "$ref": "#/$defs/absolutePath"
+        },
+        "priorArtifacts": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 6,
+          "items": {
+            "$ref": "#/$defs/priorArtifact"
+          }
+        },
+        "priorArtifactsTreeSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "payload": {
+          "type": "object"
+        },
+        "officialCommercialUX": {
+          "type": "boolean",
+          "const": false
+        },
+        "scoreBearingCaptureAllowed": {
+          "type": "boolean",
+          "const": false
+        },
+        "commercialUXProxy": {
+          "type": "null"
+        },
+        "artifactProducerExecutionAttested": {
+          "type": "boolean",
+          "const": false
+        },
+        "limitations": {
+          "type": "array",
+          "const": [
+            "CURRENT_ROUTE_ARTIFACTS_ARE_FINALIZED_BUT_BLOCKED",
+            "NO_INTERACTIVE_NATIVE_CAPTURE",
+            "NO_NATIVE_EVIDENCE_ITEMS",
+            "NO_MODEL_CALL_OR_EXECUTION_RECEIPT",
+            "NO_JUDGMENT_OR_EVIDENCE_VERIFICATION_OUTPUT",
+            "ORACLE_HARD_GATES_NOT_EVALUATED",
+            "NO_AGGREGATION_OR_SCORE",
+            "FULL_FLOW_UNAVAILABLE_NOT_IMPLEMENTED",
+            "STORY_PART_UNIT_NATIVE_REACHABILITY_NOT_CLAIMED",
+            "FUTURE_EVENT_STATUS_BAR_NATIVE_QUALITY_NOT_OBSERVED",
+            "SCORE_BEARING_CAPTURE_FORBIDDEN"
+          ]
+        },
+        "artifactSha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "oracleStatus",
+        "oracleRole",
+        "artifactIntegrityChecksAreNotProductOracleEvidence",
+        "productOracleExecutedByThisAuthority",
+        "oracleExecutionCountByThisAuthority",
+        "boundNativeOracleInputCount",
+        "hardGatesEvaluatedByThisAuthority",
+        "hardGateStatus",
+        "hardGateViolationCount",
+        "ledgerRows",
+        "verdict",
+        "blockers"
+      ],
+      "properties": {
+        "oracleStatus": {
+          "type": "string",
+          "const": "BLOCKED_NO_NATIVE_ORACLE_INPUT"
+        },
+        "oracleRole": {
+          "type": "string",
+          "const": "PRODUCT_HARD_GATE_ORACLE_NOT_ARTIFACT_SEMANTIC_AUTHORITY"
+        },
+        "artifactIntegrityChecksAreNotProductOracleEvidence": {
+          "type": "boolean",
+          "const": true
+        },
+        "productOracleExecutedByThisAuthority": {
+          "type": "boolean",
+          "const": false
+        },
+        "oracleExecutionCountByThisAuthority": {
+          "type": "integer",
+          "const": 0
+        },
+        "boundNativeOracleInputCount": {
+          "type": "integer",
+          "const": 0
+        },
+        "hardGatesEvaluatedByThisAuthority": {
+          "type": "boolean",
+          "const": false
+        },
+        "hardGateStatus": {
+          "type": "string",
+          "const": "NOT_EVALUATED"
+        },
+        "hardGateViolationCount": {
+          "type": "null"
+        },
+        "ledgerRows": {
+          "type": "array",
+          "maxItems": 0
+        },
+        "verdict": {
+          "type": "null"
+        },
+        "blockers": {
+          "$ref": "#/$defs/blockers"
+        }
+      }
+    }
+  }
+}

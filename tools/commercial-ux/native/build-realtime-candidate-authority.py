@@ -40,13 +40,17 @@ GODOT_VERSION_OUTPUT = "4.7.1.stable.mono.official.a13da4feb"
 GODOT_BANNER = (
     f"Godot Engine v{GODOT_VERSION_OUTPUT} - https://godotengine.org"
 )
-GIT_EXECUTABLE_PATH = Path("/usr/bin/git")
-GIT_EXECUTABLE_RAW_SHA256 = (
-    "sha256:44a68ddc1983d6cff3fd35ba3f9ba5f82004216f1dcde69892b3d1b06e408698"
+GIT_EXECUTABLE_PATH = Path(
+    "/Library/Developer/CommandLineTools/usr/bin/git"
 )
-GIT_EXECUTABLE_BYTE_LENGTH = 118640
+GIT_EXECUTABLE_RAW_SHA256 = (
+    "sha256:be4afb2b003904725826250de9fb76567bbacf82323457b5a1ec26706b66bcae"
+)
+GIT_EXECUTABLE_BYTE_LENGTH = 7604272
 GIT_VERSION_OUTPUT = "git version 2.50.1 (Apple Git-155)"
-GIT_COMMAND_BINDING_SCOPE = "EXACT_USR_BIN_GIT_BYTES_AND_VERSION_OUTPUT"
+GIT_COMMAND_BINDING_SCOPE = (
+    "DIRECT_COMMAND_BINARY_BYTES_AND_VERSION_ONLY_TRANSITIVE_CLOSURE_UNBOUND"
+)
 GIT_REPOSITORY_LOCATION_POLICY = "EXPLICIT_RESOLVED_GIT_DIR_AND_WORK_TREE"
 GIT_ENVIRONMENT_POLICY = "FRESH_ALLOWLIST_DROPS_AMBIENT_GIT_ENV"
 GIT_REPLACEMENT_OBJECT_POLICY = "DISABLED_BY_CLI_AND_ENV"
@@ -55,7 +59,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_REPOSITORY_ROOT = SCRIPT_DIR.parents[2]
 POLICY_PATH = SCRIPT_DIR / "realtime-candidate-policy.json"
 EXPECTED_POLICY_RAW_SHA256 = (
-    "sha256:3a648f8dd1832834af47defb4e6d8ad73e75b02527510ae967aebd4d70846818"
+    "sha256:96366d0bbc8ec4870b13b705595d036e5af949bab2e5623a07001bba16c48b08"
 )
 
 POLICY_TOP_LEVEL_KEYS = frozenset({
@@ -146,7 +150,8 @@ POLICY_OBJECT_KEYS: dict[str, frozenset[str]] = {
         "fullCampaignNativeE2E", "fullFlowRoute", "saveResume",
         "finaleEpilogueNative", "fullV3RuntimeBinding",
         "futureEventStatusBarNativeQuality", "runtimeArtAuthority",
-        "dotnetToolchainAuthority", "packageStatus", "nativeCaptureStatus",
+        "dotnetToolchainAuthority", "gitToolchainAuthority",
+        "packageStatus", "nativeCaptureStatus",
         "claimsNotAuthorized",
     }),
 }
@@ -765,13 +770,14 @@ def git_execution_environment() -> dict[str, str]:
     """Return the complete environment used by authority-bearing Git reads."""
 
     return {
-        "PATH": "/usr/bin:/bin",
+        "PATH": "/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin",
         "LANG": "C",
         "LC_ALL": "C",
         "GIT_CONFIG_GLOBAL": "/dev/null",
         "GIT_CONFIG_NOSYSTEM": "1",
         "GIT_CONFIG_SYSTEM": "/dev/null",
         "GIT_NO_REPLACE_OBJECTS": "1",
+        "GIT_NO_LAZY_FETCH": "1",
         "GIT_OPTIONAL_LOCKS": "0",
         "GIT_TERMINAL_PROMPT": "0",
     }
@@ -852,6 +858,35 @@ def verify_git_executable_binding() -> None:
         raise CandidateAuthorityError("authority Git executable binding drift")
 
 
+def validate_git_command_arguments(arguments: Sequence[str]) -> None:
+    if list(arguments) == ["--version"]:
+        return
+    if (
+        len(arguments) == 4
+        and arguments[0:3] == ["cat-file", "blob", "--"]
+        and re.fullmatch(r"[0-9a-f]{40}", arguments[3]) is not None
+    ):
+        return
+    if (
+        len(arguments) == 5
+        and arguments[0:4]
+        == ["ls-tree", "-rz", "--full-tree", "--end-of-options"]
+        and re.fullmatch(r"[0-9a-f]{40}", arguments[4]) is not None
+    ):
+        return
+    if list(arguments) == ["rev-parse", "--show-object-format"]:
+        return
+    if (
+        len(arguments) == 4
+        and arguments[0:3] == ["rev-parse", "--verify", "--end-of-options"]
+        and arguments[3].endswith("^{commit}")
+        and 10 < len(arguments[3]) <= 1034
+        and not any(ord(character) < 0x20 for character in arguments[3])
+    ):
+        return
+    raise CandidateAuthorityError("authority Git arguments are not allowlisted")
+
+
 def run_git_command(
     repository_root: Path,
     arguments: Sequence[str],
@@ -861,13 +896,7 @@ def run_git_command(
 ) -> bytes:
     """Run one allowlisted read-only Git command with no ambient Git state."""
 
-    if not arguments or arguments[0] not in {
-        "--version",
-        "cat-file",
-        "ls-tree",
-        "rev-parse",
-    }:
-        raise CandidateAuthorityError("authority Git subcommand is not allowlisted")
+    validate_git_command_arguments(arguments)
     try:
         root = repository_root.resolve(strict=True)
     except OSError as error:
@@ -882,6 +911,7 @@ def run_git_command(
         [
             str(GIT_EXECUTABLE_PATH),
             "--no-replace-objects",
+            "--no-lazy-fetch",
             f"--git-dir={git_directory}",
             f"--work-tree={root}",
             "-c",
@@ -912,6 +942,7 @@ def expected_git_command_authority() -> dict[str, Any]:
         ],
         "globalArguments": [
             "--no-replace-objects",
+            "--no-lazy-fetch",
             "--git-dir=<RESOLVED_GIT_DIRECTORY>",
             "--work-tree=<RESOLVED_REPOSITORY_ROOT>",
             "-c",
@@ -924,6 +955,14 @@ def expected_git_command_authority() -> dict[str, Any]:
             "NON_SYMLINK_DIRECTORY_OR_STRICT_GITDIR_FILE_TO_NON_SYMLINK_DIRECTORY"
         ),
         "replacementObjectPolicy": GIT_REPLACEMENT_OBJECT_POLICY,
+        "lazyFetchPolicy": "DISABLED_BY_CLI_AND_ENV",
+        "linkedWorktreeHeadPolicy": "PER_WORKTREE_GIT_DIR",
+        "objectFormat": "sha1",
+        "objectIdHexLength": 40,
+        "systemTrustLimitation": (
+            "GIT_EXECUTABLE_ONLY_TRANSITIVE_SYSTEM_DYLIB_CLOSURE_NOT_BOUND"
+        ),
+        "transitiveClosureBound": False,
     }
 
 
@@ -936,6 +975,14 @@ def bind_git_command_authority(repository_root: Path) -> dict[str, Any]:
     ).decode("ascii", errors="strict").strip()
     if version != GIT_VERSION_OUTPUT:
         raise CandidateAuthorityError("authority Git version output drift")
+    object_format = run_git_command(
+        repository_root,
+        ["rev-parse", "--show-object-format"],
+        timeout=10,
+        label="authority Git object format probe",
+    ).decode("ascii", errors="strict").strip()
+    if object_format != "sha1":
+        raise CandidateAuthorityError("authority Git object format drift")
     return expected_git_command_authority()
 
 
@@ -1059,18 +1106,7 @@ def validate_git_path(path: str) -> None:
         raise CandidateAuthorityError(f"Git path escapes its root: {path!r}")
 
 
-def git_tree_entries(
-    repository_root: Path,
-    commit: str,
-) -> list[tuple[str, str, str, str]]:
-    if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
-        raise CandidateAuthorityError("candidate tree commit is not a full SHA-1")
-    raw = run_git_command(
-        repository_root,
-        ["ls-tree", "-rz", "--full-tree", commit],
-        timeout=30,
-        label="candidate Git tree enumeration",
-    )
+def parse_git_tree_entries(raw: bytes) -> list[tuple[str, str, str, str]]:
     result: list[tuple[str, str, str, str]] = []
     for raw_row in raw.split(b"\0"):
         if not raw_row:
@@ -1081,9 +1117,38 @@ def git_tree_entries(
             path = raw_path.decode("utf-8", errors="strict")
         except (UnicodeError, ValueError) as error:
             raise CandidateAuthorityError("candidate Git tree has a malformed entry") from error
+        expected_object_type = {
+            "040000": "tree",
+            "100644": "blob",
+            "100755": "blob",
+            "120000": "blob",
+            "160000": "commit",
+        }.get(mode)
+        if (
+            expected_object_type != object_type
+            or re.fullmatch(r"[0-9a-f]{40}", object_id) is None
+        ):
+            raise CandidateAuthorityError(
+                "candidate Git tree entry mode, type, or object ID is invalid"
+            )
         validate_git_path(path)
         result.append((mode, object_type, object_id, path))
     return result
+
+
+def git_tree_entries(
+    repository_root: Path,
+    commit: str,
+) -> list[tuple[str, str, str, str]]:
+    if re.fullmatch(r"[0-9a-f]{40}", commit) is None:
+        raise CandidateAuthorityError("candidate tree commit is not a full SHA-1")
+    raw = run_git_command(
+        repository_root,
+        ["ls-tree", "-rz", "--full-tree", "--end-of-options", commit],
+        timeout=30,
+        label="candidate Git tree enumeration",
+    )
+    return parse_git_tree_entries(raw)
 
 
 def _candidate_scope(path: str) -> bool:
@@ -1229,7 +1294,7 @@ def read_source_authority(
             raise CandidateAuthorityError(f"candidate input is not a regular blob: {path}")
         data = run_git_command(
             root,
-            ["cat-file", "blob", object_id],
+            ["cat-file", "blob", "--", object_id],
             timeout=30,
             label=f"candidate Git blob {path}",
         )
@@ -1281,7 +1346,7 @@ def bind_evaluator_producer_authority(
             )
         git_data = run_git_command(
             source.repository_root,
-            ["cat-file", "blob", object_id],
+            ["cat-file", "blob", "--", object_id],
             timeout=30,
             label=f"evaluator producer Git blob {path}",
         )
@@ -3045,6 +3110,7 @@ def build_manifest(
             "MODEL_ULTRA_EXECUTION_RECEIPT_NOT_AVAILABLE",
             "HEADLESS_PROBE_USES_LOCAL_EDITOR_AND_SYSTEM_DOTNET",
             "DOTNET_TOOLCHAIN_TRANSITIVE_CLOSURE_NOT_BOUND",
+            "GIT_EXECUTABLE_ONLY_TRANSITIVE_SYSTEM_DYLIB_CLOSURE_NOT_BOUND",
             "SCORE_BEARING_CAPTURE_FORBIDDEN",
         ],
     }
@@ -3404,6 +3470,9 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
             "futureEventStatusBarNativeQuality": "NOT_OBSERVED",
             "runtimeArtAuthority": "NOT_ESTABLISHED",
             "dotnetToolchainAuthority": "PARTIAL_COMMAND_AND_HOST_ONLY",
+            "gitToolchainAuthority": (
+                "DIRECT_EXECUTABLE_ONLY_TRANSITIVE_SYSTEM_DYLIB_CLOSURE_UNBOUND"
+            ),
             "packageStatus": "EDITOR_NATIVE_NOT_PUBLIC_PACKAGE",
             "nativeCaptureStatus": "PROHIBITED_UNTIL_UX_R1_CLOSE",
             "claimsNotAuthorized": [

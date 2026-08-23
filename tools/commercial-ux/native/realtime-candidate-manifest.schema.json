@@ -151,6 +151,7 @@
       "MODEL_ULTRA_EXECUTION_RECEIPT_NOT_AVAILABLE",
       "HEADLESS_PROBE_USES_LOCAL_EDITOR_AND_SYSTEM_DOTNET",
       "DOTNET_TOOLCHAIN_TRANSITIVE_CLOSURE_NOT_BOUND",
+      "GIT_EXECUTABLE_ONLY_TRANSITIVE_SYSTEM_DYLIB_CLOSURE_NOT_BOUND",
       "SCORE_BEARING_CAPTURE_FORBIDDEN"
     ]},
     "candidateSha256": {"$ref": "#/$defs/sha256"}
@@ -215,28 +216,30 @@
         "filesSha256": {"$ref": "#/$defs/sha256"},
         "runningFilesMatchGitBlobs": {"const": true},
         "gitCommandAuthority": {"const": {
-          "path": "/usr/bin/git",
-          "rawSha256": "sha256:44a68ddc1983d6cff3fd35ba3f9ba5f82004216f1dcde69892b3d1b06e408698",
-          "byteLength": 118640,
+          "path": "/Library/Developer/CommandLineTools/usr/bin/git",
+          "rawSha256": "sha256:be4afb2b003904725826250de9fb76567bbacf82323457b5a1ec26706b66bcae",
+          "byteLength": 7604272,
           "versionOutput": "git version 2.50.1 (Apple Git-155)",
-          "commandBindingScope": "EXACT_USR_BIN_GIT_BYTES_AND_VERSION_OUTPUT",
+          "commandBindingScope": "DIRECT_COMMAND_BINARY_BYTES_AND_VERSION_ONLY_TRANSITIVE_CLOSURE_UNBOUND",
           "allowedReadOnlySubcommands": [
             "--version", "cat-file", "ls-tree", "rev-parse"
           ],
           "globalArguments": [
             "--no-replace-objects",
+            "--no-lazy-fetch",
             "--git-dir=<RESOLVED_GIT_DIRECTORY>",
             "--work-tree=<RESOLVED_REPOSITORY_ROOT>",
             "-c",
             "core.hooksPath=/dev/null"
           ],
           "environment": {
-            "PATH": "/usr/bin:/bin",
+            "PATH": "/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin",
             "LANG": "C",
             "LC_ALL": "C",
             "GIT_CONFIG_GLOBAL": "/dev/null",
             "GIT_CONFIG_NOSYSTEM": "1",
             "GIT_CONFIG_SYSTEM": "/dev/null",
+            "GIT_NO_LAZY_FETCH": "1",
             "GIT_NO_REPLACE_OBJECTS": "1",
             "GIT_OPTIONAL_LOCKS": "0",
             "GIT_TERMINAL_PROMPT": "0"
@@ -244,7 +247,13 @@
           "environmentPolicy": "FRESH_ALLOWLIST_DROPS_AMBIENT_GIT_ENV",
           "repositoryLocationPolicy": "EXPLICIT_RESOLVED_GIT_DIR_AND_WORK_TREE",
           "gitDirectoryEntryPolicy": "NON_SYMLINK_DIRECTORY_OR_STRICT_GITDIR_FILE_TO_NON_SYMLINK_DIRECTORY",
-          "replacementObjectPolicy": "DISABLED_BY_CLI_AND_ENV"
+          "replacementObjectPolicy": "DISABLED_BY_CLI_AND_ENV",
+          "lazyFetchPolicy": "DISABLED_BY_CLI_AND_ENV",
+          "linkedWorktreeHeadPolicy": "PER_WORKTREE_GIT_DIR",
+          "objectFormat": "sha1",
+          "objectIdHexLength": 40,
+          "systemTrustLimitation": "GIT_EXECUTABLE_ONLY_TRANSITIVE_SYSTEM_DYLIB_CLOSURE_NOT_BOUND",
+          "transitiveClosureBound": false
         }},
         "semanticVerifierEntryPoint": {"const": "verify_manifest_against_reconstructed_authority"},
         "semanticVerifierReexecutesHeadlessProbes": {"const": true},

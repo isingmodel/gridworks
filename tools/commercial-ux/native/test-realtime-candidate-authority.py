@@ -252,6 +252,16 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
                 ],
                 clone,
             )
+            run_fixture_git(
+                [
+                    f"--git-dir={git_directory}",
+                    f"--work-tree={clone}",
+                    "update-ref",
+                    f"refs/replace/{current_object}",
+                    replaced_object,
+                ],
+                clone,
+            )
             vulnerable_row = run_fixture_git(
                 [
                     f"--git-dir={git_directory}",
@@ -267,6 +277,23 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
             )
             vulnerable_object = vulnerable_row.split(maxsplit=3)[2].decode("ascii")
             self.assertEqual(replaced_object, vulnerable_object)
+            vulnerable_blob = run_fixture_git(
+                [
+                    f"--git-dir={git_directory}",
+                    f"--work-tree={clone}",
+                    "cat-file",
+                    "blob",
+                    "--",
+                    current_object,
+                ],
+                clone,
+            )
+            replaced_blob = AUTHORITY.run_git_command(
+                clone,
+                ["cat-file", "blob", "--", replaced_object],
+                label="replacement attack fixture blob",
+            )
+            self.assertEqual(replaced_blob, vulnerable_blob)
 
             poison = {
                 "PATH": str(base / "missing-bin"),
@@ -276,7 +303,12 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
                 "GIT_OBJECT_DIRECTORY": str(base / "wrong-object-directory"),
                 "GIT_ALTERNATE_OBJECT_DIRECTORIES": str(base / "wrong-alternates"),
                 "GIT_REPLACE_REF_BASE": "refs/poison/",
+                "GIT_NAMESPACE": "poison",
+                "GIT_CONFIG_COUNT": "1",
+                "GIT_CONFIG_KEY_0": "core.hooksPath",
+                "GIT_CONFIG_VALUE_0": str(base / "poison-hook"),
                 "GIT_CONFIG_GLOBAL": str(base / "wrong-global-config"),
+                "GIT_NO_LAZY_FETCH": "0",
             }
             with mock.patch.dict(os.environ, poison, clear=False):
                 self.assertEqual(
@@ -290,11 +322,30 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
                 )
                 hardened_bytes = AUTHORITY.run_git_command(
                     clone,
-                    ["cat-file", "blob", hardened_object],
+                    ["cat-file", "blob", "--", hardened_object],
                     label="hardened evaluator producer blob",
                 )
             self.assertEqual(current_object, hardened_object)
             self.assertEqual((clone / authority_path).read_bytes(), hardened_bytes)
+            self.assertRejected(
+                lambda: AUTHORITY.resolve_source_commit(clone, "--help"),
+            )
+            for raw_tree in (
+                b"100644 blob not-an-object\tgame/Attack.cs\0",
+                b"100644 tree " + b"0" * 40 + b"\tgame/Attack.cs\0",
+            ):
+                self.assertRejected(
+                    lambda raw_tree=raw_tree: (
+                        AUTHORITY.parse_git_tree_entries(raw_tree)
+                    ),
+                    "mode, type, or object ID",
+                )
+            self.assertRejected(
+                lambda: AUTHORITY.validate_git_command_arguments(
+                    ["cat-file", "blob", "--", "--help"]
+                ),
+                "not allowlisted",
+            )
 
     def test_git_directory_resolution_supports_linked_worktrees_and_rejects_aliases(
         self,
@@ -308,6 +359,11 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
                 base,
             )
             source_commit = AUTHORITY.resolve_source_commit(clone, "HEAD")
+            linked_commit = AUTHORITY.resolve_source_commit(
+                clone,
+                "8ea74f08c373799b62596ce62eb2e4a9930d87b1",
+            )
+            self.assertNotEqual(source_commit, linked_commit)
             git_directory = AUTHORITY.resolve_git_directory(clone)
             run_fixture_git(
                 [
@@ -318,16 +374,20 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
                     "--detach",
                     "--quiet",
                     str(linked),
-                    source_commit,
+                    linked_commit,
                 ],
                 clone,
             )
             self.assertTrue((linked / ".git").is_file())
             self.assertEqual(
-                source_commit,
+                linked_commit,
                 AUTHORITY.resolve_source_commit(linked, "HEAD"),
             )
-            self.assertGreater(len(AUTHORITY.git_tree_entries(linked, source_commit)), 0)
+            self.assertEqual(
+                source_commit,
+                AUTHORITY.resolve_source_commit(clone, "HEAD"),
+            )
+            self.assertGreater(len(AUTHORITY.git_tree_entries(linked, linked_commit)), 0)
 
             alias_root = base / "alias-root"
             alias_root.mkdir()
@@ -380,6 +440,15 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
         self.assertEqual(
             "FRESH_ALLOWLIST_DROPS_AMBIENT_GIT_ENV",
             producer["gitCommandAuthority"]["environmentPolicy"],
+        )
+        self.assertEqual(
+            "DISABLED_BY_CLI_AND_ENV",
+            producer["gitCommandAuthority"]["lazyFetchPolicy"],
+        )
+        self.assertEqual("sha1", producer["gitCommandAuthority"]["objectFormat"])
+        self.assertEqual(40, producer["gitCommandAuthority"]["objectIdHexLength"])
+        self.assertFalse(
+            producer["gitCommandAuthority"]["transitiveClosureBound"]
         )
         self.assertEqual(
             "verify_manifest_against_reconstructed_authority",
@@ -947,6 +1016,36 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
             "gitCommandAuthority"
         ]["environmentPolicy"] = "INHERIT_PARENT"
         mutations.append(inherited_git_environment)
+
+        enabled_git_lazy_fetch = copy.deepcopy(self.policy)
+        enabled_git_lazy_fetch["evaluatorProducerAuthority"][
+            "gitCommandAuthority"
+        ]["lazyFetchPolicy"] = "ENABLED"
+        mutations.append(enabled_git_lazy_fetch)
+
+        forged_git_object_format = copy.deepcopy(self.policy)
+        forged_git_object_format["evaluatorProducerAuthority"][
+            "gitCommandAuthority"
+        ]["objectFormat"] = "sha256"
+        mutations.append(forged_git_object_format)
+
+        forged_git_object_length = copy.deepcopy(self.policy)
+        forged_git_object_length["evaluatorProducerAuthority"][
+            "gitCommandAuthority"
+        ]["objectIdHexLength"] = 64
+        mutations.append(forged_git_object_length)
+
+        forged_linked_worktree_head = copy.deepcopy(self.policy)
+        forged_linked_worktree_head["evaluatorProducerAuthority"][
+            "gitCommandAuthority"
+        ]["linkedWorktreeHeadPolicy"] = "COMMON_GIT_DIR"
+        mutations.append(forged_linked_worktree_head)
+
+        forged_git_executable = copy.deepcopy(self.policy)
+        forged_git_executable["evaluatorProducerAuthority"][
+            "gitCommandAuthority"
+        ]["rawSha256"] = "sha256:" + "7" * 64
+        mutations.append(forged_git_executable)
 
         for mutation in mutations:
             self.assertRejected(

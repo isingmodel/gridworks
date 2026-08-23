@@ -213,7 +213,21 @@ root session suite는 12/12 PASS(74.211초), candidate 회귀는 16/16 PASS(220.
 exit 0을 재현했다. future-event status bar는 여섯 signal과 두 checkpoint headless wiring만 결속하며
 native 품질은 계속 `NOT_OBSERVED`다.
 
-남은 UX-R1 단위는 evidence/actor/judge/aggregate finalized hash chain과
+세 번째 evaluation-chain parent 단위는 source revision
+`74ba7256766f41c1398fba98f59c1c942a4cb96e`에서 완료했다. finalized session을 수정하지 않고
+`<session-root>.evaluation-chain-v1` sibling에 session claim, candidate/story와 성공까지의 모든
+start/output/terminal prefix를 exact snapshot한다. executable route는 마지막 유일 `SUCCESS`만 선택하며
+앞선 retry를 생략할 수 없다. full-flow는 nested unavailable terminal 하나와 attempt 0을 유지한다.
+
+chain claim은 evidence/actor/judge/verifier/oracle/aggregate의 일곱 future path만 고정하고 실제 파일이나
+placeholder를 만들지 않는다. targeted boundary는 future-event 여섯 signal, 두 checkpoint headless wiring
+PASS와 native `NOT_OBSERVED`를 함께 보존한다. 5개 evaluator Git blob aggregate는
+`sha256:d87e605449e558d5debd2652f3cf0282f851da45eb19b85e1b0d811af18d218f`, policy raw는
+`sha256:accef28faf6583f844e082e0a4c22f2087810111897cfb4c7bbf8c287a37e6d0`다. root suite와 독립
+재실행은 각각 14/14 PASS, AJV 8.20.0 Draft 2020-12 strict PASS였고 독립 verdict는 P0 0/P1 0이다.
+model execution authority는 `UNAVAILABLE`, `CommercialUXProxy = null`이다.
+
+남은 UX-R1 단위는 이 parent 위의 evidence/actor/judge/verifier/oracle/aggregate finalized artifact chain과
 `gpt-5.6-sol` `ultra` platform/API receipt 또는 동등한 transcript authority다. full-flow는
 `UNAVAILABLE_NOT_IMPLEMENTED`, native capture는 계속 금지다.
 
@@ -284,6 +298,8 @@ TargetedCheckpointAuthority = TWO_POSITIVE_THREE_REJECTION_INDEPENDENT_REPLAY_PA
 UXR1CandidateRouteReview = PASS_P0_0_P1_0_SOURCE_379E980
 SessionAttemptAuthority = PASS_SOURCE_REVISION_5A31FF3_PRODUCER_SHA256_FAEA99AC
 UXR1SessionAttemptReview = PASS_P0_0_P1_0_SOURCE_5A31FF3
-NativeEvaluatorAuthority = CANDIDATE_ROUTE_AND_SESSION_ATTEMPT_COMPLETE_EVIDENCE_PENDING
+EvaluationChainParentAuthority = PASS_SOURCE_REVISION_74BA725_PRODUCER_SHA256_D87E6054
+UXR1ChainParentReview = PASS_P0_0_P1_0_SOURCE_74BA725
+NativeEvaluatorAuthority = CANDIDATE_ROUTE_SESSION_ATTEMPT_AND_CHAIN_PARENT_COMPLETE_ARTIFACTS_PENDING
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

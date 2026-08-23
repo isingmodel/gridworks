@@ -15,7 +15,7 @@
 | A0 목표·문서 기준선 | **완료** | 네 reference hash, 스타일 DNA, R1/R2 보존, 문서 압축 | 문서·링크·경계 검사 | 해당 없음 | 이 문서 변경 커밋 |
 | A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
 | UX-R0 실시간 텍스트 기준선 | **완료** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | `TextPlanProxy 83.4475` 형성평가 | `746c0aa`, 독립 P0 0/P1 0 |
-| UX-R1 native evaluator authority | **활성** | candidate·targeted route·session/attempt 완료, evidence provenance 진행 | candidate 16/16 + session 12/12·AJV strict·독립 P0 0/P1 0 | capture 금지 | 남은 evidence hash chain+receipt+전체 gate review 필요 |
+| UX-R1 native evaluator authority | **활성** | candidate·route·session/attempt·non-score chain parent 완료, artifact provenance 진행 | candidate 16/16 + session 12/12 + chain 14/14·AJV strict·각 독립 P0 0/P1 0 | capture 금지 | 남은 evidence artifact chain+receipt+전체 gate review 필요 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -81,11 +81,15 @@ source revision `379e980`의 exact candidate는 두 checkpoint scene-load wiring
 - [x] candidate/story snapshot과 claim-last를 사용하는 session/attempt authority — `5a31ff3`
 - [x] 두 checkpoint·34 story unit·full-flow zero-execution route가 retry에서 바뀌지 않음
 - [x] 세 attempt predecessor chain, terminal-before-output, caller outcome 금지와 exact root inventory
+- [x] finalized retry prefix 전체를 deterministic sibling에 snapshot하는 non-score chain parent — `74ba725`
+- [x] chain parent가 future-event 6 signal/headless PASS/native `NOT_OBSERVED`와 full-flow 0-attempt를 유지
 - [ ] evidence index·actor/judge input·aggregate의 finalized session hash chain
 - [ ] platform/API receipt 또는 동등한 transcript authority 결속
 - [x] session snapshot·route·attempt의 누락·교체·path traversal·stale producer mutation 거부
+- [x] chain snapshot·selected terminal·future path·root 이동/추가·재시도 누락 mutation 거부
 - [ ] evidence 누락·교체와 cross-session 재사용 mutation 거부
 - [x] candidate·route 단위에서 score-bearing capture를 fail-closed로 유지
+- [x] chain claim 14/14·AJV strict와 독립 P0 0/P1 0 — `74ba725`
 - [ ] exact test와 독립 P0/P1 review 뒤 종료 문서 갱신
 
 이 gate는 `tools/commercial-ux/native/`와 관련 문서만 수정한다. `game/`, `src/`, `data/`와 제품 art는
@@ -149,7 +153,9 @@ NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
 EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
 TargetedCheckpointAuthority = TWO_POSITIVE_THREE_REJECTION_INDEPENDENT_REPLAY_PASS
 UXR1CandidateRouteReview = PASS_P0_0_P1_0_SOURCE_379E980
-NativeEvaluatorAuthority = CANDIDATE_ROUTE_COMPLETE_SESSION_EVIDENCE_PENDING
+EvaluationChainParentAuthority = PASS_SOURCE_REVISION_74BA725_PRODUCER_SHA256_D87E6054
+UXR1ChainParentReview = PASS_P0_0_P1_0_SOURCE_74BA725
+NativeEvaluatorAuthority = CANDIDATE_ROUTE_SESSION_AND_CHAIN_PARENT_COMPLETE_ARTIFACTS_PENDING
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED

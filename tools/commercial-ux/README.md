@@ -7,8 +7,9 @@
 ## 현재 상태
 
 현재 포팅된 권위는 **text plan → blinded text evaluation**, UX-R1의
-**Debug R2 candidate·targeted route authority**, **non-score session/attempt authority**다.
-evidence/actor/judge/aggregate finalized hash chain은 아직 포팅하지 않았다.
+**Debug R2 candidate·targeted route authority**, **non-score session/attempt authority**와
+**finalized evaluation-chain parent claim**이다. evidence/actor/judge/verifier/oracle/aggregate artifact
+chain은 아직 포팅하지 않았다.
 
 - 콘텐츠 권위: `data/release-campaign-v2.json`
 - 실시간 일정 권위: `data/release-campaign-v3.json`
@@ -97,6 +98,29 @@ root suite는 12/12 PASS, 세 schema는 AJV 8.20.0 Draft 2020-12 strict PASS이�
 P0 0/P1 0이다. 이 authority는 producer 실행을 외부 attestation하지 않으며 capture·judge·점수를 만들지
 않는다.
 
+## Finalized evaluation-chain parent claim
+
+```sh
+python3 tools/commercial-ux/native/test-realtime-evaluation-chain-authority.py
+python3 tools/commercial-ux/native/realtime-evaluation-chain-authority.py --help
+```
+
+source revision `74ba7256766f41c1398fba98f59c1c942a4cb96e`의 chain authority는 finalized session을
+수정하지 않고 deterministic sibling `<session-root>.evaluation-chain-v1`에 다음 parent prefix를 봉인한다.
+
+- session claim과 bound candidate/story raw bytes
+- executable route의 ordinal 1부터 마지막 유일 `SUCCESS`까지 모든 start/output/terminal bytes
+- full-flow의 경우 attempt/output 없이 session claim에서 canonical 추출한 unavailable terminal
+- targeted route의 future-event 6 signal, headless wiring PASS와 native quality `NOT_OBSERVED`
+- 다음 단위가 사용할 정확히 일곱 artifact path; 이 단위는 `artifacts/`나 placeholder를 만들지 않음
+
+claim은 session claim flock을 유지한 채 두 번 원본을 읽고 snapshot byte/inventory를 다시 확인한 뒤 마지막
+`O_EXCL + fsync` marker로 쓴다. caller는 chain root, nonce, attempt, outcome, route, model이나 score를
+공급할 수 없다. 5개 Git blob aggregate는
+`sha256:d87e605449e558d5debd2652f3cf0282f851da45eb19b85e1b0d811af18d218f`다. root와 독립 suite는
+각각 14/14 PASS, AJV 8.20.0 strict PASS, 독립 review P0 0/P1 0이다. 이 claim은 원 session의 absolute
+authority와 함께 검증되며 relocatable bundle, evidence, model receipt, native 관찰이나 점수가 아니다.
+
 ## Story part 단독 실행
 
 전체 캠페인을 재생하지 않고 작성된 narrative atom 하나만 검사할 수 있다.
@@ -170,8 +194,9 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 1. 완료 — R2 checkpoint와 full-flow 예외를 분리한 actor recipe (`379e980`)
 2. 완료 — V3+필요 V2 의존성을 exact bytes로 닫은 replay/candidate authority (`379e980`)
 3. 완료 — candidate/story snapshot, 34-part unit route와 append-only session/attempt authority (`5a31ff3`)
-4. evidence item·actor/judge input·aggregate를 같은 finalized session에 결속하는 hash chain
-5. model identity를 자기선언 JSON이 아닌 platform/API receipt 또는 동등한 transcript에 결속하는 권위
+4. 완료 — finalized retry prefix와 future artifact path를 봉인한 non-score chain parent (`74ba725`)
+5. evidence·actor·judge·verifier·oracle·aggregate를 같은 chain parent에 결속하는 artifact chain
+6. model identity를 자기선언 JSON이 아닌 platform/API receipt 또는 동등한 transcript에 결속하는 권위
 
 native presentation과 실제 입력·화면·audio capture는 이후 gate다. UX-R1에서도
 `ScoreBearingCaptureAllowed=false`이며 `CommercialUXProxy >= 87`을 선언하지 않는다.

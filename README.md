@@ -33,9 +33,9 @@
 ## 현재 상태와 권한
 
 제품의 Release.V3/R2 실시간 방향은 유지한다. UX-R0 텍스트 패널은 형성평가 83.4475와 독립 검토
-P0 0/P1 0으로 완료했다. UX-R1의 Debug candidate·targeted route 권위는 source revision `379e980`에서 닫았고,
-현재 같은 gate의 session·evidence provenance를 이어 간다. runtime art A1과 전체 캠페인 구현은 아직
-열지 않았다.
+P0 0/P1 0으로 완료했다. UX-R1의 Debug candidate·targeted route, session/attempt와 finalized
+evaluation-chain parent claim까지 닫았고, 현재 같은 gate의 evidence/actor/judge artifact provenance를
+이어 간다. runtime art A1과 전체 캠페인 구현은 아직 열지 않았다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -46,7 +46,8 @@ P0 0/P1 0으로 완료했다. UX-R1의 Debug candidate·targeted route 권위는
 - A1 전 구조 준비: build authority 격리, renderer-neutral world seam, 두 DEBUG checkpoint 완료
 - UX-R0: V2 authored content와 V3 실시간 일정에 결속한 34-part story 단독 실행, 형성평가
   `TextPlanProxy = 83.4475`
-- UX-R1: 39-file candidate·두 checkpoint·세 거부 route 권위 완료, session·evidence provenance 대기
+- UX-R1: 39-file candidate·두 checkpoint·세 거부 route, session/attempt와 non-score chain parent 완료;
+  evidence/actor/judge artifact provenance 대기
 - future-event status bar: 두 checkpoint scene-load wiring PASS, 실제 플레이 품질은 아직 미관찰
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
 - 활성 평가 gate: `UX-R1_NATIVE_EVALUATOR_AUTHORITY_PORT`
@@ -80,7 +81,9 @@ NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
 EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
 TargetedCheckpointAuthority = TWO_POSITIVE_THREE_REJECTION_INDEPENDENT_REPLAY_PASS
 UXR1CandidateRouteReview = PASS_P0_0_P1_0_SOURCE_379E980
-NativeEvaluatorAuthority = CANDIDATE_ROUTE_COMPLETE_SESSION_EVIDENCE_PENDING
+EvaluationChainParentAuthority = PASS_SOURCE_REVISION_74BA725_PRODUCER_SHA256_D87E6054
+UXR1ChainParentReview = PASS_P0_0_P1_0_SOURCE_74BA725
+NativeEvaluatorAuthority = CANDIDATE_ROUTE_SESSION_AND_CHAIN_PARENT_COMPLETE_ARTIFACTS_PENDING
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2RealtimeUx = PRESERVED_GATE_NOT_COMPLETED

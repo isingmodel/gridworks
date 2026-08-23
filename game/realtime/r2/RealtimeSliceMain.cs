@@ -2241,6 +2241,15 @@ internal sealed partial class RealtimeSliceMain : Control
             releaseChapterArguments.Length + releaseThroughArguments.Length);
         if (releaseArgumentCount == 0)
         {
+#if DEBUG
+            if (arguments.Length == 1 &&
+                arguments[0].StartsWith("--checkpoint=", StringComparison.Ordinal) &&
+                RealtimeSliceCheckpointIds.IsKnown(
+                    arguments[0]["--checkpoint=".Length..]))
+            {
+                return RealtimeSliceSourceRoute.TechnicalCheckpointFixture;
+            }
+#endif
             if (arguments.Length != 0)
             {
                 throw new ArgumentException(

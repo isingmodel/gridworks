@@ -2148,7 +2148,13 @@ internal static class RealtimeR2Smoke
                   RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource &&
               RealtimeSliceMain.ParseSourceRoute(
                   ["--release-chapter=FIRST_LIGHT"]) ==
-                  RealtimeSliceSourceRoute.ReleaseFirstLight,
+                  RealtimeSliceSourceRoute.ReleaseFirstLight &&
+              RealtimeSliceMain.ParseSourceRoute(
+                  ["--checkpoint=A1_NORMAL_READY"]) ==
+                  RealtimeSliceSourceRoute.TechnicalCheckpointFixture &&
+              RealtimeSliceMain.ParseSourceRoute(
+                  ["--checkpoint=A1_CONSTRUCTION_DUE_1M"]) ==
+                  RealtimeSliceSourceRoute.TechnicalCheckpointFixture,
             "tutorial exact launch route or FIRST_LIGHT preservation drifted",
             failures);
         string[][] rejectedRoutes =
@@ -2156,6 +2162,7 @@ internal static class RealtimeR2Smoke
             ["--release-through=SECOND_HEART"],
             ["--release-through"],
             ["--bogus"],
+            ["--checkpoint=UNKNOWN"],
             ["--release-chapter=FIRST_LIGHT", "--release-through=SECOND_SOURCE"],
         ];
         foreach (string[] rejectedRoute in rejectedRoutes)

@@ -154,7 +154,10 @@ class RealtimeSessionAuthorityTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.stack = contextlib.ExitStack()
         cls.authority_workspace = Path(cls.stack.enter_context(
-            tempfile.TemporaryDirectory(prefix="realtime-session-authority-")
+            tempfile.TemporaryDirectory(
+                prefix=".realtime-session-authority-",
+                dir=REPOSITORY_ROOT,
+            )
         ))
         cls.build = cls.stack.enter_context(CANDIDATE.isolated_managed_build(
             REPOSITORY_ROOT,
@@ -219,7 +222,10 @@ class RealtimeSessionAuthorityTests(unittest.TestCase):
         cls.stack.close()
 
     def setUp(self) -> None:
-        self.temporary = tempfile.TemporaryDirectory(prefix="realtime-session-test-")
+        self.temporary = tempfile.TemporaryDirectory(
+            prefix=".realtime-session-test-",
+            dir=REPOSITORY_ROOT,
+        )
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.session_counter = 0

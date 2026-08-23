@@ -62,9 +62,10 @@ python3 tools/commercial-ux/build-text-plan-input.py \
   --output /tmp/gridworks-realtime-text-plan.json
 ```
 
-builder는 base campaign, realtime overlay, context, story manifest의 raw SHA-256과 canonical artifact
-SHA-256을 묶는다. `realtime_text_contract.py`는 정확한 8장/16 event/34 part topology, 현재 native
-coverage의 정직한 상한과 future-event status bar의 필수 signal 계약을 고정한다.
+builder는 base campaign, realtime overlay, context, story manifest의 raw SHA-256, canonical artifact
+SHA-256과 둘을 함께 덮는 `textPlanSha256`을 묶는다. 16개 event는 ID뿐 아니라 priority, 시작 offset,
+duration과 forecast lead까지 포함한다. `realtime_text_contract.py`는 정확한 8장/16 event/34 part
+topology, 현재 native coverage의 정직한 상한과 future-event status bar의 필수 signal 계약을 고정한다.
 
 세 blinded judge 결과는 다음처럼 집계한다.
 
@@ -72,12 +73,20 @@ coverage의 정직한 상한과 future-event status bar의 필수 signal 계약�
 python3 tools/commercial-ux/aggregate-text-plan.py \
   judgment-1.json judgment-2.json judgment-3.json \
   --text-plan /tmp/gridworks-realtime-text-plan.json \
+  --story-manifest /tmp/gridworks-realtime-story-manifest.json \
+  --campaign data/release-campaign-v2.json \
+  --realtime-campaign data/release-campaign-v3.json \
+  --context tools/commercial-ux/text-plan-context.json \
   --output /tmp/gridworks-realtime-text-aggregate.json
 ```
 
+집계기는 네 원본을 다시 읽고 source hash, 전체 event timing, authored content와 envelope를 결정론적으로
+재생성해 byte-equivalent인지 확인한다. binding이나 파생 artifact를 다시 hash한 위조도 거부한다.
+
 모든 judgment는 서로 다른 fresh run이어야 하고 `judgeSlot=SOL-ULTRA`, `model=gpt-5.6-sol`,
 `reasoningEffort=ultra`를 사용한다. 출력은 `SCORED_FORMATIVE` 또는 불안정성에 따른 재평가 상태이며
-`officialCommercialUX=false`다.
+`officialCommercialUX=false`다. 불안정 panel은 보존하고 별도 이름의 새 INITIAL panel을 만든다.
+현재 replacement 입력은 fail-closed로 비활성화돼 있다.
 
 ## 다음 gate
 

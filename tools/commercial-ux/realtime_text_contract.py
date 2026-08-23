@@ -14,7 +14,25 @@ CONTEXT_SCHEMA = "gridworks.commercial-ux.text-plan-context.v2"
 MANIFEST_SCHEMA = "gridworks.commercial.story-manifest.v2"
 PART_SCHEMA = "gridworks.commercial.story-part-output.v2"
 ARTIFACT_SCHEMA = "gridworks.commercial-ux.text-plan-input.v2"
-ENVELOPE_SCHEMA = "gridworks.commercial-ux.text-plan-envelope.v2"
+ENVELOPE_SCHEMA = "gridworks.commercial-ux.text-plan-envelope.v3"
+
+
+@dataclass(frozen=True)
+class ScheduledEvent:
+    event_id: str
+    priority: int
+    start_offset_minutes: int
+    duration_minutes: int
+    forecast_lead_minutes: int
+
+    def as_json(self) -> dict[str, Any]:
+        return {
+            "eventId": self.event_id,
+            "priority": self.priority,
+            "startOffsetMinutes": self.start_offset_minutes,
+            "durationMinutes": self.duration_minutes,
+            "forecastLeadMinutes": self.forecast_lead_minutes,
+        }
 
 
 @dataclass(frozen=True)
@@ -22,14 +40,18 @@ class Schedule:
     chapter_id: str
     preparation_minutes: int
     promise_deadline: int | None
-    event_ids: tuple[str, ...]
+    events: tuple[ScheduledEvent, ...]
+
+    @property
+    def event_ids(self) -> tuple[str, ...]:
+        return tuple(event.event_id for event in self.events)
 
     def as_json(self) -> dict[str, Any]:
         return {
             "chapterId": self.chapter_id,
             "preparationMinutes": self.preparation_minutes,
             "promiseDecisionDeadlineOffsetMinutes": self.promise_deadline,
-            "scheduledEventIds": list(self.event_ids),
+            "scheduledEvents": [event.as_json() for event in self.events],
         }
 
 
@@ -55,48 +77,73 @@ EXPECTED_CHAPTER_IDS = (
 )
 
 SCHEDULES = {
-    "FIRST_LIGHT": Schedule("FIRST_LIGHT", 240, None, ("FIRST_LIGHT_SUPPLY",)),
+    "FIRST_LIGHT": Schedule(
+        "FIRST_LIGHT",
+        240,
+        None,
+        (ScheduledEvent("FIRST_LIGHT_SUPPLY", 0, 240, 60, 240),),
+    ),
     "SECOND_HEART": Schedule(
         "SECOND_HEART",
         360,
         None,
-        ("HOSPITAL_TRANSFER_TEST", "FLOOD_ISOLATION_TEST"),
+        (
+            ScheduledEvent("HOSPITAL_TRANSFER_TEST", 0, 360, 60, 360),
+            ScheduledEvent("FLOOD_ISOLATION_TEST", 1, 480, 60, 300),
+        ),
     ),
     "SECOND_SOURCE": Schedule(
         "SECOND_SOURCE",
         420,
         None,
-        ("WEST_MAIN_COMMISSIONING_TEST", "SOUTH_SOURCE_COMMISSIONING_TEST"),
+        (
+            ScheduledEvent("WEST_MAIN_COMMISSIONING_TEST", 0, 420, 60, 420),
+            ScheduledEvent("SOUTH_SOURCE_COMMISSIONING_TEST", 1, 540, 60, 360),
+        ),
     ),
     "NORTH_BANK_PROMISE": Schedule(
         "NORTH_BANK_PROMISE",
         480,
         420,
-        ("NORTH_BANK_COMMISSIONING", "NEXT_HOT_EVENING_FORECAST"),
+        (
+            ScheduledEvent("NORTH_BANK_COMMISSIONING", 0, 480, 90, 480),
+            ScheduledEvent("NEXT_HOT_EVENING_FORECAST", 1, 690, 120, 480),
+        ),
     ),
     "WHOSE_MARGIN": Schedule(
         "WHOSE_MARGIN",
         360,
         480,
-        ("HOT_BASE", "NIGHT_SHIFT", "LATE_NIGHT"),
+        (
+            ScheduledEvent("HOT_BASE", 0, 360, 90, 360),
+            ScheduledEvent("NIGHT_SHIFT", 1, 510, 120, 390),
+            ScheduledEvent("LATE_NIGHT", 2, 690, 90, 360),
+        ),
     ),
     "BEFORE_WATER_RISE": Schedule(
         "BEFORE_WATER_RISE",
         300,
         240,
-        ("FLOOD_ARRIVAL",),
+        (ScheduledEvent("FLOOD_ARRIVAL", 0, 300, 120, 300),),
     ),
     "SWITCH_OFF_TO_PROTECT": Schedule(
         "SWITCH_OFF_TO_PROTECT",
         420,
         None,
-        ("WEST_SOURCE_PLANNED_OUTAGE", "WEST_SOURCE_RETURN_SERVICE"),
+        (
+            ScheduledEvent("WEST_SOURCE_PLANNED_OUTAGE", 0, 420, 120, 420),
+            ScheduledEvent("WEST_SOURCE_RETURN_SERVICE", 1, 600, 120, 420),
+        ),
     ),
     "LONGEST_NIGHT": Schedule(
         "LONGEST_NIGHT",
         600,
         None,
-        ("MAX_DEMAND", "HEATWAVE_PEAK", "PROTECTIVE_STOP_FLOOD"),
+        (
+            ScheduledEvent("MAX_DEMAND", 0, 600, 120, 600),
+            ScheduledEvent("HEATWAVE_PEAK", 1, 780, 120, 600),
+            ScheduledEvent("PROTECTIVE_STOP_FLOOD", 2, 960, 120, 600),
+        ),
     ),
 }
 
@@ -295,10 +342,78 @@ def validate_content(value: Any, expected_type: str, label: str) -> dict[str, An
     fail(f"unsupported expected content type {expected_type}")
 
 
-def expected_schedule(part: ExpectedPart) -> dict[str, Any] | None:
+def expected_schedule(part: ExpectedPart) -> Schedule | None:
     if part.chapter_id is None:
         return None
-    return SCHEDULES[part.chapter_id].as_json()
+    return SCHEDULES[part.chapter_id]
+
+
+def validate_schedule(value: Any, expected: Schedule | None, label: str) -> None:
+    if expected is None:
+        if value is not None:
+            fail(f"{label} must be null")
+        return
+    if not isinstance(value, dict):
+        fail(f"{label} must be an object")
+    require_exact_keys(
+        value,
+        {
+            "chapterId",
+            "preparationMinutes",
+            "promiseDecisionDeadlineOffsetMinutes",
+            "scheduledEvents",
+        },
+        label,
+    )
+    if value["chapterId"] != expected.chapter_id:
+        fail(f"{label}.chapterId must be {expected.chapter_id}")
+    if (
+        type(value["preparationMinutes"]) is not int
+        or value["preparationMinutes"] != expected.preparation_minutes
+    ):
+        fail(
+            f"{label}.preparationMinutes must be "
+            f"{expected.preparation_minutes}"
+        )
+    deadline = value["promiseDecisionDeadlineOffsetMinutes"]
+    if expected.promise_deadline is None:
+        if deadline is not None:
+            fail(f"{label}.promiseDecisionDeadlineOffsetMinutes must be null")
+    elif type(deadline) is not int or deadline != expected.promise_deadline:
+        fail(
+            f"{label}.promiseDecisionDeadlineOffsetMinutes must be "
+            f"{expected.promise_deadline}"
+        )
+    events = value["scheduledEvents"]
+    if not isinstance(events, list) or len(events) != len(expected.events):
+        fail(f"{label}.scheduledEvents must contain {len(expected.events)} events")
+    numeric_fields = (
+        ("priority", "priority"),
+        ("startOffsetMinutes", "start_offset_minutes"),
+        ("durationMinutes", "duration_minutes"),
+        ("forecastLeadMinutes", "forecast_lead_minutes"),
+    )
+    for index, (event, wanted) in enumerate(zip(events, expected.events)):
+        event_label = f"{label}.scheduledEvents[{index}]"
+        if not isinstance(event, dict):
+            fail(f"{event_label} must be an object")
+        require_exact_keys(
+            event,
+            {
+                "eventId",
+                "priority",
+                "startOffsetMinutes",
+                "durationMinutes",
+                "forecastLeadMinutes",
+            },
+            event_label,
+        )
+        if event["eventId"] != wanted.event_id:
+            fail(f"{event_label}.eventId must be {wanted.event_id}")
+        for json_field, attribute in numeric_fields:
+            expected_number = getattr(wanted, attribute)
+            if type(event[json_field]) is not int or event[json_field] != expected_number:
+                fail(f"{event_label}.{json_field} must be {expected_number}")
 
 
 def validate_part(part: Any, expected: ExpectedPart, index: int) -> None:
@@ -330,13 +445,17 @@ def validate_part(part: Any, expected: ExpectedPart, index: int) -> None:
         "windowId": expected.window_id,
         "authoredReachable": True,
         "requiredPromiseBranch": expected.required_promise_branch,
-        "realtimeSchedule": expected_schedule(expected),
     }
     for field, wanted in expected_values.items():
         if part[field] != wanted or (
             field == "authoredReachable" and part[field] is not True
         ):
             fail(f"{label}.{field} mismatch: expected {wanted!r}, got {part[field]!r}")
+    validate_schedule(
+        part["realtimeSchedule"],
+        expected_schedule(expected),
+        f"{label}.realtimeSchedule",
+    )
     content = validate_content(part["content"], expected.content_type, f"{label}.content")
     if expected.content_type == "promise-line":
         if content["branch"] != expected.required_promise_branch:
@@ -484,7 +603,7 @@ def validate_context(context: Any) -> dict[str, Any]:
                 "choiceIntent",
                 "preparationMinutes",
                 "promiseDecisionDeadlineOffsetMinutes",
-                "scheduledEventIds",
+                "scheduledEvents",
                 "nativePresentationStatus",
             },
             label,
@@ -505,12 +624,17 @@ def validate_context(context: Any) -> dict[str, Any]:
         if chapter["phase"] != expected_phase:
             fail(f"{label}.phase must be {expected_phase}")
         schedule = SCHEDULES[chapter_id]
-        if chapter["preparationMinutes"] != schedule.preparation_minutes:
-            fail(f"{label}.preparationMinutes does not match Release.V3")
-        if chapter["promiseDecisionDeadlineOffsetMinutes"] != schedule.promise_deadline:
-            fail(f"{label}.promiseDecisionDeadlineOffsetMinutes does not match Release.V3")
-        if chapter["scheduledEventIds"] != list(schedule.event_ids):
-            fail(f"{label}.scheduledEventIds does not match Release.V3")
+        validate_schedule(
+            {
+                "chapterId": chapter["chapterId"],
+                "preparationMinutes": chapter["preparationMinutes"],
+                "promiseDecisionDeadlineOffsetMinutes":
+                    chapter["promiseDecisionDeadlineOffsetMinutes"],
+                "scheduledEvents": chapter["scheduledEvents"],
+            },
+            schedule,
+            f"{label}.realtimeSchedule",
+        )
         expected_native_status = (
             "TARGETED_R2_SLICE" if chapter_id == "FIRST_LIGHT" else "CONTENT_AND_CORE_ONLY"
         )

@@ -104,6 +104,7 @@ promise result와 epilogue line은 `NORTH_BANK_PROMISE`, `WHOSE_MARGIN`, `BEFORE
 
 - selector는 대소문자와 구분자를 포함한 canonical ID 하나만 허용한다.
 - 출력은 base campaign과 V3 schedule을 결속한 stable JSON이다.
+- 각 schedule은 event ID뿐 아니라 priority, 시작 offset, duration, forecast lead를 포함한다.
 - unknown, malformed, 해당 장에서 불가능한 branch는 typed JSON 오류와 exit 2로 실패한다.
 - manifest는 모든 atom을 정확히 한 번 포함하고 반복 실행에서 byte-identical이어야 한다.
 - part 단독 실행은 unit/content test다. native UI reachability나 전체 장 완료를 주장하지 않는다.
@@ -147,7 +148,7 @@ audio/video를 포함한다.
 ### UX-R0 — 실시간 텍스트 기준선 — 활성
 
 - protocol/rubric/model identity를 후보 수정 전에 고정한다.
-- base campaign과 V3 schedule에서 34-part manifest와 hash-bound artifact를 만든다.
+- base campaign과 V3 full event schedule에서 34-part manifest와 source-bound artifact를 만든다.
 - story part 단독 실행과 mutation coverage를 결정론적으로 닫는다.
 - 세 fresh `gpt-5.6-sol` `ultra` judge로 첫 `TextPlanProxy`를 만든다.
 - 결과는 formative이며 native 구현이나 official 87을 주장하지 않는다.
@@ -202,6 +203,7 @@ RealtimeAuthority = RELEASE_V3_PLUS_R2
 FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_PRESENT_NATIVE_QUALITY_NOT_OBSERVED
 StoryPartManifest = 34_AUTHORED_ATOMS_DETERMINISTIC_PASS
 TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2
+TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 FullCampaignNativeE2E = NOT_IMPLEMENTED
 ScoreBearingCaptureAllowed = false

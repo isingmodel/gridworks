@@ -29,19 +29,33 @@ internal sealed record CommercialStoryCardContent(CommercialStoryCard Card)
 internal sealed record CommercialPromiseLineContent(string Text)
     : CommercialStoryContent;
 
+internal sealed record CommercialRealtimeScheduledEventBinding(
+    string EventId,
+    int Priority,
+    int StartOffsetMinutes,
+    int DurationMinutes,
+    int ForecastLeadMinutes);
+
 internal sealed record CommercialRealtimeScheduleBinding(
     string ChapterId,
     int PreparationMinutes,
     int? PromiseDecisionDeadlineOffsetMinutes,
-    IReadOnlyList<string> ScheduledEventIds)
+    IReadOnlyList<CommercialRealtimeScheduledEventBinding> ScheduledEvents)
 {
-    private IReadOnlyList<string> _scheduledEventIds =
-        Array.AsReadOnly(ScheduledEventIds.ToArray());
+    private IReadOnlyList<CommercialRealtimeScheduledEventBinding> _scheduledEvents =
+        Freeze(ScheduledEvents);
 
-    public IReadOnlyList<string> ScheduledEventIds
+    public IReadOnlyList<CommercialRealtimeScheduledEventBinding> ScheduledEvents
     {
-        get => _scheduledEventIds;
-        init => _scheduledEventIds = Array.AsReadOnly(value.ToArray());
+        get => _scheduledEvents;
+        init => _scheduledEvents = Freeze(value);
+    }
+
+    private static IReadOnlyList<CommercialRealtimeScheduledEventBinding> Freeze(
+        IReadOnlyList<CommercialRealtimeScheduledEventBinding> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+        return Array.AsReadOnly(values.ToArray());
     }
 }
 
@@ -400,7 +414,17 @@ internal sealed class CommercialStoryPartHarness
             chapter.Content.ChapterId,
             chapter.PreparationMinutes,
             chapter.PromiseDecisionDeadlineOffsetMinutes,
-            chapter.ScheduledEvents.Select(item => item.EventId).ToArray());
+            chapter.ScheduledEvents
+                .OrderBy(item => item.StartOffsetMinutes)
+                .ThenBy(item => item.Priority)
+                .ThenBy(item => item.EventId, StringComparer.Ordinal)
+                .Select(item => new CommercialRealtimeScheduledEventBinding(
+                    item.EventId,
+                    item.Priority,
+                    item.StartOffsetMinutes,
+                    item.DurationMinutes,
+                    item.ForecastLeadMinutes))
+                .ToArray());
 
     private static bool TryChapterSelector(
         IReadOnlyList<string> segments,
@@ -496,10 +520,23 @@ internal sealed class CommercialStoryPartHarness
             {
                 writer.WriteNull("promiseDecisionDeadlineOffsetMinutes");
             }
-            writer.WriteStartArray("scheduledEventIds");
-            foreach (string eventId in part.RealtimeSchedule.ScheduledEventIds)
+            writer.WriteStartArray("scheduledEvents");
+            foreach (CommercialRealtimeScheduledEventBinding scheduledEvent in
+                     part.RealtimeSchedule.ScheduledEvents)
             {
-                writer.WriteStringValue(eventId);
+                writer.WriteStartObject();
+                writer.WriteString("eventId", scheduledEvent.EventId);
+                writer.WriteNumber("priority", scheduledEvent.Priority);
+                writer.WriteNumber(
+                    "startOffsetMinutes",
+                    scheduledEvent.StartOffsetMinutes);
+                writer.WriteNumber(
+                    "durationMinutes",
+                    scheduledEvent.DurationMinutes);
+                writer.WriteNumber(
+                    "forecastLeadMinutes",
+                    scheduledEvent.ForecastLeadMinutes);
+                writer.WriteEndObject();
             }
             writer.WriteEndArray();
             writer.WriteEndObject();

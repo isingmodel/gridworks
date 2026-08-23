@@ -65,6 +65,7 @@ docs/
 - `FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_PRESENT_NATIVE_QUALITY_NOT_OBSERVED`
 - `FullCampaignNativeE2E = NOT_IMPLEMENTED`
 - `TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2`
+- `TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY`
 - `CommercialUXProxy = null`
 - `ScoreBearingCaptureAllowed = false`
 - `LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT`

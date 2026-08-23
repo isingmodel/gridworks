@@ -1979,11 +1979,13 @@ internal sealed class CommercialChecks
                     part.RealtimeSchedule.PromiseDecisionDeadlineOffsetMinutes,
                     $"story promise deadline {selector}");
                 SequenceEqual(
-                    expectedSchedule.ScheduledEvents.Select(item => item.EventId).ToArray(),
-                    part.RealtimeSchedule.ScheduledEventIds,
+                    StoryScheduleEvents(expectedSchedule),
+                    part.RealtimeSchedule.ScheduledEvents,
                     $"story ordered realtime events {selector}");
             }
         }
+
+        CheckStoryScheduleNumberAuthority(harness);
 
         ExpectStorySelectionFailure(
             harness,
@@ -2065,7 +2067,7 @@ internal sealed class CommercialChecks
                     "chapterId",
                     "preparationMinutes",
                     "promiseDecisionDeadlineOffsetMinutes",
-                    "scheduledEventIds",
+                    "scheduledEvents",
                 },
                 schedule.EnumerateObject().Select(property => property.Name).ToArray(),
                 $"story part exact schedule fields {part.Selector}");
@@ -2087,13 +2089,46 @@ internal sealed class CommercialChecks
                 Equal(JsonValueKind.Null, deadline.ValueKind,
                     $"serialized story null deadline {part.Selector}");
             }
-            SequenceEqual(
-                part.RealtimeSchedule.ScheduledEventIds,
-                schedule.GetProperty("scheduledEventIds")
-                    .EnumerateArray()
-                    .Select(item => item.GetString()!)
-                    .ToArray(),
-                $"serialized story ordered events {part.Selector}");
+            JsonElement scheduledEvents = schedule.GetProperty("scheduledEvents");
+            Equal(part.RealtimeSchedule.ScheduledEvents.Count,
+                scheduledEvents.GetArrayLength(),
+                $"serialized story event count {part.Selector}");
+            for (int index = 0;
+                 index < part.RealtimeSchedule.ScheduledEvents.Count;
+                 index++)
+            {
+                CommercialRealtimeScheduledEventBinding expected =
+                    part.RealtimeSchedule.ScheduledEvents[index];
+                JsonElement actual = scheduledEvents[index];
+                SequenceEqual(
+                    new[]
+                    {
+                        "eventId",
+                        "priority",
+                        "startOffsetMinutes",
+                        "durationMinutes",
+                        "forecastLeadMinutes",
+                    },
+                    actual.EnumerateObject()
+                        .Select(property => property.Name)
+                        .ToArray(),
+                    $"serialized story event exact fields {part.Selector}/{index}");
+                Equal(expected.EventId,
+                    actual.GetProperty("eventId").GetString(),
+                    $"serialized story event identity {part.Selector}/{index}");
+                Equal(expected.Priority,
+                    actual.GetProperty("priority").GetInt32(),
+                    $"serialized story event priority {part.Selector}/{index}");
+                Equal(expected.StartOffsetMinutes,
+                    actual.GetProperty("startOffsetMinutes").GetInt32(),
+                    $"serialized story event start {part.Selector}/{index}");
+                Equal(expected.DurationMinutes,
+                    actual.GetProperty("durationMinutes").GetInt32(),
+                    $"serialized story event duration {part.Selector}/{index}");
+                Equal(expected.ForecastLeadMinutes,
+                    actual.GetProperty("forecastLeadMinutes").GetInt32(),
+                    $"serialized story event forecast lead {part.Selector}/{index}");
+            }
         }
 
         JsonElement content = root.GetProperty("content");
@@ -2132,6 +2167,145 @@ internal sealed class CommercialChecks
                 throw new ArgumentOutOfRangeException(nameof(part));
         }
     }
+
+    private void CheckStoryScheduleNumberAuthority(
+        CommercialStoryPartHarness originalHarness)
+    {
+        RealtimeChapterDefinition sourceChapter = originalHarness.RealtimeCampaign
+            .Chapters.Single(chapter => chapter.Content.ChapterId == "WHOSE_MARGIN");
+        RealtimeScheduledEventDefinition sourceEvent = sourceChapter.ScheduledEvents
+            .Single(scheduled => scheduled.EventId == "LATE_NIGHT");
+        RealtimeScheduledEventDefinition changedEvent = sourceEvent with
+        {
+            Priority = checked(sourceEvent.Priority + 10),
+            StartOffsetMinutes = checked(sourceEvent.StartOffsetMinutes + 7),
+            DurationMinutes = checked(sourceEvent.DurationMinutes + 11),
+            ForecastLeadMinutes = checked(sourceEvent.ForecastLeadMinutes + 5),
+        };
+        List<RealtimeScheduledEventDefinition> mutableEvents = sourceChapter
+            .ScheduledEvents
+            .Select(scheduled => scheduled.EventId == sourceEvent.EventId
+                ? changedEvent
+                : scheduled)
+            .Reverse()
+            .ToList();
+        RealtimeChapterDefinition changedChapter = sourceChapter with
+        {
+            ScheduledEvents = mutableEvents,
+        };
+        mutableEvents.Clear();
+        Equal(sourceChapter.ScheduledEvents.Count,
+            changedChapter.ScheduledEvents.Count,
+            "story changed V3 chapter defensively froze source event list");
+
+        List<RealtimeChapterDefinition> mutableChapters = originalHarness
+            .RealtimeCampaign.Chapters
+            .Select(chapter => chapter.Content.ChapterId == sourceChapter.Content.ChapterId
+                ? changedChapter
+                : chapter)
+            .ToList();
+        RealtimeCampaignDefinition changedCampaign =
+            originalHarness.RealtimeCampaign with
+            {
+                Chapters = mutableChapters,
+            };
+        mutableChapters.Clear();
+        Equal(originalHarness.RealtimeCampaign.Chapters.Count,
+            changedCampaign.Chapters.Count,
+            "story changed V3 campaign defensively froze source chapter list");
+
+        var changedHarness = new CommercialStoryPartHarness(
+            originalHarness.Campaign,
+            changedCampaign);
+        CommercialStoryPart changedPart = changedHarness.Select(
+            "WHOSE_MARGIN/briefing");
+        CommercialRealtimeScheduleBinding changedSchedule =
+            changedPart.RealtimeSchedule ??
+            throw new InvalidOperationException(
+                "Changed WHOSE_MARGIN story part lost realtime schedule.");
+        SequenceEqual(
+            StoryScheduleEvents(changedChapter),
+            changedSchedule.ScheduledEvents,
+            "story V3 schedule canonicalized reversed source event order");
+
+        CommercialRealtimeScheduledEventBinding changedBinding = changedSchedule
+            .ScheduledEvents.Single(scheduled => scheduled.EventId == sourceEvent.EventId);
+        Equal(changedEvent.Priority,
+            changedBinding.Priority,
+            "story priority number follows V3 schedule authority");
+        Equal(changedEvent.StartOffsetMinutes,
+            changedBinding.StartOffsetMinutes,
+            "story start number follows V3 schedule authority");
+        Equal(changedEvent.DurationMinutes,
+            changedBinding.DurationMinutes,
+            "story duration number follows V3 schedule authority");
+        Equal(changedEvent.ForecastLeadMinutes,
+            changedBinding.ForecastLeadMinutes,
+            "story forecast number follows V3 schedule authority");
+
+        using JsonDocument changedDocument = JsonDocument.Parse(
+            changedHarness.Serialize(changedPart));
+        JsonElement changedEventJson = changedDocument.RootElement
+            .GetProperty("realtimeSchedule")
+            .GetProperty("scheduledEvents")
+            .EnumerateArray()
+            .Single(item => item.GetProperty("eventId").GetString() ==
+                sourceEvent.EventId);
+        Equal(changedEvent.Priority,
+            changedEventJson.GetProperty("priority").GetInt32(),
+            "serialized story priority follows V3 schedule authority");
+        Equal(changedEvent.StartOffsetMinutes,
+            changedEventJson.GetProperty("startOffsetMinutes").GetInt32(),
+            "serialized story start follows V3 schedule authority");
+        Equal(changedEvent.DurationMinutes,
+            changedEventJson.GetProperty("durationMinutes").GetInt32(),
+            "serialized story duration follows V3 schedule authority");
+        Equal(changedEvent.ForecastLeadMinutes,
+            changedEventJson.GetProperty("forecastLeadMinutes").GetInt32(),
+            "serialized story forecast follows V3 schedule authority");
+
+        List<CommercialRealtimeScheduledEventBinding> mutableBindings =
+            changedSchedule.ScheduledEvents.ToList();
+        CommercialRealtimeScheduleBinding defensivelyCopiedSchedule =
+            changedSchedule with
+            {
+                ScheduledEvents = mutableBindings,
+            };
+        mutableBindings.Clear();
+        Equal(changedSchedule.ScheduledEvents.Count,
+            defensivelyCopiedSchedule.ScheduledEvents.Count,
+            "story schedule binding defensively froze source event list");
+
+        CommercialRealtimeScheduledEventBinding originalBinding = originalHarness
+            .Select("WHOSE_MARGIN/briefing")
+            .RealtimeSchedule!
+            .ScheduledEvents.Single(scheduled => scheduled.EventId == sourceEvent.EventId);
+        Equal(sourceEvent.Priority,
+            originalBinding.Priority,
+            "story schedule numeric mutation left original priority unchanged");
+        Equal(sourceEvent.StartOffsetMinutes,
+            originalBinding.StartOffsetMinutes,
+            "story schedule numeric mutation left original start unchanged");
+        Equal(sourceEvent.DurationMinutes,
+            originalBinding.DurationMinutes,
+            "story schedule numeric mutation left original duration unchanged");
+        Equal(sourceEvent.ForecastLeadMinutes,
+            originalBinding.ForecastLeadMinutes,
+            "story schedule numeric mutation left original forecast unchanged");
+    }
+
+    private static CommercialRealtimeScheduledEventBinding[] StoryScheduleEvents(
+        RealtimeChapterDefinition chapter) => chapter.ScheduledEvents
+        .OrderBy(item => item.StartOffsetMinutes)
+        .ThenBy(item => item.Priority)
+        .ThenBy(item => item.EventId, StringComparer.Ordinal)
+        .Select(item => new CommercialRealtimeScheduledEventBinding(
+            item.EventId,
+            item.Priority,
+            item.StartOffsetMinutes,
+            item.DurationMinutes,
+            item.ForecastLeadMinutes))
+        .ToArray();
 
     private void CheckNullableJsonString(
         JsonElement element,

@@ -40,7 +40,9 @@
       "choiceIntent": "강을 피하는 경로, 공사비와 완공 시각을 비교하고 잘못된 배치·초안을 시간이 흐르기 전에 고친다.",
       "preparationMinutes": 240,
       "promiseDecisionDeadlineOffsetMinutes": null,
-      "scheduledEventIds": ["FIRST_LIGHT_SUPPLY"],
+      "scheduledEvents": [
+        {"eventId": "FIRST_LIGHT_SUPPLY", "priority": 0, "startOffsetMinutes": 240, "durationMinutes": 60, "forecastLeadMinutes": 240}
+      ],
       "nativePresentationStatus": "TARGETED_R2_SLICE"
     },
     {
@@ -53,7 +55,10 @@
       "choiceIntent": "공유 공사비를 줄이는 배치와 한 회랑 상실에도 살아남는 독립 배치, 두 사건 전 완공 시간을 함께 비교한다.",
       "preparationMinutes": 360,
       "promiseDecisionDeadlineOffsetMinutes": null,
-      "scheduledEventIds": ["HOSPITAL_TRANSFER_TEST", "FLOOD_ISOLATION_TEST"],
+      "scheduledEvents": [
+        {"eventId": "HOSPITAL_TRANSFER_TEST", "priority": 0, "startOffsetMinutes": 360, "durationMinutes": 60, "forecastLeadMinutes": 360},
+        {"eventId": "FLOOD_ISOLATION_TEST", "priority": 1, "startOffsetMinutes": 480, "durationMinutes": 60, "forecastLeadMinutes": 300}
+      ],
       "nativePresentationStatus": "CONTENT_AND_CORE_ONLY"
     },
     {
@@ -66,7 +71,10 @@
       "choiceIntent": "두 번째 전원을 합류시키되 전체 경로 용량·완공 시각·사건 전 열여유를 함께 확보한다.",
       "preparationMinutes": 420,
       "promiseDecisionDeadlineOffsetMinutes": null,
-      "scheduledEventIds": ["WEST_MAIN_COMMISSIONING_TEST", "SOUTH_SOURCE_COMMISSIONING_TEST"],
+      "scheduledEvents": [
+        {"eventId": "WEST_MAIN_COMMISSIONING_TEST", "priority": 0, "startOffsetMinutes": 420, "durationMinutes": 60, "forecastLeadMinutes": 420},
+        {"eventId": "SOUTH_SOURCE_COMMISSIONING_TEST", "priority": 1, "startOffsetMinutes": 540, "durationMinutes": 60, "forecastLeadMinutes": 360}
+      ],
       "nativePresentationStatus": "CONTENT_AND_CORE_ONLY"
     },
     {
@@ -79,7 +87,10 @@
       "choiceIntent": "420분 결정 기한 전에 북안 입주 약속을 지킬지 미룰지 정하고, 서로 다른 결과와 이어지는 망·자금을 받아들인다.",
       "preparationMinutes": 480,
       "promiseDecisionDeadlineOffsetMinutes": 420,
-      "scheduledEventIds": ["NORTH_BANK_COMMISSIONING", "NEXT_HOT_EVENING_FORECAST"],
+      "scheduledEvents": [
+        {"eventId": "NORTH_BANK_COMMISSIONING", "priority": 0, "startOffsetMinutes": 480, "durationMinutes": 90, "forecastLeadMinutes": 480},
+        {"eventId": "NEXT_HOT_EVENING_FORECAST", "priority": 1, "startOffsetMinutes": 690, "durationMinutes": 120, "forecastLeadMinutes": 480}
+      ],
       "nativePresentationStatus": "CONTENT_AND_CORE_ONLY"
     },
     {
@@ -92,7 +103,11 @@
       "choiceIntent": "480분 기한 전에 산업 야간조 약속을 지키며 비상 여유를 쓸지, 미루고 다음 사건의 경로와 duty를 보호할지 정한다.",
       "preparationMinutes": 360,
       "promiseDecisionDeadlineOffsetMinutes": 480,
-      "scheduledEventIds": ["HOT_BASE", "NIGHT_SHIFT", "LATE_NIGHT"],
+      "scheduledEvents": [
+        {"eventId": "HOT_BASE", "priority": 0, "startOffsetMinutes": 360, "durationMinutes": 90, "forecastLeadMinutes": 360},
+        {"eventId": "NIGHT_SHIFT", "priority": 1, "startOffsetMinutes": 510, "durationMinutes": 120, "forecastLeadMinutes": 390},
+        {"eventId": "LATE_NIGHT", "priority": 2, "startOffsetMinutes": 690, "durationMinutes": 90, "forecastLeadMinutes": 360}
+      ],
       "nativePresentationStatus": "CONTENT_AND_CORE_ONLY"
     },
     {
@@ -105,7 +120,9 @@
       "choiceIntent": "240분 결정 기한 전에 동부 연속공급 약속을 정하고, 짧고 위험한 보강과 더 비싸거나 긴 안전 회랑을 비교한다.",
       "preparationMinutes": 300,
       "promiseDecisionDeadlineOffsetMinutes": 240,
-      "scheduledEventIds": ["FLOOD_ARRIVAL"],
+      "scheduledEvents": [
+        {"eventId": "FLOOD_ARRIVAL", "priority": 0, "startOffsetMinutes": 300, "durationMinutes": 120, "forecastLeadMinutes": 300}
+      ],
       "nativePresentationStatus": "CONTENT_AND_CORE_ONLY"
     },
     {
@@ -118,7 +135,10 @@
       "choiceIntent": "필수 공급을 우선하면서 공사 시각·남부 전원 경로·정지 종료 뒤 회복 순서를 계획한다.",
       "preparationMinutes": 420,
       "promiseDecisionDeadlineOffsetMinutes": null,
-      "scheduledEventIds": ["WEST_SOURCE_PLANNED_OUTAGE", "WEST_SOURCE_RETURN_SERVICE"],
+      "scheduledEvents": [
+        {"eventId": "WEST_SOURCE_PLANNED_OUTAGE", "priority": 0, "startOffsetMinutes": 420, "durationMinutes": 120, "forecastLeadMinutes": 420},
+        {"eventId": "WEST_SOURCE_RETURN_SERVICE", "priority": 1, "startOffsetMinutes": 600, "durationMinutes": 120, "forecastLeadMinutes": 420}
+      ],
       "nativePresentationStatus": "CONTENT_AND_CORE_ONLY"
     },
     {
@@ -131,7 +151,11 @@
       "choiceIntent": "남은 현금·경로·열 duty·누적 약속을 마지막 운영계획으로 묶고 결과와 에필로그의 기록으로 회수한다.",
       "preparationMinutes": 600,
       "promiseDecisionDeadlineOffsetMinutes": null,
-      "scheduledEventIds": ["MAX_DEMAND", "HEATWAVE_PEAK", "PROTECTIVE_STOP_FLOOD"],
+      "scheduledEvents": [
+        {"eventId": "MAX_DEMAND", "priority": 0, "startOffsetMinutes": 600, "durationMinutes": 120, "forecastLeadMinutes": 600},
+        {"eventId": "HEATWAVE_PEAK", "priority": 1, "startOffsetMinutes": 780, "durationMinutes": 120, "forecastLeadMinutes": 600},
+        {"eventId": "PROTECTIVE_STOP_FLOOD", "priority": 2, "startOffsetMinutes": 960, "durationMinutes": 120, "forecastLeadMinutes": 600}
+      ],
       "nativePresentationStatus": "CONTENT_AND_CORE_ONLY"
     }
   ]

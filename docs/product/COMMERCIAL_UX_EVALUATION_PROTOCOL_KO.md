@@ -54,7 +54,7 @@ LLM 점수는 내부 product-risk proxy다. 사람 사용성, 재미, 미감, �
 
 - 게임 premise와 플레이어 역할
 - 8개 장의 learning/crisis/choice intent
-- 8장·16 event의 실시간 schedule
+- 8장·16 event의 priority, 시작 offset, duration, forecast lead를 포함한 실시간 schedule
 - 현재 native coverage 상한
 - authority에서 직접 만든 34개 narrative atom
 
@@ -165,8 +165,14 @@ slot = SOL-ULTRA
 ```
 
 세 judge는 fresh context를 사용하고 서로의 답, 이전 점수와 개선 diff를 보지 않는다. replacement
-panel은 전체 세 run을 새로 만들며 최초 panel을 덮어쓰지 않는다. qualification anchor나 holdout을
-제품 수정의 정답지로 사용하지 않는다.
+입력은 현재 fail-closed로 비활성화한다. 불안정 panel은 덮어쓰지 않고 보존하며, 별도 이름의 세 fresh
+run으로 새 INITIAL panel을 만든다. qualification anchor나 holdout을 제품 수정의 정답지로 사용하지
+않는다.
+
+UX-R0 text baseline의 model/effort는 orchestration task에서 정확히 고정하지만, repository artifact에
+platform 서명 execution receipt를 내보내는 권위는 아직 없다. 따라서 text 결과는 이 제한을 명시한
+formative proxy다. 공식 native capture 전 UX-R1이 platform/API receipt 또는 동등한 transcript authority를
+session hash에 결속해야 한다.
 
 ## 9. 개선 반복
 

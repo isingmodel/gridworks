@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -21,7 +22,8 @@ REPLACEMENT_RECEIPT_SCHEMA = "gridworks.commercial-ux.text-plan-replacement-rece
 FROZEN_RUBRIC_SHA256 = "sha256:b13672772ee2a8fb9e1467ae3ee3b6a4a445f560cfd8079a38227dbe55d934c2"
 FROZEN_PROMPT_TEMPLATE_SHA256 = "sha256:23fc0428cd728bea35df22f5e202e5e1cc1e67e0a37d941d6068e630f3c2dc15"
 FROZEN_JUDGMENT_SCHEMA_SHA256 = "sha256:8a30187170b081f7d5a4d3853917c9191e4719cc7bff7cbb59b726046b740f6f"
-FROZEN_TEXT_CONTRACT_SHA256 = "sha256:ac3116ef7ddd126e583a52c601679c980d69af21d639b33f315c6757e36a7a36"
+FROZEN_TEXT_CONTRACT_SHA256 = "sha256:ccf30ed32b4345af5aea9f7337854a544304dbdb9173e527a00b9f29842a8ec3"
+FROZEN_BUILDER_SHA256 = "sha256:f1a7b548ca7ed9f5946d4292680e4b543f6699597c813bb3e6db7e835be88689"
 EXPECTED_LABELS = {
     "EXCELLENT": (4, 100),
     "STRONG": (3, 85),
@@ -103,40 +105,142 @@ def load_judge_contract() -> tuple[str, str]:
     return prompt_sha256, schema_sha256
 
 
-def load_text_plan(path: Path) -> tuple[str, set[str]]:
+def load_builder_module() -> Any:
+    builder_path = Path(__file__).with_name("build-text-plan-input.py")
+    builder_sha256 = file_sha256(builder_path, "text-plan builder")
+    if builder_sha256 != FROZEN_BUILDER_SHA256:
+        fail(
+            "text-plan builder hash drift: "
+            f"expected {FROZEN_BUILDER_SHA256}, got {builder_sha256}"
+        )
+    spec = importlib.util.spec_from_file_location(
+        "gridworks_realtime_text_plan_builder",
+        builder_path,
+    )
+    if spec is None or spec.loader is None:
+        fail("text-plan builder module could not be loaded")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_text_plan(
+    path: Path,
+    authority_paths: dict[str, Path],
+) -> tuple[str, set[str]]:
     envelope = read_object(path, "text-plan envelope")
     exact_keys(
         envelope,
-        {"schemaVersion", "artifactSha256", "sourceBindings", "artifact"},
+        {
+            "schemaVersion",
+            "textPlanSha256",
+            "artifactSha256",
+            "sourceBindings",
+            "artifact",
+        },
         "text-plan envelope",
     )
     if envelope["schemaVersion"] != contract.ENVELOPE_SCHEMA:
         fail(f"text-plan envelope schemaVersion must be {contract.ENVELOPE_SCHEMA}")
-    declared_sha = envelope["artifactSha256"]
-    if not isinstance(declared_sha, str) or SHA256_PATTERN.fullmatch(declared_sha) is None:
+    declared_text_plan_sha = envelope["textPlanSha256"]
+    if (
+        not isinstance(declared_text_plan_sha, str)
+        or SHA256_PATTERN.fullmatch(declared_text_plan_sha) is None
+    ):
+        fail("text-plan envelope textPlanSha256 must be a lowercase sha256 identifier")
+    declared_artifact_sha = envelope["artifactSha256"]
+    if (
+        not isinstance(declared_artifact_sha, str)
+        or SHA256_PATTERN.fullmatch(declared_artifact_sha) is None
+    ):
         fail("text-plan envelope artifactSha256 must be a lowercase sha256 identifier")
     source_bindings = envelope["sourceBindings"]
     if not isinstance(source_bindings, dict):
         fail("text-plan envelope sourceBindings must be an object")
+    expected_source_names = {
+        "baseCampaign",
+        "context",
+        "realtimeCampaign",
+        "storyManifest",
+    }
     exact_keys(
         source_bindings,
-        {"baseCampaign", "context", "realtimeCampaign", "storyManifest"},
+        expected_source_names,
         "text-plan envelope sourceBindings",
     )
     for name, digest in source_bindings.items():
         if not isinstance(digest, str) or SHA256_PATTERN.fullmatch(digest) is None:
             fail(f"text-plan sourceBindings.{name} must be a lowercase sha256 identifier")
+    if set(authority_paths) != expected_source_names:
+        fail("text-plan authority paths must contain the exact four source roles")
+    for name in expected_source_names:
+        actual_source_sha = file_sha256(
+            authority_paths[name],
+            f"text-plan authority {name}",
+        )
+        if source_bindings[name] != actual_source_sha:
+            fail(
+                f"text-plan source binding {name} mismatch: "
+                f"declared {source_bindings[name]}, actual {actual_source_sha}"
+            )
+
     artifact = envelope["artifact"]
     try:
         contract.validate_artifact(artifact)
     except ValueError as exception:
         fail(str(exception))
-    computed_sha = "sha256:" + hashlib.sha256(canonical_json_bytes(artifact)).hexdigest()
-    if declared_sha != computed_sha:
+    computed_artifact_sha = (
+        "sha256:" + hashlib.sha256(canonical_json_bytes(artifact)).hexdigest()
+    )
+    if declared_artifact_sha != computed_artifact_sha:
         fail(
             "text-plan artifact hash mismatch: "
-            f"declared {declared_sha}, computed {computed_sha}"
+            f"declared {declared_artifact_sha}, computed {computed_artifact_sha}"
         )
+    bound_payload = {
+        "artifactSha256": declared_artifact_sha,
+        "sourceBindings": source_bindings,
+        "artifact": artifact,
+    }
+    computed_text_plan_sha = (
+        "sha256:" + hashlib.sha256(canonical_json_bytes(bound_payload)).hexdigest()
+    )
+    if declared_text_plan_sha != computed_text_plan_sha:
+        fail(
+            "text-plan bound envelope hash mismatch: "
+            f"declared {declared_text_plan_sha}, computed {computed_text_plan_sha}"
+        )
+
+    builder = load_builder_module()
+    context_raw, context = builder.read_object(
+        authority_paths["context"],
+        "aggregate context authority",
+    )
+    manifest_raw, manifest = builder.read_object(
+        authority_paths["storyManifest"],
+        "aggregate story-manifest authority",
+    )
+    campaign_raw, campaign = builder.read_object(
+        authority_paths["baseCampaign"],
+        "aggregate base-campaign authority",
+    )
+    realtime_raw, realtime = builder.read_object(
+        authority_paths["realtimeCampaign"],
+        "aggregate realtime-campaign authority",
+    )
+    builder.validate_all(context, manifest, campaign, realtime)
+    expected_envelope = builder.build_envelope(
+        context,
+        manifest,
+        {
+            "baseCampaign": campaign_raw,
+            "context": context_raw,
+            "realtimeCampaign": realtime_raw,
+            "storyManifest": manifest_raw,
+        },
+    )
+    if envelope != expected_envelope:
+        fail("text-plan envelope does not match deterministic source-authority rebuild")
 
     allowed_refs = {"context:premise", "context:playerRole", "context:runtimeAuthority"}
     for chapter in artifact["chapters"]:
@@ -150,7 +254,7 @@ def load_text_plan(path: Path) -> tuple[str, set[str]]:
         ):
             allowed_refs.add(f"chapter:{chapter_id}:{field}")
     allowed_refs.update(contract.EXPECTED_SELECTORS)
-    return declared_sha, allowed_refs
+    return declared_text_plan_sha, allowed_refs
 
 
 def load_text_rubric(
@@ -609,12 +713,16 @@ def load_panel_inputs(
     judgment_paths: list[Path],
     rubric_path: Path,
     text_plan_path: Path,
+    authority_paths: dict[str, Path],
 ) -> dict[str, Any]:
     if len(judgment_paths) != 3:
         fail("exactly three judgment paths are required")
     label_data, categories, aggregation_config, rubric_sha256 = load_text_rubric(rubric_path)
     prompt_template_sha256, judgment_schema_sha256 = load_judge_contract()
-    text_plan_sha256, allowed_source_refs = load_text_plan(text_plan_path)
+    text_plan_sha256, allowed_source_refs = load_text_plan(
+        text_plan_path,
+        authority_paths,
+    )
     expected_cell_ids = {
         cell["id"]
         for category in categories
@@ -873,11 +981,17 @@ def verify_existing_scored_aggregate(
     judgment_paths: list[Path],
     rubric_path: Path,
     text_plan_path: Path,
+    authority_paths: dict[str, Path],
 ) -> dict[str, Any]:
     """Read-only exact verification using the production aggregation calculation."""
     existing = read_object(aggregate_path, "existing scored aggregate")
     exact_keys(existing, AGGREGATE_KEYS, "existing scored aggregate")
-    panel = load_panel_inputs(judgment_paths, rubric_path, text_plan_path)
+    panel = load_panel_inputs(
+        judgment_paths,
+        rubric_path,
+        text_plan_path,
+        authority_paths,
+    )
     panel_kind = existing["panelKind"]
     replacement_for_panel_sha256 = existing["replacementForPanelInputSha256"]
     if panel_kind == "INITIAL":
@@ -948,10 +1062,21 @@ def aggregate(
     judgment_paths: list[Path],
     rubric_path: Path,
     text_plan_path: Path,
+    authority_paths: dict[str, Path],
     replacement_for: Path | None,
     output_path: Path,
 ) -> dict[str, Any]:
-    panel = load_panel_inputs(judgment_paths, rubric_path, text_plan_path)
+    if replacement_for is not None:
+        fail(
+            "replacement panels are disabled in realtime text protocol v2; "
+            "preserve the unstable panel and create a new independent INITIAL panel"
+        )
+    panel = load_panel_inputs(
+        judgment_paths,
+        rubric_path,
+        text_plan_path,
+        authority_paths,
+    )
     replacement_for_panel_sha256 = None
     replacement_initial_path = None
     receipt_path = None
@@ -1062,10 +1187,14 @@ def main() -> None:
         type=Path,
         default=Path(__file__).with_name("rubric.json"),
     )
+    parser.add_argument("--story-manifest", type=Path, required=True)
+    parser.add_argument("--campaign", type=Path, required=True)
+    parser.add_argument("--realtime-campaign", type=Path, required=True)
+    parser.add_argument("--context", type=Path, required=True)
     parser.add_argument(
         "--replacement-for",
         type=Path,
-        help="Initial RERUN_REQUIRED aggregate replaced by this fresh panel",
+        help="Disabled legacy input; any use fails closed in realtime text protocol v2",
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -1073,6 +1202,12 @@ def main() -> None:
         args.judgments,
         args.rubric,
         args.text_plan,
+        {
+            "baseCampaign": args.campaign,
+            "context": args.context,
+            "realtimeCampaign": args.realtime_campaign,
+            "storyManifest": args.story_manifest,
+        },
         args.replacement_for,
         args.output,
     )

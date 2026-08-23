@@ -68,6 +68,7 @@ TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
 FullCampaignNativeE2E = NOT_IMPLEMENTED
 TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2
+TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 ScoreBearingCaptureAllowed = false
 DefaultMainScene = CommercialMain

@@ -180,9 +180,20 @@ def main() -> None:
             assert envelope["sourceBindings"][name] == (
                 "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
             )
+        expected_text_plan_hash = "sha256:" + hashlib.sha256(
+            builder.canonical_json_bytes({
+                "artifactSha256": envelope["artifactSha256"],
+                "sourceBindings": envelope["sourceBindings"],
+                "artifact": envelope["artifact"],
+            })
+        ).hexdigest()
+        assert envelope["textPlanSha256"] == expected_text_plan_hash
 
-        artifact_hash, allowed_refs = aggregate.load_text_plan(first_output)
-        assert artifact_hash == envelope["artifactSha256"]
+        text_plan_hash, allowed_refs = aggregate.load_text_plan(
+            first_output,
+            expected_sources,
+        )
+        assert text_plan_hash == envelope["textPlanSha256"]
         assert set(contract.EXPECTED_SELECTORS).issubset(allowed_refs)
         assert "context:runtimeAuthority" in allowed_refs
         assert "chapter:FIRST_LIGHT:realtimeSchedule" in allowed_refs
@@ -196,7 +207,7 @@ def main() -> None:
                 "judgeSlot": "SOL-ULTRA",
                 "model": "gpt-5.6-sol",
                 "reasoningEffort": "ultra",
-                "textPlanSha256": artifact_hash,
+                "textPlanSha256": text_plan_hash,
                 "promptTemplateSha256": prompt_sha,
                 "judgmentSchemaSha256": schema_sha,
                 "cells": [
@@ -224,6 +235,14 @@ def main() -> None:
             *(str(path) for path in judgment_paths),
             "--text-plan",
             str(first_output),
+            "--story-manifest",
+            str(manifest_path),
+            "--campaign",
+            str(campaign_path),
+            "--realtime-campaign",
+            str(realtime_path),
+            "--context",
+            str(context_path),
             "--rubric",
             str(TOOLS / "rubric.json"),
             "--output",
@@ -235,6 +254,29 @@ def main() -> None:
         assert aggregate_result["textPlanProxy"] == 85.0
         assert aggregate_result["commercialUXProxy"] is None
         assert aggregate_result["officialCommercialUX"] is False
+
+        replacement_rejected = run([
+            sys.executable,
+            str(TOOLS / "aggregate-text-plan.py"),
+            *(str(path) for path in judgment_paths),
+            "--text-plan",
+            str(first_output),
+            "--story-manifest",
+            str(manifest_path),
+            "--campaign",
+            str(campaign_path),
+            "--realtime-campaign",
+            str(realtime_path),
+            "--context",
+            str(context_path),
+            "--rubric",
+            str(TOOLS / "rubric.json"),
+            "--replacement-for",
+            str(aggregate_output),
+            "--output",
+            str(directory / "replacement-disabled.json"),
+        ], expect_success=False)
+        assert "replacement panels are disabled" in replacement_rejected.stderr
 
         base_manifest = copy.deepcopy(manifest)
         base_campaign = json.loads(campaign_path.read_text(encoding="utf-8"))
@@ -269,7 +311,9 @@ def main() -> None:
         assert ".selector mismatch" in rejected.stderr
 
         bad_schedule = copy.deepcopy(base_manifest)
-        bad_schedule["parts"][0]["realtimeSchedule"]["scheduledEventIds"] = ["POISON"]
+        bad_schedule["parts"][0]["realtimeSchedule"]["scheduledEvents"][0][
+            "startOffsetMinutes"
+        ] = 999999
         rejected = rejected_build(
             directory,
             "bad-manifest-schedule",
@@ -278,7 +322,7 @@ def main() -> None:
             realtime=base_realtime,
             context=base_context,
         )
-        assert ".realtimeSchedule mismatch" in rejected.stderr
+        assert ".startOffsetMinutes must be 240" in rejected.stderr
 
         bad_reachable = copy.deepcopy(base_manifest)
         bad_reachable["parts"][0]["authoredReachable"] = False
@@ -314,7 +358,25 @@ def main() -> None:
             realtime=bad_realtime,
             context=base_context,
         )
-        assert "scheduledEvents order" in rejected.stderr
+        assert ".eventId must be FIRST_LIGHT_SUPPLY" in rejected.stderr
+
+        for field, poisoned, expected in (
+            ("priority", 7, 0),
+            ("startOffsetMinutes", 999999, 240),
+            ("durationMinutes", -5, 60),
+            ("forecastLeadMinutes", -7, 240),
+        ):
+            bad_event_timing = copy.deepcopy(base_realtime)
+            bad_event_timing["chapters"][0]["scheduledEvents"][0][field] = poisoned
+            rejected = rejected_build(
+                directory,
+                f"bad-realtime-{field}",
+                manifest=base_manifest,
+                campaign=base_campaign,
+                realtime=bad_event_timing,
+                context=base_context,
+            )
+            assert f".{field} must be {expected}" in rejected.stderr
 
         optimistic_context = copy.deepcopy(base_context)
         optimistic_context["runtimeAuthority"]["fullCampaignNativeE2EStatus"] = "PASS"
@@ -347,13 +409,52 @@ def main() -> None:
         tampered_path = directory / "tampered-envelope.json"
         write_json(tampered_path, tampered_envelope)
         try:
-            aggregate.load_text_plan(tampered_path)
+            aggregate.load_text_plan(tampered_path, expected_sources)
         except SystemExit as exception:
             assert "artifact hash mismatch" in str(exception)
         else:
             raise AssertionError("tampered artifact unexpectedly passed aggregate validation")
 
-    print("Realtime commercial UX text-plan tools: PASS (34 parts, 9 mutations)")
+        tampered_binding = copy.deepcopy(envelope)
+        tampered_binding["sourceBindings"]["realtimeCampaign"] = "sha256:" + ("0" * 64)
+        tampered_binding["textPlanSha256"] = "sha256:" + hashlib.sha256(
+            builder.canonical_json_bytes({
+                "artifactSha256": tampered_binding["artifactSha256"],
+                "sourceBindings": tampered_binding["sourceBindings"],
+                "artifact": tampered_binding["artifact"],
+            })
+        ).hexdigest()
+        tampered_binding_path = directory / "tampered-source-binding.json"
+        write_json(tampered_binding_path, tampered_binding)
+        try:
+            aggregate.load_text_plan(tampered_binding_path, expected_sources)
+        except SystemExit as exception:
+            assert "source binding realtimeCampaign mismatch" in str(exception)
+        else:
+            raise AssertionError("tampered source binding unexpectedly passed validation")
+
+        forged_artifact = copy.deepcopy(envelope)
+        forged_artifact["artifact"]["premise"] += " poison"
+        forged_artifact["artifactSha256"] = "sha256:" + hashlib.sha256(
+            builder.canonical_json_bytes(forged_artifact["artifact"])
+        ).hexdigest()
+        forged_artifact["textPlanSha256"] = "sha256:" + hashlib.sha256(
+            builder.canonical_json_bytes({
+                "artifactSha256": forged_artifact["artifactSha256"],
+                "sourceBindings": forged_artifact["sourceBindings"],
+                "artifact": forged_artifact["artifact"],
+            })
+        ).hexdigest()
+        forged_artifact_path = directory / "forged-derived-artifact.json"
+        write_json(forged_artifact_path, forged_artifact)
+        try:
+            aggregate.load_text_plan(forged_artifact_path, expected_sources)
+        except SystemExit as exception:
+            assert "deterministic source-authority rebuild" in str(exception)
+        else:
+            raise AssertionError("forged derived artifact unexpectedly passed validation")
+
+    print("Realtime commercial UX text-plan tools: PASS (34 parts, 16 mutations)")
 
 
 if __name__ == "__main__":

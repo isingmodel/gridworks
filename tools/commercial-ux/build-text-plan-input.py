@@ -198,29 +198,11 @@ def validate_realtime_campaign(realtime: dict[str, Any]) -> None:
         label = f"realtime campaign.chapters[{index}]"
         if not isinstance(chapter, dict):
             fail(f"{label} must be an object")
-        if chapter.get("chapterId") != chapter_id:
-            fail(f"{label}.chapterId must be {chapter_id}")
         expected = contract.SCHEDULES[chapter_id]
-        if chapter.get("preparationMinutes") != expected.preparation_minutes:
-            fail(f"{label}.preparationMinutes does not match the frozen schedule")
-        if chapter.get("promiseDecisionDeadlineOffsetMinutes") != expected.promise_deadline:
-            fail(f"{label}.promiseDecisionDeadlineOffsetMinutes does not match the frozen schedule")
-        events = chapter.get("scheduledEvents")
-        if not isinstance(events, list):
-            fail(f"{label}.scheduledEvents must be an array")
-        event_ids: list[str] = []
-        for event_index, event in enumerate(events):
-            if not isinstance(event, dict):
-                fail(f"{label}.scheduledEvents[{event_index}] must be an object")
-            event_ids.append(checked(
-                lambda e=event, i=event_index: contract.nonempty(
-                    require_field(e, "eventId", f"{label}.scheduledEvents[{i}]"),
-                    f"{label}.scheduledEvents[{i}].eventId",
-                ),
-                label,
-            ))
-        if event_ids != list(expected.event_ids):
-            fail(f"{label}.scheduledEvents order does not match the frozen schedule")
+        checked(
+            lambda c=chapter, e=expected, l=label: contract.validate_schedule(c, e, l),
+            label,
+        )
 
 
 def validate_all(
@@ -274,12 +256,18 @@ def build_envelope(
         "chapters": context["chapters"],
         "storyParts": manifest["parts"],
     }
-    digest = sha256(canonical_json_bytes(artifact))
+    artifact_sha256 = sha256(canonical_json_bytes(artifact))
+    bound_payload = {
+        "artifactSha256": artifact_sha256,
+        "sourceBindings": {
+            name: sha256(raw) for name, raw in sorted(source_bytes.items())
+        },
+        "artifact": artifact,
+    }
     return {
         "schemaVersion": contract.ENVELOPE_SCHEMA,
-        "artifactSha256": digest,
-        "sourceBindings": {name: sha256(raw) for name, raw in sorted(source_bytes.items())},
-        "artifact": artifact,
+        "textPlanSha256": sha256(canonical_json_bytes(bound_payload)),
+        **bound_payload,
     }
 
 

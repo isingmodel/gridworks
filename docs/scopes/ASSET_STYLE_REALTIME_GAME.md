@@ -357,9 +357,15 @@ pointer/keyboard ownership과 Core 결과를 그대로 둔 채, FHD 작업 보�
 - source tree는 local `main`의 commit `cf5da56`에서 고정된
   `game/art/commercial/g3` tree
   `75b27b02580de2c60c50666497d9807ed0ff8b27`이다.
-- 각 생성 source, runtime hash, alpha 처리와 사용 경계는 같은 commit의
+- 각 생성 source, runtime hash, alpha 처리와 사용 경계의 역사적 기록은 같은 commit의
   `game/art/commercial/g3-assets.prompts.md`
-  (`e4cde08c90605e6144dbc18604dcbc939a597201`)가 소유한다.
+  (`e4cde08c90605e6144dbc18604dcbc939a597201`)가 소유한다. 이 ledger의 과거 V2 package
+  “29 PNG” 문구는 이 non-default R2 import의 선택 개수를 정하지 않는다.
+- 이 carve-out에서 실제로 허용하는 선택과 byte identity의 단일 권위는
+  `game/art/commercial/g3/a1-g3-allowlist.sha256`이다. 정확히 **35 PNG**만 허용하며,
+  파일별 SHA-256, pinned source bytes, 대응 `.png.import`와 `g3/**/*.png`의 전수 일치가
+  `tools/commercial-ux/test-g3-a1-asset-allowlist.py`에서 결정론적으로 검증된다. 즉 manifest에
+  없는 G3 PNG 하나라도 import tree에 있으면 검사는 실패한다.
 - root `assets/01`–`04`는 계속 스타일 reference일 뿐 runtime에 복사하지 않는다.
 - V2 `CommercialMain`, V2 world/data, `CommercialMapView`, 과거 HTML mockup과
   `game/assets/realtime/**` 후보는 이 carve-out의 source가 아니다.
@@ -380,13 +386,15 @@ pointer/keyboard ownership과 Core 결과를 그대로 둔 채, FHD 작업 보�
 - `game/art/commercial/g3/grid/{plant-main-hall-a,plant-smokestack-a,
   plant-turbine-hall-a,switchyard-breaker-bay-a,substation-transformer-a,
   pole-standard-a,pole-reinforced-a,bridge-foundation-a}.png`, 그리고 같은 경로의 `.import`
-- `game/art/commercial/g3-assets.prompts.md`, `ASSET_MANIFEST.md`
+- `game/art/commercial/g3-assets.prompts.md`,
+  `game/art/commercial/g3/a1-g3-allowlist.sha256`, `ASSET_MANIFEST.md`
 - `game/realtime/r2/RealtimePlaceholderMap.cs`,
   `game/realtime/r2/RealtimePlaceholderMap.Smoke.cs`,
   `game/realtime/ui/RealtimeUiLayoutHarness.cs`
 - `README.md`, `docs/README.md`, `docs/ROADMAP_2D.md`, `docs/ROADMAP_2D_CHECKLIST.md`,
   `docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md`,
   `docs/scopes/ASSET_STYLE_REALTIME_GAME.md`, `docs/scopes/COMMERCIAL_UX_87.md`
+- `tools/commercial-ux/test-g3-a1-asset-allowlist.py`
 
 `RealtimePlaceholderMap`은 R2 `IRealtimeWorldView`·hit testing·selection·draft·focus·accessibility의
 기존 owner다. 그 class 안의 rendering layer만 G3 asset-backed layer로 교체한다. `RealtimeSliceMain`,
@@ -396,7 +404,9 @@ evaluator는 수정하지 않는다. 새 art 생성, composite background, map p
 
 #### 종료 조건
 
-- resource load, asset allowlist/provenance와 G3 draw-layer presence를 deterministic smoke로 확인한다.
+- `python3 tools/commercial-ux/test-g3-a1-asset-allowlist.py`가 35개 asset의 SHA-256,
+  pinned `cf5da56` source bytes, ledger blob, 정확히 대응하는 `.import`, unlisted G3 PNG 0개를
+  확인하고, resource load와 G3 draw-layer presence를 deterministic smoke로 확인한다.
 - neutral/heat/rain weather material, terrain/road/city/grid draw layer, current R2 state cue와
   forecast/active risk pattern이 같은 typed presentation에서 함께 draw된다.
 - 기존 pointer hit owner, keyboard candidate, selection action, draft, map camera, ContextDock,

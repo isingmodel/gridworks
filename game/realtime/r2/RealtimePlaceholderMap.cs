@@ -913,19 +913,23 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 : edge.Commissioned ? StateColor(status?.State) : Planned;
             float width = (selected || highlighted.Contains(edge.EdgeId) ? 5f : 2.5f) *
                 _accessibilityScale;
-            Vector2 fromAnchor = G3ConductorAnchor(presentation, from);
-            Vector2 toAnchor = G3ConductorAnchor(presentation, to);
-            DrawG3ConductorSpan(fromAnchor, toAnchor, color, width);
+            // The existing map resolver owns edge hover/selection at these exact
+            // ground endpoints. Keep the decorative three-phase span on that same
+            // geometry so its visible wire, candidate badge, and action target do
+            // not diverge; the equipment layer drawn afterward masks each end.
+            Vector2 fromPoint = Point(from.Position);
+            Vector2 toPoint = Point(to.Position);
+            DrawG3ConductorSpan(fromPoint, toPoint, color, width);
             if (!edge.Commissioned)
             {
-                DrawDashedLine(fromAnchor, toAnchor, Planned);
+                DrawDashedLine(fromPoint, toPoint, Planned);
             }
             else
             {
                 DrawEdgeStateCue(
                     edge.EdgeId,
-                    fromAnchor,
-                    toAnchor,
+                    fromPoint,
+                    toPoint,
                     status?.State);
             }
         }
@@ -1009,28 +1013,6 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 true);
             DrawPolyline(strand, color with { A = 0.96f }, conductorWidth, true);
         }
-    }
-
-    private Vector2 G3ConductorAnchor(
-        RealtimeWorldPresentation presentation,
-        SpatialNodeDefinition node)
-    {
-        SpatialNodeKind kind = presentation.World.NodeClasses.Single(item => string.Equals(
-            item.ClassId,
-            node.ClassId,
-            StringComparison.Ordinal)).Kind;
-        float liftWorld = node.AuthoredFoundation
-            ? 150f
-            : kind switch
-            {
-                SpatialNodeKind.SourceTerminal => 205f,
-                SpatialNodeKind.Substation => 150f,
-                SpatialNodeKind.Pole when node.ClassId == "STANDARD_POLE" => 145f,
-                SpatialNodeKind.Pole => 165f,
-                SpatialNodeKind.DedicatedLoadTerminal => 95f,
-                _ => 0f,
-            };
-        return Point(node.Position) - Vector2.Up * WorldPixels(liftWorld);
     }
 
     private void DrawG3NodeEquipment(

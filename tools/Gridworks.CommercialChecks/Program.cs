@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Security.Cryptography;
 using Gridworks.Core.Release.V2;
+using Gridworks.Core.Release.V3;
 
 namespace Gridworks.CommercialChecks;
 
@@ -12,6 +13,10 @@ internal static class Program
     {
         try
         {
+            if (args.Length > 0 && args[0] is "--story-manifest" or "--story-part")
+            {
+                return RunStoryCommand(args);
+            }
             (string spatialPath, string worldPath, string coreSlicePath, string campaignPath) =
                 ResolveFixturePaths(args);
             return new CommercialChecks(
@@ -26,6 +31,212 @@ internal static class Program
             Console.Error.WriteLine(exception);
             return 1;
         }
+    }
+
+    internal static CommercialStoryPartHarness LoadCurrentStoryHarness()
+    {
+        string dataDirectory = ResolveCurrentDataDirectory();
+        byte[] baseWorldBytes = File.ReadAllBytes(
+            Path.Combine(dataDirectory, "release-world-v2.json"));
+        byte[] baseCampaignBytes = File.ReadAllBytes(
+            Path.Combine(dataDirectory, "release-campaign-v2.json"));
+        byte[] realtimeWorldBytes = File.ReadAllBytes(
+            Path.Combine(dataDirectory, "release-world-v3.json"));
+        byte[] realtimeCampaignOverlayBytes = File.ReadAllBytes(
+            Path.Combine(dataDirectory, "release-campaign-v3.json"));
+        CommercialWorldDefinition baseWorld = CommercialWorldLoader.Load(baseWorldBytes);
+        CommercialCampaignDefinition baseCampaign = CommercialCampaignLoader.Load(
+            baseCampaignBytes,
+            baseWorld);
+        RealtimeWorldDefinition realtimeWorld = RealtimeWorldLoader.Load(
+            realtimeWorldBytes,
+            baseWorld);
+        byte[] realtimeCampaignBytes = ComposeRealtimeCampaignLoaderInput(
+            baseCampaignBytes,
+            realtimeCampaignOverlayBytes);
+        RealtimeCampaignDefinition realtimeCampaign = RealtimeCampaignLoader.Load(
+            realtimeCampaignBytes,
+            baseCampaign,
+            realtimeWorld);
+        return new CommercialStoryPartHarness(baseCampaign, realtimeCampaign);
+    }
+
+    private static byte[] ComposeRealtimeCampaignLoaderInput(
+        byte[] baseCampaignBytes,
+        byte[] realtimeCampaignOverlayBytes)
+    {
+        JsonObject baseRoot = JsonNode.Parse(baseCampaignBytes)?.AsObject() ??
+            throw new InvalidDataException("Release V2 campaign must be a JSON object.");
+        JsonObject realtimeRoot = JsonNode.Parse(realtimeCampaignOverlayBytes)?.AsObject() ??
+            throw new InvalidDataException("Release V3 campaign must be a JSON object.");
+        RequireExactKeys(
+            realtimeRoot,
+            ["schemaVersion", "campaignId", "chapters"],
+            "Release V3 campaign overlay");
+        realtimeRoot["initialSeed"] = baseRoot["initialSeed"]?.DeepClone() ??
+            throw new InvalidDataException("Release V2 campaign initialSeed is missing.");
+
+        IReadOnlyDictionary<string, JsonObject> baseChapters =
+            baseRoot["chapters"]?.AsArray()
+                .Select(item => item?.AsObject() ??
+                    throw new InvalidDataException("Release V2 campaign chapter is invalid."))
+                .ToDictionary(
+                    chapter => chapter["chapterId"]?.GetValue<string>() ??
+                        throw new InvalidDataException(
+                            "Release V2 campaign chapterId is missing."),
+                    StringComparer.Ordinal) ??
+            throw new InvalidDataException("Release V2 campaign chapters are missing.");
+
+        foreach (JsonNode? chapterNode in realtimeRoot["chapters"]?.AsArray() ??
+                 throw new InvalidDataException("Release V3 campaign chapters are missing."))
+        {
+            JsonObject chapter = chapterNode?.AsObject() ??
+                throw new InvalidDataException("Release V3 campaign chapter is invalid.");
+            RequireExactKeys(
+                chapter,
+                [
+                    "chapterId",
+                    "preparationMinutes",
+                    "promiseDecisionDeadlineOffsetMinutes",
+                    "scheduledEvents",
+                ],
+                "Release V3 campaign chapter overlay");
+            string chapterId = chapter["chapterId"]?.GetValue<string>() ??
+                throw new InvalidDataException("Release V3 campaign chapterId is missing.");
+            if (!baseChapters.TryGetValue(chapterId, out JsonObject? baseChapter))
+            {
+                throw new InvalidDataException(
+                    $"Release V3 campaign references unknown chapter '{chapterId}'.");
+            }
+            IReadOnlyDictionary<string, JsonObject> phases =
+                baseChapter["operatingPhases"]?.AsArray()
+                    .Select(item => item?.AsObject() ??
+                        throw new InvalidDataException(
+                            $"Release V2 chapter '{chapterId}' phase is invalid."))
+                    .ToDictionary(
+                        phase => phase["phaseId"]?.GetValue<string>() ??
+                            throw new InvalidDataException(
+                                $"Release V2 chapter '{chapterId}' phaseId is missing."),
+                        StringComparer.Ordinal) ??
+                throw new InvalidDataException(
+                    $"Release V2 chapter '{chapterId}' operating phases are missing.");
+
+            foreach (JsonNode? eventNode in chapter["scheduledEvents"]?.AsArray() ??
+                     throw new InvalidDataException(
+                         $"Release V3 chapter '{chapterId}' events are missing."))
+            {
+                JsonObject scheduledEvent = eventNode?.AsObject() ??
+                    throw new InvalidDataException(
+                        $"Release V3 chapter '{chapterId}' event is invalid.");
+                RequireExactKeys(
+                    scheduledEvent,
+                    [
+                        "eventId",
+                        "priority",
+                        "startOffsetMinutes",
+                        "durationMinutes",
+                        "forecastLeadMinutes",
+                    ],
+                    $"Release V3 chapter '{chapterId}' event overlay");
+                string eventId = scheduledEvent["eventId"]?.GetValue<string>() ??
+                    throw new InvalidDataException(
+                        $"Release V3 chapter '{chapterId}' eventId is missing.");
+                if (!phases.TryGetValue(eventId, out JsonObject? phase))
+                {
+                    throw new InvalidDataException(
+                        $"Release V3 event '{eventId}' has no authored V2 operating phase.");
+                }
+                foreach (string field in new[]
+                         {
+                             "displayName",
+                             "thermalPolicy",
+                             "loads",
+                             "unavailableNodeIds",
+                             "unavailableEdgeIds",
+                             "activeRiskAreaIds",
+                             "thermalLimitOverrides",
+                         })
+                {
+                    scheduledEvent[field] = phase[field]?.DeepClone() ??
+                        throw new InvalidDataException(
+                            $"Release V2 phase '{eventId}' field '{field}' is missing.");
+                }
+            }
+        }
+        return Encoding.UTF8.GetBytes(realtimeRoot.ToJsonString());
+    }
+
+    private static void RequireExactKeys(
+        JsonObject value,
+        IReadOnlyList<string> expected,
+        string label)
+    {
+        if (!value.Select(item => item.Key).ToHashSet(StringComparer.Ordinal)
+                .SetEquals(expected))
+        {
+            throw new InvalidDataException($"{label} fields drifted.");
+        }
+    }
+
+    private static int RunStoryCommand(string[] args)
+    {
+        if (args[0] == "--story-manifest" && args.Length != 1 ||
+            args[0] == "--story-part" && args.Length != 2)
+        {
+            throw new ArgumentException(
+                "usage: Gridworks.CommercialChecks --story-manifest | " +
+                "--story-part SELECTOR");
+        }
+
+        CommercialStoryPartHarness harness = LoadCurrentStoryHarness();
+        try
+        {
+            byte[] output = args[0] == "--story-manifest"
+                ? harness.SerializeManifest()
+                : harness.Serialize(harness.Select(args[1]));
+            WriteJsonLine(Console.OpenStandardOutput(), output);
+            return 0;
+        }
+        catch (CommercialStoryPartSelectionException exception)
+        {
+            WriteJsonLine(
+                Console.OpenStandardError(),
+                CommercialStoryPartHarness.SerializeError(exception));
+            return 2;
+        }
+    }
+
+    private static void WriteJsonLine(Stream stream, byte[] bytes)
+    {
+        stream.Write(bytes);
+        stream.WriteByte((byte)'\n');
+        stream.Flush();
+    }
+
+    private static string ResolveCurrentDataDirectory()
+    {
+        foreach (string start in new[]
+                 {
+                     Environment.CurrentDirectory,
+                     AppContext.BaseDirectory,
+                 })
+        {
+            DirectoryInfo? directory = new(Path.GetFullPath(start));
+            while (directory is not null)
+            {
+                string candidate = Path.Combine(directory.FullName, "data");
+                if (File.Exists(Path.Combine(candidate, "release-world-v2.json")) &&
+                    File.Exists(Path.Combine(candidate, "release-campaign-v2.json")) &&
+                    File.Exists(Path.Combine(candidate, "release-world-v3.json")) &&
+                    File.Exists(Path.Combine(candidate, "release-campaign-v3.json")))
+                {
+                    return candidate;
+                }
+                directory = directory.Parent;
+            }
+        }
+        throw new DirectoryNotFoundException(
+            "Current release V2/V3 data directory was not found.");
     }
 
     private static (
@@ -157,6 +368,7 @@ internal sealed class CommercialChecks
             ("commercial-core-save-v3", CheckCommercialCoreSaveV3),
             ("commercial-service-radius", CheckCommercialServiceRadius),
             ("strict-commercial-campaign-loader", CheckStrictCommercialCampaignLoader),
+            ("realtime-authored-story-manifest", CheckRealtimeAuthoredStoryManifest),
             ("commercial-campaign-canonical-four-run", CheckCommercialCampaignCanonicalRun),
             ("commercial-campaign-archetypes-recovery", CheckCommercialCampaignArchetypesAndRecovery),
             ("commercial-campaign-rewind-replay", CheckCommercialCampaignRewindAndReplay),
@@ -1641,6 +1853,371 @@ internal sealed class CommercialChecks
                 Object(JsonArrayProperty(root, "chapters")[7]!),
                 "operatingPhases")[2]!), "activeRiskAreaIds").Clear());
     }
+
+    private void CheckRealtimeAuthoredStoryManifest()
+    {
+        CommercialStoryPartHarness harness = Program.LoadCurrentStoryHarness();
+        string[] expectedSelectors =
+        [
+            "FIRST_LIGHT/briefing",
+            "FIRST_LIGHT/result/standard",
+            "SECOND_HEART/briefing",
+            "SECOND_HEART/result/standard",
+            "SECOND_SOURCE/briefing",
+            "SECOND_SOURCE/result/standard",
+            "NORTH_BANK_PROMISE/briefing",
+            "NORTH_BANK_PROMISE/window/NORTH_BANK_PLANNING_WINDOW",
+            "NORTH_BANK_PROMISE/result/keep",
+            "NORTH_BANK_PROMISE/result/defer",
+            "WHOSE_MARGIN/briefing",
+            "WHOSE_MARGIN/window/HOT_EVENING_PLANNING_WINDOW",
+            "WHOSE_MARGIN/window/LATE_NIGHT_RECOVERY_WINDOW",
+            "WHOSE_MARGIN/result/keep",
+            "WHOSE_MARGIN/result/defer",
+            "BEFORE_WATER_RISE/briefing",
+            "BEFORE_WATER_RISE/window/BEFORE_FLOOD_WINDOW",
+            "BEFORE_WATER_RISE/result/keep",
+            "BEFORE_WATER_RISE/result/defer",
+            "SWITCH_OFF_TO_PROTECT/briefing",
+            "SWITCH_OFF_TO_PROTECT/window/BEFORE_PLANNED_OUTAGE_WINDOW",
+            "SWITCH_OFF_TO_PROTECT/result/standard",
+            "LONGEST_NIGHT/briefing",
+            "LONGEST_NIGHT/window/FINAL_OPERATING_PLAN_WINDOW",
+            "LONGEST_NIGHT/result/standard",
+            "campaign/epilogue/card/city-report",
+            "campaign/epilogue/card/medical-witness",
+            "campaign/epilogue/card/closing",
+            "campaign/epilogue/promise/NORTH_BANK_PROMISE/keep",
+            "campaign/epilogue/promise/NORTH_BANK_PROMISE/defer",
+            "campaign/epilogue/promise/WHOSE_MARGIN/keep",
+            "campaign/epilogue/promise/WHOSE_MARGIN/defer",
+            "campaign/epilogue/promise/BEFORE_WATER_RISE/keep",
+            "campaign/epilogue/promise/BEFORE_WATER_RISE/defer",
+        ];
+
+        Equal(
+            "gridworks.release.campaign.v2",
+            harness.Campaign.SchemaVersion,
+            "story authored-content schema");
+        Equal(
+            "gridworks.realtime.campaign.v3",
+            harness.RealtimeCampaign.SchemaVersion,
+            "story realtime-schedule schema");
+        Equal(8, harness.RealtimeCampaign.Chapters.Count,
+            "story realtime chapter schedule count");
+        Equal(34, harness.Parts.Count, "authored narrative atom count");
+        Equal(
+            28,
+            harness.Parts.Count(part => part.Content is CommercialStoryCardContent),
+            "authored story-card atom count");
+        Equal(
+            6,
+            harness.Parts.Count(part => part.Content is CommercialPromiseLineContent),
+            "authored promise-line branch atom count");
+        SequenceEqual(
+            expectedSelectors,
+            harness.Parts.Select(part => part.Selector).ToArray(),
+            "authored narrative selector topology");
+
+        byte[] firstManifest = harness.SerializeManifest();
+        byte[] secondManifest = harness.SerializeManifest();
+        SequenceEqual(firstManifest, secondManifest,
+            "story manifest repeated raw serialization");
+        using JsonDocument manifestDocument = JsonDocument.Parse(firstManifest);
+        JsonElement manifest = manifestDocument.RootElement;
+        Equal(6, manifest.EnumerateObject().Count(),
+            "story manifest exact root field count");
+        Equal(CommercialStoryPartHarness.ManifestSchemaVersion,
+            manifest.GetProperty("schemaVersion").GetString(),
+            "story manifest schema");
+        Equal(harness.Campaign.CampaignId,
+            manifest.GetProperty("campaignId").GetString(),
+            "story manifest campaign identity");
+        Equal(harness.Campaign.SchemaVersion,
+            manifest.GetProperty("baseCampaignSchemaVersion").GetString(),
+            "story manifest base campaign schema binding");
+        Equal(harness.RealtimeCampaign.SchemaVersion,
+            manifest.GetProperty("realtimeCampaignSchemaVersion").GetString(),
+            "story manifest realtime campaign schema binding");
+        Equal(34, manifest.GetProperty("count").GetInt32(),
+            "story manifest JSON atom count");
+        Equal(34, manifest.GetProperty("parts").GetArrayLength(),
+            "story manifest JSON part count");
+
+        IReadOnlyDictionary<string, RealtimeChapterDefinition> schedules =
+            harness.RealtimeCampaign.Chapters.ToDictionary(
+                chapter => chapter.Content.ChapterId,
+                StringComparer.Ordinal);
+        foreach (string selector in expectedSelectors)
+        {
+            CommercialStoryPart part = harness.Select(selector);
+            Equal(selector, part.Selector, $"selected story identity {selector}");
+            byte[] firstPart = harness.Serialize(part);
+            byte[] secondPart = harness.Serialize(harness.Select(selector));
+            SequenceEqual(
+                firstPart,
+                secondPart,
+                $"selected story repeated serialization {selector}");
+            CheckSerializedStoryPartContract(part, firstPart);
+            if (part.ChapterId is null)
+            {
+                Check(part.RealtimeSchedule is null,
+                    $"chapterless epilogue card gained a schedule: {selector}");
+            }
+            else
+            {
+                RealtimeChapterDefinition expectedSchedule = schedules[part.ChapterId];
+                Check(part.RealtimeSchedule is not null,
+                    $"chapter-owned story lacks schedule: {selector}");
+                Equal(expectedSchedule.Content.ChapterId,
+                    part.RealtimeSchedule!.ChapterId,
+                    $"story schedule chapter {selector}");
+                Equal(expectedSchedule.PreparationMinutes,
+                    part.RealtimeSchedule.PreparationMinutes,
+                    $"story preparation minutes {selector}");
+                Equal(expectedSchedule.PromiseDecisionDeadlineOffsetMinutes,
+                    part.RealtimeSchedule.PromiseDecisionDeadlineOffsetMinutes,
+                    $"story promise deadline {selector}");
+                SequenceEqual(
+                    expectedSchedule.ScheduledEvents.Select(item => item.EventId).ToArray(),
+                    part.RealtimeSchedule.ScheduledEventIds,
+                    $"story ordered realtime events {selector}");
+            }
+        }
+
+        ExpectStorySelectionFailure(
+            harness,
+            "FIRST_LIGHT//briefing",
+            CommercialStoryPartErrorCode.InvalidSelector,
+            "malformed story selector");
+        ExpectStorySelectionFailure(
+            harness,
+            "UNKNOWN_CHAPTER/briefing",
+            CommercialStoryPartErrorCode.UnknownChapter,
+            "unknown story chapter");
+        ExpectStorySelectionFailure(
+            harness,
+            "FIRST_LIGHT/result/keep",
+            CommercialStoryPartErrorCode.UnreachableStoryPart,
+            "unreachable authored story branch");
+    }
+
+    private void CheckSerializedStoryPartContract(
+        CommercialStoryPart part,
+        byte[] serialized)
+    {
+        using JsonDocument document = JsonDocument.Parse(serialized);
+        JsonElement root = document.RootElement;
+        SequenceEqual(
+            new[]
+            {
+                "schemaVersion",
+                "campaignId",
+                "selector",
+                "kind",
+                "chapterId",
+                "windowId",
+                "authoredReachable",
+                "requiredPromiseBranch",
+                "realtimeSchedule",
+                "content",
+            },
+            root.EnumerateObject().Select(property => property.Name).ToArray(),
+            $"story part exact root fields {part.Selector}");
+        Equal(CommercialStoryPartHarness.OutputSchemaVersion,
+            root.GetProperty("schemaVersion").GetString(),
+            $"story part schema {part.Selector}");
+        Equal(part.CampaignId,
+            root.GetProperty("campaignId").GetString(),
+            $"story part campaign {part.Selector}");
+        Equal(part.Selector,
+            root.GetProperty("selector").GetString(),
+            $"story part selector {part.Selector}");
+        Equal(StoryKindText(part.Kind),
+            root.GetProperty("kind").GetString(),
+            $"story part kind {part.Selector}");
+        CheckNullableJsonString(
+            root.GetProperty("chapterId"),
+            part.ChapterId,
+            $"story part chapter {part.Selector}");
+        CheckNullableJsonString(
+            root.GetProperty("windowId"),
+            part.WindowId,
+            $"story part window {part.Selector}");
+        Check(root.GetProperty("authoredReachable").GetBoolean(),
+            $"authored content must be reachable {part.Selector}");
+        CheckNullableJsonString(
+            root.GetProperty("requiredPromiseBranch"),
+            StoryPromiseBranchText(part.RequiredPromiseBranch),
+            $"story part promise branch {part.Selector}");
+
+        JsonElement schedule = root.GetProperty("realtimeSchedule");
+        if (part.RealtimeSchedule is null)
+        {
+            Equal(JsonValueKind.Null, schedule.ValueKind,
+                $"story part null schedule {part.Selector}");
+        }
+        else
+        {
+            SequenceEqual(
+                new[]
+                {
+                    "chapterId",
+                    "preparationMinutes",
+                    "promiseDecisionDeadlineOffsetMinutes",
+                    "scheduledEventIds",
+                },
+                schedule.EnumerateObject().Select(property => property.Name).ToArray(),
+                $"story part exact schedule fields {part.Selector}");
+            Equal(part.RealtimeSchedule.ChapterId,
+                schedule.GetProperty("chapterId").GetString(),
+                $"serialized story schedule chapter {part.Selector}");
+            Equal(part.RealtimeSchedule.PreparationMinutes,
+                schedule.GetProperty("preparationMinutes").GetInt32(),
+                $"serialized story preparation minutes {part.Selector}");
+            JsonElement deadline =
+                schedule.GetProperty("promiseDecisionDeadlineOffsetMinutes");
+            if (part.RealtimeSchedule.PromiseDecisionDeadlineOffsetMinutes is int value)
+            {
+                Equal(value, deadline.GetInt32(),
+                    $"serialized story deadline {part.Selector}");
+            }
+            else
+            {
+                Equal(JsonValueKind.Null, deadline.ValueKind,
+                    $"serialized story null deadline {part.Selector}");
+            }
+            SequenceEqual(
+                part.RealtimeSchedule.ScheduledEventIds,
+                schedule.GetProperty("scheduledEventIds")
+                    .EnumerateArray()
+                    .Select(item => item.GetString()!)
+                    .ToArray(),
+                $"serialized story ordered events {part.Selector}");
+        }
+
+        JsonElement content = root.GetProperty("content");
+        switch (part.Content)
+        {
+            case CommercialStoryCardContent story:
+                SequenceEqual(
+                    new[] { "contentType", "speaker", "title", "body" },
+                    content.EnumerateObject().Select(property => property.Name).ToArray(),
+                    $"story-card exact content fields {part.Selector}");
+                Equal("story-card", content.GetProperty("contentType").GetString(),
+                    $"story-card content type {part.Selector}");
+                Equal(story.Card.Speaker, content.GetProperty("speaker").GetString(),
+                    $"story-card speaker {part.Selector}");
+                Equal(story.Card.Title, content.GetProperty("title").GetString(),
+                    $"story-card title {part.Selector}");
+                Equal(story.Card.Body, content.GetProperty("body").GetString(),
+                    $"story-card body {part.Selector}");
+                break;
+            case CommercialPromiseLineContent promise:
+                SequenceEqual(
+                    new[] { "contentType", "promiseId", "branch", "text" },
+                    content.EnumerateObject().Select(property => property.Name).ToArray(),
+                    $"promise-line exact content fields {part.Selector}");
+                Equal("promise-line", content.GetProperty("contentType").GetString(),
+                    $"promise-line content type {part.Selector}");
+                Equal(part.PromiseId, content.GetProperty("promiseId").GetString(),
+                    $"promise-line promise identity {part.Selector}");
+                Equal(StoryPromiseBranchText(part.RequiredPromiseBranch),
+                    content.GetProperty("branch").GetString(),
+                    $"promise-line branch {part.Selector}");
+                Equal(promise.Text, content.GetProperty("text").GetString(),
+                    $"promise-line text {part.Selector}");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(part));
+        }
+    }
+
+    private void CheckNullableJsonString(
+        JsonElement element,
+        string? expected,
+        string label)
+    {
+        if (expected is null)
+        {
+            Equal(JsonValueKind.Null, element.ValueKind, label);
+        }
+        else
+        {
+            Equal(JsonValueKind.String, element.ValueKind, $"{label} kind");
+            Equal(expected, element.GetString(), label);
+        }
+    }
+
+    private static string StoryKindText(CommercialStoryPartKind kind) => kind switch
+    {
+        CommercialStoryPartKind.Briefing => "briefing",
+        CommercialStoryPartKind.Window => "window",
+        CommercialStoryPartKind.Result => "result",
+        CommercialStoryPartKind.EpilogueCard => "epilogue-card",
+        CommercialStoryPartKind.EpiloguePromiseLine => "epilogue-promise-line",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+    };
+
+    private static string? StoryPromiseBranchText(
+        CommercialPromiseDecision? branch) => branch switch
+    {
+        null => null,
+        CommercialPromiseDecision.Keep => "keep",
+        CommercialPromiseDecision.Defer => "defer",
+        _ => throw new ArgumentOutOfRangeException(nameof(branch)),
+    };
+
+    private void ExpectStorySelectionFailure(
+        CommercialStoryPartHarness harness,
+        string selector,
+        CommercialStoryPartErrorCode expected,
+        string label)
+    {
+        try
+        {
+            _ = harness.Select(selector);
+        }
+        catch (CommercialStoryPartSelectionException exception)
+        {
+            Equal(expected, exception.ErrorCode, $"{label} error code");
+            byte[] first = CommercialStoryPartHarness.SerializeError(exception);
+            byte[] second = CommercialStoryPartHarness.SerializeError(exception);
+            SequenceEqual(first, second, $"{label} deterministic error JSON");
+            using JsonDocument document = JsonDocument.Parse(first);
+            SequenceEqual(
+                new[] { "schemaVersion", "selector", "errorCode", "message" },
+                document.RootElement.EnumerateObject()
+                    .Select(property => property.Name)
+                    .ToArray(),
+                $"{label} exact error fields");
+            Equal(CommercialStoryPartHarness.ErrorSchemaVersion,
+                document.RootElement.GetProperty("schemaVersion").GetString(),
+                $"{label} error schema");
+            Equal(selector,
+                document.RootElement.GetProperty("selector").GetString(),
+                $"{label} error selector");
+            Equal(StoryErrorCodeText(expected),
+                document.RootElement.GetProperty("errorCode").GetString(),
+                $"{label} serialized error code");
+            Equal(exception.Message,
+                document.RootElement.GetProperty("message").GetString(),
+                $"{label} serialized error message");
+            return;
+        }
+        throw new InvalidOperationException(
+            $"{label}: expected CommercialStoryPartSelectionException");
+    }
+
+    private static string StoryErrorCodeText(
+        CommercialStoryPartErrorCode errorCode) => errorCode switch
+    {
+        CommercialStoryPartErrorCode.InvalidSelector => "INVALID_SELECTOR",
+        CommercialStoryPartErrorCode.UnknownChapter => "UNKNOWN_CHAPTER",
+        CommercialStoryPartErrorCode.UnreachableStoryPart =>
+            "UNREACHABLE_STORY_PART",
+        _ => throw new ArgumentOutOfRangeException(nameof(errorCode)),
+    };
 
     private void CheckCommercialCampaignCanonicalRun()
     {

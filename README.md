@@ -25,9 +25,15 @@
 [에셋 스타일 실시간 게임 계약](docs/scopes/ASSET_STYLE_REALTIME_GAME.md), 표현 기준은
 [비주얼 제작 명세](docs/product/VISUAL_PRODUCTION_SPEC.md)가 소유한다.
 
+현재 사용자 승인 작업은 이 실시간 방향 위에서 **판매 가능한 게임 경험을 평가·개선해 고정
+`gpt-5.6-sol`/`ultra`의 공식 `CommercialUXProxy >= 87`을 만드는 것**이다. 단일 활성 범위는
+[실시간 상용 UX 87 계약](docs/scopes/COMMERCIAL_UX_87.md), 점수 절차는
+[평가 프로토콜](docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)이 소유한다.
+
 ## 현재 상태와 권한
 
-이번 변경은 **목표와 문서 기준선만 전환**한다. 런타임 아트 구현 단계는 아직 열지 않았다.
+제품의 Release.V3/R2 실시간 방향은 유지한다. 현재는 UX-R0 평가 계약과 텍스트 기준선만 열려 있고,
+runtime art A1과 native evaluator·전체 캠페인 구현은 아직 열지 않았다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -36,24 +42,38 @@
 - R2 마지막 전체 harness: 사용자 지시로 중단, 종료 PASS 아님
 - 새 목표 문서 기준선: `A0` 완료
 - A1 전 구조 준비: build authority 격리, renderer-neutral world seam, 두 DEBUG checkpoint 완료
-- 활성 코드·아트 gate: 없음
-- 다음 후보: `A1 일반 운전 아트 vertical slice`, 사용자 승인 전 미개방
+- UX-R0: V2 authored content와 V3 실시간 일정에 결속한 34-part story 단독 실행·text judge 도구
+- future-event status bar: R2 `RealtimeEventRail` 존재, 실제 플레이 품질은 아직 미관찰
+- 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
+- 활성 평가 gate: `UX-R0_REALTIME_TEXT_BASELINE`
+- 활성 제품 아트 gate: 없음, A1 미개방
+- native capture: 현재 Mac 잠금으로 대기
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 GoalDirection = ACTIVE
+ActiveScope = COMMERCIAL_UX_87_REALTIME
+ActiveEvaluationGate = UX_R0_REALTIME_TEXT_BASELINE
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ActiveImplementationGate = NONE
+ProductArtImplementationGate = NONE
 NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
+RealtimeRuleAuthority = RELEASE_V3
+RealtimeUxAuthority = R2_FIRST_LIGHT_TARGETED_SLICE
+FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_PRESENT_NATIVE_QUALITY_NOT_OBSERVED
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
+FullCampaignNativeE2E = NOT_IMPLEMENTED
+TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2
+CommercialUXProxy = null
+ScoreBearingCaptureAllowed = false
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2RealtimeUx = PRESERVED_GATE_NOT_COMPLETED
+NativeCapture = BLOCKED_MAC_LOCKED
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 PublicReleaseStatus = NOT_AUTHORIZED
@@ -82,7 +102,9 @@ assets/                              현재 시각 방향을 고정하는 네 �
 docs/
   README.md                          현재 문서 지도와 질문별 소유권
   scopes/ASSET_STYLE_REALTIME_GAME.md 현재 전체 목표·단계·권한 계약
+  scopes/COMMERCIAL_UX_87.md         현재 단일 UX 평가·개선 scope
   product/                           현재 게임·오브젝트·비주얼 기준
+  product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md 고정 judge·점수·증거 계약
   ROADMAP_2D.md                      새 목표의 단계 순서
   ROADMAP_2D_CHECKLIST.md            현재 상태와 종료 증거 장부
   archive/                           완료·중단된 과거의 압축 기록
@@ -108,6 +130,8 @@ tools/                               결정론적 자동검사
   기록한다.
 - 라이브 검증은 처음부터 재생하지 않고 이름 붙은 결정론적 checkpoint에서 필요한 구간만 실행하는
   것을 기본으로 한다. checkpoint는 실제 controller·presentation·input·render 경로를 우회하지 않는다.
+- future-event status bar는 현재 시각·다음 사건 countdown·시작/종료·공사 완료·결정 기한·열 보호 경계를
+  한 시간축에서 보여 주며, 코드 존재가 아니라 실제 가시성·조작·이해로 판정한다.
 - 처음부터 실행하는 E2E는 onboarding, save/migration, 누적 상태, default scene·package와 전체
   campaign처럼 앞선 경로 자체가 검증 대상일 때만 사용한다.
 - 과거 후보의 PASS를 새 목표의 아트·native·사람 증거로 합산하지 않는다.
@@ -152,6 +176,15 @@ Core 회귀도 exact suite 하나만 선택할 수 있다.
 ```sh
 dotnet run --project tools/Gridworks.RealtimeChecks -c Release -- \
   --suite frame-speed-canonical-hash
+```
+
+작성된 스토리 파트 하나만 실행하거나 전체 34-part manifest를 검사할 수 있다.
+
+```sh
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- \
+  --story-part FIRST_LIGHT/briefing
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-manifest
+python3 tools/commercial-ux/test-realtime-text-plan-tools.py
 ```
 
 설치·저장·내부 후보 경계는 [INSTALL](INSTALL.md)을 따른다.

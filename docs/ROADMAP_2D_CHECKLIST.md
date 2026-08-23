@@ -1,11 +1,12 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **A0+A0.1 완료 · 활성 구현 gate 없음**
-> 다음 후보: **A1 미개방**
+> 현재 상태: **A0+A0.1 완료 · UX-R0 실시간 텍스트 기준선 활성**
+> 제품 아트: **A1 미개방**
 
-이 문서는 단계 상태와 증거 상한만 기록한다. 기능과 시각 규격은
-[현재 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)과 [로드맵](ROADMAP_2D.md)이 소유한다.
+이 문서는 단계 상태와 증거 상한만 기록한다. 제품 기능과 시각 규격은
+[제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)과 [로드맵](ROADMAP_2D.md), 현재 평가 작업은
+[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md)가 소유한다.
 
 ## 진행 장부
 
@@ -13,6 +14,7 @@
 |---|---|---|---|---|---|
 | A0 목표·문서 기준선 | **완료** | 네 reference hash, 스타일 DNA, R1/R2 보존, 문서 압축 | 문서·링크·경계 검사 | 해당 없음 | 이 문서 변경 커밋 |
 | A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
+| UX-R0 실시간 텍스트 기준선 | **활성** | V2 authored content+V3 일정, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·text mutation PASS | text judge 미실행 | 3 fresh judge+독립 review 필요 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -52,6 +54,21 @@
 두 구간의 고정 identity는 [현재 목표 계약 §8.3](scopes/ASSET_STYLE_REALTIME_GAME.md#83-표준-checkpoint-후보)가
 소유한다. 이 결과는 A1 art·native capture·사람 검토나 R2 종료 PASS로 확대하지 않는다.
 
+## UX-R0 실시간 텍스트 기준선
+
+- [x] `origin/main`의 Release.V3/R2 실시간 방향을 제품 권위로 사용
+- [x] judge identity를 `gpt-5.6-sol` / `ultra` / `SOL-ULTRA`로 고정
+- [x] 8장·16 event와 34 authored narrative atom을 exact manifest로 결속
+- [x] `--story-part <selector>` 단독 실행과 invalid/unreachable typed failure
+- [x] authored reachability와 native reachability를 분리
+- [x] future-event status bar의 현재 시각·countdown·event interval·공사·결정·열 signal 계약
+- [x] hash-bound text artifact와 mutation 검사
+- [ ] 세 fresh blinded judge의 첫 `TextPlanProxy`
+- [ ] 전체 UX-R0 변경의 독립 P0/P1 review와 종료 커밋
+
+현재 R2 `RealtimeEventRail`의 코드 존재와 deterministic UI 검사는 native 이해·가독성 증거가 아니다.
+실제 화면 관찰은 native evaluator port와 Mac 잠금 해제 뒤 수행한다.
+
 ## A1 개방 전 체크
 
 - [ ] 사용자 A1 구현 승인
@@ -86,19 +103,29 @@
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
+ActiveScope = COMMERCIAL_UX_87_REALTIME
+ActiveEvaluationGate = UX_R0_REALTIME_TEXT_BASELINE
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ActiveImplementationGate = NONE
+ProductArtImplementationGate = NONE
 NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
+RealtimeRuleAuthority = RELEASE_V3
+RealtimeUxAuthority = R2_FIRST_LIGHT_TARGETED_SLICE
+FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_PRESENT_NATIVE_QUALITY_NOT_OBSERVED
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
+FullCampaignNativeE2E = NOT_IMPLEMENTED
+TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2
+CommercialUXProxy = null
+ScoreBearingCaptureAllowed = false
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED
 R2ExitGate = NOT_COMPLETED
+NativeCapture = BLOCKED_MAC_LOCKED
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 ElectricalProfessionalReview = NOT_COLLECTED

@@ -319,6 +319,12 @@ harness가 처음부터 시작한다는 이유는 충분하지 않다.
 로드맵 항목은 구현 권한이 아니다. A0와 사용자가 별도로 승인한 A0.1 구조 준비는 완료됐으며,
 현재 추가 코드·아트 구현 gate는 없다.
 
+현재 사용자가 별도로 승인한 [실시간 상용 UX 87 scope](COMMERCIAL_UX_87.md)는 이 계약의 실시간
+제품 방향을 바꾸지 않는 evaluator overlay다. 활성 `UX-R0`은 평가 문서, `tools/commercial-ux/`와
+story-part 검사용 `Gridworks.CommercialChecks`만 소유하며 A1 art나 A4 campaign runtime gate를 열지
+않는다. 이후 runtime gate는 UX scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서 명시적으로
+재조정한 뒤에만 열린다.
+
 ## 10. A1 개방 조건
 
 사용자가 A1 구현을 명시적으로 승인하기 전에는 완료된 A0.1 경계를 넘어 runtime 파일을 추가·수정하지

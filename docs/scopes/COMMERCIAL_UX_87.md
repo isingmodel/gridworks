@@ -13,9 +13,10 @@ pause·1×·2×·4× 속도, 계속 흐르는 시계, 미리 보이는 사건과
 사용하며, 과거 `codex/commercial-ux-87`의 V2 runtime 구현을 합치지 않는다.
 
 UX-R0는 source-bound 텍스트 artifact, 스토리 파트 단독 실행과 세 fresh text judge 기준점을 닫았다.
-현재 gate는 V3/R2 candidate bytes, replay, session claim과 evidence provenance를 fail-closed로 포팅하는
-UX-R1만 허용한다. A1 runtime art와 전체 캠페인 presentation은 열지 않으며 실제 score-bearing capture도
-UX-R1 종료 전 실행하지 않는다.
+현재 gate는 V3/R2 candidate bytes, replay, session claim, evaluation-chain parent와 blocked artifact
+provenance를 fail-closed로 포팅했고 model receipt/transcript authority를 이어 가는 UX-R1만 허용한다.
+A1 runtime art와 전체 캠페인 presentation은 열지 않으며 실제 score-bearing capture도 UX-R1 종료 전
+실행하지 않는다.
 
 ## 1. 플레이어 결과
 
@@ -227,9 +228,29 @@ PASS와 native `NOT_OBSERVED`를 함께 보존한다. 5개 evaluator Git blob ag
 재실행은 각각 14/14 PASS, AJV 8.20.0 Draft 2020-12 strict PASS였고 독립 verdict는 P0 0/P1 0이다.
 model execution authority는 `UNAVAILABLE`, `CommercialUXProxy = null`이다.
 
-남은 UX-R1 단위는 이 parent 위의 evidence/actor/judge/verifier/oracle/aggregate finalized artifact chain과
-`gpt-5.6-sol` `ultra` platform/API receipt 또는 동등한 transcript authority다. full-flow는
-`UNAVAILABLE_NOT_IMPLEMENTED`, native capture는 계속 금지다.
+네 번째 current-route artifact 단위는 source revision
+`a270339a778e49ce0458c61cef383fc96283a596`에서 완료했다. parent가 고정한 순서대로 evidence index,
+actor terminal, judge input, judge terminal, evidence verifier result, product oracle ledger와 aggregate를
+하나의 append-only prefix로 쓴다. aggregate는 마지막 `O_EXCL + fsync` commit marker이며 각 artifact는
+parent claim·전체 선행 artifact raw/self hash와 exact canonical path에 결속된다.
+
+이 chain은 현재 route를 정직하게 `FINALIZED_BLOCKED_NON_SCORE`로 닫을 뿐 실행을 사칭하지 않는다.
+bound native evidence와 이 authority의 capture/model/evidence verifier/product oracle/score aggregation은
+모두 0회 또는 미실행이고 hard gate는 `NOT_EVALUATED`다. targeted route는 future-event 여섯 signal,
+headless wiring PASS와 native `NOT_OBSERVED`를 그대로 보존하며 story part는 native reachability를
+주장하지 않고 full-flow는 0-attempt unavailable terminal을 유지한다. `officialCommercialUX=false`,
+`ScoreBearingCaptureAllowed=false`, `CommercialUXProxy=null`이다.
+
+11개 evaluator Git blob과 running bytes aggregate는
+`sha256:225696ad11902e33213693e75e9576368a091b1a16ba32a3c0a449e6179dea1d`, artifact policy raw는
+`sha256:f27c3c49c00d547ee55ab5b0719fda1729ee13322dff6caccc48b2fea6297960`다. root source-bound suite는
+11/11 PASS(353.480초), 28개 genuine route artifact의 AJV 8.20.0 Draft 2020-12 strict instance 검증과
+write/fsync interruption, race, hardlink, cross-chain, downstream rehash와 false-score mutation을 통과했다.
+독립 재실행도 11/11 PASS(374.887초), duplicate-key JSON·7 schema AJV strict·AST PASS를 재현했고 최종
+review는 P0 0/P1 0이다.
+
+남은 UX-R1 단위는 `gpt-5.6-sol` `ultra` platform/API receipt 또는 동등한 transcript authority다.
+full-flow는 `UNAVAILABLE_NOT_IMPLEMENTED`, native capture는 계속 금지다.
 
 수정 allowlist는 `tools/commercial-ux/native/`, 그 디렉터리의 deterministic test, 이 scope와 현재 상태
 문서, `tools/commercial-ux/README.md`다. 기존 untracked native 파일과 과거 V2 branch는 설계 참고일 뿐
@@ -300,6 +321,8 @@ SessionAttemptAuthority = PASS_SOURCE_REVISION_5A31FF3_PRODUCER_SHA256_FAEA99AC
 UXR1SessionAttemptReview = PASS_P0_0_P1_0_SOURCE_5A31FF3
 EvaluationChainParentAuthority = PASS_SOURCE_REVISION_74BA725_PRODUCER_SHA256_D87E6054
 UXR1ChainParentReview = PASS_P0_0_P1_0_SOURCE_74BA725
-NativeEvaluatorAuthority = CANDIDATE_ROUTE_SESSION_ATTEMPT_AND_CHAIN_PARENT_COMPLETE_ARTIFACTS_PENDING
+CurrentRouteArtifactAuthority = PASS_SOURCE_REVISION_A270339_PRODUCER_SHA256_225696AD
+UXR1CurrentRouteArtifactReview = PASS_P0_0_P1_0_SOURCE_A270339
+NativeEvaluatorAuthority = CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_AND_BLOCKED_ARTIFACT_CHAIN_COMPLETE_RECEIPT_AUTHORITY_PENDING
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

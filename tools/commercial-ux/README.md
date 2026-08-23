@@ -8,8 +8,8 @@
 
 현재 포팅된 권위는 **text plan → blinded text evaluation**, UX-R1의
 **Debug R2 candidate·targeted route authority**, **non-score session/attempt authority**와
-**finalized evaluation-chain parent claim**이다. evidence/actor/judge/verifier/oracle/aggregate artifact
-chain은 아직 포팅하지 않았다.
+**finalized evaluation-chain parent claim**, **finalized blocked current-route artifact chain**이다.
+`gpt-5.6-sol`/`ultra` platform/API receipt 또는 동등한 transcript authority는 아직 포팅하지 않았다.
 
 - 콘텐츠 권위: `data/release-campaign-v2.json`
 - 실시간 일정 권위: `data/release-campaign-v3.json`
@@ -121,6 +121,45 @@ claim은 session claim flock을 유지한 채 두 번 원본을 읽고 snapshot 
 각각 14/14 PASS, AJV 8.20.0 strict PASS, 독립 review P0 0/P1 0이다. 이 claim은 원 session의 absolute
 authority와 함께 검증되며 relocatable bundle, evidence, model receipt, native 관찰이나 점수가 아니다.
 
+## Finalized blocked current-route artifact chain
+
+```sh
+python3 tools/commercial-ux/native/test-realtime-current-route-artifact-authority.py
+python3 tools/commercial-ux/native/realtime-current-route-artifact-authority.py --help
+```
+
+source revision `a270339a778e49ce0458c61cef383fc96283a596`의 authority는 parent가 미리 고정한
+일곱 path에 다음 append-only prefix를 쓴다.
+
+1. `evidence-index.json` — 현재 route와 전체 finalized input snapshot의 non-score index
+2. `actor-terminal.json` — `BLOCKED_NO_NATIVE_CAPTURE`
+3. `judge-input.json` — `BLOCKED_NO_EXECUTABLE_JUDGE_INPUT`
+4. `judge-terminal.json` — `BLOCKED_MODEL_EXECUTION_UNAUTHORIZED`
+5. `verifier-result.json` — `BLOCKED_NO_JUDGE_OUTPUT`
+6. `oracle-ledger.json` — `BLOCKED_NO_NATIVE_ORACLE_INPUT`
+7. `aggregate.json` — 마지막 commit marker `FINALIZED_BLOCKED_NON_SCORE`
+
+각 파일은 parent claim, source-bound policy/schema/producer, 모든 앞선 artifact의 raw/self hash와 canonical
+path를 결속한다. 같은 session claim flock 아래에서 `O_EXCL + fsync`로 순서대로 쓰고 전체 prefix,
+parent snapshot과 producer bytes를 반환 직전 다시 확인한다. partial prefix는 resume·삭제하지 않으며
+aggregate semantic verifier는 aggregate object와 raw SHA-256만 반환한다. 저장소에는 실행 artifact를
+보존하지 않는다.
+
+targeted route는 future-event status bar의 6 signal, headless wiring PASS와 native quality
+`NOT_OBSERVED`를 유지한다. story part는 authored-only이며 native reachability를 주장하지 않고,
+full-flow는 0-attempt `UNAVAILABLE_NOT_IMPLEMENTED`를 유지한다. 이 authority는 native capture, model,
+judgment, evidence verifier, product oracle, hard gate나 score aggregation을 실행하지 않는다.
+`officialCommercialUX=false`, `ScoreBearingCaptureAllowed=false`, `CommercialUXProxy=null`이다.
+
+11개 Git blob과 running bytes aggregate는
+`sha256:225696ad11902e33213693e75e9576368a091b1a16ba32a3c0a449e6179dea1d`, policy raw는
+`sha256:f27c3c49c00d547ee55ab5b0719fda1729ee13322dff6caccc48b2fea6297960`다. 최종 source-bound root
+suite는 11/11 PASS(353.480초)했고, 네 route fixture의 genuine artifact 28개가 AJV 8.20.0 Draft 2020-12
+strict instance 검증을 통과했다. write/fsync interruption, concurrent creator, late inventory,
+parent/producer race, symlink/hardlink, cross-chain swap, downstream rehash와 false execution/score mutation은
+fail-closed다. 독립 재실행도 11/11 PASS(374.887초), duplicate-key JSON·7 schema AJV strict·AST PASS와
+P0 0/P1 0을 재현했다.
+
 ## Story part 단독 실행
 
 전체 캠페인을 재생하지 않고 작성된 narrative atom 하나만 검사할 수 있다.
@@ -195,7 +234,8 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 2. 완료 — V3+필요 V2 의존성을 exact bytes로 닫은 replay/candidate authority (`379e980`)
 3. 완료 — candidate/story snapshot, 34-part unit route와 append-only session/attempt authority (`5a31ff3`)
 4. 완료 — finalized retry prefix와 future artifact path를 봉인한 non-score chain parent (`74ba725`)
-5. evidence·actor·judge·verifier·oracle·aggregate를 같은 chain parent에 결속하는 artifact chain
+5. 완료 — evidence·actor·judge·verifier·oracle·aggregate를 같은 parent에 결속한 blocked artifact chain
+   (`a270339`)
 6. model identity를 자기선언 JSON이 아닌 platform/API receipt 또는 동등한 transcript에 결속하는 권위
 
 native presentation과 실제 입력·화면·audio capture는 이후 gate다. UX-R1에서도

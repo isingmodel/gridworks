@@ -1,6 +1,6 @@
 # Gridworks — 실시간 상용 UX 87 활성 계약
 
-> 상태: **UX-R2.2 비점수 완료 — tutorial prefix through SECOND_SOURCE · 다음 runtime gate 미개방**
+> 상태: **UX-R2.2 비점수 완료 · UX-R2.3 NORTH_BANK_PROMISE branch/deadline scope 활성**
 >
 > 제품 방향 권위: [에셋 스타일 실시간 게임 계약](ASSET_STYLE_REALTIME_GAME.md)
 >
@@ -22,8 +22,10 @@ source revision `e385707071e4ccfb34d5200e3401897db7f164ad`, 두 독립 review P0
 PASS record로 완료했다. UX-R2.2는 같은 망·현금·시계를 이어받는 `FIRST_LIGHT`→`SECOND_HEART`
 →`SECOND_SOURCE` 누적 tutorial prefix와 그 장 전환·접속 조건·예고 범람 표시를 source `659709d`와
 technical-route fix `40ed3fa`에서 구현했다. 전체 결정론 회귀, 두 bounded source review P0 0/P1 0과
-fresh-process 세 장 actual-input record로 비점수 완료했다. A1 runtime art, 4–8장, persistence, 기본
-장면과 score-bearing capture는 열지 않는다.
+fresh-process 세 장 actual-input record로 비점수 완료했다. A1 runtime art, 5–8장, persistence, 기본
+장면과 score-bearing capture는 열지 않았다. 현재 UX-R2.3은 누적 상태를 보존한
+`NORTH_BANK_PROMISE` 한 장, 명시적 6개월 calendar transition, 한 줄 rail의 최초 promise deadline과
+Keep/Defer branch만 열었다. source 구현과 native capture는 gate-opening review 전 금지한다.
 
 ## 1. 플레이어 결과
 
@@ -316,7 +318,7 @@ platform attestation, score-bearing capture 또는 `CommercialUXProxy` 점수를
   참조하며 누락·교체·경로 이동·재집계를 mutation test가 거부한다.
 - 실제 native capture는 계속 금지하고 독립 P0/P1 review와 문서 상태를 먼저 닫는다.
 
-### UX-R2 — 실시간 게임 완결성 순차 계획 — UX-R2.2 완료 · 다음 gate 미개방
+### UX-R2 — 실시간 게임 완결성 순차 계획 — UX-R2.3 NORTH_BANK scope 활성
 
 - tutorial 3장과 본편 5장의 native presentation·진행·result transition을 구현한다.
 - full campaign, promise accumulation, finale·epilogue, save/resume를 실제 R2 경로로 연결한다.
@@ -324,7 +326,7 @@ platform attestation, score-bearing capture 또는 `CommercialUXProxy` 점수를
 - 이 gate를 열 때 제품 A1–A5 경계와 수정 allowlist를 현재 상태 문서에서 명시적으로 재조정한다.
 
 위 네 항목은 비권한 roadmap outcome이다. UX-R2.1과 UX-R2.2 exact allowlist는 완료 이력이며 현재
-실행할 수 있는 새 runtime 구현 단위는 없다.
+실행할 수 있는 새 runtime 구현 단위는 아래 UX-R2.3 exact allowlist뿐이다.
 
 #### UX-R2.1 — FIRST_LIGHT release tutorial/rail — 완료
 
@@ -558,8 +560,131 @@ SECOND_SOURCE/result/standard bf4cee64a62ef23130972fd82d98f25fbd6ff40a6f584f9700
   확인했다. pointer는 marker에 놓였지만 custom hover-only popup 출현은 시각적으로 관찰하지 않았으며,
   그 계약은 full UI scale matrix와 AX 검증 근거로만 보존한다.
 
-따라서 UX-R2.2는 비점수 완료다. 이 evidence는 official capture나 `CommercialUXProxy`가 아니며,
-UX-R2.3과 4–8장 runtime, persistence, default/export/package, A1 art는 계속 미개방이다.
+따라서 UX-R2.2는 비점수 완료다. 이 evidence 자체는 official capture나 `CommercialUXProxy`가 아니며
+UX-R2.3이나 4–8장 runtime을 자동으로 열지 않았다. 아래 UX-R2.3은 별도 exact scope로 한 장만 연다.
+
+#### UX-R2.3 — NORTH_BANK_PROMISE branch/deadline — scope 활성
+
+이 단위의 player outcome은 새 nondefault Debug route에서 앞 세 장의 actual 망·현금·시계를 잃지 않고
+첫 본편 장 `NORTH_BANK_PROMISE`를 완료하는 것이다. 단독 4장 route는 누적 인과를 위조하므로 만들지
+않는다. `SECOND_SOURCE` 결과에서 player가 명시적으로 6개월 뒤 북안 검토로 이동하고, 정수장 안전
+의무를 지키면서 북안 입주 일정을 Keep/Defer 중 선택한다. deadline, 두 operating event와 분기 결과는
+기존 한 줄 chronological rail과 authored story에서 같은 Core truth로 읽혀야 한다.
+
+권위 시간은 exact하다.
+
+- `SECOND_SOURCE` 종료 `2460`
+- authored gap `262800`; `NORTH_BANK_PROMISE` start `265260`, thermal reset과 2,000,000원 grant는 한 번
+- `NORTH_BANK_MOVE_IN_PROMISE` deadline `265680`
+- `NORTH_BANK_COMMISSIONING` reveal `265260`, start/end `265740–265830`
+- `NEXT_HOT_EVENING_FORECAST` reveal `265470`, start/end `265950–266070`
+- cumulative 4장/7 event prefix 완료 `266070`
+
+262800분을 4×로 그대로 기다리면 18.25시간이므로 live streaming을 멈춘 turn으로 바꾸지 않고 explicit
+calendar transition을 제공한다. `SECOND_SOURCE` result action은 다음 chapter의 typed
+`ChapterStartMinute`를 표시하고, 실제 handler가 `RealtimeCampaignRun.AdvanceTo(...)`로 이동한다. 그
+사이에 완료되는 actual construction transition, 망·현금은 보존하고 thermal reset은 chapter start에서만
+적용한다. 숨은 minute 대입, bespoke NORTH_BANK save/checkpoint나 frame 장시간 재생은 금지한다.
+
+promise UI는 기존 surface를 재사용한다.
+
+- typed `ChapterStartMinute + PromiseDecisionDeadlineOffsetMinutes`를 기존 한 줄 rail의
+  `Decision` marker `PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE`로 표시한다.
+- marker 상세/AX는 마감 시각, Unset의 Core Keep forecast 가정, explicit Keep/Defer, deadline auto-Defer,
+  locked/completed 상태를 색 외 text로 복구한다. next summary는 commissioning보다 이 deadline을 먼저
+  가리킨다.
+- marker 선택 시 기존 ContextDock의 primary/secondary action이 authored keep/defer label을 보여 주고
+  production `SetPromiseDecision` command만 보낸다. 선택 자체는 Core state나 minute를 바꾸지 않는다.
+- Core가 허용하는 마감 전 변경은 즉시 typed forecast에 반영한다. `265679` 결정은 허용하고 `265680`
+  결정은 `PromiseDeadlinePassed`로 무변경 거부한다. unset deadline은 `PromiseDefaulted` 정확히 한 번으로
+  Defer가 된다.
+- forecast와 completed history는 safety와 promise를 별도 cue로 표시한다. Unset forecast가 Keep을
+  가정한다는 사실, Defer 뒤 North load가 의무에서 빠진 사실, Keep의 promise-unserved minute를 숨기지
+  않는다.
+
+authored FIFO는 exact하다.
+
+```text
+SECOND_SOURCE result
+→ explicit 6-month calendar transition
+→ NORTH_BANK_PROMISE briefing
+→ NORTH_BANK_PLANNING_WINDOW story
+→ live promise/construction planning
+→ NEXT_HOT_EVENING_FORECAST event story
+→ exact kept/deferred result or factual generic failure
+```
+
+`NORTH_BANK_COMMISSIONING`의 story는 null이므로 modal을 만들지 않는다. successful explicit Keep은 safety와
+promise를 모두 충족할 때 exact kept card, successful explicit Defer는 safety를 충족할 때 exact deferred
+card를 사용한다. safety/promise failure는 authored positive branch card를 보이지 않는다. auto-Defer는
+deferred result를 사실대로 표시할 수 있지만 explicit-choice formative PASS는 만들지 않는다.
+
+허용 파일은 다음 exact 목록이다.
+
+- `game/realtime/r2/RealtimeSliceResources.cs`
+- `game/realtime/r2/RealtimeSliceMain.cs`
+- `game/realtime/r2/RealtimeSliceMain.Smoke.cs`
+- `game/realtime/r2/RealtimeTutorialChapterFlow.cs`
+- `game/realtime/r2/RealtimeSlicePresenter.cs`
+- `game/realtime/r2/RealtimeR2Smoke.cs`
+- `game/realtime/ui/RealtimeUiLayoutHarness.cs`
+- `tools/Gridworks.RealtimeChecks/Program.cs`
+- `tools/commercial-ux/README.md`
+- `README.md`
+- `docs/README.md`
+- `docs/ROADMAP_2D.md`
+- `docs/ROADMAP_2D_CHECKLIST.md`
+- `docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md`
+- `docs/scopes/ASSET_STYLE_REALTIME_GAME.md`
+- `docs/scopes/COMMERCIAL_UX_87.md`
+
+`RealtimeCampaignOverlayLoader.LoadPrefix(..., 4)`가 기존 strict V2/V3 authority를 제공한다. 따라서
+`data/**`, `RealtimeCampaignOverlayLoader.cs`, 다른 `src/Gridworks.Core/**`, `game/Gridworks.Game.csproj`,
+event-rail source/scene, runtime assets/world, persistence, default scene와 project/export/package는 수정하지
+않는다. 5–8장, campaign promise ledger, save/resume, finale/epilogue, evaluator/candidate와 score-bearing
+capture도 미개방이다.
+
+종료 조건은 다음과 같다.
+
+- exact `--release-through=NORTH_BANK_PROMISE` 하나만 canonical 4장/7 event prefix를 열고 기존
+  FIRST_LIGHT, SECOND_SOURCE, 두 technical checkpoint와 malformed/unknown/mixed fail-closed route를
+  보존한다.
+- prefix identity와 위 absolute minute, direct/chunked calendar jump, gap 중 construction completion,
+  cash/world continuity, one-time grant/thermal reset을 canonical Core state와 transition으로 검증한다.
+- Keep success, Keep promise failure, explicit Defer success, safety failure, unset auto-Defer, 265679/265680
+  boundary와 선택 전/후 forecast branch를 결정론적으로 검증한다.
+- modal FIFO와 authored bytes, exact kept/deferred/generic result, failed/auto-defaulted evidence-token 차단을
+  production controller smoke로 검증한다.
+- one-line rail deadline marker의 next ordering, hover 상세, AX, keyboard focus, 두 ContextDock action,
+  promise/safety cue를 full FHD/QHD/UHD scale matrix와 actual input path에서 검증한다.
+- 기존 34-part manifest와 text-plan source는 바꾸지 않는다. 아래 네 selector stdout hash를 각각 단독
+  실행한다.
+
+```text
+NORTH_BANK_PROMISE/briefing                          6fcfec395bfd8b68c272547205f71f5068b1c4dd4c531b63528dc59ccf786b38
+NORTH_BANK_PROMISE/window/NORTH_BANK_PLANNING_WINDOW c38bb924cd526fa54def0fe9532b3fc15a55ac1cb301144ac86226f6154cdf03
+NORTH_BANK_PROMISE/result/keep                       baf730fdac67bd72e1cc3ceb5b1a162b1b3c8414e2f45238183975b6be46f420
+NORTH_BANK_PROMISE/result/defer                      f6f8657f3f223724dbeb749ab80a7ef0b74673989323e5f8d7a42b08c1c2547e
+```
+
+- full Realtime/Commercial/text tooling, 34-part manifest, 전체 UI scale matrix, 기존 checkpoint hash와
+  UX-R2.2 actual behavior가 PASS한다.
+- source commit·build·bounded source review P0 0/P1 0 뒤 fresh-process production mouse/keyboard 한
+  KEEP path만 비점수 관찰한다. 이전 세 `FORMATIVE_DIRECT_PLAY_PASS:*` 뒤 exact
+  `FORMATIVE_DIRECT_PLAY_PASS:NORTH_BANK_PROMISE:KEEP`와
+  `FULL_FLOW_E2E_PASS:RELEASE_PREFIX_THROUGH_NORTH_BANK_PROMISE`를 남긴다.
+- current-state docs와 bounded closure review P0 0/P1 0을 닫는다.
+
+고정 직접 실행 명령은 source commit·build·review 뒤 다음 하나만 허용한다.
+
+```sh
+./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
+  --path game --scene res://realtime/r2/RealtimeSliceMain.tscn \
+  --windowed --resolution 1280x720 \
+  -- --release-through=NORTH_BANK_PROMISE
+```
+
+이 record는 non-score 개발 관찰이며 headless smoke나 controller injection으로 대체하지 않는다.
 
 ### UX-R3 — actual E2E와 87 반복 — 미개방
 
@@ -588,14 +713,14 @@ UX-R2.3과 4–8장 runtime, persistence, default/export/package, A1 art는 계�
 
 ```text
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = NONE
-NextEvaluationGate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
-NextCandidate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
+ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
+NextEvaluationGate = UX_R2_4_REMAINING_MAIN_CHAPTERS_NOT_OPENED
+NextCandidate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
 UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 ProductDirection = ASSET_STYLE_REALTIME_GAME
 ProductArtGate = NONE_A1_NOT_OPENED
 RealtimeAuthority = RELEASE_V3_PLUS_R2
-RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_ACTIVE_UX_R2_3_SCOPE
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 StoryPartManifest = 34_AUTHORED_ATOMS_DETERMINISTIC_PASS
 TextPlanProxy = 83.4475_FORMATIVE
@@ -603,7 +728,7 @@ TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY
 ScoreBearingCaptureAllowed = false
-NativeCapturePolicy = FORBIDDEN_UX_R2_3_NOT_OPENED
+NativeCapturePolicy = FORBIDDEN_UNTIL_UX_R2_3_SOURCE_COMMIT_BUILD_AND_REVIEW
 NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
 NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
@@ -643,5 +768,11 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
+UXR23GateStatus = ACTIVE_SCOPE_ONLY_IMPLEMENTATION_PENDING
+UXR23GateOpeningReview = PENDING_BOUNDED_REVIEW
+UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
+NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
+NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE
+InterchapterCalendarTransition = NOT_IMPLEMENTED_SCOPE_ACTIVE
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

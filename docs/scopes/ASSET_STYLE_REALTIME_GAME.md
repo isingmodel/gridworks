@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 목표 계약
 
-> 문서 상태: **현재 전체 목표 · UX-R2.2 tutorial-prefix logic/presentation carve-out 완료 · 다음 gate 미개방**
+> 문서 상태: **현재 전체 목표 · UX-R2.2 완료 · UX-R2.3 NORTH_BANK promise logic/presentation scope 활성**
 > 제품 아트: `A1_NORMAL_OPERATION_ART_SLICE` — 미개방
 
 ## 1. 목표
@@ -323,7 +323,20 @@ hover-only popup의 네이티브 출현은 관찰하지 않았고 full UI scale 
 
 exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.2](COMMERCIAL_UX_87.md#ux-r22--tutorial-prefix-through-second_source--완료)가
 소유한다. `data/**`, runtime asset/world, persistence, default scene, export/package, 4–8장과
-promise/finale/epilogue presentation은 계속 금지하며 다음 runtime gate는 미개방이다.
+promise/finale/epilogue presentation은 이 완료 gate에서 금지했다.
+
+### UX-R2.3 — NORTH_BANK_PROMISE branch/deadline carve-out — scope 활성
+
+현재 단위는 기존 세 장의 actual 망·현금·시계를 이어받는 exact cumulative 4장 Debug route에서
+`NORTH_BANK_PROMISE` 한 장만 연다. `SECOND_SOURCE` 결과 action이 262800분의 authored calendar gap을
+Core를 통해 명시적으로 이동하고, 기존 한 줄 rail의 Decision marker와 ContextDock 두 action으로 최초
+도시 약속의 deadline·Keep/Defer를 다룬다. NORTH_BANK planning-window story, 두 operating event와 exact
+kept/deferred 또는 factual failure result까지만 presentation한다.
+
+exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.3](COMMERCIAL_UX_87.md#ux-r23--north_bank_promise-branchdeadline--scope-활성)가
+소유한다. `data/**`, loader/Core source, event-rail source/scene, runtime asset/world, 5–8장,
+save/persistence, promise ledger/epilogue, default/export/package와 score-bearing capture는 금지한다.
+source commit·build·독립 review 전 native capture도 금지한다. 이 gate는 A1 art 채택 승인이 아니다.
 
 ### A1 — 일반 운전 아트 vertical slice — 미개방
 
@@ -360,16 +373,17 @@ promise/finale/epilogue presentation은 계속 금지하며 다음 runtime gate�
 - 권리·서명·공증·공개 배포의 별도 승인
 
 로드맵 항목은 구현 권한이 아니다. A0·A0.1·UX-R2.1·UX-R2.2는 완료됐고
-`ActiveEvaluationGate = NONE`이다. 현재 추가 코드 권한과 art gate는 없다.
+`ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE`다. 현재 추가 코드 권한은
+UX-R2.3 exact allowlist뿐이며 art gate는 없다.
 
 현재 사용자가 별도로 승인한 [실시간 상용 UX 87 scope](COMMERCIAL_UX_87.md)는 이 계약의 실시간
-제품 방향을 바꾸지 않는다. UX-R0·UX-R1·UX-R2.1·UX-R2.2는 완료됐다. 이후 runtime gate는 UX
-scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서
+제품 방향을 바꾸지 않는다. UX-R0·UX-R1·UX-R2.1·UX-R2.2는 완료됐고 UX-R2.3 scope만 활성이다.
+이후 runtime gate는 UX scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서
 명시적으로 재조정한 뒤에만 열린다.
 
 ## 10. A1 개방 조건
 
-완료된 UX-R2.2도 logic/presentation carve-out이며 A1 art 채택 승인이 아니다. A1을 별도 gate로 개방하기
+완료된 UX-R2.2와 활성 UX-R2.3도 logic/presentation carve-out이며 A1 art 채택 승인이 아니다. A1을 별도 gate로 개방하기
 전에는 위 exact 범위를 넘어 runtime asset/world 파일을 추가·수정하지 않는다. 개방 시 계약은
 다음을 먼저 고정해야 한다.
 

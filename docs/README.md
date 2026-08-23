@@ -55,22 +55,22 @@ docs/
 
 - `CurrentGoal = ASSET_STYLE_REALTIME_GAME`
 - `ActiveScope = COMMERCIAL_UX_87_REALTIME`
-- `ActiveEvaluationGate = NONE`
-- `NextEvaluationGate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED`
+- `ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE`
+- `NextEvaluationGate = UX_R2_4_REMAINING_MAIN_CHAPTERS_NOT_OPENED`
 - `UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY`
 - `ProductArtImplementationGate = NONE`
 - `DocumentationBaseline = A0_COMPLETE`
 - `ArchitecturePreparation = COMPLETE`
-- `NextCandidate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED`
+- `NextCandidate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE`
 - `RealtimeRuleAuthority = RELEASE_V3`
-- `RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE`
+- `RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_ACTIVE_UX_R2_3_SCOPE`
 - `FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL`
 - `FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY`
 - `TextPlanProxy = 83.4475_FORMATIVE`
 - `TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY`
 - `CommercialUXProxy = null`
 - `ScoreBearingCaptureAllowed = false`
-- `NativeCapturePolicy = FORBIDDEN_UX_R2_3_NOT_OPENED`
+- `NativeCapturePolicy = FORBIDDEN_UNTIL_UX_R2_3_SOURCE_COMMIT_BUILD_AND_REVIEW`
 - `NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION`
 - `UXR21GateStatus = COMPLETE_NON_SCORE`
 - `UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD`
@@ -94,6 +94,12 @@ docs/
 - `UXR22ActiveFloodSolidFillObservation = PASS`
 - `UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A`
 - `TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE`
+- `UXR23GateStatus = ACTIVE_SCOPE_ONLY_IMPLEMENTATION_PENDING`
+- `UXR23GateOpeningReview = PENDING_BOUNDED_REVIEW`
+- `UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING`
+- `NorthBankPromiseNativeReachability = NOT_IMPLEMENTED`
+- `NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE`
+- `InterchapterCalendarTransition = NOT_IMPLEMENTED_SCOPE_ACTIVE`
 - `UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA`
 - `NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4`
 - `EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED`
@@ -114,9 +120,11 @@ docs/
 - `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`
 - 기본 장면은 `CommercialMain`이다.
-- R1/R2 기반과 완료된 UX-R2.1·UX-R2.2 source 및 실제 입력 record는 보존한다. tutorial 3장 누적
-  prefix는 비점수 완료됐고 UX-R2.3은 미개방이다. 해당 개발 관찰을 `CommercialUXProxy`나 사람 미감
-  증거로 승격하지 않는다. custom hover-only popup 출현도 native 관찰로 주장하지 않는다.
+- R1/R2 기반과 완료된 UX-R2.1·UX-R2.2 source 및 실제 입력 record는 보존한다. UX-R2.3은 exact 누적
+  4장 route의 `NORTH_BANK_PROMISE` 한 장, 명시적 달력 전환, 한 줄 rail 약속 마감과 Keep/Defer만
+  구현하도록 scope를 열었다. source 구현·native capture는 아직 금지한다. 기존 개발 관찰을
+  `CommercialUXProxy`나 사람 미감 증거로 승격하지 않고 custom hover-only popup 출현도 native 관찰로
+  주장하지 않는다.
 - `./assets` 네 이미지는 visual reference authority이며 runtime·규칙·숫자 authority가 아니다.
 - 이전 HTML/CSS 목표 화면은 현재 스타일 목표에서 폐기했다. 파일은 Git commit `9aceaf7`로 복구할 수
   있고 현재 증거로 사용하지 않는다.

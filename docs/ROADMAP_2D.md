@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1+UX-R2.2 완료 · 다음 runtime gate 미개방**
+> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1+UX-R2.2 완료 · UX-R2.3 북안 약속 scope 활성**
 > 제품 아트: **A1 일반 운전 아트 vertical slice — 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
@@ -119,6 +119,31 @@ persistence, default/export/package와 score-bearing capture는 열리지 않았
 
 exact 파일 allowlist와 종료 증거는
 [실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r22--tutorial-prefix-through-second_source--완료)가 소유한다.
+
+## UX-R2.3 — NORTH_BANK_PROMISE branch/deadline — scope 활성
+
+### player outcome
+
+같은 nondefault Debug run에서 tutorial 3장의 망·현금·시계를 이어받고, `SECOND_SOURCE` 결과에서
+명시적으로 6개월 뒤 북안 검토 시각으로 이동한다. 정수장 안전 의무를 지키면서 북안 입주 일정을
+Keep/Defer 중 직접 정하고, 그 마감·두 운영 사건·분기 결과를 한 줄 rail과 authored story에서 읽는다.
+
+### 경계
+
+- exact cumulative `--release-through=NORTH_BANK_PROMISE` 4장/7 event prefix; 단독 4장 route 금지
+- 2460→265260의 authored calendar gap은 결과 action 한 번으로 Core `AdvanceTo`하고 모든 실제
+  construction transition·망·현금과 chapter-start thermal reset을 보존
+- 약속 deadline 265680을 기존 한 줄 chronological rail의 `Decision` marker로 추가하고 기존
+  ContextDock 두 action으로 Keep/Defer Core command를 보냄
+- NORTH_BANK briefing→planning-window story→live decision→hot-evening event story→kept/deferred 또는
+  factual failure result FIFO
+- Keep, explicit Defer, deadline auto-Defer와 safety/promise failure를 결정론적으로 분리; auto-Defer는
+  explicit-choice PASS를 만들지 않음
+- A1 art, 5–8장, save/persistence, promise ledger/epilogue, default/export/package와 official score 미개방
+
+source 구현·native capture는 gate-opening review 전 금지한다. exact allowlist와 종료 증거는
+[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r23--north_bank_promise-branchdeadline--scope-활성)가
+소유한다.
 
 ## A1 — 일반 운전 아트 vertical slice — 미개방
 

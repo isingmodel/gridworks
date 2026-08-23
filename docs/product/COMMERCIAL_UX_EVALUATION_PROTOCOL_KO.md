@@ -213,6 +213,9 @@ runner, headless UI PASS와 actual-input 관찰은 서로 대신하지 않으며
 않는다. UX-R2.2는 누적 tutorial 3장 prefix의 connection requirement, result→briefing 전환과
 forecast flood 표시를 source `659709d`와 fix `40ed3fa`에서 구현하고, 전체 회귀·source/fix 독립 검토와
 fresh-process 세 장 actual-input 경로로 비점수 완료했다. 이 gate에서도 official score는 만들지 않았다.
+현재 UX-R2.3은 `NORTH_BANK_PROMISE` 한 장의 누적 4장 route, 명시적 calendar transition, 약속 마감
+Decision marker와 Keep/Defer 분기까지만 scope를 열었다. source 구현과 native capture는 아직 금지하며,
+본편 5–8장·save/finale/epilogue와 score-bearing judge lane은 계속 미개방이다.
 
 ```text
 TextPlanProxy = 83.4475_FORMATIVE
@@ -220,17 +223,17 @@ CommercialUXProxy = null
 OfficialScoreStatus = BLOCKED_UX_R2_COMPLETENESS_IN_PROGRESS
 ScoreBearingCaptureAllowed = false
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
-ActiveEvaluationGate = NONE
-NextEvaluationGate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
-NextCandidate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
+ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
+NextEvaluationGate = UX_R2_4_REMAINING_MAIN_CHAPTERS_NOT_OPENED
+NextCandidate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
 UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
-RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_ACTIVE_UX_R2_3_SCOPE
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY
 ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECEIPT_SHA256_F7C17C4A
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 UXR21GateOpeningReview = PASS_P0_0_P1_0
-NativeCapturePolicy = FORBIDDEN_UX_R2_3_NOT_OPENED
+NativeCapturePolicy = FORBIDDEN_UNTIL_UX_R2_3_SOURCE_COMMIT_BUILD_AND_REVIEW
 NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR21GateStatus = COMPLETE_NON_SCORE
 UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
@@ -251,6 +254,12 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
+UXR23GateStatus = ACTIVE_SCOPE_ONLY_IMPLEMENTATION_PENDING
+UXR23GateOpeningReview = PENDING_BOUNDED_REVIEW
+UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
+NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
+NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE
+InterchapterCalendarTransition = NOT_IMPLEMENTED_SCOPE_ACTIVE
 ```
 
 UX-R1 native provenance 계약은 독립 검토로 닫혔다. UX-R2.1과 UX-R2.2 직접 플레이는 formative

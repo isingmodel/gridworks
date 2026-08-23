@@ -34,6 +34,9 @@ local rollout이 일치했음을 결속하지만 platform/API attestation이나 
   P0 0/P1 0과 `PASS_THREE_CHAPTER_RESULTS_PLUS_FULL_FLOW_NON_SCORE`
 - UX-R2.2 rail 관찰: marker 클릭·선택 PASS, custom hover-only popup native 출현 `NOT_OBSERVED`;
   custom hover 상세/AX 계약은 deterministic full UI matrix만 근거로 사용
+- 활성 UX-R2.3 scope: exact cumulative `--release-through=NORTH_BANK_PROMISE` 4장/7 event route,
+  명시적 6개월 calendar transition, 기존 한 줄 rail의 promise deadline Decision marker와
+  ContextDock Keep/Defer branch만 허용; source commit·build·독립 review 전 native capture 금지
 - 현재 candidate: 비기본 Debug/editor 39-file exact project tree, public package 아님
 - 현재 실행 영수증: 두 checkpoint 성공 + missing/extra/FULL_FLOW selector 거부를 독립 verifier가
   fresh process로 재실행
@@ -306,5 +309,36 @@ dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part
 `--release-through=SECOND_SOURCE` fresh-process production-input 경로는 세
 `FORMATIVE_DIRECT_PLAY_PASS:*`와 `FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE`를 남겼다.
 marker 클릭·선택과 keyboard candidate selection, active flood 적색 solid fill은 관찰했지만 custom
-hover-only popup 출현은 관찰하지 않았다. A1 art, 4–8장, persistence, default/package와 score-bearing
-capture는 계속 미개방이다.
+hover-only popup 출현은 관찰하지 않았다.
+
+## 활성 UX-R2.3 gate
+
+UX-R2.3은 기존 세 장의 actual 망·현금·시계를 이어받는 exact cumulative
+`--release-through=NORTH_BANK_PROMISE` 하나만 연다. `SECOND_SOURCE` 종료 `2460`에서
+`NORTH_BANK_PROMISE` 시작 `265260`으로 이동하는 authored calendar gap은 result action으로
+`RealtimeCampaignRun.AdvanceTo(...)`에 전달해 실제 공사 transition·망·현금을 보존한다. 그 뒤
+`NORTH_BANK_MOVE_IN_PROMISE` deadline `265680`을 기존 한 줄 chronological rail의 `Decision` marker로
+표시하고, 기존 ContextDock의 두 action만으로 Core Keep/Defer command를 보낸다. 새 rail lane이나
+turn-based 진행은 만들지 않는다.
+
+이 단위의 story-part source 회귀는 다음 네 selector를 각각 독립 실행하고 exact stdout hash와
+대조한다.
+
+```sh
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part NORTH_BANK_PROMISE/briefing
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part NORTH_BANK_PROMISE/window/NORTH_BANK_PLANNING_WINDOW
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part NORTH_BANK_PROMISE/result/keep
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part NORTH_BANK_PROMISE/result/defer
+```
+
+```text
+NORTH_BANK_PROMISE/briefing                           6fcfec395bfd8b68c272547205f71f5068b1c4dd4c531b63528dc59ccf786b38
+NORTH_BANK_PROMISE/window/NORTH_BANK_PLANNING_WINDOW c38bb924cd526fa54def0fe9532b3fc15a55ac1cb301144ac86226f6154cdf03
+NORTH_BANK_PROMISE/result/keep                        baf730fdac67bd72e1cc3ceb5b1a162b1b3c8414e2f45238183975b6be46f420
+NORTH_BANK_PROMISE/result/defer                       f6f8657f3f223724dbeb749ab80a7ef0b74673989323e5f8d7a42b08c1c2547e
+```
+
+selector PASS는 native reachability가 아니다. source commit·build·bounded source review P0 0/P1 0 뒤에만
+fresh-process production mouse/keyboard KEEP path 한 번을 비점수 관찰한다. `data/**`, loader/Core source,
+event-rail source/scene, runtime art/world, 5–8장, save/persistence, promise ledger/epilogue,
+default/export/package와 score-bearing capture는 계속 미개방이다.

@@ -55,23 +55,23 @@ docs/
 
 - `CurrentGoal = ASSET_STYLE_REALTIME_GAME`
 - `ActiveScope = COMMERCIAL_UX_87_REALTIME`
-- `ActiveEvaluationGate = NONE`
-- `NextEvaluationGate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED`
+- `ActiveEvaluationGate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE`
+- `NextEvaluationGate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED`
 - `UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY`
 - `ProductArtImplementationGate = NONE`
 - `DocumentationBaseline = A0_COMPLETE`
 - `ArchitecturePreparation = COMPLETE`
-- `NextCandidate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED`
+- `NextCandidate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE`
 - `RealtimeRuleAuthority = RELEASE_V3`
-- `RealtimeUxAuthority = R2_FIRST_LIGHT_TARGETED_SLICE`
+- `RealtimeUxAuthority = R2_FIRST_LIGHT_BASE_UX_R2_2_TUTORIAL_PREFIX_IN_PROGRESS`
 - `FutureEventStatusBar = PASS_UX_R2_1_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL`
-- `FullCampaignNativeE2E = NOT_IMPLEMENTED`
+- `FullCampaignNativeE2E = NOT_IMPLEMENTED_TUTORIAL_PREFIX_IN_PROGRESS`
 - `TextPlanProxy = 83.4475_FORMATIVE`
 - `TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY`
 - `CommercialUXProxy = null`
 - `ScoreBearingCaptureAllowed = false`
-- `NativeCapturePolicy = FORBIDDEN_UX_R2_2_NOT_OPENED`
-- `NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION`
+- `NativeCapturePolicy = ALLOWED_ONE_NON_SCORE_DEBUG_TUTORIAL_FLOW_AFTER_SOURCE_COMMIT_BUILD_AND_REVIEW`
+- `NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_PREFLIGHTED`
 - `UXR21GateStatus = COMPLETE_NON_SCORE`
 - `UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD`
 - `UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0_SOURCE_EC265999`
@@ -81,6 +81,10 @@ docs/
 - `InteractiveCheckpointHost = ACTUAL_INPUT_PASS_A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M`
 - `FirstLightNativeStoryReachability = FORMATIVE_DIRECT_PLAY_PASS_AUTHORED_STANDARD_RESULT`
 - `UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34`
+- `UXR22GateStatus = ACTIVE_IMPLEMENTATION_PENDING`
+- `UXR22GateOpeningReview = PASS_P0_0_P1_0`
+- `UXR22ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING`
+- `TutorialThreeChapterReachability = NOT_IMPLEMENTED`
 - `UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA`
 - `NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4`
 - `EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED`
@@ -101,8 +105,9 @@ docs/
 - `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`
 - 기본 장면은 `CommercialMain`이다.
-- R1/R2 기반과 완료된 UX-R2.1 source·세 실제 입력 record는 보존한다. 이 비점수 개발 관찰을
-  `CommercialUXProxy`, 사람 미감 증거 또는 아직 미개방인 UX-R2.2의 권한으로 승격하지 않는다.
+- R1/R2 기반과 완료된 UX-R2.1 source·세 실제 입력 record는 보존한다. 활성 UX-R2.2는 tutorial 3장
+  누적 prefix의 exact allowlist만 소유하며 이 비점수 개발 관찰을 `CommercialUXProxy`나 사람 미감
+  증거로 승격하지 않는다.
 - `./assets` 네 이미지는 visual reference authority이며 runtime·규칙·숫자 authority가 아니다.
 - 이전 HTML/CSS 목표 화면은 현재 스타일 목표에서 폐기했다. 파일은 Git commit `9aceaf7`로 복구할 수
   있고 현재 증거로 사용하지 않는다.

@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1 완료 · 다음 runtime carve-out 미개방**
+> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1 완료 · UX-R2.2 tutorial prefix 활성**
 > 제품 아트: **A1 일반 운전 아트 vertical slice — 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
@@ -79,10 +79,31 @@ event start/end와 actual/draft construction completion을 한 축으로 비교�
   non-score PASS record 생성
 
 따라서 이 gate는 완료됐다. actual-input record는 headless oracle을 대체하지 않고 둘을 함께 보존하며,
-비점수 개발 관찰이므로 `CommercialUXProxy`는 계속 `null`이다. UX-R2.2는 별도 gate로 아직 열지 않았다.
+비점수 개발 관찰이므로 `CommercialUXProxy`는 계속 `null`이다.
 
 exact 파일 allowlist와 종료 증거는
 [실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--완료)가 소유한다.
+
+## UX-R2.2 — tutorial prefix through SECOND_SOURCE — 활성
+
+### player outcome
+
+같은 nondefault Debug run에서 FIRST_LIGHT의 망·현금·시계를 이어받아 SECOND_HEART와 SECOND_SOURCE를
+연속 완료한다. 병원 두 접속 회선과 범람 뒤 남는 독립 회랑, 두 전원의 actual path·연속 한계를 실제
+사건에서 검증하고 각 authored result→다음 briefing→event story를 멈춘 시계에서 읽는다.
+
+### 경계
+
+- strict release 3장 prefix와 exact `--release-through=SECOND_SOURCE` route
+- first-event minute에 동결하는 Core-owned connection requirement와 factual failure result
+- same-minute result→briefing modal queue, 두 authored event-start story와 속도 복구
+- selected announced flood의 호박색 무채움/패턴 outline과 active flood의 적색 채움/solid outline
+- SECOND_HEART는 `n/2`·forecast risk만 보조하고 SECOND_SOURCE는 단계 prompt를 철회
+- 네 existing canonical story-part selector를 개별 실행하되 34-part grammar/data는 불변
+- A1 art, 4–8장, persistence, default/export/package와 official score는 미개방
+
+exact 파일 allowlist와 종료 증거는
+[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r22--tutorial-prefix-through-second_source--활성)가 소유한다.
 
 ## A1 — 일반 운전 아트 vertical slice — 미개방
 
@@ -202,7 +223,7 @@ exact 파일 allowlist와 종료 증거는
 
 ## 현재 열지 않는 것
 
-- UX-R2.1 이후의 interface·schema·placeholder
+- UX-R2.2 이후의 interface·schema·placeholder
 - production V3 data·persistence·default scene 전환
 - `game/assets/realtime/` 또는 `game/realtime/world/` 로컬 후보의 암묵적 채택
 - 원전·석탄·재생에너지 기술 tree와 발전 입지

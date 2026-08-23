@@ -1,6 +1,6 @@
 # Gridworks — 실시간 상용 UX 87 활성 계약
 
-> 상태: **UX-R2.1 완료 — 다음 evaluation gate 미개방**
+> 상태: **UX-R2.2 활성 — tutorial prefix through SECOND_SOURCE**
 >
 > 제품 방향 권위: [에셋 스타일 실시간 게임 계약](ASSET_STYLE_REALTIME_GAME.md)
 >
@@ -19,8 +19,9 @@ provenance, local controlled transcript authority를 fail-closed로 포팅하고
 실제 release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의 briefing→live→authored result,
 한 줄 chronological future-event rail과 사람이 조작하는 Debug checkpoint host를 허용한 UX-R2.1은
 source revision `e385707071e4ccfb34d5200e3401897db7f164ad`, 두 독립 review P0 0/P1 0과 세 actual-input
-PASS record로 완료했다. A1 runtime art, 2–8장, persistence, 기본 장면과 score-bearing capture는 열지
-않았고 UX-R2.2도 아직 미개방이다.
+PASS record로 완료했다. 현재 UX-R2.2는 같은 망·현금·시계를 이어받는 `FIRST_LIGHT`→`SECOND_HEART`
+→`SECOND_SOURCE` 누적 tutorial prefix와 그 장 전환·접속 조건·예고 범람 표시만 열었다. A1 runtime
+art, 4–8장, persistence, 기본 장면과 score-bearing capture는 열지 않는다.
 
 ## 1. 플레이어 결과
 
@@ -305,15 +306,15 @@ platform attestation, score-bearing capture 또는 `CommercialUXProxy` 점수를
   참조하며 누락·교체·경로 이동·재집계를 mutation test가 거부한다.
 - 실제 native capture는 계속 금지하고 독립 P0/P1 review와 문서 상태를 먼저 닫는다.
 
-### UX-R2 — 실시간 게임 완결성 순차 계획 — UX-R2.1 완료, 다음 gate 미개방
+### UX-R2 — 실시간 게임 완결성 순차 계획 — UX-R2.2 활성
 
 - tutorial 3장과 본편 5장의 native presentation·진행·result transition을 구현한다.
 - full campaign, promise accumulation, finale·epilogue, save/resume를 실제 R2 경로로 연결한다.
 - future-event status bar가 모든 장의 event·construction·thermal 경계를 표현하도록 한다.
 - 이 gate를 열 때 제품 A1–A5 경계와 수정 allowlist를 현재 상태 문서에서 명시적으로 재조정한다.
 
-위 네 항목은 비권한 roadmap outcome이다. 아래 UX-R2.1 exact allowlist는 완료 이력이며, UX-R2.2를
-별도로 열기 전에는 현재 실행할 수 있는 새 구현 단위가 없다.
+위 네 항목은 비권한 roadmap outcome이다. UX-R2.1 exact allowlist는 완료 이력이고 현재 실행할 수
+있는 새 구현 단위는 아래 UX-R2.2 exact allowlist뿐이다.
 
 #### UX-R2.1 — FIRST_LIGHT release tutorial/rail — 완료
 
@@ -425,6 +426,113 @@ review가 찾은 무공사 positive-result 위조 P1을 수정한 뒤 first-ligh
 `PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`, 단일 rail 재검토는 `PASS_FOR_SINGLE_RAIL_MAJOR_UNIT`이며 모두
 P0 0/P1 0이다. 세 actual-input record와 현재 상태 문서를 함께 보존해 UX-R2.1을 완료했다.
 
+#### UX-R2.2 — tutorial prefix through SECOND_SOURCE — 활성
+
+이 단위의 player outcome은 새 nondefault Debug route에서 `FIRST_LIGHT`의 망·현금·시계를 잃지 않고
+`SECOND_HEART`, `SECOND_SOURCE`까지 세 tutorial 장을 연속 완료하는 것이다. 각 장은 이전 authored
+result→다음 authored briefing 순서로 같은 Core minute에서 정지 전환하고, story modal을 읽는 동안
+시각이 흐르지 않으며 닫은 뒤 기존 속도를 복구한다. 개별 2·3장 시작 route는 누적 인과를 위조하므로
+만들지 않는다.
+
+학습 보조는 장마다 의도적으로 줄인다.
+
+- `SECOND_HEART`: HUD의 Core-owned 접속 조건 `n/2`, announced flood marker를 선택했을 때의 호박색
+  forecast 위험구역, active 시 적색 채움만 맥락형으로 남긴다. 단계별 건설 정답은 주지 않는다.
+- `SECOND_SOURCE`: authored briefing, 한 줄 rail, 일반/보강 선로의 typed 비용·공기·용량과 existing
+  actual/draft forecast만 남긴다. 추가 단계 prompt나 정답 경로는 만들지 않는다.
+
+현재 코드에서 먼저 닫아야 하는 결함은 두 가지다. V3 run은 V2 `ConnectionRequirements`를 아직
+결과에 반영하지 않아 병원 2회선 조건을 놓칠 수 있고, R2 controller는 final `CampaignCompleted`만
+modal 처리해 same-minute `ChapterCompleted`→`ChapterStarted` 사이 result/briefing을 건너뛴다. 회선 수는
+Game이 다시 세지 않는다. 새 Core evaluator가 commissioned incident edge를 단일 권위로 계산하고,
+V2 승인 의미에 맞춰 첫 authored 시험 시작 minute의 requirement fact를 동결해 장의
+`ObjectiveSatisfied`를 판정한다. requirement가 없는 기존 slice는 optional fact를 직렬화하지 않아 동결
+checkpoint canonical bytes를 보존한다.
+
+허용 파일은 다음 exact 목록이다.
+
+- 새 `src/Gridworks.Core/Release/V3/RealtimeConnectionRequirementEvaluator.cs`
+- `src/Gridworks.Core/Release/V3/RealtimeRunContracts.cs`
+- `src/Gridworks.Core/Release/V3/RealtimeCampaignRun.cs`
+- `game/realtime/r2/RealtimeSliceResources.cs`
+- `game/realtime/r2/RealtimeSliceMain.cs`
+- `game/realtime/r2/RealtimeSliceMain.Smoke.cs`
+- 새 `game/realtime/r2/RealtimeTutorialChapterFlow.cs`
+- 새 `game/realtime/r2/RealtimeTutorialChapterFlow.cs.uid`
+- `game/realtime/r2/RealtimeSlicePresenter.cs`
+- `game/realtime/r2/RealtimeWorldView.cs`
+- `game/realtime/r2/RealtimePlaceholderMap.cs`
+- `game/realtime/r2/RealtimePlaceholderMap.Smoke.cs`
+- `game/realtime/r2/RealtimeR2Smoke.cs`
+- `game/realtime/ui/RealtimeUiLayoutHarness.cs`
+- `tools/Gridworks.RealtimeChecks/Program.cs`
+- `tools/commercial-ux/README.md`
+- `README.md`
+- `docs/README.md`
+- `docs/ROADMAP_2D.md`
+- `docs/ROADMAP_2D_CHECKLIST.md`
+- `docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md`
+- `docs/scopes/ASSET_STYLE_REALTIME_GAME.md`
+- `docs/scopes/COMMERCIAL_UX_87.md`
+
+`RealtimeCampaignOverlayLoader.LoadPrefix(..., 3)`와 embedded release V2/V3 data는 이미 strict authority를
+제공하므로 loader, `game/Gridworks.Game.csproj`와 `data/**`는 수정하지 않는다. event rail 구현도
+UX-R2.1 source를 그대로 보존한다. `game/assets/realtime/**`, `game/realtime/world/**`, persistence,
+default scene, export/package, 4–8장과 promise/finale/epilogue presentation은 금지한다. A1–A5 제품 art
+gate와 score-bearing capture도 계속 미개방이다.
+
+종료 조건은 다음과 같다.
+
+- exact `--release-through=SECOND_SOURCE` 하나가 canonical 3장/5 event prefix만 열고 기존
+  `--release-chapter=FIRST_LIGHT`와 technical checkpoint route를 바꾸지 않는다.
+- absolute minute는 FIRST_LIGHT `1020`, event `1260–1320`; SECOND_HEART start `1320`, event
+  `1680–1740`, `1800–1860`; SECOND_SOURCE start `1860`, event `2280–2340`, `2400–2460`과 일치한다.
+- current/comparison draft 접속 fact는 같은 Core evaluator를 사용한다. 첫 병원 시험 시작 시 1/2이면
+  이후 공사로 positive result를 소급 위조하지 않고, 2/2라도 두 회랑이 모두 범람구역에 있으면
+  `FLOOD_ISOLATION_TEST` safety failure가 authored positive result를 막는다.
+- successful path는 한 안전 회랑이 남아 두 SECOND_HEART event를 통과하고, SECOND_SOURCE의 west/south
+  source 시험을 actual path·연속 한계 안에서 통과한다.
+- modal 순서는 FIRST_LIGHT result→SECOND_HEART briefing→flood event story→SECOND_HEART result→
+  SECOND_SOURCE briefing→south-source event story→final result다. positive authored card는 exact
+  `ObjectiveSatisfied`일 때만 보이며 failure는 factual generic result를 사용한다.
+- announced forecast risk는 rail 선택+analysis에서 호박색 무채움/패턴 outline, active risk는 적색
+  채움/solid outline으로 색 외에도 구분된다. 둘은 같은 authored risk ID를 사용한다.
+- 한 줄 chronological rail의 5 event 순서, hover 상세, AX selector, actual/draft construction과 기존
+  FIRST_LIGHT 선택 연동은 full UI scale matrix에서 회귀하지 않는다.
+- 기존 34-part manifest와 text-plan source는 바꾸지 않는다. 다음 네 canonical selector stdout hash를
+  각각 고정하고 단독 실행한다.
+
+```text
+SECOND_HEART/briefing         aa7b6c5dbe1bda8af4290c455607bdf6ffa146d20916be4e9f6a95c514f8cf8f
+SECOND_HEART/result/standard  8050f89cbbac84fe71bccd71accd12ddc35908c30c7f16891dbacee672135f3f
+SECOND_SOURCE/briefing        e91e68d1f17a910ae81ebb904ec4b8430ccbb0d814679cc5ebb462f2540eae37
+SECOND_SOURCE/result/standard bf4cee64a62ef23130972fd82d98f25fbd6ff40a6f584f97007500cf104e716c
+```
+
+- `FLOOD_ISOLATION_TEST`, `SOUTH_SOURCE_COMMISSIONING_TEST`의 authored phase story는 native event-start
+  modal에서 V2 bytes와 직접 비교한다. null인 두 decision-window story를 새 selector로 만들지 않는다.
+- V2/V3 raw와 full-composed hash, FIRST_LIGHT product behavior, 기존 두 A1 checkpoint start/replay/end
+  hash, 34-part manifest, full Realtime/Commercial/text tooling 회귀가 모두 PASS한다.
+- source commit 뒤 production mouse/keyboard만 쓰는 fresh-process 한 경로로 세 authored positive
+  result와 `FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE`를 남긴다. marker hover와 keyboard
+  selection은 각각 한 번 포함하되 이 record는 non-score 개발 관찰이다.
+- bounded 독립 review P0 0/P1 0, 수정·재검증과 현재 상태 문서를 먼저 닫는다.
+
+고정 직접 실행 명령은 하나다.
+
+```sh
+./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
+  --path game --scene res://realtime/r2/RealtimeSliceMain.tscn \
+  --windowed --resolution 1280x720 \
+  -- --release-through=SECOND_SOURCE
+```
+
+성공한 각 authored result를 실제 production handler로 닫을 때
+`FORMATIVE_DIRECT_PLAY_PASS:FIRST_LIGHT`, `FORMATIVE_DIRECT_PLAY_PASS:SECOND_HEART`,
+`FORMATIVE_DIRECT_PLAY_PASS:SECOND_SOURCE`를 순서대로 출력하고, 세 장이 모두 성공한 마지막 close만
+`FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE`를 추가한다. headless smoke나 controller injection은
+이 actual-input label을 대신하지 않는다.
+
 ### UX-R3 — actual E2E와 87 반복 — 미개방
 
 - fresh user-data와 actual input으로 cold 3 + coverage를 실행한다.
@@ -452,8 +560,8 @@ P0 0/P1 0이다. 세 actual-input record와 현재 상태 문서를 함께 보�
 
 ```text
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = NONE
-NextEvaluationGate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
+ActiveEvaluationGate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+NextEvaluationGate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
 UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 ProductDirection = ASSET_STYLE_REALTIME_GAME
 ProductArtGate = NONE_A1_NOT_OPENED
@@ -463,10 +571,10 @@ StoryPartManifest = 34_AUTHORED_ATOMS_DETERMINISTIC_PASS
 TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
-FullCampaignNativeE2E = NOT_IMPLEMENTED
+FullCampaignNativeE2E = NOT_IMPLEMENTED_TUTORIAL_PREFIX_IN_PROGRESS
 ScoreBearingCaptureAllowed = false
-NativeCapturePolicy = FORBIDDEN_UX_R2_2_NOT_OPENED
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
+NativeCapturePolicy = ALLOWED_ONE_NON_SCORE_DEBUG_TUTORIAL_FLOW_AFTER_SOURCE_COMMIT_BUILD_AND_REVIEW
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_PREFLIGHTED
 UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
 NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
 EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
@@ -492,5 +600,9 @@ UXR21ActualInputObservation = PASS_THREE_NON_SCORE_RECORDS
 InteractiveCheckpointHost = ACTUAL_INPUT_PASS_A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M
 FirstLightNativeStoryReachability = FORMATIVE_DIRECT_PLAY_PASS_AUTHORED_STANDARD_RESULT
 UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34
+UXR22GateStatus = ACTIVE_IMPLEMENTATION_PENDING
+UXR22GateOpeningReview = PASS_P0_0_P1_0
+UXR22ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
+TutorialThreeChapterReachability = NOT_IMPLEMENTED
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

@@ -41,8 +41,9 @@ UX-R2.1은 실제 release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의
 briefing→live→authored result, 한 줄 chronological future-event rail과 사람이 직접 조작하는 Debug
 checkpoint host를 source revision `e385707071e4ccfb34d5200e3401897db7f164ad`에서 구현했다.
 결정론 검증과 두 독립 검토가 P0 0/P1 0이며, 실제 macOS 입력으로 authored standard result와 두
-checkpoint PASS record까지 확인해 이 gate를 완료했다. A1 art, 2–8장, persistence, 기본 장면과
-score-bearing capture는 열지 않았다.
+checkpoint PASS record까지 확인해 이 gate를 완료했다. 현재 UX-R2.2는 같은 상태를 잇는 tutorial 3장
+prefix를 열어 `SECOND_HEART`의 병원 2회선·범람 안전 회랑과 `SECOND_SOURCE`의 전체 경로 용량을 실제
+장 전환으로 연결한다. A1 art, 4–8장, persistence, 기본 장면과 score-bearing capture는 열지 않았다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -60,30 +61,30 @@ score-bearing capture는 열지 않았다.
   시간축의 compact marker로 구성; custom hover 구조·내용은 full UI 행렬 PASS, actual FIRST_LIGHT에서는
   단일 track·선택 연동 관찰
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
-- 활성 평가 gate: 없음 — `UX-R2.1_FIRST_LIGHT_RELEASE_TUTORIAL_RAIL` 완료, UX-R2.2 미개방
+- 활성 평가 gate: `UX-R2.2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE`
 - 활성 제품 아트 gate: 없음, A1 미개방
-- native capture: UX-R2.1의 세 Debug 비점수 actual-input record 완료; UX-R2.2 개방 전 새 capture 금지
+- native capture: source commit·build·독립 review 뒤 tutorial 3장 fresh-process 한 경로만 비점수 허용
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 GoalDirection = ACTIVE
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = NONE
-NextEvaluationGate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
+ActiveEvaluationGate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+NextEvaluationGate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
 UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
 ProductArtImplementationGate = NONE
-NextCandidate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
+NextCandidate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
 RealtimeRuleAuthority = RELEASE_V3
-RealtimeUxAuthority = R2_FIRST_LIGHT_TARGETED_SLICE
+RealtimeUxAuthority = R2_FIRST_LIGHT_BASE_UX_R2_2_TUTORIAL_PREFIX_IN_PROGRESS
 FutureEventStatusBar = PASS_UX_R2_1_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
-FullCampaignNativeE2E = NOT_IMPLEMENTED
+FullCampaignNativeE2E = NOT_IMPLEMENTED_TUTORIAL_PREFIX_IN_PROGRESS
 TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
@@ -106,9 +107,9 @@ NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED
 UXR21GateOpeningReview = PASS_P0_0_P1_0
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
-R2RealtimeUx = PRESERVED_UX_R2_1_COMPLETED_NEXT_NOT_OPENED
-NativeCapturePolicy = FORBIDDEN_UX_R2_2_NOT_OPENED
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
+R2RealtimeUx = PRESERVED_UX_R2_1_PLUS_ACTIVE_UX_R2_2
+NativeCapturePolicy = ALLOWED_ONE_NON_SCORE_DEBUG_TUTORIAL_FLOW_AFTER_SOURCE_COMMIT_BUILD_AND_REVIEW
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_PREFLIGHTED
 UXR21GateStatus = COMPLETE_NON_SCORE
 UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
 UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0_SOURCE_EC265999
@@ -118,6 +119,10 @@ UXR21ActualInputObservation = PASS_THREE_NON_SCORE_RECORDS
 InteractiveCheckpointHost = ACTUAL_INPUT_PASS_A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M
 FirstLightNativeStoryReachability = FORMATIVE_DIRECT_PLAY_PASS_AUTHORED_STANDARD_RESULT
 UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34
+UXR22GateStatus = ACTIVE_IMPLEMENTATION_PENDING
+UXR22GateOpeningReview = PASS_P0_0_P1_0
+UXR22ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
+TutorialThreeChapterReachability = NOT_IMPLEMENTED
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 PublicReleaseStatus = NOT_AUTHORIZED

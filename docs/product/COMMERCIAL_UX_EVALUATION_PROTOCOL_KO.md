@@ -209,7 +209,8 @@ capture는 아직 없다. UX-R2.1은 actual release `FIRST_LIGHT` 장(`FIRST_LIG
 native wiring, 한 줄 future-event rail과 interactive checkpoint host를 source `e385707`에서 구현했고
 build·전체 회귀·두 독립 review P0 0/P1 0과 세 non-score actual-input PASS record로 완료했다. automated
 runner, headless UI PASS와 actual-input 관찰은 서로 대신하지 않으며 어느 쪽도 judge evidence로 승격하지
-않는다.
+않는다. 현재 UX-R2.2는 누적 tutorial 3장 prefix의 connection requirement, result→briefing 전환과
+forecast flood 표시만 구현하도록 열렸고 이 gate에서도 official score는 만들지 않는다.
 
 ```text
 TextPlanProxy = 83.4475_FORMATIVE
@@ -217,21 +218,24 @@ CommercialUXProxy = null
 OfficialScoreStatus = BLOCKED_UX_R2_COMPLETENESS_IN_PROGRESS
 ScoreBearingCaptureAllowed = false
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
-ActiveEvaluationGate = NONE
-NextEvaluationGate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
+ActiveEvaluationGate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+NextEvaluationGate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
 UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECEIPT_SHA256_F7C17C4A
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 UXR21GateOpeningReview = PASS_P0_0_P1_0
-NativeCapturePolicy = FORBIDDEN_UX_R2_2_NOT_OPENED
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
+NativeCapturePolicy = ALLOWED_ONE_NON_SCORE_DEBUG_TUTORIAL_FLOW_AFTER_SOURCE_COMMIT_BUILD_AND_REVIEW
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_PREFLIGHTED
 UXR21GateStatus = COMPLETE_NON_SCORE
 UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
 UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0_SOURCE_EC265999
 UXR21SingleRailReview = PASS_FOR_SINGLE_RAIL_MAJOR_UNIT_P0_0_P1_0_SOURCE_E385707
 UXR21ClosureReview = PASS_FOR_UX_R2_1_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_F2839D1
 UXR21ActualInputObservation = PASS_THREE_NON_SCORE_RECORDS
+UXR22GateStatus = ACTIVE_IMPLEMENTATION_PENDING
+UXR22GateOpeningReview = PASS_P0_0_P1_0
+TutorialThreeChapterReachability = NOT_IMPLEMENTED
 ```
 
-UX-R1 native provenance 계약은 독립 검토로 닫혔다. UX-R2.1의 직접 플레이는 formative 개발 관찰이며,
-8장 completeness와 UX-R3 evidence gate 전에는 score-bearing capture를 허용할 수 없다.
+UX-R1 native provenance 계약은 독립 검토로 닫혔다. UX-R2.1과 이후 UX-R2.2 직접 플레이는 formative
+개발 관찰이며, 8장 completeness와 UX-R3 evidence gate 전에는 score-bearing capture를 허용할 수 없다.

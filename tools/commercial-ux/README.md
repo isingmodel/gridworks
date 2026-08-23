@@ -285,5 +285,16 @@ briefing→live→authored result, 단일 chronological future-event rail과 int
 product source `e385707071e4ccfb34d5200e3401897db7f164ad`에서 구현했다. first-light review
 `PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`과 single-rail review `PASS_FOR_SINGLE_RAIL_MAJOR_UNIT`은 모두
 P0 0/P1 0이며 세 actual-input record도 PASS했다. package/candidate manifest는 이 carve-out의 증거가
-아니므로 `N/A`다. A1 art·2–8장·persistence·default/package·score-bearing capture와 UX-R2.2는
-미개방이다.
+아니므로 `N/A`다. 현재 UX-R2.2는 기존 text-plan 입력·34-part grammar를 바꾸지 않고 누적 tutorial
+3장 prefix를 native 구현한다. unit/content 회귀는 다음 네 selector를 각각 실행한다.
+
+```sh
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part SECOND_HEART/briefing
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part SECOND_HEART/result/standard
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part SECOND_SOURCE/briefing
+dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part SECOND_SOURCE/result/standard
+```
+
+이 selector PASS는 native reachability가 아니다. UX-R2.2는 source commit·build·독립 review 뒤 exact
+`--release-through=SECOND_SOURCE` fresh-process 한 경로만 비점수 actual-input으로 관찰한다. A1 art,
+4–8장, persistence, default/package와 score-bearing capture는 계속 미개방이다.

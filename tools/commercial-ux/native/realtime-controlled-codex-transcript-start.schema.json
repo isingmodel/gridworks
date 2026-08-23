@@ -1,0 +1,382 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/realtime-controlled-codex-transcript-start.schema.json",
+  "title": "Gridworks controlled Codex transcript claim-first start receipt",
+  "$comment": "STRUCTURAL VALIDATION ONLY; NON-AUTHORITATIVE. Success does not prove fresh execution, model identity, platform attestation, evidence, judgment, aggregation, or score. Consumers MUST run verify_controlled_codex_transcript_against_reconstructed_authority. probeStartReceiptSha256 omits itself under GRIDWORKS_CANONICAL_JSON_V1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "canonicalization",
+    "status",
+    "canonicalTranscriptRoot",
+    "canonicalStartReceiptPath",
+    "transcriptAuthorityId",
+    "transcriptAuthoritySourceCommit",
+    "transcriptEvaluatorAuthority",
+    "transcriptPolicyRawSha256",
+    "parentAuthority",
+    "nonce",
+    "freshnessWindowStartUnixNs",
+    "prompt",
+    "structuredOutputSchema",
+    "rolloutInventoryBefore",
+    "rolloutInventoryBeforeRawSha256",
+    "rolloutInventoryBeforePath",
+    "executionCapsule",
+    "reservedProcessFiles",
+    "reservedFinalReceipt",
+    "codexCliAuthority",
+    "argv",
+    "environment",
+    "cwd",
+    "requiredModel",
+    "requiredReasoningEffort",
+    "requiredSandbox",
+    "requiredApprovalPolicy",
+    "subprocessStartedAtReceiptFinalization",
+    "officialCommercialUX",
+    "scoreBearing",
+    "commercialUXProxy",
+    "platformAttestationStatus",
+    "probeStartReceiptSha256"
+  ],
+  "properties": {
+    "schemaVersion": {"type": "string", "const": "gridworks.realtime-controlled-codex-transcript-start.v1"},
+    "canonicalization": {"type": "string", "const": "GRIDWORKS_CANONICAL_JSON_V1"},
+    "status": {"type": "string", "const": "FINALIZED_BEFORE_FRESH_CODEX_EXECUTION"},
+    "canonicalTranscriptRoot": {"$ref": "#/$defs/absolutePath"},
+    "canonicalStartReceiptPath": {"type": "string", "pattern": "/probe-start-receipt\\.json$"},
+    "transcriptAuthorityId": {"$ref": "#/$defs/sha256"},
+    "transcriptAuthoritySourceCommit": {"$ref": "#/$defs/gitSha1"},
+    "transcriptEvaluatorAuthority": {"$ref": "#/$defs/producer"},
+    "transcriptPolicyRawSha256": {"$ref": "#/$defs/sha256"},
+    "parentAuthority": {"$ref": "#/$defs/parentAuthority"},
+    "nonce": {"$ref": "#/$defs/nonce"},
+    "freshnessWindowStartUnixNs": {"type": "integer", "minimum": 1},
+    "prompt": {"$ref": "#/$defs/prompt"},
+    "structuredOutputSchema": {"$ref": "#/$defs/outputSchema"},
+    "rolloutInventoryBefore": {"$ref": "#/$defs/beforeInventory"},
+    "rolloutInventoryBeforeRawSha256": {"$ref": "#/$defs/sha256"},
+    "rolloutInventoryBeforePath": {"type": "string", "pattern": "/rollout-inventory-before\\.json$"},
+    "executionCapsule": {"$ref": "#/$defs/capsule"},
+    "reservedProcessFiles": {
+      "type": "array",
+      "prefixItems": [
+        {"allOf": [{"$ref": "#/$defs/reservedFile"}, {"type": "object", "properties": {"role": {"const": "STDOUT"}}}]},
+        {"allOf": [{"$ref": "#/$defs/reservedFile"}, {"type": "object", "properties": {"role": {"const": "STDERR"}}}]},
+        {"allOf": [{"$ref": "#/$defs/reservedFile"}, {"type": "object", "properties": {"role": {"const": "OUTPUT"}}}]}
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "reservedFinalReceipt": {"$ref": "#/$defs/emptyFileBinding"},
+    "codexCliAuthority": {"$ref": "#/$defs/cli"},
+    "argv": {"$ref": "#/$defs/argv"},
+    "environment": {"$ref": "#/$defs/environment"},
+    "cwd": {"type": "string", "pattern": "/capsule$"},
+    "requiredModel": {"type": "string", "const": "gpt-5.6-sol"},
+    "requiredReasoningEffort": {"type": "string", "const": "ultra"},
+    "requiredSandbox": {"type": "string", "const": "read-only"},
+    "requiredApprovalPolicy": {"type": "string", "const": "never"},
+    "subprocessStartedAtReceiptFinalization": {"type": "boolean", "const": false},
+    "officialCommercialUX": {"type": "boolean", "const": false},
+    "scoreBearing": {"type": "boolean", "const": false},
+    "commercialUXProxy": {"type": "null"},
+    "platformAttestationStatus": {"type": "string", "const": "UNAVAILABLE_NOT_A_PLATFORM_SIGNED_EXECUTION_RECEIPT"},
+    "probeStartReceiptSha256": {"$ref": "#/$defs/sha256"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "gitSha1": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "nonce": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "absolutePath": {"type": "string", "pattern": "^/[^\\u0000]*$"},
+    "gitBlob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "role", "gitMode", "gitObjectId", "rawSha256", "byteLength"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^tools/commercial-ux/native/[^/]+$"},
+        "role": {"type": "string", "minLength": 1},
+        "gitMode": {"type": "string", "enum": ["100644", "100755"]},
+        "gitObjectId": {"$ref": "#/$defs/gitSha1"},
+        "rawSha256": {"$ref": "#/$defs/sha256"},
+        "byteLength": {"type": "integer", "minimum": 1}
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "sourceCommit", "fileCount", "files", "filesSha256", "runningFilesMatchGitBlobs", "gitCommandAuthoritySha256", "parentArtifactSemanticVerifierDependencyBound", "semanticVerifierEntryPoint", "structuralSchemasAuthority"],
+      "properties": {
+        "schemaVersion": {"type": "string", "const": "gridworks.realtime-controlled-codex-transcript-producer-authority.v1"},
+        "sourceCommit": {"$ref": "#/$defs/gitSha1"},
+        "fileCount": {"type": "integer", "const": 7},
+        "files": {"type": "array", "items": {"$ref": "#/$defs/gitBlob"}, "minItems": 7, "maxItems": 7},
+        "filesSha256": {"$ref": "#/$defs/sha256"},
+        "runningFilesMatchGitBlobs": {"type": "boolean", "const": true},
+        "gitCommandAuthoritySha256": {"$ref": "#/$defs/sha256"},
+        "parentArtifactSemanticVerifierDependencyBound": {"type": "boolean", "const": true},
+        "semanticVerifierEntryPoint": {"type": "string", "const": "verify_controlled_codex_transcript_against_reconstructed_authority"},
+        "structuralSchemasAuthority": {"type": "string", "const": "STRUCTURAL_ONLY_NOT_TRANSCRIPT_AUTHORITY"}
+      }
+    },
+    "parentAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evaluationChainRoot", "evaluationChainId", "evaluationChainClaimPath", "evaluationChainClaimRawSha256", "evaluationChainClaimSha256", "routeBoundary", "sessionClaimPath", "sessionClaimRawSha256", "artifactChainId", "aggregatePath", "aggregateRawSha256", "aggregateArtifactSha256", "aggregateStatus", "artifactAuthoritySourceCommit", "artifactProducerFilesSha256", "blockedJudgeInputPath", "blockedJudgeInputRawSha256", "blockedJudgeInputArtifactSha256", "blockedJudgeInputStatus", "blockedJudgeInputExecutable", "blockedJudgeInputFutureModelRequirement", "sevenArtifactChainRemainsFinalizedAndUnmodified"],
+      "properties": {
+        "evaluationChainRoot": {"$ref": "#/$defs/absolutePath"},
+        "evaluationChainId": {"$ref": "#/$defs/sha256"},
+        "evaluationChainClaimPath": {"type": "string", "pattern": "/evaluation-chain-claim\\.json$"},
+        "evaluationChainClaimRawSha256": {"$ref": "#/$defs/sha256"},
+        "evaluationChainClaimSha256": {"$ref": "#/$defs/sha256"},
+        "routeBoundary": {"$ref": "#/$defs/routeBoundary"},
+        "sessionClaimPath": {"type": "string", "pattern": "/session-claim\\.json$"},
+        "sessionClaimRawSha256": {"$ref": "#/$defs/sha256"},
+        "artifactChainId": {"$ref": "#/$defs/sha256"},
+        "aggregatePath": {"type": "string", "pattern": "/artifacts/aggregate\\.json$"},
+        "aggregateRawSha256": {"$ref": "#/$defs/sha256"},
+        "aggregateArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "aggregateStatus": {"type": "string", "const": "FINALIZED_BLOCKED_NON_SCORE"},
+        "artifactAuthoritySourceCommit": {"type": "string", "const": "a270339a778e49ce0458c61cef383fc96283a596"},
+        "artifactProducerFilesSha256": {"type": "string", "const": "sha256:225696ad11902e33213693e75e9576368a091b1a16ba32a3c0a449e6179dea1d"},
+        "blockedJudgeInputPath": {"type": "string", "pattern": "/artifacts/judge-input\\.json$"},
+        "blockedJudgeInputRawSha256": {"$ref": "#/$defs/sha256"},
+        "blockedJudgeInputArtifactSha256": {"$ref": "#/$defs/sha256"},
+        "blockedJudgeInputStatus": {"type": "string", "const": "BLOCKED_NO_EXECUTABLE_JUDGE_INPUT"},
+        "blockedJudgeInputExecutable": {"type": "boolean", "const": false},
+        "blockedJudgeInputFutureModelRequirement": {"$ref": "#/$defs/futureModelRequirement"},
+        "sevenArtifactChainRemainsFinalizedAndUnmodified": {"type": "boolean", "const": true}
+      }
+    },
+    "futureModelRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model", "reasoningEffort", "requirementOnlyNotExecutionClaim"],
+      "properties": {
+        "model": {"type": "string", "const": "gpt-5.6-sol"},
+        "reasoningEffort": {"type": "string", "const": "ultra"},
+        "requirementOnlyNotExecutionClaim": {"type": "boolean", "const": true}
+      }
+    },
+    "futureEventStatusBar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["requiredSignals", "headlessWiringStatus", "nativeQualityStatus", "nativeQualityObserved"],
+      "properties": {
+        "requiredSignals": {"type": "array", "const": ["CURRENT_TIME", "NEXT_EVENT_COUNTDOWN", "EVENT_START_END", "CONSTRUCTION_COMPLETION", "PROMISE_DECISION_DEADLINE", "THERMAL_TRIP_RECOVERY"]},
+        "headlessWiringStatus": {"type": "string", "const": "EXACT_PACKAGE_TWO_CHECKPOINT_SCENE_LOAD_PASS"},
+        "nativeQualityStatus": {"type": "string", "const": "NOT_OBSERVED"},
+        "nativeQualityObserved": {"type": "boolean", "const": false}
+      }
+    },
+    "routeBoundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["routeKind", "candidateProfileId", "sessionProfileId", "selector", "availability", "executionAuthorized", "routeDisposition", "routeBindingSha256", "evidenceClass", "nativePresentationObserved", "scoreBearingEvidence", "futureEventStatusBar", "authoredReachabilityOnly", "nativeReachabilityClaim", "routeBoundarySha256"],
+      "properties": {
+        "routeKind": {"type": "string", "enum": ["TARGETED_CHECKPOINT", "STORY_PART_UNIT", "FULL_FLOW_EXCEPTION"]},
+        "candidateProfileId": {"type": ["string", "null"]},
+        "sessionProfileId": {"type": "string", "enum": ["TARGETED_CHECKPOINT_DEBUG", "STORY_PART_UNIT", "FULL_FLOW_EXCEPTION"]},
+        "selector": {"type": ["string", "null"]},
+        "availability": {"type": "string", "enum": ["AVAILABLE_DIAGNOSTIC_ONLY", "AVAILABLE_CONTENT_UNIT_ONLY", "UNAVAILABLE_NOT_IMPLEMENTED"]},
+        "executionAuthorized": {"type": "boolean"},
+        "routeDisposition": {"type": "string", "enum": ["DIAGNOSTIC_ATTEMPT_AUTHORIZED", "CONTENT_UNIT_ATTEMPT_AUTHORIZED", "ROUTE_UNAVAILABLE_NO_EXECUTION"]},
+        "routeBindingSha256": {"$ref": "#/$defs/sha256"},
+        "evidenceClass": {"type": "string", "enum": ["HEADLESS_DIAGNOSTIC_ONLY", "AUTHORED_CONTENT_UNIT_ONLY", "UNAVAILABLE_ROUTE_TERMINAL_ONLY"]},
+        "nativePresentationObserved": {"type": "boolean", "const": false},
+        "scoreBearingEvidence": {"type": "boolean", "const": false},
+        "futureEventStatusBar": {"oneOf": [{"$ref": "#/$defs/futureEventStatusBar"}, {"type": "null"}]},
+        "authoredReachabilityOnly": {"type": "boolean"},
+        "nativeReachabilityClaim": {"type": "boolean", "const": false},
+        "routeBoundarySha256": {"$ref": "#/$defs/sha256"}
+      },
+      "allOf": [
+        {"if": {"type": "object", "properties": {"routeKind": {"const": "TARGETED_CHECKPOINT"}}, "required": ["routeKind"]}, "then": {"type": "object", "properties": {"candidateProfileId": {"const": "TARGETED_CHECKPOINT_DEBUG"}, "sessionProfileId": {"const": "TARGETED_CHECKPOINT_DEBUG"}, "selector": {"enum": ["A1_NORMAL_READY", "A1_CONSTRUCTION_DUE_1M"]}, "availability": {"const": "AVAILABLE_DIAGNOSTIC_ONLY"}, "executionAuthorized": {"const": true}, "routeDisposition": {"const": "DIAGNOSTIC_ATTEMPT_AUTHORIZED"}, "evidenceClass": {"const": "HEADLESS_DIAGNOSTIC_ONLY"}, "futureEventStatusBar": {"$ref": "#/$defs/futureEventStatusBar"}, "authoredReachabilityOnly": {"const": false}}}},
+        {"if": {"type": "object", "properties": {"routeKind": {"const": "STORY_PART_UNIT"}}, "required": ["routeKind"]}, "then": {"type": "object", "properties": {"candidateProfileId": {"type": "null"}, "sessionProfileId": {"const": "STORY_PART_UNIT"}, "selector": {"type": "string", "minLength": 1}, "availability": {"const": "AVAILABLE_CONTENT_UNIT_ONLY"}, "executionAuthorized": {"const": true}, "routeDisposition": {"const": "CONTENT_UNIT_ATTEMPT_AUTHORIZED"}, "evidenceClass": {"const": "AUTHORED_CONTENT_UNIT_ONLY"}, "futureEventStatusBar": {"type": "null"}, "authoredReachabilityOnly": {"const": true}}}},
+        {"if": {"type": "object", "properties": {"routeKind": {"const": "FULL_FLOW_EXCEPTION"}}, "required": ["routeKind"]}, "then": {"type": "object", "properties": {"candidateProfileId": {"const": "FULL_FLOW_EXCEPTION"}, "sessionProfileId": {"const": "FULL_FLOW_EXCEPTION"}, "selector": {"type": "null"}, "availability": {"const": "UNAVAILABLE_NOT_IMPLEMENTED"}, "executionAuthorized": {"const": false}, "routeDisposition": {"const": "ROUTE_UNAVAILABLE_NO_EXECUTION"}, "evidenceClass": {"const": "UNAVAILABLE_ROUTE_TERMINAL_ONLY"}, "futureEventStatusBar": {"type": "null"}, "authoredReachabilityOnly": {"const": false}}}}
+      ]
+    },
+    "inventoryEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pathDigest", "device", "inode", "linkCount", "entrySha256"],
+      "properties": {
+        "pathDigest": {"$ref": "#/$defs/sha256"},
+        "device": {"type": "integer", "minimum": 0},
+        "inode": {"type": "integer", "minimum": 1},
+        "linkCount": {"type": "integer", "const": 1},
+        "entrySha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "beforeInventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schemaVersion", "phase", "canonicalSessionsRoot", "nonce", "fileCount", "entries", "entryTreeSha256", "historicalRawPathsThreadIdsSizesAndTimesPersisted", "inventorySha256"],
+      "properties": {
+        "schemaVersion": {"type": "string", "const": "gridworks.realtime-controlled-codex-rollout-inventory.v1"},
+        "phase": {"type": "string", "const": "BEFORE"},
+        "canonicalSessionsRoot": {"type": "string", "pattern": "/\\.codex/sessions$"},
+        "nonce": {"$ref": "#/$defs/nonce"},
+        "fileCount": {"type": "integer", "minimum": 0},
+        "entries": {"type": "array", "items": {"$ref": "#/$defs/inventoryEntry"}},
+        "entryTreeSha256": {"$ref": "#/$defs/sha256"},
+        "historicalRawPathsThreadIdsSizesAndTimesPersisted": {"type": "boolean", "const": false},
+        "inventorySha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "emptyFileBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalPath", "device", "inode", "mode", "linkCount", "byteLength", "modifiedUnixNs", "changedUnixNs", "rawSha256"],
+      "properties": {
+        "canonicalPath": {"$ref": "#/$defs/absolutePath"},
+        "device": {"type": "integer", "minimum": 0},
+        "inode": {"type": "integer", "minimum": 1},
+        "mode": {"type": "integer", "minimum": 1},
+        "linkCount": {"type": "integer", "const": 1},
+        "byteLength": {"type": "integer", "const": 0},
+        "modifiedUnixNs": {"type": "integer", "minimum": 1},
+        "changedUnixNs": {"type": "integer", "minimum": 1},
+        "rawSha256": {"type": "string", "const": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+      }
+    },
+    "reservedFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "canonicalPath", "device", "inode", "mode", "linkCount", "byteLength", "modifiedUnixNs", "changedUnixNs", "rawSha256"],
+      "properties": {
+        "role": {"type": "string", "enum": ["STDOUT", "STDERR", "OUTPUT"]},
+        "canonicalPath": {"$ref": "#/$defs/absolutePath"},
+        "device": {"type": "integer", "minimum": 0},
+        "inode": {"type": "integer", "minimum": 1},
+        "mode": {"type": "integer", "minimum": 1},
+        "linkCount": {"type": "integer", "const": 1},
+        "byteLength": {"type": "integer", "const": 0},
+        "modifiedUnixNs": {"type": "integer", "minimum": 1},
+        "changedUnixNs": {"type": "integer", "minimum": 1},
+        "rawSha256": {"type": "string", "const": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+      }
+    },
+    "prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalPath", "rawSha256", "byteLength", "transport", "nonceChainParentAndBlockedJudgeHashesEchoRequired"],
+      "properties": {
+        "canonicalPath": {"type": "string", "pattern": "/prompt\\.txt$"},
+        "rawSha256": {"$ref": "#/$defs/sha256"},
+        "byteLength": {"type": "integer", "minimum": 1},
+        "transport": {"type": "string", "const": "STDIN_DASH_EXACT_BYTES"},
+        "nonceChainParentAndBlockedJudgeHashesEchoRequired": {"type": "boolean", "const": true}
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalPath", "rawSha256", "byteLength", "authority"],
+      "properties": {
+        "canonicalPath": {"type": "string", "pattern": "/realtime-controlled-codex-probe-output\\.schema\\.json$"},
+        "rawSha256": {"type": "string", "const": "sha256:cba98936db38d9455fa58d2a96368254e297b3021351952a8b3e34f9124bd845"},
+        "byteLength": {"type": "integer", "minimum": 1},
+        "authority": {"type": "string", "const": "SOURCE_BOUND_STRUCTURAL_OUTPUT_CONTRACT_SEMANTIC_ECHO_RECONSTRUCTED"}
+      }
+    },
+    "capsule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalPath", "inventoryBeforeExecution", "gitRepositoryCheckSkipped", "repositoryAgentsRulesOrCodeLoadedFromCwd"],
+      "properties": {
+        "canonicalPath": {"type": "string", "pattern": "/capsule$"},
+        "inventoryBeforeExecution": {"type": "array", "maxItems": 0},
+        "gitRepositoryCheckSkipped": {"type": "boolean", "const": true},
+        "repositoryAgentsRulesOrCodeLoadedFromCwd": {"type": "boolean", "const": false}
+      }
+    },
+    "cli": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canonicalNativeExecutablePath", "version", "rawSha256", "byteLength", "device", "inode", "mode", "linkCount", "modifiedUnixNs", "changedUnixNs", "codesignIdentifier", "codesignTeamIdentifier", "codesignCDHash", "codesignDesignatedRequirement", "codesignVerifyStdoutRawSha256", "codesignVerifyStderrRawSha256", "codesignInspectRawSha256", "codesignRequirementRawSha256", "versionStdoutRawSha256", "versionStderrRawSha256", "bindingScope"],
+      "properties": {
+        "canonicalNativeExecutablePath": {"type": "string", "const": "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex"},
+        "version": {"type": "string", "const": "codex-cli 0.149.0"},
+        "rawSha256": {"type": "string", "const": "sha256:f4a74117b8142cda581c95ff753abf4508b5636d89682c1ed77e4a9249af8963"},
+        "byteLength": {"type": "integer", "const": 220538240},
+        "device": {"type": "integer", "minimum": 0},
+        "inode": {"type": "integer", "minimum": 1},
+        "mode": {"type": "integer", "minimum": 1},
+        "linkCount": {"type": "integer", "const": 1},
+        "modifiedUnixNs": {"type": "integer", "minimum": 1},
+        "changedUnixNs": {"type": "integer", "minimum": 1},
+        "codesignIdentifier": {"type": "string", "const": "codex"},
+        "codesignTeamIdentifier": {"type": "string", "const": "2DC432GLL2"},
+        "codesignCDHash": {"type": "string", "const": "8b2b8c0762297940672f4500344bf49ccd3b43a1"},
+        "codesignDesignatedRequirement": {"type": "string", "minLength": 1},
+        "codesignVerifyStdoutRawSha256": {"$ref": "#/$defs/sha256"},
+        "codesignVerifyStderrRawSha256": {"$ref": "#/$defs/sha256"},
+        "codesignInspectRawSha256": {"$ref": "#/$defs/sha256"},
+        "codesignRequirementRawSha256": {"$ref": "#/$defs/sha256"},
+        "versionStdoutRawSha256": {"$ref": "#/$defs/sha256"},
+        "versionStderrRawSha256": {"$ref": "#/$defs/sha256"},
+        "bindingScope": {"type": "string", "const": "EXACT_NATIVE_MACH_O_BYTES_STAT_VERSION_AND_APPLE_CODESIGN_IDENTITY_TRANSITIVE_CLOSURE_UNBOUND"}
+      }
+    },
+    "argv": {
+      "type": "array",
+      "prefixItems": [
+        {"type": "string", "const": "/opt/homebrew/lib/node_modules/@openai/codex/node_modules/@openai/codex-darwin-arm64/vendor/aarch64-apple-darwin/bin/codex"},
+        {"type": "string", "const": "exec"},
+        {"type": "string", "const": "--strict-config"},
+        {"type": "string", "const": "--ignore-user-config"},
+        {"type": "string", "const": "--ignore-rules"},
+        {"type": "string", "const": "--model"},
+        {"type": "string", "const": "gpt-5.6-sol"},
+        {"type": "string", "const": "--sandbox"},
+        {"type": "string", "const": "read-only"},
+        {"type": "string", "const": "--config"},
+        {"type": "string", "const": "approval_policy=\"never\""},
+        {"type": "string", "const": "--config"},
+        {"type": "string", "const": "model_reasoning_effort=\"ultra\""},
+        {"type": "string", "const": "--cd"},
+        {"type": "string", "pattern": "/capsule$"},
+        {"type": "string", "const": "--skip-git-repo-check"},
+        {"type": "string", "const": "--output-schema"},
+        {"type": "string", "pattern": "/tools/commercial-ux/native/realtime-controlled-codex-probe-output\\.schema\\.json$"},
+        {"type": "string", "const": "--color"},
+        {"type": "string", "const": "never"},
+        {"type": "string", "const": "--json"},
+        {"type": "string", "const": "--output-last-message"},
+        {"type": "string", "pattern": "/output\\.json$"},
+        {"type": "string", "const": "-"}
+      ],
+      "items": false,
+      "minItems": 24,
+      "maxItems": 24
+    },
+    "environmentRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "value"],
+      "properties": {"name": {"type": "string"}, "value": {"type": "string"}}
+    },
+    "environment": {
+      "type": "array",
+      "prefixItems": [
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "CODEX_HOME"}}}]},
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "HOME"}}}]},
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "LANG"}, "value": {"const": "en_US.UTF-8"}}}]},
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "LC_ALL"}, "value": {"const": "en_US.UTF-8"}}}]},
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "LOGNAME"}}}]},
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "NO_COLOR"}, "value": {"const": "1"}}}]},
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "PATH"}, "value": {"const": "/usr/bin:/bin"}}}]},
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "SHELL"}}}]},
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "TMPDIR"}, "value": {"const": "/private/tmp"}}}]},
+        {"allOf": [{"$ref": "#/$defs/environmentRow"}, {"type": "object", "properties": {"name": {"const": "USER"}}}]}
+      ],
+      "items": false,
+      "minItems": 10,
+      "maxItems": 10
+    }
+  }
+}

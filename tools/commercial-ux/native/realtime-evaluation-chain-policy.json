@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "gridworks.realtime-evaluation-chain-policy.v1",
+  "canonicalization": {
+    "name": "GRIDWORKS_CANONICAL_JSON_V1",
+    "rawFileHash": "SHA256_RAW_BYTES",
+    "selfHashRule": "SHA256_GRIDWORKS_CANONICAL_JSON_V1_WITH_SELF_HASH_FIELD_OMITTED",
+    "jsonFileEncoding": "UTF8_SORT_KEYS_INDENT_2_ONE_TRAILING_LF"
+  },
+  "parentSessionAuthority": {
+    "sourceCommit": "5a31ff35a6e2d293c2f1800e4297945ecf3a5584",
+    "evaluatorProducerFilesSha256": "sha256:faea99acbc3a09334ccc8fbb9140a894f99fbfb0340ce224e9f12cba9b54b3e9",
+    "sessionPolicyRawSha256": "sha256:2a3e8fdb4167b395115b032025ba5cc99b3c21274c3a9c75961fb1405102bfb5",
+    "candidateSha256": "sha256:373785e45a4485dfeded43466a5bff0f66de4a0c106c972262686e7a432cbdd6",
+    "sessionStatus": "FINALIZED_BEFORE_ANY_ATTEMPT",
+    "semanticVerifierEntryPoint": "verify_session_claim_against_reconstructed_authority",
+    "finalizedPrefixRequirement": "EXECUTABLE_ROUTE_ENDS_IN_EXACTLY_ONE_SUCCESS_OR_UNAVAILABLE_ROUTE_HAS_CANONICAL_NESTED_TERMINAL",
+    "snapshotRequirement": "FULL_FINALIZED_SESSION_AND_ATTEMPT_PREFIX_UNDER_SESSION_CLAIM_FLOCK"
+  },
+  "evaluatorProducerAuthority": {
+    "expectedFileCount": 5,
+    "paths": [
+      "tools/commercial-ux/native/realtime-evaluation-chain-authority.py",
+      "tools/commercial-ux/native/realtime-evaluation-chain-claim.schema.json",
+      "tools/commercial-ux/native/realtime-evaluation-chain-policy.json",
+      "tools/commercial-ux/native/realtime-session-authority.py",
+      "tools/commercial-ux/native/test-realtime-evaluation-chain-authority.py"
+    ],
+    "sourceMaterialization": "EXACT_CHAIN_AUTHORITY_COMMIT_GIT_BLOBS_MATCH_RUNNING_WORKTREE_BYTES",
+    "semanticVerifierEntryPoint": "verify_chain_claim_against_reconstructed_authority",
+    "structuralSchemaAuthority": "STRUCTURAL_ONLY_NOT_CHAIN_AUTHORITY"
+  },
+  "chainAuthority": {
+    "chainKind": "FINALIZED_DIAGNOSTIC_PREFIX_NO_EVALUATION_OUTPUTS",
+    "chainRootSuffix": ".evaluation-chain-v1",
+    "rootDerivation": "CANONICAL_SESSION_ROOT_UTF8_PLUS_FIXED_SUFFIX",
+    "oneChainPerSession": true,
+    "chainNonceByteCount": 32,
+    "freshnessAuthority": "LOCAL_OS_RANDOM_NON_SCORE_ONLY",
+    "claimFileName": "evaluation-chain-claim.json",
+    "inputRootRelativePath": "inputs/session",
+    "unavailableTerminalSnapshotRelativePath": "inputs/session/unavailable-route-terminal.json",
+    "claimCommitMarker": "CHAIN_CLAIM_LAST_O_EXCL_FSYNC_FILE_AND_PARENT",
+    "chainRootInventoryBeforeArtifacts": "EXACT_INPUTS_AND_CHAIN_CLAIM_ONLY",
+    "artifactRootAbsentAtClaimCreation": true,
+    "officialCommercialUX": false,
+    "scoreBearingCaptureAllowed": false,
+    "commercialUXProxy": null,
+    "filesystemPolicy": "CANONICAL_ABSOLUTE_NO_SYMLINK_COMPONENTS_O_EXCL_FSYNC_APPEND_ONLY"
+  },
+  "routeBoundaries": {
+    "TARGETED_CHECKPOINT": {
+      "requiredDisposition": "DIAGNOSTIC_ATTEMPT_AUTHORIZED",
+      "selectedTerminalOutcome": "SUCCESS",
+      "evidenceClass": "HEADLESS_DIAGNOSTIC_ONLY",
+      "requiredFutureEventSignals": [
+        "CURRENT_TIME",
+        "NEXT_EVENT_COUNTDOWN",
+        "EVENT_START_END",
+        "CONSTRUCTION_COMPLETION",
+        "PROMISE_DECISION_DEADLINE",
+        "THERMAL_TRIP_RECOVERY"
+      ],
+      "futureEventHeadlessWiringStatus": "EXACT_PACKAGE_TWO_CHECKPOINT_SCENE_LOAD_PASS",
+      "futureEventNativeQualityStatus": "NOT_OBSERVED",
+      "nativePresentationObserved": false,
+      "scoreBearingEvidence": false
+    },
+    "STORY_PART_UNIT": {
+      "requiredDisposition": "CONTENT_UNIT_ATTEMPT_AUTHORIZED",
+      "selectedTerminalOutcome": "SUCCESS",
+      "evidenceClass": "AUTHORED_CONTENT_UNIT_ONLY",
+      "authoredReachabilityOnly": true,
+      "nativeReachabilityClaim": false,
+      "nativePresentationObserved": false,
+      "scoreBearingEvidence": false
+    },
+    "FULL_FLOW_EXCEPTION": {
+      "requiredDisposition": "ROUTE_UNAVAILABLE_NO_EXECUTION",
+      "selectedTerminalOutcome": "ROUTE_UNAVAILABLE_NO_EXECUTION",
+      "evidenceClass": "UNAVAILABLE_ROUTE_TERMINAL_ONLY",
+      "availability": "UNAVAILABLE_NOT_IMPLEMENTED",
+      "executionAuthorized": false,
+      "attemptCount": 0,
+      "nativePresentationObserved": false,
+      "scoreBearingEvidence": false
+    }
+  },
+  "futureArtifactPlan": {
+    "artifactRootRelativePath": "artifacts",
+    "creationAuthorizedByThisUnit": false,
+    "orderedPaths": [
+      "artifacts/evidence-index.json",
+      "artifacts/actor-terminal.json",
+      "artifacts/judge-input.json",
+      "artifacts/judge-terminal.json",
+      "artifacts/verifier-result.json",
+      "artifacts/oracle-ledger.json",
+      "artifacts/aggregate.json"
+    ],
+    "artifactDirectoriesOrPlaceholdersAtClaimCreationForbidden": true
+  },
+  "producerPlan": {
+    "actor": "BLOCKED_NO_NATIVE_CAPTURE",
+    "evidence": "NOT_CREATED_DIAGNOSTIC_PREFIX_ONLY",
+    "judge": "UNAUTHORIZED_MODEL_RECEIPT_NOT_BOUND",
+    "verifier": "UNAUTHORIZED_NO_JUDGE_ARTIFACT",
+    "oracle": "PLANNED_DETERMINISTIC_NOT_CREATED",
+    "aggregate": "PLANNED_BLOCKED_NULL_NOT_CREATED",
+    "modelExecutionAuthority": "UNAVAILABLE_NO_PLATFORM_OR_EQUIVALENT_TRANSCRIPT_AUTHORITY_BOUND"
+  },
+  "limitations": [
+    "NO_INTERACTIVE_NATIVE_CAPTURE",
+    "NO_ACTOR_EVIDENCE_JUDGE_VERIFIER_OR_AGGREGATE_OUTPUT",
+    "MODEL_ULTRA_EXECUTION_RECEIPT_NOT_BOUND",
+    "FULL_FLOW_UNAVAILABLE_NOT_IMPLEMENTED",
+    "STORY_PART_UNIT_IS_NOT_NATIVE_REACHABILITY",
+    "FUTURE_EVENT_STATUS_BAR_NATIVE_QUALITY_NOT_OBSERVED",
+    "LOCAL_NONCE_IS_NOT_PLATFORM_FRESHNESS_RECEIPT",
+    "CHAIN_PRODUCER_EXECUTION_NOT_EXTERNALLY_ATTESTED",
+    "PYTHON_STDLIB_OS_TRUST_BASE_UNBOUND",
+    "SCORE_BEARING_CAPTURE_FORBIDDEN"
+  ]
+}

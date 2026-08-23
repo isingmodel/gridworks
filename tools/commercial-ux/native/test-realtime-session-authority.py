@@ -387,12 +387,25 @@ class RealtimeSessionAuthorityTests(unittest.TestCase):
         state = AUTHORITY.verify_session_state(REPOSITORY_ROOT, claim_path)
         self.assertEqual("ROUTE_UNAVAILABLE_NO_EXECUTION", state["terminalOutcome"])
         before = sorted(path.name for path in claim_path.parent.iterdir())
-        for operation in (
-            lambda: AUTHORITY.reserve_attempt(REPOSITORY_ROOT, claim_path, 1),
-            lambda: AUTHORITY.write_expected_attempt_output(REPOSITORY_ROOT, claim_path, 1),
-            lambda: AUTHORITY.finalize_attempt(REPOSITORY_ROOT, claim_path, 1),
+        for operation, fragment in (
+            (
+                lambda: AUTHORITY.reserve_attempt(REPOSITORY_ROOT, claim_path, 1),
+                "cannot reserve an attempt",
+            ),
+            (
+                lambda: AUTHORITY.write_expected_attempt_output(
+                    REPOSITORY_ROOT,
+                    claim_path,
+                    1,
+                ),
+                "no executable attempt",
+            ),
+            (
+                lambda: AUTHORITY.finalize_attempt(REPOSITORY_ROOT, claim_path, 1),
+                "no executable attempt",
+            ),
         ):
-            self.assertRejected(operation, "no executable attempt")
+            self.assertRejected(operation, fragment)
         self.assertEqual(before, sorted(path.name for path in claim_path.parent.iterdir()))
         self.assertRejected(
             lambda: AUTHORITY.reconstruct_route_binding(

@@ -53,6 +53,8 @@ internal sealed partial class RealtimeSliceMain
     internal RealtimeTutorialModalRequest? ActiveTutorialModalForSmoke =>
         _tutorialFlow.Active;
 
+    internal void RequestActionForSmoke(string actionId) => HandleAction(actionId);
+
     internal RealtimeModalPresentation? ClosePresentedTutorialModalForSmoke()
     {
         RealtimeModalPresentation modal = _latestPresentation?.Modal ??
@@ -77,7 +79,8 @@ internal sealed partial class RealtimeSliceMain
 
     internal RealtimeSlicePresentation PresentSnapshotForSmoke(
         RealtimeCampaignSnapshot snapshot,
-        RealtimeInteractionState? interaction = null)
+        RealtimeInteractionState? interaction = null,
+        IReadOnlyList<RealtimeTransition>? transitionHistory = null)
     {
         EnsureBootstrapped();
         return RealtimeSlicePresenter.Present(
@@ -92,7 +95,8 @@ internal sealed partial class RealtimeSliceMain
                 : null,
             lineOrderQuote: snapshot.Construction.LineDraft is { EndNodeId: not null }
                 ? _run.PreviewLineOrder()
-                : null);
+                : null,
+            transitionHistory: transitionHistory);
     }
 
     internal RealtimeProjectQuote PreviewNodeOrderForSmoke()

@@ -60,6 +60,10 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseFirstLightNoActionResult(failures), failures);
         RunCase("release-tutorial-through-second-source",
             () => ValidateReleaseTutorialThroughSecondSource(failures), failures);
+        RunCase("release-north-bank-promise-controller",
+            () => ValidateReleaseNorthBankPromiseController(failures), failures);
+        RunCase("release-north-bank-promise-result-branches",
+            () => ValidateReleaseNorthBankPromiseResultBranches(failures), failures);
         RunCase("release-tutorial-connection-failure-result",
             () => ValidateReleaseTutorialConnectionFailureResult(failures), failures);
         RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
@@ -2464,6 +2468,672 @@ internal static class RealtimeR2Smoke
         Check(observedRailEvents.SequenceEqual(exactEventOrder, StringComparer.Ordinal),
             "tutorial cumulative one-line rail event order",
             failures);
+    }
+
+    private static void ValidateReleaseNorthBankPromiseController(
+        ICollection<string> failures)
+    {
+        var slice = new RealtimeSliceMain();
+        try
+        {
+            slice.BootstrapReleaseThroughNorthBankForSmoke();
+        }
+        catch
+        {
+            slice.Free();
+            throw;
+        }
+        using var sliceLifetime = slice.FreeAfterSmoke();
+        (RealtimeSliceData data, string rootSubstationId) =
+            AdvanceReleasePrefixToNorthBankPlanning(slice, failures);
+
+        const string markerId =
+            "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE";
+        RealtimeTimelineItemPresentation deadline = slice.LatestPresentation.Rail.Items
+            .Single(item => string.Equals(item.Id, markerId, StringComparison.Ordinal));
+        Check(deadline.Kind == RealtimeTimelineItemKind.Decision &&
+              deadline.Lane == RealtimeTimelineLane.DemandAndDeadline &&
+              deadline.StartMinute == 265680 &&
+              deadline.Visibility == RealtimeTimelineVisibility.Announced &&
+              deadline.Description.Contains("선택 전 Keep 가정", StringComparison.Ordinal) &&
+              deadline.Description.Contains("마감 전 변경 가능", StringComparison.Ordinal) &&
+              slice.LatestPresentation.Rail.NextEvent is
+              {
+                  EventId: markerId,
+                  StartMinute: 265680,
+              } &&
+              slice.LatestPresentation.Rail.NextEvent.StartMinute <
+                  data.Campaign.Chapters[3].ScheduledEvents[0].StartOffsetMinutes +
+                  slice.CoreSnapshot.ChapterStartMinute,
+            "North Bank deadline did not become the compact one-line next decision",
+            failures);
+        AssertNoUnknownRailTargets(
+            slice,
+            slice.LatestPresentation,
+            failures,
+            "north-bank-unset");
+
+        string beforeSelectionHash = slice.CanonicalStateSha256;
+        long beforeSelectionMinute = slice.CoreSnapshot.Minute;
+        int beforeSelectionCommands = slice.CoreSnapshot.CommandCount;
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.SetTimelineMarker(
+                markerId,
+                markerId,
+                null,
+                slice.InteractionState.TimelineHorizon)),
+            "North Bank deadline selection", failures, coreCommandExpected: false);
+        RealtimeContextDockPresentation context = slice.LatestPresentation.Context;
+        Check(slice.CanonicalStateSha256 == beforeSelectionHash &&
+              slice.CoreSnapshot.Minute == beforeSelectionMinute &&
+              slice.CoreSnapshot.CommandCount == beforeSelectionCommands &&
+              context is
+              {
+                  SubjectId: markerId,
+                  Visible: true,
+                  PrimaryAction.Id: RealtimeSlicePresenter.PromiseKeepActionId,
+                  PrimaryAction.Enabled: true,
+                  SecondaryAction.Id: RealtimeSlicePresenter.PromiseDeferActionId,
+                  SecondaryAction.Enabled: true,
+              } &&
+              context.Sections.Any(item => item.Body.Contains(
+                  "미선택", StringComparison.Ordinal)) &&
+              context.Sections.Any(item => item.Body.Contains(
+                  "Keep 가정", StringComparison.Ordinal)),
+            "deadline selection mutated Core or omitted its two authored actions",
+            failures);
+
+        int beforeDeferCommands = slice.CoreSnapshot.CommandCount;
+        slice.RequestActionForSmoke(RealtimeSlicePresenter.PromiseDeferActionId);
+        Check(slice.CoreSnapshot.PromiseDecision == CommercialPromiseDecision.Defer &&
+              slice.CoreSnapshot.Minute == beforeSelectionMinute &&
+              slice.CoreSnapshot.CommandCount == beforeDeferCommands + 1 &&
+              slice.LatestPresentation.BaseForecast.Events.All(item =>
+                  item.TemporalProjection.Outcome.DutySegments
+                      .SelectMany(segment => segment.Loads)
+                      .Where(load => load.LoadId == "NORTH_RESIDENTIAL")
+                      .All(load => !load.Required)) &&
+              slice.LatestPresentation.Context.Sections.Any(item =>
+                  item.Body.Contains("북안 수요", StringComparison.Ordinal) &&
+                  item.Body.Contains("제외", StringComparison.Ordinal)),
+            "production Defer action did not immediately remove North duty",
+            failures);
+
+        int beforeKeepCommands = slice.CoreSnapshot.CommandCount;
+        slice.RequestActionForSmoke(RealtimeSlicePresenter.PromiseKeepActionId);
+        Check(slice.CoreSnapshot.PromiseDecision == CommercialPromiseDecision.Keep &&
+              slice.CoreSnapshot.Minute == beforeSelectionMinute &&
+              slice.CoreSnapshot.CommandCount == beforeKeepCommands + 1 &&
+              slice.LatestPresentation.BaseForecast.Events.Any(item =>
+                  item.TemporalProjection.Outcome.DutySegments
+                      .SelectMany(segment => segment.Loads)
+                      .Any(load => load.LoadId == "NORTH_RESIDENTIAL" && load.Required)),
+            "production Keep action did not immediately restore North duty",
+            failures);
+
+        _ = BuildNorthBankService(
+            slice,
+            rootSubstationId,
+            includeNorth: true,
+            failures,
+            "kept");
+        Check(slice.CoreSnapshot.Minute < 265680 &&
+              slice.LatestPresentation.BaseForecast.Events.All(item =>
+                  item.TemporalProjection.Outcome.SafetySatisfied &&
+                  item.TemporalProjection.Outcome.PromiseSatisfied),
+            "completed Keep network did not clear separate safety/promise forecasts",
+            failures);
+
+        (RealtimeChapterOutcome outcome, RealtimeModalPresentation result) =
+            CompleteNorthBankChapter(slice, data, failures);
+        CommercialStoryCard kept = data.BaseCampaign.Chapters[3].ResultCards.Kept!;
+        Check(outcome.ObjectiveSatisfied &&
+              outcome.PromiseDecision == CommercialPromiseDecision.Keep &&
+              result.Eyebrow == kept.Speaker &&
+              result.Heading == kept.Title &&
+              result.Body == kept.Body,
+            "successful explicit Keep did not present the exact kept result",
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
+                  new[]
+                  {
+                      "FIRST_LIGHT",
+                      "SECOND_HEART",
+                      "SECOND_SOURCE",
+                      "NORTH_BANK_PROMISE",
+                  },
+                  StringComparer.Ordinal) &&
+              slice.FormativeTutorialFullFlowRecordedForSmoke,
+            "explicit Keep did not close the ordered four-result formative chain",
+            failures);
+        Check(slice.EmittedTransitions
+                .Where(item => item.Kind == RealtimeTransitionKind.EventStarted)
+                .Select(item => item.EventId!)
+                .SequenceEqual(
+                    new[]
+                    {
+                        "FIRST_LIGHT_SUPPLY",
+                        "HOSPITAL_TRANSFER_TEST",
+                        "FLOOD_ISOLATION_TEST",
+                        "WEST_MAIN_COMMISSIONING_TEST",
+                        "SOUTH_SOURCE_COMMISSIONING_TEST",
+                        "NORTH_BANK_COMMISSIONING",
+                        "NEXT_HOT_EVENING_FORECAST",
+                    },
+                    StringComparer.Ordinal),
+            "four-chapter controller event FIFO drifted",
+            failures);
+    }
+
+    private static void ValidateReleaseNorthBankPromiseResultBranches(
+        ICollection<string> failures)
+    {
+        // Explicit Defer: safety succeeds, exact deferred authored bytes render,
+        // but the native explicit-Keep evidence chain must stay at three chapters.
+        var deferredSlice = new RealtimeSliceMain();
+        try
+        {
+            deferredSlice.BootstrapReleaseThroughNorthBankForSmoke();
+        }
+        catch
+        {
+            deferredSlice.Free();
+            throw;
+        }
+        using var deferredLifetime = deferredSlice.FreeAfterSmoke();
+        (RealtimeSliceData deferredData, string deferredRoot) =
+            AdvanceReleasePrefixToNorthBankPlanning(deferredSlice, failures);
+        SelectPromiseDeadline(deferredSlice, failures, "explicit-defer");
+        deferredSlice.RequestActionForSmoke(RealtimeSlicePresenter.PromiseDeferActionId);
+        _ = BuildNorthBankService(
+            deferredSlice,
+            deferredRoot,
+            includeNorth: false,
+            failures,
+            "explicit-defer");
+        (RealtimeChapterOutcome deferredOutcome, RealtimeModalPresentation deferredResult) =
+            CompleteNorthBankChapter(deferredSlice, deferredData, failures);
+        CommercialStoryCard deferred = deferredData.BaseCampaign.Chapters[3]
+            .ResultCards.Deferred!;
+        Check(deferredOutcome.ObjectiveSatisfied &&
+              deferredOutcome.PromiseDecision == CommercialPromiseDecision.Defer &&
+              deferredResult.Eyebrow == deferred.Speaker &&
+              deferredResult.Heading == deferred.Title &&
+              deferredResult.Body == deferred.Body,
+            "explicit Defer did not present exact deferred authored bytes",
+            failures);
+        _ = deferredSlice.ClosePresentedTutorialModalForSmoke();
+        Check(deferredSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
+              !deferredSlice.FormativeTutorialFullFlowRecordedForSmoke,
+            "explicit Defer minted the Keep-only formative token",
+            failures);
+
+        // Unset reaches the exact deadline once, becomes auto-Defer, stays
+        // locked/text-recoverable, and discloses that automatic branch.
+        var defaultedSlice = new RealtimeSliceMain();
+        try
+        {
+            defaultedSlice.BootstrapReleaseThroughNorthBankForSmoke();
+        }
+        catch
+        {
+            defaultedSlice.Free();
+            throw;
+        }
+        using var defaultedLifetime = defaultedSlice.FreeAfterSmoke();
+        (RealtimeSliceData defaultedData, string defaultedRoot) =
+            AdvanceReleasePrefixToNorthBankPlanning(defaultedSlice, failures);
+        _ = BuildNorthBankService(
+            defaultedSlice,
+            defaultedRoot,
+            includeNorth: false,
+            failures,
+            "auto-defer");
+        _ = AdvanceToMinuteByFrames(
+            defaultedSlice,
+            265680,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        Check(defaultedSlice.CoreSnapshot.PromiseDecision ==
+                  CommercialPromiseDecision.Defer &&
+              defaultedSlice.EmittedTransitions.Count(item =>
+                  item.Kind == RealtimeTransitionKind.PromiseDefaulted &&
+                  item.Minute == 265680) == 1,
+            "unset promise did not default exactly once at 265680",
+            failures);
+        SelectPromiseDeadline(defaultedSlice, failures, "auto-defer-locked");
+        RealtimeContextDockPresentation locked = defaultedSlice.LatestPresentation.Context;
+        Check(locked.PrimaryAction is { Enabled: false, Visible: true } &&
+              locked.SecondaryAction is { Enabled: false, Visible: true } &&
+              locked.Sections.Any(item => item.Body.Contains(
+                  "자동 Defer", StringComparison.Ordinal)) &&
+              defaultedSlice.LatestPresentation.Rail.Items.Single(item =>
+                  item.Id == "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE") is
+              {
+                  Visibility: RealtimeTimelineVisibility.Completed,
+                  IsActionable: false,
+              },
+            "defaulted deadline did not remain selectable, locked, and text recoverable",
+            failures);
+        (RealtimeChapterOutcome defaultedOutcome,
+            RealtimeModalPresentation defaultedResult) = CompleteNorthBankChapter(
+                defaultedSlice,
+                defaultedData,
+                failures);
+        Check(defaultedOutcome.ObjectiveSatisfied &&
+              defaultedResult.Heading == deferred.Title &&
+              defaultedResult.Body.StartsWith(deferred.Body, StringComparison.Ordinal) &&
+              defaultedResult.Body.Contains("자동으로 연기", StringComparison.Ordinal),
+            "auto-Defer result omitted its factual disclosure",
+            failures);
+        _ = defaultedSlice.ClosePresentedTutorialModalForSmoke();
+        Check(defaultedSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
+              !defaultedSlice.FormativeTutorialFullFlowRecordedForSmoke,
+            "auto-Defer minted an explicit-choice formative token",
+            failures);
+
+        // Keep with only Water supplied is a promise-only failure. It must use
+        // factual generic copy rather than the authored kept card.
+        var promiseFailureSlice = new RealtimeSliceMain();
+        try
+        {
+            promiseFailureSlice.BootstrapReleaseThroughNorthBankForSmoke();
+        }
+        catch
+        {
+            promiseFailureSlice.Free();
+            throw;
+        }
+        using var promiseFailureLifetime = promiseFailureSlice.FreeAfterSmoke();
+        (RealtimeSliceData promiseFailureData, string promiseFailureRoot) =
+            AdvanceReleasePrefixToNorthBankPlanning(promiseFailureSlice, failures);
+        SelectPromiseDeadline(promiseFailureSlice, failures, "promise-failure");
+        promiseFailureSlice.RequestActionForSmoke(
+            RealtimeSlicePresenter.PromiseKeepActionId);
+        _ = BuildNorthBankService(
+            promiseFailureSlice,
+            promiseFailureRoot,
+            includeNorth: false,
+            failures,
+            "promise-failure");
+        (RealtimeChapterOutcome promiseFailureOutcome,
+            RealtimeModalPresentation promiseFailureResult) = CompleteNorthBankChapter(
+                promiseFailureSlice,
+                promiseFailureData,
+                failures);
+        CommercialStoryCard kept = promiseFailureData.BaseCampaign.Chapters[3]
+            .ResultCards.Kept!;
+        Check(!promiseFailureOutcome.ObjectiveSatisfied &&
+              promiseFailureOutcome.Events.All(item => item.SafetySatisfied) &&
+              promiseFailureOutcome.Events.Any(item => !item.PromiseSatisfied) &&
+              promiseFailureResult.Eyebrow == "계통운영 기록" &&
+              promiseFailureResult.Heading.Contains("목표 미달", StringComparison.Ordinal) &&
+              promiseFailureResult.Body.Contains("약속 Keep", StringComparison.Ordinal) &&
+              (!string.Equals(promiseFailureResult.Eyebrow, kept.Speaker,
+                   StringComparison.Ordinal) ||
+               !string.Equals(promiseFailureResult.Heading, kept.Title,
+                   StringComparison.Ordinal) ||
+               !string.Equals(promiseFailureResult.Body, kept.Body,
+                   StringComparison.Ordinal)),
+            "promise-only failure counterfeited the authored kept result",
+            failures);
+        _ = promiseFailureSlice.ClosePresentedTutorialModalForSmoke();
+        Check(promiseFailureSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
+              !promiseFailureSlice.FormativeTutorialFullFlowRecordedForSmoke,
+            "promise failure minted a formative token",
+            failures);
+    }
+
+    internal static (RealtimeSliceData Data, string RootSubstationId)
+        AdvanceReleasePrefixToNorthBankPlanning(
+            RealtimeSliceMain slice,
+            ICollection<string> failures)
+    {
+        RealtimeSliceData data = slice.SliceDataForSmoke;
+        Check(data.SourceRoute ==
+                  RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise &&
+              data.CampaignSha256 ==
+                  "54dcad845e4cbcff8ebbcd758ec07ca43bf5997d708b1d96cb6beba6ff4d3bb5" &&
+              data.Campaign.Chapters.Select(item => item.Content.ChapterId)
+                  .SequenceEqual(
+                      new[]
+                      {
+                          "FIRST_LIGHT",
+                          "SECOND_HEART",
+                          "SECOND_SOURCE",
+                          "NORTH_BANK_PROMISE",
+                      },
+                      StringComparer.Ordinal) &&
+              data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 7 &&
+              RealtimeSliceMain.ParseSourceRoute(
+                  ["--release-through=NORTH_BANK_PROMISE"]) ==
+                  RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise,
+            "North Bank exact route/prefix identity drifted",
+            failures);
+        bool isolatedRejected = false;
+        try
+        {
+            _ = RealtimeSliceMain.ParseSourceRoute(
+                ["--release-chapter=NORTH_BANK_PROMISE"]);
+        }
+        catch (ArgumentException)
+        {
+            isolatedRejected = true;
+        }
+        Check(isolatedRejected,
+            "standalone North Bank route counterfeited cumulative state",
+            failures);
+
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterBriefing,
+            "FIRST_LIGHT",
+            null,
+            data.BaseCampaign.Chapters[0].Briefing,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "North route FIRST_LIGHT briefing did not close", failures);
+        string rootSubstationId = BuildTutorialFirstLightNetwork(slice, failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1320,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterResult,
+            "FIRST_LIGHT",
+            null,
+            data.BaseCampaign.Chapters[0].ResultCards.Standard!,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is not null,
+            "North route FIRST_LIGHT result did not queue SECOND_HEART", failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "North route SECOND_HEART briefing did not close", failures);
+
+        string hospitalSubstationId = OrderTutorialNode(
+            slice,
+            new CoreMapPoint(2250, 1300),
+            failures,
+            "North route hospital service substation");
+        _ = OrderTutorialLine(
+            slice,
+            rootSubstationId,
+            [new CoreMapPoint(2250, 1000)],
+            hospitalSubstationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "North route hospital feed");
+        _ = OrderTutorialLine(
+            slice,
+            hospitalSubstationId,
+            Array.Empty<CoreMapPoint>(),
+            "HOSPITAL_TERMINAL",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "North route hospital corridor one");
+        _ = OrderTutorialLine(
+            slice,
+            "EAST_RESIDENTIAL_TERMINAL",
+            [new CoreMapPoint(2550, 1050)],
+            "HOSPITAL_TERMINAL",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "North route hospital corridor two");
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1800,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        CommercialStoryCard floodStory = data.BaseCampaign.Chapters[1]
+            .OperatingPhases.Single(item =>
+                item.PhaseId == "FLOOD_ISOLATION_TEST").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.EventStory,
+            "SECOND_HEART",
+            "FLOOD_ISOLATION_TEST",
+            floodStory,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "North route flood story did not close", failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1860,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterResult,
+            "SECOND_HEART",
+            null,
+            data.BaseCampaign.Chapters[1].ResultCards.Standard!,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is not null,
+            "North route SECOND_HEART result did not queue SECOND_SOURCE", failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "North route SECOND_SOURCE briefing did not close", failures);
+
+        _ = OrderTutorialLine(
+            slice,
+            "SOUTH_SOURCE_NODE",
+            [
+                new CoreMapPoint(700, 1650),
+                new CoreMapPoint(1150, 1650),
+                new CoreMapPoint(1750, 1650),
+                new CoreMapPoint(2050, 1450),
+            ],
+            hospitalSubstationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "North route south source corridor");
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            2400,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        CommercialStoryCard southStory = data.BaseCampaign.Chapters[2]
+            .OperatingPhases.Single(item =>
+                item.PhaseId == "SOUTH_SOURCE_COMMISSIONING_TEST").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.EventStory,
+            "SECOND_SOURCE",
+            "SOUTH_SOURCE_COMMISSIONING_TEST",
+            southStory,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "North route south-source story did not close", failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            2460,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterResult,
+            "SECOND_SOURCE",
+            null,
+            data.BaseCampaign.Chapters[2].ResultCards.Standard!,
+            failures);
+        RealtimeModalPresentation sourceResult = slice.LatestPresentation.Modal!;
+        Check(!sourceResult.DismissOnCancel &&
+              sourceResult.PrimaryAction.Label.Contains("6개월", StringComparison.Ordinal) &&
+              sourceResult.PrimaryAction.Description.Contains(
+                  "185일 05:00", StringComparison.Ordinal) &&
+              slice.CoreSnapshot is
+              {
+                  Minute: 2460,
+                  ChapterStarted: false,
+                  ChapterStartMinute: 265260,
+              },
+            "SECOND_SOURCE result did not expose the explicit typed calendar action",
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is not null &&
+              slice.CoreSnapshot is
+              {
+                  Minute: 265260,
+                  ChapterStarted: true,
+              } &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
+                  new[] { "FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE" },
+                  StringComparer.Ordinal),
+            "production result action did not preserve the three-result chain into North Bank",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.ChapterBriefing,
+            "NORTH_BANK_PROMISE",
+            null,
+            data.BaseCampaign.Chapters[3].Briefing,
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is not null,
+            "North briefing did not queue its planning-window story", failures);
+        RealtimeTutorialModalRequest planning = slice.ActiveTutorialModalForSmoke ??
+            throw new InvalidOperationException("North planning window is not active.");
+        CommercialStoryCard planningCard = data.BaseCampaign.Chapters[3]
+            .DecisionWindows.Single(item =>
+                item.WindowId == "NORTH_BANK_PLANNING_WINDOW").Story!;
+        RealtimeModalPresentation planningModal = slice.LatestPresentation.Modal!;
+        Check(planning.Purpose == RealtimeTutorialModalPurpose.DecisionWindowStory &&
+              planning.WindowId == "NORTH_BANK_PLANNING_WINDOW" &&
+              planningModal.Eyebrow == planningCard.Speaker &&
+              planningModal.Heading == planningCard.Title &&
+              planningModal.Body == planningCard.Body &&
+              planningModal.PrimaryAction.Id == "DECISION_WINDOW_CONTINUE",
+            "North planning-window authored FIFO drifted",
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            "North planning window did not close into live streaming play",
+            failures);
+        return (data, rootSubstationId);
+    }
+
+    internal static string BuildNorthBankService(
+        RealtimeSliceMain slice,
+        string rootSubstationId,
+        bool includeNorth,
+        ICollection<string> failures,
+        string label)
+    {
+        string northSubstationId = OrderTutorialNode(
+            slice,
+            new CoreMapPoint(2500, 500),
+            failures,
+            $"{label} North service substation");
+        _ = OrderTutorialLine(
+            slice,
+            rootSubstationId,
+            Array.Empty<CoreMapPoint>(),
+            northSubstationId,
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            $"{label} North service feed");
+        _ = OrderTutorialLine(
+            slice,
+            northSubstationId,
+            Array.Empty<CoreMapPoint>(),
+            "WATER_TERMINAL",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            $"{label} water corridor");
+        if (includeNorth)
+        {
+            _ = OrderTutorialLine(
+                slice,
+                northSubstationId,
+                Array.Empty<CoreMapPoint>(),
+                "NORTH_RESIDENTIAL_TERMINAL",
+                "STANDARD_LINE",
+                "STANDARD_POLE",
+                failures,
+                $"{label} residential corridor");
+        }
+        Check(slice.CoreSnapshot.Minute < 265680,
+            $"{label} North service construction missed the promise deadline",
+            failures);
+        return northSubstationId;
+    }
+
+    private static void SelectPromiseDeadline(
+        RealtimeSliceMain slice,
+        ICollection<string> failures,
+        string label)
+    {
+        const string markerId =
+            "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE";
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.SetTimelineMarker(
+                markerId,
+                markerId,
+                null,
+                slice.InteractionState.TimelineHorizon)),
+            $"{label} promise marker selection",
+            failures,
+            coreCommandExpected: false);
+        Check(slice.LatestPresentation.Context is
+            {
+                SubjectId: markerId,
+                Visible: true,
+            },
+            $"{label} promise marker did not open ContextDock",
+            failures);
+    }
+
+    internal static (RealtimeChapterOutcome Outcome, RealtimeModalPresentation Result)
+        CompleteNorthBankChapter(
+            RealtimeSliceMain slice,
+            RealtimeSliceData data,
+            ICollection<string> failures)
+    {
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            265950,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        CommercialStoryCard hotStory = data.BaseCampaign.Chapters[3]
+            .OperatingPhases.Single(item =>
+                item.PhaseId == "NEXT_HOT_EVENING_FORECAST").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeTutorialModalPurpose.EventStory,
+            "NORTH_BANK_PROMISE",
+            "NEXT_HOT_EVENING_FORECAST",
+            hotStory,
+            failures);
+        Check(slice.EmittedTransitions.Any(item =>
+                  item.Kind == RealtimeTransitionKind.EventStarted &&
+                  item.EventId == "NORTH_BANK_COMMISSIONING") &&
+              slice.EmittedTransitions.All(item =>
+                  item.EventId != "NORTH_BANK_COMMISSIONING" ||
+                  item.Kind != RealtimeTransitionKind.EventStarted ||
+                  slice.ActiveTutorialModalForSmoke?.EventId !=
+                      "NORTH_BANK_COMMISSIONING"),
+            "null commissioning story created a modal or never started",
+            failures);
+        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+            "North hot-evening story did not restore realtime play",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            266070,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeChapterOutcome outcome = slice.CoreSnapshot.CompletedChapters.Single(item =>
+            item.ChapterId == "NORTH_BANK_PROMISE");
+        RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException("North Bank result modal is absent.");
+        Check(slice.CoreSnapshot.CampaignComplete &&
+              result.Id == "TUTORIAL_RESULT:NORTH_BANK_PROMISE",
+            "North Bank did not end in the cumulative chapter result",
+            failures);
+        return (outcome, result);
     }
 
     private static void ValidateReleaseTutorialConnectionFailureResult(

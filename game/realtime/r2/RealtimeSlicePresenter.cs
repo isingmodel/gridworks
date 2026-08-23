@@ -38,6 +38,7 @@ internal sealed record RealtimeSlicePresentation(
 internal enum RealtimeTimelineTargetKind
 {
     Event,
+    Decision,
     ThermalAsset,
     ConstructionProject,
     Asset,
@@ -59,6 +60,9 @@ internal static class RealtimeSlicePresenter
     private const string ActiveConstructionMarkerId = "ACTIVE_CONSTRUCTION";
     private const string DraftConstructionMarkerId = "DRAFT_CONSTRUCTION";
     private const string CompletedConstructionMarkerPrefix = "COMPLETED_CONSTRUCTION:";
+    internal const string PromiseDecisionMarkerPrefix = "PROMISE_DEADLINE:";
+    internal const string PromiseKeepActionId = "PROMISE_KEEP";
+    internal const string PromiseDeferActionId = "PROMISE_DEFER";
 
     internal static RealtimeSlicePresentation Present(
         CommercialWorldDefinition displayWorld,
@@ -265,6 +269,14 @@ internal static class RealtimeSlicePresenter
         ArgumentNullException.ThrowIfNull(comparisonDraftForecast);
         ArgumentNullException.ThrowIfNull(transitionHistory);
         ArgumentException.ThrowIfNullOrWhiteSpace(markerId);
+        if (IsPromiseDecisionMarker(snapshot, markerId))
+        {
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.Decision,
+                markerId,
+                null);
+        }
         if (TryResolveComparisonEvent(
                 comparisonDraftForecast,
                 markerId,
@@ -325,6 +337,7 @@ internal static class RealtimeSlicePresenter
             }
         }
         RealtimeEventOutcome? selectedOutcome = snapshot.CurrentChapterEvents.FirstOrDefault(item =>
+            IsCurrentChapterOutcome(snapshot, item) &&
             string.Equals(item.EventId, markerId, StringComparison.Ordinal));
         if (selectedOutcome is not null)
         {
@@ -588,6 +601,55 @@ internal static class RealtimeSlicePresenter
         IReadOnlyList<RealtimeTransition> transitionHistory)
     {
         var items = new List<RealtimeTimelineItemPresentation>();
+        if (snapshot.Chapter.Content.CityPromise is CommercialCityPromiseDefinition promise &&
+            snapshot.Chapter.PromiseDecisionDeadlineOffsetMinutes is int deadlineOffset)
+        {
+            long deadline = checked(snapshot.ChapterStartMinute + deadlineOffset);
+            bool locked = snapshot.Minute >= deadline;
+            bool defaulted = PromiseDefaulted(snapshot, transitionHistory);
+            bool promiseRisk = baseForecast.Events.Any(item =>
+                item.ChapterIndex == snapshot.ChapterIndex &&
+                !item.TemporalProjection.Outcome.PromiseSatisfied);
+            RealtimeTimelineSeverity promiseSeverity = defaulted
+                ? RealtimeTimelineSeverity.Warning
+                : promiseRisk && snapshot.PromiseDecision != CommercialPromiseDecision.Defer
+                    ? RealtimeTimelineSeverity.Critical
+                    : snapshot.PromiseDecision == CommercialPromiseDecision.Unset
+                        ? RealtimeTimelineSeverity.Advisory
+                        : RealtimeTimelineSeverity.Information;
+            items.Add(new RealtimeTimelineItemPresentation(
+                PromiseDecisionMarkerId(promise.PromiseId),
+                RealtimeTimelineItemKind.Decision,
+                deadline,
+                null,
+                $"{promise.DisplayName} 선택 마감",
+                "약속 마감",
+                PromiseDecisionDescription(
+                    promise,
+                    snapshot.PromiseDecision,
+                    deadline,
+                    locked,
+                    defaulted,
+                    promiseRisk),
+                promiseSeverity,
+                locked
+                    ? RealtimeTimelineVisibility.Completed
+                    : RealtimeTimelineVisibility.Announced,
+                !locked && snapshot.PromiseDecision != CommercialPromiseDecision.Unset,
+                !locked && !snapshot.CampaignComplete)
+            {
+                Lane = RealtimeTimelineLane.DemandAndDeadline,
+                Priority = int.MinValue,
+                // The full authored day/time remains in the description used by
+                // hover and AX. Keep the closed one-line selector compact at 200%.
+                TimeLabel = Clock(deadline),
+                SeverityLabel = PromiseDecisionSeverityLabel(
+                    snapshot.PromiseDecision,
+                    locked,
+                    defaulted,
+                    promiseRisk),
+            });
+        }
         int highestAuthoredPriority = snapshot.Chapter.ScheduledEvents.Count == 0
             ? 0
             : snapshot.Chapter.ScheduledEvents.Max(item => item.Priority);
@@ -596,6 +658,7 @@ internal static class RealtimeSlicePresenter
         {
             bool active = item.Status == RealtimeForecastStatus.Active;
             bool safetyRisk = !item.TemporalProjection.Outcome.SafetySatisfied;
+            bool promiseRisk = !item.TemporalProjection.Outcome.PromiseSatisfied;
             RealtimeTimelineItemKind kind = EventKind(item.OperatingProfile);
             string eventName = PlayerEventName(displayWorld, item.OperatingProfile);
             items.Add(new RealtimeTimelineItemPresentation(
@@ -605,8 +668,8 @@ internal static class RealtimeSlicePresenter
                 item.EndMinute,
                 eventName,
                 eventName,
-                EventDescription(item, eventName),
-                safetyRisk
+                EventDescription(snapshot, item, eventName),
+                safetyRisk || promiseRisk
                     ? RealtimeTimelineSeverity.Critical
                     : RealtimeTimelineSeverity.Advisory,
                 active
@@ -623,7 +686,10 @@ internal static class RealtimeSlicePresenter
                 Priority = ForecastPriority(snapshot, item),
                 TimeLabel = Time(item.StartMinute),
                 EndTimeLabel = Time(item.EndMinute),
-                SeverityLabel = safetyRisk ? "안전 의무 위험" : "예고",
+                SeverityLabel = EventRiskLabel(
+                    snapshot,
+                    item.TemporalProjection.Outcome,
+                    "예고"),
             });
 
             foreach (RealtimeThermalTransition transition in
@@ -674,6 +740,7 @@ internal static class RealtimeSlicePresenter
             {
                 bool active = item.Status == RealtimeForecastStatus.Active;
                 bool safetyRisk = !item.TemporalProjection.Outcome.SafetySatisfied;
+                bool promiseRisk = !item.TemporalProjection.Outcome.PromiseSatisfied;
                 RealtimeTimelineItemKind kind = EventKind(item.OperatingProfile);
                 string eventName = PlayerEventName(displayWorld, item.OperatingProfile);
                 string markerId = ComparisonEventMarkerId(item.EventId);
@@ -684,8 +751,8 @@ internal static class RealtimeSlicePresenter
                     item.EndMinute,
                     $"현재 초안 기준 예상 · {eventName}",
                     "현재 초안 기준 예상",
-                    $"현재 초안 기준 예상 · {EventDescription(item, eventName)}",
-                    safetyRisk
+                    $"현재 초안 기준 예상 · {EventDescription(snapshot, item, eventName)}",
+                    safetyRisk || promiseRisk
                         ? RealtimeTimelineSeverity.Critical
                         : RealtimeTimelineSeverity.Advisory,
                     active
@@ -702,9 +769,10 @@ internal static class RealtimeSlicePresenter
                     Priority = ForecastPriority(snapshot, item),
                     TimeLabel = Time(item.StartMinute),
                     EndTimeLabel = Time(item.EndMinute),
-                    SeverityLabel = safetyRisk
-                        ? "현재 초안 기준 예상 · 안전 의무 위험"
-                        : "현재 초안 기준 예상",
+                    SeverityLabel = "현재 초안 기준 예상 · " + EventRiskLabel(
+                        snapshot,
+                        item.TemporalProjection.Outcome,
+                        "예고"),
                     SourceKind = RealtimeTimelineSourceKind.Draft,
                 });
 
@@ -754,6 +822,7 @@ internal static class RealtimeSlicePresenter
         }
 
         foreach (RealtimeEventOutcome outcome in snapshot.CurrentChapterEvents
+                     .Where(item => IsCurrentChapterOutcome(snapshot, item))
                      .Where(item => item.EndMinute <= snapshot.Minute)
                      .OrderByDescending(item => item.EndMinute)
                      .ThenBy(item => item.EventId, StringComparer.Ordinal)
@@ -775,11 +844,8 @@ internal static class RealtimeSlicePresenter
                 outcome.EndMinute,
                 eventName,
                 eventName,
-                outcome.SafetySatisfied
-                    ? $"{Time(outcome.EndMinute)} 종료 · 안전 의무 충족"
-                    : $"{Time(outcome.EndMinute)} 종료 · 안전 의무 " +
-                      $"{outcome.SafetyUnservedMinutes}분 미공급",
-                outcome.SafetySatisfied
+                CompletedEventDescription(snapshot, outcome),
+                outcome.SafetySatisfied && outcome.PromiseSatisfied
                     ? RealtimeTimelineSeverity.Information
                     : RealtimeTimelineSeverity.Critical,
                 RealtimeTimelineVisibility.Completed,
@@ -793,9 +859,10 @@ internal static class RealtimeSlicePresenter
                 Priority = scheduled.Priority,
                 TimeLabel = Time(outcome.StartMinute),
                 EndTimeLabel = Time(outcome.EndMinute),
-                SeverityLabel = outcome.SafetySatisfied
+                SeverityLabel = outcome.SafetySatisfied && outcome.PromiseSatisfied
                     ? "운영 기록 완료"
-                    : "미공급 기록 완료",
+                    : EventRiskLabel(snapshot, outcome, "운영 위험") +
+                      " · 기록 완료",
             });
         }
 
@@ -913,9 +980,28 @@ internal static class RealtimeSlicePresenter
             .ThenBy(item => ForecastPriority(snapshot, item))
             .ThenBy(item => item.EventId, StringComparer.Ordinal)
             .FirstOrDefault();
-        RealtimeNextEventPresentation? nextEventPresentation = nextEvent is null
-            ? null
-            : new RealtimeNextEventPresentation(
+        RealtimeTimelineItemPresentation? nextDecision = ordered
+            .Where(item => item.Kind == RealtimeTimelineItemKind.Decision &&
+                item.StartMinute > snapshot.Minute)
+            .OrderBy(item => item.StartMinute)
+            .ThenBy(item => item.Priority)
+            .ThenBy(item => item.Id, StringComparer.Ordinal)
+            .FirstOrDefault();
+        RealtimeNextEventPresentation? nextEventPresentation =
+            nextDecision is not null &&
+            (nextEvent is null || nextDecision.StartMinute <= nextEvent.StartMinute)
+                ? new RealtimeNextEventPresentation(
+                    nextDecision.Id,
+                    nextDecision.StartMinute,
+                    nextDecision.StartMinute,
+                    checked(nextDecision.StartMinute - snapshot.Minute),
+                    nextDecision.Title,
+                    Countdown(checked(nextDecision.StartMinute - snapshot.Minute)),
+                    $"마감 {Time(nextDecision.StartMinute)}",
+                    $"마감 {Clock(nextDecision.StartMinute)}")
+                : nextEvent is null
+                    ? null
+                    : new RealtimeNextEventPresentation(
                 nextEvent.EventId,
                 nextEvent.StartMinute,
                 nextEvent.EndMinute,
@@ -958,6 +1044,76 @@ internal static class RealtimeSlicePresenter
                 string.Empty,
                 string.Empty,
                 Array.Empty<RealtimeContextSectionPresentation>());
+        }
+
+        if (IsPromiseDecisionMarker(snapshot, selectedId) &&
+            snapshot.Chapter.Content.CityPromise is CommercialCityPromiseDefinition promise &&
+            snapshot.Chapter.PromiseDecisionDeadlineOffsetMinutes is int deadlineOffset)
+        {
+            long deadline = checked(snapshot.ChapterStartMinute + deadlineOffset);
+            bool locked = snapshot.Minute >= deadline || snapshot.CampaignComplete;
+            bool defaulted = PromiseDefaulted(snapshot, transitionHistory);
+            bool promiseRisk = baseForecast.Events.Any(item =>
+                item.ChapterIndex == snapshot.ChapterIndex &&
+                !item.TemporalProjection.Outcome.PromiseSatisfied);
+            string decision = defaulted
+                ? "자동 Defer"
+                : snapshot.PromiseDecision switch
+                {
+                    CommercialPromiseDecision.Unset => "미선택",
+                    CommercialPromiseDecision.Keep => "Keep",
+                    CommercialPromiseDecision.Defer => "Defer",
+                    _ => throw new ArgumentOutOfRangeException(nameof(snapshot)),
+                };
+            string promiseForecastState = snapshot.PromiseDecision switch
+            {
+                CommercialPromiseDecision.Unset => promiseRisk
+                    ? "Keep 가정 위험"
+                    : "Keep 가정 가능",
+                CommercialPromiseDecision.Keep => promiseRisk
+                    ? "약속 위험"
+                    : "약속 가능",
+                CommercialPromiseDecision.Defer =>
+                    "북안 수요 의무 제외",
+                _ => throw new ArgumentOutOfRangeException(nameof(snapshot)),
+            };
+            bool actionsEnabled = !locked;
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "운영 약속 마감",
+                promise.DisplayName,
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("시각", Clock(deadline),
+                        locked
+                            ? RealtimeTimelineSeverity.Warning
+                            : RealtimeTimelineSeverity.Advisory),
+                    new("선택", decision,
+                        defaulted
+                            ? RealtimeTimelineSeverity.Warning
+                            : RealtimeTimelineSeverity.Information),
+                    new("전망", promiseForecastState,
+                        promiseRisk && snapshot.PromiseDecision !=
+                            CommercialPromiseDecision.Defer
+                                ? RealtimeTimelineSeverity.Critical
+                                : RealtimeTimelineSeverity.Information),
+                },
+                new RealtimeActionPresentation(
+                    PromiseKeepActionId,
+                    promise.KeepLabel,
+                    actionsEnabled
+                        ? "북안 수요를 두 운영 사건의 약속 의무에 포함합니다."
+                        : "약속 마감이 지나 선택을 바꿀 수 없습니다.",
+                    actionsEnabled),
+                new RealtimeActionPresentation(
+                    PromiseDeferActionId,
+                    promise.DeferLabel,
+                    actionsEnabled
+                        ? "북안 수요를 이번 운영 의무에서 제외하고 일정을 연기합니다."
+                        : "약속 마감이 지나 선택을 바꿀 수 없습니다.",
+                    actionsEnabled,
+                    RealtimeActionTone.Secondary));
         }
 
         if (string.Equals(selectedId, ActiveConstructionMarkerId, StringComparison.Ordinal) &&
@@ -1064,8 +1220,8 @@ internal static class RealtimeSlicePresenter
                 true,
                 "현재 초안 기준 예상",
                 eventName,
-                new RealtimeContextSectionPresentation[]
-                {
+                EventContextSections(snapshot, outcome,
+                [
                     new("발생", $"{Time(comparisonEvent.StartMinute)}–{Time(comparisonEvent.EndMinute)}"),
                     new("안전 의무", outcome.SafetySatisfied
                         ? "현재 초안 기준 예상 · 공급 충족"
@@ -1077,7 +1233,7 @@ internal static class RealtimeSlicePresenter
                         displayWorld,
                         snapshot,
                         comparisonEvent.ProjectedEvaluation)),
-                })
+                ], "현재 초안 기준 예상 · "))
             {
                 Details = new RealtimeContextDetailPresentation[]
                 {
@@ -1085,7 +1241,7 @@ internal static class RealtimeSlicePresenter
                         RealtimeContextDetailTab.Forecast,
                         "현재 초안 기준 예상",
                         ForecastDetail(displayWorld, snapshot, comparisonEvent),
-                        outcome.SafetySatisfied
+                        outcome.SafetySatisfied && outcome.PromiseSatisfied
                             ? RealtimeTimelineSeverity.Advisory
                             : RealtimeTimelineSeverity.Critical),
                 },
@@ -1148,8 +1304,8 @@ internal static class RealtimeSlicePresenter
                 true,
                 "사건 지평선",
                 eventName,
-                new RealtimeContextSectionPresentation[]
-                {
+                EventContextSections(snapshot, outcome,
+                [
                     new("발생", $"{Time(forecast.StartMinute)}–{Time(forecast.EndMinute)}"),
                     new("안전 의무", outcome.SafetySatisfied
                         ? "예상 공급 충족"
@@ -1161,7 +1317,7 @@ internal static class RealtimeSlicePresenter
                         displayWorld,
                         snapshot,
                         forecast.ProjectedEvaluation)),
-                })
+                ], string.Empty))
             {
                 Details = new RealtimeContextDetailPresentation[]
                 {
@@ -1169,14 +1325,14 @@ internal static class RealtimeSlicePresenter
                         RealtimeContextDetailTab.Route,
                         "예상 공급 경로",
                         ForecastRoutes(displayWorld, snapshot, forecast.ProjectedEvaluation),
-                        outcome.SafetySatisfied
+                        outcome.SafetySatisfied && outcome.PromiseSatisfied
                             ? RealtimeTimelineSeverity.Information
                             : RealtimeTimelineSeverity.Critical),
                     new(
                         RealtimeContextDetailTab.Forecast,
                         "시간별 변화",
                         ForecastDetail(displayWorld, snapshot, forecast),
-                        outcome.SafetySatisfied
+                        outcome.SafetySatisfied && outcome.PromiseSatisfied
                             ? RealtimeTimelineSeverity.Advisory
                             : RealtimeTimelineSeverity.Critical),
                 },
@@ -1184,6 +1340,7 @@ internal static class RealtimeSlicePresenter
         }
 
         RealtimeEventOutcome? completed = snapshot.CurrentChapterEvents.FirstOrDefault(item =>
+            IsCurrentChapterOutcome(snapshot, item) &&
             string.Equals(item.EventId, selectedId, StringComparison.Ordinal));
         if (completed is not null)
         {
@@ -1198,8 +1355,8 @@ internal static class RealtimeSlicePresenter
                 true,
                 "최근 운영 기록",
                 eventName,
-                new RealtimeContextSectionPresentation[]
-                {
+                EventContextSections(snapshot, completed,
+                [
                     new("운영 시각", $"{Time(completed.StartMinute)}–{Time(completed.EndMinute)}"),
                     new("안전 의무", completed.SafetySatisfied
                         ? "공급 충족"
@@ -1211,7 +1368,7 @@ internal static class RealtimeSlicePresenter
                         displayWorld,
                         snapshot,
                         completed.FinalEvaluation)),
-                })
+                ], string.Empty))
             {
                 Details = new RealtimeContextDetailPresentation[]
                 {
@@ -1219,7 +1376,7 @@ internal static class RealtimeSlicePresenter
                         RealtimeContextDetailTab.History,
                         "완료된 공급 기록",
                         ForecastRoutes(displayWorld, snapshot, completed.FinalEvaluation),
-                        completed.SafetySatisfied
+                        completed.SafetySatisfied && completed.PromiseSatisfied
                             ? RealtimeTimelineSeverity.Information
                             : RealtimeTimelineSeverity.Critical),
                 },
@@ -1778,6 +1935,7 @@ internal static class RealtimeSlicePresenter
             evaluation = comparisonEvent.ProjectedEvaluation;
         }
         RealtimeEventOutcome? completed = snapshot.CurrentChapterEvents.FirstOrDefault(item =>
+            IsCurrentChapterOutcome(snapshot, item) &&
             string.Equals(item.EventId, selectedId, StringComparison.Ordinal));
         if (completed is not null)
         {
@@ -1906,13 +2064,200 @@ internal static class RealtimeSlicePresenter
             ? RealtimeWorldWeather.Storm
             : RealtimeWorldWeather.Clear;
 
-    private static string EventDescription(RealtimeForecastEvent item, string eventName)
+    private static string EventDescription(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastEvent item,
+        string eventName)
     {
         RealtimeEventOutcome outcome = item.TemporalProjection.Outcome;
-        return outcome.SafetySatisfied
-            ? $"{eventName} · {Time(item.StartMinute)} 예상 공급 충족"
-            : $"{eventName} · {Time(item.StartMinute)} · " +
-              $"안전 의무 {outcome.SafetyUnservedMinutes}분 위험";
+        string safety = outcome.SafetySatisfied
+            ? "안전 의무 충족 예상"
+            : $"안전 의무 {outcome.SafetyUnservedMinutes}분 위험";
+        string promise = snapshot.Chapter.Content.CityPromise is null
+            ? string.Empty
+            : snapshot.PromiseDecision == CommercialPromiseDecision.Defer
+                ? " · Defer 기준 · 북안 수요 의무 제외"
+                : outcome.PromiseSatisfied
+                    ? snapshot.PromiseDecision == CommercialPromiseDecision.Unset
+                        ? " · 선택 전 Keep 가정 · 약속 의무 충족 예상"
+                        : " · Keep 기준 · 약속 의무 충족 예상"
+                    : snapshot.PromiseDecision == CommercialPromiseDecision.Unset
+                        ? $" · 선택 전 Keep 가정 · 약속 의무 " +
+                          $"{outcome.PromiseUnservedMinutes}분 위험"
+                        : $" · Keep 기준 · 약속 의무 " +
+                          $"{outcome.PromiseUnservedMinutes}분 위험";
+        return $"{eventName} · {Time(item.StartMinute)} · {safety}{promise}";
+    }
+
+    private static string CompletedEventDescription(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeEventOutcome outcome)
+    {
+        string safety = outcome.SafetySatisfied
+            ? "안전 의무 충족"
+            : $"안전 의무 {outcome.SafetyUnservedMinutes}분 미공급";
+        string promise = snapshot.Chapter.Content.CityPromise is null
+            ? string.Empty
+            : snapshot.PromiseDecision == CommercialPromiseDecision.Defer
+                ? " · Defer · 북안 수요 의무 제외"
+                : outcome.PromiseSatisfied
+                    ? " · Keep · 약속 의무 충족"
+                    : $" · Keep · 약속 의무 {outcome.PromiseUnservedMinutes}분 미공급";
+        return $"{Time(outcome.EndMinute)} 종료 · {safety}{promise}";
+    }
+
+    private static string EventRiskLabel(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeEventOutcome outcome,
+        string satisfiedLabel)
+    {
+        var risks = new List<string>();
+        if (!outcome.SafetySatisfied)
+        {
+            risks.Add("안전 의무 위험");
+        }
+        if (snapshot.Chapter.Content.CityPromise is not null &&
+            snapshot.PromiseDecision != CommercialPromiseDecision.Defer &&
+            !outcome.PromiseSatisfied)
+        {
+            risks.Add(snapshot.PromiseDecision == CommercialPromiseDecision.Unset
+                ? "Keep 가정 약속 위험"
+                : "약속 의무 위험");
+        }
+        return risks.Count == 0 ? satisfiedLabel : string.Join(" · ", risks);
+    }
+
+    private static IReadOnlyList<RealtimeContextSectionPresentation>
+        EventContextSections(
+            RealtimeCampaignSnapshot snapshot,
+            RealtimeEventOutcome outcome,
+            IReadOnlyList<RealtimeContextSectionPresentation> baseSections,
+            string prefix)
+    {
+        if (snapshot.Chapter.Content.CityPromise is null)
+        {
+            return baseSections;
+        }
+        string body = snapshot.PromiseDecision switch
+        {
+            CommercialPromiseDecision.Unset => outcome.PromiseSatisfied
+                ? $"{prefix}선택 전 Keep 가정 · 공급 충족"
+                : $"{prefix}선택 전 Keep 가정 · " +
+                  $"{outcome.PromiseUnservedMinutes}분 미공급",
+            CommercialPromiseDecision.Keep => outcome.PromiseSatisfied
+                ? $"{prefix}Keep · 공급 충족"
+                : $"{prefix}Keep · {outcome.PromiseUnservedMinutes}분 미공급",
+            CommercialPromiseDecision.Defer =>
+                $"{prefix}Defer · 북안 수요 의무 제외",
+            _ => throw new ArgumentOutOfRangeException(nameof(snapshot)),
+        };
+        var sections = new List<RealtimeContextSectionPresentation>(baseSections)
+        {
+            new(
+                "약속 의무",
+                body,
+                !outcome.PromiseSatisfied && snapshot.PromiseDecision !=
+                    CommercialPromiseDecision.Defer
+                        ? RealtimeTimelineSeverity.Critical
+                        : RealtimeTimelineSeverity.Information),
+        };
+        return Array.AsReadOnly(sections.ToArray());
+    }
+
+    private static string PromiseDecisionMarkerId(string promiseId) =>
+        $"{PromiseDecisionMarkerPrefix}{promiseId}";
+
+    private static bool IsCurrentChapterOutcome(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeEventOutcome outcome) => string.Equals(
+            outcome.ChapterId,
+            snapshot.Chapter.Content.ChapterId,
+            StringComparison.Ordinal);
+
+    private static bool IsPromiseDecisionMarker(
+        RealtimeCampaignSnapshot snapshot,
+        string markerId) => snapshot.Chapter.Content.CityPromise is
+            CommercialCityPromiseDefinition promise &&
+        string.Equals(
+            markerId,
+            PromiseDecisionMarkerId(promise.PromiseId),
+            StringComparison.Ordinal);
+
+    private static bool PromiseDefaulted(
+        RealtimeCampaignSnapshot snapshot,
+        IReadOnlyList<RealtimeTransition> transitionHistory) =>
+        transitionHistory.Any(item =>
+            item.Kind == RealtimeTransitionKind.PromiseDefaulted &&
+            string.Equals(
+                item.ChapterId,
+                snapshot.Chapter.Content.ChapterId,
+                StringComparison.Ordinal));
+
+    private static string PromiseDecisionState(
+        CommercialCityPromiseDefinition promise,
+        CommercialPromiseDecision decision,
+        bool defaulted) => defaulted
+        ? $"자동 Defer · {promise.DeferLabel}"
+        : decision switch
+        {
+            CommercialPromiseDecision.Unset => "미선택",
+            CommercialPromiseDecision.Keep => $"Keep · {promise.KeepLabel}",
+            CommercialPromiseDecision.Defer => $"Defer · {promise.DeferLabel}",
+            _ => throw new ArgumentOutOfRangeException(nameof(decision)),
+        };
+
+    private static string PromiseDecisionDescription(
+        CommercialCityPromiseDefinition promise,
+        CommercialPromiseDecision decision,
+        long deadline,
+        bool locked,
+        bool defaulted,
+        bool promiseRisk)
+    {
+        string state = PromiseDecisionState(promise, decision, defaulted);
+        string forecast = decision switch
+        {
+            CommercialPromiseDecision.Unset => promiseRisk
+                ? "선택 전 Keep 가정에서 약속 미공급 위험"
+                : "선택 전 Keep 가정에서 약속 공급 가능",
+            CommercialPromiseDecision.Keep => promiseRisk
+                ? "Keep 기준 약속 미공급 위험"
+                : "Keep 기준 약속 공급 가능",
+            CommercialPromiseDecision.Defer =>
+                "Defer 기준 북안 수요를 이번 의무에서 제외",
+            _ => throw new ArgumentOutOfRangeException(nameof(decision)),
+        };
+        return $"{promise.DisplayName} · 마감 {Time(deadline)} · {state} · " +
+               $"{forecast} · {(locked ? "마감 완료, 선택 잠김" : "마감 전 변경 가능")}";
+    }
+
+    private static string PromiseDecisionSeverityLabel(
+        CommercialPromiseDecision decision,
+        bool locked,
+        bool defaulted,
+        bool promiseRisk)
+    {
+        if (defaulted)
+        {
+            return "자동 Defer · 마감 완료";
+        }
+        if (locked)
+        {
+            return decision == CommercialPromiseDecision.Keep
+                ? "Keep · 마감 완료"
+                : "Defer · 마감 완료";
+        }
+        return decision switch
+        {
+            CommercialPromiseDecision.Unset => promiseRisk
+                ? "미선택 · Keep 가정 위험"
+                : "미선택 · Keep 가정",
+            CommercialPromiseDecision.Keep => promiseRisk
+                ? "Keep · 약속 위험"
+                : "Keep · 선택됨",
+            CommercialPromiseDecision.Defer => "Defer · 선택됨",
+            _ => throw new ArgumentOutOfRangeException(nameof(decision)),
+        };
     }
 
     private static int ForecastPriority(
@@ -2365,6 +2710,7 @@ internal static class RealtimeSlicePresenter
                 forecast.OperatingProfile);
         }
         RealtimeEventOutcome? outcome = snapshot.CurrentChapterEvents.FirstOrDefault(item =>
+            IsCurrentChapterOutcome(snapshot, item) &&
             string.Equals(item.EventId, selectionId, StringComparison.Ordinal));
         if (outcome is not null)
         {

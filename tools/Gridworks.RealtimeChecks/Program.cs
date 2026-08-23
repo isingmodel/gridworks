@@ -151,6 +151,7 @@ internal sealed class Checks
             ("strict-v3-loaders-first-light-schedule", StrictLoadersAndSchedule),
             ("strict-release-v2-v3-overlay-composition", StrictReleaseOverlayComposition),
             ("release-tutorial-connection-objective", ReleaseTutorialConnectionObjective),
+            ("release-north-bank-promise", ReleaseNorthBankPromise),
             ("concurrent-same-minute-event-composition", ConcurrentSameMinuteEvents),
             ("atomic-command-and-auto-construction", AtomicCommandAndConstruction),
             ("forecast-actual-same-minute-order", ForecastActualSameMinuteOrder),
@@ -746,6 +747,462 @@ internal sealed class Checks
               floodOutcome.ConnectionRequirementAssessment?.Satisfied == true &&
               !floodOutcome.ObjectiveSatisfied,
             "physical 2/2 with both hospital routes flood-exposed forged a positive result");
+    }
+
+    private void ReleaseNorthBankPromise()
+    {
+        RealtimeCampaignOverlayLoadResult selected =
+            RealtimeCampaignOverlayLoader.LoadPrefix(
+                _releaseBaseCampaignBytes,
+                _releaseCampaignOverlayBytes,
+                _releaseWorld,
+                chapterCount: 4);
+        RealtimeCampaignOverlayLoadResult tutorial =
+            RealtimeCampaignOverlayLoader.LoadPrefix(
+                _releaseBaseCampaignBytes,
+                _releaseCampaignOverlayBytes,
+                _releaseWorld,
+                chapterCount: 3);
+        RealtimeCampaignDefinition campaign = selected.Campaign;
+
+        Equal(4, campaign.Chapters.Count,
+            "NORTH_BANK release prefix chapter count");
+        Equal(8, campaign.Content.Chapters.Count,
+            "NORTH_BANK selected prefix lost complete raw V2 authority");
+        SequenceEqual(
+            new[]
+            {
+                "FIRST_LIGHT",
+                "SECOND_HEART",
+                "SECOND_SOURCE",
+                "NORTH_BANK_PROMISE",
+            },
+            campaign.Chapters.Select(item => item.Content.ChapterId),
+            "NORTH_BANK release prefix chapter identity");
+        SequenceEqual(
+            new[]
+            {
+                "FIRST_LIGHT_SUPPLY",
+                "HOSPITAL_TRANSFER_TEST",
+                "FLOOD_ISOLATION_TEST",
+                "WEST_MAIN_COMMISSIONING_TEST",
+                "SOUTH_SOURCE_COMMISSIONING_TEST",
+                "NORTH_BANK_COMMISSIONING",
+                "NEXT_HOT_EVENING_FORECAST",
+            },
+            campaign.Chapters.SelectMany(item => item.ScheduledEvents)
+                .Select(item => item.EventId),
+            "NORTH_BANK release prefix event identity");
+        Equal(7, campaign.Chapters.Sum(item => item.ScheduledEvents.Count),
+            "NORTH_BANK release prefix event count");
+
+        var absoluteSchedule = new List<string>();
+        long cursor = campaign.InitialSeed.StartMinute;
+        foreach (RealtimeChapterDefinition chapter in campaign.Chapters)
+        {
+            long chapterStart = checked(
+                cursor + chapter.Content.TimeAdvanceBeforeChapterMinutes);
+            long chapterEnd = checked(chapterStart + chapter.EndOffsetMinutes);
+            string events = string.Join(",", chapter.ScheduledEvents.Select(item =>
+                $"{item.EventId}@{checked(chapterStart + item.StartOffsetMinutes)}-" +
+                $"{checked(chapterStart + item.EndOffsetMinutes)}"));
+            absoluteSchedule.Add(
+                $"{chapter.Content.ChapterId}@{chapterStart}-{chapterEnd}:{events}");
+            cursor = chapterEnd;
+        }
+        SequenceEqual(
+            new[]
+            {
+                "FIRST_LIGHT@1020-1320:FIRST_LIGHT_SUPPLY@1260-1320",
+                "SECOND_HEART@1320-1860:HOSPITAL_TRANSFER_TEST@1680-1740," +
+                    "FLOOD_ISOLATION_TEST@1800-1860",
+                "SECOND_SOURCE@1860-2460:WEST_MAIN_COMMISSIONING_TEST@2280-2340," +
+                    "SOUTH_SOURCE_COMMISSIONING_TEST@2400-2460",
+                "NORTH_BANK_PROMISE@265260-266070:" +
+                    "NORTH_BANK_COMMISSIONING@265740-265830," +
+                    "NEXT_HOT_EVENING_FORECAST@265950-266070",
+            },
+            absoluteSchedule,
+            "NORTH_BANK release prefix absolute schedule");
+
+        Equal(
+            "078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a",
+            selected.SourceIdentity.BaseCampaignSha256,
+            "NORTH_BANK exact raw V2 source hash");
+        Equal(
+            "ef962a272683bfd6761fbf10a0ca14cb6c8bf90cdfde810b468ad451088f2258",
+            selected.SourceIdentity.RealtimeOverlaySha256,
+            "NORTH_BANK exact raw V3 source hash");
+        Equal(
+            "7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09",
+            selected.SourceIdentity.FullComposedCampaignSha256,
+            "NORTH_BANK exact complete composed hash");
+        Equal(
+            "54dcad845e4cbcff8ebbcd758ec07ca43bf5997d708b1d96cb6beba6ff4d3bb5",
+            selected.SourceIdentity.SelectedComposedCampaignSha256,
+            "NORTH_BANK exact selected composed hash");
+        Equal(8, selected.SourceIdentity.FullChapterCount,
+            "NORTH_BANK source identity full chapter count");
+        Equal(4, selected.SourceIdentity.SelectedChapterCount,
+            "NORTH_BANK source identity selected chapter count");
+        Check(!string.Equals(
+                selected.SourceIdentity.SelectedComposedCampaignSha256,
+                tutorial.SourceIdentity.SelectedComposedCampaignSha256,
+                StringComparison.Ordinal),
+            "NORTH_BANK selected identity aliases the tutorial prefix");
+        Check(!string.Equals(
+                selected.SourceIdentity.SelectedComposedCampaignSha256,
+                selected.SourceIdentity.FullComposedCampaignSha256,
+                StringComparison.Ordinal),
+            "NORTH_BANK selected identity aliases the full campaign");
+        Check(campaign.Chapters.Select((chapter, index) => ReferenceEquals(
+                campaign.Content.Chapters[index],
+                chapter.Content)).All(value => value),
+            "NORTH_BANK prefix lost raw authored chapter object identity");
+
+        RealtimeChapterDefinition northBank = campaign.Chapters[3];
+        Equal(262800, northBank.Content.TimeAdvanceBeforeChapterMinutes,
+            "NORTH_BANK authored interchapter calendar gap");
+        Equal(2000000L, northBank.Content.BudgetGrantCashUnit,
+            "NORTH_BANK one-time budget grant");
+        Check(northBank.Content.ResetThermalStateBeforeChapter,
+            "NORTH_BANK authored thermal reset disabled");
+        Equal(420, northBank.PromiseDecisionDeadlineOffsetMinutes,
+            "NORTH_BANK promise deadline offset");
+        Equal("NORTH_BANK_MOVE_IN_PROMISE", northBank.Content.CityPromise?.PromiseId,
+            "NORTH_BANK authored promise identity");
+        Equal("NORTH_RESIDENTIAL", northBank.Content.CityPromise?.LoadId,
+            "NORTH_BANK authored promise load");
+        Equal(265680L, checked(
+                265260L + northBank.PromiseDecisionDeadlineOffsetMinutes!.Value),
+            "NORTH_BANK absolute promise deadline");
+        Equal(265260L, checked(
+                265260L + northBank.ScheduledEvents[0].StartOffsetMinutes -
+                northBank.ScheduledEvents[0].ForecastLeadMinutes),
+            "NORTH_BANK commissioning reveal minute");
+        Equal(265470L, checked(
+                265260L + northBank.ScheduledEvents[1].StartOffsetMinutes -
+                northBank.ScheduledEvents[1].ForecastLeadMinutes),
+            "NORTH_BANK hot-evening reveal minute");
+        Check(northBank.ScheduledEvents.All(item =>
+                Json(northBank.Content.OperatingPhases.Single(phase =>
+                    string.Equals(
+                        phase.PhaseId,
+                        item.EventId,
+                        StringComparison.Ordinal)) with { Story = null }) ==
+                Json(item.OperatingProfile)),
+            "NORTH_BANK schedule drifted from raw authored operating phases");
+
+        (RealtimeCampaignRun direct, string directPendingNodeId,
+            long directCompletionMinute) = PrepareNorthBankGapRun(campaign);
+        (RealtimeCampaignRun chunked, string chunkedPendingNodeId,
+            long chunkedCompletionMinute) = PrepareNorthBankGapRun(campaign);
+        Equal(directPendingNodeId, chunkedPendingNodeId,
+            "NORTH_BANK gap setup generated unstable construction identity");
+        Equal(2579L, directCompletionMinute,
+            "NORTH_BANK gap construction completion minute");
+        Equal(directCompletionMinute, chunkedCompletionMinute,
+            "NORTH_BANK chunked construction completion minute");
+
+        RealtimeAdvanceResult directGapStart = direct.AdvanceTo(2460);
+        RealtimeAdvanceResult chunkedGapStart = chunked.AdvanceTo(2460);
+        Equal(Json(directGapStart.Snapshot), Json(chunkedGapStart.Snapshot),
+            "NORTH_BANK direct/chunked state differs at gap start");
+        Check(directGapStart.Snapshot is
+              {
+                  Minute: 2460,
+                  ChapterIndex: 3,
+                  ChapterStarted: false,
+                  ChapterStartMinute: 265260,
+              } &&
+              directGapStart.Snapshot.Chapter.Content.ChapterId ==
+                  "NORTH_BANK_PROMISE" &&
+              directGapStart.Snapshot.CompletedChapters.Count == 3,
+            "NORTH_BANK exact gap-start state");
+        long gapCash = directGapStart.Snapshot.CashUnit;
+        SpatialWorldDefinition gapWorld = directGapStart.Snapshot.Construction.World;
+        Equal(directPendingNodeId,
+            directGapStart.Snapshot.Construction.ActiveConstruction?.NodeIds.Single(),
+            "NORTH_BANK gap lost pending construction identity");
+        Check(!gapWorld.Nodes.Single(item => item.NodeId == directPendingNodeId)
+                .Commissioned,
+            "NORTH_BANK pending gap node commissioned before its due minute");
+
+        RealtimeAdvanceResult directNorthStart = direct.AdvanceTo(265260);
+        var chunkTransitions = new List<RealtimeTransition>();
+        foreach (long target in new long[] { 2578, 2579, 265259 })
+        {
+            chunkTransitions.AddRange(chunked.AdvanceTo(target).Transitions);
+        }
+        RealtimeCampaignSnapshot chunkBeforeStart = chunked.GetSnapshot();
+        Equal(gapCash, chunkBeforeStart.CashUnit,
+            "NORTH_BANK gap changed cash before chapter start");
+        Check(chunkBeforeStart is
+              {
+                  Minute: 265259,
+                  ChapterIndex: 3,
+                  ChapterStarted: false,
+                  ChapterStartMinute: 265260,
+              },
+            "NORTH_BANK chunked pre-start state");
+        Equal(WorldTopologySignature(gapWorld),
+            WorldTopologySignature(chunkBeforeStart.Construction.World),
+            "NORTH_BANK gap changed world topology");
+        Check(chunkBeforeStart.Construction.ActiveConstruction is null &&
+              chunkBeforeStart.Construction.World.Nodes.Single(item =>
+                  item.NodeId == chunkedPendingNodeId).Commissioned,
+            "NORTH_BANK gap construction did not commission at its due minute");
+        RealtimeAdvanceResult chunkedNorthStart = chunked.AdvanceTo(265260);
+        chunkTransitions.AddRange(chunkedNorthStart.Transitions);
+
+        Equal(Json(directNorthStart.Transitions), Json(chunkTransitions),
+            "NORTH_BANK direct/chunked calendar transition stream differs");
+        Equal(Json(directNorthStart.Snapshot), Json(chunkedNorthStart.Snapshot),
+            "NORTH_BANK direct/chunked calendar transition state differs");
+        Equal(direct.GetCanonicalStateSha256(), chunked.GetCanonicalStateSha256(),
+            "NORTH_BANK direct/chunked canonical state differs");
+        SequenceEqual(
+            new[]
+            {
+                "2579:ConstructionCompleted:NORTH_BANK_PROMISE:",
+                "265260:ChapterStarted:NORTH_BANK_PROMISE:",
+                "265260:ForecastRevealed:NORTH_BANK_PROMISE:" +
+                    "NORTH_BANK_COMMISSIONING",
+            },
+            directNorthStart.Transitions.Select(item =>
+                $"{item.Minute}:{item.Kind}:{item.ChapterId}:{item.EventId}"),
+            "NORTH_BANK exact gap transition order");
+        RealtimeTransition completion = directNorthStart.Transitions.Single(item =>
+            item.Kind == RealtimeTransitionKind.ConstructionCompleted);
+        Equal(directPendingNodeId, completion.Construction?.NodeIds.Single(),
+            "NORTH_BANK completion transition lost pending node");
+        Equal(2579L, completion.Construction?.CompletionMinute,
+            "NORTH_BANK completion transition minute");
+        Check(directNorthStart.Snapshot is
+              {
+                  Minute: 265260,
+                  ChapterIndex: 3,
+                  ChapterStarted: true,
+                  ChapterStartMinute: 265260,
+                  PromiseDecision: CommercialPromiseDecision.Unset,
+              },
+            "NORTH_BANK exact chapter-start state");
+        Equal(checked(gapCash + 2000000L), directNorthStart.Snapshot.CashUnit,
+            "NORTH_BANK grant was not applied exactly once at chapter start");
+        Equal(Json(chunkBeforeStart.Construction.World),
+            Json(directNorthStart.Snapshot.Construction.World),
+            "NORTH_BANK chapter start changed the carried world");
+
+        CommercialWorldDefinition thermalWorld = _releaseWorld.Network with
+        {
+            InitialCashUnit = directNorthStart.Snapshot.CashUnit,
+            Nodes = directNorthStart.Snapshot.Construction.World.Nodes
+                .Where(item => item.Commissioned)
+                .ToArray(),
+            Edges = directNorthStart.Snapshot.Construction.World.Edges
+                .Where(item => item.Commissioned)
+                .ToArray(),
+        };
+        RealtimeThermalSnapshot freshThermal = new RealtimeThermalSession(
+            _releaseWorld,
+            thermalWorld,
+            265260).GetSnapshot();
+        Equal(Json(freshThermal), Json(directNorthStart.Snapshot.Thermal),
+            "NORTH_BANK chapter start did not apply an exact fresh thermal reset");
+        Check(directNorthStart.Snapshot.Thermal.Assets.All(item =>
+                item.EmergencyExposureMinutes == 0 &&
+                !item.AuthoredUnavailable &&
+                !item.ProtectiveOutage &&
+                item.ProtectiveOutageUntilMinute is null),
+            "NORTH_BANK fresh thermal state retained prior exposure or outage");
+        string firstStartHash = direct.GetCanonicalStateSha256();
+        RealtimeAdvanceResult repeatedStart = direct.AdvanceTo(265260);
+        Equal(0, repeatedStart.Transitions.Count,
+            "NORTH_BANK repeated start replayed chapter transitions");
+        Equal(checked(gapCash + 2000000L), repeatedStart.Snapshot.CashUnit,
+            "NORTH_BANK repeated start replayed the budget grant");
+        Equal(firstStartHash, direct.GetCanonicalStateSha256(),
+            "NORTH_BANK repeated start changed canonical state");
+
+        RealtimeCampaignRun forecastRun = PrepareNorthBankRun(
+            campaign,
+            includeSafetyNetwork: true,
+            includeNorthPromiseLine: false);
+        forecastRun.AdvanceTo(265260);
+        RealtimeAdvanceResult bothRevealed = forecastRun.AdvanceTo(265470);
+        Equal(CommercialPromiseDecision.Unset,
+            bothRevealed.Snapshot.PromiseDecision,
+            "NORTH_BANK pre-choice promise state");
+        Equal(2, bothRevealed.Snapshot.Forecast.Events.Count,
+            "NORTH_BANK revealed forecast count before choice");
+        foreach (RealtimeForecastEvent item in bothRevealed.Snapshot.Forecast.Events)
+        {
+            RealtimeEventOutcome projection = item.TemporalProjection.Outcome;
+            RealtimeDutyLoadFact[] cityFacts = projection.DutySegments
+                .SelectMany(segment => segment.Loads)
+                .Where(load => load.Obligation == CommercialObligationKind.CityPromise)
+                .ToArray();
+            Check(cityFacts.Length > 0 && cityFacts.All(load =>
+                    load.LoadId == "NORTH_RESIDENTIAL" && load.Required),
+                $"NORTH_BANK unset forecast did not assume Keep for {item.EventId}");
+            Check(projection.SafetySatisfied && !projection.PromiseSatisfied &&
+                  projection.SafetyUnservedMinutes == 0 &&
+                  projection.PromiseUnservedMinutes > 0,
+                $"NORTH_BANK unset forecast merged safety/promise risk for {item.EventId}");
+        }
+        long forecastChoiceMinute = forecastRun.Minute;
+        Accepted(forecastRun.ApplyCommand(RealtimeCommand.SetPromiseDecision(
+                CommercialPromiseDecision.Defer)),
+            "NORTH_BANK forecast Defer decision");
+        Equal(forecastChoiceMinute, forecastRun.Minute,
+            "NORTH_BANK promise decision advanced time");
+        RealtimeForecastSnapshot deferForecast = forecastRun.GetForecast();
+        Equal(2, deferForecast.Events.Count,
+            "NORTH_BANK Defer forecast event count");
+        foreach (RealtimeForecastEvent item in deferForecast.Events)
+        {
+            Check(item.OperatingProfile.Loads.Any(load =>
+                    load.Obligation == CommercialObligationKind.CityPromise),
+                $"NORTH_BANK Defer mutated authored profile {item.EventId}");
+            RealtimeEventOutcome projection = item.TemporalProjection.Outcome;
+            RealtimeDutyLoadFact[] deferredCityFacts = projection.DutySegments
+                .SelectMany(segment => segment.Loads)
+                .Where(load => load.Obligation == CommercialObligationKind.CityPromise)
+                .ToArray();
+            Check(deferredCityFacts.Length > 0 && deferredCityFacts.All(load =>
+                    !load.Required && load.DeliveredKw == 0 && load.Failure is null) &&
+                  item.TemporalProjection.Intervals.All(interval =>
+                      interval.Evaluation.Loads.All(load =>
+                          load.LoadId != "NORTH_RESIDENTIAL")) &&
+                  projection.FinalEvaluation.Loads.All(load =>
+                      load.LoadId != "NORTH_RESIDENTIAL") &&
+                  projection.SafetySatisfied && projection.PromiseSatisfied &&
+                  projection.SafetyUnservedMinutes == 0 &&
+                  projection.PromiseUnservedMinutes == 0,
+                $"NORTH_BANK Defer forecast retained promise dispatch/risk for {item.EventId}");
+        }
+
+        RealtimeCampaignRun deadlineRun = PrepareNorthBankRun(
+            campaign,
+            includeSafetyNetwork: true,
+            includeNorthPromiseLine: false);
+        deadlineRun.AdvanceTo(265260);
+        deadlineRun.AdvanceTo(265679);
+        Accepted(deadlineRun.ApplyCommand(RealtimeCommand.SetPromiseDecision(
+                CommercialPromiseDecision.Keep)),
+            "NORTH_BANK 265679 promise decision");
+        TimedRealtimeCommand boundaryCommand = deadlineRun.AcceptedCommands.Last();
+        Check(boundaryCommand.Minute == 265679 &&
+              boundaryCommand.Command.PromiseDecision ==
+                  CommercialPromiseDecision.Keep,
+            "NORTH_BANK 265679 decision was not stamped at the accepted boundary");
+        RealtimeAdvanceResult deadline = deadlineRun.AdvanceTo(265680);
+        Equal(0, deadline.Transitions.Count(item =>
+                item.Kind == RealtimeTransitionKind.PromiseDefaulted),
+            "NORTH_BANK explicit decision defaulted at deadline");
+        string beforeLateHash = deadlineRun.GetCanonicalStateSha256();
+        int beforeLateCommandCount = deadlineRun.AcceptedCommands.Count;
+        RealtimeCommandResult late = deadlineRun.ApplyCommand(
+            RealtimeCommand.SetPromiseDecision(CommercialPromiseDecision.Defer));
+        Check(!late.Accepted && late.Error == RealtimeRunError.PromiseDeadlinePassed &&
+              late.ConstructionError is null,
+            "NORTH_BANK 265680 decision did not reject with PromiseDeadlinePassed");
+        Equal(CommercialPromiseDecision.Keep, late.Snapshot.PromiseDecision,
+            "NORTH_BANK rejected deadline decision changed promise state");
+        Equal(beforeLateCommandCount, deadlineRun.AcceptedCommands.Count,
+            "NORTH_BANK rejected deadline decision entered command history");
+        Equal(0, late.Transitions.Count,
+            "NORTH_BANK rejected deadline decision emitted transitions");
+        Equal(beforeLateHash, late.CanonicalStateSha256,
+            "NORTH_BANK rejected deadline decision changed returned state");
+        Equal(beforeLateHash, deadlineRun.GetCanonicalStateSha256(),
+            "NORTH_BANK rejected deadline decision changed authoritative state");
+
+        (RealtimeCampaignRun keepSuccessRun, RealtimeAdvanceResult keepSuccessFinal) =
+            CompleteNorthBank(
+                campaign,
+                includeSafetyNetwork: true,
+                includeNorthPromiseLine: true,
+                decision: CommercialPromiseDecision.Keep);
+        RealtimeChapterOutcome keepSuccess = NorthBankOutcome(keepSuccessFinal);
+        Check(keepSuccessRun.GetSnapshot().CampaignComplete &&
+              keepSuccess.PromiseDecision == CommercialPromiseDecision.Keep &&
+              keepSuccess.ObjectiveSatisfied &&
+              keepSuccess.Events.All(item =>
+                  item.SafetySatisfied && item.PromiseSatisfied &&
+                  item.SafetyUnservedMinutes == 0 &&
+                  item.PromiseUnservedMinutes == 0),
+            "NORTH_BANK representative Keep success did not satisfy both duties");
+
+        (_, RealtimeAdvanceResult keepFailureFinal) = CompleteNorthBank(
+            campaign,
+            includeSafetyNetwork: true,
+            includeNorthPromiseLine: false,
+            decision: CommercialPromiseDecision.Keep);
+        RealtimeChapterOutcome keepFailure = NorthBankOutcome(keepFailureFinal);
+        Check(keepFailure.PromiseDecision == CommercialPromiseDecision.Keep &&
+              !keepFailure.ObjectiveSatisfied &&
+              keepFailure.Events.All(item =>
+                  item.SafetySatisfied && !item.PromiseSatisfied &&
+                  item.SafetyUnservedMinutes == 0 &&
+                  item.PromiseUnservedMinutes > 0),
+            "NORTH_BANK representative Keep failure did not isolate promise risk");
+
+        (_, RealtimeAdvanceResult deferSuccessFinal) = CompleteNorthBank(
+            campaign,
+            includeSafetyNetwork: true,
+            includeNorthPromiseLine: false,
+            decision: CommercialPromiseDecision.Defer);
+        RealtimeChapterOutcome deferSuccess = NorthBankOutcome(deferSuccessFinal);
+        Check(deferSuccess.PromiseDecision == CommercialPromiseDecision.Defer &&
+              deferSuccess.ObjectiveSatisfied &&
+              deferSuccess.Events.All(item =>
+                  item.SafetySatisfied && item.PromiseSatisfied &&
+                  item.SafetyUnservedMinutes == 0 &&
+                  item.PromiseUnservedMinutes == 0 &&
+                  item.FinalEvaluation.Loads.All(load =>
+                      load.LoadId != "NORTH_RESIDENTIAL") &&
+                  item.DutySegments.SelectMany(segment => segment.Loads)
+                      .Where(load =>
+                          load.Obligation == CommercialObligationKind.CityPromise)
+                      .All(load => !load.Required && load.DeliveredKw == 0)),
+            "NORTH_BANK explicit Defer did not preserve safety without promise load");
+
+        (_, RealtimeAdvanceResult deferSafetyFailureFinal) = CompleteNorthBank(
+            campaign,
+            includeSafetyNetwork: false,
+            includeNorthPromiseLine: false,
+            decision: CommercialPromiseDecision.Defer);
+        RealtimeChapterOutcome deferSafetyFailure =
+            NorthBankOutcome(deferSafetyFailureFinal);
+        Check(!deferSafetyFailure.ObjectiveSatisfied &&
+              deferSafetyFailure.Events.All(item =>
+                  !item.SafetySatisfied && item.PromiseSatisfied &&
+                  item.SafetyUnservedMinutes > 0 &&
+                  item.PromiseUnservedMinutes == 0),
+            "NORTH_BANK Defer safety failure was hidden by promise deferral");
+
+        (RealtimeCampaignRun defaultRun, RealtimeAdvanceResult defaultFinal) =
+            CompleteNorthBank(
+                campaign,
+                includeSafetyNetwork: true,
+                includeNorthPromiseLine: false,
+                decision: null);
+        RealtimeChapterOutcome defaultOutcome = NorthBankOutcome(defaultFinal);
+        Equal(1, defaultFinal.Transitions.Count(item =>
+                item.Kind == RealtimeTransitionKind.PromiseDefaulted &&
+                item.Minute == 265680 &&
+                item.ChapterId == "NORTH_BANK_PROMISE"),
+            "NORTH_BANK unset promise did not auto-default exactly once");
+        Check(defaultOutcome.PromiseDecision == CommercialPromiseDecision.Defer &&
+              defaultOutcome.ObjectiveSatisfied &&
+              defaultRun.AcceptedCommands.All(command =>
+                  command.Command.Kind != RealtimeCommandKind.SetPromiseDecision),
+            "NORTH_BANK auto-default did not remain distinct from explicit Defer");
+        RealtimeAdvanceResult repeatedComplete = defaultRun.AdvanceTo(266070);
+        Equal(0, repeatedComplete.Transitions.Count(item =>
+                item.Kind == RealtimeTransitionKind.PromiseDefaulted),
+            "NORTH_BANK completed run replayed promise default");
     }
 
     private void ConcurrentSameMinuteEvents()
@@ -3532,6 +3989,207 @@ internal sealed class Checks
         RealtimeThermalSession session,
         string assetId) => session.GetSnapshot().Assets.Single(item =>
             string.Equals(item.AssetId, assetId, StringComparison.Ordinal));
+
+    private RealtimeCampaignRun PrepareNorthBankRun(
+        RealtimeCampaignDefinition campaign,
+        bool includeSafetyNetwork,
+        bool includeNorthPromiseLine)
+    {
+        Check(!includeNorthPromiseLine || includeSafetyNetwork,
+            "NORTH_BANK promise line requires the shared safety network");
+        var run = new RealtimeCampaignRun(campaign, _releaseWorld);
+        RealtimeAdvanceResult secondSource = run.AdvanceTo(1860);
+        Check(secondSource.Snapshot is
+              {
+                  Minute: 1860,
+                  ChapterIndex: 2,
+                  ChapterStarted: true,
+                  ChapterStartMinute: 1860,
+              } &&
+              secondSource.Snapshot.Chapter.Content.ChapterId == "SECOND_SOURCE",
+            "NORTH_BANK test route did not reach the authored SECOND_SOURCE start");
+        if (includeSafetyNetwork)
+        {
+            BuildNorthBankNetwork(run, includeNorthPromiseLine);
+        }
+        return run;
+    }
+
+    private (RealtimeCampaignRun Run, string PendingNodeId, long CompletionMinute)
+        PrepareNorthBankGapRun(RealtimeCampaignDefinition campaign)
+    {
+        RealtimeCampaignRun run = PrepareNorthBankRun(
+            campaign,
+            includeSafetyNetwork: true,
+            includeNorthPromiseLine: true);
+        run.AdvanceTo(2459);
+        Accepted(run.ApplyCommand(RealtimeCommand.SetNodeDraft(
+                "SMALL_SUBSTATION",
+                new MapPoint(500, 250))),
+            "NORTH_BANK gap node draft");
+        RealtimeProjectQuote quote = run.PreviewNodeOrder();
+        Check(quote is
+              {
+                  Accepted: true,
+                  BuildMinutes: 120,
+                  CompletionMinute: 2579,
+              },
+            "NORTH_BANK gap node quote");
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderNode()),
+            "NORTH_BANK gap node order");
+        string pendingNodeId = run.GetSnapshot().Construction.ActiveConstruction!
+            .NodeIds.Single();
+        return (run, pendingNodeId, quote.CompletionMinute!.Value);
+    }
+
+    private string BuildNorthBankNetwork(
+        RealtimeCampaignRun run,
+        bool includeNorthPromiseLine)
+    {
+        Accepted(run.ApplyCommand(RealtimeCommand.SetNodeDraft(
+                "LARGE_SUBSTATION",
+                new MapPoint(2050, 400))),
+            "NORTH_BANK large substation draft");
+        RealtimeProjectQuote nodeQuote = run.PreviewNodeOrder();
+        Check(nodeQuote is
+              {
+                  Accepted: true,
+                  BuildMinutes: 180,
+                  CompletionMinute: 2040,
+              },
+            "NORTH_BANK large substation quote");
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderNode()),
+            "NORTH_BANK large substation order");
+        string substationId = run.GetSnapshot().Construction.ActiveConstruction!
+            .NodeIds.Single();
+        run.AdvanceTo(nodeQuote.CompletionMinute!.Value);
+
+        BuildNorthBankLine(
+            run,
+            "WEST_SOURCE_NODE",
+            [
+                new MapPoint(700, 650),
+                new MapPoint(1050, 650),
+                new MapPoint(1600, 650),
+            ],
+            substationId,
+            "NORTH_BANK reinforced source feed");
+        BuildNorthBankLine(
+            run,
+            substationId,
+            [new MapPoint(2050, 750)],
+            "EAST_RESIDENTIAL_TERMINAL",
+            "NORTH_BANK east operating service");
+        BuildNorthBankLine(
+            run,
+            substationId,
+            Array.Empty<MapPoint>(),
+            "WATER_TERMINAL",
+            "NORTH_BANK water safety service");
+        if (includeNorthPromiseLine)
+        {
+            BuildNorthBankLine(
+                run,
+                "WATER_TERMINAL",
+                Array.Empty<MapPoint>(),
+                "NORTH_RESIDENTIAL_TERMINAL",
+                "NORTH_BANK residential promise service");
+        }
+        Check(run.Minute < 2280,
+            "NORTH_BANK test network missed the SECOND_SOURCE preparation window");
+        return substationId;
+    }
+
+    private RealtimeProjectQuote BuildNorthBankLine(
+        RealtimeCampaignRun run,
+        string startNodeId,
+        IReadOnlyList<MapPoint> points,
+        string endNodeId,
+        string label)
+    {
+        Accepted(run.ApplyCommand(RealtimeCommand.StartLineDraft(
+                startNodeId,
+                "REINFORCED_LINE",
+                "REINFORCED_POLE")),
+            $"{label} start");
+        foreach (MapPoint point in points)
+        {
+            Accepted(run.ApplyCommand(RealtimeCommand.AddLinePoint(point)),
+                $"{label} point ({point.XUnit},{point.YUnit})");
+        }
+        Accepted(run.ApplyCommand(RealtimeCommand.FinishLineDraft(endNodeId)),
+            $"{label} finish");
+        RealtimeProjectQuote quote = run.PreviewLineOrder();
+        Check(quote.Accepted && quote.BuildMinutes is > 0 &&
+              quote.CompletionMinute.HasValue,
+            $"{label} quote");
+        Accepted(run.ApplyCommand(RealtimeCommand.OrderLine()),
+            $"{label} order");
+        run.AdvanceTo(quote.CompletionMinute!.Value);
+        return quote;
+    }
+
+    private (RealtimeCampaignRun Run, RealtimeAdvanceResult Final) CompleteNorthBank(
+        RealtimeCampaignDefinition campaign,
+        bool includeSafetyNetwork,
+        bool includeNorthPromiseLine,
+        CommercialPromiseDecision? decision)
+    {
+        RealtimeCampaignRun run = PrepareNorthBankRun(
+            campaign,
+            includeSafetyNetwork,
+            includeNorthPromiseLine);
+        RealtimeAdvanceResult start = run.AdvanceTo(265260);
+        Check(start.Snapshot.ChapterStarted &&
+              start.Snapshot.Chapter.Content.ChapterId == "NORTH_BANK_PROMISE",
+            "NORTH_BANK outcome route did not reach chapter start");
+        if (decision.HasValue)
+        {
+            Accepted(run.ApplyCommand(RealtimeCommand.SetPromiseDecision(
+                    decision.Value)),
+                $"NORTH_BANK outcome {decision.Value} decision");
+        }
+        return (run, run.AdvanceTo(266070));
+    }
+
+    private RealtimeChapterOutcome NorthBankOutcome(RealtimeAdvanceResult final)
+    {
+        Check(final.Snapshot.CampaignComplete && final.Snapshot.Minute == 266070,
+            "NORTH_BANK outcome route did not complete exact release prefix");
+        RealtimeChapterOutcome outcome = final.Snapshot.CompletedChapters.Single(item =>
+            item.ChapterId == "NORTH_BANK_PROMISE");
+        Check(outcome.StartMinute == 265260 && outcome.EndMinute == 266070,
+            "NORTH_BANK outcome absolute chapter minutes");
+        SequenceEqual(
+            new[]
+            {
+                "NORTH_BANK_COMMISSIONING@265740-265830",
+                "NEXT_HOT_EVENING_FORECAST@265950-266070",
+            },
+            outcome.Events.Select(item =>
+                $"{item.EventId}@{item.StartMinute}-{item.EndMinute}"),
+            "NORTH_BANK outcome event identity/minutes");
+        return outcome;
+    }
+
+    private static string WorldTopologySignature(SpatialWorldDefinition world) => Json(new
+    {
+        nodes = world.Nodes.Select(item => new
+        {
+            item.NodeId,
+            item.ClassId,
+            item.DisplayName,
+            item.Position,
+            item.AuthoredFoundation,
+        }),
+        edges = world.Edges.Select(item => new
+        {
+            item.EdgeId,
+            item.LineClassId,
+            item.FromNodeId,
+            item.ToNodeId,
+        }),
+    });
 
     private string BuildPlayableFirstLightNetwork(RealtimeCampaignRun run)
     {

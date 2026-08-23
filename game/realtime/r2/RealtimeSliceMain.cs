@@ -175,6 +175,9 @@ internal sealed partial class RealtimeSliceMain : Control
     private const string FirstReleaseChapterId =
         RealtimeCampaignOverlayLoader.FirstReleaseChapterId;
     private const string TutorialFinalChapterId = "SECOND_SOURCE";
+    private const string NorthBankFinalChapterId = "NORTH_BANK_PROMISE";
+    private const long SecondSourceEndMinute = 2460;
+    private const long NorthBankStartMinute = 265260;
     private const int VirtualFramesPerSecond = 60;
     private const long NanosecondsPerSecond = 1_000_000_000;
     private const long CatchUpCeilingMinutes = 30;
@@ -267,6 +270,9 @@ internal sealed partial class RealtimeSliceMain : Control
                     typeof(RealtimeSliceMain).Assembly),
             RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource =>
                 RealtimeSliceResources.LoadReleaseTutorialThroughSecondSource(
+                    typeof(RealtimeSliceMain).Assembly),
+            RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise =>
+                RealtimeSliceResources.LoadReleaseThroughNorthBankPromise(
                     typeof(RealtimeSliceMain).Assembly),
             _ => RealtimeSliceResources.Load(typeof(RealtimeSliceMain).Assembly),
         };
@@ -727,13 +733,12 @@ internal sealed partial class RealtimeSliceMain : Control
         foreach (RealtimeTransition transition in transitions)
         {
             _emittedTransitions.Add(transition);
-            if (_data?.SourceRoute ==
-                RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource)
+            if (IsCumulativeReleaseRoute(_data?.SourceRoute))
             {
                 _tutorialFlow.Observe(
                     transition,
                     _run!.GetSnapshot(),
-                    _data.BaseCampaign);
+                    _data!.BaseCampaign);
             }
             if (transition.Kind == RealtimeTransitionKind.ThermalProtectiveTrip)
             {
@@ -748,8 +753,7 @@ internal sealed partial class RealtimeSliceMain : Control
                 }
             }
             else if (transition.Kind == RealtimeTransitionKind.CampaignCompleted &&
-                     _data?.SourceRoute !=
-                         RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource)
+                     !IsCumulativeReleaseRoute(_data?.SourceRoute))
             {
                 _interaction = RealtimeInteractionReducer.AutoPause(
                     _interaction!,
@@ -1127,17 +1131,54 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void HandleAction(string id)
     {
+        if ((id is RealtimeSlicePresenter.PromiseKeepActionId or
+                RealtimeSlicePresenter.PromiseDeferActionId) &&
+            !CanRequestPromiseAction(id))
+        {
+            return;
+        }
         _ = id switch
         {
             "ORDER_NODE" => ApplyIntent(new RealtimeR2Intent(RealtimeR2IntentKind.OrderNode)),
             "ORDER_LINE" => ApplyIntent(RealtimeR2Intent.OrderLine()),
+            RealtimeSlicePresenter.PromiseKeepActionId => ApplyIntent(new RealtimeR2Intent(
+                RealtimeR2IntentKind.SetPromiseDecision,
+                PromiseDecision: CommercialPromiseDecision.Keep)),
+            RealtimeSlicePresenter.PromiseDeferActionId => ApplyIntent(new RealtimeR2Intent(
+                RealtimeR2IntentKind.SetPromiseDecision,
+                PromiseDecision: CommercialPromiseDecision.Defer)),
             _ => ApplyIntent(RealtimeR2Intent.Select(id)),
         };
+    }
+
+    private bool CanRequestPromiseAction(string actionId)
+    {
+        RealtimeCampaignSnapshot? snapshot = _run?.GetSnapshot();
+        RealtimeContextDockPresentation? context = _latestPresentation?.Context;
+        if (snapshot?.Chapter.Content.CityPromise is not
+                CommercialCityPromiseDefinition promise ||
+            context is not { Visible: true } ||
+            !string.Equals(
+                context.SubjectId,
+                $"{RealtimeSlicePresenter.PromiseDecisionMarkerPrefix}{promise.PromiseId}",
+                StringComparison.Ordinal))
+        {
+            return false;
+        }
+        RealtimeActionPresentation? action = string.Equals(
+                actionId,
+                RealtimeSlicePresenter.PromiseKeepActionId,
+                StringComparison.Ordinal)
+            ? context.PrimaryAction
+            : context.SecondaryAction;
+        return action is { Visible: true, Enabled: true } &&
+            string.Equals(action.Id, actionId, StringComparison.Ordinal);
     }
 
     private void HandleModalAction(string modalId, string actionId)
     {
         RealtimeModalPresentation? modal = _latestPresentation?.Modal;
+        RealtimeTutorialModalRequest? tutorialRequest = _tutorialFlow.Active;
         if (modal is null ||
             !string.Equals(modal.Id, modalId, StringComparison.Ordinal) ||
             !modal.PrimaryAction.Enabled ||
@@ -1154,11 +1195,13 @@ internal sealed partial class RealtimeSliceMain : Control
         if (result.Accepted)
         {
             TryRecordFormativeDirectPlay(modal);
-            if (_data?.SourceRoute ==
-                    RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource &&
+            if (IsCumulativeReleaseRoute(_data?.SourceRoute) &&
                 _tutorialFlow.Close(modalId))
             {
-                TryOpenTutorialModal();
+                if (!TryAdvanceNorthBankCalendar(tutorialRequest))
+                {
+                    TryOpenTutorialModal();
+                }
             }
         }
     }
@@ -1166,6 +1209,7 @@ internal sealed partial class RealtimeSliceMain : Control
     private void HandleModalDismiss(string modalId)
     {
         RealtimeModalPresentation? modal = _latestPresentation?.Modal;
+        RealtimeTutorialModalRequest? tutorialRequest = _tutorialFlow.Active;
         if (modal is null ||
             !string.Equals(modal.Id, modalId, StringComparison.Ordinal) ||
             !modal.DismissOnCancel)
@@ -1177,19 +1221,59 @@ internal sealed partial class RealtimeSliceMain : Control
         if (result.Accepted)
         {
             TryRecordFormativeDirectPlay(modal);
-            if (_data?.SourceRoute ==
-                    RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource &&
+            if (IsCumulativeReleaseRoute(_data?.SourceRoute) &&
                 _tutorialFlow.Close(modalId))
             {
-                TryOpenTutorialModal();
+                if (!TryAdvanceNorthBankCalendar(tutorialRequest))
+                {
+                    TryOpenTutorialModal();
+                }
             }
         }
     }
 
-    private void TryOpenTutorialModal()
+    private bool TryAdvanceNorthBankCalendar(
+        RealtimeTutorialModalRequest? closedRequest)
     {
         if (_data?.SourceRoute !=
-                RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource ||
+                RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise ||
+            closedRequest is not
+            {
+                Purpose: RealtimeTutorialModalPurpose.ChapterResult,
+                ChapterId: TutorialFinalChapterId,
+                FinalResult: false,
+            })
+        {
+            return false;
+        }
+
+        RealtimeCampaignSnapshot before = _run!.GetSnapshot();
+        if (before.CampaignComplete ||
+            before.ChapterStarted ||
+            before.Minute != SecondSourceEndMinute ||
+            before.ChapterStartMinute != NorthBankStartMinute ||
+            before.Minute >= before.ChapterStartMinute ||
+            !string.Equals(
+                before.Chapter.Content.ChapterId,
+                NorthBankFinalChapterId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "NORTH_BANK_PROMISE calendar transition lost its typed next-chapter boundary.");
+        }
+
+        RealtimeAdvanceResult advance = _run.AdvanceTo(before.ChapterStartMinute);
+        CollectTransitions(advance.Transitions);
+        if (_latestPresentation?.CoreSnapshot.Minute != advance.Snapshot.Minute)
+        {
+            Present();
+        }
+        return true;
+    }
+
+    private void TryOpenTutorialModal()
+    {
+        if (!IsCumulativeReleaseRoute(_data?.SourceRoute) ||
             _interaction?.ActiveModalId is not null)
         {
             return;
@@ -1232,8 +1316,7 @@ internal sealed partial class RealtimeSliceMain : Control
         {
             return modal;
         }
-        if (_data?.SourceRoute ==
-            RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource)
+        if (IsCumulativeReleaseRoute(_data?.SourceRoute))
         {
             RealtimeTutorialModalRequest? request = string.Equals(
                     modal.Id,
@@ -1287,13 +1370,27 @@ internal sealed partial class RealtimeSliceMain : Control
                 StringComparison.Ordinal));
         if (request.Purpose == RealtimeTutorialModalPurpose.ChapterResult)
         {
-            RealtimeChapterOutcome outcome = _run!.GetSnapshot().CompletedChapters
+            RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
+            RealtimeChapterOutcome outcome = snapshot.CompletedChapters
                 .Single(item => string.Equals(
                     item.ChapterId,
                     request.ChapterId,
                     StringComparison.Ordinal));
+            bool autoDefaulted = _emittedTransitions.Any(item =>
+                item.Kind == RealtimeTransitionKind.PromiseDefaulted &&
+                string.Equals(
+                    item.ChapterId,
+                    request.ChapterId,
+                    StringComparison.Ordinal));
             CommercialStoryCard? authored = outcome.ObjectiveSatisfied
-                ? chapter.ResultCards.Standard
+                ? chapter.CityPromise is null
+                    ? chapter.ResultCards.Standard
+                    : outcome.PromiseDecision switch
+                    {
+                        CommercialPromiseDecision.Keep => chapter.ResultCards.Kept,
+                        CommercialPromiseDecision.Defer => chapter.ResultCards.Deferred,
+                        _ => null,
+                    }
                 : null;
             string requirement = outcome.ConnectionRequirementAssessment is null
                 ? string.Empty
@@ -1302,53 +1399,116 @@ internal sealed partial class RealtimeSliceMain : Control
                     outcome.ConnectionRequirementAssessment.Facts.Select(item =>
                         $"{RealtimeSlicePresenter.AssetDisplayName(
                             _data.BaseWorld,
-                            _run!.GetSnapshot(),
+                            snapshot,
                             item.NodeId)} " +
                         $"{item.CurrentConnections}/{item.RequiredConnections}"));
-            int satisfiedEvents = outcome.Events.Count(item =>
-                item.SafetySatisfied && item.PromiseSatisfied);
+            int safeEvents = outcome.Events.Count(item => item.SafetySatisfied);
+            int promisedEvents = outcome.Events.Count(item => item.PromiseSatisfied);
+            long promiseUnservedMinutes = outcome.Events.Sum(item =>
+                item.PromiseUnservedMinutes);
+            string promiseFacts = chapter.CityPromise is null
+                ? string.Empty
+                : $" · 약속 {outcome.PromiseDecision} " +
+                  $"{promisedEvents}/{outcome.Events.Count} 충족" +
+                  (promiseUnservedMinutes > 0
+                      ? $" · {promiseUnservedMinutes}분 미공급"
+                      : string.Empty);
+            bool calendarTransition =
+                _data.SourceRoute ==
+                    RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise &&
+                string.Equals(
+                    request.ChapterId,
+                    TutorialFinalChapterId,
+                    StringComparison.Ordinal) &&
+                !request.FinalResult;
+            string authoredBody = authored?.Body ?? string.Empty;
+            if (authored is not null && autoDefaulted)
+            {
+                authoredBody += "\n\n마감까지 선택하지 않아 입주 일정은 자동으로 연기됐습니다.";
+            }
             return modal with
             {
                 Eyebrow = authored?.Speaker ?? "계통운영 기록",
                 Heading = authored?.Title ?? $"{chapter.DisplayName} 목표 미달",
-                Body = authored?.Body ??
-                    $"안전·약속 의무 {satisfiedEvents}/{outcome.Events.Count}" +
+                Body = authored is not null
+                    ? authoredBody
+                    : $"안전 의무 {safeEvents}/{outcome.Events.Count} 충족" +
+                    promiseFacts +
                     requirement +
                     $" · 운영 자금 {outcome.EndingCashUnit:N0}만 원. " +
-                    "충족하지 못한 사실을 확인한 뒤 다음 장에서 망을 보완하세요.",
+                    "충족하지 못한 사실과 첫 병목을 확인하세요.",
                 PrimaryAction = new RealtimeActionPresentation(
                     "RESULT_CLOSE",
-                    request.FinalResult ? "튜토리얼 결과 확인" : "다음 장으로",
-                    request.FinalResult
-                        ? "세 tutorial 장의 누적 운영 결과를 확인합니다."
-                        : "결과를 확인하고 다음 임무 안내로 이동합니다.",
+                    calendarTransition
+                        ? "6개월 뒤 북안 검토로"
+                        : request.FinalResult
+                            ? _data.Campaign.Chapters.Count == 4
+                                ? "북안 운영 결과 확인"
+                                : "튜토리얼 결과 확인"
+                            : "다음 장으로",
+                    calendarTransition
+                        ? $"결과를 닫고 실제 망·현금·공사를 보존한 채 " +
+                          $"{TimeText(snapshot.ChapterStartMinute)}의 " +
+                          "북안 검토로 이동합니다."
+                        : request.FinalResult
+                            ? $"누적 {_data.Campaign.Chapters.Count}장의 운영 결과를 확인합니다."
+                            : "결과를 확인하고 다음 임무 안내로 이동합니다.",
                     true),
-                DismissOnCancel = true,
+                DismissOnCancel = !calendarTransition,
             };
         }
 
-        CommercialStoryCard card = request.Purpose ==
-            RealtimeTutorialModalPurpose.ChapterBriefing
-            ? chapter.Briefing
-            : chapter.OperatingPhases
+        CommercialStoryCard card = request.Purpose switch
+        {
+            RealtimeTutorialModalPurpose.ChapterBriefing => chapter.Briefing,
+            RealtimeTutorialModalPurpose.DecisionWindowStory =>
+                chapter.DecisionWindows
+                    .Single(item => string.Equals(
+                        item.WindowId,
+                        request.WindowId,
+                        StringComparison.Ordinal))
+                    .Story ?? throw new InvalidOperationException(
+                        $"Tutorial window '{request.WindowId}' has no authored story."),
+            RealtimeTutorialModalPurpose.EventStory => chapter.OperatingPhases
                 .Single(item => string.Equals(
                     item.PhaseId,
                     request.EventId,
                     StringComparison.Ordinal))
                 .Story ?? throw new InvalidOperationException(
-                    $"Tutorial event '{request.EventId}' has no authored story.");
+                    $"Tutorial event '{request.EventId}' has no authored story."),
+            _ => throw new ArgumentOutOfRangeException(nameof(request)),
+        };
         bool eventStory = request.Purpose == RealtimeTutorialModalPurpose.EventStory;
+        bool decisionWindow = request.Purpose ==
+            RealtimeTutorialModalPurpose.DecisionWindowStory;
+        bool promiseBriefing = request.Purpose ==
+            RealtimeTutorialModalPurpose.ChapterBriefing &&
+            chapter.CityPromise is not null;
         return modal with
         {
             Eyebrow = card.Speaker,
             Heading = card.Title,
             Body = card.Body,
             PrimaryAction = new RealtimeActionPresentation(
-                eventStory ? "EVENT_STORY_CONTINUE" : "BRIEFING_CONTINUE",
-                eventStory ? "시험 계속" : "도시 운영 시작",
+                eventStory
+                    ? "EVENT_STORY_CONTINUE"
+                    : decisionWindow
+                        ? "DECISION_WINDOW_CONTINUE"
+                        : "BRIEFING_CONTINUE",
+                eventStory
+                    ? "시험 계속"
+                    : decisionWindow
+                        ? "약속 결정 화면 열기"
+                        : promiseBriefing
+                            ? "계획 원칙 보기"
+                            : "도시 운영 시작",
                 eventStory
                     ? "사건 설명을 닫고 정지 전의 실시간 속도로 돌아갑니다."
-                    : "임무 안내를 닫고 실시간 운영을 시작합니다.",
+                    : decisionWindow
+                        ? "계획 설명을 닫고 한 줄 마감 표식에서 Keep 또는 Defer를 선택합니다."
+                        : promiseBriefing
+                            ? "임무 안내 다음에 북안 서비스권역 계획 원칙을 확인합니다."
+                            : "임무 안내를 닫고 실시간 운영을 시작합니다.",
                 true),
             DismissOnCancel = false,
         };
@@ -1356,8 +1516,7 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void TryRecordFormativeDirectPlay(RealtimeModalPresentation closedModal)
     {
-        if (_data?.SourceRoute ==
-            RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource)
+        if (IsCumulativeReleaseRoute(_data?.SourceRoute))
         {
             TryRecordTutorialDirectPlay(closedModal);
             return;
@@ -1426,8 +1585,25 @@ internal sealed partial class RealtimeSliceMain : Control
                 item.ChapterId,
                 request.ChapterId,
                 StringComparison.Ordinal));
-        CommercialStoryCard authored = chapter.ResultCards.Standard ??
-            throw new InvalidOperationException(
+        bool promiseChapter = chapter.CityPromise is not null;
+        bool autoDefaulted = _emittedTransitions.Any(item =>
+            item.Kind == RealtimeTransitionKind.PromiseDefaulted &&
+            string.Equals(
+                item.ChapterId,
+                request.ChapterId,
+                StringComparison.Ordinal));
+        if (promiseChapter &&
+            (autoDefaulted || outcome.PromiseDecision != CommercialPromiseDecision.Keep))
+        {
+            // The only native formative branch authorized for this gate is an
+            // explicit Keep. Defer/default/failure remain deterministic smoke
+            // evidence and cannot mint a production-input PASS token.
+            return;
+        }
+        CommercialStoryCard authored = promiseChapter
+            ? chapter.ResultCards.Kept ?? throw new InvalidOperationException(
+                $"Promise chapter '{request.ChapterId}' has no kept result.")
+            : chapter.ResultCards.Standard ?? throw new InvalidOperationException(
                 $"Tutorial chapter '{request.ChapterId}' has no standard result.");
         if (!string.Equals(closedModal.Eyebrow, authored.Speaker, StringComparison.Ordinal) ||
             !string.Equals(closedModal.Heading, authored.Title, StringComparison.Ordinal) ||
@@ -1463,9 +1639,11 @@ internal sealed partial class RealtimeSliceMain : Control
         if (!_suppressFormativeDirectPlayOutputForSmoke)
 #endif
         {
-            GD.Print($"FORMATIVE_DIRECT_PLAY_PASS:{request.ChapterId}");
+            GD.Print(promiseChapter
+                ? $"FORMATIVE_DIRECT_PLAY_PASS:{request.ChapterId}:KEEP"
+                : $"FORMATIVE_DIRECT_PLAY_PASS:{request.ChapterId}");
         }
-        if (_formativeTutorialResultChapterIds.Count != 3 ||
+        if (_formativeTutorialResultChapterIds.Count != _data.Campaign.Chapters.Count ||
             !request.FinalResult ||
             !snapshot.CampaignComplete ||
             _formativeTutorialFullFlowRecorded)
@@ -1479,7 +1657,10 @@ internal sealed partial class RealtimeSliceMain : Control
             return;
         }
 #endif
-        GD.Print("FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE");
+        GD.Print(_data.SourceRoute ==
+            RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise
+                ? "FULL_FLOW_E2E_PASS:RELEASE_PREFIX_THROUGH_NORTH_BANK_PROMISE"
+                : "FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE");
     }
 
     private static bool IsSuccessfulFirstLightCompletion(
@@ -2040,6 +2221,11 @@ internal sealed partial class RealtimeSliceMain : Control
         (id.StartsWith("DRAFT_FORECAST:", StringComparison.Ordinal) ||
          id.StartsWith("DRAFT_THERMAL:", StringComparison.Ordinal));
 
+    private static bool IsCumulativeReleaseRoute(
+        RealtimeSliceSourceRoute? route) => route is
+        RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource or
+        RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise;
+
     private void SetPointerFeedback(bool accepted, string message)
     {
         _pointerAccepted = accepted;
@@ -2276,16 +2462,23 @@ internal sealed partial class RealtimeSliceMain : Control
         }
         string throughChapterId = releaseThroughArguments[0][
             ReleaseThroughArgumentPrefix.Length..];
-        if (!string.Equals(
+        if (string.Equals(
                 throughChapterId,
                 TutorialFinalChapterId,
                 StringComparison.Ordinal))
         {
-            throw new ArgumentException(
-                $"Unknown release prefix end '{throughChapterId}'. This gate exposes only " +
-                $"{TutorialFinalChapterId}.");
+            return RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource;
         }
-        return RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource;
+        if (string.Equals(
+                throughChapterId,
+                NorthBankFinalChapterId,
+                StringComparison.Ordinal))
+        {
+            return RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise;
+        }
+        throw new ArgumentException(
+            $"Unknown release prefix end '{throughChapterId}'. This gate exposes only " +
+            $"{TutorialFinalChapterId} or {NorthBankFinalChapterId}.");
     }
 
     private RealtimeCampaignSnapshot PresentedCoreSnapshot =>
@@ -2324,6 +2517,12 @@ internal sealed partial class RealtimeSliceMain : Control
     internal void BootstrapReleaseTutorialForSmoke()
     {
         _sourceRoute = RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource;
+        Bootstrap();
+    }
+
+    internal void BootstrapReleaseThroughNorthBankForSmoke()
+    {
+        _sourceRoute = RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise;
         Bootstrap();
     }
 

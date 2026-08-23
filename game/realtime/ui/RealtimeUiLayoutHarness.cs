@@ -13,6 +13,10 @@ namespace Gridworks.Game.Realtime.UI;
 
 internal sealed partial class RealtimeUiLayoutHarness : Control
 {
+    private const string NorthBankPromiseDeadlineMarkerId =
+        "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE";
+    private const string NorthResidentialLoadId = "NORTH_RESIDENTIAL";
+
     private RealtimeUiRoot _uiRoot = null!;
     private Control _mapWorkspace = null!;
     private bool _offscreenReadbackVerified;
@@ -41,11 +45,27 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 RealtimeR2Smoke.CreateLayoutPresentation(failures);
             RealtimeR2LayoutPresentationSet presentationStates =
                 RealtimeR2Smoke.CreateLayoutPresentations(failures);
+            var northBankSlice = new RealtimeSliceMain();
+            using var northBankSliceLifetime = northBankSlice.FreeAfterSmoke();
+            northBankSlice.BootstrapReleaseThroughNorthBankForSmoke();
+            (RealtimeSliceData northBankData, string northBankRootSubstationId) =
+                RealtimeR2Smoke.AdvanceReleasePrefixToNorthBankPlanning(
+                    northBankSlice,
+                    failures);
+            northBankSlice.ChooseTimelineClusterForSmoke(
+                new[] { NorthBankPromiseDeadlineMarkerId });
+            RealtimeSlicePresentation northBankSelectedPresentation =
+                northBankSlice.LatestPresentation;
+            northBankSlice.NavigateTimelineForSmoke(
+                RealtimeTimelineNavigation.Home);
             Present(presentation);
             await SettleLayout();
             ValidateRuntimeBridgeParity(failures);
             GD.Print("REALTIME_R2_SMOKE_PHASE native-offscreen-profile-matrix begin");
-            await ValidateLiveProfiles(presentation, failures);
+            await ValidateLiveProfiles(
+                presentation,
+                northBankSelectedPresentation,
+                failures);
             GD.Print("REALTIME_R2_SMOKE_PHASE native-offscreen-profile-matrix end");
             GD.Print("REALTIME_R2_SMOKE_PHASE live-presentation-state-matrix begin");
             await ValidatePresentationStates(presentationStates, failures);
@@ -69,6 +89,11 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             await ValidateNativeWindowRoundTrip(failures);
             GD.Print("REALTIME_R2_SMOKE_PHASE native-window-roundtrip end");
             GD.Print("REALTIME_R2_SMOKE_PHASE live-input-and-modal begin");
+            await ValidateNorthBankPromiseLiveInput(
+                northBankSlice,
+                northBankData,
+                northBankRootSubstationId,
+                failures);
             await ValidateLivePrimaryCta(presentation, failures);
             await ValidateTimelineFocusRestore(presentation, failures);
             await ValidateSelectedTimelineTogglePersistence(presentation, failures);
@@ -162,6 +187,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
 
     private async Task ValidateLiveProfiles(
         RealtimeSlicePresentation presentation,
+        RealtimeSlicePresentation northBankPresentation,
         ICollection<string> failures)
     {
         (Vector2I Physical, int Scale, RealtimeResolutionTier Tier, float Density)[] profiles =
@@ -199,6 +225,17 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             .ThenBy(item => item.Priority)
             .ThenBy(item => item.Id, StringComparer.Ordinal)
             .ToArray();
+        RealtimeTimelineItemPresentation[] northBankLinearItems =
+            northBankPresentation.Rail.Items
+                .Where(item => item.Visibility != RealtimeTimelineVisibility.Hidden)
+                .Where(item =>
+                    item.StartMinute <= northBankPresentation.Rail.HorizonEndMinute &&
+                    (item.EndMinute ?? item.StartMinute) >=
+                        northBankPresentation.Rail.HorizonStartMinute)
+                .OrderBy(item => item.StartMinute)
+                .ThenBy(item => item.Priority)
+                .ThenBy(item => item.Id, StringComparer.Ordinal)
+                .ToArray();
 
         foreach ((Vector2I physical, int scale, RealtimeResolutionTier tier, float density)
                  in profiles)
@@ -308,6 +345,51 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     profileRoot,
                     label,
                     failures);
+
+                Present(profileRoot, northBankPresentation);
+                profileRoot.ApplyLayoutForSmoke(physical, logical, scale);
+                await SettleLayout();
+                profileRoot.ApplyLayoutForSmoke(physical, logical, scale);
+                await SettleLayout();
+                RealtimeUiSmokeLayoutSnapshot northBankSnapshot =
+                    profileRoot.CaptureLayoutForSmoke(logical);
+                string northBankLabel = $"{label}-north-bank-promise";
+                ValidateSurfaceGeometry(
+                    northBankSnapshot,
+                    logical,
+                    northBankPresentation,
+                    northBankLabel,
+                    failures);
+                ValidateButtons(
+                    northBankSnapshot,
+                    ExpectedPrimaryCtaCount(northBankPresentation),
+                    northBankLabel,
+                    failures);
+                ValidateText(northBankSnapshot, northBankLabel, failures);
+                ValidateScroll(
+                    profileRoot,
+                    northBankSnapshot,
+                    northBankPresentation,
+                    northBankLabel,
+                    failures);
+                ValidateTimeline(
+                    profileRoot.EventRailForSmoke,
+                    northBankSnapshot,
+                    northBankLinearItems,
+                    scale,
+                    northBankLabel,
+                    failures);
+                ValidateNorthBankPromiseTimeline(
+                    profileRoot,
+                    northBankSnapshot,
+                    northBankPresentation,
+                    northBankLabel,
+                    failures);
+                await ValidateNonModalFocusTraversal(
+                    viewport,
+                    profileRoot,
+                    northBankLabel,
+                    failures);
             }
             finally
             {
@@ -347,6 +429,112 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         viewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
         await SettleLayout();
         return (viewport, root);
+    }
+
+    private static void ValidateNorthBankPromiseTimeline(
+        RealtimeUiRoot uiRoot,
+        RealtimeUiSmokeLayoutSnapshot snapshot,
+        RealtimeSlicePresentation presentation,
+        string label,
+        ICollection<string> failures)
+    {
+        RealtimeTimelineItemPresentation deadline = presentation.Rail.Items.Single(item =>
+            string.Equals(
+                item.Id,
+                NorthBankPromiseDeadlineMarkerId,
+                StringComparison.Ordinal));
+        RealtimeTimelineItemPresentation commissioning =
+            presentation.Rail.Items.Single(item => string.Equals(
+                item.Id,
+                "NORTH_BANK_COMMISSIONING",
+                StringComparison.Ordinal));
+        RealtimeUiSmokeMarkerFact marker = snapshot.Markers.Single(item =>
+            item.ItemIds.Contains(
+                NorthBankPromiseDeadlineMarkerId,
+                StringComparer.Ordinal));
+        RealtimeUiSmokeAccessibleTimelineItemFact accessible =
+            snapshot.AccessibleTimelineItems.Single(item => string.Equals(
+                item.ItemId,
+                NorthBankPromiseDeadlineMarkerId,
+                StringComparison.Ordinal));
+        RealtimeTimelineTooltipOverlayFact hover = uiRoot.EventRailForSmoke
+            .TooltipOverlayFactForSmoke(NorthBankPromiseDeadlineMarkerId);
+        RealtimeContextDockPresentation context = presentation.Context;
+        Button keep = uiRoot.ContextDockForSmoke.GetNode<Button>(
+            "Margin/Column/Footer/PrimaryButton");
+        Button defer = uiRoot.ContextDockForSmoke.GetNode<Button>(
+            "Margin/Column/Footer/SecondaryButton");
+
+        Require(deadline is
+                {
+                    Kind: RealtimeTimelineItemKind.Decision,
+                    Lane: RealtimeTimelineLane.DemandAndDeadline,
+                    StartMinute: 265680,
+                    Visibility: RealtimeTimelineVisibility.Announced,
+                    IsActionable: true,
+                } &&
+                presentation.Rail.NextEvent is
+                {
+                    EventId: NorthBankPromiseDeadlineMarkerId,
+                    StartMinute: 265680,
+                } &&
+                deadline.StartMinute < commissioning.StartMinute &&
+                deadline.Description.Contains(
+                    "선택 전 Keep 가정",
+                    StringComparison.Ordinal) &&
+                deadline.Description.Contains(
+                    "마감 전 변경 가능",
+                    StringComparison.Ordinal),
+            $"{label} did not preserve the exact deadline-before-commissioning truth",
+            failures);
+        Require(snapshot.VisibleTimelineLanes == 1 &&
+                snapshot.TimelineLaneLabels == 0 &&
+                marker.DisplayLane == 0 &&
+                marker.AccessibilityName.Contains(
+                    "운영 결정",
+                    StringComparison.Ordinal) &&
+                marker.AccessibilityName.Contains(
+                    "선택 전 Keep 가정",
+                    StringComparison.Ordinal) &&
+                hover.CustomOverlay &&
+                hover.Text.Contains(deadline.TimingLabel, StringComparison.Ordinal) &&
+                hover.Text.Contains(deadline.Title, StringComparison.Ordinal) &&
+                hover.Text.Contains(deadline.Description, StringComparison.Ordinal) &&
+                accessible.Text.Contains("운영 결정", StringComparison.Ordinal) &&
+                accessible.Tooltip.Contains(
+                    deadline.Description,
+                    StringComparison.Ordinal),
+            $"{label} deadline lost its one-line compact marker, hover detail, or AX copy",
+            failures);
+        Require(context is
+                {
+                    SubjectId: NorthBankPromiseDeadlineMarkerId,
+                    Visible: true,
+                    PrimaryAction:
+                    {
+                        Id: RealtimeSlicePresenter.PromiseKeepActionId,
+                        Enabled: true,
+                        Visible: true,
+                    },
+                    SecondaryAction:
+                    {
+                        Id: RealtimeSlicePresenter.PromiseDeferActionId,
+                        Enabled: true,
+                        Visible: true,
+                    },
+                } &&
+                keep.IsVisibleInTree() &&
+                !keep.Disabled &&
+                keep.Text == context.PrimaryAction.Label &&
+                keep.AccessibilityName == context.PrimaryAction.Label &&
+                keep.AccessibilityDescription == context.PrimaryAction.Description &&
+                defer.IsVisibleInTree() &&
+                !defer.Disabled &&
+                defer.Text == context.SecondaryAction.Label &&
+                defer.AccessibilityName == context.SecondaryAction.Label &&
+                defer.AccessibilityDescription == context.SecondaryAction.Description,
+            $"{label} did not expose both authored Keep/Defer actions with AX text",
+            failures);
     }
 
     private async Task ValidatePresentationStates(
@@ -5126,6 +5314,170 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         Present(restorePresentation);
         await SettleLayout();
     }
+
+    private async Task ValidateNorthBankPromiseLiveInput(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        string rootSubstationId,
+        ICollection<string> failures)
+    {
+        Vector2 logical = RealtimeUiMetrics.ReferenceResolution;
+        (SubViewport viewport, RealtimeUiRoot ui) = await CreateOffscreenUi(
+            new Vector2I(1920, 1080),
+            logical,
+            uiScalePercent: 100,
+            slice.LatestPresentation);
+        RealtimeEventRail rail = ui.EventRailForSmoke;
+        slice.AttachTimelineUiForSmoke(ui);
+        slice.AttachActionUiForSmoke(ui);
+        void PresentTimelineSelection(IReadOnlyList<string> _) =>
+            Present(ui, slice.LatestPresentation);
+        void PresentAction(string _) => Present(ui, slice.LatestPresentation);
+        rail.ItemsRequested += PresentTimelineSelection;
+        ui.ActionRequested += PresentAction;
+        try
+        {
+            long planningMinute = slice.CoreSnapshot.Minute;
+            int beforeSelectionCommands = slice.CoreSnapshot.CommandCount;
+            string beforeSelectionHash = slice.CanonicalStateSha256;
+            Require(planningMinute == 265260 &&
+                    NorthDutyFlags(slice).Any(required => required),
+                "North Bank live UI fixture did not begin at the authored planning minute " +
+                "with the Unset/Keep forecast assumption",
+                failures);
+
+            rail.GrabMarkerFocusOnlyForSmoke(NorthBankPromiseDeadlineMarkerId);
+            await SettleLayout();
+            PushViewportKey(viewport, Key.Enter, pressed: true);
+            PushViewportKey(viewport, Key.Enter, pressed: false);
+            await SettleLayout();
+            Require(slice.CanonicalStateSha256 == beforeSelectionHash &&
+                    slice.CoreSnapshot.Minute == planningMinute &&
+                    slice.CoreSnapshot.CommandCount == beforeSelectionCommands &&
+                    string.Equals(
+                        slice.InteractionState.TimelineSelectedItemId,
+                        NorthBankPromiseDeadlineMarkerId,
+                        StringComparison.Ordinal) &&
+                    string.Equals(
+                        rail.FocusedItemIdForSmoke,
+                        NorthBankPromiseDeadlineMarkerId,
+                        StringComparison.Ordinal) &&
+                    slice.LatestPresentation.Context is
+                    {
+                        SubjectId: NorthBankPromiseDeadlineMarkerId,
+                        Visible: true,
+                    } &&
+                    ui.ContextDockForSmoke.AccessibilitySummaryForSmoke.Contains(
+                        "미선택",
+                        StringComparison.Ordinal) &&
+                    ui.ContextDockForSmoke.AccessibilitySummaryForSmoke.Contains(
+                        "Keep 가정",
+                        StringComparison.Ordinal),
+                "deadline Enter selection mutated Core, moved time, lost marker focus, " +
+                "or failed to open the authored ContextDock",
+                failures);
+
+            Button defer = ui.ContextDockForSmoke.GetNode<Button>(
+                "Margin/Column/Footer/SecondaryButton");
+            int beforeDeferCommands = slice.CoreSnapshot.CommandCount;
+            PushViewportPrimary(viewport, defer.GetGlobalRect().GetCenter());
+            await SettleLayout();
+            bool[] deferredNorthDuty = NorthDutyFlags(slice);
+            Require(slice.CoreSnapshot.PromiseDecision ==
+                        CommercialPromiseDecision.Defer &&
+                    slice.CoreSnapshot.Minute == planningMinute &&
+                    slice.CoreSnapshot.CommandCount == beforeDeferCommands + 1 &&
+                    deferredNorthDuty.Length > 0 &&
+                    deferredNorthDuty.All(required => !required) &&
+                    slice.LatestPresentation.Context.Sections.Any(item =>
+                        item.Body.Contains("북안 수요", StringComparison.Ordinal) &&
+                        item.Body.Contains("제외", StringComparison.Ordinal)),
+                "actual Defer pointer click did not send exactly one command, preserve " +
+                "the live minute, and remove North demand from the forecast duty",
+                failures);
+
+            Button keep = ui.ContextDockForSmoke.GetNode<Button>(
+                "Margin/Column/Footer/PrimaryButton");
+            keep.GrabFocus();
+            await SettleLayout();
+            int beforeKeepCommands = slice.CoreSnapshot.CommandCount;
+            PushViewportKey(viewport, Key.Enter, pressed: true);
+            PushViewportKey(viewport, Key.Enter, pressed: false);
+            await SettleLayout();
+            bool[] keptNorthDuty = NorthDutyFlags(slice);
+            Require(slice.CoreSnapshot.PromiseDecision ==
+                        CommercialPromiseDecision.Keep &&
+                    slice.CoreSnapshot.Minute == planningMinute &&
+                    slice.CoreSnapshot.CommandCount == beforeKeepCommands + 1 &&
+                    keptNorthDuty.Length > 0 &&
+                    keptNorthDuty.Any(required => required) &&
+                    slice.LatestPresentation.Context.Sections.Any(item =>
+                        item.Body.Contains("Keep", StringComparison.Ordinal)),
+                "actual Keep keyboard activation did not send exactly one command, " +
+                "preserve the live minute, and restore North demand to the forecast duty",
+                failures);
+
+            _ = RealtimeR2Smoke.BuildNorthBankService(
+                slice,
+                rootSubstationId,
+                includeNorth: true,
+                failures,
+                "live-ui-keep");
+            (RealtimeChapterOutcome outcome, RealtimeModalPresentation result) =
+                RealtimeR2Smoke.CompleteNorthBankChapter(slice, data, failures);
+            CommercialStoryCard kept = data.BaseCampaign.Chapters[3].ResultCards.Kept!;
+            Present(ui, slice.LatestPresentation);
+            ui.ApplyLayoutForSmoke(
+                new Vector2I(1920, 1080),
+                logical,
+                uiScalePercent: 100);
+            await SettleLayout();
+            Require(slice.CoreSnapshot.Minute == 266070 &&
+                    outcome.ObjectiveSatisfied &&
+                    outcome.PromiseDecision == CommercialPromiseDecision.Keep &&
+                    outcome.Events.All(item =>
+                        item.SafetySatisfied && item.PromiseSatisfied) &&
+                    result.Eyebrow == kept.Speaker &&
+                    result.Heading == kept.Title &&
+                    result.Body == kept.Body &&
+                    ui.ModalHostForSmoke.Depth == 1 &&
+                    ui.ModalHostForSmoke.OwnsFocusForSmoke &&
+                    ui.ModalHostForSmoke.AccessibilitySummaryForSmoke.Contains(
+                        kept.Title,
+                        StringComparison.Ordinal) &&
+                    ui.ModalHostForSmoke.AccessibilitySummaryForSmoke.Contains(
+                        kept.Body,
+                        StringComparison.Ordinal) &&
+                    ui.ModalHostForSmoke.FocusLinksForSmoke().All(link =>
+                        link.NextInsideModal && link.PreviousInsideModal),
+                "North Bank Keep input flow did not end at the exact authored result " +
+                "with safety/promise truth and modal focus/AX preserved",
+                failures);
+            GD.Print(
+                "REALTIME_R2_NORTH_BANK_UI_PASS one-line-deadline-hover-AX; " +
+                "Enter-select; pointer-Defer; keyboard-Keep; exact-kept-result");
+        }
+        finally
+        {
+            rail.ItemsRequested -= PresentTimelineSelection;
+            ui.ActionRequested -= PresentAction;
+            slice.DetachTimelineUiForSmoke(ui);
+            slice.DetachActionUiForSmoke(ui);
+            RemoveAndFree(viewport);
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+    }
+
+    private static bool[] NorthDutyFlags(RealtimeSliceMain slice) =>
+        slice.LatestPresentation.BaseForecast.Events
+            .SelectMany(item => item.TemporalProjection.Outcome.DutySegments)
+            .SelectMany(segment => segment.Loads)
+            .Where(load => string.Equals(
+                load.LoadId,
+                NorthResidentialLoadId,
+                StringComparison.Ordinal))
+            .Select(load => load.Required)
+            .ToArray();
 
     private static void ValidateSurfaceGeometry(
         RealtimeUiSmokeLayoutSnapshot snapshot,

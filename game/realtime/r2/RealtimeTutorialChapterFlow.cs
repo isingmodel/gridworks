@@ -11,6 +11,7 @@ internal enum RealtimeTutorialModalPurpose
 {
     ChapterResult,
     ChapterBriefing,
+    DecisionWindowStory,
     EventStory,
 }
 
@@ -19,7 +20,8 @@ internal sealed record RealtimeTutorialModalRequest(
     RealtimeTutorialModalPurpose Purpose,
     string ChapterId,
     string? EventId,
-    bool FinalResult)
+    bool FinalResult,
+    string? WindowId = null)
 {
     internal RealtimePauseReason PauseReason => Purpose ==
         RealtimeTutorialModalPurpose.ChapterResult
@@ -36,7 +38,10 @@ internal sealed class RealtimeTutorialChapterFlow
 {
     private const string ResultPrefix = "TUTORIAL_RESULT:";
     private const string BriefingPrefix = "TUTORIAL_BRIEFING:";
+    private const string DecisionWindowPrefix = "TUTORIAL_DECISION_WINDOW:";
     private const string EventPrefix = "TUTORIAL_EVENT_STORY:";
+    private const string NorthBankChapterId = "NORTH_BANK_PROMISE";
+    private const string NorthBankPlanningWindowId = "NORTH_BANK_PLANNING_WINDOW";
 
     private readonly Queue<RealtimeTutorialModalRequest> _pending = new();
     private readonly HashSet<string> _observedModalIds = new(StringComparer.Ordinal);
@@ -58,14 +63,25 @@ internal sealed class RealtimeTutorialChapterFlow
         ArgumentNullException.ThrowIfNull(transition);
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(campaign);
+        if (transition.Kind == RealtimeTransitionKind.ChapterStarted &&
+            transition.ChapterId is not null &&
+            snapshot.CompletedChapters.Count > 0)
+        {
+            Enqueue(Briefing(transition.ChapterId));
+            RealtimeTutorialModalRequest? planning = DecisionWindowStory(
+                campaign,
+                transition.ChapterId);
+            if (planning is not null)
+            {
+                Enqueue(planning);
+            }
+            return;
+        }
+
         RealtimeTutorialModalRequest? request = transition.Kind switch
         {
             RealtimeTransitionKind.ChapterCompleted when transition.ChapterId is not null =>
                 Result(transition.ChapterId, snapshot.CampaignComplete),
-            RealtimeTransitionKind.ChapterStarted when
-                transition.ChapterId is not null &&
-                snapshot.CompletedChapters.Count > 0 =>
-                Briefing(transition.ChapterId),
             RealtimeTransitionKind.EventStarted when
                 transition.ChapterId is not null &&
                 transition.EventId is not null &&
@@ -73,9 +89,9 @@ internal sealed class RealtimeTutorialChapterFlow
                 EventStory(transition.ChapterId, transition.EventId),
             _ => null,
         };
-        if (request is not null && _observedModalIds.Add(request.ModalId))
+        if (request is not null)
         {
-            _pending.Enqueue(request);
+            Enqueue(request);
         }
     }
 
@@ -125,6 +141,35 @@ internal sealed class RealtimeTutorialChapterFlow
         null,
         false);
 
+    private static RealtimeTutorialModalRequest? DecisionWindowStory(
+        CommercialCampaignDefinition campaign,
+        string chapterId)
+    {
+        if (!string.Equals(chapterId, NorthBankChapterId, StringComparison.Ordinal))
+        {
+            return null;
+        }
+        CommercialCampaignChapterDefinition chapter = campaign.Chapters.Single(item =>
+            string.Equals(item.ChapterId, chapterId, StringComparison.Ordinal));
+        if (chapter.CityPromise is null)
+        {
+            return null;
+        }
+        CommercialDecisionWindowDefinition window = chapter.DecisionWindows.Single(item =>
+            string.Equals(
+                item.WindowId,
+                NorthBankPlanningWindowId,
+                StringComparison.Ordinal) &&
+            item.Story is not null);
+        return new RealtimeTutorialModalRequest(
+            $"{DecisionWindowPrefix}{chapterId}:{window.WindowId}",
+            RealtimeTutorialModalPurpose.DecisionWindowStory,
+            chapterId,
+            null,
+            false,
+            window.WindowId);
+    }
+
     private static RealtimeTutorialModalRequest EventStory(
         string chapterId,
         string eventId) => new(
@@ -133,6 +178,14 @@ internal sealed class RealtimeTutorialChapterFlow
         chapterId,
         eventId,
         false);
+
+    private void Enqueue(RealtimeTutorialModalRequest request)
+    {
+        if (_observedModalIds.Add(request.ModalId))
+        {
+            _pending.Enqueue(request);
+        }
+    }
 
     private static bool HasAuthoredStory(
         CommercialCampaignDefinition campaign,

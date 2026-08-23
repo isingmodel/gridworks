@@ -297,10 +297,10 @@ source/controller/headless 검사만으로 만들지 않았으며 exact record�
 ### UX-R2.1 — FIRST_LIGHT release tutorial/rail carve-out — 완료
 
 사용자의 “87점 이상까지 계속 개선”과 직접 플레이 지시는 상용 UX scope의 순차 runtime 구현을
-명시적으로 승인했다. 현재 단위는 제품 A1–A4를 한꺼번에 열지 않고, A1 이전 logic/presentation
+명시적으로 승인했다. 완료된 이 단위는 제품 A1–A4를 한꺼번에 열지 않고, A1 이전 logic/presentation
 carve-out으로 실제 release `FIRST_LIGHT` 장의 briefing→`FIRST_LIGHT_SUPPLY` phase/event→authored result,
 future-event rail의 현재 시각·countdown·event interval·actual/draft construction completion, Debug interactive
-checkpoint host와 관련 결정론 검사를 허용한다.
+checkpoint host와 관련 결정론 검사만 허용했다.
 
 exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.1](COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--완료)이
 소유한다. `data/**`, runtime asset/world, persistence, default scene, export/package와 2–8장 presentation은

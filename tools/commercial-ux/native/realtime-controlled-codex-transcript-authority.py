@@ -43,7 +43,7 @@ START_SCHEMA_PATH = SCRIPT_DIR / "realtime-controlled-codex-transcript-start.sch
 FINAL_SCHEMA_PATH = SCRIPT_DIR / "realtime-controlled-codex-transcript.schema.json"
 OUTPUT_SCHEMA_PATH = SCRIPT_DIR / "realtime-controlled-codex-probe-output.schema.json"
 EXPECTED_POLICY_RAW_SHA256 = (
-    "sha256:4a71614ea3f610d57a2155154351f103a9884ffaf1e006f8554e1c2b637ab774"
+    "sha256:ff77b3f3b95958b4813efb2a2a91ac3533faefd99e208f4d098640d1bc739cf6"
 )
 
 PRODUCER_PATH_ROLES = (
@@ -78,7 +78,7 @@ PRODUCER_PATH_ROLES = (
 )
 
 EMPTY_RAW_SHA256 = "sha256:" + hashlib.sha256(b"").hexdigest()
-EXPECTED_STDERR = b"Reading additional input from stdin...\n"
+EXPECTED_STDERR = b""
 ROLLOUT_RELATIVE_PATTERN = re.compile(
     r"^[0-9]{4}/[0-9]{2}/[0-9]{2}/"
     r"rollout-[0-9TZ:-]+-[0-9a-f-]{36}\.jsonl$"
@@ -584,8 +584,7 @@ def validate_transcript_policy(policy: dict[str, Any], data: bytes) -> None:
         or invocation.get("approvalPolicy") != "never"
         or invocation.get("requiredRolloutOriginator") != "codex_exec"
         or invocation.get("resumeForkOrParentMetadataAllowed") is not False
-        or invocation.get("stderrPolicy")
-        != "EXACT_UTF8_READING_ADDITIONAL_INPUT_FROM_STDIN_LINE"
+        or invocation.get("stderrPolicy") != "EMPTY_ON_SUCCESS"
         or invocation.get("stderrExactRawSha256") != sha256_bytes(EXPECTED_STDERR)
         or invocation.get("stderrExactByteLength") != len(EXPECTED_STDERR)
         or invocation.get("structuredOutputSchemaRawSha256")
@@ -1561,7 +1560,7 @@ def _verify_execution_transcript(
 ) -> dict[str, Any]:
     if stderr_bytes != EXPECTED_STDERR:
         raise ControlledCodexTranscriptAuthorityError(
-            "controlled Codex stderr does not match the pinned stdin information line"
+            "controlled Codex stderr must be empty on success"
         )
     output = strict_json_bytes(output_bytes, "controlled Codex final output")
     expected_output = _expected_probe_output(start["parentAuthority"], start["nonce"])

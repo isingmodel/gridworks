@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gridworks.invalid/schemas/realtime-evaluation-attempt-start-v1.json",
+  "title": "Gridworks realtime diagnostic evaluation attempt start receipt",
+  "$comment": "STRUCTURAL VALIDATION ONLY; NON-AUTHORITATIVE. Schema success never establishes an attempt, session, candidate, route, predecessor, filesystem reservation, or score authority. Consumers MUST run verify_session_claim_against_reconstructed_authority and the attempt receipt reconstruction verifier. evaluationAttemptStartSha256 is SHA-256 of GRIDWORKS_CANONICAL_JSON_V1 bytes for this object with evaluationAttemptStartSha256 omitted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "canonicalization",
+    "attemptStartSchemaRawSha256",
+    "sessionPolicyRawSha256",
+    "sessionId",
+    "sessionClaimSha256",
+    "sessionClaimRawSha256",
+    "candidateSha256",
+    "routeBindingSha256",
+    "routeKind",
+    "attemptOrdinal",
+    "attemptId",
+    "canonicalAttemptRoot",
+    "canonicalStartReceiptPath",
+    "canonicalOutputPath",
+    "canonicalTerminalReceiptPath",
+    "predecessorTerminalReceiptSha256",
+    "predecessorTerminalReceiptRawSha256",
+    "expectedOutputRawSha256",
+    "reservationAuthority",
+    "officialCommercialUX",
+    "scoreBearingCaptureAllowed",
+    "evaluationAttemptStartSha256"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "gridworks.realtime-evaluation-attempt-start.v1"
+    },
+    "canonicalization": {
+      "const": "GRIDWORKS_CANONICAL_JSON_V1"
+    },
+    "attemptStartSchemaRawSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "sessionPolicyRawSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "sessionId": {
+      "$ref": "#/$defs/sha256"
+    },
+    "sessionClaimSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "sessionClaimRawSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "candidateSha256": {
+      "const": "sha256:373785e45a4485dfeded43466a5bff0f66de4a0c106c972262686e7a432cbdd6"
+    },
+    "routeBindingSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "routeKind": {
+      "enum": [
+        "TARGETED_CHECKPOINT",
+        "STORY_PART_UNIT"
+      ]
+    },
+    "attemptOrdinal": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3
+    },
+    "attemptId": {
+      "$ref": "#/$defs/sha256"
+    },
+    "canonicalAttemptRoot": {
+      "allOf": [
+        {"$ref": "#/$defs/absolutePath"},
+        {"type": "string", "pattern": "/attempts/(?:01|02|03)$"}
+      ]
+    },
+    "canonicalStartReceiptPath": {
+      "allOf": [
+        {"$ref": "#/$defs/absolutePath"},
+        {"type": "string", "pattern": "/attempts/(?:01|02|03)/start-receipt\\.json$"}
+      ]
+    },
+    "canonicalOutputPath": {
+      "allOf": [
+        {"$ref": "#/$defs/absolutePath"},
+        {"type": "string", "pattern": "/attempts/(?:01|02|03)/diagnostic-output\\.json$"}
+      ]
+    },
+    "canonicalTerminalReceiptPath": {
+      "allOf": [
+        {"$ref": "#/$defs/absolutePath"},
+        {"type": "string", "pattern": "/attempts/(?:01|02|03)/terminal-receipt\\.json$"}
+      ]
+    },
+    "predecessorTerminalReceiptSha256": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha256"},
+        {"type": "null"}
+      ]
+    },
+    "predecessorTerminalReceiptRawSha256": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha256"},
+        {"type": "null"}
+      ]
+    },
+    "expectedOutputRawSha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "reservationAuthority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attemptRootExclusiveCreateCompleted",
+        "outputPathAbsentBeforeReservation",
+        "outputZeroByteReservationCompleted",
+        "outputReservationFsyncCompleted",
+        "startReceiptPathAbsentBeforeExclusiveWrite",
+        "startReceiptExclusiveWriteFsyncCompleted",
+        "producerStartedAfterReceipt"
+      ],
+      "properties": {
+        "attemptRootExclusiveCreateCompleted": {"const": true},
+        "outputPathAbsentBeforeReservation": {"const": true},
+        "outputZeroByteReservationCompleted": {"const": true},
+        "outputReservationFsyncCompleted": {"const": true},
+        "startReceiptPathAbsentBeforeExclusiveWrite": {"const": true},
+        "startReceiptExclusiveWriteFsyncCompleted": {"const": true},
+        "producerStartedAfterReceipt": {"const": false}
+      }
+    },
+    "officialCommercialUX": {
+      "const": false
+    },
+    "scoreBearingCaptureAllowed": {
+      "const": false
+    },
+    "evaluationAttemptStartSha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "attemptOrdinal": {"const": 1}
+        },
+        "required": ["attemptOrdinal"]
+      },
+      "then": {
+        "properties": {
+          "predecessorTerminalReceiptSha256": {"type": "null"},
+          "predecessorTerminalReceiptRawSha256": {"type": "null"}
+        }
+      },
+      "else": {
+        "properties": {
+          "predecessorTerminalReceiptSha256": {"$ref": "#/$defs/sha256"},
+          "predecessorTerminalReceiptRawSha256": {"$ref": "#/$defs/sha256"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "absolutePath": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 4096,
+      "pattern": "^/(?!.*(?:/\\.\\.?)(?:/|$))(?!.*//)(?!.*[\\u0000-\\u001f\\u007f])[^\\u0000]+$"
+    }
+  }
+}

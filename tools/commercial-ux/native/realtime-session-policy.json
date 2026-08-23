@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "gridworks.realtime-evaluation-session-policy.v1",
+  "canonicalization": {
+    "name": "GRIDWORKS_CANONICAL_JSON_V1",
+    "rawFileHash": "SHA256_RAW_BYTES",
+    "selfHashRule": "SHA256_GRIDWORKS_CANONICAL_JSON_V1_WITH_SELF_HASH_FIELD_OMITTED",
+    "jsonFileEncoding": "UTF8_SORT_KEYS_INDENT_2_ONE_TRAILING_LF"
+  },
+  "candidateAuthority": {
+    "sourceCommit": "379e9800c81ca315976ab4c28d511664df6ab7ed",
+    "candidateSha256": "sha256:373785e45a4485dfeded43466a5bff0f66de4a0c106c972262686e7a432cbdd6",
+    "candidateManifestRawSha256": "sha256:ca7826d38cae6e8a28e142e10e522e9c1425ba6abcec938182d9819ab0b2a816",
+    "executionSha256": "sha256:b28ebbfcca183fa5de6b2fd483b00d563906c731ff8696dc2e0c4d17861da4e1",
+    "producerFilesSha256": "sha256:c501608b8d47a35c32860ad1defe33a369cbc0313ab0f860952def52ef4e881c",
+    "candidatePolicySha256": "sha256:96366d0bbc8ec4870b13b705595d036e5af949bab2e5623a07001bba16c48b08",
+    "storyManifestRawSha256": "sha256:9072eef635220de62bf998088f88ea0ba86b2676f28085f16195f39712953180",
+    "semanticVerifierEntryPoint": "verify_manifest_against_reconstructed_authority",
+    "semanticVerificationRequiredAtClaimCreation": true
+  },
+  "evaluatorProducerAuthority": {
+    "expectedFileCount": 7,
+    "paths": [
+      "tools/commercial-ux/native/build-realtime-candidate-authority.py",
+      "tools/commercial-ux/native/realtime-attempt-start.schema.json",
+      "tools/commercial-ux/native/realtime-attempt-terminal.schema.json",
+      "tools/commercial-ux/native/realtime-session-authority.py",
+      "tools/commercial-ux/native/realtime-session-claim.schema.json",
+      "tools/commercial-ux/native/realtime-session-policy.json",
+      "tools/commercial-ux/native/test-realtime-session-authority.py"
+    ],
+    "sourceMaterialization": "EXACT_SESSION_AUTHORITY_COMMIT_GIT_BLOBS_MATCH_RUNNING_WORKTREE_BYTES",
+    "semanticVerifierEntryPoint": "verify_session_claim_against_reconstructed_authority",
+    "structuralSchemasAuthority": "STRUCTURAL_ONLY_NOT_SESSION_AUTHORITY"
+  },
+  "sessionAuthority": {
+    "sessionKind": "DIAGNOSTIC_AUTHORITY_NO_CAPTURE",
+    "officialCommercialUX": false,
+    "scoreBearingCaptureAllowed": false,
+    "freshnessAuthority": "LOCAL_OS_RANDOM_NON_SCORE_ONLY",
+    "sessionNonceByteCount": 32,
+    "rootBinding": "SHA256_UTF8_CANONICAL_ABSOLUTE_SESSION_ROOT",
+    "claimStatus": "FINALIZED_BEFORE_ANY_ATTEMPT",
+    "inputSnapshotPaths": [
+      "inputs/candidate-manifest.json",
+      "inputs/story-manifest.json"
+    ],
+    "claimCommitMarker": "SESSION_CLAIM_LAST_O_EXCL_FSYNC_FILE_AND_PARENT",
+    "sessionRootInventory": "EXACT_INPUTS_CLAIM_AND_OPTIONAL_EXECUTABLE_ATTEMPTS_ONLY",
+    "claimProducerExecutionAttested": false,
+    "maxAttempts": 3,
+    "routeKinds": [
+      "TARGETED_CHECKPOINT",
+      "STORY_PART_UNIT",
+      "FULL_FLOW_EXCEPTION"
+    ],
+    "forbiddenProfileIds": [
+      "INTERACTIVE_NONDEFAULT_R2"
+    ],
+    "attemptOutputContract": "EXACT_RECONSTRUCTED_DIAGNOSTIC_OUTPUT_RAW_BYTES",
+    "retryableOutcomes": [
+      "PRODUCER_NO_OUTPUT",
+      "TRANSPORT_FAILURE"
+    ],
+    "nonretryableOutcomes": [
+      "SUCCESS",
+      "INTEGRITY_FAILURE"
+    ],
+    "filesystemPolicy": "CANONICAL_ABSOLUTE_NO_SYMLINK_COMPONENTS_O_EXCL_FSYNC_APPEND_ONLY"
+  },
+  "targetedCheckpointRoute": {
+    "profileId": "TARGETED_CHECKPOINT_DEBUG",
+    "checkpointIds": [
+      "A1_NORMAL_READY",
+      "A1_CONSTRUCTION_DUE_1M"
+    ],
+    "candidateReceiptSource": "EXACT_POSITIVE_CHECKPOINT_PROBE",
+    "futureEventStatusBarBinding": "CANDIDATE_SIX_SIGNAL_HEADLESS_WIRING_NATIVE_QUALITY_NOT_OBSERVED",
+    "requiredFutureEventSignals": [
+      "CURRENT_TIME",
+      "NEXT_EVENT_COUNTDOWN",
+      "EVENT_START_END",
+      "CONSTRUCTION_COMPLETION",
+      "PROMISE_DECISION_DEADLINE",
+      "THERMAL_TRIP_RECOVERY"
+    ],
+    "nativePresentationObserved": false,
+    "scoreBearingEvidence": false
+  },
+  "storyPartRoute": {
+    "profileId": "STORY_PART_UNIT",
+    "partCount": 34,
+    "selectorSource": "EXACT_BOUND_STORY_MANIFEST_SELECTOR",
+    "outputSource": "EXACT_BOUND_STORY_MANIFEST_PART_ROW",
+    "authoredReachabilityOnly": true,
+    "nativeReachabilityClaim": false,
+    "scoreBearingEvidence": false
+  },
+  "fullFlowExceptionRoute": {
+    "profileId": "FULL_FLOW_EXCEPTION",
+    "availability": "UNAVAILABLE_NOT_IMPLEMENTED",
+    "executionAuthorized": false,
+    "routeDisposition": "ROUTE_UNAVAILABLE_NO_EXECUTION",
+    "attemptCount": 0,
+    "producerOutputReserved": false,
+    "scoreBearingEvidence": false
+  },
+  "limitations": [
+    "NO_INTERACTIVE_NATIVE_CAPTURE",
+    "FULL_FLOW_UNAVAILABLE_NOT_IMPLEMENTED",
+    "STORY_PART_UNIT_IS_NOT_NATIVE_REACHABILITY",
+    "FUTURE_EVENT_STATUS_BAR_NATIVE_QUALITY_NOT_OBSERVED",
+    "LOCAL_NONCE_IS_NOT_PLATFORM_FRESHNESS_RECEIPT",
+    "CLAIM_PRODUCER_EXECUTION_NOT_EXTERNALLY_ATTESTED",
+    "PYTHON_STDLIB_OS_TRUST_BASE_UNBOUND",
+    "SCORE_BEARING_CAPTURE_FORBIDDEN"
+  ]
+}

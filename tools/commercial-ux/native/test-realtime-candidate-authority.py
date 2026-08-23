@@ -64,9 +64,15 @@ def validate_schema_subset(instance, schema, root, path: str = "$") -> None:
     }
     if expected_type is not None and not type_matches.get(expected_type, False):
         raise AssertionError(f"{path}: expected {expected_type}")
-    if "const" in schema and instance != schema["const"]:
+    if "const" in schema and not AUTHORITY.strict_typed_equal(
+        instance,
+        schema["const"],
+    ):
         raise AssertionError(f"{path}: const mismatch")
-    if "enum" in schema and instance not in schema["enum"]:
+    if "enum" in schema and not any(
+        AUTHORITY.strict_typed_equal(instance, choice)
+        for choice in schema["enum"]
+    ):
         raise AssertionError(f"{path}: enum mismatch")
     if isinstance(instance, dict):
         required = schema.get("required", [])
@@ -723,7 +729,9 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
         mutations.append(forged_native_reachability)
 
         disabled_rebuild = copy.deepcopy(self.policy)
-        disabled_rebuild["deterministicRebuildMustMatchStoredBytes"] = False
+        disabled_rebuild["storyAuthority"][
+            "deterministicRebuildMustMatchStoredBytes"
+        ] = False
         mutations.append(disabled_rebuild)
 
         disabled_version_probe = copy.deepcopy(self.policy)
@@ -848,6 +856,13 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
         invalid_extra["headlessExecutionAuthority"]["officialScore"] = 100
         with self.assertRaises(AssertionError):
             validate_schema_subset(invalid_extra, schema, schema)
+
+        boolean_const_alias = copy.deepcopy(self.manifest)
+        boolean_const_alias["headlessExecutionAuthority"][
+            "positiveCheckpointProbes"
+        ][0]["exitCode"] = False
+        with self.assertRaises(AssertionError):
+            validate_schema_subset(boolean_const_alias, schema, schema)
 
         duplicate_bound_paths = []
         for container_key in ("packageInputs", "generatedInputs", "outputs"):

@@ -1,0 +1,531 @@
+{
+  "schemaVersion": "gridworks.realtime-evaluator-candidate-policy.v1",
+  "canonicalization": {
+    "name": "GRIDWORKS_CANONICAL_JSON_V1",
+    "rawFileHash": "SHA256_RAW_BYTES",
+    "fileRowOrder": "UTF8_PATH_ASCENDING",
+    "fileRowChainHash": "SHA256_GRIDWORKS_CANONICAL_JSON_V1_OF_ORDERED_FILE_ROWS",
+    "policyHashRule": "SHA256_RAW_BYTES",
+    "candidateHashRule": "SHA256_GRIDWORKS_CANONICAL_JSON_V1_OF_MANIFEST_WITH_CANDIDATE_SHA256_OMITTED"
+  },
+  "candidate": {
+    "candidateKind": "EDITOR_NATIVE_NONDEFAULT_DEBUG_FIRST_LIGHT",
+    "configuration": "Debug",
+    "officialCommercialUX": false,
+    "scoreBearingCaptureAllowed": false,
+    "sourceMaterialization": "EXACT_GIT_COMMIT_BLOBS",
+    "candidatePackageStatus": "EDITOR_NATIVE_NOT_PUBLIC_PACKAGE"
+  },
+  "sourceAuthority": {
+    "expectedFileCount": 170,
+    "expectedSourceInputsSha256": "sha256:30573f95d267179bee7adccd7f2ca42dce9aea3bd9278bb10dbaf6b3c16fc141",
+    "expectedRoleCounts": {
+      "BUILD_DECLARATION": 5,
+      "CORE_DEBUG_COMPILE_SOURCE": 67,
+      "DECLARED_NONRUNTIME_FULL_V3_AUTHORITY": 2,
+      "GAME_DEBUG_COMPILE_SOURCE": 60,
+      "GAME_DEBUG_EMBEDDED_RESOURCE": 9,
+      "NEGATIVE_DEFAULT_SCENE_AUTHORITY": 1,
+      "NEGATIVE_EXPORT_AUTHORITY": 1,
+      "R2_RUNTIME_SCENE_RESOURCE": 11,
+      "R2_SCRIPT_UID": 11,
+      "STORED_STORY_MANIFEST": 1,
+      "STORY_HARNESS_SOURCE": 2
+    },
+    "debugCompileCounts": {
+      "game": 60,
+      "core": 67
+    },
+    "debugEmbeddedResourceCount": 9,
+    "explicitCompileExclusions": {
+      "game": [
+        "game/realtime/world/RealtimeVisualCatalog.cs",
+        "game/realtime/world/RealtimeWorldPresentation.cs",
+        "game/realtime/world/RealtimeWorldView.cs"
+      ],
+      "core": [
+        "src/Gridworks.Core/Release/V3/RealtimeCampaignPersistence.cs"
+      ]
+    },
+    "reservedSourceDirectoryNames": [
+      ".godot",
+      "bin",
+      "obj"
+    ],
+    "r2GodotExecutableClosure": {
+      "expectedFileCount": 35,
+      "expectedFilesSha256": "sha256:c49dbe19aa9f5ce75190b68e49d00d8237f8ace8f448713ed14515dd1e002e06",
+      "projectFiles": [
+        "game/project.godot",
+        "game/default_bus_layout.tres",
+        "game/RealtimeTheme.tres"
+      ],
+      "sceneFiles": [
+        "game/realtime/r2/RealtimeSliceCheckpointRunner.tscn",
+        "game/realtime/r2/RealtimeSliceMain.tscn",
+        "game/realtime/ui/RealtimeActionDock.tscn",
+        "game/realtime/ui/RealtimeBuildShelf.tscn",
+        "game/realtime/ui/RealtimeContextDock.tscn",
+        "game/realtime/ui/RealtimeEventRail.tscn",
+        "game/realtime/ui/RealtimeModalHost.tscn",
+        "game/realtime/ui/RealtimeTopHud.tscn",
+        "game/realtime/ui/RealtimeUiRoot.tscn"
+      ],
+      "sceneAttachedScripts": [
+        "game/realtime/r2/RealtimePlaceholderMap.cs",
+        "game/realtime/r2/RealtimeSliceCheckpointRunner.cs",
+        "game/realtime/r2/RealtimeSliceMain.cs",
+        "game/realtime/ui/RealtimeActionDock.cs",
+        "game/realtime/ui/RealtimeBuildShelf.cs",
+        "game/realtime/ui/RealtimeContextDock.cs",
+        "game/realtime/ui/RealtimeEventRail.cs",
+        "game/realtime/ui/RealtimeFocusScope.cs",
+        "game/realtime/ui/RealtimeInputRouter.cs",
+        "game/realtime/ui/RealtimeModalHost.cs",
+        "game/realtime/ui/RealtimeTopHud.cs",
+        "game/realtime/ui/RealtimeUiRoot.cs"
+      ],
+      "existingScriptUids": [
+        "game/realtime/r2/RealtimePlaceholderMap.cs.uid",
+        "game/realtime/r2/RealtimeSliceMain.cs.uid",
+        "game/realtime/ui/RealtimeActionDock.cs.uid",
+        "game/realtime/ui/RealtimeBuildShelf.cs.uid",
+        "game/realtime/ui/RealtimeContextDock.cs.uid",
+        "game/realtime/ui/RealtimeEventRail.cs.uid",
+        "game/realtime/ui/RealtimeFocusScope.cs.uid",
+        "game/realtime/ui/RealtimeInputRouter.cs.uid",
+        "game/realtime/ui/RealtimeModalHost.cs.uid",
+        "game/realtime/ui/RealtimeTopHud.cs.uid",
+        "game/realtime/ui/RealtimeUiRoot.cs.uid"
+      ]
+    },
+    "excludedFromR2GodotExecutableClosure": {
+      "pathPrefixes": [
+        "game/assets/",
+        "game/realtime/world/"
+      ],
+      "exactPaths": [
+        "game/icon.svg",
+        "game/realtime/ui/RealtimeUiLayoutHarness.tscn"
+      ],
+      "allowlistIsComplete": true
+    },
+    "pinnedAuthorityFiles": [
+      {
+        "path": "Directory.Build.props",
+        "role": "BUILD_DECLARATION",
+        "rawSha256": "sha256:bd3eef539e4d05bf5b67fe4a069087c210172dc668b74469ad2bbaaf9ff7d5f8",
+        "byteLength": 166
+      },
+      {
+        "path": "data/release-campaign-v2.json",
+        "role": "GAME_DEBUG_EMBEDDED_RESOURCE",
+        "rawSha256": "sha256:078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a",
+        "byteLength": 44928
+      },
+      {
+        "path": "data/release-campaign-v3.json",
+        "role": "DECLARED_NONRUNTIME_FULL_V3_AUTHORITY",
+        "rawSha256": "sha256:ef962a272683bfd6761fbf10a0ca14cb6c8bf90cdfde810b468ad451088f2258",
+        "byteLength": 4638
+      },
+      {
+        "path": "data/release-world-v3.json",
+        "role": "DECLARED_NONRUNTIME_FULL_V3_AUTHORITY",
+        "rawSha256": "sha256:a0a837717bbd6d35f655d8094dfa6daac182d47b2d03f24b18c4883c04feecdf",
+        "byteLength": 1667
+      },
+      {
+        "path": "game/CommercialMain.tscn",
+        "role": "NEGATIVE_DEFAULT_SCENE_AUTHORITY",
+        "rawSha256": "sha256:711af7506d9104a77a95a740b8a114a2bc11af302cd6f18e6d2596c192f050b1",
+        "byteLength": 5398
+      },
+      {
+        "path": "game/Gridworks.Game.csproj",
+        "role": "BUILD_DECLARATION",
+        "rawSha256": "sha256:e5bd58d77ae99f45c9d9cbe3c564695ffaf5a55a1b3f91f26510088d6dd4c229",
+        "byteLength": 7498
+      },
+      {
+        "path": "game/export_presets.cfg",
+        "role": "NEGATIVE_EXPORT_AUTHORITY",
+        "rawSha256": "sha256:57239c5ac9cef9e21e86b8adb6e14c5ae22338908fefbe65b5151408d75d6a08",
+        "byteLength": 4214
+      },
+      {
+        "path": "game/project.godot",
+        "role": "BUILD_DECLARATION",
+        "rawSha256": "sha256:3bb6362b2c8f7da94d6eb3df69ccae4752fa32dbf0eaa882950cde8348420586",
+        "byteLength": 2817
+      },
+      {
+        "path": "game/realtime/r2/RealtimeSliceCheckpointRunner.tscn",
+        "role": "R2_RUNTIME_SCENE_RESOURCE",
+        "rawSha256": "sha256:7339fe891bd5268d74bf522a0bfd3559062c1e3735b6715d661a823967c907ca",
+        "byteLength": 341
+      },
+      {
+        "path": "game/realtime/r2/RealtimeSliceMain.tscn",
+        "role": "R2_RUNTIME_SCENE_RESOURCE",
+        "rawSha256": "sha256:fabb8a529c5c7730c3209b549f45e724ddf3756eff35d5e49a160f9548d6f3a0",
+        "byteLength": 805
+      },
+      {
+        "path": "global.json",
+        "role": "BUILD_DECLARATION",
+        "rawSha256": "sha256:9e5dddc69006a787c251be614e6db6cd4e93a104128d3e03b66a7c914acdaf55",
+        "byteLength": 104
+      },
+      {
+        "path": "playtests/commercial-ux-87-realtime/text-plan-r0/story-manifest.json",
+        "role": "STORED_STORY_MANIFEST",
+        "rawSha256": "sha256:9072eef635220de62bf998088f88ea0ba86b2676f28085f16195f39712953180",
+        "byteLength": 45301
+      },
+      {
+        "path": "src/Gridworks.Core/Gridworks.Core.csproj",
+        "role": "BUILD_DECLARATION",
+        "rawSha256": "sha256:77cfaf78fabef64c349c54823e786811827c56aa3205019ef820049c919ee75a",
+        "byteLength": 1022
+      },
+      {
+        "path": "tools/Gridworks.CommercialChecks/CommercialStoryPartHarness.cs",
+        "role": "STORY_HARNESS_SOURCE",
+        "rawSha256": "sha256:766a20e4f5523c8fbe450e767b4f87b611458c0283ad67ca4a8932e1169f2ce1",
+        "byteLength": 22115
+      },
+      {
+        "path": "tools/Gridworks.CommercialChecks/Program.cs",
+        "role": "STORY_HARNESS_SOURCE",
+        "rawSha256": "sha256:c401ea1b3b4542bebf6c0b12555b9d0b5549af55d11f1e3c503155b3893ef4a9",
+        "byteLength": 345232
+      },
+      {
+        "path": "tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-first-light-realtime-v3.json",
+        "role": "GAME_DEBUG_EMBEDDED_RESOURCE",
+        "rawSha256": "sha256:e33510b49b32c127bca66ce14e755e48f75067cddc8b38d7d94b92b64d2c530a",
+        "byteLength": 7490
+      },
+      {
+        "path": "tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-world-realtime-v3.json",
+        "role": "GAME_DEBUG_EMBEDDED_RESOURCE",
+        "rawSha256": "sha256:0d047c66063a9e925f1c0d0d6a19940956cbd3fb7e6a7d7be0df6035ff3d4ed0",
+        "byteLength": 1656
+      }
+    ]
+  },
+  "managedBuild": {
+    "configuration": "Debug",
+    "dotnetAuthority": {
+      "sdkVersion": "8.0.129",
+      "hostRuntimeVersion": "8.0.29",
+      "runtimeIdentifier": "osx-arm64",
+      "architecture": "arm64",
+      "globalJsonRawSha256": "sha256:9e5dddc69006a787c251be614e6db6cd4e93a104128d3e03b66a7c914acdaf55",
+      "commandPathPolicy": "RESOLVED_REGULAR_FILES_REJECT_SYMLINKS",
+      "files": [
+        {
+          "path": "bin/dotnet",
+          "role": "DOTNET_COMMAND_WRAPPER",
+          "rawSha256": "sha256:aa69656c6e74cba10089fbbf1ea3d3bdb711f2ac9899e063b4d6913043a3b06c",
+          "byteLength": 138
+        },
+        {
+          "path": "libexec/dotnet",
+          "role": "DOTNET_HOST_EXECUTABLE",
+          "rawSha256": "sha256:b1acbd5d6925edbb1a5fbe9df19d0008e8f789473425d1b9508a007dc46db96e",
+          "byteLength": 118552
+        }
+      ],
+      "filesSha256": "sha256:cc1540b001de745eb111ed1efecc159aca828821d1297ec125e7ddbcf7f8933d"
+    },
+    "packageInputs": {
+      "sourcePolicy": "PRIVATE_OFFLINE_FEED_EXACT_FOUR_NO_FALLBACK",
+      "files": [
+        {
+          "path": "godot.net.sdk/4.7.1/godot.net.sdk.4.7.1.nupkg",
+          "role": "GODOT_BUILD_PACKAGE",
+          "rawSha256": "sha256:1f93837c9b8df052596203a0882818381cb5d64cd7f86f9a46cb67184d8287ff",
+          "byteLength": 19973
+        },
+        {
+          "path": "godot.sourcegenerators/4.7.1/godot.sourcegenerators.4.7.1.nupkg",
+          "role": "GODOT_BUILD_PACKAGE",
+          "rawSha256": "sha256:6b3e98ab8e94bad4d2f65de559bdcf0637fd6ca084cdf0ac1a6d8a17542bb4f1",
+          "byteLength": 58764
+        },
+        {
+          "path": "godotsharp/4.7.1/godotsharp.4.7.1.nupkg",
+          "role": "GODOT_BUILD_PACKAGE",
+          "rawSha256": "sha256:f0b366029c9859355cacc25ccc2e4f19bd2dee7e16d5c22b82d7c736ff208068",
+          "byteLength": 3234854
+        },
+        {
+          "path": "godotsharpeditor/4.7.1/godotsharpeditor.4.7.1.nupkg",
+          "role": "GODOT_BUILD_PACKAGE",
+          "rawSha256": "sha256:8ced4bfd55968cf4f835035b7e8d8149ff535e4bf200496491f8e8d93a91b682",
+          "byteLength": 190855
+        }
+      ],
+      "packageInputsSha256": "sha256:3328163c3829db2db44f282f48ef785a33114337b6956da4f48c6536ec590d42"
+    },
+    "requiredManagedOutputs": [
+      "managed/Gridworks.Core.dll",
+      "managed/Gridworks.Game.deps.json",
+      "managed/Gridworks.Game.dll",
+      "managed/Gridworks.Game.runtimeconfig.json"
+    ],
+    "managedOutputRole": "MANAGED_DEBUG_OUTPUT",
+    "godotScriptPathAuthority": {
+      "godotProjectDir": "$CANDIDATE_SOURCE_ROOT/game",
+      "pathEncoding": "GODOT_SCRIPT_PATH_ATTRIBUTE_RES_URI",
+      "sceneAttachedScriptCount": 12,
+      "escapedResourcePathCount": 0,
+      "requiredResourcePaths": [
+        "res://realtime/r2/RealtimePlaceholderMap.cs",
+        "res://realtime/r2/RealtimeSliceCheckpointRunner.cs",
+        "res://realtime/r2/RealtimeSliceMain.cs",
+        "res://realtime/ui/RealtimeActionDock.cs",
+        "res://realtime/ui/RealtimeBuildShelf.cs",
+        "res://realtime/ui/RealtimeContextDock.cs",
+        "res://realtime/ui/RealtimeEventRail.cs",
+        "res://realtime/ui/RealtimeFocusScope.cs",
+        "res://realtime/ui/RealtimeInputRouter.cs",
+        "res://realtime/ui/RealtimeModalHost.cs",
+        "res://realtime/ui/RealtimeTopHud.cs",
+        "res://realtime/ui/RealtimeUiRoot.cs"
+      ]
+    },
+    "isolationRequirements": {
+      "freshOutputRoot": true,
+      "parentBuildImportsDisabled": true,
+      "networkPackageSourcesDisabled": true,
+      "defaultCompileItemsDisabledInEvaluatorProjects": true,
+      "defaultEmbeddedResourcesDisabledInEvaluatorProjects": true,
+      "outputsMustRemainUnderFreshRoot": true
+    }
+  },
+  "engineAuthority": {
+    "version": "4.7.1.stable.mono.official.a13da4feb",
+    "appFileCount": 153,
+    "appFileTreeSha256": "sha256:68e768a771af633fb820b3939b7f24041aab0cf72157836a2448a0a8ab40c2b7",
+    "executable": {
+      "path": "Contents/MacOS/Godot",
+      "role": "GODOT_HOST_FILE",
+      "rawSha256": "sha256:d11dc4a241ec29a347e13c8c7706e49433379ae1f9fc6a6e6819efb3891fce97",
+      "byteLength": 348815024
+    },
+    "pathPolicy": "CANONICAL_APP_ROOT_REGULAR_FILES_REJECT_SYMLINKS",
+    "versionProbeRequired": true
+  },
+  "packageAuthority": {
+    "packageKind": "EDITOR_NATIVE_PROJECT_TREE",
+    "rootName": "game",
+    "sourceClosureFileCount": 35,
+    "managedOutputFileCount": 4,
+    "fileCount": 39,
+    "sourceFileRole": "GODOT_PROJECT_SOURCE_FILE",
+    "managedOutputRole": "MANAGED_DEBUG_OUTPUT",
+    "treeHashRule": "SHA256_GRIDWORKS_CANONICAL_JSON_V1_OF_ORDERED_FILE_ROWS",
+    "materializedFromExactBindings": true,
+    "nativeAppBundle": false,
+    "publicPackage": false
+  },
+  "headlessExecutionAuthority": {
+    "schemaVersion": "gridworks.realtime-headless-execution-authority.v1",
+    "executionKind": "EDITOR_HEADLESS_DIAGNOSTIC_ONLY",
+    "positiveCheckpointIds": [
+      "A1_NORMAL_READY",
+      "A1_CONSTRUCTION_DUE_1M"
+    ],
+    "argumentRejectionProbeIds": [
+      "REJECT_MISSING_ARGUMENT",
+      "REJECT_EXTRA_ARGUMENT",
+      "REJECT_FULL_FLOW_AS_CHECKPOINT"
+    ],
+    "freshProcessPerProbe": true,
+    "freshExactPackageCopyPerProbe": true,
+    "ephemeralProbeFilesystemOutputsExcludedFromPackageFileAuthority": true,
+    "expectedEphemeralEmptyDirectorySideEffects": [
+      "Godot",
+      "Godot/app_userdata",
+      "Godot/app_userdata/Gridworks"
+    ],
+    "hostRuntimeBinding": "LOCAL_SYSTEM_DOTNET_PARTIAL_TWO_FILE_AUTHORITY",
+    "inputFileCountPerProbe": 39,
+    "boundFileByteMutationCount": 0,
+    "nativePresentationObserved": false,
+    "scoreBearingEvidence": false
+  },
+  "storyAuthority": {
+    "expectedInputsSha256": "sha256:8e495bae2ba0f365d25d2e487a1202d47765014f188b9e2ca95b98100da0f46b",
+    "authoredCampaignPath": "data/release-campaign-v2.json",
+    "declaredRealtimeCampaignPath": "data/release-campaign-v3.json",
+    "harnessPaths": [
+      "tools/Gridworks.CommercialChecks/Program.cs",
+      "tools/Gridworks.CommercialChecks/CommercialStoryPartHarness.cs"
+    ],
+    "storedManifestPath": "playtests/commercial-ux-87-realtime/text-plan-r0/story-manifest.json",
+    "storedManifestRawSha256": "sha256:9072eef635220de62bf998088f88ea0ba86b2676f28085f16195f39712953180",
+    "partCount": 34,
+    "partCounts": {
+      "briefing": 8,
+      "window": 6,
+      "result": 11,
+      "epilogueCard": 3,
+      "epiloguePromiseLine": 6
+    },
+    "authoredReachabilityOnly": true,
+    "nativeReachabilityClaim": false,
+    "deterministicRebuildMustMatchStoredBytes": true
+  },
+  "sceneAuthority": {
+    "defaultScene": {
+      "resourcePath": "res://CommercialMain.tscn",
+      "sourcePath": "game/CommercialMain.tscn",
+      "projectDefault": true,
+      "candidateRoute": false
+    },
+    "interactiveCandidateScene": {
+      "resourcePath": "res://realtime/r2/RealtimeSliceMain.tscn",
+      "sourcePath": "game/realtime/r2/RealtimeSliceMain.tscn",
+      "projectDefault": false,
+      "requiresExplicitScene": true
+    },
+    "checkpointRunnerScene": {
+      "resourcePath": "res://realtime/r2/RealtimeSliceCheckpointRunner.tscn",
+      "sourcePath": "game/realtime/r2/RealtimeSliceCheckpointRunner.tscn",
+      "projectDefault": false,
+      "requiresExplicitScene": true
+    },
+    "runtimeFixture": {
+      "chapterId": "FIRST_LIGHT",
+      "chapterCount": 1,
+      "eventCount": 3,
+      "worldPath": "tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-world-realtime-v3.json",
+      "campaignPath": "tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-first-light-realtime-v3.json"
+    },
+    "declaredNonruntimeFullV3": {
+      "chapterCount": 8,
+      "eventCount": 16,
+      "worldPath": "data/release-world-v3.json",
+      "campaignPath": "data/release-campaign-v3.json",
+      "loadedByCandidateRuntime": false
+    },
+    "checkpoints": [
+      {
+        "checkpointId": "A1_NORMAL_READY",
+        "startMinute": 1020,
+        "startCanonicalStateSha256": "sha256:7094f631c89fe072800858a205d08358be07a6e0e7341b83026ff619fc03f9a3",
+        "commandReplaySchema": "gridworks.targeted-live-command-replay.v1",
+        "commandReplaySha256": "sha256:4f4d3748681585f49eeb4291262db3c99676baba10913450c94d5e1eda9e1611",
+        "commandCount": 0,
+        "expectedEndCanonicalStateSha256": "sha256:d61217a830053e59f9c75a69eef110da2604892baf9b52ea74cb04d406ad6fec",
+        "allowedInput": "HUD_SPEED_NORMAL",
+        "allowedFrameCount": 60,
+        "framesPerSecond": 60,
+        "claimLabel": "TARGETED_LIVE_CHECKPOINT_PASS:A1_NORMAL_READY"
+      },
+      {
+        "checkpointId": "A1_CONSTRUCTION_DUE_1M",
+        "startMinute": 1259,
+        "startCanonicalStateSha256": "sha256:3a00c6c937d130cc7574e3971403445cb036a26aecba6671e300e1398d4b9989",
+        "commandReplaySchema": "gridworks.targeted-live-command-replay.v1",
+        "commandReplaySha256": "sha256:9bd7c3226fd36396d9d9f7a8d81da25379cedb8e0e54441601bb7c89e947c65c",
+        "commandCount": 3,
+        "expectedEndCanonicalStateSha256": "sha256:304b96410d7652db9928613fe77443d8d50e29efcb273ff8061c064f876f37f9",
+        "allowedInput": "HUD_SPEED_NORMAL",
+        "allowedFrameCount": 60,
+        "framesPerSecond": 60,
+        "claimLabel": "TARGETED_LIVE_CHECKPOINT_PASS:A1_CONSTRUCTION_DUE_1M"
+      }
+    ]
+  },
+  "routeProfiles": {
+    "interactiveFirstLight": {
+      "profileId": "INTERACTIVE_NONDEFAULT_FIRST_LIGHT",
+      "availability": "AVAILABLE",
+      "scenePath": "res://realtime/r2/RealtimeSliceMain.tscn",
+      "headless": false,
+      "requiresExplicitScene": true,
+      "arguments": [
+        "--path",
+        "game",
+        "--scene",
+        "res://realtime/r2/RealtimeSliceMain.tscn"
+      ],
+      "checkpointIds": [],
+      "coverage": "FIRST_LIGHT_RUNTIME_FIXTURE_ONLY"
+    },
+    "targetedCheckpoints": {
+      "profileId": "TARGETED_DETERMINISTIC_CHECKPOINTS",
+      "availability": "AVAILABLE",
+      "scenePath": "res://realtime/r2/RealtimeSliceCheckpointRunner.tscn",
+      "headless": true,
+      "requiresExplicitScene": true,
+      "argumentsPrefix": [
+        "--headless",
+        "--path",
+        "game",
+        "--scene",
+        "res://realtime/r2/RealtimeSliceCheckpointRunner.tscn",
+        "--"
+      ],
+      "checkpointArgumentFormat": "--checkpoint=<EXACT_CHECKPOINT_ID>",
+      "checkpointIds": [
+        "A1_NORMAL_READY",
+        "A1_CONSTRUCTION_DUE_1M"
+      ],
+      "coverage": "ONE_NAMED_CHECKPOINT_ADVANCES_EXACTLY_ONE_CORE_MINUTE"
+    },
+    "fullFlow": {
+      "profileId": "FULL_FLOW_E2E",
+      "availability": "UNAVAILABLE",
+      "scenePath": null,
+      "headless": null,
+      "requiresExplicitScene": null,
+      "arguments": [],
+      "checkpointIds": [],
+      "coverage": "NOT_IMPLEMENTED"
+    }
+  },
+  "futureEventStatusBar": {
+    "implementationPath": "game/realtime/ui/RealtimeEventRail.cs",
+    "scenePath": "game/realtime/ui/RealtimeEventRail.tscn",
+    "implementationPresent": true,
+    "signals": [
+      "CURRENT_TIME",
+      "NEXT_EVENT_COUNTDOWN",
+      "EVENT_START_END",
+      "CONSTRUCTION_COMPLETION",
+      "PROMISE_DECISION_DEADLINE",
+      "THERMAL_TRIP_RECOVERY"
+    ],
+    "headlessWiringStatus": "EXACT_PACKAGE_TWO_CHECKPOINT_SCENE_LOAD_PASS",
+    "nativeQualityObserved": false,
+    "scoreClaimAllowed": false
+  },
+  "limitations": {
+    "defaultSceneCandidateMismatch": "DEFAULT_COMMERCIAL_MAIN_IS_V2_EXPLICIT_REALTIME_SLICE_REQUIRED",
+    "runtimeCoverage": "FIRST_LIGHT_ONLY",
+    "fullCampaignNativeE2E": "NOT_IMPLEMENTED",
+    "fullFlowRoute": "UNAVAILABLE",
+    "saveResume": "NOT_IMPLEMENTED",
+    "finaleEpilogueNative": "NOT_IMPLEMENTED",
+    "fullV3RuntimeBinding": "DECLARED_NONRUNTIME_ONLY",
+    "futureEventStatusBarNativeQuality": "NOT_OBSERVED",
+    "runtimeArtAuthority": "NOT_ESTABLISHED",
+    "dotnetToolchainAuthority": "PARTIAL_COMMAND_AND_HOST_ONLY",
+    "packageStatus": "EDITOR_NATIVE_NOT_PUBLIC_PACKAGE",
+    "nativeCaptureStatus": "PROHIBITED_UNTIL_UX_R1_CLOSE",
+    "claimsNotAuthorized": [
+      "OFFICIAL_COMMERCIAL_UX",
+      "SCORE_BEARING_CAPTURE",
+      "FULL_CAMPAIGN_NATIVE_E2E",
+      "PUBLIC_PACKAGE",
+      "RUNTIME_ART_ADOPTION",
+      "FUTURE_EVENT_STATUS_BAR_NATIVE_QUALITY"
+    ]
+  }
+}

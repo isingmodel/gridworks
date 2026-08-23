@@ -1,13 +1,14 @@
 # Gridworks — 실시간 상용 UX 87 활성 계약
 
-> 상태: **UX-R2.2 비점수 완료 · UX-R2.3 NORTH_BANK_PROMISE branch/deadline scope 활성**
+> 상태: **UX-R2.3 source/fix review 완료 · user-requested native observation 보류 · 공식 평가 작업 중단**
 >
 > 제품 방향 권위: [에셋 스타일 실시간 게임 계약](ASSET_STYLE_REALTIME_GAME.md)
 >
 > 목표: 고정 `gpt-5.6-sol` + reasoning effort `ultra`의 공식
 > `CommercialUXProxy >= 87`
 
-이 문서는 현재 사용자 지시가 연 **단일 작업 scope**다. 제품 방향은 turn 단위 진행이 아니라
+이 문서는 고정 judge·UX 평가 계약을 보존한다. 현재 단일 구현 scope는 제품 방향 계약의
+`A1_G3_EXISTING_VISUAL_APPLICATION`이며, 제품 방향은 turn 단위 진행이 아니라
 pause·1×·2×·4× 속도, 계속 흐르는 시계, 미리 보이는 사건과 시간에 따른 공사·열 노출·정지·회복을
 가진 실시간 전력망 게임으로 고정한다. `origin/main`의 Release.V3/R2 기반을 이 방향의 권위로
 사용하며, 과거 `codex/commercial-ux-87`의 V2 runtime 구현을 합치지 않는다.
@@ -26,8 +27,9 @@ fresh-process 세 장 actual-input record로 비점수 완료했다. A1 runtime 
 장면과 score-bearing capture는 열지 않았다. 현재 UX-R2.3은 누적 상태를 보존한
 `NORTH_BANK_PROMISE` 한 장, 명시적 6개월 calendar transition, 한 줄 rail의 최초 promise deadline과
 Keep/Defer branch만 열었다. gate-opening 독립 검토 `PASS_FOR_UX_R2_3_GATE_OPENING`, P0 0/P1 0을
-통과해 exact source allowlist 구현만 승인됐다. native capture는 source commit·build·독립 review 전
-금지한다.
+통과해 exact source allowlist 구현만 승인됐다. 이후 source `aee4932`와 fix `d85bb3f`가 구현·검증됐고
+두 bounded source/fix review는 P0 0/P1 0이다. 최신 사용자 지시는 이 시점에서 native direct play와
+87점 반복을 멈추고 G3 visual application만 끝낸 뒤 중단하는 것이다.
 
 ## 1. 플레이어 결과
 
@@ -714,15 +716,15 @@ NORTH_BANK_PROMISE/result/defer                      f6f8657f3f223724dbeb749ab80
 ## 9. 현재 상태
 
 ```text
-ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
-NextEvaluationGate = UX_R2_4_REMAINING_MAIN_CHAPTERS_NOT_OPENED
-NextCandidate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
-UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
+ActiveScope = A1_G3_EXISTING_VISUAL_APPLICATION
+ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
+NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
+NextCandidate = G3_R2_VISUAL_LAYER_ONLY
+UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP
 ProductDirection = ASSET_STYLE_REALTIME_GAME
-ProductArtGate = NONE_A1_NOT_OPENED
+ProductArtGate = A1_G3_EXISTING_VISUAL_APPLICATION_ACTIVE
 RealtimeAuthority = RELEASE_V3_PLUS_R2
-RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_ACTIVE_UX_R2_3_SCOPE
+RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 StoryPartManifest = 34_AUTHORED_ATOMS_DETERMINISTIC_PASS
 TextPlanProxy = 83.4475_FORMATIVE
@@ -730,7 +732,7 @@ TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY
 ScoreBearingCaptureAllowed = false
-NativeCapturePolicy = FORBIDDEN_UNTIL_UX_R2_3_SOURCE_COMMIT_BUILD_AND_REVIEW
+NativeCapturePolicy = NOT_REQUESTED_USER_STOP_AFTER_G3_APPLICATION
 NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
 NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
@@ -770,11 +772,12 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
-UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED
+UXR23GateStatus = IMPLEMENTED_REVIEWED_NATIVE_OBSERVATION_DEFERRED
 UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6
-UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
-NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
-NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE
-InterchapterCalendarTransition = NOT_IMPLEMENTED_SCOPE_ACTIVE
+UXR23ProductSourceAuthority = PASS_SOURCE_FIX_D85BB3F
+UXR23SourceReview = PASS_FOR_UX_R2_3_SOURCE_FIX_COMMIT_P0_0_P1_0
+NorthBankPromiseNativeReachability = NOT_OBSERVED_USER_STOP
+NorthBankPromiseDeadlineRail = IMPLEMENTED_REVIEWED
+InterchapterCalendarTransition = IMPLEMENTED_REVIEWED
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

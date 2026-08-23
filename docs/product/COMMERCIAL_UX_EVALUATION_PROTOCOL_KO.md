@@ -213,28 +213,29 @@ runner, headless UI PASS와 actual-input 관찰은 서로 대신하지 않으며
 않는다. UX-R2.2는 누적 tutorial 3장 prefix의 connection requirement, result→briefing 전환과
 forecast flood 표시를 source `659709d`와 fix `40ed3fa`에서 구현하고, 전체 회귀·source/fix 독립 검토와
 fresh-process 세 장 actual-input 경로로 비점수 완료했다. 이 gate에서도 official score는 만들지 않았다.
-현재 UX-R2.3은 `NORTH_BANK_PROMISE` 한 장의 누적 4장 route, 명시적 calendar transition, 약속 마감
-Decision marker와 Keep/Defer 분기까지만 scope를 열었고 gate-opening 독립 검토 P0 0/P1 0을 통과했다.
-exact source allowlist 구현만 허용하며 native capture는 source commit·build·독립 review 전까지 금지한다.
-본편 5–8장·save/finale/epilogue와 score-bearing judge lane은 계속 미개방이다.
+UX-R2.3은 `NORTH_BANK_PROMISE` 한 장의 누적 4장 route, 명시적 calendar transition, 약속 마감
+Decision marker와 Keep/Defer 분기를 source `aee4932`과 fix `d85bb3f`에 구현했다. source/fix independent
+review는 P0 0/P1 0이며, 최신 사용자 지시는 native direct-play·judge 반복을 보류하고 existing G3
+visual layer를 live R2에 적용한 뒤 중단하는 것이다. 본편 5–8장·save/finale/epilogue와 score-bearing
+judge lane은 계속 미개방이다.
 
 ```text
 TextPlanProxy = 83.4475_FORMATIVE
 CommercialUXProxy = null
-OfficialScoreStatus = BLOCKED_UX_R2_COMPLETENESS_IN_PROGRESS
+OfficialScoreStatus = PAUSED_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
 ScoreBearingCaptureAllowed = false
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
-ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
-NextEvaluationGate = UX_R2_4_REMAINING_MAIN_CHAPTERS_NOT_OPENED
-NextCandidate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
-UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
-RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_ACTIVE_UX_R2_3_SCOPE
+ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
+NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
+NextCandidate = G3_R2_VISUAL_LAYER_ONLY
+UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP
+RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY
 ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECEIPT_SHA256_F7C17C4A
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 UXR21GateOpeningReview = PASS_P0_0_P1_0
-NativeCapturePolicy = FORBIDDEN_UNTIL_UX_R2_3_SOURCE_COMMIT_BUILD_AND_REVIEW
+NativeCapturePolicy = NOT_REQUESTED_USER_STOP_AFTER_G3_APPLICATION
 NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR21GateStatus = COMPLETE_NON_SCORE
 UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
@@ -255,12 +256,13 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
-UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED
+UXR23GateStatus = IMPLEMENTED_REVIEWED_NATIVE_OBSERVATION_DEFERRED
 UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6
-UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
-NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
-NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE
-InterchapterCalendarTransition = NOT_IMPLEMENTED_SCOPE_ACTIVE
+UXR23ProductSourceAuthority = PASS_SOURCE_FIX_D85BB3F
+UXR23SourceReview = PASS_FOR_UX_R2_3_SOURCE_FIX_COMMIT_P0_0_P1_0
+NorthBankPromiseNativeReachability = NOT_OBSERVED_USER_STOP
+NorthBankPromiseDeadlineRail = IMPLEMENTED_REVIEWED
+InterchapterCalendarTransition = IMPLEMENTED_REVIEWED
 ```
 
 UX-R1 native provenance 계약은 독립 검토로 닫혔다. UX-R2.1과 UX-R2.2 직접 플레이는 formative

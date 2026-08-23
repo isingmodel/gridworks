@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1+UX-R2.2 완료 · UX-R2.3 북안 약속 scope 활성**
-> 제품 아트: **A1 일반 운전 아트 vertical slice — 미개방**
+> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · A1-G3 visual application 활성**
+> 제품 아트: **A1-G3 existing visual layer만 개방; 일반 A1/A2–A5 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
 정한다. 로드맵의 다음 단계는 자동 구현 권한이 아니다. 권한은 루트 [README](../README.md), 정확한
@@ -120,7 +120,7 @@ persistence, default/export/package와 score-bearing capture는 열리지 않았
 exact 파일 allowlist와 종료 증거는
 [실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r22--tutorial-prefix-through-second_source--완료)가 소유한다.
 
-## UX-R2.3 — NORTH_BANK_PROMISE branch/deadline — scope 활성
+## UX-R2.3 — NORTH_BANK_PROMISE branch/deadline — 구현·review 완료, native 관찰 보류
 
 ### player outcome
 
@@ -141,12 +141,19 @@ Keep/Defer 중 직접 정하고, 그 마감·두 운영 사건·분기 결과를
   explicit-choice PASS를 만들지 않음
 - A1 art, 5–8장, save/persistence, promise ledger/epilogue, default/export/package와 official score 미개방
 
-gate-opening 독립 검토 `PASS_FOR_UX_R2_3_GATE_OPENING`, P0 0/P1 0을 통과해 exact source allowlist
-구현만 열었다. native capture는 source commit·build·독립 review 전 금지한다. 종료 증거는
-[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r23--north_bank_promise-branchdeadline--scope-활성)가
-소유한다.
+gate-opening 독립 검토 뒤 source `aee4932`와 truth-preservation fix `d85bb3f`를 적용했다. build,
+full deterministic suites, story hashes, UI matrix와 두 bounded source/fix review는 P0 0/P1 0으로
+통과했다. user-requested native KEEP observation은 보류하며, source와 review 사실은
+[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md)가 보존한다.
 
-## A1 — 일반 운전 아트 vertical slice — 미개방
+## A1-G3 — 기존 visual layer 적용 — 활성
+
+current live R2의 controller/input/event rail/Core를 유지하고, local `main` `cf5da56`의 provenanced G3
+asset tree만 `RealtimePlaceholderMap` rendering layer에 적용한다. V2 `CommercialMain`, data/world, map
+input과 default/package를 합치지 않는다. exact allowlist, provenance 및 종료 조건은
+[제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md#a1-g3--기존-g3-시각-적용-carve-out--활성)이 소유한다.
+
+## A1 — 일반 운전 아트 vertical slice — A1-G3 외 범위는 미개방
 
 ### player outcome
 

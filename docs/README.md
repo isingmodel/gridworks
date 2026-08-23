@@ -29,7 +29,7 @@ docs/
 | 질문 | 소유 문서 | 경계 |
 |---|---|---|
 | 지금 무엇을 할 수 있는가? | [루트 README](../README.md) | 목표와 코드 구현 권한을 구분 |
-| 현재 단일 작업 scope와 gate는 무엇인가? | [실시간 상용 UX 87 계약](scopes/COMMERCIAL_UX_87.md) | 제품 A1 art gate를 자동으로 열지 않음 |
+| 현재 단일 작업 scope와 gate는 무엇인가? | [에셋 스타일 실시간 게임 계약](scopes/ASSET_STYLE_REALTIME_GAME.md#a1-g3--기존-g3-시각-적용-carve-out--활성) | 기존 G3 visual layer만 R2에 적용; V2 gameplay 병합 금지 |
 | LLM 점수와 증거를 어떻게 만드는가? | [상용 UX 평가 프로토콜](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md) | 사람 검토·공식 출시 승인을 대신하지 않음 |
 | 스토리 파트 하나만 어떻게 검사하는가? | [평가 도구 안내](../tools/commercial-ux/README.md) | authored reachability를 native reachability로 주장하지 않음 |
 | 최종적으로 어떤 게임을 만드는가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 단계별 파일·절차는 만들지 않음 |
@@ -54,23 +54,23 @@ docs/
 ## 현재 경계
 
 - `CurrentGoal = ASSET_STYLE_REALTIME_GAME`
-- `ActiveScope = COMMERCIAL_UX_87_REALTIME`
-- `ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE`
-- `NextEvaluationGate = UX_R2_4_REMAINING_MAIN_CHAPTERS_NOT_OPENED`
-- `UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY`
-- `ProductArtImplementationGate = NONE`
+- `ActiveScope = A1_G3_EXISTING_VISUAL_APPLICATION`
+- `ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW`
+- `NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION`
+- `UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP`
+- `ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_ACTIVE`
 - `DocumentationBaseline = A0_COMPLETE`
 - `ArchitecturePreparation = COMPLETE`
-- `NextCandidate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE`
+- `NextCandidate = G3_R2_VISUAL_LAYER_ONLY`
 - `RealtimeRuleAuthority = RELEASE_V3`
-- `RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_ACTIVE_UX_R2_3_SCOPE`
+- `RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3`
 - `FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL`
 - `FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY`
 - `TextPlanProxy = 83.4475_FORMATIVE`
 - `TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY`
 - `CommercialUXProxy = null`
 - `ScoreBearingCaptureAllowed = false`
-- `NativeCapturePolicy = FORBIDDEN_UNTIL_UX_R2_3_SOURCE_COMMIT_BUILD_AND_REVIEW`
+- `NativeCapturePolicy = NOT_REQUESTED_USER_STOP_AFTER_G3_APPLICATION`
 - `NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION`
 - `UXR21GateStatus = COMPLETE_NON_SCORE`
 - `UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD`
@@ -94,12 +94,13 @@ docs/
 - `UXR22ActiveFloodSolidFillObservation = PASS`
 - `UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A`
 - `TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE`
-- `UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED`
+- `UXR23GateStatus = IMPLEMENTED_REVIEWED_NATIVE_OBSERVATION_DEFERRED`
 - `UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6`
-- `UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING`
-- `NorthBankPromiseNativeReachability = NOT_IMPLEMENTED`
-- `NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE`
-- `InterchapterCalendarTransition = NOT_IMPLEMENTED_SCOPE_ACTIVE`
+- `UXR23ProductSourceAuthority = PASS_SOURCE_FIX_D85BB3F`
+- `UXR23SourceReview = PASS_FOR_UX_R2_3_SOURCE_FIX_COMMIT_P0_0_P1_0`
+- `NorthBankPromiseNativeReachability = NOT_OBSERVED_USER_STOP`
+- `NorthBankPromiseDeadlineRail = IMPLEMENTED_REVIEWED`
+- `InterchapterCalendarTransition = IMPLEMENTED_REVIEWED`
 - `UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA`
 - `NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4`
 - `EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED`
@@ -120,12 +121,11 @@ docs/
 - `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`
 - 기본 장면은 `CommercialMain`이다.
-- R1/R2 기반과 완료된 UX-R2.1·UX-R2.2 source 및 실제 입력 record는 보존한다. UX-R2.3은 exact 누적
-  4장 route의 `NORTH_BANK_PROMISE` 한 장, 명시적 달력 전환, 한 줄 rail 약속 마감과 Keep/Defer만
-  구현하도록 scope를 열었고 gate-opening 독립 검토 P0 0/P1 0을 통과했다. exact source allowlist만
-  구현할 수 있고 native capture는 source commit·build·독립 review 전까지 금지한다. 기존 개발 관찰을
-  `CommercialUXProxy`나 사람 미감 증거로 승격하지 않고 custom hover-only popup 출현도 native 관찰로
-  주장하지 않는다.
+- R1/R2 기반과 완료된 UX-R2.1·UX-R2.2 source 및 실제 입력 record는 보존한다. UX-R2.3은 exact
+  cumulative 4장 route, calendar transition과 promise deadline/Keep/Defer를 source `aee4932`와
+  fix `d85bb3f`에 구현했고 두 bounded review는 P0 0/P1 0이다. native observation은 사용자 지시로
+  보류하며, 현재는 local `main`의 provenanced G3 draw layer만 `RealtimePlaceholderMap`에 적용한다.
+  이 작업도 `CommercialUXProxy`나 사람 미감 증거를 만들지 않는다.
 - `./assets` 네 이미지는 visual reference authority이며 runtime·규칙·숫자 authority가 아니다.
 - 이전 HTML/CSS 목표 화면은 현재 스타일 목표에서 폐기했다. 파일은 Git commit `9aceaf7`로 복구할 수
   있고 현재 증거로 사용하지 않는다.
@@ -133,9 +133,9 @@ docs/
 ## 작업 읽기 순서
 
 1. 루트 [README](../README.md)를 읽는다.
-2. 루트가 지목한 [활성 UX scope](scopes/COMMERCIAL_UX_87.md)를 처음부터 끝까지 읽는다.
-3. 제품 방향을 바꾸거나 runtime 경계를 다루면
-   [제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)을 추가로 읽는다.
+2. 루트가 지목한 [활성 A1-G3 scope](scopes/ASSET_STYLE_REALTIME_GAME.md#a1-g3--기존-g3-시각-적용-carve-out--활성)를
+   처음부터 끝까지 읽는다.
+3. UX 평가 사실을 다루면 [실시간 상용 UX 87 계약](scopes/COMMERCIAL_UX_87.md)을 추가로 읽는다.
 4. 작업 질문의 소유 문서 하나만 추가로 읽는다.
 5. 승인된 gate 밖 코드·data·asset·scene은 만들지 않는다.
 6. 작업이 끝나면 체크리스트와 현재 상태를 같은 변경에서 갱신한다.

@@ -1,8 +1,8 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1+UX-R2.2 완료 · UX-R2.3 북안 약속 scope 활성**
-> 제품 아트: **A1 미개방**
+> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · A1-G3 visual application 활성**
+> 제품 아트: **A1-G3만 개방; 일반 A1/A2–A5 미개방**
 
 이 문서는 단계 상태와 증거 상한만 기록한다. 제품 기능과 시각 규격은
 [제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)과 [로드맵](ROADMAP_2D.md), 현재 평가 작업은
@@ -18,8 +18,9 @@
 | UX-R1 native evaluator authority | **완료** | candidate·route·session/attempt·non-score chain parent·blocked artifact·local controlled transcript | candidate 16/16 + session 12/12 + chain 14/14 + artifact 11/11 + transcript 13/13·strict schema | capture 금지 | `2b0b6ee`, 전체 review P0 0/P1 0 |
 | UX-R2.1 FIRST_LIGHT release tutorial/rail | **완료** | 실제 release 1장 briefing→live→authored result, 단일 chronological rail, interactive checkpoint host | source `e385707`, build·회귀·독립 P0/P1 0 | FIRST_LIGHT+두 checkpoint actual-input PASS | 이 문서 종료 commit |
 | UX-R2.2 tutorial prefix | **완료** | FIRST_LIGHT→SECOND_HEART→SECOND_SOURCE 누적 진행, 2회선 조건, result/briefing, forecast flood | source `659709d`+fix `40ed3fa`, build·회귀·UI PASS | fresh-process 세 장+full-flow record | source/fix와 closure `cf6398a` 독립 P0/P1 0 |
-| UX-R2.3 NORTH_BANK promise | **source 구현 활성** | 누적 4장, 명시적 6개월 전환, deadline rail, Keep/Defer branch | gate-opening review P0 0/P1 0 | source/review 전 capture 금지 | exact allowlist만 구현 |
-| A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
+| UX-R2.3 NORTH_BANK promise | **구현·review 완료 / native 보류** | 누적 4장, 명시적 6개월 전환, deadline rail, Keep/Defer branch | source `aee4932` + fix `d85bb3f`, P0 0/P1 0 | user-requested native 보류 | score/evaluation 작업 중단 |
+| A1-G3 기존 visual layer | **활성** | existing G3 city/grid/terrain assets를 live R2 map에 적용 | build·R2/UI regressions 예정 | 미수집 | 적용·review 뒤 사용자 지시대로 중단 |
+| A1 일반 운전 아트 slice | **A1-G3 외 미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 별도 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
 | A4 campaign·save | **미개방** | 전체 실시간 campaign, save v4, default 후보 | 미실행 | 미수집 | A3 뒤 별도 승인 |
@@ -160,25 +161,37 @@ source/fix bounded review는 각각 `PASS_FOR_UX_R2_2_SOURCE_COMMIT`,
 이 단위는 `data/**`, rail source, runtime art/world, 4–8장, promise/finale/epilogue, persistence,
 default/export/package와 score-bearing capture를 열지 않는다.
 
-## UX-R2.3 NORTH_BANK_PROMISE branch/deadline — scope 활성
+## UX-R2.3 NORTH_BANK_PROMISE branch/deadline — 구현·review 완료, native 관찰 보류
 
 - [x] UX-R2.2 source·actual-input·closure review P0 0/P1 0 뒤 개방
 - [x] exact cumulative 4장 route와 단독 NORTH_BANK route 금지 경계 고정
 - [x] exact Game/test/doc allowlist와 Core/data/loader·5–8장·save·epilogue 금지 경계 고정
 - [x] gate-opening 독립 review `PASS_FOR_UX_R2_3_GATE_OPENING`, P0 0/P1 0 (`b0383d6`)
-- [ ] 2460→265260 명시적 calendar transition과 실제 망·현금·공사·thermal reset 보존
-- [ ] promise deadline 265680 한 줄 Decision marker, next summary, hover·AX·keyboard·ContextDock 두 action
-- [ ] unset Keep 가정, explicit Keep/Defer, auto-Defer와 deadline 전/후 Core truth를 UI에 구분
-- [ ] NORTH_BANK briefing→planning window→hot-evening story→branch/generic result FIFO
-- [ ] Keep·explicit Defer·auto-Defer·safety/promise failure controller/Core smoke
-- [ ] 네 canonical story-part hash 단독 실행과 34-part/text-plan source 불변
-- [ ] 기존 3장 route·FIRST_LIGHT·두 checkpoint hash·full Realtime/Commercial/UI 회귀
-- [ ] source commit·독립 source review 뒤 production input cumulative 4장 KEEP path PASS
-- [ ] 현재 상태 문서와 종료 commit·closure review
+- [x] 2460→265260 명시적 calendar transition과 실제 망·현금·공사·thermal reset 보존
+- [x] promise deadline 265680 한 줄 Decision marker, next summary, hover·AX·keyboard·ContextDock 두 action
+- [x] unset Keep 가정, explicit Keep/Defer, auto-Defer와 deadline 전/후 Core truth를 UI에 구분
+- [x] NORTH_BANK briefing→planning window→hot-evening story→branch/generic result FIFO
+- [x] Keep·explicit Defer·auto-Defer·safety/promise failure controller/Core smoke
+- [x] 네 canonical story-part hash 단독 실행과 34-part/text-plan source 불변
+- [x] 기존 3장 route·FIRST_LIGHT·두 checkpoint hash·full Realtime/Commercial/UI 회귀
+- [ ] production input cumulative 4장 KEEP path — user-requested stop으로 보류
+- [ ] closure review — native observation을 요구하는 UX-R2.3 종료는 보류
 
 이 단위는 `data/**`, `RealtimeCampaignOverlayLoader`, 다른 Core source, event-rail source/scene,
-runtime art/world, 5–8장, save/persistence, promise ledger/epilogue, default/export/package와 score-bearing
-capture를 열지 않는다.
+5–8장, save/persistence, promise ledger/epilogue, default/export/package와 score-bearing capture를 열지
+않는다. 예외인 A1-G3 visual-only artifact는 제품 방향 계약의 별도 exact allowlist만 따른다.
+
+## A1-G3 existing visual application
+
+- [x] 사용자 승인: existing G3 design만 적용 후 중단
+- [x] source tree `main:cf5da56`·provenance ledger·R2-only boundary 고정
+- [x] Core/data/V2 gameplay/default/package/evaluator 비수정 경계 고정
+- [ ] G3 terrain/river/road/city/grid asset import와 manifest 결속
+- [ ] `RealtimePlaceholderMap` draw layer 적용; input/hit/focus/AX owner 보존
+- [ ] neutral/heat/rain draw presence와 existing state/risk cue smoke
+- [ ] build·full Realtime/Commercial/text/UI regression
+- [ ] independent review P0/P1 0과 current-state commit
+- [ ] 다음 gate 금지 / user-requested stop 기록
 
 ## A1 개방 전 체크
 
@@ -214,18 +227,18 @@ capture를 열지 않는다.
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
-ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
-NextEvaluationGate = UX_R2_4_REMAINING_MAIN_CHAPTERS_NOT_OPENED
-UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
+ActiveScope = A1_G3_EXISTING_VISUAL_APPLICATION
+ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
+NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
+UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ProductArtImplementationGate = NONE
-NextCandidate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
+ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_ACTIVE
+NextCandidate = G3_R2_VISUAL_LAYER_ONLY
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
-RuntimeArtAuthority = NOT_ESTABLISHED
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_PENDING_INTEGRATION
 RealtimeRuleAuthority = RELEASE_V3
-RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_ACTIVE_UX_R2_3_SCOPE
+RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
@@ -253,9 +266,9 @@ NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED
 UXR21GateOpeningReview = PASS_P0_0_P1_0
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
-R2Implementation = PRESERVED
-R2ExitGate = UX_R2_3_ACTIVE_SCOPE_ONLY_IMPLEMENTATION_PENDING
-NativeCapturePolicy = FORBIDDEN_UNTIL_UX_R2_3_SOURCE_COMMIT_BUILD_AND_REVIEW
+R2Implementation = PRESERVED_PLUS_REVIEWED_UX_R2_3
+R2ExitGate = USER_STOP_AFTER_A1_G3_APPLICATION
+NativeCapturePolicy = NOT_REQUESTED_USER_STOP_AFTER_G3_APPLICATION
 NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR21GateStatus = COMPLETE_NON_SCORE
 UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
@@ -279,12 +292,13 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
-UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED
+UXR23GateStatus = IMPLEMENTED_REVIEWED_NATIVE_OBSERVATION_DEFERRED
 UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6
-UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
-NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
-NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE
-InterchapterCalendarTransition = NOT_IMPLEMENTED_SCOPE_ACTIVE
+UXR23ProductSourceAuthority = PASS_SOURCE_FIX_D85BB3F
+UXR23SourceReview = PASS_FOR_UX_R2_3_SOURCE_FIX_COMMIT_P0_0_P1_0
+NorthBankPromiseNativeReachability = NOT_OBSERVED_USER_STOP
+NorthBankPromiseDeadlineRail = IMPLEMENTED_REVIEWED
+InterchapterCalendarTransition = IMPLEMENTED_REVIEWED
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 ElectricalProfessionalReview = NOT_COLLECTED

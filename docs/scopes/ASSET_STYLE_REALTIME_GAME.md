@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 목표 계약
 
-> 문서 상태: **현재 전체 목표 · UX-R2.2 완료 · UX-R2.3 NORTH_BANK promise logic/presentation scope 활성**
-> 제품 아트: `A1_NORMAL_OPERATION_ART_SLICE` — 미개방
+> 문서 상태: **UX-R2.3 source/review 완료·native 관찰 보류 · A1-G3 existing visual application carve-out 활성**
+> 제품 아트: `A1_G3_EXISTING_VISUAL_APPLICATION` — 사용자 명시 승인
 
 ## 1. 목표
 
@@ -341,7 +341,72 @@ exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.3](COMMERCI
 save/persistence, promise ledger/epilogue, default/export/package와 score-bearing capture는 금지한다.
 source commit·build·독립 review 전 native capture도 금지한다. 이 gate는 A1 art 채택 승인이 아니다.
 
-### A1 — 일반 운전 아트 vertical slice — 미개방
+### A1-G3 — 기존 G3 시각 적용 carve-out — 활성
+
+사용자는 UX-R2.3의 구현·결정론 검증·독립 source/fix review까지의 결과를 유지하고,
+더 이상의 87점 반복·native 직접 플레이·새 캠페인 작업 대신 **기존의 멋진 G3 아이소메트릭 디자인을
+현재 live R2 route에 적용한 뒤 중단**하도록 명시했다. 이 지시는 일반 A1–A5를 자동으로 열지 않고,
+아래의 이미 존재하는 visual-only 자산과 renderer만 한 번 적용하도록 범위를 좁힌다.
+
+player outcome은 `RealtimeSliceMain`의 현재 real-time clock, 한 줄 future-event rail, ContextDock,
+pointer/keyboard ownership과 Core 결과를 그대로 둔 채, FHD 작업 보기에서 숯빛 재질의 지형·강·도로·
+도시·발전설비와 cyan/amber/orange-red 상태가 실제 R2 world presentation에서 읽히는 것이다.
+
+#### 단일 자산 권위와 provenance
+
+- source tree는 local `main`의 commit `cf5da56`에서 고정된
+  `game/art/commercial/g3` tree
+  `75b27b02580de2c60c50666497d9807ed0ff8b27`이다.
+- 각 생성 source, runtime hash, alpha 처리와 사용 경계는 같은 commit의
+  `game/art/commercial/g3-assets.prompts.md`
+  (`e4cde08c90605e6144dbc18604dcbc939a597201`)가 소유한다.
+- root `assets/01`–`04`는 계속 스타일 reference일 뿐 runtime에 복사하지 않는다.
+- V2 `CommercialMain`, V2 world/data, `CommercialMapView`, 과거 HTML mockup과
+  `game/assets/realtime/**` 후보는 이 carve-out의 source가 아니다.
+
+#### exact allowlist
+
+- `game/art/commercial/g3/tiles/ground-rubble-relief-c.png`와
+  `river-water-surface-a.png`, 그리고 같은 경로의 `.import`
+- `game/art/commercial/g3/river/river-water-{neutral-b,heat-a,flood-a}.png`,
+  `river-bank-{conifer-a,scrub-a,outcrop-a}.png`, `river-bridge-abutment-a.png`,
+  그리고 같은 경로의 `.import`
+- `game/art/commercial/g3/roads/{road-straight-nw-se-a,road-straight-ne-sw-a,
+  road-corner-n-e-a,road-t-junction-a,road-cross-junction-a,service-yard-tile-a}.png`,
+  그리고 같은 경로의 `.import`
+- `game/art/commercial/g3/atomic/{worker-house-a,worker-house-b,worker-house-c,
+  row-shop-a,workshop-a,small-warehouse-a,hospital-main-a,hospital-service-a,
+  pump-house-a,water-tank-a,retaining-wall-a,street-lamp-a}.png`, 그리고 같은 경로의 `.import`
+- `game/art/commercial/g3/grid/{plant-main-hall-a,plant-smokestack-a,
+  plant-turbine-hall-a,switchyard-breaker-bay-a,substation-transformer-a,
+  pole-standard-a,pole-reinforced-a,bridge-foundation-a}.png`, 그리고 같은 경로의 `.import`
+- `game/art/commercial/g3-assets.prompts.md`, `ASSET_MANIFEST.md`
+- `game/realtime/r2/RealtimePlaceholderMap.cs`,
+  `game/realtime/r2/RealtimePlaceholderMap.Smoke.cs`,
+  `game/realtime/ui/RealtimeUiLayoutHarness.cs`
+- `README.md`, `docs/README.md`, `docs/ROADMAP_2D.md`, `docs/ROADMAP_2D_CHECKLIST.md`,
+  `docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md`,
+  `docs/scopes/ASSET_STYLE_REALTIME_GAME.md`, `docs/scopes/COMMERCIAL_UX_87.md`
+
+`RealtimePlaceholderMap`은 R2 `IRealtimeWorldView`·hit testing·selection·draft·focus·accessibility의
+기존 owner다. 그 class 안의 rendering layer만 G3 asset-backed layer로 교체한다. `RealtimeSliceMain`,
+event rail, UI scene/layout, loader/Core/data, `CommercialMain`, default scene, persistence, package와
+evaluator는 수정하지 않는다. 새 art 생성, composite background, map plate, G3의 V2 input/data/render code
+이식, 5–8장과 score-bearing capture도 금지한다.
+
+#### 종료 조건
+
+- resource load, asset allowlist/provenance와 G3 draw-layer presence를 deterministic smoke로 확인한다.
+- neutral/heat/rain weather material, terrain/road/city/grid draw layer, current R2 state cue와
+  forecast/active risk pattern이 같은 typed presentation에서 함께 draw된다.
+- 기존 pointer hit owner, keyboard candidate, selection action, draft, map camera, ContextDock,
+  one-line rail, Core minute/command invariants와 FHD/QHD/UHD UI matrix가 회귀하지 않는다.
+- Debug build, full Realtime/Commercial/text regressions, bounded independent P0/P1 review와
+  current-state docs를 닫는다.
+- 이 원천 적용은 native 사람 미감 검토, physical UHD, actual hover popup 관찰, official capture 또는
+  `CommercialUXProxy` 점수를 주장하지 않는다. 완료 뒤 사용자 지시에 따라 다음 gate를 열지 않고 중단한다.
+
+### A1 — 일반 운전 아트 vertical slice — A1-G3 외 범위는 미개방
 
 - 한 bounded `FIRST_LIGHT` world
 - 한 주거지, 한 필수시설, 한 산업시설, 발전 접속점, 두 pole class와 작은 변전소
@@ -375,19 +440,19 @@ source commit·build·독립 review 전 native capture도 금지한다. 이 gate
 - 한국어·전력설비 전문 검토
 - 권리·서명·공증·공개 배포의 별도 승인
 
-로드맵 항목은 구현 권한이 아니다. A0·A0.1·UX-R2.1·UX-R2.2는 완료됐고
-`ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE`다. 현재 추가 코드 권한은
-UX-R2.3 exact allowlist뿐이며 art gate는 없다.
+로드맵 항목은 구현 권한이 아니다. A0·A0.1·UX-R2.1·UX-R2.2는 완료됐고 UX-R2.3은 source/fix review를
+통과했으나 user-requested native observation은 보류됐다. 현재 추가 코드 권한은 위 A1-G3 exact allowlist뿐이며,
+일반 A1의 나머지와 A2–A5는 열지 않았다.
 
-현재 사용자가 별도로 승인한 [실시간 상용 UX 87 scope](COMMERCIAL_UX_87.md)는 이 계약의 실시간
-제품 방향을 바꾸지 않는다. UX-R0·UX-R1·UX-R2.1·UX-R2.2는 완료됐고 UX-R2.3 scope만 활성이다.
-이후 runtime gate는 UX scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서
-명시적으로 재조정한 뒤에만 열린다.
+현재 사용자의 A1-G3 지시는 [실시간 상용 UX 87 scope](COMMERCIAL_UX_87.md)의 실시간 제품 방향을
+바꾸지 않는다. UX-R2.3의 rules/presentation source는 유지하며, 이후 runtime gate는 이 계약의 allowlist와
+현재 상태를 같은 변경에서 명시적으로 재조정한 뒤에만 열린다.
 
 ## 10. A1 개방 조건
 
-완료된 UX-R2.2와 활성 UX-R2.3도 logic/presentation carve-out이며 A1 art 채택 승인이 아니다. A1을 별도 gate로 개방하기
-전에는 위 exact 범위를 넘어 runtime asset/world 파일을 추가·수정하지 않는다. 개방 시 계약은
+완료된 UX-R2.2와 UX-R2.3의 기존 logic/presentation carve-out은 A1 art 채택 승인이 아니었다.
+다만 현재 A1-G3 carve-out은 위 exact artifact만 사용자 지시로 열었다. 일반 A1을 별도 gate로 확장하기
+전에는 위 exact 범위를 넘어 runtime asset/world 파일을 추가·수정하지 않는다. 확장 시 계약은
 다음을 먼저 고정해야 한다.
 
 - exact source asset allowlist와 provenance

@@ -25,10 +25,10 @@
 [에셋 스타일 실시간 게임 계약](docs/scopes/ASSET_STYLE_REALTIME_GAME.md), 표현 기준은
 [비주얼 제작 명세](docs/product/VISUAL_PRODUCTION_SPEC.md)가 소유한다.
 
-현재 사용자 승인 작업은 이 실시간 방향 위에서 **판매 가능한 게임 경험을 평가·개선해 고정
-`gpt-5.6-sol`/`ultra`의 공식 `CommercialUXProxy >= 87`을 만드는 것**이다. 단일 활성 범위는
-[실시간 상용 UX 87 계약](docs/scopes/COMMERCIAL_UX_87.md), 점수 절차는
-[평가 프로토콜](docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)이 소유한다.
+87점 평가 계약과 고정 judge 조건은 [실시간 상용 UX 87 계약](docs/scopes/COMMERCIAL_UX_87.md)이 보존한다.
+다만 최신 사용자 지시는 그 반복과 native 직접 플레이를 여기서 멈추고, 지금까지 구현·review된 R2.3을
+유지한 채 기존 G3 아이소메트릭 디자인을 live R2 화면에 적용한 뒤 중단하는 것이다. 현재 단일 활성
+구현 범위는 [에셋 스타일 계약의 A1-G3 carve-out](docs/scopes/ASSET_STYLE_REALTIME_GAME.md#a1-g3--기존-g3-시각-적용-carve-out--활성)이다.
 
 ## 현재 상태와 권한
 
@@ -46,10 +46,11 @@ fix `40ed3fa`에서 같은 상태를 잇는 tutorial 3장 prefix를 구현했다
 안전 회랑과 `SECOND_SOURCE`의 전체 경로 용량을 실제 장 전환으로 연결했고, source/fix 독립 검토는
 각각 P0 0/P1 0이다. fresh-process production 입력으로 세 authored positive result와 전체 prefix 종료
 record까지 확인해 이 gate를 비점수 완료했다. A1 art, 5–8장, persistence, 기본 장면과 score-bearing
-capture는 열지 않았다. 현재 UX-R2.3은 누적 상태를 위조하지 않는 exact 4장 route로
-`NORTH_BANK_PROMISE` 한 장만 열어, 명시적 6개월 달력 전환과 한 줄 rail의 최초 약속 마감·Keep/Defer
-분기를 구현하도록 범위를 고정했고 gate-opening 독립 검토 P0 0/P1 0을 통과했다. exact source
-allowlist 구현은 승인됐지만 native capture는 아직 시작하지 않았다.
+capture는 열지 않았다. UX-R2.3은 누적 상태를 위조하지 않는 exact 4장 route로
+`NORTH_BANK_PROMISE`의 명시적 6개월 달력 전환과 한 줄 rail의 최초 약속 마감·Keep/Defer 분기를
+source `aee4932`와 truth-preservation fix `d85bb3f`에 구현했다. 두 source/fix 독립 검토는 모두
+P0 0/P1 0이며, 사용자 지시로 native direct-play 관찰은 보류했다. 대신 현재 한 번만 local `main`의
+provenanced G3 visual layer를 같은 live R2 route에 적용한다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -68,25 +69,25 @@ allowlist 구현은 승인됐지만 native capture는 아직 시작하지 않았
   prefix에서는 marker 클릭·선택 연동을 관찰했다. hover-only popup의 네이티브 출현은 직접 관찰로
   주장하지 않는다.
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
-- 활성 평가 gate: `UX-R2.3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE` — scope only
-- 활성 제품 아트 gate: 없음, A1 미개방
-- native capture: UX-R2.3 source commit·build·독립 review 전 금지; score-bearing capture 미허용
+- 평가 gate: UX-R2.3 source/fix review 뒤 user-requested native 관찰 보류; official 점수 작업 중단
+- 활성 제품 아트 gate: `A1_G3_EXISTING_VISUAL_APPLICATION` — existing G3 assets만 live R2 renderer에 적용
+- native/score capture: 이번 작업에서 수행하지 않음; score-bearing capture 계속 미허용
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 GoalDirection = ACTIVE
-ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
-NextEvaluationGate = UX_R2_4_REMAINING_MAIN_CHAPTERS_NOT_OPENED
-UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
+ActiveScope = A1_G3_EXISTING_VISUAL_APPLICATION
+ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
+NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
+UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ProductArtImplementationGate = NONE
-NextCandidate = UX_R2_3_NORTH_BANK_PROMISE_BRANCH_AND_DEADLINE
+ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_ACTIVE
+NextCandidate = G3_R2_VISUAL_LAYER_ONLY
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
-RuntimeArtAuthority = NOT_ESTABLISHED
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_PENDING_INTEGRATION
 RealtimeRuleAuthority = RELEASE_V3
-RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_ACTIVE_UX_R2_3_SCOPE
+RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
@@ -114,8 +115,8 @@ NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED
 UXR21GateOpeningReview = PASS_P0_0_P1_0
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
-R2RealtimeUx = PRESERVED_UX_R2_1_PLUS_COMPLETE_UX_R2_2_UX_R2_3_SCOPE_ONLY
-NativeCapturePolicy = FORBIDDEN_UNTIL_UX_R2_3_SOURCE_COMMIT_BUILD_AND_REVIEW
+R2RealtimeUx = PRESERVED_UX_R2_1_PLUS_COMPLETE_UX_R2_2_PLUS_REVIEWED_UX_R2_3
+NativeCapturePolicy = NOT_REQUESTED_USER_STOP_AFTER_G3_APPLICATION
 NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR21GateStatus = COMPLETE_NON_SCORE
 UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
@@ -139,12 +140,13 @@ UXR22KeyboardCandidateObservation = PASS
 UXR22ActiveFloodSolidFillObservation = PASS
 UXR22ClosureReview = PASS_FOR_UX_R2_2_CLOSURE_MAJOR_UNIT_P0_0_P1_0_SOURCE_CF6398A
 TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
-UXR23GateStatus = ACTIVE_SOURCE_IMPLEMENTATION_AUTHORIZED
+UXR23GateStatus = IMPLEMENTED_REVIEWED_NATIVE_OBSERVATION_DEFERRED
 UXR23GateOpeningReview = PASS_FOR_UX_R2_3_GATE_OPENING_P0_0_P1_0_SOURCE_B0383D6
-UXR23ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
-NorthBankPromiseNativeReachability = NOT_IMPLEMENTED
-NorthBankPromiseDeadlineRail = NOT_IMPLEMENTED_SCOPE_ACTIVE
-InterchapterCalendarTransition = NOT_IMPLEMENTED_SCOPE_ACTIVE
+UXR23ProductSourceAuthority = PASS_SOURCE_FIX_D85BB3F
+UXR23SourceReview = PASS_FOR_UX_R2_3_SOURCE_FIX_COMMIT_P0_0_P1_0
+NorthBankPromiseNativeReachability = NOT_OBSERVED_USER_STOP
+NorthBankPromiseDeadlineRail = IMPLEMENTED_REVIEWED
+InterchapterCalendarTransition = IMPLEMENTED_REVIEWED
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 PublicReleaseStatus = NOT_AUTHORIZED

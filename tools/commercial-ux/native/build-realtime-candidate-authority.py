@@ -45,7 +45,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_REPOSITORY_ROOT = SCRIPT_DIR.parents[2]
 POLICY_PATH = SCRIPT_DIR / "realtime-candidate-policy.json"
 EXPECTED_POLICY_RAW_SHA256 = (
-    "sha256:0301ae0d25dc06586e3d20aeb674c485bd1144e665eec91b4dc19a8add7ad60c"
+    "sha256:559a57356af7ca90a250918f0cff489265999eb52b20cd0e04e4ee0e4633daa4"
 )
 
 POLICY_TOP_LEVEL_KEYS = frozenset({
@@ -2903,6 +2903,10 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
         row["path"]: row for row in manifest["sourceAuthority"]["files"]
     }
     closure_policy = source.get("r2GodotExecutableClosure", {})
+    excluded_closure_policy = source.get(
+        "excludedFromR2GodotExecutableClosure",
+        {},
+    )
     closure_paths = (
         set(closure_policy.get("projectFiles", []))
         | set(closure_policy.get("sceneFiles", []))
@@ -2920,6 +2924,25 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
         for row in source.get("pinnedAuthorityFiles", [])
         if isinstance(row, dict)
     ]
+    story_input_paths = {
+        "data/release-campaign-v2.json",
+        "data/release-campaign-v3.json",
+        STORED_STORY_MANIFEST_PATH,
+        STORY_HARNESS_PATH,
+        STORY_PROGRAM_PATH,
+    }
+    story_input_rows = [
+        rows_by_path[path] for path in sorted(story_input_paths)
+    ] if story_input_paths <= set(rows_by_path) else []
+    dotnet_policy = managed.get("dotnetAuthority", {})
+    engine_executable_row = next(
+        (
+            row
+            for row in manifest["engineAuthority"]["files"]
+            if row["path"] == "Contents/MacOS/Godot"
+        ),
+        None,
+    )
     script_paths = manifest["managedBuild"]["godotScriptPathAuthority"]
     execution = manifest["headlessExecutionAuthority"]
     positive_probe_ids = [
@@ -2994,9 +3017,26 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
         source.get("debugEmbeddedResourceCount") == 9,
         closure_policy.get("expectedFileCount") == len(closure_rows) == 35,
         closure_policy.get("expectedFilesSha256") == canonical_sha256(closure_rows),
+        excluded_closure_policy == {
+            "pathPrefixes": ["game/assets/", "game/realtime/world/"],
+            "exactPaths": [
+                "game/icon.svg",
+                "game/realtime/ui/RealtimeUiLayoutHarness.tscn",
+            ],
+            "classificationScope": (
+                "ENUMERATED_PATHS_EXCLUDED_FROM_CURRENT_35_FILE_RUNTIME_CLOSURE"
+            ),
+            "completenessClaim": False,
+        },
         pinned_rows == source.get("pinnedAuthorityFiles"),
-        managed.get("dotnetAuthority", {}).get("sdkVersion") == DOTNET_VERSION,
-        managed.get("dotnetAuthority", {}).get("filesSha256")
+        dotnet_policy.get("sdkVersion") == DOTNET_VERSION,
+        dotnet_policy.get("globalJsonRawSha256")
+        == rows_by_path.get(GLOBAL_JSON_PATH, {}).get("rawSha256"),
+        dotnet_policy.get("commandBindingScope")
+        == "RESOLVED_WRAPPER_AND_HOST_TWO_FILE_BYTES_ONLY",
+        dotnet_policy.get("files")
+        == manifest["managedBuild"]["dotnetAuthority"]["files"],
+        dotnet_policy.get("filesSha256")
         == manifest["managedBuild"]["dotnetAuthority"]["filesSha256"],
         managed.get("packageInputs", {}).get("packageInputsSha256")
         == manifest["managedBuild"]["packageInputsSha256"],
@@ -3024,6 +3064,10 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
         engine.get("appFileCount") == manifest["engineAuthority"]["fileCount"],
         engine.get("appFileTreeSha256")
         == manifest["engineAuthority"]["fileTreeSha256"],
+        engine.get("executable") == engine_executable_row,
+        engine.get("pathPolicy")
+        == "CANONICAL_APP_ROOT_REGULAR_FILES_REJECT_SYMLINKS",
+        engine.get("versionProbeRequired") is True,
         package.get("packageKind")
         == manifest["packageAuthority"]["packageKind"],
         package.get("rootName") == manifest["packageAuthority"]["rootName"],
@@ -3073,8 +3117,24 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
         is False,
         scenes.get("checkpoints") == [dict(value) for value in CHECKPOINTS],
         story.get("partCount") == 34,
+        story.get("expectedInputsSha256") == canonical_sha256(story_input_rows),
+        story.get("authoredCampaignPath") == "data/release-campaign-v2.json",
+        story.get("declaredRealtimeCampaignPath")
+        == "data/release-campaign-v3.json",
+        story.get("harnessPaths") == [STORY_PROGRAM_PATH, STORY_HARNESS_PATH],
+        story.get("storedManifestPath") == STORED_STORY_MANIFEST_PATH,
         story.get("storedManifestRawSha256")
         == manifest["storyAuthority"]["storyManifestRawSha256"],
+        story.get("partCounts") == {
+            "briefing": 8,
+            "window": 6,
+            "result": 11,
+            "epilogueCard": 3,
+            "epiloguePromiseLine": 6,
+        },
+        story.get("authoredReachabilityOnly") is True,
+        story.get("nativeReachabilityClaim") is False,
+        story.get("deterministicRebuildMustMatchStoredBytes") is True,
         future.get("signals") == list(FUTURE_EVENT_SIGNALS),
         future.get("implementationPath")
         == "game/realtime/ui/RealtimeEventRail.cs",

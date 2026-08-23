@@ -745,7 +745,7 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
         incomplete_source_closure = copy.deepcopy(self.policy)
         incomplete_source_closure["sourceAuthority"][
             "excludedFromR2GodotExecutableClosure"
-        ]["allowlistIsComplete"] = False
+        ]["completenessClaim"] = True
         mutations.append(incomplete_source_closure)
 
         erased_package_inputs = copy.deepcopy(self.policy)

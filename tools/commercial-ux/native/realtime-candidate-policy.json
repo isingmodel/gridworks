@@ -122,7 +122,8 @@
         "game/icon.svg",
         "game/realtime/ui/RealtimeUiLayoutHarness.tscn"
       ],
-      "allowlistIsComplete": true
+      "classificationScope": "ENUMERATED_PATHS_EXCLUDED_FROM_CURRENT_35_FILE_RUNTIME_CLOSURE",
+      "completenessClaim": false
     },
     "pinnedAuthorityFiles": [
       {
@@ -233,11 +234,8 @@
     "configuration": "Debug",
     "dotnetAuthority": {
       "sdkVersion": "8.0.129",
-      "hostRuntimeVersion": "8.0.29",
-      "runtimeIdentifier": "osx-arm64",
-      "architecture": "arm64",
       "globalJsonRawSha256": "sha256:9e5dddc69006a787c251be614e6db6cd4e93a104128d3e03b66a7c914acdaf55",
-      "commandPathPolicy": "RESOLVED_REGULAR_FILES_REJECT_SYMLINKS",
+      "commandBindingScope": "RESOLVED_WRAPPER_AND_HOST_TWO_FILE_BYTES_ONLY",
       "files": [
         {
           "path": "bin/dotnet",

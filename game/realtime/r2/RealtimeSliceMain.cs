@@ -1408,11 +1408,17 @@ internal sealed partial class RealtimeSliceMain : Control
                 item.PromiseUnservedMinutes);
             string promiseFacts = chapter.CityPromise is null
                 ? string.Empty
-                : $" · 약속 {outcome.PromiseDecision} " +
-                  $"{promisedEvents}/{outcome.Events.Count} 충족" +
-                  (promiseUnservedMinutes > 0
-                      ? $" · {promiseUnservedMinutes}분 미공급"
-                      : string.Empty);
+                : outcome.PromiseDecision == CommercialPromiseDecision.Defer
+                    ? $" · 약속 {(autoDefaulted ? "자동 Defer" : "Defer")} · " +
+                      $"{RealtimeSlicePresenter.AssetDisplayName(
+                          _data.BaseWorld,
+                          snapshot,
+                          chapter.CityPromise.LoadId)} 수요 의무 제외"
+                    : $" · 약속 {outcome.PromiseDecision} " +
+                      $"{promisedEvents}/{outcome.Events.Count} 충족" +
+                      (promiseUnservedMinutes > 0
+                          ? $" · {promiseUnservedMinutes}분 미공급"
+                          : string.Empty);
             bool calendarTransition =
                 _data.SourceRoute ==
                     RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise &&

@@ -607,7 +607,10 @@ internal static class RealtimeSlicePresenter
             long deadline = checked(snapshot.ChapterStartMinute + deadlineOffset);
             bool locked = snapshot.Minute >= deadline;
             bool defaulted = PromiseDefaulted(snapshot, transitionHistory);
-            bool promiseRisk = baseForecast.Events.Any(item =>
+            long recordedPromiseUnservedMinutes =
+                RecordedPromiseUnservedMinutes(snapshot);
+            bool promiseRisk = recordedPromiseUnservedMinutes > 0 ||
+                baseForecast.Events.Any(item =>
                 item.ChapterIndex == snapshot.ChapterIndex &&
                 !item.TemporalProjection.Outcome.PromiseSatisfied);
             RealtimeTimelineSeverity promiseSeverity = defaulted
@@ -630,7 +633,8 @@ internal static class RealtimeSlicePresenter
                     deadline,
                     locked,
                     defaulted,
-                    promiseRisk),
+                    promiseRisk,
+                    recordedPromiseUnservedMinutes),
                 promiseSeverity,
                 locked
                     ? RealtimeTimelineVisibility.Completed
@@ -647,7 +651,8 @@ internal static class RealtimeSlicePresenter
                     snapshot.PromiseDecision,
                     locked,
                     defaulted,
-                    promiseRisk),
+                    promiseRisk,
+                    recordedPromiseUnservedMinutes),
             });
         }
         int highestAuthoredPriority = snapshot.Chapter.ScheduledEvents.Count == 0
@@ -1053,7 +1058,10 @@ internal static class RealtimeSlicePresenter
             long deadline = checked(snapshot.ChapterStartMinute + deadlineOffset);
             bool locked = snapshot.Minute >= deadline || snapshot.CampaignComplete;
             bool defaulted = PromiseDefaulted(snapshot, transitionHistory);
-            bool promiseRisk = baseForecast.Events.Any(item =>
+            long recordedPromiseUnservedMinutes =
+                RecordedPromiseUnservedMinutes(snapshot);
+            bool promiseRisk = recordedPromiseUnservedMinutes > 0 ||
+                baseForecast.Events.Any(item =>
                 item.ChapterIndex == snapshot.ChapterIndex &&
                 !item.TemporalProjection.Outcome.PromiseSatisfied);
             string decision = defaulted
@@ -1067,6 +1075,9 @@ internal static class RealtimeSlicePresenter
                 };
             string promiseForecastState = snapshot.PromiseDecision switch
             {
+                CommercialPromiseDecision.Keep
+                    when recordedPromiseUnservedMinutes > 0 =>
+                    $"약속 {recordedPromiseUnservedMinutes}분 미공급",
                 CommercialPromiseDecision.Unset => promiseRisk
                     ? "Keep 가정 위험"
                     : "Keep 가정 가능",
@@ -2212,11 +2223,15 @@ internal static class RealtimeSlicePresenter
         long deadline,
         bool locked,
         bool defaulted,
-        bool promiseRisk)
+        bool promiseRisk,
+        long recordedPromiseUnservedMinutes)
     {
         string state = PromiseDecisionState(promise, decision, defaulted);
         string forecast = decision switch
         {
+            CommercialPromiseDecision.Keep
+                when recordedPromiseUnservedMinutes > 0 =>
+                $"기록된 약속 미공급 {recordedPromiseUnservedMinutes}분",
             CommercialPromiseDecision.Unset => promiseRisk
                 ? "선택 전 Keep 가정에서 약속 미공급 위험"
                 : "선택 전 Keep 가정에서 약속 공급 가능",
@@ -2235,7 +2250,8 @@ internal static class RealtimeSlicePresenter
         CommercialPromiseDecision decision,
         bool locked,
         bool defaulted,
-        bool promiseRisk)
+        bool promiseRisk,
+        long recordedPromiseUnservedMinutes)
     {
         if (defaulted)
         {
@@ -2243,6 +2259,12 @@ internal static class RealtimeSlicePresenter
         }
         if (locked)
         {
+            if (decision == CommercialPromiseDecision.Keep &&
+                recordedPromiseUnservedMinutes > 0)
+            {
+                return $"Keep · 약속 미공급 {recordedPromiseUnservedMinutes}분 · " +
+                       "마감 완료";
+            }
             return decision == CommercialPromiseDecision.Keep
                 ? "Keep · 마감 완료"
                 : "Defer · 마감 완료";
@@ -2258,6 +2280,24 @@ internal static class RealtimeSlicePresenter
             CommercialPromiseDecision.Defer => "Defer · 선택됨",
             _ => throw new ArgumentOutOfRangeException(nameof(decision)),
         };
+    }
+
+    private static long RecordedPromiseUnservedMinutes(
+        RealtimeCampaignSnapshot snapshot)
+    {
+        RealtimeEventOutcome[] current = snapshot.CurrentChapterEvents
+            .Where(item => IsCurrentChapterOutcome(snapshot, item))
+            .ToArray();
+        if (current.Length > 0)
+        {
+            return current.Sum(item => item.PromiseUnservedMinutes);
+        }
+        return snapshot.CompletedChapters
+            .LastOrDefault(item => string.Equals(
+                item.ChapterId,
+                snapshot.Chapter.Content.ChapterId,
+                StringComparison.Ordinal))?
+            .Events.Sum(item => item.PromiseUnservedMinutes) ?? 0;
     }
 
     private static int ForecastPriority(

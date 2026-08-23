@@ -2732,6 +2732,75 @@ internal static class RealtimeR2Smoke
             "auto-Defer minted an explicit-choice formative token",
             failures);
 
+        // Explicit Defer with an unsafe water network is still a safety failure.
+        // Excluded North demand must never be described as a fulfilled promise.
+        var deferSafetyFailureSlice = new RealtimeSliceMain();
+        try
+        {
+            deferSafetyFailureSlice.BootstrapReleaseThroughNorthBankForSmoke();
+        }
+        catch
+        {
+            deferSafetyFailureSlice.Free();
+            throw;
+        }
+        using var deferSafetyFailureLifetime = deferSafetyFailureSlice.FreeAfterSmoke();
+        (RealtimeSliceData deferSafetyFailureData, _) =
+            AdvanceReleasePrefixToNorthBankPlanning(
+                deferSafetyFailureSlice,
+                failures);
+        SelectPromiseDeadline(
+            deferSafetyFailureSlice,
+            failures,
+            "defer-safety-failure");
+        deferSafetyFailureSlice.RequestActionForSmoke(
+            RealtimeSlicePresenter.PromiseDeferActionId);
+        (RealtimeChapterOutcome deferSafetyFailureOutcome,
+            RealtimeModalPresentation deferSafetyFailureResult) =
+            CompleteNorthBankChapter(
+                deferSafetyFailureSlice,
+                deferSafetyFailureData,
+                failures);
+        CommercialStoryCard authoredDeferred = deferSafetyFailureData.BaseCampaign
+            .Chapters[3].ResultCards.Deferred!;
+        Check(!deferSafetyFailureOutcome.ObjectiveSatisfied &&
+              deferSafetyFailureOutcome.PromiseDecision ==
+                  CommercialPromiseDecision.Defer &&
+              deferSafetyFailureOutcome.Events.Any(item => !item.SafetySatisfied) &&
+              deferSafetyFailureResult.Eyebrow == "계통운영 기록" &&
+              deferSafetyFailureResult.Heading.Contains(
+                  "목표 미달",
+                  StringComparison.Ordinal) &&
+              deferSafetyFailureResult.Body.Contains(
+                  "안전 의무",
+                  StringComparison.Ordinal) &&
+              deferSafetyFailureResult.Body.Contains(
+                  "수요 의무 제외",
+                  StringComparison.Ordinal) &&
+              !deferSafetyFailureResult.Body.Contains(
+                  "약속 Defer 2/2 충족",
+                  StringComparison.Ordinal) &&
+              (!string.Equals(
+                   deferSafetyFailureResult.Eyebrow,
+                   authoredDeferred.Speaker,
+                   StringComparison.Ordinal) ||
+               !string.Equals(
+                   deferSafetyFailureResult.Heading,
+                   authoredDeferred.Title,
+                   StringComparison.Ordinal) ||
+               !string.Equals(
+                   deferSafetyFailureResult.Body,
+                   authoredDeferred.Body,
+                   StringComparison.Ordinal)),
+            "Defer safety failure conflated excluded North demand with promise " +
+            "fulfillment or counterfeited the authored deferred result",
+            failures);
+        _ = deferSafetyFailureSlice.ClosePresentedTutorialModalForSmoke();
+        Check(deferSafetyFailureSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
+              !deferSafetyFailureSlice.FormativeTutorialFullFlowRecordedForSmoke,
+            "Defer safety failure minted a formative token",
+            failures);
+
         // Keep with only Water supplied is a promise-only failure. It must use
         // factual generic copy rather than the authored kept card.
         var promiseFailureSlice = new RealtimeSliceMain();
@@ -2777,7 +2846,44 @@ internal static class RealtimeR2Smoke
                    StringComparison.Ordinal)),
             "promise-only failure counterfeited the authored kept result",
             failures);
+        long recordedPromiseUnservedMinutes = promiseFailureOutcome.Events.Sum(item =>
+            item.PromiseUnservedMinutes);
         _ = promiseFailureSlice.ClosePresentedTutorialModalForSmoke();
+        SelectPromiseDeadline(
+            promiseFailureSlice,
+            failures,
+            "completed-promise-failure");
+        RealtimeTimelineItemPresentation failedDeadline =
+            promiseFailureSlice.LatestPresentation.Rail.Items.Single(item =>
+                item.Id == "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE");
+        RealtimeContextDockPresentation failedDeadlineContext =
+            promiseFailureSlice.LatestPresentation.Context;
+        Check(recordedPromiseUnservedMinutes > 0 &&
+              failedDeadline is
+              {
+                  Visibility: RealtimeTimelineVisibility.Completed,
+                  Severity: RealtimeTimelineSeverity.Critical,
+                  IsActionable: false,
+              } &&
+              failedDeadline.Description.Contains(
+                  $"기록된 약속 미공급 {recordedPromiseUnservedMinutes}분",
+                  StringComparison.Ordinal) &&
+              failedDeadline.SeverityLabel.Contains(
+                  $"약속 미공급 {recordedPromiseUnservedMinutes}분",
+                  StringComparison.Ordinal) &&
+              !failedDeadline.Description.Contains(
+                  "약속 공급 가능",
+                  StringComparison.Ordinal) &&
+              failedDeadlineContext.PrimaryAction is { Enabled: false } &&
+              failedDeadlineContext.SecondaryAction is { Enabled: false } &&
+              failedDeadlineContext.Sections.Any(item => item.Body.Contains(
+                  $"약속 {recordedPromiseUnservedMinutes}분 미공급",
+                  StringComparison.Ordinal)) &&
+              failedDeadlineContext.Sections.All(item => !item.Body.Contains(
+                  "약속 가능",
+                  StringComparison.Ordinal)),
+            "completed Keep failure disappeared from the locked deadline marker/context",
+            failures);
         Check(promiseFailureSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !promiseFailureSlice.FormativeTutorialFullFlowRecordedForSmoke,
             "promise failure minted a formative token",

@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 목표 계약
 
-> 문서 상태: **현재 전체 목표 · A0 문서 기준선+A0.1 구조 준비 완료 · 구현 gate 없음**
-> 다음 후보: `A1_NORMAL_OPERATION_ART_SLICE` — 사용자 승인 전 미개방
+> 문서 상태: **현재 전체 목표 · UX-R2.1 logic/presentation carve-out 활성**
+> 제품 아트: `A1_NORMAL_OPERATION_ART_SLICE` — 미개방
 
 ## 1. 목표
 
@@ -258,6 +258,7 @@ harness가 처음부터 시작한다는 이유는 충분하지 않다.
 ### 8.5 증거 표기
 
 - 구간 테스트: `TARGETED_LIVE_CHECKPOINT_PASS:<CheckpointId>`
+- 한 장 비점수 직접 플레이: `FORMATIVE_DIRECT_PLAY_PASS:<ChapterId>`
 - 처음부터 실제 흐름: `FULL_FLOW_E2E_PASS:<FlowId>`
 - save/fresh process: `FRESH_PROCESS_RESTORE_PASS:<SaveId>`
 
@@ -281,6 +282,20 @@ harness가 처음부터 시작한다는 이유는 충분하지 않다.
 - exact suite 하나만 고르는 Core check와 위 두 targeted checkpoint runner 추가
 
 이 단계는 새 runtime art, production V3 data, persistence, 기본 장면 전환을 승인하지 않는다.
+
+### UX-R2.1 — FIRST_LIGHT release tutorial/rail carve-out — 활성
+
+사용자의 “87점 이상까지 계속 개선”과 직접 플레이 지시는 상용 UX scope의 순차 runtime 구현을
+명시적으로 승인했다. 현재 단위는 제품 A1–A4를 한꺼번에 열지 않고, A1 이전 logic/presentation
+carve-out으로 실제 release `FIRST_LIGHT` 장의 briefing→`FIRST_LIGHT_SUPPLY` phase/event→authored result,
+future-event rail의 현재 시각·countdown·event interval·actual/draft construction completion, Debug interactive
+checkpoint host와 관련 결정론 검사를 허용한다.
+
+exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.1](COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--활성)이
+소유한다. `data/**`, runtime asset/world, persistence, default scene, export/package와 2–8장 presentation은
+금지한다. 현재 tracked `game/assets/realtime/**`와 `game/realtime/world/**`도 provenance 검수 없이 채택하지
+않는다. 실제 조작은 source commit과 build PASS 뒤 non-score Debug 개발 관찰만 허용하며 official capture나
+`CommercialUXProxy` 증거가 아니다.
 
 ### A1 — 일반 운전 아트 vertical slice — 미개방
 
@@ -316,19 +331,18 @@ harness가 처음부터 시작한다는 이유는 충분하지 않다.
 - 한국어·전력설비 전문 검토
 - 권리·서명·공증·공개 배포의 별도 승인
 
-로드맵 항목은 구현 권한이 아니다. A0와 사용자가 별도로 승인한 A0.1 구조 준비는 완료됐으며,
-현재 추가 코드·아트 구현 gate는 없다.
+로드맵 항목은 구현 권한이 아니다. A0와 사용자가 별도로 승인한 A0.1 구조 준비는 완료됐고, 현재 추가
+코드 권한은 위 UX-R2.1 exact carve-out 하나뿐이다. art gate는 없다.
 
 현재 사용자가 별도로 승인한 [실시간 상용 UX 87 scope](COMMERCIAL_UX_87.md)는 이 계약의 실시간
-제품 방향을 바꾸지 않는 evaluator overlay다. UX-R0는 텍스트 기준선으로 완료했고, 활성 UX-R1은
-`tools/commercial-ux/native/`의 candidate·replay·session·evidence authority와 관련 문서만 소유한다.
-`game/`, `src/`, `data/`, A1 art와 A4 campaign runtime gate는 열지 않는다. 이후 runtime gate는 UX
-scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서 명시적으로 재조정한 뒤에만 열린다.
+제품 방향을 바꾸지 않는다. UX-R0·UX-R1은 완료됐고 UX-R2.1만 위 경계의 runtime 파일을 소유한다.
+이후 runtime gate는 UX scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서 명시적으로 재조정한
+뒤에만 열린다.
 
 ## 10. A1 개방 조건
 
-사용자가 A1 구현을 명시적으로 승인하기 전에는 완료된 A0.1 경계를 넘어 runtime 파일을 추가·수정하지
-않는다. 개방 시 계약은
+현재 UX-R2.1 승인은 logic/presentation carve-out이며 A1 art 채택 승인이 아니다. A1을 별도 gate로
+개방하기 전에는 그 범위를 넘어 runtime asset/world 파일을 추가·수정하지 않는다. 개방 시 계약은
 다음을 먼저 고정해야 한다.
 
 - exact source asset allowlist와 provenance

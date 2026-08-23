@@ -36,8 +36,10 @@
 P0 0/P1 0으로 완료했다. UX-R1의 Debug candidate·targeted route, session/attempt, finalized
 evaluation-chain parent, finalized blocked current-route artifact chain과 local controlled
 `gpt-5.6-sol`/`ultra` transcript authority까지 닫았다. 이는 platform attestation이나 judge 점수가 아니며,
-UX-R1 전체 독립 검토도 P0 0/P1 0으로 통과했다. 다음 UX-R2, runtime art A1과 전체 캠페인 구현은 아직
-열지 않았다.
+UX-R1 전체 독립 검토도 P0 0/P1 0으로 통과했다. 다음 UX-R2는 작은 순차 단위로 진행한다. 현재
+UX-R2.1은 실제 release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의
+briefing→live→authored result, future-event rail과 사람이 직접 조작하는 Debug checkpoint host만 열었다.
+A1 art, 2–8장, persistence, 기본 장면과 score-bearing capture는 열지 않았다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -52,25 +54,26 @@ UX-R1 전체 독립 검토도 P0 0/P1 0으로 통과했다. 다음 UX-R2, runtim
   7-artifact blocked non-score chain, local controlled transcript, 전체 gate review 완료
 - future-event status bar: 두 checkpoint scene-load wiring PASS, 실제 플레이 품질은 아직 미관찰
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
-- 활성 평가 gate: 없음; 다음 `UX-R2_REALTIME_GAME_COMPLETENESS`는 미개방
+- 활성 평가 gate: `UX-R2.1_FIRST_LIGHT_RELEASE_TUTORIAL_RAIL`
 - 활성 제품 아트 gate: 없음, A1 미개방
-- native capture: UX-R2/A1 미개방 정책으로 금지; 현재 Mac console은 잠금 해제
+- native capture: source commit·build PASS 뒤 FIRST_LIGHT Debug 비점수 개발 관찰만 허용
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 GoalDirection = ACTIVE
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = NONE
-NextEvaluationGate = UX_R2_REALTIME_GAME_COMPLETENESS_NOT_OPENED
+ActiveEvaluationGate = UX_R2_1_FIRST_LIGHT_RELEASE_TUTORIAL_RAIL
+NextEvaluationGate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
+UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
 ProductArtImplementationGate = NONE
-NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
+NextCandidate = UX_R2_1_NONDEFAULT_DEBUG_FIRST_LIGHT
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_FIRST_LIGHT_TARGETED_SLICE
-FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_HEADLESS_WIRING_PASS_NATIVE_QUALITY_NOT_OBSERVED
+FutureEventStatusBar = REQUIRED_UX_R2_1_NOW_COUNTDOWN_EVENT_CONSTRUCTION_ACTIVE_PROMISE_THERMAL_LATER
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
@@ -94,11 +97,15 @@ ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECE
 UXR1ControlledTranscriptReview = PASS_SUBUNIT_P0_0_P1_0_SOURCE_2B0B6EE
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED_ARTIFACT_AND_CONTROLLED_TRANSCRIPT
+UXR21GateOpeningReview = PASS_P0_0_P1_0
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2RealtimeUx = PRESERVED_GATE_NOT_COMPLETED
-NativeCapturePolicy = FORBIDDEN_UX_R2_A1_NOT_OPENED
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
+NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_TCC_NOT_PREFLIGHTED
+UXR21ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
+InteractiveCheckpointHost = NOT_IMPLEMENTED
+FirstLightNativeStoryReachability = NOT_IMPLEMENTED
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 PublicReleaseStatus = NOT_AUTHORIZED

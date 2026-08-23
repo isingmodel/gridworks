@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **A0 문서 기준선+A0.1 구조 준비 완료 · 활성 구현 gate 없음**
-> 다음 후보: **A1 일반 운전 아트 vertical slice — 미개방**
+> 현재 상태: **A0+A0.1+UX-R0+UX-R1 완료 · UX-R2.1 runtime carve-out 활성**
+> 제품 아트: **A1 일반 운전 아트 vertical slice — 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
 정한다. 로드맵의 다음 단계는 자동 구현 권한이 아니다. 권한은 루트 [README](../README.md), 정확한
@@ -49,6 +49,28 @@ A0는 runtime 화면, 새 sprite, native capture나 미감 검토를 만들지 �
 
 A0.1은 A1의 구조·검증 진입점만 준비했다. runtime asset authority, 도시 아트, reference capture와
 사람 미감 증거는 만들지 않았고 A1은 계속 미개방이다.
+
+## UX-R2.1 — FIRST_LIGHT release tutorial/rail — 활성
+
+### player outcome
+
+nondefault Debug R2에서 실제 release `FIRST_LIGHT` 장의 briefing을 읽고, `FIRST_LIGHT_SUPPLY`
+phase/event 동안 실시간 clock·공사·사건을
+조작해 authored standard result까지 도달한다. future-event rail에서 현재 시각, 다음 사건 countdown,
+event start/end와 actual/draft construction completion을 한 축으로 비교한다. named checkpoint에서는
+자동 frame injection이 아니라 실제 production mouse/keyboard 입력으로 한 minute 경계를 직접 플레이한다.
+
+### 경계
+
+- shared strict V2+V3 overlay loader와 release first-chapter in-memory prefix
+- R2 main/presenter/event rail, Debug interactive checkpoint host와 관련 exact tests
+- 기존 두 technical checkpoint fixture/hash는 보존
+- 기존 story-part unit bytes와 FIRST_LIGHT briefing/result native presentation을 동일성 비교
+- non-score Debug 직접 관찰은 허용하되 candidate/E2E/official score 증거로 승격하지 않음
+- art asset/world, 2–8장, promise, thermal presentation, persistence, default/export/package는 미개방
+
+exact 파일 allowlist와 종료 증거는
+[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--활성)가 소유한다.
 
 ## A1 — 일반 운전 아트 vertical slice — 미개방
 
@@ -168,7 +190,7 @@ A0.1은 A1의 구조·검증 진입점만 준비했다. runtime asset authority,
 
 ## 현재 열지 않는 것
 
-- A1 이후의 interface·schema·placeholder
+- UX-R2.1 이후의 interface·schema·placeholder
 - production V3 data·persistence·default scene 전환
 - `game/assets/realtime/` 또는 `game/realtime/world/` 로컬 후보의 암묵적 채택
 - 원전·석탄·재생에너지 기술 tree와 발전 입지

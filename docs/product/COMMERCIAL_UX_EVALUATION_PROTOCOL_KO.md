@@ -199,21 +199,25 @@ deterministic failure / blinded observation
 `SCORED_FORMATIVE`, `TextPlanProxy = 83.4475`로 안정 집계했다. UX-R1의 candidate/replay,
 session/attempt, evaluation chain, blocked seven-artifact chain과 local controlled transcript authority는
 완료했고 전체 gate review도 P0 0/P1 0으로 통과했다. 그러나 8장 R2 presentation과 실제 macOS capture가
-아직 없으므로 상태는 다음과 같다.
+아직 없다. 현재 UX-R2.1은 actual release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의 native
+wiring과 future-event rail, interactive
+checkpoint host를 구현하며 비점수 Debug 개발 관찰만 허용한다.
 
 ```text
 TextPlanProxy = 83.4475_FORMATIVE
 CommercialUXProxy = null
-OfficialScoreStatus = BLOCKED_UX_R2_COMPLETENESS_NOT_OPENED
+OfficialScoreStatus = BLOCKED_UX_R2_COMPLETENESS_IN_PROGRESS
 ScoreBearingCaptureAllowed = false
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
-ActiveEvaluationGate = NONE
-NextEvaluationGate = UX_R2_REALTIME_GAME_COMPLETENESS_NOT_OPENED
+ActiveEvaluationGate = UX_R2_1_FIRST_LIGHT_RELEASE_TUTORIAL_RAIL
+NextEvaluationGate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
+UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECEIPT_SHA256_F7C17C4A
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
-NativeCapturePolicy = FORBIDDEN_UX_R2_A1_NOT_OPENED
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
+UXR21GateOpeningReview = PASS_P0_0_P1_0
+NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_TCC_NOT_PREFLIGHTED
 ```
 
-UX-R1 native provenance 계약은 독립 검토로 닫혔다. 다음 runtime gate가 필수 presentation을 구현하기
-전에는 score-bearing capture를 허용할 수 없다.
+UX-R1 native provenance 계약은 독립 검토로 닫혔다. UX-R2.1의 직접 플레이는 formative 개발 관찰이며,
+8장 completeness와 UX-R3 evidence gate 전에는 score-bearing capture를 허용할 수 없다.

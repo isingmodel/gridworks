@@ -275,4 +275,6 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 native presentation과 실제 입력·화면·audio capture는 이후 gate다. UX-R1에서도
 `ScoreBearingCaptureAllowed=false`이며 `CommercialUXProxy >= 87`을 선언하지 않는다.
 전체 독립 검토는 source boundary `2b0b6ee`에서
-`PASS_FOR_UX_R1_WHOLE_GATE_CLOSURE`, P0 0/P1 0이다. UX-R2/A1은 미개방이다.
+`PASS_FOR_UX_R1_WHOLE_GATE_CLOSURE`, P0 0/P1 0이다. 현재 UX-R2.1은 actual release `FIRST_LIGHT` 장의
+briefing→live→authored result, future-event rail과 interactive checkpoint host만 구현하도록 열렸고,
+A1 art·2–8장·persistence·default/package·score-bearing capture는 미개방이다.

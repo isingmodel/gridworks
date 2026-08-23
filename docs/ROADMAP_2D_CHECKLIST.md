@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **A0+A0.1+UX-R0+UX-R1 완료 · UX-R2 미개방**
+> 현재 상태: **A0+A0.1+UX-R0+UX-R1 완료 · UX-R2.1 활성**
 > 제품 아트: **A1 미개방**
 
 이 문서는 단계 상태와 증거 상한만 기록한다. 제품 기능과 시각 규격은
@@ -16,6 +16,7 @@
 | A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
 | UX-R0 실시간 텍스트 기준선 | **완료** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | `TextPlanProxy 83.4475` 형성평가 | `746c0aa`, 독립 P0 0/P1 0 |
 | UX-R1 native evaluator authority | **완료** | candidate·route·session/attempt·non-score chain parent·blocked artifact·local controlled transcript | candidate 16/16 + session 12/12 + chain 14/14 + artifact 11/11 + transcript 13/13·strict schema | capture 금지 | `2b0b6ee`, 전체 review P0 0/P1 0 |
+| UX-R2.1 FIRST_LIGHT release tutorial/rail | **활성** | 실제 release 1장 briefing→live→authored result, countdown·event·construction rail, interactive checkpoint host | 구현 전 | source commit 뒤 non-score Debug 직접 플레이 | allowlist 구현·회귀·독립 P0/P1 0 필요 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -71,7 +72,7 @@
 
 현재 R2 `RealtimeEventRail`의 코드 존재와 deterministic UI 검사는 native 이해·가독성 증거가 아니다.
 source revision `379e980`의 exact candidate는 두 checkpoint scene-load wiring까지만 추가로 증명한다. 실제 화면
-관찰은 native evaluator port와 Mac 잠금 해제 뒤 수행한다.
+관찰은 UX-R2.1 source commit·build PASS와 interactive host가 준비된 뒤 비점수 개발 관찰로 수행한다.
 
 ## UX-R1 native evaluator authority port
 
@@ -96,6 +97,26 @@ source revision `379e980`의 exact candidate는 두 checkpoint scene-load wiring
 
 이 gate는 `tools/commercial-ux/native/`와 관련 문서만 수정한다. `game/`, `src/`, `data/`와 제품 art는
 수정하지 않으며 실제 Mac 조작·capture도 실행하지 않는다.
+
+## UX-R2.1 FIRST_LIGHT release tutorial/rail
+
+- [x] 사용자 “87점 이상까지 계속 개선”·직접 플레이 지시를 순차 runtime 구현 권한으로 기록
+- [x] UX-R1 전체 gate P0 0/P1 0 종료 뒤 개방
+- [x] exact Core/Game/UI/test/doc allowlist와 A1–A4 미개방 경계 고정
+- [x] gate-opening 독립 review `PASS_FOR_UX_R2_1_GATE_OPENING`, P0 0/P1 0
+- [ ] shared strict V2+V3 overlay loader와 actual `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event) prefix
+- [ ] briefing→production input/reducer→clock·construction·event→authored standard result native wiring
+- [ ] FIRST_LIGHT briefing/result가 기존 exact story-part unit bytes와 동일
+- [ ] future-event bar 현재 시각·persistent countdown·event start/end·actual/draft construction completion
+- [ ] actual/draft 형태·문장 구분과 completed construction history 유지
+- [ ] Debug interactive checkpoint host가 exact start에서 paused 대기하고 real input만 수용
+- [ ] 기존 A1 두 checkpoint hash/headless oracle·34 story unit·speed chunk invariance 무변경
+- [ ] FHD UI 100/125%, keyboard/focus와 unknown marker target 0
+- [ ] source commit 뒤 직접 플레이한 비점수 FIRST_LIGHT/checkpoint 관찰
+- [ ] 독립 P0/P1 0, 현재 상태 문서와 종료 commit
+
+이 단위는 `data/**`, runtime art/world, 2–8장, promise·thermal presentation, persistence, default scene,
+export/package와 score-bearing capture를 열지 않는다.
 
 ## A1 개방 전 체크
 
@@ -132,17 +153,18 @@ source revision `379e980`의 exact candidate는 두 checkpoint scene-load wiring
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = NONE
-NextEvaluationGate = UX_R2_REALTIME_GAME_COMPLETENESS_NOT_OPENED
+ActiveEvaluationGate = UX_R2_1_FIRST_LIGHT_RELEASE_TUTORIAL_RAIL
+NextEvaluationGate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
+UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
 ProductArtImplementationGate = NONE
-NextCandidate = A1_NORMAL_OPERATION_ART_SLICE_NOT_OPENED
+NextCandidate = UX_R2_1_NONDEFAULT_DEBUG_FIRST_LIGHT
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_FIRST_LIGHT_TARGETED_SLICE
-FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_HEADLESS_WIRING_PASS_NATIVE_QUALITY_NOT_OBSERVED
+FutureEventStatusBar = REQUIRED_UX_R2_1_NOW_COUNTDOWN_EVENT_CONSTRUCTION_ACTIVE_PROMISE_THERMAL_LATER
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
@@ -166,12 +188,16 @@ ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECE
 UXR1ControlledTranscriptReview = PASS_SUBUNIT_P0_0_P1_0_SOURCE_2B0B6EE
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED_ARTIFACT_AND_CONTROLLED_TRANSCRIPT
+UXR21GateOpeningReview = PASS_P0_0_P1_0
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED
 R2ExitGate = NOT_COMPLETED
-NativeCapturePolicy = FORBIDDEN_UX_R2_A1_NOT_OPENED
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
+NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_TCC_NOT_PREFLIGHTED
+UXR21ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
+InteractiveCheckpointHost = NOT_IMPLEMENTED
+FirstLightNativeStoryReachability = NOT_IMPLEMENTED
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 ElectricalProfessionalReview = NOT_COLLECTED

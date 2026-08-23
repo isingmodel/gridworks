@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 목표 계약
 
-> 문서 상태: **현재 전체 목표 · UX-R2.1 source ready, actual-input 관찰 pending**
+> 문서 상태: **현재 전체 목표 · UX-R2.1 non-score 완료, 다음 gate 미개방**
 > 제품 아트: `A1_NORMAL_OPERATION_ART_SLICE` — 미개방
 
 ## 1. 목표
@@ -244,8 +244,9 @@ A1 아트 gate 개방이나 전체 R2 종료를 의미하지 않는다.
 UX-R2.1의 `RealtimeInteractiveCheckpointHost`는 같은 start/replay/end identity에서 paused로 대기하지만
 runner처럼 HUD press나 frame을 자동 주입하지 않는다. 실제 production mouse/keyboard의 1× 선택 뒤 wall
 clock callback으로 한 minute가 끝나야만 interactive record를 낸다. host scene-load와 automated runner
-PASS는 이 actual-input record를 대신하지 않는다. 현재 source `ec26599`는 독립 review P0 0/P1 0이지만
-macOS console 잠금으로 두 interactive record는 pending이다.
+PASS는 이 actual-input record를 대신하지 않는다. source `e385707`은 first-light와 single-rail 독립
+review P0 0/P1 0을 통과했고, 실제 production 1× 입력으로 두 interactive record의 canonical
+start/replay/end hash를 다시 확인했다.
 
 ### 8.4 처음부터 실행해야 하는 예외
 
@@ -292,7 +293,7 @@ harness가 처음부터 시작한다는 이유는 충분하지 않다.
 
 이 단계는 새 runtime art, production V3 data, persistence, 기본 장면 전환을 승인하지 않는다.
 
-### UX-R2.1 — FIRST_LIGHT release tutorial/rail carve-out — 활성
+### UX-R2.1 — FIRST_LIGHT release tutorial/rail carve-out — 완료
 
 사용자의 “87점 이상까지 계속 개선”과 직접 플레이 지시는 상용 UX scope의 순차 runtime 구현을
 명시적으로 승인했다. 현재 단위는 제품 A1–A4를 한꺼번에 열지 않고, A1 이전 logic/presentation
@@ -300,12 +301,12 @@ carve-out으로 실제 release `FIRST_LIGHT` 장의 briefing→`FIRST_LIGHT_SUPP
 future-event rail의 현재 시각·countdown·event interval·actual/draft construction completion, Debug interactive
 checkpoint host와 관련 결정론 검사를 허용한다.
 
-exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.1](COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--활성)이
+exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.1](COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--완료)이
 소유한다. `data/**`, runtime asset/world, persistence, default scene, export/package와 2–8장 presentation은
 금지한다. 현재 tracked `game/assets/realtime/**`와 `game/realtime/world/**`도 provenance 검수 없이 채택하지
-않는다. product source `ec265999bc849ff494d14011f04c718b03a7664a`는 build·회귀와 독립 review
-P0 0/P1 0을 통과했다. 실제 조작은 macOS console 잠금 해제 뒤 고정 세 명령의 non-score Debug 개발
-관찰만 허용하며 official capture나 `CommercialUXProxy` 증거가 아니다.
+않는다. product source `e385707071e4ccfb34d5200e3401897db7f164ad`는 build·회귀와 두 독립 review
+P0 0/P1 0을 통과했고 고정 세 명령의 non-score Debug actual-input record까지 생성했다. 이 완료 기록은
+official capture나 `CommercialUXProxy` 증거가 아니며 UX-R2.2를 자동으로 열지 않는다.
 
 ### A1 — 일반 운전 아트 vertical slice — 미개방
 

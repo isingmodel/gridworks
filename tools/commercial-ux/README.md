@@ -24,10 +24,11 @@ local rollout이 일치했음을 결속하지만 platform/API attestation이나 
   - epilogue card 3
   - epilogue promise branch line 6
 - 현재 native 표현: `RealtimeSliceMain`의 FIRST_LIGHT targeted R2 slice만 확인됨
-- UX-R2.1 product source: `ec265999bc849ff494d14011f04c718b03a7664a`; shared release loader,
-  FIRST_LIGHT controller/result, future-event rail과 actual-input-only checkpoint host의 deterministic
-  build·회귀 및 독립 review P0 0/P1 0
-- UX-R2.1 actual-input 관찰: `PENDING_MAC_CONSOLE_UNLOCK`; headless PASS를 actual record로 사용하지 않음
+- UX-R2.1 product source: `e385707071e4ccfb34d5200e3401897db7f164ad`; shared release loader,
+  FIRST_LIGHT controller/result, 단일 chronological rail과 actual-input-only checkpoint host의
+  deterministic build·회귀 및 두 독립 review P0 0/P1 0
+- UX-R2.1 actual-input 관찰: `PASS_THREE_NON_SCORE_RECORDS`; headless PASS와 actual record를 서로
+  대신하거나 score evidence로 승격하지 않음
 - 현재 candidate: 비기본 Debug/editor 39-file exact project tree, public package 아님
 - 현재 실행 영수증: 두 checkpoint 성공 + missing/extra/FULL_FLOW selector 거부를 독립 verifier가
   fresh process로 재실행
@@ -279,9 +280,10 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 native presentation과 실제 입력·화면·audio capture는 이후 gate다. UX-R1에서도
 `ScoreBearingCaptureAllowed=false`이며 `CommercialUXProxy >= 87`을 선언하지 않는다.
 전체 독립 검토는 source boundary `2b0b6ee`에서
-`PASS_FOR_UX_R1_WHOLE_GATE_CLOSURE`, P0 0/P1 0이다. 현재 UX-R2.1은 actual release `FIRST_LIGHT` 장의
-briefing→live→authored result, future-event rail과 interactive checkpoint host를 product source
-`ec265999bc849ff494d14011f04c718b03a7664a`에서 구현했다. 이 source의 review는
-`PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`, P0 0/P1 0이다. package/candidate manifest는 이 carve-out의
-증거가 아니므로 `N/A`이고, 세 실제 입력 record는 macOS console 잠금으로 pending이다. A1 art·2–8장·
-persistence·default/package·score-bearing capture는 미개방이다.
+`PASS_FOR_UX_R1_WHOLE_GATE_CLOSURE`, P0 0/P1 0이다. UX-R2.1은 actual release `FIRST_LIGHT` 장의
+briefing→live→authored result, 단일 chronological future-event rail과 interactive checkpoint host를
+product source `e385707071e4ccfb34d5200e3401897db7f164ad`에서 구현했다. first-light review
+`PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`과 single-rail review `PASS_FOR_SINGLE_RAIL_MAJOR_UNIT`은 모두
+P0 0/P1 0이며 세 actual-input record도 PASS했다. package/candidate manifest는 이 carve-out의 증거가
+아니므로 `N/A`다. A1 art·2–8장·persistence·default/package·score-bearing capture와 UX-R2.2는
+미개방이다.

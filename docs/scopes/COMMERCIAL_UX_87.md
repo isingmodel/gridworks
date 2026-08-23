@@ -1,6 +1,6 @@
 # Gridworks — 실시간 상용 UX 87 활성 계약
 
-> 상태: **활성 — UX-R2.1 FIRST_LIGHT release tutorial/rail**
+> 상태: **UX-R2.1 완료 — 다음 evaluation gate 미개방**
 >
 > 제품 방향 권위: [에셋 스타일 실시간 게임 계약](ASSET_STYLE_REALTIME_GAME.md)
 >
@@ -16,11 +16,11 @@ UX-R0는 source-bound 텍스트 artifact, 스토리 파트 단독 실행과 세 
 UX-R1은 V3/R2 candidate bytes, replay, session claim, evaluation-chain parent와 blocked artifact
 provenance, local controlled transcript authority를 fail-closed로 포팅하고 전체 종료 검토까지 완료했다.
 사용자의 “87점 이상까지 계속 개선”과 직접 플레이 지시에 따라 UX-R2를 작은 순차 단위로 열었다.
-현재는 실제 release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의 briefing→live→authored result,
-future-event rail과 사람이 조작하는 Debug checkpoint host만 허용하는 UX-R2.1이다. source revision
-`ec265999bc849ff494d14011f04c718b03a7664a`와 독립 review P0 0/P1 0은 닫혔지만 actual-input
-관찰은 macOS console 잠금으로 pending이다. A1 runtime art, 2–8장, persistence, 기본 장면과
-score-bearing capture는 열지 않는다.
+실제 release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의 briefing→live→authored result,
+한 줄 chronological future-event rail과 사람이 조작하는 Debug checkpoint host를 허용한 UX-R2.1은
+source revision `e385707071e4ccfb34d5200e3401897db7f164ad`, 두 독립 review P0 0/P1 0과 세 actual-input
+PASS record로 완료했다. A1 runtime art, 2–8장, persistence, 기본 장면과 score-bearing capture는 열지
+않았고 UX-R2.2도 아직 미개방이다.
 
 ## 1. 플레이어 결과
 
@@ -42,13 +42,14 @@ score-bearing capture는 열지 않는다.
 - 실시간 일정 권위는 `data/release-campaign-v3.json`의 8장·16 event다.
 - 실시간 규칙 권위는 `src/Gridworks.Core/Release/V3/`다.
 - 현재 native 평가 대상은 비기본 `RealtimeSliceMain`이다.
-- R2 presentation은 `FIRST_LIGHT` targeted slice의 deterministic controller/UI까지 확인됐고 실제
-  macOS mouse/keyboard 관찰은 아직 없다.
+- R2 presentation은 `FIRST_LIGHT` targeted slice의 deterministic controller/UI와 actual macOS
+  mouse/keyboard authored standard-result 경로까지 확인됐다.
 - `A1_NORMAL_READY`, `A1_CONSTRUCTION_DUE_1M` 두 checkpoint만 구현됐다.
 - source revision `379e980`의 evaluator가 39-file Debug/editor candidate와 두 성공·세 인자 거부 probe를 exact
   bytes로 결속하고 독립 verifier에서 다시 실행한다. 이는 score-bearing native capture가 아니다.
-- R2 `RealtimeEventRail`은 두 checkpoint에서 exact package scene-load wiring을 통과했지만, 실제
-  플레이에서 future-event status bar로 충분히 읽히는지는 아직 관찰하지 않았다.
+- R2 `RealtimeEventRail`은 한 줄 chronological track, compact marker, custom hover 상세 정보와 AX
+  selector 계약을 full UI matrix에서 통과했고 actual FIRST_LIGHT에서 단일 track과 exact 선택 연동을
+  관찰했다. CUA는 hover-only popup의 네이티브 출현 자체를 별도 사람 증거로 승격하지 않는다.
 - 나머지 7장, full campaign transition, save/resume, finale·epilogue native E2E는
   `NOT_IMPLEMENTED`다.
 - 동결 V2 기본 장면 `CommercialMain`이나 Core-only replay로 이 누락을 채우지 않는다.
@@ -58,11 +59,11 @@ score-bearing capture는 열지 않는다.
   안정 집계됐다. 플랫폼 서명 execution receipt는 저장소에 내보내지 못했다.
 - UX-R1 local controlled transcript는 별도 fresh `gpt-5.6-sol`/`ultra` semantic-echo rollout을
   source-bound parent에 결속했다. 이는 platform attestation, judge 실행 또는 점수 증거가 아니다.
-- UX-R2.1 product source는 `ec265999bc849ff494d14011f04c718b03a7664a`다. Debug build 0 warnings,
+- UX-R2.1 product source는 `e385707071e4ccfb34d5200e3401897db7f164ad`다. Debug build 0 warnings,
   Realtime 23 suites/673 assertions, Commercial 31 suites/7084 assertions, 34 story atom, full UI scale
   matrix와 두 automated checkpoint hash가 PASS했고 독립 source review는 P0 0/P1 0이다.
-- `FORMATIVE_DIRECT_PLAY_PASS:FIRST_LIGHT`와 두 interactive checkpoint actual-input record는 macOS
-  console 잠금 때문에 아직 생성되지 않았다. headless runner PASS로 대신하지 않는다.
+- `FORMATIVE_DIRECT_PLAY_PASS:FIRST_LIGHT`와 두 interactive checkpoint actual-input record를 실제
+  production mouse/keyboard 경로로 생성했다. headless runner PASS와 actual record를 서로 대신하지 않는다.
 
 따라서 text judge의 결과는 개선 우선순위를 정하는 `TextPlanProxy`일 뿐 공식 87점이 아니다.
 
@@ -87,7 +88,9 @@ Game과 평가 도구는 story, 일정과 결과 사실을 새로 만들지 않�
 ## 4. Future-event status bar 계약
 
 future-event status bar는 실시간 게임의 핵심 planning surface다. 현재 R2의 수평
-`RealtimeEventRail`을 출발점으로 사용하되 다음 결과를 만족해야 한다.
+`RealtimeEventRail`은 수요·기한·기상 정지·공사·보호를 lane별 장문 행으로 나누지 않고 한 줄
+chronological track에 compact cue로 놓으며, pointer hover 상세 정보와 전체 AX selector를 제공한다.
+다음 결과를 만족해야 한다.
 
 - gameplay 중 현재 시각과 다음 사건까지 남은 시간을 확대 없이 찾을 수 있다.
 - 사건의 예고 시각, 시작·종료 구간과 active/completed 상태가 한 시간축에서 구분된다.
@@ -302,16 +305,17 @@ platform attestation, score-bearing capture 또는 `CommercialUXProxy` 점수를
   참조하며 누락·교체·경로 이동·재집계를 mutation test가 거부한다.
 - 실제 native capture는 계속 금지하고 독립 P0/P1 review와 문서 상태를 먼저 닫는다.
 
-### UX-R2 — 실시간 게임 완결성 순차 계획 — 현재 UX-R2.1만 활성
+### UX-R2 — 실시간 게임 완결성 순차 계획 — UX-R2.1 완료, 다음 gate 미개방
 
 - tutorial 3장과 본편 5장의 native presentation·진행·result transition을 구현한다.
 - full campaign, promise accumulation, finale·epilogue, save/resume를 실제 R2 경로로 연결한다.
 - future-event status bar가 모든 장의 event·construction·thermal 경계를 표현하도록 한다.
 - 이 gate를 열 때 제품 A1–A5 경계와 수정 allowlist를 현재 상태 문서에서 명시적으로 재조정한다.
 
-위 네 항목은 비권한 roadmap outcome이다. 현재 실행할 수 있는 단위는 아래 UX-R2.1 exact allowlist뿐이다.
+위 네 항목은 비권한 roadmap outcome이다. 아래 UX-R2.1 exact allowlist는 완료 이력이며, UX-R2.2를
+별도로 열기 전에는 현재 실행할 수 있는 새 구현 단위가 없다.
 
-#### UX-R2.1 — FIRST_LIGHT release tutorial/rail — 활성
+#### UX-R2.1 — FIRST_LIGHT release tutorial/rail — 완료
 
 이 단위의 player outcome은 nondefault Debug R2에서 실제 authored `FIRST_LIGHT` 장 briefing을 닫고,
 `FIRST_LIGHT_SUPPLY` phase/event 동안 실시간 clock·공사·사건을 조작해 authored standard result까지
@@ -361,7 +365,9 @@ A3 catalog와 A4 campaign/save는 계속 미개방이다.
 - `FIRST_LIGHT/briefing`과 `FIRST_LIGHT/result/standard`는 기존 exact story-part unit bytes와
   native presentation의 동일 authored card를 비교한다. 나머지 32 atom은 native 도달을 주장하지 않는다.
 - future-event bar는 typed minute 하나로 현재 시각, persistent next-event countdown, event start/end,
-  actual active/completed construction과 draft completion을 표시하고 actual/draft를 형태·문장으로 구분한다.
+  actual active/completed construction과 draft completion을 한 줄에 표시한다. compact marker는
+  state·severity·source·kind·cluster count를 색 외 cue로 남기고, hover 상세 정보와 AX selector에서
+  exact source·timing·title·description을 복구한다.
 - Debug interactive host는 exact A1 checkpoint에서 paused로 대기하고 실제 mouse/keyboard production UI만
   받아 한 minute 경계를 진행한다. 자동 HUD press·frame injection이나 화면 속 actor hint를 쓰지 않는다.
 - 기존 두 A1 checkpoint의 start/end canonical hash와 headless oracle, story manifest/part, 1×·2×·4×
@@ -395,15 +401,29 @@ A3 catalog와 A4 campaign/save는 계속 미개방이다.
   -- --checkpoint=A1_CONSTRUCTION_DUE_1M
 ```
 
-현재 source authority는 위 `ec26599`이고 shared loader source identity는 V2
+실제 입력 관찰은 다음 exact non-score record로 닫혔다.
+
+- full chapter: `FORMATIVE_DIRECT_PLAY_PASS:FIRST_LIGHT`; 17:00 변전소 발주, 19:01 완공,
+  20:40 서부 전원선 완공, 20:51 서비스 선로 완공, 21:00–22:00 사건 뒤 authored positive result
+  `동부 첫 구간을 인계받았습니다`, 최종 cash 7,030,000
+- `A1_NORMAL_READY`: start `7094f631c89fe072800858a205d08358be07a6e0e7341b83026ff619fc03f9a3`,
+  replay `4f4d3748681585f49eeb4291262db3c99676baba10913450c94d5e1eda9e1611`, end
+  `d61217a830053e59f9c75a69eef110da2604892baf9b52ea74cb04d406ad6fec`, minute 1020→1021
+- `A1_CONSTRUCTION_DUE_1M`: start
+  `3a00c6c937d130cc7574e3971403445cb036a26aecba6671e300e1398d4b9989`, replay
+  `9bd7c3226fd36396d9d9f7a8d81da25379cedb8e0e54441601bb7c89e947c65c`, end
+  `304b96410d7652db9928613fe77443d8d50e29efcb273ff8061c064f876f37f9`, minute 1259→1260
+
+현재 source authority는 위 `e385707071e4ccfb34d5200e3401897db7f164ad`이고 shared loader source identity는 V2
 `078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a`, V3 overlay
 `ef962a272683bfd6761fbf10a0ca14cb6c8bf90cdfde810b468ad451088f2258`, full composed
 `7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09`, FIRST_LIGHT prefix
 `94379c0e8e4dae54b760a55df8c1143c975eaa12f11079e675b2e67ba57df88e`, release world V3
 `a0a837717bbd6d35f655d8094dfa6daac182d47b2d03f24b18c4883c04feecdf`다. 이는 package가 아닌
 logic/presentation carve-out이므로 manifest aggregate는 `N/A — non-package carve-out`이다. 첫 source
-review가 찾은 무공사 positive-result 위조 P1을 수정한 뒤 최종 재검토는
-`PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`, P0 0/P1 0이다. 세 actual-input record 전까지 gate는 활성 상태다.
+review가 찾은 무공사 positive-result 위조 P1을 수정한 뒤 first-light 재검토는
+`PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`, 단일 rail 재검토는 `PASS_FOR_SINGLE_RAIL_MAJOR_UNIT`이며 모두
+P0 0/P1 0이다. 세 actual-input record와 현재 상태 문서를 함께 보존해 UX-R2.1을 완료했다.
 
 ### UX-R3 — actual E2E와 87 반복 — 미개방
 
@@ -432,21 +452,21 @@ review가 찾은 무공사 positive-result 위조 P1을 수정한 뒤 최종 재
 
 ```text
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R2_1_FIRST_LIGHT_RELEASE_TUTORIAL_RAIL
+ActiveEvaluationGate = NONE
 NextEvaluationGate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
 UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 ProductDirection = ASSET_STYLE_REALTIME_GAME
 ProductArtGate = NONE_A1_NOT_OPENED
 RealtimeAuthority = RELEASE_V3_PLUS_R2
-FutureEventStatusBar = REQUIRED_UX_R2_1_NOW_COUNTDOWN_EVENT_CONSTRUCTION_ACTIVE_PROMISE_THERMAL_LATER
+FutureEventStatusBar = PASS_UX_R2_1_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 StoryPartManifest = 34_AUTHORED_ATOMS_DETERMINISTIC_PASS
 TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 FullCampaignNativeE2E = NOT_IMPLEMENTED
 ScoreBearingCaptureAllowed = false
-NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS
-NativeCaptureEnvironment = MAC_CONSOLE_LOCKED_ACTUAL_INPUT_PENDING
+NativeCapturePolicy = FORBIDDEN_UX_R2_2_NOT_OPENED
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
 NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
 EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
@@ -463,10 +483,13 @@ UXR1ControlledTranscriptReview = PASS_SUBUNIT_P0_0_P1_0_SOURCE_2B0B6EE
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED_ARTIFACT_AND_CONTROLLED_TRANSCRIPT
 UXR21GateOpeningReview = PASS_P0_0_P1_0
-UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_EC265999BC849FF494D14011F04C718B03A7664A
-UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0
-InteractiveCheckpointHost = IMPLEMENTED_HEADLESS_READY_ACTUAL_INPUT_PENDING
-FirstLightNativeStoryReachability = DETERMINISTIC_CONTROLLER_PASS_ACTUAL_INPUT_PENDING
+UXR21GateStatus = COMPLETE_NON_SCORE
+UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
+UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0_SOURCE_EC265999
+UXR21SingleRailReview = PASS_FOR_SINGLE_RAIL_MAJOR_UNIT_P0_0_P1_0_SOURCE_E385707
+UXR21ActualInputObservation = PASS_THREE_NON_SCORE_RECORDS
+InteractiveCheckpointHost = ACTUAL_INPUT_PASS_A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M
+FirstLightNativeStoryReachability = FORMATIVE_DIRECT_PLAY_PASS_AUTHORED_STANDARD_RESULT
 UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

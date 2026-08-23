@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **A0+A0.1+UX-R0+UX-R1 완료 · UX-R2.1 활성**
+> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1 완료 · 다음 gate 미개방**
 > 제품 아트: **A1 미개방**
 
 이 문서는 단계 상태와 증거 상한만 기록한다. 제품 기능과 시각 규격은
@@ -16,7 +16,7 @@
 | A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
 | UX-R0 실시간 텍스트 기준선 | **완료** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | `TextPlanProxy 83.4475` 형성평가 | `746c0aa`, 독립 P0 0/P1 0 |
 | UX-R1 native evaluator authority | **완료** | candidate·route·session/attempt·non-score chain parent·blocked artifact·local controlled transcript | candidate 16/16 + session 12/12 + chain 14/14 + artifact 11/11 + transcript 13/13·strict schema | capture 금지 | `2b0b6ee`, 전체 review P0 0/P1 0 |
-| UX-R2.1 FIRST_LIGHT release tutorial/rail | **활성** | 실제 release 1장 briefing→live→authored result, countdown·event·construction rail, interactive checkpoint host | source `ec26599`, build·회귀·독립 P0/P1 0 | macOS console 잠금으로 non-score Debug 직접 플레이 pending | 세 actual-input record와 문서 종료 commit 필요 |
+| UX-R2.1 FIRST_LIGHT release tutorial/rail | **완료** | 실제 release 1장 briefing→live→authored result, 단일 chronological rail, interactive checkpoint host | source `e385707`, build·회귀·독립 P0/P1 0 | FIRST_LIGHT+두 checkpoint actual-input PASS | 이 문서 종료 commit |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -98,7 +98,7 @@ source revision `379e980`의 exact candidate는 두 checkpoint scene-load wiring
 이 gate는 `tools/commercial-ux/native/`와 관련 문서만 수정한다. `game/`, `src/`, `data/`와 제품 art는
 수정하지 않으며 실제 Mac 조작·capture도 실행하지 않는다.
 
-## UX-R2.1 FIRST_LIGHT release tutorial/rail
+## UX-R2.1 FIRST_LIGHT release tutorial/rail — 완료
 
 - [x] 사용자 “87점 이상까지 계속 개선”·직접 플레이 지시를 순차 runtime 구현 권한으로 기록
 - [x] UX-R1 전체 gate P0 0/P1 0 종료 뒤 개방
@@ -108,21 +108,27 @@ source revision `379e980`의 exact candidate는 두 checkpoint scene-load wiring
 - [x] briefing→production input/reducer→clock·construction·event→authored standard result native wiring
 - [x] FIRST_LIGHT briefing/result가 기존 exact story-part unit bytes와 동일
 - [x] future-event bar 현재 시각·persistent countdown·event start/end·actual/draft construction completion
+- [x] 수요·기한·기상 정지·공사·보호 사건을 lane별 장문 행이 아닌 한 줄 chronological track의 compact
+  state/severity/source/kind marker로 통합하고 custom hover 상세 정보와 전체 AX selector 유지
 - [x] actual/draft 형태·문장 구분과 completed construction history 유지
 - [x] Debug interactive checkpoint host가 exact start에서 paused 대기하고 real input만 수용
 - [x] 기존 A1 두 checkpoint hash/headless oracle·34 story unit·speed chunk invariance 무변경
 - [x] FHD/UI scale 행렬, keyboard/focus와 unknown marker target 0
-- [ ] source commit 뒤 직접 플레이한 비점수 FIRST_LIGHT/checkpoint 관찰
-- [ ] 독립 P0/P1 0, 현재 상태 문서와 종료 commit
+- [x] source commit 뒤 직접 플레이한 비점수 FIRST_LIGHT/checkpoint 세 actual-input record
+- [x] first-light source와 single-rail major-unit 독립 review P0/P1 0
+- [x] 현재 상태 문서와 종료 commit
 
-현재 source checkpoint는 `ec265999bc849ff494d14011f04c718b03a7664a`다. shared loader identity는
+현재 source checkpoint는 `e385707071e4ccfb34d5200e3401897db7f164ad`다. shared loader identity는
 V2 `078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a`, V3 overlay
 `ef962a272683bfd6761fbf10a0ca14cb6c8bf90cdfde810b468ad451088f2258`, full composed
 `7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09`, FIRST_LIGHT prefix
 `94379c0e8e4dae54b760a55df8c1143c975eaa12f11079e675b2e67ba57df88e`, world V3
 `a0a837717bbd6d35f655d8094dfa6daac182d47b2d03f24b18c4883c04feecdf`다. package manifest는
 `N/A — non-package carve-out`이며 source revision과 이 identity를 권위로 쓴다. 첫 독립 review의 P1
-무공사 가짜 positive result를 수정했고 최종 재검토는 `PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`, P0 0/P1 0이다.
+무공사 가짜 positive result를 수정했고 first-light 재검토는 `PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`, 단일
+chronological rail 재검토는 `PASS_FOR_SINGLE_RAIL_MAJOR_UNIT`이며 모두 P0 0/P1 0이다. 실제 입력은
+`FORMATIVE_DIRECT_PLAY_PASS:FIRST_LIGHT`, `TARGETED_LIVE_CHECKPOINT_PASS:A1_NORMAL_READY`,
+`TARGETED_LIVE_CHECKPOINT_PASS:A1_CONSTRUCTION_DUE_1M`을 남겼다.
 
 이 단위는 `data/**`, runtime art/world, 2–8장, promise·thermal presentation, persistence, default scene,
 export/package와 score-bearing capture를 열지 않는다.
@@ -162,18 +168,18 @@ export/package와 score-bearing capture를 열지 않는다.
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R2_1_FIRST_LIGHT_RELEASE_TUTORIAL_RAIL
+ActiveEvaluationGate = NONE
 NextEvaluationGate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
 UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
 ProductArtImplementationGate = NONE
-NextCandidate = UX_R2_1_NONDEFAULT_DEBUG_FIRST_LIGHT
+NextCandidate = UX_R2_2_TUTORIAL_CHAPTERS_NOT_OPENED
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_FIRST_LIGHT_TARGETED_SLICE
-FutureEventStatusBar = REQUIRED_UX_R2_1_NOW_COUNTDOWN_EVENT_CONSTRUCTION_ACTIVE_PROMISE_THERMAL_LATER
+FutureEventStatusBar = PASS_UX_R2_1_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
@@ -201,13 +207,16 @@ UXR21GateOpeningReview = PASS_P0_0_P1_0
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED
-R2ExitGate = NOT_COMPLETED
-NativeCapturePolicy = ALLOWED_NON_SCORE_DEBUG_FIRST_LIGHT_AFTER_COMMIT_AND_BUILD_PASS
-NativeCaptureEnvironment = MAC_CONSOLE_LOCKED_ACTUAL_INPUT_PENDING
-UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_EC265999BC849FF494D14011F04C718B03A7664A
-UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0
-InteractiveCheckpointHost = IMPLEMENTED_HEADLESS_READY_ACTUAL_INPUT_PENDING
-FirstLightNativeStoryReachability = DETERMINISTIC_CONTROLLER_PASS_ACTUAL_INPUT_PENDING
+R2ExitGate = UX_R2_1_COMPLETED_NEXT_NOT_OPENED
+NativeCapturePolicy = FORBIDDEN_UX_R2_2_NOT_OPENED
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
+UXR21GateStatus = COMPLETE_NON_SCORE
+UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
+UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0_SOURCE_EC265999
+UXR21SingleRailReview = PASS_FOR_SINGLE_RAIL_MAJOR_UNIT_P0_0_P1_0_SOURCE_E385707
+UXR21ActualInputObservation = PASS_THREE_NON_SCORE_RECORDS
+InteractiveCheckpointHost = ACTUAL_INPUT_PASS_A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M
+FirstLightNativeStoryReachability = FORMATIVE_DIRECT_PLAY_PASS_AUTHORED_STANDARD_RESULT
 UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED

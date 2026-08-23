@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **A0+A0.1+UX-R0+UX-R1 완료 · UX-R2.1 runtime carve-out 활성**
+> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1 완료 · 다음 runtime carve-out 미개방**
 > 제품 아트: **A1 일반 운전 아트 vertical slice — 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
@@ -50,7 +50,7 @@ A0는 runtime 화면, 새 sprite, native capture나 미감 검토를 만들지 �
 A0.1은 A1의 구조·검증 진입점만 준비했다. runtime asset authority, 도시 아트, reference capture와
 사람 미감 증거는 만들지 않았고 A1은 계속 미개방이다.
 
-## UX-R2.1 — FIRST_LIGHT release tutorial/rail — 활성
+## UX-R2.1 — FIRST_LIGHT release tutorial/rail — 완료
 
 ### player outcome
 
@@ -71,16 +71,18 @@ event start/end와 actual/draft construction completion을 한 축으로 비교�
 
 ### 현재 증거
 
-- product source `ec265999bc849ff494d14011f04c718b03a7664a`, 독립 review P0 0/P1 0
+- product source `e385707071e4ccfb34d5200e3401897db7f164ad`; first-light source와 단일 chronological
+  rail 독립 review 모두 P0 0/P1 0
 - Debug build 0 warnings, Realtime 23/673, Commercial 31/7084, 34 story part와 전체 UI 행렬 PASS
 - 두 automated checkpoint의 동결 start/replay/end hash 유지와 interactive host scene-load PASS
-- 실제 FIRST_LIGHT와 두 interactive checkpoint 입력은 macOS console 잠금으로 아직 `PENDING`
+- 실제 FIRST_LIGHT authored standard result와 두 interactive checkpoint 1× 입력에서 정확한 세
+  non-score PASS record 생성
 
-따라서 이 gate는 source-ready지만 완료가 아니다. headless oracle은 실제 mouse/keyboard record를 대신하지
-않으며 `CommercialUXProxy`는 계속 `null`이다.
+따라서 이 gate는 완료됐다. actual-input record는 headless oracle을 대체하지 않고 둘을 함께 보존하며,
+비점수 개발 관찰이므로 `CommercialUXProxy`는 계속 `null`이다. UX-R2.2는 별도 gate로 아직 열지 않았다.
 
 exact 파일 allowlist와 종료 증거는
-[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--활성)가 소유한다.
+[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--완료)가 소유한다.
 
 ## A1 — 일반 운전 아트 vertical slice — 미개방
 

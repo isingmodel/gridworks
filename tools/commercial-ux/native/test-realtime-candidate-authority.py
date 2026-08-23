@@ -223,6 +223,7 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
             "verify_manifest_against_reconstructed_authority",
             producer["semanticVerifierEntryPoint"],
         )
+        self.assertTrue(producer["semanticVerifierReexecutesHeadlessProbes"])
         self.assertEqual(
             "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY",
             producer["structuralSchemaAuthority"],
@@ -288,7 +289,6 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
             manifest,
             self.build,
             self.godot_app_root,
-            self.headless_execution,
             self.policy,
             self.policy_bytes,
         )
@@ -410,7 +410,6 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
                             mutation,
                             self.build,
                             self.godot_app_root,
-                            self.headless_execution,
                             self.policy,
                             self.policy_bytes,
                         )
@@ -426,7 +425,6 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
                 changed,
                 self.build,
                 self.godot_app_root,
-                self.headless_execution,
                 self.policy,
                 self.policy_bytes,
             ),
@@ -763,6 +761,12 @@ class RealtimeCandidateAuthorityTests(unittest.TestCase):
             "semanticVerifierEntryPoint"
         ] = "verify_manifest"
         mutations.append(aliased_semantic_verifier)
+
+        disabled_probe_reexecution = copy.deepcopy(self.policy)
+        disabled_probe_reexecution["evaluatorProducerAuthority"][
+            "semanticVerifierReexecutesHeadlessProbes"
+        ] = False
+        mutations.append(disabled_probe_reexecution)
 
         for mutation in mutations:
             self.assertRejected(

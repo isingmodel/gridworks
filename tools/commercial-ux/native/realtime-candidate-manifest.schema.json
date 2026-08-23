@@ -169,7 +169,7 @@
       "required": [
         "schemaVersion", "sourceCommit", "fileCount", "files", "filesSha256",
         "runningFilesMatchGitBlobs", "semanticVerifierEntryPoint",
-        "structuralSchemaAuthority"
+        "semanticVerifierReexecutesHeadlessProbes", "structuralSchemaAuthority"
       ],
       "properties": {
         "schemaVersion": {"const": "gridworks.realtime-evaluator-producer-authority.v1"},
@@ -215,6 +215,7 @@
         "filesSha256": {"$ref": "#/$defs/sha256"},
         "runningFilesMatchGitBlobs": {"const": true},
         "semanticVerifierEntryPoint": {"const": "verify_manifest_against_reconstructed_authority"},
+        "semanticVerifierReexecutesHeadlessProbes": {"const": true},
         "structuralSchemaAuthority": {"const": "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"}
       }
     },

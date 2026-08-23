@@ -27,6 +27,7 @@
     ],
     "sourceMaterialization": "EXACT_SOURCE_COMMIT_GIT_BLOBS_MATCH_RUNNING_WORKTREE_BYTES",
     "semanticVerifierEntryPoint": "verify_manifest_against_reconstructed_authority",
+    "semanticVerifierReexecutesHeadlessProbes": true,
     "structuralSchemaAuthority": "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"
   },
   "sourceAuthority": {

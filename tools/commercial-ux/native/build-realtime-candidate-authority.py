@@ -45,7 +45,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_REPOSITORY_ROOT = SCRIPT_DIR.parents[2]
 POLICY_PATH = SCRIPT_DIR / "realtime-candidate-policy.json"
 EXPECTED_POLICY_RAW_SHA256 = (
-    "sha256:a362d16e20609e88107a05206c810a0cf926158b1a1c34917115595344005fb4"
+    "sha256:0301ae0d25dc06586e3d20aeb674c485bd1144e665eec91b4dc19a8add7ad60c"
 )
 
 POLICY_TOP_LEVEL_KEYS = frozenset({
@@ -78,7 +78,7 @@ POLICY_OBJECT_KEYS: dict[str, frozenset[str]] = {
     "evaluatorProducerAuthority": frozenset({
         "schemaVersion", "expectedFileCount", "paths",
         "sourceMaterialization", "semanticVerifierEntryPoint",
-        "structuralSchemaAuthority",
+        "semanticVerifierReexecutesHeadlessProbes", "structuralSchemaAuthority",
     }),
     "sourceAuthority": frozenset({
         "expectedFileCount", "expectedSourceInputsSha256", "expectedRoleCounts",
@@ -1107,6 +1107,7 @@ def bind_evaluator_producer_authority(
         "semanticVerifierEntryPoint": (
             "verify_manifest_against_reconstructed_authority"
         ),
+        "semanticVerifierReexecutesHeadlessProbes": True,
         "structuralSchemaAuthority": (
             "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"
         ),
@@ -2958,6 +2959,7 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
             "semanticVerifierEntryPoint": (
                 "verify_manifest_against_reconstructed_authority"
             ),
+            "semanticVerifierReexecutesHeadlessProbes": True,
             "structuralSchemaAuthority": (
                 "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY"
             ),
@@ -2979,6 +2981,9 @@ def verify_policy_projection(policy: dict[str, Any], manifest: dict[str, Any]) -
         is True,
         manifest["evaluatorProducerAuthority"]["semanticVerifierEntryPoint"]
         == "verify_manifest_against_reconstructed_authority",
+        manifest["evaluatorProducerAuthority"][
+            "semanticVerifierReexecutesHeadlessProbes"
+        ] is True,
         manifest["evaluatorProducerAuthority"]["structuralSchemaAuthority"]
         == "STRUCTURAL_ONLY_NOT_CANDIDATE_AUTHORITY",
         source.get("expectedFileCount") == len(manifest["sourceAuthority"]["files"]),
@@ -3161,7 +3166,6 @@ def verify_manifest_against_reconstructed_authority(
     submitted: dict[str, Any],
     build: IsolatedBuild,
     godot_app_root: Path,
-    headless_execution_authority: dict[str, Any],
     policy: dict[str, Any],
     policy_bytes: bytes,
 ) -> None:
@@ -3171,11 +3175,17 @@ def verify_manifest_against_reconstructed_authority(
         raise CandidateAuthorityError("candidate manifest self-hash mismatch")
     build.verify_outputs()
     engine_rows, engine_tree_sha256 = bind_engine_tree(godot_app_root)
+    reconstructed_headless_execution_authority = run_headless_execution_authority(
+        build,
+        godot_app_root,
+        engine_rows,
+        engine_tree_sha256,
+    )
     expected = build_manifest(
         build,
         engine_rows,
         engine_tree_sha256,
-        headless_execution_authority,
+        reconstructed_headless_execution_authority,
         policy,
         policy_bytes,
     )
@@ -3237,7 +3247,6 @@ def main() -> int:
                 manifest,
                 build,
                 godot_app_root,
-                headless_execution,
                 policy,
                 policy_bytes,
             )

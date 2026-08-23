@@ -27,9 +27,9 @@
 
 87점 평가 계약과 고정 judge 조건은 [실시간 상용 UX 87 계약](docs/scopes/COMMERCIAL_UX_87.md)이 보존한다.
 다만 최신 사용자 지시는 그 반복과 native 직접 플레이를 여기서 멈추고, 지금까지 구현·review된 R2.3을
-유지한 채 기존 G3 아이소메트릭 디자인을 live R2 화면에 적용한 뒤 중단하는 것이다. 그 bounded
-적용은 완료됐으며, 현재 추가 구현 범위는 없다. 정확한 경계와 완료 증거는
-[에셋 스타일 계약의 A1-G3 carve-out](docs/scopes/ASSET_STYLE_REALTIME_GAME.md)에 보존한다.
+유지한 채 기존 G3 아이소메트릭 디자인을 live R2 화면에 적용한 뒤 중단하는 것이었다. 이후 사용자는
+full G3 visual work가 기본 제품 화면과 분리된 문제를 해결하고 `main` 하나로 통합하도록 명시했다.
+현재 단일 구현 범위는 [realtime G3 canonicalization과 main 통합](docs/scopes/REALTIME_G3_MAIN_CONSOLIDATION.md)이다.
 
 ## 현재 상태와 권한
 
@@ -76,19 +76,19 @@ visual layer는 같은 live R2 route에 bounded 적용을 마쳤고, 다음 gate
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
-GoalDirection = PAUSED_USER_REQUESTED_STOP_AFTER_A1_G3_COMPLETION
-ActiveScope = NONE_USER_STOP_AFTER_A1_G3_COMPLETION
+GoalDirection = ACTIVE_USER_REQUESTED_REALTIME_G3_MAIN_CONSOLIDATION
+ActiveScope = REALTIME_G3_MAIN_CONSOLIDATION
 ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
 NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
-UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP_COMPLETE
+UserAuthorization = EXPLICIT_RESOLVE_REALTIME_G3_SPLIT_AND_CONSOLIDATE_LOCAL_MAIN
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE
-NextCandidate = NONE_USER_REQUESTED_STOP
+ProductArtImplementationGate = FULL_G3_REALTIME_CANONICALIZATION_ACTIVE
+NextCandidate = FULL_G3_R2_DEFAULT_ENTRY_AND_LOCAL_MAIN_CONSOLIDATION
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
-RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_APPLIED_35_SHA256_VERIFIED
-A1G3ProductSource = COMMITS_1D8095D_AND_FD60141
-A1G3SourceReview = PASS_FOR_A1_G3_SOURCE_FIX_P0_0_P1_0
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_FULL_G3_TREE_PENDING_R2_PORT
+A1G3ProductSource = COMMITS_1D8095D_AND_FD60141_HISTORICAL_PARTIAL_PORT
+A1G3SourceReview = PASS_FOR_A1_G3_SOURCE_FIX_P0_0_P1_0_HISTORICAL_PARTIAL_PORT
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL

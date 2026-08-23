@@ -107,6 +107,9 @@ internal sealed class Checks
     private readonly RealtimeCampaignDefinition _campaign;
     private readonly string _worldV3Json;
     private readonly string _campaignV3Json;
+    private readonly byte[] _releaseBaseCampaignBytes;
+    private readonly byte[] _releaseCampaignOverlayBytes;
+    private readonly RealtimeWorldDefinition _releaseWorld;
     private int _assertions;
 
     public Checks(string dataDirectory, string fixtureDirectory)
@@ -119,16 +122,26 @@ internal sealed class Checks
         string campaignV3Path = Path.Combine(
             fixtureDirectory,
             "stage-r1-first-light-realtime-v3.json");
+        string releaseWorldV3Path = Path.Combine(
+            dataDirectory,
+            "release-world-v3.json");
+        string releaseCampaignOverlayPath = Path.Combine(
+            dataDirectory,
+            "release-campaign-v3.json");
         byte[] worldV2 = File.ReadAllBytes(worldV2Path);
         byte[] campaignV2 = File.ReadAllBytes(campaignV2Path);
         byte[] worldV3 = File.ReadAllBytes(worldV3Path);
         byte[] campaignV3 = File.ReadAllBytes(campaignV3Path);
+        byte[] releaseWorldV3 = File.ReadAllBytes(releaseWorldV3Path);
         _baseWorld = CommercialWorldLoader.Load(worldV2);
         _baseCampaign = CommercialCampaignLoader.Load(campaignV2, _baseWorld);
         _worldV3Json = Encoding.UTF8.GetString(worldV3);
         _campaignV3Json = Encoding.UTF8.GetString(campaignV3);
         _world = RealtimeWorldLoader.Load(worldV3, _baseWorld);
         _campaign = RealtimeCampaignLoader.Load(campaignV3, _baseCampaign, _world);
+        _releaseBaseCampaignBytes = campaignV2;
+        _releaseCampaignOverlayBytes = File.ReadAllBytes(releaseCampaignOverlayPath);
+        _releaseWorld = RealtimeWorldLoader.Load(releaseWorldV3, _baseWorld);
     }
 
     public int Run(string? suiteName = null)
@@ -136,6 +149,7 @@ internal sealed class Checks
         (string Name, Action Body)[] suites =
         [
             ("strict-v3-loaders-first-light-schedule", StrictLoadersAndSchedule),
+            ("strict-release-v2-v3-overlay-composition", StrictReleaseOverlayComposition),
             ("concurrent-same-minute-event-composition", ConcurrentSameMinuteEvents),
             ("atomic-command-and-auto-construction", AtomicCommandAndConstruction),
             ("forecast-actual-same-minute-order", ForecastActualSameMinuteOrder),
@@ -339,6 +353,177 @@ internal sealed class Checks
                 _baseCampaign,
                 _world),
             "initial cash plus authored chapter grant overflow");
+    }
+
+    private void StrictReleaseOverlayComposition()
+    {
+        RealtimeCampaignOverlayLoadResult all =
+            RealtimeCampaignOverlayLoader.LoadAll(
+                _releaseBaseCampaignBytes,
+                _releaseCampaignOverlayBytes,
+                _releaseWorld);
+        RealtimeCampaignOverlayLoadResult first =
+            RealtimeCampaignOverlayLoader.LoadFirstLight(
+                _releaseBaseCampaignBytes,
+                _releaseCampaignOverlayBytes,
+                _releaseWorld);
+        RealtimeCampaignOverlayLoadResult repeatedFirst =
+            RealtimeCampaignOverlayLoader.LoadPrefix(
+                _releaseBaseCampaignBytes,
+                _releaseCampaignOverlayBytes,
+                _releaseWorld,
+                chapterCount: 1);
+
+        Equal(8, all.Campaign.Chapters.Count,
+            "release overlay complete chapter count");
+        SequenceEqual(
+            CommercialCampaignLoader.CanonicalChapterIds,
+            all.Campaign.Chapters.Select(item => item.Content.ChapterId),
+            "release overlay canonical eight-chapter composition");
+        SequenceEqual(
+            new[]
+            {
+                "FIRST_LIGHT:FIRST_LIGHT_SUPPLY",
+                "SECOND_HEART:HOSPITAL_TRANSFER_TEST,FLOOD_ISOLATION_TEST",
+                "SECOND_SOURCE:WEST_MAIN_COMMISSIONING_TEST," +
+                    "SOUTH_SOURCE_COMMISSIONING_TEST",
+                "NORTH_BANK_PROMISE:NORTH_BANK_COMMISSIONING," +
+                    "NEXT_HOT_EVENING_FORECAST",
+                "WHOSE_MARGIN:HOT_BASE,NIGHT_SHIFT,LATE_NIGHT",
+                "BEFORE_WATER_RISE:FLOOD_ARRIVAL",
+                "SWITCH_OFF_TO_PROTECT:WEST_SOURCE_PLANNED_OUTAGE," +
+                    "WEST_SOURCE_RETURN_SERVICE",
+                "LONGEST_NIGHT:MAX_DEMAND,HEATWAVE_PEAK,PROTECTIVE_STOP_FLOOD",
+            },
+            all.Campaign.Chapters.Select(item =>
+                $"{item.Content.ChapterId}:" +
+                string.Join(",", item.ScheduledEvents.Select(scheduled =>
+                    scheduled.EventId))),
+            "release overlay exact authored event composition");
+        Equal(16, all.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count),
+            "release overlay complete event count");
+
+        Equal(1, first.Campaign.Chapters.Count,
+            "release overlay FIRST_LIGHT prefix chapter count");
+        RealtimeChapterDefinition firstChapter = first.Campaign.Chapters.Single();
+        RealtimeScheduledEventDefinition firstEvent =
+            firstChapter.ScheduledEvents.Single();
+        Equal(RealtimeCampaignOverlayLoader.FirstReleaseChapterId,
+            firstChapter.Content.ChapterId,
+            "release overlay FIRST_LIGHT prefix chapter identity");
+        Equal(RealtimeCampaignOverlayLoader.FirstReleaseEventId,
+            firstEvent.EventId,
+            "release overlay FIRST_LIGHT prefix event identity");
+        Equal(240, firstChapter.PreparationMinutes,
+            "release overlay FIRST_LIGHT preparation");
+        Equal(null, firstChapter.PromiseDecisionDeadlineOffsetMinutes,
+            "release overlay FIRST_LIGHT promise deadline");
+        Equal(0, firstEvent.Priority,
+            "release overlay FIRST_LIGHT event priority");
+        Equal(240, firstEvent.StartOffsetMinutes,
+            "release overlay FIRST_LIGHT event start");
+        Equal(60, firstEvent.DurationMinutes,
+            "release overlay FIRST_LIGHT event duration");
+        Equal(240, firstEvent.ForecastLeadMinutes,
+            "release overlay FIRST_LIGHT event forecast lead");
+        Check(ReferenceEquals(first.Campaign.Content.Chapters[0], firstChapter.Content),
+            "release overlay prefix lost raw V2 authored chapter authority");
+        CommercialOperatingPhaseDefinition authoredFirstPhase = first.Campaign.Content
+            .Chapters[0]
+            .OperatingPhases
+            .Single();
+        Equal(Json(authoredFirstPhase), Json(firstEvent.OperatingProfile),
+            "release overlay FIRST_LIGHT event drifted from authored V2 phase");
+        Equal(Json(all.Campaign.Chapters[0]), Json(firstChapter),
+            "release overlay FIRST_LIGHT prefix differs from complete composition");
+        Equal(Json(first.Campaign.Chapters), Json(repeatedFirst.Campaign.Chapters),
+            "release overlay FIRST_LIGHT repeated composition");
+
+        Equal(
+            "078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a",
+            all.SourceIdentity.BaseCampaignSha256,
+            "release overlay exact raw V2 source hash");
+        Equal(
+            "ef962a272683bfd6761fbf10a0ca14cb6c8bf90cdfde810b468ad451088f2258",
+            all.SourceIdentity.RealtimeOverlaySha256,
+            "release overlay exact raw V3 source hash");
+        Equal(
+            "7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09",
+            all.SourceIdentity.FullComposedCampaignSha256,
+            "release overlay exact full composed hash");
+        Equal(
+            "94379c0e8e4dae54b760a55df8c1143c975eaa12f11079e675b2e67ba57df88e",
+            first.SourceIdentity.SelectedComposedCampaignSha256,
+            "release overlay exact FIRST_LIGHT prefix hash");
+        Equal(8, all.SourceIdentity.FullChapterCount,
+            "release overlay source identity full chapter count");
+        Equal(8, all.SourceIdentity.SelectedChapterCount,
+            "release overlay source identity all selected chapter count");
+        Equal(1, first.SourceIdentity.SelectedChapterCount,
+            "release overlay source identity FIRST_LIGHT selected chapter count");
+        Equal(all.SourceIdentity.FullComposedCampaignSha256,
+            first.SourceIdentity.FullComposedCampaignSha256,
+            "release overlay full composition hash changed for prefix selection");
+        Equal(first.SourceIdentity, repeatedFirst.SourceIdentity,
+            "release overlay repeated source identity");
+        Check(!string.Equals(
+                first.SourceIdentity.SelectedComposedCampaignSha256,
+                all.SourceIdentity.SelectedComposedCampaignSha256,
+                StringComparison.Ordinal),
+            "release overlay prefix source hash aliases the complete composition");
+        Equal(all.SourceIdentity.FullComposedCampaignSha256,
+            all.SourceIdentity.SelectedComposedCampaignSha256,
+            "release overlay full selection hash identity");
+
+        string overlayJson = Encoding.UTF8.GetString(_releaseCampaignOverlayBytes);
+        string trimmedOverlay = overlayJson.TrimStart();
+        Expect<RealtimeCampaignOverlayValidationException>(() =>
+            RealtimeCampaignOverlayLoader.LoadAll(
+                _releaseBaseCampaignBytes,
+                Encoding.UTF8.GetBytes(
+                    $"{{\"schemaVersion\":\"duplicate\",{trimmedOverlay[1..]}"),
+                _releaseWorld),
+            "release overlay duplicate root key");
+        JsonObject unexpectedOverlay = ParseObject(overlayJson);
+        unexpectedOverlay["unexpected"] = true;
+        Expect<RealtimeCampaignOverlayValidationException>(() =>
+            RealtimeCampaignOverlayLoader.LoadAll(
+                _releaseBaseCampaignBytes,
+                Encoding.UTF8.GetBytes(unexpectedOverlay.ToJsonString()),
+                _releaseWorld),
+            "release overlay unknown root field");
+        JsonObject missingEventOverlay = ParseObject(overlayJson);
+        JsonArrayOf(Object(JsonArrayOf(missingEventOverlay, "chapters")[1]!),
+            "scheduledEvents").RemoveAt(1);
+        Expect<RealtimeCampaignOverlayValidationException>(() =>
+            RealtimeCampaignOverlayLoader.LoadAll(
+                _releaseBaseCampaignBytes,
+                Encoding.UTF8.GetBytes(missingEventOverlay.ToJsonString()),
+                _releaseWorld),
+            "release overlay incomplete authored phase coverage");
+        JsonObject unexpectedBase = ParseObject(
+            Encoding.UTF8.GetString(_releaseBaseCampaignBytes));
+        unexpectedBase["unexpected"] = true;
+        Expect<RealtimeCampaignOverlayValidationException>(() =>
+            RealtimeCampaignOverlayLoader.LoadAll(
+                Encoding.UTF8.GetBytes(unexpectedBase.ToJsonString()),
+                _releaseCampaignOverlayBytes,
+                _releaseWorld),
+            "release overlay invalid raw V2 source");
+        Expect<ArgumentOutOfRangeException>(() =>
+            RealtimeCampaignOverlayLoader.LoadPrefix(
+                _releaseBaseCampaignBytes,
+                _releaseCampaignOverlayBytes,
+                _releaseWorld,
+                chapterCount: 0),
+            "release overlay empty prefix");
+        Expect<ArgumentOutOfRangeException>(() =>
+            RealtimeCampaignOverlayLoader.LoadPrefix(
+                _releaseBaseCampaignBytes,
+                _releaseCampaignOverlayBytes,
+                _releaseWorld,
+                chapterCount: 9),
+            "release overlay noncanonical overlong prefix");
     }
 
     private void ConcurrentSameMinuteEvents()

@@ -17,6 +17,7 @@ internal sealed partial class RealtimeEventRail : PanelContainer
     private const float BaseLaneGap = 4f;
     private const int BaseMarkerFontSize = 14;
 
+    private Label _nowHeading = null!;
     private Label _nowLabel = null!;
     private Label _horizonLabel = null!;
     private VBoxContainer _laneLabels = null!;
@@ -63,6 +64,7 @@ internal sealed partial class RealtimeEventRail : PanelContainer
 
     public override void _Ready()
     {
+        _nowHeading = GetNode<Label>("%NowHeading");
         _nowLabel = GetNode<Label>("%NowLabel");
         _horizonLabel = GetNode<Label>("%HorizonLabel");
         _laneLabels = GetNode<VBoxContainer>("Margin/Row/LaneLabels");
@@ -140,9 +142,7 @@ internal sealed partial class RealtimeEventRail : PanelContainer
             UpdateExpansionButton();
             DesiredHeightChanged?.Invoke(DesiredHeight);
         }
-        _nowLabel.Text = presentation.NowLabel;
-        _horizonLabel.Text = presentation.HorizonLabel;
-        _nowLabel.AccessibilityName = $"현재 시각 {presentation.NowLabel}";
+        UpdateStatusLabels(presentation);
         AccessibilityName = BuildAccessibilityName(presentation);
         AccessibilityDescription =
             "이전, 현재, 다음 버튼과 시간순 사건 목록으로 탐색합니다. " +
@@ -181,12 +181,59 @@ internal sealed partial class RealtimeEventRail : PanelContainer
             profile.MinimumHitTarget);
         _expandLanes.Visible = profile.AccessibilityScale >= 1.25f;
         UpdateExpansionButton();
+        if (_presentation is not null)
+        {
+            UpdateStatusLabels(_presentation);
+        }
         foreach (MarkerEntry entry in _markers)
         {
             ApplyMarkerVisualTokens(entry.Button);
         }
         ScheduleMarkerLayout();
     }
+
+    private void UpdateStatusLabels(RealtimeEventRailPresentation presentation)
+    {
+        _nowLabel.Text = presentation.NowLabel;
+        _nowHeading.Text = presentation.NextEvent is null
+            ? "현재 · 다음 사건 없음"
+            : $"현재 · 다음 {presentation.NextEvent.CountdownLabel}";
+        _nowHeading.TooltipText = presentation.NextEvent is null
+            ? "예정된 다음 사건이 없습니다."
+            : $"{presentation.NextEvent.EventLabel} · " +
+              $"{presentation.NextEvent.CountdownLabel} · " +
+              presentation.NextEvent.WindowLabel;
+
+        _horizonLabel.Text = presentation.NextEvent switch
+        {
+            null => CompactHorizonLabel(presentation.HorizonPreset),
+            { } next =>
+                $"{CompactHorizonLabel(presentation.HorizonPreset)}\n" +
+                next.CompactWindowLabel,
+        };
+        _horizonLabel.TooltipText = presentation.NextEvent is null
+            ? presentation.HorizonLabel
+            : $"{presentation.HorizonLabel} · {presentation.NextEvent.EventLabel} · " +
+              presentation.NextEvent.WindowLabel;
+        _nowLabel.AccessibilityName = $"현재 시각 {presentation.NowLabel}";
+        _nowHeading.AccessibilityName = presentation.NextEvent is null
+            ? "다음 사건 예정 없음"
+            : $"다음 사건 {presentation.NextEvent.EventLabel}. " +
+              presentation.NextEvent.CountdownLabel;
+        _horizonLabel.AccessibilityName = presentation.NextEvent is null
+            ? $"사건 지평선 범위 {presentation.HorizonLabel}"
+            : $"사건 지평선 범위 {presentation.HorizonLabel}. " +
+              presentation.NextEvent.WindowLabel;
+    }
+
+    private static string CompactHorizonLabel(
+        RealtimeTimelineHorizonPreset preset) => preset switch
+    {
+        RealtimeTimelineHorizonPreset.SixHours => "+6h · -6h",
+        RealtimeTimelineHorizonPreset.TwentyFourHours => "+24h · -6h",
+        RealtimeTimelineHorizonPreset.SevenDays => "+7d · -6h",
+        _ => throw new ArgumentOutOfRangeException(nameof(preset)),
+    };
 
     private void ApplyAccessiblePopupLayout(RealtimeLayoutProfile profile)
     {
@@ -245,6 +292,8 @@ internal sealed partial class RealtimeEventRail : PanelContainer
         // The controller is the sole navigation reducer. It owns authored,
         // construction, and thermal markers together and the refreshed
         // presentation restores focus to the selected stable ID.
+        string signatureBefore = _presentationSignature;
+        string? selectedBefore = _presentation.SelectedItemId;
         _focusSelectedOnNextPresentation = true;
         try
         {
@@ -256,6 +305,19 @@ internal sealed partial class RealtimeEventRail : PanelContainer
             // flag. If no owner (or a boundary no-op) publishes a new
             // presentation, do not let an unrelated refresh inherit it.
             _focusSelectedOnNextPresentation = false;
+        }
+        if (navigation != RealtimeTimelineNavigation.Home &&
+            !string.IsNullOrWhiteSpace(selectedBefore) &&
+            string.Equals(
+                signatureBefore,
+                _presentationSignature,
+                StringComparison.Ordinal))
+        {
+            // A mouse press moves focus to the navigation button before the
+            // callback runs. At a first/last-item boundary the controller is a
+            // deliberate no-op, so no refreshed presentation exists to return
+            // focus to the selected semantic marker. Restore it explicitly.
+            GrabMarkerFor(selectedBefore);
         }
         return true;
     }
@@ -523,21 +585,34 @@ internal sealed partial class RealtimeEventRail : PanelContainer
         string currentSiblingSuffix = otherCurrentCount > 0
             ? $" · 진행 {otherCurrentCount}건"
             : string.Empty;
+        bool showSource = lead.Kind == RealtimeTimelineItemKind.Construction;
+        string sourcePrefix = showSource
+            ? $"{lead.SourceGlyph} " +
+              (lead.SourceKind == RealtimeTimelineSourceKind.Draft
+                  ? "초안 · "
+                  : "실제 · ")
+            : string.Empty;
+        string visibleTime = lead.Kind == RealtimeTimelineItemKind.Construction
+            ? lead.TimingLabel
+            : lead.TimeLabel;
         string text = items.Count == 1
-            ? $"{statePrefix}{SeverityGlyph(lead.Severity)} {lead.KindIcon} {lead.TimeLabel} · {lead.ShortLabel}"
-            : $"{statePrefix}{SeverityGlyph(lead.Severity)} {lead.KindIcon} {lead.TimeLabel} · " +
+            ? $"{statePrefix}{sourcePrefix}{SeverityGlyph(lead.Severity)} " +
+              $"{lead.KindIcon} {visibleTime} · {lead.ShortLabel}"
+            : $"{statePrefix}{sourcePrefix}{SeverityGlyph(lead.Severity)} " +
+              $"{lead.KindIcon} {visibleTime} · " +
               $"{lead.ShortLabel} +{items.Count - 1}{currentSiblingSuffix}";
         Button marker = entry.Button;
         marker.Text = text;
         marker.TooltipText = items.Count == 1
-            ? $"{lead.TimeLabel} · {lead.Description}"
-            : string.Join("\n", items.Select(item => $"{item.TimeLabel} · {item.Title}"));
+            ? $"{lead.SourceLabel} · {lead.TimingLabel} · {lead.Description}"
+            : string.Join("\n", items.Select(item =>
+                $"{item.SourceLabel} · {item.TimingLabel} · {item.Title}"));
         marker.AccessibilityName = items.Count == 1
             ? TimelineAccessibility(lead)
             : $"가까운 시간 구간의 일정 {items.Count}건. " +
               string.Join(". ", items.Select(TimelineAccessibility));
         marker.AccessibilityDescription =
-            "선택하면 같은 운영 예측을 지도와 상황 패널에서 엽니다.";
+            "선택하면 같은 실제 운영 기록 또는 초안 운영 예측을 지도와 상황 패널에서 엽니다.";
         marker.AddThemeColorOverride("font_color", SeverityColor(lead.Severity));
         bool selected = _presentation?.SelectedItemId is string selectedId &&
             items.Any(item => string.Equals(item.Id, selectedId, StringComparison.Ordinal));
@@ -695,7 +770,8 @@ internal sealed partial class RealtimeEventRail : PanelContainer
 
     private static string AccessibleSelectorText(
         RealtimeTimelineItemPresentation item) =>
-        $"{SeverityGlyph(item.Severity)} {item.TimeLabel} · {item.KindLabel} · {item.ShortLabel}";
+        $"{SeverityGlyph(item.Severity)} {item.TimingLabel} · " +
+        $"{item.SourceLabel} {item.KindLabel} · {item.ShortLabel}";
 
 #if DEBUG
     private void AssertNoSameLaneMarkerOverlap()
@@ -853,7 +929,7 @@ internal sealed partial class RealtimeEventRail : PanelContainer
     };
 
     private static string TimelineAccessibility(RealtimeTimelineItemPresentation item) =>
-        $"{item.TimeLabel}. {item.KindLabel} {item.Title}. " +
+        $"{item.TimingLabel}. {item.SourceLabel} {item.KindLabel} {item.Title}. " +
         $"{(item.IsCurrent ? "진행 중. " : item.Visibility == RealtimeTimelineVisibility.Completed ? "완료됨. " : string.Empty)}" +
         $"{item.SeverityLabel}. {item.Description}.";
 
@@ -861,7 +937,12 @@ internal sealed partial class RealtimeEventRail : PanelContainer
     {
         string items = string.Join(". ", VisibleItems(presentation)
             .Select(TimelineAccessibility));
-        return $"사건 지평선. 현재 {presentation.NowLabel}. 범위 {presentation.HorizonLabel}. {items}";
+        string next = presentation.NextEvent is null
+            ? "다음 사건 예정 없음"
+            : $"다음 사건 {presentation.NextEvent.EventLabel}, " +
+              $"{presentation.NextEvent.CountdownLabel}, {presentation.NextEvent.WindowLabel}";
+        return $"사건 지평선. 현재 {presentation.NowLabel}. {next}. " +
+               $"범위 {presentation.HorizonLabel}. {items}";
     }
 
     private static string Signature(RealtimeEventRailPresentation presentation) =>
@@ -875,6 +956,14 @@ internal sealed partial class RealtimeEventRail : PanelContainer
             presentation.HorizonPreset,
             presentation.SelectedItemId ?? string.Empty,
             presentation.Expanded,
+            presentation.NextEvent?.EventId ?? string.Empty,
+            presentation.NextEvent?.StartMinute.ToString() ?? string.Empty,
+            presentation.NextEvent?.EndMinute.ToString() ?? string.Empty,
+            presentation.NextEvent?.MinutesUntilStart.ToString() ?? string.Empty,
+            presentation.NextEvent?.EventLabel ?? string.Empty,
+            presentation.NextEvent?.CountdownLabel ?? string.Empty,
+            presentation.NextEvent?.WindowLabel ?? string.Empty,
+            presentation.NextEvent?.CompactWindowLabel ?? string.Empty,
             string.Join("\u001e", presentation.Items.Select(item => string.Join(
                 "\u001d",
                 item.Id,
@@ -893,7 +982,17 @@ internal sealed partial class RealtimeEventRail : PanelContainer
                 item.KindIcon,
                 item.KindLabel,
                 item.TimeLabel,
+                item.EndTimeLabel ?? string.Empty,
+                item.TimingLabel,
+                item.SourceKind,
+                item.SourceLabel,
+                item.SourceGlyph,
                 item.SeverityLabel))));
+
+#if DEBUG
+    internal string NextEventCountdownTextForSmoke => _nowHeading.Text;
+    internal string NextEventWindowTextForSmoke => _horizonLabel.Text;
+#endif
 
     private static void WireChronologicalArrowFocus(IReadOnlyList<Button> markers)
     {

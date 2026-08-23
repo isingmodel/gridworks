@@ -124,6 +124,17 @@ internal enum RealtimeTimelineVisibility
     Completed,
 }
 
+/// <summary>
+/// Distinguishes state that already exists in the authoritative run from an
+/// uncommitted construction draft. This is presentation provenance, not a
+/// second simulation state.
+/// </summary>
+internal enum RealtimeTimelineSourceKind
+{
+    Actual,
+    Draft,
+}
+
 internal enum RealtimeActionTone
 {
     Primary,
@@ -222,7 +233,33 @@ internal sealed record RealtimeTimelineItemPresentation(
 
     public string TimeLabel { get; init; } = string.Empty;
 
+    public string? EndTimeLabel { get; init; }
+
     public string SeverityLabel { get; init; } = Severity.ToString();
+
+    public RealtimeTimelineSourceKind SourceKind { get; init; } =
+        RealtimeTimelineSourceKind.Actual;
+
+    public string SourceLabel => SourceKind switch
+    {
+        RealtimeTimelineSourceKind.Actual => "실제",
+        RealtimeTimelineSourceKind.Draft => "초안 예상",
+        _ => throw new ArgumentOutOfRangeException(nameof(SourceKind)),
+    };
+
+    public string SourceGlyph => SourceKind switch
+    {
+        RealtimeTimelineSourceKind.Actual => "■",
+        RealtimeTimelineSourceKind.Draft => "◇",
+        _ => throw new ArgumentOutOfRangeException(nameof(SourceKind)),
+    };
+
+    public string TimingLabel => EndMinute.HasValue &&
+        !string.IsNullOrWhiteSpace(EndTimeLabel)
+            ? $"시작 {TimeLabel} · 종료 {EndTimeLabel}"
+            : Kind == RealtimeTimelineItemKind.Construction
+                ? $"완공 {TimeLabel}"
+                : TimeLabel;
 
     private static RealtimeTimelineLane LaneFor(RealtimeTimelineItemKind kind) => kind switch
     {
@@ -259,6 +296,16 @@ internal sealed record RealtimeTimelineItemPresentation(
     };
 }
 
+internal sealed record RealtimeNextEventPresentation(
+    string EventId,
+    long StartMinute,
+    long EndMinute,
+    long MinutesUntilStart,
+    string EventLabel,
+    string CountdownLabel,
+    string WindowLabel,
+    string CompactWindowLabel);
+
 internal sealed record RealtimeEventRailPresentation(
     long NowMinute,
     long HorizonStartMinute,
@@ -266,7 +313,8 @@ internal sealed record RealtimeEventRailPresentation(
     string NowLabel,
     string HorizonLabel,
     IReadOnlyList<RealtimeTimelineItemPresentation> Items,
-    string? SelectedItemId = null)
+    string? SelectedItemId = null,
+    RealtimeNextEventPresentation? NextEvent = null)
 {
     private IReadOnlyList<RealtimeTimelineItemPresentation> _items = Freeze(Items);
 

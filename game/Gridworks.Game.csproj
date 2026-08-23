@@ -38,6 +38,12 @@
     <EmbeddedResource Include="../tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-first-light-realtime-v3.json"
                       Link="EmbeddedData/stage-r1-first-light-realtime-v3.json"
                       LogicalName="Gridworks.Game.EmbeddedData.stage-r1-first-light-realtime-v3.json" />
+    <EmbeddedResource Include="../data/release-world-v3.json"
+                      Link="EmbeddedData/release-world-v3.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.release-world-v3.json" />
+    <EmbeddedResource Include="../data/release-campaign-v3.json"
+                      Link="EmbeddedData/release-campaign-v3.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.release-campaign-v3.json" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">

@@ -14,6 +14,7 @@ internal sealed record RealtimeSlicePresentation(
     RealtimeCampaignSnapshot CoreSnapshot,
     RealtimeForecastSnapshot BaseForecast,
     RealtimeComparisonDraftForecast ComparisonDraftForecast,
+    IReadOnlyList<RealtimeTransition> TransitionHistory,
     RealtimeInteractionPresentation Interaction,
     RealtimeWorldPresentation World,
     RealtimeWorldPointerFeedback Pointer,
@@ -22,7 +23,17 @@ internal sealed record RealtimeSlicePresentation(
     RealtimeContextDockPresentation Context,
     RealtimeBuildShelfPresentation BuildShelf,
     RealtimeActionDockPresentation ActionDock,
-    RealtimeModalPresentation? Modal);
+    RealtimeModalPresentation? Modal)
+{
+    private IReadOnlyList<RealtimeTransition> _transitionHistory =
+        Array.AsReadOnly(TransitionHistory.ToArray());
+
+    public IReadOnlyList<RealtimeTransition> TransitionHistory
+    {
+        get => _transitionHistory;
+        init => _transitionHistory = Array.AsReadOnly(value.ToArray());
+    }
+}
 
 internal enum RealtimeTimelineTargetKind
 {
@@ -45,6 +56,9 @@ internal static class RealtimeSlicePresenter
         RealtimeCampaignRun.DefaultForecastHorizonMinutes;
     private const long TimelineHistoryMinutes = 6 * 60;
     private const int TimelineHistoryLimit = 3;
+    private const string ActiveConstructionMarkerId = "ACTIVE_CONSTRUCTION";
+    private const string DraftConstructionMarkerId = "DRAFT_CONSTRUCTION";
+    private const string CompletedConstructionMarkerPrefix = "COMPLETED_CONSTRUCTION:";
 
     internal static RealtimeSlicePresentation Present(
         CommercialWorldDefinition displayWorld,
@@ -58,7 +72,8 @@ internal static class RealtimeSlicePresenter
         string pointerMessage = "",
         bool reduceMotion = false,
         RealtimeProjectQuote? nodeOrderQuote = null,
-        RealtimeProjectQuote? lineOrderQuote = null) => Present(
+        RealtimeProjectQuote? lineOrderQuote = null,
+        IReadOnlyList<RealtimeTransition>? transitionHistory = null) => Present(
         displayWorld,
         realtimeWorld,
         snapshot,
@@ -71,7 +86,8 @@ internal static class RealtimeSlicePresenter
         pointerMessage,
         reduceMotion,
         nodeOrderQuote,
-        lineOrderQuote);
+        lineOrderQuote,
+        transitionHistory);
 
     internal static RealtimeSlicePresentation Present(
         CommercialWorldDefinition displayWorld,
@@ -86,7 +102,8 @@ internal static class RealtimeSlicePresenter
         string pointerMessage = "",
         bool reduceMotion = false,
         RealtimeProjectQuote? nodeOrderQuote = null,
-        RealtimeProjectQuote? lineOrderQuote = null)
+        RealtimeProjectQuote? lineOrderQuote = null,
+        IReadOnlyList<RealtimeTransition>? transitionHistory = null)
     {
         ArgumentNullException.ThrowIfNull(displayWorld);
         ArgumentNullException.ThrowIfNull(realtimeWorld);
@@ -94,6 +111,8 @@ internal static class RealtimeSlicePresenter
         ArgumentNullException.ThrowIfNull(baseForecast);
         ArgumentNullException.ThrowIfNull(comparisonDraftForecast);
         ArgumentNullException.ThrowIfNull(interaction);
+        IReadOnlyList<RealtimeTransition> history = Array.AsReadOnly(
+            (transitionHistory ?? Array.Empty<RealtimeTransition>()).ToArray());
 
         RealtimePausePresentation pause = Pause(
             displayWorld,
@@ -107,12 +126,16 @@ internal static class RealtimeSlicePresenter
             snapshot,
             baseForecast,
             comparisonDraftForecast,
-            interaction);
+            interaction,
+            nodeOrderQuote,
+            lineOrderQuote,
+            history);
         return new RealtimeSlicePresentation(
             revision,
             snapshot,
             baseForecast,
             comparisonDraftForecast,
+            history,
             interactionPresentation,
             World(
                 displayWorld,
@@ -120,7 +143,8 @@ internal static class RealtimeSlicePresenter
                 baseForecast,
                 comparisonDraftForecast,
                 interaction,
-                reduceMotion),
+                reduceMotion,
+                history),
             new RealtimeWorldPointerFeedback(
                 pointerPoint,
                 pointerAccepted,
@@ -135,7 +159,10 @@ internal static class RealtimeSlicePresenter
                 comparisonDraftForecast,
                 interaction.Surface == RealtimeSurface.Inspector
                     ? interaction.SelectionId
-                    : null),
+                    : null,
+                nodeOrderQuote,
+                lineOrderQuote,
+                history),
             BuildShelf(
                 snapshot,
                 interaction,
@@ -215,12 +242,27 @@ internal static class RealtimeSlicePresenter
         RealtimeCampaignSnapshot snapshot,
         RealtimeForecastSnapshot baseForecast,
         RealtimeComparisonDraftForecast comparisonDraftForecast,
+        string markerId) => ResolveTimelineTarget(
+        displayWorld,
+        snapshot,
+        baseForecast,
+        comparisonDraftForecast,
+        Array.Empty<RealtimeTransition>(),
+        markerId);
+
+    internal static RealtimeTimelineTarget ResolveTimelineTarget(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeForecastSnapshot baseForecast,
+        RealtimeComparisonDraftForecast comparisonDraftForecast,
+        IReadOnlyList<RealtimeTransition> transitionHistory,
         string markerId)
     {
         ArgumentNullException.ThrowIfNull(displayWorld);
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(baseForecast);
         ArgumentNullException.ThrowIfNull(comparisonDraftForecast);
+        ArgumentNullException.ThrowIfNull(transitionHistory);
         ArgumentException.ThrowIfNullOrWhiteSpace(markerId);
         if (TryResolveComparisonEvent(
                 comparisonDraftForecast,
@@ -300,7 +342,7 @@ internal static class RealtimeSlicePresenter
                     selectedOutcome.FinalEvaluation,
                     scheduled.OperatingProfile));
         }
-        if (string.Equals(markerId, "ACTIVE_CONSTRUCTION", StringComparison.Ordinal))
+        if (string.Equals(markerId, ActiveConstructionMarkerId, StringComparison.Ordinal))
         {
             return new RealtimeTimelineTarget(
                 markerId,
@@ -309,6 +351,34 @@ internal static class RealtimeSlicePresenter
                     ? null
                     : markerId,
                 null);
+        }
+        if (string.Equals(markerId, DraftConstructionMarkerId, StringComparison.Ordinal))
+        {
+            bool hasDraft = !snapshot.CampaignComplete &&
+                (snapshot.Construction.NodeDraft is not null ||
+                    snapshot.Construction.LineDraft is { EndNodeId: not null });
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.ConstructionProject,
+                hasDraft ? markerId : null,
+                null);
+        }
+        if (TryResolveCompletedConstruction(
+                transitionHistory,
+                markerId,
+                out RealtimeConstructionCompletion completedConstruction))
+        {
+            string? mapSubjectId = completedConstruction.EdgeIds
+                .Concat(completedConstruction.NodeIds)
+                .FirstOrDefault(id => snapshot.Construction.World.Edges.Any(item =>
+                        string.Equals(item.EdgeId, id, StringComparison.Ordinal)) ||
+                    snapshot.Construction.World.Nodes.Any(item =>
+                        string.Equals(item.NodeId, id, StringComparison.Ordinal)));
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.ConstructionProject,
+                markerId,
+                mapSubjectId);
         }
         if (snapshot.Construction.World.Nodes.Any(item => string.Equals(
                 item.NodeId,
@@ -338,7 +408,8 @@ internal static class RealtimeSlicePresenter
         RealtimeForecastSnapshot baseForecast,
         RealtimeComparisonDraftForecast comparisonDraftForecast,
         RealtimeInteractionState interaction,
-        bool reduceMotion)
+        bool reduceMotion,
+        IReadOnlyList<RealtimeTransition> transitionHistory)
     {
         IReadOnlyDictionary<string, RealtimeThermalAssetSnapshot> thermalById =
             snapshot.Thermal.Assets.ToDictionary(
@@ -373,6 +444,7 @@ internal static class RealtimeSlicePresenter
                 snapshot,
                 baseForecast,
                 comparisonDraftForecast,
+                transitionHistory,
                 interaction.SelectionId),
             interaction.Tool == RealtimeTool.Analysis,
             Weather(snapshot),
@@ -383,6 +455,7 @@ internal static class RealtimeSlicePresenter
                 snapshot,
                 baseForecast,
                 comparisonDraftForecast,
+                transitionHistory,
                 interaction.SelectionId),
             reduceMotion,
             interaction.Tool,
@@ -481,7 +554,10 @@ internal static class RealtimeSlicePresenter
         RealtimeCampaignSnapshot snapshot,
         RealtimeForecastSnapshot baseForecast,
         RealtimeComparisonDraftForecast comparisonDraftForecast,
-        RealtimeInteractionState interaction)
+        RealtimeInteractionState interaction,
+        RealtimeProjectQuote? nodeOrderQuote,
+        RealtimeProjectQuote? lineOrderQuote,
+        IReadOnlyList<RealtimeTransition> transitionHistory)
     {
         var items = new List<RealtimeTimelineItemPresentation>();
         int highestAuthoredPriority = snapshot.Chapter.ScheduledEvents.Count == 0
@@ -518,6 +594,7 @@ internal static class RealtimeSlicePresenter
                     : RealtimeTimelineLane.DemandAndDeadline,
                 Priority = ForecastPriority(snapshot, item),
                 TimeLabel = Time(item.StartMinute),
+                EndTimeLabel = Time(item.EndMinute),
                 SeverityLabel = safetyRisk ? "안전 의무 위험" : "예고",
             });
 
@@ -596,9 +673,11 @@ internal static class RealtimeSlicePresenter
                         : RealtimeTimelineLane.DemandAndDeadline,
                     Priority = ForecastPriority(snapshot, item),
                     TimeLabel = Time(item.StartMinute),
+                    EndTimeLabel = Time(item.EndMinute),
                     SeverityLabel = safetyRisk
                         ? "현재 초안 기준 예상 · 안전 의무 위험"
                         : "현재 초안 기준 예상",
+                    SourceKind = RealtimeTimelineSourceKind.Draft,
                 });
 
                 foreach (RealtimeThermalTransition transition in
@@ -640,6 +719,7 @@ internal static class RealtimeSlicePresenter
                         SeverityLabel = trip
                             ? "현재 초안 기준 예상 · 보호정지"
                             : "현재 초안 기준 예상 · 열 상태 변화",
+                        SourceKind = RealtimeTimelineSourceKind.Draft,
                     });
                 }
             }
@@ -683,7 +763,8 @@ internal static class RealtimeSlicePresenter
                         ? RealtimeTimelineLane.WeatherAndOutage
                         : RealtimeTimelineLane.DemandAndDeadline,
                 Priority = scheduled.Priority,
-                TimeLabel = Time(outcome.EndMinute),
+                TimeLabel = Time(outcome.StartMinute),
+                EndTimeLabel = Time(outcome.EndMinute),
                 SeverityLabel = outcome.SafetySatisfied
                     ? "운영 기록 완료"
                     : "미공급 기록 완료",
@@ -693,13 +774,15 @@ internal static class RealtimeSlicePresenter
         if (snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot project)
         {
             items.Add(new RealtimeTimelineItemPresentation(
-                "ACTIVE_CONSTRUCTION",
+                ActiveConstructionMarkerId,
                 RealtimeTimelineItemKind.Construction,
                 project.CompletionMinute,
                 null,
-                project.Kind == ConstructionKind.Line ? "선로 공사" : "변전소 공사",
-                "공사 완료",
-                $"{Time(project.CompletionMinute)}에 완공 즉시 공급에 참여",
+                project.Kind == ConstructionKind.Line
+                    ? "실제 선로 공사"
+                    : "실제 변전소 공사",
+                "실제 공사 완공",
+                $"발주된 실제 공사 · {Time(project.CompletionMinute)}에 완공 즉시 공급에 참여",
                 RealtimeTimelineSeverity.Information,
                 RealtimeTimelineVisibility.Active,
                 true,
@@ -709,6 +792,79 @@ internal static class RealtimeSlicePresenter
                 Priority = int.MinValue,
                 TimeLabel = Time(project.CompletionMinute),
                 SeverityLabel = "공사 중",
+            });
+        }
+
+        foreach (RealtimeTransition transition in transitionHistory
+                     .Where(item => item.Kind ==
+                         RealtimeTransitionKind.ConstructionCompleted &&
+                         item.Construction is not null &&
+                         item.Minute <= snapshot.Minute)
+                     .OrderByDescending(item => item.Minute)
+                     .ThenBy(item => CompletedConstructionMarkerId(item.Construction!),
+                         StringComparer.Ordinal)
+                     .Take(TimelineHistoryLimit)
+                     .OrderBy(item => item.Minute)
+                     .ThenBy(item => CompletedConstructionMarkerId(item.Construction!),
+                         StringComparer.Ordinal))
+        {
+            RealtimeConstructionCompletion completion = transition.Construction!;
+            items.Add(new RealtimeTimelineItemPresentation(
+                CompletedConstructionMarkerId(completion),
+                RealtimeTimelineItemKind.Construction,
+                completion.CompletionMinute,
+                null,
+                completion.Kind == ConstructionKind.Line
+                    ? "실제 선로 공사 완료"
+                    : "실제 변전소 공사 완료",
+                "실제 공사 완료",
+                $"실제 완공 기록 · 설비 {completion.NodeIds.Count}곳 · " +
+                $"선로 {completion.EdgeIds.Count}구간이 공급에 참여",
+                RealtimeTimelineSeverity.Information,
+                RealtimeTimelineVisibility.Completed,
+                false,
+                true)
+            {
+                Lane = RealtimeTimelineLane.Construction,
+                Priority = int.MinValue + 1,
+                TimeLabel = Time(completion.CompletionMinute),
+                SeverityLabel = "실제 완공 기록",
+            });
+        }
+
+        RealtimeProjectQuote? draftQuote = snapshot.Construction.NodeDraft is not null
+            ? nodeOrderQuote
+            : snapshot.Construction.LineDraft is { EndNodeId: not null }
+                ? lineOrderQuote
+                : null;
+        if (!snapshot.CampaignComplete &&
+            draftQuote is
+            {
+                Accepted: true,
+                CompletionMinute: long draftCompletionMinute,
+                BuildMinutes: long draftBuildMinutes,
+            })
+        {
+            bool lineDraft = snapshot.Construction.LineDraft is { EndNodeId: not null };
+            items.Add(new RealtimeTimelineItemPresentation(
+                DraftConstructionMarkerId,
+                RealtimeTimelineItemKind.Construction,
+                draftCompletionMinute,
+                null,
+                lineDraft ? "선로 초안 완공 예상" : "변전소 초안 완공 예상",
+                "초안 완공 예상",
+                $"아직 발주되지 않은 초안 · 발주하면 {draftBuildMinutes}분 뒤 " +
+                $"{Time(draftCompletionMinute)} 완공 예상",
+                RealtimeTimelineSeverity.Advisory,
+                RealtimeTimelineVisibility.Announced,
+                false,
+                true)
+            {
+                Lane = RealtimeTimelineLane.Construction,
+                Priority = int.MinValue + 2,
+                TimeLabel = Time(draftCompletionMinute),
+                SeverityLabel = "초안 예상 · 미발주",
+                SourceKind = RealtimeTimelineSourceKind.Draft,
             });
         }
 
@@ -723,6 +879,23 @@ internal static class RealtimeSlicePresenter
             .ThenBy(item => item.Priority)
             .ThenBy(item => item.Id, StringComparer.Ordinal)
             .ToArray();
+        RealtimeForecastEvent? nextEvent = baseForecast.Events
+            .Where(item => item.StartMinute > snapshot.Minute)
+            .OrderBy(item => item.StartMinute)
+            .ThenBy(item => ForecastPriority(snapshot, item))
+            .ThenBy(item => item.EventId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        RealtimeNextEventPresentation? nextEventPresentation = nextEvent is null
+            ? null
+            : new RealtimeNextEventPresentation(
+                nextEvent.EventId,
+                nextEvent.StartMinute,
+                nextEvent.EndMinute,
+                checked(nextEvent.StartMinute - snapshot.Minute),
+                PlayerEventName(displayWorld, nextEvent.OperatingProfile),
+                Countdown(checked(nextEvent.StartMinute - snapshot.Minute)),
+                $"시작 {Time(nextEvent.StartMinute)} · 종료 {Time(nextEvent.EndMinute)}",
+                $"{Clock(nextEvent.StartMinute)}→{Clock(nextEvent.EndMinute)}");
         return new RealtimeEventRailPresentation(
             snapshot.Minute,
             horizonStart,
@@ -730,7 +903,8 @@ internal static class RealtimeSlicePresenter
             Time(snapshot.Minute),
             $"{HorizonLabel(interaction.TimelineHorizon)} · 지난 6시간",
             Array.AsReadOnly(ordered),
-            interaction.TimelineSelectedItemId)
+            interaction.TimelineSelectedItemId,
+            nextEventPresentation)
         {
             HorizonPreset = interaction.TimelineHorizon,
             Expanded = interaction.Surface == RealtimeSurface.Timeline,
@@ -743,7 +917,10 @@ internal static class RealtimeSlicePresenter
         RealtimeCampaignSnapshot snapshot,
         RealtimeForecastSnapshot baseForecast,
         RealtimeComparisonDraftForecast comparisonDraftForecast,
-        string? selectedId)
+        string? selectedId,
+        RealtimeProjectQuote? nodeOrderQuote,
+        RealtimeProjectQuote? lineOrderQuote,
+        IReadOnlyList<RealtimeTransition> transitionHistory)
     {
         if (selectedId is null)
         {
@@ -755,13 +932,13 @@ internal static class RealtimeSlicePresenter
                 Array.Empty<RealtimeContextSectionPresentation>());
         }
 
-        if (string.Equals(selectedId, "ACTIVE_CONSTRUCTION", StringComparison.Ordinal) &&
+        if (string.Equals(selectedId, ActiveConstructionMarkerId, StringComparison.Ordinal) &&
             snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot project)
         {
             return new RealtimeContextDockPresentation(
                 selectedId,
                 true,
-                "공사 프로젝트",
+                "실제 공사 중",
                 project.Kind == ConstructionKind.Line ? "선로 공사" : "변전소 공사",
                 new RealtimeContextSectionPresentation[]
                 {
@@ -777,6 +954,69 @@ internal static class RealtimeSlicePresenter
                         "공사 범위",
                         $"설비: {JoinAssetNames(displayWorld, snapshot, project.NodeIds)}\n" +
                         $"선로: {JoinAssetNames(displayWorld, snapshot, project.EdgeIds)}",
+                        RealtimeTimelineSeverity.Information),
+                },
+            };
+        }
+
+        RealtimeProjectQuote? selectedDraftQuote = snapshot.Construction.NodeDraft is not null
+            ? nodeOrderQuote
+            : snapshot.Construction.LineDraft is { EndNodeId: not null }
+                ? lineOrderQuote
+                : null;
+        if (!snapshot.CampaignComplete &&
+            string.Equals(selectedId, DraftConstructionMarkerId, StringComparison.Ordinal) &&
+            selectedDraftQuote is
+            {
+                Accepted: true,
+                CostCashUnit: long draftCost,
+                BuildMinutes: long draftBuildMinutes,
+                CompletionMinute: long draftCompletionMinute,
+            })
+        {
+            bool lineDraft = snapshot.Construction.LineDraft is { EndNodeId: not null };
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "초안 예상 · 아직 미발주",
+                lineDraft ? "선로 초안" : "변전소 초안",
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("상태", "초안 · 실제 공사 아님",
+                        RealtimeTimelineSeverity.Advisory),
+                    new("발주 시 완공", Time(draftCompletionMinute)),
+                    new("예상 공기", $"{draftBuildMinutes}분"),
+                    new("발주 비용", Cash(draftCost)),
+                });
+        }
+
+        if (TryResolveCompletedConstruction(
+                transitionHistory,
+                selectedId,
+                out RealtimeConstructionCompletion completedConstruction))
+        {
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "실제 완공 기록",
+                completedConstruction.Kind == ConstructionKind.Line
+                    ? "선로 공사 완료"
+                    : "변전소 공사 완료",
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("실제 완공", Time(completedConstruction.CompletionMinute)),
+                    new("상태", "완공됨 · 현재 공급망에 반영"),
+                    new("범위", $"설비 {completedConstruction.NodeIds.Count}곳 · " +
+                        $"선로 {completedConstruction.EdgeIds.Count}구간"),
+                })
+            {
+                Details = new RealtimeContextDetailPresentation[]
+                {
+                    new(
+                        RealtimeContextDetailTab.History,
+                        "실제 공사 이력",
+                        $"설비: {JoinAssetNames(displayWorld, snapshot, completedConstruction.NodeIds)}\n" +
+                        $"선로: {JoinAssetNames(displayWorld, snapshot, completedConstruction.EdgeIds)}",
                         RealtimeTimelineSeverity.Information),
                 },
             };
@@ -1452,13 +1692,14 @@ internal static class RealtimeSlicePresenter
         RealtimeCampaignSnapshot snapshot,
         RealtimeForecastSnapshot baseForecast,
         RealtimeComparisonDraftForecast comparisonDraftForecast,
+        IReadOnlyList<RealtimeTransition> transitionHistory,
         string? selectedId)
     {
         if (selectedId is null)
         {
             return null;
         }
-        if (string.Equals(selectedId, "ACTIVE_CONSTRUCTION", StringComparison.Ordinal) &&
+        if (string.Equals(selectedId, ActiveConstructionMarkerId, StringComparison.Ordinal) &&
             snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot project)
         {
             return new RealtimeWorldHighlight(
@@ -1467,12 +1708,24 @@ internal static class RealtimeSlicePresenter
                 null,
                 $"{Time(project.CompletionMinute)} 완공 예정 공사 대상");
         }
+        if (TryResolveCompletedConstruction(
+                transitionHistory,
+                selectedId,
+                out RealtimeConstructionCompletion completedConstruction))
+        {
+            return new RealtimeWorldHighlight(
+                completedConstruction.NodeIds,
+                completedConstruction.EdgeIds,
+                null,
+                $"{Time(completedConstruction.CompletionMinute)} 실제 완공 공사 범위");
+        }
         ThermalIntervalEvaluation evaluation = snapshot.Thermal.Evaluation;
         string? mapSelectionId = MapSelectionId(
             displayWorld,
             snapshot,
             baseForecast,
             comparisonDraftForecast,
+            transitionHistory,
             selectedId);
         RealtimeForecastEvent? forecast = baseForecast.Events.FirstOrDefault(item =>
             string.Equals(item.EventId, selectedId, StringComparison.Ordinal));
@@ -1896,6 +2149,40 @@ internal static class RealtimeSlicePresenter
         RealtimeThermalTransition transition) =>
         $"DRAFT_THERMAL:{eventId}:{transition.Minute}:{transition.Kind}:{transition.AssetId}";
 
+    private static string CompletedConstructionMarkerId(
+        RealtimeConstructionCompletion completion) =>
+        $"{CompletedConstructionMarkerPrefix}{completion.CompletionMinute}:" +
+        $"{completion.Kind}:{string.Join('+', completion.NodeIds)}:" +
+        string.Join('+', completion.EdgeIds);
+
+    private static bool TryResolveCompletedConstruction(
+        IReadOnlyList<RealtimeTransition> transitionHistory,
+        string markerId,
+        out RealtimeConstructionCompletion completion)
+    {
+        foreach (RealtimeTransition transition in transitionHistory)
+        {
+            if (transition is not
+                {
+                    Kind: RealtimeTransitionKind.ConstructionCompleted,
+                    Construction: not null,
+                })
+            {
+                continue;
+            }
+            if (string.Equals(
+                    CompletedConstructionMarkerId(transition.Construction),
+                    markerId,
+                    StringComparison.Ordinal))
+            {
+                completion = transition.Construction;
+                return true;
+            }
+        }
+        completion = null!;
+        return false;
+    }
+
     private static bool TryResolveComparisonEvent(
         RealtimeComparisonDraftForecast comparisonDraftForecast,
         string markerId,
@@ -1985,11 +2272,24 @@ internal static class RealtimeSlicePresenter
         RealtimeCampaignSnapshot snapshot,
         RealtimeForecastSnapshot baseForecast,
         RealtimeComparisonDraftForecast comparisonDraftForecast,
+        IReadOnlyList<RealtimeTransition> transitionHistory,
         string? selectionId)
     {
         if (selectionId is null)
         {
             return null;
+        }
+        if (TryResolveCompletedConstruction(
+                transitionHistory,
+                selectionId,
+                out RealtimeConstructionCompletion completedConstruction))
+        {
+            return completedConstruction.EdgeIds
+                .Concat(completedConstruction.NodeIds)
+                .FirstOrDefault(id => snapshot.Construction.World.Edges.Any(item =>
+                        string.Equals(item.EdgeId, id, StringComparison.Ordinal)) ||
+                    snapshot.Construction.World.Nodes.Any(item =>
+                        string.Equals(item.NodeId, id, StringComparison.Ordinal)));
         }
         if (TryResolveThermalMarker(
                 baseForecast,
@@ -2253,6 +2553,38 @@ internal static class RealtimeSlicePresenter
         return string.Create(
             CultureInfo.InvariantCulture,
             $"{day}일 {minuteOfDay / 60:00}:{minuteOfDay % 60:00}");
+    }
+
+    private static string Clock(long minute)
+    {
+        long minuteOfDay = minute % (24 * 60);
+        return string.Create(
+            CultureInfo.InvariantCulture,
+            $"{minuteOfDay / 60:00}:{minuteOfDay % 60:00}");
+    }
+
+    private static string Countdown(long minutes)
+    {
+        if (minutes < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(minutes));
+        }
+        long days = minutes / (24 * 60);
+        long hours = minutes % (24 * 60) / 60;
+        long remainderMinutes = minutes % 60;
+        if (days > 0)
+        {
+            return hours > 0
+                ? $"{days}일 {hours}시간 뒤"
+                : $"{days}일 뒤";
+        }
+        if (hours > 0)
+        {
+            return remainderMinutes > 0
+                ? $"{hours}시간 {remainderMinutes}분 뒤"
+                : $"{hours}시간 뒤";
+        }
+        return $"{remainderMinutes}분 뒤";
     }
 
     private static int ClampInt(long value) => value > int.MaxValue

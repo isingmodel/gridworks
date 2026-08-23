@@ -45,137 +45,17 @@ internal static class Program
         byte[] realtimeCampaignOverlayBytes = File.ReadAllBytes(
             Path.Combine(dataDirectory, "release-campaign-v3.json"));
         CommercialWorldDefinition baseWorld = CommercialWorldLoader.Load(baseWorldBytes);
-        CommercialCampaignDefinition baseCampaign = CommercialCampaignLoader.Load(
-            baseCampaignBytes,
-            baseWorld);
         RealtimeWorldDefinition realtimeWorld = RealtimeWorldLoader.Load(
             realtimeWorldBytes,
             baseWorld);
-        byte[] realtimeCampaignBytes = ComposeRealtimeCampaignLoaderInput(
+        RealtimeCampaignOverlayLoadResult realtimeCampaign =
+            RealtimeCampaignOverlayLoader.LoadAll(
             baseCampaignBytes,
-            realtimeCampaignOverlayBytes);
-        RealtimeCampaignDefinition realtimeCampaign = RealtimeCampaignLoader.Load(
-            realtimeCampaignBytes,
-            baseCampaign,
+            realtimeCampaignOverlayBytes,
             realtimeWorld);
-        return new CommercialStoryPartHarness(baseCampaign, realtimeCampaign);
-    }
-
-    private static byte[] ComposeRealtimeCampaignLoaderInput(
-        byte[] baseCampaignBytes,
-        byte[] realtimeCampaignOverlayBytes)
-    {
-        JsonObject baseRoot = JsonNode.Parse(baseCampaignBytes)?.AsObject() ??
-            throw new InvalidDataException("Release V2 campaign must be a JSON object.");
-        JsonObject realtimeRoot = JsonNode.Parse(realtimeCampaignOverlayBytes)?.AsObject() ??
-            throw new InvalidDataException("Release V3 campaign must be a JSON object.");
-        RequireExactKeys(
-            realtimeRoot,
-            ["schemaVersion", "campaignId", "chapters"],
-            "Release V3 campaign overlay");
-        realtimeRoot["initialSeed"] = baseRoot["initialSeed"]?.DeepClone() ??
-            throw new InvalidDataException("Release V2 campaign initialSeed is missing.");
-
-        IReadOnlyDictionary<string, JsonObject> baseChapters =
-            baseRoot["chapters"]?.AsArray()
-                .Select(item => item?.AsObject() ??
-                    throw new InvalidDataException("Release V2 campaign chapter is invalid."))
-                .ToDictionary(
-                    chapter => chapter["chapterId"]?.GetValue<string>() ??
-                        throw new InvalidDataException(
-                            "Release V2 campaign chapterId is missing."),
-                    StringComparer.Ordinal) ??
-            throw new InvalidDataException("Release V2 campaign chapters are missing.");
-
-        foreach (JsonNode? chapterNode in realtimeRoot["chapters"]?.AsArray() ??
-                 throw new InvalidDataException("Release V3 campaign chapters are missing."))
-        {
-            JsonObject chapter = chapterNode?.AsObject() ??
-                throw new InvalidDataException("Release V3 campaign chapter is invalid.");
-            RequireExactKeys(
-                chapter,
-                [
-                    "chapterId",
-                    "preparationMinutes",
-                    "promiseDecisionDeadlineOffsetMinutes",
-                    "scheduledEvents",
-                ],
-                "Release V3 campaign chapter overlay");
-            string chapterId = chapter["chapterId"]?.GetValue<string>() ??
-                throw new InvalidDataException("Release V3 campaign chapterId is missing.");
-            if (!baseChapters.TryGetValue(chapterId, out JsonObject? baseChapter))
-            {
-                throw new InvalidDataException(
-                    $"Release V3 campaign references unknown chapter '{chapterId}'.");
-            }
-            IReadOnlyDictionary<string, JsonObject> phases =
-                baseChapter["operatingPhases"]?.AsArray()
-                    .Select(item => item?.AsObject() ??
-                        throw new InvalidDataException(
-                            $"Release V2 chapter '{chapterId}' phase is invalid."))
-                    .ToDictionary(
-                        phase => phase["phaseId"]?.GetValue<string>() ??
-                            throw new InvalidDataException(
-                                $"Release V2 chapter '{chapterId}' phaseId is missing."),
-                        StringComparer.Ordinal) ??
-                throw new InvalidDataException(
-                    $"Release V2 chapter '{chapterId}' operating phases are missing.");
-
-            foreach (JsonNode? eventNode in chapter["scheduledEvents"]?.AsArray() ??
-                     throw new InvalidDataException(
-                         $"Release V3 chapter '{chapterId}' events are missing."))
-            {
-                JsonObject scheduledEvent = eventNode?.AsObject() ??
-                    throw new InvalidDataException(
-                        $"Release V3 chapter '{chapterId}' event is invalid.");
-                RequireExactKeys(
-                    scheduledEvent,
-                    [
-                        "eventId",
-                        "priority",
-                        "startOffsetMinutes",
-                        "durationMinutes",
-                        "forecastLeadMinutes",
-                    ],
-                    $"Release V3 chapter '{chapterId}' event overlay");
-                string eventId = scheduledEvent["eventId"]?.GetValue<string>() ??
-                    throw new InvalidDataException(
-                        $"Release V3 chapter '{chapterId}' eventId is missing.");
-                if (!phases.TryGetValue(eventId, out JsonObject? phase))
-                {
-                    throw new InvalidDataException(
-                        $"Release V3 event '{eventId}' has no authored V2 operating phase.");
-                }
-                foreach (string field in new[]
-                         {
-                             "displayName",
-                             "thermalPolicy",
-                             "loads",
-                             "unavailableNodeIds",
-                             "unavailableEdgeIds",
-                             "activeRiskAreaIds",
-                             "thermalLimitOverrides",
-                         })
-                {
-                    scheduledEvent[field] = phase[field]?.DeepClone() ??
-                        throw new InvalidDataException(
-                            $"Release V2 phase '{eventId}' field '{field}' is missing.");
-                }
-            }
-        }
-        return Encoding.UTF8.GetBytes(realtimeRoot.ToJsonString());
-    }
-
-    private static void RequireExactKeys(
-        JsonObject value,
-        IReadOnlyList<string> expected,
-        string label)
-    {
-        if (!value.Select(item => item.Key).ToHashSet(StringComparer.Ordinal)
-                .SetEquals(expected))
-        {
-            throw new InvalidDataException($"{label} fields drifted.");
-        }
+        return new CommercialStoryPartHarness(
+            realtimeCampaign.Campaign.Content,
+            realtimeCampaign.Campaign);
     }
 
     private static int RunStoryCommand(string[] args)

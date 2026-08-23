@@ -7,6 +7,12 @@ using Gridworks.Core.Release.V3;
 
 namespace Gridworks.Game.Realtime.R2;
 
+internal enum RealtimeSliceSourceRoute
+{
+    TechnicalCheckpointFixture,
+    ReleaseFirstLight,
+}
+
 internal sealed record RealtimeSliceData(
     CommercialWorldDefinition BaseWorld,
     CommercialCampaignDefinition BaseCampaign,
@@ -15,7 +21,10 @@ internal sealed record RealtimeSliceData(
     string BaseWorldSha256,
     string BaseCampaignSha256,
     string WorldSha256,
-    string CampaignSha256);
+    string CampaignSha256,
+    RealtimeSliceSourceRoute SourceRoute,
+    string? CampaignOverlaySha256,
+    string? FullComposedCampaignSha256);
 
 internal static class RealtimeSliceResources
 {
@@ -27,6 +36,10 @@ internal static class RealtimeSliceResources
         "Gridworks.Game.EmbeddedData.stage-r1-world-realtime-v3.json";
     internal const string CampaignResource =
         "Gridworks.Game.EmbeddedData.stage-r1-first-light-realtime-v3.json";
+    internal const string ReleaseWorldResource =
+        "Gridworks.Game.EmbeddedData.release-world-v3.json";
+    internal const string ReleaseCampaignOverlayResource =
+        "Gridworks.Game.EmbeddedData.release-campaign-v3.json";
 
     internal static RealtimeSliceData Load(Assembly assembly)
     {
@@ -53,7 +66,51 @@ internal static class RealtimeSliceResources
             Sha256(baseWorldBytes),
             Sha256(baseCampaignBytes),
             Sha256(worldBytes),
-            Sha256(campaignBytes));
+            Sha256(campaignBytes),
+            RealtimeSliceSourceRoute.TechnicalCheckpointFixture,
+            null,
+            null);
+    }
+
+    internal static RealtimeSliceData LoadReleaseFirstLight(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+        byte[] baseWorldBytes = Read(assembly, BaseWorldResource);
+        byte[] baseCampaignBytes = Read(assembly, BaseCampaignResource);
+        byte[] worldBytes = Read(assembly, ReleaseWorldResource);
+        byte[] campaignOverlayBytes = Read(
+            assembly,
+            ReleaseCampaignOverlayResource);
+
+        CommercialWorldDefinition baseWorld = CommercialWorldLoader.Load(baseWorldBytes);
+        RealtimeWorldDefinition world = RealtimeWorldLoader.Load(worldBytes, baseWorld);
+        RealtimeCampaignOverlayLoadResult loaded =
+            RealtimeCampaignOverlayLoader.LoadFirstLight(
+                baseCampaignBytes,
+                campaignOverlayBytes,
+                world);
+        RealtimeCampaignOverlaySourceIdentity identity = loaded.SourceIdentity;
+        if (!string.Equals(
+                identity.BaseCampaignSha256,
+                Sha256(baseCampaignBytes),
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "Release FIRST_LIGHT base-campaign source identity drifted.");
+        }
+
+        return new RealtimeSliceData(
+            baseWorld,
+            loaded.Campaign.Content,
+            world,
+            loaded.Campaign,
+            Sha256(baseWorldBytes),
+            identity.BaseCampaignSha256,
+            Sha256(worldBytes),
+            identity.SelectedComposedCampaignSha256,
+            RealtimeSliceSourceRoute.ReleaseFirstLight,
+            identity.RealtimeOverlaySha256,
+            identity.FullComposedCampaignSha256);
     }
 
     private static byte[] Read(Assembly assembly, string resourceName)

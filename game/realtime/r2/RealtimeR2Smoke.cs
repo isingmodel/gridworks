@@ -52,6 +52,10 @@ internal static class RealtimeR2Smoke
             () => ValidateAnalysisSurfacePolicy(failures), failures);
         RunCase("comparison-draft-forecast",
             () => ValidateComparisonDraftForecast(failures), failures);
+        RunCase("future-event-actual-draft-construction",
+            () => ValidateFutureEventActualDraftConstruction(failures), failures);
+        RunCase("release-first-light-controller-story",
+            () => ValidateReleaseFirstLightControllerStory(failures), failures);
         RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
         RunCase("pointer-priority", () => ValidatePointerPriority(failures), failures);
     }
@@ -1482,18 +1486,31 @@ internal static class RealtimeR2Smoke
             .Where(item => item.Id.StartsWith(
                 "DRAFT_THERMAL:", StringComparison.Ordinal))
             .ToArray();
+        RealtimeTimelineItemPresentation[] draftCompletionMarkers =
+            presentation.Rail.Items
+                .Where(item => string.Equals(
+                    item.Id,
+                    "DRAFT_CONSTRUCTION",
+                    StringComparison.Ordinal))
+                .ToArray();
         int expectedThermalMarkers = coreComparison.Forecast.Events.Sum(item =>
             item.TemporalProjection.Transitions.Count);
         Check(eventMarkers.Length == coreComparison.Forecast.Events.Count &&
               thermalMarkers.Length == expectedThermalMarkers &&
               expectedThermalMarkers > 0 &&
+              draftCompletionMarkers.Length == 1 &&
+              draftCompletionMarkers[0].SourceKind ==
+                  RealtimeTimelineSourceKind.Draft &&
+              string.Equals(draftCompletionMarkers[0].SourceGlyph, "◇",
+                  StringComparison.Ordinal) &&
               eventMarkers.Concat(thermalMarkers).All(item =>
                   string.Equals(item.ShortLabel, "현재 초안 기준 예상",
                       StringComparison.Ordinal) &&
                   item.Title.StartsWith("현재 초안 기준 예상 · ",
                       StringComparison.Ordinal) &&
                   item.Description.StartsWith("현재 초안 기준 예상 · ",
-                      StringComparison.Ordinal)),
+                      StringComparison.Ordinal) &&
+                  item.SourceKind == RealtimeTimelineSourceKind.Draft),
             "typed comparison events/thermal transitions were not rendered with the exact " +
             "draft label", failures);
 
@@ -1569,7 +1586,9 @@ internal static class RealtimeR2Smoke
               !cancelled.ComparisonDraftForecast.Available &&
               cancelled.Rail.Items.All(item =>
                   !item.Id.StartsWith("DRAFT_FORECAST:", StringComparison.Ordinal) &&
-                  !item.Id.StartsWith("DRAFT_THERMAL:", StringComparison.Ordinal)) &&
+                  !item.Id.StartsWith("DRAFT_THERMAL:", StringComparison.Ordinal) &&
+                  !string.Equals(item.Id, "DRAFT_CONSTRUCTION",
+                      StringComparison.Ordinal)) &&
               slice.InteractionState.SelectionId is null &&
               slice.InteractionState.TimelineSelectedItemId is null &&
               cancelled.Rail.SelectedItemId is null &&
@@ -1578,6 +1597,469 @@ internal static class RealtimeR2Smoke
               slice.AcceptedCommandCount == draftCommands + 1,
             "accepted comparison-draft cancellation retained a vanished timeline, " +
             "inspector, or map selection",
+            failures);
+    }
+
+    private static void ValidateFutureEventActualDraftConstruction(
+        ICollection<string> failures)
+    {
+        var countdownSlice = CreateRunningSlice();
+        using var countdownLifetime = countdownSlice.FreeAfterSmoke();
+        RealtimeSlicePresentation countdownBefore = countdownSlice.LatestPresentation;
+        RealtimeNextEventPresentation? nextBefore = countdownBefore.Rail.NextEvent;
+        RealtimeForecastEvent? expectedNext = countdownBefore.BaseForecast.Events
+            .Where(item => item.StartMinute > countdownSlice.CurrentMinute)
+            .OrderBy(item => item.StartMinute)
+            .ThenBy(item => item.EventId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        Check(nextBefore is not null && expectedNext is not null &&
+              string.Equals(nextBefore.EventId, expectedNext.EventId,
+                  StringComparison.Ordinal) &&
+              nextBefore.StartMinute == expectedNext.StartMinute &&
+              nextBefore.EndMinute == expectedNext.EndMinute &&
+              nextBefore.MinutesUntilStart ==
+                  expectedNext.StartMinute - countdownSlice.CurrentMinute &&
+              nextBefore.CountdownLabel.EndsWith("뒤", StringComparison.Ordinal) &&
+              nextBefore.WindowLabel.Contains("시작", StringComparison.Ordinal) &&
+              nextBefore.WindowLabel.Contains("종료", StringComparison.Ordinal),
+            "persistent next-event status lost typed ID/start/end/countdown authority",
+            failures);
+        if (nextBefore is not null && nextBefore.MinutesUntilStart > 1)
+        {
+            _ = countdownSlice.InjectElapsedNanosecondsForSmoke(1_000_000_000);
+            RealtimeNextEventPresentation? nextAfter =
+                countdownSlice.LatestPresentation.Rail.NextEvent;
+            Check(nextAfter is not null &&
+                  string.Equals(nextAfter.EventId, nextBefore.EventId,
+                      StringComparison.Ordinal) &&
+                  nextAfter.StartMinute == nextBefore.StartMinute &&
+                  nextAfter.EndMinute == nextBefore.EndMinute &&
+                  nextAfter.MinutesUntilStart == nextBefore.MinutesUntilStart - 1 &&
+                  !string.Equals(nextAfter.CountdownLabel, nextBefore.CountdownLabel,
+                      StringComparison.Ordinal),
+                "next-event countdown did not persist and decrement from the same typed minute",
+                failures);
+        }
+
+        var constructionSlice = CreateRunningSlice();
+        using var constructionLifetime = constructionSlice.FreeAfterSmoke();
+        RealtimeSmokeLinePlan plan = constructionSlice.SmokeLinePlan;
+        constructionSlice.AdvanceToForSmoke(plan.OrderMinute);
+        RequireIntent(constructionSlice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildLine,
+                    $"LINE:{plan.LineClassId}:{plan.PoleClassId}")),
+            "rail line tool", failures, coreCommandExpected: false);
+        RequireIntent(constructionSlice.ApplyIntentForSmoke(plan.Intents[0]),
+            "rail line start", failures);
+        RequireIntent(constructionSlice.ApplyIntentForSmoke(plan.Intents[1]),
+            "rail line finish", failures);
+
+        RealtimeSlicePresentation draftPresentation = constructionSlice.LatestPresentation;
+        RealtimeTimelineItemPresentation? draft = draftPresentation.Rail.Items
+            .SingleOrDefault(item => string.Equals(
+                item.Id,
+                "DRAFT_CONSTRUCTION",
+                StringComparison.Ordinal));
+        RealtimeProjectQuote draftQuote = constructionSlice.PreviewLineOrderForSmoke();
+        Check(draft is not null && draftQuote is
+              {
+                  Accepted: true,
+                  CompletionMinute: long draftCompletionMinute,
+              } &&
+              draft.StartMinute == draftCompletionMinute &&
+              draft.Kind == RealtimeTimelineItemKind.Construction &&
+              draft.SourceKind == RealtimeTimelineSourceKind.Draft &&
+              string.Equals(draft.SourceGlyph, "◇", StringComparison.Ordinal) &&
+              draft.Title.Contains("초안", StringComparison.Ordinal) &&
+              draft.Description.Contains("아직 발주되지 않은", StringComparison.Ordinal) &&
+              draft.SeverityLabel.Contains("미발주", StringComparison.Ordinal),
+            "closed construction draft lacked a typed outlined completion marker and explicit copy",
+            failures);
+        if (draft is not null)
+        {
+            constructionSlice.ChooseTimelineClusterForSmoke(new[] { draft.Id });
+            Check(constructionSlice.LatestPresentation.Context.Visible &&
+                  constructionSlice.LatestPresentation.Context.Eyebrow.Contains(
+                      "초안", StringComparison.Ordinal) &&
+                  constructionSlice.LatestPresentation.Context.Sections.Any(item =>
+                      item.Body.Contains("실제 공사 아님", StringComparison.Ordinal)),
+                "draft completion selection did not retain explicit draft-versus-actual copy",
+                failures);
+        }
+        AssertNoUnknownRailTargets(constructionSlice, draftPresentation, failures, "draft");
+
+        RequireIntent(constructionSlice.ApplyIntentForSmoke(RealtimeR2Intent.OrderLine()),
+            "rail actual line order", failures);
+        RealtimeSlicePresentation activePresentation = constructionSlice.LatestPresentation;
+        RealtimeTimelineItemPresentation? active = activePresentation.Rail.Items
+            .SingleOrDefault(item => string.Equals(
+                item.Id,
+                "ACTIVE_CONSTRUCTION",
+                StringComparison.Ordinal));
+        Check(active is not null &&
+              active.Kind == RealtimeTimelineItemKind.Construction &&
+              active.SourceKind == RealtimeTimelineSourceKind.Actual &&
+              string.Equals(active.SourceGlyph, "■", StringComparison.Ordinal) &&
+              active.Visibility == RealtimeTimelineVisibility.Active &&
+              active.IsCurrent &&
+              active.Description.Contains("발주된 실제 공사", StringComparison.Ordinal) &&
+              activePresentation.Rail.Items.All(item => !string.Equals(
+                  item.Id,
+                  "DRAFT_CONSTRUCTION",
+                  StringComparison.Ordinal)),
+            "accepted order did not replace the outlined draft with the exact filled actual marker",
+            failures);
+        AssertNoUnknownRailTargets(constructionSlice, activePresentation, failures, "active");
+
+        _ = AdvanceToMinuteByFrames(
+            constructionSlice,
+            plan.ExpectedCompletionMinute,
+            RealtimeSimulationSpeed.Normal,
+            failures);
+        RealtimeSlicePresentation completedPresentation =
+            constructionSlice.LatestPresentation;
+        RealtimeTimelineItemPresentation[] completedConstruction =
+            completedPresentation.Rail.Items
+                .Where(item => item.Id.StartsWith(
+                    "COMPLETED_CONSTRUCTION:",
+                    StringComparison.Ordinal))
+                .ToArray();
+        Check(completedPresentation.TransitionHistory.Any(item =>
+                  item.Kind == RealtimeTransitionKind.ConstructionCompleted &&
+                  item.Construction?.CompletionMinute == plan.ExpectedCompletionMinute) &&
+              completedConstruction.Length == 1 &&
+              completedConstruction[0].StartMinute == plan.ExpectedCompletionMinute &&
+              completedConstruction[0].Visibility ==
+                  RealtimeTimelineVisibility.Completed &&
+              completedConstruction[0].SourceKind == RealtimeTimelineSourceKind.Actual &&
+              completedConstruction[0].Description.Contains(
+                  "실제 완공 기록", StringComparison.Ordinal) &&
+              completedPresentation.Rail.Items.All(item => !string.Equals(
+                  item.Id,
+                  "ACTIVE_CONSTRUCTION",
+                  StringComparison.Ordinal)),
+            "actual completion transition did not persist as one factual construction history marker",
+            failures);
+        if (completedConstruction.Length == 1)
+        {
+            constructionSlice.ChooseTimelineClusterForSmoke(
+                new[] { completedConstruction[0].Id });
+            Check(constructionSlice.LatestPresentation.Context.Visible &&
+                  string.Equals(
+                      constructionSlice.LatestPresentation.Context.Eyebrow,
+                      "실제 완공 기록",
+                      StringComparison.Ordinal) &&
+                  constructionSlice.LatestPresentation.Context.Sections.Any(item =>
+                      item.Heading == "상태" &&
+                      item.Body.Contains("공급망에 반영", StringComparison.Ordinal)),
+                "completed construction marker did not open its factual history context",
+                failures);
+        }
+        AssertNoUnknownRailTargets(
+            constructionSlice,
+            completedPresentation,
+            failures,
+            "completed");
+    }
+
+    private static void ValidateReleaseFirstLightControllerStory(
+        ICollection<string> failures)
+    {
+        var slice = new RealtimeSliceMain();
+        try
+        {
+            slice.BootstrapReleaseFirstLightForSmoke();
+        }
+        catch
+        {
+            slice.Free();
+            throw;
+        }
+        using var sliceLifetime = slice.FreeAfterSmoke();
+        RealtimeSliceData data = slice.SliceDataForSmoke;
+        RealtimeChapterDefinition realtimeChapter = data.Campaign.Chapters.Single();
+        CommercialCampaignChapterDefinition chapter = data.BaseCampaign.Chapters.Single(
+            item => string.Equals(
+                item.ChapterId,
+                RealtimeCampaignOverlayLoader.FirstReleaseChapterId,
+                StringComparison.Ordinal));
+        RealtimeScheduledEventDefinition scheduled =
+            realtimeChapter.ScheduledEvents.Single();
+        CommercialStoryCard standardResult = chapter.ResultCards.Standard ??
+            throw new InvalidOperationException(
+                "Release FIRST_LIGHT has no standard authored result card.");
+        RealtimeModalPresentation briefing = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException(
+                "Release FIRST_LIGHT did not present its briefing modal.");
+
+        Check(data.SourceRoute == RealtimeSliceSourceRoute.ReleaseFirstLight &&
+              data.BaseCampaignSha256 ==
+                  "078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a" &&
+              data.WorldSha256 ==
+                  "a0a837717bbd6d35f655d8094dfa6daac182d47b2d03f24b18c4883c04feecdf" &&
+              data.CampaignOverlaySha256 ==
+                  "ef962a272683bfd6761fbf10a0ca14cb6c8bf90cdfde810b468ad451088f2258" &&
+              data.FullComposedCampaignSha256 ==
+                  "7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09" &&
+              data.CampaignSha256 ==
+                  "94379c0e8e4dae54b760a55df8c1143c975eaa12f11079e675b2e67ba57df88e" &&
+              chapter.ChapterId == RealtimeCampaignOverlayLoader.FirstReleaseChapterId &&
+              scheduled.EventId == RealtimeCampaignOverlayLoader.FirstReleaseEventId &&
+              realtimeChapter.PreparationMinutes == 240 &&
+              scheduled.StartOffsetMinutes == 240 &&
+              scheduled.DurationMinutes == 60,
+            "release FIRST_LIGHT route/source/prefix identity drifted",
+            failures);
+        Check(briefing.Id == "CHAPTER_BRIEFING" &&
+              briefing.Eyebrow == chapter.Briefing.Speaker &&
+              briefing.Heading == chapter.Briefing.Title &&
+              briefing.Body == chapter.Briefing.Body,
+            "release FIRST_LIGHT native briefing did not reuse the exact authored story card",
+            failures);
+        Check(
+            RealtimeSliceMain.ParseSourceRoute(
+                ["--release-chapter=FIRST_LIGHT"]) ==
+                    RealtimeSliceSourceRoute.ReleaseFirstLight &&
+            RealtimeSliceMain.ParseSourceRoute(Array.Empty<string>()) ==
+                    RealtimeSliceSourceRoute.TechnicalCheckpointFixture,
+            "release FIRST_LIGHT launch route parsing drifted",
+            failures);
+        bool unknownRouteRejected = false;
+        try
+        {
+            _ = RealtimeSliceMain.ParseSourceRoute(
+                ["--release-chapter=SECOND_HEART"]);
+        }
+        catch (ArgumentException)
+        {
+            unknownRouteRejected = true;
+        }
+        Check(unknownRouteRejected,
+            "unopened release chapter launch route was accepted",
+            failures);
+
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.CloseModal("CHAPTER_BRIEFING")),
+            "release briefing close", failures, coreCommandExpected: false);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetPlayerPaused(true)),
+            "release player pause", failures, coreCommandExpected: false);
+
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildNode,
+                    "NODE:SMALL_SUBSTATION")),
+            "release node tool", failures, coreCommandExpected: false);
+        RequireIntent(slice.ApplyIntentForSmoke(new RealtimeR2Intent(
+                RealtimeR2IntentKind.SetNodeDraft,
+                FirstId: "SMALL_SUBSTATION",
+                Position: new CoreMapPoint(2100, 700))),
+            "release substation draft", failures);
+        RealtimeProjectQuote nodeQuote = slice.PreviewNodeOrderForSmoke();
+        Check(nodeQuote is
+              {
+                  Accepted: true,
+                  CostCashUnit: 1_200_000,
+                  BuildMinutes: 120,
+                  CompletionMinute: 1140,
+              },
+            "release substation quote drifted from the playable preparation window",
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                new RealtimeR2Intent(RealtimeR2IntentKind.OrderNode)),
+            "release substation order", failures);
+        ActiveConstructionSnapshot nodeConstruction =
+            slice.CoreSnapshot.Construction.ActiveConstruction ??
+            throw new InvalidOperationException(
+                "Release substation order created no active construction.");
+        string substationId = nodeConstruction.NodeIds.Single();
+        Check(substationId == "PLAYER_SUBSTATION_1",
+            "release substation generated an unexpected stable ID",
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
+            "release substation 4x resume", failures, coreCommandExpected: false);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            nodeQuote.CompletionMinute!.Value,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetPlayerPaused(true)),
+            "release pause after substation", failures, coreCommandExpected: false);
+
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildLine,
+                    "LINE:STANDARD_LINE:STANDARD_POLE")),
+            "release west line tool", failures, coreCommandExpected: false);
+        foreach ((RealtimeR2Intent intent, string label) in new[]
+                 {
+                     (RealtimeR2Intent.StartLineDraft(
+                         "WEST_SOURCE_NODE",
+                         "STANDARD_LINE",
+                         "STANDARD_POLE"), "start"),
+                     (RealtimeR2Intent.AddLinePoint(new CoreMapPoint(750, 650)), "point-1"),
+                     (RealtimeR2Intent.AddLinePoint(new CoreMapPoint(1050, 650)), "point-2"),
+                     (RealtimeR2Intent.AddLinePoint(new CoreMapPoint(1600, 650)), "point-3"),
+                     (RealtimeR2Intent.FinishLineDraft(substationId), "finish"),
+                 })
+        {
+            RequireIntent(slice.ApplyIntentForSmoke(intent),
+                $"release west line {label}", failures);
+        }
+        RealtimeProjectQuote westQuote = slice.PreviewLineOrderForSmoke();
+        Check(westQuote is
+              {
+                  Accepted: true,
+                  CostCashUnit: 245_000,
+                  BuildMinutes: 98,
+                  CompletionMinute: 1238,
+              },
+            "release west line quote drifted from the playable preparation window",
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.OrderLine()),
+            "release west line order", failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
+            "release west line 4x resume", failures, coreCommandExpected: false);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            westQuote.CompletionMinute!.Value,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetPlayerPaused(true)),
+            "release pause after west line", failures, coreCommandExpected: false);
+
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildLine,
+                    "LINE:STANDARD_LINE:STANDARD_POLE")),
+            "release service line tool", failures, coreCommandExpected: false);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.StartLineDraft(
+                    substationId,
+                    "STANDARD_LINE",
+                    "STANDARD_POLE")),
+            "release service line start", failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.FinishLineDraft("EAST_RESIDENTIAL_TERMINAL")),
+            "release service line finish", failures);
+        RealtimeProjectQuote serviceQuote = slice.PreviewLineOrderForSmoke();
+        Check(serviceQuote is
+              {
+                  Accepted: true,
+                  CostCashUnit: 25_000,
+                  BuildMinutes: 10,
+                  CompletionMinute: 1248,
+              },
+            "release service line quote drifted from the playable preparation window",
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.OrderLine()),
+            "release service line order", failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
+            "release service line 4x resume", failures, coreCommandExpected: false);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            serviceQuote.CompletionMinute!.Value,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+
+        RealtimeNextEventPresentation? next = slice.LatestPresentation.Rail.NextEvent;
+        Check(next is
+              {
+                  EventId: "FIRST_LIGHT_SUPPLY",
+                  StartMinute: 1260,
+                  EndMinute: 1320,
+                  MinutesUntilStart: 12,
+              } &&
+              slice.CoreSnapshot.CashUnit == 7_030_000,
+            "release live state lost its exact next-event countdown or construction cost",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1260,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        Check(slice.CoreSnapshot.ActiveEventStates.Single().EventId ==
+                  "FIRST_LIGHT_SUPPLY" &&
+              slice.EmittedTransitions.Any(item =>
+                  item.Kind == RealtimeTransitionKind.EventStarted &&
+                  item.Minute == 1260 &&
+                  item.EventId == "FIRST_LIGHT_SUPPLY"),
+            "release FIRST_LIGHT event did not begin on its authored live boundary",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            1320,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+
+        RealtimeCampaignSnapshot completed = slice.CoreSnapshot;
+        RealtimeChapterOutcome outcome = completed.CompletedChapters.Single();
+        RealtimeEventOutcome eventOutcome = outcome.Events.Single();
+        RealtimeTransition[] finalTransitions = slice.EmittedTransitions
+            .Where(item => item.Minute == 1320)
+            .ToArray();
+        int eventCompletedIndex = IndexOf(finalTransitions, item =>
+            item.Kind == RealtimeTransitionKind.EventCompleted);
+        int chapterCompletedIndex = IndexOf(finalTransitions, item =>
+            item.Kind == RealtimeTransitionKind.ChapterCompleted);
+        int campaignCompletedIndex = IndexOf(finalTransitions, item =>
+            item.Kind == RealtimeTransitionKind.CampaignCompleted);
+        RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException(
+                "Release FIRST_LIGHT completion did not present a result modal.");
+        string[] completedConstructionIds = slice.LatestPresentation.Rail.Items
+            .Where(item => item.Id.StartsWith(
+                "COMPLETED_CONSTRUCTION:", StringComparison.Ordinal))
+            .Select(item => item.Id)
+            .ToArray();
+        Check(completed.CampaignComplete && completed.Minute == 1320 &&
+              completed.CashUnit == 7_030_000 &&
+              outcome.ChapterId == "FIRST_LIGHT" &&
+              eventOutcome.EventId == "FIRST_LIGHT_SUPPLY" &&
+              eventOutcome.SafetySatisfied &&
+              eventOutcome.SafetyUnservedMinutes == 0 &&
+              eventOutcome.PromiseSatisfied &&
+              eventCompletedIndex >= 0 &&
+              eventCompletedIndex < chapterCompletedIndex &&
+              chapterCompletedIndex < campaignCompletedIndex &&
+              !slice.EmittedTransitions.Any(item => item.Kind is
+                  RealtimeTransitionKind.ThermalEmergencyEntered or
+                  RealtimeTransitionKind.ThermalProtectiveTrip) &&
+              completedConstructionIds.Length == 3,
+            "release FIRST_LIGHT did not complete safely through exact event/chapter/campaign transitions",
+            failures);
+        Check(result.Id == "CAMPAIGN_RESULT" &&
+              result.Eyebrow == standardResult.Speaker &&
+              result.Heading == standardResult.Title &&
+              result.Body == standardResult.Body,
+            "release FIRST_LIGHT native result did not reuse the exact authored story card",
+            failures);
+    }
+
+    private static void AssertNoUnknownRailTargets(
+        RealtimeSliceMain slice,
+        RealtimeSlicePresentation presentation,
+        ICollection<string> failures,
+        string phase)
+    {
+        string[] unknown = presentation.Rail.Items
+            .Where(item => RealtimeSlicePresenter.ResolveTimelineTarget(
+                    slice.DisplayWorldForSmoke,
+                    presentation.CoreSnapshot,
+                    presentation.BaseForecast,
+                    presentation.ComparisonDraftForecast,
+                    presentation.TransitionHistory,
+                    item.Id).Kind == RealtimeTimelineTargetKind.Unknown)
+            .Select(item => item.Id)
+            .ToArray();
+        Check(unknown.Length == 0,
+            $"{phase} rail exposed unknown marker targets: {string.Join(",", unknown)}",
             failures);
     }
 
@@ -1590,6 +2072,9 @@ internal static class RealtimeR2Smoke
         yield return presentation.Hud.Cash;
         yield return presentation.Hud.Reliability;
         yield return presentation.Hud.MajorWarning ?? string.Empty;
+        yield return presentation.Rail.NextEvent?.EventLabel ?? string.Empty;
+        yield return presentation.Rail.NextEvent?.CountdownLabel ?? string.Empty;
+        yield return presentation.Rail.NextEvent?.WindowLabel ?? string.Empty;
         foreach (RealtimeTimelineItemPresentation item in presentation.Rail.Items)
         {
             yield return item.Title;
@@ -1597,6 +2082,9 @@ internal static class RealtimeR2Smoke
             yield return item.Description;
             yield return item.KindLabel;
             yield return item.TimeLabel;
+            yield return item.EndTimeLabel ?? string.Empty;
+            yield return item.TimingLabel;
+            yield return item.SourceLabel;
             yield return item.SeverityLabel;
         }
         yield return presentation.Context.Eyebrow;

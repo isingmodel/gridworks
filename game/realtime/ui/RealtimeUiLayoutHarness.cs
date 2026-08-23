@@ -256,6 +256,41 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     presentation.Rail.Expanded,
                     label,
                     failures);
+                if (tier == RealtimeResolutionTier.FullHd &&
+                    scale is 100 or 125)
+                {
+                    RealtimeNextEventPresentation? next = presentation.Rail.NextEvent;
+                    RealtimeTimelineItemPresentation? draftConstruction =
+                        expectedLinearItems.SingleOrDefault(item => string.Equals(
+                            item.Id,
+                            "DRAFT_CONSTRUCTION",
+                            StringComparison.Ordinal));
+                    RealtimeUiSmokeMarkerFact? draftMarker = draftConstruction is null
+                        ? null
+                        : profileRoot.EventRailForSmoke.MarkerFactsForSmoke()
+                            .SingleOrDefault(marker => marker.ItemIds.Contains(
+                                draftConstruction.Id,
+                                StringComparer.Ordinal));
+                    Require(next is not null &&
+                            profileRoot.EventRailForSmoke.NextEventCountdownTextForSmoke
+                                .Contains(next.CountdownLabel, StringComparison.Ordinal) &&
+                            profileRoot.EventRailForSmoke.NextEventWindowTextForSmoke
+                                .Contains(next.CompactWindowLabel,
+                                    StringComparison.Ordinal) &&
+                            draftConstruction is not null &&
+                            draftConstruction.SourceKind ==
+                                RealtimeTimelineSourceKind.Draft &&
+                            draftMarker is not null &&
+                            draftMarker.VisibleText.Contains("◇ 초안",
+                                StringComparison.Ordinal) &&
+                            draftMarker.AccessibilityName.Contains("초안 예상",
+                                StringComparison.Ordinal) &&
+                            draftMarker.LeftNeighborItemIds.Count > 0 &&
+                            draftMarker.RightNeighborItemIds.Count > 0,
+                        $"{label} lost persistent next-event start/end/countdown, " +
+                        "draft form/copy, or resolved target coverage",
+                        failures);
+                }
                 await ValidateNonModalFocusTraversal(
                     viewport,
                     profileRoot,
@@ -2985,7 +3020,11 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         slice.CanonicalStateSha256,
                         timelineKeyHash,
                         StringComparison.Ordinal),
-                "actual mouse Next at selected-last boundary changed selection/revision",
+                "actual mouse Next at selected-last boundary changed selection/revision " +
+                $"(selected={slice.TimelineChooserFacts.SelectedMarkerId ?? "<none>"}, " +
+                $"expected={lastBoundaryItem.Id}, revision=" +
+                $"{slice.PresentationRevision}/{selectedLastRevision}, items=[" +
+                $"{string.Join(",", slice.TimelineChooserFacts.VisibleOrderedItemIds)}])",
                 failures);
             for (int attempt = 0;
                  attempt <= keyboardTimelineItems.Length &&
@@ -3031,7 +3070,11 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         timelineKeyHash,
                         StringComparison.Ordinal),
                 "actual mouse Previous at selected-first boundary changed " +
-                "selection/revision",
+                "selection/revision " +
+                $"(selected={slice.TimelineChooserFacts.SelectedMarkerId ?? "<none>"}, " +
+                $"expected={firstBoundaryItem.Id}, revision=" +
+                $"{slice.PresentationRevision}/{selectedFirstRevision}, items=[" +
+                $"{string.Join(",", slice.TimelineChooserFacts.VisibleOrderedItemIds)}])",
                 failures);
             PushViewportPrimary(
                 viewport,
@@ -3207,7 +3250,11 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         StringComparison.Ordinal) &&
                     slice.AcceptedCommandCount == endedNoFutureCommands,
                 "actual no-selection Next with no strict-future target changed " +
-                "selection/revision/Core/journal",
+                "selection/revision/Core/journal " +
+                $"(minute={slice.CurrentMinute}, selected=" +
+                $"{slice.InteractionState.TimelineSelectedItemId ?? "<none>"}, " +
+                $"revision={slice.PresentationRevision}/{endedNoFutureRevision}, items=[" +
+                $"{string.Join(",", slice.TimelineChooserFacts.VisibleOrderedItemIds)}])",
                 failures);
             RealtimeUiSmokeSpeedFact[] endedSpeedFacts = ui.TopHudForSmoke
                 .SpeedFactsForSmoke
@@ -3870,6 +3917,31 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 "보호정지");
             await ValidateState(
                 boundary.RecoveryMinute!.Value,
+                ThermalOperatingState.Emergency,
+                RealtimeWorldAssetState.Emergency,
+                RealtimePlaceholderStateCue.EmergencyTriangle,
+                "비상 운전",
+                "비상 운전");
+            long recoveryMinute = boundary.RecoveryMinute.Value;
+            Require(slice.EmittedTransitions.Any(item =>
+                        item.Kind == RealtimeTransitionKind.ThermalRecovered &&
+                        item.Minute == recoveryMinute &&
+                        string.Equals(item.AssetId, boundary.AssetId,
+                            StringComparison.Ordinal)) &&
+                    slice.EmittedTransitions.Any(item =>
+                        item.Kind == RealtimeTransitionKind.ThermalEmergencyEntered &&
+                        item.Minute == recoveryMinute &&
+                        string.Equals(item.AssetId, boundary.AssetId,
+                            StringComparison.Ordinal)),
+                $"actual {boundary.AssetId}@{recoveryMinute} did not retain the " +
+                "same-minute recovered then emergency-reentered transition pair",
+                failures);
+            long idleMinute = slice.SmokeBoundaryFacts.Events
+                .Where(item => item.StartMinute <= recoveryMinute &&
+                    item.EndMinute > recoveryMinute)
+                .Min(item => item.EndMinute);
+            await ValidateState(
+                idleMinute,
                 ThermalOperatingState.Continuous,
                 RealtimeWorldAssetState.Normal,
                 RealtimePlaceholderStateCue.None,
@@ -3877,8 +3949,9 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 "연속 운전");
             GD.Print(
                 "REALTIME_R2_ACTUAL_THERMAL_RECOVERY_PASS " +
-                $"asset={boundary.AssetId}; minute={boundary.RecoveryMinute.Value}; " +
-                "core=Continuous; presentation=Normal; ax=정상; draw=None");
+                $"asset={boundary.AssetId}; reentry-minute={recoveryMinute}; " +
+                $"idle-minute={idleMinute}; core=Continuous; " +
+                "presentation=Normal; ax=정상; draw=None");
         }
         finally
         {
@@ -5416,8 +5489,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
 
     private static string AccessibleSelectorTextForSmoke(
         RealtimeTimelineItemPresentation item) =>
-        $"{SeverityGlyphForSmoke(item.Severity)} {item.TimeLabel} · " +
-        $"{item.KindLabel} · {item.ShortLabel}";
+        $"{SeverityGlyphForSmoke(item.Severity)} {item.TimingLabel} · " +
+        $"{item.SourceLabel} {item.KindLabel} · {item.ShortLabel}";
 
     private async Task ValidateSelectedTimelineTogglePersistence(
         RealtimeSlicePresentation baseline,

@@ -265,6 +265,7 @@ internal sealed partial class RealtimeSliceMain
         "4dc4dee6a9740e6b3babf1f9b2ccf9b8d107e541c9918e33a822ef4006163519";
 
     private RealtimeSliceCheckpointFact? _enteredTargetedCheckpoint;
+    private InteractiveCheckpointState? _interactiveCheckpoint;
 
     internal RealtimeSliceCheckpointFact EnterTargetedLiveCheckpoint(
         string checkpointId)
@@ -394,11 +395,16 @@ internal sealed partial class RealtimeSliceMain
             checkpoint.ActiveConstruction?.EdgeIds ?? Array.Empty<string>();
         if (checkpoint.CheckpointId == RealtimeSliceCheckpointIds.NormalReady)
         {
-            VerifyNormalEnd(checkpoint, end, frame);
+            VerifyNormalEnd(checkpoint, end, frame.Transitions);
         }
         else
         {
-            VerifyConstructionEnd(checkpoint, end, frame, expectedNodes, expectedEdges);
+            VerifyConstructionEnd(
+                checkpoint,
+                end,
+                frame.Transitions,
+                expectedNodes,
+                expectedEdges);
         }
 
         return new RealtimeSliceCheckpointSegmentResult(
@@ -410,6 +416,151 @@ internal sealed partial class RealtimeSliceMain
             frame.Transitions,
             expectedNodes,
             expectedEdges);
+    }
+
+    internal void ArmInteractiveTargetedLiveCheckpoint(
+        RealtimeSliceCheckpointFact checkpoint)
+    {
+        ArgumentNullException.ThrowIfNull(checkpoint);
+        Require(ReferenceEquals(checkpoint, _enteredTargetedCheckpoint),
+            "interactive checkpoint did not use the fact returned by scene entry");
+        Require(_interactiveCheckpoint is null,
+            "interactive checkpoint was already armed");
+        VerifyCheckpointEntry(checkpoint);
+        _interactiveCheckpoint = new InteractiveCheckpointState(
+            checkpoint,
+            _presentationRevision,
+            _run!.AcceptedCommands.Count,
+            FrozenClickCounters(),
+            _emittedTransitions.Count);
+        // Entry deliberately freezes the autonomous clock. The interactive host
+        // re-enables the real production callback, but the paused accumulator
+        // remains stable until the player chooses 1x through the production UI.
+        SetProcess(true);
+    }
+
+    internal bool TryCompleteInteractiveTargetedLiveCheckpoint(
+        out RealtimeSliceCheckpointEvidence? evidence)
+    {
+        evidence = null;
+        InteractiveCheckpointState state = _interactiveCheckpoint ??
+            throw new InvalidOperationException(
+                "Interactive checkpoint completion was requested before arming.");
+        RealtimeSliceCheckpointFact checkpoint = state.Checkpoint;
+        long expectedMinute = checked(
+            checkpoint.StartMinute + checkpoint.AllowedAdvanceMinutes);
+        if (_run!.Minute < expectedMinute)
+        {
+            return false;
+        }
+
+        SetProcess(false);
+        Require(_run.Minute == expectedMinute,
+            "interactive production clock crossed more than the allowed minute");
+        Require(_run.AcceptedCommands.Count == state.StartCommandCount,
+            "interactive no-map-click time flow appended a Core command");
+        Require(state.StartClicks.All(item => item.Value == 0) &&
+                FrozenClickCounters().All(item => item.Value == 0),
+            "interactive checkpoint routed a map pointer click");
+        Require(_interaction!.Simulation == RealtimeSimulationState.Running &&
+                _interaction.RunningSpeed == RealtimeSimulationSpeed.Normal &&
+                _interaction.PauseReason == RealtimePauseReason.None,
+            "interactive checkpoint did not advance from the production 1x state");
+        Require(_presentationRevision == state.StartPresentationRevision + 2,
+            "interactive 1x input plus one-minute boundary did not publish exactly two presentations");
+        Require(_retainedFrameDebt.Count == 0 &&
+                _frame!.GetSnapshot() is
+                {
+                    PendingWholeMinutes: 0,
+                    FractionalMinuteUnits: 0,
+                },
+            "interactive checkpoint did not stop on the exact minute boundary");
+
+        RealtimeCampaignSnapshot end = _run.GetSnapshot();
+        string endHash = _run.GetCanonicalStateSha256();
+        Require(string.Equals(
+                endHash,
+                checkpoint.ExpectedEndCanonicalStateSha256,
+                StringComparison.Ordinal),
+            "interactive checkpoint end canonical identity drifted from its frozen contract");
+        VerifyCommonEnd(checkpoint, end);
+        RealtimeTransition[] transitions = _emittedTransitions
+            .Skip(state.StartTransitionCount)
+            .ToArray();
+        IReadOnlyList<string> expectedNodes =
+            checkpoint.ActiveConstruction?.NodeIds ?? Array.Empty<string>();
+        IReadOnlyList<string> expectedEdges =
+            checkpoint.ActiveConstruction?.EdgeIds ?? Array.Empty<string>();
+        if (checkpoint.CheckpointId == RealtimeSliceCheckpointIds.NormalReady)
+        {
+            VerifyNormalEnd(checkpoint, end, transitions);
+        }
+        else
+        {
+            VerifyConstructionEnd(
+                checkpoint,
+                end,
+                transitions,
+                expectedNodes,
+                expectedEdges);
+        }
+
+        var segment = new RealtimeSliceCheckpointSegmentResult(
+            checkpoint,
+            end.Minute,
+            endHash,
+            state.StartPresentationRevision,
+            _presentationRevision,
+            transitions,
+            expectedNodes,
+            expectedEdges);
+        evidence = CompleteTargetedLiveCheckpoint(segment);
+        _interactiveCheckpoint = null;
+        return true;
+    }
+
+    private void StopInteractiveTargetAtBoundaryForDebug()
+    {
+        InteractiveCheckpointState? state = _interactiveCheckpoint;
+        if (state is null || _run is null)
+        {
+            return;
+        }
+        long expectedMinute = checked(
+            state.Checkpoint.StartMinute + state.Checkpoint.AllowedAdvanceMinutes);
+        if (_run.Minute >= expectedMinute)
+        {
+            SetProcess(false);
+        }
+    }
+
+    private long ClampInteractiveVirtualFramesAtBoundaryForDebug(
+        long requestedFrames)
+    {
+        InteractiveCheckpointState? state = _interactiveCheckpoint;
+        if (state is null || requestedFrames <= 0 || _run is null ||
+            _frame is null || _interaction is null ||
+            _interaction.Simulation != RealtimeSimulationState.Running)
+        {
+            return requestedFrames;
+        }
+        long expectedMinute = checked(
+            state.Checkpoint.StartMinute + state.Checkpoint.AllowedAdvanceMinutes);
+        if (_run.Minute >= expectedMinute)
+        {
+            return 0;
+        }
+        RealtimeFrameAccumulatorSnapshot timing = _frame.GetSnapshot();
+        int unitsPerFrame = checked(
+            RealtimeFrameAccumulator.UnitsPerMinute /
+            CheckpointFramesPerSecond * (int)_interaction.RunningSpeed);
+        int unitsUntilBoundary = checked(
+            RealtimeFrameAccumulator.UnitsPerMinute -
+            timing.FractionalMinuteUnits);
+        long framesUntilBoundary = Math.Max(
+            1,
+            (unitsUntilBoundary + unitsPerFrame - 1L) / unitsPerFrame);
+        return Math.Min(requestedFrames, framesUntilBoundary);
     }
 
     internal RealtimeSliceCheckpointEvidence CompleteTargetedLiveCheckpoint(
@@ -766,11 +917,11 @@ internal sealed partial class RealtimeSliceMain
     private static void VerifyNormalEnd(
         RealtimeSliceCheckpointFact checkpoint,
         RealtimeCampaignSnapshot end,
-        RealtimeR2FrameResult frame)
+        IReadOnlyList<RealtimeTransition> transitions)
     {
         Require(checkpoint.ActiveConstruction is null &&
                 end.Construction.ActiveConstruction is null &&
-                !frame.Transitions.Any(item =>
+                !transitions.Any(item =>
                     item.Kind == RealtimeTransitionKind.ConstructionCompleted),
             "normal-ready segment created or completed construction");
     }
@@ -778,14 +929,14 @@ internal sealed partial class RealtimeSliceMain
     private void VerifyConstructionEnd(
         RealtimeSliceCheckpointFact checkpoint,
         RealtimeCampaignSnapshot end,
-        RealtimeR2FrameResult frame,
+        IReadOnlyList<RealtimeTransition> transitions,
         IReadOnlyList<string> expectedNodes,
         IReadOnlyList<string> expectedEdges)
     {
         RealtimeSliceCheckpointConstructionFact project =
             checkpoint.ActiveConstruction ?? throw new InvalidOperationException(
                 "construction-due checkpoint lost its active construction fact");
-        RealtimeTransition[] completions = frame.Transitions.Where(item =>
+        RealtimeTransition[] completions = transitions.Where(item =>
             item.Kind == RealtimeTransitionKind.ConstructionCompleted &&
             item.Minute == end.Minute).ToArray();
         Require(completions.Length == 1 &&
@@ -799,10 +950,10 @@ internal sealed partial class RealtimeSliceMain
                     expectedEdges.OrderBy(id => id, StringComparer.Ordinal),
                     StringComparer.Ordinal),
             "construction-due segment did not emit the exact atomic completion");
-        int completionIndex = frame.Transitions.ToList().FindIndex(item =>
+        int completionIndex = transitions.ToList().FindIndex(item =>
             item.Kind == RealtimeTransitionKind.ConstructionCompleted &&
             item.Minute == end.Minute);
-        int eventIndex = frame.Transitions.ToList().FindIndex(item =>
+        int eventIndex = transitions.ToList().FindIndex(item =>
             item.Kind == RealtimeTransitionKind.EventStarted &&
             item.Minute == end.Minute);
         Require(completionIndex >= 0 && (eventIndex < 0 || completionIndex < eventIndex),
@@ -828,6 +979,13 @@ internal sealed partial class RealtimeSliceMain
                 }),
             "completed construction is not energized in the final world presentation");
     }
+
+    private sealed record InteractiveCheckpointState(
+        RealtimeSliceCheckpointFact Checkpoint,
+        long StartPresentationRevision,
+        int StartCommandCount,
+        IReadOnlyDictionary<RealtimePointerOwner, int> StartClicks,
+        int StartTransitionCount);
 
     private static string CommandReplaySha256(
         IReadOnlyList<TimedRealtimeCommand> commands)

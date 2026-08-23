@@ -170,6 +170,9 @@ internal sealed record RealtimeR2TimelineChooserFacts(
 internal sealed partial class RealtimeSliceMain : Control
 {
     private static readonly Vector2I RequiredLogicalCanvas = new(1920, 1080);
+    private const string ReleaseChapterArgumentPrefix = "--release-chapter=";
+    private const string FirstReleaseChapterId =
+        RealtimeCampaignOverlayLoader.FirstReleaseChapterId;
     private const int VirtualFramesPerSecond = 60;
     private const long NanosecondsPerSecond = 1_000_000_000;
     private const long CatchUpCeilingMinutes = 30;
@@ -201,6 +204,9 @@ internal sealed partial class RealtimeSliceMain : Control
     private IReadOnlyList<string> _timelineClusterIds = Array.Empty<string>();
     private int _timelineClusterIndex;
     private bool _draftCancelArmed;
+    private RealtimeSliceSourceRoute _sourceRoute =
+        RealtimeSliceSourceRoute.TechnicalCheckpointFixture;
+    private bool _formativeDirectPlayRecorded;
 
 #if DEBUG
     private RealtimeSmokeLinePlan? _smokeLinePlan;
@@ -210,6 +216,7 @@ internal sealed partial class RealtimeSliceMain : Control
 
     public override void _Ready()
     {
+        _sourceRoute = ParseSourceRoute(OS.GetCmdlineUserArgs());
         Control worldNode = GetNode<Control>("%WorldView");
         _worldView = worldNode as IRealtimeWorldView ??
             throw new InvalidOperationException(
@@ -239,11 +246,22 @@ internal sealed partial class RealtimeSliceMain : Control
             return;
         }
         _ = InjectElapsedSeconds(delta);
+#if DEBUG
+        StopInteractiveTargetAtBoundaryForDebug();
+#endif
     }
 
     private void Bootstrap()
     {
-        _data = RealtimeSliceResources.Load(typeof(RealtimeSliceMain).Assembly);
+        _data = _sourceRoute == RealtimeSliceSourceRoute.ReleaseFirstLight
+            ? RealtimeSliceResources.LoadReleaseFirstLight(
+                typeof(RealtimeSliceMain).Assembly)
+            : RealtimeSliceResources.Load(typeof(RealtimeSliceMain).Assembly);
+        if (_data.SourceRoute != _sourceRoute)
+        {
+            throw new InvalidOperationException(
+                "Realtime slice resource route does not match its launch route.");
+        }
         _run = new RealtimeCampaignRun(_data.Campaign, _data.World);
         _frame = new RealtimeFrameAccumulator(CatchUpCeilingMinutes);
         _interaction = RealtimeInteractionReducer.Initial(chapterBriefing: true);
@@ -268,11 +286,20 @@ internal sealed partial class RealtimeSliceMain : Control
         _timelineClusterIds = Array.Empty<string>();
         _timelineClusterIndex = 0;
         _draftCancelArmed = false;
+        _formativeDirectPlayRecorded = false;
 #if DEBUG
-        _smokeLinePlan = BuildSmokeLinePlan(_data);
-        _smokeBoundaryFacts = BuildSmokeBoundaryFacts(
-            _run.GetSnapshot(),
-            _smokeLinePlan);
+        if (_data.SourceRoute == RealtimeSliceSourceRoute.TechnicalCheckpointFixture)
+        {
+            _smokeLinePlan = BuildSmokeLinePlan(_data);
+            _smokeBoundaryFacts = BuildSmokeBoundaryFacts(
+                _run.GetSnapshot(),
+                _smokeLinePlan);
+        }
+        else
+        {
+            _smokeLinePlan = null;
+            _smokeBoundaryFacts = null;
+        }
         _lastInputRequest = null;
 #endif
         Present();
@@ -300,8 +327,7 @@ internal sealed partial class RealtimeSliceMain : Control
         _ui.ActionRequested += HandleAction;
         _ui.BuildToolRequested += HandleBuildTool;
         _ui.ModalActionRequested += HandleModalAction;
-        _ui.ModalDismissRequested += modalId =>
-            _ = ApplyIntent(RealtimeR2Intent.CloseModal(modalId));
+        _ui.ModalDismissRequested += HandleModalDismiss;
         // The priority-bearing request is the single keyboard owner. The map
         // handles pointer/wheel input only; every physical key reaches this
         // route at most once after modal/HUD priority arbitration.
@@ -519,6 +545,18 @@ internal sealed partial class RealtimeSliceMain : Control
         }
         long virtualFrames = checked((long)Math.Floor(scaledFrames));
         double nextRemainder = scaledFrames - virtualFrames;
+#if DEBUG
+        long boundedVirtualFrames =
+            ClampInteractiveVirtualFramesAtBoundaryForDebug(virtualFrames);
+        if (boundedVirtualFrames != virtualFrames)
+        {
+            // The interactive observation ends at the frozen canonical minute.
+            // Discard callback overrun instead of carrying time beyond the
+            // player-visible boundary that the host is about to verify.
+            virtualFrames = boundedVirtualFrames;
+            nextRemainder = 0;
+        }
+#endif
         if (nextRemainder < 0 || nextRemainder >= 1)
         {
             throw new InvalidOperationException("Realtime wall remainder escaped one frame.");
@@ -740,7 +778,12 @@ internal sealed partial class RealtimeSliceMain : Control
             _pointerMessage,
             reduceMotion: false,
             nodeOrderQuote: _nodeOrderQuote,
-            lineOrderQuote: _lineOrderQuote);
+            lineOrderQuote: _lineOrderQuote,
+            transitionHistory: _emittedTransitions);
+        _latestPresentation = _latestPresentation with
+        {
+            Modal = AuthoredReleaseModal(_latestPresentation.Modal),
+        };
         if (_worldView is null || _ui is null || !IsInsideTree())
         {
             return;
@@ -1078,7 +1121,91 @@ internal sealed partial class RealtimeSliceMain : Control
         // Every production R2 modal action is deliberately a close/continue
         // operation. Destructive recovery/new-game/title actions are never
         // presented because no production handler implements those mutations.
-        _ = ApplyIntent(RealtimeR2Intent.CloseModal(modalId));
+        RealtimeR2IntentResult result =
+            ApplyIntent(RealtimeR2Intent.CloseModal(modalId));
+        if (result.Accepted)
+        {
+            TryRecordFormativeDirectPlay(modal);
+        }
+    }
+
+    private void HandleModalDismiss(string modalId)
+    {
+        RealtimeModalPresentation? modal = _latestPresentation?.Modal;
+        if (modal is null ||
+            !string.Equals(modal.Id, modalId, StringComparison.Ordinal) ||
+            !modal.DismissOnCancel)
+        {
+            return;
+        }
+        RealtimeR2IntentResult result =
+            ApplyIntent(RealtimeR2Intent.CloseModal(modalId));
+        if (result.Accepted)
+        {
+            TryRecordFormativeDirectPlay(modal);
+        }
+    }
+
+    private RealtimeModalPresentation? AuthoredReleaseModal(
+        RealtimeModalPresentation? modal)
+    {
+        if (modal is null ||
+            _data?.SourceRoute != RealtimeSliceSourceRoute.ReleaseFirstLight)
+        {
+            return modal;
+        }
+        CommercialCampaignChapterDefinition chapter = _data.BaseCampaign.Chapters
+            .Single(item => string.Equals(
+                item.ChapterId,
+                FirstReleaseChapterId,
+                StringComparison.Ordinal));
+        CommercialStoryCard? card = modal.Id switch
+        {
+            "CHAPTER_BRIEFING" => chapter.Briefing,
+            "CAMPAIGN_RESULT" => chapter.ResultCards.Standard,
+            _ => null,
+        };
+        return card is null
+            ? modal
+            : modal with
+            {
+                Eyebrow = card.Speaker,
+                Heading = card.Title,
+                Body = card.Body,
+            };
+    }
+
+    private void TryRecordFormativeDirectPlay(RealtimeModalPresentation closedModal)
+    {
+        if (_formativeDirectPlayRecorded ||
+            _data?.SourceRoute != RealtimeSliceSourceRoute.ReleaseFirstLight ||
+            !string.Equals(closedModal.Id, "CAMPAIGN_RESULT", StringComparison.Ordinal) ||
+            _run?.GetSnapshot() is not { CampaignComplete: true } snapshot)
+        {
+            return;
+        }
+        CommercialCampaignChapterDefinition chapter = _data.BaseCampaign.Chapters.Single(
+            item => string.Equals(
+                item.ChapterId,
+                FirstReleaseChapterId,
+                StringComparison.Ordinal));
+        CommercialStoryCard authored = chapter.ResultCards.Standard ??
+            throw new InvalidOperationException(
+                "FIRST_LIGHT release route has no authored standard result.");
+        if (!string.Equals(closedModal.Eyebrow, authored.Speaker, StringComparison.Ordinal) ||
+            !string.Equals(closedModal.Heading, authored.Title, StringComparison.Ordinal) ||
+            !string.Equals(closedModal.Body, authored.Body, StringComparison.Ordinal) ||
+            snapshot.CompletedChapters.Count != 1 ||
+            !string.Equals(
+                snapshot.CompletedChapters[0].ChapterId,
+                FirstReleaseChapterId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "FORMATIVE direct-play close did not carry the exact authored FIRST_LIGHT result.");
+        }
+        _formativeDirectPlayRecorded = true;
+        GD.Print($"FORMATIVE_DIRECT_PLAY_PASS:{FirstReleaseChapterId}");
     }
 
     private void HandleBuildTool(string id)
@@ -1424,6 +1551,7 @@ internal sealed partial class RealtimeSliceMain : Control
             _run!.GetSnapshot(),
             _latestPresentation!.BaseForecast,
             _latestPresentation!.ComparisonDraftForecast,
+            _latestPresentation.TransitionHistory,
             item.Id);
         ApplyTimelineState(
             item.Id,
@@ -1796,6 +1924,34 @@ internal sealed partial class RealtimeSliceMain : Control
         _interaction?.Simulation == RealtimeSimulationState.Ended ||
         _latestPresentation?.CoreSnapshot.CampaignComplete == true;
 
+    internal static RealtimeSliceSourceRoute ParseSourceRoute(string[] arguments)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+        string[] releaseArguments = arguments.Where(argument =>
+                argument.StartsWith(
+                    ReleaseChapterArgumentPrefix,
+                    StringComparison.Ordinal))
+            .ToArray();
+        if (releaseArguments.Length == 0)
+        {
+            return RealtimeSliceSourceRoute.TechnicalCheckpointFixture;
+        }
+        if (arguments.Length != 1 || releaseArguments.Length != 1)
+        {
+            throw new ArgumentException(
+                $"Exactly one {ReleaseChapterArgumentPrefix}{FirstReleaseChapterId} " +
+                "user argument is required for the release route.");
+        }
+        string chapterId = releaseArguments[0][ReleaseChapterArgumentPrefix.Length..];
+        if (!string.Equals(chapterId, FirstReleaseChapterId, StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                $"Unknown release chapter '{chapterId}'. This gate exposes only " +
+                $"{FirstReleaseChapterId}.");
+        }
+        return RealtimeSliceSourceRoute.ReleaseFirstLight;
+    }
+
     private RealtimeCampaignSnapshot PresentedCoreSnapshot =>
         _latestPresentation?.CoreSnapshot ??
         _run?.GetSnapshot() ??
@@ -1822,6 +1978,12 @@ internal sealed partial class RealtimeSliceMain : Control
 
 #if DEBUG
     internal void BootstrapForSmoke() => Bootstrap();
+
+    internal void BootstrapReleaseFirstLightForSmoke()
+    {
+        _sourceRoute = RealtimeSliceSourceRoute.ReleaseFirstLight;
+        Bootstrap();
+    }
 
     internal void SetSpeedForSmoke(RealtimeSimulationSpeed speed)
     {
@@ -1992,6 +2154,8 @@ internal sealed partial class RealtimeSliceMain : Control
         _data?.BaseWorld ?? throw new InvalidOperationException("Not bootstrapped.");
     internal RealtimeWorldDefinition RealtimeWorldForSmoke =>
         _data?.World ?? throw new InvalidOperationException("Not bootstrapped.");
+    internal RealtimeSliceData SliceDataForSmoke =>
+        _data ?? throw new InvalidOperationException("Not bootstrapped.");
     internal string CanonicalStateSha256 =>
         _run?.GetCanonicalStateSha256() ?? throw new InvalidOperationException("Not bootstrapped.");
     internal RealtimeFrameAccumulatorSnapshot AccumulatorSnapshot =>

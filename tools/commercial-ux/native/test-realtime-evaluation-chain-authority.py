@@ -6,7 +6,6 @@ from __future__ import annotations
 import concurrent.futures
 import contextlib
 import copy
-import hashlib
 import importlib.util
 import inspect
 import json
@@ -225,49 +224,13 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
             REPOSITORY_ROOT,
             "HEAD",
         )
-        cls.real_evaluator = None
-        try:
-            cls.real_evaluator = AUTHORITY.bind_chain_evaluator_authority(
-                REPOSITORY_ROOT,
-                cls.chain_authority_revision,
-            )
-        except AUTHORITY.ChainAuthorityError:
-            pass
-        cls.fallback_evaluator = cls._build_fallback_evaluator()
+        cls.real_evaluator = AUTHORITY.bind_chain_evaluator_authority(
+            REPOSITORY_ROOT,
+            cls.chain_authority_revision,
+        )
         cls.schema = json.loads(
             AUTHORITY.CLAIM_SCHEMA_PATH.read_text(encoding="utf-8")
         )
-
-    @classmethod
-    def _build_fallback_evaluator(cls) -> dict:
-        rows = []
-        for relative, role in AUTHORITY.CHAIN_PRODUCER_PATH_ROLES:
-            data = (REPOSITORY_ROOT / relative).read_bytes()
-            rows.append({
-                "path": relative,
-                "role": role,
-                "gitMode": "100644",
-                "gitObjectId": hashlib.sha1(data).hexdigest(),
-                "rawSha256": AUTHORITY.sha256_bytes(data),
-                "byteLength": len(data),
-            })
-        rows.sort(key=lambda row: row["path"])
-        return {
-            "schemaVersion": AUTHORITY.CHAIN_PRODUCER_SCHEMA,
-            "sourceCommit": cls.chain_authority_revision,
-            "fileCount": 5,
-            "files": rows,
-            "filesSha256": AUTHORITY.canonical_sha256(rows),
-            "runningFilesMatchGitBlobs": True,
-            "gitCommandAuthority": CANDIDATE.bind_git_command_authority(
-                REPOSITORY_ROOT
-            ),
-            "parentSessionSemanticVerifierDependencyBound": True,
-            "semanticVerifierEntryPoint": (
-                "verify_chain_claim_against_reconstructed_authority"
-            ),
-            "structuralSchemaAuthority": "STRUCTURAL_ONLY_NOT_CHAIN_AUTHORITY",
-        }
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -287,18 +250,6 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
             callable_value()
         if fragment is not None:
             self.assertIn(fragment, str(captured.exception))
-
-    @contextlib.contextmanager
-    def evaluator_binding(self):
-        if self.real_evaluator is not None:
-            yield
-        else:
-            with mock.patch.object(
-                AUTHORITY,
-                "bind_chain_evaluator_authority",
-                return_value=self.fallback_evaluator,
-            ):
-                yield
 
     def create_parent(
         self,
@@ -330,19 +281,17 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
         return path, claim
 
     def create_chain(self, session_claim: Path) -> tuple[Path, dict]:
-        with self.evaluator_binding():
-            return AUTHORITY.create_chain_claim(
-                REPOSITORY_ROOT,
-                session_claim,
-                chain_authority_revision=self.chain_authority_revision,
-            )
+        return AUTHORITY.create_chain_claim(
+            REPOSITORY_ROOT,
+            session_claim,
+            chain_authority_revision=self.chain_authority_revision,
+        )
 
     def verify_chain(self, chain_claim: Path):
-        with self.evaluator_binding():
-            return AUTHORITY.verify_chain_claim_against_reconstructed_authority(
-                REPOSITORY_ROOT,
-                chain_claim,
-            )
+        return AUTHORITY.verify_chain_claim_against_reconstructed_authority(
+            REPOSITORY_ROOT,
+            chain_claim,
+        )
 
     def rewrite_claim(self, path: Path, claim: dict) -> None:
         claim["evaluationChainClaimSha256"] = AUTHORITY.self_hash(
@@ -363,17 +312,8 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
             policy["futureArtifactPlan"]["orderedPaths"],
         )
         self.assertEqual(5, policy["evaluatorProducerAuthority"]["expectedFileCount"])
-        if self.real_evaluator is not None:
-            self.assertEqual(5, self.real_evaluator["fileCount"])
-            self.assertTrue(self.real_evaluator["runningFilesMatchGitBlobs"])
-        else:
-            self.assertRejected(
-                lambda: AUTHORITY.bind_chain_evaluator_authority(
-                    REPOSITORY_ROOT,
-                    self.chain_authority_revision,
-                ),
-                "lacks evaluator file",
-            )
+        self.assertEqual(5, self.real_evaluator["fileCount"])
+        self.assertTrue(self.real_evaluator["runningFilesMatchGitBlobs"])
 
     def test_both_targeted_routes_snapshot_success_and_future_bar(self) -> None:
         for checkpoint in ("A1_NORMAL_READY", "A1_CONSTRUCTION_DUE_1M"):
@@ -484,6 +424,24 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
             lambda: self.create_chain(integrity),
             "exactly one SUCCESS",
         )
+        retry_without_followup, _ = self.create_parent(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+            [b""],
+        )
+        self.assertRejected(
+            lambda: self.create_chain(retry_without_followup),
+            "exactly one SUCCESS",
+        )
+        exhausted, _ = self.create_parent(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+            [b"", b"{transport", b""],
+        )
+        self.assertRejected(
+            lambda: self.create_chain(exhausted),
+            "exactly one SUCCESS",
+        )
 
     def test_claim_snapshot_parent_and_route_mutations_fail_closed(self) -> None:
         parent_path, _ = self.create_parent(
@@ -572,6 +530,80 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
         self.assertFalse((interrupted_root / "evaluation-chain-claim.json").exists())
         self.assertRejected(lambda: self.create_chain(interrupted_parent), "exclusive create failed")
 
+        snapshot_parent, parent = self.create_parent(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+            ["EXPECTED"],
+        )
+
+        def fail_snapshot(path: Path, data: bytes, label: str) -> None:
+            if label == "chain snapshot ATTEMPT_START_RECEIPT":
+                raise AUTHORITY.ChainAuthorityError("injected snapshot interruption")
+            real_write(path, data, label)
+
+        with mock.patch.object(AUTHORITY, "exclusive_write", side_effect=fail_snapshot):
+            self.assertRejected(
+                lambda: self.create_chain(snapshot_parent),
+                "injected snapshot interruption",
+            )
+        snapshot_root = Path(f"{parent['canonicalSessionRoot']}.evaluation-chain-v1")
+        self.assertFalse((snapshot_root / "evaluation-chain-claim.json").exists())
+
+        injected_parent, parent = self.create_parent(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+            ["EXPECTED"],
+        )
+        real_compose = AUTHORITY.compose_chain_claim
+
+        def inject_artifact_root(prefix, evaluator, root, nonce):
+            claim = real_compose(prefix, evaluator, root, nonce)
+            (root / "artifacts").mkdir()
+            return claim
+
+        with mock.patch.object(
+            AUTHORITY,
+            "compose_chain_claim",
+            side_effect=inject_artifact_root,
+        ):
+            self.assertRejected(
+                lambda: self.create_chain(injected_parent),
+                "preclaim evaluation chain root inventory drift",
+            )
+        injected_root = Path(f"{parent['canonicalSessionRoot']}.evaluation-chain-v1")
+        self.assertFalse((injected_root / "evaluation-chain-claim.json").exists())
+
+    def test_session_lock_spans_all_snapshots_and_claim_commit(self) -> None:
+        parent_path, _ = self.create_parent(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+            ["EXPECTED"],
+        )
+        real_lock = SESSION.exclusive_claim_lock
+        real_write = AUTHORITY.exclusive_write
+        state = {"held": False, "writeCount": 0}
+
+        @contextlib.contextmanager
+        def observed_lock(path: Path):
+            with real_lock(path):
+                state["held"] = True
+                try:
+                    yield
+                finally:
+                    state["held"] = False
+
+        def observed_write(path: Path, data: bytes, label: str) -> None:
+            self.assertTrue(state["held"], f"lock absent for {label}")
+            state["writeCount"] += 1
+            real_write(path, data, label)
+
+        with mock.patch.object(SESSION, "exclusive_claim_lock", observed_lock):
+            with mock.patch.object(AUTHORITY, "exclusive_write", side_effect=observed_write):
+                chain_path, claim = self.create_chain(parent_path)
+        self.assertFalse(state["held"])
+        self.assertEqual(claim["inputSnapshot"]["fileCount"] + 1, state["writeCount"])
+        self.verify_chain(chain_path)
+
     def test_concurrent_creation_has_one_winner(self) -> None:
         parent_path, _ = self.create_parent(
             "TARGETED_CHECKPOINT",
@@ -589,9 +621,8 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
             except AUTHORITY.ChainAuthorityError as error:
                 return ("error", str(error))
 
-        with self.evaluator_binding():
-            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-                results = list(executor.map(lambda _value: create_once(), range(2)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(lambda _value: create_once(), range(2)))
         self.assertEqual(1, sum(kind == "ok" for kind, _value in results))
         self.assertEqual(1, sum(kind == "error" for kind, _value in results))
 
@@ -603,6 +634,13 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
         )
         chain_path, claim = self.create_chain(parent_path)
         validate_schema_subset(claim, self.schema, self.schema)
+        nonce_forgery = copy.deepcopy(claim)
+        nonce_forgery["chainNonce"] = "f" * 64
+        self.rewrite_claim(chain_path, nonce_forgery)
+        validate_schema_subset(nonce_forgery, self.schema, self.schema)
+        self.assertRejected(lambda: self.verify_chain(chain_path), "reconstructed authority")
+
+        self.rewrite_claim(chain_path, claim)
         forged = copy.deepcopy(claim)
         forged["officialCommercialUX"] = True
         forged["commercialUXProxy"] = 99
@@ -611,13 +649,61 @@ class RealtimeEvaluationChainAuthorityTests(unittest.TestCase):
         self.rewrite_claim(chain_path, forged)
         self.assertRejected(lambda: self.verify_chain(chain_path), "reconstructed authority")
 
+    def test_future_signal_and_full_flow_terminal_mutations_fail_closed(self) -> None:
+        parent_path, _ = self.create_parent(
+            "TARGETED_CHECKPOINT",
+            "A1_NORMAL_READY",
+            ["EXPECTED"],
+        )
+        chain_path, claim = self.create_chain(parent_path)
+        signals = claim["routeBoundary"]["futureEventStatusBar"]["requiredSignals"]
+        variants = [
+            signals[:index] + signals[index + 1:]
+            for index in range(len(signals))
+        ] + [list(reversed(signals)), signals + ["UNAUTHORIZED_SIGNAL"]]
+        for variant in variants:
+            forged = copy.deepcopy(claim)
+            forged["routeBoundary"]["futureEventStatusBar"]["requiredSignals"] = variant
+            forged["routeBoundary"]["routeBoundarySha256"] = AUTHORITY.self_hash(
+                forged["routeBoundary"],
+                "routeBoundarySha256",
+            )
+            self.rewrite_claim(chain_path, forged)
+            self.assertRejected(lambda: self.verify_chain(chain_path))
+        self.rewrite_claim(chain_path, claim)
+        self.verify_chain(chain_path)
+
+        full_parent, _ = self.create_parent("FULL_FLOW_EXCEPTION", None, None)
+        full_path, full = self.create_chain(full_parent)
+        selected = copy.deepcopy(full)
+        selected["selectedRouteTerminal"]["outcome"] = "SUCCESS"
+        self.rewrite_claim(full_path, selected)
+        self.assertRejected(lambda: self.verify_chain(full_path))
+        audit = copy.deepcopy(full)
+        audit["attemptAudit"] = [claim["attemptAudit"][0]]
+        self.rewrite_claim(full_path, audit)
+        self.assertRejected(lambda: self.verify_chain(full_path))
+
     def test_production_api_has_no_nonce_or_artifact_relaxation(self) -> None:
         create_signature = inspect.signature(AUTHORITY.create_chain_claim)
         verify_signature = inspect.signature(
             AUTHORITY.verify_chain_claim_against_reconstructed_authority
         )
-        self.assertNotIn("chain_nonce", create_signature.parameters)
-        self.assertNotIn("allow_artifact_root", verify_signature.parameters)
+        self.assertEqual(
+            {"repository_root", "session_claim_path", "chain_authority_revision"},
+            set(create_signature.parameters),
+        )
+        self.assertEqual(
+            {"repository_root", "claim_path"},
+            set(verify_signature.parameters),
+        )
+        for forbidden in (
+            "chain_nonce", "chain_root", "attempt_ordinal", "outcome",
+            "route_kind", "commercial_ux_proxy", "model", "reasoning_effort",
+            "allow_artifact_root",
+        ):
+            self.assertNotIn(forbidden, create_signature.parameters)
+            self.assertNotIn(forbidden, verify_signature.parameters)
         parser = AUTHORITY.build_argument_parser()
         with self.assertRaises(SystemExit):
             parser.parse_args([

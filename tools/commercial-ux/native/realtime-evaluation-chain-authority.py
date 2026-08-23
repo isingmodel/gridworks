@@ -779,6 +779,43 @@ def _create_snapshot_parent(chain_root: Path, relative_path: str) -> Path:
     return path
 
 
+def _validate_preclaim_inventory(
+    root: Path,
+    prefix: ParentPrefix,
+) -> None:
+    canonical_root = canonical_existing_directory(root, "preclaim evaluation chain root")
+    if {path.name for path in canonical_root.iterdir()} != {"inputs"}:
+        raise ChainAuthorityError("preclaim evaluation chain root inventory drift")
+    inputs = canonical_existing_directory(root / "inputs", "preclaim inputs root")
+    expected_files = {
+        snapshot.snapshot_relative_path for snapshot in prefix.files
+    }
+    actual_files: set[str] = set()
+    actual_directories: set[str] = {"inputs"}
+    for directory, directory_names, file_names in os.walk(inputs, followlinks=False):
+        base = Path(directory)
+        for name in directory_names:
+            child = canonical_existing_directory(
+                base / name,
+                f"preclaim input directory {name}",
+            )
+            actual_directories.add(str(child.relative_to(root)))
+        for name in file_names:
+            child, _data = read_regular_exact(
+                base / name,
+                f"preclaim input file {name}",
+            )
+            actual_files.add(str(child.relative_to(root)))
+    expected_directories = {"inputs"}
+    for relative in expected_files:
+        current = Path(relative).parent
+        while str(current) != ".":
+            expected_directories.add(str(current))
+            current = current.parent
+    if actual_files != expected_files or actual_directories != expected_directories:
+        raise ChainAuthorityError("preclaim input snapshot inventory drift")
+
+
 def create_chain_claim(
     repository_root: Path,
     session_claim_path: Path,
@@ -844,6 +881,7 @@ def create_chain_claim(
                     )
             nonce = secrets.token_bytes(32).hex()
             claim = compose_chain_claim(refreshed_prefix, evaluator, root, nonce)
+            _validate_preclaim_inventory(root, refreshed_prefix)
             claim_path = root / policy["chainAuthority"]["claimFileName"]
             exclusive_write(
                 claim_path,

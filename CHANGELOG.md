@@ -6,6 +6,8 @@
   기준선으로 보존하지만 더 이상 기본 실행 장면이 아니다.
 - local `main:cf5da56`의 exact G3 runtime tree 57개를 live R2 surface에 적용했다: 지도 draw layer
   50개와 HUD/panel/button UI chrome 7개다.
+- realtime canonical tree와 legacy G3/UX87 history를 local `main` 하나로 통합했다. 두 작업 branch는
+  동일 검증 뒤 삭제했고 `origin/main`에는 쓰지 않았다.
 - R2의 one-line future-event rail, Core/input/hit/focus/accessibility ownership과 targeted checkpoint
   계약은 유지했다. 이 항목은 package/release, score-bearing judge 또는 사람 미감 증거를 만들지 않는다.
 

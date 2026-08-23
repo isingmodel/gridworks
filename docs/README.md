@@ -1,7 +1,7 @@
 # Gridworks 문서 안내
 
-이 디렉터리는 **현재 `./assets` 스타일 실시간 게임 방향과 그 위의 상용 UX 87 활성 작업에 필요한
-문서만 전면에 둔다.** 완료·중단된 과거 상세 계약은 현재 권한과 혼동되지 않도록 Git 이력으로
+이 디렉터리는 **현재 `./assets` 스타일 실시간 게임 방향과 그 위의 상용 UX 87 평가 계약에 필요한
+문서만 전면에 둔다.** 현재 추가 구현 gate는 없으며, 완료·중단된 과거 상세 계약은 현재 권한과 혼동되지 않도록 Git 이력으로
 돌리고, 핵심 사실만 `archive/`에 압축했다.
 
 ## 현재 문서 구조
@@ -30,7 +30,7 @@ docs/
 | 질문 | 소유 문서 | 경계 |
 |---|---|---|
 | 지금 무엇을 할 수 있는가? | [루트 README](../README.md) | 목표와 코드 구현 권한을 구분 |
-| 현재 단일 작업 scope와 gate는 무엇인가? | [realtime G3 canonicalization과 main 통합](scopes/REALTIME_G3_MAIN_CONSOLIDATION.md) | full G3를 live R2에 이식하고 local main만 유지; V2 gameplay 병합 금지 |
+| 가장 최근 완료 scope와 gate는 무엇인가? | [realtime G3 canonicalization과 main 통합](scopes/REALTIME_G3_MAIN_CONSOLIDATION.md) | full G3를 live R2에 이식하고 local main만 유지; V2 gameplay 병합 금지 |
 | LLM 점수와 증거를 어떻게 만드는가? | [상용 UX 평가 프로토콜](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md) | 사람 검토·공식 출시 승인을 대신하지 않음 |
 | 스토리 파트 하나만 어떻게 검사하는가? | [평가 도구 안내](../tools/commercial-ux/README.md) | authored reachability를 native reachability로 주장하지 않음 |
 | 최종적으로 어떤 게임을 만드는가? | [게임 기획서](product/GAME_DESIGN_KO.md) | 단계별 파일·절차는 만들지 않음 |
@@ -55,14 +55,14 @@ docs/
 ## 현재 경계
 
 - `CurrentGoal = ASSET_STYLE_REALTIME_GAME`
-- `ActiveScope = REALTIME_G3_MAIN_CONSOLIDATION`
+- `ActiveScope = NONE_USER_STOP_AFTER_REALTIME_G3_MAIN_CONSOLIDATION`
 - `ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW`
 - `NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION`
 - `UserAuthorization = EXPLICIT_RESOLVE_REALTIME_G3_SPLIT_AND_CONSOLIDATE_LOCAL_MAIN`
-- `ProductArtImplementationGate = FULL_G3_R2_DEFAULT_ENTRY_APPLIED_PENDING_LOCAL_MAIN_CONSOLIDATION`
+- `ProductArtImplementationGate = FULL_G3_R2_DEFAULT_ENTRY_AND_LOCAL_MAIN_CONSOLIDATION_COMPLETE`
 - `DocumentationBaseline = A0_COMPLETE`
 - `ArchitecturePreparation = COMPLETE`
-- `NextCandidate = LOCAL_MAIN_HISTORY_CONSOLIDATION_ONLY`
+- `NextCandidate = NONE_USER_REQUESTED_STOP`
 - `RealtimeRuleAuthority = RELEASE_V3`
 - `RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3`
 - `FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL`
@@ -121,8 +121,8 @@ docs/
 - `LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT`
 - `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`
-- 기본 장면은 live R2 `RealtimeSliceMain`이다. exact G3 runtime union은 57개(지도 50/UI 7)이며,
-  local main history 통합만 남아 있다.
+- 기본 장면은 live R2 `RealtimeSliceMain`이다. exact G3 runtime union은 57개(지도 50/UI 7)이고,
+  local history는 `main` 하나로 통합됐다.
 - R1/R2 기반과 완료된 UX-R2.1·UX-R2.2 source 및 실제 입력 record는 보존한다. UX-R2.3은 exact
   cumulative 4장 route, calendar transition과 promise deadline/Keep/Defer를 source `aee4932`와
   fix `d85bb3f`에 구현했고 두 bounded review는 P0 0/P1 0이다. native observation은 사용자 지시로
@@ -136,8 +136,8 @@ docs/
 ## 작업 읽기 순서
 
 1. 루트 [README](../README.md)를 읽는다.
-2. 루트가 지목한 [active realtime G3/main scope](scopes/REALTIME_G3_MAIN_CONSOLIDATION.md)를
-   처음부터 끝까지 읽는다.
+2. 루트가 지목한 최근 [realtime G3/main 완료 scope](scopes/REALTIME_G3_MAIN_CONSOLIDATION.md)를
+   필요한 사실만 확인한다.
 3. UX 평가 사실을 다루면 [실시간 상용 UX 87 계약](scopes/COMMERCIAL_UX_87.md)을 추가로 읽는다.
 4. 작업 질문의 소유 문서 하나만 추가로 읽는다.
 5. 승인된 gate 밖 코드·data·asset·scene은 만들지 않는다.

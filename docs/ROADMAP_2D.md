@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · full G3 live-R2 기본 진입점 적용 완료 · local main history 통합 진행 중**
+> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · full G3 live-R2 기본 진입점 및 local main 통합 완료**
 > 제품 아트: **full G3 57개(지도 50/UI 7) canonical runtime 적용 완료; 일반 A1/A2–A5 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
@@ -153,7 +153,7 @@ G3 asset tree 35개만 `RealtimePlaceholderMap` rendering layer에 적용했다.
 `CommercialMain`, data/world, map input과 default/package를 합치지 않았다. exact allowlist, provenance 및 종료 증거는
 [제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)이 소유한다. 사용자 지시로 다음 단계는 열지 않는다.
 
-## Realtime G3 canonicalization과 local main 통합 — 활성
+## Realtime G3 canonicalization과 local main 통합 — 완료
 
 ### 결과
 
@@ -162,6 +162,7 @@ G3 asset tree 35개만 `RealtimePlaceholderMap` rendering layer에 적용했다.
 - one-line future-event rail, R2 Core/controller/input/hit/focus/accessibility ownership 보존
 - G3 map/UI smoke, full R2 UI matrix, Realtime/Commercial suite, targeted checkpoint와 default boot 통과
 - V2 gameplay/data의 content merge 없이 local legacy history를 final `main` ancestry로만 정리
+- `main`에서 동일 검증을 재실행한 뒤 local working branch를 `main` 하나로 정리; `origin/main`은 변경하지 않음
 
 이 단위의 정확한 허용 범위·검증·branch 절차는
 [realtime G3 canonicalization과 main 통합 scope](scopes/REALTIME_G3_MAIN_CONSOLIDATION.md)가 소유한다.

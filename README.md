@@ -29,7 +29,8 @@
 다만 최신 사용자 지시는 그 반복과 native 직접 플레이를 여기서 멈추고, 지금까지 구현·review된 R2.3을
 유지한 채 기존 G3 아이소메트릭 디자인을 live R2 화면에 적용한 뒤 중단하는 것이었다. 이후 사용자는
 full G3 visual work가 기본 제품 화면과 분리된 문제를 해결하고 `main` 하나로 통합하도록 명시했다.
-현재 단일 구현 범위는 [realtime G3 canonicalization과 main 통합](docs/scopes/REALTIME_G3_MAIN_CONSOLIDATION.md)이다.
+이 [realtime G3 canonicalization과 main 통합](docs/scopes/REALTIME_G3_MAIN_CONSOLIDATION.md)은 완료됐다.
+새 구현은 별도 사용자 지시 전까지 열지 않는다.
 
 ## 현재 상태와 권한
 
@@ -52,8 +53,8 @@ score-bearing capture는 열지 않았다. UX-R2.3은 누적 상태를 위조하
 source `aee4932`와 truth-preservation fix `d85bb3f`에 구현했다. 두 source/fix 독립 검토는 모두
 P0 0/P1 0이며, 사용자 지시로 native direct-play 관찰은 보류했다. 이후 full G3 visual work가 기본
 제품 화면과 분리된 문제를 해소하기 위해, exact 57개 G3 runtime asset(지도 50/UI 7)을 live R2에
-적용하고 R2를 기본 진입점으로 전환했다. 현 scope에 남은 일은 검증된 local history를 `main` 하나로
-정리하는 것뿐이다.
+적용하고 R2를 기본 진입점으로 전환했다. 검증된 local history는 `main` 하나로 정리됐고, 현재 local
+working branch도 `main`만 남는다.
 
 - 기본 실행 장면: live R2 `RealtimeSliceMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -78,19 +79,20 @@ P0 0/P1 0이며, 사용자 지시로 native direct-play 관찰은 보류했다. 
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
-GoalDirection = ACTIVE_USER_REQUESTED_REALTIME_G3_MAIN_CONSOLIDATION
-ActiveScope = REALTIME_G3_MAIN_CONSOLIDATION
+GoalDirection = COMPLETE_USER_REQUESTED_REALTIME_G3_MAIN_CONSOLIDATION
+ActiveScope = NONE_USER_STOP_AFTER_REALTIME_G3_MAIN_CONSOLIDATION
 ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
 NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
 UserAuthorization = EXPLICIT_RESOLVE_REALTIME_G3_SPLIT_AND_CONSOLIDATE_LOCAL_MAIN
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ProductArtImplementationGate = FULL_G3_R2_DEFAULT_ENTRY_APPLIED_PENDING_LOCAL_MAIN_CONSOLIDATION
-NextCandidate = LOCAL_MAIN_HISTORY_CONSOLIDATION_ONLY
+ProductArtImplementationGate = FULL_G3_R2_DEFAULT_ENTRY_AND_LOCAL_MAIN_CONSOLIDATION_COMPLETE
+NextCandidate = NONE_USER_REQUESTED_STOP
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_FULL_G3_TREE_57_PNG_MAP50_UI7_APPLIED_TO_LIVE_R2
 A1G3ProductSource = COMMIT_1AF2B33_FULL_G3_R2_CANONICALIZATION
 A1G3SourceReview = CURRENT_SCOPE_REVIEW_PASS_P0_0_P1_0
+LocalBranchState = MAIN_ONLY_LOCAL_BRANCH
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL

@@ -1,6 +1,6 @@
 # Gridworks — realtime G3 canonicalization과 main 통합 범위
 
-> 문서 상태: **활성 — 사용자 명시 지시**
+> 문서 상태: **완료 — 사용자 명시 지시 이행, 새 구현 gate 없음**
 > 제품 방향: **live-streaming R2를 제품 경로로 유지하고, 과거 full G3 표현을 그 경로에 복원한다.**
 
 ## 1. 문제와 결정
@@ -55,9 +55,9 @@ live R2 surface로 이식하고 R2를 기본 제품 진입점으로 만든다.
 
 ## 4. branch 통합 절차
 
-현재 realtime branch에서 source-preserving port와 검증을 완료한다. 이후 local `main`에 merge하고,
-main에서 동일 검증을 다시 실행한 뒤에만 작업 branch를 삭제한다. branch 삭제 전에는 `main`이 모든 relevant
-commit을 ancestry로 갖는지 확인한다. 이 절차는 Git history를 rewrite하지 않으며, `origin/main`에는 쓰지 않는다.
+realtime branch에서 source-preserving port와 검증을 완료한 뒤 local `main`으로 fast-forward했다. `main`에서
+동일 검증을 다시 실행하고, 두 legacy branch의 relevant commit이 모두 `main` ancestry에 있음을 확인한 뒤
+local working branch를 삭제했다. 이 절차는 Git history를 rewrite하지 않았고, `origin/main`에는 쓰지 않았다.
 
 ## 5. 현재 진행
 
@@ -65,5 +65,6 @@ commit을 ancestry로 갖는지 확인한다. 이 절차는 Git history를 rewri
   live R2 draw/theme surface에 연결했다.
 - G3 provenance/default-entry/text-plan, Debug build, Realtime 25/1,077, Commercial 31/7,084, full R2 UI
   matrix, 두 targeted checkpoint와 headless default boot가 통과했다.
-- independent review의 current-state documentation follow-up은 P0 0/P1 0으로 닫았다. 남은 작업은
-  local `main`의 history-only consolidation과 그 final verification뿐이다.
+- independent review의 current-state documentation follow-up과 final main audit은 모두 P0 0/P1 0으로 닫았다.
+- integration merge `c9f426f`는 realtime canonical tree와 legacy G3/UX87 history를 모두 ancestry로 보존한다.
+  local branch는 `main` 하나만 남았고, `origin/main`에는 쓰지 않았다.

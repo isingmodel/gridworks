@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 목표 계약
 
-> 문서 상태: **historical A1-G3 partial-port 기록 · 현재 구현 권한은 realtime G3 canonicalization/main 통합 scope가 소유**
+> 문서 상태: **historical A1-G3 partial-port 기록 · realtime G3 canonicalization/main 통합 완료, 현재 추가 구현 권한 없음**
 > 제품 아트: live R2의 full G3 57개(지도 50/UI 7) 적용과 default entry는
 > [realtime G3 canonicalization과 main 통합](REALTIME_G3_MAIN_CONSOLIDATION.md)이 소유한다.
 
@@ -459,9 +459,9 @@ evaluator는 수정하지 않는다. 새 art 생성, composite background, map p
 - 권리·서명·공증·공개 배포의 별도 승인
 
 로드맵 항목은 구현 권한이 아니다. A0·A0.1·UX-R2.1·UX-R2.2와 A1-G3 carve-out은 완료됐고 UX-R2.3은
-source/fix review를 통과했으나 user-requested native observation은 보류됐다. 현재 허용된 코드 권한은
-별도 [realtime G3 canonicalization/main 통합 scope](REALTIME_G3_MAIN_CONSOLIDATION.md)뿐이며, 일반
-A1의 나머지와 A2–A5는 열지 않았다.
+source/fix review를 통과했으나 user-requested native observation은 보류됐다. 별도
+[realtime G3 canonicalization/main 통합 scope](REALTIME_G3_MAIN_CONSOLIDATION.md)는 완료됐으며, 현재
+추가 코드 권한은 없다. 일반 A1의 나머지와 A2–A5는 열지 않았다.
 
 현재 사용자의 A1-G3 지시는 [실시간 상용 UX 87 scope](COMMERCIAL_UX_87.md)의 실시간 제품 방향을
 바꾸지 않는다. UX-R2.3의 rules/presentation source는 유지하며, 이후 runtime gate는 이 계약의 allowlist와

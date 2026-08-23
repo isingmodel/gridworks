@@ -171,8 +171,10 @@ run으로 새 INITIAL panel을 만든다. qualification anchor나 holdout을 제
 
 UX-R0 text baseline의 model/effort는 orchestration task에서 정확히 고정하지만, repository artifact에
 platform 서명 execution receipt를 내보내는 권위는 아직 없다. 따라서 text 결과는 이 제한을 명시한
-formative proxy다. 공식 native capture 전 UX-R1이 platform/API receipt 또는 동등한 transcript authority를
-session hash에 결속해야 한다.
+formative proxy다. UX-R1은 공식 native capture 전에 platform/API receipt를 대신 주장하지 않는 local
+controlled transcript authority를 session-bound aggregate에 결속했다. 이 영수증은 요청·local rollout의
+`gpt-5.6-sol`/`ultra` 일치와 freshness를 검증하지만 platform attestation, judge 실행 또는 점수 증거는
+아니다.
 
 ## 9. 개선 반복
 
@@ -194,18 +196,24 @@ deterministic failure / blinded observation
 
 현재 text lane의 V3 authority 포팅과 34-part 단독 실행은 deterministic PASS다. 첫 INITIAL panel은
 불안정으로 보존했고, 별도 세 fresh run의 두 번째 INITIAL panel은 schema 상태
-`SCORED_FORMATIVE`, `TextPlanProxy = 83.4475`로 안정 집계했다. 그러나 native lane,
-candidate/replay authority, 8장 R2 presentation과 실제 macOS capture가 아직 없으므로 상태는 다음과
-같다.
+`SCORED_FORMATIVE`, `TextPlanProxy = 83.4475`로 안정 집계했다. UX-R1의 candidate/replay,
+session/attempt, evaluation chain, blocked seven-artifact chain과 local controlled transcript authority는
+완료했고 전체 gate review도 P0 0/P1 0으로 통과했다. 그러나 8장 R2 presentation과 실제 macOS capture가
+아직 없으므로 상태는 다음과 같다.
 
 ```text
 TextPlanProxy = 83.4475_FORMATIVE
 CommercialUXProxy = null
-OfficialScoreStatus = BLOCKED_UX_R1_AUTHORITY_PORT
+OfficialScoreStatus = BLOCKED_UX_R2_COMPLETENESS_NOT_OPENED
 ScoreBearingCaptureAllowed = false
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
-ActiveEvaluationGate = UX_R1_NATIVE_EVALUATOR_AUTHORITY_PORT
+ActiveEvaluationGate = NONE
+NextEvaluationGate = UX_R2_REALTIME_GAME_COMPLETENESS_NOT_OPENED
+ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECEIPT_SHA256_F7C17C4A
+UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
+NativeCapturePolicy = FORBIDDEN_UX_R2_A1_NOT_OPENED
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 ```
 
-현재 UX-R1이 native provenance 계약을 포팅한다. 이를 독립 검토로 닫은 뒤에도 다음 runtime gate가
-필수 presentation을 구현하기 전에는 score-bearing capture를 허용할 수 없다.
+UX-R1 native provenance 계약은 독립 검토로 닫혔다. 다음 runtime gate가 필수 presentation을 구현하기
+전에는 score-bearing capture를 허용할 수 없다.

@@ -1,6 +1,6 @@
 # Gridworks — 실시간 상용 UX 87 활성 계약
 
-> 상태: **활성 — UX-R1 native evaluator authority port**
+> 상태: **활성 scope — UX-R1 완료 · UX-R2 미개방**
 >
 > 제품 방향 권위: [에셋 스타일 실시간 게임 계약](ASSET_STYLE_REALTIME_GAME.md)
 >
@@ -13,10 +13,10 @@ pause·1×·2×·4× 속도, 계속 흐르는 시계, 미리 보이는 사건과
 사용하며, 과거 `codex/commercial-ux-87`의 V2 runtime 구현을 합치지 않는다.
 
 UX-R0는 source-bound 텍스트 artifact, 스토리 파트 단독 실행과 세 fresh text judge 기준점을 닫았다.
-현재 gate는 V3/R2 candidate bytes, replay, session claim, evaluation-chain parent와 blocked artifact
-provenance를 fail-closed로 포팅했고 model receipt/transcript authority를 이어 가는 UX-R1만 허용한다.
-A1 runtime art와 전체 캠페인 presentation은 열지 않으며 실제 score-bearing capture도 UX-R1 종료 전
-실행하지 않는다.
+UX-R1은 V3/R2 candidate bytes, replay, session claim, evaluation-chain parent와 blocked artifact
+provenance, local controlled transcript authority를 fail-closed로 포팅하고 전체 종료 검토까지 완료했다.
+현재 열린 평가 gate는 없다. UX-R2, A1 runtime art와 전체 캠페인 presentation은 열지 않았으며 실제
+score-bearing capture도 허용하지 않는다.
 
 ## 1. 플레이어 결과
 
@@ -51,6 +51,8 @@ A1 runtime art와 전체 캠페인 presentation은 열지 않으며 실제 score
 - 같은 source-bound 입력의 첫 INITIAL panel은 `TP-A1` 불안정으로 점수가 성립하지 않았고 보존했다.
 - 별도 세 fresh run의 두 번째 INITIAL panel은 `SCORED_FORMATIVE`, `TextPlanProxy = 83.4475`로
   안정 집계됐다. 플랫폼 서명 execution receipt는 저장소에 내보내지 못했다.
+- UX-R1 local controlled transcript는 별도 fresh `gpt-5.6-sol`/`ultra` semantic-echo rollout을
+  source-bound parent에 결속했다. 이는 platform attestation, judge 실행 또는 점수 증거가 아니다.
 
 따라서 text judge의 결과는 개선 우선순위를 정하는 `TextPlanProxy`일 뿐 공식 87점이 아니다.
 
@@ -168,7 +170,7 @@ audio/video를 포함한다.
 두 번째 INITIAL panel은 `TextPlanProxy = 83.4475`, `officialCommercialUX=false`다. 독립 종료 검토는
 P0 0/P1 0으로 PASS했다.
 
-### UX-R1 — native evaluator authority port — 활성
+### UX-R1 — native evaluator authority port — 완료
 
 - V3/R2 candidate bytes, replay authority, session claim과 evidence provenance를 새 권위에 맞게 닫는다.
 - targeted checkpoint와 full-flow 예외의 actor recipe를 분리한다.
@@ -249,8 +251,32 @@ write/fsync interruption, race, hardlink, cross-chain, downstream rehash와 fals
 독립 재실행도 11/11 PASS(374.887초), duplicate-key JSON·7 schema AJV strict·AST PASS를 재현했고 최종
 review는 P0 0/P1 0이다.
 
-남은 UX-R1 단위는 `gpt-5.6-sol` `ultra` platform/API receipt 또는 동등한 transcript authority다.
+다섯 번째 local controlled transcript 단위는 source revision
+`2b0b6ee355790b73cc47eb17c17bd737bdcf8d9a`에서 완료했다. finalized blocked aggregate에서 canonical
+projection을 재구성하고 그 hash를 exact하게 되돌리는 고정 semantic echo prompt만 native Codex CLI에
+전달한다. blocked `judge-input.json`은 executable이 아니며 이 probe에서 실행하지 않는다. 시작 전후
+rollout inventory의 정확히 한 항목 추가, raw JSONL, 요청·보고 model/effort, native executable
+identity와 exact output을 append-only receipt에 결속한다.
+
+7개 Git blob과 running bytes aggregate는
+`sha256:1a9c24ff253374cb05a0b5854aeb7d7379329a0d0481656065f987e0f99c8751`, policy raw는
+`sha256:ff77b3f3b95958b4813efb2a2a91ac3533faefd99e208f4d098640d1bc739cf6`다. 13/13 adversarial suite와
+start/final/output 세 schema의 AJV 8.20.0 Draft 2020-12 strict compile·instance 검증이 PASS했다. 독립
+public verifier가 재구성한 genuine receipt raw SHA-256은
+`sha256:f7c17c4a9bcf29bfe1dc77d1d638d755e32517e375f418b90356ebaba456891f`, transcript authority ID는
+`sha256:d79bcb78d0f18426f7019f0959dbb3742d719154654b8716c298e0edaa840927`다. 요청과 local rollout은
+`gpt-5.6-sol`/`ultra`, originator `codex_exec`, 1 turn·0 tool call로 일치했다. 독립 subunit review는
+P0 0/P1 0이다.
+
+이 receipt의 platform model/effort/freshness attestation은 모두 false이고 server-signed receipt는 null이다.
+현재 route의 bound judge input 실행 횟수와 judge model call count는 0이다. 성공 전 생성된 별도 poisoned
+root의 zero-byte final receipt는 resume·삭제·승격하지 않고 보존한다. 따라서 이 단위가 닫혀도
+`officialCommercialUX=false`, `ScoreBearingCaptureAllowed=false`, `CommercialUXProxy=null`이며,
 full-flow는 `UNAVAILABLE_NOT_IMPLEMENTED`, native capture는 계속 금지다.
+
+전체 UX-R1 독립 검토는 source boundary `2b0b6ee355790b73cc47eb17c17bd737bdcf8d9a`에서
+`PASS_FOR_UX_R1_WHOLE_GATE_CLOSURE`, P0 0/P1 0으로 끝났다. 이 종료는 official judge, native UX evidence,
+platform attestation, score-bearing capture 또는 `CommercialUXProxy` 점수를 승인하지 않는다.
 
 수정 allowlist는 `tools/commercial-ux/native/`, 그 디렉터리의 deterministic test, 이 scope와 현재 상태
 문서, `tools/commercial-ux/README.md`다. 기존 untracked native 파일과 과거 V2 branch는 설계 참고일 뿐
@@ -300,7 +326,8 @@ full-flow는 `UNAVAILABLE_NOT_IMPLEMENTED`, native capture는 계속 금지다.
 
 ```text
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R1_NATIVE_EVALUATOR_AUTHORITY_PORT
+ActiveEvaluationGate = NONE
+NextEvaluationGate = UX_R2_REALTIME_GAME_COMPLETENESS_NOT_OPENED
 ProductDirection = ASSET_STYLE_REALTIME_GAME
 ProductArtGate = NONE_A1_NOT_OPENED
 RealtimeAuthority = RELEASE_V3_PLUS_R2
@@ -311,7 +338,8 @@ TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 FullCampaignNativeE2E = NOT_IMPLEMENTED
 ScoreBearingCaptureAllowed = false
-NativeCapture = BLOCKED_MAC_LOCKED
+NativeCapturePolicy = FORBIDDEN_UX_R2_A1_NOT_OPENED
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
 NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
 EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
@@ -323,6 +351,9 @@ EvaluationChainParentAuthority = PASS_SOURCE_REVISION_74BA725_PRODUCER_SHA256_D8
 UXR1ChainParentReview = PASS_P0_0_P1_0_SOURCE_74BA725
 CurrentRouteArtifactAuthority = PASS_SOURCE_REVISION_A270339_PRODUCER_SHA256_225696AD
 UXR1CurrentRouteArtifactReview = PASS_P0_0_P1_0_SOURCE_A270339
-NativeEvaluatorAuthority = CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_AND_BLOCKED_ARTIFACT_CHAIN_COMPLETE_RECEIPT_AUTHORITY_PENDING
+ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECEIPT_SHA256_F7C17C4A
+UXR1ControlledTranscriptReview = PASS_SUBUNIT_P0_0_P1_0_SOURCE_2B0B6EE
+UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
+NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED_ARTIFACT_AND_CONTROLLED_TRANSCRIPT
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

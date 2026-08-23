@@ -8,8 +8,9 @@
 
 현재 포팅된 권위는 **text plan → blinded text evaluation**, UX-R1의
 **Debug R2 candidate·targeted route authority**, **non-score session/attempt authority**와
-**finalized evaluation-chain parent claim**, **finalized blocked current-route artifact chain**이다.
-`gpt-5.6-sol`/`ultra` platform/API receipt 또는 동등한 transcript authority는 아직 포팅하지 않았다.
+**finalized evaluation-chain parent claim**, **finalized blocked current-route artifact chain**, 그리고
+**local controlled Codex transcript authority**다. 마지막 항목은 요청한 `gpt-5.6-sol`/`ultra`와 fresh
+local rollout이 일치했음을 결속하지만 platform/API attestation이나 model judgment는 아니다.
 
 - 콘텐츠 권위: `data/release-campaign-v2.json`
 - 실시간 일정 권위: `data/release-campaign-v3.json`
@@ -160,6 +161,38 @@ parent/producer race, symlink/hardlink, cross-chain swap, downstream rehash와 f
 fail-closed다. 독립 재실행도 11/11 PASS(374.887초), duplicate-key JSON·7 schema AJV strict·AST PASS와
 P0 0/P1 0을 재현했다.
 
+## Local controlled Codex transcript authority
+
+```sh
+python3 tools/commercial-ux/native/test-realtime-controlled-codex-transcript-authority.py
+python3 tools/commercial-ux/native/realtime-controlled-codex-transcript-authority.py --help
+```
+
+source revision `2b0b6ee355790b73cc47eb17c17bd737bdcf8d9a`의 authority는 finalized blocked
+aggregate가 고정한 candidate/session/route projection에 비점수 probe를 결속한다. prompt는 그 projection의
+canonical hash를 그대로 되돌리는 고정 semantic echo이고, 실제 blocked `judge-input.json`은 실행하지 않는다.
+직접 결속한 native Codex CLI를 fresh allowlist 환경에서 한 번 실행하고, 시작 전후 rollout inventory의 정확히
+한 항목 추가, raw JSONL hash, 요청·보고 model/effort와 exact output을 마지막 `O_EXCL + fsync` receipt에
+봉인한다. app shell에 `CODEX_INTERNAL_ORIGINATOR_OVERRIDE`가 있으면 create와 public verify 모두
+`env -u CODEX_INTERNAL_ORIGINATOR_OVERRIDE`로 실행해야 한다.
+
+7개 Git blob과 running bytes aggregate는
+`sha256:1a9c24ff253374cb05a0b5854aeb7d7379329a0d0481656065f987e0f99c8751`, policy raw는
+`sha256:ff77b3f3b95958b4813efb2a2a91ac3533faefd99e208f4d098640d1bc739cf6`다. source-bound suite는
+13/13 PASS이고 start/final/output 세 schema가 AJV 8.20.0 Draft 2020-12 strict compile·instance 검증을
+통과했다. 독립 public verifier가 확정한 genuine receipt raw SHA-256은
+`sha256:f7c17c4a9bcf29bfe1dc77d1d638d755e32517e375f418b90356ebaba456891f`, transcript authority ID는
+`sha256:d79bcb78d0f18426f7019f0959dbb3742d719154654b8716c298e0edaa840927`다. 요청과 local rollout은
+`gpt-5.6-sol`/`ultra`, originator `codex_exec`, 1 turn·0 tool call로 일치했고, 독립 review는 P0 0/P1 0으로
+`PASS_FOR_UX_R1_LOCAL_CONTROLLED_TRANSCRIPT_RECEIPT_SUBUNIT_ONLY`를 판정했다.
+
+성공 전 만들어진 별도 poisoned root의 final receipt는 의도대로 zero-byte인 채 보존하며 resume·삭제·승격하지
+않는다. 성공 receipt는 raw rollout, developer/system/auth/tool content를 root에 복사하지 않는다. 또한
+platform model/effort/freshness attestation은 모두 false, server-signed receipt는 null이다. 현재 route의
+`boundJudgeInputExecuted=false`, judge model call count는 0이고, future-event status bar는 여섯 signal과
+headless wiring PASS만 유지하며 native quality는 `NOT_OBSERVED`다. 따라서
+`officialCommercialUX=false`, `ScoreBearingCaptureAllowed=false`, `CommercialUXProxy=null`은 바뀌지 않는다.
+
 ## Story part 단독 실행
 
 전체 캠페인을 재생하지 않고 작성된 narrative atom 하나만 검사할 수 있다.
@@ -225,10 +258,10 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 `playtests/commercial-ux-87-realtime/text-plan-r0/README.md`가 소유한다. 첫 panel의 raw 값은 불안정성으로
 무효이며, 두 번째 panel의 83.4475도 native 관찰이 아닌 형성평가다.
 
-## 현재 UX-R1 gate
+## 완료된 UX-R1 gate
 
-현재 단위는 generic session/provenance machinery를 V3/R2 권위에 포팅하되, 실제 capture나 runtime
-콘텐츠 구현 없이 다음 경계만 닫는다.
+이 gate는 generic session/provenance machinery를 V3/R2 권위에 포팅하되, 실제 capture나 runtime
+콘텐츠 구현 없이 다음 경계를 닫았다.
 
 1. 완료 — R2 checkpoint와 full-flow 예외를 분리한 actor recipe (`379e980`)
 2. 완료 — V3+필요 V2 의존성을 exact bytes로 닫은 replay/candidate authority (`379e980`)
@@ -236,7 +269,10 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 4. 완료 — finalized retry prefix와 future artifact path를 봉인한 non-score chain parent (`74ba725`)
 5. 완료 — evidence·actor·judge·verifier·oracle·aggregate를 같은 parent에 결속한 blocked artifact chain
    (`a270339`)
-6. model identity를 자기선언 JSON이 아닌 platform/API receipt 또는 동등한 transcript에 결속하는 권위
+6. 완료 — model identity를 자기선언 JSON이 아닌 동등한 local controlled transcript에 결속하는 권위
+   (`2b0b6ee`; platform attestation 아님)
 
 native presentation과 실제 입력·화면·audio capture는 이후 gate다. UX-R1에서도
 `ScoreBearingCaptureAllowed=false`이며 `CommercialUXProxy >= 87`을 선언하지 않는다.
+전체 독립 검토는 source boundary `2b0b6ee`에서
+`PASS_FOR_UX_R1_WHOLE_GATE_CLOSURE`, P0 0/P1 0이다. UX-R2/A1은 미개방이다.

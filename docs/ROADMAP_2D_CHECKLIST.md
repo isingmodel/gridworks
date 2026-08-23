@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **A0+A0.1+UX-R0 완료 · UX-R1 native evaluator authority port 활성**
+> 현재 상태: **A0+A0.1+UX-R0+UX-R1 완료 · UX-R2 미개방**
 > 제품 아트: **A1 미개방**
 
 이 문서는 단계 상태와 증거 상한만 기록한다. 제품 기능과 시각 규격은
@@ -15,7 +15,7 @@
 | A0 목표·문서 기준선 | **완료** | 네 reference hash, 스타일 DNA, R1/R2 보존, 문서 압축 | 문서·링크·경계 검사 | 해당 없음 | 이 문서 변경 커밋 |
 | A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
 | UX-R0 실시간 텍스트 기준선 | **완료** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | `TextPlanProxy 83.4475` 형성평가 | `746c0aa`, 독립 P0 0/P1 0 |
-| UX-R1 native evaluator authority | **활성** | candidate·route·session/attempt·non-score chain parent·blocked artifact chain 완료, receipt provenance 진행 | candidate 16/16 + session 12/12 + chain 14/14 + artifact 11/11·7 schema AJV strict | capture 금지 | 남은 receipt/transcript authority+전체 gate review 필요 |
+| UX-R1 native evaluator authority | **완료** | candidate·route·session/attempt·non-score chain parent·blocked artifact·local controlled transcript | candidate 16/16 + session 12/12 + chain 14/14 + artifact 11/11 + transcript 13/13·strict schema | capture 금지 | `2b0b6ee`, 전체 review P0 0/P1 0 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -84,14 +84,15 @@ source revision `379e980`의 exact candidate는 두 checkpoint scene-load wiring
 - [x] finalized retry prefix 전체를 deterministic sibling에 snapshot하는 non-score chain parent — `74ba725`
 - [x] chain parent가 future-event 6 signal/headless PASS/native `NOT_OBSERVED`와 full-flow 0-attempt를 유지
 - [x] evidence·actor·judge·verifier·oracle·aggregate의 exact 7-artifact finalized blocked non-score chain — `a270339`
-- [ ] platform/API receipt 또는 동등한 transcript authority 결속
+- [x] 동등한 local controlled transcript authority 결속 — `2b0b6ee`; platform attestation은 주장하지 않음
 - [x] session snapshot·route·attempt의 누락·교체·path traversal·stale producer mutation 거부
 - [x] chain snapshot·selected terminal·future path·root 이동/추가·재시도 누락 mutation 거부
 - [x] artifact 누락·교체·cross-chain swap·downstream rehash·late inventory mutation 거부
 - [x] candidate·route 단위에서 score-bearing capture를 fail-closed로 유지
 - [x] chain claim 14/14·AJV strict와 독립 P0 0/P1 0 — `74ba725`
 - [x] artifact chain source-bound 11/11·7 schema AJV strict·독립 P0 0/P1 0 — `a270339`
-- [ ] receipt/transcript authority exact test와 UX-R1 전체 gate review
+- [x] receipt/transcript authority 13/13·3 schema AJV strict·독립 subunit P0 0/P1 0 — `2b0b6ee`
+- [x] UX-R1 전체 gate review P0 0/P1 0 — source boundary `2b0b6ee`
 
 이 gate는 `tools/commercial-ux/native/`와 관련 문서만 수정한다. `game/`, `src/`, `data/`와 제품 art는
 수정하지 않으며 실제 Mac 조작·capture도 실행하지 않는다.
@@ -131,7 +132,8 @@ source revision `379e980`의 exact candidate는 두 checkpoint scene-load wiring
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R1_NATIVE_EVALUATOR_AUTHORITY_PORT
+ActiveEvaluationGate = NONE
+NextEvaluationGate = UX_R2_REALTIME_GAME_COMPLETENESS_NOT_OPENED
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
 ProductArtImplementationGate = NONE
@@ -154,16 +156,22 @@ NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
 EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
 TargetedCheckpointAuthority = TWO_POSITIVE_THREE_REJECTION_INDEPENDENT_REPLAY_PASS
 UXR1CandidateRouteReview = PASS_P0_0_P1_0_SOURCE_379E980
+SessionAttemptAuthority = PASS_SOURCE_REVISION_5A31FF3_PRODUCER_SHA256_FAEA99AC
+UXR1SessionAttemptReview = PASS_P0_0_P1_0_SOURCE_5A31FF3
 EvaluationChainParentAuthority = PASS_SOURCE_REVISION_74BA725_PRODUCER_SHA256_D87E6054
 UXR1ChainParentReview = PASS_P0_0_P1_0_SOURCE_74BA725
 CurrentRouteArtifactAuthority = PASS_SOURCE_REVISION_A270339_PRODUCER_SHA256_225696AD
 UXR1CurrentRouteArtifactReview = PASS_P0_0_P1_0_SOURCE_A270339
-NativeEvaluatorAuthority = CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_AND_BLOCKED_ARTIFACT_CHAIN_COMPLETE_RECEIPT_AUTHORITY_PENDING
+ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECEIPT_SHA256_F7C17C4A
+UXR1ControlledTranscriptReview = PASS_SUBUNIT_P0_0_P1_0_SOURCE_2B0B6EE
+UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
+NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED_ARTIFACT_AND_CONTROLLED_TRANSCRIPT
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED
 R2ExitGate = NOT_COMPLETED
-NativeCapture = BLOCKED_MAC_LOCKED
+NativeCapturePolicy = FORBIDDEN_UX_R2_A1_NOT_OPENED
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 ElectricalProfessionalReview = NOT_COLLECTED

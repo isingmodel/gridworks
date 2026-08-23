@@ -55,7 +55,8 @@ docs/
 
 - `CurrentGoal = ASSET_STYLE_REALTIME_GAME`
 - `ActiveScope = COMMERCIAL_UX_87_REALTIME`
-- `ActiveEvaluationGate = UX_R1_NATIVE_EVALUATOR_AUTHORITY_PORT`
+- `ActiveEvaluationGate = NONE`
+- `NextEvaluationGate = UX_R2_REALTIME_GAME_COMPLETENESS_NOT_OPENED`
 - `ProductArtImplementationGate = NONE`
 - `DocumentationBaseline = A0_COMPLETE`
 - `ArchitecturePreparation = COMPLETE`
@@ -68,12 +69,23 @@ docs/
 - `TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY`
 - `CommercialUXProxy = null`
 - `ScoreBearingCaptureAllowed = false`
+- `NativeCapturePolicy = FORBIDDEN_UX_R2_A1_NOT_OPENED`
+- `NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION`
 - `UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA`
 - `NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4`
 - `EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED`
 - `TargetedCheckpointAuthority = TWO_POSITIVE_THREE_REJECTION_INDEPENDENT_REPLAY_PASS`
 - `UXR1CandidateRouteReview = PASS_P0_0_P1_0_SOURCE_379E980`
-- `NativeEvaluatorAuthority = CANDIDATE_ROUTE_COMPLETE_SESSION_EVIDENCE_PENDING`
+- `SessionAttemptAuthority = PASS_SOURCE_REVISION_5A31FF3_PRODUCER_SHA256_FAEA99AC`
+- `UXR1SessionAttemptReview = PASS_P0_0_P1_0_SOURCE_5A31FF3`
+- `EvaluationChainParentAuthority = PASS_SOURCE_REVISION_74BA725_PRODUCER_SHA256_D87E6054`
+- `UXR1ChainParentReview = PASS_P0_0_P1_0_SOURCE_74BA725`
+- `CurrentRouteArtifactAuthority = PASS_SOURCE_REVISION_A270339_PRODUCER_SHA256_225696AD`
+- `UXR1CurrentRouteArtifactReview = PASS_P0_0_P1_0_SOURCE_A270339`
+- `ControlledCodexTranscriptAuthority = PASS_LOCAL_NON_PLATFORM_SOURCE_2B0B6EE_RECEIPT_SHA256_F7C17C4A`
+- `UXR1ControlledTranscriptReview = PASS_SUBUNIT_P0_0_P1_0_SOURCE_2B0B6EE`
+- `UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE`
+- `NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED_ARTIFACT_AND_CONTROLLED_TRANSCRIPT`
 - `LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT`
 - `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`

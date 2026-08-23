@@ -46,17 +46,19 @@ checkpoint PASS record까지 확인해 이 gate를 완료했다. UX-R2.2도 sour
 fix `40ed3fa`에서 같은 상태를 잇는 tutorial 3장 prefix를 구현했다. `SECOND_HEART`의 병원 2회선·범람
 안전 회랑과 `SECOND_SOURCE`의 전체 경로 용량을 실제 장 전환으로 연결했고, source/fix 독립 검토는
 각각 P0 0/P1 0이다. fresh-process production 입력으로 세 authored positive result와 전체 prefix 종료
-record까지 확인해 이 gate를 비점수 완료했다. A1 art, 5–8장, persistence, 기본 장면과 score-bearing
-capture는 열지 않았다. UX-R2.3은 누적 상태를 위조하지 않는 exact 4장 route로
+record까지 확인해 이 gate를 비점수 완료했다. 당시 A1 art, 5–8장, persistence, 기본 장면과
+score-bearing capture는 열지 않았다. UX-R2.3은 누적 상태를 위조하지 않는 exact 4장 route로
 `NORTH_BANK_PROMISE`의 명시적 6개월 달력 전환과 한 줄 rail의 최초 약속 마감·Keep/Defer 분기를
 source `aee4932`와 truth-preservation fix `d85bb3f`에 구현했다. 두 source/fix 독립 검토는 모두
-P0 0/P1 0이며, 사용자 지시로 native direct-play 관찰은 보류했다. local `main`의 provenanced G3
-visual layer는 같은 live R2 route에 bounded 적용을 마쳤고, 다음 gate는 열지 않는다.
+P0 0/P1 0이며, 사용자 지시로 native direct-play 관찰은 보류했다. 이후 full G3 visual work가 기본
+제품 화면과 분리된 문제를 해소하기 위해, exact 57개 G3 runtime asset(지도 50/UI 7)을 live R2에
+적용하고 R2를 기본 진입점으로 전환했다. 현 scope에 남은 일은 검증된 local history를 `main` 하나로
+정리하는 것뿐이다.
 
-- 기본 실행 장면: `CommercialMain`
+- 기본 실행 장면: live R2 `RealtimeSliceMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
 - R1 실시간 Core: 커밋 `3da1897`, `FIRST_LIGHT` 결정론적 vertical slice
-- R2 실시간 UX 기반: 커밋 `4c27f65`, 비기본 `RealtimeSliceMain`
+- R2 실시간 UX 기반: 커밋 `4c27f65`, 현재 canonical `RealtimeSliceMain`
 - UX-R2.1 전체 headless UI harness: FHD/UHD 100/125/150/200%, QHD 100/200% PASS;
   실제 OS window·hardware 입력·physical UHD 증거는 아님
 - 새 목표 문서 기준선: `A0` 완료
@@ -71,7 +73,7 @@ visual layer는 같은 live R2 route에 bounded 적용을 마쳤고, 다음 gate
   주장하지 않는다.
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
 - 평가 gate: UX-R2.3 source/fix review 뒤 user-requested native 관찰 보류; official 점수 작업 중단
-- 완료 제품 아트 gate: `A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE` — existing G3 assets 35개만 live R2 renderer에 적용
+- 현재 제품 아트: `FULL_G3_R2_DEFAULT_ENTRY_APPLIED` — exact G3 57개(지도 50/UI 7)가 live R2에 적용됨
 - native/score capture: 이번 작업에서 수행하지 않음; score-bearing capture 계속 미허용
 
 ```text
@@ -83,12 +85,12 @@ NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
 UserAuthorization = EXPLICIT_RESOLVE_REALTIME_G3_SPLIT_AND_CONSOLIDATE_LOCAL_MAIN
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ProductArtImplementationGate = FULL_G3_REALTIME_CANONICALIZATION_ACTIVE
-NextCandidate = FULL_G3_R2_DEFAULT_ENTRY_AND_LOCAL_MAIN_CONSOLIDATION
+ProductArtImplementationGate = FULL_G3_R2_DEFAULT_ENTRY_APPLIED_PENDING_LOCAL_MAIN_CONSOLIDATION
+NextCandidate = LOCAL_MAIN_HISTORY_CONSOLIDATION_ONLY
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
-RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_FULL_G3_TREE_PENDING_R2_PORT
-A1G3ProductSource = COMMITS_1D8095D_AND_FD60141_HISTORICAL_PARTIAL_PORT
-A1G3SourceReview = PASS_FOR_A1_G3_SOURCE_FIX_P0_0_P1_0_HISTORICAL_PARTIAL_PORT
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_FULL_G3_TREE_57_PNG_MAP50_UI7_APPLIED_TO_LIVE_R2
+A1G3ProductSource = COMMIT_1AF2B33_FULL_G3_R2_CANONICALIZATION
+A1G3SourceReview = CURRENT_SCOPE_REVIEW_PASS_P0_0_P1_0
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
@@ -116,7 +118,7 @@ UXR1ControlledTranscriptReview = PASS_SUBUNIT_P0_0_P1_0_SOURCE_2B0B6EE
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED_ARTIFACT_AND_CONTROLLED_TRANSCRIPT
 UXR21GateOpeningReview = PASS_P0_0_P1_0
-DefaultMainScene = CommercialMain
+DefaultMainScene = RealtimeSliceMain
 R1RealtimeCore = PRESERVED
 R2RealtimeUx = PRESERVED_UX_R2_1_PLUS_COMPLETE_UX_R2_2_PLUS_REVIEWED_UX_R2_3
 NativeCapturePolicy = NOT_REQUESTED_USER_STOP_AFTER_G3_APPLICATION
@@ -224,7 +226,8 @@ dotnet build game/Gridworks.Game.csproj -c Debug
 ./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path game
 ```
 
-현재 기본 실행은 동결 v2 `CommercialMain`이다. 비기본 R2 장면은 명시적으로만 실행한다.
+현재 기본 실행은 live R2 `RealtimeSliceMain`이다. 동결 v2 `CommercialMain`은 과거 기준선으로 남지만
+제품 entry가 아니다.
 
 ```sh
 ./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \

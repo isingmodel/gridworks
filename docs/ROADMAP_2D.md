@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · A1-G3 visual application 완료·사용자 중단**
-> 제품 아트: **A1-G3 existing visual layer 적용 완료; 일반 A1/A2–A5 미개방**
+> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · full G3 live-R2 기본 진입점 적용 완료 · local main history 통합 진행 중**
+> 제품 아트: **full G3 57개(지도 50/UI 7) canonical runtime 적용 완료; 일반 A1/A2–A5 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
 정한다. 로드맵의 다음 단계는 자동 구현 권한이 아니다. 권한은 루트 [README](../README.md), 정확한
@@ -146,12 +146,25 @@ full deterministic suites, story hashes, UI matrix와 두 bounded source/fix rev
 통과했다. user-requested native KEEP observation은 보류하며, source와 review 사실은
 [실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md)가 보존한다.
 
-## A1-G3 — 기존 visual layer 적용 — 완료·사용자 중단
+## A1-G3 — 기존 visual layer 부분 적용 — 완료·역사 기록
 
-current live R2의 controller/input/event rail/Core를 유지하고, local `main` `cf5da56`의 provenanced G3
-asset tree 35개만 `RealtimePlaceholderMap` rendering layer에 적용했다. V2 `CommercialMain`, data/world,
-map input과 default/package를 합치지 않았다. exact allowlist, provenance 및 종료 증거는
+당시 current live R2의 controller/input/event rail/Core를 유지하고, local `main` `cf5da56`의 provenanced
+G3 asset tree 35개만 `RealtimePlaceholderMap` rendering layer에 적용했다. 이 부분 적용은 V2
+`CommercialMain`, data/world, map input과 default/package를 합치지 않았다. exact allowlist, provenance 및 종료 증거는
 [제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)이 소유한다. 사용자 지시로 다음 단계는 열지 않는다.
+
+## Realtime G3 canonicalization과 local main 통합 — 활성
+
+### 결과
+
+- exact G3 57개(지도 terrain·river·road·city·grid 50, UI chrome 7)를 live R2에 적용
+- `RealtimeSliceMain`을 `game/project.godot` 기본 제품 entry로 전환
+- one-line future-event rail, R2 Core/controller/input/hit/focus/accessibility ownership 보존
+- G3 map/UI smoke, full R2 UI matrix, Realtime/Commercial suite, targeted checkpoint와 default boot 통과
+- V2 gameplay/data의 content merge 없이 local legacy history를 final `main` ancestry로만 정리
+
+이 단위의 정확한 허용 범위·검증·branch 절차는
+[realtime G3 canonicalization과 main 통합 scope](scopes/REALTIME_G3_MAIN_CONSOLIDATION.md)가 소유한다.
 
 ## A1 — 일반 운전 아트 vertical slice — A1-G3 외 범위는 미개방
 
@@ -241,7 +254,7 @@ map input과 default/package를 합치지 않았다. exact allowlist, provenance
 - 비용·공사기한·도시 약속·결과·에필로그
 - strict production V3 data
 - save v4와 안전한 기존 save 보존/migration
-- 새 기본 장면 전환 후보
+- canonical R2 default entry의 save/package compatibility verification
 
 ### gate
 

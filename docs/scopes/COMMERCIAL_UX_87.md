@@ -7,8 +7,8 @@
 > 목표: 고정 `gpt-5.6-sol` + reasoning effort `ultra`의 공식
 > `CommercialUXProxy >= 87`
 
-이 문서는 고정 judge·UX 평가 계약을 보존한다. A1-G3 bounded visual application은 완료됐고 현재 추가 구현
-scope는 없다. 제품 방향은 turn 단위 진행이 아니라
+이 문서는 고정 judge·UX 평가 계약을 보존한다. historical A1-G3 partial port 뒤 현재 구현 권한은
+별도 [realtime G3 canonicalization/main 통합 scope](REALTIME_G3_MAIN_CONSOLIDATION.md)에만 있다. 제품 방향은 turn 단위 진행이 아니라
 pause·1×·2×·4× 속도, 계속 흐르는 시계, 미리 보이는 사건과 시간에 따른 공사·열 노출·정지·회복을
 가진 실시간 전력망 게임으로 고정한다. `origin/main`의 Release.V3/R2 기반을 이 방향의 권위로
 사용하며, 과거 `codex/commercial-ux-87`의 V2 runtime 구현을 합치지 않는다.
@@ -29,7 +29,8 @@ fresh-process 세 장 actual-input record로 비점수 완료했다. A1 runtime 
 Keep/Defer branch만 열었다. gate-opening 독립 검토 `PASS_FOR_UX_R2_3_GATE_OPENING`, P0 0/P1 0을
 통과해 exact source allowlist 구현만 승인됐다. 이후 source `aee4932`와 fix `d85bb3f`가 구현·검증됐고
 두 bounded source/fix review는 P0 0/P1 0이다. 최신 사용자 지시는 이 시점에서 native direct play와
-87점 반복을 멈추고 G3 visual application만 끝낸 뒤 중단하는 것이다.
+87점 반복을 멈추고 G3 visual application만 끝낸 뒤 중단하는 것이었다. 이후 사용자는 full G3가
+기본 제품 화면에서 보이도록 R2 default entry와 local main 통합을 명시했다.
 
 ## 1. 플레이어 결과
 
@@ -50,7 +51,8 @@ Keep/Defer branch만 열었다. gate-opening 독립 검토 `PASS_FOR_UX_R2_3_GAT
 - 작성 콘텐츠 권위는 `data/release-campaign-v2.json`의 8장이다.
 - 실시간 일정 권위는 `data/release-campaign-v3.json`의 8장·16 event다.
 - 실시간 규칙 권위는 `src/Gridworks.Core/Release/V3/`다.
-- 현재 native 평가 대상은 비기본 `RealtimeSliceMain`이다.
+- 현재 제품 기본 장면과 native 평가 대상은 `RealtimeSliceMain`이다. source-bound historical candidate의
+  비기본/`CommercialMain` 설명은 그 옛 evidence revision에만 적용된다.
 - R2 presentation은 `FIRST_LIGHT`→`SECOND_HEART`→`SECOND_SOURCE` tutorial prefix의 deterministic
   controller/UI와 actual macOS mouse/keyboard authored positive-result 경로까지 확인됐다.
 - `A1_NORMAL_READY`, `A1_CONSTRUCTION_DUE_1M` 두 checkpoint만 구현됐다.
@@ -61,7 +63,7 @@ Keep/Defer branch만 열었다. gate-opening 독립 검토 `PASS_FOR_UX_R2_3_GAT
   연동을 관찰했다. CUA는 hover-only popup의 네이티브 출현 자체를 별도 사람 증거로 승격하지 않는다.
 - 나머지 5장, full campaign transition, save/resume, finale·epilogue native E2E는
   `NOT_IMPLEMENTED`다.
-- 동결 V2 기본 장면 `CommercialMain`이나 Core-only replay로 이 누락을 채우지 않는다.
+- 동결 V2 `CommercialMain`이나 Core-only replay로 이 누락을 채우지 않는다.
 - 현재 `CommercialUXProxy = null`이며 score-bearing capture는 허용되지 않았다.
 - 같은 source-bound 입력의 첫 INITIAL panel은 `TP-A1` 불안정으로 점수가 성립하지 않았고 보존했다.
 - 별도 세 fresh run의 두 번째 INITIAL panel은 `SCORED_FORMATIVE`, `TextPlanProxy = 83.4475`로
@@ -716,16 +718,17 @@ NORTH_BANK_PROMISE/result/defer                      f6f8657f3f223724dbeb749ab80
 ## 9. 현재 상태
 
 ```text
-ActiveScope = NONE_USER_STOP_AFTER_A1_G3_COMPLETION
+ActiveScope = REALTIME_G3_MAIN_CONSOLIDATION
 ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
 NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
-NextCandidate = NONE_USER_REQUESTED_STOP
-UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP_COMPLETE
+NextCandidate = LOCAL_MAIN_HISTORY_CONSOLIDATION_ONLY
+UserAuthorization = EXPLICIT_RESOLVE_REALTIME_G3_SPLIT_AND_CONSOLIDATE_LOCAL_MAIN
 ProductDirection = ASSET_STYLE_REALTIME_GAME
-ProductArtGate = A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE
-RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_APPLIED_35_SHA256_VERIFIED
-A1G3ProductSource = COMMITS_1D8095D_AND_FD60141
-A1G3SourceReview = PASS_FOR_A1_G3_SOURCE_FIX_P0_0_P1_0
+ProductArtGate = FULL_G3_R2_DEFAULT_ENTRY_APPLIED_PENDING_LOCAL_MAIN_CONSOLIDATION
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_57_PNG_MAP50_UI7_APPLIED_TO_LIVE_R2
+A1G3ProductSource = COMMIT_1AF2B33_FULL_G3_R2_CANONICALIZATION
+A1G3SourceReview = CURRENT_SCOPE_REVIEW_PASS_P0_0_P1_0
+DefaultMainScene = RealtimeSliceMain
 RealtimeAuthority = RELEASE_V3_PLUS_R2
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL

@@ -1,8 +1,8 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · A1-G3 visual application 완료·사용자 중단**
-> 제품 아트: **A1-G3 적용 완료; 일반 A1/A2–A5 미개방**
+> 현재 상태: **UX-R2.3 source/fix review 완료·native 관찰 보류 · full G3 live-R2 기본 진입점 적용 완료 · local main history 통합 진행 중**
+> 제품 아트: **full G3 57개(지도 50/UI 7) 적용 완료; 일반 A1/A2–A5 미개방**
 
 이 문서는 단계 상태와 증거 상한만 기록한다. 제품 기능과 시각 규격은
 [제품 방향 계약](scopes/ASSET_STYLE_REALTIME_GAME.md)과 [로드맵](ROADMAP_2D.md), 현재 평가 작업은
@@ -19,7 +19,8 @@
 | UX-R2.1 FIRST_LIGHT release tutorial/rail | **완료** | 실제 release 1장 briefing→live→authored result, 단일 chronological rail, interactive checkpoint host | source `e385707`, build·회귀·독립 P0/P1 0 | FIRST_LIGHT+두 checkpoint actual-input PASS | 이 문서 종료 commit |
 | UX-R2.2 tutorial prefix | **완료** | FIRST_LIGHT→SECOND_HEART→SECOND_SOURCE 누적 진행, 2회선 조건, result/briefing, forecast flood | source `659709d`+fix `40ed3fa`, build·회귀·UI PASS | fresh-process 세 장+full-flow record | source/fix와 closure `cf6398a` 독립 P0/P1 0 |
 | UX-R2.3 NORTH_BANK promise | **구현·review 완료 / native 보류** | 누적 4장, 명시적 6개월 전환, deadline rail, Keep/Defer branch | source `aee4932` + fix `d85bb3f`, P0 0/P1 0 | user-requested native 보류 | score/evaluation 작업 중단 |
-| A1-G3 기존 visual layer | **완료 / 사용자 중단** | existing G3 city/grid/terrain assets 35개를 live R2 map에 적용 | build·R2/UI regressions·source review PASS | native/score 미수집 | 다음 gate 열지 않음 |
+| A1-G3 기존 visual layer | **완료 / 역사 기록** | initial G3 city/grid/terrain 35개 부분 port | build·R2/UI regressions·source review PASS | native/score 미수집 | full port 이전의 완료 기록 |
+| Realtime G3 canonicalization | **구현·검증 완료 / main 통합 진행 중** | full G3 57개(지도 50/UI 7), R2 default entry | build·provenance·R2 UI matrix·Realtime/Commercial·checkpoint/default boot PASS | native/score 미수집 | local main history만 통합 |
 | A1 일반 운전 아트 slice | **A1-G3 외 미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 별도 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -33,7 +34,7 @@
 - [x] reference에서 채택하지 않는 영어·송전급 설비·발전 입지·고정 panel 명시
 - [x] R1 deterministic Core와 R2 UX 기반 보존
 - [x] R2 마지막 전체 harness를 PASS로 승격하지 않음
-- [x] 기본 장면 `CommercialMain` 유지
+- [x] 당시 A0 기준으로 기본 장면 `CommercialMain` 유지
 - [x] runtime art authority 미수립과 로컬/untracked 후보 미채택 명시
 - [x] 현재 목표 문서만 전면에 보존
 - [x] 완료·중단 과거를 압축 아카이브와 Git 이력으로 이동
@@ -181,7 +182,7 @@ default/export/package와 score-bearing capture를 열지 않는다.
 5–8장, save/persistence, promise ledger/epilogue, default/export/package와 score-bearing capture를 열지
 않는다. 예외인 A1-G3 visual-only artifact는 제품 방향 계약의 별도 exact allowlist만 따른다.
 
-## A1-G3 existing visual application
+## A1-G3 existing visual application — historical partial port
 
 - [x] 사용자 승인: existing G3 design만 적용 후 중단
 - [x] source tree `main:cf5da56`·provenance ledger·R2-only boundary 고정
@@ -192,6 +193,17 @@ default/export/package와 score-bearing capture를 열지 않는다.
 - [x] build·full Realtime/Commercial/text/UI regression 및 independent source review
 - [x] independent review P0/P1 0과 current-state commit
 - [x] 다음 gate 금지 / user-requested stop 기록
+
+## Realtime G3 canonicalization과 local main 통합
+
+- [x] scope가 V2 gameplay/data merge 없이 R2 renderer/UI만 visual authority로 고정
+- [x] full source tree 57 PNG의 SHA-256·pinned bytes·`.import` provenance 결속
+- [x] 지도 50개가 clear/heat/rain/storm draw union에 실제로 나타남
+- [x] UI 7개가 TopHud, one-line EventRail, Context/Build/Action dock와 modal의 live style resource에 연결됨
+- [x] `RealtimeSliceMain`이 default entry이며 headless default boot가 성공함
+- [x] build, full R2 UI matrix, Realtime 25/1077, Commercial 31/7084, text-plan 34/16, 두 targeted checkpoint PASS
+- [x] independent review의 current-state documentation P1을 수정함
+- [ ] local `main`에 history-only merge 후 working branch를 안전 삭제
 
 ## A1 개방 전 체크
 
@@ -227,18 +239,18 @@ default/export/package와 score-bearing capture를 열지 않는다.
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
-ActiveScope = NONE_USER_STOP_AFTER_A1_G3_COMPLETION
+ActiveScope = REALTIME_G3_MAIN_CONSOLIDATION
 ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
 NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
-UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP_COMPLETE
+UserAuthorization = EXPLICIT_RESOLVE_REALTIME_G3_SPLIT_AND_CONSOLIDATE_LOCAL_MAIN
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
-ProductArtImplementationGate = A1_G3_EXISTING_VISUAL_APPLICATION_COMPLETE
-NextCandidate = NONE_USER_REQUESTED_STOP
+ProductArtImplementationGate = FULL_G3_R2_DEFAULT_ENTRY_APPLIED_PENDING_LOCAL_MAIN_CONSOLIDATION
+NextCandidate = LOCAL_MAIN_HISTORY_CONSOLIDATION_ONLY
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
-RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_75B27B0_APPLIED_35_SHA256_VERIFIED
-A1G3ProductSource = COMMITS_1D8095D_AND_FD60141
-A1G3SourceReview = PASS_FOR_A1_G3_SOURCE_FIX_P0_0_P1_0
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_57_PNG_MAP50_UI7_APPLIED_TO_LIVE_R2
+A1G3ProductSource = COMMIT_1AF2B33_FULL_G3_R2_CANONICALIZATION
+A1G3SourceReview = CURRENT_SCOPE_REVIEW_PASS_P0_0_P1_0
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
@@ -266,10 +278,10 @@ UXR1ControlledTranscriptReview = PASS_SUBUNIT_P0_0_P1_0_SOURCE_2B0B6EE
 UXR1ClosureReview = PASS_P0_0_P1_0_SOURCE_2B0B6EE
 NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED_ARTIFACT_AND_CONTROLLED_TRANSCRIPT
 UXR21GateOpeningReview = PASS_P0_0_P1_0
-DefaultMainScene = CommercialMain
+DefaultMainScene = RealtimeSliceMain
 R1RealtimeCore = PRESERVED
-R2Implementation = PRESERVED_PLUS_REVIEWED_UX_R2_3
-R2ExitGate = USER_STOP_AFTER_A1_G3_APPLICATION
+R2Implementation = PRESERVED_PLUS_REVIEWED_UX_R2_3_PLUS_FULL_G3_MAP50_UI7_DEFAULT_ENTRY
+R2ExitGate = LOCAL_MAIN_HISTORY_CONSOLIDATION_PENDING
 NativeCapturePolicy = NOT_REQUESTED_USER_STOP_AFTER_G3_APPLICATION
 NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR21GateStatus = COMPLETE_NON_SCORE

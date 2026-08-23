@@ -19,16 +19,19 @@
 | `assets/03-route-comparison.png` | 경로 비교·정보 위계 reference | `f471ac24cbab24d9b1aff89953595d70fc3ccaf4e8c08c442651125ab3c65828` |
 | `assets/04-plant-siting.png` | 지형·도시·산업 scale reference | `10908370f3a2d8403e62ce2a97e39b7ba5c43d8eb0e32073f03e5b3521c01092` |
 
-## A1-G3 bounded realtime runtime art — 완료·비기본 R2 한정
+## Canonical realtime G3 runtime art — live R2 기본 진입점
 
 현재의 runtime art authority는 local `main`의 `cf5da56` G3 tree
-`75b27b02580de2c60c50666497d9807ed0ff8b27`에서 provenance와 함께 고정한 **35 PNG**다.
+`75b27b02580de2c60c50666497d9807ed0ff8b27`에서 provenance와 함께 고정한 **57 PNG**다. 이 중
+**50개는 `RealtimePlaceholderMap`의 terrain·river·road·city·grid draw layer**, **7개는
+`RealtimeTheme`의 panel/button/UI chrome**에 사용된다. `game/project.godot`의 기본 장면은
+`res://realtime/r2/RealtimeSliceMain.tscn`이다.
 정확한 파일별 SHA-256은 `game/art/commercial/g3/a1-g3-allowlist.sha256`가 소유하고,
 `tools/commercial-ux/test-g3-a1-asset-allowlist.py`가 source bytes, ledger blob, 대응 `.import`,
 unlisted G3 PNG 0개를 결정론적으로 확인한다. `g3-assets.prompts.md`는 역사적 provenance 메모다.
 
-이 자산은 `RealtimePlaceholderMap`의 비기본 live R2 draw layer에만 적용했다. 일반 runtime art 채택,
-V2/default/package authority, 재배포 권한, native 사람 미감 검토 또는 공식 UX 점수를 주장하지 않는다.
+이 자산은 live R2 product surface에만 적용했다. V2 gameplay/default/package authority, 재배포 권한,
+native 사람 미감 검토 또는 공식 UX 점수를 주장하지 않는다.
 `game/assets/realtime/`처럼 별도 로컬 후보는 위 allowlist와 무관하며 채택되지 않는다.
 
 ## 인물 초상

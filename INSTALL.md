@@ -2,9 +2,10 @@
 
 ## 현재 실행 경계
 
-현재 전체 방향은 루트 `./assets` 스타일의 실시간 게임이지만 코드·아트 구현 gate는 열리지 않았다.
-저장소 기본 장면은 계속 `CommercialMain`이다. R1 실시간 Core와 R2 비기본 scene은 기반으로 보존되며,
-R2 마지막 exact-tree 전체 harness는 사용자 지시로 중단됐으므로 설치·출시 후보나 완료 gate가 아니다.
+현재 전체 방향은 루트 `./assets` 스타일의 실시간 게임이며, canonical product entry는 live R2
+`RealtimeSliceMain`이다. exact G3 runtime art 57개(지도 50/UI 7)가 그 화면에 적용됐다. 동결 v2
+`CommercialMain`은 역사적 기준선으로 보존되지만 저장소 기본 장면이 아니다. 이 변경은 설치·출시 후보나
+완료된 사람 검토 gate를 뜻하지 않는다.
 물리 UHD, 사람·전문 검토, Developer ID 서명·공증과 공개 출시는 계속 미수집·미승인이다. 현재 경계는
 [목표 계약](docs/scopes/ASSET_STYLE_REALTIME_GAME.md)이 소유한다.
 
@@ -28,7 +29,8 @@ R2 마지막 exact-tree 전체 harness는 사용자 지시로 중단됐으므로
 
 ## 저장소에서 실행
 
-현재 기본 장면은 동결 v2의 `CommercialMain`이다. 새 목표 문서와 R2 참고 scene가 이를 대체하지 않는다.
+현재 기본 장면은 live R2의 `RealtimeSliceMain`이다. 동결 v2 `CommercialMain`은 명시적 과거 회귀에만
+사용하며 제품 entry를 대체하지 않는다.
 저장소 루트에서 다음과 같이 실행한다.
 
 ```sh

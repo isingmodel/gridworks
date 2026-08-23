@@ -5,9 +5,9 @@
 
 ## 1. 문제와 결정
 
-현재 기본 실행은 `CommercialMain`/V2 renderer이고, 과거 full G3 표현은 local `main`의
-`CommercialMapView`에만 남아 있다. 현재 R2에는 그중 35개 asset만 `RealtimePlaceholderMap`으로
-부분 이식됐으므로 기본 화면에서는 기존 이미지 스타일이 보이지 않는다.
+이 scope를 열 당시 기본 실행은 `CommercialMain`/V2 renderer였고, 과거 full G3 표현은 local `main`의
+`CommercialMapView`에만 남아 있었다. 당시 R2에는 그중 35개 asset만 `RealtimePlaceholderMap`으로
+부분 이식됐으므로 기본 화면에서는 기존 이미지 스타일이 보이지 않았다.
 
 사용자는 이 분기를 해소하고, 검증된 결과를 `main` 하나로 정리하도록 명시했다. 이 scope는 V2의
 turn-based game loop를 되살리거나 병합하지 않는다. full G3의 **시각 자산·배치 recipe·재질·UI chrome**만
@@ -58,3 +58,12 @@ live R2 surface로 이식하고 R2를 기본 제품 진입점으로 만든다.
 현재 realtime branch에서 source-preserving port와 검증을 완료한다. 이후 local `main`에 merge하고,
 main에서 동일 검증을 다시 실행한 뒤에만 작업 branch를 삭제한다. branch 삭제 전에는 `main`이 모든 relevant
 commit을 ancestry로 갖는지 확인한다. 이 절차는 Git history를 rewrite하지 않으며, `origin/main`에는 쓰지 않는다.
+
+## 5. 현재 진행
+
+- commit `1af2b33`에서 `RealtimeSliceMain`을 default entry로 전환했고, exact G3 57개(지도 50/UI 7)를
+  live R2 draw/theme surface에 연결했다.
+- G3 provenance/default-entry/text-plan, Debug build, Realtime 25/1,077, Commercial 31/7,084, full R2 UI
+  matrix, 두 targeted checkpoint와 headless default boot가 통과했다.
+- independent review의 current-state documentation follow-up은 P0 0/P1 0으로 닫았다. 남은 작업은
+  local `main`의 history-only consolidation과 그 final verification뿐이다.

@@ -39,9 +39,10 @@ LLM 점수는 내부 product-risk proxy다. 사람 사용성, 재미, 미감, �
 | rubric·집계 상수 | `tools/commercial-ux/rubric.json` |
 | narrative atom topology | `tools/commercial-ux/realtime_text_contract.py` |
 
-현재 `CommercialMain`은 동결 V2 기본 장면이고, `RealtimeSliceMain`은 FIRST_LIGHT R2 slice다. 따라서
-작성된 8장과 Release.V3 Core 일정이 존재해도 전체 8장 native presentation이 있다고 간주하지 않는다.
-이 구분은 text artifact에 그대로 포함한다.
+현재 product 기본 장면은 live R2 `RealtimeSliceMain`이다. `CommercialMain`은 동결 V2 역사 기준선이고,
+source-bound historical candidate의 기본 장면 설명도 그 evidence revision에만 적용된다. R2를 기본으로
+실행해도 작성된 8장과 Release.V3 Core 일정이 전체 8장 native presentation을 뜻하지는 않으며, 이
+coverage 상한은 text artifact에 그대로 포함한다.
 
 `RealtimeEventRail`이 존재한다는 사실은 native 품질 증거가 아니다. 실제 gameplay에서 다음 사건과
 공사·결정·열 경계를 지속적으로 찾고 비교할 수 있는지를 cold/coverage evidence로 별도 판정한다.
@@ -227,8 +228,10 @@ ScoreBearingCaptureAllowed = false
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW
 NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION
-NextCandidate = NONE_USER_REQUESTED_STOP
-UserAuthorization = EXPLICIT_APPLY_EXISTING_G3_DESIGN_THEN_STOP_COMPLETE
+NextCandidate = LOCAL_MAIN_HISTORY_CONSOLIDATION_ONLY
+UserAuthorization = EXPLICIT_RESOLVE_REALTIME_G3_SPLIT_AND_CONSOLIDATE_LOCAL_MAIN
+DefaultMainScene = RealtimeSliceMain
+RuntimeArtAuthority = LOCAL_MAIN_CF5DA56_G3_TREE_57_PNG_MAP50_UI7_APPLIED_TO_LIVE_R2
 RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3
 FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY

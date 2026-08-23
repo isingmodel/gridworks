@@ -18,7 +18,8 @@ docs/
 │   └── VISUAL_PRODUCTION_SPEC.md
 ├── scopes/
 │   ├── ASSET_STYLE_REALTIME_GAME.md
-│   └── COMMERCIAL_UX_87.md
+│   ├── COMMERCIAL_UX_87.md
+│   └── REALTIME_G3_MAIN_CONSOLIDATION.md
 └── archive/
     ├── README.md
     └── COMPLETED_HISTORY.md
@@ -58,10 +59,10 @@ docs/
 - `ActiveEvaluationGate = SUSPENDED_AT_USER_REQUEST_AFTER_UXR23_SOURCE_REVIEW`
 - `NextEvaluationGate = NONE_USER_REQUESTED_STOP_AFTER_G3_APPLICATION`
 - `UserAuthorization = EXPLICIT_RESOLVE_REALTIME_G3_SPLIT_AND_CONSOLIDATE_LOCAL_MAIN`
-- `ProductArtImplementationGate = FULL_G3_REALTIME_CANONICALIZATION_ACTIVE`
+- `ProductArtImplementationGate = FULL_G3_R2_DEFAULT_ENTRY_APPLIED_PENDING_LOCAL_MAIN_CONSOLIDATION`
 - `DocumentationBaseline = A0_COMPLETE`
 - `ArchitecturePreparation = COMPLETE`
-- `NextCandidate = FULL_G3_R2_DEFAULT_ENTRY_AND_LOCAL_MAIN_CONSOLIDATION`
+- `NextCandidate = LOCAL_MAIN_HISTORY_CONSOLIDATION_ONLY`
 - `RealtimeRuleAuthority = RELEASE_V3`
 - `RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE_PLUS_REVIEWED_UX_R2_3`
 - `FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL`
@@ -120,11 +121,13 @@ docs/
 - `LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT`
 - `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`
-- 기본 장면은 `CommercialMain`이다.
+- 기본 장면은 live R2 `RealtimeSliceMain`이다. exact G3 runtime union은 57개(지도 50/UI 7)이며,
+  local main history 통합만 남아 있다.
 - R1/R2 기반과 완료된 UX-R2.1·UX-R2.2 source 및 실제 입력 record는 보존한다. UX-R2.3은 exact
   cumulative 4장 route, calendar transition과 promise deadline/Keep/Defer를 source `aee4932`와
   fix `d85bb3f`에 구현했고 두 bounded review는 P0 0/P1 0이다. native observation은 사용자 지시로
-  보류하며, 현재는 local `main`의 provenanced G3 draw layer만 `RealtimePlaceholderMap`에 적용한다.
+  보류하며, 현재는 local `main` provenance의 full G3 draw/UI layer를 `RealtimePlaceholderMap`과
+  `RealtimeTheme`에 적용한다.
   이 작업도 `CommercialUXProxy`나 사람 미감 증거를 만들지 않는다.
 - `./assets` 네 이미지는 visual reference authority이며 runtime·규칙·숫자 authority가 아니다.
 - 이전 HTML/CSS 목표 화면은 현재 스타일 목표에서 폐기했다. 파일은 Git commit `9aceaf7`로 복구할 수

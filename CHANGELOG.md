@@ -1,5 +1,14 @@
 # Gridworks 변경 기록
 
+## Unreleased — realtime G3 canonicalization
+
+- `RealtimeSliceMain`을 canonical product entry로 전환했다. 동결 V2 `CommercialMain`은 역사·회귀
+  기준선으로 보존하지만 더 이상 기본 실행 장면이 아니다.
+- local `main:cf5da56`의 exact G3 runtime tree 57개를 live R2 surface에 적용했다: 지도 draw layer
+  50개와 HUD/panel/button UI chrome 7개다.
+- R2의 one-line future-event rail, Core/input/hit/focus/accessibility ownership과 targeted checkpoint
+  계약은 유지했다. 이 항목은 package/release, score-bearing judge 또는 사람 미감 증거를 만들지 않는다.
+
 ## Unreleased — `./assets` 스타일 실시간 게임 목표 전환
 
 - 루트 `./assets` 네 이미지를 카메라·도시 밀도·재질·설비 실루엣·조명·상태 언어의 visual

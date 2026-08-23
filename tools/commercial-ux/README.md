@@ -25,6 +25,7 @@ local rollout이 일치했음을 결속하지만 platform/API attestation이나 
   - epilogue promise branch line 6
 - 현재 native 표현: `RealtimeSliceMain`의 FIRST_LIGHT→SECOND_HEART→SECOND_SOURCE 누적 tutorial
   prefix까지 확인됨
+- 현재 product 기본 장면: live R2 `RealtimeSliceMain`; full G3 runtime art 57개(지도 50/UI 7)가 적용됨
 - UX-R2.1 product source: `e385707071e4ccfb34d5200e3401897db7f164ad`; shared release loader,
   FIRST_LIGHT controller/result, 단일 chronological rail과 actual-input-only checkpoint host의
   deterministic build·회귀 및 두 독립 review P0 0/P1 0
@@ -38,7 +39,8 @@ local rollout이 일치했음을 결속하지만 platform/API attestation이나 
   명시적 6개월 calendar transition, 기존 한 줄 rail의 promise deadline Decision marker와
   ContextDock Keep/Defer branch만 허용; gate-opening review P0 0/P1 0 (`b0383d6`) 통과, source
   commit·build·독립 review 전 native capture 금지
-- 현재 candidate: 비기본 Debug/editor 39-file exact project tree, public package 아님
+- source-bound historical candidate: 당시 비기본 Debug/editor 39-file exact project tree, public package 아님.
+  이 candidate의 `CommercialMain` default 설명은 current product state가 아니라 고정 evidence다.
 - 현재 실행 영수증: 두 checkpoint 성공 + missing/extra/FULL_FLOW selector 거부를 독립 verifier가
   fresh process로 재실행
 - 전체 8장 native E2E: `NOT_IMPLEMENTED`
@@ -77,7 +79,8 @@ manifest는 다음을 결속한다.
 - Godot 4.7.1 mono regular-file tree 153개와 Debug package 39개
 - `A1_NORMAL_READY`, `A1_CONSTRUCTION_DUE_1M`의 exact replay/start/end와 두 성공 probe
 - missing/extra/FULL_FLOW-as-checkpoint의 세 typed 거부 probe
-- 기본 장면은 V2 `CommercialMain`, 평가 장면은 명시적 비기본 `RealtimeSliceMain`
+- 이 **historical candidate authority**의 기본 장면은 V2 `CommercialMain`, 평가 장면은 명시적 비기본
+  `RealtimeSliceMain`이었다. current product default는 R2 `RealtimeSliceMain`이다.
 - future-event status bar의 6-signal 계약과 두 checkpoint scene-load wiring
 
 이는 `EDITOR_HEADLESS_DIAGNOSTIC_ONLY`다. `.app`/fresh install, 실제 입력, 화면·audio, 가독성, 전체

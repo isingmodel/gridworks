@@ -1,0 +1,452 @@
+{
+  "protocol": "GRIDWORKS-REALTIME-COMMERCIAL-UX-TEXT-PLAN-JUDGMENT-v2",
+  "judgeRunId": "R0-TEXT-SOL-ULTRA-04",
+  "judgeSlot": "SOL-ULTRA",
+  "model": "gpt-5.6-sol",
+  "reasoningEffort": "ultra",
+  "textPlanSha256": "sha256:6c592b78fdf074bdbcc49125eb6af4054431d5b434884a0b629dcca225564dc7",
+  "promptTemplateSha256": "sha256:23fc0428cd728bea35df22f5e202e5e1cc1e67e0a37d941d6068e630f3c2dc15",
+  "judgmentSchemaSha256": "sha256:8a30187170b081f7d5a4d3853917c9191e4719cc7bff7cbb59b726046b740f6f",
+  "cells": [
+    {
+      "cellId": "TP-J1",
+      "label": "SERVICEABLE",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "context:runtimeAuthority",
+          "observation": "지속형 수평 이벤트 레일과 현재 시각, 다음 사건, 공사 완료, 약속 기한, 열 복구 신호를 명시한다."
+        },
+        {
+          "sourceRef": "chapter:LONGEST_NIGHT:realtimeSchedule",
+          "observation": "마지막 장까지 우선순위와 시작·지속 시간이 있는 다중 사건 일정을 제공한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "context:runtimeAuthority",
+          "observation": "nativeCoverage와 nativePresentationCoverage가 FIRST_LIGHT_TARGETED_R2_SLICE_ONLY이고 전체 캠페인 native E2E는 NOT_IMPLEMENTED로 적혀 있다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-J2",
+      "label": "WEAK",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/result/standard",
+          "observation": "마지막 결과가 망과 잔여 자금을 에필로그에서 확인하도록 직접 연결한다."
+        },
+        {
+          "sourceRef": "campaign/epilogue/card/closing",
+          "observation": "전체 망, 잔여 자금, 세 약속 결과를 한 종결 카드에서 회수한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "campaign/epilogue/card/closing",
+          "observation": "종결은 다음 운영으로의 인계까지만 제시하며 별도 promise ledger나 replay 단계를 제시하지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-T1",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:learningIntent",
+          "observation": "pause와 세 속도, 현재 시각, 사건 countdown, 공사 완료 시각, 접속점부터 통전까지의 순서를 한 문장에 구체화한다."
+        },
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:crisisIntent",
+          "observation": "첫 사건 전 완공뿐 아니라 사건 종료까지 실제 공급 유지도 요구한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "FIRST_LIGHT/briefing",
+          "observation": "브리핑은 해가 지기 전이라는 서사 목표만 말하고 시계·일시정지·상태 바 조작 문구는 담지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-T2",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "SECOND_HEART/briefing",
+          "observation": "같은 위험 회랑의 두 선은 함께 상실될 수 있으며 적어도 한 회랑은 예고구역 밖이어야 한다는 규칙을 명확히 설명한다."
+        },
+        {
+          "sourceRef": "chapter:SECOND_HEART:realtimeSchedule",
+          "observation": "의료원 전환시험과 뒤이은 범람 차단시험의 순서와 각 지속 시간을 구체적으로 제시한다."
+        },
+        {
+          "sourceRef": "SECOND_HEART/result/standard",
+          "observation": "위험 설비 차단 뒤에도 시험 부하와 실제 공급 경로가 유지됐는지를 결과로 회수한다."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-T3",
+      "label": "SERVICEABLE",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:SECOND_SOURCE:learningIntent",
+          "observation": "발전량이 아니라 전체 경로의 최소 접속부가 공급을 제한하며 forecast 순서가 실제 사건과 맞아야 함을 명시한다."
+        },
+        {
+          "sourceRef": "chapter:SECOND_SOURCE:realtimeSchedule",
+          "observation": "서부 주간선과 남부 전원 시험을 서로 다른 시작 시각의 두 사건으로 배열한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "SECOND_SOURCE/briefing",
+          "observation": "용량·비용·공사기간 비교는 제공하지만 이전 튜토리얼 안내를 무엇부터 철회하는지에 대한 계획은 제시하지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-C1",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:choiceIntent",
+          "observation": "강을 피하는 경로, 공사비, 완공 시각, 시간 진행 전 초안 수정이라는 첫 선택 요소를 함께 묶는다."
+        },
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:crisisIntent",
+          "observation": "예고된 첫 공급 사건 전 경로 완성과 사건 중 공급 유지라는 시간 기반 성공 조건이 분명하다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "FIRST_LIGHT/briefing",
+          "observation": "작성된 브리핑에는 비교할 경로 후보나 비용·완공 시각의 구체적인 차이가 나타나지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-C2",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:SECOND_HEART:choiceIntent",
+          "observation": "공유 공사비 절감과 단일 회랑 상실 생존, 두 사건 전 완공을 하나의 명료한 회랑 선택으로 대비한다."
+        },
+        {
+          "sourceRef": "SECOND_HEART/briefing",
+          "observation": "두 접속 회선과 서로 다른 위험 회랑이라는 독립성 조건을 구체적으로 설명한다."
+        },
+        {
+          "sourceRef": "SECOND_HEART/result/standard",
+          "observation": "차단 이후 부하 유지와 두 회선·실제 경로 기록으로 배운 규칙을 검증한다."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-C3",
+      "label": "EXCELLENT",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "SECOND_SOURCE/briefing",
+          "observation": "선로, 변전소 주기기, 접속부 중 먼저 연속 한계에 닿는 요소가 전체 인수를 제한한다고 구체화한다."
+        },
+        {
+          "sourceRef": "chapter:SECOND_SOURCE:choiceIntent",
+          "observation": "두 번째 전원 연결을 전체 경로 용량, 완공 시각, 사건 전 열여유의 결합 문제로 제시한다."
+        },
+        {
+          "sourceRef": "SECOND_SOURCE/result/standard",
+          "observation": "두 전원을 순서대로 시험하고 실제 경로와 최소 열여유를 인수 기록으로 회수한다."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-C4",
+      "label": "SERVICEABLE",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "WHOSE_MARGIN/window/LATE_NIGHT_RECOVERY_WINDOW",
+          "observation": "비상 운전 설비 정지 뒤에도 필수시설 경로가 남아야 한다는 다음 국면 조건을 명시한다."
+        },
+        {
+          "sourceRef": "chapter:BEFORE_WATER_RISE:realtimeSchedule",
+          "observation": "범람 도달 사건의 시작과 지속 시간을 분명히 둔다."
+        },
+        {
+          "sourceRef": "chapter:SWITCH_OFF_TO_PROTECT:realtimeSchedule",
+          "observation": "서부 전원 계획정지와 복귀를 순차 사건으로 배치한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "chapter:WHOSE_MARGIN:learningIntent",
+          "observation": "분 단위 비상 노출과 냉각·복귀를 학습 목표로 세우지만 허용 노출량이나 복구 시점은 구체화하지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-C5",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/window/FINAL_OPERATING_PLAN_WINDOW",
+          "observation": "폭염 비상 설비 정지와 범람 설비 상실을 포함한 세 상태를 비교한 뒤 한 운영안을 승인하게 한다."
+        },
+        {
+          "sourceRef": "LONGEST_NIGHT/result/standard",
+          "observation": "지킨 수요, 공급하지 못한 일반 수요, 실제 공급원·경로, 비상 설비, 최종 망과 자금을 결과에 포함한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/result/standard",
+          "observation": "결과 항목은 명시하지만 어떤 시설이 실제로 지켜지거나 멈췄는지는 카드 안에서 구체적으로 열거하지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-A1",
+      "label": "SERVICEABLE",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:choiceIntent",
+          "observation": "경로 안전성, 공사비, 완공 시각을 동시에 비교하는 선택 의도가 명시돼 있다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "FIRST_LIGHT/briefing",
+          "observation": "작성된 선택 전 텍스트에는 대안별 경로·비용·완공 시각이 제시되지 않아 실제 비교 내용이 의도 필드에 머문다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-A2",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "NORTH_BANK_PROMISE/window/NORTH_BANK_PLANNING_WINDOW",
+          "observation": "서비스권역과 실제 공급을 구분하고 작은 변전소 여러 곳과 큰 변전소 한 곳의 비용·열여유·분기 공간을 대비한다."
+        },
+        {
+          "sourceRef": "NORTH_BANK_PROMISE/result/keep",
+          "observation": "약속 유지 결과가 정수장·북안 경로, 사용한 공사비, 최소 열여유를 다음 기록으로 넘긴다."
+        },
+        {
+          "sourceRef": "NORTH_BANK_PROMISE/result/defer",
+          "observation": "연기 결과가 정수장을 우선하고 북안 수요를 제외하며 잔여 자금과 현재 망을 보존한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "chapter:NORTH_BANK_PROMISE:choiceIntent",
+          "observation": "두 결과와 후속 망·자금 차이를 약속하지만 차이의 구체적인 규모는 제시하지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-A3",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "WHOSE_MARGIN/briefing",
+          "observation": "산업 약속에 비상 열여유를 쓰면 다음 국면에 보호정지된다는 직접적인 기회비용을 제시한다."
+        },
+        {
+          "sourceRef": "WHOSE_MARGIN/window/HOT_EVENING_PLANNING_WINDOW",
+          "observation": "일반 회랑의 비상 공급과 후속 정지, 보강 회랑의 추가 비용과 연속 공급을 선명하게 대비한다."
+        },
+        {
+          "sourceRef": "WHOSE_MARGIN/result/defer",
+          "observation": "연기 결과가 산업 수요 제외와 필수시설 결과, 현재 망·자금의 후속 인계를 명시한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "chapter:WHOSE_MARGIN:learningIntent",
+          "observation": "분 단위 비상 노출을 핵심으로 삼지만 선택 전에 판단할 구체적인 노출 한계는 적지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-A4",
+      "label": "SERVICEABLE",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:LONGEST_NIGHT:choiceIntent",
+          "observation": "남은 현금·경로·열 duty·누적 약속을 최종 운영계획과 결과·에필로그에 묶겠다고 명시한다."
+        },
+        {
+          "sourceRef": "campaign/epilogue/card/closing",
+          "observation": "세 약속 결과와 전체 망, 잔여 자금을 함께 회수한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/briefing",
+          "observation": "최종 브리핑은 기존 망과 마지막 보완만 언급하고 세 약속이 최종 국면 조건을 어떻게 바꾸는지는 설명하지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-P1",
+      "label": "SERVICEABLE",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:learningIntent",
+          "observation": "첫 장은 시계·속도·건설 전 과정을 가르치는 명시적 기초 단계다."
+        },
+        {
+          "sourceRef": "chapter:SECOND_HEART:learningIntent",
+          "observation": "둘째 장은 회랑 독립성과 실제 차단 후 경로 유지로 초점을 좁힌다."
+        },
+        {
+          "sourceRef": "chapter:SECOND_SOURCE:learningIntent",
+          "observation": "셋째 장은 전체 경로 병목과 forecast 순서로 판단 부담을 확장한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "SECOND_SOURCE/briefing",
+          "observation": "세 번째 튜토리얼에도 비교 지시는 남아 있으나 도움말·강제 단계·일시정지 지원을 언제 철회하는지는 명시되지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-P2",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "chapter:NORTH_BANK_PROMISE:realtimeSchedule",
+          "observation": "약속 기한 뒤 북안 인수와 더운 저녁 예측을 이어 본편의 첫 다중 시간축을 만든다."
+        },
+        {
+          "sourceRef": "chapter:WHOSE_MARGIN:realtimeSchedule",
+          "observation": "더운 기본 부하, 야간조, 늦은 밤의 세 사건으로 열 duty와 후속 상태를 확장한다."
+        },
+        {
+          "sourceRef": "chapter:BEFORE_WATER_RISE:crisisIntent",
+          "observation": "범람 전 위험구역 밖 필수시설 경로 완성으로 공간 상실 압박을 더한다."
+        },
+        {
+          "sourceRef": "chapter:SWITCH_OFF_TO_PROTECT:realtimeSchedule",
+          "observation": "계획정지와 복귀를 같은 장에 배치해 사건 중 운영과 회복 순서를 요구한다."
+        }
+      ],
+      "gapEvidence": []
+    },
+    {
+      "cellId": "TP-P3",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "LONGEST_NIGHT/result/standard",
+          "observation": "최종 세 국면의 공급 성과와 실제 망 상태를 에필로그로 직접 넘긴다."
+        },
+        {
+          "sourceRef": "campaign/epilogue/card/city-report",
+          "observation": "지킨 곳과 멈춘 곳, 범람 구역, 보호정지 설비, 잔여 경로를 도시 결과로 회수한다."
+        },
+        {
+          "sourceRef": "campaign/epilogue/card/medical-witness",
+          "observation": "의료원 결과를 수술실과 중환자실 인계 기록이라는 현장 관점으로 연결한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "campaign/epilogue/promise/WHOSE_MARGIN/keep",
+          "observation": "약속 회수 문구는 지켰다는 한 문장에 그쳐 최종 상태에 미친 구체적인 영향은 덧붙이지 않는다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-K1",
+      "label": "SERVICEABLE",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "FIRST_LIGHT/briefing",
+          "observation": "첫 목표와 도시 망의 지속성을 짧고 직접적인 한국어 문장으로 전달한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "chapter:FIRST_LIGHT:learningIntent",
+          "observation": "핵심 조작 명칭에 pause, future-event status bar, countdown이 한국어 설명 없이 혼용된다."
+        },
+        {
+          "sourceRef": "chapter:SECOND_HEART:learningIntent",
+          "observation": "후속 튜토리얼에서도 forecast가 같은 방식으로 혼용돼 용어 통일이 덜 됐다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-K2",
+      "label": "SERVICEABLE",
+      "confidence": "MEDIUM",
+      "strengthEvidence": [
+        {
+          "sourceRef": "SWITCH_OFF_TO_PROTECT/result/standard",
+          "observation": "정지 중 실제 공급원·경로와 복귀 뒤 경로·최소 열여유를 명료한 한국어 결과 문장으로 정리한다."
+        },
+        {
+          "sourceRef": "WHOSE_MARGIN/window/LATE_NIGHT_RECOVERY_WINDOW",
+          "observation": "비상 설비 정지 뒤 필수 공급 경로를 확인하라는 운영 지시가 직접적이다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "context:runtimeAuthority",
+          "observation": "THERMAL_TRIP_RECOVERY를 포함한 상태 신호가 영문 상수로만 제시되고 대응하는 한국어 오류·복구 문구는 없다."
+        },
+        {
+          "sourceRef": "chapter:WHOSE_MARGIN:learningIntent",
+          "observation": "운영 핵심어 duty가 한국어 표현과 혼용된다."
+        }
+      ]
+    },
+    {
+      "cellId": "TP-K3",
+      "label": "STRONG",
+      "confidence": "HIGH",
+      "strengthEvidence": [
+        {
+          "sourceRef": "SECOND_HEART/briefing",
+          "observation": "인물의 요청과 회랑 위험, 필요한 조치를 자연스러운 한국어 서사 문장으로 결합한다."
+        },
+        {
+          "sourceRef": "campaign/epilogue/card/closing",
+          "observation": "망·자금·약속·플레이어가 만든 지도를 일관된 인계 어조로 묶어 종결한다."
+        }
+      ],
+      "gapEvidence": [
+        {
+          "sourceRef": "campaign/epilogue/promise/NORTH_BANK_PROMISE/keep",
+          "observation": "개별 약속 문구는 한 문장 사실 확인에 머물러 인물 목소리나 후속 결과의 변주는 제한적이다."
+        }
+      ]
+    }
+  ]
+}

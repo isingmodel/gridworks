@@ -64,10 +64,11 @@ docs/
 - `RealtimeUxAuthority = R2_FIRST_LIGHT_TARGETED_SLICE`
 - `FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_PRESENT_NATIVE_QUALITY_NOT_OBSERVED`
 - `FullCampaignNativeE2E = NOT_IMPLEMENTED`
-- `TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2`
+- `TextPlanProxy = 83.4475_FORMATIVE`
 - `TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY`
 - `CommercialUXProxy = null`
 - `ScoreBearingCaptureAllowed = false`
+- `UXR0ClosureReview = PENDING`
 - `LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT`
 - `TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY`
 - `FullFlowE2EPolicy = EXCEPTION_ONLY`

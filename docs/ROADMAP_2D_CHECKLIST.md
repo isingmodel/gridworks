@@ -14,7 +14,7 @@
 |---|---|---|---|---|---|
 | A0 목표·문서 기준선 | **완료** | 네 reference hash, 스타일 DNA, R1/R2 보존, 문서 압축 | 문서·링크·경계 검사 | 해당 없음 | 이 문서 변경 커밋 |
 | A0.1 A1 전 구조 준비 | **완료** | build/package 격리, world seam, 두 targeted checkpoint | build·exact suites·두 구간 headless PASS | 해당 없음 | A1은 계속 미개방 |
-| UX-R0 실시간 텍스트 기준선 | **활성** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | text judge 미실행 | 3 fresh judge+P1 fix review 필요 |
+| UX-R0 실시간 텍스트 기준선 | **종료 검토 중** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | `TextPlanProxy 83.4475` 형성평가 | 종료 증거 독립 검토 필요 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -65,7 +65,7 @@
 - [x] future-event status bar의 현재 시각·countdown·event interval·공사·결정·열 signal 계약
 - [x] hash-bound text artifact와 mutation 검사
 - [x] source binding+artifact 통합 hash와 원본 4종 deterministic aggregate rebuild
-- [ ] 세 fresh blinded judge의 첫 `TextPlanProxy`
+- [x] 불안정 첫 INITIAL panel 보존 뒤 별도 세 fresh blinded judge로 `TextPlanProxy = 83.4475`
 - [ ] 전체 UX-R0 변경의 독립 P0/P1 review와 종료 커밋
 
 현재 R2 `RealtimeEventRail`의 코드 존재와 deterministic UI 검사는 native 이해·가독성 증거가 아니다.
@@ -120,10 +120,11 @@ LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
 FullCampaignNativeE2E = NOT_IMPLEMENTED
-TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2
+TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 ScoreBearingCaptureAllowed = false
+UXR0ClosureReview = PENDING
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED

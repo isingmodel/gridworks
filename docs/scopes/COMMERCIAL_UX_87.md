@@ -44,6 +44,9 @@ packager·capture·전체 캠페인 presentation을 미리 만들지 않는다.
   `NOT_IMPLEMENTED`다.
 - 동결 V2 기본 장면 `CommercialMain`이나 Core-only replay로 이 누락을 채우지 않는다.
 - 현재 `CommercialUXProxy = null`이며 score-bearing capture는 허용되지 않았다.
+- 같은 source-bound 입력의 첫 INITIAL panel은 `TP-A1` 불안정으로 점수가 성립하지 않았고 보존했다.
+- 별도 세 fresh run의 두 번째 INITIAL panel은 `SCORED_FORMATIVE`, `TextPlanProxy = 83.4475`로
+  안정 집계됐다. 플랫폼 서명 execution receipt는 저장소에 내보내지 못했다.
 
 따라서 text judge의 결과는 개선 우선순위를 정하는 `TextPlanProxy`일 뿐 공식 87점이 아니다.
 
@@ -202,11 +205,12 @@ ProductArtGate = NONE_A1_NOT_OPENED
 RealtimeAuthority = RELEASE_V3_PLUS_R2
 FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_PRESENT_NATIVE_QUALITY_NOT_OBSERVED
 StoryPartManifest = 34_AUTHORED_ATOMS_DETERMINISTIC_PASS
-TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2
+TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 FullCampaignNativeE2E = NOT_IMPLEMENTED
 ScoreBearingCaptureAllowed = false
 NativeCapture = BLOCKED_MAC_LOCKED
+UXR0ClosureReview = PENDING
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

@@ -32,8 +32,9 @@
 
 ## 현재 상태와 권한
 
-제품의 Release.V3/R2 실시간 방향은 유지한다. 현재는 UX-R0 평가 계약과 텍스트 기준선만 열려 있고,
-runtime art A1과 native evaluator·전체 캠페인 구현은 아직 열지 않았다.
+제품의 Release.V3/R2 실시간 방향은 유지한다. UX-R0 텍스트 패널은 형성평가 83.4475로 안정 집계됐고,
+현재는 종료 증거의 독립 검토만 남았다. runtime art A1과 native evaluator·전체 캠페인 구현은 아직
+열지 않았다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -42,7 +43,8 @@ runtime art A1과 native evaluator·전체 캠페인 구현은 아직 열지 않
 - R2 마지막 전체 harness: 사용자 지시로 중단, 종료 PASS 아님
 - 새 목표 문서 기준선: `A0` 완료
 - A1 전 구조 준비: build authority 격리, renderer-neutral world seam, 두 DEBUG checkpoint 완료
-- UX-R0: V2 authored content와 V3 실시간 일정에 결속한 34-part story 단독 실행·text judge 도구
+- UX-R0: V2 authored content와 V3 실시간 일정에 결속한 34-part story 단독 실행, 형성평가
+  `TextPlanProxy = 83.4475`
 - future-event status bar: R2 `RealtimeEventRail` 존재, 실제 플레이 품질은 아직 미관찰
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
 - 활성 평가 gate: `UX-R0_REALTIME_TEXT_BASELINE`
@@ -67,10 +69,11 @@ LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
 FullCampaignNativeE2E = NOT_IMPLEMENTED
-TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2
+TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 ScoreBearingCaptureAllowed = false
+UXR0ClosureReview = PENDING
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2RealtimeUx = PRESERVED_GATE_NOT_COMPLETED

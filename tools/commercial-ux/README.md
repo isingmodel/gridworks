@@ -21,6 +21,7 @@
   - epilogue promise branch line 6
 - 현재 native 표현: `RealtimeSliceMain`의 FIRST_LIGHT targeted R2 slice만 확인됨
 - 전체 8장 native E2E: `NOT_IMPLEMENTED`
+- 현재 text 형성평가: `TextPlanProxy = 83.4475`
 - 공식 `CommercialUXProxy`: 없음
 
 이 상태에서 text 점수가 높아도 `TextPlanProxy`일 뿐이며 87 종료 조건을 충족하지 않는다. 이전
@@ -87,6 +88,10 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 `reasoningEffort=ultra`를 사용한다. 출력은 `SCORED_FORMATIVE` 또는 불안정성에 따른 재평가 상태이며
 `officialCommercialUX=false`다. 불안정 panel은 보존하고 별도 이름의 새 INITIAL panel을 만든다.
 현재 replacement 입력은 fail-closed로 비활성화돼 있다.
+
+보존된 UX-R0 실행과 두 INITIAL panel의 상태·hash·증거 상한은
+`playtests/commercial-ux-87-realtime/text-plan-r0/README.md`가 소유한다. 첫 panel의 raw 값은 불안정성으로
+무효이며, 두 번째 panel의 83.4475도 native 관찰이 아닌 형성평가다.
 
 ## 다음 gate
 

@@ -192,14 +192,18 @@ deterministic failure / blinded observation
 
 ## 10. 현재 판정
 
-현재 text lane의 V3 authority 포팅과 34-part 단독 실행은 deterministic PASS다. 그러나 native lane,
-candidate/replay authority, 8장 R2 presentation과 실제 macOS capture가 아직 없으므로 상태는 다음과 같다.
+현재 text lane의 V3 authority 포팅과 34-part 단독 실행은 deterministic PASS다. 첫 INITIAL panel은
+불안정으로 보존했고, 별도 세 fresh run의 두 번째 INITIAL panel은 schema 상태
+`SCORED_FORMATIVE`, `TextPlanProxy = 83.4475`로 안정 집계했다. 그러나 native lane,
+candidate/replay authority, 8장 R2 presentation과 실제 macOS capture가 아직 없으므로 상태는 다음과
+같다.
 
 ```text
-TextPlanProxy = NOT_YET_JUDGED_ON_REALTIME_TEXT_PROTOCOL_V2
+TextPlanProxy = 83.4475_FORMATIVE
 CommercialUXProxy = null
 OfficialScoreStatus = BLOCKED_PRE_NATIVE_PORT
 ScoreBearingCaptureAllowed = false
+TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 ```
 
 이 문서의 다음 개정은 native provenance 계약을 포팅하고 독립 검토로 닫은 뒤에만 score-bearing

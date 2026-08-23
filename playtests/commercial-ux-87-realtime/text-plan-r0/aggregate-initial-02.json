@@ -1,0 +1,341 @@
+{
+  "blockers": [],
+  "categoryScores": {
+    "agency": {
+      "score": 92.5,
+      "spread": 15.0,
+      "weight": 10
+    },
+    "causality": {
+      "score": 94.0,
+      "spread": 9.0,
+      "weight": 13
+    },
+    "journey": {
+      "score": 70.0,
+      "spread": 15.0,
+      "weight": 12
+    },
+    "korean": {
+      "score": 74.5,
+      "spread": 4.5,
+      "weight": 4
+    },
+    "pacing": {
+      "score": 81.25,
+      "spread": 5.25,
+      "weight": 8
+    },
+    "tutorial": {
+      "score": 92.5,
+      "spread": 11.25,
+      "weight": 13
+    }
+  },
+  "cellScores": {
+    "TP-A1": {
+      "categoryId": "agency",
+      "labels": [
+        "SERVICEABLE",
+        "STRONG",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 30
+    },
+    "TP-A2": {
+      "categoryId": "agency",
+      "labels": [
+        "STRONG",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 25
+    },
+    "TP-A3": {
+      "categoryId": "agency",
+      "labels": [
+        "STRONG",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 25
+    },
+    "TP-A4": {
+      "categoryId": "agency",
+      "labels": [
+        "SERVICEABLE",
+        "STRONG",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C1": {
+      "categoryId": "causality",
+      "labels": [
+        "STRONG",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C2": {
+      "categoryId": "causality",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C3": {
+      "categoryId": "causality",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C4": {
+      "categoryId": "causality",
+      "labels": [
+        "SERVICEABLE",
+        "STRONG",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-C5": {
+      "categoryId": "causality",
+      "labels": [
+        "STRONG",
+        "EXCELLENT",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 20
+    },
+    "TP-J1": {
+      "categoryId": "journey",
+      "labels": [
+        "SERVICEABLE",
+        "SERVICEABLE",
+        "SERVICEABLE"
+      ],
+      "medianLabel": "SERVICEABLE",
+      "medianScore": 70,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 50
+    },
+    "TP-J2": {
+      "categoryId": "journey",
+      "labels": [
+        "WEAK",
+        "SERVICEABLE",
+        "SERVICEABLE"
+      ],
+      "medianLabel": "SERVICEABLE",
+      "medianScore": 70,
+      "ordinalRange": 1,
+      "spread": 30,
+      "unstable": false,
+      "weightWithinCategory": 50
+    },
+    "TP-K1": {
+      "categoryId": "korean",
+      "labels": [
+        "SERVICEABLE",
+        "SERVICEABLE",
+        "SERVICEABLE"
+      ],
+      "medianLabel": "SERVICEABLE",
+      "medianScore": 70,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 35
+    },
+    "TP-K2": {
+      "categoryId": "korean",
+      "labels": [
+        "SERVICEABLE",
+        "SERVICEABLE",
+        "SERVICEABLE"
+      ],
+      "medianLabel": "SERVICEABLE",
+      "medianScore": 70,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 35
+    },
+    "TP-K3": {
+      "categoryId": "korean",
+      "labels": [
+        "STRONG",
+        "STRONG",
+        "EXCELLENT"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 30
+    },
+    "TP-P1": {
+      "categoryId": "pacing",
+      "labels": [
+        "SERVICEABLE",
+        "SERVICEABLE",
+        "SERVICEABLE"
+      ],
+      "medianLabel": "SERVICEABLE",
+      "medianScore": 70,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 25
+    },
+    "TP-P2": {
+      "categoryId": "pacing",
+      "labels": [
+        "STRONG",
+        "EXCELLENT",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 35
+    },
+    "TP-P3": {
+      "categoryId": "pacing",
+      "labels": [
+        "STRONG",
+        "STRONG",
+        "STRONG"
+      ],
+      "medianLabel": "STRONG",
+      "medianScore": 85,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 40
+    },
+    "TP-T1": {
+      "categoryId": "tutorial",
+      "labels": [
+        "STRONG",
+        "EXCELLENT",
+        "EXCELLENT"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 40
+    },
+    "TP-T2": {
+      "categoryId": "tutorial",
+      "labels": [
+        "EXCELLENT",
+        "EXCELLENT",
+        "STRONG"
+      ],
+      "medianLabel": "EXCELLENT",
+      "medianScore": 100,
+      "ordinalRange": 1,
+      "spread": 15,
+      "unstable": false,
+      "weightWithinCategory": 35
+    },
+    "TP-T3": {
+      "categoryId": "tutorial",
+      "labels": [
+        "SERVICEABLE",
+        "SERVICEABLE",
+        "SERVICEABLE"
+      ],
+      "medianLabel": "SERVICEABLE",
+      "medianScore": 70,
+      "ordinalRange": 0,
+      "spread": 0,
+      "unstable": false,
+      "weightWithinCategory": 25
+    }
+  },
+  "commercialUXProxy": null,
+  "disagreementPenalty": 2.1775,
+  "judgeRunIds": [
+    "R0-TEXT-SOL-ULTRA-04",
+    "R0-TEXT-SOL-ULTRA-05",
+    "R0-TEXT-SOL-ULTRA-06"
+  ],
+  "judgmentSchemaSha256": "sha256:8a30187170b081f7d5a4d3853917c9191e4719cc7bff7cbb59b726046b740f6f",
+  "officialCommercialUX": false,
+  "panelInputSha256": "sha256:9e37a3e33cc0a8360e5135c6e8cc2a3c1a61cb046447ab5c1a1275e7957f23a5",
+  "panelKind": "INITIAL",
+  "promptTemplateSha256": "sha256:23fc0428cd728bea35df22f5e202e5e1cc1e67e0a37d941d6068e630f3c2dc15",
+  "protocol": "GRIDWORKS-REALTIME-COMMERCIAL-UX-TEXT-PLAN-AGGREGATE-v2",
+  "replacementForPanelInputSha256": null,
+  "replacementReceiptPath": "/Users/fred/dev/gridworks/playtests/commercial-ux-87-realtime/text-plan-r0/.gridworks-commercial-ux-replacement-9e37a3e33cc0a8360e5135c6e8cc2a3c1a61cb046447ab5c1a1275e7957f23a5.receipt.json",
+  "replacementReceiptSha256": null,
+  "rerunRequired": false,
+  "rubricSha256": "sha256:b13672772ee2a8fb9e1467ae3ee3b6a4a445f560cfd8079a38227dbe55d934c2",
+  "status": "SCORED_FORMATIVE",
+  "textPlanProxy": 83.4475,
+  "textPlanSha256": "sha256:6c592b78fdf074bdbcc49125eb6af4054431d5b434884a0b629dcca225564dc7",
+  "textRaw": 85.625,
+  "textRawSpread": 10.8875,
+  "unstableCells": []
+}

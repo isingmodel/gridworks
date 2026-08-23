@@ -1,7 +1,7 @@
 # Gridworks — 에셋 스타일 실시간 게임 체크리스트
 
 > 현재 전체 목표: `ASSET_STYLE_REALTIME_GAME`
-> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1 완료 · UX-R2.2 활성**
+> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1+UX-R2.2 완료 · 다음 runtime gate 미개방**
 > 제품 아트: **A1 미개방**
 
 이 문서는 단계 상태와 증거 상한만 기록한다. 제품 기능과 시각 규격은
@@ -17,7 +17,7 @@
 | UX-R0 실시간 텍스트 기준선 | **완료** | V2 authored content+V3 전체 event timing, 34 story part, future-event bar 계약 | build·31 Commercial suites·22 Realtime suites·16 text mutation PASS | `TextPlanProxy 83.4475` 형성평가 | `746c0aa`, 독립 P0 0/P1 0 |
 | UX-R1 native evaluator authority | **완료** | candidate·route·session/attempt·non-score chain parent·blocked artifact·local controlled transcript | candidate 16/16 + session 12/12 + chain 14/14 + artifact 11/11 + transcript 13/13·strict schema | capture 금지 | `2b0b6ee`, 전체 review P0 0/P1 0 |
 | UX-R2.1 FIRST_LIGHT release tutorial/rail | **완료** | 실제 release 1장 briefing→live→authored result, 단일 chronological rail, interactive checkpoint host | source `e385707`, build·회귀·독립 P0/P1 0 | FIRST_LIGHT+두 checkpoint actual-input PASS | 이 문서 종료 commit |
-| UX-R2.2 tutorial prefix | **활성** | FIRST_LIGHT→SECOND_HEART→SECOND_SOURCE 누적 진행, 2회선 조건, result/briefing, forecast flood | 구현 전 | source/review 뒤 fresh-process 한 경로 | allowlist·회귀·actual-input·독립 P0/P1 0 필요 |
+| UX-R2.2 tutorial prefix | **완료** | FIRST_LIGHT→SECOND_HEART→SECOND_SOURCE 누적 진행, 2회선 조건, result/briefing, forecast flood | source `659709d`+fix `40ed3fa`, build·회귀·UI PASS | fresh-process 세 장+full-flow record | source/fix 독립 P0/P1 0; closure review 대기 |
 | A1 일반 운전 아트 slice | **미개방** | dense normal world, actual clock·건설·통전 | 미실행 | 미수집 | 사용자 승인 필요 |
 | A2 사건·열·복귀 | **미개방** | heatwave, emergency, trip, cooling, recovery | 미실행 | 미수집 | A1 뒤 별도 승인 |
 | A3 production catalog | **미개방** | 전체 설비·시설·도시·LOD·manifest | 미실행 | 미수집 | A2 뒤 별도 승인 |
@@ -134,22 +134,27 @@ chronological rail 재검토는 `PASS_FOR_SINGLE_RAIL_MAJOR_UNIT`이며 모두 P
 이 단위는 `data/**`, runtime art/world, 2–8장, promise·thermal presentation, persistence, default scene,
 export/package와 score-bearing capture를 열지 않는다.
 
-## UX-R2.2 tutorial prefix through SECOND_SOURCE — 활성
+## UX-R2.2 tutorial prefix through SECOND_SOURCE — 완료
 
 - [x] UX-R2.1 종료 문서·actual-input·closure review P0 0/P1 0 뒤 개방
 - [x] cumulative 3장 prefix와 단독 2·3장 runtime 금지 경계 고정
 - [x] exact Core/Game/test/doc allowlist와 4–8장·A1–A5 미개방 경계 고정
 - [x] gate-opening 독립 review P0 0/P1 0 · `PASS_FOR_UX_R2_2_GATE_OPENING`
-- [ ] exact `--release-through=SECOND_SOURCE`, 기존 FIRST_LIGHT/checkpoint route 보존
-- [ ] Core-owned first-event connection requirement와 current/comparison `n/2`
-- [ ] one-line rail에서 5 event 순서·hover·AX·construction 회귀
-- [ ] announced flood forecast outline와 active flood fill의 색 외 구분·지도 선택 연동
-- [ ] FIRST_LIGHT result→SECOND_HEART briefing→event story→result→SECOND_SOURCE briefing→event story→final
-- [ ] positive authored result를 `ObjectiveSatisfied`와 결속하고 1회선/공유 범람 failure 위조 거부
-- [ ] 네 canonical story-part selector hash 단독 실행과 34-part/text-plan source 불변
-- [ ] 기존 A1 두 checkpoint hash, full Realtime/Commercial/text tooling와 UI scale matrix PASS
-- [ ] source commit·독립 source review 뒤 production input tutorial 3장 fresh-process PASS
-- [ ] 현재 상태 문서와 종료 commit
+- [x] exact `--release-through=SECOND_SOURCE`, 기존 FIRST_LIGHT/checkpoint route 보존
+- [x] Core-owned first-event connection requirement와 current/comparison `n/2`
+- [x] one-line rail에서 5 event 순서·hover·AX·construction 회귀
+- [x] announced flood forecast outline와 active flood fill의 색 외 구분·지도 선택 연동
+- [x] FIRST_LIGHT result→SECOND_HEART briefing→event story→result→SECOND_SOURCE briefing→event story→final
+- [x] positive authored result를 `ObjectiveSatisfied`와 결속하고 1회선/공유 범람 failure 위조 거부
+- [x] 네 canonical story-part selector hash 단독 실행과 34-part/text-plan source 불변
+- [x] 기존 A1 두 checkpoint hash, full Realtime/Commercial/text tooling와 UI scale matrix PASS
+- [x] source commit·독립 source review 뒤 production input tutorial 3장 fresh-process PASS
+- [x] 현재 상태 문서와 종료 commit
+
+source/fix bounded review는 각각 `PASS_FOR_UX_R2_2_SOURCE_COMMIT`,
+`PASS_FOR_UX_R2_2_SOURCE_FIX_COMMIT`, P0 0/P1 0이다. actual-input에서는 한 줄 rail marker의 실제
+클릭·선택 연동을 확인했지만 custom hover-only popup의 네이티브 출현은 관찰하지 않았다. 해당 hover
+계약은 full UI scale matrix 근거로만 PASS를 보존한다.
 
 이 단위는 `data/**`, rail source, runtime art/world, 4–8장, promise/finale/epilogue, persistence,
 default/export/package와 score-bearing capture를 열지 않는다.
@@ -189,22 +194,22 @@ default/export/package와 score-bearing capture를 열지 않는다.
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+ActiveEvaluationGate = NONE
 NextEvaluationGate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
 UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
 ProductArtImplementationGate = NONE
-NextCandidate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+NextCandidate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
 RealtimeRuleAuthority = RELEASE_V3
-RealtimeUxAuthority = R2_FIRST_LIGHT_BASE_UX_R2_2_TUTORIAL_PREFIX_IN_PROGRESS
-FutureEventStatusBar = PASS_UX_R2_1_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
+RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
-FullCampaignNativeE2E = NOT_IMPLEMENTED_TUTORIAL_PREFIX_IN_PROGRESS
+FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY
 TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
@@ -228,9 +233,9 @@ UXR21GateOpeningReview = PASS_P0_0_P1_0
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2Implementation = PRESERVED
-R2ExitGate = UX_R2_2_ACTIVE_IMPLEMENTATION_PENDING
-NativeCapturePolicy = ALLOWED_ONE_NON_SCORE_DEBUG_TUTORIAL_FLOW_AFTER_SOURCE_COMMIT_BUILD_AND_REVIEW
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_PREFLIGHTED
+R2ExitGate = UX_R2_2_COMPLETE_NEXT_GATE_NOT_OPENED
+NativeCapturePolicy = FORBIDDEN_UX_R2_3_NOT_OPENED
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR21GateStatus = COMPLETE_NON_SCORE
 UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
 UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0_SOURCE_EC265999
@@ -240,10 +245,19 @@ UXR21ActualInputObservation = PASS_THREE_NON_SCORE_RECORDS
 InteractiveCheckpointHost = ACTUAL_INPUT_PASS_A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M
 FirstLightNativeStoryReachability = FORMATIVE_DIRECT_PLAY_PASS_AUTHORED_STANDARD_RESULT
 UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34
-UXR22GateStatus = ACTIVE_IMPLEMENTATION_PENDING
+UXR22GateStatus = COMPLETE_NON_SCORE
 UXR22GateOpeningReview = PASS_FOR_UX_R2_2_GATE_OPENING_P0_0_P1_0
-UXR22ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
-TutorialThreeChapterReachability = NOT_IMPLEMENTED
+UXR22ProductSourceAuthority = PASS_SOURCE_REVISION_40ED3FAB92A7054D6BC40D609AB6C5D1E1F801CC
+UXR22MajorUnitSource = 659709DE2F654908DEE3E5FBC72D4106DF61E6CA
+UXR22SourceReview = PASS_FOR_UX_R2_2_SOURCE_COMMIT_P0_0_P1_0_SOURCE_659709D
+UXR22SourceFixReview = PASS_FOR_UX_R2_2_SOURCE_FIX_COMMIT_P0_0_P1_0_SOURCE_40ED3FA
+UXR22DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_24_778_COMMERCIAL_31_7084_TEXT_TOOLS_34_PARTS_16_MUTATIONS_STORY_34_UI_MATRIX_PASS_CHECKPOINT_HASHES_PRESERVED
+UXR22ActualInputObservation = PASS_THREE_CHAPTER_RESULTS_PLUS_FULL_FLOW_NON_SCORE
+UXR22MarkerNativeObservation = PASS_CLICK_SELECTION_CUSTOM_HOVER_ONLY_POPUP_NOT_OBSERVED
+UXR22KeyboardCandidateObservation = PASS
+UXR22ActiveFloodSolidFillObservation = PASS
+UXR22ClosureReview = PENDING_CLOSURE_DOC_REVIEW
+TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 ElectricalProfessionalReview = NOT_COLLECTED

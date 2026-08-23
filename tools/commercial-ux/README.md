@@ -23,12 +23,17 @@ local rollout이 일치했음을 결속하지만 platform/API attestation이나 
   - result card 11
   - epilogue card 3
   - epilogue promise branch line 6
-- 현재 native 표현: `RealtimeSliceMain`의 FIRST_LIGHT targeted R2 slice만 확인됨
+- 현재 native 표현: `RealtimeSliceMain`의 FIRST_LIGHT→SECOND_HEART→SECOND_SOURCE 누적 tutorial
+  prefix까지 확인됨
 - UX-R2.1 product source: `e385707071e4ccfb34d5200e3401897db7f164ad`; shared release loader,
   FIRST_LIGHT controller/result, 단일 chronological rail과 actual-input-only checkpoint host의
   deterministic build·회귀 및 두 독립 review P0 0/P1 0
 - UX-R2.1 actual-input 관찰: `PASS_THREE_NON_SCORE_RECORDS`; headless PASS와 actual record를 서로
   대신하거나 score evidence로 승격하지 않음
+- UX-R2.2 product authority: source `659709d`, technical-route fix `40ed3fa`, 두 bounded review
+  P0 0/P1 0과 `PASS_THREE_CHAPTER_RESULTS_PLUS_FULL_FLOW_NON_SCORE`
+- UX-R2.2 rail 관찰: marker 클릭·선택 PASS, custom hover-only popup native 출현 `NOT_OBSERVED`;
+  custom hover 상세/AX 계약은 deterministic full UI matrix만 근거로 사용
 - 현재 candidate: 비기본 Debug/editor 39-file exact project tree, public package 아님
 - 현재 실행 영수증: 두 checkpoint 성공 + missing/extra/FULL_FLOW selector 거부를 독립 verifier가
   fresh process로 재실행
@@ -285,8 +290,9 @@ briefing→live→authored result, 단일 chronological future-event rail과 int
 product source `e385707071e4ccfb34d5200e3401897db7f164ad`에서 구현했다. first-light review
 `PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT`과 single-rail review `PASS_FOR_SINGLE_RAIL_MAJOR_UNIT`은 모두
 P0 0/P1 0이며 세 actual-input record도 PASS했다. package/candidate manifest는 이 carve-out의 증거가
-아니므로 `N/A`다. 현재 UX-R2.2는 기존 text-plan 입력·34-part grammar를 바꾸지 않고 누적 tutorial
-3장 prefix를 native 구현한다. unit/content 회귀는 다음 네 selector를 각각 실행한다.
+아니므로 `N/A`다. UX-R2.2는 기존 text-plan 입력·34-part grammar를 바꾸지 않고 누적 tutorial
+3장 prefix를 source `659709d`와 technical-route fix `40ed3fa`에서 native 구현했다. unit/content
+회귀는 다음 네 selector를 각각 실행한다.
 
 ```sh
 dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part SECOND_HEART/briefing
@@ -295,6 +301,10 @@ dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part
 dotnet run --project tools/Gridworks.CommercialChecks -c Release -- --story-part SECOND_SOURCE/result/standard
 ```
 
-이 selector PASS는 native reachability가 아니다. UX-R2.2는 source commit·build·독립 review 뒤 exact
-`--release-through=SECOND_SOURCE` fresh-process 한 경로만 비점수 actual-input으로 관찰한다. A1 art,
-4–8장, persistence, default/package와 score-bearing capture는 계속 미개방이다.
+이 selector PASS 자체는 native reachability가 아니다. 별도 source/fix review는 각각
+`PASS_FOR_UX_R2_2_SOURCE_COMMIT`, `PASS_FOR_UX_R2_2_SOURCE_FIX_COMMIT`, P0 0/P1 0이고, exact
+`--release-through=SECOND_SOURCE` fresh-process production-input 경로는 세
+`FORMATIVE_DIRECT_PLAY_PASS:*`와 `FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE`를 남겼다.
+marker 클릭·선택과 keyboard candidate selection, active flood 적색 solid fill은 관찰했지만 custom
+hover-only popup 출현은 관찰하지 않았다. A1 art, 4–8장, persistence, default/package와 score-bearing
+capture는 계속 미개방이다.

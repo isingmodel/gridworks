@@ -36,14 +36,17 @@
 P0 0/P1 0으로 완료했다. UX-R1의 Debug candidate·targeted route, session/attempt, finalized
 evaluation-chain parent, finalized blocked current-route artifact chain과 local controlled
 `gpt-5.6-sol`/`ultra` transcript authority까지 닫았다. 이는 platform attestation이나 judge 점수가 아니며,
-UX-R1 전체 독립 검토도 P0 0/P1 0으로 통과했다. 다음 UX-R2는 작은 순차 단위로 진행한다.
+UX-R1 전체 독립 검토도 P0 0/P1 0으로 통과했다. UX-R2는 작은 순차 단위로 진행한다.
 UX-R2.1은 실제 release `FIRST_LIGHT` 장(`FIRST_LIGHT_SUPPLY` phase/event)의
 briefing→live→authored result, 한 줄 chronological future-event rail과 사람이 직접 조작하는 Debug
 checkpoint host를 source revision `e385707071e4ccfb34d5200e3401897db7f164ad`에서 구현했다.
 결정론 검증과 두 독립 검토가 P0 0/P1 0이며, 실제 macOS 입력으로 authored standard result와 두
-checkpoint PASS record까지 확인해 이 gate를 완료했다. 현재 UX-R2.2는 같은 상태를 잇는 tutorial 3장
-prefix를 열어 `SECOND_HEART`의 병원 2회선·범람 안전 회랑과 `SECOND_SOURCE`의 전체 경로 용량을 실제
-장 전환으로 연결한다. A1 art, 4–8장, persistence, 기본 장면과 score-bearing capture는 열지 않았다.
+checkpoint PASS record까지 확인해 이 gate를 완료했다. UX-R2.2도 source `659709d`와 technical-route
+fix `40ed3fa`에서 같은 상태를 잇는 tutorial 3장 prefix를 구현했다. `SECOND_HEART`의 병원 2회선·범람
+안전 회랑과 `SECOND_SOURCE`의 전체 경로 용량을 실제 장 전환으로 연결했고, source/fix 독립 검토는
+각각 P0 0/P1 0이다. fresh-process production 입력으로 세 authored positive result와 전체 prefix 종료
+record까지 확인해 이 gate를 비점수 완료했다. A1 art, 4–8장, persistence, 기본 장면과 score-bearing
+capture는 열지 않았다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -58,33 +61,34 @@ prefix를 열어 `SECOND_HEART`의 병원 2회선·범람 안전 회랑과 `SECO
 - UX-R1: 39-file candidate·두 checkpoint·세 거부 route, session/attempt, non-score chain parent와
   7-artifact blocked non-score chain, local controlled transcript, 전체 gate review 완료
 - future-event status bar: 현재·countdown·event start/end·actual/draft/completed construction을 한 줄
-  시간축의 compact marker로 구성; custom hover 구조·내용은 full UI 행렬 PASS, actual FIRST_LIGHT에서는
-  단일 track·선택 연동 관찰
+  시간축의 compact marker로 구성; custom hover 구조·내용은 full UI 행렬 PASS, actual tutorial
+  prefix에서는 marker 클릭·선택 연동을 관찰했다. hover-only popup의 네이티브 출현은 직접 관찰로
+  주장하지 않는다.
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
-- 활성 평가 gate: `UX-R2.2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE`
+- 활성 평가 gate: 없음 — UX-R2.2 비점수 완료, UX-R2.3 미개방
 - 활성 제품 아트 gate: 없음, A1 미개방
-- native capture: source commit·build·독립 review 뒤 tutorial 3장 fresh-process 한 경로만 비점수 허용
+- native capture: tutorial 3장 fresh-process 한 경로 비점수 관찰 완료; score-bearing capture 미허용
 
 ```text
 CurrentGoal = ASSET_STYLE_REALTIME_GAME
 GoalDirection = ACTIVE
 ActiveScope = COMMERCIAL_UX_87_REALTIME
-ActiveEvaluationGate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+ActiveEvaluationGate = NONE
 NextEvaluationGate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
 UserAuthorization = EXPLICIT_CONTINUE_TO_87_AND_DIRECT_PLAY
 DocumentationBaseline = A0_COMPLETE
 ArchitecturePreparation = COMPLETE
 ProductArtImplementationGate = NONE
-NextCandidate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+NextCandidate = UX_R2_3_MAIN_CHAPTERS_NOT_OPENED
 VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
 RealtimeRuleAuthority = RELEASE_V3
-RealtimeUxAuthority = R2_FIRST_LIGHT_BASE_UX_R2_2_TUTORIAL_PREFIX_IN_PROGRESS
-FutureEventStatusBar = PASS_UX_R2_1_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
+RealtimeUxAuthority = R2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE
+FutureEventStatusBar = PASS_DETERMINISTIC_SINGLE_CHRONOLOGICAL_TRACK_COMPACT_MARKERS_CUSTOM_HOVER_DETAIL
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
-FullCampaignNativeE2E = NOT_IMPLEMENTED_TUTORIAL_PREFIX_IN_PROGRESS
+FullCampaignNativeE2E = NOT_IMPLEMENTED_THREE_CHAPTER_PREFIX_ONLY
 TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
@@ -107,9 +111,9 @@ NativeEvaluatorAuthority = COMPLETE_CANDIDATE_ROUTE_SESSION_CHAIN_PARENT_BLOCKED
 UXR21GateOpeningReview = PASS_P0_0_P1_0
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
-R2RealtimeUx = PRESERVED_UX_R2_1_PLUS_ACTIVE_UX_R2_2
-NativeCapturePolicy = ALLOWED_ONE_NON_SCORE_DEBUG_TUTORIAL_FLOW_AFTER_SOURCE_COMMIT_BUILD_AND_REVIEW
-NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_PREFLIGHTED
+R2RealtimeUx = PRESERVED_UX_R2_1_PLUS_COMPLETE_UX_R2_2
+NativeCapturePolicy = FORBIDDEN_UX_R2_3_NOT_OPENED
+NativeCaptureEnvironment = MAC_CONSOLE_UNLOCKED_NOT_AUTHORIZATION
 UXR21GateStatus = COMPLETE_NON_SCORE
 UXR21ProductSourceAuthority = PASS_SOURCE_REVISION_E385707071E4CCFB34D5200E3401897DB7F164AD
 UXR21SourceReview = PASS_FOR_UX_R2_1_SOURCE_MAJOR_UNIT_P0_0_P1_0_SOURCE_EC265999
@@ -119,10 +123,19 @@ UXR21ActualInputObservation = PASS_THREE_NON_SCORE_RECORDS
 InteractiveCheckpointHost = ACTUAL_INPUT_PASS_A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M
 FirstLightNativeStoryReachability = FORMATIVE_DIRECT_PLAY_PASS_AUTHORED_STANDARD_RESULT
 UXR21DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_23_673_COMMERCIAL_31_7084_UI_MATRIX_PASS_STORY_34
-UXR22GateStatus = ACTIVE_IMPLEMENTATION_PENDING
+UXR22GateStatus = COMPLETE_NON_SCORE
 UXR22GateOpeningReview = PASS_FOR_UX_R2_2_GATE_OPENING_P0_0_P1_0
-UXR22ProductSourceAuthority = NOT_ESTABLISHED_IMPLEMENTATION_PENDING
-TutorialThreeChapterReachability = NOT_IMPLEMENTED
+UXR22ProductSourceAuthority = PASS_SOURCE_REVISION_40ED3FAB92A7054D6BC40D609AB6C5D1E1F801CC
+UXR22MajorUnitSource = 659709DE2F654908DEE3E5FBC72D4106DF61E6CA
+UXR22SourceReview = PASS_FOR_UX_R2_2_SOURCE_COMMIT_P0_0_P1_0_SOURCE_659709D
+UXR22SourceFixReview = PASS_FOR_UX_R2_2_SOURCE_FIX_COMMIT_P0_0_P1_0_SOURCE_40ED3FA
+UXR22DeterministicEvidence = BUILD_0_WARNINGS_REALTIME_24_778_COMMERCIAL_31_7084_TEXT_TOOLS_34_PARTS_16_MUTATIONS_STORY_34_UI_MATRIX_PASS_CHECKPOINT_HASHES_PRESERVED
+UXR22ActualInputObservation = PASS_THREE_CHAPTER_RESULTS_PLUS_FULL_FLOW_NON_SCORE
+UXR22MarkerNativeObservation = PASS_CLICK_SELECTION_CUSTOM_HOVER_ONLY_POPUP_NOT_OBSERVED
+UXR22KeyboardCandidateObservation = PASS
+UXR22ActiveFloodSolidFillObservation = PASS
+UXR22ClosureReview = PENDING_CLOSURE_DOC_REVIEW
+TutorialThreeChapterReachability = FORMATIVE_DIRECT_PLAY_PASS_THROUGH_SECOND_SOURCE
 PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
 HumanVisualValidation = NOT_COLLECTED
 PublicReleaseStatus = NOT_AUTHORIZED

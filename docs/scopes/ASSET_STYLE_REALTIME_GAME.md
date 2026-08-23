@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 목표 계약
 
-> 문서 상태: **현재 전체 목표 · UX-R2.2 tutorial-prefix logic/presentation carve-out 활성**
+> 문서 상태: **현재 전체 목표 · UX-R2.2 tutorial-prefix logic/presentation carve-out 완료 · 다음 gate 미개방**
 > 제품 아트: `A1_NORMAL_OPERATION_ART_SLICE` — 미개방
 
 ## 1. 목표
@@ -309,17 +309,21 @@ exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.1](COMMERCI
 P0 0/P1 0을 통과했고 고정 세 명령의 non-score Debug actual-input record까지 생성했다. 이 완료 기록은
 official capture나 `CommercialUXProxy` 증거가 아니며 UX-R2.2를 자동으로 열지 않는다.
 
-### UX-R2.2 — tutorial prefix through SECOND_SOURCE carve-out — 활성
+### UX-R2.2 — tutorial prefix through SECOND_SOURCE carve-out — 완료
 
-현재 단위는 완료된 FIRST_LIGHT 망·현금·시계를 이어 `SECOND_HEART`, `SECOND_SOURCE`까지 nondefault
+이 단위는 완료된 FIRST_LIGHT 망·현금·시계를 이어 `SECOND_HEART`, `SECOND_SOURCE`까지 nondefault
 Debug R2에서 실제 진행하는 logic/presentation carve-out이다. V3 connection-requirement 판정,
 same-minute result→briefing 전환, 두 authored event story, 현재/초안 `n/2` 접속 사실과 선택된 forecast
 범람구역의 색 외 표현만 허용한다. 한 줄 chronological event rail 구현은 UX-R2.1 source를 보존한다.
 
-exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.2](COMMERCIAL_UX_87.md#ux-r22--tutorial-prefix-through-second_source--활성)가
+source `659709d`와 technical-route fix `40ed3fa`, 전체 결정론 회귀와 두 bounded 독립 review P0 0/P1 0,
+`--release-through=SECOND_SOURCE` fresh-process actual-input의 세 장+full-flow record로 완료했다. 한 줄 rail
+marker 클릭·선택과 keyboard candidate 선택, active flood 적색 solid fill은 실제 관찰했다. custom
+hover-only popup의 네이티브 출현은 관찰하지 않았고 full UI scale matrix 근거만 보존한다.
+
+exact 파일 allowlist와 종료 조건은 [상용 UX scope의 UX-R2.2](COMMERCIAL_UX_87.md#ux-r22--tutorial-prefix-through-second_source--완료)가
 소유한다. `data/**`, runtime asset/world, persistence, default scene, export/package, 4–8장과
-promise/finale/epilogue presentation은 금지한다. source commit·build·독립 review 뒤
-`--release-through=SECOND_SOURCE` fresh-process 한 경로의 non-score Debug actual-input 관찰만 허용한다.
+promise/finale/epilogue presentation은 계속 금지하며 다음 runtime gate는 미개방이다.
 
 ### A1 — 일반 운전 아트 vertical slice — 미개방
 
@@ -355,18 +359,17 @@ promise/finale/epilogue presentation은 금지한다. source commit·build·독�
 - 한국어·전력설비 전문 검토
 - 권리·서명·공증·공개 배포의 별도 승인
 
-로드맵 항목은 구현 권한이 아니다. A0·A0.1·UX-R2.1은 완료됐고
-`ActiveEvaluationGate = UX_R2_2_TUTORIAL_PREFIX_THROUGH_SECOND_SOURCE`다. 현재 추가 코드 권한은 위
-UX-R2.2 exact carve-out 하나뿐이며 art gate는 없다.
+로드맵 항목은 구현 권한이 아니다. A0·A0.1·UX-R2.1·UX-R2.2는 완료됐고
+`ActiveEvaluationGate = NONE`이다. 현재 추가 코드 권한과 art gate는 없다.
 
 현재 사용자가 별도로 승인한 [실시간 상용 UX 87 scope](COMMERCIAL_UX_87.md)는 이 계약의 실시간
-제품 방향을 바꾸지 않는다. UX-R0·UX-R1·UX-R2.1은 완료됐고 현재 UX-R2.2만 위 경계의 runtime
-파일을 소유한다. 이후 runtime gate는 UX scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서
+제품 방향을 바꾸지 않는다. UX-R0·UX-R1·UX-R2.1·UX-R2.2는 완료됐다. 이후 runtime gate는 UX
+scope의 현재 상태와 이 계약의 allowlist를 같은 변경에서
 명시적으로 재조정한 뒤에만 열린다.
 
 ## 10. A1 개방 조건
 
-현재 UX-R2.2도 logic/presentation carve-out이며 A1 art 채택 승인이 아니다. A1을 별도 gate로 개방하기
+완료된 UX-R2.2도 logic/presentation carve-out이며 A1 art 채택 승인이 아니다. A1을 별도 gate로 개방하기
 전에는 위 exact 범위를 넘어 runtime asset/world 파일을 추가·수정하지 않는다. 개방 시 계약은
 다음을 먼저 고정해야 한다.
 

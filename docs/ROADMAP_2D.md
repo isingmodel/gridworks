@@ -1,6 +1,6 @@
 # Gridworks — 에셋 스타일 실시간 게임 로드맵
 
-> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1 완료 · UX-R2.2 tutorial prefix 활성**
+> 현재 상태: **A0+A0.1+UX-R0+UX-R1+UX-R2.1+UX-R2.2 완료 · 다음 runtime gate 미개방**
 > 제품 아트: **A1 일반 운전 아트 vertical slice — 미개방**
 
 이 로드맵은 `./assets`의 회화적 아이소메트릭 스타일을 R1/R2 기반의 실제 게임으로 옮기는 순서를
@@ -84,7 +84,7 @@ event start/end와 actual/draft construction completion을 한 축으로 비교�
 exact 파일 allowlist와 종료 증거는
 [실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r21--first_light-release-tutorialrail--완료)가 소유한다.
 
-## UX-R2.2 — tutorial prefix through SECOND_SOURCE — 활성
+## UX-R2.2 — tutorial prefix through SECOND_SOURCE — 완료
 
 ### player outcome
 
@@ -102,8 +102,23 @@ exact 파일 allowlist와 종료 증거는
 - 네 existing canonical story-part selector를 개별 실행하되 34-part grammar/data는 불변
 - A1 art, 4–8장, persistence, default/export/package와 official score는 미개방
 
+### 현재 증거
+
+- product source `659709d`, technical checkpoint-route 보존 fix `40ed3fa`; 두 bounded 독립 review 모두
+  P0 0/P1 0
+- Debug build 0 warnings, Realtime 24/778, Commercial 31/7084, text tools 34/16 mutation과 34-part
+  manifest, 전체 UI scale matrix PASS
+- 네 canonical story-part hash와 기존 두 checkpoint start/replay/end hash 불변
+- fresh-process production mouse/keyboard 경로에서 FIRST_LIGHT→SECOND_HEART→SECOND_SOURCE의 세
+  `FORMATIVE_DIRECT_PLAY_PASS:*`와 `FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE` 생성
+- 한 줄 rail의 marker 클릭·선택 연동과 active flood 적색 solid fill을 실제 관찰했다. custom hover-only
+  popup 출현은 자동 UI 행렬 근거만 보존하며 native 직접 관찰로 주장하지 않는다.
+
+따라서 이 gate는 비점수 완료됐다. `CommercialUXProxy`는 계속 `null`이며 UX-R2.3, A1 art, 4–8장,
+persistence, default/export/package와 score-bearing capture는 열리지 않았다.
+
 exact 파일 allowlist와 종료 증거는
-[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r22--tutorial-prefix-through-second_source--활성)가 소유한다.
+[실시간 상용 UX 87 scope](scopes/COMMERCIAL_UX_87.md#ux-r22--tutorial-prefix-through-second_source--완료)가 소유한다.
 
 ## A1 — 일반 운전 아트 vertical slice — 미개방
 

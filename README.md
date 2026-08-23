@@ -33,8 +33,9 @@
 ## 현재 상태와 권한
 
 제품의 Release.V3/R2 실시간 방향은 유지한다. UX-R0 텍스트 패널은 형성평가 83.4475와 독립 검토
-P0 0/P1 0으로 완료했다. 현재는 UX-R1 native evaluator authority port만 열었고, runtime art A1과
-전체 캠페인 구현은 아직 열지 않았다.
+P0 0/P1 0으로 완료했다. UX-R1의 Debug candidate·targeted route 권위는 source revision `379e980`에서 닫았고,
+현재 같은 gate의 session·evidence provenance를 이어 간다. runtime art A1과 전체 캠페인 구현은 아직
+열지 않았다.
 
 - 기본 실행 장면: `CommercialMain`
 - 동결 상용 v2 기준선: 자유 배치·열 한계·8개 임무·save v3·내부 macOS 후보
@@ -45,8 +46,8 @@ P0 0/P1 0으로 완료했다. 현재는 UX-R1 native evaluator authority port만
 - A1 전 구조 준비: build authority 격리, renderer-neutral world seam, 두 DEBUG checkpoint 완료
 - UX-R0: V2 authored content와 V3 실시간 일정에 결속한 34-part story 단독 실행, 형성평가
   `TextPlanProxy = 83.4475`
-- UX-R1: V3/R2 candidate·replay·session·evidence provenance 포팅 활성, 실제 capture는 아직 금지
-- future-event status bar: R2 `RealtimeEventRail` 존재, 실제 플레이 품질은 아직 미관찰
+- UX-R1: 39-file candidate·두 checkpoint·세 거부 route 권위 완료, session·evidence provenance 대기
+- future-event status bar: 두 checkpoint scene-load wiring PASS, 실제 플레이 품질은 아직 미관찰
 - 공식 점수: `CommercialUXProxy = null`, score-bearing capture 미허용
 - 활성 평가 gate: `UX-R1_NATIVE_EVALUATOR_AUTHORITY_PORT`
 - 활성 제품 아트 gate: 없음, A1 미개방
@@ -65,7 +66,7 @@ VisualReferenceAuthority = ROOT_ASSETS_FOUR_IMAGES
 RuntimeArtAuthority = NOT_ESTABLISHED
 RealtimeRuleAuthority = RELEASE_V3
 RealtimeUxAuthority = R2_FIRST_LIGHT_TARGETED_SLICE
-FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_PRESENT_NATIVE_QUALITY_NOT_OBSERVED
+FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_HEADLESS_WIRING_PASS_NATIVE_QUALITY_NOT_OBSERVED
 LiveTestDefault = TARGETED_DETERMINISTIC_CHECKPOINT
 TargetedCheckpointRuntime = A1_NORMAL_READY_AND_A1_CONSTRUCTION_DUE_1M_READY
 FullFlowE2EPolicy = EXCEPTION_ONLY
@@ -75,7 +76,11 @@ TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
 CommercialUXProxy = null
 ScoreBearingCaptureAllowed = false
 UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
-NativeEvaluatorAuthority = PORT_IN_PROGRESS
+NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
+EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
+TargetedCheckpointAuthority = TWO_POSITIVE_THREE_REJECTION_INDEPENDENT_REPLAY_PASS
+UXR1CandidateRouteReview = PASS_P0_0_P1_0_SOURCE_379E980
+NativeEvaluatorAuthority = CANDIDATE_ROUTE_COMPLETE_SESSION_EVIDENCE_PENDING
 DefaultMainScene = CommercialMain
 R1RealtimeCore = PRESERVED
 R2RealtimeUx = PRESERVED_GATE_NOT_COMPLETED

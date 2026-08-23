@@ -6,7 +6,9 @@
 
 ## 현재 상태
 
-현재 포팅된 권위는 **text plan → blinded text evaluation**뿐이다.
+현재 포팅된 권위는 **text plan → blinded text evaluation**과 UX-R1의 첫 단위인
+**Debug R2 candidate·targeted route authority**다. session/evidence/judge hash chain은 아직 포팅하지
+않았다.
 
 - 콘텐츠 권위: `data/release-campaign-v2.json`
 - 실시간 일정 권위: `data/release-campaign-v3.json`
@@ -20,6 +22,9 @@
   - epilogue card 3
   - epilogue promise branch line 6
 - 현재 native 표현: `RealtimeSliceMain`의 FIRST_LIGHT targeted R2 slice만 확인됨
+- 현재 candidate: 비기본 Debug/editor 39-file exact project tree, public package 아님
+- 현재 실행 영수증: 두 checkpoint 성공 + missing/extra/FULL_FLOW selector 거부를 독립 verifier가
+  fresh process로 재실행
 - 전체 8장 native E2E: `NOT_IMPLEMENTED`
 - 현재 text 형성평가: `TextPlanProxy = 83.4475`
 - 공식 `CommercialUXProxy`: 없음
@@ -27,6 +32,44 @@
 이 상태에서 text 점수가 높아도 `TextPlanProxy`일 뿐이며 87 종료 조건을 충족하지 않는다. 이전
 `codex/commercial-ux-87`의 V2 native evaluator·gold replay·candidate packager는 설계 참고 이력이다.
 현재 V3/R2 authority에 맞게 다시 결속하기 전에는 실행 권위나 점수 근거가 아니다.
+
+## Debug R2 candidate authority
+
+```sh
+python3 tools/commercial-ux/native/test-realtime-candidate-authority.py
+
+python3 tools/commercial-ux/native/build-realtime-candidate-authority.py \
+  --source-revision 379e9800c81ca315976ab4c28d511664df6ab7ed \
+  --output /tmp/gridworks-realtime-candidate-manifest.json
+```
+
+source revision `379e9800c81ca315976ab4c28d511664df6ab7ed`의 고정 증거는 candidate
+`sha256:373785e45a4485dfeded43466a5bff0f66de4a0c106c972262686e7a432cbdd6`, 실행 영수증
+`sha256:b28ebbfcca183fa5de6b2fd483b00d563906c731ff8696dc2e0c4d17861da4e1`다. 같은 source revision에서
+두 fresh manifest의 raw SHA-256은 모두 `ca7826d38cae6e8a28e142e10e522e9c1425ba6abcec938182d9819ab0b2a816`이었고,
+root 16개 적대적 테스트와 Draft 2020-12 strict AJV가 통과했다. 독립 재실행도 16/16, 같은 두
+manifest/hash, AJV 8.20.0 strict PASS를 재현했고 최종 review는 P0 0/P1 0이다.
+evaluator producer aggregate는
+`sha256:c501608b8d47a35c32860ad1defe33a369cbc0313ab0f860952def52ef4e881c`, 고정 policy는
+`sha256:96366d0bbc8ec4870b13b705595d036e5af949bab2e5623a07001bba16c48b08`다.
+
+manifest는 다음을 결속한다.
+
+- 제품 source 170개 Git blob, evaluator producer/policy/schema/test 4개 Git blob과 실제 실행 바이트
+- 실제 실행하는 Command Line Tools Git 본체의 bytes/version/object format, explicit per-worktree Git dir,
+  fresh allowlist 환경, CLI+환경 양쪽의 replace-object·lazy-fetch 차단
+- Godot 4.7.1 mono regular-file tree 153개와 Debug package 39개
+- `A1_NORMAL_READY`, `A1_CONSTRUCTION_DUE_1M`의 exact replay/start/end와 두 성공 probe
+- missing/extra/FULL_FLOW-as-checkpoint의 세 typed 거부 probe
+- 기본 장면은 V2 `CommercialMain`, 평가 장면은 명시적 비기본 `RealtimeSliceMain`
+- future-event status bar의 6-signal 계약과 두 checkpoint scene-load wiring
+
+이는 `EDITOR_HEADLESS_DIAGNOSTIC_ONLY`다. `.app`/fresh install, 실제 입력, 화면·audio, 가독성, 전체
+8장, save/resume, finale·epilogue, model `ultra` execution receipt를 증명하지 않는다. schema는 구조
+검사용일 뿐이며 candidate 권위에는 `verify_manifest_against_reconstructed_authority`가 내부에서 다섯
+probe를 다시 실행해야 한다. .NET 권위도 resolved wrapper+host 두 파일에 한정되며 transitive
+SDK/runtime closure는 결속하지 않았다. Git도 직접 실행 파일만 결속하며 system dylib transitive
+closure는 결속하지 않았고, 이 경계에서 score-bearing capture는 계속 금지된다.
 
 ## Story part 단독 실행
 
@@ -98,8 +141,8 @@ python3 tools/commercial-ux/aggregate-text-plan.py \
 현재 단위는 generic session/provenance machinery를 V3/R2 권위에 포팅하되, 실제 capture나 runtime
 콘텐츠 구현 없이 다음 경계만 닫는다.
 
-1. R2 checkpoint와 full-flow 예외를 분리한 actor recipe
-2. V3+필요 V2 의존성을 exact bytes로 닫은 replay/candidate authority
+1. 완료 — R2 checkpoint와 full-flow 예외를 분리한 actor recipe (`379e980`)
+2. 완료 — V3+필요 V2 의존성을 exact bytes로 닫은 replay/candidate authority (`379e980`)
 3. evidence item·actor/judge input·aggregate를 같은 finalized session에 결속하는 hash chain
 4. model identity를 자기선언 JSON이 아닌 platform/API receipt 또는 동등한 transcript에 결속하는 권위
 

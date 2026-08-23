@@ -39,8 +39,10 @@ UX-R1 종료 전 실행하지 않는다.
 - 현재 native 평가 대상은 비기본 `RealtimeSliceMain`이다.
 - R2 native presentation은 `FIRST_LIGHT` targeted slice만 확인됐다.
 - `A1_NORMAL_READY`, `A1_CONSTRUCTION_DUE_1M` 두 checkpoint만 구현됐다.
-- R2에는 `RealtimeEventRail`이 있지만 실제 플레이에서 future-event status bar로 충분히 읽히는지는 아직
-  관찰하지 않았다.
+- source revision `379e980`의 evaluator가 39-file Debug/editor candidate와 두 성공·세 인자 거부 probe를 exact
+  bytes로 결속하고 독립 verifier에서 다시 실행한다. 이는 score-bearing native capture가 아니다.
+- R2 `RealtimeEventRail`은 두 checkpoint에서 exact package scene-load wiring을 통과했지만, 실제
+  플레이에서 future-event status bar로 충분히 읽히는지는 아직 관찰하지 않았다.
 - 나머지 7장, full campaign transition, save/resume, finale·epilogue native E2E는
   `NOT_IMPLEMENTED`다.
 - 동결 V2 기본 장면 `CommercialMain`이나 Core-only replay로 이 누락을 채우지 않는다.
@@ -171,6 +173,30 @@ P0 0/P1 0으로 PASS했다.
 - targeted checkpoint와 full-flow 예외의 actor recipe를 분리한다.
 - score-bearing capture 전 독립 fail-closed review를 통과한다.
 
+첫 candidate·route 단위는 source revision `379e9800c81ca315976ab4c28d511664df6ab7ed`에서 완료했다. 제품
+source 170개와 evaluator producer 4개
+Git blob, Godot regular-file tree 153개, Debug package 39개, checkpoint 성공 2개와 selector 거부 3개를
+결속한다. semantic verifier는 caller가 준 receipt를 신뢰하지 않고 다섯 probe를 fresh process로 다시
+실행한다. 두 fresh manifest는 byte-identical이며 candidate hash는
+`sha256:373785e45a4485dfeded43466a5bff0f66de4a0c106c972262686e7a432cbdd6`다. 구조 schema만 통과하거나
+checkpoint PASS 문자열만 존재하는 것으로 권위를 대신할 수 없다.
+
+Git provenance는 `/usr/bin/git` selector가 아니라 실제 Command Line Tools Git 본체를 직접 실행하고,
+그 bytes·version·SHA-1 object format을 결속한다. 모든 authority read는 explicit per-worktree Git dir과
+work tree, fresh 환경, `--no-replace-objects`·`--no-lazy-fetch`의 CLI+환경 이중 차단을 사용한다. commit과
+blob replace, ambient `GIT_*`, 서로 다른 HEAD를 가진 linked worktree 회귀가 PASS했다. system dylib
+transitive closure는 결속하지 않았으며 score-bearing capture는 계속 금지다.
+
+root 전체 suite는 16/16 PASS했고 두 fresh manifest의 raw SHA-256은 모두
+`ca7826d38cae6e8a28e142e10e522e9c1425ba6abcec938182d9819ab0b2a816`이었다. 독립 재실행도
+16/16 PASS, 같은 두 manifest/hash, AJV 8.20.0 Draft 2020-12 strict PASS를 재현했고 최종 review는
+P0 0/P1 0이다. schema-only 검증, .NET·Git transitive runtime closure, future-event bar의 native 품질,
+full flow와 공식 점수는 이 종료 증거에 포함되지 않는다.
+
+남은 UX-R1 단위는 session/attempt claim, evidence/actor/judge/aggregate finalized hash chain과
+`gpt-5.6-sol` `ultra` platform/API receipt 또는 동등한 transcript authority다. full-flow는
+`UNAVAILABLE_NOT_IMPLEMENTED`, native capture는 계속 금지다.
+
 수정 allowlist는 `tools/commercial-ux/native/`, 그 디렉터리의 deterministic test, 이 scope와 현재 상태
 문서, `tools/commercial-ux/README.md`다. 기존 untracked native 파일과 과거 V2 branch는 설계 참고일 뿐
 자동 채택하지 않는다. `game/`, `src/`, `data/`와 제품 art asset은 이 gate에서 수정하지 않는다.
@@ -223,7 +249,7 @@ ActiveEvaluationGate = UX_R1_NATIVE_EVALUATOR_AUTHORITY_PORT
 ProductDirection = ASSET_STYLE_REALTIME_GAME
 ProductArtGate = NONE_A1_NOT_OPENED
 RealtimeAuthority = RELEASE_V3_PLUS_R2
-FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_PRESENT_NATIVE_QUALITY_NOT_OBSERVED
+FutureEventStatusBar = REQUIRED_R2_EVENT_RAIL_HEADLESS_WIRING_PASS_NATIVE_QUALITY_NOT_OBSERVED
 StoryPartManifest = 34_AUTHORED_ATOMS_DETERMINISTIC_PASS
 TextPlanProxy = 83.4475_FORMATIVE
 TextJudgeExecutionReceipt = NOT_EXPORTED_FORMATIVE_ONLY
@@ -232,6 +258,10 @@ FullCampaignNativeE2E = NOT_IMPLEMENTED
 ScoreBearingCaptureAllowed = false
 NativeCapture = BLOCKED_MAC_LOCKED
 UXR0ClosureReview = PASS_P0_0_P1_0_COMMIT_746C0AA
-NativeEvaluatorAuthority = PORT_IN_PROGRESS
+NativeCandidateAuthority = PASS_SOURCE_REVISION_379E980_SHA256_373785E4
+EvaluatorProducerAuthority = FOUR_GIT_BLOBS_MATCH_CLT_GIT_REPLACE_AND_LAZY_FETCH_DISABLED
+TargetedCheckpointAuthority = TWO_POSITIVE_THREE_REJECTION_INDEPENDENT_REPLAY_PASS
+UXR1CandidateRouteReview = PASS_P0_0_P1_0_SOURCE_379E980
+NativeEvaluatorAuthority = CANDIDATE_ROUTE_COMPLETE_SESSION_EVIDENCE_PENDING
 PublicReleaseStatus = NOT_AUTHORIZED
 ```

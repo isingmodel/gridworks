@@ -539,6 +539,9 @@ for (const row of JSON.parse(fs.readFileSync(fixture, 'utf8'))) {
                 arbitrary,
             ),
         )
+        self.assert_ajv_valid_and_path_near_miss_invalid(
+            self.artifact_objects(parent)
+        )
         self.assertRejected(lambda: self.verify_artifacts(aggregate_path))
 
     def test_cross_chain_swap_exact_inventory_symlink_and_hardlink_fail(self) -> None:

@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://realtime/ui/RealtimeEventRail.cs" id="1_script"]
 
 [node name="RealtimeEventRail" type="PanelContainer"]
-custom_minimum_size = Vector2(0, 196)
+custom_minimum_size = Vector2(0, 106)
 script = ExtResource("1_script")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -13,108 +13,116 @@ theme_override_constants/margin_top = 6
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 6
 
-[node name="Row" type="HBoxContainer" parent="Margin"]
+[node name="Row" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 4
 
-[node name="NowBlock" type="VBoxContainer" parent="Margin/Row"]
-custom_minimum_size = Vector2(156, 0)
+[node name="Chrome" type="HBoxContainer" parent="Margin/Row"]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 8
 
-[node name="NowHeading" type="Label" parent="Margin/Row/NowBlock"]
-unique_name_in_owner = true
+[node name="NowBlock" type="HBoxContainer" parent="Margin/Row/Chrome"]
+custom_minimum_size = Vector2(330, 0)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.61, 0.7, 0.72, 1)
-text = "현재"
+theme_override_constants/separation = 8
 
-[node name="NowLabel" type="Label" parent="Margin/Row/NowBlock"]
+[node name="NowLabel" type="Label" parent="Margin/Row/Chrome/NowBlock"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.78, 0.42, 1)
 theme_override_font_sizes/font_size = 19
 text = "—"
+vertical_alignment = 1
 
-[node name="EventButtons" type="HBoxContainer" parent="Margin/Row/NowBlock"]
+[node name="NowHeading" type="Label" parent="Margin/Row/Chrome/NowBlock"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.61, 0.7, 0.72, 1)
+text = "다음 없음"
+vertical_alignment = 1
+
+[node name="EventButtons" type="HBoxContainer" parent="Margin/Row/Chrome/NowBlock"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="PreviousEventButton" type="Button" parent="Margin/Row/NowBlock/EventButtons"]
+[node name="PreviousEventButton" type="Button" parent="Margin/Row/Chrome/NowBlock/EventButtons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(48, 44)
+custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"ToolButton"
-text = "이전"
+text = "‹"
 tooltip_text = "시간순으로 이전 사건을 엽니다."
 
-[node name="CurrentTimeButton" type="Button" parent="Margin/Row/NowBlock/EventButtons"]
+[node name="CurrentTimeButton" type="Button" parent="Margin/Row/Chrome/NowBlock/EventButtons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(52, 44)
+custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"ToolButton"
-text = "현재"
+text = "●"
 tooltip_text = "현재 시각으로 돌아갑니다."
 
-[node name="NextEventButton" type="Button" parent="Margin/Row/NowBlock/EventButtons"]
+[node name="NextEventButton" type="Button" parent="Margin/Row/Chrome/NowBlock/EventButtons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(48, 44)
+custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_type_variation = &"ToolButton"
-text = "다음"
+text = "›"
 tooltip_text = "시간순으로 다음 사건을 엽니다."
 
 [node name="LaneLabels" type="VBoxContainer" parent="Margin/Row"]
-custom_minimum_size = Vector2(116, 0)
+visible = false
+custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
-theme_override_constants/separation = 4
 
 [node name="Track" type="Control" parent="Margin/Row"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(600, 188)
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-clip_contents = true
+clip_contents = false
 
-[node name="AccessibleListBlock" type="VBoxContainer" parent="Margin/Row"]
-custom_minimum_size = Vector2(220, 0)
+[node name="AccessibleListBlock" type="HBoxContainer" parent="Margin/Row/Chrome"]
+custom_minimum_size = Vector2(190, 0)
 layout_mode = 2
-theme_override_constants/separation = 4
 
-[node name="Heading" type="Label" parent="Margin/Row/AccessibleListBlock"]
+[node name="Heading" type="Label" parent="Margin/Row/Chrome/AccessibleListBlock"]
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.61, 0.7, 0.72, 1)
 text = "시간순 사건 목록"
 
-[node name="AccessibleEventSelector" type="OptionButton" parent="Margin/Row/AccessibleListBlock"]
+[node name="AccessibleEventSelector" type="OptionButton" parent="Margin/Row/Chrome/AccessibleListBlock"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 44)
+custom_minimum_size = Vector2(190, 44)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_type_variation = &"ToolButton"
 clip_text = true
 fit_to_longest_item = false
 tooltip_text = "시간순 사건을 한 건씩 선택합니다."
 
-[node name="HorizonBlock" type="VBoxContainer" parent="Margin/Row"]
-custom_minimum_size = Vector2(170, 0)
+[node name="HorizonBlock" type="HBoxContainer" parent="Margin/Row/Chrome"]
+custom_minimum_size = Vector2(300, 0)
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 
-[node name="HorizonLabel" type="Label" parent="Margin/Row/HorizonBlock"]
+[node name="HorizonLabel" type="Label" parent="Margin/Row/Chrome/HorizonBlock"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.61, 0.7, 0.72, 1)
 text = "—"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Buttons" type="HBoxContainer" parent="Margin/Row/HorizonBlock"]
+[node name="Buttons" type="HBoxContainer" parent="Margin/Row/Chrome/HorizonBlock"]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="ShorterHorizonButton" type="Button" parent="Margin/Row/HorizonBlock/Buttons"]
+[node name="ShorterHorizonButton" type="Button" parent="Margin/Row/Chrome/HorizonBlock/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
@@ -123,7 +131,7 @@ theme_type_variation = &"ToolButton"
 text = "−"
 tooltip_text = "더 짧은 미래 범위를 봅니다."
 
-[node name="LongerHorizonButton" type="Button" parent="Margin/Row/HorizonBlock/Buttons"]
+[node name="LongerHorizonButton" type="Button" parent="Margin/Row/Chrome/HorizonBlock/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(44, 44)
 layout_mode = 2
@@ -132,10 +140,11 @@ theme_type_variation = &"ToolButton"
 text = "+"
 tooltip_text = "더 긴 미래 범위를 봅니다."
 
-[node name="ExpandLanesButton" type="Button" parent="Margin/Row/HorizonBlock/Buttons"]
+[node name="ExpandLanesButton" type="Button" parent="Margin/Row/Chrome/HorizonBlock/Buttons"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(92, 44)
+visible = false
+custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
 theme_type_variation = &"ToolButton"
-text = "4줄"
-tooltip_text = "사건 지평선을 네 종류의 줄로 펼칩니다."
+text = "한 줄"
+tooltip_text = "모든 일정은 시간순 한 줄에 표시됩니다."

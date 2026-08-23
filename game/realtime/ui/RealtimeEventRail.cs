@@ -6,15 +6,18 @@ using Godot;
 namespace Gridworks.Game.Realtime.UI;
 
 /// <summary>
-/// A clipped, non-scrolling four-lane event horizon. Core/presenter order is
-/// preserved as minute, priority, then stable ID. Lane placement never changes
-/// keyboard or accessibility order.
+/// A non-scrolling chronological event horizon. Typed lane identity
+/// remains in the presentation and accessibility copy, while every visible
+/// item shares one compact time track. Full detail is disclosed by the marker's
+/// custom hover detail panel instead of being repeated in permanent lane cards.
 /// </summary>
 internal sealed partial class RealtimeEventRail : PanelContainer
 {
-    private const float BaseMarkerWidth = 300f;
-    private const float BaseClusterWidth = 300f;
-    private const float BaseLaneGap = 4f;
+    private const float BaseMarkerWidth = 72f;
+    private const float BaseClusterWidth = 112f;
+    private const float BaseRailChromeHeight = 18f;
+    private const float BaseTooltipWidth = 420f;
+    private const int TooltipItemLimit = 6;
     private const int BaseMarkerFontSize = 14;
 
     private Label _nowHeading = null!;
@@ -36,9 +39,7 @@ internal sealed partial class RealtimeEventRail : PanelContainer
     private float _markerWidth = BaseMarkerWidth;
     private float _clusterWidth = BaseClusterWidth;
     private float _markerHeight = 44f;
-    private float _laneGap = BaseLaneGap;
     private RealtimeLayoutProfile _layoutProfile;
-    private bool _expanded = true;
     private bool _focusSelectedOnNextPresentation;
     private string? _lastSemanticFocusItemId;
     private string? _pendingRestoreFocusItemId;
@@ -52,12 +53,11 @@ internal sealed partial class RealtimeEventRail : PanelContainer
     public event Action<int>? DesiredHeightChanged;
     public event Action<bool>? ExpansionRequested;
 
-    public int VisibleLaneCount => _expanded ? 4 : 2;
+    public int VisibleLaneCount => 1;
 
-    public int DesiredHeight => RealtimeUiMetrics.EventRailHeight(
-        _layoutProfile.AccessibilityScale <= 0f ? 1f : _layoutProfile.AccessibilityScale,
-        _layoutProfile.MinimumHitTarget <= 0 ? 44 : _layoutProfile.MinimumHitTarget,
-        VisibleLaneCount);
+    public int DesiredHeight => checked(
+        (2 * Mathf.CeilToInt(_markerHeight)) +
+        Mathf.CeilToInt(BaseRailChromeHeight));
 
     public IReadOnlyList<string> LinearItemIds =>
         Array.AsReadOnly(_accessibleItemIds.ToArray());
@@ -91,10 +91,10 @@ internal sealed partial class RealtimeEventRail : PanelContainer
         _nextEvent.AccessibilityDescription = "시간순으로 다음 사건을 지도와 상황 패널에서 엽니다.";
         _accessibleEventSelector.AccessibilityName = "시간순 사건 목록";
         _accessibleEventSelector.AccessibilityDescription =
-            "각 항목은 사건 한 건입니다. 선택하면 같은 사건을 지도와 상황 패널에서 엽니다.";
+            "한 줄 시간축의 각 항목을 전체 문장으로 고릅니다. 선택하면 같은 사건을 지도와 상황 패널에서 엽니다.";
         _shorterHorizon.AccessibilityName = "사건 지평선을 더 짧게 보기";
         _longerHorizon.AccessibilityName = "사건 지평선을 더 길게 보기";
-        _expandLanes.AccessibilityName = "사건 지평선 줄 수 바꾸기";
+        _expandLanes.AccessibilityName = "한 줄 사건 지평선";
         _track.Resized += () => ScheduleMarkerLayout();
         RebuildLaneLabels();
     }
@@ -130,56 +130,33 @@ internal sealed partial class RealtimeEventRail : PanelContainer
         _focusSelectedOnNextPresentation = false;
         _presentation = presentation;
         _presentationSignature = signature;
-        bool wasExpanded = _expanded;
-        if (_layoutProfile.AccessibilityScale > 0f)
-        {
-            _expanded = presentation.Expanded || _layoutProfile.AccessibilityScale < 1.25f;
-        }
-        if (wasExpanded != _expanded)
-        {
-            RebuildLaneLabels();
-            ApplyLaneGeometry();
-            UpdateExpansionButton();
-            DesiredHeightChanged?.Invoke(DesiredHeight);
-        }
         UpdateStatusLabels(presentation);
         AccessibilityName = BuildAccessibilityName(presentation);
         AccessibilityDescription =
-            "이전, 현재, 다음 버튼과 시간순 사건 목록으로 탐색합니다. " +
-            "좌우 방향키도 시간순 사건을 이동하고 Home은 현재 시각으로 돌아갑니다.";
+            "한 줄 시간축입니다. 짧은 기호에 마우스를 올리면 상세 정보창이 열립니다. " +
+            "이전, 현재, 다음 버튼과 시간순 사건 목록으로 탐색하며, 좌우 방향키도 시간순 사건을 이동하고 Home은 현재 시각으로 돌아갑니다.";
         UpdateAccessibleEventSelector(presentation);
         ScheduleMarkerLayout(restoreFocusItemId);
     }
 
     public void ApplyLayout(RealtimeLayoutProfile profile)
     {
-        bool wasExpanded = _expanded;
         _layoutProfile = profile;
-        _expanded = (_presentation?.Expanded ?? false) ||
-            profile.AccessibilityScale < 1.25f;
-        if (wasExpanded != _expanded)
-        {
-            RebuildLaneLabels();
-        }
-        CustomMinimumSize = new Vector2(0f, DesiredHeight);
         _markerWidth = BaseMarkerWidth * profile.AccessibilityScale;
         _clusterWidth = BaseClusterWidth * profile.AccessibilityScale;
         _markerHeight = profile.MinimumHitTarget;
-        _laneGap = BaseLaneGap * profile.AccessibilityScale;
         ApplyLaneGeometry();
         _previousEvent.CustomMinimumSize = Vector2.One * profile.MinimumHitTarget;
         _currentTime.CustomMinimumSize = Vector2.One * profile.MinimumHitTarget;
         _nextEvent.CustomMinimumSize = Vector2.One * profile.MinimumHitTarget;
         _accessibleEventSelector.CustomMinimumSize = new Vector2(
-            Math.Clamp(220f * profile.AccessibilityScale, 220f, 280f),
+            Math.Clamp(190f * profile.AccessibilityScale, 190f, 250f),
             profile.MinimumHitTarget);
         ApplyAccessiblePopupLayout(profile);
         _shorterHorizon.CustomMinimumSize = Vector2.One * profile.MinimumHitTarget;
         _longerHorizon.CustomMinimumSize = Vector2.One * profile.MinimumHitTarget;
-        _expandLanes.CustomMinimumSize = new Vector2(
-            profile.MinimumHitTarget * 2f,
-            profile.MinimumHitTarget);
-        _expandLanes.Visible = profile.AccessibilityScale >= 1.25f;
+        _expandLanes.CustomMinimumSize = Vector2.Zero;
+        _expandLanes.Visible = false;
         UpdateExpansionButton();
         if (_presentation is not null)
         {
@@ -194,23 +171,20 @@ internal sealed partial class RealtimeEventRail : PanelContainer
 
     private void UpdateStatusLabels(RealtimeEventRailPresentation presentation)
     {
-        _nowLabel.Text = presentation.NowLabel;
+        _nowLabel.Text = $"● {presentation.NowLabel}";
         _nowHeading.Text = presentation.NextEvent is null
-            ? "현재 · 다음 사건 없음"
-            : $"현재 · 다음 {presentation.NextEvent.CountdownLabel}";
+            ? "다음 없음"
+            : $"다음 {presentation.NextEvent.CountdownLabel}";
         _nowHeading.TooltipText = presentation.NextEvent is null
             ? "예정된 다음 사건이 없습니다."
             : $"{presentation.NextEvent.EventLabel} · " +
               $"{presentation.NextEvent.CountdownLabel} · " +
               presentation.NextEvent.WindowLabel;
 
-        _horizonLabel.Text = presentation.NextEvent switch
-        {
-            null => CompactHorizonLabel(presentation.HorizonPreset),
-            { } next =>
-                $"{CompactHorizonLabel(presentation.HorizonPreset)}\n" +
-                next.CompactWindowLabel,
-        };
+        _horizonLabel.Text = presentation.NextEvent is null
+            ? CompactHorizonLabel(presentation.HorizonPreset)
+            : $"{CompactHorizonLabel(presentation.HorizonPreset)} · " +
+              presentation.NextEvent.CompactWindowLabel;
         _horizonLabel.TooltipText = presentation.NextEvent is null
             ? presentation.HorizonLabel
             : $"{presentation.HorizonLabel} · {presentation.NextEvent.EventLabel} · " +
@@ -257,22 +231,9 @@ internal sealed partial class RealtimeEventRail : PanelContainer
     private void ApplyLaneGeometry()
     {
         CustomMinimumSize = new Vector2(0f, DesiredHeight);
-        float trackHeight = (_markerHeight * VisibleLaneCount) +
-                            (_laneGap * (VisibleLaneCount - 1));
-        _track.CustomMinimumSize = new Vector2(600f, trackHeight);
-        _laneLabels.CustomMinimumSize = new Vector2(
-            116f * Math.Max(1f, _layoutProfile.AccessibilityScale),
-            trackHeight);
-        _laneLabels.AddThemeConstantOverride(
-            "separation",
-            Mathf.RoundToInt(_laneGap));
-        foreach (Node child in _laneLabels.GetChildren())
-        {
-            if (child is Control control)
-            {
-                control.CustomMinimumSize = new Vector2(0f, _markerHeight);
-            }
-        }
+        _track.CustomMinimumSize = new Vector2(0f, _markerHeight);
+        _laneLabels.CustomMinimumSize = Vector2.Zero;
+        _laneLabels.Visible = false;
     }
 
     public bool Navigate(RealtimeTimelineNavigation navigation)
@@ -330,15 +291,12 @@ internal sealed partial class RealtimeEventRail : PanelContainer
         }
         Vector2 origin = GetGlobalTransform().AffineInverse() *
             _track.GetGlobalTransform().Origin;
-        for (int lane = 0; lane < VisibleLaneCount; lane++)
-        {
-            float y = origin.Y + LaneY(lane) + (_markerHeight / 2f);
-            DrawLine(
-                new Vector2(origin.X, y),
-                new Vector2(origin.X + _track.Size.X, y),
-                Color.FromHtml("41575b"),
-                1.5f);
-        }
+        float trackY = origin.Y + LaneY(0) + (_markerHeight / 2f);
+        DrawLine(
+            new Vector2(origin.X, trackY),
+            new Vector2(origin.X + _track.Size.X, trackY),
+            Color.FromHtml("41575b"),
+            1.5f);
         float nowX = origin.X + TimeRatio(_presentation.NowMinute) * _track.Size.X;
         DrawLine(
             new Vector2(nowX, origin.Y),
@@ -354,10 +312,9 @@ internal sealed partial class RealtimeEventRail : PanelContainer
             }
             float start = origin.X + TimeRatio(item.StartMinute) * _track.Size.X;
             float end = origin.X + TimeRatio(item.EndMinute.Value) * _track.Size.X;
-            float y = origin.Y + LaneY(DisplayLane(item.Lane)) + (_markerHeight / 2f);
             DrawLine(
-                new Vector2(start, y),
-                new Vector2(end, y),
+                new Vector2(start, trackY),
+                new Vector2(end, trackY),
                 SeverityColor(item.Severity),
                 item.IsCurrent ? 6f : 3f);
         }
@@ -370,19 +327,8 @@ internal sealed partial class RealtimeEventRail : PanelContainer
             _laneLabels.RemoveChild(child);
             child.QueueFree();
         }
-        string[] labels = _expanded
-            ? new[] { "수요·기한", "기상·정지", "공사", "열 보호" }
-            : new[] { "수요·공사", "기상·열 보호" };
-        foreach (string text in labels)
-        {
-            _laneLabels.AddChild(new Label
-            {
-                Text = text,
-                VerticalAlignment = VerticalAlignment.Center,
-                MouseFilter = MouseFilterEnum.Ignore,
-                AccessibilityName = $"사건 지평선 {text} 줄",
-            });
-        }
+        _laneLabels.Visible = false;
+        _laneLabels.CustomMinimumSize = Vector2.Zero;
     }
 
     private void ScheduleMarkerLayout(string? restoreFocusItemId = null)
@@ -485,7 +431,7 @@ internal sealed partial class RealtimeEventRail : PanelContainer
         QueueRedraw();
     }
 
-    private Button CreateMarkerButton() => new()
+    private Button CreateMarkerButton() => new RealtimeTimelineMarkerButton()
     {
         ClipText = true,
         TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
@@ -498,46 +444,60 @@ internal sealed partial class RealtimeEventRail : PanelContainer
     private IReadOnlyList<MarkerPlan> BuildMarkerPlans(
         IReadOnlyList<RealtimeTimelineItemPresentation> visible)
     {
+        float trackWidth = _track.Size.X;
         float collisionWidth = Math.Min(
-            _track.Size.X,
+            trackWidth,
             Math.Max(_markerWidth, _clusterWidth));
         var plans = new List<MarkerPlan>();
-        foreach (IGrouping<int, RealtimeTimelineItemPresentation> lane in visible
-                     .GroupBy(item => DisplayLane(item.Lane))
-                     .OrderBy(group => group.Key))
+        var cluster = new List<RealtimeTimelineItemPresentation>();
+        float occupiedRight = float.NegativeInfinity;
+        foreach (RealtimeTimelineItemPresentation item in visible
+                     .OrderBy(candidate => candidate.StartMinute)
+                     .ThenBy(candidate => candidate.Priority)
+                     .ThenBy(candidate => candidate.Id, StringComparer.Ordinal))
         {
-            var cluster = new List<RealtimeTimelineItemPresentation>();
-            float occupiedRight = float.NegativeInfinity;
-            foreach (RealtimeTimelineItemPresentation item in lane
-                         .OrderBy(candidate => candidate.StartMinute)
-                         .ThenBy(candidate => candidate.Priority)
-                         .ThenBy(candidate => candidate.Id, StringComparer.Ordinal))
+            float left = MarkerLeft(item.StartMinute, collisionWidth);
+            float right = left + collisionWidth;
+            if (cluster.Count > 0 &&
+                (left >= occupiedRight || cluster.Count >= TooltipItemLimit))
             {
-                float left = MarkerLeft(item.StartMinute, collisionWidth);
-                float right = left + collisionWidth;
-                if (cluster.Count > 0 && left >= occupiedRight)
-                {
-                    plans.Add(CreateMarkerPlan(lane.Key, cluster));
-                    cluster.Clear();
-                    occupiedRight = float.NegativeInfinity;
-                }
-                cluster.Add(item);
-                occupiedRight = Math.Max(occupiedRight, right);
+                plans.Add(CreateMarkerPlan(cluster));
+                cluster.Clear();
+                occupiedRight = float.NegativeInfinity;
             }
-            if (cluster.Count > 0)
-            {
-                plans.Add(CreateMarkerPlan(lane.Key, cluster));
-            }
+            cluster.Add(item);
+            occupiedRight = Math.Max(occupiedRight, right);
         }
-        return Array.AsReadOnly(plans
+        if (cluster.Count > 0)
+        {
+            plans.Add(CreateMarkerPlan(cluster));
+        }
+
+        plans = plans
             .OrderBy(plan => plan.Items.Min(item => item.StartMinute))
             .ThenBy(plan => plan.Items.Min(item => item.Priority))
             .ThenBy(plan => plan.Items.Min(item => item.Id), StringComparer.Ordinal)
-            .ToArray());
+            .ToList();
+        while (plans.Count > 1 && plans.Sum(plan => plan.Width) > trackWidth)
+        {
+            int mergeIndex = Enumerable.Range(0, plans.Count - 1)
+                .MinBy(index =>
+                    plans[index + 1].Items.Min(item => item.StartMinute) -
+                    plans[index].Items.Max(item => item.StartMinute));
+            RealtimeTimelineItemPresentation[] merged = plans[mergeIndex].Items
+                .Concat(plans[mergeIndex + 1].Items)
+                .OrderBy(item => item.StartMinute)
+                .ThenBy(item => item.Priority)
+                .ThenBy(item => item.Id, StringComparer.Ordinal)
+                .ToArray();
+            plans[mergeIndex] = CreateMarkerPlan(merged);
+            plans.RemoveAt(mergeIndex + 1);
+        }
+        ResolveMarkerPositions(plans, trackWidth);
+        return Array.AsReadOnly(plans.ToArray());
     }
 
     private MarkerPlan CreateMarkerPlan(
-        int displayLane,
         IReadOnlyList<RealtimeTimelineItemPresentation> items)
     {
         RealtimeTimelineItemPresentation[] ordered = items
@@ -549,14 +509,47 @@ internal sealed partial class RealtimeEventRail : PanelContainer
             _track.Size.X,
             ordered.Length > 1 ? _clusterWidth : _markerWidth);
         float x = MarkerLeft(ordered[0].StartMinute, width);
-        string key = $"{displayLane}\u001c" +
-            string.Join("\u001d", ordered.Select(item => item.Id));
+        string key = string.Join("\u001d", ordered.Select(item => item.Id));
         return new MarkerPlan(
             key,
-            displayLane,
+            0,
             Array.AsReadOnly(ordered),
             x,
             width);
+    }
+
+    private static void ResolveMarkerPositions(
+        IList<MarkerPlan> plans,
+        float trackWidth)
+    {
+        float cursor = 0f;
+        for (int index = 0; index < plans.Count; index++)
+        {
+            MarkerPlan plan = plans[index];
+            float x = Math.Max(plan.X, cursor);
+            plans[index] = plan with { X = x };
+            cursor = x + plan.Width;
+        }
+        cursor = trackWidth;
+        for (int index = plans.Count - 1; index >= 0; index--)
+        {
+            MarkerPlan plan = plans[index];
+            float x = Math.Min(plan.X, cursor - plan.Width);
+            plans[index] = plan with { X = x };
+            cursor = x;
+        }
+        if (plans.Count == 0 || plans[0].X >= 0f)
+        {
+            return;
+        }
+        cursor = 0f;
+        for (int index = 0; index < plans.Count; index++)
+        {
+            MarkerPlan plan = plans[index];
+            float x = Math.Max(plan.X, cursor);
+            plans[index] = plan with { X = x };
+            cursor = x + plan.Width;
+        }
     }
 
     private float MarkerLeft(long minute, float width)
@@ -575,45 +568,22 @@ internal sealed partial class RealtimeEventRail : PanelContainer
                 _presentation?.SelectedItemId,
                 StringComparison.Ordinal)) ?? items[0];
         bool containsCurrent = items.Any(item => item.IsCurrent);
-        string statePrefix = lead.IsCurrent
-            ? "진행 중 · "
-            : lead.Visibility == RealtimeTimelineVisibility.Completed
-                ? "완료 · "
-                : string.Empty;
-        int otherCurrentCount = items.Count(item => item.IsCurrent) -
-            (lead.IsCurrent ? 1 : 0);
-        string currentSiblingSuffix = otherCurrentCount > 0
-            ? $" · 진행 {otherCurrentCount}건"
-            : string.Empty;
-        bool showSource = lead.Kind == RealtimeTimelineItemKind.Construction;
-        string sourcePrefix = showSource
-            ? $"{lead.SourceGlyph} " +
-              (lead.SourceKind == RealtimeTimelineSourceKind.Draft
-                  ? "초안 · "
-                  : "실제 · ")
-            : string.Empty;
-        string visibleTime = lead.Kind == RealtimeTimelineItemKind.Construction
-            ? lead.TimingLabel
-            : lead.TimeLabel;
-        string text = items.Count == 1
-            ? $"{statePrefix}{sourcePrefix}{SeverityGlyph(lead.Severity)} " +
-              $"{lead.KindIcon} {visibleTime} · {lead.ShortLabel}"
-            : $"{statePrefix}{sourcePrefix}{SeverityGlyph(lead.Severity)} " +
-              $"{lead.KindIcon} {visibleTime} · " +
-              $"{lead.ShortLabel} +{items.Count - 1}{currentSiblingSuffix}";
+        RealtimeTimelineSeverity displaySeverity = items.Max(item => item.Severity);
+        string sourceGlyph = ClusterSourceGlyph(items);
+        string text = $"{ClusterStateGlyph(items)}" +
+                      $"{SeverityGlyph(displaySeverity)}{sourceGlyph}" +
+                      $"{lead.KindIcon}" +
+                      (items.Count > 1 ? $"+{items.Count - 1}" : string.Empty);
         Button marker = entry.Button;
         marker.Text = text;
-        marker.TooltipText = items.Count == 1
-            ? $"{lead.SourceLabel} · {lead.TimingLabel} · {lead.Description}"
-            : string.Join("\n", items.Select(item =>
-                $"{item.SourceLabel} · {item.TimingLabel} · {item.Title}"));
+        marker.TooltipText = BuildHoverOverlayText(items, lead);
         marker.AccessibilityName = items.Count == 1
             ? TimelineAccessibility(lead)
             : $"가까운 시간 구간의 일정 {items.Count}건. " +
               string.Join(". ", items.Select(TimelineAccessibility));
         marker.AccessibilityDescription =
             "선택하면 같은 실제 운영 기록 또는 초안 운영 예측을 지도와 상황 패널에서 엽니다.";
-        marker.AddThemeColorOverride("font_color", SeverityColor(lead.Severity));
+        marker.AddThemeColorOverride("font_color", SeverityColor(displaySeverity));
         bool selected = _presentation?.SelectedItemId is string selectedId &&
             items.Any(item => string.Equals(item.Id, selectedId, StringComparison.Ordinal));
         marker.ButtonPressed = selected;
@@ -665,9 +635,20 @@ internal sealed partial class RealtimeEventRail : PanelContainer
 
     private void ApplyMarkerVisualTokens(Button marker)
     {
-        marker.AddThemeFontSizeOverride(
-            "font_size",
-            Math.Max(1, Mathf.RoundToInt(BaseMarkerFontSize * AccessibilityScale)));
+        int fontSize = Math.Max(
+            1,
+            Mathf.RoundToInt(BaseMarkerFontSize * AccessibilityScale));
+        marker.AddThemeFontSizeOverride("font_size", fontSize);
+        if (marker is RealtimeTimelineMarkerButton timelineMarker)
+        {
+            timelineMarker.TooltipWidth = Math.Clamp(
+                BaseTooltipWidth * AccessibilityScale,
+                320f,
+                620f);
+            timelineMarker.TooltipFontSize = Math.Max(
+                14,
+                Mathf.RoundToInt(15f * AccessibilityScale));
+        }
         marker.RemoveThemeStyleboxOverride("focus");
         if (marker.GetThemeStylebox("focus") is not StyleBoxFlat sourceFocus)
         {
@@ -774,6 +755,41 @@ internal sealed partial class RealtimeEventRail : PanelContainer
         $"{item.SourceLabel} {item.KindLabel} · {item.ShortLabel}";
 
 #if DEBUG
+    internal RealtimeTimelineTooltipOverlayFact TooltipOverlayFactForSmoke(
+        string itemId)
+    {
+        MarkerEntry entry = _markers.FirstOrDefault(item =>
+            item.ItemIds.Contains(itemId, StringComparer.Ordinal)) ??
+            throw new InvalidOperationException(
+                $"No rendered timeline marker contains {itemId}.");
+        if (entry.Button is not RealtimeTimelineMarkerButton marker)
+        {
+            return new RealtimeTimelineTooltipOverlayFact(
+                false,
+                entry.Button.TooltipText,
+                0f,
+                0,
+                Control.MouseFilterEnum.Stop);
+        }
+        Control overlay = marker._MakeCustomTooltip(marker.TooltipText);
+        try
+        {
+            Label? detail = overlay.GetChildren().OfType<Label>().SingleOrDefault();
+            return new RealtimeTimelineTooltipOverlayFact(
+                overlay is MarginContainer && detail is not null,
+                detail?.Text ?? string.Empty,
+                overlay.CustomMinimumSize.X,
+                detail?.GetThemeFontSize("font_size") ?? 0,
+                overlay.MouseFilter);
+        }
+        finally
+        {
+            overlay.Free();
+        }
+    }
+#endif
+
+#if DEBUG
     private void AssertNoSameLaneMarkerOverlap()
     {
         for (int leftIndex = 0; leftIndex < _markers.Count; leftIndex++)
@@ -801,39 +817,24 @@ internal sealed partial class RealtimeEventRail : PanelContainer
     }
 #endif
 
-    private float LaneY(int lane) => lane * (_markerHeight + _laneGap);
+    private float LaneY(int lane) => Math.Max(0f, (_track.Size.Y - _markerHeight) / 2f);
 
-    private int DisplayLane(RealtimeTimelineLane lane)
-    {
-        if (_expanded)
-        {
-            return (int)lane;
-        }
-        return lane is RealtimeTimelineLane.DemandAndDeadline or
-            RealtimeTimelineLane.Construction
-            ? 0
-            : 1;
-    }
+    private int DisplayLane(RealtimeTimelineLane lane) => 0;
 
     private void ToggleExpansion()
     {
-        _expanded = !_expanded;
-        int height = DesiredHeight;
-        RebuildLaneLabels();
-        ApplyLaneGeometry();
         UpdateExpansionButton();
-        DesiredHeightChanged?.Invoke(height);
-        ExpansionRequested?.Invoke(_expanded);
-        ScheduleMarkerLayout(FocusedItemId());
+        DesiredHeightChanged?.Invoke(DesiredHeight);
+        ExpansionRequested?.Invoke(false);
     }
 
     private void UpdateExpansionButton()
     {
-        _expandLanes.Text = _expanded ? "2줄" : "4줄";
-        _expandLanes.TooltipText = _expanded
-            ? "사건 지평선을 두 개의 요약 줄로 접습니다."
-            : "사건 지평선을 네 종류의 줄로 펼칩니다.";
+        _expandLanes.Text = "한 줄";
+        _expandLanes.TooltipText =
+            "모든 일정은 시간순 한 줄에 표시되고 마우스를 올리면 상세 정보창이 열립니다.";
         _expandLanes.AccessibilityDescription = _expandLanes.TooltipText;
+        _expandLanes.Visible = false;
     }
 
     private float TimeRatio(long minute)
@@ -927,6 +928,67 @@ internal sealed partial class RealtimeEventRail : PanelContainer
         RealtimeTimelineSeverity.Critical => "■",
         _ => throw new ArgumentOutOfRangeException(nameof(severity)),
     };
+
+    private static string ClusterSourceGlyph(
+        IReadOnlyList<RealtimeTimelineItemPresentation> items)
+    {
+        bool hasActual = items.Any(item =>
+            item.SourceKind == RealtimeTimelineSourceKind.Actual);
+        bool hasDraft = items.Any(item =>
+            item.SourceKind == RealtimeTimelineSourceKind.Draft);
+        if (hasActual && hasDraft)
+        {
+            return "■◇";
+        }
+        if (hasDraft)
+        {
+            return "◇";
+        }
+        return hasActual ? "■" : string.Empty;
+    }
+
+    private static string ClusterStateGlyph(
+        IReadOnlyList<RealtimeTimelineItemPresentation> items) =>
+        items.Any(item => item.IsCurrent)
+            ? "▶"
+            : items.All(item =>
+                item.Visibility == RealtimeTimelineVisibility.Completed)
+                ? "✓"
+                : "○";
+
+    private static string ItemStateLabel(RealtimeTimelineItemPresentation item) =>
+        item.IsCurrent
+            ? "진행 중"
+            : item.Visibility == RealtimeTimelineVisibility.Completed
+                ? "완료"
+                : "예정";
+
+    private static string BuildHoverOverlayText(
+        IReadOnlyList<RealtimeTimelineItemPresentation> items,
+        RealtimeTimelineItemPresentation lead)
+    {
+        string heading = items.Count == 1
+            ? "시간축 상세"
+            : $"같은 시간대 일정 {items.Count}건";
+        RealtimeTimelineItemPresentation[] visibleDetails = items.Count <= TooltipItemLimit
+            ? items.ToArray()
+            : new[] { lead }
+                .Concat(items.Where(item => !string.Equals(
+                    item.Id,
+                    lead.Id,
+                    StringComparison.Ordinal)))
+                .Take(TooltipItemLimit)
+                .ToArray();
+        string body = string.Join("\n\n", visibleDetails.Select(item =>
+            $"{ItemStateLabel(item)} · {item.SourceLabel} · " +
+            $"{item.KindLabel} · {item.SeverityLabel}\n" +
+            $"{item.TimingLabel} · {item.Title}\n" +
+            item.Description));
+        string overflow = items.Count > visibleDetails.Length
+            ? $"\n\n외 {items.Count - visibleDetails.Length}건 · 시간순 사건 목록에서 전체 보기"
+            : string.Empty;
+        return heading + "\n\n" + body + overflow;
+    }
 
     private static string TimelineAccessibility(RealtimeTimelineItemPresentation item) =>
         $"{item.TimingLabel}. {item.SourceLabel} {item.KindLabel} {item.Title}. " +
@@ -1037,5 +1099,55 @@ internal sealed partial class RealtimeEventRail : PanelContainer
                 SemanticItemId = ItemIds[0];
             }
         }
+    }
+}
+
+#if DEBUG
+internal sealed record RealtimeTimelineTooltipOverlayFact(
+    bool CustomOverlay,
+    string Text,
+    float MinimumWidth,
+    int FontSize,
+    Control.MouseFilterEnum MouseFilter);
+#endif
+
+/// <summary>
+/// Compact marker button whose TooltipText is rendered as a wrapped, padded
+/// popup panel by Godot. The popup is hover-only and mouse-transparent;
+/// keyboard and screen-reader users retain the full chronological selector and
+/// marker accessibility name.
+/// </summary>
+internal sealed partial class RealtimeTimelineMarkerButton : Button
+{
+    internal float TooltipWidth { get; set; } = 420f;
+
+    internal int TooltipFontSize { get; set; } = 15;
+
+    public override Control _MakeCustomTooltip(string forText)
+    {
+        var margin = new MarginContainer
+        {
+            CustomMinimumSize = new Vector2(TooltipWidth, 0f),
+            MouseFilter = MouseFilterEnum.Ignore,
+            AccessibilityName = "시간축 상세 정보창",
+        };
+        int padding = Math.Max(12, Mathf.RoundToInt(TooltipFontSize * 0.9f));
+        margin.AddThemeConstantOverride("margin_left", padding);
+        margin.AddThemeConstantOverride("margin_top", padding);
+        margin.AddThemeConstantOverride("margin_right", padding);
+        margin.AddThemeConstantOverride("margin_bottom", padding);
+        var detail = new Label
+        {
+            Text = forText,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            MouseFilter = MouseFilterEnum.Ignore,
+            AccessibilityName = forText,
+        };
+        detail.AddThemeFontSizeOverride("font_size", TooltipFontSize);
+        detail.AddThemeConstantOverride(
+            "line_spacing",
+            Math.Max(4, Mathf.RoundToInt(TooltipFontSize * 0.3f)));
+        margin.AddChild(detail);
+        return margin;
     }
 }

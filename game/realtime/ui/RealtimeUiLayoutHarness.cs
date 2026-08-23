@@ -250,10 +250,10 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 ValidateText(snapshot, label, failures);
                 ValidateScroll(profileRoot, snapshot, presentation, label, failures);
                 ValidateTimeline(
+                    profileRoot.EventRailForSmoke,
                     snapshot,
                     expectedLinearItems,
                     scale,
-                    presentation.Rail.Expanded,
                     label,
                     failures);
                 if (tier == RealtimeResolutionTier.FullHd &&
@@ -271,6 +271,11 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                             .SingleOrDefault(marker => marker.ItemIds.Contains(
                                 draftConstruction.Id,
                                 StringComparer.Ordinal));
+                    RealtimeTimelineTooltipOverlayFact? draftDetail =
+                        draftConstruction is null || draftMarker is null
+                            ? null
+                            : profileRoot.EventRailForSmoke.TooltipOverlayFactForSmoke(
+                                draftConstruction.Id);
                     Require(next is not null &&
                             profileRoot.EventRailForSmoke.NextEventCountdownTextForSmoke
                                 .Contains(next.CountdownLabel, StringComparison.Ordinal) &&
@@ -281,7 +286,14 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                             draftConstruction.SourceKind ==
                                 RealtimeTimelineSourceKind.Draft &&
                             draftMarker is not null &&
-                            draftMarker.VisibleText.Contains("◇ 초안",
+                            draftMarker.VisibleText.Contains("◇",
+                                StringComparison.Ordinal) &&
+                            draftDetail is { CustomOverlay: true } &&
+                            draftDetail.Text.Contains("초안 예상",
+                                StringComparison.Ordinal) &&
+                            draftDetail.Text.Contains(draftConstruction.TimingLabel,
+                                StringComparison.Ordinal) &&
+                            draftDetail.Text.Contains(draftConstruction.Title,
                                 StringComparison.Ordinal) &&
                             draftMarker.AccessibilityName.Contains("초안 예상",
                                 StringComparison.Ordinal) &&
@@ -400,10 +412,10 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     .ThenBy(item => item.Id, StringComparer.Ordinal)
                     .ToArray();
                 ValidateTimeline(
+                    stateRoot.EventRailForSmoke,
                     snapshot,
                     visibleItems,
                     scale,
-                    presentation.Rail.Expanded,
                     label,
                     failures);
                 if (presentation.Modal is null)
@@ -652,15 +664,20 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 marker.ItemIds.Contains(activeItem.Id, StringComparer.Ordinal));
             RealtimeUiSmokeMarkerFact selectedMarker = markerFacts.Single(marker =>
                 marker.ItemIds.Contains(selectedItem.Id, StringComparer.Ordinal));
+            RealtimeTimelineTooltipOverlayFact activeDetail =
+                activeRoot.EventRailForSmoke.TooltipOverlayFactForSmoke(activeItem.Id);
             Require(!activeMarker.ItemIds.Contains(selectedItem.Id,
                         StringComparer.Ordinal) &&
                     !activeMarker.Selected &&
                     activeMarker.OutlineSize >= 2 &&
-                    activeMarker.VisibleText.StartsWith("진행 중 · ",
+                    activeMarker.VisibleText.StartsWith("▶",
                         StringComparison.Ordinal) &&
                     selectedMarker.Selected &&
-                    !selectedMarker.VisibleText.StartsWith("진행 중 · ",
-                        StringComparison.Ordinal),
+                    !selectedMarker.VisibleText.StartsWith("▶",
+                        StringComparison.Ordinal) &&
+                    activeDetail.CustomOverlay &&
+                    activeDetail.Text.Contains("진행 중", StringComparison.Ordinal) &&
+                    activeDetail.Text.Contains(activeItem.Title, StringComparison.Ordinal),
                 "timeline conflated active-now outline/text with selected pressed state " +
                 $"(activeText={activeMarker.VisibleText}, " +
                 $"activeSelected={activeMarker.Selected}, " +
@@ -694,7 +711,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             EndMinute = null,
             IsCurrent = false,
             Visibility = RealtimeTimelineVisibility.Announced,
-            Lane = RealtimeTimelineLane.DemandAndDeadline,
+            Lane = RealtimeTimelineLane.WeatherAndOutage,
             Priority = 20,
             TimeLabel = "곧",
         };
@@ -715,6 +732,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         {
             RealtimeUiSmokeMarkerFact mixedMarker = mixedRoot.EventRailForSmoke
                 .MarkerFactsForSmoke().Single();
+            RealtimeTimelineTooltipOverlayFact mixedDetail = mixedRoot.EventRailForSmoke
+                .TooltipOverlayFactForSmoke(mixedSelected.Id);
             Require(mixedMarker.ItemIds.Count == 2 &&
                     mixedMarker.ItemIds.Contains(mixedCurrent.Id, StringComparer.Ordinal) &&
                     mixedMarker.ItemIds.Contains(mixedSelected.Id, StringComparer.Ordinal) &&
@@ -722,9 +741,14 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     mixedMarker.OutlineSize >= 2 &&
                     string.Equals(mixedMarker.SemanticItemId, mixedSelected.Id,
                         StringComparison.Ordinal) &&
-                    !mixedMarker.VisibleText.StartsWith("진행 중 · ",
+                    mixedMarker.VisibleText.StartsWith("▶",
                         StringComparison.Ordinal) &&
-                    mixedMarker.VisibleText.Contains("진행 1건", StringComparison.Ordinal) &&
+                    mixedMarker.VisibleText.Contains("+1", StringComparison.Ordinal) &&
+                    mixedDetail.CustomOverlay &&
+                    mixedDetail.Text.Contains(mixedCurrent.Title,
+                        StringComparison.Ordinal) &&
+                    mixedDetail.Text.Contains(mixedSelected.Title,
+                        StringComparison.Ordinal) &&
                     mixedMarker.AccessibilityName.Contains("진행 중.",
                         StringComparison.Ordinal),
                 "mixed current-sibling/non-current-selected cluster lost pressed, " +
@@ -738,6 +762,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 Id = "SMOKE_BUCKET_BOUNDARY_BEFORE",
                 StartMinute = beforeBoundary,
                 Priority = 1,
+                Lane = RealtimeTimelineLane.DemandAndDeadline,
                 TimeLabel = "경계 직전",
             };
             RealtimeTimelineItemPresentation boundaryAfter = mixedSelected with
@@ -745,6 +770,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 Id = "SMOKE_BUCKET_BOUNDARY_AFTER",
                 StartMinute = afterBoundary,
                 Priority = 2,
+                Lane = RealtimeTimelineLane.ThermalProtection,
                 TimeLabel = "경계 직후",
             };
             RealtimeSlicePresentation boundaryPresentation = mixedPresentation with
@@ -763,8 +789,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     boundaryMarkers[0].ItemIds.SequenceEqual(
                         new[] { boundaryBefore.Id, boundaryAfter.Id },
                         StringComparer.Ordinal),
-                "same-lane markers straddling a legacy bucket edge were not clustered " +
-                "before their visible rectangles could intersect",
+                "cross-authored-lane markers straddling a legacy bucket edge were " +
+                "not clustered before their single-track rectangles could intersect",
                 failures);
         }
         finally
@@ -794,11 +820,14 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             RealtimeUiSmokeMarkerFact completedMarker = completedRoot.EventRailForSmoke
                 .MarkerFactsForSmoke().Single(marker => marker.ItemIds.Contains(
                     completedItem.Id, StringComparer.Ordinal));
-            Require(completedMarker.VisibleText.StartsWith("완료 · ",
-                        StringComparison.Ordinal) &&
+            RealtimeTimelineTooltipOverlayFact completedDetail =
+                completedRoot.EventRailForSmoke.TooltipOverlayFactForSmoke(
+                    completedItem.Id);
+            Require(completedDetail.CustomOverlay &&
+                    completedDetail.Text.Contains("완료", StringComparison.Ordinal) &&
                     completedMarker.AccessibilityName.Contains("완료됨.",
                         StringComparison.Ordinal),
-                "recent completed event lacked distinct visible and AX completion state",
+                "recent completed event lacked distinct hover-detail and AX completion state",
                 failures);
         }
         finally
@@ -3098,7 +3127,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         item.Id).Kind == RealtimeTimelineTargetKind.ThermalAsset);
             string timelineHash = slice.CanonicalStateSha256;
             int timelineCommands = slice.AcceptedCommandCount;
-            ui.EventRailForSmoke.FocusMarkerForSmoke(eventItem.Id);
+            ui.EventRailForSmoke.SelectAccessibleTimelineItemForSmoke(eventItem.Id);
             await SettleLayout();
             ValidateTimelineSelection(slice, eventItem.Id, failures);
             RealtimeTimelineTarget eventTarget =
@@ -3114,7 +3143,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         "선택 없음", StringComparison.Ordinal),
                 "actual event marker did not project a visible/AX map subject cue",
                 failures);
-            ui.EventRailForSmoke.FocusMarkerForSmoke(thermalItem.Id);
+            ui.EventRailForSmoke.SelectAccessibleTimelineItemForSmoke(thermalItem.Id);
             await SettleLayout();
             ValidateTimelineSelection(slice, thermalItem.Id, failures);
             Require(string.Equals(timelineHash, slice.CanonicalStateSha256,
@@ -4091,10 +4120,10 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     .ThenBy(item => item.Id, StringComparer.Ordinal)
                     .ToArray();
             ValidateTimeline(
+                ui.EventRailForSmoke,
                 snapshot,
                 visibleItems,
                 100,
-                slice.LatestPresentation.Rail.Expanded,
                 "actual-slice/3840x2160@100%",
                 failures);
 
@@ -5280,18 +5309,18 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
     }
 
     private static void ValidateTimeline(
+        RealtimeEventRail eventRail,
         RealtimeUiSmokeLayoutSnapshot snapshot,
         IReadOnlyList<RealtimeTimelineItemPresentation> expectedLinearItems,
         int scale,
-        bool presentationExpanded,
         string label,
         ICollection<string> failures)
     {
         string[] expectedLinearIds = expectedLinearItems.Select(item => item.Id).ToArray();
-        int expectedLanes = presentationExpanded || scale < 125 ? 4 : 2;
-        Require(snapshot.VisibleTimelineLanes == expectedLanes &&
-                snapshot.TimelineLaneLabels == expectedLanes,
-            $"{label} timeline rendered mismatched track/label lane counts", failures);
+        Require(snapshot.VisibleTimelineLanes == 1 &&
+                snapshot.TimelineLaneLabels == 0,
+            $"{label} timeline did not render exactly one unlabeled chronological track",
+            failures);
         Require(snapshot.LinearTimelineItemIds.SequenceEqual(expectedLinearIds),
             $"{label} timeline linear view lost Core chronological order", failures);
         Rect2 rail = snapshot.Surfaces.Single(item => item.Id == "EventRail").GlobalRect;
@@ -5393,19 +5422,92 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     id,
                     StringComparison.Ordinal)))
                 .ToArray();
-            bool hasExactLeadSemantics = markerItems.Any(item =>
-                marker.VisibleText.Contains(SeverityGlyphForSmoke(item.Severity),
-                    StringComparison.Ordinal) &&
-                marker.VisibleText.Contains(item.KindIcon, StringComparison.Ordinal) &&
-                marker.VisibleText.Contains(item.TimeLabel, StringComparison.Ordinal) &&
-                marker.VisibleText.Contains(item.ShortLabel, StringComparison.Ordinal));
-            Require(hasExactLeadSemantics &&
+            RealtimeTimelineSeverity displaySeverity = markerItems.Max(item => item.Severity);
+            string stateGlyph = markerItems.Any(item => item.IsCurrent)
+                ? "▶"
+                : markerItems.All(item =>
+                    item.Visibility == RealtimeTimelineVisibility.Completed)
+                    ? "✓"
+                    : "○";
+            bool hasActual = markerItems.Any(item =>
+                item.SourceKind == RealtimeTimelineSourceKind.Actual);
+            bool hasDraft = markerItems.Any(item =>
+                item.SourceKind == RealtimeTimelineSourceKind.Draft);
+            string sourceGlyph = hasActual && hasDraft
+                ? "■◇"
+                : hasDraft
+                    ? "◇"
+                    : hasActual
+                        ? "■"
+                        : string.Empty;
+            string expectedPrefix = stateGlyph +
+                                    SeverityGlyphForSmoke(displaySeverity) +
+                                    sourceGlyph;
+            Require(marker.VisibleText.StartsWith(expectedPrefix,
+                        StringComparison.Ordinal) &&
+                    markerItems.Any(item => marker.VisibleText.Contains(
+                        item.KindIcon, StringComparison.Ordinal)) &&
+                    !marker.VisibleText.Contains(' ') &&
+                    !marker.VisibleText.Contains('·') &&
                     (markerItems.Length == 1 || marker.VisibleText.Contains(
                         $"+{markerItems.Length - 1}", StringComparison.Ordinal)),
-                $"{label} marker visible text lost severity/kind/time/short-label " +
-                $"semantics ({marker.VisibleText})",
+                $"{label} marker did not preserve compact state/severity/source/kind/count " +
+                $"cues ({marker.VisibleText}, expectedPrefix={expectedPrefix})",
                 failures);
+            RealtimeTimelineTooltipOverlayFact detail =
+                eventRail.TooltipOverlayFactForSmoke(marker.ItemIds[0]);
+            float expectedDetailWidth = Math.Clamp(
+                420f * snapshot.Profile.AccessibilityScale,
+                320f,
+                620f);
+            int expectedDetailFontSize = Math.Max(
+                14,
+                Mathf.RoundToInt(15f * snapshot.Profile.AccessibilityScale));
+            Require(detail.CustomOverlay &&
+                    Mathf.IsEqualApprox(detail.MinimumWidth, expectedDetailWidth) &&
+                    detail.FontSize == expectedDetailFontSize &&
+                    detail.MouseFilter == Control.MouseFilterEnum.Ignore,
+                $"{label} marker hover detail did not use the scaled custom, " +
+                $"mouse-transparent panel (custom={detail.CustomOverlay}, " +
+                $"width={detail.MinimumWidth}/{expectedDetailWidth}, " +
+                $"font={detail.FontSize}/{expectedDetailFontSize}, " +
+                $"mouse={detail.MouseFilter})",
+                failures);
+            RealtimeTimelineItemPresentation[] detailedItems = markerItems.Length <= 6
+                ? markerItems
+                : markerItems.Where(item => detail.Text.Contains(
+                    item.Title,
+                    StringComparison.Ordinal)).Take(6).ToArray();
+            Require(detailedItems.Length == Math.Min(6, markerItems.Length) &&
+                    (markerItems.Length <= 6 || detail.Text.Contains(
+                        $"외 {markerItems.Length - 6}건 · 시간순 사건 목록에서 전체 보기",
+                        StringComparison.Ordinal)),
+                $"{label} marker hover detail did not bound a dense cluster to six " +
+                "items with an exact full-list fallback",
+                failures);
+            foreach (RealtimeTimelineItemPresentation item in detailedItems)
+            {
+                string stateLabel = item.IsCurrent
+                    ? "진행 중"
+                    : item.Visibility == RealtimeTimelineVisibility.Completed
+                        ? "완료"
+                        : "예정";
+                Require(detail.Text.Contains(stateLabel, StringComparison.Ordinal) &&
+                        detail.Text.Contains(item.SourceLabel, StringComparison.Ordinal) &&
+                        detail.Text.Contains(item.KindLabel, StringComparison.Ordinal) &&
+                        detail.Text.Contains(item.SeverityLabel, StringComparison.Ordinal) &&
+                        detail.Text.Contains(item.TimingLabel, StringComparison.Ordinal) &&
+                        detail.Text.Contains(item.Title, StringComparison.Ordinal) &&
+                        detail.Text.Contains(item.Description, StringComparison.Ordinal),
+                    $"{label} marker hover detail lost full state/source/kind/severity/" +
+                    $"timing/title/description for {item.Id}",
+                    failures);
+            }
         }
+        Require(snapshot.Markers.Select(marker => marker.Rect.GetCenter().Y)
+                .DistinctBy(y => Mathf.RoundToInt(y * 2f)).Count() == 1,
+            $"{label} markers did not share one chronological track centerline",
+            failures);
         for (int leftIndex = 0; leftIndex < snapshot.Markers.Count; leftIndex++)
         for (int rightIndex = leftIndex + 1;
              rightIndex < snapshot.Markers.Count;
@@ -5413,14 +5515,10 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         {
             RealtimeUiSmokeMarkerFact left = snapshot.Markers[leftIndex];
             RealtimeUiSmokeMarkerFact right = snapshot.Markers[rightIndex];
-            if (left.DisplayLane != right.DisplayLane)
-            {
-                continue;
-            }
             float horizontalOverlap = Math.Min(left.Rect.End.X, right.Rect.End.X) -
                 Math.Max(left.Rect.Position.X, right.Rect.Position.X);
             Require(horizontalOverlap <= 0.5f,
-                $"{label} same-lane marker rectangles intersect by " +
+                $"{label} single-track marker rectangles intersect by " +
                 $"{horizontalOverlap:0.00}px ([{string.Join(",", left.ItemIds)}] / " +
                 $"[{string.Join(",", right.ItemIds)}])",
                 failures);
@@ -5445,9 +5543,17 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         {
             RealtimeUiSmokeMarkerFact marker = chronologicalGroups[index];
             Require(rail.Encloses(marker.Rect),
-                $"{label} timeline marker left the clipped rail", failures);
-            Require(marker.DisplayLane >= 0 && marker.DisplayLane < expectedLanes,
-                $"{label} marker mapped outside visible lanes", failures);
+                $"{label} timeline marker left the event rail", failures);
+            Require(marker.DisplayLane == 0,
+                $"{label} marker mapped outside the sole chronological track", failures);
+            if (index > 0)
+            {
+                RealtimeUiSmokeMarkerFact prior = chronologicalGroups[index - 1];
+                Require(prior.Rect.Position.X <= marker.Rect.Position.X + 0.5f &&
+                        prior.Rect.End.X <= marker.Rect.Position.X + 0.5f,
+                    $"{label} single-track marker geometry did not follow chronological " +
+                    $"non-overlapping order", failures);
+            }
             Require(marker.LeftNeighborItemIds.Count > 0 &&
                     marker.RightNeighborItemIds.Count > 0,
                 $"{label} marker is not reachable in chronological arrow order", failures);
@@ -5464,6 +5570,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 RealtimeTimelineItemPresentation item = expectedLinearItems.Single(candidate =>
                     string.Equals(candidate.Id, itemId, StringComparison.Ordinal));
                 Require(marker.AccessibilityName.Contains(item.TimeLabel,
+                            StringComparison.Ordinal) &&
+                        marker.AccessibilityName.Contains(item.SourceLabel,
                             StringComparison.Ordinal) &&
                         marker.AccessibilityName.Contains(item.KindLabel,
                             StringComparison.Ordinal) &&

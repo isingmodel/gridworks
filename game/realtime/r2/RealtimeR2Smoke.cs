@@ -74,6 +74,16 @@ internal static class RealtimeR2Smoke
 
     private static void ValidateStableR2IdProtocol(ICollection<string> failures)
     {
+        var transition = new RealtimeThermalTransition(
+            42,
+            "ASSET",
+            ThermalAssetKind.Edge,
+            RealtimeThermalTransitionKind.ProtectiveTrip);
+        var completion = new RealtimeConstructionCompletion(
+            ConstructionKind.Line,
+            42,
+            new[] { "NODE_A", "NODE_B" },
+            new[] { "EDGE_A", "EDGE_B" });
         string actual = string.Join("\n",
         [
             $"order-node={RealtimeR2Ids.OrderNodeAction}",
@@ -99,9 +109,10 @@ internal static class RealtimeR2Smoke
             $"draft-construction={RealtimeR2Ids.DraftConstructionMarker}",
             $"completed-prefix={RealtimeR2Ids.CompletedConstructionMarkerPrefix}",
             $"promise-marker={RealtimeR2Ids.PromiseDecisionMarker("PROMISE")}",
-            $"thermal-prefix={RealtimeR2Ids.ThermalMarkerPrefix}",
+            $"thermal={RealtimeR2Ids.ThermalMarker("EVENT", transition)}",
+            $"completed={RealtimeR2Ids.CompletedConstructionMarker(completion)}",
             $"comparison-event={RealtimeR2Ids.ComparisonEventMarker("EVENT")}",
-            $"comparison-thermal-prefix={RealtimeR2Ids.ComparisonThermalMarkerPrefix}",
+            $"comparison-thermal={RealtimeR2Ids.ComparisonThermalMarker("EVENT", transition)}",
         ]);
         const string expected = """
             order-node=ORDER_NODE
@@ -127,9 +138,10 @@ internal static class RealtimeR2Smoke
             draft-construction=DRAFT_CONSTRUCTION
             completed-prefix=COMPLETED_CONSTRUCTION:
             promise-marker=PROMISE_DEADLINE:PROMISE
-            thermal-prefix=THERMAL:
+            thermal=THERMAL:EVENT:42:ProtectiveTrip:ASSET
+            completed=COMPLETED_CONSTRUCTION:42:Line:NODE_A+NODE_B:EDGE_A+EDGE_B
             comparison-event=DRAFT_FORECAST:EVENT
-            comparison-thermal-prefix=DRAFT_THERMAL:
+            comparison-thermal=DRAFT_THERMAL:EVENT:42:ProtectiveTrip:ASSET
             """;
         Check(string.Equals(actual, expected, StringComparison.Ordinal),
             "the centralized R2 ID protocol drifted from its stable UI/evidence contract",

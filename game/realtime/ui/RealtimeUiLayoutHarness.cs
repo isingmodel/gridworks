@@ -47,7 +47,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 RealtimeR2Smoke.CreateLayoutPresentations(failures);
             var northBankSlice = new RealtimeSliceMain();
             using var northBankSliceLifetime = northBankSlice.FreeAfterSmoke();
-            northBankSlice.BootstrapReleaseThroughNorthBankForSmoke();
+            northBankSlice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
             (RealtimeSliceData northBankData, string northBankRootSubstationId) =
                 RealtimeR2Smoke.AdvanceReleasePrefixToNorthBankPlanning(
                     northBankSlice,

@@ -1779,7 +1779,7 @@ internal static class RealtimeR2Smoke
         var slice = new RealtimeSliceMain();
         try
         {
-            slice.BootstrapReleaseFirstLightForSmoke();
+            slice.BootstrapNativeReleaseForSmoke(RealtimeNativeRouteCatalog.FirstLight);
         }
         catch
         {
@@ -1803,7 +1803,7 @@ internal static class RealtimeR2Smoke
             throw new InvalidOperationException(
                 "Release FIRST_LIGHT did not present its briefing modal.");
 
-        Check(data.SourceRoute == RealtimeSliceSourceRoute.ReleaseFirstLight &&
+        Check(data.NativeRoute == RealtimeNativeRouteCatalog.FirstLight &&
               data.BaseCampaignSha256 ==
                   "078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a" &&
               data.WorldSha256 ==
@@ -1830,9 +1830,8 @@ internal static class RealtimeR2Smoke
         Check(
             RealtimeSliceMain.ParseSourceRoute(
                 ["--release-chapter=FIRST_LIGHT"]) ==
-                    RealtimeSliceSourceRoute.ReleaseFirstLight &&
-            RealtimeSliceMain.ParseSourceRoute(Array.Empty<string>()) ==
-                    RealtimeSliceSourceRoute.TechnicalCheckpointFixture,
+                    RealtimeNativeRouteCatalog.FirstLight &&
+            RealtimeSliceMain.ParseSourceRoute(Array.Empty<string>()) is null,
             "release FIRST_LIGHT launch route parsing drifted",
             failures);
         bool unknownRouteRejected = false;
@@ -2063,7 +2062,7 @@ internal static class RealtimeR2Smoke
         var slice = new RealtimeSliceMain();
         try
         {
-            slice.BootstrapReleaseFirstLightForSmoke();
+            slice.BootstrapNativeReleaseForSmoke(RealtimeNativeRouteCatalog.FirstLight);
         }
         catch
         {
@@ -2131,7 +2130,8 @@ internal static class RealtimeR2Smoke
         var slice = new RealtimeSliceMain();
         try
         {
-            slice.BootstrapReleaseTutorialForSmoke();
+            slice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.TutorialThroughSecondSource);
         }
         catch
         {
@@ -2145,25 +2145,44 @@ internal static class RealtimeR2Smoke
                 StringComparer.Ordinal),
             "tutorial native prefix chapter identity",
             failures);
-        Check(data.SourceRoute ==
-                  RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource &&
+        Check(data.NativeRoute ==
+                  RealtimeNativeRouteCatalog.TutorialThroughSecondSource &&
               RealtimeSliceMain.ParseSourceRoute(
                   ["--release-through=SECOND_SOURCE"]) ==
-                  RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource &&
+                  RealtimeNativeRouteCatalog.TutorialThroughSecondSource &&
               RealtimeSliceMain.ParseSourceRoute(
                   ["--release-chapter=FIRST_LIGHT"]) ==
-                  RealtimeSliceSourceRoute.ReleaseFirstLight &&
+                  RealtimeNativeRouteCatalog.FirstLight &&
               RealtimeSliceMain.ParseSourceRoute(
-                  ["--checkpoint=A1_NORMAL_READY"]) ==
-                  RealtimeSliceSourceRoute.TechnicalCheckpointFixture &&
+                  ["--checkpoint=A1_NORMAL_READY"]) is null &&
               RealtimeSliceMain.ParseSourceRoute(
-                  ["--checkpoint=A1_CONSTRUCTION_DUE_1M"]) ==
-                  RealtimeSliceSourceRoute.TechnicalCheckpointFixture,
+                  ["--checkpoint=A1_CONSTRUCTION_DUE_1M"]) is null,
             "tutorial exact launch route or FIRST_LIGHT preservation drifted",
+            failures);
+        Check(RealtimeNativeRouteCatalog.NativeThroughChapterId ==
+                  "NORTH_BANK_PROMISE" &&
+              RealtimeNativeRouteCatalog.All.Count == 3 &&
+              RealtimeNativeRouteCatalog.All.Select(item => item.LaunchArgument)
+                  .SequenceEqual(
+                      new[]
+                      {
+                          "--release-chapter=FIRST_LIGHT",
+                          "--release-through=SECOND_SOURCE",
+                          "--release-through=NORTH_BANK_PROMISE",
+                      },
+                      StringComparer.Ordinal) &&
+              RealtimeNativeRouteCatalog.All.All(item =>
+                  item.SelectedChapterCount <=
+                      RealtimeNativeRouteCatalog.ThroughNativeCoverage
+                          .SelectedChapterCount) &&
+              RealtimeNativeRouteCatalog.ThroughNativeCoverage
+                  .SelectedChapterCount == 4,
+            "native route catalog or explicit NORTH_BANK_PROMISE cap drifted",
             failures);
         string[][] rejectedRoutes =
         [
             ["--release-through=SECOND_HEART"],
+            ["--release-through=WHOSE_MARGIN"],
             ["--release-through"],
             ["--bogus"],
             ["--checkpoint=UNKNOWN"],
@@ -2189,12 +2208,12 @@ internal static class RealtimeR2Smoke
         ObserveTutorialRail(slice, observedRailEvents);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterBriefing,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
             "FIRST_LIGHT",
             null,
             data.BaseCampaign.Chapters[0].Briefing,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
               slice.InteractionState.Simulation == RealtimeSimulationState.Running,
             "tutorial FIRST_LIGHT briefing did not close into realtime play",
             failures);
@@ -2213,13 +2232,13 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterResult,
+            RealtimeChapterStoryModalPurpose.ChapterResult,
             "FIRST_LIGHT",
             null,
             data.BaseCampaign.Chapters[0].ResultCards.Standard!,
             failures);
         RealtimeModalPresentation? secondBriefing =
-            slice.ClosePresentedTutorialModalForSmoke();
+            slice.ClosePresentedChapterStoryModalForSmoke();
         Check(secondBriefing is not null &&
               slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
                   new[] { "FIRST_LIGHT" },
@@ -2228,12 +2247,12 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterBriefing,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
             "SECOND_HEART",
             null,
             data.BaseCampaign.Chapters[1].Briefing,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
               slice.InteractionState.Simulation == RealtimeSimulationState.Running &&
               slice.InteractionState.PresentedSpeed == RealtimeSimulationSpeed.VeryFast,
             "SECOND_HEART briefing did not restore the prior realtime speed",
@@ -2329,7 +2348,7 @@ internal static class RealtimeR2Smoke
                 item.PhaseId == "FLOOD_ISOLATION_TEST").Story!;
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.EventStory,
+            RealtimeChapterStoryModalPurpose.EventStory,
             "SECOND_HEART",
             "FLOOD_ISOLATION_TEST",
             floodStory,
@@ -2340,7 +2359,7 @@ internal static class RealtimeR2Smoke
                   StringComparer.Ordinal),
             "active flood did not replace forecast geometry with active geometry",
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
               slice.InteractionState.Simulation == RealtimeSimulationState.Running,
             "flood story did not restore realtime play",
             failures);
@@ -2358,12 +2377,12 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterResult,
+            RealtimeChapterStoryModalPurpose.ChapterResult,
             "SECOND_HEART",
             null,
             data.BaseCampaign.Chapters[1].ResultCards.Standard!,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is not null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null &&
               slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
                   new[] { "FIRST_LIGHT", "SECOND_HEART" },
                   StringComparer.Ordinal),
@@ -2371,12 +2390,12 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterBriefing,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
             "SECOND_SOURCE",
             null,
             data.BaseCampaign.Chapters[2].Briefing,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "SECOND_SOURCE briefing did not close into realtime play",
             failures);
         ObserveTutorialRail(slice, observedRailEvents);
@@ -2417,12 +2436,12 @@ internal static class RealtimeR2Smoke
                 item.PhaseId == "SOUTH_SOURCE_COMMISSIONING_TEST").Story!;
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.EventStory,
+            RealtimeChapterStoryModalPurpose.EventStory,
             "SECOND_SOURCE",
             "SOUTH_SOURCE_COMMISSIONING_TEST",
             southStory,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "south-source story did not restore realtime play",
             failures);
         _ = AdvanceToMinuteByFrames(
@@ -2438,12 +2457,12 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterResult,
+            RealtimeChapterStoryModalPurpose.ChapterResult,
             "SECOND_SOURCE",
             null,
             data.BaseCampaign.Chapters[2].ResultCards.Standard!,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
               slice.InteractionState.Simulation == RealtimeSimulationState.Ended &&
               slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
                   new[] { "FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE" },
@@ -2476,7 +2495,8 @@ internal static class RealtimeR2Smoke
         var slice = new RealtimeSliceMain();
         try
         {
-            slice.BootstrapReleaseThroughNorthBankForSmoke();
+            slice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
         }
         catch
         {
@@ -2593,7 +2613,7 @@ internal static class RealtimeR2Smoke
               result.Body == kept.Body,
             "successful explicit Keep did not present the exact kept result",
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
               slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
                   new[]
                   {
@@ -2633,7 +2653,8 @@ internal static class RealtimeR2Smoke
         var deferredSlice = new RealtimeSliceMain();
         try
         {
-            deferredSlice.BootstrapReleaseThroughNorthBankForSmoke();
+            deferredSlice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
         }
         catch
         {
@@ -2662,7 +2683,7 @@ internal static class RealtimeR2Smoke
               deferredResult.Body == deferred.Body,
             "explicit Defer did not present exact deferred authored bytes",
             failures);
-        _ = deferredSlice.ClosePresentedTutorialModalForSmoke();
+        _ = deferredSlice.ClosePresentedChapterStoryModalForSmoke();
         Check(deferredSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !deferredSlice.FormativeTutorialFullFlowRecordedForSmoke,
             "explicit Defer minted the Keep-only formative token",
@@ -2673,7 +2694,8 @@ internal static class RealtimeR2Smoke
         var defaultedSlice = new RealtimeSliceMain();
         try
         {
-            defaultedSlice.BootstrapReleaseThroughNorthBankForSmoke();
+            defaultedSlice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
         }
         catch
         {
@@ -2726,7 +2748,7 @@ internal static class RealtimeR2Smoke
               defaultedResult.Body.Contains("자동으로 연기", StringComparison.Ordinal),
             "auto-Defer result omitted its factual disclosure",
             failures);
-        _ = defaultedSlice.ClosePresentedTutorialModalForSmoke();
+        _ = defaultedSlice.ClosePresentedChapterStoryModalForSmoke();
         Check(defaultedSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !defaultedSlice.FormativeTutorialFullFlowRecordedForSmoke,
             "auto-Defer minted an explicit-choice formative token",
@@ -2737,7 +2759,8 @@ internal static class RealtimeR2Smoke
         var deferSafetyFailureSlice = new RealtimeSliceMain();
         try
         {
-            deferSafetyFailureSlice.BootstrapReleaseThroughNorthBankForSmoke();
+            deferSafetyFailureSlice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
         }
         catch
         {
@@ -2795,7 +2818,7 @@ internal static class RealtimeR2Smoke
             "Defer safety failure conflated excluded North demand with promise " +
             "fulfillment or counterfeited the authored deferred result",
             failures);
-        _ = deferSafetyFailureSlice.ClosePresentedTutorialModalForSmoke();
+        _ = deferSafetyFailureSlice.ClosePresentedChapterStoryModalForSmoke();
         Check(deferSafetyFailureSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !deferSafetyFailureSlice.FormativeTutorialFullFlowRecordedForSmoke,
             "Defer safety failure minted a formative token",
@@ -2806,7 +2829,8 @@ internal static class RealtimeR2Smoke
         var promiseFailureSlice = new RealtimeSliceMain();
         try
         {
-            promiseFailureSlice.BootstrapReleaseThroughNorthBankForSmoke();
+            promiseFailureSlice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
         }
         catch
         {
@@ -2848,7 +2872,7 @@ internal static class RealtimeR2Smoke
             failures);
         long recordedPromiseUnservedMinutes = promiseFailureOutcome.Events.Sum(item =>
             item.PromiseUnservedMinutes);
-        _ = promiseFailureSlice.ClosePresentedTutorialModalForSmoke();
+        _ = promiseFailureSlice.ClosePresentedChapterStoryModalForSmoke();
         SelectPromiseDeadline(
             promiseFailureSlice,
             failures,
@@ -2896,8 +2920,8 @@ internal static class RealtimeR2Smoke
             ICollection<string> failures)
     {
         RealtimeSliceData data = slice.SliceDataForSmoke;
-        Check(data.SourceRoute ==
-                  RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise &&
+        Check(data.NativeRoute ==
+                  RealtimeNativeRouteCatalog.ThroughNativeCoverage &&
               data.CampaignSha256 ==
                   "54dcad845e4cbcff8ebbcd758ec07ca43bf5997d708b1d96cb6beba6ff4d3bb5" &&
               data.Campaign.Chapters.Select(item => item.Content.ChapterId)
@@ -2913,7 +2937,7 @@ internal static class RealtimeR2Smoke
               data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 7 &&
               RealtimeSliceMain.ParseSourceRoute(
                   ["--release-through=NORTH_BANK_PROMISE"]) ==
-                  RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise,
+                  RealtimeNativeRouteCatalog.ThroughNativeCoverage,
             "North Bank exact route/prefix identity drifted",
             failures);
         bool isolatedRejected = false;
@@ -2932,12 +2956,12 @@ internal static class RealtimeR2Smoke
 
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterBriefing,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
             "FIRST_LIGHT",
             null,
             data.BaseCampaign.Chapters[0].Briefing,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "North route FIRST_LIGHT briefing did not close", failures);
         string rootSubstationId = BuildTutorialFirstLightNetwork(slice, failures);
         _ = AdvanceToMinuteByFrames(
@@ -2947,14 +2971,14 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterResult,
+            RealtimeChapterStoryModalPurpose.ChapterResult,
             "FIRST_LIGHT",
             null,
             data.BaseCampaign.Chapters[0].ResultCards.Standard!,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is not null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null,
             "North route FIRST_LIGHT result did not queue SECOND_HEART", failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "North route SECOND_HEART briefing did not close", failures);
 
         string hospitalSubstationId = OrderTutorialNode(
@@ -2999,12 +3023,12 @@ internal static class RealtimeR2Smoke
                 item.PhaseId == "FLOOD_ISOLATION_TEST").Story!;
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.EventStory,
+            RealtimeChapterStoryModalPurpose.EventStory,
             "SECOND_HEART",
             "FLOOD_ISOLATION_TEST",
             floodStory,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "North route flood story did not close", failures);
         _ = AdvanceToMinuteByFrames(
             slice,
@@ -3013,14 +3037,14 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterResult,
+            RealtimeChapterStoryModalPurpose.ChapterResult,
             "SECOND_HEART",
             null,
             data.BaseCampaign.Chapters[1].ResultCards.Standard!,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is not null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null,
             "North route SECOND_HEART result did not queue SECOND_SOURCE", failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "North route SECOND_SOURCE briefing did not close", failures);
 
         _ = OrderTutorialLine(
@@ -3047,12 +3071,12 @@ internal static class RealtimeR2Smoke
                 item.PhaseId == "SOUTH_SOURCE_COMMISSIONING_TEST").Story!;
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.EventStory,
+            RealtimeChapterStoryModalPurpose.EventStory,
             "SECOND_SOURCE",
             "SOUTH_SOURCE_COMMISSIONING_TEST",
             southStory,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "North route south-source story did not close", failures);
         _ = AdvanceToMinuteByFrames(
             slice,
@@ -3061,7 +3085,7 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterResult,
+            RealtimeChapterStoryModalPurpose.ChapterResult,
             "SECOND_SOURCE",
             null,
             data.BaseCampaign.Chapters[2].ResultCards.Standard!,
@@ -3079,7 +3103,7 @@ internal static class RealtimeR2Smoke
               },
             "SECOND_SOURCE result did not expose the explicit typed calendar action",
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is not null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null &&
               slice.CoreSnapshot is
               {
                   Minute: 265260,
@@ -3092,20 +3116,20 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterBriefing,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
             "NORTH_BANK_PROMISE",
             null,
             data.BaseCampaign.Chapters[3].Briefing,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is not null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null,
             "North briefing did not queue its planning-window story", failures);
-        RealtimeTutorialModalRequest planning = slice.ActiveTutorialModalForSmoke ??
+        RealtimeChapterStoryModalRequest planning = slice.ActiveChapterStoryModalForSmoke ??
             throw new InvalidOperationException("North planning window is not active.");
         CommercialStoryCard planningCard = data.BaseCampaign.Chapters[3]
             .DecisionWindows.Single(item =>
                 item.WindowId == "NORTH_BANK_PLANNING_WINDOW").Story!;
         RealtimeModalPresentation planningModal = slice.LatestPresentation.Modal!;
-        Check(planning.Purpose == RealtimeTutorialModalPurpose.DecisionWindowStory &&
+        Check(planning.Purpose == RealtimeChapterStoryModalPurpose.DecisionWindowStory &&
               planning.WindowId == "NORTH_BANK_PLANNING_WINDOW" &&
               planningModal.Eyebrow == planningCard.Speaker &&
               planningModal.Heading == planningCard.Title &&
@@ -3113,7 +3137,7 @@ internal static class RealtimeR2Smoke
               planningModal.PrimaryAction.Id == "DECISION_WINDOW_CONTINUE",
             "North planning-window authored FIFO drifted",
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
               slice.InteractionState.Simulation == RealtimeSimulationState.Running,
             "North planning window did not close into live streaming play",
             failures);
@@ -3208,7 +3232,7 @@ internal static class RealtimeR2Smoke
                 item.PhaseId == "NEXT_HOT_EVENING_FORECAST").Story!;
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.EventStory,
+            RealtimeChapterStoryModalPurpose.EventStory,
             "NORTH_BANK_PROMISE",
             "NEXT_HOT_EVENING_FORECAST",
             hotStory,
@@ -3219,11 +3243,11 @@ internal static class RealtimeR2Smoke
               slice.EmittedTransitions.All(item =>
                   item.EventId != "NORTH_BANK_COMMISSIONING" ||
                   item.Kind != RealtimeTransitionKind.EventStarted ||
-                  slice.ActiveTutorialModalForSmoke?.EventId !=
+                  slice.ActiveChapterStoryModalForSmoke?.EventId !=
                       "NORTH_BANK_COMMISSIONING"),
             "null commissioning story created a modal or never started",
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "North hot-evening story did not restore realtime play",
             failures);
         _ = AdvanceToMinuteByFrames(
@@ -3248,7 +3272,8 @@ internal static class RealtimeR2Smoke
         var slice = new RealtimeSliceMain();
         try
         {
-            slice.BootstrapReleaseTutorialForSmoke();
+            slice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.TutorialThroughSecondSource);
         }
         catch
         {
@@ -3257,7 +3282,7 @@ internal static class RealtimeR2Smoke
         }
         using var sliceLifetime = slice.FreeAfterSmoke();
         RealtimeSliceData data = slice.SliceDataForSmoke;
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "failure route FIRST_LIGHT briefing did not close",
             failures);
         _ = BuildTutorialFirstLightNetwork(slice, failures);
@@ -3268,22 +3293,22 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterResult,
+            RealtimeChapterStoryModalPurpose.ChapterResult,
             "FIRST_LIGHT",
             null,
             data.BaseCampaign.Chapters[0].ResultCards.Standard!,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is not null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null,
             "failure route FIRST_LIGHT result did not queue SECOND_HEART briefing",
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterBriefing,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
             "SECOND_HEART",
             null,
             data.BaseCampaign.Chapters[1].Briefing,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "failure route SECOND_HEART briefing did not close",
             failures);
 
@@ -3329,12 +3354,12 @@ internal static class RealtimeR2Smoke
                 item.PhaseId == "FLOOD_ISOLATION_TEST").Story!;
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.EventStory,
+            RealtimeChapterStoryModalPurpose.EventStory,
             "SECOND_HEART",
             "FLOOD_ISOLATION_TEST",
             floodStory,
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is null,
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
             "failure route flood story did not close",
             failures);
         _ = AdvanceToMinuteByFrames(
@@ -3365,7 +3390,7 @@ internal static class RealtimeR2Smoke
                !string.Equals(result.Body, standard.Body, StringComparison.Ordinal)),
             "SECOND_HEART 1/2 failure counterfeited the authored positive result",
             failures);
-        Check(slice.ClosePresentedTutorialModalForSmoke() is not null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null &&
               slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
                   new[] { "FIRST_LIGHT" },
                   StringComparer.Ordinal) &&
@@ -3374,7 +3399,7 @@ internal static class RealtimeR2Smoke
             failures);
         RequireAuthoredTutorialModal(
             slice,
-            RealtimeTutorialModalPurpose.ChapterBriefing,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
             "SECOND_SOURCE",
             null,
             data.BaseCampaign.Chapters[2].Briefing,
@@ -3511,19 +3536,19 @@ internal static class RealtimeR2Smoke
 
     private static void RequireAuthoredTutorialModal(
         RealtimeSliceMain slice,
-        RealtimeTutorialModalPurpose purpose,
+        RealtimeChapterStoryModalPurpose purpose,
         string chapterId,
         string? eventId,
         CommercialStoryCard card,
         ICollection<string> failures)
     {
         RealtimeModalPresentation? modal = slice.LatestPresentation.Modal;
-        RealtimeTutorialModalRequest request = string.Equals(
+        RealtimeChapterStoryModalRequest request = string.Equals(
                 modal?.Id,
                 "CHAPTER_BRIEFING",
                 StringComparison.Ordinal)
-            ? RealtimeTutorialChapterFlow.InitialBriefing(chapterId)
-            : slice.ActiveTutorialModalForSmoke ??
+            ? RealtimeChapterStoryFlow.InitialBriefing(chapterId)
+            : slice.ActiveChapterStoryModalForSmoke ??
               throw new InvalidOperationException("Tutorial flow has no active modal step.");
         Check(modal is not null && request.Purpose == purpose &&
               request.ChapterId == chapterId && request.EventId == eventId &&

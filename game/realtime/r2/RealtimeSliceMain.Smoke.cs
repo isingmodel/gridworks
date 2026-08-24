@@ -50,12 +50,12 @@ internal sealed partial class RealtimeSliceMain
     internal bool FormativeTutorialFullFlowRecordedForSmoke =>
         _formativeTutorialFullFlowRecorded;
 
-    internal RealtimeTutorialModalRequest? ActiveTutorialModalForSmoke =>
-        _tutorialFlow.Active;
+    internal RealtimeChapterStoryModalRequest? ActiveChapterStoryModalForSmoke =>
+        _chapterStoryFlow.Active;
 
     internal void RequestActionForSmoke(string actionId) => HandleAction(actionId);
 
-    internal RealtimeModalPresentation? ClosePresentedTutorialModalForSmoke()
+    internal RealtimeModalPresentation? ClosePresentedChapterStoryModalForSmoke()
     {
         RealtimeModalPresentation modal = _latestPresentation?.Modal ??
             throw new InvalidOperationException(

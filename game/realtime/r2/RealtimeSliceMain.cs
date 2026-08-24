@@ -170,14 +170,6 @@ internal sealed record RealtimeR2TimelineChooserFacts(
 internal sealed partial class RealtimeSliceMain : Control
 {
     private static readonly Vector2I RequiredLogicalCanvas = new(1920, 1080);
-    private const string ReleaseChapterArgumentPrefix = "--release-chapter=";
-    private const string ReleaseThroughArgumentPrefix = "--release-through=";
-    private const string FirstReleaseChapterId =
-        RealtimeCampaignOverlayLoader.FirstReleaseChapterId;
-    private const string TutorialFinalChapterId = "SECOND_SOURCE";
-    private const string NorthBankFinalChapterId = "NORTH_BANK_PROMISE";
-    private const long SecondSourceEndMinute = 2460;
-    private const long NorthBankStartMinute = 265260;
     private const int VirtualFramesPerSecond = 60;
     private const long NanosecondsPerSecond = 1_000_000_000;
     private const long CatchUpCeilingMinutes = 30;
@@ -186,7 +178,7 @@ internal sealed partial class RealtimeSliceMain : Control
     private readonly HashSet<string> _autoPausedIncidentKeys = new(StringComparer.Ordinal);
     private readonly Dictionary<RealtimePointerOwner, int> _clickCounters = [];
     private readonly Queue<PendingFrameBatch> _retainedFrameDebt = [];
-    private readonly RealtimeTutorialChapterFlow _tutorialFlow = new();
+    private readonly RealtimeChapterStoryFlow _chapterStoryFlow = new();
     private readonly HashSet<string> _formativeTutorialResultChapterIds =
         new(StringComparer.Ordinal);
     private RealtimeSliceData? _data;
@@ -212,8 +204,7 @@ internal sealed partial class RealtimeSliceMain : Control
     private IReadOnlyList<string> _timelineClusterIds = Array.Empty<string>();
     private int _timelineClusterIndex;
     private bool _draftCancelArmed;
-    private RealtimeSliceSourceRoute _sourceRoute =
-        RealtimeSliceSourceRoute.TechnicalCheckpointFixture;
+    private RealtimeNativeRoute? _nativeRoute;
     private bool _formativeDirectPlayRecorded;
     private bool _formativeTutorialFullFlowRecorded;
 
@@ -226,7 +217,7 @@ internal sealed partial class RealtimeSliceMain : Control
 
     public override void _Ready()
     {
-        _sourceRoute = ParseSourceRoute(OS.GetCmdlineUserArgs());
+        _nativeRoute = ParseSourceRoute(OS.GetCmdlineUserArgs());
         Control worldNode = GetNode<Control>("%WorldView");
         _worldView = worldNode as IRealtimeWorldView ??
             throw new InvalidOperationException(
@@ -263,20 +254,11 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void Bootstrap()
     {
-        _data = _sourceRoute switch
-        {
-            RealtimeSliceSourceRoute.ReleaseFirstLight =>
-                RealtimeSliceResources.LoadReleaseFirstLight(
-                    typeof(RealtimeSliceMain).Assembly),
-            RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource =>
-                RealtimeSliceResources.LoadReleaseTutorialThroughSecondSource(
-                    typeof(RealtimeSliceMain).Assembly),
-            RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise =>
-                RealtimeSliceResources.LoadReleaseThroughNorthBankPromise(
-                    typeof(RealtimeSliceMain).Assembly),
-            _ => RealtimeSliceResources.Load(typeof(RealtimeSliceMain).Assembly),
-        };
-        if (_data.SourceRoute != _sourceRoute)
+        Assembly assembly = typeof(RealtimeSliceMain).Assembly;
+        _data = _nativeRoute is null
+            ? RealtimeSliceResources.LoadTechnicalFixture(assembly)
+            : RealtimeSliceResources.LoadNativeRelease(assembly, _nativeRoute);
+        if (!Equals(_data.NativeRoute, _nativeRoute))
         {
             throw new InvalidOperationException(
                 "Realtime slice resource route does not match its launch route.");
@@ -308,9 +290,9 @@ internal sealed partial class RealtimeSliceMain : Control
         _formativeDirectPlayRecorded = false;
         _formativeTutorialResultChapterIds.Clear();
         _formativeTutorialFullFlowRecorded = false;
-        _tutorialFlow.Reset();
+        _chapterStoryFlow.Reset();
 #if DEBUG
-        if (_data.SourceRoute == RealtimeSliceSourceRoute.TechnicalCheckpointFixture)
+        if (_data.NativeRoute is null)
         {
             _smokeLinePlan = BuildSmokeLinePlan(_data);
             _smokeBoundaryFacts = BuildSmokeBoundaryFacts(
@@ -733,12 +715,12 @@ internal sealed partial class RealtimeSliceMain : Control
         foreach (RealtimeTransition transition in transitions)
         {
             _emittedTransitions.Add(transition);
-            if (IsCumulativeReleaseRoute(_data?.SourceRoute))
+            if (_data?.NativeRoute?.UsesChapterStoryFlow == true)
             {
-                _tutorialFlow.Observe(
+                _chapterStoryFlow.Observe(
                     transition,
                     _run!.GetSnapshot(),
-                    _data!.BaseCampaign);
+                    _data!.Campaign);
             }
             if (transition.Kind == RealtimeTransitionKind.ThermalProtectiveTrip)
             {
@@ -753,7 +735,7 @@ internal sealed partial class RealtimeSliceMain : Control
                 }
             }
             else if (transition.Kind == RealtimeTransitionKind.CampaignCompleted &&
-                     !IsCumulativeReleaseRoute(_data?.SourceRoute))
+                     _data?.NativeRoute?.UsesChapterStoryFlow != true)
             {
                 _interaction = RealtimeInteractionReducer.AutoPause(
                     _interaction!,
@@ -772,7 +754,7 @@ internal sealed partial class RealtimeSliceMain : Control
                 _frame!.Pause();
             }
         }
-        TryOpenTutorialModal();
+        TryOpenChapterStoryModal();
     }
 
     private void Present()
@@ -1178,7 +1160,7 @@ internal sealed partial class RealtimeSliceMain : Control
     private void HandleModalAction(string modalId, string actionId)
     {
         RealtimeModalPresentation? modal = _latestPresentation?.Modal;
-        RealtimeTutorialModalRequest? tutorialRequest = _tutorialFlow.Active;
+        RealtimeChapterStoryModalRequest? storyRequest = _chapterStoryFlow.Active;
         if (modal is null ||
             !string.Equals(modal.Id, modalId, StringComparison.Ordinal) ||
             !modal.PrimaryAction.Enabled ||
@@ -1195,12 +1177,12 @@ internal sealed partial class RealtimeSliceMain : Control
         if (result.Accepted)
         {
             TryRecordFormativeDirectPlay(modal);
-            if (IsCumulativeReleaseRoute(_data?.SourceRoute) &&
-                _tutorialFlow.Close(modalId))
+            if (_data?.NativeRoute?.UsesChapterStoryFlow == true &&
+                _chapterStoryFlow.Close(modalId))
             {
-                if (!TryAdvanceNorthBankCalendar(tutorialRequest))
+                if (!TryAdvanceToNextChapter(storyRequest))
                 {
-                    TryOpenTutorialModal();
+                    TryOpenChapterStoryModal();
                 }
             }
         }
@@ -1209,7 +1191,7 @@ internal sealed partial class RealtimeSliceMain : Control
     private void HandleModalDismiss(string modalId)
     {
         RealtimeModalPresentation? modal = _latestPresentation?.Modal;
-        RealtimeTutorialModalRequest? tutorialRequest = _tutorialFlow.Active;
+        RealtimeChapterStoryModalRequest? storyRequest = _chapterStoryFlow.Active;
         if (modal is null ||
             !string.Equals(modal.Id, modalId, StringComparison.Ordinal) ||
             !modal.DismissOnCancel)
@@ -1221,48 +1203,35 @@ internal sealed partial class RealtimeSliceMain : Control
         if (result.Accepted)
         {
             TryRecordFormativeDirectPlay(modal);
-            if (IsCumulativeReleaseRoute(_data?.SourceRoute) &&
-                _tutorialFlow.Close(modalId))
+            if (_data?.NativeRoute?.UsesChapterStoryFlow == true &&
+                _chapterStoryFlow.Close(modalId))
             {
-                if (!TryAdvanceNorthBankCalendar(tutorialRequest))
+                if (!TryAdvanceToNextChapter(storyRequest))
                 {
-                    TryOpenTutorialModal();
+                    TryOpenChapterStoryModal();
                 }
             }
         }
     }
 
-    private bool TryAdvanceNorthBankCalendar(
-        RealtimeTutorialModalRequest? closedRequest)
+    private bool TryAdvanceToNextChapter(
+        RealtimeChapterStoryModalRequest? closedRequest)
     {
-        if (_data?.SourceRoute !=
-                RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise ||
-            closedRequest is not
-            {
-                Purpose: RealtimeTutorialModalPurpose.ChapterResult,
-                ChapterId: TutorialFinalChapterId,
-                FinalResult: false,
-            })
+        if (_data?.NativeRoute?.UsesChapterStoryFlow != true)
         {
             return false;
         }
 
         RealtimeCampaignSnapshot before = _run!.GetSnapshot();
-        if (before.CampaignComplete ||
-            before.ChapterStarted ||
-            before.Minute != SecondSourceEndMinute ||
-            before.ChapterStartMinute != NorthBankStartMinute ||
-            before.Minute >= before.ChapterStartMinute ||
-            !string.Equals(
-                before.Chapter.Content.ChapterId,
-                NorthBankFinalChapterId,
-                StringComparison.Ordinal))
+        long? targetMinute = _chapterStoryFlow.CalendarAdvanceTarget(
+            closedRequest,
+            before);
+        if (!targetMinute.HasValue)
         {
-            throw new InvalidOperationException(
-                "NORTH_BANK_PROMISE calendar transition lost its typed next-chapter boundary.");
+            return false;
         }
 
-        RealtimeAdvanceResult advance = _run.AdvanceTo(before.ChapterStartMinute);
+        RealtimeAdvanceResult advance = _run.AdvanceTo(targetMinute.Value);
         CollectTransitions(advance.Transitions);
         if (_latestPresentation?.CoreSnapshot.Minute != advance.Snapshot.Minute)
         {
@@ -1271,14 +1240,14 @@ internal sealed partial class RealtimeSliceMain : Control
         return true;
     }
 
-    private void TryOpenTutorialModal()
+    private void TryOpenChapterStoryModal()
     {
-        if (!IsCumulativeReleaseRoute(_data?.SourceRoute) ||
+        if (_data?.NativeRoute?.UsesChapterStoryFlow != true ||
             _interaction?.ActiveModalId is not null)
         {
             return;
         }
-        RealtimeTutorialModalRequest? request = _tutorialFlow.ActivateNext();
+        RealtimeChapterStoryModalRequest? request = _chapterStoryFlow.ActivateNext();
         if (request is null)
         {
             return;
@@ -1316,36 +1285,35 @@ internal sealed partial class RealtimeSliceMain : Control
         {
             return modal;
         }
-        if (IsCumulativeReleaseRoute(_data?.SourceRoute))
+        if (_data?.NativeRoute?.UsesChapterStoryFlow == true)
         {
-            RealtimeTutorialModalRequest? request = string.Equals(
+            RealtimeChapterStoryModalRequest? request = string.Equals(
                     modal.Id,
                     "CHAPTER_BRIEFING",
                     StringComparison.Ordinal)
-                ? RealtimeTutorialChapterFlow.InitialBriefing(
+                ? RealtimeChapterStoryFlow.InitialBriefing(
                     _run!.GetSnapshot().Chapter.Content.ChapterId)
-                : _tutorialFlow.Active;
+                : _chapterStoryFlow.Active;
             return request is null || !string.Equals(
                     request.ModalId,
                     modal.Id,
                     StringComparison.Ordinal)
                 ? modal
-                : AuthoredTutorialModal(modal, request);
+                : AuthoredChapterStoryModal(modal, request);
         }
-        if (_data?.SourceRoute != RealtimeSliceSourceRoute.ReleaseFirstLight)
+        if (_data?.NativeRoute?.IsStandaloneChapter != true)
         {
             return modal;
         }
-        CommercialCampaignChapterDefinition chapter = _data.BaseCampaign.Chapters
-            .Single(item => string.Equals(
-                item.ChapterId,
-                FirstReleaseChapterId,
-                StringComparison.Ordinal));
+        RealtimeChapterDefinition realtimeChapter = _data.Campaign.Chapters.Single();
+        CommercialCampaignChapterDefinition chapter = realtimeChapter.Content;
         RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
         CommercialStoryCard? card = modal.Id switch
         {
             "CHAPTER_BRIEFING" => chapter.Briefing,
-            "CAMPAIGN_RESULT" when IsSuccessfulFirstLightCompletion(snapshot) =>
+            "CAMPAIGN_RESULT" when IsSuccessfulStandaloneCompletion(
+                snapshot,
+                realtimeChapter) =>
                 chapter.ResultCards.Standard,
             _ => null,
         };
@@ -1359,16 +1327,17 @@ internal sealed partial class RealtimeSliceMain : Control
             };
     }
 
-    private RealtimeModalPresentation AuthoredTutorialModal(
+    private RealtimeModalPresentation AuthoredChapterStoryModal(
         RealtimeModalPresentation modal,
-        RealtimeTutorialModalRequest request)
+        RealtimeChapterStoryModalRequest request)
     {
-        CommercialCampaignChapterDefinition chapter = _data!.BaseCampaign.Chapters
-            .Single(item => string.Equals(
-                item.ChapterId,
+        RealtimeChapterDefinition realtimeChapter = _data!.Campaign.Chapters.Single(item =>
+            string.Equals(
+                item.Content.ChapterId,
                 request.ChapterId,
                 StringComparison.Ordinal));
-        if (request.Purpose == RealtimeTutorialModalPurpose.ChapterResult)
+        CommercialCampaignChapterDefinition chapter = realtimeChapter.Content;
+        if (request.Purpose == RealtimeChapterStoryModalPurpose.ChapterResult)
         {
             RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
             RealtimeChapterOutcome outcome = snapshot.CompletedChapters
@@ -1419,14 +1388,9 @@ internal sealed partial class RealtimeSliceMain : Control
                       (promiseUnservedMinutes > 0
                           ? $" · {promiseUnservedMinutes}분 미공급"
                           : string.Empty);
-            bool calendarTransition =
-                _data.SourceRoute ==
-                    RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise &&
-                string.Equals(
-                    request.ChapterId,
-                    TutorialFinalChapterId,
-                    StringComparison.Ordinal) &&
-                !request.FinalResult;
+            bool calendarTransition = _chapterStoryFlow.CalendarAdvanceTarget(
+                request,
+                snapshot).HasValue;
             string authoredBody = authored?.Body ?? string.Empty;
             if (authored is not null && autoDefaulted)
             {
@@ -1448,7 +1412,7 @@ internal sealed partial class RealtimeSliceMain : Control
                     calendarTransition
                         ? "6개월 뒤 북안 검토로"
                         : request.FinalResult
-                            ? _data.Campaign.Chapters.Count == 4
+                            ? chapter.CityPromise is not null
                                 ? "북안 운영 결과 확인"
                                 : "튜토리얼 결과 확인"
                             : "다음 장으로",
@@ -1466,8 +1430,8 @@ internal sealed partial class RealtimeSliceMain : Control
 
         CommercialStoryCard card = request.Purpose switch
         {
-            RealtimeTutorialModalPurpose.ChapterBriefing => chapter.Briefing,
-            RealtimeTutorialModalPurpose.DecisionWindowStory =>
+            RealtimeChapterStoryModalPurpose.ChapterBriefing => chapter.Briefing,
+            RealtimeChapterStoryModalPurpose.DecisionWindowStory =>
                 chapter.DecisionWindows
                     .Single(item => string.Equals(
                         item.WindowId,
@@ -1475,7 +1439,7 @@ internal sealed partial class RealtimeSliceMain : Control
                         StringComparison.Ordinal))
                     .Story ?? throw new InvalidOperationException(
                         $"Tutorial window '{request.WindowId}' has no authored story."),
-            RealtimeTutorialModalPurpose.EventStory => chapter.OperatingPhases
+            RealtimeChapterStoryModalPurpose.EventStory => chapter.OperatingPhases
                 .Single(item => string.Equals(
                     item.PhaseId,
                     request.EventId,
@@ -1484,11 +1448,11 @@ internal sealed partial class RealtimeSliceMain : Control
                     $"Tutorial event '{request.EventId}' has no authored story."),
             _ => throw new ArgumentOutOfRangeException(nameof(request)),
         };
-        bool eventStory = request.Purpose == RealtimeTutorialModalPurpose.EventStory;
+        bool eventStory = request.Purpose == RealtimeChapterStoryModalPurpose.EventStory;
         bool decisionWindow = request.Purpose ==
-            RealtimeTutorialModalPurpose.DecisionWindowStory;
+            RealtimeChapterStoryModalPurpose.DecisionWindowStory;
         bool promiseBriefing = request.Purpose ==
-            RealtimeTutorialModalPurpose.ChapterBriefing &&
+            RealtimeChapterStoryModalPurpose.ChapterBriefing &&
             chapter.CityPromise is not null;
         return modal with
         {
@@ -1522,27 +1486,24 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void TryRecordFormativeDirectPlay(RealtimeModalPresentation closedModal)
     {
-        if (IsCumulativeReleaseRoute(_data?.SourceRoute))
+        if (_data?.NativeRoute?.UsesChapterStoryFlow == true)
         {
-            TryRecordTutorialDirectPlay(closedModal);
+            TryRecordCumulativeDirectPlay(closedModal);
             return;
         }
         if (_formativeDirectPlayRecorded ||
-            _data?.SourceRoute != RealtimeSliceSourceRoute.ReleaseFirstLight ||
+            _data?.NativeRoute?.IsStandaloneChapter != true ||
             !string.Equals(closedModal.Id, "CAMPAIGN_RESULT", StringComparison.Ordinal) ||
             _run?.GetSnapshot() is not { CampaignComplete: true } snapshot)
         {
             return;
         }
-        if (!IsSuccessfulFirstLightCompletion(snapshot))
+        RealtimeChapterDefinition realtimeChapter = _data.Campaign.Chapters.Single();
+        if (!IsSuccessfulStandaloneCompletion(snapshot, realtimeChapter))
         {
             return;
         }
-        CommercialCampaignChapterDefinition chapter = _data.BaseCampaign.Chapters.Single(
-            item => string.Equals(
-                item.ChapterId,
-                FirstReleaseChapterId,
-                StringComparison.Ordinal));
+        CommercialCampaignChapterDefinition chapter = realtimeChapter.Content;
         CommercialStoryCard authored = chapter.ResultCards.Standard ??
             throw new InvalidOperationException(
                 "FIRST_LIGHT release route has no authored standard result.");
@@ -1552,7 +1513,7 @@ internal sealed partial class RealtimeSliceMain : Control
             snapshot.CompletedChapters.Count != 1 ||
             !string.Equals(
                 snapshot.CompletedChapters[0].ChapterId,
-                FirstReleaseChapterId,
+                chapter.ChapterId,
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
@@ -1565,15 +1526,15 @@ internal sealed partial class RealtimeSliceMain : Control
             return;
         }
 #endif
-        GD.Print($"FORMATIVE_DIRECT_PLAY_PASS:{FirstReleaseChapterId}");
+        GD.Print($"FORMATIVE_DIRECT_PLAY_PASS:{chapter.ChapterId}");
     }
 
-    private void TryRecordTutorialDirectPlay(RealtimeModalPresentation closedModal)
+    private void TryRecordCumulativeDirectPlay(RealtimeModalPresentation closedModal)
     {
-        RealtimeTutorialModalRequest? request = _tutorialFlow.Active;
+        RealtimeChapterStoryModalRequest? request = _chapterStoryFlow.Active;
         if (request is not
             {
-                Purpose: RealtimeTutorialModalPurpose.ChapterResult,
+                Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
             } ||
             !string.Equals(request.ModalId, closedModal.Id, StringComparison.Ordinal))
         {
@@ -1586,11 +1547,11 @@ internal sealed partial class RealtimeSliceMain : Control
         {
             return;
         }
-        CommercialCampaignChapterDefinition chapter = _data!.BaseCampaign.Chapters.Single(
+        CommercialCampaignChapterDefinition chapter = _data!.Campaign.Chapters.Single(
             item => string.Equals(
-                item.ChapterId,
+                item.Content.ChapterId,
                 request.ChapterId,
-                StringComparison.Ordinal));
+                StringComparison.Ordinal)).Content;
         bool promiseChapter = chapter.CityPromise is not null;
         bool autoDefaulted = _emittedTransitions.Any(item =>
             item.Kind == RealtimeTransitionKind.PromiseDefaulted &&
@@ -1663,14 +1624,14 @@ internal sealed partial class RealtimeSliceMain : Control
             return;
         }
 #endif
-        GD.Print(_data.SourceRoute ==
-            RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise
-                ? "FULL_FLOW_E2E_PASS:RELEASE_PREFIX_THROUGH_NORTH_BANK_PROMISE"
-                : "FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE");
+        GD.Print(_data.NativeRoute?.FullFlowPassToken ??
+            throw new InvalidOperationException(
+                "A cumulative native route has no full-flow evidence token."));
     }
 
-    private static bool IsSuccessfulFirstLightCompletion(
-        RealtimeCampaignSnapshot snapshot)
+    private static bool IsSuccessfulStandaloneCompletion(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeChapterDefinition selectedChapter)
     {
         if (!snapshot.CampaignComplete || snapshot.CompletedChapters.Count != 1)
         {
@@ -1679,7 +1640,7 @@ internal sealed partial class RealtimeSliceMain : Control
         RealtimeChapterOutcome chapter = snapshot.CompletedChapters[0];
         if (!string.Equals(
                 chapter.ChapterId,
-                FirstReleaseChapterId,
+                selectedChapter.Content.ChapterId,
                 StringComparison.Ordinal) ||
             chapter.Events.Count != 1)
         {
@@ -1688,7 +1649,7 @@ internal sealed partial class RealtimeSliceMain : Control
         RealtimeEventOutcome outcome = chapter.Events[0];
         return string.Equals(
                    outcome.EventId,
-                   RealtimeCampaignOverlayLoader.FirstReleaseEventId,
+                   selectedChapter.ScheduledEvents.Single().EventId,
                    StringComparison.Ordinal) &&
                outcome.SafetySatisfied &&
                outcome.SafetyUnservedMinutes == 0 &&
@@ -2227,11 +2188,6 @@ internal sealed partial class RealtimeSliceMain : Control
         (id.StartsWith("DRAFT_FORECAST:", StringComparison.Ordinal) ||
          id.StartsWith("DRAFT_THERMAL:", StringComparison.Ordinal));
 
-    private static bool IsCumulativeReleaseRoute(
-        RealtimeSliceSourceRoute? route) => route is
-        RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource or
-        RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise;
-
     private void SetPointerFeedback(bool accepted, string message)
     {
         _pointerAccepted = accepted;
@@ -2416,76 +2372,8 @@ internal sealed partial class RealtimeSliceMain : Control
         _interaction?.Simulation == RealtimeSimulationState.Ended ||
         _latestPresentation?.CoreSnapshot.CampaignComplete == true;
 
-    internal static RealtimeSliceSourceRoute ParseSourceRoute(string[] arguments)
-    {
-        ArgumentNullException.ThrowIfNull(arguments);
-        string[] releaseChapterArguments = arguments.Where(argument =>
-                argument.StartsWith(
-                    ReleaseChapterArgumentPrefix,
-                    StringComparison.Ordinal))
-            .ToArray();
-        string[] releaseThroughArguments = arguments.Where(argument =>
-                argument.StartsWith(
-                    ReleaseThroughArgumentPrefix,
-                    StringComparison.Ordinal))
-            .ToArray();
-        int releaseArgumentCount = checked(
-            releaseChapterArguments.Length + releaseThroughArguments.Length);
-        if (releaseArgumentCount == 0)
-        {
-#if DEBUG
-            if (arguments.Length == 1 &&
-                arguments[0].StartsWith("--checkpoint=", StringComparison.Ordinal) &&
-                RealtimeSliceCheckpointIds.IsKnown(
-                    arguments[0]["--checkpoint=".Length..]))
-            {
-                return RealtimeSliceSourceRoute.TechnicalCheckpointFixture;
-            }
-#endif
-            if (arguments.Length != 0)
-            {
-                throw new ArgumentException(
-                    "Unknown realtime release route user argument.");
-            }
-            return RealtimeSliceSourceRoute.TechnicalCheckpointFixture;
-        }
-        if (arguments.Length != 1 || releaseArgumentCount != 1)
-        {
-            throw new ArgumentException(
-                "Exactly one supported release route user argument is required.");
-        }
-        if (releaseChapterArguments.Length == 1)
-        {
-            string chapterId = releaseChapterArguments[0][
-                ReleaseChapterArgumentPrefix.Length..];
-            if (!string.Equals(chapterId, FirstReleaseChapterId, StringComparison.Ordinal))
-            {
-                throw new ArgumentException(
-                    $"Unknown release chapter '{chapterId}'. This gate exposes only " +
-                    $"{FirstReleaseChapterId}.");
-            }
-            return RealtimeSliceSourceRoute.ReleaseFirstLight;
-        }
-        string throughChapterId = releaseThroughArguments[0][
-            ReleaseThroughArgumentPrefix.Length..];
-        if (string.Equals(
-                throughChapterId,
-                TutorialFinalChapterId,
-                StringComparison.Ordinal))
-        {
-            return RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource;
-        }
-        if (string.Equals(
-                throughChapterId,
-                NorthBankFinalChapterId,
-                StringComparison.Ordinal))
-        {
-            return RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise;
-        }
-        throw new ArgumentException(
-            $"Unknown release prefix end '{throughChapterId}'. This gate exposes only " +
-            $"{TutorialFinalChapterId} or {NorthBankFinalChapterId}.");
-    }
+    internal static RealtimeNativeRoute? ParseSourceRoute(string[] arguments) =>
+        RealtimeNativeRouteCatalog.Parse(arguments);
 
     private RealtimeCampaignSnapshot PresentedCoreSnapshot =>
         _latestPresentation?.CoreSnapshot ??
@@ -2514,21 +2402,10 @@ internal sealed partial class RealtimeSliceMain : Control
 #if DEBUG
     internal void BootstrapForSmoke() => Bootstrap();
 
-    internal void BootstrapReleaseFirstLightForSmoke()
+    internal void BootstrapNativeReleaseForSmoke(RealtimeNativeRoute route)
     {
-        _sourceRoute = RealtimeSliceSourceRoute.ReleaseFirstLight;
-        Bootstrap();
-    }
-
-    internal void BootstrapReleaseTutorialForSmoke()
-    {
-        _sourceRoute = RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource;
-        Bootstrap();
-    }
-
-    internal void BootstrapReleaseThroughNorthBankForSmoke()
-    {
-        _sourceRoute = RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise;
+        ArgumentNullException.ThrowIfNull(route);
+        _nativeRoute = route;
         Bootstrap();
     }
 

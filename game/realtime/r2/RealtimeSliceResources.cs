@@ -71,7 +71,7 @@ internal static class RealtimeSliceResources
         RealtimeNativeRoute route)
     {
         ArgumentNullException.ThrowIfNull(assembly);
-        ArgumentNullException.ThrowIfNull(route);
+        route = RealtimeNativeRouteCatalog.RequireSupported(route);
         byte[] baseWorldBytes = Read(assembly, BaseWorldResource);
         byte[] baseCampaignBytes = Read(assembly, BaseCampaignResource);
         byte[] worldBytes = Read(assembly, ReleaseWorldResource);

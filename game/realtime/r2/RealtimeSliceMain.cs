@@ -258,7 +258,7 @@ internal sealed partial class RealtimeSliceMain : Control
         _data = _nativeRoute is null
             ? RealtimeSliceResources.LoadTechnicalFixture(assembly)
             : RealtimeSliceResources.LoadNativeRelease(assembly, _nativeRoute);
-        if (!Equals(_data.NativeRoute, _nativeRoute))
+        if (!ReferenceEquals(_data.NativeRoute, _nativeRoute))
         {
             throw new InvalidOperationException(
                 "Realtime slice resource route does not match its launch route.");

@@ -59,6 +59,18 @@ internal static class RealtimeNativeRouteCatalog
     internal static IReadOnlyList<RealtimeNativeRoute> All { get; } =
         Array.AsReadOnly(SupportedRoutes);
 
+    internal static RealtimeNativeRoute RequireSupported(RealtimeNativeRoute route)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+        if (!SupportedRoutes.Any(candidate => ReferenceEquals(candidate, route)))
+        {
+            throw new ArgumentException(
+                "Native R2 resources require a canonical catalog route.",
+                nameof(route));
+        }
+        return route;
+    }
+
     internal static RealtimeNativeRoute? Parse(string[] arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);

@@ -2179,6 +2179,26 @@ internal static class RealtimeR2Smoke
                   .SelectedChapterCount == 4,
             "native route catalog or explicit NORTH_BANK_PROMISE cap drifted",
             failures);
+        bool forgedRouteRejected = false;
+        try
+        {
+            _ = RealtimeSliceResources.LoadNativeRelease(
+                typeof(RealtimeSliceMain).Assembly,
+                RealtimeNativeRouteCatalog.ThroughNativeCoverage with
+                {
+                    EndChapterId = "WHOSE_MARGIN",
+                    SelectedChapterCount = 5,
+                    FullFlowPassToken = "FORGED_FULL_FLOW_PASS",
+                });
+        }
+        catch (ArgumentException)
+        {
+            forgedRouteRejected = true;
+        }
+        Check(
+            forgedRouteRejected,
+            "a cloned native route bypassed the canonical catalog/cap boundary",
+            failures);
         string[][] rejectedRoutes =
         [
             ["--release-through=SECOND_HEART"],

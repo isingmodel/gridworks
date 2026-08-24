@@ -154,20 +154,25 @@ internal sealed partial class RealtimeSliceMain
         IReadOnlyList<RealtimeTransition>? transitionHistory = null)
     {
         EnsureBootstrapped();
-        return RealtimeSlicePresenter.Present(
-            Session.Data.BaseWorld,
-            Session.Data.World,
+        return RealtimeSlicePresenter.Present(new RealtimePresentationSource(
+            Session.Data,
             snapshot,
+            snapshot.Forecast,
             Session.GetComparisonDraftForecast(),
             interaction ?? Session.InteractionState,
             Session.PresentationRevision,
-            nodeOrderQuote: snapshot.Construction.NodeDraft is not null
+            new RealtimeWorldPointerFeedback(null, true, string.Empty),
+            ReduceMotion: false,
+            NodeOrderQuote: snapshot.Construction.NodeDraft is not null
                 ? Session.PreviewNodeOrder()
                 : null,
-            lineOrderQuote: snapshot.Construction.LineDraft is { EndNodeId: not null }
+            LineOrderQuote: snapshot.Construction.LineDraft is { EndNodeId: not null }
                 ? Session.PreviewLineOrder()
                 : null,
-            transitionHistory: transitionHistory);
+            transitionHistory ?? Array.Empty<RealtimeTransition>(),
+            ActiveStoryRequest: null,
+            StoryResultAdvancesCalendar: false,
+            SuccessfulStandaloneCompletion: false));
     }
 
     internal RealtimeProjectQuote PreviewNodeOrderForSmoke()

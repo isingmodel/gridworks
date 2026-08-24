@@ -2506,8 +2506,8 @@ internal static class RealtimeSlicePresenter
             string rejection = active is not null
                 ? DisabledConstructionReason(active)
                 : quote.ConstructionError.HasValue
-                    ? RealtimeSliceMain.ConstructionErrorText(quote.ConstructionError)
-                    : RealtimeSliceMain.RealtimeRunErrorText(quote.Error);
+                    ? ConstructionErrorText(quote.ConstructionError)
+                    : RealtimeRunErrorText(quote.Error);
             return $"발주 불가 · {rejection}";
         }
         if (quote is not
@@ -2533,6 +2533,58 @@ internal static class RealtimeSlicePresenter
         string fallback) => string.IsNullOrWhiteSpace(message)
         ? fallback
         : $"{(accepted ? "✓" : "!")} {message}\n{fallback}";
+
+    internal static string ConstructionErrorText(ConstructionError? error) => error switch
+    {
+        null => "알 수 없는 공간 규칙 오류입니다.",
+        ConstructionError.WrongPhase => "지금은 이 공사 단계를 실행할 수 없습니다.",
+        ConstructionError.UnknownNodeClass or
+        ConstructionError.InvalidNodeClass or
+        ConstructionError.UnknownLineClass or
+        ConstructionError.UnknownPoleClass or
+        ConstructionError.InvalidPoleClass => "선택한 공사 등급을 사용할 수 없습니다.",
+        ConstructionError.OutsideBounds => "설비 전체가 지도 안에 들어오도록 옮기세요.",
+        ConstructionError.WaterFootprint => "물 위에는 설비를 놓을 수 없습니다.",
+        ConstructionError.BuildingFootprint => "건물 점유영역을 피하세요.",
+        ConstructionError.PositionOccupied => "다른 설비와 겹치지 않도록 간격을 두세요.",
+        ConstructionError.ExistingLineTouch => "기존 선로와 닿지 않는 위치를 고르세요.",
+        ConstructionError.EndpointNotFound => "연결할 접속 설비가 없습니다.",
+        ConstructionError.EndpointNotCommissioned => "완공된 접속 설비만 연결할 수 있습니다.",
+        ConstructionError.SameEndpoint => "시작점과 다른 접속 설비를 선택하세요.",
+        ConstructionError.ConnectionLimit => "이 설비의 접속 회선 한도를 넘습니다.",
+        ConstructionError.SpanTooLong => "허용 경간을 넘습니다. 중간 경로점을 추가하세요.",
+        ConstructionError.ZeroLengthSegment => "같은 위치에 경로점을 연속으로 둘 수 없습니다.",
+        ConstructionError.ThirdNodeTouch => "연결 대상이 아닌 다른 설비와 닿습니다.",
+        ConstructionError.DuplicateSegment => "같은 접속점을 잇는 선로가 이미 있습니다.",
+        ConstructionError.CollinearOverlap => "기존 선로와 같은 방향으로 포개집니다.",
+        ConstructionError.BuildingCrossing => "선로가 건물을 가로지릅니다.",
+        ConstructionError.DraftIncomplete => "다른 접속 설비까지 경로를 이어야 합니다.",
+        ConstructionError.NothingToUndo => "되돌릴 경로점이 없습니다.",
+        ConstructionError.InvalidPointIndex => "옮길 경로점을 찾지 못했습니다.",
+        ConstructionError.ArithmeticOverflow => "좌표나 견적이 계산 범위를 벗어났습니다.",
+        ConstructionError.InvalidCompletion => "완공 결과가 공간 규칙을 만족하지 않습니다.",
+        _ => throw new ArgumentOutOfRangeException(nameof(error)),
+    };
+
+    internal static string RealtimeRunErrorText(RealtimeRunError? error) => error switch
+    {
+        null => "입력 원인을 확인하지 못했습니다.",
+        RealtimeRunError.WrongState => "현재 운영 상태에서는 실행할 수 없습니다.",
+        RealtimeRunError.InvalidCommandShape => "입력 순서가 올바르지 않습니다.",
+        RealtimeRunError.ToolUnavailable => "이 임무에서 사용할 수 없는 공사입니다.",
+        RealtimeRunError.ConstructionRejected => "공간·공사 규칙을 만족하지 않습니다.",
+        RealtimeRunError.InsufficientCash => "운영 자금이 부족합니다.",
+        RealtimeRunError.PromiseUnavailable => "지금은 운영 약속을 선택할 수 없습니다.",
+        RealtimeRunError.PromiseDeadlinePassed => "운영 약속 선택 시간이 지났습니다.",
+        RealtimeRunError.ClockMismatch => "시각이 바뀌었습니다. 현재 상태를 다시 확인하세요.",
+        RealtimeRunError.SequenceMismatch => "다른 입력이 먼저 처리되었습니다. 다시 시도하세요.",
+        RealtimeRunError.TimeInPast => "지난 시각에는 공사 입력을 적용할 수 없습니다.",
+        RealtimeRunError.CommandLimit => "이 운영 기록에 더 많은 입력을 저장할 수 없습니다.",
+        RealtimeRunError.ArithmeticOverflow => "비용이나 시각이 계산 범위를 벗어났습니다.",
+        _ => throw new ArgumentOutOfRangeException(nameof(error)),
+    };
+
+    internal static string TimeText(long minute) => Time(minute);
 
     private static string JoinAssetNames(
         CommercialWorldDefinition displayWorld,

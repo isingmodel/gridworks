@@ -105,7 +105,29 @@ R2 save/package 또는 출시 승인을 뜻하지 않는다.
 UX-R0 context 보존, 설비 catalog·용어·역사 링크와 source 주석을 바로잡았다. 이는 문서와 동결 입력의
 정합성 보완이며 새로운 gameplay, package 또는 UX 점수 완료를 뜻하지 않는다.
 
-## 7. 이 문서가 소유하지 않는 항목
+## 7. R2 개발 구조 단순화
+
+current R2를 새 gameplay 없이 더 적은 권위·분기·파일 fan-out으로 변경할 수 있게 정리했다.
+
+- root `Gridworks.sln`과 `./dev`를 current Core/Game/check의 단일 개발 진입점으로 만들고 historical
+  Product/V1/check graph와 동결 V2 `ExportRelease`를 분리했다.
+- release route와 native 4장 cap을 `RealtimeNativeRouteCatalog` 하나로 묶고, chapter별 host/loader
+  분기 대신 generic story flow가 strict V2 base와 V3 overlay를 소비하게 했다.
+- Godot main에서 plain C# `RealtimeSession`을 분리해 main을 441줄 scene/input/publication adapter로
+  줄였다. intent, action, tool, modal, timeline과 raw input은 명시적 capability에서 fail-closed한다.
+- 화면은 한 `RealtimePresentationSource`에서 한 번 조립한다. modal의 이중 projection을 제거하고,
+  1,968줄 presenter를 158줄 facade와 world/timeline/context/construction/shell/modal component로 나눴다.
+  component끼리는 호출하지 않고 facade만 최종 immutable presentation을 조립한다.
+- stable ID, 문구, timeline 정책과 target resolution을 leaf authority로 분리하고 full ID 형식을 독립
+  assertion으로 고정했다.
+- [개발 구조](../ARCHITECTURE.md)에 규칙·application·presentation·Godot ownership과 chapter/mechanic/
+  presentation 변경 경로를 기록했다.
+
+Debug/Release build, current check suites, Python 회귀, 두 named checkpoint의 기존 canonical hash와 전체
+Godot UI harness를 유지했다. 이 완료는 compile 시간 개선, 새 chapter/title/save/package 또는 사람 UX
+품질을 주장하지 않는다.
+
+## 8. 이 문서가 소유하지 않는 항목
 
 현재 상태와 모든 미완료 항목·순서는 [루트 README](../../README.md)와
 [남은 작업](../NEXT_TASKS.md)만 소유한다. 이 완료 이력의 경계 문장을 current backlog로 복사해 갱신하지

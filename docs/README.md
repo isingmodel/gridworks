@@ -7,15 +7,17 @@
 
 1. [루트 README](../README.md) — 게임과 현재 실행 상태
 2. [현재 작업 범위](ACTIVE_SCOPE.md) — 지금 허용된 변경
-3. [남은 작업](NEXT_TASKS.md) — 다음 후보와 완료 조건
-4. 필요한 제품 문서 — 게임·비주얼·오브젝트·평가 기준
-5. [완료 이력](archive/COMPLETED_HISTORY.md) — 과거 task 요약
+3. [개발 구조](ARCHITECTURE.md) — current R2의 권위와 변경 경로
+4. [남은 작업](NEXT_TASKS.md) — 다음 후보와 완료 조건
+5. 필요한 제품 문서 — 게임·비주얼·오브젝트·평가 기준
+6. [완료 이력](archive/COMPLETED_HISTORY.md) — 과거 task 요약
 
 ## 질문별 문서
 
 | 질문 | 문서 |
 |---|---|
 | 지금 구현해도 되는가? | [ACTIVE_SCOPE.md](ACTIVE_SCOPE.md) |
+| current R2를 어디서 이해하고 변경하는가? | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | 무엇이 남았고 어떤 순서인가? | [NEXT_TASKS.md](NEXT_TASKS.md) |
 | 최종 게임은 어떤 경험인가? | [GAME_DESIGN_KO.md](product/GAME_DESIGN_KO.md) |
 | 화면과 아트의 통과 기준은? | [VISUAL_PRODUCTION_SPEC.md](product/VISUAL_PRODUCTION_SPEC.md) |

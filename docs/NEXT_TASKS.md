@@ -17,6 +17,11 @@
 - R2 save/resume, 남은 4장, finale/epilogue, product audio·settings, current R2 패키지와 공식 UX 점수는
   없다.
 
+다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
+연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
+새 mechanic은 Core→intent/capability→Session→typed presentation→Godot adapter 순서로 연결한다. 화면
+표현만 바꾸는 작업은 presenter와 owning UI에서 시작하며 Core hash를 바꾸지 않는다.
+
 ## 권장 순서
 
 ### 1. 제품 title과 새 게임 경로 확정
@@ -36,7 +41,7 @@
 
 ### 2. 누적 4장 직접 플레이 검증
 
-`--release-through=NORTH_BANK_PROMISE`를 fresh process에서 플레이해 첫 3장의 실제 망·현금·시계가
+`./dev play through NORTH_BANK_PROMISE`를 fresh process에서 플레이해 첫 3장의 실제 망·현금·시계가
 4장으로 이어지는지 확인한다. 6개월 달력 전환, 약속 기한 marker와 Keep/Defer 결과를 모두 다룬다.
 
 완료 기준:
@@ -159,9 +164,9 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 
 | 질문 | 가장 작은 올바른 시작점 |
 |---|---|
-| 문장·결과 하나가 맞는가? | `--story-part <selector>` |
-| 특정 시각의 UI/Core 상태가 맞는가? | named checkpoint |
-| 한 장의 누적 전환이 맞는가? | 해당 장까지의 release route |
+| 문장·결과 하나가 맞는가? | `./dev story <selector>` |
+| 특정 시각의 UI/Core 상태가 맞는가? | `./dev checkpoint <CHECKPOINT_ID>` |
+| 한 장의 누적 전환이 맞는가? | `./dev play through <CHAPTER_ID>` |
 | 첫 경험·저장·누적 선택·전체 완결성이 맞는가? | fresh-process E2E |
 | 미감·이해·재미가 충분한가? | 실제 화면의 사람/LLM 관찰 |
 

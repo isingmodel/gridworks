@@ -1,19 +1,14 @@
 # Commercial G.3 individual runtime assets
 
-> **Historical provenance ledger.** This file preserves generation inputs and processing records; it is
-> not a current task plan, runtime manifest, or package claim. The current live R2 set is 57 PNGs
-> (50 map, 7 UI) as summarized in [`ASSET_MANIFEST.md`](../../../ASSET_MANIFEST.md). Historical paths,
-> counts, dispositions, and digests below describe their own production stage and are not current state.
-
 G.3 keeps every object and tile as a separately generated/runtime-bound file. No reference screenshot,
 target mockup, whole-map plate, atlas crop, or screenshot pixel is shipped as scenery. This ledger records
 the exact ImageGen source, extraction, and final runtime hash for each added asset.
 
-At that historical production checkpoint, exactly 29 PNGs remained under `game/art/commercial/g3` and every
-one was scene-bound. Later realtime work expanded and replaced that checkpoint. The 23 composite/unbound
-outputs moved to `playtests/commercial-2d/g3-rejected-composites/`; their entries are provenance only, and
-any old `g3/...` path in those sections may no longer be a current runtime path. The Step 1 city kit at that
-time was the 12-row atomic table below plus six atomic road tiles and explicit placement records.
+Current package authority is stricter than the historical entries below: exactly 29 PNGs remain under
+`game/art/commercial/g3`, and every one is scene-bound. The 23 superseded composite/unbound outputs were
+moved to `playtests/commercial-2d/g3-rejected-composites/`; their entries are provenance only and any old
+`g3/...` path in those historical sections is not a current runtime path. The accepted Step 1 city kit is
+the 12-row atomic table below plus six atomic road tiles and explicit placement records.
 
 ## `g3/tiles/ground-rubble-relief-c.png`
 

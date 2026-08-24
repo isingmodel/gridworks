@@ -21,7 +21,9 @@
 ## 2. 현재 R2 G3 runtime 자산
 
 `game/art/commercial/g3/` 아래 PNG 57개가 live R2에 연결돼 있다. 제작 과정과 prompt provenance는
-`game/art/commercial/g3-assets.prompts.md`에 보존한다.
+`game/art/commercial/g3-assets.prompts.md`에 byte 고정된 역사 ledger로 보존한다. 그 ledger 도입부의
+“current package 29개”는 당시 G3 생산 checkpoint의 문구이며 지금의 runtime 수량이나 package 상태가
+아니다. 현재 수량과 사용 경계는 이 문서가 소유한다.
 
 | 그룹 | 수량 | 현재 사용 |
 |---|---:|---|

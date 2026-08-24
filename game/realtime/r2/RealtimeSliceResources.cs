@@ -7,14 +7,6 @@ using Gridworks.Core.Release.V3;
 
 namespace Gridworks.Game.Realtime.R2;
 
-internal enum RealtimeSliceSourceRoute
-{
-    TechnicalCheckpointFixture,
-    ReleaseFirstLight,
-    ReleaseTutorialThroughSecondSource,
-    ReleaseThroughNorthBankPromise,
-}
-
 internal sealed record RealtimeSliceData(
     CommercialWorldDefinition BaseWorld,
     CommercialCampaignDefinition BaseCampaign,
@@ -24,7 +16,7 @@ internal sealed record RealtimeSliceData(
     string BaseCampaignSha256,
     string WorldSha256,
     string CampaignSha256,
-    RealtimeSliceSourceRoute SourceRoute,
+    RealtimeNativeRoute? NativeRoute,
     string? CampaignOverlaySha256,
     string? FullComposedCampaignSha256);
 
@@ -43,7 +35,7 @@ internal static class RealtimeSliceResources
     internal const string ReleaseCampaignOverlayResource =
         "Gridworks.Game.EmbeddedData.release-campaign-v3.json";
 
-    internal static RealtimeSliceData Load(Assembly assembly)
+    internal static RealtimeSliceData LoadTechnicalFixture(Assembly assembly)
     {
         ArgumentNullException.ThrowIfNull(assembly);
         byte[] baseWorldBytes = Read(assembly, BaseWorldResource);
@@ -69,56 +61,17 @@ internal static class RealtimeSliceResources
             Sha256(baseCampaignBytes),
             Sha256(worldBytes),
             Sha256(campaignBytes),
-            RealtimeSliceSourceRoute.TechnicalCheckpointFixture,
+            null,
             null,
             null);
     }
 
-    internal static RealtimeSliceData LoadReleaseFirstLight(Assembly assembly)
+    internal static RealtimeSliceData LoadNativeRelease(
+        Assembly assembly,
+        RealtimeNativeRoute route)
     {
         ArgumentNullException.ThrowIfNull(assembly);
-        byte[] baseWorldBytes = Read(assembly, BaseWorldResource);
-        byte[] baseCampaignBytes = Read(assembly, BaseCampaignResource);
-        byte[] worldBytes = Read(assembly, ReleaseWorldResource);
-        byte[] campaignOverlayBytes = Read(
-            assembly,
-            ReleaseCampaignOverlayResource);
-
-        CommercialWorldDefinition baseWorld = CommercialWorldLoader.Load(baseWorldBytes);
-        RealtimeWorldDefinition world = RealtimeWorldLoader.Load(worldBytes, baseWorld);
-        RealtimeCampaignOverlayLoadResult loaded =
-            RealtimeCampaignOverlayLoader.LoadFirstLight(
-                baseCampaignBytes,
-                campaignOverlayBytes,
-                world);
-        RealtimeCampaignOverlaySourceIdentity identity = loaded.SourceIdentity;
-        if (!string.Equals(
-                identity.BaseCampaignSha256,
-                Sha256(baseCampaignBytes),
-                StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "Release FIRST_LIGHT base-campaign source identity drifted.");
-        }
-
-        return new RealtimeSliceData(
-            baseWorld,
-            loaded.Campaign.Content,
-            world,
-            loaded.Campaign,
-            Sha256(baseWorldBytes),
-            identity.BaseCampaignSha256,
-            Sha256(worldBytes),
-            identity.SelectedComposedCampaignSha256,
-            RealtimeSliceSourceRoute.ReleaseFirstLight,
-            identity.RealtimeOverlaySha256,
-            identity.FullComposedCampaignSha256);
-    }
-
-    internal static RealtimeSliceData LoadReleaseTutorialThroughSecondSource(
-        Assembly assembly)
-    {
-        ArgumentNullException.ThrowIfNull(assembly);
+        route = RealtimeNativeRouteCatalog.RequireSupported(route);
         byte[] baseWorldBytes = Read(assembly, BaseWorldResource);
         byte[] baseCampaignBytes = Read(assembly, BaseCampaignResource);
         byte[] worldBytes = Read(assembly, ReleaseWorldResource);
@@ -133,7 +86,7 @@ internal static class RealtimeSliceResources
                 baseCampaignBytes,
                 campaignOverlayBytes,
                 world,
-                chapterCount: 3);
+                route.SelectedChapterCount);
         RealtimeCampaignOverlaySourceIdentity identity = loaded.SourceIdentity;
         if (!string.Equals(
                 identity.BaseCampaignSha256,
@@ -141,7 +94,17 @@ internal static class RealtimeSliceResources
                 StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
-                "Release tutorial base-campaign source identity drifted.");
+                $"Release '{route.EndChapterId}' base-campaign source identity drifted.");
+        }
+        if (identity.SelectedChapterCount != route.SelectedChapterCount ||
+            loaded.Campaign.Chapters.Count != route.SelectedChapterCount ||
+            !string.Equals(
+                loaded.Campaign.Chapters[^1].Content.ChapterId,
+                route.EndChapterId,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(
+                $"Release route '{route.LaunchArgument}' selected an unexpected prefix.");
         }
 
         return new RealtimeSliceData(
@@ -153,50 +116,7 @@ internal static class RealtimeSliceResources
             identity.BaseCampaignSha256,
             Sha256(worldBytes),
             identity.SelectedComposedCampaignSha256,
-            RealtimeSliceSourceRoute.ReleaseTutorialThroughSecondSource,
-            identity.RealtimeOverlaySha256,
-            identity.FullComposedCampaignSha256);
-    }
-
-    internal static RealtimeSliceData LoadReleaseThroughNorthBankPromise(
-        Assembly assembly)
-    {
-        ArgumentNullException.ThrowIfNull(assembly);
-        byte[] baseWorldBytes = Read(assembly, BaseWorldResource);
-        byte[] baseCampaignBytes = Read(assembly, BaseCampaignResource);
-        byte[] worldBytes = Read(assembly, ReleaseWorldResource);
-        byte[] campaignOverlayBytes = Read(
-            assembly,
-            ReleaseCampaignOverlayResource);
-
-        CommercialWorldDefinition baseWorld = CommercialWorldLoader.Load(baseWorldBytes);
-        RealtimeWorldDefinition world = RealtimeWorldLoader.Load(worldBytes, baseWorld);
-        RealtimeCampaignOverlayLoadResult loaded =
-            RealtimeCampaignOverlayLoader.LoadPrefix(
-                baseCampaignBytes,
-                campaignOverlayBytes,
-                world,
-                chapterCount: 4);
-        RealtimeCampaignOverlaySourceIdentity identity = loaded.SourceIdentity;
-        if (!string.Equals(
-                identity.BaseCampaignSha256,
-                Sha256(baseCampaignBytes),
-                StringComparison.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "Release NORTH_BANK_PROMISE base-campaign source identity drifted.");
-        }
-
-        return new RealtimeSliceData(
-            baseWorld,
-            loaded.Campaign.Content,
-            world,
-            loaded.Campaign,
-            Sha256(baseWorldBytes),
-            identity.BaseCampaignSha256,
-            Sha256(worldBytes),
-            identity.SelectedComposedCampaignSha256,
-            RealtimeSliceSourceRoute.ReleaseThroughNorthBankPromise,
+            route,
             identity.RealtimeOverlaySha256,
             identity.FullComposedCampaignSha256);
     }

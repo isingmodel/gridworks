@@ -279,6 +279,7 @@ internal sealed partial class RealtimeSliceMain
                 $"Unknown targeted checkpoint. Expected one of: {string.Join(", ", RealtimeSliceCheckpointIds.All)}.");
         }
         EnsureBootstrapped();
+        RealtimeSession session = RequireSession();
         if (!IsInsideTree() || _worldView is null || _ui is null)
         {
             throw new InvalidOperationException(
@@ -292,16 +293,16 @@ internal sealed partial class RealtimeSliceMain
 
         SetProcess(false);
         Require(
-            _run!.AcceptedCommands.Count == 0 &&
-            _run.Minute == _data!.Campaign.InitialSeed.StartMinute,
+            session.AcceptedCommandCount == 0 &&
+            session.CurrentMinute == session.Data.Campaign.InitialSeed.StartMinute,
             "checkpoint entry did not begin from the exact embedded fixture baseline");
         Require(
-            _interaction!.ActiveModalId == "CHAPTER_BRIEFING" &&
-            _interaction.Surface == RealtimeSurface.BlockingModal,
+            session.InteractionState.ActiveModalId == RealtimeR2Ids.ChapterBriefingModal &&
+            session.InteractionState.Surface == RealtimeSurface.BlockingModal,
             "checkpoint entry did not begin at the authored chapter briefing boundary");
 
         RequireAccepted(
-            ApplyIntent(RealtimeR2Intent.CloseModal("CHAPTER_BRIEFING")),
+            ApplyIntent(RealtimeR2Intent.CloseModal(RealtimeR2Ids.ChapterBriefingModal)),
             "close chapter briefing");
 
         string stateCreationMethod;
@@ -331,7 +332,7 @@ internal sealed partial class RealtimeSliceMain
         }
 
         NormalizeCheckpointInteraction();
-        RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
+        RealtimeCampaignSnapshot snapshot = session.CoreSnapshot;
         RealtimeSliceCheckpointFact fact = BuildCheckpointFact(
             checkpointId,
             stateCreationMethod,
@@ -346,22 +347,23 @@ internal sealed partial class RealtimeSliceMain
         RealtimeSliceCheckpointFact checkpoint)
     {
         ArgumentNullException.ThrowIfNull(checkpoint);
+        RealtimeSession session = RequireSession();
         Require(ReferenceEquals(checkpoint, _enteredTargetedCheckpoint),
             "checkpoint segment did not use the fact returned by this scene entry");
         VerifyCheckpointEntry(checkpoint);
 
-        long startRevision = _presentationRevision;
-        int startCommandCount = _run!.AcceptedCommands.Count;
+        long startRevision = session.PresentationRevision;
+        int startCommandCount = session.AcceptedCommandCount;
         IReadOnlyDictionary<RealtimePointerOwner, int> startClicks =
             FrozenClickCounters();
 
         _ui!.TopHudForSmoke.PressSpeedForSmoke(RealtimeSimulationSpeed.Normal);
         Require(
-            _interaction!.Simulation == RealtimeSimulationState.Running &&
-            _interaction.RunningSpeed == RealtimeSimulationSpeed.Normal &&
-            _interaction.PauseReason == RealtimePauseReason.None,
+            session.InteractionState.Simulation == RealtimeSimulationState.Running &&
+            session.InteractionState.RunningSpeed == RealtimeSimulationSpeed.Normal &&
+            session.InteractionState.PauseReason == RealtimePauseReason.None,
             "the actual HUD speed signal did not resume the production controller");
-        Require(_presentationRevision == startRevision + 1,
+        Require(session.PresentationRevision == startRevision + 1,
             "the resume input did not publish exactly one presentation");
 
         RealtimeR2FrameResult frame = InjectExactFrames(
@@ -372,19 +374,20 @@ internal sealed partial class RealtimeSliceMain
                 frame.Frame is { AppliedMinutes: 1, CatchUpCeilingReached: false } &&
                 frame.RetainedFrameDebt.Count == 0,
             "the bounded frame segment was not exactly one simulation minute");
-        Require(_run.Minute == checkpoint.StartMinute + checkpoint.AllowedAdvanceMinutes,
+        Require(session.CurrentMinute ==
+                checkpoint.StartMinute + checkpoint.AllowedAdvanceMinutes,
             "the bounded frame segment ended at the wrong minute");
-        Require(_run.AcceptedCommands.Count == startCommandCount,
+        Require(session.AcceptedCommandCount == startCommandCount,
             "no-click time flow appended a Core command");
         Require(startClicks.All(item => item.Value == 0) &&
                 FrozenClickCounters().All(item => item.Value == 0),
             "the no-click segment routed a pointer click");
-        Require(_presentationRevision == startRevision + 2 &&
+        Require(session.PresentationRevision == startRevision + 2 &&
                 frame.PresentationRevisionDelta == 1,
             "resume plus one-minute frame did not publish exactly two presentations");
 
-        RealtimeCampaignSnapshot end = _run.GetSnapshot();
-        Require(string.Equals(_run.GetCanonicalStateSha256(),
+        RealtimeCampaignSnapshot end = session.CoreSnapshot;
+        Require(string.Equals(session.CanonicalStateSha256,
                     checkpoint.ExpectedEndCanonicalStateSha256,
                     StringComparison.Ordinal),
             "checkpoint end canonical identity drifted from its frozen contract");
@@ -410,9 +413,9 @@ internal sealed partial class RealtimeSliceMain
         return new RealtimeSliceCheckpointSegmentResult(
             checkpoint,
             end.Minute,
-            _run.GetCanonicalStateSha256(),
+            session.CanonicalStateSha256,
             startRevision,
-            _presentationRevision,
+            session.PresentationRevision,
             frame.Transitions,
             expectedNodes,
             expectedEdges);
@@ -422,6 +425,7 @@ internal sealed partial class RealtimeSliceMain
         RealtimeSliceCheckpointFact checkpoint)
     {
         ArgumentNullException.ThrowIfNull(checkpoint);
+        RealtimeSession session = RequireSession();
         Require(ReferenceEquals(checkpoint, _enteredTargetedCheckpoint),
             "interactive checkpoint did not use the fact returned by scene entry");
         Require(_interactiveCheckpoint is null,
@@ -429,10 +433,10 @@ internal sealed partial class RealtimeSliceMain
         VerifyCheckpointEntry(checkpoint);
         _interactiveCheckpoint = new InteractiveCheckpointState(
             checkpoint,
-            _presentationRevision,
-            _run!.AcceptedCommands.Count,
+            session.PresentationRevision,
+            session.AcceptedCommandCount,
             FrozenClickCounters(),
-            _emittedTransitions.Count);
+            session.EmittedTransitions.Count);
         // Entry deliberately freezes the autonomous clock. The interactive host
         // re-enables the real production callback, but the paused accumulator
         // remains stable until the player chooses 1x through the production UI.
@@ -446,45 +450,46 @@ internal sealed partial class RealtimeSliceMain
         InteractiveCheckpointState state = _interactiveCheckpoint ??
             throw new InvalidOperationException(
                 "Interactive checkpoint completion was requested before arming.");
+        RealtimeSession session = RequireSession();
         RealtimeSliceCheckpointFact checkpoint = state.Checkpoint;
         long expectedMinute = checked(
             checkpoint.StartMinute + checkpoint.AllowedAdvanceMinutes);
-        if (_run!.Minute < expectedMinute)
+        if (session.CurrentMinute < expectedMinute)
         {
             return false;
         }
 
         SetProcess(false);
-        Require(_run.Minute == expectedMinute,
+        Require(session.CurrentMinute == expectedMinute,
             "interactive production clock crossed more than the allowed minute");
-        Require(_run.AcceptedCommands.Count == state.StartCommandCount,
+        Require(session.AcceptedCommandCount == state.StartCommandCount,
             "interactive no-map-click time flow appended a Core command");
         Require(state.StartClicks.All(item => item.Value == 0) &&
                 FrozenClickCounters().All(item => item.Value == 0),
             "interactive checkpoint routed a map pointer click");
-        Require(_interaction!.Simulation == RealtimeSimulationState.Running &&
-                _interaction.RunningSpeed == RealtimeSimulationSpeed.Normal &&
-                _interaction.PauseReason == RealtimePauseReason.None,
+        Require(session.InteractionState.Simulation == RealtimeSimulationState.Running &&
+                session.InteractionState.RunningSpeed == RealtimeSimulationSpeed.Normal &&
+                session.InteractionState.PauseReason == RealtimePauseReason.None,
             "interactive checkpoint did not advance from the production 1x state");
-        Require(_presentationRevision == state.StartPresentationRevision + 2,
+        Require(session.PresentationRevision == state.StartPresentationRevision + 2,
             "interactive 1x input plus one-minute boundary did not publish exactly two presentations");
-        Require(_retainedFrameDebt.Count == 0 &&
-                _frame!.GetSnapshot() is
+        Require(session.RetainedFrameDebt.Count == 0 &&
+                session.AccumulatorSnapshot is
                 {
                     PendingWholeMinutes: 0,
                     FractionalMinuteUnits: 0,
                 },
             "interactive checkpoint did not stop on the exact minute boundary");
 
-        RealtimeCampaignSnapshot end = _run.GetSnapshot();
-        string endHash = _run.GetCanonicalStateSha256();
+        RealtimeCampaignSnapshot end = session.CoreSnapshot;
+        string endHash = session.CanonicalStateSha256;
         Require(string.Equals(
                 endHash,
                 checkpoint.ExpectedEndCanonicalStateSha256,
                 StringComparison.Ordinal),
             "interactive checkpoint end canonical identity drifted from its frozen contract");
         VerifyCommonEnd(checkpoint, end);
-        RealtimeTransition[] transitions = _emittedTransitions
+        RealtimeTransition[] transitions = session.EmittedTransitions
             .Skip(state.StartTransitionCount)
             .ToArray();
         IReadOnlyList<string> expectedNodes =
@@ -510,7 +515,7 @@ internal sealed partial class RealtimeSliceMain
             end.Minute,
             endHash,
             state.StartPresentationRevision,
-            _presentationRevision,
+            session.PresentationRevision,
             transitions,
             expectedNodes,
             expectedEdges);
@@ -522,13 +527,14 @@ internal sealed partial class RealtimeSliceMain
     private void StopInteractiveTargetAtBoundaryForDebug()
     {
         InteractiveCheckpointState? state = _interactiveCheckpoint;
-        if (state is null || _run is null)
+        if (state is null || _session is null)
         {
             return;
         }
+        RealtimeSession session = RequireSession();
         long expectedMinute = checked(
             state.Checkpoint.StartMinute + state.Checkpoint.AllowedAdvanceMinutes);
-        if (_run.Minute >= expectedMinute)
+        if (session.CurrentMinute >= expectedMinute)
         {
             SetProcess(false);
         }
@@ -538,22 +544,25 @@ internal sealed partial class RealtimeSliceMain
         long requestedFrames)
     {
         InteractiveCheckpointState? state = _interactiveCheckpoint;
-        if (state is null || requestedFrames <= 0 || _run is null ||
-            _frame is null || _interaction is null ||
-            _interaction.Simulation != RealtimeSimulationState.Running)
+        if (state is null || requestedFrames <= 0 || _session is null)
+        {
+            return requestedFrames;
+        }
+        RealtimeSession session = RequireSession();
+        if (session.InteractionState.Simulation != RealtimeSimulationState.Running)
         {
             return requestedFrames;
         }
         long expectedMinute = checked(
             state.Checkpoint.StartMinute + state.Checkpoint.AllowedAdvanceMinutes);
-        if (_run.Minute >= expectedMinute)
+        if (session.CurrentMinute >= expectedMinute)
         {
             return 0;
         }
-        RealtimeFrameAccumulatorSnapshot timing = _frame.GetSnapshot();
+        RealtimeFrameAccumulatorSnapshot timing = session.AccumulatorSnapshot;
         int unitsPerFrame = checked(
             RealtimeFrameAccumulator.UnitsPerMinute /
-            CheckpointFramesPerSecond * (int)_interaction.RunningSpeed);
+            CheckpointFramesPerSecond * (int)session.InteractionState.RunningSpeed);
         int unitsUntilBoundary = checked(
             RealtimeFrameAccumulator.UnitsPerMinute -
             timing.FractionalMinuteUnits);
@@ -567,14 +576,15 @@ internal sealed partial class RealtimeSliceMain
         RealtimeSliceCheckpointSegmentResult segment)
     {
         ArgumentNullException.ThrowIfNull(segment);
+        RealtimeSession session = RequireSession();
         Require(ReferenceEquals(segment.Checkpoint, _enteredTargetedCheckpoint),
             "checkpoint completion belongs to a different scene entry");
-        Require(_run!.Minute == segment.EndMinute &&
-                string.Equals(_run.GetCanonicalStateSha256(),
+        Require(session.CurrentMinute == segment.EndMinute &&
+                string.Equals(session.CanonicalStateSha256,
                     segment.EndCanonicalStateSha256,
                     StringComparison.Ordinal),
             "Core state changed while the renderer settled");
-        Require(_presentationRevision == segment.EndPresentationRevision,
+        Require(session.PresentationRevision == segment.EndPresentationRevision,
             "presentation changed while the renderer settled");
 
         IRealtimeWorldCheckpointEvidenceView evidenceView =
@@ -587,8 +597,9 @@ internal sealed partial class RealtimeSliceMain
             _ui!.TopHudForSmoke.CaptureTargetedCheckpointHudFact();
         RealtimeSliceCheckpointFact checkpoint = segment.Checkpoint;
         Require(render.Minute == segment.EndMinute &&
-                render.WorldSchemaVersion == _run.GetSnapshot().Construction.World.SchemaVersion &&
-                render.WorldId == _run.GetSnapshot().Construction.World.WorldId,
+                render.WorldSchemaVersion ==
+                    session.CoreSnapshot.Construction.World.SchemaVersion &&
+                render.WorldId == session.CoreSnapshot.Construction.World.WorldId,
             "the actual world renderer did not consume the final authoritative world");
         Require(render.SelectedAssetId == checkpoint.ExpectedSelectionId &&
                 render.Tool == checkpoint.ExpectedTool &&
@@ -603,13 +614,14 @@ internal sealed partial class RealtimeSliceMain
                     render.CommissionedEdgeIds.Contains(id, StringComparer.Ordinal) &&
                     render.DrawnStateCueAssetIds.Contains(id, StringComparer.Ordinal)),
             "the actual world draw path omitted a newly commissioned construction asset");
-        Require(string.Equals(hud.ClockText, _latestPresentation!.Hud.Clock,
+        Require(string.Equals(hud.ClockText, session.LatestPresentation.Hud.Clock,
                     StringComparison.Ordinal) &&
                 hud.PressedSpeed == RealtimeSimulationSpeed.Normal,
             "the actual HUD did not consume the final clock/speed presentation");
-        Require(_latestPresentation.CoreSnapshot.Minute == segment.EndMinute &&
+        Require(session.LatestPresentation.CoreSnapshot.Minute == segment.EndMinute &&
                 string.Equals(
-                    RealtimeStateCanonicalizer.Sha256(_latestPresentation.CoreSnapshot),
+                    RealtimeStateCanonicalizer.Sha256(
+                        session.LatestPresentation.CoreSnapshot),
                     segment.EndCanonicalStateSha256,
                     StringComparison.Ordinal),
             "the final presentation does not carry the authoritative Core identity");
@@ -629,15 +641,16 @@ internal sealed partial class RealtimeSliceMain
 
     private void NormalizeCheckpointInteraction()
     {
+        RealtimeSession session = RequireSession();
         RequireAccepted(ApplyIntent(RealtimeR2Intent.Select(null)), "clear selection");
         RequireAccepted(ApplyIntent(RealtimeR2Intent.RestoreInspectTool()),
             "restore inspect tool");
-        if (_interaction!.Surface != RealtimeSurface.World)
+        if (session.InteractionState.Surface != RealtimeSurface.World)
         {
             RequireAccepted(
                 ApplyIntent(new RealtimeR2Intent(
                     RealtimeR2IntentKind.CloseSurface,
-                    Surface: _interaction.Surface)),
+                    Surface: session.InteractionState.Surface)),
                 "close auxiliary surface");
         }
         RequireAccepted(ApplyIntent(RealtimeR2Intent.SetPlayerPaused(true)),
@@ -649,25 +662,26 @@ internal sealed partial class RealtimeSliceMain
         string stateCreationMethod,
         RealtimeCampaignSnapshot snapshot)
     {
+        RealtimeSession session = RequireSession();
         RealtimeStateAuthority authority = snapshot.Authority;
         var fixture = new RealtimeSliceCheckpointFixtureFact(
             RealtimeSliceResources.BaseWorldResource,
-            _data!.BaseWorld.SchemaVersion,
-            _data.BaseWorld.WorldId,
-            _data.BaseWorldSha256,
+            session.Data.BaseWorld.SchemaVersion,
+            session.Data.BaseWorld.WorldId,
+            session.Data.BaseWorldSha256,
             RealtimeSliceResources.BaseCampaignResource,
-            _data.BaseCampaign.SchemaVersion,
-            _data.BaseCampaign.CampaignId,
-            _data.BaseCampaignSha256,
+            session.Data.BaseCampaign.SchemaVersion,
+            session.Data.BaseCampaign.CampaignId,
+            session.Data.BaseCampaignSha256,
             RealtimeSliceResources.WorldResource,
-            _data.World.SchemaVersion,
-            _data.World.WorldId,
-            _data.WorldSha256,
+            session.Data.World.SchemaVersion,
+            session.Data.World.WorldId,
+            session.Data.WorldSha256,
             authority.WorldDefinitionSha256,
             RealtimeSliceResources.CampaignResource,
-            _data.Campaign.SchemaVersion,
-            _data.Campaign.CampaignId,
-            _data.CampaignSha256,
+            session.Data.Campaign.SchemaVersion,
+            session.Data.Campaign.CampaignId,
+            session.Data.CampaignSha256,
             authority.CampaignDefinitionSha256);
         RealtimeSliceCheckpointConstructionFact? construction =
             snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot active
@@ -717,10 +731,10 @@ internal sealed partial class RealtimeSliceMain
             fixture,
             stateCreationMethod,
             CheckpointReplaySchema,
-            CommandReplaySha256(_run!.AcceptedCommands),
-            _run.AcceptedCommands.Count,
+            CommandReplaySha256(session.AcceptedCommands),
+            session.AcceptedCommandCount,
             snapshot.Minute,
-            _run.GetCanonicalStateSha256(),
+            session.CanonicalStateSha256,
             expected.EndCanonicalStateSha256,
             construction,
             Array.AsReadOnly(events),
@@ -814,31 +828,33 @@ internal sealed partial class RealtimeSliceMain
 
     private void VerifyCheckpointEntry(RealtimeSliceCheckpointFact checkpoint)
     {
-        RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
+        RealtimeSession session = RequireSession();
+        RealtimeCampaignSnapshot snapshot = session.CoreSnapshot;
         Require(!IsProcessing(), "checkpoint setup left the autonomous clock enabled");
-        Require(_frame!.GetSnapshot() is
+        Require(session.AccumulatorSnapshot is
             {
                 Paused: true,
                 PendingWholeMinutes: 0,
                 FractionalMinuteUnits: 0,
             }, "checkpoint setup did not leave a stable exact frame accumulator");
         Require(snapshot.Minute == checkpoint.StartMinute &&
-                string.Equals(_run.GetCanonicalStateSha256(),
+                string.Equals(session.CanonicalStateSha256,
                     checkpoint.StartCanonicalStateSha256,
                     StringComparison.Ordinal),
             "checkpoint start Core identity changed");
-        Require(_run.AcceptedCommands.Count == checkpoint.CommandCount &&
-                string.Equals(CommandReplaySha256(_run.AcceptedCommands),
+        Require(session.AcceptedCommandCount == checkpoint.CommandCount &&
+                string.Equals(CommandReplaySha256(session.AcceptedCommands),
                     checkpoint.CommandReplaySha256,
                     StringComparison.Ordinal),
             "checkpoint command replay identity changed");
-        Require(_interaction!.Simulation == checkpoint.ExpectedSimulation &&
-                _interaction.PauseReason == checkpoint.ExpectedPauseReason &&
-                _interaction.SelectionId == checkpoint.ExpectedSelectionId &&
-                _interaction.TimelineAnchorMinute == checkpoint.ExpectedTimelineAnchorMinute &&
-                _interaction.Surface == checkpoint.ExpectedSurface &&
-                _interaction.Tool == checkpoint.ExpectedTool &&
-                _interaction.ActiveModalId is null,
+        Require(session.InteractionState.Simulation == checkpoint.ExpectedSimulation &&
+                session.InteractionState.PauseReason == checkpoint.ExpectedPauseReason &&
+                session.InteractionState.SelectionId == checkpoint.ExpectedSelectionId &&
+                session.InteractionState.TimelineAnchorMinute ==
+                    checkpoint.ExpectedTimelineAnchorMinute &&
+                session.InteractionState.Surface == checkpoint.ExpectedSurface &&
+                session.InteractionState.Tool == checkpoint.ExpectedTool &&
+                session.InteractionState.ActiveModalId is null,
             "checkpoint interaction state is not paused, unselected, and world-stable");
         Require(snapshot.Construction.NodeDraft is null &&
                 snapshot.Construction.LineDraft is null,
@@ -846,12 +862,13 @@ internal sealed partial class RealtimeSliceMain
         Require(snapshot.ActiveEventStates.Count == checkpoint.ActiveEvents.Count &&
                 snapshot.Thermal.Assets.Count == checkpoint.Thermal.Count,
             "checkpoint active event/thermal facts drifted after capture");
-        Require(_latestPresentation!.CoreSnapshot.Minute == checkpoint.StartMinute &&
-                _latestPresentation.World.Minute ==
+        Require(session.LatestPresentation.CoreSnapshot.Minute == checkpoint.StartMinute &&
+                session.LatestPresentation.World.Minute ==
                     checkpoint.ExpectedWorldPresentationMinute &&
-                _latestPresentation.World.SelectedAssetId == checkpoint.ExpectedSelectionId &&
-                _latestPresentation.World.Surface == checkpoint.ExpectedSurface &&
-                _latestPresentation.World.Tool == checkpoint.ExpectedTool,
+                session.LatestPresentation.World.SelectedAssetId ==
+                    checkpoint.ExpectedSelectionId &&
+                session.LatestPresentation.World.Surface == checkpoint.ExpectedSurface &&
+                session.LatestPresentation.World.Tool == checkpoint.ExpectedTool,
             "checkpoint presentation is not anchored to its start identity");
         Require(FrozenClickCounters().All(item => item.Value == 0),
             "checkpoint setup routed a pointer click");
@@ -887,29 +904,33 @@ internal sealed partial class RealtimeSliceMain
         RealtimeSliceCheckpointFact checkpoint,
         RealtimeCampaignSnapshot end)
     {
-        Require(_interaction!.Simulation == RealtimeSimulationState.Running &&
-                _interaction.RunningSpeed == RealtimeSimulationSpeed.Normal &&
-                _interaction.PauseReason == RealtimePauseReason.None &&
-                _interaction.SelectionId == checkpoint.ExpectedSelectionId &&
-                _interaction.TimelineAnchorMinute == checkpoint.ExpectedTimelineAnchorMinute &&
-                _interaction.Surface == checkpoint.ExpectedSurface &&
-                _interaction.Tool == checkpoint.ExpectedTool,
+        RealtimeSession session = RequireSession();
+        Require(session.InteractionState.Simulation == RealtimeSimulationState.Running &&
+                session.InteractionState.RunningSpeed == RealtimeSimulationSpeed.Normal &&
+                session.InteractionState.PauseReason == RealtimePauseReason.None &&
+                session.InteractionState.SelectionId == checkpoint.ExpectedSelectionId &&
+                session.InteractionState.TimelineAnchorMinute ==
+                    checkpoint.ExpectedTimelineAnchorMinute &&
+                session.InteractionState.Surface == checkpoint.ExpectedSurface &&
+                session.InteractionState.Tool == checkpoint.ExpectedTool,
             "bounded segment changed selection/anchor/surface/tool unexpectedly");
         Require(end.Construction.NodeDraft is null &&
                 end.Construction.LineDraft is null &&
                 end.Construction.World.Nodes.Count == checkpoint.StartWorldNodeCount &&
                 end.Construction.World.Edges.Count == checkpoint.StartWorldEdgeCount,
             "bounded segment changed draft or world object cardinality");
-        Require(_latestPresentation!.Revision == _presentationRevision &&
-                _latestPresentation.CoreSnapshot.Minute == end.Minute &&
-                _latestPresentation.World.Minute == end.Minute &&
-                _latestPresentation.World.SelectedAssetId == checkpoint.ExpectedSelectionId &&
-                _latestPresentation.World.Surface == checkpoint.ExpectedSurface &&
-                _latestPresentation.World.Tool == checkpoint.ExpectedTool,
+        Require(session.LatestPresentation.Revision == session.PresentationRevision &&
+                session.LatestPresentation.CoreSnapshot.Minute == end.Minute &&
+                session.LatestPresentation.World.Minute == end.Minute &&
+                session.LatestPresentation.World.SelectedAssetId ==
+                    checkpoint.ExpectedSelectionId &&
+                session.LatestPresentation.World.Surface == checkpoint.ExpectedSurface &&
+                session.LatestPresentation.World.Tool == checkpoint.ExpectedTool,
             "bounded segment did not publish the exact final world presentation");
         Require(string.Equals(
-                RealtimeStateCanonicalizer.Sha256(_latestPresentation.CoreSnapshot),
-                _run!.GetCanonicalStateSha256(),
+                RealtimeStateCanonicalizer.Sha256(
+                    session.LatestPresentation.CoreSnapshot),
+                session.CanonicalStateSha256,
                 StringComparison.Ordinal),
             "bounded segment Core and presentation canonical hashes diverged");
     }
@@ -933,6 +954,7 @@ internal sealed partial class RealtimeSliceMain
         IReadOnlyList<string> expectedNodes,
         IReadOnlyList<string> expectedEdges)
     {
+        RealtimeSession session = RequireSession();
         RealtimeSliceCheckpointConstructionFact project =
             checkpoint.ActiveConstruction ?? throw new InvalidOperationException(
                 "construction-due checkpoint lost its active construction fact");
@@ -964,13 +986,15 @@ internal sealed partial class RealtimeSliceMain
                 expectedEdges.All(id => end.Construction.World.Edges.Single(item =>
                     string.Equals(item.EdgeId, id, StringComparison.Ordinal)).Commissioned),
             "completed construction is not commissioned in authoritative Core world");
-        Require(expectedNodes.All(id => _latestPresentation!.World.World.Nodes.Single(item =>
+        Require(expectedNodes.All(id =>
+                    session.LatestPresentation.World.World.Nodes.Single(item =>
                     string.Equals(item.NodeId, id, StringComparison.Ordinal)).Commissioned) &&
-                expectedEdges.All(id => _latestPresentation!.World.World.Edges.Single(item =>
+                expectedEdges.All(id =>
+                    session.LatestPresentation.World.World.Edges.Single(item =>
                     string.Equals(item.EdgeId, id, StringComparison.Ordinal)).Commissioned),
             "completed construction is not commissioned in world presentation");
         Require(expectedEdges.All(id =>
-                _latestPresentation!.World.AssetStatuses.Single(item =>
+                session.LatestPresentation.World.AssetStatuses.Single(item =>
                     string.Equals(item.AssetId, id, StringComparison.Ordinal)) is
                 {
                     UsedKw: > 0,

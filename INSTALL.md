@@ -12,48 +12,67 @@
 - Godot 4.7.1 Mono
 - macOS 저장소 환경에서는 `.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot` 사용 가능
 
-다른 위치의 Godot을 사용할 때는 아래 명령의 실행 파일 경로만 바꾼다.
+다른 위치의 Godot을 사용할 때는 `GRIDWORKS_GODOT_BIN`에 실행 파일의 절대 경로를 지정한다.
 
 ## 빌드
 
 저장소 루트에서 실행한다.
 
 ```sh
-dotnet restore game/Gridworks.Game.csproj
-dotnet build game/Gridworks.Game.csproj -c Debug
+./dev build
 ```
+
+`./dev build`는 current R2의 Core, Game, RealtimeChecks와 CommercialChecks만 포함한 루트
+`Gridworks.sln`을 Debug로 빌드한다. restore는 `dotnet build`가 필요할 때 함께 수행한다.
 
 ## 플레이 경로
 
 ### 구현된 누적 4장
 
 ```sh
-./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
-  --path game -- --release-through=NORTH_BANK_PROMISE
+./dev play through NORTH_BANK_PROMISE
 ```
 
 ### 직접 플레이가 끝난 튜토리얼 3장
 
 ```sh
-./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
-  --path game -- --release-through=SECOND_SOURCE
+./dev play through SECOND_SOURCE
 ```
 
 ### 첫 장만
 
 ```sh
-./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
-  --path game -- --release-chapter=FIRST_LIGHT
+./dev play chapter FIRST_LIGHT
 ```
 
 ### 기술 fixture
 
 ```sh
-./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot --path game
+./dev play fixture
 ```
 
 마지막 명령은 기본 scene wiring을 사용하지만 제품용 새 게임은 아니다. 전체 8장이나 저장 기능을
 검증할 때 사용하지 않는다.
+
+## 검증과 단위 진입점
+
+```sh
+./dev check
+./dev checkpoint A1_NORMAL_READY
+./dev checkpoint A1_CONSTRUCTION_DUE_1M
+./dev story NORTH_BANK_PROMISE/result/keep
+./dev story manifest
+```
+
+`./dev check`는 current root solution, 두 check project, 세 Python 회귀와 두 named checkpoint를 묶은
+기본 회귀다. 한 화면 상태나 story part를 조사할 때는 더 작은 `checkpoint` 또는 `story` 명령부터
+시작한다. 전체 명령 형태는 `./dev help`에서 확인한다.
+
+저장소에 포함된 Godot 대신 다른 Mono executable을 사용할 때의 예:
+
+```sh
+GRIDWORKS_GODOT_BIN=/absolute/path/to/Godot ./dev check
+```
 
 ## 저장과 user-data
 
@@ -69,6 +88,10 @@ save/resume과 migration 정책은 [남은 작업](docs/NEXT_TASKS.md)의 별도
 저장소에는 과거 `CommercialMain` V2를 위한 내부 패키징 스크립트와 회귀 자료가 남아 있다. 그
 스크립트의 성공은 current R2 package나 출시 후보를 만들지 않는다. current R2의 fresh-install 후보,
 지원 OS 검증, Developer ID 서명·공증과 공개 배포 승인은 아직 없다.
+
+일반 Debug/Release의 current R2 graph와 `ExportRelease`는 서로 다르다. `ExportRelease`는 동결된 V2
+내부 export allowlist이며 current R2 후보를 만들지 않는다. current 개발 경계와 변경 순서는
+[개발 구조](docs/ARCHITECTURE.md)가 소유한다.
 
 과거 V2 내부 후보의 범위는 [완료 이력](docs/archive/COMPLETED_HISTORY.md), 앞으로 필요한 단계는
 [남은 작업](docs/NEXT_TASKS.md)을 따른다.

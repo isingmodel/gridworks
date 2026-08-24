@@ -7,6 +7,6 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/Gridworks.Core/Gridworks.Core.csproj" />
+    <ProjectReference Include="../../src/Gridworks.LegacyCore/Gridworks.LegacyCore.csproj" />
   </ItemGroup>
 </Project>

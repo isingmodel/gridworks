@@ -14,7 +14,7 @@ namespace Gridworks.Game.Realtime.UI;
 internal sealed partial class RealtimeUiLayoutHarness : Control
 {
     private const string NorthBankPromiseDeadlineMarkerId =
-        "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE";
+        RealtimeR2Ids.PromiseDecisionMarkerPrefix + "NORTH_BANK_MOVE_IN_PROMISE";
     private const string NorthResidentialLoadId = "NORTH_RESIDENTIAL";
 
     private RealtimeUiRoot _uiRoot = null!;
@@ -47,7 +47,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 RealtimeR2Smoke.CreateLayoutPresentations(failures);
             var northBankSlice = new RealtimeSliceMain();
             using var northBankSliceLifetime = northBankSlice.FreeAfterSmoke();
-            northBankSlice.BootstrapReleaseThroughNorthBankForSmoke();
+            northBankSlice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
             (RealtimeSliceData northBankData, string northBankRootSubstationId) =
                 RealtimeR2Smoke.AdvanceReleasePrefixToNorthBankPlanning(
                     northBankSlice,
@@ -306,7 +307,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     RealtimeTimelineItemPresentation? draftConstruction =
                         expectedLinearItems.SingleOrDefault(item => string.Equals(
                             item.Id,
-                            "DRAFT_CONSTRUCTION",
+                            RealtimeR2Ids.DraftConstructionMarker,
                             StringComparison.Ordinal));
                     RealtimeUiSmokeMarkerFact? draftMarker = draftConstruction is null
                         ? null
@@ -518,13 +519,13 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     Visible: true,
                     PrimaryAction:
                     {
-                        Id: RealtimeSlicePresenter.PromiseKeepActionId,
+                        Id: RealtimeR2Ids.PromiseKeepAction,
                         Enabled: true,
                         Visible: true,
                     },
                     SecondaryAction:
                     {
-                        Id: RealtimeSlicePresenter.PromiseDeferActionId,
+                        Id: RealtimeR2Ids.PromiseDeferAction,
                         Enabled: true,
                         Visible: true,
                     },
@@ -935,7 +936,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         };
         RealtimeSlicePresentation selectedOutagePresentation =
             typedSlice.PresentSnapshotForSmoke(typedSnapshot, typedSelection);
-        RealtimeTimelineTarget outageTarget = RealtimeSlicePresenter.ResolveTimelineTarget(
+        RealtimeTimelineTarget outageTarget = RealtimeTimelineTargetResolver.Resolve(
             typedSlice.DisplayWorldForSmoke,
             typedSnapshot,
             outageItem.Id);
@@ -1050,7 +1051,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         RealtimeTimelineItemPresentation activeItem = activeSlice.LatestPresentation.Rail.Items
             .First(item => item.IsCurrent &&
                 item.Visibility == RealtimeTimelineVisibility.Active &&
-                RealtimeSlicePresenter.ResolveTimelineTarget(
+                RealtimeTimelineTargetResolver.Resolve(
                     activeSlice.DisplayWorldForSmoke,
                     activeSlice.CoreSnapshot,
                     item.Id).Kind == RealtimeTimelineTargetKind.Event);
@@ -2332,7 +2333,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     slice.InteractionState.Tool == RealtimeTool.BuildNode &&
                     slice.InteractionState.Surface == RealtimeSurface.Drawer &&
                     slice.InteractionState.SelectedBuildToolId?.StartsWith(
-                        "NODE:", StringComparison.Ordinal) == true &&
+                        RealtimeR2Ids.NodeToolPrefix, StringComparison.Ordinal) == true &&
                     !slice.LatestPresentation.Hud.BuildModeActive &&
                     string.Equals(
                         ui.TopHudForSmoke.MenuTextForSmoke,
@@ -2354,7 +2355,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     slice.InteractionState.Tool == RealtimeTool.BuildLine &&
                     slice.InteractionState.Surface == RealtimeSurface.Drawer &&
                     slice.InteractionState.SelectedBuildToolId?.StartsWith(
-                        "LINE:", StringComparison.Ordinal) == true &&
+                        RealtimeR2Ids.LineToolPrefix, StringComparison.Ordinal) == true &&
                     slice.AcceptedCommandCount == directToolCommands &&
                     slice.PresentationRevision == directToolRevision + 2,
                 "actual L key did not select the first visible line tool exactly once",
@@ -2500,7 +2501,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     slice.CoreSnapshot.Construction.NodeDraft is { } nodeDraft &&
                     string.Equals(
                         nodeDraft.NodeClassId,
-                        nodeToolId["NODE:".Length..],
+                        nodeToolId[RealtimeR2Ids.NodeToolPrefix.Length..],
                         StringComparison.Ordinal) &&
                     slice.AcceptedCommandCount == emptyCommands + 1 &&
                     slice.PresentationRevision == emptyRevision + 1,
@@ -2687,7 +2688,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             slice.AdvanceToForSmoke(plan.OrderMinute);
             PushViewportPrimary(viewport, ui.TopHudForSmoke.MenuCenterForSmoke);
             await SettleLayout();
-            string lineToolId = $"LINE:{plan.LineClassId}:{plan.PoleClassId}";
+            string lineToolId = RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId);
             Require(slice.LatestPresentation.BuildShelf.Tools.Any(item =>
                     string.Equals(item.Id, lineToolId, StringComparison.Ordinal) &&
                     item.Enabled),
@@ -2902,13 +2903,14 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 liveComparison.Forecast?.Events.ToArray() ??
                 Array.Empty<RealtimeForecastEvent>();
             string[] liveComparisonEventMarkerIds = liveComparisonEvents
-                .Select(item => $"DRAFT_FORECAST:{item.EventId}")
+                .Select(item => RealtimeR2Ids.ComparisonEventMarker(item.EventId))
                 .ToArray();
             string[] liveComparisonThermalMarkerIds = liveComparisonEvents
                 .SelectMany(item => item.TemporalProjection.Transitions.Select(
                     transition =>
-                        $"DRAFT_THERMAL:{item.EventId}:{transition.Minute}:" +
-                        $"{transition.Kind}:{transition.AssetId}"))
+                        RealtimeR2Ids.ComparisonThermalMarker(
+                            item.EventId,
+                            transition)))
                 .ToArray();
             string[] liveComparisonMarkerIds = liveComparisonEventMarkerIds
                 .Concat(liveComparisonThermalMarkerIds)
@@ -3110,7 +3112,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         Kind: RealtimeModalKind.RecoveryConfirmation,
                         Eyebrow: "운영 안내",
                         Heading: "현재 운영 화면에서 실행할 수 없는 작업입니다",
-                        PrimaryAction.Id: "NOTICE_CLOSE",
+                        PrimaryAction.Id: RealtimeR2Ids.NoticeCloseAction,
                         PrimaryAction.Label: "안내 닫기",
                         PrimaryAction.Tone: RealtimeActionTone.Primary,
                         SecondaryAction: null,
@@ -3121,7 +3123,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         StringComparison.Ordinal) &&
                     string.Equals(
                         ui.ModalHostForSmoke.ActivePrimaryActionIdForSmoke,
-                        "NOTICE_CLOSE",
+                        RealtimeR2Ids.NoticeCloseAction,
                         StringComparison.Ordinal) &&
                     string.Equals(
                         ui.ModalHostForSmoke.PrimaryTextForSmoke,
@@ -3169,14 +3171,14 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     {
                         Id: "ACTUAL_SCENE_NEW_GAME_NOTICE",
                         Kind: RealtimeModalKind.NewGameConfirmation,
-                        PrimaryAction.Id: "NOTICE_CLOSE",
+                        PrimaryAction.Id: RealtimeR2Ids.NoticeCloseAction,
                         PrimaryAction.Label: "안내 닫기",
                         PrimaryAction.Tone: RealtimeActionTone.Primary,
                         SecondaryAction: null,
                     } &&
                     string.Equals(
                         ui.ModalHostForSmoke.ActivePrimaryActionIdForSmoke,
-                        "NOTICE_CLOSE",
+                        RealtimeR2Ids.NoticeCloseAction,
                         StringComparison.Ordinal) &&
                     string.Equals(
                         ui.ModalHostForSmoke.PrimaryTextForSmoke,
@@ -3521,7 +3523,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             await SettleLayout();
 
             RealtimeTimelineItemPresentation eventItem = slice.LatestPresentation.Rail.Items
-                .First(item => RealtimeSlicePresenter.ResolveTimelineTarget(
+                .First(item => RealtimeTimelineTargetResolver.Resolve(
                     slice.DisplayWorldForSmoke,
                     slice.CoreSnapshot,
                     slice.LatestPresentation.BaseForecast,
@@ -3529,7 +3531,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     item.Id).Kind == RealtimeTimelineTargetKind.Event);
             RealtimeTimelineItemPresentation thermalItem =
                 slice.LatestPresentation.Rail.Items.First(item =>
-                    RealtimeSlicePresenter.ResolveTimelineTarget(
+                    RealtimeTimelineTargetResolver.Resolve(
                         slice.DisplayWorldForSmoke,
                         slice.CoreSnapshot,
                         slice.LatestPresentation.BaseForecast,
@@ -3541,7 +3543,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             await SettleLayout();
             ValidateTimelineSelection(slice, eventItem.Id, failures);
             RealtimeTimelineTarget eventTarget =
-                RealtimeSlicePresenter.ResolveTimelineTarget(
+                RealtimeTimelineTargetResolver.Resolve(
                     slice.DisplayWorldForSmoke,
                     slice.CoreSnapshot,
                     slice.LatestPresentation.BaseForecast,
@@ -3605,14 +3607,14 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         RealtimeSurface.BlockingModal &&
                     string.Equals(
                         slice.InteractionState.ActiveModalId,
-                        "CAMPAIGN_RESULT",
+                        RealtimeR2Ids.CampaignResultModal,
                         StringComparison.Ordinal) &&
                     campaignModal is
                     {
-                        Id: "CAMPAIGN_RESULT",
+                        Id: RealtimeR2Ids.CampaignResultModal,
                         Kind: RealtimeModalKind.ChapterStory,
                         Heading: "캠페인 운영 완료",
-                        PrimaryAction.Id: "RESULT_CLOSE",
+                        PrimaryAction.Id: RealtimeR2Ids.ResultCloseAction,
                         PrimaryAction.Label: "결과 확인",
                         SecondaryAction: null,
                     } &&
@@ -3620,7 +3622,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     ui.ModalHostForSmoke.OwnsFocusForSmoke &&
                     string.Equals(
                         ui.ModalHostForSmoke.ActivePrimaryActionIdForSmoke,
-                        "RESULT_CLOSE",
+                        RealtimeR2Ids.ResultCloseAction,
                         StringComparison.Ordinal) &&
                     string.Equals(
                         ui.ModalHostForSmoke.PrimaryTextForSmoke,
@@ -4053,7 +4055,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 };
             var (buildingToolId, buildingPoint) =
                 slice.AcceptedNodeDraftForSmoke();
-            string buildingClassId = buildingToolId["NODE:".Length..];
+            string buildingClassId = buildingToolId[RealtimeR2Ids.NodeToolPrefix.Length..];
             var constructionAuthority = new RealtimeConstructionSession(
                 statusBaseline.Construction.World,
                 statusBaseline.Minute);
@@ -5117,7 +5119,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             await SettleNativeWindow();
             ui.TopHudForSmoke.PressSpeedForSmoke(RealtimeSimulationSpeed.Paused);
             string selectedEventId = slice.LatestPresentation.Rail.Items.First(item =>
-                RealtimeSlicePresenter.ResolveTimelineTarget(
+                RealtimeTimelineTargetResolver.Resolve(
                     slice.DisplayWorldForSmoke,
                     slice.CoreSnapshot,
                     item.Id).Kind == RealtimeTimelineTargetKind.Event).Id;
@@ -5449,7 +5451,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         RealtimeR2IntentResult tool = slice.ApplyIntentForSmoke(
             RealtimeR2Intent.SelectBuildTool(
                 RealtimeTool.BuildLine,
-                $"LINE:{plan.LineClassId}:{plan.PoleClassId}"));
+                RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId)));
         RealtimeR2IntentResult start = slice.ApplyIntentForSmoke(plan.Intents[0]);
         RealtimeR2IntentResult finish = slice.ApplyIntentForSmoke(plan.Intents[1]);
         Require(close.Accepted && tool.Accepted && start.CoreCommandResult?.Accepted == true &&
@@ -6667,7 +6669,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             long sevenDayRevision = slice.PresentationRevision;
             rail.PressLongerHorizonForSmoke();
             long requiredSevenDayHorizon =
-                RealtimeSlicePresenter.RequiredForecastHorizonMinutes(
+                RealtimeTimelinePolicy.RequiredForecastHorizonMinutes(
                     slice.CurrentMinute,
                     slice.InteractionState.TimelineAnchorMinute,
                     RealtimeTimelineHorizonPreset.SevenDays);
@@ -6746,7 +6748,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         ICollection<string> failures)
     {
         RealtimeSlicePresentation presentation = slice.LatestPresentation;
-        RealtimeTimelineTarget target = RealtimeSlicePresenter.ResolveTimelineTarget(
+        RealtimeTimelineTarget target = RealtimeTimelineTargetResolver.Resolve(
             slice.DisplayWorldForSmoke,
             slice.CoreSnapshot,
             presentation.BaseForecast,
@@ -6776,7 +6778,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             RealtimeTimelineItemPresentation marker = presentation.Rail.Items.Single(item =>
                 string.Equals(item.Id, expectedMarkerId, StringComparison.Ordinal));
             bool comparison = expectedMarkerId.StartsWith(
-                "DRAFT_THERMAL:",
+                RealtimeR2Ids.ComparisonThermalMarkerPrefix,
                 StringComparison.Ordinal);
             bool commonThermalContext = presentation.Context.Sections.Any(item =>
                     item.Heading == "예상 시각" &&
@@ -6811,7 +6813,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         {
             RealtimeWorldHighlight? highlight = presentation.World.Highlight;
             bool comparison = expectedMarkerId.StartsWith(
-                "DRAFT_FORECAST:",
+                RealtimeR2Ids.ComparisonEventMarkerPrefix,
                 StringComparison.Ordinal);
             bool comparisonContext = !comparison ||
                 string.Equals(

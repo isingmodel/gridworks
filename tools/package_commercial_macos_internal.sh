@@ -2,6 +2,10 @@
 
 set -euo pipefail
 
+# This opt-in unlocks the frozen historical V2 ExportRelease graph. It does not
+# authorize or produce a current R2 candidate.
+export GridworksLegacyV2Export=true
+
 repository_dir=${0:A:h:h}
 godot_bin=${GRIDWORKS_GODOT_BIN:-"$repository_dir/.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot"}
 preset_name="Commercial macOS Internal Candidate"

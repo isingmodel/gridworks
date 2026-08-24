@@ -33,6 +33,13 @@ internal sealed partial class RealtimeInputRouter : Node
     public long PushContext(string owner, RealtimeInputPriority priority)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(owner);
+        if (!RealtimeUiCapabilities.Supports(priority))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(priority),
+                priority,
+                "Unsupported realtime input priority.");
+        }
         long token = checked(++_nextToken);
         _contexts.Add(new ContextEntry(token, owner, priority));
         _contexts.Sort(static (left, right) =>
@@ -54,7 +61,17 @@ internal sealed partial class RealtimeInputRouter : Node
         return true;
     }
 
-    public bool CanReceive(RealtimeInputPriority priority) => priority >= ActivePriority;
+    public bool CanReceive(RealtimeInputPriority priority)
+    {
+        if (!RealtimeUiCapabilities.Supports(priority))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(priority),
+                priority,
+                "Unsupported realtime input priority.");
+        }
+        return priority >= ActivePriority;
+    }
 
     public bool PanCaptured => _panCaptured;
 

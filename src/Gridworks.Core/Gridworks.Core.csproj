@@ -5,20 +5,22 @@
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <IsPackable>false</IsPackable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'ExportRelease'">
-    <!-- The shipped CommercialMain runtime owns only the frozen V2 product core. -->
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- Frozen historical V2 export graph. This is not a current R2 candidate. -->
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <Deterministic>true</Deterministic>
     <PathMap>$(MSBuildProjectDirectory)=/_/src/Gridworks.Core</PathMap>
   </PropertyGroup>
 
-  <!-- Future persistence work is not part of the active R1 runtime authority. -->
-  <ItemGroup>
-    <Compile Remove="Release/V3/RealtimeCampaignPersistence.cs" />
+  <!-- The regular project is the current R2 Core graph: its strict V2 base plus V3 realtime rules. -->
+  <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
+    <Compile Include="Release/V2/**/*.cs" />
+    <Compile Include="Release/V3/**/*.cs"
+             Exclude="Release/V3/RealtimeCampaignPersistence.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">

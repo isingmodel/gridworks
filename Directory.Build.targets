@@ -1,0 +1,13 @@
+<Project>
+  <Target Name="RejectCurrentR2ExportDebug"
+          BeforeTargets="PrepareForBuild"
+          Condition="'$(Configuration)' == 'ExportDebug'">
+    <Error Text="ExportDebug is disabled because current R2 has no authorized export or package graph. Use Debug or Release for current development." />
+  </Target>
+
+  <Target Name="RequireExplicitLegacyV2Export"
+          BeforeTargets="PrepareForBuild"
+          Condition="'$(Configuration)' == 'ExportRelease' and '$(GridworksLegacyV2Export)' != 'true'">
+    <Error Text="ExportRelease is the frozen historical V2 graph, not a current R2 candidate. Use its historical packaging tool or explicitly set GridworksLegacyV2Export=true." />
+  </Target>
+</Project>

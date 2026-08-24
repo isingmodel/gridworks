@@ -55,43 +55,39 @@ R2라는 사실도 인자 없는 실행이 제품용 새 게임 여정이라는 
 
 ## 지금 플레이할 수 있는 경로
 
-먼저 .NET 8 SDK와 Godot 4.7.1 Mono가 필요하다. 저장소에 준비된 Godot을 사용하는 예시는 다음과
-같다.
+먼저 .NET 8 SDK와 Godot 4.7.1 Mono가 필요하다. current R2 개발의 단일 진입점은 저장소 루트의
+`./dev`다.
 
 ```sh
-dotnet restore game/Gridworks.Game.csproj
-dotnet build game/Gridworks.Game.csproj -c Debug
+./dev build
 ```
 
-| 목적 | Godot 뒤에 붙일 사용자 인자 |
+| 목적 | 명령 |
 |---|---|
-| 개발용 기술 fixture | 없음 |
-| 첫 장만 플레이 | `-- --release-chapter=FIRST_LIGHT` |
-| 튜토리얼 3장 누적 플레이 | `-- --release-through=SECOND_SOURCE` |
-| 구현된 4장 누적 플레이 | `-- --release-through=NORTH_BANK_PROMISE` |
+| 개발용 기술 fixture | `./dev play fixture` |
+| 첫 장만 플레이 | `./dev play chapter FIRST_LIGHT` |
+| 튜토리얼 3장 누적 플레이 | `./dev play through SECOND_SOURCE` |
+| 구현된 4장 누적 플레이 | `./dev play through NORTH_BANK_PROMISE` |
 
 예를 들어 현재 구현된 4장 경로는 다음과 같이 실행한다.
 
 ```sh
-./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
-  --path game -- --release-through=NORTH_BANK_PROMISE
+./dev play through NORTH_BANK_PROMISE
 ```
 
-인자 없이 `--path game`만 실행하면 같은 R2 장면의 기술 fixture가 열린다. 이것을 새 게임이나 전체
-캠페인으로 평가하지 않는다. 환경 준비와 현재 저장/패키지 경계는 [실행 안내](INSTALL.md)에 있다.
+`./dev play fixture`는 같은 R2 장면의 인자 없는 기술 fixture를 연다. 이것을 새 게임이나 전체 캠페인으로
+평가하지 않는다. 환경 준비, 전체 명령과 현재 저장/패키지 경계는 [실행 안내](INSTALL.md)에 있다.
 
 ## 개발 검증
 
-전체 회귀의 기본 명령은 다음과 같다.
+전체 current R2 회귀의 기본 명령은 하나다.
 
 ```sh
-dotnet build game/Gridworks.Game.csproj -c Debug
-dotnet run --project tools/Gridworks.RealtimeChecks -c Release
-dotnet run --project tools/Gridworks.CommercialChecks -c Release
-python3 tools/commercial-ux/test-realtime-text-plan-tools.py
-python3 tools/commercial-ux/test-g3-a1-asset-allowlist.py
-python3 tools/commercial-ux/test-realtime-default-entry.py
+./dev check
 ```
+
+이 명령은 current root solution, RealtimeChecks, CommercialChecks, 세 Python 회귀와 두 named checkpoint를
+실행한다.
 
 결함을 재현할 때는 전체 캠페인을 매번 처음부터 돌리지 않는다. 가장 가까운 단위나 named checkpoint를
 사용하되, onboarding·누적 장 전환·save/resume·전체 캠페인처럼 시작 경로 자체가 검증 대상일 때만
@@ -100,25 +96,15 @@ python3 tools/commercial-ux/test-realtime-default-entry.py
 작성된 story part 하나만 검사하는 예:
 
 ```sh
-dotnet run --project tools/Gridworks.CommercialChecks -c Release -- \
-  --story-part NORTH_BANK_PROMISE/result/keep
-
-dotnet run --project tools/Gridworks.CommercialChecks -c Release -- \
-  --story-manifest
+./dev story NORTH_BANK_PROMISE/result/keep
+./dev story manifest
 ```
 
 R2 controller·presentation·HUD를 실제로 거치는 두 개발 checkpoint:
 
 ```sh
-./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
-  --headless --path game \
-  --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
-  -- --checkpoint=A1_NORMAL_READY
-
-./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
-  --headless --path game \
-  --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
-  -- --checkpoint=A1_CONSTRUCTION_DUE_1M
+./dev checkpoint A1_NORMAL_READY
+./dev checkpoint A1_CONSTRUCTION_DUE_1M
 ```
 
 selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체 캠페인 완결성 또는 사람 UX 품질을
@@ -130,9 +116,10 @@ selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체
 
 1. 이 README — 제품과 현재 구현의 차이
 2. [현재 작업 범위](docs/ACTIVE_SCOPE.md) — 지금 변경이 허용됐는지
-3. [남은 작업](docs/NEXT_TASKS.md) — 우선순위가 있는 backlog; 자동 실행 권한은 아님
-4. [문서 지도](docs/README.md) — 질문별 상세 문서
-5. [완료 이력](docs/archive/COMPLETED_HISTORY.md) — 과거 task의 유일한 요약
+3. [개발 구조](docs/ARCHITECTURE.md) — current R2의 권위와 변경 경로
+4. [남은 작업](docs/NEXT_TASKS.md) — 우선순위가 있는 backlog; 자동 실행 권한은 아님
+5. [문서 지도](docs/README.md) — 질문별 상세 문서
+6. [완료 이력](docs/archive/COMPLETED_HISTORY.md) — 과거 task의 유일한 요약
 
 새 작업을 시작할 때는 먼저 `docs/ACTIVE_SCOPE.md`에 결과물, 범위 밖 항목과 완료 검사를 적는다.
 `docs/NEXT_TASKS.md`의 항목, 과거 scope 또는 준비된 코드가 있다는 사실만으로 구현을 시작하지 않는다.

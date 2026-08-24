@@ -238,6 +238,13 @@ internal sealed partial class RealtimeEventRail : PanelContainer
 
     public bool Navigate(RealtimeTimelineNavigation navigation)
     {
+        if (!RealtimeUiCapabilities.Supports(navigation))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(navigation),
+                navigation,
+                "Unsupported realtime timeline navigation.");
+        }
         if (_presentation is null)
         {
             return false;

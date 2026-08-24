@@ -1,146 +1,116 @@
-# Gridworks — 완료·중단 이력 압축본
+# Gridworks 완료 이력
 
-> 상태: **아카이브 · 현재 구현 권한 아님**
-> 상세 snapshot: Git commit `9aceaf7`
+> 이 문서는 완료·중단된 task의 **유일한 요약**이다. 현재 구현 권한이나 남은 작업을 정의하지 않는다.
+> 세부 scope, 실행 로그와 당시 문구는 Git 이력과 `playtests/`에 남아 있다.
 
-## 1. 초기 prototype
+## 1. 초기 prototype과 release v1
 
-카드와 작은 Godot slice는 세 가지 인과를 분리했다.
+초기 Godot slice에서 다음 규칙을 분리해 검증했다.
 
-- 변전소 service area는 연결 자격일 뿐 발전원이 아니다.
-- 전기적으로 다른 회로도 같은 공간 회랑 사고에 함께 끊길 수 있다.
-- 공사 중 설비는 무전압이며 한 공사는 원자적으로 완공된다.
+- 변전소 service area는 연결 자격이며 발전원이 아니다.
+- 전기적으로 다른 회로도 같은 공간 회랑 사고에 함께 영향을 받을 수 있다.
+- 공사 중 설비는 무전압이고, 한 공사는 원자적으로 완공된다.
 
-초기 비인간 관찰은 표현 개선의 입력이었을 뿐 사람 이해·재미·성공률 증거가 아니다. 원본 입력은
-`playtests/scope-0a*`, `playtests/scope-0b`와 `playtests/scope-1`에 남아 있다.
+이후 33×21 격자 기반 `ReleaseMain`은 분기·합류, 공유 정격, 사건 projection, 8개 임무,
+저장·재개와 ad-hoc macOS 내부 ZIP까지 연결했다. 이 빌드는 현재 제품이 아닌 동결 기술 기준선이다.
 
-## 2. release v1 기술 기준선
+## 2. 상용 V2 단계 B–G
 
-33×21 격자 기반 `ReleaseMain`은 분기·합류 그래프, 공유 정격, 사건 projection, 여덟 임무,
-저장·재개와 ad-hoc macOS 0.1.0 내부 ZIP을 연결했다. 공식 cold LLM은 마지막 임무에서 병목을 찾지
-못해 중단했고, 후속 기술 수정은 병목 진단·작업 버튼·접속 한도·수면 배치를 바로잡았다.
+별도 `CommercialMain`과 V2 Core에서 다음을 완료했다.
 
-이 경로는 현재 제품이 아니라 동결 회귀 기준선이다. Developer ID 서명·공증과 공개 배포 승인은
-없다.
+- 자유 배치, 점유영역·수면·건물·선로 기하와 제한된 camera
+- 선로·전신주 접속부·변전소의 연속/비상 열 한계, 보호정지·냉각
+- 안전 의무·도시 약속·결정 기한·국면 preview와 save v3
+- 동일한 망·자금·선택을 잇는 8개 임무, 결과와 epilogue
+- 병목 설명, 발주 checklist, 설정·접근성·날씨·초상·음향
+- 빈 user-data의 내부 macOS 후보에서 저장, fresh continue, 전체 캠페인과 완료 후 재개
 
-## 3. 상용 v2 단계 B–G
+규칙·wiring·내부 package 검증은 완료했지만 사람 전체 플레이, 한국어·전력설비 전문 교정,
+Developer ID 서명·공증과 공개 출시는 승인되지 않았다. V2 저장과 패키지는 현재 R2의 저장·패키지가
+아니다.
 
-별도 v2 world·campaign·Core와 `CommercialMain`에서 다음을 완료했다.
+## 3. 실시간 전환 R0–R2
 
-- B: 고정소수점 자유 배치, 점유영역·수면·건물·선로 기하, 제한된 camera
-- C: 선로·전신주 접속부·변전소 주기기의 연속·비상 한계와 보호정지·냉각
-- D: 안전 의무·도시 약속·기한·국면 preview·최근 공사 복구와 save v3
-- E: 첫 네 임무와 같은 망·자금·저장
-- F: 후반 네 임무, 결과·에필로그와 완료 저장 재개
-- G: 병목 경로·원자 배치 feedback·승인 checklist·국면 표·설정/접근성·날씨·초상·sound·내부 package
+### R0 — 방향 전환
 
-clean commit 기반 내부 후보는 저장소 밖 빈 user-data에서 새 게임→저장→fresh continue→전체 캠페인·
-에필로그→완료 저장 재개→장 재설계를 확인했다. 이 증거는 규칙·wiring·내부 package에 한정된다.
-사람 전체 플레이, 한국어 전문 교정, 실제 지원 환경과 공개 release는 수집·승인되지 않았다.
-최종 내부 후보의 source commit은 `78ff78889ed2c21aad43d1d285ea1a5e8d01442a`, 상태는
-`INTERNAL_ADHOC / NOT_AUTHORIZED`였다.
+turn/승인 중심 흐름을 fixed-tick realtime으로 바꾸는 계약을 만들었다. pause·1×·2×·4×, 계속 흐르는
+공사와 예고 사건을 제품의 중심으로 정했다.
 
-Stage F cold LLM 실행은 마지막 장 폭염 국면 중 사용자가 중단했다. 같은 참가자에게 뒤이어 회고를
-요청해 원래 no-follow-up protocol은 무효가 됐다. 관찰에서 나온 병목 진단, 입력 결과 단일화,
-승인 checklist, 후보 선택, 공사 기한, hover, 접근성, modal과 복구 preview는 G에서 기계적으로
-닫았지만 사람 증거로 승격하지 않았다.
+### R1 — 실시간 Core
 
-## 4. 실시간 개편 R0–R2
+`FIRST_LIGHT` vertical slice에서 결정론적 시계, 공사, 사건 경계, 세 설비군의 과부하→보호정지→복귀,
+forecast와 actual 상태를 구현했다. 이 단계는 Core 규칙 기준선이며 당시 Game UI, 제품 데이터와
+persistence는 범위 밖이었다.
 
-### R0
+### R2 — 실시간 UX 기반
 
-- commit `5a9e465`
-- turn/approval 중심 진행을 fixed-tick realtime으로 바꾸는 계약과 동결 기준선
+reducer, 상단 HUD, 수평 사건 시간축, 조건부 inspector/build/action UI와 code-native world를 만들었다.
+초기 R2 종료 gate는 사용자 지시로 중단됐지만 이후 작업은 이 기반을 보존해 현재 live R2로 발전했다.
+중단 당시의 “비기본 장면”이나 “전체 미완료” 문구는 현재 상태가 아니다.
 
-### R1
+## 4. 상용 UX 평가 기반
 
-- commit `3da1897`
-- 별도 V3 Core 14개 파일, realtime checks와 두 `FIRST_LIGHT` fixture
-- pause·1×·2×·4×, 공사·사건 시간, 세 설비군 과부하→정지→복귀, forecast=actual과 canonical state
-- 당시 고정 증거: Debug/Release 22 suites / 639 assertions, V2 30 suites / 5,739 assertions,
-  독립 P0/P1 0
-- persistence, production V3 data, Game/UI/art는 범위 밖
+### UX-R0 — text-plan 형성평가
 
-### R2
+8장/16개 사건을 실시간 일정에 결속하고, briefing·window·result·epilogue를 34개 story part로 단독
+실행할 수 있게 했다. 세 fresh judge의 두 번째 안정 panel은 `TextPlanProxy = 83.4475`였다. 이는 계획
+평가이며 native 게임 점수나 공식 상용 UX 점수가 아니다.
 
-- commit `4c27f65`
-- 비기본 realtime shell, reducer, 상단 HUD, 수평 사건 지평선, 조건부 inspector/build/action과
-  code-native placeholder world
-- 마지막 exact-tree 전체 harness는 사용자 지시로 중단돼 `NOT_COMPLETED`
-- 앞선 자동·native 증거는 보존하지만 R2 종료·전체 개편 완료·출시 증거로 승격하지 않음
-- 기본 장면은 계속 `CommercialMain`
+### UX-R1 — 비점수 평가 도구
 
-R3–R7은 실행하지 않았고 이전 전면 개편은 `USER_STOPPED_AFTER_R2`로 닫았다. 현재 새
-`ASSET_STYLE_REALTIME_GAME` 목표는 R1/R2를 기반으로 사용하지만 그 중단 계획을 그대로 재개하지 않는다.
+targeted checkpoint, story-part unit, session/attempt, evidence chain과 fail-closed 비점수 도구를
+구축하고 독립 검토를 마쳤다. 로컬에서 요청 model/effort를 확인하는 controlled transcript도 만들었지만
+platform attestation, 실제 judge 실행 또는 공식 점수를 주장하지 않았다.
 
-## 5. 미개방·조건부 옛 후보
+### UX-R2.1 — 첫 장과 한 줄 future-event bar
 
-`docs/development/BALANCING_STATIC_SIM.md`의 정적 분석 lab은 수치 조정이 별도 검증 질문을 가질 때만
-여는 조건부 도구였고 자동 튜닝 권한이 아니었다. `docs/future/POST_1_0.md`의 냉각수·원전 등은 1.0
-이후 아이디어였으며 구현·schema·UI가 열린 적이 없다. 두 문서는 현재 `./assets` 목표의 backlog가
-아니며 원문은 Git 이력에만 보존한다.
+실제 release `FIRST_LIGHT`의 briefing→live play→authored result를 R2에 연결했다. 사건·공사·결정·열
+경계를 한 줄 chronological rail의 compact marker로 합치고 hover/선택 상세 구조를 만들었다. 첫 장과
+두 targeted checkpoint는 실제 macOS 입력으로 비점수 관찰했다.
 
-## 6. 폐기한 HTML 목표 화면
+### UX-R2.2 — 튜토리얼 3장
 
-commit `9aceaf7`의 `docs/mockups/realtime-target/`은 HTML/CSS로 FHD/UHD 정상·공사·비상 화면을
-그린 non-runtime 참고 시안이었다. 실제 `./assets`의 회화적 밀도·재질·아이소메트릭 설비와 크게
-달랐으므로 현재 목표·비주얼 evidence에서 폐기했다.
+`FIRST_LIGHT → SECOND_HEART → SECOND_SOURCE`를 동일한 망·현금·시계에서 이어지게 했다. 병원 2회선,
+범람 안전 회랑과 전체 경로 용량을 장 전환과 authored result에 연결했다. fresh process의 production
+mouse/keyboard 입력으로 3장 누적 경로를 끝까지 관찰했다.
 
-이 파일들은 runtime, Godot capture, production art, 사람 미감 검토 또는 지원 해상도 증거가 아니다.
-역사 확인이 필요할 때만 다음처럼 본다.
+### UX-R2.3 — 네 번째 장
 
-```sh
-git show 9aceaf7:docs/mockups/realtime-target/gridworks-realtime-target.html
-```
+`NORTH_BANK_PROMISE`까지의 누적 4장 경로를 구현했다. 6개월 달력 전환이 이전 망·공사·자금을
+보존하며, 약속 마감이 같은 한 줄 rail에 표시되고 Keep/Defer가 Core 결과로 이어진다. 자동검사와
+독립 review는 완료했지만 사용자 중단 지시에 따라 4장의 native 직접 플레이는 수행하지 않았다.
 
-## 7. 보존할 교훈
+## 5. G3 아트와 main 통합
 
-- 단계 하나는 위험 하나와 machine-readable authority 하나를 가진다.
-- Core가 계산하고 Game은 typed result를 표현한다.
-- service area, actual path, spatial risk와 thermal limit를 서로 대신하지 않는다.
-- 거부된 command는 상태를 바꾸지 않고 visible result를 남긴다.
-- 공사 완공과 사건 경계는 원자적이고 결정론적이어야 한다.
-- 과거 후보의 PASS를 현재 후보의 품질·사람·출시 증거로 합산하지 않는다.
-- 미감 목표는 색 palette가 아니라 카메라·밀도·재질·실루엣·조명·상태를 함께 고정해야 한다.
+루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.
+중간의 지도 35개 부분 적용은 최종 작업으로 대체됐다. 현재 기준선은 G3 PNG 57개 전부를 live R2에
+연결한다.
 
-## 8. 삭제한 상세 문서의 원래 경로
+- 지도 50개: 지형, 강·제방, 도로, 주거·병원·산업 시설, 발전·전신주·변전소 구조물
+- UI 7개: panel, HUD metric, inspector, tool slot과 버튼 chrome
+- clear·heat·rain·storm draw, UI scale, hit/focus와 기존 상태 표현 회귀 검사
+- `RealtimeSliceMain`을 저장소 기본 Godot 장면으로 전환
+- 작업 이력을 local `main` 한 branch로 정리
 
-아래 파일은 내용 소실이 아니라 **현재 문서 트리 정리**를 위해 제거했다. 모두 commit `9aceaf7`에서
-읽을 수 있다.
+이 완료는 runtime 연결과 자동검사의 증거다. 사람 미감·사용성, 전체 상태별 production polish,
+R2 save/package 또는 출시 승인을 뜻하지 않는다.
 
-```text
-docs/DEVELOPMENT_HISTORY.md
-docs/development/BALANCING_STATIC_SIM.md
-docs/future/POST_1_0.md
-docs/product/COMMERCIAL_2D_GAME_DESIGN_PLAN_KO.md
-docs/scopes/SCOPE_0B_PLAYABLE.md
-docs/scopes/SCOPE_1_INTERACTION.md
-docs/scopes/FIRST_LIGHT.md
-docs/scopes/SECOND_HEART.md
-docs/scopes/FACTORY_CAPACITY.md
-docs/scopes/HEATWAVE_MAINTENANCE.md
-docs/scopes/CAMPAIGN_SAVE_SETTINGS.md
-docs/scopes/CAMPAIGN_CONTENT.md
-docs/scopes/RELEASE_2D.md
-docs/scopes/RELEASE_REBUILD.md
-docs/scopes/COMMERCIAL_2D_IMPLEMENTATION.md
-docs/scopes/REALTIME_PHYSICAL_TOTAL_REVISION.md
-docs/mockups/realtime-target/**
-```
+## 6. 문서 기준선 정리
 
-## 9. 증거 상한
+현재 사실, 남은 일, 제품 기준과 완료 이력을 분리했다. 완료된 scope와 체크리스트는 현재 문서
+트리에서 제거하고 이 파일에 압축했다. README에는 실행 가능한 현재 사실만, `NEXT_TASKS.md`에는
+미완료 항목만 남겼으며 SHA·커밋 영수증은 현재-facing 기획 문서에서 제거했다.
 
-```text
-FrozenCommercialV2 = COMPLETE_INTERNAL_BASELINE
-R1RealtimeCore = COMPLETE_BOUNDED_VERTICAL_SLICE
-R2Implementation = PRESERVED
-R2ExitGate = NOT_COMPLETED
-OldRealtimeRevision = USER_STOPPED_AFTER_R2
-OldHtmlTarget = SUPERSEDED_NON_RUNTIME_REFERENCE
-HumanFullCampaign = NOT_COLLECTED
-HumanVisualValidation = NOT_COLLECTED
-ElectricalProfessionalReview = NOT_COLLECTED
-KoreanProfessionalReview = NOT_COLLECTED
-PhysicalUhdPanelEvidence = OPEN_EXTERNAL_HARDWARE_NOT_AVAILABLE
-PublicReleaseStatus = NOT_AUTHORIZED
-```
+## 7. 완료하지 않은 항목
+
+다음은 위 단계의 일부로 간주하지 않는다.
+
+- 인자 없는 제품용 title/new game journey
+- `NORTH_BANK_PROMISE` 직접 플레이와 남은 4장 R2 native presentation
+- R2 save/resume, finale, epilogue와 완료 후 재개
+- 8장 native full-campaign E2E
+- 공식 `CommercialUXProxy`, 87점 gate와 score-bearing evidence
+- 사람 미감·사용성, 한국어·전력설비 전문 검토
+- current R2 package, 서명·공증과 공개 출시
+
+현재 상태와 다음 순서는 [루트 README](../../README.md)와 [남은 작업](../NEXT_TASKS.md)이 소유한다.

@@ -1,115 +1,109 @@
-# Gridworks — 현재 오브젝트 카탈로그
+# Gridworks 오브젝트와 표현 coverage
 
-이 문서는 현재 제품에서 필요한 오브젝트와 **규칙 기반 상태 / 새 비주얼 준비 상태**를 분리한다.
-`규칙 기반 보존`은 동결 v2 또는 R1에 typed 규칙이 있다는 뜻이며, `아트 미채택`은 `./assets` 품질의
-runtime source·manifest·anchor가 아직 승인되지 않았다는 뜻이다.
+이 문서는 제품에 필요한 오브젝트, 현재 R2 규칙 연결과 G3 시각 기준선의 범위를 구분한다. 현재 G3
+자산이 적용됐다는 사실은 모든 상태의 최종 production art와 사람 미감 검토가 끝났다는 뜻이 아니다.
 
 ## 1. 상태 용어
 
-| 상태 | 의미 |
+| 용어 | 의미 |
 |---|---|
-| 규칙 기반 보존 | v2/R1에 계산·상태 모델이 있으며 새 목표가 유지 |
-| R1 slice | 현재 실시간 `FIRST_LIGHT` vertical slice에서 사용 |
-| 아트 미채택 | 새 목표의 production source·provenance·anchor·LOD 미승인 |
-| A1 후보 | 일반 운전 vertical slice에서 필요한 최소 오브젝트 |
-| A3 후보 | 전체 city/art catalog 단계에서 채택 예정, 현재 구현 권한 아님 |
+| 규칙 연결 | Release.V3 Core가 배치·공급·공사·열 상태를 계산함 |
+| native 연결 | R2 controller와 presentation에서 실제로 사용함 |
+| G3 기준선 | 현재 world/UI에 G3 texture가 연결되고 자동검사됨 |
+| production gap | 상태별 아트, 가독성·성능 또는 사람 검토가 남음 |
 
-## 2. 전력회사 설비
+## 2. 전력 설비
 
-| 오브젝트 | 규칙 상태 | 플레이어 역할 | 새 비주얼 상태 |
+| 오브젝트 | gameplay 역할 | 현재 구현·표현 | 남은 품질 항목 |
 |---|---|---|---|
-| 발전 접속점 | 규칙 기반 보존·R1 slice | 공급 시작점, 출력 한도·순서 확인 | A1 후보·아트 미채택 |
-| 일반 전신주 | 규칙 기반 보존·R1 slice | 자유 배치 경유·분기, 제한된 접속 | A1 후보·아트 미채택 |
-| 보강 전신주 | 규칙 기반 보존·R1 slice | 큰 분기·합류, 더 큰 접속부 한도 | A1 후보·아트 미채택 |
-| 일반 배전선 | 규칙 기반 보존·R1 slice | 저비용 회랑, 낮은 연속·비상 한도 | A1 후보·아트 미채택 |
-| 보강 배전선 | 규칙 기반 보존·R1 slice | 공유 주간선·우회, 큰 한도와 비용 | A1 후보·아트 미채택 |
-| 소형 배전 변전소 | 규칙 기반 보존·R1 slice | 제한된 접속·service area·주기기 한도 | A1 후보·아트 미채택 |
-| 대형 배전 변전소 | 규칙 기반 보존 | 큰 결절·많은 접속·큰 주기기 한도 | A3 후보·아트 미채택 |
-| 선로 공사 | 규칙 기반 보존·R1 slice | 한 경로의 원자 시운전 | A1 상태 layer 후보 |
+| 발전 접속점 | 공급 시작점, 출력 한도와 순서 | 규칙/native 연결, G3 발전소·switchyard 구조 | 출력·선택·사건 상태의 실제 화면 검수 |
+| 일반 전신주 | 저비용 경유·분기, 제한된 접속 | 규칙/native 연결, G3 standard pole | 작은 zoom의 attachment·hit target 검수 |
+| 보강 전신주 | 큰 분기·합류와 접속부 한도 | 규칙/native 연결, G3 reinforced pole | 일반형과 색 없이 구분되는지 사람 검수 |
+| 일반/보강 선로 | 실제 공급 경로와 열 병목 | 규칙/native 연결, code-drawn conductor와 G3 지지 구조 | 3상 cue, 교차/접속, 비상·정지 상태 polish |
+| 소형 배전 변전소 | service area와 주기기 한도 | 규칙/native 연결, G3 transformer/bay | service area와 열 상태 동시 가독성 |
+| 공사 초안·공사 중 | 비용·공기·완공 전 무전압 | actual/draft construction과 rail marker 연결 | scaffold·미완성 구조와 overlay 혼잡 검수 |
 
-전신주의 열 한계는 기둥 온도가 아니라 단자·퓨즈·개폐기·분기 접속 장치 조합의 게임용 계획
-한계다. 도체·접속부·변전소 주기기는 현재 사용, 연속, 비상과 보호정지 상태를 각각 가진다.
+전신주의 열 한계는 기둥 온도가 아니라 단자·퓨즈·개폐기·분기 접속부를 추상화한 게임용 계획
+한계다. 선로·접속부·변전소 주기기는 각각 현재 사용, 연속, 비상, 보호정지 상태를 가진다.
 
-## 3. 수요·시설
+## 3. 수요와 시설
 
-| 오브젝트 | 규칙 상태 | 제품 의미 | 새 비주얼 상태 |
+| 오브젝트 | 제품 의미 | 현재 G3 기준선 | 남은 품질 항목 |
 |---|---|---|---|
-| 주거지 | 규칙 기반 보존·R1 slice | 일반 생활·상업 수요와 폭염 결과 | A1 후보·아트 미채택 |
-| 청류의료원 | 규칙 기반 보존 | 생명 유지 전력, 두 접속·범람 시험 | A1 필수시설 후보·아트 미채택 |
-| 정수장 | 규칙 기반 보존 | 필수 서비스와 범람·정지 결과 | A1 대체 필수시설 후보·아트 미채택 |
-| 산업단지 | 규칙 기반 보존·R1 slice | 큰 수요와 공유 병목 | A1 후보·아트 미채택 |
+| 주거지 | 생활·상업 수요와 폭염 결과 | worker house·row shop·도로·가로등 | 공급/미공급을 조명 외 cue로 검수 |
+| 청류의료원 | 생명 유지, 두 접속과 범람 시험 | hospital main/service 구조 | 두 회선·범람·결과의 명확성 |
+| 정수장 | 필수 서비스와 범람·정지 결과 | pump house·water tank | 시설 역할과 공급 상태 식별 |
+| 산업단지 | 큰 수요와 공유 병목 | warehouse·workshop·plant 구조 | 선택 경로와 도시 배경의 대비 |
 
-시설의 warm light는 도시가 살아 있음을 표현하지만 공급 판정이 아니다. 미공급·복귀는 Core state,
-world cue, horizon과 context 문장이 함께 말해야 한다.
+warm window light는 도시가 살아 있음을 보여 주지만 공급 판정이 아니다. Core state, world cue,
+future-event bar와 context 문장이 함께 같은 결과를 말해야 한다.
 
-## 4. 공간·환경
+## 4. 공간과 환경
 
-| 레이어 | 규칙 상태 | gameplay 역할 | 새 비주얼 상태 |
+| 레이어 | gameplay 역할 | 현재 G3 기준선 | 남은 품질 항목 |
 |---|---|---|---|
-| 건설 가능 지형 | 규칙 기반 보존 | footprint 합법성 | A1 terrain 필요 |
-| 강·수면·제방 | 규칙 기반 보존 | 지지 설비 거부, 가공선 횡단 | A1 river 필요 |
-| 건물 footprint | 규칙 기반 보존 | 설비·선로 충돌 | A1 city mass 필요 |
-| 도로 | 맥락 기반 보존 | 도시 정체성과 회랑 | A1 road set 필요 |
-| service area | 규칙 기반 보존 | 수요 연결의 기하학적 자격 | A1 translucent overlay 필요 |
-| 위험구역 | 규칙 기반 보존·R1 slice | 사건 사용불가와 배치 경고 | A2 state layer 후보 |
-| 날씨·조명 | 표현 기반 일부 보존 | 사건 분위기와 가독성 | A2/A3 production 후보 |
+| 지형·필지 | footprint 합법성과 도시 밀도 | rubble/relief tile과 도시 props | 반복감·빈 공간·depth 검수 |
+| 강·제방 | 지지 설비 거부, 가공선 횡단 | water, bank, rock, bridge 조각 | clear/heat/flood 전환의 경계 가독성 |
+| 도로·yard | 도시 정체성과 건설 회랑 | straight/corner/junction/yard/bridge | 연속성·건물 footpoint·hit test 검수 |
+| service area | 수요 연결의 기하학적 자격 | typed overlay 유지 | 건물과 도체를 가리지 않는지 검수 |
+| 위험구역 | 사건 사용불가와 배치 경고 | forecast pattern과 active fill 유지 | 날씨·선택·공사와 겹칠 때 구분 |
+| 날씨·시간 | 사건 분위기와 상태 강조 | clear·heat·rain·storm draw 경로 | 실제 플레이 성능·대비·motion 검수 |
 
-service area는 발전원이 아니다. 범위 안에 있어도 발전 접속점까지 완공·사용 가능한 경로와 충분한
-열 한도가 없으면 공급되지 않는다.
+service area 안에 있다는 사실만으로 전력이 공급되지 않는다. 발전 접속점까지 완공·사용 가능한
+경로와 충분한 설비 한도가 모두 필요하다.
 
-## 5. 공통 생명주기
+## 5. UI surface
+
+G3 UI 7개는 generic panel, top HUD metric, inspector, tool slot, default/cyan/amber button chrome에
+사용된다. live R2의 top HUD, 한 줄 future-event bar, context dock, build shelf, action dock와 modal이
+이 theme을 공유한다.
+
+한 줄 future-event bar는 수요·기상·공사·결정 기한·열 보호 경계를 별도 상시 패널로 나누지 않는다.
+시간순 compact marker를 한 rail에 놓고 hover 또는 선택한 항목의 상세만 overlay로 연다.
+
+남은 UI 검수는 다음과 같다.
+
+- 실제 mouse hover popup 출현과 pointer 이탈/겹침 동작
+- marker cluster의 keyboard 탐색과 screen-reader 이름
+- FHD/UHD, UI 100/125/150/200%에서 world 면적과 한국어 줄바꿈
+- focus 복구, Reduce Motion, 색각·grayscale 구분
+
+## 6. 공통 생명주기
 
 ```text
 초안
 → 위치·거리·접속·충돌 검토
 → 비용·공기·완공 시각·forecast 확인
 → 발주와 자금 지급
-→ 공사 중
+→ 공사 중(무전압)
 → 원자 시운전
-→ 완공·정상/비상 운전
+→ 정상/비상 운전
 → 필요 시 보호정지·냉각·복귀
 ```
 
 - 초안은 Core 상태를 바꾸지 않는다.
-- 공사 중 설비는 보이지만 전력을 전달하지 않는다.
-- 한 선로 공사의 지지점·구간은 함께 완공된다.
-- authored 사용불가와 보호정지는 다른 원인이며 동시에 존재할 수 있다.
-- 완공 설비의 부분 철거·재배선은 현재 1.0 범위가 아니다.
+- 한 선로 공사의 지지점과 구간은 함께 완공된다.
+- authored 사용불가와 열 보호정지는 다른 원인이며 동시에 존재할 수 있다.
+- 완공 설비의 부분 철거·범용 재배선은 현재 1.0 범위가 아니다.
 
-## 6. 시각 상태 coverage
+## 7. 필수 상태 coverage
 
-production catalog의 각 설비는 다음 상태를 지원해야 한다. 별도 sprite가 아니어도 공통 overlay와
-조합할 수 있지만 fallback은 허용하지 않는다.
+| 상태 | world에서 필요한 표현 | UI에서 필요한 설명 |
+|---|---|---|
+| 정상 | class 실루엣, 안정된 통전 경로 | 현재/연속 사용량 |
+| 선택 | outline, 전체 경로와 대상 | 발전원→수요, 첫 병목 |
+| 초안 | footprint, 점선, 합법/거부 cue | 비용·공기·거부 원인 |
+| 공사 | 미완성 구조와 무전압 | 완공 시각과 rail marker |
+| 비상 | 색 외 notch/pattern | 노출 남은 시간 |
+| 계획 사용불가 | 차단 pattern | 사건명·기간·대상 |
+| 보호정지 | 끊긴 선/X·잠금 | 정지 원인·복귀 시각 |
+| 냉각·복귀 | 점감/재연결 cue | 남은 시간과 transition |
 
-| 상태 | 필수 정보 |
-|---|---|
-| 정상 | class 실루엣, attachment, commissioned 상태 |
-| 선택 | stable ID, world outline, context target |
-| 초안 | footprint, class, 합법/거부 원인 |
-| 공사 | 미완성 구조, 완공 시각 |
-| 비상 | 사용/연속/비상, 노출 남은 시간 |
-| 계획 사용불가 | authored 원인·사건·기간 |
-| 보호정지 | trip 원인·복귀 시각 |
-| 냉각·복귀 | 남은 시간과 transition |
-
-## 7. 채택 전 요구사항
-
-오브젝트를 `새 비주얼 채택`으로 바꾸려면 다음이 모두 있어야 한다.
-
-- tracked source와 SHA-256
-- provenance·생성 방법·사용 경계
-- 공통 camera·light·scale sheet
-- transparent edge 검수
-- pivot·footprint·selection bounds
-- conductor 또는 service attachment
-- three zoom readability와 FHD/UHD import 결과
-- 실제 R1/R2 typed state 연결
-- `ASSET_MANIFEST.md` 기록
-
-작업 폴더의 untracked 이미지나 prototype renderer는 이 상태를 바꾸지 않는다.
+새 시각 작업은 [비주얼 제작 명세](VISUAL_PRODUCTION_SPEC.md)의 카메라·밀도·재질·실루엣·조명·상태
+기준과 [자산 안내](../../ASSET_MANIFEST.md)의 provenance 경계를 함께 만족해야 한다.
 
 ## 8. 현재 제외
 
 원전·석탄·LNG·태양광·풍력, 배터리, 데이터센터, 전력시장, 다중 공사반, 사용자 switch, 완공망
-부분 편집·철거와 자유 회전 camera는 현재 카탈로그에 넣지 않는다. 기준 이미지에 보인다는 이유만으로
-제품 기능이 되지 않는다.
+부분 편집·철거와 자유 회전 camera는 현재 카탈로그에 넣지 않는다. reference 이미지에 보인다는
+이유만으로 제품 기능이 되지 않는다.

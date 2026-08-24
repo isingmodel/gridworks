@@ -1,0 +1,125 @@
+# Gridworks 남은 작업
+
+이 문서는 **미완료 작업의 유일한 우선순위 목록**이다. 현재 기준선에서 무엇이 부족한지 설명하지만,
+어떤 항목도 자동으로 활성 scope가 되지 않는다. 시작 전 [현재 작업 범위](ACTIVE_SCOPE.md)에 선택한
+한 단계의 파일 범위와 완료 검사를 적어야 한다.
+
+## 현재 기준선
+
+- Godot 기본 장면은 live R2 `RealtimeSliceMain`이다.
+- 인자 없는 실행은 제품용 새 게임이 아니라 기술 fixture다.
+- G3 아트 57개(지도 50/UI 7)가 R2 world와 UI에 연결돼 있다.
+- 한 줄 future-event bar가 사건·공사·결정 기한·열 경계를 compact marker로 표시하고 상세 정보를
+  hover 또는 선택으로 연다.
+- 8장/16개 사건/34개 story part가 작성돼 있다.
+- R2에는 `FIRST_LIGHT`부터 `NORTH_BANK_PROMISE`까지 누적 4장이 구현·자동검증돼 있다.
+- 실제 mouse/keyboard 직접 플레이는 첫 3장까지만 관찰했다.
+- R2 save/resume, 남은 4장, finale/epilogue, 제품 패키지와 공식 UX 점수는 없다.
+
+## 권장 순서
+
+### 1. 제품 시작 경로 확정
+
+플레이어가 인자 없이 실행했을 때 개발 fixture가 아니라 명확한 새 게임/이어하기 진입점을 만나도록
+한다. title 또는 최소 시작 화면, 새 user-data, 첫 브리핑까지의 소유권을 정한다.
+
+완료 기준:
+
+- default boot와 명시적 개발 fixture가 분리된다.
+- 새 설치에서 title→첫 입력→`FIRST_LIGHT`가 실제 입력으로 재현된다.
+- checkpoint와 테스트 route는 계속 명시적 인자로만 접근한다.
+
+### 2. 누적 4장 직접 플레이 검증
+
+`--release-through=NORTH_BANK_PROMISE`를 fresh process에서 플레이해 첫 3장의 실제 망·현금·시계가
+4장으로 이어지는지 확인한다. 6개월 달력 전환, 약속 기한 marker와 Keep/Defer 결과를 모두 다룬다.
+
+완료 기준:
+
+- Keep과 Defer의 production input 경로가 각각 결과까지 도달한다.
+- 장 전환 뒤 망·공사·자금이 위조되거나 초기화되지 않는다.
+- 한 줄 future-event bar에서 결정 기한과 주변 사건을 실제로 찾고 상세 정보를 열 수 있다.
+
+### 3. 남은 4장 native 구현
+
+작성된 다음 장을 R2 Core/controller/presentation에 순서대로 연결한다.
+
+1. `WHOSE_MARGIN`
+2. `BEFORE_WATER_RISE`
+3. `SWITCH_OFF_TO_PROTECT`
+4. `LONGEST_NIGHT`
+
+각 장은 별도 작은 scope로 연다. briefing, 준비시간, forecast, 사건 시작/종료, 플레이어 결정, authored
+result와 다음 장 전환을 같은 누적 상태에서 닫아야 한다. story part selector 단독 실행은 계속
+유지하되, 그 통과를 native 도달성으로 세지 않는다.
+
+완료 기준:
+
+- 8장이 동일한 망·자금·시계에서 순서대로 진행된다.
+- 각 장의 story/result가 작성 데이터와 일치한다.
+- 사건·공사·결정·열 경계가 한 줄 future-event bar에 시간순으로 나타난다.
+- 장별 unit/checkpoint와 8장 누적 경로가 모두 통과한다.
+
+### 4. 캠페인 완결성과 저장
+
+R2 save/resume, finale, 세 epilogue card, 누적 약속 결과와 완료 후 재개를 구현한다. 동결 V2 저장을
+그대로 현재 R2 저장이라고 주장하지 말고, Release.V3 상태에 맞는 권위를 정의한다.
+
+완료 기준:
+
+- 진행 중 저장→프로세스 종료→fresh process 재개
+- 공사 중, 사건 중과 장 전환 직전의 시간·망·결정 상태 복구
+- 8장 완료→finale→epilogue→완료 저장 재개
+- 손상/구버전 저장의 명시적 거부 또는 migration 정책
+
+### 5. 시각·조작성·접근성 마감
+
+현재 G3 적용을 출발점으로 정상·공사·폭염·범람·비상·보호정지·냉각·복귀 화면을 실제 플레이에서
+검수한다. 아트 파일의 존재가 아니라 화면 밀도, 설비 실루엣, 상태 인과, hit target과 프레임 성능을
+판정한다.
+
+완료 기준:
+
+- FHD와 UHD, UI 100/125/150/200%의 가독성
+- mouse와 keyboard 동등 조작, focus 복구, Reduce Motion과 색 외 cue
+- hover와 선택 상세 overlay가 world를 과도하게 가리지 않음
+- 사람 미감·사용성, 한국어와 전력설비 검토의 이슈 처리
+
+### 6. 전체 E2E와 공식 LLM-as-a-judge
+
+전체 native 여정이 완성된 뒤 새 설치 cold journey와 고정 coverage journey를 수집한다. judge는
+`gpt-5.6-sol`, reasoning effort `ultra`를 사용하며, [평가 프로토콜](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)의
+hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지 원인 단위로 개선한다.
+
+완료 기준:
+
+- title부터 8장·finale·epilogue·완료 재개까지 실제 후보로 재생 가능
+- UX-R0의 first-light coverage를 보존한 채 새 version의 text/native context를 전체 current coverage로 생성
+- fresh actor/judge와 검증 가능한 동일 evidence set
+- 필수 category와 hard gate를 포함한 공식 점수 87 이상
+- 점수와 별개로 사람 사용성·미감 검토의 출시 차단 이슈 0
+
+### 7. R2 패키지와 출시 준비
+
+현재 R2를 포함하는 fresh-install 후보를 만든다. 과거 V2 내부 패키지는 회귀 참고일 뿐 현재 후보가
+아니다.
+
+완료 기준:
+
+- clean build의 current R2 package와 빈 user-data 설치 검사
+- 지원 OS/하드웨어, 설정·save 경로와 제거/업데이트 정책
+- 라이선스·자산 권리·고지 검토
+- Developer ID 서명·공증과 공개 출시 여부의 명시적 소유자 승인
+
+## 테스트 선택 원칙
+
+| 질문 | 가장 작은 올바른 시작점 |
+|---|---|
+| 문장·결과 하나가 맞는가? | `--story-part <selector>` |
+| 특정 시각의 UI/Core 상태가 맞는가? | named checkpoint |
+| 한 장의 누적 전환이 맞는가? | 해당 장까지의 release route |
+| 첫 경험·저장·누적 선택·전체 완결성이 맞는가? | fresh-process E2E |
+| 미감·이해·재미가 충분한가? | 실제 화면의 사람/LLM 관찰 |
+
+unit 테스트가 가능하도록 새 story 구간도 독립 selector를 먼저 제공한다. 다만 unit fixture가 production
+controller나 앞선 누적 상태를 흉내 내서 E2E 증거를 대체하게 만들지 않는다.

@@ -1,8 +1,9 @@
 # Gridworks — `./assets` 스타일 비주얼 제작 명세
 
 이 문서는 루트 `./assets` 네 이미지를 **실제 조작 가능한 Gridworks 화면**으로 번역하는 제작 규격이다.
-전체 목표와 단계 경계는 [현재 계약](../scopes/ASSET_STYLE_REALTIME_GAME.md), 제품 규칙은
-[게임 기획서](GAME_DESIGN_KO.md), 설비 능력은 [오브젝트 카탈로그](OBJECT_CATALOG.md)가 소유한다.
+현재 구현 권한과 단계는 [현재 작업 범위](../ACTIVE_SCOPE.md)와 [남은 작업](../NEXT_TASKS.md), 제품
+규칙은 [게임 기획서](GAME_DESIGN_KO.md), 설비와 표현 coverage는
+[오브젝트 카탈로그](OBJECT_CATALOG.md)가 소유한다.
 
 ## 1. 비주얼 선언
 
@@ -178,7 +179,7 @@ weather layer는 hit test와 Core 상태를 바꾸지 않는다. heat distortion
 
 1. source master의 카메라·광원·scale sheet 작성
 2. 배경 없는 RGBA와 alpha fringe 검수
-3. asset ID, source, 제작 방법, 날짜, hash와 사용 경계를 manifest에 기록
+3. asset ID, source, 제작 방법, 날짜와 사용 경계를 manifest에 기록
 4. footprint·pivot·attachment·selection bounds authoring
 5. normal/building/emergency/outage 또는 공통 overlay 조합 검증
 6. 세 zoom과 FHD/UI 100–200%에서 silhouette·anchor 검수
@@ -188,9 +189,9 @@ weather layer는 hit test와 Core 상태를 바꾸지 않는다. heat distortion
 Git에 포함되지 않은 로컬 후보, prompt만 있는 파일, 합성 화면에서 자른 sprite와 provenance 없는
 파일은 채택할 수 없다.
 
-## 12. A1 reference sheet
+## 12. 상태별 reference sheet
 
-A1을 열면 같은 exact state에서 다음 네 장을 만든다.
+시각 polish scope를 열면 같은 재현 상태에서 다음 네 장을 만든다.
 
 1. normal FHD 전체 화면
 2. construction FHD 전체 화면
@@ -216,7 +217,8 @@ A1을 열면 같은 exact state에서 다음 네 장을 만든다.
 - UHD는 2× render density에서 texture, conductor, outline과 Korean glyph가 흐려지지 않아야 한다.
 - world label·status glyph도 UI scale authority를 따른다.
 - icon/line/pattern은 색각 변화와 grayscale에서도 서로 다른 형태를 유지한다.
-- 최악의 weather·dense city·모든 state overlay의 reference hardware 예산을 A1 계약에서 수치로 고정한다.
+- 최악의 weather·dense city·모든 state overlay의 reference hardware 예산을 해당 시각 scope에서 수치로
+  고정한다.
 - 실제 4K panel과 사람의 미감·가독성은 자동 offscreen 결과로 대체하지 않는다.
 
 ## 14. 제작 검수표
@@ -230,7 +232,7 @@ A1을 열면 같은 exact state에서 다음 네 장을 만든다.
 - world, horizon, context의 ID·시각·원인·수치가 Core와 같은가?
 - UI frame 장식이 한국어·클릭 영역·focus를 침범하지 않는가?
 - 합성 background, tiny sprite, flat SVG fallback이 없는가?
-- 모든 runtime 자산의 source·hash·권리·camera·anchor가 기록됐는가?
+- 모든 runtime 자산의 source·제작 방법·권리·camera·anchor가 기록됐는가?
 
 자동검사와 내부 리뷰가 모두 통과해도 사람 미감 검토가 없으면
 `HumanVisualValidation = NOT_COLLECTED`다.

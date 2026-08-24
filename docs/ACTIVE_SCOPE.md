@@ -2,12 +2,32 @@
 
 ## 상태
 
-**활성 구현 scope가 없다.**
+**R2 구조 문서 정합성 후속 수정 scope가 활성화됐다.**
 
-R2 개발 구조 단순화는 current 누적 4장과 canonical state, 입력·시간·망·표현 동작을 보존한 채
-완료됐다. current 개발 graph와 변경 경로는 [개발 구조](ARCHITECTURE.md), 완료 요약은
-[완료 이력](archive/COMPLETED_HISTORY.md)이 소유한다. 추가 코드·아트·평가 실행·패키징은 사용자가 새
-작업을 명시하기 전까지 허용되지 않는다.
+이 scope는 두 독립 문서 검토에서 확인된 current 문서의 과장·누락·삭제 식별자를 실제 `dev`와 코드에
+맞춘다. runtime, 개발 명령의 동작, gameplay와 historical evidence는 바꾸지 않는다.
+
+## 수정 가능한 범위
+
+- `README.md`, `docs/README.md`, `docs/ARCHITECTURE.md`, `docs/ACTIVE_SCOPE.md`
+- 문서 소유권 경계를 함께 설명하는 `docs/archive/COMPLETED_HISTORY.md`
+- canonical wrapper 예시를 소유한 `docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md`와
+  `tools/commercial-ux/README.md`
+
+## 범위 밖
+
+- `dev`, solution/project, runtime·test code와 resource 변경
+- test 종류나 native chapter coverage 확대
+- historical playtest/evidence 원문 재작성
+- branch 밖 사용자 소유 untracked 파일
+
+## 단일 권위와 완료 검사
+
+- 실행 명령과 포함 범위: `dev`
+- runtime ownership: current R2 code와 project allowlist
+- 문서 질문 소유권: `docs/README.md`
+- `git diff --check`, `./dev help`, stale 표현 검색과 tracked Markdown local-link 검사를 통과한다.
+- 두 독립 subagent가 실제 수정 필요성을 먼저 판정한 항목만 최소 범위로 고친다.
 
 ## 이 상태에서 할 수 있는 일
 

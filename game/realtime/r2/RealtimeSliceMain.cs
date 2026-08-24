@@ -315,6 +315,14 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void HandleInputRequest(RealtimeInputRequest request)
     {
+        if (!RealtimeUiCapabilities.Supports(request.Command) ||
+            !RealtimeUiCapabilities.Supports(request.SourcePriority))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(request),
+                request,
+                "Unsupported realtime input request.");
+        }
 #if DEBUG
         _lastInputRequest = request;
 #endif
@@ -323,6 +331,13 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private void HandleShortcut(RealtimeInputCommand command)
     {
+        if (!RealtimeUiCapabilities.Supports(command))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(command),
+                command,
+                "Unsupported realtime input command.");
+        }
         if (command is not RealtimeInputCommand.CancelOrBack and
             not RealtimeInputCommand.ToggleBuildShelf)
         {
@@ -382,11 +397,16 @@ internal sealed partial class RealtimeSliceMain : Control
                 Session.HandleBuildTool("TOOL:INSPECT");
                 break;
             case RealtimeInputCommand.SelectFirstNodeTool:
-                Session.SelectBuildToolByPrefix("NODE:");
+                Session.SelectBuildToolFamily(RealtimeBuildToolFamily.Node);
                 break;
             case RealtimeInputCommand.SelectFirstLineTool:
-                Session.SelectBuildToolByPrefix("LINE:");
+                Session.SelectBuildToolFamily(RealtimeBuildToolFamily.Line);
                 break;
+            default:
+                throw new ArgumentOutOfRangeException(
+                    nameof(command),
+                    command,
+                    "Unsupported realtime input command.");
         }
     }
 

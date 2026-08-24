@@ -207,6 +207,33 @@ internal static class RealtimeInteractionReducer
 {
     internal const string CampaignEndedReadOnlyReason =
         "운영이 완료되어 공사를 시작하거나 초안·운영 약속을 바꿀 수 없습니다.";
+    internal const string UnsupportedIntentReason =
+        "Unsupported realtime intent kind.";
+
+    internal static bool Supports(RealtimeR2IntentKind kind) => kind is
+        RealtimeR2IntentKind.SetSpeed or
+        RealtimeR2IntentKind.SetPlayerPaused or
+        RealtimeR2IntentKind.SelectTool or
+        RealtimeR2IntentKind.OpenSurface or
+        RealtimeR2IntentKind.CloseSurface or
+        RealtimeR2IntentKind.SelectId or
+        RealtimeR2IntentKind.ClearSelection or
+        RealtimeR2IntentKind.OpenModal or
+        RealtimeR2IntentKind.CloseModal or
+        RealtimeR2IntentKind.AcknowledgeAutoPause or
+        RealtimeR2IntentKind.ToggleAnalysis or
+        RealtimeR2IntentKind.SetTimelineView or
+        RealtimeR2IntentKind.SetNodeDraft or
+        RealtimeR2IntentKind.CancelNodeDraft or
+        RealtimeR2IntentKind.OrderNode or
+        RealtimeR2IntentKind.StartLineDraft or
+        RealtimeR2IntentKind.AddLinePoint or
+        RealtimeR2IntentKind.MoveLinePoint or
+        RealtimeR2IntentKind.UndoLinePoint or
+        RealtimeR2IntentKind.FinishLineDraft or
+        RealtimeR2IntentKind.CancelLineDraft or
+        RealtimeR2IntentKind.OrderLine or
+        RealtimeR2IntentKind.SetPromiseDecision;
 
     internal static RealtimeInteractionState Initial(bool chapterBriefing = true) =>
         new(
@@ -288,7 +315,18 @@ internal static class RealtimeInteractionReducer
             RealtimeR2IntentKind.AcknowledgeAutoPause => AcknowledgeAutoPause(state),
             RealtimeR2IntentKind.ToggleAnalysis => ToggleAnalysis(state),
             RealtimeR2IntentKind.SetTimelineView => SetTimelineView(state, intent),
-            _ => Accepted(state),
+            RealtimeR2IntentKind.SetNodeDraft or
+                RealtimeR2IntentKind.CancelNodeDraft or
+                RealtimeR2IntentKind.OrderNode or
+                RealtimeR2IntentKind.StartLineDraft or
+                RealtimeR2IntentKind.AddLinePoint or
+                RealtimeR2IntentKind.MoveLinePoint or
+                RealtimeR2IntentKind.UndoLinePoint or
+                RealtimeR2IntentKind.FinishLineDraft or
+                RealtimeR2IntentKind.CancelLineDraft or
+                RealtimeR2IntentKind.OrderLine or
+                RealtimeR2IntentKind.SetPromiseDecision => Accepted(state),
+            _ => Rejected(state, UnsupportedIntentReason),
         };
     }
 
@@ -370,7 +408,7 @@ internal static class RealtimeInteractionReducer
         RealtimeR2Intent intent)
     {
         if (!intent.TimelineHorizon.HasValue ||
-            !Enum.IsDefined(intent.TimelineHorizon.Value) ||
+            !RealtimeUiCapabilities.Supports(intent.TimelineHorizon.Value) ||
             intent.TimelineAnchorMinute is < 0)
         {
             return Rejected(state, "사건 지평선의 시간 범위를 확인할 수 없습니다.");
@@ -397,7 +435,8 @@ internal static class RealtimeInteractionReducer
         RealtimeInteractionState state,
         RealtimePauseReason reason)
     {
-        if (reason is RealtimePauseReason.None or RealtimePauseReason.PlayerRequest)
+        if (!RealtimeUiCapabilities.Supports(reason) ||
+            reason is RealtimePauseReason.None or RealtimePauseReason.PlayerRequest)
         {
             throw new ArgumentOutOfRangeException(nameof(reason));
         }
@@ -530,7 +569,7 @@ internal static class RealtimeInteractionReducer
         RealtimeSurface? targetSurface,
         string? buildToolId)
     {
-        if (!tool.HasValue || !Enum.IsDefined(tool.Value))
+        if (!tool.HasValue || !RealtimeUiCapabilities.Supports(tool.Value))
         {
             return Rejected(state, "알 수 없는 상호작용 도구입니다.");
         }
@@ -540,7 +579,7 @@ internal static class RealtimeInteractionReducer
         }
         if (targetSurface.HasValue &&
             (targetSurface == RealtimeSurface.BlockingModal ||
-             !Enum.IsDefined(targetSurface.Value)))
+             !RealtimeUiCapabilities.Supports(targetSurface.Value)))
         {
             return Rejected(state, "A tool cannot open an invalid surface.");
         }
@@ -572,7 +611,7 @@ internal static class RealtimeInteractionReducer
         RealtimeSurface? surface)
     {
         if (!surface.HasValue || surface == RealtimeSurface.BlockingModal ||
-            !Enum.IsDefined(surface.Value))
+            !RealtimeUiCapabilities.Supports(surface.Value))
         {
             return Rejected(state, "알 수 없는 보조 화면입니다.");
         }
@@ -627,6 +666,8 @@ internal static class RealtimeInteractionReducer
     {
         if (state.ActiveModalId is not null || string.IsNullOrWhiteSpace(intent.FirstId) ||
             !intent.ModalKind.HasValue || !intent.PauseReason.HasValue ||
+            !RealtimeUiCapabilities.Supports(intent.ModalKind.Value) ||
+            !RealtimeUiCapabilities.Supports(intent.PauseReason.Value) ||
             intent.PauseReason == RealtimePauseReason.None)
         {
             return Rejected(state, "A single valid blocking modal is required.");

@@ -55,6 +55,12 @@ internal sealed record RealtimeR2PendingFrameDebt(
     int FramesPerSecond,
     int SpeedMultiplier);
 
+internal enum RealtimeBuildToolFamily
+{
+    Node,
+    Line,
+}
+
 /// <summary>
 /// Godot-free application session for one current R2 run. Core state, interaction state,
 /// exact time, chapter flow, and immutable presentation publication have one owner here.
@@ -107,6 +113,20 @@ internal sealed partial class RealtimeSession
     internal RealtimeR2IntentResult ApplyIntent(RealtimeR2Intent intent)
     {
         EnsureBootstrapped();
+        ArgumentNullException.ThrowIfNull(intent);
+        if (!RealtimeInteractionReducer.Supports(intent.Kind))
+        {
+            RealtimeCampaignSnapshot unsupportedSnapshot = _run.GetSnapshot();
+            return IntentResult(
+                false,
+                RealtimeInteractionReducer.UnsupportedIntentReason,
+                null,
+                _run.GetCanonicalStateSha256(),
+                unsupportedSnapshot.Minute,
+                NextCommandSequence,
+                _run.AcceptedCommands.Count,
+                _presentationRevision);
+        }
         _draftCancelArmed = false;
         string beforeHash = _run!.GetCanonicalStateSha256();
         RealtimeCampaignSnapshot beforeSnapshot = _run.GetSnapshot();
@@ -842,7 +862,10 @@ internal sealed partial class RealtimeSession
             RealtimeSlicePresenter.PromiseDeferActionId => ApplyIntent(new RealtimeR2Intent(
                 RealtimeR2IntentKind.SetPromiseDecision,
                 PromiseDecision: CommercialPromiseDecision.Defer)),
-            _ => ApplyIntent(RealtimeR2Intent.Select(id)),
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(id),
+                id,
+                "Unsupported realtime action."),
         };
     }
 
@@ -875,12 +898,32 @@ internal sealed partial class RealtimeSession
         RealtimeModalPresentation? modal = _latestPresentation?.Modal;
         RealtimeChapterStoryModalRequest? storyRequest = _chapterStoryFlow.Active;
         if (modal is null ||
-            !string.Equals(modal.Id, modalId, StringComparison.Ordinal) ||
-            !modal.PrimaryAction.Enabled ||
-            !modal.PrimaryAction.Visible ||
-            !string.Equals(modal.PrimaryAction.Id, actionId, StringComparison.Ordinal))
+            !string.Equals(modal.Id, modalId, StringComparison.Ordinal))
         {
             return;
+        }
+        bool primaryMatch = string.Equals(
+            modal.PrimaryAction.Id,
+            actionId,
+            StringComparison.Ordinal);
+        RealtimeActionPresentation? matchedAction = primaryMatch
+            ? modal.PrimaryAction
+            : modal.SecondaryAction is { } secondary && string.Equals(
+                secondary.Id,
+                actionId,
+                StringComparison.Ordinal)
+                ? secondary
+                : null;
+        if (matchedAction is null || !matchedAction.Enabled || !matchedAction.Visible)
+        {
+            return;
+        }
+        if (!primaryMatch || !IsSupportedModalCloseActionId(actionId))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(actionId),
+                actionId,
+                "Unsupported realtime modal action.");
         }
         // Every production R2 modal action is deliberately a close/continue
         // operation. Destructive recovery/new-game/title actions are never
@@ -900,6 +943,13 @@ internal sealed partial class RealtimeSession
             }
         }
     }
+
+    internal static bool IsSupportedModalCloseActionId(string actionId) =>
+        actionId is "NOTICE_CLOSE" or
+            "BRIEFING_CONTINUE" or
+            "EVENT_STORY_CONTINUE" or
+            "DECISION_WINDOW_CONTINUE" or
+            "RESULT_CLOSE";
 
     internal void HandleModalDismiss(string modalId)
     {
@@ -1354,6 +1404,16 @@ internal sealed partial class RealtimeSession
 
     internal void HandleBuildTool(string id)
     {
+        if (!_latestPresentation.BuildShelf.Tools.Any(item => string.Equals(
+                item.Id,
+                id,
+                StringComparison.Ordinal)))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(id),
+                id,
+                "The build tool is not in the current presentation.");
+        }
         if (string.Equals(id, "TOOL:ANALYSIS", StringComparison.Ordinal))
         {
             _ = ApplyIntent(new RealtimeR2Intent(RealtimeR2IntentKind.ToggleAnalysis));
@@ -1366,12 +1426,16 @@ internal sealed partial class RealtimeSession
             _ when id.StartsWith("LINE:", StringComparison.Ordinal) => RealtimeTool.BuildLine,
             _ => null,
         };
-        if (tool.HasValue)
+        if (!tool.HasValue)
         {
-            _ = ApplyIntent(tool is RealtimeTool.BuildNode or RealtimeTool.BuildLine
-                ? RealtimeR2Intent.SelectBuildTool(tool.Value, id)
-                : RealtimeR2Intent.SelectTool(tool.Value));
+            throw new ArgumentOutOfRangeException(
+                nameof(id),
+                id,
+                "Unsupported realtime build tool.");
         }
+        _ = ApplyIntent(tool is RealtimeTool.BuildNode or RealtimeTool.BuildLine
+            ? RealtimeR2Intent.SelectBuildTool(tool.Value, id)
+            : RealtimeR2Intent.SelectTool(tool.Value));
     }
 
     private bool TrySelectedNodeClass(out string nodeClassId)
@@ -1446,8 +1510,17 @@ internal sealed partial class RealtimeSession
         }
     }
 
-    internal void SelectBuildToolByPrefix(string prefix)
+    internal void SelectBuildToolFamily(RealtimeBuildToolFamily family)
     {
+        string prefix = family switch
+        {
+            RealtimeBuildToolFamily.Node => "NODE:",
+            RealtimeBuildToolFamily.Line => "LINE:",
+            _ => throw new ArgumentOutOfRangeException(
+                nameof(family),
+                family,
+                "Unsupported realtime build-tool family."),
+        };
         RealtimeBuildToolPresentation[] choices = _latestPresentation!.BuildShelf.Tools
             .Where(item => item.Enabled && item.Id.StartsWith(prefix, StringComparison.Ordinal))
             .OrderBy(item => item.Id, StringComparer.Ordinal)
@@ -1518,6 +1591,13 @@ internal sealed partial class RealtimeSession
 
     internal void HandleTimelineNavigation(RealtimeTimelineNavigation navigation)
     {
+        if (!RealtimeUiCapabilities.Supports(navigation))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(navigation),
+                navigation,
+                "Unsupported realtime timeline navigation.");
+        }
         RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
         if (navigation == RealtimeTimelineNavigation.Home)
         {
@@ -1766,7 +1846,19 @@ internal sealed partial class RealtimeSession
                     RealtimeR2IntentKind.FinishLineDraft or
                     RealtimeR2IntentKind.SetPromiseDecision =>
                     (null, "공사 입력에 필요한 정보가 부족합니다."),
-                _ => (null, null),
+                RealtimeR2IntentKind.SetSpeed or
+                    RealtimeR2IntentKind.SetPlayerPaused or
+                    RealtimeR2IntentKind.SelectTool or
+                    RealtimeR2IntentKind.OpenSurface or
+                    RealtimeR2IntentKind.CloseSurface or
+                    RealtimeR2IntentKind.SelectId or
+                    RealtimeR2IntentKind.ClearSelection or
+                    RealtimeR2IntentKind.OpenModal or
+                    RealtimeR2IntentKind.CloseModal or
+                    RealtimeR2IntentKind.AcknowledgeAutoPause or
+                    RealtimeR2IntentKind.ToggleAnalysis or
+                    RealtimeR2IntentKind.SetTimelineView => (null, null),
+                _ => (null, RealtimeInteractionReducer.UnsupportedIntentReason),
             };
         }
         catch (ArgumentException)

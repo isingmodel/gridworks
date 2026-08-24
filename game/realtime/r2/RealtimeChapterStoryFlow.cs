@@ -23,10 +23,19 @@ internal sealed record RealtimeChapterStoryModalRequest(
     bool FinalResult,
     string? WindowId = null)
 {
-    internal RealtimePauseReason PauseReason => Purpose ==
-        RealtimeChapterStoryModalPurpose.ChapterResult
-            ? RealtimePauseReason.CampaignResult
-            : RealtimePauseReason.ChapterBriefing;
+    internal RealtimePauseReason PauseReason => Purpose switch
+    {
+        RealtimeChapterStoryModalPurpose.ChapterResult =>
+            RealtimePauseReason.CampaignResult,
+        RealtimeChapterStoryModalPurpose.ChapterBriefing or
+            RealtimeChapterStoryModalPurpose.DecisionWindowStory or
+            RealtimeChapterStoryModalPurpose.EventStory =>
+            RealtimePauseReason.ChapterBriefing,
+        _ => throw new ArgumentOutOfRangeException(
+            nameof(Purpose),
+            Purpose,
+            "Unsupported chapter-story modal purpose."),
+    };
 }
 
 /// <summary>

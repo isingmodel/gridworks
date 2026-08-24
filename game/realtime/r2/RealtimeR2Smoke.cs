@@ -28,6 +28,7 @@ internal static class RealtimeR2Smoke
     internal static void Validate(ICollection<string> failures)
     {
         ArgumentNullException.ThrowIfNull(failures);
+        RunCase("fail-closed-routing", () => ValidateFailClosedRouting(failures), failures);
         RunCase("clock-pause", () => ValidateClockAndPause(failures), failures);
         RunCase("frame-rate-matrix", () => ValidateFrameRateMatrix(failures), failures);
         RunCase("callback-partition-matrix",
@@ -68,6 +69,250 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseTutorialConnectionFailureResult(failures), failures);
         RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
         RunCase("pointer-priority", () => ValidatePointerPriority(failures), failures);
+    }
+
+    private static void ValidateFailClosedRouting(ICollection<string> failures)
+    {
+        Check(Enum.GetValues<RealtimeR2IntentKind>()
+                  .All(RealtimeInteractionReducer.Supports) &&
+              Enum.GetValues<RealtimeTool>()
+                  .All(value => RealtimeUiCapabilities.Supports(value)) &&
+              Enum.GetValues<RealtimeSurface>()
+                  .All(value => RealtimeUiCapabilities.Supports(value)) &&
+              Enum.GetValues<RealtimePauseReason>()
+                  .All(value => RealtimeUiCapabilities.Supports(value)) &&
+              Enum.GetValues<RealtimeTimelineHorizonPreset>()
+                  .All(value => RealtimeUiCapabilities.Supports(value)) &&
+              Enum.GetValues<RealtimeTimelineNavigation>()
+                  .All(value => RealtimeUiCapabilities.Supports(value)) &&
+              Enum.GetValues<RealtimeModalKind>()
+                  .All(value => RealtimeUiCapabilities.Supports(value)) &&
+              Enum.GetValues<RealtimeInputPriority>()
+                  .All(value => RealtimeUiCapabilities.Supports(value)) &&
+              Enum.GetValues<RealtimeInputCommand>()
+                  .All(value => RealtimeUiCapabilities.Supports(value)),
+            "a current enum member is missing from its explicit R2 capability",
+            failures);
+
+        RealtimeInteractionState reducerState =
+            RealtimeInteractionReducer.Initial(chapterBriefing: false);
+        RealtimeInteractionReduction reduction = RealtimeInteractionReducer.Reduce(
+            reducerState,
+            new RealtimeR2Intent((RealtimeR2IntentKind)int.MaxValue));
+        Check(!reduction.Accepted &&
+              string.Equals(
+                  reduction.Error,
+                  RealtimeInteractionReducer.UnsupportedIntentReason,
+                  StringComparison.Ordinal) &&
+              ReferenceEquals(reducerState, reduction.State),
+            "an unknown intent was not rejected without interaction mutation",
+            failures);
+        RealtimeInteractionReduction invalidModal = RealtimeInteractionReducer.Reduce(
+            reducerState,
+            new RealtimeR2Intent(
+                RealtimeR2IntentKind.OpenModal,
+                FirstId: "INVALID_MODAL",
+                ModalKind: (RealtimeModalKind)int.MaxValue,
+                PauseReason: (RealtimePauseReason)int.MaxValue));
+        Check(!invalidModal.Accepted && ReferenceEquals(
+                reducerState,
+                invalidModal.State),
+            "an invalid modal enum shape was not rejected without mutation",
+            failures);
+        Check(ThrowsArgumentOutOfRange(() => RealtimeInteractionReducer.AutoPause(
+                reducerState,
+                (RealtimePauseReason)int.MaxValue)),
+            "an unknown automatic pause reason did not fail closed",
+            failures);
+        var invalidStoryRequest = new RealtimeChapterStoryModalRequest(
+            "INVALID_STORY",
+            (RealtimeChapterStoryModalPurpose)int.MaxValue,
+            "INVALID_CHAPTER",
+            null,
+            false);
+        Check(ThrowsArgumentOutOfRange(() => _ = invalidStoryRequest.PauseReason),
+            "an unknown chapter-story purpose did not fail closed",
+            failures);
+
+        var session = new RealtimeSession(
+            RealtimeSliceResources.LoadTechnicalFixture(typeof(RealtimeR2Smoke).Assembly));
+        RealtimeModalPresentation briefing = session.LatestPresentation.Modal ??
+            throw new InvalidOperationException("The technical session has no briefing modal.");
+        Check(RealtimeSession.IsSupportedModalCloseActionId(
+                briefing.PrimaryAction.Id),
+            "the presented briefing action is outside the explicit modal capability",
+            failures);
+        session.HandleModalAction(briefing.Id, briefing.PrimaryAction.Id);
+        Check(session.LatestPresentation.Modal is null,
+            "the supported briefing action did not close its modal",
+            failures);
+
+        RealtimeRoutingFingerprint beforeIntent = RoutingFingerprint(session);
+        RealtimeR2IntentResult unsupportedIntent = session.ApplyIntent(
+            new RealtimeR2Intent((RealtimeR2IntentKind)int.MaxValue));
+        Check(!unsupportedIntent.Accepted &&
+              string.Equals(
+                  unsupportedIntent.Error,
+                  RealtimeInteractionReducer.UnsupportedIntentReason,
+                  StringComparison.Ordinal) &&
+              unsupportedIntent.CoreCommandResult is null,
+            "the session did not reject an unknown intent at its application boundary",
+            failures);
+        Check(RoutingFingerprint(session) == beforeIntent,
+            "an unknown session intent changed authoritative or presented state",
+            failures);
+
+        RealtimeR2IntentResult incompleteKnownIntent = session.ApplyIntent(
+            new RealtimeR2Intent(RealtimeR2IntentKind.SetNodeDraft));
+        Check(!incompleteKnownIntent.Accepted &&
+              !string.Equals(
+                  incompleteKnownIntent.Error,
+                  RealtimeInteractionReducer.UnsupportedIntentReason,
+                  StringComparison.Ordinal),
+            "a supported Core intent was misclassified as an unknown intent",
+            failures);
+
+        RealtimeRoutingFingerprint beforeHandlers = RoutingFingerprint(session);
+        Check(ThrowsArgumentOutOfRange(() => session.HandleAction("UNKNOWN_ACTION")),
+            "an unknown action did not fail closed",
+            failures);
+        Check(ThrowsArgumentOutOfRange(() => session.HandleBuildTool("UNKNOWN_TOOL")),
+            "an unknown build tool did not fail closed",
+            failures);
+        Check(ThrowsArgumentOutOfRange(() => session.HandleBuildTool("NODE:FORGED")),
+            "a forged build-tool family member did not fail closed",
+            failures);
+        Check(ThrowsArgumentOutOfRange(() => session.HandleTimelineNavigation(
+                (RealtimeTimelineNavigation)int.MaxValue)),
+            "an unknown timeline navigation did not fail closed",
+            failures);
+        Check(ThrowsArgumentOutOfRange(() => session.SelectBuildToolFamily(
+                (RealtimeBuildToolFamily)int.MaxValue)),
+            "an unknown build-tool family did not fail closed",
+            failures);
+        session.HandleModalAction("STALE_MODAL", "UNKNOWN_MODAL_ACTION");
+        Check(RoutingFingerprint(session) == beforeHandlers,
+            "unknown handlers or a stale modal signal changed session state",
+            failures);
+
+        string[] supportedModalActions =
+        [
+            "NOTICE_CLOSE",
+            "BRIEFING_CONTINUE",
+            "EVENT_STORY_CONTINUE",
+            "DECISION_WINDOW_CONTINUE",
+            "RESULT_CLOSE",
+        ];
+        Check(supportedModalActions.All(RealtimeSession.IsSupportedModalCloseActionId) &&
+              !RealtimeSession.IsSupportedModalCloseActionId("UNKNOWN_MODAL_ACTION"),
+            "the modal close capability does not match the five production actions",
+            failures);
+
+        var inputRouter = new RealtimeInputRouter();
+        try
+        {
+            Check(ThrowsArgumentOutOfRange(() => inputRouter.PushContext(
+                    "invalid",
+                    (RealtimeInputPriority)int.MaxValue)),
+                "an unknown input priority entered the arbitration stack",
+                failures);
+            Check(ThrowsArgumentOutOfRange(() => inputRouter.CanReceive(
+                    (RealtimeInputPriority)int.MaxValue)),
+                "an unknown input priority participated in arbitration",
+                failures);
+            Check(inputRouter.PushContext("hud", RealtimeInputPriority.Hud) == 1,
+                "rejected input priority consumed an arbitration token",
+                failures);
+        }
+        finally
+        {
+            inputRouter.Free();
+        }
+
+        var slice = CreateRunningSlice();
+        using var sliceLifetime = slice.FreeAfterSmoke();
+        string shortcutHash = slice.CanonicalStateSha256;
+        long shortcutRevision = slice.PresentationRevision;
+        RealtimeInteractionState shortcutInteraction = slice.InteractionState;
+        Check(ThrowsArgumentOutOfRange(() => slice.RequestShortcutForSmoke(
+                (RealtimeInputCommand)int.MaxValue)),
+            "an unknown shortcut did not fail closed",
+            failures);
+        Check(ThrowsArgumentOutOfRange(() => slice.RequestInputForSmoke(new RealtimeInputRequest(
+                RealtimeInputCommand.TogglePause,
+                (RealtimeInputPriority)int.MaxValue))),
+            "an input request with unknown priority did not fail closed",
+            failures);
+        Check(string.Equals(
+                  slice.CanonicalStateSha256,
+                  shortcutHash,
+                  StringComparison.Ordinal) &&
+              slice.PresentationRevision == shortcutRevision &&
+              slice.InteractionState == shortcutInteraction,
+            "an unknown shortcut changed session or presentation state",
+            failures);
+
+        var cancellationSlice = CreateRunningSlice();
+        using var cancellationLifetime = cancellationSlice.FreeAfterSmoke();
+        (string nodeToolId, CoreMapPoint nodePosition) =
+            cancellationSlice.AcceptedNodeDraftForSmoke();
+        RequireIntent(cancellationSlice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildNode,
+                    nodeToolId)),
+            "fail-closed cancellation tool",
+            failures,
+            coreCommandExpected: false);
+        RequireIntent(cancellationSlice.ApplyIntentForSmoke(new RealtimeR2Intent(
+                RealtimeR2IntentKind.SetNodeDraft,
+                FirstId: nodeToolId["NODE:".Length..],
+                Position: nodePosition)),
+            "fail-closed cancellation draft",
+            failures);
+        cancellationSlice.RequestShortcutForSmoke(RealtimeInputCommand.CancelOrBack);
+        RealtimeR2IntentResult armedUnsupported = cancellationSlice.ApplyIntentForSmoke(
+            new RealtimeR2Intent((RealtimeR2IntentKind)int.MaxValue));
+        Check(!armedUnsupported.Accepted,
+            "the armed-cancellation unknown intent was accepted",
+            failures);
+        cancellationSlice.RequestShortcutForSmoke(RealtimeInputCommand.CancelOrBack);
+        Check(cancellationSlice.CoreSnapshot.Construction.NodeDraft is null,
+            "unknown intent rejection disarmed an existing draft cancellation",
+            failures);
+    }
+
+    private sealed record RealtimeRoutingFingerprint(
+        string CanonicalStateSha256,
+        long Minute,
+        long CommandSequence,
+        int AcceptedCommandCount,
+        long PresentationRevision,
+        RealtimeInteractionState Interaction,
+        RealtimeFrameAccumulatorSnapshot Accumulator,
+        int EmittedTransitionCount);
+
+    private static RealtimeRoutingFingerprint RoutingFingerprint(
+        RealtimeSession session) => new(
+        session.CanonicalStateSha256,
+        session.CurrentMinute,
+        session.CommandSequence,
+        session.AcceptedCommandCount,
+        session.PresentationRevision,
+        session.InteractionState,
+        session.AccumulatorSnapshot,
+        session.EmittedTransitions.Count);
+
+    private static bool ThrowsArgumentOutOfRange(Action action)
+    {
+        try
+        {
+            action();
+            return false;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return true;
+        }
     }
 
     /// <summary>

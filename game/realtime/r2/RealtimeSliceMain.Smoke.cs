@@ -286,6 +286,9 @@ internal sealed partial class RealtimeSliceMain
     internal void RequestShortcutForSmoke(RealtimeInputCommand command) =>
         HandleShortcut(command);
 
+    internal void RequestInputForSmoke(RealtimeInputRequest request) =>
+        HandleInputRequest(request);
+
     internal void FreezeAutonomousClockForSmoke()
     {
         EnsureBootstrapped();

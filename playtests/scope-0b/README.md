@@ -1,8 +1,9 @@
 # Scope 0B historical materials
 
-Scope 0B is complete. Its execution decision and evidence boundary are summarized in the
-[compressed history](../../docs/archive/COMPLETED_HISTORY.md). The detailed former scope and history are
-recoverable from Git commit `9aceaf7` and are not current implementation authority.
+Scope 0B is complete. Its broad product-history context appears in the
+[compressed history](../../docs/archive/COMPLETED_HISTORY.md). The exact execution decision, evidence boundary,
+detailed former scope and history are recoverable from Git commit `9aceaf7` and are not current implementation
+authority.
 
 This directory keeps the frozen participant `FACILITATOR_SHEET.md`, historical `record-template.csv`, the
 fixture checker and the Git-ignored `private/` evidence directory. They do not authorize another run.

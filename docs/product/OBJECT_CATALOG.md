@@ -20,7 +20,7 @@
 | 일반 전신주 | 저비용 경유·분기, 제한된 접속 | 규칙/native 연결, G3 standard pole | 작은 zoom의 attachment·hit target 검수 |
 | 보강 전신주 | 큰 분기·합류와 접속부 한도 | 규칙/native 연결, G3 reinforced pole | 일반형과 색 없이 구분되는지 사람 검수 |
 | 일반/보강 선로 | 실제 공급 경로와 열 병목 | 규칙/native 연결, code-drawn conductor와 G3 지지 구조 | 3상 cue, 교차/접속, 비상·정지 상태 polish |
-| 소형 배전 변전소 | service area와 주기기 한도 | 규칙/native 연결, G3 transformer/bay | service area와 열 상태 동시 가독성 |
+| 소형/대형 배전 변전소 | 등급별 service area·접속 수·주기기 한도 | 규칙/native 연결, 현재 공통 G3 transformer/bay | 색 없이 구분되는 등급별 실루엣·footprint와 service area·열 상태 동시 가독성 |
 | 공사 초안·공사 중 | 비용·공기·완공 전 무전압 | actual/draft construction과 rail marker 연결 | scaffold·미완성 구조와 overlay 혼잡 검수 |
 
 전신주의 열 한계는 기둥 온도가 아니라 단자·퓨즈·개폐기·분기 접속부를 추상화한 게임용 계획
@@ -36,7 +36,7 @@
 | 산업단지 | 큰 수요와 공유 병목 | warehouse·workshop·plant 구조 | 선택 경로와 도시 배경의 대비 |
 
 warm window light는 도시가 살아 있음을 보여 주지만 공급 판정이 아니다. Core state, world cue,
-future-event bar와 context 문장이 함께 같은 결과를 말해야 한다.
+사건 지평선과 context 문장이 함께 같은 결과를 말해야 한다.
 
 ## 4. 공간과 환경
 
@@ -55,10 +55,10 @@ service area 안에 있다는 사실만으로 전력이 공급되지 않는다. 
 ## 5. UI surface
 
 G3 UI 7개는 generic panel, top HUD metric, inspector, tool slot, default/cyan/amber button chrome에
-사용된다. live R2의 top HUD, 한 줄 future-event bar, context dock, build shelf, action dock와 modal이
+사용된다. live R2의 top HUD, 한 줄 사건 지평선, context dock, build shelf, action dock와 modal이
 이 theme을 공유한다.
 
-한 줄 future-event bar는 수요·기상·공사·결정 기한·열 보호 경계를 별도 상시 패널로 나누지 않는다.
+한 줄 사건 지평선은 수요·기상·공사·결정 기한·열 보호 경계를 별도 상시 패널로 나누지 않는다.
 시간순 compact marker를 한 rail에 놓고 hover 또는 선택한 항목의 상세만 overlay로 연다.
 
 남은 UI 검수는 다음과 같다.

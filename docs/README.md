@@ -20,7 +20,8 @@
 | 최종 게임은 어떤 경험인가? | [GAME_DESIGN_KO.md](product/GAME_DESIGN_KO.md) |
 | 화면과 아트의 통과 기준은? | [VISUAL_PRODUCTION_SPEC.md](product/VISUAL_PRODUCTION_SPEC.md) |
 | 설비·시설·표현 coverage는? | [OBJECT_CATALOG.md](product/OBJECT_CATALOG.md) |
-| LLM-as-a-judge는 무엇을 평가하는가? | [COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md) |
+| 공식 LLM 점수·evidence·실행 권위의 gate는? | [COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md) |
+| 평가 도구가 현재 무엇을 주장할 수 있는가? | [상용 UX 평가 도구](../tools/commercial-ux/README.md) |
 | 완료·중단된 task는? | [COMPLETED_HISTORY.md](archive/COMPLETED_HISTORY.md) |
 | 개발 실행과 설치 경계는? | [INSTALL.md](../INSTALL.md) |
 | runtime 자산과 reference의 차이는? | [ASSET_MANIFEST.md](../ASSET_MANIFEST.md) |
@@ -40,6 +41,9 @@
 
 `NEXT_TASKS.md`와 완료 이력은 구현 권한을 만들지 않는다. 현재 사용자 지시와
 `ACTIVE_SCOPE.md`가 없으면 준비된 후보나 과거 계획을 실행하지 않는다.
+위 순서는 변경 권한의 우선순위다. 증거가 무엇을 주장할 수 있는지는 질문 소유 문서의 hard gate를
+우회하지 않는다. 사용자 지시와 active scope가 평가 작업을 열어도 score-bearing execution authority가
+없으면 공식 점수는 만들 수 없다.
 
 ## 오해를 막는 용어
 
@@ -47,9 +51,18 @@
 - `native implemented`: R2 Core/controller/presentation 경로가 연결됨
 - `direct-play observed`: 사람이 실제 입력으로 확인함
 - `default scene`: Godot이 처음 여는 scene; 완성된 새 게임 여정을 뜻하지 않음
+- `product title`: default boot의 `새 게임`·`이어하기` 시작 화면; debug launcher나 story modal이 아님
+- `title Continue` (`이어하기`): 유효한 current R2 save를 복구하는 동작; story/modal continue와 다름
 - `deterministic PASS`: 규칙·상태·wiring 검사 통과; 미감·재미·출시 품질을 뜻하지 않음
 - `historical baseline`: 회귀 참고용 과거 제품; 현재 제품 entry가 아님
+- `사건 지평선`: 한 줄 future-event bar의 플레이어용 이름; 코드명은 `RealtimeEventRail`
+- `사건 시간축`: 사건 지평선의 시간 관계를 설명하는 일반 표현이며 별도 UI가 아님
+- `current R2 evaluation candidate`: finalized manifest에 결속된 설치 가능 package; editor tree나 V2
+  candidate가 아님
+- `score-bearing`: 실제 후보·evidence·hard gate·model receipt에 결속되어 공식 점수에 들어갈 수 있음
 
 완료 task는 이 폴더 곳곳에 복제하지 않는다. 새 단계가 끝나면
 `archive/COMPLETED_HISTORY.md`에 한두 문단으로 추가하고, `README.md`, `ACTIVE_SCOPE.md`,
 `NEXT_TASKS.md`의 현재 사실만 함께 갱신한다. 세부 실행 로그와 과거 scope 원문은 Git 이력에 둔다.
+게임·비주얼 제품 문서는 장기 목표와 통과 기준을 소유하며 현재 chapter 수나 미완료 목록을 복제하지
+않는다. 평가 프로토콜의 `현재 판정`은 score/evidence 상한을 명시하는 질문 소유 기록이다.

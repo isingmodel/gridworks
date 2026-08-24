@@ -101,16 +101,12 @@ R2 save/package 또는 출시 승인을 뜻하지 않는다.
 트리에서 제거하고 이 파일에 압축했다. README에는 실행 가능한 현재 사실만, `NEXT_TASKS.md`에는
 미완료 항목만 남겼으며 SHA·커밋 영수증은 현재-facing 기획 문서에서 제거했다.
 
-## 7. 완료하지 않은 항목
+후속 재감사에서는 fresh-install 후보와 공식 평가의 순서, audio/settings와 score-bearing 도구 gate,
+UX-R0 context 보존, 설비 catalog·용어·역사 링크와 source 주석을 바로잡았다. 이는 문서와 동결 입력의
+정합성 보완이며 새로운 gameplay, package 또는 UX 점수 완료를 뜻하지 않는다.
 
-다음은 위 단계의 일부로 간주하지 않는다.
+## 7. 이 문서가 소유하지 않는 항목
 
-- 인자 없는 제품용 title/new game journey
-- `NORTH_BANK_PROMISE` 직접 플레이와 남은 4장 R2 native presentation
-- R2 save/resume, finale, epilogue와 완료 후 재개
-- 8장 native full-campaign E2E
-- 공식 `CommercialUXProxy`, 87점 gate와 score-bearing evidence
-- 사람 미감·사용성, 한국어·전력설비 전문 검토
-- current R2 package, 서명·공증과 공개 출시
-
-현재 상태와 다음 순서는 [루트 README](../../README.md)와 [남은 작업](../NEXT_TASKS.md)이 소유한다.
+현재 상태와 모든 미완료 항목·순서는 [루트 README](../../README.md)와
+[남은 작업](../NEXT_TASKS.md)만 소유한다. 이 완료 이력의 경계 문장을 current backlog로 복사해 갱신하지
+않는다.

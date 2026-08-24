@@ -237,7 +237,7 @@ internal sealed record RealtimeSliceCheckpointWorldRenderFact(
 
 /// <summary>
 /// Debug-only evidence seam shared by every renderer that can host an A1 checkpoint.
-/// It keeps the checkpoint controller independent of the current placeholder renderer.
+/// It keeps the checkpoint controller independent of the current G3-backed R2 renderer.
 /// </summary>
 internal interface IRealtimeWorldCheckpointEvidenceView
 {

@@ -20,7 +20,7 @@
     <ProjectReference Include="../src/Gridworks.Core/Gridworks.Core.csproj" />
   </ItemGroup>
 
-  <!-- R2 owns only the code-native placeholder map. R3's physical renderer is not open. -->
+  <!-- Current R2 uses the G3-backed realtime/r2 renderer; the unused legacy realtime/world renderer stays excluded. -->
   <ItemGroup>
     <Compile Remove="realtime/world/**/*.cs" />
   </ItemGroup>
@@ -47,7 +47,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">
-    <!-- The internal candidate contains only the CommercialMain product graph. -->
+    <!-- Frozen historical V2 ExportRelease graph; this is not a current R2 candidate. -->
     <Compile Remove="realtime/r2/**/*.cs" />
     <Compile Remove="realtime/ui/**/*.cs" />
     <Compile Remove="CommercialMain.Smoke.cs" />

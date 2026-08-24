@@ -30,6 +30,38 @@ builder source sha256      = f1a7b548ca7ed9f5946d4292680e4b543f6699597c813bb3e6d
 34개 authored atom을 포함한다. `text-plan.json`은 8장 16개 사건 각각의 ID, priority, 시작 offset,
 duration과 forecast lead를 원본 네 종과 함께 hash-bind한다.
 
+이 디렉터리의 `text-plan-context.json`은 위 `text context` binding에 사용한 정확한 UX-R0 입력이다.
+current source의 `tools/commercial-ux/text-plan-context.json`은 이후 기본 장면 사실을 반영해 달라졌으므로
+이 panel의 재검증 입력으로 바꾸어 쓰지 않는다. 재집계에는 이 파일과 위에 적힌 동결 도구 기준
+커밋 `74827cc`의 text-plan 도구를 함께 사용한다. current text-plan contract가 역사 context를 거부하는
+것은 현재 입력과 동결 입력을 섞지 않기 위한 정상 동작이다.
+
+두 번째 panel을 현재 checkout에서 재검증하는 bounded 절차는 다음과 같다. 임시 디렉터리에는 동결
+도구만 풀며 repository 파일은 바꾸지 않는다.
+
+```sh
+uxr0_tools_dir="$(mktemp -d /tmp/gridworks-uxr0-tools.XXXXXX)"
+
+git archive 74827cc85e04ab555097bff6f1349a87fcf74ca3 -- \
+  tools/commercial-ux \
+  | tar -x -C "$uxr0_tools_dir"
+
+python3 "$uxr0_tools_dir/tools/commercial-ux/aggregate-text-plan.py" \
+  playtests/commercial-ux-87-realtime/text-plan-r0/judgment-04.json \
+  playtests/commercial-ux-87-realtime/text-plan-r0/judgment-05.json \
+  playtests/commercial-ux-87-realtime/text-plan-r0/judgment-06.json \
+  --text-plan playtests/commercial-ux-87-realtime/text-plan-r0/text-plan.json \
+  --story-manifest playtests/commercial-ux-87-realtime/text-plan-r0/story-manifest.json \
+  --campaign data/release-campaign-v2.json \
+  --realtime-campaign data/release-campaign-v3.json \
+  --context playtests/commercial-ux-87-realtime/text-plan-r0/text-plan-context.json \
+  --rubric "$uxr0_tools_dir/tools/commercial-ux/rubric.json" \
+  --output "$uxr0_tools_dir/aggregate-initial-02.json"
+```
+
+예상 결과는 `SCORED_FORMATIVE`, `TextPlanProxy = 83.4475`다. 출력 위치에 종속된 비점수 경로 필드는
+저장본과 달라질 수 있다.
+
 ## 판정 패널
 
 모든 판정 파일은 `model=gpt-5.6-sol`, `reasoningEffort=ultra`, `judgeSlot=SOL-ULTRA`와 같은
@@ -66,8 +98,9 @@ CommercialUXProxy          = null
 
 범주 점수는 causality 94.0, tutorial 92.5, agency 92.5, pacing 81.25, Korean 74.5,
 journey 70.0이다. `TextPlanProxy`는 목표 87보다 3.5525 낮으며 공식 점수로 승격할 수 없다.
-원본 네 종에서 manifest와 text plan을 다시 만들면 저장본과 byte-identical이다. aggregate는 출력
-디렉터리에 따라 달라지는 비점수 필드 `replacementReceiptPath`를 제외하면 다시 만든 결과와 동일하다.
+동결 도구 기준 커밋과 이 디렉터리의 context를 사용해 원본 네 종에서 manifest와 text plan을 다시
+만들면 저장본과 byte-identical이다. aggregate는 출력 디렉터리에 따라 달라지는 비점수 필드
+`replacementReceiptPath`를 제외하면 다시 만든 결과와 동일하다.
 
 ## 안정적으로 드러난 개선 축
 

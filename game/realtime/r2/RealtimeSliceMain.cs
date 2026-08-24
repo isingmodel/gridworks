@@ -163,9 +163,9 @@ internal sealed record RealtimeR2TimelineChooserFacts(
 #endif
 
 /// <summary>
-/// Non-default R2 vertical-slice host. It owns one Core run, one exact frame accumulator,
-/// the pure interaction reducer, and immutable presentations. No product save/default-scene
-/// authority is attached here.
+/// Current default R2 scene host. It owns one Core run, one exact frame accumulator,
+/// the pure interaction reducer, and immutable presentations. Default-scene selection does not
+/// make its no-argument technical fixture a completed product start or save authority.
 /// </summary>
 internal sealed partial class RealtimeSliceMain : Control
 {

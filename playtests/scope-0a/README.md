@@ -1,9 +1,9 @@
 # Scope 0A R1 historical materials
 
 This directory preserves the first static-card observation inputs. The round failed its frozen integrated
-criterion and was never retroactively rescored. The aggregate and evidence boundary is summarized in the
-[compressed history](../../docs/archive/COMPLETED_HISTORY.md); the detailed former document is recoverable from
-Git commit `9aceaf7`.
+criterion and was never retroactively rescored. Its broad product-history context appears in the
+[compressed history](../../docs/archive/COMPLETED_HISTORY.md); the exact decision, evidence boundary and detailed
+former document are recoverable from Git commit `9aceaf7`.
 
 Keep byte-exact:
 

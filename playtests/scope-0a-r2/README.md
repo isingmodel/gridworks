@@ -1,9 +1,9 @@
 # Scope 0A R2 historical materials
 
 This directory preserves the second static-card observation inputs. R2 changed the response structure while
-keeping the fixture, topology and answers fixed; the aggregate passed. The decision and evidence boundary is
-summarized in the [compressed history](../../docs/archive/COMPLETED_HISTORY.md); detailed former records are
-recoverable from Git commit `9aceaf7`.
+keeping the fixture, topology and answers fixed; the aggregate passed. Its broad product-history context appears
+in the [compressed history](../../docs/archive/COMPLETED_HISTORY.md); the exact decision, evidence boundary and
+detailed former records are recoverable from Git commit `9aceaf7`.
 
 Keep byte-exact:
 

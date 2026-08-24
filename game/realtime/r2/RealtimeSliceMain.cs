@@ -64,14 +64,9 @@ internal sealed partial class RealtimeSliceMain : Control
         {
             return;
         }
+        _ = InjectElapsedSeconds(delta);
 #if DEBUG
-        long? maximumVirtualFrames = _interactiveCheckpoint is null
-            ? null
-            : ClampInteractiveVirtualFramesAtBoundaryForDebug(long.MaxValue);
-        _ = Session.InjectElapsedSeconds(delta, maximumVirtualFrames);
         StopInteractiveTargetAtBoundaryForDebug();
-#else
-        _ = Session.InjectElapsedSeconds(delta);
 #endif
     }
 
@@ -285,14 +280,29 @@ internal sealed partial class RealtimeSliceMain : Control
         Session.ApplyIntent(intent);
 
     private RealtimeR2FrameResult InjectElapsedNanoseconds(long elapsedNanoseconds) =>
-        Session.InjectElapsedNanoseconds(elapsedNanoseconds);
+        Session.InjectElapsedNanoseconds(
+            elapsedNanoseconds,
+            MaximumInteractiveVirtualFrames());
 
     private RealtimeR2FrameResult InjectElapsedSeconds(double elapsedSeconds) =>
-        Session.InjectElapsedSeconds(elapsedSeconds);
+        Session.InjectElapsedSeconds(
+            elapsedSeconds,
+            MaximumInteractiveVirtualFrames());
 
     private RealtimeR2FrameResult InjectExactFrames(
         long frameCount,
         int framesPerSecond) => Session.InjectExactFrames(frameCount, framesPerSecond);
+
+    private long? MaximumInteractiveVirtualFrames()
+    {
+#if DEBUG
+        return _interactiveCheckpoint is null
+            ? null
+            : ClampInteractiveVirtualFramesAtBoundaryForDebug(long.MaxValue);
+#else
+        return null;
+#endif
+    }
 
     private void ApplyMapInteractionRect(Rect2 rect)
     {

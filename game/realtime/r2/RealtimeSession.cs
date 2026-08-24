@@ -55,15 +55,11 @@ internal sealed record RealtimeR2PendingFrameDebt(
     int FramesPerSecond,
     int SpeedMultiplier);
 
-internal sealed record RealtimeR2AdvanceResult(
-    RealtimeAdvanceResult Advance,
-    long PresentationRevisionDelta);
-
 /// <summary>
 /// Godot-free application session for one current R2 run. Core state, interaction state,
 /// exact time, chapter flow, and immutable presentation publication have one owner here.
 /// </summary>
-internal sealed class RealtimeSession
+internal sealed partial class RealtimeSession
 {
     private const int VirtualFramesPerSecond = 60;
     private const long NanosecondsPerSecond = 1_000_000_000;
@@ -1921,17 +1917,6 @@ internal sealed class RealtimeSession
 
     internal void DisarmDraftCancellation() => _draftCancelArmed = false;
 
-    internal RealtimeR2AdvanceResult AdvanceTo(long targetMinute)
-    {
-        long beforeRevision = _presentationRevision;
-        RealtimeAdvanceResult result = _run.AdvanceTo(targetMinute);
-        CollectTransitions(result.Transitions);
-        Present();
-        return new RealtimeR2AdvanceResult(
-            result,
-            _presentationRevision - beforeRevision);
-    }
-
     internal RealtimeSliceData Data => _data;
 
     internal RealtimeCampaignSnapshot CoreSnapshot => _run.GetSnapshot();
@@ -1994,24 +1979,6 @@ internal sealed class RealtimeSession
 
     internal bool FormativeTutorialFullFlowRecorded =>
         _formativeTutorialFullFlowRecorded;
-
-#if DEBUG
-    internal void EnterCampaignEndedForSmoke()
-    {
-        _interaction = RealtimeInteractionReducer.AutoPause(
-            _interaction,
-            RealtimePauseReason.CampaignResult);
-        _frame.Pause();
-        Present();
-    }
-
-    internal RealtimeR2TimelineChooserFacts TimelineChooserFacts => new(
-        Array.AsReadOnly(VisibleTimelineItems().Select(item => item.Id).ToArray()),
-        _timelineClusterIds,
-        _timelineClusterIndex,
-        _interaction.TimelineSelectedItemId,
-        _interaction.SelectionId);
-#endif
 
     private sealed class PendingFrameBatch(
         long frameCount,

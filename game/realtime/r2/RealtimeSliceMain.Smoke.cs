@@ -84,31 +84,6 @@ internal sealed record RealtimeR2InputOwnershipFacts(
     bool Panning,
     IReadOnlyDictionary<RealtimePointerOwner, int> PointerClickCounters);
 
-internal sealed record RealtimeR2TimelineChooserFacts(
-    IReadOnlyList<string> VisibleOrderedItemIds,
-    IReadOnlyList<string> ClusterItemIds,
-    int ClusterIndex,
-    string? SelectedMarkerId,
-    string? SelectedSubjectId)
-{
-    private IReadOnlyList<string> _visibleOrderedItemIds =
-        Array.AsReadOnly(VisibleOrderedItemIds.ToArray());
-    private IReadOnlyList<string> _clusterItemIds =
-        Array.AsReadOnly(ClusterItemIds.ToArray());
-
-    public IReadOnlyList<string> VisibleOrderedItemIds
-    {
-        get => _visibleOrderedItemIds;
-        init => _visibleOrderedItemIds = Array.AsReadOnly(value.ToArray());
-    }
-
-    public IReadOnlyList<string> ClusterItemIds
-    {
-        get => _clusterItemIds;
-        init => _clusterItemIds = Array.AsReadOnly(value.ToArray());
-    }
-}
-
 internal sealed partial class RealtimeSliceMain
 {
     private RealtimeSmokeLinePlan? _smokeLinePlan;

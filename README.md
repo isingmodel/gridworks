@@ -14,7 +14,7 @@
 |---|---|
 | 제품 방향 | turn 방식이 아닌 pause·1×·2×·4× 실시간 전력망 운영 |
 | 기본 Godot 장면 | `res://realtime/r2/RealtimeSliceMain.tscn` |
-| 인자 없는 실행 | 캠페인이 아니라 개발용 `TechnicalCheckpointFixture` |
+| 인자 없는 실행 | 캠페인이 아니라 개발용 기술 fixture |
 | 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
 | R2 native 구현 | `NORTH_BANK_PROMISE`까지 누적 4장 |
@@ -80,7 +80,7 @@ R2라는 사실도 인자 없는 실행이 제품용 새 게임 여정이라는 
 
 ## 개발 검증
 
-전체 current R2 회귀의 기본 명령은 하나다.
+current R2의 기본 자동 회귀 명령은 하나다.
 
 ```sh
 ./dev check
@@ -88,6 +88,9 @@ R2라는 사실도 인자 없는 실행이 제품용 새 게임 여정이라는 
 
 이 명령은 current root solution, RealtimeChecks, CommercialChecks, 세 Python 회귀와 두 named checkpoint를
 실행한다.
+
+root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 이 기본 명령에 포함되지 않는다.
+해당 검사가 필요한 변경은 active scope의 완료 검사에 별도로 명시한다.
 
 결함을 재현할 때는 전체 캠페인을 매번 처음부터 돌리지 않는다. 가장 가까운 단위나 named checkpoint를
 사용하되, onboarding·누적 장 전환·save/resume·전체 캠페인처럼 시작 경로 자체가 검증 대상일 때만

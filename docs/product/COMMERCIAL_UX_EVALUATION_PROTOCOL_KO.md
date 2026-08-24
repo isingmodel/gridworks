@@ -105,9 +105,9 @@ Core-only replay로 R2 coverage를 대신하지 않는다.
 
 결함 재현은 가장 가까운 deterministic 단위에서 시작한다.
 
-- 문장·결과 하나: `--story-part <selector>`
-- 특정 시각의 Core/UI 상태: named checkpoint
-- 장 누적 전환: 해당 장까지의 release route
+- 문장·결과 하나: `./dev story <selector>`
+- 특정 시각의 Core/UI 상태: `./dev checkpoint <CHECKPOINT_ID>`
+- 장 누적 전환: catalog가 명시적으로 지원하는 `./dev play through <CHAPTER_ID>`
 - onboarding, default boot, save/restore, 전체 campaign: fresh-process E2E
 
 story selector는 authored content와 V3 일정을 결속하지만 native UI 도달성을 주장하지 않는다.

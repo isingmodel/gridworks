@@ -36,16 +36,17 @@
 현재 사용자 지시
 → ACTIVE_SCOPE.md
 → README.md의 현재 실행 사실
-→ 질문을 소유한 제품 문서 또는 NEXT_TASKS.md
+→ 위 질문별 표가 지정한 current 문서
 → COMPLETED_HISTORY.md
 → Git의 과거 문서
 ```
 
 `NEXT_TASKS.md`와 완료 이력은 구현 권한을 만들지 않는다. 현재 사용자 지시와
 `ACTIVE_SCOPE.md`가 없으면 준비된 후보나 과거 계획을 실행하지 않는다.
-위 순서는 변경 권한의 우선순위다. 증거가 무엇을 주장할 수 있는지는 질문 소유 문서의 hard gate를
-우회하지 않는다. 사용자 지시와 active scope가 평가 작업을 열어도 score-bearing execution authority가
-없으면 공식 점수는 만들 수 없다.
+위 순서는 변경 권한의 우선순위다. 개발 구조는 `ARCHITECTURE.md`, 제품 기준은 해당 제품 문서,
+backlog는 `NEXT_TASKS.md`처럼 질문별 표가 지정한 문서가 세부 사실을 소유한다. 증거가 무엇을 주장할 수
+있는지는 질문 소유 문서의 hard gate를 우회하지 않는다. 사용자 지시와 active scope가 평가 작업을
+열어도 score-bearing execution authority가 없으면 공식 점수는 만들 수 없다.
 
 ## 오해를 막는 용어
 
@@ -64,7 +65,8 @@
 - `score-bearing`: 실제 후보·evidence·hard gate·model receipt에 결속되어 공식 점수에 들어갈 수 있음
 
 완료 task는 이 폴더 곳곳에 복제하지 않는다. 새 단계가 끝나면
-`archive/COMPLETED_HISTORY.md`에 한두 문단으로 추가하고, `README.md`, `ACTIVE_SCOPE.md`,
-`NEXT_TASKS.md`의 현재 사실만 함께 갱신한다. 세부 실행 로그와 과거 scope 원문은 Git 이력에 둔다.
+`archive/COMPLETED_HISTORY.md`에 한두 문단으로 추가하고 `ACTIVE_SCOPE.md`를 닫는다. `README.md`,
+`ARCHITECTURE.md`, `NEXT_TASKS.md`와 질문별 표의 다른 current 문서 중 실제로 바뀐 사실을 소유한
+문서만 함께 갱신한다. 세부 실행 로그와 과거 scope 원문은 Git 이력에 둔다.
 게임·비주얼 제품 문서는 장기 목표와 통과 기준을 소유하며 현재 chapter 수나 미완료 목록을 복제하지
 않는다. 평가 프로토콜의 `현재 판정`은 score/evidence 상한을 명시하는 질문 소유 기록이다.

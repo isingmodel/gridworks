@@ -111,11 +111,12 @@ current R2를 새 gameplay 없이 더 적은 권위·분기·파일 fan-out으�
 
 - root `Gridworks.sln`과 `./dev`를 current Core/Game/check의 단일 개발 진입점으로 만들고 historical
   Product/V1/check graph와 동결 V2 `ExportRelease`를 분리했다.
-- release route와 native 4장 cap을 `RealtimeNativeRouteCatalog` 하나로 묶고, chapter별 host/loader
-  분기 대신 generic story flow가 strict V2 base와 V3 overlay를 소비하게 했다.
+- release route와 native 4장 cap을 `RealtimeNativeRouteCatalog` 하나로 묶고, strict loader가 V2 base와
+  V3 overlay를 합성한 뒤 generic story flow가 Core transition에서 modal timing/request를 만들게 했다.
 - Godot main에서 plain C# `RealtimeSession`을 분리해 main을 441줄 scene/input/publication adapter로
-  줄였다. intent, action, tool, modal, timeline과 raw input은 명시적 capability에서 fail-closed한다.
-- 화면은 한 `RealtimePresentationSource`에서 한 번 조립한다. modal의 이중 projection을 제거하고,
+  줄였다. raw input은 `RealtimeInputRouter`가 typed request로 바꾸고 Main이 명시적 capability로
+  검증·routing한다.
+- 한 full projection은 하나의 `RealtimePresentationSource`에서 조립한다. modal의 이중 projection을 제거하고,
   1,968줄 presenter를 158줄 facade와 world/timeline/context/construction/shell/modal component로 나눴다.
   component끼리는 호출하지 않고 facade만 최종 immutable presentation을 조립한다.
 - stable ID, 문구, timeline 정책과 target resolution을 leaf authority로 분리하고 full ID 형식을 독립
@@ -129,6 +130,7 @@ Godot UI harness를 유지했다. 이 완료는 compile 시간 개선, 새 chapt
 
 ## 8. 이 문서가 소유하지 않는 항목
 
-현재 상태와 모든 미완료 항목·순서는 [루트 README](../../README.md)와
-[남은 작업](../NEXT_TASKS.md)만 소유한다. 이 완료 이력의 경계 문장을 current backlog로 복사해 갱신하지
+현재 질문의 소유 문서는 [문서 지도](../README.md)가 지정한다. 제품 구현 상태는
+[루트 README](../../README.md), current 개발 구조는 [개발 구조](../ARCHITECTURE.md), 미완료 항목·순서는
+[남은 작업](../NEXT_TASKS.md)이 소유한다. 이 완료 이력의 경계 문장을 current 문서로 복사해 갱신하지
 않는다.

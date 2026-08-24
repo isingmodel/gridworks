@@ -17,7 +17,8 @@ compile 시간이 아니라, 한 변경에 필요한 권위·분기·파일 추�
 → strict Release V2 base + Release V3 realtime overlay
 → RealtimeSliceData
 
-Godot signal/frame
+Godot InputEvent → RealtimeInputRouter → typed RealtimeInputRequest
+Godot signal/frame 또는 typed request
 → RealtimeSliceMain                       scene·input·publication adapter
 → RealtimeSession                         application interaction과 chapter flow
 → RealtimeCampaignRun                     규칙·시간·공사·결과·canonical state
@@ -33,18 +34,22 @@ Godot signal/frame
 → RealtimeSliceMain → world/UI nodes
 ```
 
-`RealtimeSliceMain`은 route/resource bootstrap, Godot lifecycle, signal/raw input adaptation, focus,
-canvas와 publication을 소유한다. 게임 규칙이나 chapter 정책을 찾기 위해 이 adapter부터 UI node
-안쪽으로 내려가지 않는다. 먼저 `RealtimeSession`과 `RealtimeCampaignRun`을 본다.
+`RealtimeInputRouter`는 raw `InputEvent`를 priority가 있는 typed request로 바꾼다. `RealtimeSliceMain`은
+route/resource bootstrap, Godot lifecycle, signal·typed request 검증과 routing, focus, canvas와
+publication을 소유한다. 게임 규칙이나 chapter 정책을 찾기 위해 이 adapter부터 UI node 안쪽으로
+내려가지 않는다. 먼저 `RealtimeSession`과 `RealtimeCampaignRun`을 본다.
 
 ## 권위와 수정 위치
 
 | 질문 | 단일 권위 | 수정 시작점 |
 |---|---|---|
 | 망·공사·공급·열·시간·결과는 어떻게 바뀌는가? | `RealtimeCampaignRun`과 Release V3 Core | `src/Gridworks.Core/Release/V3/` |
+| authored world·chapter의 원문은? | strict Release V2 content와 loader | `data/release-world-v2.json`, `data/release-campaign-v2.json`, `src/Gridworks.Core/Release/V2/` |
+| realtime world·schedule overlay는? | V3 world/overlay loader | `data/release-world-v3.json`, `data/release-campaign-v3.json`, `src/Gridworks.Core/Release/V3/` |
 | 어떤 release route가 native인가? | `RealtimeNativeRouteCatalog` | `game/realtime/r2/RealtimeNativeRouteCatalog.cs` |
 | 입력 뒤 application 상태와 chapter/story flow는? | `RealtimeSession` | `RealtimeSession.cs`, `RealtimeChapterStoryFlow.cs` |
-| intent/action/tool/modal이 지원되는가? | 명시적 capability와 reducer/session 분기 | `RealtimeInteractionReducer.cs`, `RealtimeUiCapabilities.cs`, `RealtimeSession.cs` |
+| raw input이 어떤 typed request가 되는가? | `RealtimeInputRouter` | `game/realtime/ui/RealtimeInputRouter.cs` |
+| intent/action/tool/modal이 지원되는가? | 명시적 capability와 reducer/session 분기 | `game/realtime/r2/RealtimeInteractionReducer.cs`, `game/realtime/ui/RealtimeUiCapabilities.cs`, `game/realtime/r2/RealtimeSession.cs` |
 | 같은 snapshot을 화면에서 어떻게 읽는가? | typed immutable presentation | 해당 `Realtime*Presenter.cs`와 `game/realtime/ui/` contract |
 | Godot에서 어떻게 받아 그리고 focus를 옮기는가? | scene adapter와 owning UI node | `RealtimeSliceMain.cs`, `game/realtime/ui/` |
 | 무엇을 build·play·검사하는가? | `./dev`와 root `Gridworks.sln` | `dev`, `Gridworks.sln` |
@@ -71,11 +76,13 @@ typed contract를 보강하고, application 전용 결정은 Session에서 한 �
 
 ### 기존 규칙으로 chapter를 하나 더 연결할 때
 
-1. strict content와 realtime schedule/overlay를 먼저 검증한다.
-2. 새 mechanic이 없으면 loader, Session, Main에 chapter별 branch를 추가하지 않는다.
-3. `RealtimeNativeRouteCatalog`의 명시적 endpoint/capability를 한 단계만 전진시킨다.
-4. generic `RealtimeChapterStoryFlow`가 briefing, window, event, result를 데이터에서 선택하게 둔다.
-5. 해당 story selector, chapter 단위 검사, 누적 route와 전체 `./dev check`를 실행한다.
+1. strict V2 authored content와 V3 world/schedule overlay를 먼저 검증한다.
+2. `RealtimeSliceResources`와 strict loader가 두 입력을 하나의 composed campaign으로 만들게 둔다.
+3. 새 mechanic이 없으면 loader, Session, Main에 chapter별 branch를 추가하지 않는다.
+4. `RealtimeNativeRouteCatalog`의 명시적 endpoint/capability를 한 단계만 전진시킨다.
+5. generic `RealtimeChapterStoryFlow`는 Core transition에서 modal timing/request를 만들고,
+   `RealtimeModalPresenter`는 composed campaign의 authored card를 projection하게 둔다.
+6. 해당 story selector, chapter 단위 검사, 누적 route와 기본 `./dev check`를 실행한다.
 
 ### 새 gameplay mechanic을 추가할 때
 
@@ -84,7 +91,8 @@ typed contract를 보강하고, application 전용 결정은 Session에서 한 �
    닫혀야 한다.
 3. Session은 Core command 또는 명시적인 interaction-only 전이만 호출한다.
 4. 필요한 fact를 typed presentation contract로 노출한다.
-5. Main/UI는 Godot 신호와 render/focus만 연결한다.
+5. `RealtimeInputRouter`는 engine input을 typed request로 바꾸고, Main/UI는 이를 검증·routing하며
+   render/focus를 연결한다.
 6. accepted, rejected, unsupported 경로와 가장 작은 checkpoint를 먼저 검증한 뒤 `./dev check`를 실행한다.
 
 ### 화면 표현만 바꿀 때
@@ -102,8 +110,9 @@ typed contract를 보강하고, application 전용 결정은 Session에서 한 �
   처리한다.
 - 지원하지 않는 요청은 Core나 interaction 상태를 바꾸기 전에 거부한다.
 - 이미 닫힌 modal처럼 stale하지만 무해한 요청은 명시적인 no-op으로만 다룬다.
-- 화면 전체는 한 `RealtimePresentationSource`에서 한 번 조립한다. projection 뒤 modal 같은 일부를 다시
-  덮어써 두 번째 권위를 만들지 않는다.
+- 한 full projection은 하나의 `RealtimePresentationSource`에서 조립한다. projection 뒤 modal 같은 일부를
+  다시 덮어써 두 번째 권위를 만들지 않는다. pointer feedback만 마지막 authoritative presentation에서
+  pointer·build guidance·action dock을 좁게 다시 만들며 snapshot·forecast·modal은 재계산하지 않는다.
 
 ## 검증 명령
 
@@ -115,10 +124,12 @@ typed contract를 보강하고, application 전용 결정은 Session에서 한 �
 ./dev check
 ```
 
-가장 가까운 unit/story/checkpoint에서 시작하고, 완료 전 `./dev check`로 current graph 전체를 닫는다.
-default fixture, `FIRST_LIGHT`, `SECOND_SOURCE`, `NORTH_BANK_PROMISE`의 production route 의미와 canonical
-state hash를 구조 변경의 불변조건으로 취급한다. 자동 PASS는 사람 직접 플레이나 UX 품질의 증거가
-아니다.
+가장 가까운 unit/story/checkpoint에서 시작하고, 완료 전 `./dev check`로 current root graph의 Debug
+build와 기본 자동 회귀를 닫는다. 이 명령은 root `Gridworks.sln` 전체의 Release build와 전체 Godot UI
+harness를 포함하지 않으므로, 그 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
+default fixture, `FIRST_LIGHT`, `SECOND_SOURCE`, `NORTH_BANK_PROMISE`의 production route 의미와
+canonical state hash를 구조 변경의 불변조건으로 취급한다. 자동 PASS는 사람 직접 플레이나 UX 품질의
+증거가 아니다.
 
 ## 구조를 다시 얽히게 하는 신호
 

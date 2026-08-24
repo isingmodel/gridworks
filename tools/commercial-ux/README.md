@@ -23,17 +23,10 @@
 전체 캠페인을 재생하지 않고 narrative atom 하나를 unit 수준에서 검사할 수 있다.
 
 ```sh
-dotnet run --project tools/Gridworks.CommercialChecks -c Release -- \
-  --story-manifest
-
-dotnet run --project tools/Gridworks.CommercialChecks -c Release -- \
-  --story-part FIRST_LIGHT/briefing
-
-dotnet run --project tools/Gridworks.CommercialChecks -c Release -- \
-  --story-part NORTH_BANK_PROMISE/result/keep
-
-dotnet run --project tools/Gridworks.CommercialChecks -c Release -- \
-  --story-part campaign/epilogue/promise/NORTH_BANK_PROMISE/defer
+./dev story manifest
+./dev story FIRST_LIGHT/briefing
+./dev story NORTH_BANK_PROMISE/result/keep
+./dev story campaign/epilogue/promise/NORTH_BANK_PROMISE/defer
 ```
 
 manifest와 part 출력은 base content와 실시간 일정·사건 ID를 함께 결속한다. `authoredReachable=true`는
@@ -58,8 +51,7 @@ python3 tools/commercial-ux/test-realtime-text-plan-tools.py
 현재 source에서 text-plan 입력을 만드는 예:
 
 ```sh
-dotnet run --project tools/Gridworks.CommercialChecks -c Release -- \
-  --story-manifest > /tmp/gridworks-realtime-story-manifest.json
+./dev story manifest > /tmp/gridworks-realtime-story-manifest.json
 
 python3 tools/commercial-ux/build-text-plan-input.py \
   --story-manifest /tmp/gridworks-realtime-story-manifest.json \
@@ -107,15 +99,8 @@ state transition이 변하지 않았는지 코드에서 판정한다.
 ### R2 named checkpoint
 
 ```sh
-./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
-  --headless --path game \
-  --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
-  -- --checkpoint=A1_NORMAL_READY
-
-./.tools/godot-4.7.1/Godot_mono.app/Contents/MacOS/Godot \
-  --headless --path game \
-  --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
-  -- --checkpoint=A1_CONSTRUCTION_DUE_1M
+./dev checkpoint A1_NORMAL_READY
+./dev checkpoint A1_CONSTRUCTION_DUE_1M
 ```
 
 checkpoint는 production controller·HUD signal·clock·presentation·world draw를 거쳐 정확한 근처 상태를

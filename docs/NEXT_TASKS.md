@@ -166,7 +166,7 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 |---|---|
 | 문장·결과 하나가 맞는가? | `./dev story <selector>` |
 | 특정 시각의 UI/Core 상태가 맞는가? | `./dev checkpoint <CHECKPOINT_ID>` |
-| 한 장의 누적 전환이 맞는가? | `./dev play through <CHAPTER_ID>` |
+| 한 장의 누적 전환이 맞는가? | catalog가 명시적으로 지원하는 `./dev play through <CHAPTER_ID>` |
 | 첫 경험·저장·누적 선택·전체 완결성이 맞는가? | fresh-process E2E |
 | 미감·이해·재미가 충분한가? | 실제 화면의 사람/LLM 관찰 |
 

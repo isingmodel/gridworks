@@ -297,12 +297,12 @@ internal sealed partial class RealtimeSliceMain
             session.CurrentMinute == session.Data.Campaign.InitialSeed.StartMinute,
             "checkpoint entry did not begin from the exact embedded fixture baseline");
         Require(
-            session.InteractionState.ActiveModalId == "CHAPTER_BRIEFING" &&
+            session.InteractionState.ActiveModalId == RealtimeR2Ids.ChapterBriefingModal &&
             session.InteractionState.Surface == RealtimeSurface.BlockingModal,
             "checkpoint entry did not begin at the authored chapter briefing boundary");
 
         RequireAccepted(
-            ApplyIntent(RealtimeR2Intent.CloseModal("CHAPTER_BRIEFING")),
+            ApplyIntent(RealtimeR2Intent.CloseModal(RealtimeR2Ids.ChapterBriefingModal)),
             "close chapter briefing");
 
         string stateCreationMethod;

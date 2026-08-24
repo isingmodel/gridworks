@@ -208,7 +208,7 @@ internal sealed partial class RealtimeSliceMain
                 var point = new CoreMapPoint(x, y);
                 if (Session.PreviewNodePlacement(nodeClassId, point).Accepted)
                 {
-                    return ($"NODE:{nodeClassId}", point);
+                    return (RealtimeR2Ids.NodeTool(nodeClassId), point);
                 }
             }
         }
@@ -219,7 +219,7 @@ internal sealed partial class RealtimeSliceMain
     internal CoreMapPoint RejectedNodeDraftForSmoke(string toolId)
     {
         EnsureBootstrapped();
-        const string prefix = "NODE:";
+        const string prefix = RealtimeR2Ids.NodeToolPrefix;
         if (!toolId.StartsWith(prefix, StringComparison.Ordinal))
         {
             throw new ArgumentException("A node build-tool ID is required.", nameof(toolId));

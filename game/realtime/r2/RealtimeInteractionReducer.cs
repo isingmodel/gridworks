@@ -249,7 +249,7 @@ internal static class RealtimeInteractionReducer
             chapterBriefing
                 ? RealtimePauseReason.ChapterBriefing
                 : RealtimePauseReason.None,
-            chapterBriefing ? "CHAPTER_BRIEFING" : null,
+            chapterBriefing ? RealtimeR2Ids.ChapterBriefingModal : null,
             chapterBriefing ? RealtimeModalKind.ChapterStory : null,
             chapterBriefing ? "WORLD" : null,
             chapterBriefing
@@ -339,7 +339,7 @@ internal static class RealtimeInteractionReducer
             return new RealtimeDraftToolLock(
                 RealtimeDraftToolLockKind.NodeDraft,
                 RealtimeTool.BuildNode,
-                $"NODE:{nodeDraft.NodeClassId}",
+                RealtimeR2Ids.NodeTool(nodeDraft.NodeClassId),
                 "변전소 초안을 먼저 발주하거나 Esc를 두 번 눌러 취소한 뒤 도구를 바꾸세요.");
         }
         if (construction.LineDraft is not LineDraftSnapshot lineDraft)
@@ -352,7 +352,9 @@ internal static class RealtimeInteractionReducer
                 ? RealtimeDraftToolLockKind.ClosedLineDraft
                 : RealtimeDraftToolLockKind.OpenLineDraft,
             RealtimeTool.BuildLine,
-            $"LINE:{lineDraft.LineClassId}:{lineDraft.PoleClassId}",
+            RealtimeR2Ids.LineTool(
+                lineDraft.LineClassId,
+                lineDraft.PoleClassId),
             closed
                 ? "닫힌 선로 초안을 먼저 발주하거나 Esc를 두 번 눌러 취소한 뒤 도구를 바꾸세요."
                 : "작성 중인 선로 초안을 먼저 완성하거나 Esc를 두 번 눌러 취소한 뒤 도구를 바꾸세요.");

@@ -236,7 +236,7 @@ internal sealed partial class RealtimeSession
                 }
                 return IntentResult(
                     false,
-                    RealtimeSlicePresenter.RealtimeRunErrorText(commandResult.Error),
+                    RealtimePresentationText.RealtimeRunErrorText(commandResult.Error),
                     commandResult,
                     beforeHash,
                     beforeMinute,
@@ -255,8 +255,9 @@ internal sealed partial class RealtimeSession
             }
             if ((intent.Kind is RealtimeR2IntentKind.CancelNodeDraft or
                     RealtimeR2IntentKind.CancelLineDraft) &&
-                (IsComparisonMarker(_interaction!.SelectionId) ||
-                 IsComparisonMarker(_interaction.TimelineSelectedItemId)))
+                (RealtimeR2Ids.IsComparisonMarker(_interaction!.SelectionId) ||
+                 RealtimeR2Ids.IsComparisonMarker(
+                     _interaction.TimelineSelectedItemId)))
             {
                 RealtimeInteractionReduction clearVanishedComparison =
                     RealtimeInteractionReducer.Reduce(
@@ -538,7 +539,7 @@ internal sealed partial class RealtimeSession
                     RealtimeInteractionReduction modal = RealtimeInteractionReducer.Reduce(
                         _interaction,
                         RealtimeR2Intent.OpenModal(
-                            "CAMPAIGN_RESULT",
+                            RealtimeR2Ids.CampaignResultModal,
                             RealtimeModalKind.ChapterStory,
                             RealtimePauseReason.CampaignResult,
                             "WORLD"));
@@ -555,7 +556,7 @@ internal sealed partial class RealtimeSession
         EnsureBootstrapped(requirePresentation: false);
         RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
         long forecastHorizonMinutes =
-            RealtimeSlicePresenter.RequiredForecastHorizonMinutes(
+            RealtimeTimelinePolicy.RequiredForecastHorizonMinutes(
                 snapshot.Minute,
                 _interaction!.TimelineAnchorMinute,
                 _interaction.TimelineHorizon);
@@ -757,7 +758,7 @@ internal sealed partial class RealtimeSession
                         ? nodePreview.RiskAreaIds.Count == 0
                             ? "배치 가능 · 클릭 또는 Enter로 초안을 놓습니다."
                             : $"배치 가능 · 위험구역 {nodePreview.RiskAreaIds.Count}곳과 겹칩니다."
-                        : $"배치 불가 · {RealtimeSlicePresenter.ConstructionErrorText(nodePreview.Error)}");
+                        : $"배치 불가 · {RealtimePresentationText.ConstructionErrorText(nodePreview.Error)}");
                 break;
             case RealtimeTool.BuildLine:
                 PreviewLinePointer(resolution, worldPoint, construction);
@@ -809,7 +810,7 @@ internal sealed partial class RealtimeSession
                 preview.Accepted
                     ? $"{DisplayAssetName(startId)}에서 선로 시작 가능 · " +
                       "클릭 또는 Enter로 확정합니다."
-                    : $"시작 불가 · {RealtimeSlicePresenter.ConstructionErrorText(preview.Error)}");
+                    : $"시작 불가 · {RealtimePresentationText.ConstructionErrorText(preview.Error)}");
             return;
         }
         if (construction.LineDraft.EndNodeId is not null)
@@ -831,7 +832,7 @@ internal sealed partial class RealtimeSession
                 preview.Accepted
                     ? $"{DisplayAssetName(endId)}에 접속 가능 · " +
                       "클릭 또는 Enter로 경로를 닫습니다."
-                    : $"접속 불가 · {RealtimeSlicePresenter.ConstructionErrorText(preview.Error)}");
+                    : $"접속 불가 · {RealtimePresentationText.ConstructionErrorText(preview.Error)}");
             return;
         }
         LinePointPreview pointPreview = _run!.PreviewLinePoint(worldPoint);
@@ -841,25 +842,26 @@ internal sealed partial class RealtimeSession
                 ? pointPreview.RiskAreaIds.Count == 0
                     ? "경로점 추가 가능 · 클릭 또는 Enter로 확정합니다."
                     : $"경로점 추가 가능 · 위험구역 {pointPreview.RiskAreaIds.Count}곳을 지납니다."
-                : $"경로점 불가 · {RealtimeSlicePresenter.ConstructionErrorText(pointPreview.Error)}");
+                : $"경로점 불가 · {RealtimePresentationText.ConstructionErrorText(pointPreview.Error)}");
     }
 
     internal void HandleAction(string id)
     {
-        if ((id is RealtimeSlicePresenter.PromiseKeepActionId or
-                RealtimeSlicePresenter.PromiseDeferActionId) &&
+        if ((id is RealtimeR2Ids.PromiseKeepAction or
+                RealtimeR2Ids.PromiseDeferAction) &&
             !CanRequestPromiseAction(id))
         {
             return;
         }
         _ = id switch
         {
-            "ORDER_NODE" => ApplyIntent(new RealtimeR2Intent(RealtimeR2IntentKind.OrderNode)),
-            "ORDER_LINE" => ApplyIntent(RealtimeR2Intent.OrderLine()),
-            RealtimeSlicePresenter.PromiseKeepActionId => ApplyIntent(new RealtimeR2Intent(
+            RealtimeR2Ids.OrderNodeAction => ApplyIntent(new RealtimeR2Intent(
+                RealtimeR2IntentKind.OrderNode)),
+            RealtimeR2Ids.OrderLineAction => ApplyIntent(RealtimeR2Intent.OrderLine()),
+            RealtimeR2Ids.PromiseKeepAction => ApplyIntent(new RealtimeR2Intent(
                 RealtimeR2IntentKind.SetPromiseDecision,
                 PromiseDecision: CommercialPromiseDecision.Keep)),
-            RealtimeSlicePresenter.PromiseDeferActionId => ApplyIntent(new RealtimeR2Intent(
+            RealtimeR2Ids.PromiseDeferAction => ApplyIntent(new RealtimeR2Intent(
                 RealtimeR2IntentKind.SetPromiseDecision,
                 PromiseDecision: CommercialPromiseDecision.Defer)),
             _ => throw new ArgumentOutOfRangeException(
@@ -878,14 +880,14 @@ internal sealed partial class RealtimeSession
             context is not { Visible: true } ||
             !string.Equals(
                 context.SubjectId,
-                $"{RealtimeSlicePresenter.PromiseDecisionMarkerPrefix}{promise.PromiseId}",
+                RealtimeR2Ids.PromiseDecisionMarker(promise.PromiseId),
                 StringComparison.Ordinal))
         {
             return false;
         }
         RealtimeActionPresentation? action = string.Equals(
                 actionId,
-                RealtimeSlicePresenter.PromiseKeepActionId,
+                RealtimeR2Ids.PromiseKeepAction,
                 StringComparison.Ordinal)
             ? context.PrimaryAction
             : context.SecondaryAction;
@@ -918,7 +920,7 @@ internal sealed partial class RealtimeSession
         {
             return;
         }
-        if (!primaryMatch || !IsSupportedModalCloseActionId(actionId))
+        if (!primaryMatch || !RealtimeR2Ids.IsSupportedModalCloseAction(actionId))
         {
             throw new ArgumentOutOfRangeException(
                 nameof(actionId),
@@ -943,13 +945,6 @@ internal sealed partial class RealtimeSession
             }
         }
     }
-
-    internal static bool IsSupportedModalCloseActionId(string actionId) =>
-        actionId is "NOTICE_CLOSE" or
-            "BRIEFING_CONTINUE" or
-            "EVENT_STORY_CONTINUE" or
-            "DECISION_WINDOW_CONTINUE" or
-            "RESULT_CLOSE";
 
     internal void HandleModalDismiss(string modalId)
     {
@@ -1052,7 +1047,7 @@ internal sealed partial class RealtimeSession
         {
             RealtimeChapterStoryModalRequest? request = string.Equals(
                     modal.Id,
-                    "CHAPTER_BRIEFING",
+                    RealtimeR2Ids.ChapterBriefingModal,
                     StringComparison.Ordinal)
                 ? RealtimeChapterStoryFlow.InitialBriefing(
                     _run!.GetSnapshot().Chapter.Content.ChapterId)
@@ -1073,8 +1068,8 @@ internal sealed partial class RealtimeSession
         RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
         CommercialStoryCard? card = modal.Id switch
         {
-            "CHAPTER_BRIEFING" => chapter.Briefing,
-            "CAMPAIGN_RESULT" when IsSuccessfulStandaloneCompletion(
+            RealtimeR2Ids.ChapterBriefingModal => chapter.Briefing,
+            RealtimeR2Ids.CampaignResultModal when IsSuccessfulStandaloneCompletion(
                 snapshot,
                 realtimeChapter) =>
                 chapter.ResultCards.Standard,
@@ -1129,7 +1124,7 @@ internal sealed partial class RealtimeSession
                 : " · 접속 조건 " + string.Join(
                     ", ",
                     outcome.ConnectionRequirementAssessment.Facts.Select(item =>
-                        $"{RealtimeSlicePresenter.AssetDisplayName(
+                        $"{RealtimePresentationText.AssetDisplayName(
                             _data.BaseWorld,
                             snapshot,
                             item.NodeId)} " +
@@ -1142,7 +1137,7 @@ internal sealed partial class RealtimeSession
                 ? string.Empty
                 : outcome.PromiseDecision == CommercialPromiseDecision.Defer
                     ? $" · 약속 {(autoDefaulted ? "자동 Defer" : "Defer")} · " +
-                      $"{RealtimeSlicePresenter.AssetDisplayName(
+                      $"{RealtimePresentationText.AssetDisplayName(
                           _data.BaseWorld,
                           snapshot,
                           chapter.CityPromise.LoadId)} 수요 의무 제외"
@@ -1171,7 +1166,7 @@ internal sealed partial class RealtimeSession
                     $" · 운영 자금 {outcome.EndingCashUnit:N0}만 원. " +
                     "충족하지 못한 사실과 첫 병목을 확인하세요.",
                 PrimaryAction = new RealtimeActionPresentation(
-                    "RESULT_CLOSE",
+                    RealtimeR2Ids.ResultCloseAction,
                     calendarTransition
                         ? "6개월 뒤 북안 검토로"
                         : request.FinalResult
@@ -1181,7 +1176,7 @@ internal sealed partial class RealtimeSession
                             : "다음 장으로",
                     calendarTransition
                         ? $"결과를 닫고 실제 망·현금·공사를 보존한 채 " +
-                          $"{RealtimeSlicePresenter.TimeText(snapshot.ChapterStartMinute)}의 " +
+                          $"{RealtimePresentationText.Time(snapshot.ChapterStartMinute)}의 " +
                           "북안 검토로 이동합니다."
                         : request.FinalResult
                             ? $"누적 {_data.Campaign.Chapters.Count}장의 운영 결과를 확인합니다."
@@ -1224,10 +1219,10 @@ internal sealed partial class RealtimeSession
             Body = card.Body,
             PrimaryAction = new RealtimeActionPresentation(
                 eventStory
-                    ? "EVENT_STORY_CONTINUE"
+                    ? RealtimeR2Ids.EventStoryContinueAction
                     : decisionWindow
-                        ? "DECISION_WINDOW_CONTINUE"
-                        : "BRIEFING_CONTINUE",
+                        ? RealtimeR2Ids.DecisionWindowContinueAction
+                        : RealtimeR2Ids.BriefingContinueAction,
                 eventStory
                     ? "시험 계속"
                     : decisionWindow
@@ -1256,7 +1251,10 @@ internal sealed partial class RealtimeSession
         }
         if (_formativeDirectPlayRecorded ||
             _data?.NativeRoute?.IsStandaloneChapter != true ||
-            !string.Equals(closedModal.Id, "CAMPAIGN_RESULT", StringComparison.Ordinal) ||
+            !string.Equals(
+                closedModal.Id,
+                RealtimeR2Ids.CampaignResultModal,
+                StringComparison.Ordinal) ||
             _run?.GetSnapshot() is not { CampaignComplete: true } snapshot)
         {
             return;
@@ -1414,16 +1412,18 @@ internal sealed partial class RealtimeSession
                 id,
                 "The build tool is not in the current presentation.");
         }
-        if (string.Equals(id, "TOOL:ANALYSIS", StringComparison.Ordinal))
+        if (string.Equals(id, RealtimeR2Ids.AnalysisTool, StringComparison.Ordinal))
         {
             _ = ApplyIntent(new RealtimeR2Intent(RealtimeR2IntentKind.ToggleAnalysis));
             return;
         }
         RealtimeTool? tool = id switch
         {
-            "TOOL:INSPECT" => RealtimeTool.Inspect,
-            _ when id.StartsWith("NODE:", StringComparison.Ordinal) => RealtimeTool.BuildNode,
-            _ when id.StartsWith("LINE:", StringComparison.Ordinal) => RealtimeTool.BuildLine,
+            RealtimeR2Ids.InspectTool => RealtimeTool.Inspect,
+            _ when id.StartsWith(RealtimeR2Ids.NodeToolPrefix, StringComparison.Ordinal) =>
+                RealtimeTool.BuildNode,
+            _ when id.StartsWith(RealtimeR2Ids.LineToolPrefix, StringComparison.Ordinal) =>
+                RealtimeTool.BuildLine,
             _ => null,
         };
         if (!tool.HasValue)
@@ -1440,7 +1440,7 @@ internal sealed partial class RealtimeSession
 
     private bool TrySelectedNodeClass(out string nodeClassId)
     {
-        const string prefix = "NODE:";
+        const string prefix = RealtimeR2Ids.NodeToolPrefix;
         string? toolId = _interaction?.SelectedBuildToolId;
         nodeClassId = toolId is not null && toolId.StartsWith(prefix, StringComparison.Ordinal)
             ? toolId[prefix.Length..]
@@ -1456,7 +1456,7 @@ internal sealed partial class RealtimeSession
         selectedPlan = PresentedCoreSnapshot.Chapter.Content.AvailableLinePlans
             .SingleOrDefault(plan => string.Equals(
                 toolId,
-                $"LINE:{plan.LineClassId}:{plan.PoleClassId}",
+                RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId),
                 StringComparison.Ordinal));
         return selectedPlan is not null;
     }
@@ -1514,8 +1514,8 @@ internal sealed partial class RealtimeSession
     {
         string prefix = family switch
         {
-            RealtimeBuildToolFamily.Node => "NODE:",
-            RealtimeBuildToolFamily.Line => "LINE:",
+            RealtimeBuildToolFamily.Node => RealtimeR2Ids.NodeToolPrefix,
+            RealtimeBuildToolFamily.Line => RealtimeR2Ids.LineToolPrefix,
             _ => throw new ArgumentOutOfRangeException(
                 nameof(family),
                 family,
@@ -1677,7 +1677,7 @@ internal sealed partial class RealtimeSession
 
     private void SelectTimelineItem(RealtimeTimelineItemPresentation item)
     {
-        RealtimeTimelineTarget target = RealtimeSlicePresenter.ResolveTimelineTarget(
+        RealtimeTimelineTarget target = RealtimeTimelineTargetResolver.Resolve(
             _data!.BaseWorld,
             _run!.GetSnapshot(),
             _latestPresentation!.BaseForecast,
@@ -1879,10 +1879,6 @@ internal sealed partial class RealtimeSession
         RealtimeR2IntentKind.CancelLineDraft or
         RealtimeR2IntentKind.OrderLine;
 
-    private static bool IsComparisonMarker(string? id) => id is not null &&
-        (id.StartsWith("DRAFT_FORECAST:", StringComparison.Ordinal) ||
-         id.StartsWith("DRAFT_THERMAL:", StringComparison.Ordinal));
-
     private void SetPointerFeedback(bool accepted, string message)
     {
         _pointerAccepted = accepted;
@@ -1892,7 +1888,7 @@ internal sealed partial class RealtimeSession
     private string DisplayAssetName(string assetId)
     {
         EnsureBootstrapped(requirePresentation: false);
-        return RealtimeSlicePresenter.AssetDisplayName(
+        return RealtimePresentationText.AssetDisplayName(
             _data!.BaseWorld,
             PresentedCoreSnapshot,
             assetId);
@@ -1905,8 +1901,8 @@ internal sealed partial class RealtimeSession
         if (!result.Accepted)
         {
             string reason = result.ConstructionError.HasValue
-                ? RealtimeSlicePresenter.ConstructionErrorText(result.ConstructionError)
-                : RealtimeSlicePresenter.RealtimeRunErrorText(result.Error);
+                ? RealtimePresentationText.ConstructionErrorText(result.ConstructionError)
+                : RealtimePresentationText.RealtimeRunErrorText(result.Error);
             return $"공사 입력을 처리하지 못했습니다. {reason}";
         }
         return kind switch
@@ -1916,7 +1912,7 @@ internal sealed partial class RealtimeSession
             RealtimeR2IntentKind.OrderNode or RealtimeR2IntentKind.OrderLine
                 when result.Snapshot.Construction.ActiveConstruction is
                     ActiveConstructionSnapshot project =>
-                $"공사를 승인했습니다. {RealtimeSlicePresenter.TimeText(project.CompletionMinute)}에 완공됩니다.",
+                $"공사를 승인했습니다. {RealtimePresentationText.Time(project.CompletionMinute)}에 완공됩니다.",
             RealtimeR2IntentKind.StartLineDraft => "선로 시작점을 선택했습니다.",
             RealtimeR2IntentKind.AddLinePoint => "선로 경로점을 추가했습니다.",
             RealtimeR2IntentKind.MoveLinePoint => "선로 경로점을 이동했습니다.",

@@ -44,12 +44,6 @@ internal sealed record RealtimeChapterStoryModalRequest(
 /// </summary>
 internal sealed class RealtimeChapterStoryFlow
 {
-    // These presentation IDs predate the generic flow and remain stable evidence/UI IDs.
-    private const string ResultPrefix = "TUTORIAL_RESULT:";
-    private const string BriefingPrefix = "TUTORIAL_BRIEFING:";
-    private const string DecisionWindowPrefix = "TUTORIAL_DECISION_WINDOW:";
-    private const string EventPrefix = "TUTORIAL_EVENT_STORY:";
-
     private readonly Queue<RealtimeChapterStoryModalRequest> _pending = new();
     private readonly HashSet<string> _observedModalIds = new(StringComparer.Ordinal);
 
@@ -149,7 +143,7 @@ internal sealed class RealtimeChapterStoryFlow
 
     internal static RealtimeChapterStoryModalRequest InitialBriefing(string chapterId) =>
         new(
-            "CHAPTER_BRIEFING",
+            RealtimeR2Ids.ChapterBriefingModal,
             RealtimeChapterStoryModalPurpose.ChapterBriefing,
             chapterId,
             null,
@@ -158,14 +152,14 @@ internal sealed class RealtimeChapterStoryFlow
     private static RealtimeChapterStoryModalRequest Result(
         string chapterId,
         bool final) => new(
-        $"{ResultPrefix}{chapterId}",
+        RealtimeR2Ids.TutorialResultModal(chapterId),
         RealtimeChapterStoryModalPurpose.ChapterResult,
         chapterId,
         null,
         final);
 
     private static RealtimeChapterStoryModalRequest Briefing(string chapterId) => new(
-        $"{BriefingPrefix}{chapterId}",
+        RealtimeR2Ids.TutorialBriefingModal(chapterId),
         RealtimeChapterStoryModalPurpose.ChapterBriefing,
         chapterId,
         null,
@@ -185,7 +179,9 @@ internal sealed class RealtimeChapterStoryFlow
             return null;
         }
         return new RealtimeChapterStoryModalRequest(
-            $"{DecisionWindowPrefix}{chapter.Content.ChapterId}:{window.WindowId}",
+            RealtimeR2Ids.TutorialDecisionWindowModal(
+                chapter.Content.ChapterId,
+                window.WindowId),
             RealtimeChapterStoryModalPurpose.DecisionWindowStory,
             chapter.Content.ChapterId,
             null,
@@ -202,7 +198,9 @@ internal sealed class RealtimeChapterStoryFlow
         return phase.Story is null
             ? null
             : new RealtimeChapterStoryModalRequest(
-                $"{EventPrefix}{chapter.Content.ChapterId}:{eventId}",
+                RealtimeR2Ids.TutorialEventStoryModal(
+                    chapter.Content.ChapterId,
+                    eventId),
                 RealtimeChapterStoryModalPurpose.EventStory,
                 chapter.Content.ChapterId,
                 eventId,

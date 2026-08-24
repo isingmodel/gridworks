@@ -28,6 +28,7 @@ internal static class RealtimeR2Smoke
     internal static void Validate(ICollection<string> failures)
     {
         ArgumentNullException.ThrowIfNull(failures);
+        RunCase("stable-r2-id-protocol", () => ValidateStableR2IdProtocol(failures), failures);
         RunCase("fail-closed-routing", () => ValidateFailClosedRouting(failures), failures);
         RunCase("clock-pause", () => ValidateClockAndPause(failures), failures);
         RunCase("frame-rate-matrix", () => ValidateFrameRateMatrix(failures), failures);
@@ -69,6 +70,70 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseTutorialConnectionFailureResult(failures), failures);
         RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
         RunCase("pointer-priority", () => ValidatePointerPriority(failures), failures);
+    }
+
+    private static void ValidateStableR2IdProtocol(ICollection<string> failures)
+    {
+        string actual = string.Join("\n",
+        [
+            $"order-node={RealtimeR2Ids.OrderNodeAction}",
+            $"order-line={RealtimeR2Ids.OrderLineAction}",
+            $"promise-keep={RealtimeR2Ids.PromiseKeepAction}",
+            $"promise-defer={RealtimeR2Ids.PromiseDeferAction}",
+            $"notice-close={RealtimeR2Ids.NoticeCloseAction}",
+            $"briefing-continue={RealtimeR2Ids.BriefingContinueAction}",
+            $"event-continue={RealtimeR2Ids.EventStoryContinueAction}",
+            $"decision-continue={RealtimeR2Ids.DecisionWindowContinueAction}",
+            $"result-close={RealtimeR2Ids.ResultCloseAction}",
+            $"chapter-briefing={RealtimeR2Ids.ChapterBriefingModal}",
+            $"campaign-result={RealtimeR2Ids.CampaignResultModal}",
+            $"tutorial-result={RealtimeR2Ids.TutorialResultModal("CHAPTER")}",
+            $"tutorial-briefing={RealtimeR2Ids.TutorialBriefingModal("CHAPTER")}",
+            $"tutorial-decision={RealtimeR2Ids.TutorialDecisionWindowModal("CHAPTER", "WINDOW")}",
+            $"tutorial-event={RealtimeR2Ids.TutorialEventStoryModal("CHAPTER", "EVENT")}",
+            $"inspect={RealtimeR2Ids.InspectTool}",
+            $"analysis={RealtimeR2Ids.AnalysisTool}",
+            $"node={RealtimeR2Ids.NodeTool("CLASS")}",
+            $"line={RealtimeR2Ids.LineTool("LINE", "POLE")}",
+            $"active-construction={RealtimeR2Ids.ActiveConstructionMarker}",
+            $"draft-construction={RealtimeR2Ids.DraftConstructionMarker}",
+            $"completed-prefix={RealtimeR2Ids.CompletedConstructionMarkerPrefix}",
+            $"promise-marker={RealtimeR2Ids.PromiseDecisionMarker("PROMISE")}",
+            $"thermal-prefix={RealtimeR2Ids.ThermalMarkerPrefix}",
+            $"comparison-event={RealtimeR2Ids.ComparisonEventMarker("EVENT")}",
+            $"comparison-thermal-prefix={RealtimeR2Ids.ComparisonThermalMarkerPrefix}",
+        ]);
+        const string expected = """
+            order-node=ORDER_NODE
+            order-line=ORDER_LINE
+            promise-keep=PROMISE_KEEP
+            promise-defer=PROMISE_DEFER
+            notice-close=NOTICE_CLOSE
+            briefing-continue=BRIEFING_CONTINUE
+            event-continue=EVENT_STORY_CONTINUE
+            decision-continue=DECISION_WINDOW_CONTINUE
+            result-close=RESULT_CLOSE
+            chapter-briefing=CHAPTER_BRIEFING
+            campaign-result=CAMPAIGN_RESULT
+            tutorial-result=TUTORIAL_RESULT:CHAPTER
+            tutorial-briefing=TUTORIAL_BRIEFING:CHAPTER
+            tutorial-decision=TUTORIAL_DECISION_WINDOW:CHAPTER:WINDOW
+            tutorial-event=TUTORIAL_EVENT_STORY:CHAPTER:EVENT
+            inspect=TOOL:INSPECT
+            analysis=TOOL:ANALYSIS
+            node=NODE:CLASS
+            line=LINE:LINE:POLE
+            active-construction=ACTIVE_CONSTRUCTION
+            draft-construction=DRAFT_CONSTRUCTION
+            completed-prefix=COMPLETED_CONSTRUCTION:
+            promise-marker=PROMISE_DEADLINE:PROMISE
+            thermal-prefix=THERMAL:
+            comparison-event=DRAFT_FORECAST:EVENT
+            comparison-thermal-prefix=DRAFT_THERMAL:
+            """;
+        Check(string.Equals(actual, expected, StringComparison.Ordinal),
+            "the centralized R2 ID protocol drifted from its stable UI/evidence contract",
+            failures);
     }
 
     private static void ValidateFailClosedRouting(ICollection<string> failures)
@@ -138,7 +203,7 @@ internal static class RealtimeR2Smoke
             RealtimeSliceResources.LoadTechnicalFixture(typeof(RealtimeR2Smoke).Assembly));
         RealtimeModalPresentation briefing = session.LatestPresentation.Modal ??
             throw new InvalidOperationException("The technical session has no briefing modal.");
-        Check(RealtimeSession.IsSupportedModalCloseActionId(
+        Check(RealtimeR2Ids.IsSupportedModalCloseAction(
                 briefing.PrimaryAction.Id),
             "the presented briefing action is outside the explicit modal capability",
             failures);
@@ -197,14 +262,14 @@ internal static class RealtimeR2Smoke
 
         string[] supportedModalActions =
         [
-            "NOTICE_CLOSE",
-            "BRIEFING_CONTINUE",
-            "EVENT_STORY_CONTINUE",
-            "DECISION_WINDOW_CONTINUE",
-            "RESULT_CLOSE",
+            RealtimeR2Ids.NoticeCloseAction,
+            RealtimeR2Ids.BriefingContinueAction,
+            RealtimeR2Ids.EventStoryContinueAction,
+            RealtimeR2Ids.DecisionWindowContinueAction,
+            RealtimeR2Ids.ResultCloseAction,
         ];
-        Check(supportedModalActions.All(RealtimeSession.IsSupportedModalCloseActionId) &&
-              !RealtimeSession.IsSupportedModalCloseActionId("UNKNOWN_MODAL_ACTION"),
+        Check(supportedModalActions.All(RealtimeR2Ids.IsSupportedModalCloseAction) &&
+              !RealtimeR2Ids.IsSupportedModalCloseAction("UNKNOWN_MODAL_ACTION"),
             "the modal close capability does not match the five production actions",
             failures);
 
@@ -265,7 +330,7 @@ internal static class RealtimeR2Smoke
             coreCommandExpected: false);
         RequireIntent(cancellationSlice.ApplyIntentForSmoke(new RealtimeR2Intent(
                 RealtimeR2IntentKind.SetNodeDraft,
-                FirstId: nodeToolId["NODE:".Length..],
+                FirstId: nodeToolId[RealtimeR2Ids.NodeToolPrefix.Length..],
                 Position: nodePosition)),
             "fail-closed cancellation draft",
             failures);
@@ -330,7 +395,7 @@ internal static class RealtimeR2Smoke
         RequireIntent(slice.ApplyIntentForSmoke(
             RealtimeR2Intent.SelectBuildTool(
                 RealtimeTool.BuildLine,
-                $"LINE:{plan.LineClassId}:{plan.PoleClassId}")),
+                RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId))),
             "layout build tool", failures, coreCommandExpected: false);
         RequireIntent(slice.ApplyIntentForSmoke(plan.Intents[0]),
             "layout line start", failures);
@@ -372,7 +437,7 @@ internal static class RealtimeR2Smoke
         RequireIntent(actionSlice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
-                    $"LINE:{plan.LineClassId}:{plan.PoleClassId}")),
+                    RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId))),
             "layout action tool", failures, coreCommandExpected: false);
         RequireIntent(actionSlice.ApplyIntentForSmoke(plan.Intents[0]),
             "layout action start", failures);
@@ -529,13 +594,13 @@ internal static class RealtimeR2Smoke
             "node quote tool", failures, coreCommandExpected: false);
         RequireIntent(nodeSlice.ApplyIntentForSmoke(new RealtimeR2Intent(
                 RealtimeR2IntentKind.SetNodeDraft,
-                FirstId: nodeToolId["NODE:".Length..],
+                FirstId: nodeToolId[RealtimeR2Ids.NodeToolPrefix.Length..],
                 Position: nodePosition)),
             "node quote draft", failures);
         AssertAcceptedOrderQuote(
             nodeSlice.PreviewNodeOrderForSmoke(),
             nodeSlice.LatestPresentation.ActionDock,
-            "ORDER_NODE",
+            RealtimeR2Ids.OrderNodeAction,
             "node",
             failures);
 
@@ -546,7 +611,7 @@ internal static class RealtimeR2Smoke
         RequireIntent(lineSlice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
-                    $"LINE:{plan.LineClassId}:{plan.PoleClassId}")),
+                    RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId))),
             "line quote tool", failures, coreCommandExpected: false);
         RequireIntent(lineSlice.ApplyIntentForSmoke(plan.Intents[0]),
             "line quote start", failures);
@@ -555,7 +620,7 @@ internal static class RealtimeR2Smoke
         AssertAcceptedOrderQuote(
             lineSlice.PreviewLineOrderForSmoke(),
             lineSlice.LatestPresentation.ActionDock,
-            "ORDER_LINE",
+            RealtimeR2Ids.OrderLineAction,
             "line",
             failures);
 
@@ -570,7 +635,7 @@ internal static class RealtimeR2Smoke
             "rejected node quote tool", failures, coreCommandExpected: false);
         RequireIntent(lineSlice.ApplyIntentForSmoke(new RealtimeR2Intent(
                 RealtimeR2IntentKind.SetNodeDraft,
-                FirstId: comparisonNodeToolId["NODE:".Length..],
+                FirstId: comparisonNodeToolId[RealtimeR2Ids.NodeToolPrefix.Length..],
                 Position: comparisonNodePosition)),
             "rejected node quote draft", failures);
         RealtimeProjectQuote rejected = lineSlice.PreviewNodeOrderForSmoke();
@@ -582,7 +647,7 @@ internal static class RealtimeR2Smoke
                   Error: RealtimeRunError.ConstructionRejected,
                   ConstructionError: ConstructionError.WrongPhase,
               } &&
-              rejectedAction is { Id: "ORDER_NODE", Enabled: false } &&
+              rejectedAction is { Id: RealtimeR2Ids.OrderNodeAction, Enabled: false } &&
               rejectedAction.Description.StartsWith(
                   "발주 불가 · 현재 공사가 ",
                   StringComparison.Ordinal) &&
@@ -964,12 +1029,12 @@ internal static class RealtimeR2Smoke
             "commissioning, thermal cause, state, limits, loading, or exposure",
             failures);
 
-        string[] expectedToolIds = new[] { "TOOL:INSPECT" }
+        string[] expectedToolIds = new[] { RealtimeR2Ids.InspectTool }
             .Concat(slice.CoreSnapshot.Chapter.Content.AvailableNodeClassIds
-                .Select(id => $"NODE:{id}"))
+                .Select(id => RealtimeR2Ids.NodeTool(id)))
             .Concat(slice.CoreSnapshot.Chapter.Content.AvailableLinePlans
-                .Select(plan => $"LINE:{plan.LineClassId}:{plan.PoleClassId}"))
-            .Append("TOOL:ANALYSIS")
+                .Select(plan => RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId)))
+            .Append(RealtimeR2Ids.AnalysisTool)
             .ToArray();
         Check(presentation.BuildShelf.Tools.Select(item => item.Id)
                 .SequenceEqual(expectedToolIds, StringComparer.Ordinal),
@@ -1012,14 +1077,14 @@ internal static class RealtimeR2Smoke
         }
 
         string selectedMarkerId = presentation.Rail.Items.First(item =>
-            RealtimeSlicePresenter.ResolveTimelineTarget(
+            RealtimeTimelineTargetResolver.Resolve(
                 slice.DisplayWorldForSmoke,
                 slice.CoreSnapshot,
                 item.Id).SubjectId is not null).Id;
         string beforeHash = slice.CanonicalStateSha256;
         int beforeCommands = slice.AcceptedCommandCount;
         slice.ChooseTimelineClusterForSmoke(new[] { selectedMarkerId });
-        RealtimeTimelineTarget target = RealtimeSlicePresenter.ResolveTimelineTarget(
+        RealtimeTimelineTarget target = RealtimeTimelineTargetResolver.Resolve(
             slice.DisplayWorldForSmoke,
             slice.CoreSnapshot,
             selectedMarkerId);
@@ -1152,7 +1217,7 @@ internal static class RealtimeR2Smoke
             "timeline did not restore the authoritative 24-hour preset before 7-day",
             failures);
         slice.AdjustTimelineHorizonForSmoke(1);
-        long sevenDayRequest = RealtimeSlicePresenter.RequiredForecastHorizonMinutes(
+        long sevenDayRequest = RealtimeTimelinePolicy.RequiredForecastHorizonMinutes(
             slice.CurrentMinute,
             slice.InteractionState.TimelineAnchorMinute,
             RealtimeTimelineHorizonPreset.SevenDays);
@@ -1232,7 +1297,7 @@ internal static class RealtimeR2Smoke
                   StringComparison.Ordinal),
             "HUD lost its authored objective or player cash unit", failures);
         Check(presentation.BuildShelf.Tools
-                .Where(item => item.Id.StartsWith("NODE:", StringComparison.Ordinal))
+                .Where(item => item.Id.StartsWith(RealtimeR2Ids.NodeToolPrefix, StringComparison.Ordinal))
                 .All(item => item.Description.Contains("만 원", StringComparison.Ordinal)),
             "node tool cost copy does not use the player-facing 만 원 unit", failures);
 
@@ -1244,7 +1309,7 @@ internal static class RealtimeR2Smoke
                 $"player-facing presentation leaked internal term '{term}'", failures);
         }
         Check(presentation.Rail.Items
-                .Where(item => RealtimeSlicePresenter.ResolveTimelineTarget(
+                .Where(item => RealtimeTimelineTargetResolver.Resolve(
                     slice.DisplayWorldForSmoke,
                     slice.CoreSnapshot,
                     item.Id).Kind == RealtimeTimelineTargetKind.Event)
@@ -1260,19 +1325,19 @@ internal static class RealtimeR2Smoke
         var thermalSlice = CreateRunningSlice();
         using var thermalLifetime = thermalSlice.FreeAfterSmoke();
         RealtimeTimelineItemPresentation thermal = thermalSlice.LatestPresentation.Rail.Items
-            .First(item => RealtimeSlicePresenter.ResolveTimelineTarget(
+            .First(item => RealtimeTimelineTargetResolver.Resolve(
                 thermalSlice.DisplayWorldForSmoke,
                 thermalSlice.CoreSnapshot,
                 item.Id).Kind == RealtimeTimelineTargetKind.ThermalAsset);
         RealtimeTimelineItemPresentation owningEvent =
             thermalSlice.LatestPresentation.Rail.Items.First(item =>
-                RealtimeSlicePresenter.ResolveTimelineTarget(
+                RealtimeTimelineTargetResolver.Resolve(
                     thermalSlice.DisplayWorldForSmoke,
                     thermalSlice.CoreSnapshot,
                     item.Id).Kind == RealtimeTimelineTargetKind.Event &&
                 thermal.Description.StartsWith($"{item.Title} 예상", StringComparison.Ordinal));
         thermalSlice.ChooseTimelineClusterForSmoke(new[] { thermal.Id });
-        RealtimeTimelineTarget target = RealtimeSlicePresenter.ResolveTimelineTarget(
+        RealtimeTimelineTarget target = RealtimeTimelineTargetResolver.Resolve(
             thermalSlice.DisplayWorldForSmoke,
             thermalSlice.CoreSnapshot,
             thermal.Id);
@@ -1463,7 +1528,7 @@ internal static class RealtimeR2Smoke
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
-                    $"LINE:{plan.LineClassId}:{plan.PoleClassId}")),
+                    RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId))),
             "draft menu tool", failures, coreCommandExpected: false);
         string noDraftHash = slice.CanonicalStateSha256;
         int noDraftCommands = slice.AcceptedCommandCount;
@@ -1487,7 +1552,7 @@ internal static class RealtimeR2Smoke
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
-                    $"LINE:{plan.LineClassId}:{plan.PoleClassId}")),
+                    RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId))),
             "draft menu tool restore", failures, coreCommandExpected: false);
         RequireIntent(slice.ApplyIntentForSmoke(plan.Intents[0]),
             "draft menu line start", failures);
@@ -1528,7 +1593,7 @@ internal static class RealtimeR2Smoke
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
-                    $"LINE:{plan.LineClassId}:{plan.PoleClassId}")),
+                    RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId))),
             "ended shell line tool", failures, coreCommandExpected: false);
         RequireIntent(slice.ApplyIntentForSmoke(plan.Intents[0]),
             "ended shell line start", failures);
@@ -1543,8 +1608,8 @@ internal static class RealtimeR2Smoke
         Check(!completeSnapshotDefense.World.PlacementMode &&
               !completeSnapshotDefense.Hud.BuildModeActive &&
               completeSnapshotDefense.BuildShelf.Tools
-                  .Where(item => item.Id.StartsWith("NODE:", StringComparison.Ordinal) ||
-                                 item.Id.StartsWith("LINE:", StringComparison.Ordinal))
+                  .Where(item => item.Id.StartsWith(RealtimeR2Ids.NodeToolPrefix, StringComparison.Ordinal) ||
+                                 item.Id.StartsWith(RealtimeR2Ids.LineToolPrefix, StringComparison.Ordinal))
                   .All(item => !item.Enabled && string.Equals(
                       item.Description,
                       RealtimeInteractionReducer.CampaignEndedReadOnlyReason,
@@ -1556,8 +1621,8 @@ internal static class RealtimeR2Smoke
         slice.EnterCampaignEndedForSmoke();
         RealtimeSlicePresentation ended = slice.LatestPresentation;
         RealtimeBuildToolPresentation[] constructionTools = ended.BuildShelf.Tools
-            .Where(item => item.Id.StartsWith("NODE:", StringComparison.Ordinal) ||
-                           item.Id.StartsWith("LINE:", StringComparison.Ordinal))
+            .Where(item => item.Id.StartsWith(RealtimeR2Ids.NodeToolPrefix, StringComparison.Ordinal) ||
+                           item.Id.StartsWith(RealtimeR2Ids.LineToolPrefix, StringComparison.Ordinal))
             .ToArray();
         Check(slice.InteractionState is
               {
@@ -1597,7 +1662,7 @@ internal static class RealtimeR2Smoke
         RealtimeR2IntentResult buildEntry = slice.ApplyIntentForSmoke(
             RealtimeR2Intent.SelectBuildTool(
                 RealtimeTool.BuildLine,
-                $"LINE:{plan.LineClassId}:{plan.PoleClassId}"));
+                RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId)));
         RealtimeR2IntentResult promiseWrite = slice.ApplyIntentForSmoke(
             new RealtimeR2Intent(
                 RealtimeR2IntentKind.SetPromiseDecision,
@@ -1642,10 +1707,10 @@ internal static class RealtimeR2Smoke
         string hash = slice.CanonicalStateSha256;
         int commands = slice.AcceptedCommandCount;
 
-        slice.RequestBuildToolForSmoke("TOOL:ANALYSIS");
+        slice.RequestBuildToolForSmoke(RealtimeR2Ids.AnalysisTool);
         RealtimeSlicePresentation mouseOn = slice.LatestPresentation;
         RealtimeBuildToolPresentation mouseTool = mouseOn.BuildShelf.Tools.Single(item =>
-            string.Equals(item.Id, "TOOL:ANALYSIS", StringComparison.Ordinal));
+            string.Equals(item.Id, RealtimeR2Ids.AnalysisTool, StringComparison.Ordinal));
         Check(slice.InteractionState.Tool == RealtimeTool.Analysis &&
               slice.InteractionState.Surface == RealtimeSurface.Drawer &&
               mouseOn.World.AnalysisVisible && mouseOn.BuildShelf.Visible &&
@@ -1657,7 +1722,7 @@ internal static class RealtimeR2Smoke
             "mouse analysis activation lost its persistent visible/AX active state",
             failures);
 
-        slice.RequestBuildToolForSmoke("TOOL:ANALYSIS");
+        slice.RequestBuildToolForSmoke(RealtimeR2Ids.AnalysisTool);
         Check(slice.InteractionState.Tool == RealtimeTool.Inspect &&
               slice.InteractionState.Surface == RealtimeSurface.Drawer &&
               !slice.LatestPresentation.World.AnalysisVisible,
@@ -1666,7 +1731,7 @@ internal static class RealtimeR2Smoke
         slice.RequestShortcutForSmoke(RealtimeInputCommand.ToggleAnalysis);
         RealtimeSlicePresentation keyboardOn = slice.LatestPresentation;
         RealtimeBuildToolPresentation keyboardTool = keyboardOn.BuildShelf.Tools.Single(item =>
-            string.Equals(item.Id, "TOOL:ANALYSIS", StringComparison.Ordinal));
+            string.Equals(item.Id, RealtimeR2Ids.AnalysisTool, StringComparison.Ordinal));
         Check(slice.InteractionState.Tool == RealtimeTool.Analysis &&
               slice.InteractionState.Surface == RealtimeSurface.Drawer &&
               keyboardOn.World.AnalysisVisible && keyboardOn.BuildShelf.Visible &&
@@ -1701,7 +1766,7 @@ internal static class RealtimeR2Smoke
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
-                    $"LINE:{plan.LineClassId}:{plan.PoleClassId}")),
+                    RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId))),
             "comparison line tool", failures, coreCommandExpected: false);
         RequireIntent(slice.ApplyIntentForSmoke(plan.Intents[0]),
             "comparison line start", failures);
@@ -1735,17 +1800,17 @@ internal static class RealtimeR2Smoke
 
         RealtimeTimelineItemPresentation[] eventMarkers = presentation.Rail.Items
             .Where(item => item.Id.StartsWith(
-                "DRAFT_FORECAST:", StringComparison.Ordinal))
+                RealtimeR2Ids.ComparisonEventMarkerPrefix, StringComparison.Ordinal))
             .ToArray();
         RealtimeTimelineItemPresentation[] thermalMarkers = presentation.Rail.Items
             .Where(item => item.Id.StartsWith(
-                "DRAFT_THERMAL:", StringComparison.Ordinal))
+                RealtimeR2Ids.ComparisonThermalMarkerPrefix, StringComparison.Ordinal))
             .ToArray();
         RealtimeTimelineItemPresentation[] draftCompletionMarkers =
             presentation.Rail.Items
                 .Where(item => string.Equals(
                     item.Id,
-                    "DRAFT_CONSTRUCTION",
+                    RealtimeR2Ids.DraftConstructionMarker,
                     StringComparison.Ordinal))
                 .ToArray();
         int expectedThermalMarkers = coreComparison.Forecast.Events.Sum(item =>
@@ -1774,7 +1839,7 @@ internal static class RealtimeR2Smoke
             RealtimeTimelineItemPresentation marker = eventMarkers.Single(item =>
                 string.Equals(
                     item.Id,
-                    $"DRAFT_FORECAST:{forecast.EventId}",
+                    RealtimeR2Ids.ComparisonEventMarker(forecast.EventId),
                     StringComparison.Ordinal));
             Check(marker.StartMinute == forecast.StartMinute &&
                   marker.EndMinute == forecast.EndMinute &&
@@ -1782,7 +1847,7 @@ internal static class RealtimeR2Smoke
                       (forecast.Status == RealtimeForecastStatus.Active),
                 $"comparison event {forecast.EventId} diverged from Core timing/status",
                 failures);
-            RealtimeTimelineTarget target = RealtimeSlicePresenter.ResolveTimelineTarget(
+            RealtimeTimelineTarget target = RealtimeTimelineTargetResolver.Resolve(
                 slice.DisplayWorldForSmoke,
                 slice.CoreSnapshot,
                 presentation.ComparisonDraftForecast,
@@ -1797,11 +1862,12 @@ internal static class RealtimeR2Smoke
                  forecast.TemporalProjection.Transitions)
         {
             string expectedId =
-                $"DRAFT_THERMAL:{forecast.EventId}:{transition.Minute}:" +
-                $"{transition.Kind}:{transition.AssetId}";
+                RealtimeR2Ids.ComparisonThermalMarker(
+                    forecast.EventId,
+                    transition);
             RealtimeTimelineItemPresentation marker = thermalMarkers.Single(item =>
                 string.Equals(item.Id, expectedId, StringComparison.Ordinal));
-            RealtimeTimelineTarget target = RealtimeSlicePresenter.ResolveTimelineTarget(
+            RealtimeTimelineTarget target = RealtimeTimelineTargetResolver.Resolve(
                 slice.DisplayWorldForSmoke,
                 slice.CoreSnapshot,
                 presentation.ComparisonDraftForecast,
@@ -1840,9 +1906,9 @@ internal static class RealtimeR2Smoke
         Check(slice.CoreSnapshot.Construction.LineDraft is null &&
               !cancelled.ComparisonDraftForecast.Available &&
               cancelled.Rail.Items.All(item =>
-                  !item.Id.StartsWith("DRAFT_FORECAST:", StringComparison.Ordinal) &&
-                  !item.Id.StartsWith("DRAFT_THERMAL:", StringComparison.Ordinal) &&
-                  !string.Equals(item.Id, "DRAFT_CONSTRUCTION",
+                  !item.Id.StartsWith(RealtimeR2Ids.ComparisonEventMarkerPrefix, StringComparison.Ordinal) &&
+                  !item.Id.StartsWith(RealtimeR2Ids.ComparisonThermalMarkerPrefix, StringComparison.Ordinal) &&
+                  !string.Equals(item.Id, RealtimeR2Ids.DraftConstructionMarker,
                       StringComparison.Ordinal)) &&
               slice.InteractionState.SelectionId is null &&
               slice.InteractionState.TimelineSelectedItemId is null &&
@@ -1903,7 +1969,7 @@ internal static class RealtimeR2Smoke
         RequireIntent(constructionSlice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
-                    $"LINE:{plan.LineClassId}:{plan.PoleClassId}")),
+                    RealtimeR2Ids.LineTool(plan.LineClassId, plan.PoleClassId))),
             "rail line tool", failures, coreCommandExpected: false);
         RequireIntent(constructionSlice.ApplyIntentForSmoke(plan.Intents[0]),
             "rail line start", failures);
@@ -1914,7 +1980,7 @@ internal static class RealtimeR2Smoke
         RealtimeTimelineItemPresentation? draft = draftPresentation.Rail.Items
             .SingleOrDefault(item => string.Equals(
                 item.Id,
-                "DRAFT_CONSTRUCTION",
+                RealtimeR2Ids.DraftConstructionMarker,
                 StringComparison.Ordinal));
         RealtimeProjectQuote draftQuote = constructionSlice.PreviewLineOrderForSmoke();
         Check(draft is not null && draftQuote is
@@ -1950,7 +2016,7 @@ internal static class RealtimeR2Smoke
         RealtimeTimelineItemPresentation? active = activePresentation.Rail.Items
             .SingleOrDefault(item => string.Equals(
                 item.Id,
-                "ACTIVE_CONSTRUCTION",
+                RealtimeR2Ids.ActiveConstructionMarker,
                 StringComparison.Ordinal));
         Check(active is not null &&
               active.Kind == RealtimeTimelineItemKind.Construction &&
@@ -1961,7 +2027,7 @@ internal static class RealtimeR2Smoke
               active.Description.Contains("발주된 실제 공사", StringComparison.Ordinal) &&
               activePresentation.Rail.Items.All(item => !string.Equals(
                   item.Id,
-                  "DRAFT_CONSTRUCTION",
+                  RealtimeR2Ids.DraftConstructionMarker,
                   StringComparison.Ordinal)),
             "accepted order did not replace the outlined draft with the exact filled actual marker",
             failures);
@@ -1977,7 +2043,7 @@ internal static class RealtimeR2Smoke
         RealtimeTimelineItemPresentation[] completedConstruction =
             completedPresentation.Rail.Items
                 .Where(item => item.Id.StartsWith(
-                    "COMPLETED_CONSTRUCTION:",
+                    RealtimeR2Ids.CompletedConstructionMarkerPrefix,
                     StringComparison.Ordinal))
                 .ToArray();
         Check(completedPresentation.TransitionHistory.Any(item =>
@@ -1992,7 +2058,7 @@ internal static class RealtimeR2Smoke
                   "실제 완공 기록", StringComparison.Ordinal) &&
               completedPresentation.Rail.Items.All(item => !string.Equals(
                   item.Id,
-                  "ACTIVE_CONSTRUCTION",
+                  RealtimeR2Ids.ActiveConstructionMarker,
                   StringComparison.Ordinal)),
             "actual completion transition did not persist as one factual construction history marker",
             failures);
@@ -2066,7 +2132,7 @@ internal static class RealtimeR2Smoke
               scheduled.DurationMinutes == 60,
             "release FIRST_LIGHT route/source/prefix identity drifted",
             failures);
-        Check(briefing.Id == "CHAPTER_BRIEFING" &&
+        Check(briefing.Id == RealtimeR2Ids.ChapterBriefingModal &&
               briefing.Eyebrow == chapter.Briefing.Speaker &&
               briefing.Heading == chapter.Briefing.Title &&
               briefing.Body == chapter.Briefing.Body,
@@ -2094,7 +2160,7 @@ internal static class RealtimeR2Smoke
             failures);
 
         RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.CloseModal("CHAPTER_BRIEFING")),
+                RealtimeR2Intent.CloseModal(RealtimeR2Ids.ChapterBriefingModal)),
             "release briefing close", failures, coreCommandExpected: false);
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SetPlayerPaused(true)),
@@ -2269,7 +2335,7 @@ internal static class RealtimeR2Smoke
                 "Release FIRST_LIGHT completion did not present a result modal.");
         string[] completedConstructionIds = slice.LatestPresentation.Rail.Items
             .Where(item => item.Id.StartsWith(
-                "COMPLETED_CONSTRUCTION:", StringComparison.Ordinal))
+                RealtimeR2Ids.CompletedConstructionMarkerPrefix, StringComparison.Ordinal))
             .Select(item => item.Id)
             .ToArray();
         Check(completed.CampaignComplete && completed.Minute == 1320 &&
@@ -2288,7 +2354,7 @@ internal static class RealtimeR2Smoke
               completedConstructionIds.Length == 3,
             "release FIRST_LIGHT did not complete safely through exact event/chapter/campaign transitions",
             failures);
-        Check(result.Id == "CAMPAIGN_RESULT" &&
+        Check(result.Id == RealtimeR2Ids.CampaignResultModal &&
               result.Eyebrow == standardResult.Speaker &&
               result.Heading == standardResult.Title &&
               result.Body == standardResult.Body,
@@ -2350,7 +2416,7 @@ internal static class RealtimeR2Smoke
                   StringComparison.Ordinal) &&
               !eventOutcome.SafetySatisfied &&
               eventOutcome.SafetyUnservedMinutes > 0 &&
-              result.Id == "CAMPAIGN_RESULT" &&
+              result.Id == RealtimeR2Ids.CampaignResultModal &&
               result.Eyebrow == "운영 결과" &&
               result.Heading == "캠페인 운영 완료" &&
               result.Body.Contains("안전 의무 0/1 충족", StringComparison.Ordinal) &&
@@ -2773,7 +2839,7 @@ internal static class RealtimeR2Smoke
             AdvanceReleasePrefixToNorthBankPlanning(slice, failures);
 
         const string markerId =
-            "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE";
+            RealtimeR2Ids.PromiseDecisionMarkerPrefix + "NORTH_BANK_MOVE_IN_PROMISE";
         RealtimeTimelineItemPresentation deadline = slice.LatestPresentation.Rail.Items
             .Single(item => string.Equals(item.Id, markerId, StringComparison.Ordinal));
         Check(deadline.Kind == RealtimeTimelineItemKind.Decision &&
@@ -2815,9 +2881,9 @@ internal static class RealtimeR2Smoke
               {
                   SubjectId: markerId,
                   Visible: true,
-                  PrimaryAction.Id: RealtimeSlicePresenter.PromiseKeepActionId,
+                  PrimaryAction.Id: RealtimeR2Ids.PromiseKeepAction,
                   PrimaryAction.Enabled: true,
-                  SecondaryAction.Id: RealtimeSlicePresenter.PromiseDeferActionId,
+                  SecondaryAction.Id: RealtimeR2Ids.PromiseDeferAction,
                   SecondaryAction.Enabled: true,
               } &&
               context.Sections.Any(item => item.Body.Contains(
@@ -2828,7 +2894,7 @@ internal static class RealtimeR2Smoke
             failures);
 
         int beforeDeferCommands = slice.CoreSnapshot.CommandCount;
-        slice.RequestActionForSmoke(RealtimeSlicePresenter.PromiseDeferActionId);
+        slice.RequestActionForSmoke(RealtimeR2Ids.PromiseDeferAction);
         Check(slice.CoreSnapshot.PromiseDecision == CommercialPromiseDecision.Defer &&
               slice.CoreSnapshot.Minute == beforeSelectionMinute &&
               slice.CoreSnapshot.CommandCount == beforeDeferCommands + 1 &&
@@ -2844,7 +2910,7 @@ internal static class RealtimeR2Smoke
             failures);
 
         int beforeKeepCommands = slice.CoreSnapshot.CommandCount;
-        slice.RequestActionForSmoke(RealtimeSlicePresenter.PromiseKeepActionId);
+        slice.RequestActionForSmoke(RealtimeR2Ids.PromiseKeepAction);
         Check(slice.CoreSnapshot.PromiseDecision == CommercialPromiseDecision.Keep &&
               slice.CoreSnapshot.Minute == beforeSelectionMinute &&
               slice.CoreSnapshot.CommandCount == beforeKeepCommands + 1 &&
@@ -2930,7 +2996,7 @@ internal static class RealtimeR2Smoke
         (RealtimeSliceData deferredData, string deferredRoot) =
             AdvanceReleasePrefixToNorthBankPlanning(deferredSlice, failures);
         SelectPromiseDeadline(deferredSlice, failures, "explicit-defer");
-        deferredSlice.RequestActionForSmoke(RealtimeSlicePresenter.PromiseDeferActionId);
+        deferredSlice.RequestActionForSmoke(RealtimeR2Ids.PromiseDeferAction);
         _ = BuildNorthBankService(
             deferredSlice,
             deferredRoot,
@@ -2995,7 +3061,8 @@ internal static class RealtimeR2Smoke
               locked.Sections.Any(item => item.Body.Contains(
                   "자동 Defer", StringComparison.Ordinal)) &&
               defaultedSlice.LatestPresentation.Rail.Items.Single(item =>
-                  item.Id == "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE") is
+                  item.Id == RealtimeR2Ids.PromiseDecisionMarker(
+                      "NORTH_BANK_MOVE_IN_PROMISE")) is
               {
                   Visibility: RealtimeTimelineVisibility.Completed,
                   IsActionable: false,
@@ -3042,7 +3109,7 @@ internal static class RealtimeR2Smoke
             failures,
             "defer-safety-failure");
         deferSafetyFailureSlice.RequestActionForSmoke(
-            RealtimeSlicePresenter.PromiseDeferActionId);
+            RealtimeR2Ids.PromiseDeferAction);
         (RealtimeChapterOutcome deferSafetyFailureOutcome,
             RealtimeModalPresentation deferSafetyFailureResult) =
             CompleteNorthBankChapter(
@@ -3107,7 +3174,7 @@ internal static class RealtimeR2Smoke
             AdvanceReleasePrefixToNorthBankPlanning(promiseFailureSlice, failures);
         SelectPromiseDeadline(promiseFailureSlice, failures, "promise-failure");
         promiseFailureSlice.RequestActionForSmoke(
-            RealtimeSlicePresenter.PromiseKeepActionId);
+            RealtimeR2Ids.PromiseKeepAction);
         _ = BuildNorthBankService(
             promiseFailureSlice,
             promiseFailureRoot,
@@ -3144,7 +3211,8 @@ internal static class RealtimeR2Smoke
             "completed-promise-failure");
         RealtimeTimelineItemPresentation failedDeadline =
             promiseFailureSlice.LatestPresentation.Rail.Items.Single(item =>
-                item.Id == "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE");
+                item.Id == RealtimeR2Ids.PromiseDecisionMarker(
+                    "NORTH_BANK_MOVE_IN_PROMISE"));
         RealtimeContextDockPresentation failedDeadlineContext =
             promiseFailureSlice.LatestPresentation.Context;
         Check(recordedPromiseUnservedMinutes > 0 &&
@@ -3399,7 +3467,7 @@ internal static class RealtimeR2Smoke
               planningModal.Eyebrow == planningCard.Speaker &&
               planningModal.Heading == planningCard.Title &&
               planningModal.Body == planningCard.Body &&
-              planningModal.PrimaryAction.Id == "DECISION_WINDOW_CONTINUE",
+              planningModal.PrimaryAction.Id == RealtimeR2Ids.DecisionWindowContinueAction,
             "North planning-window authored FIFO drifted",
             failures);
         Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
@@ -3463,7 +3531,7 @@ internal static class RealtimeR2Smoke
         string label)
     {
         const string markerId =
-            "PROMISE_DEADLINE:NORTH_BANK_MOVE_IN_PROMISE";
+            RealtimeR2Ids.PromiseDecisionMarkerPrefix + "NORTH_BANK_MOVE_IN_PROMISE";
         RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.SetTimelineMarker(
                 markerId,
                 markerId,
@@ -3525,7 +3593,7 @@ internal static class RealtimeR2Smoke
         RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
             throw new InvalidOperationException("North Bank result modal is absent.");
         Check(slice.CoreSnapshot.CampaignComplete &&
-              result.Id == "TUTORIAL_RESULT:NORTH_BANK_PROMISE",
+              result.Id == RealtimeR2Ids.TutorialResultModal("NORTH_BANK_PROMISE"),
             "North Bank did not end in the cumulative chapter result",
             failures);
         return (outcome, result);
@@ -3646,7 +3714,7 @@ internal static class RealtimeR2Smoke
                   FrozenForChapter: true,
                   Satisfied: false,
               } &&
-              result.Id == "TUTORIAL_RESULT:SECOND_HEART" &&
+              result.Id == RealtimeR2Ids.TutorialResultModal("SECOND_HEART") &&
               result.Eyebrow == "계통운영 기록" &&
               result.Heading.Contains("목표 미달", StringComparison.Ordinal) &&
               result.Body.Contains("1/2", StringComparison.Ordinal) &&
@@ -3737,7 +3805,7 @@ internal static class RealtimeR2Smoke
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
-                    $"LINE:{lineClassId}:{poleClassId}")),
+                    RealtimeR2Ids.LineTool(lineClassId, poleClassId))),
             $"{label} tool", failures, coreCommandExpected: false);
         RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.StartLineDraft(
                 startNodeId,
@@ -3810,7 +3878,7 @@ internal static class RealtimeR2Smoke
         RealtimeModalPresentation? modal = slice.LatestPresentation.Modal;
         RealtimeChapterStoryModalRequest request = string.Equals(
                 modal?.Id,
-                "CHAPTER_BRIEFING",
+                RealtimeR2Ids.ChapterBriefingModal,
                 StringComparison.Ordinal)
             ? RealtimeChapterStoryFlow.InitialBriefing(chapterId)
             : slice.ActiveChapterStoryModalForSmoke ??
@@ -3865,7 +3933,7 @@ internal static class RealtimeR2Smoke
         string phase)
     {
         string[] unknown = presentation.Rail.Items
-            .Where(item => RealtimeSlicePresenter.ResolveTimelineTarget(
+            .Where(item => RealtimeTimelineTargetResolver.Resolve(
                     slice.DisplayWorldForSmoke,
                     presentation.CoreSnapshot,
                     presentation.BaseForecast,

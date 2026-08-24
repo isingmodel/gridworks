@@ -394,7 +394,7 @@ internal sealed partial class RealtimeSliceMain : Control
                 RouteTimelineNavigation(RealtimeTimelineNavigation.NextEvent);
                 break;
             case RealtimeInputCommand.SelectInspectTool:
-                Session.HandleBuildTool("TOOL:INSPECT");
+                Session.HandleBuildTool(RealtimeR2Ids.InspectTool);
                 break;
             case RealtimeInputCommand.SelectFirstNodeTool:
                 Session.SelectBuildToolFamily(RealtimeBuildToolFamily.Node);

@@ -1,7 +1,8 @@
 # Gridworks 제3자 고지
 
-Gridworks macOS 빌드는 Godot Engine 4.7.1 Mono와 .NET 8.0.29 runtime을 포함한다.
-각 구성요소의 정확한 저작권·라이선스 원문은 같은 배포물의 `licenses/` 폴더에 버전별 파일로 동봉한다.
+동결된 V2 내부 macOS 빌드 경로는 Godot Engine 4.7.1 Mono와 .NET 8.0.29 runtime을 포함하도록
+구성돼 있다. 각 구성요소의 정확한 저작권·라이선스 원문은 그 내부 배포물의 `licenses/` 폴더에 버전별
+파일로 동봉한다. current R2 설치 패키지는 아직 없다.
 
 ## Godot Engine 4.7.1
 

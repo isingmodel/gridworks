@@ -14,7 +14,8 @@ Current checks:
 
 ```sh
 ruby verify_contract.rb
-dotnet run --project ../../tools/Gridworks.Checks/Gridworks.Checks.csproj -c Release
+dotnet run --project ../../tools/Gridworks.Checks/Gridworks.Checks.csproj -c Release -- \
+  ../../data/scope-0b-v1.json
 ```
 
 `private/` may contain the only local copies of app and engine logs. Do not delete it recursively.

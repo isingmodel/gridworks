@@ -1653,6 +1653,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         PackedScene scene = GD.Load<PackedScene>(
             "res://realtime/r2/RealtimeSliceMain.tscn");
         RealtimeSliceMain slice = scene.Instantiate<RealtimeSliceMain>();
+        slice.UseTechnicalFixtureLaunchForSmoke();
         viewport.AddChild(slice);
         try
         {
@@ -1776,6 +1777,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         PackedScene scene = GD.Load<PackedScene>(
             "res://realtime/r2/RealtimeSliceMain.tscn");
         RealtimeSliceMain slice = scene.Instantiate<RealtimeSliceMain>();
+        slice.UseTechnicalFixtureLaunchForSmoke();
         viewport.AddChild(slice);
         var actualInputRequests = new List<RealtimeInputRequest>();
         RealtimeUiRoot? observedUi = null;
@@ -4029,6 +4031,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         PackedScene scene = GD.Load<PackedScene>(
             "res://realtime/r2/RealtimeSliceMain.tscn");
         RealtimeSliceMain slice = scene.Instantiate<RealtimeSliceMain>();
+        slice.UseTechnicalFixtureLaunchForSmoke();
         viewport.AddChild(slice);
         try
         {
@@ -4427,6 +4430,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         PackedScene scene = GD.Load<PackedScene>(
             "res://realtime/r2/RealtimeSliceMain.tscn");
         RealtimeSliceMain slice = scene.Instantiate<RealtimeSliceMain>();
+        slice.UseTechnicalFixtureLaunchForSmoke();
         viewport.AddChild(slice);
         try
         {
@@ -5111,6 +5115,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             PackedScene scene = GD.Load<PackedScene>(
                 "res://realtime/r2/RealtimeSliceMain.tscn");
             slice = scene.Instantiate<RealtimeSliceMain>();
+            slice.UseTechnicalFixtureLaunchForSmoke();
             AddChild(slice);
             await SettleNativeWindow();
             RealtimeUiRoot ui = slice.UiForSmoke;

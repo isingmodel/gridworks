@@ -59,6 +59,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             }
             else
             {
+                ValidateExplicitNativeRoutes();
                 await ValidateProductTitle(viewport, slice);
                 GD.Print("REALTIME_PRODUCT_ENTRY_TITLE_PASS");
             }
@@ -160,6 +161,33 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         Require(!ui.ProductTitleForSmoke.Visible &&
                 ui.HudSurfaceVisibleForSmoke && slice.WorldVisibleForSmoke,
             "Explicit technical fixture did not bypass the product title.");
+    }
+
+    private static void ValidateExplicitNativeRoutes()
+    {
+        RealtimeNativeRoute[] expected =
+        [
+            RealtimeNativeRouteCatalog.FirstLight,
+            RealtimeNativeRouteCatalog.TutorialThroughSecondSource,
+            RealtimeNativeRouteCatalog.ThroughNativeCoverage,
+        ];
+        Require(RealtimeNativeRouteCatalog.All.Count == expected.Length,
+            "Native route catalog count drifted.");
+        foreach (RealtimeNativeRoute route in expected)
+        {
+            RealtimeLaunchSelection launch = RealtimeSliceMain.ParseLaunchArguments(
+                [route.LaunchArgument]);
+            Require(launch.Kind == RealtimeLaunchKind.NativeRelease &&
+                    ReferenceEquals(launch.NativeRoute, route),
+                $"Explicit native argument was not preserved: {route.LaunchArgument}");
+            RealtimeSliceData data = RealtimeSliceResources.LoadNativeRelease(
+                typeof(RealtimeSliceMain).Assembly,
+                route);
+            Require(ReferenceEquals(data.NativeRoute, route) &&
+                    data.Campaign.Chapters.Count == route.SelectedChapterCount &&
+                    data.Campaign.Chapters[^1].Content.ChapterId == route.EndChapterId,
+                $"Explicit native route did not load its exact prefix: {route.LaunchArgument}");
+        }
     }
 
     private static void PushPrimary(SubViewport viewport, Vector2 point)

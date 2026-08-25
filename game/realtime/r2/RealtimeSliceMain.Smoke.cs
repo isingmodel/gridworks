@@ -90,6 +90,7 @@ internal sealed partial class RealtimeSliceMain
     private RealtimeSmokeBoundaryFacts? _smokeBoundaryFacts;
     private RealtimeInputRequest? _lastInputRequest;
     private bool _suppressFormativeDirectPlayOutputForSmoke;
+    private RealtimeLaunchSelection? _launchOverrideForSmoke;
 
     /// <summary>
     /// Owns an off-tree smoke host. GodotObject.Dispose only releases the
@@ -306,6 +307,16 @@ internal sealed partial class RealtimeSliceMain
     {
         _launch = RealtimeLaunchSelection.TechnicalFixture;
         Bootstrap();
+    }
+
+    internal void UseTechnicalFixtureLaunchForSmoke()
+    {
+        if (IsInsideTree())
+        {
+            throw new InvalidOperationException(
+                "A smoke launch override must be selected before entering the tree.");
+        }
+        _launchOverrideForSmoke = RealtimeLaunchSelection.TechnicalFixture;
     }
 
     internal void BootstrapNativeReleaseForSmoke(RealtimeNativeRoute route)

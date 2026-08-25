@@ -37,7 +37,12 @@ internal sealed partial class RealtimeSliceMain : Control
 
     public override void _Ready()
     {
+#if DEBUG
+        _launch = _launchOverrideForSmoke ??
+            ParseLaunchArguments(OS.GetCmdlineUserArgs());
+#else
         _launch = ParseLaunchArguments(OS.GetCmdlineUserArgs());
+#endif
         _worldControl = GetNode<Control>("%WorldView");
         _worldView = _worldControl as IRealtimeWorldView ??
             throw new InvalidOperationException(
@@ -184,7 +189,7 @@ internal sealed partial class RealtimeSliceMain : Control
         _worldControl!.Visible = false;
         _ui!.ShowProductTitle(new RealtimeProductTitlePresentation(
             "새로운 청류시 운영을 시작할 준비가 됐습니다.",
-            "R2 저장과 이어하기는 아직 준비 중입니다. 새 게임을 시작하세요."));
+            "저장된 진행이 없어 이어하기를 사용할 수 없습니다. 새 게임을 시작하세요."));
     }
 
     private void StartNewGame()

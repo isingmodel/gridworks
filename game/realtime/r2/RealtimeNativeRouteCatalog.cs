@@ -71,21 +71,9 @@ internal static class RealtimeNativeRouteCatalog
         return route;
     }
 
-    internal static RealtimeNativeRoute? Parse(string[] arguments)
+    internal static RealtimeNativeRoute Parse(string[] arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);
-        if (arguments.Length == 0)
-        {
-            return null;
-        }
-#if DEBUG
-        if (arguments.Length == 1 &&
-            arguments[0].StartsWith("--checkpoint=", StringComparison.Ordinal) &&
-            RealtimeSliceCheckpointIds.IsKnown(arguments[0]["--checkpoint=".Length..]))
-        {
-            return null;
-        }
-#endif
         if (arguments.Length != 1)
         {
             throw new ArgumentException(

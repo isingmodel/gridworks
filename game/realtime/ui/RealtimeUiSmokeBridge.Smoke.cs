@@ -257,7 +257,9 @@ internal sealed partial class RealtimeUiRoot
     internal RealtimeBuildShelf BuildShelfForSmoke => _buildShelf;
     internal RealtimeActionDock ActionDockForSmoke => _actionDock;
     internal RealtimeModalHost ModalHostForSmoke => _modalHost;
+    internal RealtimeProductTitle ProductTitleForSmoke => _productTitle;
     internal RealtimeInputRouter InputRouterForSmoke => _inputRouter;
+    internal bool HudSurfaceVisibleForSmoke => _hudSurface.Visible;
     internal Theme ThemeForSmoke => _hudSurface.Theme ??
         throw new InvalidOperationException("Realtime HUD surface has no assigned theme.");
     internal Control? FocusOwnerForSmoke => GetViewport().GuiGetFocusOwner();

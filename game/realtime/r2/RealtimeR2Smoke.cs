@@ -2151,16 +2151,20 @@ internal static class RealtimeR2Smoke
             "release FIRST_LIGHT native briefing did not reuse the exact authored story card",
             failures);
         Check(
-            RealtimeSliceMain.ParseSourceRoute(
-                ["--release-chapter=FIRST_LIGHT"]) ==
+            RealtimeSliceMain.ParseLaunchArguments(
+                ["--release-chapter=FIRST_LIGHT"]).NativeRoute ==
                     RealtimeNativeRouteCatalog.FirstLight &&
-            RealtimeSliceMain.ParseSourceRoute(Array.Empty<string>()) is null,
+            RealtimeSliceMain.ParseLaunchArguments(Array.Empty<string>()).Kind ==
+                RealtimeLaunchKind.ProductTitle &&
+            RealtimeSliceMain.ParseLaunchArguments(
+                [RealtimeLaunchCatalog.TechnicalFixtureArgument]).Kind ==
+                RealtimeLaunchKind.TechnicalFixture,
             "release FIRST_LIGHT launch route parsing drifted",
             failures);
         bool unknownRouteRejected = false;
         try
         {
-            _ = RealtimeSliceMain.ParseSourceRoute(
+            _ = RealtimeSliceMain.ParseLaunchArguments(
                 ["--release-chapter=SECOND_HEART"]);
         }
         catch (ArgumentException)
@@ -2470,16 +2474,18 @@ internal static class RealtimeR2Smoke
             failures);
         Check(data.NativeRoute ==
                   RealtimeNativeRouteCatalog.TutorialThroughSecondSource &&
-              RealtimeSliceMain.ParseSourceRoute(
-                  ["--release-through=SECOND_SOURCE"]) ==
+              RealtimeSliceMain.ParseLaunchArguments(
+                  ["--release-through=SECOND_SOURCE"]).NativeRoute ==
                   RealtimeNativeRouteCatalog.TutorialThroughSecondSource &&
-              RealtimeSliceMain.ParseSourceRoute(
-                  ["--release-chapter=FIRST_LIGHT"]) ==
+              RealtimeSliceMain.ParseLaunchArguments(
+                  ["--release-chapter=FIRST_LIGHT"]).NativeRoute ==
                   RealtimeNativeRouteCatalog.FirstLight &&
-              RealtimeSliceMain.ParseSourceRoute(
-                  ["--checkpoint=A1_NORMAL_READY"]) is null &&
-              RealtimeSliceMain.ParseSourceRoute(
-                  ["--checkpoint=A1_CONSTRUCTION_DUE_1M"]) is null,
+              RealtimeSliceMain.ParseLaunchArguments(
+                  ["--checkpoint=A1_NORMAL_READY"]).Kind ==
+                  RealtimeLaunchKind.TechnicalFixture &&
+              RealtimeSliceMain.ParseLaunchArguments(
+                  ["--checkpoint=A1_CONSTRUCTION_DUE_1M"]).Kind ==
+                  RealtimeLaunchKind.TechnicalFixture,
             "tutorial exact launch route or FIRST_LIGHT preservation drifted",
             failures);
         Check(RealtimeNativeRouteCatalog.NativeThroughChapterId ==
@@ -2536,7 +2542,7 @@ internal static class RealtimeR2Smoke
             bool rejected = false;
             try
             {
-                _ = RealtimeSliceMain.ParseSourceRoute(rejectedRoute);
+                _ = RealtimeSliceMain.ParseLaunchArguments(rejectedRoute);
             }
             catch (ArgumentException)
             {
@@ -3280,15 +3286,15 @@ internal static class RealtimeR2Smoke
                       },
                       StringComparer.Ordinal) &&
               data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 7 &&
-              RealtimeSliceMain.ParseSourceRoute(
-                  ["--release-through=NORTH_BANK_PROMISE"]) ==
+              RealtimeSliceMain.ParseLaunchArguments(
+                  ["--release-through=NORTH_BANK_PROMISE"]).NativeRoute ==
                   RealtimeNativeRouteCatalog.ThroughNativeCoverage,
             "North Bank exact route/prefix identity drifted",
             failures);
         bool isolatedRejected = false;
         try
         {
-            _ = RealtimeSliceMain.ParseSourceRoute(
+            _ = RealtimeSliceMain.ParseLaunchArguments(
                 ["--release-chapter=NORTH_BANK_PROMISE"]);
         }
         catch (ArgumentException)

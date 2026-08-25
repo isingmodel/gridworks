@@ -13,6 +13,7 @@ internal sealed partial class RealtimeUiRoot : Node
     private RealtimeBuildShelf _buildShelf = null!;
     private RealtimeActionDock _actionDock = null!;
     private RealtimeModalHost _modalHost = null!;
+    private RealtimeProductTitle _productTitle = null!;
     private RealtimeInputRouter _inputRouter = null!;
     private RealtimeActionDockPresentation? _actionDockPresentation;
     private RealtimeBuildShelfPresentation? _buildShelfPresentation;
@@ -22,6 +23,7 @@ internal sealed partial class RealtimeUiRoot : Node
     private bool _typographyQueued;
     private int _surfaceStabilizationPassesRemaining;
     private long? _modalInputToken;
+    private long? _titleInputToken;
     private RealtimeLayoutProfile _layoutProfile;
     private readonly Dictionary<ulong, int> _baseFontSizes = [];
     private int _uiScalePercent = 100;
@@ -67,6 +69,7 @@ internal sealed partial class RealtimeUiRoot : Node
     public event Action<string>? ModalDismissRequested;
     public event Action<RealtimeInputRequest>? InputRequested;
     public event Action<Rect2>? MapInteractionRectChanged;
+    public event Action? NewGameRequested;
 
     public override void _Ready()
     {
@@ -78,6 +81,7 @@ internal sealed partial class RealtimeUiRoot : Node
         _buildShelf = GetNode<RealtimeBuildShelf>("%BuildShelf");
         _actionDock = GetNode<RealtimeActionDock>("%ActionDock");
         _modalHost = GetNode<RealtimeModalHost>("%ModalHost");
+        _productTitle = GetNode<RealtimeProductTitle>("%ProductTitle");
         _inputRouter = GetNode<RealtimeInputRouter>("%InputRouter");
 
         _topHud.SpeedRequested += speed => SpeedRequested?.Invoke(speed);
@@ -98,6 +102,7 @@ internal sealed partial class RealtimeUiRoot : Node
             ModalActionRequested?.Invoke(modalId, actionId);
         _modalHost.DismissRequested += id => ModalDismissRequested?.Invoke(id);
         _modalHost.DepthChanged += OnModalDepthChanged;
+        _productTitle.NewGameRequested += () => NewGameRequested?.Invoke();
         _inputRouter.InputRequested += RouteShortcut;
         GetViewport().SizeChanged += ApplyResponsiveLayout;
         CallDeferred(nameof(ApplyResponsiveLayout));
@@ -170,6 +175,32 @@ internal sealed partial class RealtimeUiRoot : Node
 
     public bool PopModal(bool dismissed = false) => _modalHost.PopModal(dismissed);
 
+    public void ShowProductTitle(RealtimeProductTitlePresentation presentation)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+        _hudSurface.Visible = false;
+        if (!_titleInputToken.HasValue)
+        {
+            _inputRouter.CancelPanCapture();
+            _titleInputToken = _inputRouter.PushContext(
+                "product_title",
+                RealtimeInputPriority.BlockingModal);
+        }
+        _productTitle.Present(presentation);
+        ScheduleTypography();
+    }
+
+    public void HideProductTitle()
+    {
+        _productTitle.Dismiss();
+        if (_titleInputToken.HasValue)
+        {
+            _inputRouter.PopContext(_titleInputToken.Value);
+            _titleInputToken = null;
+        }
+        _hudSurface.Visible = true;
+    }
+
     /// <summary>
     /// Routes a timeline shortcut through the rail's single navigation owner
     /// so controller selection and semantic marker focus advance together.
@@ -199,6 +230,7 @@ internal sealed partial class RealtimeUiRoot : Node
         _buildShelf.ApplyLayout(_layoutProfile);
         _actionDock.ApplyLayout(_layoutProfile);
         _modalHost.ApplyLayout(_layoutProfile);
+        _productTitle.ApplyLayout(_layoutProfile);
         // Font, container minimum, and native window-mode notifications do
         // not settle in one Godot layout turn. Reassert the single layout
         // authority over a bounded sequence of deferred turns so a panel that
@@ -303,6 +335,10 @@ internal sealed partial class RealtimeUiRoot : Node
 
     private void RouteShortcut(RealtimeInputRequest request)
     {
+        if (_productTitle.Visible)
+        {
+            return;
+        }
         if (_modalHost.Depth > 0)
         {
             if (request.Command == RealtimeInputCommand.CancelOrBack)
@@ -334,6 +370,7 @@ internal sealed partial class RealtimeUiRoot : Node
         _typographyQueued = false;
         ApplyTypographyRecursive(_hudSurface);
         ApplyTypographyRecursive(_modalHost);
+        ApplyTypographyRecursive(_productTitle);
         // Font changes invalidate combined minimum sizes. Reapply the single
         // surface authority on the following idle turn so a 200%→100%
         // round-trip cannot retain an enlarged control rectangle.

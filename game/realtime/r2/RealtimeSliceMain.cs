@@ -18,6 +18,7 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private readonly Dictionary<RealtimePointerOwner, int> _clickCounters = [];
     private RealtimeSession? _session;
+    private Control? _worldControl;
     private IRealtimeWorldView? _worldView;
     private RealtimeUiRoot? _ui;
     private string? _presentedModalId;
@@ -25,7 +26,9 @@ internal sealed partial class RealtimeSliceMain : Control
     private Window.ContentScaleModeEnum _priorContentScaleMode;
     private Window.ContentScaleAspectEnum _priorContentScaleAspect;
     private bool _logicalCanvasApplied;
-    private RealtimeNativeRoute? _nativeRoute;
+    private bool _gameplayNodesWired;
+    private RealtimeLaunchSelection _launch =
+        RealtimeLaunchSelection.TechnicalFixture;
 
     private RealtimeSession Session => RequireSession();
 
@@ -34,15 +37,25 @@ internal sealed partial class RealtimeSliceMain : Control
 
     public override void _Ready()
     {
-        _nativeRoute = ParseSourceRoute(OS.GetCmdlineUserArgs());
-        Control worldNode = GetNode<Control>("%WorldView");
-        _worldView = worldNode as IRealtimeWorldView ??
+        _launch = ParseLaunchArguments(OS.GetCmdlineUserArgs());
+        _worldControl = GetNode<Control>("%WorldView");
+        _worldView = _worldControl as IRealtimeWorldView ??
             throw new InvalidOperationException(
                 "The WorldView scene node must implement IRealtimeWorldView.");
         _ui = GetNode<RealtimeUiRoot>("%UiRoot");
-        WireNodes();
+        _ui.NewGameRequested += StartNewGame;
         ApplyLogicalCanvas();
-        Bootstrap();
+        GetWindow().Title = "Gridworks";
+        if (_launch.Kind == RealtimeLaunchKind.ProductTitle)
+        {
+            PresentProductTitle();
+        }
+        else
+        {
+            WireGameplayNodes();
+            ShowGameplaySurface();
+            Bootstrap();
+        }
         SetProcess(true);
     }
 
@@ -73,10 +86,18 @@ internal sealed partial class RealtimeSliceMain : Control
     private void Bootstrap()
     {
         Assembly assembly = typeof(RealtimeSliceMain).Assembly;
-        RealtimeSliceData data = _nativeRoute is null
-            ? RealtimeSliceResources.LoadTechnicalFixture(assembly)
-            : RealtimeSliceResources.LoadNativeRelease(assembly, _nativeRoute);
-        if (!ReferenceEquals(data.NativeRoute, _nativeRoute))
+        RealtimeSliceData data = _launch.Kind switch
+        {
+            RealtimeLaunchKind.TechnicalFixture =>
+                RealtimeSliceResources.LoadTechnicalFixture(assembly),
+            RealtimeLaunchKind.NativeRelease when _launch.NativeRoute is not null =>
+                RealtimeSliceResources.LoadNativeRelease(
+                    assembly,
+                    _launch.NativeRoute),
+            _ => throw new InvalidOperationException(
+                "Product title must choose a run before session bootstrap."),
+        };
+        if (!ReferenceEquals(data.NativeRoute, _launch.NativeRoute))
         {
             throw new InvalidOperationException(
                 "Realtime slice resource route does not match its launch route.");
@@ -122,10 +143,15 @@ internal sealed partial class RealtimeSliceMain : Control
         _session.PresentationPublished -= PublishPresentation;
         _session.PointerPresentationPublished -= PublishPointerPresentation;
         _session.EvidenceRecorded -= RecordEvidence;
+        _session = null;
     }
 
-    private void WireNodes()
+    private void WireGameplayNodes()
     {
+        if (_gameplayNodesWired)
+        {
+            return;
+        }
         _worldView!.PrimaryRequested += HandleMapPrimary;
         _worldView.PointerMoved += HandleMapPointerMoved;
         _worldView.CancelRequested += HandleUndoDraftStep;
@@ -149,6 +175,35 @@ internal sealed partial class RealtimeSliceMain : Control
         _ui.ModalDismissRequested += HandleModalDismiss;
         _ui.InputRequested += HandleInputRequest;
         _ui.MapInteractionRectChanged += ApplyMapInteractionRect;
+        _gameplayNodesWired = true;
+    }
+
+    private void PresentProductTitle()
+    {
+        DetachSession();
+        _worldControl!.Visible = false;
+        _ui!.ShowProductTitle(new RealtimeProductTitlePresentation(
+            "새로운 청류시 운영을 시작할 준비가 됐습니다.",
+            "R2 저장과 이어하기는 아직 준비 중입니다. 새 게임을 시작하세요."));
+    }
+
+    private void StartNewGame()
+    {
+        if (_launch.Kind != RealtimeLaunchKind.ProductTitle || _session is not null)
+        {
+            throw new InvalidOperationException(
+                "New Game is available only from the product title.");
+        }
+        _launch = RealtimeLaunchSelection.Native(RealtimeNativeRouteCatalog.FirstLight);
+        WireGameplayNodes();
+        ShowGameplaySurface();
+        Bootstrap();
+    }
+
+    private void ShowGameplaySurface()
+    {
+        _ui!.HideProductTitle();
+        _worldControl!.Visible = true;
     }
 
     private void PublishPresentation(RealtimeSlicePresentation presentation)
@@ -430,8 +485,8 @@ internal sealed partial class RealtimeSliceMain : Control
         _logicalCanvasApplied = true;
     }
 
-    internal static RealtimeNativeRoute? ParseSourceRoute(string[] arguments) =>
-        RealtimeNativeRouteCatalog.Parse(arguments);
+    internal static RealtimeLaunchSelection ParseLaunchArguments(string[] arguments) =>
+        RealtimeLaunchCatalog.Parse(arguments);
 
     private void EnsureBootstrapped()
     {

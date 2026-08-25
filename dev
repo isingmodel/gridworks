@@ -34,6 +34,14 @@ run_checkpoint() {
         --checkpoint="$checkpoint_id"
 }
 
+run_product_entry_smoke() {
+    "$godot_bin" \
+        --headless \
+        --path "$repository_dir/game" \
+        --scene res://realtime/r2/RealtimeProductEntrySmokeRunner.tscn \
+        "$@"
+}
+
 command_name=${1:-help}
 if (( $# > 0 )); then
     shift
@@ -55,6 +63,8 @@ case $command_name in
         python3 "$repository_dir/tools/commercial-ux/test-realtime-text-plan-tools.py"
         python3 "$repository_dir/tools/commercial-ux/test-g3-a1-asset-allowlist.py"
         python3 "$repository_dir/tools/commercial-ux/test-realtime-default-entry.py"
+        run_product_entry_smoke
+        run_product_entry_smoke -- --technical-fixture
         run_checkpoint A1_NORMAL_READY
         run_checkpoint A1_CONSTRUCTION_DUE_1M
         ;;
@@ -67,7 +77,10 @@ case $command_name in
         case $play_mode in
             fixture)
                 [[ $# -eq 0 ]] || fail "play fixture takes no additional arguments."
-                "$godot_bin" --path "$repository_dir/game"
+                "$godot_bin" \
+                    --path "$repository_dir/game" \
+                    -- \
+                    --technical-fixture
                 ;;
             chapter)
                 [[ $# -eq 1 ]] || fail "play chapter requires exactly one chapter ID."

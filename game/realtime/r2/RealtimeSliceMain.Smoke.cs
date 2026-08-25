@@ -302,12 +302,16 @@ internal sealed partial class RealtimeSliceMain
 
     internal bool AutonomousClockEnabledForSmoke => IsProcessing();
 
-    internal void BootstrapForSmoke() => Bootstrap();
+    internal void BootstrapForSmoke()
+    {
+        _launch = RealtimeLaunchSelection.TechnicalFixture;
+        Bootstrap();
+    }
 
     internal void BootstrapNativeReleaseForSmoke(RealtimeNativeRoute route)
     {
         ArgumentNullException.ThrowIfNull(route);
-        _nativeRoute = route;
+        _launch = RealtimeLaunchSelection.Native(route);
         Bootstrap();
     }
 
@@ -485,6 +489,9 @@ internal sealed partial class RealtimeSliceMain
         _worldView?.RestoreCamera(camera);
 
     internal RealtimeCampaignSnapshot CoreSnapshot => Session.CoreSnapshot;
+    internal bool HasSessionForSmoke => _session is not null;
+    internal RealtimeLaunchSelection LaunchForSmoke => _launch;
+    internal bool WorldVisibleForSmoke => _worldControl?.Visible == true;
     internal CommercialWorldDefinition DisplayWorldForSmoke => Session.Data.BaseWorld;
     internal RealtimeWorldDefinition RealtimeWorldForSmoke => Session.Data.World;
     internal RealtimeSliceData SliceDataForSmoke => Session.Data;

@@ -2,38 +2,38 @@
 
 ## 상태
 
-**활성 구현 scope가 없다.**
+**누적 4장 production-input 직접 플레이 scope가 활성화됐다.**
 
-제품 title과 새 게임 경로는 완료됐다. 인자 없는 기본 장면은 session 없는 title을 열고, production
-`새 게임` 입력은 authored `FIRST_LIGHT` briefing으로 진입한다. R2 저장 권위가 없으므로 `이어하기`는
-이유와 함께 비활성이다. 명시적 fixture, checkpoint와 native 개발 route는 product boot와 분리됐다.
+fresh process의 `./dev play through NORTH_BANK_PROMISE`에서 첫 3장의 실제 망·공사·자금·시계가
+네 번째 장까지 이어지는지 관찰한다. Keep과 Defer를 각각 production mouse/keyboard 입력으로 결과까지
+진행하고, 한 줄 사건 지평선의 약속 기한과 주변 사건 상세를 실제 화면에서 연다.
 
-이 완료는 build와 deterministic production-input smoke의 증거다. 사람 미감·사용성, save/resume,
-fresh-install 또는 전체 캠페인 완결성을 주장하지 않는다. 완료 요약은
-[완료 이력](archive/COMPLETED_HISTORY.md), 다음 후보는 [남은 작업](NEXT_TASKS.md)이 소유한다.
+## 수정 범위
 
-## 이 상태에서 할 수 있는 일
+- `docs/ACTIVE_SCOPE.md`, `README.md`, `docs/NEXT_TASKS.md`, `docs/archive/COMPLETED_HISTORY.md`
+- 실제 production 입력에서 재현된 결함이 있을 때만 그 결함의 가장 작은 owning R2/Core/UI 파일
+- 결함 수정에 직접 필요한 가장 작은 deterministic regression
 
-- README와 현재 문서를 읽어 사실을 확인한다.
-- build, 기존 자동검사와 비파괴 진단을 실행한다.
-- 사용자가 요청한 범위 안에서 결함을 조사하거나 계획을 제안한다.
+## 단일 권위
 
-다음 행동은 별도 active scope 없이 시작하지 않는다.
+- 누적 chapter·망·공사·자금·시계와 Keep/Defer 결과: `RealtimeCampaignRun`과 `RealtimeSession`
+- native 4장 route: `RealtimeNativeRouteCatalog.ThroughNativeCoverage`
+- 사건·결정 marker와 상세: typed presentation, `RealtimeEventRail`과 `RealtimeUiRoot`
 
-- [남은 작업](NEXT_TASKS.md)의 구현이나 native 직접 플레이
-- LLM judge session 생성
-- 새 에셋 생성·교체
-- save/package/release 작업
-- branch 통합, push, PR 또는 공개 배포
+## 범위 밖
 
-## 새 scope를 여는 방법
+- `WHOSE_MARGIN` 이후 장, finale/epilogue
+- save/resume, 실제 title `이어하기`
+- settings, audio, 새 자산, package, 평가 실행, 배포
+- direct play에서 재현되지 않은 선제 refactor나 새 fixture
+- branch 통합, push, PR 또는 merge
 
-사용자가 다음 작업을 선택하면 구현 전에 이 문서를 갱신한다.
+## 완료 검사
 
-1. 플레이어가 얻게 될 하나의 결과
-2. 수정 가능한 파일과 범위 밖 파일
-3. 사용할 단일 데이터·규칙 권위
-4. unit/checkpoint/E2E 중 필요한 검증
-5. 완료로 인정할 관찰과 아직 주장하지 않을 증거
+- Keep과 Defer를 서로 독립된 fresh process에서 production 입력으로 결과까지 진행한다.
+- 각 경로에서 장 전환 뒤 실제 망·공사·자금·시계가 보존됨을 화면 상태와 runtime evidence로 확인한다.
+- 네 번째 장에서 6개월 달력 전환, 약속 기한 marker, 주변 사건과 선택 상세를 실제로 연다.
+- 결함을 수정한 경우에만 가장 가까운 targeted check와 기본 `./dev check`를 실행한다.
 
-backlog 항목, 과거 완료 scope, 준비된 schema나 테스트 파일은 그 자체로 작업 승인이 아니다.
+이 관찰은 누적 4장 native 도달성만 증명한다. 남은 4장, save/resume, 전체 캠페인, 사람 표본의
+미감·사용성 또는 공식 UX 점수의 증거로 확대하지 않는다.

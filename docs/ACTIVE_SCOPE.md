@@ -13,7 +13,8 @@
 - `game/realtime/r2/`: launch 선택, default scene bootstrap, 작은 title smoke runner
 - `game/realtime/ui/`: product title surface와 R2 UI root wiring
 - `dev`, default-entry 회귀와 이 단계에 필요한 최소 smoke seam
-- 이 단계가 바꾼 현재 사실을 소유하는 README, INSTALL, ARCHITECTURE, NEXT_TASKS, 완료 이력
+- 이 단계가 바꾼 현재 사실을 소유하는 README, INSTALL, ARCHITECTURE, NEXT_TASKS, 평가 프로토콜,
+  완료 이력
 
 ## 단일 권위
 

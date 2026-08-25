@@ -7,7 +7,8 @@
 ## 현재 기준선
 
 - Godot 기본 장면은 live R2 `RealtimeSliceMain`이다.
-- 인자 없는 실행은 제품용 새 게임이 아니라 기술 fixture다.
+- 인자 없는 실행은 session 없는 제품 title을 열고, `새 게임`은 standalone `FIRST_LIGHT`로 진입한다.
+  R2 저장 권위가 없어 `이어하기`는 이유와 함께 비활성이다.
 - G3 아트 57개(지도 50/UI 7)가 R2 world와 UI에 연결돼 있다.
 - 한 줄 사건 지평선이 사건·공사·결정 기한·열 경계를 compact marker로 표시하고 상세 정보를
   hover 또는 선택으로 연다.
@@ -24,22 +25,7 @@
 
 ## 권장 순서
 
-### 1. 제품 title과 새 게임 경로 확정
-
-플레이어가 인자 없이 실행했을 때 개발 fixture가 아니라 명확한 새 게임 진입점을 만나도록 한다.
-제품 title, 새 user-data, 첫 브리핑까지의 소유권을 정한다. 실제 이어하기는 4번의 R2 save/resume이
-완성되기 전까지 title에 이유가 보이는 비활성 상태로 두며, 과거 V2 저장을 연결하지 않는다.
-
-완료 기준:
-
-- default boot와 명시적 개발 fixture가 분리된다.
-- 새 설치에서 title→`새 게임`→첫 briefing→`FIRST_LIGHT`가 실제 입력으로 재현된다.
-- 빈 user-data에서는 `이어하기`가 보이지만 비활성이고 이유가 명확하며 dead-end나 가짜 복구 경로가
-  없다.
-- story/modal의 계속 동작을 title의 `이어하기`로 세지 않는다.
-- checkpoint와 테스트 route는 계속 명시적 인자로만 접근한다.
-
-### 2. 누적 4장 직접 플레이 검증
+### 1. 누적 4장 직접 플레이 검증
 
 `./dev play through NORTH_BANK_PROMISE`를 fresh process에서 플레이해 첫 3장의 실제 망·현금·시계가
 4장으로 이어지는지 확인한다. 6개월 달력 전환, 약속 기한 marker와 Keep/Defer 결과를 모두 다룬다.
@@ -50,7 +36,7 @@
 - 장 전환 뒤 망·공사·자금이 위조되거나 초기화되지 않는다.
 - 한 줄 사건 지평선에서 결정 기한과 주변 사건을 실제로 찾고 상세 정보를 열 수 있다.
 
-### 3. 남은 4장 native 구현
+### 2. 남은 4장 native 구현
 
 작성된 다음 장을 R2 Core/controller/presentation에 순서대로 연결한다.
 
@@ -70,7 +56,7 @@ result와 다음 장 전환을 같은 누적 상태에서 닫아야 한다. stor
 - 사건·공사·결정·열 경계가 한 줄 사건 지평선에 시간순으로 나타난다.
 - 장별 unit/checkpoint와 8장 누적 경로가 모두 통과한다.
 
-### 4. 캠페인 완결성과 저장
+### 3. 캠페인 완결성과 저장
 
 R2 save/resume, finale, 세 epilogue card, 누적 약속 결과와 완료 후 재개를 구현한다. 동결 V2 저장을
 그대로 현재 R2 저장이라고 주장하지 말고, Release.V3 상태에 맞는 권위를 정의한다.
@@ -83,7 +69,7 @@ R2 save/resume, finale, 세 epilogue card, 누적 약속 결과와 완료 후 �
 - 유효한 저장이 있을 때 `새 게임`의 확인·덮어쓰기 정책
 - 빈·손상·구버전 저장의 `이어하기` 비활성, 명시적 거부 또는 migration 정책과 원본 보존
 
-### 5. 시청각·설정·조작성·접근성 마감
+### 4. 시청각·설정·조작성·접근성 마감
 
 현재 G3 적용을 출발점으로 정상·공사·폭염·범람·비상·보호정지·냉각·복귀 화면을 실제 플레이에서
 검수한다. 아직 없는 current R2 product audio와 player settings surface를 먼저 구현하고, 과거 V2
@@ -104,7 +90,7 @@ audio/settings를 현재 권위로 재사용하지 않는다. 아트·audio 파�
 
 1.0의 audio는 non-voice ambient와 interaction/state cue 범위다. 음성 연기는 이 단계에 포함하지 않는다.
 
-### 6. current R2 fresh-install 후보와 전체 E2E
+### 5. current R2 fresh-install 후보와 전체 E2E
 
 과거 V2 내부 패키지가 아니라 current R2 전체 여정이 들어 있는 평가용 fresh-install 후보를 만든다.
 서명·공증·공개 배포는 아직 하지 않지만, 빈 user-data의 별도 설치 위치에서 production 입력만으로 전체
@@ -123,10 +109,10 @@ packager, finalized manifest와 manifest verifier의 권위를 함께 소유한�
 - candidate packager와 manifest verifier가 누락·변조·다른 source/package에서 fail-closed
 - capture 중 package contents가 바뀌면 기존 session을 폐기하고 새 candidate/session을 만듦
 
-### 7. score-bearing 평가 권위와 공식 LLM-as-a-judge
+### 6. score-bearing 평가 권위와 공식 LLM-as-a-judge
 
 현재 `tools/commercial-ux/native/`는 구조·거부 경로를 위한 non-score 기준선이므로 그대로 공식 점수를
-내지 않는다. 6번의 finalized candidate를 소비하는 versioned evaluation-session authority, native
+내지 않는다. 5번의 finalized candidate를 소비하는 versioned evaluation-session authority, native
 capture, judge input, evidence verifier, deterministic hard-gate oracle과 score aggregator를 current
 R2용으로 구현·검증한다. 그 다음 새 설치 cold journey와 고정 coverage journey를 수집한다.
 
@@ -145,7 +131,7 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 검증 가능한 score-bearing execution authority가 없으면 capture와 judgment는 non-score로만 보존하고
 `CommercialUXProxy = null`로 닫는다. 나중에 영수증을 붙여 공식 session으로 승격하지 않는다.
 
-### 8. 출시 준비와 배포 승인
+### 7. 출시 준비와 배포 승인
 
 평가에 사용한 current R2 후보의 source와 product payload를 유지한 배포 후보를 준비한다. 서명·공증이
 추가하는 wrapper·metadata 차이는 별도 allowlist와 deterministic 검사로 한정한다. 내부 평가 package의
@@ -157,7 +143,7 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 - 라이선스·자산 권리·고지 검토
 - 평가 후보와 배포 후보의 차이가 허용된 signing/notarization metadata뿐임을 재검증
 - signed/notarized artifact를 빈 user-data에 fresh-install해 title boot와 기본 입력 smoke 재검증
-- product payload나 gameplay-affecting contents가 달라지면 6번 candidate와 7번 평가 session을 다시 생성
+- product payload나 gameplay-affecting contents가 달라지면 5번 candidate와 6번 평가 session을 다시 생성
 - Developer ID 서명·공증과 공개 출시 여부의 명시적 소유자 승인
 
 ## 테스트 선택 원칙

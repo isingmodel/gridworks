@@ -40,8 +40,9 @@ OS 호환성이나 출시 승인을 대신하지 않는다.
 | 공식 native hard gate | 이 문서 4·7절; 실행 전 versioned oracle policy로 결속해야 함 |
 | story part topology | `tools/commercial-ux/realtime_text_contract.py` |
 
-현재 기본 장면은 `RealtimeSliceMain`이지만 인자 없는 실행은 기술 fixture다. 기본 scene, 작성된 8장,
-native 4장 구현과 직접 관찰된 3장을 같은 coverage로 세지 않는다.
+현재 기본 장면의 인자 없는 실행은 session 없는 제품 title을 열고, `새 게임`은 canonical
+`FIRST_LIGHT` briefing으로 진입한다. `이어하기`는 current R2 저장 권위가 없어 이유와 함께 비활성이다.
+이 title wiring, 작성된 8장, native 4장 구현과 직접 관찰된 3장을 같은 coverage로 세지 않는다.
 과거 V2 title/save/settings/audio, editor project tree와 UX-R1 candidate는 current R2 평가 권위가 아니다.
 
 ## 3. 두 평가 lane
@@ -201,9 +202,10 @@ deterministic failure 또는 blinded observation
 - `TextPlanProxy`: `83.4475`, 형성평가
 - R2 native 구현: `NORTH_BANK_PROMISE`까지 누적 4장
 - 실제 직접 플레이: 첫 3장까지
+- current R2 product title, 비활성 `이어하기` 이유와 `새 게임`→standalone `FIRST_LIGHT` wiring:
+  구현·결정론적 production-input smoke 완료
 - 4장 직접 플레이, 남은 4장, save/resume, finale/epilogue, current R2 package: 미완료
-- current R2 product title/이어하기/audio/settings와 score-bearing execution authority·oracle/aggregator:
-  미완료
+- save-backed 실제 `이어하기`, audio/settings와 score-bearing execution authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음
 

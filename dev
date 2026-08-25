@@ -8,6 +8,7 @@ godot_bin=${GRIDWORKS_GODOT_BIN:-"$repository_dir/.tools/godot-4.7.1/Godot_mono.
 usage() {
     print -u2 -- "usage: ./dev build"
     print -u2 -- "       ./dev check"
+    print -u2 -- "       ./dev play product"
     print -u2 -- "       ./dev play fixture"
     print -u2 -- "       ./dev play chapter CHAPTER_ID"
     print -u2 -- "       ./dev play through CHAPTER_ID"
@@ -70,11 +71,16 @@ case $command_name in
         ;;
     play)
         require_godot
-        [[ $# -ge 1 ]] || fail "play requires fixture, chapter, or through."
+        [[ $# -ge 1 ]] || fail "play requires product, fixture, chapter, or through."
         play_mode=$1
         shift
         dotnet build "$repository_dir/game/Gridworks.Game.csproj" -c Debug
         case $play_mode in
+            product)
+                [[ $# -eq 0 ]] || fail "play product takes no additional arguments."
+                "$godot_bin" \
+                    --path "$repository_dir/game"
+                ;;
             fixture)
                 [[ $# -eq 0 ]] || fail "play fixture takes no additional arguments."
                 "$godot_bin" \

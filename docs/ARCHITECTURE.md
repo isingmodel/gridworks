@@ -9,13 +9,18 @@ compile 시간이 아니라, 한 변경에 필요한 권위·분기·파일 추�
 ```text
 ./dev
 ├─ build/check/story/checkpoint
-└─ play fixture/chapter/through
+└─ play product/fixture/chapter/through
 
-정확한 launch argument
-→ RealtimeNativeRouteCatalog
-→ RealtimeSliceResources.LoadNativeRelease
-→ strict Release V2 base + Release V3 realtime overlay
-→ RealtimeSliceData
+launch argument → RealtimeLaunchCatalog
+├─ no args → ProductTitle → RealtimeProductTitle (session 없음)
+│  └─ NewGameRequested → NativeRelease(RealtimeNativeRouteCatalog.FirstLight)
+│     └─ RealtimeSliceResources.LoadNativeRelease
+├─ explicit DEBUG technical fixture/known checkpoint → TechnicalFixture
+│  └─ RealtimeSliceResources.LoadTechnicalFixture → stage R1 fixture data
+└─ exact native argument → NativeRelease → RealtimeNativeRouteCatalog
+   └─ RealtimeSliceResources.LoadNativeRelease → strict Release V2 base + Release V3 overlay
+
+technical/native resource load → RealtimeSliceData
 
 Godot InputEvent → RealtimeInputRouter → typed RealtimeInputRequest
 Godot signal/frame 또는 typed request
@@ -35,9 +40,9 @@ Godot signal/frame 또는 typed request
 ```
 
 `RealtimeInputRouter`는 raw `InputEvent`를 priority가 있는 typed request로 바꾼다. `RealtimeSliceMain`은
-route/resource bootstrap, Godot lifecycle, signal·typed request 검증과 routing, focus, canvas와
-publication을 소유한다. 게임 규칙이나 chapter 정책을 찾기 위해 이 adapter부터 UI node 안쪽으로
-내려가지 않는다. 먼저 `RealtimeSession`과 `RealtimeCampaignRun`을 본다.
+launch/resource bootstrap, title과 session의 경계, Godot lifecycle, signal·typed request 검증과
+routing, focus, canvas와 publication을 소유한다. 게임 규칙이나 chapter 정책을 찾기 위해 이
+adapter부터 UI node 안쪽으로 내려가지 않는다. 먼저 `RealtimeSession`과 `RealtimeCampaignRun`을 본다.
 
 ## 권위와 수정 위치
 
@@ -46,7 +51,9 @@ publication을 소유한다. 게임 규칙이나 chapter 정책을 찾기 위해
 | 망·공사·공급·열·시간·결과는 어떻게 바뀌는가? | `RealtimeCampaignRun`과 Release V3 Core | `src/Gridworks.Core/Release/V3/` |
 | authored world·chapter의 원문은? | strict Release V2 content와 loader | `data/release-world-v2.json`, `data/release-campaign-v2.json`, `src/Gridworks.Core/Release/V2/` |
 | realtime world·schedule overlay는? | V3 world/overlay loader | `data/release-world-v3.json`, `data/release-campaign-v3.json`, `src/Gridworks.Core/Release/V3/` |
+| product boot와 개발/native launch를 어떻게 구분하는가? | `RealtimeLaunchCatalog` | `game/realtime/r2/RealtimeLaunchCatalog.cs` |
 | 어떤 release route가 native인가? | `RealtimeNativeRouteCatalog` | `game/realtime/r2/RealtimeNativeRouteCatalog.cs` |
+| 제품 title의 표시·focus·입력 차단은? | `RealtimeProductTitle`과 `RealtimeUiRoot` | `game/realtime/ui/` |
 | 입력 뒤 application 상태와 chapter/story flow는? | `RealtimeSession` | `RealtimeSession.cs`, `RealtimeChapterStoryFlow.cs` |
 | raw input이 어떤 typed request가 되는가? | `RealtimeInputRouter` | `game/realtime/ui/RealtimeInputRouter.cs` |
 | intent/action/tool/modal이 지원되는가? | 명시적 capability와 reducer/session 분기 | `game/realtime/r2/RealtimeInteractionReducer.cs`, `game/realtime/ui/RealtimeUiCapabilities.cs`, `game/realtime/r2/RealtimeSession.cs` |
@@ -125,11 +132,12 @@ typed contract를 보강하고, application 전용 결정은 Session에서 한 �
 ```
 
 가장 가까운 unit/story/checkpoint에서 시작하고, 완료 전 `./dev check`로 current root graph의 Debug
-build와 기본 자동 회귀를 닫는다. 이 명령은 root `Gridworks.sln` 전체의 Release build와 전체 Godot UI
-harness를 포함하지 않으므로, 그 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
-default fixture, `FIRST_LIGHT`, `SECOND_SOURCE`, `NORTH_BANK_PROMISE`의 production route 의미와
-canonical state hash를 구조 변경의 불변조건으로 취급한다. 자동 PASS는 사람 직접 플레이나 UX 품질의
-증거가 아니다.
+build와 기본 자동 회귀를 닫는다. 이 명령은 no-arg 제품 title과 명시적 technical fixture entry smoke도
+포함하지만, root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지 않는다. 해당
+검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다. product title과 explicit fixture/native
+route의 launch 의미를 구조 변경의 불변조건으로 취급한다. session을 만드는 fixture와
+`FIRST_LIGHT`, `SECOND_SOURCE`, `NORTH_BANK_PROMISE` native route의 canonical state hash도 유지한다.
+자동 PASS는 사람 직접 플레이나 UX 품질의 증거가 아니다.
 
 ## 구조를 다시 얽히게 하는 신호
 

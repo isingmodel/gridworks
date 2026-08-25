@@ -5,8 +5,8 @@
 대비해 병원과 정수장 같은 필수 시설을 지킨다.
 
 현재 저장소는 **실시간 R2 플레이 빌드와 G3 아이소메트릭 아트 기준선**을 제공하지만, 아직 판매
-가능한 1.0 게임은 아니다. 전체 8장 캠페인, R2 저장/재개, 제품용 시작 화면, 출시 패키지와 공식 UX
-평가가 남아 있다.
+가능한 1.0 게임은 아니다. 남은 4장과 전체 캠페인 완결성, R2 저장/재개, 제품용 audio·settings,
+출시 패키지와 공식 UX 평가가 남아 있다.
 
 ## 30초 현재 상태
 
@@ -14,7 +14,7 @@
 |---|---|
 | 제품 방향 | turn 방식이 아닌 pause·1×·2×·4× 실시간 전력망 운영 |
 | 기본 Godot 장면 | `res://realtime/r2/RealtimeSliceMain.tscn` |
-| 인자 없는 실행 | 캠페인이 아니라 개발용 기술 fixture |
+| 인자 없는 실행 | 제품 title; `새 게임`은 `FIRST_LIGHT`로 진입하고 `이어하기`는 저장 부재 이유와 함께 비활성 |
 | 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
 | R2 native 구현 | `NORTH_BANK_PROMISE`까지 누적 4장 |
@@ -30,8 +30,9 @@
 - **native 구현됨**: R2 화면과 실제 Core 진행 경로가 연결됐다.
 - **직접 관찰됨**: 사람이 fresh process에서 mouse/keyboard로 해당 경로를 끝까지 확인했다.
 
-따라서 “8장이 작성됐다”는 말은 “R2에서 8장을 플레이할 수 있다”는 뜻이 아니다. 또한 기본 장면이
-R2라는 사실도 인자 없는 실행이 제품용 새 게임 여정이라는 뜻은 아니다.
+따라서 “8장이 작성됐다”는 말은 “R2에서 8장을 플레이할 수 있다”는 뜻이 아니다. 인자 없는 기본
+장면은 이제 제품 title이지만, `새 게임`이 여는 것은 현재 standalone `FIRST_LIGHT` 한 장 경로다.
+전체 캠페인이나 저장 기반 `이어하기`가 완성됐다는 뜻은 아니다.
 
 ## 게임 경험
 
@@ -64,6 +65,7 @@ R2라는 사실도 인자 없는 실행이 제품용 새 게임 여정이라는 
 
 | 목적 | 명령 |
 |---|---|
+| 제품 title에서 시작 | `./dev play product` |
 | 개발용 기술 fixture | `./dev play fixture` |
 | 첫 장만 플레이 | `./dev play chapter FIRST_LIGHT` |
 | 튜토리얼 3장 누적 플레이 | `./dev play through SECOND_SOURCE` |
@@ -75,8 +77,10 @@ R2라는 사실도 인자 없는 실행이 제품용 새 게임 여정이라는 
 ./dev play through NORTH_BANK_PROMISE
 ```
 
-`./dev play fixture`는 같은 R2 장면의 인자 없는 기술 fixture를 연다. 이것을 새 게임이나 전체 캠페인으로
-평가하지 않는다. 환경 준비, 전체 명령과 현재 저장/패키지 경계는 [실행 안내](INSTALL.md)에 있다.
+`./dev play product`는 Godot user argument 없이 제품 title을 열고, `./dev play fixture`는 명시적
+`--technical-fixture` 인자로 title을 우회하는 DEBUG 개발 경로다. fixture를 새 게임이나 전체
+캠페인으로 평가하지 않는다. 환경 준비, 전체 명령과 현재 저장/패키지 경계는
+[실행 안내](INSTALL.md)에 있다.
 
 ## 개발 검증
 
@@ -86,8 +90,8 @@ current R2의 기본 자동 회귀 명령은 하나다.
 ./dev check
 ```
 
-이 명령은 current root solution, RealtimeChecks, CommercialChecks, 세 Python 회귀와 두 named checkpoint를
-실행한다.
+이 명령은 current root solution, RealtimeChecks, CommercialChecks, 세 Python 회귀, no-arg 제품 title과
+명시적 fixture entry smoke, 두 named checkpoint를 실행한다.
 
 root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 이 기본 명령에 포함되지 않는다.
 해당 검사가 필요한 변경은 active scope의 완료 검사에 별도로 명시한다.

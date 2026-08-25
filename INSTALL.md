@@ -2,9 +2,10 @@
 
 ## 현재 경계
 
-현재 저장소의 기본 장면은 live R2 `RealtimeSliceMain`이고 G3 자산 57개가 연결돼 있다. 그러나 인자
-없는 실행은 개발용 기술 fixture이며, current R2에는 제품용 title, save/resume 또는 설치 패키지가
-없다. 과거 V2의 저장 파일과 내부 macOS 후보를 현재 R2 기능으로 간주하지 않는다.
+현재 저장소의 기본 장면은 live R2 `RealtimeSliceMain`이고 G3 자산 57개가 연결돼 있다. 인자 없는
+실행은 제품 title을 열며, `새 게임`은 authored `FIRST_LIGHT` briefing으로 진입한다. current R2 저장
+권위가 없으므로 `이어하기`는 이유와 함께 비활성이고, save/resume과 설치 패키지도 아직 없다. 과거
+V2의 저장 파일과 내부 macOS 후보를 현재 R2 기능으로 간주하지 않는다.
 
 ## 요구 환경
 
@@ -26,6 +27,15 @@
 `Gridworks.sln`을 Debug로 빌드한다. restore는 `dotnet build`가 필요할 때 함께 수행한다.
 
 ## 플레이 경로
+
+### 제품 title
+
+```sh
+./dev play product
+```
+
+이 명령은 Godot user argument 없이 기본 장면을 열어 제품 title과 `새 게임` 경로를 재현한다. 현재
+`새 게임`은 standalone `FIRST_LIGHT` 한 장만 시작하며, 저장 기반 `이어하기`는 제공하지 않는다.
 
 ### 구현된 누적 4장
 
@@ -51,8 +61,8 @@
 ./dev play fixture
 ```
 
-마지막 명령은 기본 scene wiring을 사용하지만 제품용 새 게임은 아니다. 전체 8장이나 저장 기능을
-검증할 때 사용하지 않는다.
+마지막 명령은 명시적 `--technical-fixture` 인자로 제품 title을 우회하는 DEBUG 개발 경로다. 제품용
+새 게임, 전체 8장이나 저장 기능을 검증할 때 사용하지 않는다.
 
 ## 검증과 단위 진입점
 
@@ -64,9 +74,9 @@
 ./dev story manifest
 ```
 
-`./dev check`는 current root solution, 두 check project, 세 Python 회귀와 두 named checkpoint를 묶은
-기본 회귀다. 한 화면 상태나 story part를 조사할 때는 더 작은 `checkpoint` 또는 `story` 명령부터
-시작한다. 전체 명령 형태는 `./dev help`에서 확인한다.
+`./dev check`는 current root solution, 두 check project, 세 Python 회귀, no-arg 제품 title과 명시적
+fixture entry smoke, 두 named checkpoint를 묶은 기본 회귀다. 한 화면 상태나 story part를 조사할
+때는 더 작은 `checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는 `./dev help`에서 확인한다.
 
 저장소에 포함된 Godot 대신 다른 Mono executable을 사용할 때의 예:
 

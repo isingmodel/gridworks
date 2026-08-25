@@ -80,6 +80,17 @@ mouse/keyboard 입력으로 3장 누적 경로를 끝까지 관찰했다.
 보존하며, 약속 마감이 같은 한 줄 rail에 표시되고 Keep/Defer가 Core 결과로 이어진다. 자동검사와
 독립 review는 완료했지만 사용자 중단 지시에 따라 4장의 native 직접 플레이는 수행하지 않았다.
 
+### UX-R2.4 — 제품 title과 새 게임 진입
+
+인자 없는 기본 장면이 session을 만들기 전에 제품 title을 표시하도록 했다. 저장 권위가 없으므로
+`이어하기`는 이유와 함께 비활성이고, production `새 게임` button 입력은 canonical `FIRST_LIGHT`와
+authored briefing을 연다. `RealtimeLaunchCatalog`가 이 product boot를 명시적 DEBUG fixture,
+checkpoint와 세 native 개발 route에서 분리한다.
+
+작은 headless smoke가 실제 default scene의 pointer 입력, title input ownership, briefing wiring과
+fixture/native resource 경계를 확인했다. 이는 자동 wiring 증거이며 사람 미감·사용성, fresh-install,
+save/resume 또는 전체 캠페인 완결성의 증거가 아니다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

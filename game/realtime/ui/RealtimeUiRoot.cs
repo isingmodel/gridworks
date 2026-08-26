@@ -70,6 +70,7 @@ internal sealed partial class RealtimeUiRoot : Node
     public event Action<RealtimeInputRequest>? InputRequested;
     public event Action<Rect2>? MapInteractionRectChanged;
     public event Action? NewGameRequested;
+    public event Action? ContinueRequested;
 
     public override void _Ready()
     {
@@ -103,6 +104,7 @@ internal sealed partial class RealtimeUiRoot : Node
         _modalHost.DismissRequested += id => ModalDismissRequested?.Invoke(id);
         _modalHost.DepthChanged += OnModalDepthChanged;
         _productTitle.NewGameRequested += () => NewGameRequested?.Invoke();
+        _productTitle.ContinueRequested += () => ContinueRequested?.Invoke();
         _inputRouter.InputRequested += RouteShortcut;
         GetViewport().SizeChanged += ApplyResponsiveLayout;
         CallDeferred(nameof(ApplyResponsiveLayout));

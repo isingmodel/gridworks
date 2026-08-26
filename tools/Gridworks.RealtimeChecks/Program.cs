@@ -149,6 +149,7 @@ internal sealed class Checks
         (string Name, Action Body)[] suites =
         [
             ("strict-v3-loaders-first-light-schedule", StrictLoadersAndSchedule),
+            ("campaign-save-strict-replay", CampaignSaveStrictReplay),
             ("strict-release-v2-v3-overlay-composition", StrictReleaseOverlayComposition),
             ("release-tutorial-connection-objective", ReleaseTutorialConnectionObjective),
             ("release-north-bank-promise", ReleaseNorthBankPromise),
@@ -355,6 +356,156 @@ internal sealed class Checks
                 _baseCampaign,
                 _world),
             "initial cash plus authored chapter grant overflow");
+    }
+
+    private void CampaignSaveStrictReplay()
+    {
+        var identity = new RealtimeCampaignSourceIdentity(
+            "--release-chapter=FIRST_LIGHT",
+            new string('a', 64),
+            new string('b', 64),
+            new string('c', 64),
+            new string('d', 64),
+            new string('e', 64),
+            new string('f', 64));
+        var live = new RealtimeCampaignRun(_campaign, _world);
+        var expectedTransitions = new List<RealtimeTransition>();
+
+        RealtimeCommandResult draft = live.ApplyCommand(
+            RealtimeCommand.SetNodeDraft(
+                "SMALL_SUBSTATION",
+                new MapPoint(2800, 1050)));
+        Accepted(draft, "save replay node draft");
+        expectedTransitions.AddRange(draft.Transitions);
+        RealtimeCommandResult order = live.ApplyCommand(RealtimeCommand.OrderNode());
+        Accepted(order, "save replay node order");
+        expectedTransitions.AddRange(order.Transitions);
+        ActiveConstructionSnapshot construction =
+            order.Snapshot.Construction.ActiveConstruction ??
+            throw new InvalidOperationException(
+                "save replay order created no active construction");
+        long savedMinute = checked(order.Snapshot.Minute + 15);
+        Check(savedMinute < construction.CompletionMinute,
+            "save replay boundary is not mid-construction");
+        RealtimeAdvanceResult progress = live.AdvanceTo(savedMinute);
+        expectedTransitions.AddRange(progress.Transitions);
+
+        RealtimeCampaignSave captured = RealtimeCampaignSaveCodec.Capture(
+            identity,
+            _campaign,
+            _world,
+            live);
+        byte[] bytes = RealtimeCampaignSaveCodec.Serialize(captured);
+        RealtimeCampaignSave decoded = RealtimeCampaignSaveCodec.Deserialize(bytes);
+        RealtimeCampaignRestoreResult restored = RealtimeCampaignSaveCodec.Restore(
+            identity,
+            _campaign,
+            _world,
+            decoded);
+
+        Equal(RealtimeCampaignSave.SupportedSchemaVersion,
+            decoded.SchemaVersion,
+            "save schema");
+        Equal(savedMinute, decoded.SavedMinute, "save minute");
+        Equal(live.GetCanonicalStateSha256(), decoded.CanonicalStateSha256,
+            "save final hash");
+        SequenceEqual(live.AcceptedCommands, decoded.Commands,
+            "save ordered accepted journal");
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                live.GetSnapshot(),
+                restored.Run.GetSnapshot()),
+            "save replay snapshot differs from uninterrupted state");
+        SequenceEqual(expectedTransitions, restored.Transitions,
+            "save replay transition history order");
+
+        long nextMinute = checked(savedMinute + 5);
+        RealtimeAdvanceResult liveAdvance = live.AdvanceTo(nextMinute);
+        RealtimeAdvanceResult restoredAdvance = restored.Run.AdvanceTo(nextMinute);
+        Equal(liveAdvance.CanonicalStateSha256,
+            restoredAdvance.CanonicalStateSha256,
+            "next advance after restore");
+        SequenceEqual(liveAdvance.Transitions, restoredAdvance.Transitions,
+            "next advance transitions after restore");
+        RealtimeCommandResult liveCommand = live.ApplyCommand(
+            RealtimeCommand.OrderNode());
+        RealtimeCommandResult restoredCommand = restored.Run.ApplyCommand(
+            RealtimeCommand.OrderNode());
+        Equal(liveCommand.Accepted, restoredCommand.Accepted,
+            "next command acceptance after restore");
+        Equal(liveCommand.Error, restoredCommand.Error,
+            "next command error after restore");
+        Equal(liveCommand.CanonicalStateSha256,
+            restoredCommand.CanonicalStateSha256,
+            "next command state after restore");
+
+        string json = Encoding.UTF8.GetString(bytes);
+        JsonObject unknownField = ParseObject(json);
+        unknownField["unexpected"] = true;
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(
+                unknownField.ToJsonString()),
+            "unknown save field");
+        string duplicateField = json.Replace(
+            "\"savedMinute\":",
+            $"\"savedMinute\": {savedMinute}, \"savedMinute\":",
+            StringComparison.Ordinal);
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(duplicateField),
+            "duplicate save field");
+
+        JsonObject unsupported = ParseObject(json);
+        unsupported["schemaVersion"] = "gridworks.realtime.campaign-save.v2";
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Unsupported,
+            () => RealtimeCampaignSaveCodec.Deserialize(unsupported.ToJsonString()),
+            "unsupported save schema");
+
+        JsonObject badSequence = ParseObject(json);
+        Object(JsonArrayOf(badSequence, "commands")[0]!)["sequence"] = 2;
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(badSequence.ToJsonString()),
+            "noncanonical save sequence");
+        JsonObject badMinute = ParseObject(json);
+        badMinute["savedMinute"] = live.AcceptedCommands[0].Minute - 1;
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(badMinute.ToJsonString()),
+            "save minute before journal");
+        JsonObject badCommand = ParseObject(json);
+        Object(
+            Object(JsonArrayOf(badCommand, "commands")[0]!),
+            "command").Remove("firstId");
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(badCommand.ToJsonString()),
+            "invalid saved command shape");
+
+        JsonObject badSource = ParseObject(json);
+        Object(badSource, "source")["worldSha256"] = new string('0', 64);
+        RealtimeCampaignSave changedSource =
+            RealtimeCampaignSaveCodec.Deserialize(badSource.ToJsonString());
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Restore(
+                identity,
+                _campaign,
+                _world,
+                changedSource),
+            "changed save source");
+        JsonObject uppercaseSource = ParseObject(json);
+        Object(uppercaseSource, "source")["baseWorldSha256"] =
+            new string('A', 64);
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(
+                uppercaseSource.ToJsonString()),
+            "noncanonical uppercase source hash");
+        JsonObject badHash = ParseObject(json);
+        badHash["canonicalStateSha256"] = new string('0', 64);
+        RealtimeCampaignSave changedHash =
+            RealtimeCampaignSaveCodec.Deserialize(badHash.ToJsonString());
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Restore(
+                identity,
+                _campaign,
+                _world,
+                changedHash),
+            "changed final state hash");
     }
 
     private void StrictReleaseOverlayComposition()
@@ -4426,6 +4577,29 @@ internal sealed class Checks
             return;
         }
         throw new InvalidOperationException($"{message}: expected {typeof(T).Name}.");
+    }
+
+    private void ExpectPersistence(
+        RealtimeCampaignPersistenceFailureKind expectedKind,
+        Action body,
+        string message)
+    {
+        _assertions++;
+        try
+        {
+            body();
+        }
+        catch (RealtimeCampaignPersistenceException exception)
+        {
+            if (exception.Kind == expectedKind)
+            {
+                return;
+            }
+            throw new InvalidOperationException(
+                $"{message}: expected '{expectedKind}', got '{exception.Kind}'.");
+        }
+        throw new InvalidOperationException(
+            $"{message}: expected {nameof(RealtimeCampaignPersistenceException)}.");
     }
 
     private static JsonObject ParseObject(string json) =>

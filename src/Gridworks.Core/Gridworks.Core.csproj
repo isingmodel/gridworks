@@ -19,8 +19,7 @@
   <!-- The regular project is the current R2 Core graph: its strict V2 base plus V3 realtime rules. -->
   <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
     <Compile Include="Release/V2/**/*.cs" />
-    <Compile Include="Release/V3/**/*.cs"
-             Exclude="Release/V3/RealtimeCampaignPersistence.cs" />
+    <Compile Include="Release/V3/**/*.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">

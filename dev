@@ -43,6 +43,27 @@ run_product_entry_smoke() {
         "$@"
 }
 
+run_product_save_continue_smoke() {
+    local smoke_dir
+    local smoke_save
+    local invalid_save
+    local unsupported_save
+    local io_failure_save
+    smoke_dir=$(mktemp -d "${TMPDIR:-/tmp}/gridworks-r2-save-smoke.XXXXXX")
+    smoke_save="$smoke_dir/campaign.json"
+    invalid_save="$smoke_dir/invalid.json"
+    unsupported_save="$smoke_dir/unsupported.json"
+    io_failure_save="$smoke_dir/io-failure"
+    run_product_entry_smoke -- "--save-create=$smoke_save"
+    run_product_entry_smoke -- "--save-continue=$smoke_save"
+    run_product_entry_smoke -- "--save-invalid=$invalid_save"
+    run_product_entry_smoke -- "--save-unsupported=$unsupported_save"
+    run_product_entry_smoke -- "--save-io-failure=$io_failure_save"
+    rm -- "$smoke_save" "$invalid_save" "$unsupported_save"
+    rmdir -- "$io_failure_save"
+    rmdir -- "$smoke_dir"
+}
+
 command_name=${1:-help}
 if (( $# > 0 )); then
     shift
@@ -66,6 +87,7 @@ case $command_name in
         python3 "$repository_dir/tools/commercial-ux/test-realtime-default-entry.py"
         run_product_entry_smoke
         run_product_entry_smoke -- --technical-fixture
+        run_product_save_continue_smoke
         run_checkpoint A1_NORMAL_READY
         run_checkpoint A1_CONSTRUCTION_DUE_1M
         ;;

@@ -91,12 +91,24 @@ internal sealed partial class RealtimeSliceMain
     private RealtimeInputRequest? _lastInputRequest;
     private bool _suppressFormativeDirectPlayOutputForSmoke;
     private RealtimeLaunchSelection? _launchOverrideForSmoke;
+    private string? _savePathOverrideForSmoke;
 
     /// <summary>
     /// Owns an off-tree smoke host. GodotObject.Dispose only releases the
     /// managed binding; Node.Free is required to release its native RID/object.
     /// </summary>
     internal IDisposable FreeAfterSmoke() => new SmokeLifetime(this);
+
+    internal void SetSavePathOverrideForSmoke(string absolutePath)
+    {
+        if (!System.IO.Path.IsPathFullyQualified(absolutePath))
+        {
+            throw new ArgumentException(
+                "A smoke save override must be absolute.",
+                nameof(absolutePath));
+        }
+        _savePathOverrideForSmoke = absolutePath;
+    }
 
     internal RealtimeUiRoot UiForSmoke => _ui ??
         throw new InvalidOperationException("Scene UI is not ready.");
@@ -323,6 +335,16 @@ internal sealed partial class RealtimeSliceMain
                 "A smoke launch override must be selected before entering the tree.");
         }
         _launchOverrideForSmoke = RealtimeLaunchSelection.TechnicalFixture;
+    }
+
+    internal void UseProductTitleLaunchForSmoke()
+    {
+        if (IsInsideTree())
+        {
+            throw new InvalidOperationException(
+                "A smoke launch override must be selected before entering the tree.");
+        }
+        _launchOverrideForSmoke = RealtimeLaunchSelection.ProductTitle;
     }
 
     internal void BootstrapNativeReleaseForSmoke(RealtimeNativeRoute route)

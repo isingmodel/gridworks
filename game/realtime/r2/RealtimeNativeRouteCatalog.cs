@@ -80,11 +80,9 @@ internal static class RealtimeNativeRouteCatalog
                 "Exactly one supported release route user argument is required.");
         }
 
-        RealtimeNativeRoute? route = SupportedRoutes.SingleOrDefault(item =>
-            string.Equals(item.LaunchArgument, arguments[0], StringComparison.Ordinal));
-        if (route is not null)
+        if (TryResolve(arguments[0], out RealtimeNativeRoute? route))
         {
-            return route;
+            return route!;
         }
 
         if (arguments[0].StartsWith(ReleaseChapterArgumentPrefix, StringComparison.Ordinal))
@@ -107,6 +105,19 @@ internal static class RealtimeNativeRouteCatalog
                 $"{supported}.");
         }
         throw new ArgumentException("Unknown realtime release route user argument.");
+    }
+
+    internal static bool TryResolve(
+        string launchArgument,
+        out RealtimeNativeRoute? route)
+    {
+        route = string.IsNullOrWhiteSpace(launchArgument)
+            ? null
+            : SupportedRoutes.SingleOrDefault(item => string.Equals(
+                item.LaunchArgument,
+                launchArgument,
+                StringComparison.Ordinal));
+        return route is not null;
     }
 
     private static RealtimeNativeRoute Standalone(string chapterId) => new(

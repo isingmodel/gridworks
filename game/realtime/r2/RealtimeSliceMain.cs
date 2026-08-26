@@ -1,12 +1,19 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using Gridworks.Core.Release.V2;
+using Gridworks.Core.Release.V3;
 using Gridworks.Game.Realtime.UI;
 using Godot;
 using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
 
 namespace Gridworks.Game.Realtime.R2;
+
+internal sealed record RealtimeContinuation(
+    RealtimeNativeRoute Route,
+    RealtimeSliceData Data,
+    RealtimeCampaignRestoreResult Restore);
 
 /// <summary>
 /// Godot scene adapter for the R2 realtime session. This class owns route/resource bootstrap,
@@ -18,6 +25,7 @@ internal sealed partial class RealtimeSliceMain : Control
 
     private readonly Dictionary<RealtimePointerOwner, int> _clickCounters = [];
     private RealtimeSession? _session;
+    private RealtimeContinuation? _continuation;
     private Control? _worldControl;
     private IRealtimeWorldView? _worldView;
     private RealtimeUiRoot? _ui;
@@ -49,6 +57,7 @@ internal sealed partial class RealtimeSliceMain : Control
                 "The WorldView scene node must implement IRealtimeWorldView.");
         _ui = GetNode<RealtimeUiRoot>("%UiRoot");
         _ui.NewGameRequested += StartNewGame;
+        _ui.ContinueRequested += ContinueGame;
         ApplyLogicalCanvas();
         GetWindow().Title = "Gridworks";
         if (_launch.Kind == RealtimeLaunchKind.ProductTitle)
@@ -66,6 +75,7 @@ internal sealed partial class RealtimeSliceMain : Control
 
     public override void _ExitTree()
     {
+        PersistProgress();
         DetachSession();
         if (_logicalCanvasApplied && GetWindow() is Window window)
         {
@@ -88,10 +98,12 @@ internal sealed partial class RealtimeSliceMain : Control
 #endif
     }
 
-    private void Bootstrap()
+    private void Bootstrap(
+        RealtimeSliceData? restoredData = null,
+        RealtimeCampaignRestoreResult? restore = null)
     {
         Assembly assembly = typeof(RealtimeSliceMain).Assembly;
-        RealtimeSliceData data = _launch.Kind switch
+        RealtimeSliceData data = restoredData ?? (_launch.Kind switch
         {
             RealtimeLaunchKind.TechnicalFixture =>
                 RealtimeSliceResources.LoadTechnicalFixture(assembly),
@@ -101,7 +113,7 @@ internal sealed partial class RealtimeSliceMain : Control
                     _launch.NativeRoute),
             _ => throw new InvalidOperationException(
                 "Product title must choose a run before session bootstrap."),
-        };
+        });
         if (!ReferenceEquals(data.NativeRoute, _launch.NativeRoute))
         {
             throw new InvalidOperationException(
@@ -109,7 +121,9 @@ internal sealed partial class RealtimeSliceMain : Control
         }
 
         DetachSession();
-        _session = new RealtimeSession(data);
+        _session = restore is null
+            ? new RealtimeSession(data)
+            : RealtimeSession.Resume(data, restore);
         Session.PresentationPublished += PublishPresentation;
         Session.PointerPresentationPublished += PublishPointerPresentation;
         Session.EvidenceRecorded += RecordEvidence;
@@ -187,9 +201,8 @@ internal sealed partial class RealtimeSliceMain : Control
     {
         DetachSession();
         _worldControl!.Visible = false;
-        _ui!.ShowProductTitle(new RealtimeProductTitlePresentation(
-            "새로운 청류시 운영을 시작할 준비가 됐습니다.",
-            "저장된 진행이 없어 이어하기를 사용할 수 없습니다. 새 게임을 시작하세요."));
+        RealtimeProductTitlePresentation presentation = ProbeContinuation();
+        _ui!.ShowProductTitle(presentation);
     }
 
     private void StartNewGame()
@@ -200,9 +213,162 @@ internal sealed partial class RealtimeSliceMain : Control
                 "New Game is available only from the product title.");
         }
         _launch = RealtimeLaunchSelection.Native(RealtimeNativeRouteCatalog.FirstLight);
+        _continuation = null;
         WireGameplayNodes();
         ShowGameplaySurface();
         Bootstrap();
+    }
+
+    private void ContinueGame()
+    {
+        if (_launch.Kind != RealtimeLaunchKind.ProductTitle ||
+            _session is not null ||
+            _continuation is not RealtimeContinuation continuation)
+        {
+            throw new InvalidOperationException(
+                "Continue is available only for a validated product-title save.");
+        }
+        _continuation = null;
+        _launch = RealtimeLaunchSelection.Native(continuation.Route);
+        WireGameplayNodes();
+        ShowGameplaySurface();
+        Bootstrap(continuation.Data, continuation.Restore);
+    }
+
+    private RealtimeProductTitlePresentation ProbeContinuation()
+    {
+        _continuation = null;
+        RealtimeCampaignSaveLoadResult load = RealtimeCampaignSaveStore.Load(
+            ResolveSavePath());
+        if (load.Status == RealtimeCampaignSaveLoadStatus.Missing)
+        {
+            return new RealtimeProductTitlePresentation(
+                "새로운 청류시 운영을 시작할 준비가 됐습니다.",
+                "저장된 진행이 없어 이어하기를 사용할 수 없습니다. 새 게임을 시작하세요.",
+                CanContinue: false,
+                CanStartNewGame: true);
+        }
+        if (load.Status != RealtimeCampaignSaveLoadStatus.Loaded || load.Save is null)
+        {
+            string reason = load.Status switch
+            {
+                RealtimeCampaignSaveLoadStatus.Unsupported =>
+                    "이 버전에서 지원하지 않는 저장입니다. 원본을 보존하기 위해 시작을 차단했습니다.",
+                RealtimeCampaignSaveLoadStatus.IoFailure =>
+                    "저장 파일을 읽을 수 없습니다. 원본을 바꾸지 않았습니다.",
+                _ => "저장 파일이 손상됐습니다. 원본을 보존하기 위해 시작을 차단했습니다.",
+            };
+            return new RealtimeProductTitlePresentation(
+                "저장된 진행을 확인하지 못했습니다.",
+                reason,
+                CanContinue: false,
+                CanStartNewGame: false);
+        }
+
+        try
+        {
+            RealtimeCampaignSave save = load.Save;
+            if (!RealtimeNativeRouteCatalog.TryResolve(
+                    save.Source.RouteId,
+                    out RealtimeNativeRoute? route) ||
+                !ReferenceEquals(route, RealtimeNativeRouteCatalog.FirstLight))
+            {
+                throw new RealtimeCampaignPersistenceException(
+                    RealtimeCampaignPersistenceFailureKind.Invalid,
+                    "The save is not the standalone FIRST_LIGHT product route.");
+            }
+            RealtimeSliceData data = RealtimeSliceResources.LoadNativeRelease(
+                typeof(RealtimeSliceMain).Assembly,
+                route);
+            RealtimeCampaignRestoreResult restore =
+                RealtimeCampaignSaveCodec.Restore(
+                    SourceIdentity(data),
+                    data.Campaign,
+                    data.World,
+                    save);
+            if (restore.Run.AcceptedCommands.Count == 0 ||
+                !RealtimeSession.IsStableProgressSnapshot(restore.Run.GetSnapshot()))
+            {
+                throw new RealtimeCampaignPersistenceException(
+                    RealtimeCampaignPersistenceFailureKind.Invalid,
+                    "The saved run is outside the stable progress boundary.");
+            }
+            _continuation = new RealtimeContinuation(route, data, restore);
+            RealtimeCampaignSnapshot snapshot = restore.Run.GetSnapshot();
+            return new RealtimeProductTitlePresentation(
+                "저장된 청류시 운영을 이어갈 수 있습니다.",
+                $"{RealtimePresentationText.Time(snapshot.Minute)} · " +
+                $"운영 자금 {RealtimePresentationText.Cash(snapshot.CashUnit)} · " +
+                "이어하기는 paused 상태로 열립니다.",
+                CanContinue: true,
+                CanStartNewGame: false);
+        }
+        catch (Exception exception) when (
+            exception is RealtimeCampaignPersistenceException or
+                ArgumentException or InvalidOperationException)
+        {
+            return new RealtimeProductTitlePresentation(
+                "저장된 진행이 현재 콘텐츠와 일치하지 않습니다.",
+                "원본을 바꾸지 않았습니다. 이 scope에서는 새 게임 덮어쓰기도 차단됩니다.",
+                CanContinue: false,
+                CanStartNewGame: false);
+        }
+    }
+
+    private void PersistProgress()
+    {
+        if (_session is null ||
+            !ReferenceEquals(
+                _launch.NativeRoute,
+                RealtimeNativeRouteCatalog.FirstLight))
+        {
+            return;
+        }
+        try
+        {
+            if (Session.TryCaptureProgress(
+                    SourceIdentity(Session.Data),
+                    out RealtimeCampaignSave? save) &&
+                save is not null)
+            {
+                RealtimeCampaignSaveStore.Save(ResolveSavePath(), save);
+            }
+        }
+        catch (Exception exception) when (
+            exception is RealtimeCampaignPersistenceException or IOException or
+                UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        {
+            GD.PushError($"R2 progress save failed: {exception.Message}");
+        }
+    }
+
+    private static RealtimeCampaignSourceIdentity SourceIdentity(RealtimeSliceData data)
+    {
+        RealtimeNativeRoute route = RealtimeNativeRouteCatalog.RequireSupported(
+            data.NativeRoute ?? throw new InvalidOperationException(
+                "Only a canonical native route may be saved."));
+        return new RealtimeCampaignSourceIdentity(
+            route.LaunchArgument,
+            data.BaseWorldSha256,
+            data.BaseCampaignSha256,
+            data.WorldSha256,
+            data.CampaignOverlaySha256 ?? throw new InvalidOperationException(
+                "A native save requires the realtime overlay identity."),
+            data.CampaignSha256,
+            data.FullComposedCampaignSha256 ?? throw new InvalidOperationException(
+                "A native save requires the full composed campaign identity."));
+    }
+
+    private string ResolveSavePath()
+    {
+#if DEBUG
+        if (!string.IsNullOrWhiteSpace(_savePathOverrideForSmoke))
+        {
+            return _savePathOverrideForSmoke;
+        }
+#endif
+        return ProjectSettings.GlobalizePath(
+            $"user://{RealtimeCampaignSaveStore.FileName}");
     }
 
     private void ShowGameplaySurface()

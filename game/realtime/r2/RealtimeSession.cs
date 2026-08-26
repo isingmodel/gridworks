@@ -102,13 +102,75 @@ internal sealed partial class RealtimeSession
     internal event Action<string>? EvidenceRecorded;
 
     internal RealtimeSession(RealtimeSliceData data)
+        : this(
+            data,
+            new RealtimeCampaignRun(
+                data?.Campaign ?? throw new ArgumentNullException(nameof(data)),
+                data.World),
+            Array.Empty<RealtimeTransition>(),
+            resumed: false)
+    {
+    }
+
+    private RealtimeSession(
+        RealtimeSliceData data,
+        RealtimeCampaignRun run,
+        IReadOnlyList<RealtimeTransition> transitionHistory,
+        bool resumed)
     {
         _data = data ?? throw new ArgumentNullException(nameof(data));
-        _run = new RealtimeCampaignRun(_data.Campaign, _data.World);
+        _run = run ?? throw new ArgumentNullException(nameof(run));
+        ArgumentNullException.ThrowIfNull(transitionHistory);
         _frame = new RealtimeFrameAccumulator(CatchUpCeilingMinutes);
-        _interaction = RealtimeInteractionReducer.Initial(chapterBriefing: true);
+        if (resumed)
+        {
+            RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
+            if (!IsStableProgressSnapshot(snapshot) ||
+                _run.AcceptedCommands.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    "A resumed R2 session requires accepted stable incomplete progress.");
+            }
+            _emittedTransitions.AddRange(transitionHistory);
+            foreach (RealtimeTransition transition in transitionHistory.Where(item =>
+                         item.Kind == RealtimeTransitionKind.ThermalProtectiveTrip))
+            {
+                _autoPausedIncidentKeys.Add(
+                    $"{transition.Minute}:{transition.AssetKind}:{transition.AssetId}");
+            }
+            RealtimeInteractionState running =
+                RealtimeInteractionReducer.Initial(chapterBriefing: false);
+            RealtimeInteractionReduction paused = RealtimeInteractionReducer.Reduce(
+                running,
+                RealtimeR2Intent.SetPlayerPaused(true),
+                snapshot.Construction);
+            if (!paused.Accepted)
+            {
+                throw new InvalidOperationException(
+                    "A restored R2 session could not enter its paused resume policy.");
+            }
+            _interaction = RealtimeInteractionReducer.AlignWithAuthoritativeDraft(
+                paused.State,
+                snapshot.Construction);
+        }
+        else
+        {
+            _interaction = RealtimeInteractionReducer.Initial(chapterBriefing: true);
+        }
         _frame.Pause();
         Present();
+    }
+
+    internal static RealtimeSession Resume(
+        RealtimeSliceData data,
+        RealtimeCampaignRestoreResult restore)
+    {
+        ArgumentNullException.ThrowIfNull(restore);
+        return new RealtimeSession(
+            data,
+            restore.Run,
+            restore.Transitions,
+            resumed: true);
     }
 
     internal RealtimeR2IntentResult ApplyIntent(RealtimeR2Intent intent)
@@ -1876,6 +1938,26 @@ internal sealed partial class RealtimeSession
     private RealtimeCampaignSnapshot PresentedCoreSnapshot =>
         _latestPresentation?.CoreSnapshot ?? _run.GetSnapshot();
 
+    private bool CanCaptureProgress =>
+        _run.AcceptedCommands.Count > 0 &&
+        IsStableProgressSnapshot(_run.GetSnapshot()) &&
+        _interaction.ActiveModalId is null &&
+        _chapterStoryFlow.Active is null &&
+        !_epilogueFlow.Started &&
+        _retainedFrameDebt.Count == 0 &&
+        _interaction.Simulation is
+            RealtimeSimulationState.Running or
+            RealtimeSimulationState.PlayerPaused;
+
+    internal static bool IsStableProgressSnapshot(RealtimeCampaignSnapshot snapshot) =>
+        snapshot.ChapterStarted &&
+        !snapshot.CampaignComplete &&
+        snapshot.ActiveEventStates.Count == 0 &&
+        snapshot.ActiveDuty is null &&
+        snapshot.PendingTransitions.Count == 0 &&
+        snapshot.Construction.NodeDraft is null &&
+        snapshot.Construction.LineDraft is null;
+
     private void EnsureBootstrapped(bool requirePresentation = true)
     {
         if (requirePresentation && _latestPresentation is null)
@@ -1899,6 +1981,24 @@ internal sealed partial class RealtimeSession
 
     internal IReadOnlyList<TimedRealtimeCommand> AcceptedCommands =>
         _run.AcceptedCommands;
+
+    internal bool TryCaptureProgress(
+        RealtimeCampaignSourceIdentity source,
+        out RealtimeCampaignSave? save)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!CanCaptureProgress)
+        {
+            save = null;
+            return false;
+        }
+        save = RealtimeCampaignSaveCodec.Capture(
+            source,
+            _data.Campaign,
+            _data.World,
+            _run);
+        return true;
+    }
 
     internal int AcceptedCommandCount => _run.AcceptedCommands.Count;
 

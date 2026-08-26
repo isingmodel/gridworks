@@ -5,11 +5,13 @@ namespace Gridworks.Game.Realtime.UI;
 
 internal sealed record RealtimeProductTitlePresentation(
     string Status,
-    string ContinueUnavailableReason);
+    string Detail,
+    bool CanContinue,
+    bool CanStartNewGame);
 
 /// <summary>
 /// Current-R2 product entry surface. Campaign bootstrap and persistence remain
-/// outside this view; it only presents title state and emits the new-game intent.
+/// outside this view; it only presents title state and emits start intents.
 /// </summary>
 internal sealed partial class RealtimeProductTitle : Control
 {
@@ -21,12 +23,15 @@ internal sealed partial class RealtimeProductTitle : Control
     private Button _continue = null!;
 
     public event Action? NewGameRequested;
+    public event Action? ContinueRequested;
 
     internal Button NewGameButton => _newGame;
 
     internal Button ContinueButton => _continue;
 
-    internal string ContinueReasonText => _continueReason.Text;
+    internal string DetailText => _continueReason.Text;
+
+    internal string ContinueReasonText => DetailText;
 
     internal string StatusText => _status.Text;
 
@@ -41,6 +46,7 @@ internal sealed partial class RealtimeProductTitle : Control
         _continue = GetNode<Button>("%ContinueButton");
 
         _newGame.Pressed += () => NewGameRequested?.Invoke();
+        _continue.Pressed += () => ContinueRequested?.Invoke();
         AccessibilityName = "Gridworks 제품 시작 화면";
         Dismiss();
     }
@@ -48,10 +54,10 @@ internal sealed partial class RealtimeProductTitle : Control
     public void Present(RealtimeProductTitlePresentation presentation)
     {
         ArgumentNullException.ThrowIfNull(presentation);
-        if (string.IsNullOrWhiteSpace(presentation.ContinueUnavailableReason))
+        if (string.IsNullOrWhiteSpace(presentation.Detail))
         {
             throw new ArgumentException(
-                "A disabled Continue action requires a visible reason.",
+                "The product title requires visible detail.",
                 nameof(presentation));
         }
 
@@ -61,18 +67,25 @@ internal sealed partial class RealtimeProductTitle : Control
             : presentation.Status;
         _status.AccessibilityLive = AccessibilityServer.AccessibilityLiveMode.Polite;
 
-        _continue.Disabled = true;
-        _continue.AccessibilityDescription = presentation.ContinueUnavailableReason;
-        _continueReason.Text = presentation.ContinueUnavailableReason;
-        _continueReason.AccessibilityName = presentation.ContinueUnavailableReason;
-        _newGame.AccessibilityDescription =
-            "첫 임무 안내를 열고 새 게임을 시작합니다.";
+        _continue.Disabled = !presentation.CanContinue;
+        _newGame.Disabled = !presentation.CanStartNewGame;
+        _continue.AccessibilityDescription = presentation.Detail;
+        _newGame.AccessibilityDescription = presentation.CanStartNewGame
+            ? "첫 임무 안내를 열고 새 게임을 시작합니다."
+            : presentation.Detail;
+        _continueReason.Text = presentation.Detail;
+        _continueReason.AccessibilityName = presentation.Detail;
 
         AccessibilityDescription =
-            $"{presentation.Status} {presentation.ContinueUnavailableReason}".Trim();
+            $"{presentation.Status} {presentation.Detail}".Trim();
         Visible = true;
         MouseFilter = MouseFilterEnum.Stop;
-        _focusScope.Activate(_newGame);
+        Control? preferredFocus = presentation.CanContinue
+            ? _continue
+            : presentation.CanStartNewGame
+                ? _newGame
+                : null;
+        _focusScope.Activate(preferredFocus);
     }
 
     public void Dismiss()

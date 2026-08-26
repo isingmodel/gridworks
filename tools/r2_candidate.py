@@ -43,6 +43,7 @@ SAVE_PATH = "user://gridworks-r2-campaign-save-v1.json"
 SAVE_SCHEMA = "gridworks.realtime.campaign-save.v3"
 SETTINGS_PATH = "user://realtime-settings-v1.json"
 SETTINGS_SCHEMA = "gridworks.realtime-settings.v1"
+QUALIFICATION_DATA_ENV = "GRIDWORKS_R2_QUALIFICATION_USER_DATA_DIR"
 LEGAL_PATHS = (
     "INSTALL.md",
     "CREDITS.md",
@@ -876,6 +877,8 @@ def packaged_title_smoke(root: Path) -> None:
         run([require_tool("ditto", "/usr/bin/ditto"), str(source_app), str(smoke_app)])
         executable = smoke_app / "Contents/MacOS/Gridworks"
         log = smoke_root / "title.log"
+        environment = dict(os.environ)
+        environment.pop(QUALIFICATION_DATA_ENV, None)
         result = run(
             [
                 str(executable),
@@ -888,6 +891,7 @@ def packaged_title_smoke(root: Path) -> None:
                 str(log),
             ],
             cwd=smoke_root,
+            env=environment,
             timeout=60,
         )
         output = result.stdout + result.stderr
@@ -1091,6 +1095,7 @@ def build_candidate() -> None:
         raw_archive = work / "raw.zip"
         export_log = work / "export.log"
         environment = dict(os.environ)
+        environment.pop(QUALIFICATION_DATA_ENV, None)
         environment["GridworksCurrentR2Export"] = "true"
         environment.pop("GridworksLegacyV2Export", None)
         run(

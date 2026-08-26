@@ -21,12 +21,24 @@ internal sealed record RealtimeContinuation(
 /// </summary>
 internal sealed partial class RealtimeSliceMain : Control
 {
+    private enum QualificationContinuationClass
+    {
+        Missing,
+        Restorable,
+        Completed,
+        Invalid,
+        Unsupported,
+        IoFailure,
+    }
+
     private enum ProgressPersistenceOwnership
     {
         None,
         Product,
     }
 
+    private const string QualificationUserDataEnvironment =
+        "GRIDWORKS_R2_QUALIFICATION_USER_DATA_DIR";
     private static readonly Vector2I RequiredLogicalCanvas = new(1920, 1080);
 
     private readonly Dictionary<RealtimePointerOwner, int> _clickCounters = [];
@@ -34,6 +46,11 @@ internal sealed partial class RealtimeSliceMain : Control
     private RealtimeContinuation? _continuation;
     private RealtimeProductTitlePresentation? _productTitlePresentation;
     private RealtimeProductSettings _settings = RealtimeProductSettings.Default;
+    private RealtimeProductSettingsLoadStatus _settingsLoadStatus =
+        RealtimeProductSettingsLoadStatus.Missing;
+    private QualificationContinuationClass _qualificationContinuation =
+        QualificationContinuationClass.Missing;
+    private string? _qualificationUserDataDirectory;
     private string _settingsStatus = "기본 설정을 사용합니다.";
     private bool _settingsStatusIsError;
     private string? _settingsPath;
@@ -61,11 +78,24 @@ internal sealed partial class RealtimeSliceMain : Control
 
     public override void _Ready()
     {
+        try
+        {
+            _qualificationUserDataDirectory =
+                ResolveQualificationUserDataDirectory();
+        }
+        catch (InvalidOperationException exception)
+        {
+            GD.PushError($"R2 qualification user-data rejected: {exception.Message}");
+            GetTree().Quit(1);
+            return;
+        }
+
+        string[] userArguments = OS.GetCmdlineUserArgs();
 #if DEBUG
         _launch = _launchOverrideForSmoke ??
-            ParseLaunchArguments(OS.GetCmdlineUserArgs());
+            ParseLaunchArguments(userArguments);
 #else
-        _launch = ParseLaunchArguments(OS.GetCmdlineUserArgs());
+        _launch = ParseLaunchArguments(userArguments);
 #endif
         _audio = GetNode<RealtimeAudio>("%RealtimeAudio");
         _worldControl = GetNode<Control>("%WorldView");
@@ -85,6 +115,7 @@ internal sealed partial class RealtimeSliceMain : Control
             LoadProductSettings();
             PresentProductTitle();
             GD.Print("REALTIME_R2_PRODUCT_TITLE_READY");
+            PrintQualificationDataMarker(userArguments.Length);
         }
         else
         {
@@ -321,6 +352,16 @@ internal sealed partial class RealtimeSliceMain : Control
         _continuation = null;
         RealtimeCampaignSaveLoadResult load = RealtimeCampaignSaveStore.Load(
             ResolveSavePath());
+        _qualificationContinuation = load.Status switch
+        {
+            RealtimeCampaignSaveLoadStatus.Missing =>
+                QualificationContinuationClass.Missing,
+            RealtimeCampaignSaveLoadStatus.Unsupported =>
+                QualificationContinuationClass.Unsupported,
+            RealtimeCampaignSaveLoadStatus.IoFailure =>
+                QualificationContinuationClass.IoFailure,
+            _ => QualificationContinuationClass.Invalid,
+        };
         if (load.Status == RealtimeCampaignSaveLoadStatus.Missing)
         {
             return new RealtimeProductTitlePresentation(
@@ -374,6 +415,9 @@ internal sealed partial class RealtimeSliceMain : Control
             _continuation = new RealtimeContinuation(route!, data, restore);
             RealtimeCampaignSnapshot snapshot = restore.Run.GetSnapshot();
             bool completed = resumePlan.Kind == RealtimeProgressResumeKind.Completed;
+            _qualificationContinuation = completed
+                ? QualificationContinuationClass.Completed
+                : QualificationContinuationClass.Restorable;
             return new RealtimeProductTitlePresentation(
                 completed
                     ? "청류시 8장 운영을 완료한 저장입니다."
@@ -412,6 +456,7 @@ internal sealed partial class RealtimeSliceMain : Control
         RealtimeProductSettingsLoadResult load =
             RealtimeProductSettingsStore.Load(_settingsPath);
         _settings = load.Settings;
+        _settingsLoadStatus = load.Status;
         (_settingsStatus, _settingsStatusIsError) = load.Status switch
         {
             RealtimeProductSettingsLoadStatus.Missing =>
@@ -615,8 +660,7 @@ internal sealed partial class RealtimeSliceMain : Control
             return _savePathOverrideForSmoke;
         }
 #endif
-        return ProjectSettings.GlobalizePath(
-            $"user://{RealtimeCampaignSaveStore.FileName}");
+        return ResolveProductUserDataPath(RealtimeCampaignSaveStore.FileName);
     }
 
     private string ResolveSettingsPath()
@@ -627,8 +671,85 @@ internal sealed partial class RealtimeSliceMain : Control
             return _settingsPathOverrideForSmoke;
         }
 #endif
-        return ProjectSettings.GlobalizePath(
-            $"user://{RealtimeProductSettingsStore.FileName}");
+        return ResolveProductUserDataPath(RealtimeProductSettingsStore.FileName);
+    }
+
+    private string ResolveProductUserDataPath(string fileName) =>
+        _qualificationUserDataDirectory is null
+            ? ProjectSettings.GlobalizePath($"user://{fileName}")
+            : Path.Combine(_qualificationUserDataDirectory, fileName);
+
+    private static string? ResolveQualificationUserDataDirectory()
+    {
+        string? value = System.Environment.GetEnvironmentVariable(
+            QualificationUserDataEnvironment);
+        if (value is null)
+        {
+            return null;
+        }
+        if (string.IsNullOrWhiteSpace(value) || !Path.IsPathFullyQualified(value))
+        {
+            throw new InvalidOperationException(
+                $"{QualificationUserDataEnvironment} must be an absolute directory.");
+        }
+
+        try
+        {
+            string fullPath = Path.GetFullPath(value);
+            var directory = new DirectoryInfo(fullPath);
+            if (!directory.Exists)
+            {
+                throw new InvalidOperationException(
+                    $"{QualificationUserDataEnvironment} must already exist.");
+            }
+            if (directory.LinkTarget is not null ||
+                (directory.Attributes & FileAttributes.ReparsePoint) != 0)
+            {
+                throw new InvalidOperationException(
+                    $"{QualificationUserDataEnvironment} cannot be a symlink.");
+            }
+            return fullPath;
+        }
+        catch (Exception exception) when (
+            exception is ArgumentException or IOException or
+                NotSupportedException or UnauthorizedAccessException)
+        {
+            throw new InvalidOperationException(
+                $"{QualificationUserDataEnvironment} is not a usable directory.",
+                exception);
+        }
+    }
+
+    private void PrintQualificationDataMarker(int userArgumentCount)
+    {
+        if (_qualificationUserDataDirectory is null)
+        {
+            return;
+        }
+
+        string settings = _settingsLoadStatus switch
+        {
+            RealtimeProductSettingsLoadStatus.Missing => "MISSING",
+            RealtimeProductSettingsLoadStatus.Loaded => "LOADED",
+            RealtimeProductSettingsLoadStatus.Invalid => "INVALID",
+            RealtimeProductSettingsLoadStatus.Unsupported => "UNSUPPORTED",
+            RealtimeProductSettingsLoadStatus.ReadFailure => "READ_FAILURE",
+            _ => throw new ArgumentOutOfRangeException(),
+        };
+        string continuation = _qualificationContinuation switch
+        {
+            QualificationContinuationClass.Missing => "MISSING",
+            QualificationContinuationClass.Restorable => "RESTORABLE",
+            QualificationContinuationClass.Completed => "COMPLETED",
+            QualificationContinuationClass.Invalid => "INVALID",
+            QualificationContinuationClass.Unsupported => "UNSUPPORTED",
+            QualificationContinuationClass.IoFailure => "IO_FAILURE",
+            _ => throw new ArgumentOutOfRangeException(),
+        };
+        GD.Print(
+            "REALTIME_R2_QUALIFICATION_DATA_READY " +
+            $"user_args={userArgumentCount} settings={settings} " +
+            $"continuation={continuation}");
     }
 
     private void ShowGameplaySurface()

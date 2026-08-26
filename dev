@@ -16,6 +16,8 @@ usage() {
     print -u2 -- "       ./dev story SELECTOR|manifest"
     print -u2 -- "       ./dev candidate build"
     print -u2 -- "       ./dev candidate verify MANIFEST"
+    print -u2 -- "       ./dev qualify run MANIFEST"
+    print -u2 -- "       ./dev qualify verify RECORD"
 }
 
 fail() {
@@ -203,6 +205,10 @@ case $command_name in
     candidate)
         [[ $# -ge 1 ]] || fail "candidate requires build or verify MANIFEST."
         python3 "$repository_dir/tools/r2_candidate.py" "$@"
+        ;;
+    qualify)
+        [[ $# -ge 2 ]] || fail "qualify requires run MANIFEST or verify RECORD."
+        python3 "$repository_dir/tools/r2_qualification.py" "$@"
         ;;
     help|-h|--help)
         [[ $# -eq 0 ]] || fail "help takes no arguments."

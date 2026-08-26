@@ -16,16 +16,18 @@
   확인·raw sibling backup·reset: deterministic wiring 완료
 - title/gameplay 공용 current R2 settings, strict atomic persistence, create→fresh restore,
   invalid/unsupported/read/write failure 보존, explicit 개발 route read-only와 UI/audio bus/Reduce Motion
-  projection: deterministic wiring 완료; exact package의 app-owned bytes fresh-process load 분류는 2B1 완료,
-  packaged UI 조작이나 사람 UX 증거는 아님
+  projection: deterministic wiring 완료; exact package의 app-owned bytes 2B1과 title의 actual InputEvent
+  Apply→fresh Restore·headless runtime projection 2B2 완료, gameplay settings/display·사람 UX 증거는 아님
 - source-tree generated ambient와 live `Breaker/Energize/Outage` cue, one-cue operation priority와 fresh Continue
-  history 무재생: deterministic wiring 완료; speaker 출력·청감 품질·packaged coverage 증거는 아님
+  history 무재생: deterministic wiring 완료; exact package의 generated stream/bus one-start·quiet SFX wiring은
+  2B2 완료, 실제 playback·speaker·상태 coverage·청감 품질 증거는 아님
 - current R2 universal macOS ad-hoc package identity ZIP과 strict manifest/verifier, 임시 설치 위치의 no-arg
   headless title marker와 exact-empty app-owned save/settings root의 missing/settings/initial/terminal
-  fresh-process 2B1 record: 완료; engine `user://` 전체·production E2E·packaged settings UI/audio 증거는 아님
+  fresh-process 2B1, 일곱 bounded default-scene lifecycle InputEvent 2B2 record v2: 완료; engine `user://` 전체·
+  full production E2E·OS hardware·speaker·사람 UX 증거는 아님
 - text 형성평가: `TextPlanProxy = 83.4475`
 - 공식 native 평가: 미실행, `CommercialUXProxy` 없음
-- current R2 evaluation candidate package: 없음; package identity와 app-owned persistence 2B1까지만 있음
+- current R2 evaluation candidate package: 없음; package identity와 bounded combined 2B qualification까지만 완료
 - score-bearing execution authority: 없음, `ScoreBearingCaptureAllowed = false`
 - 고정 judge: `gpt-5.6-sol`, reasoning effort `ultra`
 
@@ -156,17 +158,15 @@ R2 package가 아니며 title/이어하기/settings/audio/finale·epilogue evide
 - 과거 V2/비기본 candidate를 current R2 package로 부르기
 - local controlled transcript를 platform attestation이나 judge 결과로 부르기
 - repository JSON의 model 이름이나 local transcript를 platform/API execution authority로 부르기
-- packaged default-scene 2B2/evaluation-candidate gate 전에 수집한 artifact를 나중에 official session으로
+- full native evaluation-candidate/session gate 전에 수집한 artifact를 나중에 official session으로
   승격하기
 - text score를 `CommercialUXProxy`로 승격하기
 
-공식 native 평가를 열 때는 [남은 작업](../../docs/NEXT_TASKS.md)의 2B1-qualified exact package를 소비해
-finale·epilogue 포함 전체 제품 여정, safe-point save/resume와 readable-save reset, basic audio
-play request·상태 coverage와 settings UI 조작을 packaged default scene에서 재검증하는 2B2 gate를 먼저
-닫는다. 이 gate는 packager나 2B1 verifier를 복제하지 않고 기존 source/package/tool identity에 input
-journey evidence를 결속한다. 이어서 2B2 qualification이 끝난 exact candidate를 소비하는 versioned
-evaluation-session authority, capture, evidence verifier, hard-gate oracle과 score aggregator를 별도 gate로
-구현한다. 이 전환은
+공식 native 평가를 열 때는 완료된 combined 2B record가 고정한 exact package를 소비한다. 그 위에서
+finale·epilogue 포함 전체 cold/coverage 여정, safe-point save/resume, live state cue·audio playback과 실제
+화면 evidence를 수집하는 versioned evaluation-session authority, capture, evidence verifier, hard-gate
+oracle과 score aggregator를 구현한다. bounded lifecycle 2B2를 full journey나 evaluation-ready evidence로
+승격하지 않는다. 이 전환은
 [평가 프로토콜](../../docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)의
 rubric·hard gate·model receipt를 함께 결속하고 누락에서 fail-closed해야 한다. 기존 UX-R0 context와
 panel은 덮어쓰지 않으며, 새 version에서 current coverage와 evidence 상한을 다시 정의한다.

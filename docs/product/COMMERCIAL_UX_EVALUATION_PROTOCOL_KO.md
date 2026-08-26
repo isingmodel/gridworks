@@ -32,8 +32,8 @@ OS 호환성이나 출시 승인을 대신하지 않는다.
 | 실시간 장 일정·사건·결정 기한 | `data/release-campaign-v3.json` |
 | 실시간 규칙 | `src/Gridworks.Core/Release/V3/` |
 | native UX | `game/realtime/r2/`, `game/realtime/ui/` |
-| 제품 title·이어하기·settings·audio | 2B1+2B2 qualification을 통과한 exact current R2 package의 실제 runtime |
-| 평가 후보 | 2A manifest/archive identity와 2B1/2B2 record가 함께 고정한 exact package contents |
+| 제품 lifecycle seam | combined 2B record v2가 고정한 exact package의 bounded title·Continue·reset·settings·generated-audio runtime |
+| 평가 후보 | 2B-qualified exact package를 첫 capture 전 versioned evaluation-session gate에 등록하고 candidate identity로 결속한 후보; full journey capture·evidence는 후속 평가 산출물 |
 | score-bearing model identity·freshness | 같은 session에 결속된 검증 가능한 platform/API raw receipt |
 | 사건 지평선(future-event bar) | `game/realtime/ui/RealtimeEventRail.cs`와 typed presentation |
 | 점수 label·weight·수치 reduction | `tools/commercial-ux/rubric.json` |
@@ -71,9 +71,9 @@ native coverage에 맞춰 만든다.
 
 ### NATIVE
 
-2B-qualified finalized current R2 evaluation candidate를 처음부터 조작하는 cold journey와 고정
-checkpoint/alternate branch를 다루는 coverage journey를 같은 evidence set으로 평가한다. 이 결과만
-`CommercialUXProxy` 후보가 될 수 있다.
+2B-qualified exact package를 versioned evaluation session에 결속한 뒤 처음부터 조작하는 cold journey와
+고정 checkpoint/alternate branch를 다루는 coverage journey를 같은 evidence set으로 평가한다. 이 전체
+결속을 통과한 결과만 `CommercialUXProxy` 후보가 될 수 있다.
 
 - cold actor 3명: 서로의 trace를 보지 않는 fresh actor
 - coverage actor: branch, 오류 회복, 접근성, save/resume와 audiovisual coverage
@@ -86,8 +86,9 @@ actor는 judge가 아니며 judge는 게임을 대신 조작하지 않는다. ac
 
 ## 4. 게임 완결성 coverage
 
-공식 native session은 전체 여정, title/이어하기, save, settings, audio와 exact install package가
-완성되고 2A package manifest와 그 identity에 결속된 2B1/2B2 records가 finalized된 뒤에만 시작한다.
+공식 native session은 finalized combined 2B record가 고정한 exact package를 소비하되, full native journey
+capture·evidence와 versioned evaluation-session authority·oracle이 준비된 뒤에만 시작한다. bounded 2B2
+lifecycle record 자체를 evaluation-ready evidence로 승격하지 않는다.
 
 공식 native session은 다음을 모두 포함해야 한다.
 
@@ -162,7 +163,7 @@ judge 간 spread에는 고정 penalty를 적용한다.
 - title의 `새 게임`·`이어하기`, 필수 settings와 synchronized audio 누락 0
 - capture 당시 settings와 audio channel 상태가 evidence에 기록되고 fresh-process settings 복원이 확인됨
 
-첫 score-bearing capture 전에 2B-qualified exact candidate를 소비하는 versioned evaluation-session authority,
+첫 score-bearing capture 전에 2B-qualified exact package를 소비하는 versioned evaluation-session authority,
 evidence verifier, hard-gate oracle과 aggregator가 `rubric.json`, 이 절의 hard gate, candidate,
 evidence와 model identity·receipt를 결속해야 한다. 하나라도 없거나 불일치하면 점수를 내지 않고
 fail-closed한다. 현재 `tools/commercial-ux/native/`의 non-score 구조물은 이 권위를 대신하지 않는다.
@@ -234,15 +235,16 @@ deterministic failure 또는 blinded observation
 - title/gameplay 공용 current R2 settings, strict missing/invalid/unsupported/read/write fail-closed,
   create→fresh restore, explicit 개발 route read-only, UI scale·volume/mute·Reduce Motion과 local macOS
   non-headless window-mode projection: deterministic wiring 완료. exact package의 app-owned settings bytes
-  fresh-process load 분류도 2B1 완료; packaged UI 조작이나 사람 접근성 증거는 아님
+  2B1과 title의 actual InputEvent Apply→fresh Restore·headless UI/audio-bus projection 2B2 완료; gameplay
+  settings journey, 물리 display와 사람 접근성 증거는 아님
 - current R2 universal macOS ad-hoc package identity ZIP, strict manifest/verifier와 임시 설치 위치의 no-arg
   headless title marker: 완료. exact-empty app-owned root의 missing/settings/initial/terminal fresh-process
-  분류와 strict record도 2B1 완료. engine `user://` 전체, packaged-campaign production 입력,
-  settings UI/audio·speaker, 사람 UX 또는 evaluation-ready 증거는 아님
-- source-tree basic audio는 구현됐지만 packaged audio playback·상태 coverage·청감 품질, packaged settings
-  UI 조작과 score-bearing execution authority·oracle/aggregator: 미완료
+  data stage 2B1과 일곱 bounded lifecycle InputEvent stage의 strict record v2도 2B2 완료. engine `user://`
+  전체, full packaged-campaign production input, OS hardware, 사람 UX 또는 evaluation-ready 증거는 아님
+- exact package의 generated ambient stream/bus one-start와 quiet SFX wiring은 2B2 완료. 실제 audio playback·
+  device·speaker, live cue 상태 coverage·청감 품질과 score-bearing execution authority·oracle/aggregator는 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음
 
-평가 실행은 전체 native 여정과 exact candidate의 2B2 packaged settings UI/audio qualification,
-score-bearing execution authority가 모두 준비된 뒤 [남은 작업](../NEXT_TASKS.md)의 별도 scope로 연다.
+평가 실행은 완료된 2B-qualified exact package를 소비하는 full native journey capture와 score-bearing
+execution authority가 모두 준비된 뒤 [남은 작업](../NEXT_TASKS.md)의 별도 scope로 연다.

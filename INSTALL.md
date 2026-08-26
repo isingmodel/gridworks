@@ -10,10 +10,10 @@ current-v3 terminal save가 있으면 `이어하기`가 활성화된다. termina
 zero-command exact initial briefing, exact-minute active `EventStory | DecisionWindowStory`와 bounded
 non-final result→next briefing, full `ProductCampaign`의 exact terminal 완료 save/Continue는 구현됐다.
 non-saveable 정상 종료의 prior-save 보존과 readable save의 확인·backup·reset도 구현됐다. current R2
-전용 universal macOS ad-hoc 내부 package identity 후보와 strict verifier는 있다. 다만 빈 user-data 전체
-여정과 packaged production 입력/audio, Developer ID·공증 또는 출시 후보 qualification은 아직 없다.
-exact package의 app-owned save/settings만 별도 빈 root에서 fresh process로 읽는 2B1 qualification은
-완료됐다. 제품 title과
+전용 universal macOS ad-hoc 내부 package identity 후보와 strict verifier는 있다. exact package의
+app-owned save/settings 2B1과 default-scene lifecycle InputEvent 2B2 qualification도 완료됐다. 다만 engine
+user-data 전체 격리, 전체 8장 packaged production 입력, 실제 audio device·speaker, Developer ID·공증 또는
+출시 후보 qualification은 아직 없다. 제품 title과
 gameplay는 current R2 설정 surface를 공유하고, window mode, UI 배율,
 Master/Ambient/SFX volume·mute와 Reduce Motion을 별도 strict 파일에 저장한다. 과거 V2의 저장·설정
 파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다. `RealtimeAudio`는 별도 음원 파일 없이
@@ -212,7 +212,7 @@ Godot user-data에 과거 V2의 `release-campaign-save-v3.json`이나 `settings.
 권위가 아니다. 빈 user-data를 검사할 때 기존 파일을 삭제하거나 덮어쓰지 말고 별도 폴더로 옮겨
 백업한다. 남은 transient cursor와 backup 관리 UI는 현재 제품 범위 밖이다.
 
-## current R2 macOS 내부 package identity와 2B1 qualification
+## current R2 macOS 내부 package identity와 2B qualification
 
 macOS의 clean committed HEAD에서 다음 명령을 사용한다. build는 Godot 4.7.1 Mono, .NET SDK 8.0.129와
 .NET runtime 8.0.29를 고정 확인하고 candidate를 만든 뒤 같은 strict verifier까지 실행한다.
@@ -239,18 +239,23 @@ managed assemblies, current R2 PCK의 G3 `.png.import` 57개와 exact `.ctex` ba
 `./dev qualify run`은 manifest/archive를 private read-only copy로 고정·재검증하고 exact-empty 임시
 Gridworks-owned root를 사용한다. source actual-scene smoke가 만든 settings, initial save와 terminal save를
 동일 package의 user-argument 없는 fresh process가 각각 loaded, restorable, completed로 분류해야 한다.
-qualification env가 없을 때는 기존 `user://`를 유지하며, 실제 account home의 current save/settings와
-추출한 app tree가 실행 전후 동일해야 한다. `verify`는 새 임시 root에서 모든 stage를 재실행해 canonical
-record와 byte-level로 비교한다.
+이어 7개 fixed scenario가 exact default scene의 disabled Continue/New Game, progress/completed Continue,
+completed/reset New Game, settings apply→fresh restore를 실제 `Viewport.PushInput`으로 조작한다. record v2는
+시나리오별 exact pointer/key input 수, before/after save/settings bytes, reset의 한 normalized raw backup과
+generated ambient PCM/Ambient bus one-start와 SFX player quiet/null/no-live-cue wiring을 기존 2B1
+identity에 결속한다. invalid scenario/root는 title marker 전에
+exit 1로 닫히고, qualification env가 없을 때는 lifecycle marker·입력 없이 기존 `user://`를 유지한다.
+실제 account home의 current save/settings와 추출한 app tree도 실행 전후 동일해야 한다. `verify`는 새
+임시 root에서 모든 stage를 재실행해 canonical record와 byte-level로 비교한다.
 
-2A title smoke는 앱 설치 위치만 임시화한다. 2B1도 app-owned 두 fixed file만 별도 root로 보낼 뿐 Godot
-engine `user://` 전체를 비우거나 격리하지 않는다. 따라서 결과는 전체 8장 packaged production 입력,
-save/reset/settings UI 조작, speaker audio·청감, 사람/native UX, evaluation readiness, 지원 OS 일반화,
-Developer ID·공증 또는 공개 배포 승인이 아니다.
+2A title smoke는 앱 설치 위치만 임시화하고 2B도 app-owned 두 fixed file만 별도 root로 보낸다. Godot
+engine `user://` 전체를 비우거나 격리하지 않는다. 따라서 결과는 authored 8장의 action-by-action packaged
+production 입력, OS hardware input, 실제 window/display, audio device·speaker·청감, 사람/native UX,
+evaluation readiness, 지원 OS 일반화, Developer ID·공증 또는 공개 배포 승인이 아니다.
 
 일반 Debug/Release graph와 `ExportRelease`는 서로 다르다. `ExportRelease`는
 `GridworksCurrentR2Export=true`와 `GridworksLegacyV2Export=true` 중 정확히 하나를 요구하며 missing/both는
 fail-closed한다. current candidate 명령은 current selector를 직접 설정한다. frozen V2 내부 경로는 legacy
 selector만 쓰며 current R2 후보로 해석하지 않는다. 상세 graph와 claim 경계는
-[개발 구조](docs/ARCHITECTURE.md), 다음 packaged production-input 2B2 qualification은
+[개발 구조](docs/ARCHITECTURE.md), 남은 제품 마감·평가·배포 gate는
 [남은 작업](docs/NEXT_TASKS.md)을 따른다.

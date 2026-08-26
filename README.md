@@ -12,8 +12,8 @@ exact initial briefing, exact-minute active in-chapter story, non-final result�
 `새 게임`으로 첫 장부터 다시 시작할 수 있다. 진행 중이거나 읽을 수 있는 비호환 저장도 같은 버튼의
 확인→원본 sibling backup 뒤 첫 장부터 다시 시작할 수 있다. title과 gameplay가 공유하는 current R2
 제품 설정과 strict persistence, code-native 기본 audio는 구현됐고, 출시 패키지에서의 audio coverage·
-청감 검증과 공식 UX 평가는 남아 있다. exact 내부 package의 app-owned save/settings는 별도 빈 root에서
-fresh process마다 missing/loaded/restorable/completed로 분류하는 2B1 qualification을 통과했다.
+청감 검증과 공식 UX 평가는 남아 있다. exact 내부 package는 별도 app-owned root의 save/settings 2B1과
+default scene의 title·Continue·reset·settings·generated-audio lifecycle seam 2B2 qualification을 통과했다.
 
 ## 30초 현재 상태
 
@@ -29,8 +29,8 @@ fresh process마다 missing/loaded/restorable/completed로 분류하는 2B1 qual
 | 직접 플레이 관찰 | `NORTH_BANK_PROMISE`까지 누적 4장; Keep·명시적 Defer를 각각 fresh process에서 확인 |
 | 사건 지평선 | 한 줄 future-event bar(`RealtimeEventRail`)의 compact marker와 hover/선택 상세 정보 |
 | product settings | title/gameplay 공용 surface, UI 100/125/150/200%, Master/Ambient/SFX 0/25/50/75/100%, windowed/fullscreen, Reduce Motion과 strict atomic persistence 구현 |
-| product audio | 22,050Hz mono PCM16 ambient 1개와 live `Breaker/Energize/Outage` cue를 source-tree에서 생성; Session 의미·Ambient/SFX bus·Resume 무재생 연결 완료 |
-| macOS 내부 package와 2B1 | current R2 universal ad-hoc ZIP·strict manifest/verifier와 exact-empty app-owned save/settings root의 fresh-process missing/loaded/restorable/completed 분류 완료; engine `user://` 전체·packaged production 입력/audio·사람 UX·공증은 아직 아님 |
+| product audio | 22,050Hz mono PCM16 ambient와 live `Breaker/Energize/Outage` cue 생성; Session 의미·bus·Resume 무재생, packaged ambient one-start/SFX-quiet wiring 2B2 완료 |
+| macOS 내부 package와 2B | current R2 universal ad-hoc ZIP·strict manifest/verifier, app-owned save/settings 2B1과 packaged lifecycle InputEvent 2B2 완료; 전체 8장 packaged 입력·OS hardware·speaker·사람 UX·공증은 아직 아님 |
 | 공식 상용 UX 점수 | 없음. 텍스트 계획 형성평가만 `83.4475` |
 | 현재 구현 권한 | [현재 작업 범위](docs/ACTIVE_SCOPE.md)가 단일 권위 |
 
@@ -123,13 +123,16 @@ macOS에서 clean committed HEAD의 current R2 내부 package identity 후보를
 ```
 
 이 후보는 exact archive/tree, universal runtime, PCK의 G3 57개, legal files와 headless 제품 title marker를
-검증한다. qualification은 그 exact package를 private copy로 고정한 뒤 exact-empty Gridworks-owned root에서
-save/settings missing, settings load, 진행 저장 복원 가능, 완료 저장 복원 가능 상태를 fresh packaged
-process로 재구성해 canonical record에 결속한다. 실제 account home의 current 두 파일과 package app tree도
-실행 전후 동일해야 한다.
+검증한다. qualification v2는 그 exact package를 private copy로 고정한 뒤 2B1의 missing/settings/progress/
+completed data stage와 2B2의 empty New Game, progress/completed Continue, completed/reset New Game,
+settings apply→fresh restore를 default scene의 actual `Viewport.PushInput`으로 재구성한다. 각 exact input 수,
+save/settings bytes, generated ambient PCM/Ambient bus one-start와 SFX player quiet wiring, 실제 account
+home의 current 두 파일과 package app tree를
+canonical record에 결속하며 invalid scenario/root도 title 전에 거부한다.
 
-이 결과는 app-owned 두 파일의 2B1 증거다. Godot engine `user://` 전체 격리, 전체 8장 packaged production
-입력, settings UI 조작, packaged audio·speaker, 사람 UX, Developer ID·공증 또는 출시 승인을 주장하지 않는다.
+이 결과는 bounded product lifecycle seam의 2B 증거다. Godot engine `user://` 전체 격리, 전체 8장 packaged
+production 입력, OS hardware input, 실제 audio device·speaker, 사람 UX, Developer ID·공증 또는 출시 승인을
+주장하지 않는다.
 
 `./dev check`는 current root solution, RealtimeChecks의 누적 8장 stable replay와 pending fail-closed,
 CommercialChecks, 세 Python 회귀, no-arg 제품 title과 명시적 fixture entry smoke, 같은 save path의
@@ -188,8 +191,8 @@ selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체
 [자산 안내](ASSET_MANIFEST.md)에 기록한다.
 
 현재 R2에는 외부 녹음 음원과 상태 전반의 packaged audio·사람 청감 검증, transient cursor/schema와
-backup browser/restore/delete UI가 없다. universal macOS ad-hoc 내부 package identity와 app-owned
-save/settings 2B1 qualification은 있지만 engine `user://` 전체 격리와 packaged production-input 전체 여정,
+backup browser/restore/delete UI가 없다. universal macOS ad-hoc 내부 package identity와 app-owned data 2B1,
+packaged lifecycle seam 2B2 qualification은 있지만 engine `user://` 전체 격리와 packaged production-input 전체 여정,
 Developer ID 서명·공증, 지원 OS 검증,
 사람 미감·사용성 검토, 한국어·전력설비 전문 검토 또는 공개 출시 승인이 없다. 저장소를
 열람할 수 있다는 사실은 자산의 재사용·재배포 허가를 뜻하지 않는다.

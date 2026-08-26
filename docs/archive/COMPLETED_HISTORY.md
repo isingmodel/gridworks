@@ -417,6 +417,29 @@ invalid root, type/key/canonical record mutation, targeted Debug/ExportRelease b
 `user://` 전체 격리, packaged InputEvent 전체 8장·reset/settings UI, audio device·speaker, 사람 UX,
 evaluation readiness, Developer ID·공증·출시를 뜻하지 않는다. push, PR, merge는 수행하지 않았다.
 
+### UX-R2.24 — packaged lifecycle InputEvent qualification
+
+2B2를 authored 8장 재생 harness가 아니라 exact package에서 달라질 수 있는 default-scene lifecycle seam으로
+줄였다. release-safe dormant `RealtimeSliceMain.Qualification.cs` 하나가 두 qualification env가 모두 유효할
+때만 실제 `Viewport.PushInput`을 넣는다. empty New Game, progress Continue, completed Continue/New Game,
+restorable progress save의 reset New Game, settings Apply와 fresh Restore 일곱 scenario를 app user argument
+없이 실행했다. exact pointer/key input 수는 각각 `6/0`, `3/0`, `3/0`, `3/0`, `6/0`, `39/2`, `3/2`이며
+title/session/settings/save/audio 분류 marker 하나로 닫힌다. env가 없으면 marker·입력·새 파일이 없고,
+invalid scenario/root는 title marker 전에 exit 1과 정확히 한 bootstrap error로 거부된다.
+
+기존 `tools/r2_qualification.py`를 새 runner/tool 없이 확장했다. canonical record v2가 2B1 네 data stage와
+2B2 일곱 lifecycle stage, source/package/tool identity, exact input marker, before/after save/settings bytes,
+reset의 한 normalized GUID sibling backup을 결속한다. settings는 actual popup input으로 Apply한 뒤 같은
+package fresh process의 control·UI scale·audio bus 값으로 복원하고, generated PCM의 Ambient bus one-start와
+history SFX quiet wiring을 확인한다. record·candidate를 private pinned bytes로 재구성하며 unset marker,
+input-count·type/key/canonical/identity mutation과 장시간 verify 중 record 교체도 fail-closed한다.
+
+targeted Debug/ExportRelease build, candidate build/verify, qualification run/fresh verify, 전체 `./dev check`와
+두 bounded independent code review를 통과했고 최종 finding 0으로 닫혔다. 이 완료는 engine `user://` 전체,
+authored 8장 packaged production-input E2E, OS hardware input, 실제 window/display·audio playback/device·speaker,
+live cue 전체 coverage, 사람 UX·미감·접근성, evaluation readiness, Developer ID·공증·출시를 뜻하지 않는다.
+push, PR, merge는 수행하지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

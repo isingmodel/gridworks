@@ -32,10 +32,11 @@
   실행은 product save를 읽거나 쓰지 않는다. non-saveable 정상 exit는 직전 bytes를 보존하고 다음 safe
   exit만 갱신한다. in-progress와 readable blocked save는 확인→raw sibling backup 뒤 canonical 새 게임을
   시작하며 I/O failure는 차단한다. title/gameplay 공용 current R2 settings vertical slice와 strict
-  persistence, generated non-voice ambient와 live `Breaker/Energize/Outage` cue는 구현됐다. packaged
-  settings UI/audio 재검증과 상태 전반의 청감·접근성 coverage는 남았다. current R2 전용 universal macOS
-  ad-hoc package identity 후보·strict manifest/verifier와 app-owned save/settings 2B1 qualification은
-  구현됐지만 packaged production-input 전체 여정이나 평가 후보 qualification, 공식 UX 점수는 없다.
+  persistence, generated non-voice ambient와 live `Breaker/Energize/Outage` cue는 구현됐다. current R2
+  universal macOS ad-hoc package identity와 app-owned data 2B1, bounded default-scene lifecycle InputEvent
+  2B2 record v2도 완료됐다. packaged settings apply/fresh restore와 generated stream/bus one-start wiring은
+  확인했지만 실제 display·hardware input·audio device/speaker, 상태 전반의 청감·접근성 coverage, 전체 8장
+  packaged production-input, evaluation-ready authority와 공식 UX 점수는 없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
 연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
@@ -48,8 +49,9 @@
 
 현재 G3 적용을 출발점으로 정상·공사·폭염·범람·비상·보호정지·냉각·복귀 화면을 실제 플레이에서
 검수한다. player settings surface와 source-tree fresh-process persistence, generated non-voice ambient와
-live operation cue mapping은 완료됐다. 남은 일은 실제 상태 전반에서 시청각·조작성·접근성 coverage를
-검수하고 exact candidate에서 settings UI 조작·runtime projection과 audio playback을 검증하는 것이다.
+live operation cue mapping, exact candidate의 title settings apply/fresh restore와 headless UI/audio-bus
+projection은 완료됐다. 남은 일은 실제 display·hardware input·audio device에서 상태 전반의 시청각·
+조작성·접근성 coverage와 gameplay settings/focus 복귀를 검수하는 것이다.
 과거 V2의 자산은 current runtime authority가 아니다.
 아트·audio 파일의 존재가 아니라 화면 밀도, 설비
 실루엣, 상태 인과, sound cue, hit target과 프레임 성능을 판정한다.
@@ -68,35 +70,10 @@ live operation cue mapping은 완료됐다. 남은 일은 실제 상태 전반�
 
 1.0의 audio는 non-voice ambient와 interaction/state cue 범위다. 음성 연기는 이 단계에 포함하지 않는다.
 
-### 2. current R2 packaged product-data와 lifecycle InputEvent qualification
-
-2A의 current R2 internal package identity와 2B1의 exact-empty app-owned save/settings fresh-process
-qualification은 완료됐다. 2B1 record는 source/package/tool, missing/settings/initial/terminal stage와 실제
-default 두 파일·app tree 불변을 결속한다. 이는 Godot engine `user://` 전체나 새 OS account 격리가 아니다.
-
-남은 2B2는 그 exact candidate의 default scene에서 제품 lifecycle seam을 `Viewport.PushInput`으로 조작하는
-가장 작은 단위다. authored 8장 규칙·상태는 동일 source의 deterministic Core/actual-scene 검사가 소유하고,
-2B2는 package에서 달라질 수 있는 title·Continue·reset·settings·generated audio wiring만 다시 확인한다.
-engine 입력은 OS hardware input이나 speaker 청감 증거가 아니다. packager와 runner scene을 복제하지 않고
-2B1 authority와 record를 확장한다.
-
-2B2 완료 기준:
-
-- 시작할 exact candidate의 2B1 record를 독립 재검증하고 동일 source/package/tool identity를 유지
-- empty title의 disabled Continue와 New Game→exact initial briefing을 packaged pointer input으로 확인
-- source-staged in-progress/completed save의 packaged Continue→paused/Ended, completed New Game→initial 확인
-- readable blocked save의 New Game 두 번→raw sibling backup 하나와 canonical initial session 확인
-- settings open, candidate apply, close와 동일 후보 fresh process의 UI/runtime 값 복원 확인
-- default scene은 app user argument 없이 실행되고 개발 fixture/checkpoint/runner scene이 섞이지 않음
-- generated ambient stream/bus와 lifecycle 중 중복 start·history cue 부재 확인; live state cue·speaker는 별도
-- 2B2 record가 2B1 source/package/tool identity와 lifecycle input/save/settings/audio 결과를 결속하고
-  누락·변조·다른 candidate에서 fail-closed
-- qualification 중 package contents가 바뀌면 기존 2B1/2B2 record를 폐기하고 다시 생성
-
-### 3. score-bearing 평가 권위와 공식 LLM-as-a-judge
+### 2. score-bearing 평가 권위와 공식 LLM-as-a-judge
 
 현재 `tools/commercial-ux/native/`는 구조·거부 경로를 위한 non-score 기준선이므로 그대로 공식 점수를
-내지 않는다. 2번의 2B-qualified exact candidate를 소비하는 versioned evaluation-session authority, native
+내지 않는다. 완료된 2B-qualified exact package를 소비하는 versioned evaluation-session authority, native
 capture, judge input, evidence verifier, deterministic hard-gate oracle과 score aggregator를 current
 R2용으로 구현·검증한다. 그 다음 새 설치 cold journey와 고정 coverage journey를 수집한다.
 
@@ -115,7 +92,7 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 검증 가능한 score-bearing execution authority가 없으면 capture와 judgment는 non-score로만 보존하고
 `CommercialUXProxy = null`로 닫는다. 나중에 영수증을 붙여 공식 session으로 승격하지 않는다.
 
-### 4. 출시 준비와 배포 승인
+### 3. 출시 준비와 배포 승인
 
 평가에 사용한 current R2 후보의 source와 product payload를 유지한 배포 후보를 준비한다. 서명·공증이
 추가하는 wrapper·metadata 차이는 별도 allowlist와 deterministic 검사로 한정한다. 내부 평가 package의
@@ -127,7 +104,8 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 - 라이선스·자산 권리·고지 검토
 - 평가 후보와 배포 후보의 차이가 허용된 signing/notarization metadata뿐임을 재검증
 - signed/notarized artifact를 빈 user-data에 fresh-install해 title boot와 기본 입력 smoke 재검증
-- product payload나 gameplay-affecting contents가 달라지면 2번 candidate와 3번 평가 session을 다시 생성
+- product payload나 gameplay-affecting contents가 달라지면 2A manifest/archive, combined 2B record와
+  2번 평가 session을 다시 생성
 - Developer ID 서명·공증과 공개 출시 여부의 명시적 소유자 승인
 
 ## 테스트 선택 원칙

@@ -17,7 +17,8 @@ candidate build → clean HEAD + current ExportRelease selector + selected-resou
 → universal ad-hoc app/ZIP → independent manifest reconstruction → temporary-install headless title marker
 candidate verify → exact sibling ZIP + clean HEAD → same reconstruction/headless marker
 qualify run/verify → exact candidate private copy → empty app-owned data root
-→ packaged missing/settings/progress/completed classification → canonical record/fresh reconstruction
+→ packaged missing/settings/progress/completed data stages
+→ seven default-scene lifecycle InputEvent stages → canonical record v2/fresh reconstruction
 
 launch argument → RealtimeLaunchCatalog
 ├─ no args → ProductTitle
@@ -117,7 +118,7 @@ chapter 정책을 찾기 위해 이 adapter부터 UI node 안쪽으로 내려가
 | Godot에서 어떻게 받아 그리고 focus를 옮기는가? | scene adapter와 owning UI node | `RealtimeSliceMain.cs`, `game/realtime/ui/` |
 | 무엇을 build·play·검사하는가? | `./dev`와 root `Gridworks.sln` | `dev`, `Gridworks.sln` |
 | current R2 package identity를 만들고 검증하는가? | `tools/r2_candidate.py` | `tools/r2_candidate.py`, `game/export_presets.cfg` |
-| exact package의 app-owned save/settings load/continuation 분류와 bytes 불변을 검증하는가? | `tools/r2_qualification.py` | `tools/r2_qualification.py`, `RealtimeSliceMain.cs`의 qualification env seam |
+| exact package의 app-owned data와 bounded lifecycle InputEvent를 검증하는가? | `tools/r2_qualification.py` | `tools/r2_qualification.py`, `RealtimeSliceMain.Qualification.cs` |
 
 한 규칙을 presenter나 Godot adapter에서 다시 계산하지 않는다. Core fact가 부족하면 Core의 snapshot 또는
 typed contract를 보강하고, application 전용 결정은 Session에서 한 번 계산해 presentation source로
@@ -182,16 +183,20 @@ manifest의 `freshUserDataQualified`, `fullProductionInputE2E`, `humanQa`, `eval
 `developerIdSigned`, `notarized`, `scoreBearing` false ceiling은 구조 경계다. package identity/headless title
 marker 자체는 packaged settings/audio를 qualification하지 않는다.
 
-app-owned persistence qualification의 단일 authority는 `tools/r2_qualification.py`와 `./dev qualify
-run | verify`다. candidate verifier를 재사용하고 manifest/archive를 private copy로 고정한 뒤, exact-empty
-Gridworks-owned root에서 source actual-scene이 만든 settings·initial save·terminal save를 fresh packaged
-title process가 `LOADED | RESTORABLE | COMPLETED`로 분류하는지 확인한다. record는 source/package/tool과
-각 stage file hash를 canonical JSON으로 결속하며 verify는 전부 새로 재구성한다. env가 없으면 Main은 기존
-`user://`를 사용한다.
+current 2B qualification의 단일 application authority는 `tools/r2_qualification.py`와 `./dev qualify
+run | verify`다. candidate verifier를 재사용하고 manifest/archive를 private copy로 고정한 뒤, 2B1은
+source actual-scene의 settings·initial save·terminal save를 fresh packaged title이
+`LOADED | RESTORABLE | COMPLETED`로 분류하는지 확인한다. 2B2는 release-safe dormant
+`RealtimeSliceMain.Qualification.cs`가 exact scenario env에서만 actual `Viewport.PushInput`을 default scene에
+넣어 empty New Game, progress/completed Continue, completed/reset New Game, settings Apply→fresh Restore와
+generated audio wiring을 확인한다. invalid scenario/root는 title 전에 거부한다. env가 없으면 새 marker·
+입력 없이 기존 product boot와 `user://`를 유지한다.
 
-이 seam은 current save/settings 두 fixed filename만 소유한다. Godot engine `user://` 전체, packaged
-InputEvent, audio device·speaker와 사람 UX를 격리·검증했다고 해석하지 않는다. 그 상한은 record의 false
-claim으로 유지한다.
+record v2는 source/package/tool, 네 data stage, 일곱 lifecycle stage의 exact input marker와 before/after
+file hash, normalized reset backup을 canonical JSON으로 결속하며 verify는 전부 fresh reconstruction한다.
+qualification partial은 제품 규칙 권위가 아니라 package-sensitive engine seam만 관찰하는 adapter다. 이
+경계는 current save/settings 두 fixed filename만 소유한다. Godot engine `user://` 전체, authored 8장
+packaged E2E, OS hardware input, 실제 audio device·speaker와 사람 UX를 검증했다고 해석하지 않는다.
 
 ## 변경 종류별 가장 짧은 경로
 

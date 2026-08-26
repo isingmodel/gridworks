@@ -56,8 +56,6 @@ internal sealed class RealtimeChapterStoryFlow
 
     internal bool IsIdle => Active is null && _pending.Count == 0;
 
-    internal bool HasPending => _pending.Count > 0;
-
     internal int ClosedStoryCount { get; private set; }
 
     internal void Reset()
@@ -125,25 +123,47 @@ internal sealed class RealtimeChapterStoryFlow
             return;
         }
 
-        if (closed != candidates.Count - 1)
+        ProjectedStory[] open = candidates.Skip(closed).ToArray();
+        if (!IsSupportedOpenSuffix(open, savedMinute))
         {
             throw new InvalidOperationException(
-                "The current chapter-story cursor cannot restore a queued story suffix.");
+                "The current chapter-story cursor must identify a supported active " +
+                "story and bounded handoff suffix at the saved minute.");
         }
-        ProjectedStory active = candidates[closed];
-        if (!IsSupportedActive(active, savedMinute))
+        _active = open[0];
+        foreach (ProjectedStory pending in open.Skip(1))
         {
-            throw new InvalidOperationException(
-                "The current chapter-story cursor must identify one active " +
-                "in-chapter story at the saved minute.");
+            _pending.Enqueue(pending);
         }
-        _active = active;
     }
 
-    internal bool CanCaptureActiveAt(long savedMinute) =>
-        !HasPending &&
-        _active is ProjectedStory active &&
-        IsSupportedActive(active, savedMinute);
+    internal bool CanCaptureActiveAt(long savedMinute)
+    {
+        if (_active is not ProjectedStory active)
+        {
+            return false;
+        }
+        var open = new List<ProjectedStory>(_pending.Count + 1) { active };
+        open.AddRange(_pending);
+        return IsSupportedOpenSuffix(open, savedMinute);
+    }
+
+    internal bool MatchesSnapshot(RealtimeCampaignSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if (Active is
+            {
+                Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+            } result)
+        {
+            return IsResultHandoffSnapshot(result, snapshot);
+        }
+        return snapshot.ChapterStarted &&
+            (Active is null || string.Equals(
+                Active.ChapterId,
+                snapshot.Chapter.Content.ChapterId,
+                StringComparison.Ordinal));
+    }
 
     internal RealtimeChapterStoryModalRequest? ActivateNext()
     {
@@ -177,23 +197,16 @@ internal sealed class RealtimeChapterStoryFlow
             {
                 Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
                 FinalResult: false,
-            } || snapshot.ChapterStarted)
+            })
         {
             return null;
         }
-        if (snapshot.CampaignComplete ||
-            snapshot.CompletedChapters.Count == 0 ||
-            snapshot.ChapterIndex != snapshot.CompletedChapters.Count ||
-            !string.Equals(
-                snapshot.CompletedChapters[^1].ChapterId,
-                closedRequest.ChapterId,
-                StringComparison.Ordinal) ||
-            snapshot.Minute >= snapshot.ChapterStartMinute)
+        if (!IsResultHandoffSnapshot(closedRequest, snapshot))
         {
             throw new InvalidOperationException(
                 "The cumulative result lost its typed next-chapter calendar boundary.");
         }
-        return snapshot.ChapterStartMinute;
+        return snapshot.ChapterStarted ? null : snapshot.ChapterStartMinute;
     }
 
     internal static RealtimeChapterStoryModalRequest InitialBriefing(string chapterId) =>
@@ -319,11 +332,88 @@ internal sealed class RealtimeChapterStoryFlow
             $"Chapter '{chapterId}' is absent from the selected realtime campaign.");
     }
 
-    private static bool IsSupportedActive(ProjectedStory active, long savedMinute) =>
-        active.Request.Purpose is
+    private static bool IsSupportedOpenSuffix(
+        IReadOnlyList<ProjectedStory> open,
+        long savedMinute)
+    {
+        if (open.Count == 0 || open.Any(item => item.TriggerMinute != savedMinute))
+        {
+            return false;
+        }
+        RealtimeChapterStoryModalRequest active = open[0].Request;
+        return active.Purpose switch
+        {
             RealtimeChapterStoryModalPurpose.EventStory or
+                RealtimeChapterStoryModalPurpose.DecisionWindowStory =>
+                open.Count == 1,
+            RealtimeChapterStoryModalPurpose.ChapterResult =>
+                IsSupportedResultSuffix(open),
+            RealtimeChapterStoryModalPurpose.ChapterBriefing =>
+                IsSupportedBriefingSuffix(open),
+            _ => false,
+        };
+    }
+
+    private static bool IsSupportedResultSuffix(
+        IReadOnlyList<ProjectedStory> open)
+    {
+        RealtimeChapterStoryModalRequest result = open[0].Request;
+        if (result.FinalResult || open.Count > 3)
+        {
+            return false;
+        }
+        if (open.Count == 1)
+        {
+            return true;
+        }
+        RealtimeChapterStoryModalRequest briefing = open[1].Request;
+        return briefing.Purpose == RealtimeChapterStoryModalPurpose.ChapterBriefing &&
+            !string.Equals(
+                result.ChapterId,
+                briefing.ChapterId,
+                StringComparison.Ordinal) &&
+            (open.Count == 2 || IsDecisionForChapter(open[2], briefing.ChapterId));
+    }
+
+    private static bool IsSupportedBriefingSuffix(
+        IReadOnlyList<ProjectedStory> open) =>
+        open.Count == 1 ||
+        open.Count == 2 && IsDecisionForChapter(
+            open[1],
+            open[0].Request.ChapterId);
+
+    private static bool IsDecisionForChapter(
+        ProjectedStory projected,
+        string chapterId) =>
+        projected.Request.Purpose ==
             RealtimeChapterStoryModalPurpose.DecisionWindowStory &&
-        active.TriggerMinute == savedMinute;
+        string.Equals(
+            projected.Request.ChapterId,
+            chapterId,
+            StringComparison.Ordinal);
+
+    private static bool IsResultHandoffSnapshot(
+        RealtimeChapterStoryModalRequest result,
+        RealtimeCampaignSnapshot snapshot) =>
+        result is
+        {
+            Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+            FinalResult: false,
+        } &&
+        !snapshot.CampaignComplete &&
+        snapshot.CompletedChapters.Count > 0 &&
+        snapshot.ChapterIndex == snapshot.CompletedChapters.Count &&
+        string.Equals(
+            snapshot.CompletedChapters[^1].ChapterId,
+            result.ChapterId,
+            StringComparison.Ordinal) &&
+        (snapshot.ChapterStarted
+            ? snapshot.Minute == snapshot.ChapterStartMinute &&
+              !string.Equals(
+                  snapshot.Chapter.Content.ChapterId,
+                  result.ChapterId,
+                  StringComparison.Ordinal)
+            : snapshot.Minute < snapshot.ChapterStartMinute);
 
     private void Enqueue(ProjectedStory projected)
     {

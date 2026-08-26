@@ -83,7 +83,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             viewport.AddChild(slice);
             await SettleFrames(4);
 
-            SaveExpectation? created = null;
+            SaveExpectation? expectedWrite = null;
             switch (request.Mode)
             {
                 case EntryMode.TechnicalFixture:
@@ -95,17 +95,17 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     break;
                 case EntryMode.CreateSave:
                     await ValidateProductTitle(viewport, slice);
-                    created = PrepareActiveStoryProgress(slice);
+                    expectedWrite = PrepareActiveStoryProgress(slice);
                     break;
                 case EntryMode.ContinueSave:
-                    await ValidateContinue(
+                    expectedWrite = await ValidateContinue(
                         viewport,
                         slice,
                         request.SavePath!,
                         RealtimeNativeRouteCatalog.ProductCampaign);
                     break;
                 case EntryMode.LegacyContinueSave:
-                    await ValidateContinue(
+                    expectedWrite = await ValidateContinue(
                         viewport,
                         slice,
                         request.SavePath!,
@@ -123,9 +123,9 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             viewport.QueueFree();
             await SettleFrames(2);
             viewport = null;
-            if (created is not null)
+            if (expectedWrite is not null)
             {
-                ValidateWrittenSave(request.SavePath!, created);
+                ValidateWrittenSave(request.SavePath!, expectedWrite);
             }
             ValidateGuardedSavePreserved(request, guardedBytes);
 
@@ -519,17 +519,15 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "Normal tree exit did not write a readable R2 save.");
         RealtimeCampaignSave save = load.Save!;
         Require(save.Source.RouteId == expected.RouteId &&
-                save.Source.RouteId ==
-                    RealtimeNativeRouteCatalog.ProductCampaign.LaunchArgument &&
                 save.SavedMinute == expected.Minute &&
                 save.CanonicalStateSha256 == expected.CanonicalStateSha256 &&
                 save.Commands.Count == expected.CommandCount &&
                 save.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
                 save.ClosedStoryCount == expected.ClosedStoryCount,
-            "The written R2 save does not match the product active-story boundary.");
+            "The written R2 save does not match the staged progress.");
     }
 
-    private async Task ValidateContinue(
+    private async Task<SaveExpectation> ValidateContinue(
         SubViewport viewport,
         RealtimeSliceMain slice,
         string savePath,
@@ -557,6 +555,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 data.Campaign,
                 data.World,
                 save);
+        RealtimeChapterStoryModalRequest? expectedStory =
+            RealtimeSession.ValidateProgressResume(data, expectedRestore);
         RealtimeCampaignSnapshot expected = expectedRestore.Run.GetSnapshot();
 
         RealtimeUiRoot ui = slice.UiForSmoke;
@@ -594,51 +594,30 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "Continue did not restore the exact clock/cash/world/journal/hash.");
         if (ReferenceEquals(expectedRoute, RealtimeNativeRouteCatalog.ProductCampaign))
         {
-            RealtimeActiveEventState expectedEvent = expected.ActiveEventStates.Single();
-            Require(actual.ActiveEventStates.Single().EventId == expectedEvent.EventId &&
-                    actual.ActiveDuty is
-                    {
-                        EventId: var actualDutyEventId,
-                    } &&
-                    actualDutyEventId == expectedEvent.EventId,
-                "Continue lost active product event/duty progress.");
             RealtimeChapterStoryModalRequest story =
                 slice.ActiveChapterStoryModalForSmoke ??
                 throw new InvalidOperationException(
                     "Continue did not restore the active product story.");
-            Require(story is
-                    {
-                        Purpose: RealtimeChapterStoryModalPurpose.EventStory,
-                        ChapterId: "SECOND_HEART",
-                        EventId: "FLOOD_ISOLATION_TEST",
-                    } &&
-                    slice.InteractionState is
-                    {
-                        Simulation: RealtimeSimulationState.AutoPaused,
-                        RunningSpeed: RealtimeSimulationSpeed.Normal,
-                        ActiveModalId: var activeModalId,
-                    } &&
-                    activeModalId == story.ModalId &&
-                    slice.LatestPresentation.Modal?.Id == story.ModalId &&
-                    slice.AccumulatorSnapshot.Paused &&
-                    !slice.AccumulatorSnapshot.HasPendingTime &&
-                    slice.RetainedFrameDebt.Count == 0,
-                "Continue did not restore the same paused active product story.");
-            string beforeCloseHash = slice.CanonicalStateSha256;
-            Require(slice.ClosePresentedStoryModalForSmoke() is null &&
-                    slice.ActiveChapterStoryModalForSmoke is null &&
-                    slice.LatestPresentation.Modal is null &&
-                    slice.CanonicalStateSha256 == beforeCloseHash &&
-                    slice.InteractionState is
-                    {
-                        Simulation: RealtimeSimulationState.PlayerPaused,
-                        RunningSpeed: RealtimeSimulationSpeed.Normal,
-                        Tool: RealtimeTool.Inspect,
-                        SelectionId: null,
-                        ActiveModalId: null,
-                        SelectedBuildToolId: null,
-                    },
-                "Closing the restored story did not return to paused product play.");
+            Require(expectedStory?.ModalId == story.ModalId,
+                "Continue restored a different product story than the title probe.");
+            if (story.Purpose == RealtimeChapterStoryModalPurpose.EventStory)
+            {
+                return ValidateAndStageActiveFloodContinue(
+                    slice,
+                    expected,
+                    actual,
+                    story);
+            }
+            else if (story.Purpose ==
+                     RealtimeChapterStoryModalPurpose.ChapterResult)
+            {
+                return ValidateAndStageResultHandoffContinue(slice, data, story);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Unexpected product Continue story purpose '{story.Purpose}'.");
+            }
         }
         else
         {
@@ -659,8 +638,145 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     !slice.AccumulatorSnapshot.HasPendingTime &&
                     slice.RetainedFrameDebt.Count == 0,
                 "Legacy Continue did not apply paused/no-modal/no-frame-debt policy.");
+            RealtimeCampaignSave staged = slice.CaptureProgressForSmoke();
+            slice.FreezeAutonomousClockForSmoke();
+            return ExpectWrittenSave(staged);
         }
     }
+
+    private static SaveExpectation ValidateAndStageActiveFloodContinue(
+        RealtimeSliceMain slice,
+        RealtimeCampaignSnapshot expected,
+        RealtimeCampaignSnapshot actual,
+        RealtimeChapterStoryModalRequest story)
+    {
+        RealtimeActiveEventState expectedEvent = expected.ActiveEventStates.Single();
+        Require(actual.ActiveEventStates.Single().EventId == expectedEvent.EventId &&
+                actual.ActiveDuty is
+                {
+                    EventId: var actualDutyEventId,
+                } &&
+                actualDutyEventId == expectedEvent.EventId,
+            "Continue lost active product event/duty progress.");
+        Require(story is
+                {
+                    Purpose: RealtimeChapterStoryModalPurpose.EventStory,
+                    ChapterId: "SECOND_HEART",
+                    EventId: "FLOOD_ISOLATION_TEST",
+                } &&
+                slice.InteractionState is
+                {
+                    Simulation: RealtimeSimulationState.AutoPaused,
+                    RunningSpeed: RealtimeSimulationSpeed.Normal,
+                    ActiveModalId: var activeModalId,
+                } &&
+                activeModalId == story.ModalId &&
+                slice.LatestPresentation.Modal?.Id == story.ModalId &&
+                slice.AccumulatorSnapshot.Paused &&
+                !slice.AccumulatorSnapshot.HasPendingTime &&
+                slice.RetainedFrameDebt.Count == 0,
+            "Continue did not restore the same paused active product story.");
+        string beforeCloseHash = slice.CanonicalStateSha256;
+        Require(slice.ClosePresentedStoryModalForSmoke() is null &&
+                slice.ActiveChapterStoryModalForSmoke is null &&
+                slice.LatestPresentation.Modal is null &&
+                slice.CanonicalStateSha256 == beforeCloseHash &&
+                slice.InteractionState is
+                {
+                    Simulation: RealtimeSimulationState.PlayerPaused,
+                    RunningSpeed: RealtimeSimulationSpeed.Normal,
+                    Tool: RealtimeTool.Inspect,
+                    SelectionId: null,
+                    ActiveModalId: null,
+                    SelectedBuildToolId: null,
+                },
+            "Closing the restored story did not return to paused product play.");
+
+        _ = slice.AdvanceToForSmoke(1860);
+        Require(slice.ActiveChapterStoryModalForSmoke is
+                {
+                    Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+                    ChapterId: "SECOND_HEART",
+                    FinalResult: false,
+                } result &&
+                slice.LatestPresentation.Modal?.Id == result.ModalId,
+            "The active-story Continue did not stage the SECOND_HEART result.");
+        RealtimeCampaignSave staged = slice.CaptureProgressForSmoke();
+        Require(staged.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
+                staged.SavedMinute == 1860 &&
+                staged.ClosedStoryCount == 3,
+            "The staged result did not preserve the v2 closed prefix.");
+        slice.FreezeAutonomousClockForSmoke();
+        return ExpectWrittenSave(staged);
+    }
+
+    private static SaveExpectation ValidateAndStageResultHandoffContinue(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        RealtimeChapterStoryModalRequest story)
+    {
+        Require(story is
+                {
+                    Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+                    ChapterId: "SECOND_HEART",
+                    FinalResult: false,
+                } &&
+                slice.InteractionState is
+                {
+                    Simulation: RealtimeSimulationState.AutoPaused,
+                    RunningSpeed: RealtimeSimulationSpeed.Normal,
+                    Surface: RealtimeSurface.BlockingModal,
+                    ActiveModalKind: RealtimeModalKind.Story,
+                    PauseReason: RealtimePauseReason.CampaignResult,
+                    ActiveModalId: var resultModalId,
+                } &&
+                resultModalId == story.ModalId &&
+                slice.LatestPresentation.Modal?.Id == story.ModalId,
+            "Continue did not restore the same active SECOND_HEART result.");
+        string beforeCloseHash = slice.CanonicalStateSha256;
+        int beforeCloseCommands = slice.AcceptedCommandCount;
+        RealtimeTransition[] beforeCloseHistory = slice.EmittedTransitions.ToArray();
+        Require(slice.ClosePresentedStoryModalForSmoke() is not null &&
+                slice.CanonicalStateSha256 == beforeCloseHash &&
+                slice.AcceptedCommandCount == beforeCloseCommands &&
+                slice.EmittedTransitions.SequenceEqual(beforeCloseHistory) &&
+                slice.ActiveChapterStoryModalForSmoke is
+                {
+                    Purpose: RealtimeChapterStoryModalPurpose.ChapterBriefing,
+                    ChapterId: "SECOND_SOURCE",
+                } briefing &&
+                slice.LatestPresentation.Modal?.Id == briefing.ModalId,
+            "Closing the restored result did not open the queued briefing exactly once.");
+        CommercialStoryCard authored = data.BaseCampaign.Chapters.Single(item =>
+            string.Equals(
+                item.ChapterId,
+                "SECOND_SOURCE",
+                StringComparison.Ordinal)).Briefing;
+        RealtimeModalPresentation modal = slice.LatestPresentation.Modal!;
+        Require(modal.Eyebrow == authored.Speaker &&
+                modal.Heading == authored.Title &&
+                modal.Body == authored.Body &&
+                slice.EmittedTransitions.Count(item =>
+                    item.Kind == RealtimeTransitionKind.ChapterStarted &&
+                    item.ChapterId == "SECOND_SOURCE") == 1,
+            "The queued SECOND_SOURCE briefing drifted or replayed.");
+        RealtimeCampaignSave staged = slice.CaptureProgressForSmoke();
+        Require(staged.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
+                staged.SavedMinute == 1860 &&
+                staged.ClosedStoryCount == 4,
+            "The staged briefing did not preserve the v2 closed prefix.");
+        slice.FreezeAutonomousClockForSmoke();
+        return ExpectWrittenSave(staged);
+    }
+
+    private static SaveExpectation ExpectWrittenSave(RealtimeCampaignSave save) =>
+        new(
+            save.Source.RouteId,
+            save.SavedMinute,
+            save.CanonicalStateSha256,
+            save.Commands.Count,
+            save.ClosedStoryCount ?? throw new InvalidOperationException(
+                "A staged current save omitted its required story cursor."));
 
     private static void RequireAccepted(
         RealtimeR2IntentResult result,

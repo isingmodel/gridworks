@@ -222,6 +222,11 @@ internal sealed partial class RealtimeSession
             data.Campaign,
             closedStoryCount,
             snapshot.Minute);
+        if (!storyFlow.MatchesSnapshot(snapshot))
+        {
+            throw new InvalidOperationException(
+                "The restored chapter-story cursor does not match its Core position.");
+        }
     }
 
     internal RealtimeR2IntentResult ApplyIntent(RealtimeR2Intent intent)
@@ -1995,6 +2000,7 @@ internal sealed partial class RealtimeSession
         (CanCaptureStoryIdleProgress || CanCaptureActiveStoryProgress);
 
     private bool CanCaptureStoryIdleProgress =>
+        _chapterStoryFlow.MatchesSnapshot(_run.GetSnapshot()) &&
         _interaction.ActiveModalId is null &&
         _chapterStoryFlow.IsIdle &&
         _interaction.Simulation is
@@ -2003,11 +2009,8 @@ internal sealed partial class RealtimeSession
 
     private bool CanCaptureActiveStoryProgress =>
         _chapterStoryFlow.CanCaptureActiveAt(_run.Minute) &&
-        _chapterStoryFlow.Active is
-        {
-            Purpose: RealtimeChapterStoryModalPurpose.EventStory or
-                RealtimeChapterStoryModalPurpose.DecisionWindowStory,
-        } story &&
+        _chapterStoryFlow.MatchesSnapshot(_run.GetSnapshot()) &&
+        _chapterStoryFlow.Active is { } story &&
         string.Equals(
             _interaction.ActiveModalId,
             story.ModalId,
@@ -2025,7 +2028,6 @@ internal sealed partial class RealtimeSession
     internal static bool IsJournalRestorableProgressSnapshot(
         RealtimeCampaignSnapshot snapshot) =>
         snapshot.CommandCount > 0 &&
-        snapshot.ChapterStarted &&
         !snapshot.CampaignComplete &&
         snapshot.PendingTransitions.Count == 0 &&
         snapshot.Construction.NodeDraft is null &&

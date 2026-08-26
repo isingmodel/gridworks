@@ -3046,16 +3046,252 @@ internal static class RealtimeR2Smoke
               live.ActiveChapterStoryModalForSmoke?.ModalId == nextStory.ModalId,
             "cumulative resume replayed the closed event story or missed the next result",
             failures);
-        Check(resumed.ClosePresentedStoryModalForSmoke() is not null,
-            "cumulative resume result did not advance to the next briefing",
+        RealtimeCampaignSnapshot resultSnapshot = resumed.CoreSnapshot;
+        string resultHash = resumed.CanonicalStateSha256;
+        TimedRealtimeCommand[] resultJournal = resumed.AcceptedCommands.ToArray();
+        RealtimeTransition[] resultHistory = resumed.EmittedTransitions.ToArray();
+        RealtimeModalPresentation resultModal = resumed.LatestPresentation.Modal!;
+        RealtimeCampaignSave resultSave = resumed.CaptureProgressForSmoke();
+        Check(resultSave.ClosedStoryCount == 3,
+            "zero-gap result did not capture its bounded briefing suffix",
+            failures);
+        RealtimeSliceMain resultResumed = ResumeProductProgress(resultSave);
+        using var resultResumedLifetime = resultResumed.FreeAfterSmoke();
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                  resultSnapshot,
+                  resultResumed.CoreSnapshot) &&
+              resultResumed.CanonicalStateSha256 == resultHash &&
+              resultResumed.AcceptedCommands.SequenceEqual(resultJournal) &&
+              resultResumed.EmittedTransitions.SequenceEqual(resultHistory),
+            "zero-gap result resume lost Core state, journal, or history",
+            failures);
+        Check(resultResumed.ActiveChapterStoryModalForSmoke is
+              {
+                  Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+                  ChapterId: "SECOND_HEART",
+              } restoredResult &&
+              resultResumed.LatestPresentation.Modal is { } restoredResultModal &&
+              restoredResultModal.Id == restoredResult.ModalId &&
+              restoredResultModal.Eyebrow == resultModal.Eyebrow &&
+              restoredResultModal.Heading == resultModal.Heading &&
+              restoredResultModal.Body == resultModal.Body,
+            "zero-gap result resume changed the presented result card",
+            failures);
+
+        Check(live.ClosePresentedStoryModalForSmoke() is not null &&
+              resumed.ClosePresentedStoryModalForSmoke() is not null &&
+              resultResumed.ClosePresentedStoryModalForSmoke() is not null,
+            "zero-gap result did not open its queued next briefing",
             failures);
         RequireAuthoredTutorialModal(
-            resumed,
+            resultResumed,
             RealtimeChapterStoryModalPurpose.ChapterBriefing,
             "SECOND_SOURCE",
             null,
             data.BaseCampaign.Chapters[2].Briefing,
             failures);
+        Check(resultResumed.CanonicalStateSha256 == resultHash &&
+              resultResumed.AcceptedCommands.SequenceEqual(resultJournal) &&
+              resultResumed.EmittedTransitions.SequenceEqual(resultHistory),
+            "zero-gap result close changed Core state or replayed its transition batch",
+            failures);
+
+        RealtimeCampaignSave briefingSave = resultResumed.CaptureProgressForSmoke();
+        Check(briefingSave.ClosedStoryCount == 4,
+            "zero-gap briefing did not capture its exact closed prefix",
+            failures);
+        RealtimeSliceMain briefingResumed = ResumeProductProgress(briefingSave);
+        using var briefingResumedLifetime = briefingResumed.FreeAfterSmoke();
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                  resultSnapshot,
+                  briefingResumed.CoreSnapshot) &&
+              briefingResumed.CanonicalStateSha256 == resultHash &&
+              briefingResumed.AcceptedCommands.SequenceEqual(resultJournal) &&
+              briefingResumed.EmittedTransitions.SequenceEqual(resultHistory),
+            "zero-gap briefing resume lost Core state, journal, or history",
+            failures);
+        RequireAuthoredTutorialModal(
+            briefingResumed,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "SECOND_SOURCE",
+            null,
+            data.BaseCampaign.Chapters[2].Briefing,
+            failures);
+        Check(live.ClosePresentedStoryModalForSmoke() is null &&
+              resumed.ClosePresentedStoryModalForSmoke() is null &&
+              resultResumed.ClosePresentedStoryModalForSmoke() is null &&
+              briefingResumed.ClosePresentedStoryModalForSmoke() is null &&
+              briefingResumed.InteractionState is
+              {
+                  Simulation: RealtimeSimulationState.PlayerPaused,
+                  RunningSpeed: RealtimeSimulationSpeed.Normal,
+                  ActiveModalId: null,
+              },
+            "zero-gap briefing resume did not close once into paused play",
+            failures);
+
+        _ = briefingResumed.AdvanceToForSmoke(2400);
+        RequireAuthoredTutorialModal(
+            briefingResumed,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "SECOND_SOURCE",
+            "SOUTH_SOURCE_COMMISSIONING_TEST",
+            data.BaseCampaign.Chapters[2].OperatingPhases[1].Story!,
+            failures);
+        Check(briefingResumed.ClosePresentedStoryModalForSmoke() is null,
+            "long-gap setup did not close the SOUTH_SOURCE story",
+            failures);
+        _ = briefingResumed.AdvanceToForSmoke(2460);
+        Check(briefingResumed.CoreSnapshot is
+              {
+                  ChapterStarted: false,
+                  CampaignComplete: false,
+                  ChapterStartMinute: 265260,
+              },
+            "long-gap setup did not stop at the typed between-chapter boundary",
+            failures);
+        Check(briefingResumed.ActiveChapterStoryModalForSmoke is
+              {
+                  Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+                  ChapterId: "SECOND_SOURCE",
+              } && briefingResumed.LatestPresentation.Modal is not null,
+            "long-gap setup did not present the SECOND_SOURCE result",
+            failures);
+
+        RealtimeCampaignSnapshot gapSnapshot = briefingResumed.CoreSnapshot;
+        string gapHash = briefingResumed.CanonicalStateSha256;
+        TimedRealtimeCommand[] gapJournal = briefingResumed.AcceptedCommands.ToArray();
+        RealtimeTransition[] gapHistory = briefingResumed.EmittedTransitions.ToArray();
+        RealtimeModalPresentation gapResultModal =
+            briefingResumed.LatestPresentation.Modal!;
+        RealtimeCampaignSave gapSave = briefingResumed.CaptureProgressForSmoke();
+        Check(gapSave.ClosedStoryCount == 6,
+            "long-gap result did not capture its exact closed prefix",
+            failures);
+        RealtimeCampaignSave skippedGapResult = gapSave with
+        {
+            ClosedStoryCount = gapSave.ClosedStoryCount + 1,
+        };
+        Check(ThrowsInvalidOperation(() =>
+            {
+                var invalid = new RealtimeSliceMain();
+                try
+                {
+                    invalid.BootstrapNativeResumeForSmoke(
+                        RealtimeNativeRouteCatalog.ProductCampaign,
+                        skippedGapResult);
+                }
+                finally
+                {
+                    invalid.Free();
+                }
+            }),
+            "between-chapter save accepted a story-idle cursor that skipped the result",
+            failures);
+
+        RealtimeSliceMain gapResumed = ResumeProductProgress(gapSave);
+        using var gapResumedLifetime = gapResumed.FreeAfterSmoke();
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                  gapSnapshot,
+                  gapResumed.CoreSnapshot) &&
+              gapResumed.CanonicalStateSha256 == gapHash &&
+              gapResumed.AcceptedCommands.SequenceEqual(gapJournal) &&
+              gapResumed.EmittedTransitions.SequenceEqual(gapHistory),
+            "long-gap result resume lost Core state, journal, or history",
+            failures);
+        Check(gapResumed.ActiveChapterStoryModalForSmoke is
+              {
+                  Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+                  ChapterId: "SECOND_SOURCE",
+              } restoredGapResult &&
+              gapResumed.LatestPresentation.Modal is { } restoredGapModal &&
+              restoredGapModal.Id == restoredGapResult.ModalId &&
+              restoredGapModal.Eyebrow == gapResultModal.Eyebrow &&
+              restoredGapModal.Heading == gapResultModal.Heading &&
+              restoredGapModal.Body == gapResultModal.Body,
+            "long-gap result resume changed the presented result card",
+            failures);
+        Check(briefingResumed.ClosePresentedStoryModalForSmoke() is not null &&
+              gapResumed.ClosePresentedStoryModalForSmoke() is not null &&
+              briefingResumed.CoreSnapshot.Minute == 265260 &&
+              RealtimeStateCanonicalizer.StructuralEquals(
+                  briefingResumed.CoreSnapshot,
+                  gapResumed.CoreSnapshot) &&
+              briefingResumed.CanonicalStateSha256 == gapResumed.CanonicalStateSha256 &&
+              briefingResumed.EmittedTransitions.SequenceEqual(
+                  gapResumed.EmittedTransitions),
+            "long-gap result did not advance exactly once to the next chapter",
+            failures);
+        RequireAuthoredTutorialModal(
+            gapResumed,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "NORTH_BANK_PROMISE",
+            null,
+            data.BaseCampaign.Chapters[3].Briefing,
+            failures);
+
+        RealtimeCampaignSave northBriefingSave = gapResumed.CaptureProgressForSmoke();
+        Check(northBriefingSave.ClosedStoryCount == 7,
+            "North briefing did not preserve its queued decision suffix",
+            failures);
+        RealtimeSliceMain northBriefingResumed =
+            ResumeProductProgress(northBriefingSave);
+        using var northBriefingResumedLifetime = northBriefingResumed.FreeAfterSmoke();
+        RequireAuthoredTutorialModal(
+            northBriefingResumed,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "NORTH_BANK_PROMISE",
+            null,
+            data.BaseCampaign.Chapters[3].Briefing,
+            failures);
+        Check(briefingResumed.ClosePresentedStoryModalForSmoke() is not null &&
+              gapResumed.ClosePresentedStoryModalForSmoke() is not null &&
+              northBriefingResumed.ClosePresentedStoryModalForSmoke() is not null,
+            "restored North briefing did not open its queued decision story",
+            failures);
+        CommercialStoryCard northPlanning = data.BaseCampaign.Chapters[3]
+            .DecisionWindows.Single(item =>
+                item.WindowId == "NORTH_BANK_PLANNING_WINDOW").Story!;
+        RequireAuthoredTutorialModal(
+            northBriefingResumed,
+            RealtimeChapterStoryModalPurpose.DecisionWindowStory,
+            "NORTH_BANK_PROMISE",
+            null,
+            northPlanning,
+            failures);
+        Check(briefingResumed.ClosePresentedStoryModalForSmoke() is null &&
+              gapResumed.ClosePresentedStoryModalForSmoke() is null &&
+              northBriefingResumed.ClosePresentedStoryModalForSmoke() is null &&
+              northBriefingResumed.InteractionState is
+              {
+                  Simulation: RealtimeSimulationState.PlayerPaused,
+                  RunningSpeed: RealtimeSimulationSpeed.Normal,
+                  ActiveModalId: null,
+              } &&
+              briefingResumed.EmittedTransitions.SequenceEqual(
+                  gapResumed.EmittedTransitions) &&
+              gapResumed.EmittedTransitions.SequenceEqual(
+                  northBriefingResumed.EmittedTransitions),
+            "long-gap briefing/decision handoff replayed or reordered its FIFO",
+            failures);
+    }
+
+    private static RealtimeSliceMain ResumeProductProgress(
+        RealtimeCampaignSave save)
+    {
+        var resumed = new RealtimeSliceMain();
+        try
+        {
+            resumed.BootstrapNativeResumeForSmoke(
+                RealtimeNativeRouteCatalog.ProductCampaign,
+                save);
+            return resumed;
+        }
+        catch
+        {
+            resumed.Free();
+            throw;
+        }
     }
 
     private static void ValidateReleaseThroughLongestNightController(

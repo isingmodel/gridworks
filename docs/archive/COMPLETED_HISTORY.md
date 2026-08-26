@@ -102,6 +102,20 @@ Keep은 canonical formative chapter·full-flow evidence를 기록했다. Defer�
 code와 regression은 바꾸지 않았다. 이는 사람 참가자의 미감·사용성, 남은 4장, save/resume, 전체
 캠페인 또는 공식 UX 점수의 증거가 아니다.
 
+### UX-R2.6 — 다섯 번째 장 native 구현
+
+`WHOSE_MARGIN`까지 앞선 망·공사·자금·시계를 잇는 누적 5장 경로를 구현했다. briefing, 두 planning
+window와 세 사건을 authored reveal 순서로 진행하며, 산업 야간 증산 약속은 실제 duty가 있는
+`NIGHT_SHIFT`에만 표시된다. 보강 회랑 Keep과 명시적 Defer가 각각 exact authored result로 이어지고,
+Keep만 5장 full-flow evidence를 만든다.
+
+일반 회랑에서는 Core가 기록한 비상 노출·보호정지·복귀를 자산별 stable rail marker와 detail history로
+투영해 약속 실패가 성공 결과로 보이지 않게 했다. 이 연결은 chapter ID별 Session/Main/UI 분기 없이
+typed promise fact와 Core transition history를 사용하는 공통 presentation 경로에 놓였다. Release
+build, `./dev check`, WHOSE_MARGIN story selector, 누적 Godot UI harness와 독립 review를 통과했다.
+production-input 직접 플레이의 관찰 상한은 여전히 `NORTH_BANK_PROMISE`까지 4장이며, 남은 3장,
+save/resume, 전체 캠페인 또는 사람 UX 품질의 증거는 아니다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

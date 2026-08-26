@@ -37,10 +37,10 @@ V2의 저장 파일과 내부 macOS 후보를 현재 R2 기능으로 간주하�
 이 명령은 Godot user argument 없이 기본 장면을 열어 제품 title과 `새 게임` 경로를 재현한다. 현재
 `새 게임`은 standalone `FIRST_LIGHT` 한 장만 시작하며, 저장 기반 `이어하기`는 제공하지 않는다.
 
-### 누적 4장 경로
+### 누적 5장 경로
 
 ```sh
-./dev play through NORTH_BANK_PROMISE
+./dev play through WHOSE_MARGIN
 ```
 
 ### 튜토리얼 3장 누적 경로
@@ -70,7 +70,7 @@ V2의 저장 파일과 내부 macOS 후보를 현재 R2 기능으로 간주하�
 ./dev check
 ./dev checkpoint A1_NORMAL_READY
 ./dev checkpoint A1_CONSTRUCTION_DUE_1M
-./dev story NORTH_BANK_PROMISE/result/keep
+./dev story WHOSE_MARGIN/result/keep
 ./dev story manifest
 ```
 

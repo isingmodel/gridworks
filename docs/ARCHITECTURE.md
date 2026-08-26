@@ -65,6 +65,10 @@ adapter부터 UI node 안쪽으로 내려가지 않는다. 먼저 `RealtimeSessi
 typed contract를 보강하고, application 전용 결정은 Session에서 한 번 계산해 presentation source로
 넘긴다. presenter는 상태를 바꾸지 않고 화면 의미만 만든다.
 
+`CityPromise` 문구와 집계는 chapter ID가 아니라 event의 typed promise duty(profile/outcome)를 따른다.
+실제 열 rail/detail은 소진된 pending 목록을 다시 읽지 않고 Session이 보존한 Core transition history와
+stable target resolver에서 투영한다.
+
 ## current graph와 historical graph
 
 일반 Debug/Release의 root `Gridworks.sln`은 다음 네 project만 포함한다.
@@ -127,7 +131,7 @@ typed contract를 보강하고, application 전용 결정은 Session에서 한 �
 ./dev build
 ./dev checkpoint A1_NORMAL_READY
 ./dev checkpoint A1_CONSTRUCTION_DUE_1M
-./dev story NORTH_BANK_PROMISE/result/keep
+./dev story WHOSE_MARGIN/result/keep
 ./dev check
 ```
 
@@ -136,7 +140,7 @@ build와 기본 자동 회귀를 닫는다. 이 명령은 no-arg 제품 title과
 포함하지만, root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지 않는다. 해당
 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다. product title과 explicit fixture/native
 route의 launch 의미를 구조 변경의 불변조건으로 취급한다. session을 만드는 fixture와
-`FIRST_LIGHT`, `SECOND_SOURCE`, `NORTH_BANK_PROMISE` native route의 canonical state hash도 유지한다.
+`FIRST_LIGHT`, `SECOND_SOURCE`, `WHOSE_MARGIN` native route의 canonical state hash도 유지한다.
 자동 PASS는 사람 직접 플레이나 UX 품질의 증거가 아니다.
 
 ## 구조를 다시 얽히게 하는 신호

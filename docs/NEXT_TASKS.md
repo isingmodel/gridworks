@@ -32,8 +32,8 @@
   실행은 product save를 읽거나 쓰지 않는다. non-saveable 정상 exit는 직전 bytes를 보존하고 다음 safe
   exit만 갱신한다. in-progress와 readable blocked save는 확인→raw sibling backup 뒤 canonical 새 게임을
   시작하며 I/O failure는 차단한다. title/gameplay 공용 current R2 settings vertical slice와 strict
-  persistence는 구현됐지만 product audio, packaged settings 재검증, current R2 패키지와 공식 UX 점수는
-  없다.
+  persistence, generated non-voice ambient와 live `Breaker/Energize/Outage` cue는 구현됐다. packaged
+  settings/audio 재검증, 상태 전반의 청감·접근성 coverage, current R2 패키지와 공식 UX 점수는 없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
 연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
@@ -45,10 +45,10 @@
 ### 1. 시청각·설정·조작성·접근성 마감
 
 현재 G3 적용을 출발점으로 정상·공사·폭염·범람·비상·보호정지·냉각·복귀 화면을 실제 플레이에서
-검수한다. player settings surface와 source-tree fresh-process persistence는 완료됐다. 다음으로 가장 작은
-미완료 단위인 current R2 non-voice ambient/SFX playback과 Core-state cue mapping을 구현한다. 과거 V2의
-알고리즘·UI 패턴·자산은 port할 수 있지만 runtime authority는 current R2가 소유한다. settings는 이후
-exact candidate에서 다시 검증해야 한다.
+검수한다. player settings surface와 source-tree fresh-process persistence, generated non-voice ambient와
+live operation cue mapping은 완료됐다. 남은 일은 실제 상태 전반에서 시청각·조작성·접근성 coverage를
+검수하고 exact candidate에서 settings와 audio playback을 다시 검증하는 것이다. 과거 V2의 자산은 current
+runtime authority가 아니다.
 아트·audio 파일의 존재가 아니라 화면 밀도, 설비
 실루엣, 상태 인과, sound cue, hit target과 프레임 성능을 판정한다.
 

@@ -12,7 +12,8 @@ non-final result→next briefing, full `ProductCampaign`의 exact terminal 완�
 non-saveable 정상 종료의 prior-save 보존과 readable save의 확인·backup·reset도 구현됐다. 설치 패키지는
 아직 없다. 제품 title과 gameplay는 current R2 설정 surface를 공유하고, window mode, UI 배율,
 Master/Ambient/SFX volume·mute와 Reduce Motion을 별도 strict 파일에 저장한다. 과거 V2의 저장·설정
-파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다.
+파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다. `RealtimeAudio`는 별도 음원 파일 없이
+22,050Hz mono PCM16 ambient와 `Breaker/Energize/Outage` SFX를 생성해 기존 Ambient/SFX bus를 사용한다.
 
 ## 요구 환경
 
@@ -52,6 +53,10 @@ saveable 지점의 정상 종료가 same slot을 새 진행으로 교체한다.
 title의 `설정`은 session을 만들지 않고 열리며, gameplay의 `설정`은 running을 임시 pause한 뒤 닫을 때
 정확한 이전 상태와 opener focus를 복구한다. 이미 player-paused이면 그대로 유지한다. 설정은 저장이
 성공한 뒤에만 window, UI, audio bus와 Reduce Motion runtime에 적용된다.
+
+ambient는 title boot에서 한 번 시작해 New Game·Continue·settings 왕복에서 다시 시작하지 않는다.
+live operation의 cue는 `RealtimeSession`이 `Outage > Energize > Breaker` 우선순위로 최대 하나만 고르고,
+bootstrap과 save replay history는 SFX를 요청하지 않는다.
 
 ### 누적 8장 경로
 
@@ -100,11 +105,13 @@ initial briefing create→non-saveable draft exit의 byte-exact 보존→fresh C
 fresh completed title→`새 게임`→initial write→fresh Continue, invalid/unsupported reset 확인과 I/O 실패
 차단, 제품 설정 create→fresh restore, invalid/unsupported/read/write failure의 원본·runtime 보존,
 explicit fixture의 read-only 설정, 전체 Godot UI layout harness와 두 named checkpoint를 묶은 기본
-회귀다. 한 화면
+회귀다. 이 연쇄는 generated PCM shape와 bus, ambient one-start, accepted order와 복합 completion/emergency
+cue, fresh Continue의 history 무재생도 확인한다. 한 화면
 상태나 story part를 조사할 때는 더 작은 `checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는
 `./dev help`에서 확인한다.
 
-기본 Godot 회귀는 headless라서 OS의 물리 fullscreen 표시나 사람 사용성을 주장하지 않는다. window
+기본 Godot 회귀는 headless라서 audio stream·routing·play request만 확인하며 실제 speaker 출력, 음질,
+loop seam이나 사람 사용성을 주장하지 않는다. window
 mode 자체가 scope의 완료 조건이면 격리 settings path를 쓴 별도 non-headless smoke로 확인한다.
 
 저장소에 포함된 Godot 대신 다른 Mono executable을 사용할 때의 예:

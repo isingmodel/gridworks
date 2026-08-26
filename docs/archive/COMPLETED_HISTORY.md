@@ -361,6 +361,23 @@ Fullscreen 복원을 engine mode assertion으로 확인한 뒤 finding 0건으�
 audio playback, packaged candidate 복원, Reduce Motion의 사람 관찰, 물리 display 품질이나 공식 UX 증거로
 확대하지 않는다.
 
+### UX-R2.21 — current R2 기본 제품 오디오
+
+외부 음원 자산이나 새 subsystem 없이 `RealtimeAudio` node 하나가 22,050Hz mono PCM16 ambient와
+Breaker/Energize/Outage SFX를 결정론적으로 생성한다. accepted order는 Breaker, construction completion·
+emergency clear·recovery는 Energize, emergency enter·protective trip은 Outage다. `RealtimeSession` 한 곳이
+`Outage > Energize > Breaker` 우선순위로 live public operation당 최대 하나를 고르고, Main은 typed C#
+event를 playback node에 전달한다. ambient는 title부터 한 번만 시작하며 bootstrap·save replay·Continue
+history는 SFX를 내지 않는다.
+volume/mute는 기존 Master/Ambient/SFX settings projection을 그대로 쓴다.
+
+pure selector, actual scene stream/bus, title/settings/Continue one-start·history silence, accepted order의
+Breaker와 completion+emergency 복합 batch의 Outage, 고정 Core hash를 검사했다. `./dev check`와 두 독립
+review를 통과했다. headless에서는 `AudioStreamPlayer.Play()`를 호출하지 않고 stream·routing·request만
+검증한다.
+이 완료는 speaker 출력, loudness·loop seam·상태 전반 coverage의 사람 청감, packaged candidate 또는 출시
+품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

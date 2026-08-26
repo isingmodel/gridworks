@@ -358,7 +358,6 @@ internal sealed partial class RealtimeSession
         {
             RealtimeCampaignSnapshot unsupportedSnapshot = _run.GetSnapshot();
             return IntentResult(
-                intent.Kind,
                 false,
                 RealtimeInteractionReducer.UnsupportedIntentReason,
                 null,
@@ -390,7 +389,6 @@ internal sealed partial class RealtimeSession
                 RealtimeInteractionReducer.CampaignEndedReadOnlyReason);
             Present();
             return IntentResult(
-                intent.Kind,
                 false,
                 RealtimeInteractionReducer.CampaignEndedReadOnlyReason,
                 null,
@@ -418,7 +416,6 @@ internal sealed partial class RealtimeSession
                 Present();
             }
             return IntentResult(
-                intent.Kind,
                 false,
                 reduction.Error,
                 null,
@@ -449,7 +446,6 @@ internal sealed partial class RealtimeSession
                 Present();
             }
             return IntentResult(
-                intent.Kind,
                 false,
                 shapeError,
                 null,
@@ -479,7 +475,6 @@ internal sealed partial class RealtimeSession
                     Present();
                 }
                 return IntentResult(
-                    intent.Kind,
                     false,
                     RealtimePresentationText.RealtimeRunErrorText(commandResult.Error),
                     commandResult,
@@ -526,8 +521,11 @@ internal sealed partial class RealtimeSession
         {
             Present();
         }
-        return IntentResult(
+        RequestLiveAudioCue(
+            true,
             intent.Kind,
+            commandResult?.Transitions ?? Array.Empty<RealtimeTransition>());
+        return IntentResult(
             true,
             null,
             commandResult,
@@ -2137,7 +2135,6 @@ internal sealed partial class RealtimeSession
     }
 
     private RealtimeR2IntentResult IntentResult(
-        RealtimeR2IntentKind intentKind,
         bool accepted,
         string? error,
         RealtimeCommandResult? commandResult,
@@ -2145,13 +2142,7 @@ internal sealed partial class RealtimeSession
         long beforeMinute,
         long beforeSequence,
         int beforeCount,
-        long beforeRevision)
-    {
-        RequestLiveAudioCue(
-            accepted,
-            accepted ? intentKind : null,
-            commandResult?.Transitions ?? Array.Empty<RealtimeTransition>());
-        return new RealtimeR2IntentResult(
+        long beforeRevision) => new(
             accepted,
             error,
             commandResult,
@@ -2163,7 +2154,6 @@ internal sealed partial class RealtimeSession
             NextCommandSequence,
             _run.AcceptedCommands.Count - beforeCount,
             _presentationRevision - beforeRevision);
-    }
 
     private RealtimeR2FrameResult FrameResult(
         RealtimeFrameAdvanceResult? frame,

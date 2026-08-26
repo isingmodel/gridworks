@@ -14,8 +14,8 @@
 
 동결 V2의 code-native 도시·날씨 ambient, 효과 cue와 두 motif는 저장된 외부 음원 없이 고정 PCM16
 파형으로 생성한다. 네 인물 초상과 이 음향은 저장소에 보존되지만 현재 R2 runtime에는 연결돼 있지
-않다. 현재 R2에는 루트 `assets/`의 reference 이미지, 외부 font·녹음·음악·voice-over를 포함하지
-않는다.
+않다. current R2는 별도 `RealtimeAudio`에서 ambient와 Breaker/Energize/Outage를 PCM16으로 생성한다.
+현재 R2에는 루트 `assets/`의 reference 이미지, 외부 font·녹음·음악·voice-over를 포함하지 않는다.
 
 ## Engine과 runtime
 

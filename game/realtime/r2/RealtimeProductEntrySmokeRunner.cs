@@ -1184,9 +1184,9 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         int bus = AudioServer.GetBusIndex(busName);
         Require(bus >= 0 &&
                 AudioServer.IsBusMute(bus) == (percent == 0) &&
-                (percent == 0 || Mathf.IsEqualApprox(
+                Mathf.IsEqualApprox(
                     AudioServer.GetBusVolumeLinear(bus),
-                    percent / 100f)),
+                    percent / 100f),
             $"Settings did not project {busName}={percent}% to its audio bus.");
     }
 
@@ -2148,7 +2148,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 ambient.LoopMode == AudioStreamWav.LoopModeEnum.Forward &&
                 ambient.LoopBegin == 0 &&
                 ambient.LoopEnd > 0 &&
-                ambient.Data.Length == checked(ambient.LoopEnd * sizeof(short)),
+                ambient.Data.Length == checked(ambient.LoopEnd * sizeof(short)) &&
+                ambient.Data.Any(value => value != 0),
             "Actual product scene did not start the generated Ambient PCM loop once.");
 
         foreach (RealtimeLiveAudioCue cue in Enum.GetValues<RealtimeLiveAudioCue>())
@@ -2161,7 +2162,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     stream.LoopBegin == 0 &&
                     stream.LoopEnd == 0 &&
                     stream.Data.Length > 0 &&
-                    stream.Data.Length % sizeof(short) == 0,
+                    stream.Data.Length % sizeof(short) == 0 &&
+                    stream.Data.Any(value => value != 0),
                 $"Generated {cue} SFX stream shape or loop policy drifted.");
         }
     }

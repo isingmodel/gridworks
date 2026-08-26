@@ -49,6 +49,10 @@ title/gameplay SettingsRequested
 → RealtimeSliceMain이 RealtimeProductSettingsStore atomic save
 → save 성공 뒤에만 window/audio bus + UiRoot scale + Session ReduceMotion 적용
 
+title boot → RealtimeAudio ambient start-once
+live public operation → RealtimeSession.SelectLiveAudioCue (Outage > Energize > Breaker, 최대 1개)
+→ RealtimeSliceMain typed C# event seam → RealtimeAudio generated PCM playback → Ambient/SFX bus
+
 Godot InputEvent → RealtimeInputRouter → typed RealtimeInputRequest
 Godot signal/frame 또는 typed request
 → RealtimeSliceMain                       scene·input·publication adapter
@@ -70,9 +74,10 @@ Godot signal/frame 또는 typed request
 
 `RealtimeInputRouter`는 raw `InputEvent`를 priority가 있는 typed request로 바꾼다. `RealtimeSliceMain`은
 launch/resource bootstrap, title과 session의 경계, Godot lifecycle, signal·typed request 검증과 routing,
-session 없는 product-title save probe, route와 분리된 product-write ownership, product settings의 load/save와
-window/audio engine seam, focus, canvas와 publication을 소유한다. 게임 규칙이나 chapter 정책을 찾기 위해
-이 adapter부터 UI node 안쪽으로 내려가지 않는다.
+session 없는 product-title save probe, route와 분리된 product-write ownership, product settings의 load/save,
+audio typed-event seam, focus, canvas와 publication을 소유한다. cue 의미는 `RealtimeSession`, generated stream과
+Godot playback은 `RealtimeAudio`, volume/mute projection은 Main이 각각 한 번 소유한다. 게임 규칙이나
+chapter 정책을 찾기 위해 이 adapter부터 UI node 안쪽으로 내려가지 않는다.
 먼저 `RealtimeSession`과 `RealtimeCampaignRun`을 본다.
 
 ## 권위와 수정 위치
@@ -94,6 +99,8 @@ window/audio engine seam, focus, canvas와 publication을 소유한다. 게임 �
 | current settings wire·strict load·atomic write는? | `RealtimeProductSettingsCodec`과 `RealtimeProductSettingsStore` | `game/realtime/r2/RealtimeProductSettings.cs` |
 | title/gameplay 공용 settings 편집·focus·입력 차단은? | `RealtimeSettingsSurface`와 `RealtimeUiRoot` | `game/realtime/ui/RealtimeSettingsSurface.cs`, `game/realtime/ui/RealtimeUiRoot.cs` |
 | settings runtime projection은? | Main의 window/audio seam, `RealtimeUiRoot.UiScalePercent`, `RealtimeSession.SetReduceMotion` | `RealtimeSliceMain.cs`, `RealtimeUiRoot.cs`, `RealtimeSession.cs` |
+| live operation의 audio cue 의미·우선순위는? | `RealtimeSession.SelectLiveAudioCue` | `game/realtime/r2/RealtimeSession.cs` |
+| generated PCM·Ambient/SFX playback은? | `RealtimeAudio`; Main은 Session typed event만 전달 | `game/realtime/r2/RealtimeAudio.cs`, `RealtimeSliceMain.cs` |
 | 입력 뒤 application 상태와 chapter/story flow는? | `RealtimeSession` | `RealtimeSession.cs`, `RealtimeChapterStoryFlow.cs` |
 | final result 뒤 epilogue 순서와 약속 집계는? | `RealtimeEpilogueFlow`, strict base epilogue와 completed Core outcome | `RealtimeEpilogueFlow.cs`, `RealtimeModalPresenter.cs` |
 | raw input이 어떤 typed request가 되는가? | `RealtimeInputRouter` | `game/realtime/ui/RealtimeInputRouter.cs` |
@@ -202,6 +209,15 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
    read-only로 둔다.
 5. 가장 작은 create→fresh restore와 invalid/unsupported/read/write failure smoke 뒤 `./dev check`를
    실행한다. 실제 window mode가 쟁점이면 격리 경로의 bounded non-headless smoke를 별도로 실행한다.
+
+### 제품 오디오를 바꿀 때
+
+1. 어떤 live operation이 어떤 cue를 뜻하는지는 `RealtimeSession.SelectLiveAudioCue` 한 곳에서 바꾼다.
+2. PCM 생성·stream shape·Godot playback만 `RealtimeAudio`에서 바꾸며 Core와 save/settings schema를
+   건드리지 않는다.
+3. Main은 Session typed C# event를 audio node로 전달하고 기존 settings bus projection을 유지한다.
+4. selector와 가장 작은 실제 checkpoint, fresh Continue 무재생을 확인한 뒤 `./dev check`를 실행한다.
+5. headless 결과는 request/routing 증거로만 쓰고 실제 청감·device·package 품질은 별도 후보에서 검증한다.
 
 ## Fail-closed 규칙
 

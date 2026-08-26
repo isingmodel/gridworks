@@ -47,6 +47,7 @@ R2는 G3 texture와 함께 다음 code-native 표현을 사용한다.
 - service area와 forecast/active 위험 pattern
 - 한 줄 future-event bar의 marker, cluster와 상세 overlay
 - focus, hit target, 접근성 이름과 한국어 text layout
+- 외부 음원 파일 없이 생성하는 22,050Hz mono PCM16 ambient와 Breaker/Energize/Outage SFX
 
 필수 상태는 glow나 색 하나에 의존하지 않고 형태·pattern·icon·문장을 함께 사용해야 한다.
 
@@ -59,7 +60,8 @@ R2는 G3 texture와 함께 다음 code-native 표현을 사용한다.
 - V2 package 전용 icon, audio bus와 release manifest 자료
 
 이 파일이 tracked 상태라는 이유로 current R2 runtime이나 앞으로의 package에 자동 포함하지 않는다.
-현재 R2에는 승인된 product audio layer가 없다.
+current R2 기본 audio는 `RealtimeAudio`가 생성하는 code-native PCM만 사용하며 위 V2 audio class·asset을
+runtime 권위로 연결하지 않는다. 별도 녹음·third-party 음원 자산은 아직 채택하지 않았다.
 
 ## 5. 새 자산 채택 조건
 

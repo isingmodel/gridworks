@@ -235,7 +235,8 @@ deterministic failure 또는 blinded observation
   create→fresh restore, explicit 개발 route read-only, UI scale·volume/mute·Reduce Motion과 local macOS
   non-headless window-mode projection: deterministic wiring 완료. packaged candidate 복원이나 사람 접근성
   증거는 아님
-- product audio, packaged settings 재검증, current R2 package와 score-bearing execution
+- source-tree basic audio는 구현됐지만 packaged audio playback·상태 coverage·청감 품질, packaged settings
+  재검증, current R2 package와 score-bearing execution
   authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음

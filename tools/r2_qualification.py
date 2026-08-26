@@ -7,6 +7,7 @@ import argparse
 import os
 from pathlib import Path
 import pwd
+import shutil
 import stat
 import subprocess
 import sys
@@ -320,7 +321,13 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
     )
     if not isinstance(manifest, dict):
         fail("candidate manifest must be an object")
-    archive = manifest_path.parent / candidate.ARCHIVE_NAME
+    manifest_package = manifest.get("package")
+    if not isinstance(manifest_package, dict):
+        fail("candidate manifest package identity is malformed")
+    manifest_sha256 = candidate.sha256_bytes(
+        candidate.canonical_bytes(manifest) + b"\n"
+    )
+    source_archive = manifest_path.parent / candidate.ARCHIVE_NAME
 
     candidate.run(
         [
@@ -338,8 +345,32 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
 
     with tempfile.TemporaryDirectory(prefix="gridworks-r2-qualification-") as raw:
         work = Path(raw).resolve(strict=True)
+        pinned_root = work / "candidate"
+        pinned_root.mkdir(mode=0o700)
+        pinned_manifest = pinned_root / candidate.MANIFEST_NAME
+        pinned_archive = pinned_root / candidate.ARCHIVE_NAME
+        shutil.copyfile(manifest_path, pinned_manifest)
+        shutil.copyfile(source_archive, pinned_archive)
+        pinned_manifest.chmod(0o400)
+        pinned_archive.chmod(0o400)
+        if (
+            candidate.sha256_file(pinned_manifest) != manifest_sha256
+            or pinned_archive.stat().st_size
+            != manifest_package.get("byteLength")
+            or candidate.sha256_file(pinned_archive)
+            != manifest_package.get("sha256")
+        ):
+            fail("candidate manifest/archive changed while being pinned")
+        candidate.verify_manifest(pinned_manifest)
+
         extracted = work / "package"
-        baseline_tree = candidate.extract_archive(archive, extracted)
+        baseline_tree = candidate.extract_archive(pinned_archive, extracted)
+        if (
+            len(baseline_tree) != manifest_package.get("treeEntryCount")
+            or candidate.sha256_bytes(candidate.canonical_bytes(baseline_tree))
+            != manifest_package.get("treeSha256")
+        ):
+            fail("qualification extraction differs from candidate tree identity")
         app = extracted / "Gridworks.app"
         data_root = work / "product-data"
         data_root.mkdir(mode=0o700)
@@ -438,7 +469,23 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
 
         if candidate.tree_entries(extracted) != baseline_tree:
             fail("packaged app tree changed during qualification")
+        if (
+            pinned_archive.stat().st_size != manifest_package.get("byteLength")
+            or candidate.sha256_file(pinned_archive)
+            != manifest_package.get("sha256")
+        ):
+            fail("pinned candidate archive changed during qualification")
 
+    if (
+        not manifest_path.is_file()
+        or manifest_path.is_symlink()
+        or candidate.sha256_file(manifest_path) != manifest_sha256
+        or not source_archive.is_file()
+        or source_archive.is_symlink()
+        or source_archive.stat().st_size != manifest_package.get("byteLength")
+        or candidate.sha256_file(source_archive) != manifest_package.get("sha256")
+    ):
+        fail("candidate manifest/archive changed during qualification")
     if default_product_file_snapshot(account_home) != before_default:
         fail("default current R2 save/settings changed during qualification")
     if candidate.require_clean_source() != manifest["source"]["commit"]:

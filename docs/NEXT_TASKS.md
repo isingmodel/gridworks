@@ -68,22 +68,29 @@ runtime authority가 아니다.
 
 1.0의 audio는 non-voice ambient와 interaction/state cue 범위다. 음성 연기는 이 단계에 포함하지 않는다.
 
-### 2. current R2 fresh-user-data qualification과 전체 E2E
+### 2. current R2 packaged product-data qualification과 전체 E2E
 
 2A에서 과거 V2와 분리된 current R2 internal package identity ZIP, strict manifest/verifier와 임시 설치
-위치의 headless title marker 확인을 완료했다. 2B는 그 exact package를 입력으로 삼아 별도 빈 user-data에서
-production 입력만으로 전체 여정과 제품 persistence/audio를 검증한다. 새 packager 계층을 만들지 않고 qualification
-record 하나만 package manifest identity에 결속한다. 서명·공증·공개 배포는 아직 하지 않는다.
+위치의 headless title marker 확인을 완료했다. 2B는 구현 난이도와 증거 상한이 다른 두 단위다. 2B1은
+exact package가 별도 빈 Gridworks-owned save/settings root를 fresh process마다 읽는지 결속한다. 2B2는 그
+후보를 실제 default-scene InputEvent로 조작해 전체 여정과 audio를 검증한다. app-owned root는 Godot engine
+`user://` 전체나 새 OS account가 아니며, engine `Viewport.PushInput`도 OS hardware input은 아니다. 새
+packager 계층을 만들지 않고 qualification record만 package manifest identity에 결속한다.
 
 완료 기준:
 
-- 기존 strict verifier를 통과한 clean-HEAD current R2 package와 실제 빈 user-data의 분리 증명
+- 기존 strict verifier를 통과한 clean-HEAD current R2 package와 exact-empty app-owned save/settings root
+- fresh packaged title의 missing settings/save, source actual-scene이 만든 settings·initial save·terminal save의
+  fresh packaged load 분류와 source/package/tool identity를 strict 2B1 record에 결속
+- qualification env가 없을 때 기존 `user://` 동작 유지, 실제 default current save/settings bytes와 package
+  app tree의 실행 전후 불변
+- 2B2 시작 전 2B1 record의 독립 재검증
 - title→8장→finale→epilogue→완료 저장 재개와 completed `새 게임`의 production E2E
 - 진행 중 저장→프로세스 종료→동일 후보의 fresh process 재개
 - non-saveable exit의 prior-save 보존과 readable-save backup/reset을 packaged runtime에서 재검증
 - settings 변경→동일 후보의 fresh process 재실행→UI scale·Reduce Motion·volume/mute 값 복원
 - 개발 fixture와 checkpoint가 명시적 인자 없이는 평가 여정에 섞이지 않음
-- source commit, package manifest/archive/tree identity, target OS/runtime과 격리된 save/settings 경로를 단일
+- source commit, package manifest/archive/tree identity, target OS/runtime과 app-owned save/settings root를
   qualification record에 결속
 - qualification verifier가 누락·변조·다른 source/package/user-data에서 fail-closed
 - qualification 중 package contents가 바뀌면 기존 record를 폐기하고 새 package/qualification을 만듦

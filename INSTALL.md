@@ -3,9 +3,10 @@
 ## 현재 경계
 
 현재 저장소의 기본 장면은 live R2 `RealtimeSliceMain`이고 G3 자산 57개가 연결돼 있다. 인자 없는
-실행은 제품 title을 열며, `새 게임`은 authored `FIRST_LIGHT` briefing으로 진입한다. current R2 저장
-권위가 없으므로 `이어하기`는 이유와 함께 비활성이고, save/resume과 설치 패키지도 아직 없다. 과거
-V2의 저장 파일과 내부 macOS 후보를 현재 R2 기능으로 간주하지 않는다.
+실행은 제품 title을 연다. 저장 파일이 없으면 `새 게임`만 authored `FIRST_LIGHT` briefing으로 진입하고,
+유효한 current standalone `FIRST_LIGHT` 진행 저장이 있으면 `이어하기`만 활성화된다. 이 첫 stable
+save/Continue seam은 구현됐지만 사건·장 전환·완료 저장과 전체 campaign 재개, 설치 패키지는 아직
+없다. 과거 V2의 저장 파일과 내부 macOS 후보를 현재 R2 기능으로 간주하지 않는다.
 
 ## 요구 환경
 
@@ -34,8 +35,9 @@ V2의 저장 파일과 내부 macOS 후보를 현재 R2 기능으로 간주하�
 ./dev play product
 ```
 
-이 명령은 Godot user argument 없이 기본 장면을 열어 제품 title과 `새 게임` 경로를 재현한다. 현재
-`새 게임`은 standalone `FIRST_LIGHT` 한 장만 시작하며, 저장 기반 `이어하기`는 제공하지 않는다.
+이 명령은 Godot user argument 없이 기본 장면을 열어 제품 title을 재현한다. 저장 파일이 없으면
+`새 게임`이 standalone `FIRST_LIGHT` 한 장을 시작한다. 유효한 stable 진행 저장이 있으면 새 게임을
+차단하고 `이어하기`에서 같은 상태를 paused로 복원한다.
 
 ### 누적 8장 경로
 
@@ -75,8 +77,9 @@ V2의 저장 파일과 내부 macOS 후보를 현재 R2 기능으로 간주하�
 ```
 
 `./dev check`는 current root solution, 두 check project, 세 Python 회귀, no-arg 제품 title과 명시적
-fixture entry smoke, 두 named checkpoint를 묶은 기본 회귀다. 한 화면 상태나 story part를 조사할
-때는 더 작은 `checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는 `./dev help`에서 확인한다.
+fixture entry smoke, 별도 process의 mid-construction save-create→Continue, invalid·unsupported-schema·I/O 실패 title
+상태와 두 named checkpoint를 묶은 기본 회귀다. 한 화면 상태나 story part를 조사할 때는 더 작은
+`checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는 `./dev help`에서 확인한다.
 
 저장소에 포함된 Godot 대신 다른 Mono executable을 사용할 때의 예:
 
@@ -86,12 +89,31 @@ GRIDWORKS_GODOT_BIN=/absolute/path/to/Godot ./dev check
 
 ## 저장과 user-data
 
-current R2 진행 상태는 프로세스를 종료한 뒤 이어 할 수 없다. 따라서 fresh-process 검증은 매번 새
-경로로 시작한다. Godot user-data에 과거 V2의 `release-campaign-save-v3.json`이나 `settings.json`이
-남아 있을 수 있지만 current R2의 저장 권위가 아니다.
+current 파일은 `user://gridworks-r2-campaign-save-v1.json` 하나다. standalone `FIRST_LIGHT`에서 briefing을
+닫고 Core command가 하나 이상 수락된 뒤, 사건·duty·pending transition·draft·story modal·epilogue·frame
+debt가 없는 진행 상태를 정상 종료하면 같은 디렉터리의 private temp를 거쳐 atomic하게 교체한다.
+save는 current route와 base/realtime source hash, saved minute, ordered accepted journal과 final canonical
+hash를 기록하며 snapshot이나 seed를 복제하지 않는다.
 
-빈 user-data를 검사할 때 기존 파일을 삭제하거나 덮어쓰지 말고 별도 폴더로 옮겨 백업한다. R2
-save/resume과 migration 정책은 [남은 작업](docs/NEXT_TASKS.md)의 별도 단계다.
+title의 파일 상태 정책은 다음과 같다.
+
+- 저장 파일 없음: `이어하기` disabled, `새 게임` enabled
+- exact current source와 replay/hash가 맞는 stable save: `이어하기` enabled, `새 게임` disabled
+- 형식 손상·지원하지 않는 schema/version·route/source/hash/replay 불일치·I/O 실패: 두 action disabled,
+  원본 bytes 보존
+
+`이어하기`는 exact clock·cash·world·construction·journal/hash를 되살린 뒤 player-paused·normal speed·
+no-modal 상태로 연다. pointer, camera, selection과 fractional frame remainder는 복원하지 않는다.
+
+사건 중·chapter 전환·active story·완료 run/finale/epilogue, 누적 8장 route, crash journal은 아직 저장하지
+않는다. 유효 save의 새 게임 덮어쓰기 확인, 삭제, migration/recovery UI도 없다. 새 게임이 필요하면 앱을
+종료한 상태에서 current save를 별도 위치로 백업·이동한다. 명시적 개발 명령
+`./dev play chapter FIRST_LIGHT`도 같은 canonical route와 user-data를 사용하므로 eligible 상태에서 정상
+종료하면 이 파일을 갱신할 수 있다.
+
+Godot user-data에 과거 V2의 `release-campaign-save-v3.json`이나 `settings.json`이 남아 있어도 current R2
+권위가 아니다. 빈 user-data를 검사할 때 기존 파일을 삭제하거나 덮어쓰지 말고 별도 폴더로 옮겨
+백업한다. 남은 save 범위와 recovery 정책은 [남은 작업](docs/NEXT_TASKS.md)의 후속 단계다.
 
 ## 패키지와 공개 배포
 

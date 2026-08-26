@@ -179,6 +179,23 @@ Debug/Release build, `./dev check`, 전체 누적 Godot UI harness와 두 독립
 save/resume, 완료 후 result/chapter/replay 선택, package, production-input 직접 관찰 또는 사람 UX 품질의
 증거를 바꾸지 않는다.
 
+### UX-R2.11 — standalone FIRST_LIGHT stable progress save·Continue
+
+standalone `FIRST_LIGHT`에서 briefing을 닫고 Core command가 하나 이상 수락된 stable mid-construction
+상태를 정상 종료해 한 current R2 save에 atomic하게 기록했다. save는 canonical route와 base world/
+campaign, realtime world/overlay, selected/full composed campaign source hash, saved minute, ordered accepted
+journal과 final canonical hash만 담고 snapshot이나 immutable seed를 중복 저장하지 않는다. strict decode와
+결정론적 replay가 ordered transition history와 다음 advance/command까지 uninterrupted run과 같음을
+검증한다.
+
+저장 파일이 없으면 `새 게임`만, 유효 save면 `이어하기`만 활성화한다. 형식 손상·지원하지 않는 schema/
+version·route/source/hash/replay 불일치·I/O 실패에서는 두 action을 차단하고 원본을 보존한다. 별도 fresh
+process의 `이어하기`는 exact clock·cash·world·construction·
+journal/hash를 player-paused·normal speed·no-modal 상태로 복원한다. Debug/Release build, strict Core suite,
+`./dev check`, 전체 Godot UI harness와 독립 review를 통과했고 review의 uppercase hash canonicalization
+finding을 수정했다. 이 완료는 사건·장 전환·완료 save, 누적 8장 product 새 게임, overwrite/recovery UI,
+package, production-input 직접 관찰이나 사람 UX 품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

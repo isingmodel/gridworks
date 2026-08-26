@@ -41,9 +41,10 @@ OS 호환성이나 출시 승인을 대신하지 않는다.
 | story part topology | `tools/commercial-ux/realtime_text_contract.py` |
 
 현재 기본 장면의 인자 없는 실행은 session 없는 제품 title을 열고, `새 게임`은 canonical
-`FIRST_LIGHT` briefing으로 진입한다. `이어하기`는 current R2 저장 권위가 없어 이유와 함께 비활성이다.
-이 title wiring, 작성된 8장, 누적 8장 native 구현과 누적 4장 production-input 관찰을 같은 coverage로 세지
-않는다.
+`FIRST_LIGHT` briefing으로 진입한다. 저장 파일이 없으면 `이어하기`가 비활성이고, 유효한 standalone
+`FIRST_LIGHT` stable 진행 save가 있으면 `이어하기`만 활성화돼 paused·no-modal 상태로 복원된다. 이
+제한된 title/save wiring, 작성된 8장, 누적 8장 native 구현과 누적 4장 production-input 관찰을 같은
+coverage로 세지 않는다.
 과거 V2 title/save/settings/audio, editor project tree와 UX-R1 candidate는 current R2 평가 권위가 아니다.
 
 ## 3. 두 평가 lane
@@ -203,11 +204,13 @@ deterministic failure 또는 blinded observation
 - `TextPlanProxy`: `83.4475`, 형성평가
 - R2 native 구현: `LONGEST_NIGHT`까지 누적 8장
 - 실제 직접 플레이: `NORTH_BANK_PROMISE`까지 누적 4장 Keep·명시적 Defer 결과 관찰
-- current R2 product title, 비활성 `이어하기` 이유와 `새 게임`→standalone `FIRST_LIGHT` wiring:
-  구현·결정론적 production-input smoke 완료
+- current R2 product title의 저장 파일 없음 `새 게임`→standalone `FIRST_LIGHT`: 구현·결정론적
+  production-input smoke 완료
+- standalone `FIRST_LIGHT` stable in-progress save-backed `이어하기`: deterministic fresh-process smoke
+  완료; package/direct-play evidence는 없음
 - finale→세 epilogue card와 누적 Keep/Defer·남은 자금의 deterministic native presentation: 구현
-- save/resume, 완료 후 result/chapter/replay 선택, current R2 package: 미완료
-- save-backed 실제 `이어하기`, audio/settings와 score-bearing execution authority·oracle/aggregator: 미완료
+- 사건·장 전환·완료 저장, 누적 8장 product 여정과 result/chapter/replay 선택: 미완료
+- audio/settings, current R2 package와 score-bearing execution authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음
 

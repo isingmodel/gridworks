@@ -8,7 +8,8 @@
 
 - Godot 기본 장면은 live R2 `RealtimeSliceMain`이다.
 - 인자 없는 실행은 session 없는 제품 title을 열고, `새 게임`은 standalone `FIRST_LIGHT`로 진입한다.
-  R2 저장 권위가 없어 `이어하기`는 이유와 함께 비활성이다.
+  저장 파일이 없으면 `새 게임`만 활성화된다. exact-current standalone `FIRST_LIGHT` stable 진행 save가
+  있으면 `이어하기`만 활성화되고 player-paused·no-modal 상태로 복원된다.
 - G3 아트 57개(지도 50/UI 7)가 R2 world와 UI에 연결돼 있다.
 - 한 줄 사건 지평선이 사건·공사·결정 기한·열 경계를 compact marker로 표시하고 상세 정보를
   hover 또는 선택으로 연다.
@@ -18,8 +19,9 @@
   card와 세 Keep/Defer 약속 결과·남은 자금을 표시한다.
 - 실제 production mouse/keyboard 직접 플레이는 `NORTH_BANK_PROMISE`까지 누적 4장의 Keep과 명시적
   Defer를 각각 fresh process에서 관찰했다.
-- R2 save/resume과 완료 후 result/chapter/replay 선택, product audio·settings, current R2 패키지와 공식
-  UX 점수는 없다.
+- standalone `FIRST_LIGHT`의 첫 stable in-progress save/Continue seam은 구현됐다. 누적 8장 product 여정,
+  사건·장 전환·완료 저장과 완료 후 result/chapter/replay 선택, product audio·settings, current R2
+  패키지와 공식 UX 점수는 없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
 연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
@@ -28,19 +30,19 @@
 
 ## 권장 순서
 
-### 1. 캠페인 저장과 완료 후 재개
+### 1. 캠페인 저장 범위 확장과 완료 후 재개
 
-R2 진행 저장/재개, 완료 저장과 title `이어하기`, result/chapter/replay 선택을 구현한다. 이미 연결된
-finale→세 epilogue card를 저장 없이 다시 만드는 별도 흐름을 추가하지 않는다. 동결 V2 저장을 그대로
-현재 R2 저장이라고 주장하지 말고, Release.V3 상태에 맞는 권위를 정의한다.
+현재 standalone `FIRST_LIGHT`의 stable accepted-journal 저장 권위를 누적 product 여정과 불안정 경계,
+완료 저장까지 확장하고 result/chapter/replay 선택을 구현한다. 이미 연결된 finale→세 epilogue card를
+저장 없이 다시 만드는 별도 흐름을 추가하지 않으며 동결 V2 저장을 current R2 권위로 재사용하지 않는다.
 
 완료 기준:
 
-- 진행 중 저장→프로세스 종료→fresh process→title의 `이어하기`→정확한 시각·망·결정 상태 복구
-- 공사 중, 사건 중과 장 전환 직전의 시간·망·결정 상태 복구
+- 제품 title의 `새 게임`을 누적 8장 여정으로 연결하고 모든 장의 stable 진행 저장 복구
+- 사건 중·active duty·장 전환·active story 경계의 시간·망·결정 상태 복구
 - 8장 완료→finale→epilogue→완료 저장→fresh process의 `이어하기`→결과와 chapter/replay 선택 복구
 - 유효한 저장이 있을 때 `새 게임`의 확인·덮어쓰기 정책
-- 빈·손상·구버전 저장의 `이어하기` 비활성, 명시적 거부 또는 migration 정책과 원본 보존
+- 손상·구버전 저장의 migration/recovery 또는 명시적 폐기 정책
 
 ### 2. 시청각·설정·조작성·접근성 마감
 

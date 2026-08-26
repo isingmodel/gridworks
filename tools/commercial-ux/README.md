@@ -9,6 +9,7 @@
 - 작성 콘텐츠: 8장, 16개 사건, 34개 story part
 - R2 native 구현: `LONGEST_NIGHT`까지 누적 8장
 - 실제 직접 플레이 관찰: `NORTH_BANK_PROMISE`까지 누적 4장 Keep·명시적 Defer 결과
+- standalone `FIRST_LIGHT` stable in-progress save/Continue: deterministic fresh-process wiring 완료
 - text 형성평가: `TextPlanProxy = 83.4475`
 - 공식 native 평가: 미실행, `CommercialUXProxy` 없음
 - current R2 evaluation candidate package: 없음
@@ -96,6 +97,13 @@ dotnet run --project tools/Gridworks.RealtimeChecks -c Release -- \
 suite 이름에 `hash`가 포함돼도 문서에서 고정 digest를 관리하지 않는다. 검사는 현재 fixture identity와
 state transition이 변하지 않았는지 코드에서 판정한다.
 
+save codec의 strict source/journal replay만 확인할 때:
+
+```sh
+dotnet run --project tools/Gridworks.RealtimeChecks -c Release -- \
+  --suite campaign-save-strict-replay
+```
+
 ### R2 named checkpoint
 
 ```sh
@@ -104,7 +112,9 @@ state transition이 변하지 않았는지 코드에서 판정한다.
 ```
 
 checkpoint는 production controller·HUD signal·clock·presentation·world draw를 거쳐 정확한 근처 상태를
-검사한다. onboarding, 장 누적성, save/resume와 전체 캠페인은 fresh-process E2E가 필요하다.
+검사한다. `./dev check`는 isolated two-process의 standalone `FIRST_LIGHT` mid-construction
+save-create→Continue와 invalid/unsupported/I/O-failure title 상태를 함께 검사한다. onboarding, 장 누적성,
+사건·장 전환·완료를 포함한 전체 save/resume와 전체 캠페인은 별도 fresh-process E2E가 필요하다.
 
 ## 4. `native/` 도구의 경계
 
@@ -128,8 +138,9 @@ R2 package가 아니며 title/이어하기/settings/audio/finale·epilogue evide
 - text score를 `CommercialUXProxy`로 승격하기
 
 공식 native 평가를 열 때는 [남은 작업](../../docs/NEXT_TASKS.md)의 finale·epilogue 포함 전체 제품 여정,
-save/resume, audio/settings와 fresh-install candidate gate를 먼저 닫는다. 이 package gate가 current R2
-candidate packager, finalized manifest와 verifier를 소유한다. 이어서 그 finalized candidate를 소비하는
+사건·장 전환·완료를 포함한 전체 save/resume, audio/settings와 fresh-install candidate gate를 먼저
+닫는다. 이 package gate가 current R2 candidate packager, finalized manifest와 verifier를 소유한다.
+이어서 그 finalized candidate를 소비하는
 versioned evaluation-session authority, capture, evidence verifier, hard-gate oracle과 score aggregator를
 별도 gate로 구현한다. 이 전환은
 [평가 프로토콜](../../docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)의

@@ -62,8 +62,8 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseFirstLightNoActionResult(failures), failures);
         RunCase("release-tutorial-through-second-source",
             () => ValidateReleaseTutorialThroughSecondSource(failures), failures);
-        RunCase("release-through-before-water-rise-controller",
-            () => ValidateReleaseThroughBeforeWaterRiseController(failures), failures);
+        RunCase("release-through-switch-off-to-protect-controller",
+            () => ValidateReleaseThroughSwitchOffToProtectController(failures), failures);
         RunCase("release-promise-result-branches",
             () => ValidateReleasePromiseResultBranches(failures), failures);
         RunCase("release-tutorial-connection-failure-result",
@@ -2498,7 +2498,7 @@ internal static class RealtimeR2Smoke
             "tutorial exact launch route or FIRST_LIGHT preservation drifted",
             failures);
         Check(RealtimeNativeRouteCatalog.NativeThroughChapterId ==
-                  "BEFORE_WATER_RISE" &&
+                  "SWITCH_OFF_TO_PROTECT" &&
               RealtimeNativeRouteCatalog.All.Count == 3 &&
               RealtimeNativeRouteCatalog.All.Select(item => item.LaunchArgument)
                   .SequenceEqual(
@@ -2506,7 +2506,7 @@ internal static class RealtimeR2Smoke
                       {
                           "--release-chapter=FIRST_LIGHT",
                           "--release-through=SECOND_SOURCE",
-                          "--release-through=BEFORE_WATER_RISE",
+                          "--release-through=SWITCH_OFF_TO_PROTECT",
                       },
                       StringComparer.Ordinal) &&
               RealtimeNativeRouteCatalog.All.All(item =>
@@ -2514,8 +2514,8 @@ internal static class RealtimeR2Smoke
                       RealtimeNativeRouteCatalog.ThroughNativeCoverage
                           .SelectedChapterCount) &&
               RealtimeNativeRouteCatalog.ThroughNativeCoverage
-                  .SelectedChapterCount == 6,
-            "native route catalog or explicit BEFORE_WATER_RISE cap drifted",
+                  .SelectedChapterCount == 7,
+            "native route catalog or explicit SWITCH_OFF_TO_PROTECT cap drifted",
             failures);
         bool forgedRouteRejected = false;
         try
@@ -2524,8 +2524,8 @@ internal static class RealtimeR2Smoke
                 typeof(RealtimeSliceMain).Assembly,
                 RealtimeNativeRouteCatalog.ThroughNativeCoverage with
                 {
-                    EndChapterId = "SWITCH_OFF_TO_PROTECT",
-                    SelectedChapterCount = 7,
+                    EndChapterId = "LONGEST_NIGHT",
+                    SelectedChapterCount = 8,
                     FullFlowPassToken = "FORGED_FULL_FLOW_PASS",
                 });
         }
@@ -2542,7 +2542,8 @@ internal static class RealtimeR2Smoke
             ["--release-through=SECOND_HEART"],
             ["--release-through=NORTH_BANK_PROMISE"],
             ["--release-through=WHOSE_MARGIN"],
-            ["--release-through=SWITCH_OFF_TO_PROTECT"],
+            ["--release-through=BEFORE_WATER_RISE"],
+            ["--release-through=LONGEST_NIGHT"],
             ["--release-through"],
             ["--bogus"],
             ["--checkpoint=UNKNOWN"],
@@ -2849,7 +2850,7 @@ internal static class RealtimeR2Smoke
             failures);
     }
 
-    private static void ValidateReleaseThroughBeforeWaterRiseController(
+    private static void ValidateReleaseThroughSwitchOffToProtectController(
         ICollection<string> failures)
     {
         var slice = new RealtimeSliceMain();
@@ -3023,7 +3024,7 @@ internal static class RealtimeR2Smoke
         AssertWhoseMarginPromiseEventScope(slice, failures, "reinforced-keep-revealed");
         CloseWhoseMarginNightStory(slice, data, failures, "reinforced-keep");
         (RealtimeChapterOutcome whoseOutcome, RealtimeModalPresentation whoseResult) =
-            CompleteWhoseMarginChapter(slice, data, failures, "reinforced-keep");
+            CompleteWhoseMarginChapter(slice, failures, "reinforced-keep");
         CommercialStoryCard whoseKept = data.BaseCampaign.Chapters[4]
             .ResultCards.Kept!;
         Check(whoseOutcome.ObjectiveSatisfied &&
@@ -3096,40 +3097,75 @@ internal static class RealtimeR2Smoke
               floodResult.Body == floodKept.Body,
             "explicit flood Keep did not preserve inherited 2/2, safe supply, or exact result",
             failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null &&
+              !slice.CoreSnapshot.CampaignComplete &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.Count == 6 &&
+              !slice.FormativeTutorialFullFlowRecordedForSmoke,
+            "BEFORE_WATER_RISE Keep did not hand the six-result chain to planned outage",
+            failures);
+
+        EnterSwitchOffToProtectPlanning(
+            slice,
+            data,
+            floodOutcome.EndingCashUnit,
+            failures);
+        BuildSwitchContinuousWaterBranch(slice, failures);
+        AdvanceAndAssertSwitchOffToProtectForecast(slice, failures);
+        CloseSwitchPlannedOutageStory(slice, data, failures);
+        CloseSwitchReturnServiceStory(slice, data, failures);
+        (RealtimeChapterOutcome switchOutcome, RealtimeModalPresentation switchResult) =
+            CompleteSwitchOffToProtectChapter(slice, failures);
+        CommercialStoryCard switchStandard = data.BaseCampaign.Chapters[6]
+            .ResultCards.Standard!;
+        Check(switchOutcome.ObjectiveSatisfied &&
+              switchOutcome.PromiseDecision == CommercialPromiseDecision.Unset &&
+              switchOutcome.ConnectionRequirementAssessment is
+              {
+                  EvaluatedMinute: 267690,
+                  FrozenForChapter: true,
+                  Satisfied: true,
+              } switchConnections &&
+              switchConnections.Facts.Single() is
+              {
+                  NodeId: "WATER_TERMINAL",
+                  CurrentConnections: 2,
+                  RequiredConnections: 2,
+              } &&
+              switchOutcome.Events.All(item =>
+                  item.SafetySatisfied &&
+                  item.PromiseSatisfied &&
+                  item.DutySegments.Count > 0 &&
+                  item.DutySegments[0].StartMinute == item.StartMinute &&
+                  item.DutySegments[^1].EndMinute == item.EndMinute &&
+                  item.DutySegments.All(segment =>
+                      segment.Loads.Single(load =>
+                          load.LoadId == "EAST_RESIDENTIAL") is
+                      {
+                          Obligation: CommercialObligationKind.OperatingRecord,
+                          DemandKw: 700,
+                          DeliveredKw: 700,
+                          Required: true,
+                      })) &&
+              switchResult.Eyebrow == switchStandard.Speaker &&
+              switchResult.Heading == switchStandard.Title &&
+              switchResult.Body == switchStandard.Body,
+            "planned outage did not preserve inherited 2/2 or exact standard result",
+            failures);
         Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
               slice.CoreSnapshot.CampaignComplete &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Ended &&
               slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
-                  new[]
-                  {
-                      "FIRST_LIGHT",
-                      "SECOND_HEART",
-                      "SECOND_SOURCE",
-                      "NORTH_BANK_PROMISE",
-                      "WHOSE_MARGIN",
-                      "BEFORE_WATER_RISE",
-                  },
+                  data.Campaign.Chapters.Select(item => item.Content.ChapterId),
                   StringComparer.Ordinal) &&
               slice.FormativeTutorialFullFlowRecordedForSmoke &&
               slice.EmittedTransitions
                   .Where(item => item.Kind == RealtimeTransitionKind.EventStarted)
                   .Select(item => item.EventId!)
                   .SequenceEqual(
-                      new[]
-                      {
-                          "FIRST_LIGHT_SUPPLY",
-                          "HOSPITAL_TRANSFER_TEST",
-                          "FLOOD_ISOLATION_TEST",
-                          "WEST_MAIN_COMMISSIONING_TEST",
-                          "SOUTH_SOURCE_COMMISSIONING_TEST",
-                          "NORTH_BANK_COMMISSIONING",
-                          "NEXT_HOT_EVENING_FORECAST",
-                          "HOT_BASE",
-                          "NIGHT_SHIFT",
-                          "LATE_NIGHT",
-                          "FLOOD_ARRIVAL",
-                      },
+                      data.Campaign.Chapters.SelectMany(chapter =>
+                          chapter.ScheduledEvents).Select(item => item.EventId),
                       StringComparer.Ordinal),
-            "BEFORE_WATER_RISE Keep did not close the exact six-result/full-flow chain",
+            "SWITCH_OFF_TO_PROTECT did not close the exact seven-result/full-flow chain",
             failures);
     }
 
@@ -3225,7 +3261,6 @@ internal static class RealtimeR2Smoke
             RealtimeModalPresentation whoseDeferredResult) =
             CompleteWhoseMarginChapter(
                 deferredSlice,
-                deferredData,
                 failures,
                 "explicit-whose-defer");
         CommercialStoryCard whoseDeferred = deferredData.BaseCampaign.Chapters[4]
@@ -3303,11 +3338,13 @@ internal static class RealtimeR2Smoke
               floodDeferredResult.Body == floodDeferred.Body,
             "explicit flood Defer did not exclude only East duty or present exact result",
             failures);
-        Check(deferredSlice.ClosePresentedChapterStoryModalForSmoke() is null &&
-              deferredSlice.CoreSnapshot.CampaignComplete &&
+        Check(deferredSlice.ClosePresentedChapterStoryModalForSmoke() is not null &&
+              !deferredSlice.CoreSnapshot.CampaignComplete &&
+              deferredSlice.CoreSnapshot.Chapter.Content.ChapterId ==
+                  "SWITCH_OFF_TO_PROTECT" &&
               deferredSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !deferredSlice.FormativeTutorialFullFlowRecordedForSmoke,
-            "BEFORE_WATER_RISE Defer minted the Keep-only six-chapter token",
+            "BEFORE_WATER_RISE Defer minted the Keep-only token or blocked SWITCH handoff",
             failures);
 
         // Unset reaches the exact deadline once, becomes auto-Defer, stays
@@ -3473,7 +3510,6 @@ internal static class RealtimeR2Smoke
             RealtimeModalPresentation standardResult) =
             CompleteWhoseMarginChapter(
                 defaultedSlice,
-                defaultedData,
                 failures,
                 "standard-corridor");
         CommercialStoryCard authoredWhoseKept = defaultedData.BaseCampaign.Chapters[4]
@@ -3632,7 +3668,7 @@ internal static class RealtimeR2Smoke
         Check(data.NativeRoute ==
                   RealtimeNativeRouteCatalog.ThroughNativeCoverage &&
               data.CampaignSha256 ==
-                  "43ed23f48d8c27b2cfeb3628bfe1c667ccf4fe347b6c95ef2912ce1da767bec3" &&
+                  "f4db2dee945b3162af8365cd1a8b4a6f2996ee946dee1b1abdfe55407bf751e0" &&
               data.Campaign.Chapters.Select(item => item.Content.ChapterId)
                   .SequenceEqual(
                       new[]
@@ -3643,13 +3679,14 @@ internal static class RealtimeR2Smoke
                           "NORTH_BANK_PROMISE",
                           "WHOSE_MARGIN",
                           "BEFORE_WATER_RISE",
+                          "SWITCH_OFF_TO_PROTECT",
                       },
                       StringComparer.Ordinal) &&
-              data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 11 &&
+              data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 13 &&
               RealtimeSliceMain.ParseLaunchArguments(
-                  ["--release-through=BEFORE_WATER_RISE"]).NativeRoute ==
+                  ["--release-through=SWITCH_OFF_TO_PROTECT"]).NativeRoute ==
                   RealtimeNativeRouteCatalog.ThroughNativeCoverage,
-            "BEFORE_WATER_RISE exact route/prefix identity drifted: " +
+            "SWITCH_OFF_TO_PROTECT exact route/prefix identity drifted: " +
             data.CampaignSha256,
             failures);
         bool isolatedRejected = false;
@@ -3971,11 +4008,10 @@ internal static class RealtimeR2Smoke
             item.ChapterId == "NORTH_BANK_PROMISE");
         RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
             throw new InvalidOperationException("North Bank result modal is absent.");
-        Check(!slice.CoreSnapshot.CampaignComplete &&
-              slice.CoreSnapshot.Chapter.Content.ChapterId == "WHOSE_MARGIN" &&
-              slice.CoreSnapshot.ChapterStarted &&
+        Check(slice.CoreSnapshot.Minute == 266070 &&
+              slice.CoreSnapshot.CompletedChapters.Count == 4 &&
               result.Id == RealtimeR2Ids.TutorialResultModal("NORTH_BANK_PROMISE"),
-            "North Bank result did not preserve the live cumulative handoff",
+            "North Bank did not end with its stable result state",
             failures);
         return (outcome, result);
     }
@@ -4201,7 +4237,6 @@ internal static class RealtimeR2Smoke
     private static (RealtimeChapterOutcome Outcome, RealtimeModalPresentation Result)
         CompleteWhoseMarginChapter(
             RealtimeSliceMain slice,
-            RealtimeSliceData data,
             ICollection<string> failures,
             string label)
     {
@@ -4225,8 +4260,7 @@ internal static class RealtimeR2Smoke
                   .SequenceEqual(
                       new[] { "HOT_BASE", "NIGHT_SHIFT", "LATE_NIGHT" },
                       StringComparer.Ordinal),
-            $"{label} WHOSE_MARGIN did not hand its exact event/result FIFO to " +
-            "BEFORE_WATER_RISE",
+            $"{label} WHOSE_MARGIN did not end with exact event/result FIFO",
             failures);
         return (outcome, result);
     }
@@ -4505,6 +4539,323 @@ internal static class RealtimeR2Smoke
                   EndMinute: 267270,
               },
             $"{label} BEFORE_WATER_RISE did not end with exact event/result FIFO",
+            failures);
+        return (outcome, result);
+    }
+
+    private static void EnterSwitchOffToProtectPlanning(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        long previousEndingCashUnit,
+        ICollection<string> failures)
+    {
+        const string label = "SWITCH_OFF_TO_PROTECT";
+        CommercialCampaignChapterDefinition authored = data.BaseCampaign.Chapters[6];
+        RealtimeConnectionRequirementAssessment connection = slice.CoreSnapshot
+            .Forecast.ConnectionRequirementAssessment ?? throw new InvalidOperationException(
+                $"{label} SWITCH_OFF_TO_PROTECT connection assessment is absent.");
+        var inheritedWater = slice.CoreSnapshot.Construction.World.Edges.Single(
+            edge => edge.Commissioned &&
+                (edge.FromNodeId == "WATER_TERMINAL" ||
+                 edge.ToNodeId == "WATER_TERMINAL"));
+        string northPlayerSubstationId = slice.CoreSnapshot.Construction.World.Nodes
+            .Single(node => node.Position == new CoreMapPoint(2500, 500))
+            .NodeId;
+        Check(slice.CoreSnapshot is
+              {
+                  Minute: 267270,
+                  ChapterStarted: true,
+                  CampaignComplete: false,
+                  PromiseDecision: CommercialPromiseDecision.Unset,
+              } &&
+              slice.CoreSnapshot.Chapter.Content.ChapterId ==
+                  "SWITCH_OFF_TO_PROTECT" &&
+              slice.CoreSnapshot.CashUnit == checked(
+                  previousEndingCashUnit + authored.BudgetGrantCashUnit) &&
+              inheritedWater.EdgeId.StartsWith("PLAYER_EDGE_", StringComparison.Ordinal) &&
+              (inheritedWater.FromNodeId == northPlayerSubstationId ||
+               inheritedWater.ToNodeId == northPlayerSubstationId) &&
+              connection is { FrozenForChapter: false, Satisfied: false } &&
+              connection.Facts.Single() is
+              {
+                  NodeId: "WATER_TERMINAL",
+                  CurrentConnections: 1,
+                  RequiredConnections: 2,
+              },
+            $"{label} did not inherit the exact clock, cash, and North Water 1/2",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "SWITCH_OFF_TO_PROTECT",
+            null,
+            authored.Briefing,
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null,
+            $"{label} briefing did not queue BEFORE_PLANNED_OUTAGE_WINDOW",
+            failures);
+
+        RequireDecisionWindow(
+            slice,
+            authored,
+            "SWITCH_OFF_TO_PROTECT",
+            "BEFORE_PLANNED_OUTAGE_WINDOW",
+            failures,
+            label);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            $"{label} planning window did not close into realtime play",
+            failures);
+    }
+
+    private static void BuildSwitchContinuousWaterBranch(
+        RealtimeSliceMain slice,
+        ICollection<string> failures)
+    {
+        const string label = "SWITCH_OFF_TO_PROTECT";
+        string reinforcedTrunkPoleId = slice.CoreSnapshot.Construction.World.Nodes
+            .Single(node => node.ClassId == "REINFORCED_POLE" &&
+                node.Position == new CoreMapPoint(1950, 850))
+            .NodeId;
+        string waterSubstationId = OrderTutorialNode(
+            slice,
+            new CoreMapPoint(2300, 900),
+            failures,
+            $"{label} continuous Water substation");
+        _ = OrderTutorialLine(
+            slice,
+            reinforcedTrunkPoleId,
+            Array.Empty<CoreMapPoint>(),
+            waterSubstationId,
+            "REINFORCED_LINE",
+            "REINFORCED_POLE",
+            failures,
+            $"{label} continuous Water feed");
+        _ = OrderTutorialLine(
+            slice,
+            waterSubstationId,
+            Array.Empty<CoreMapPoint>(),
+            "WATER_TERMINAL",
+            "REINFORCED_LINE",
+            "REINFORCED_POLE",
+            failures,
+            $"{label} continuous Water service");
+        RealtimeConnectionRequirementAssessment connection = slice.CoreSnapshot.Forecast
+            .ConnectionRequirementAssessment ?? throw new InvalidOperationException(
+                $"{label} completed Water connection assessment is absent.");
+        Check(slice.CoreSnapshot.Minute == 267417 &&
+              connection is { FrozenForChapter: false, Satisfied: true } &&
+              connection.Facts.Single().CurrentConnections == 2,
+            $"{label} continuous Water branch lost its exact completion or 2/2",
+            failures);
+    }
+
+    private static void AdvanceAndAssertSwitchOffToProtectForecast(
+        RealtimeSliceMain slice,
+        ICollection<string> failures)
+    {
+        const string label = "SWITCH_OFF_TO_PROTECT";
+        RealtimeForecastEvent planned = slice.LatestPresentation.BaseForecast.Events.Single();
+        Check(planned.EventId == "WEST_SOURCE_PLANNED_OUTAGE" &&
+              planned.RevealMinute == 267270 &&
+              planned.StartMinute == 267690 &&
+              planned.EndMinute == 267810 &&
+              planned.OperatingProfile.ThermalPolicy ==
+                  CommercialPhaseThermalPolicy.SafetyEmergencyAllowed &&
+              planned.OperatingProfile.UnavailableNodeIds.SequenceEqual(
+                  new[] { "WEST_SOURCE_NODE" },
+                  StringComparer.Ordinal) &&
+              planned.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "HOSPITAL").DeliveredKw == 1800 &&
+              planned.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "WATERWORKS").DeliveredKw == 1400 &&
+              planned.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "EAST_RESIDENTIAL").DeliveredKw == 700 &&
+              planned.TemporalProjection.Transitions.Count == 0 &&
+              planned.TemporalProjection.Outcome.SafetySatisfied &&
+              planned.TemporalProjection.Outcome.PromiseSatisfied,
+            $"{label} planned-outage forecast lost authored timing, West isolation, or supply",
+            failures);
+
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            267450,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeForecastEvent[] revealed = slice.LatestPresentation.BaseForecast.Events
+            .ToArray();
+        RealtimeForecastEvent returned = revealed.Single(item =>
+            item.EventId == "WEST_SOURCE_RETURN_SERVICE");
+        Check(revealed.Select(item => item.EventId).SequenceEqual(
+                  new[]
+                  {
+                      "WEST_SOURCE_PLANNED_OUTAGE",
+                      "WEST_SOURCE_RETURN_SERVICE",
+                  },
+                  StringComparer.Ordinal) &&
+              returned.RevealMinute == 267450 &&
+              returned.StartMinute == 267870 &&
+              returned.EndMinute == 267990 &&
+              returned.OperatingProfile.ThermalPolicy ==
+                  CommercialPhaseThermalPolicy.ContinuousOnly &&
+              returned.OperatingProfile.UnavailableNodeIds.Count == 0 &&
+              returned.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+              returned.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "WATERWORKS").DeliveredKw == 900 &&
+              returned.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "EAST_RESIDENTIAL").DeliveredKw == 700 &&
+              returned.TemporalProjection.Transitions.Count == 0 &&
+              returned.TemporalProjection.Outcome.SafetySatisfied &&
+              returned.TemporalProjection.Outcome.PromiseSatisfied,
+            $"{label} return-service forecast lost reveal order or continuous supply",
+            failures);
+    }
+
+    private static void CloseSwitchPlannedOutageStory(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        ICollection<string> failures)
+    {
+        const string label = "SWITCH_OFF_TO_PROTECT";
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            267690,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        CommercialStoryCard story = data.BaseCampaign.Chapters[6].OperatingPhases
+            .Single(item => item.PhaseId == "WEST_SOURCE_PLANNED_OUTAGE").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "SWITCH_OFF_TO_PROTECT",
+            "WEST_SOURCE_PLANNED_OUTAGE",
+            story,
+            failures);
+        RealtimeConnectionRequirementAssessment frozen = slice.CoreSnapshot.Forecast
+            .ConnectionRequirementAssessment ?? throw new InvalidOperationException(
+                $"{label} frozen Water connection assessment is absent.");
+        RealtimeActiveEventState active = slice.CoreSnapshot.ActiveEventStates.Single();
+        ThermalIntervalEvaluation actual = slice.CoreSnapshot.Thermal.Evaluation;
+        Check(active.EventId == "WEST_SOURCE_PLANNED_OUTAGE" &&
+              active.Event.OperatingProfile.UnavailableNodeIds.SequenceEqual(
+                  new[] { "WEST_SOURCE_NODE" },
+                  StringComparer.Ordinal) &&
+              actual.Sources.Single(source =>
+                  source.SourceId == "WEST_GENERATION").UsedKw == 0 &&
+              actual.Sources.Single(source =>
+                  source.SourceId == "SOUTH_GENERATION").UsedKw == 3900 &&
+              actual.Loads.Single(load => load.LoadId == "HOSPITAL") is
+                  { DemandKw: 1800, DeliveredKw: 1800, SourceId: "SOUTH_GENERATION" } &&
+              actual.Loads.Single(load => load.LoadId == "WATERWORKS") is
+                  { DemandKw: 1400, DeliveredKw: 1400, SourceId: "SOUTH_GENERATION" } &&
+              actual.Loads.Single(load => load.LoadId == "EAST_RESIDENTIAL") is
+                  { DemandKw: 700, DeliveredKw: 700, SourceId: "SOUTH_GENERATION" } &&
+              frozen is
+              {
+                  EvaluatedMinute: 267690,
+                  FrozenForChapter: true,
+                  Satisfied: true,
+              } &&
+              frozen.Facts.Single().CurrentConnections == 2,
+            $"{label} active outage lost frozen 2/2, West isolation, or South supply",
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            $"{label} planned-outage story did not restore realtime play",
+            failures);
+
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            267810,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeEventOutcome outcome = slice.CoreSnapshot.CurrentChapterEvents.Single(item =>
+            item.EventId == "WEST_SOURCE_PLANNED_OUTAGE");
+        RealtimeTransition[] thermal = slice.EmittedTransitions.Where(item =>
+                item.ChapterId == "SWITCH_OFF_TO_PROTECT" &&
+                item.EventId == "WEST_SOURCE_PLANNED_OUTAGE" &&
+                RealtimeThermalPresentation.IsThermalTransition(item))
+            .ToArray();
+        Check(outcome.SafetySatisfied && outcome.PromiseSatisfied &&
+              thermal.Length == 0,
+            $"{label} continuous outage route lost duty or entered thermal protection",
+            failures);
+    }
+
+    private static void CloseSwitchReturnServiceStory(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        ICollection<string> failures)
+    {
+        const string label = "SWITCH_OFF_TO_PROTECT";
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            267870,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        CommercialStoryCard story = data.BaseCampaign.Chapters[6].OperatingPhases
+            .Single(item => item.PhaseId == "WEST_SOURCE_RETURN_SERVICE").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "SWITCH_OFF_TO_PROTECT",
+            "WEST_SOURCE_RETURN_SERVICE",
+            story,
+            failures);
+        RealtimeActiveEventState active = slice.CoreSnapshot.ActiveEventStates.Single();
+        ThermalIntervalEvaluation actual = slice.CoreSnapshot.Thermal.Evaluation;
+        Check(active.EventId == "WEST_SOURCE_RETURN_SERVICE" &&
+              active.Event.OperatingProfile.UnavailableNodeIds.Count == 0 &&
+              actual.Sources.Single(source =>
+                  source.SourceId == "WEST_GENERATION").UsedKw > 0 &&
+              actual.Loads.Single(load => load.LoadId == "HOSPITAL") is
+                  { DemandKw: 900, DeliveredKw: 900 } &&
+              actual.Loads.Single(load => load.LoadId == "WATERWORKS") is
+                  { DemandKw: 900, DeliveredKw: 900 } &&
+              actual.Loads.Single(load => load.LoadId == "EAST_RESIDENTIAL") is
+                  { DemandKw: 700, DeliveredKw: 700 } &&
+              slice.CoreSnapshot.Thermal.Assets.All(asset => !asset.ProtectiveOutage) &&
+              slice.CoreSnapshot.Thermal.Assets
+                  .Where(asset => asset.UsedKw > 0)
+                  .All(asset =>
+                      asset.State == ThermalOperatingState.Continuous),
+            $"{label} return service did not reuse West on continuous surviving paths",
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            $"{label} return-service story did not restore realtime play",
+            failures);
+    }
+
+    private static (RealtimeChapterOutcome Outcome, RealtimeModalPresentation Result)
+        CompleteSwitchOffToProtectChapter(
+            RealtimeSliceMain slice,
+            ICollection<string> failures)
+    {
+        const string label = "SWITCH_OFF_TO_PROTECT";
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            267990,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeChapterOutcome outcome = slice.CoreSnapshot.CompletedChapters.Single(item =>
+            item.ChapterId == "SWITCH_OFF_TO_PROTECT");
+        RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException(
+                $"{label} SWITCH_OFF_TO_PROTECT result modal is absent.");
+        Check(slice.CoreSnapshot.Minute == 267990 &&
+              slice.CoreSnapshot.CompletedChapters.Count == 7 &&
+              result.Id ==
+                  RealtimeR2Ids.TutorialResultModal("SWITCH_OFF_TO_PROTECT") &&
+              outcome.Events.Select(item =>
+                      (item.EventId, item.StartMinute, item.EndMinute))
+                  .SequenceEqual(
+                  [
+                      ("WEST_SOURCE_PLANNED_OUTAGE", 267690L, 267810L),
+                      ("WEST_SOURCE_RETURN_SERVICE", 267870L, 267990L),
+                  ]),
+            $"{label} SWITCH_OFF_TO_PROTECT did not end with exact event/result FIFO",
             failures);
         return (outcome, result);
     }

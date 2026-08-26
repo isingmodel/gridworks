@@ -2,53 +2,63 @@
 
 ## 상태
 
-**활성 구현 scope가 없다.**
+**chapter result→next briefing save/Continue scope가 활성화됐다.**
 
-직전 scope에서 accepted-journal save에 하나의 application cursor를 더해, active incomplete chapter의
-queue-empty `EventStory` 또는 `DecisionWindowStory`를 같은 authored modal로 재개했다. UI snapshot,
-modal body와 raw transition queue는 저장하지 않는다.
+current v2 `closedStoryCount` 의미를 바꾸거나 필드를 더하지 않고, non-final chapter result와 그 Core
+transition batch가 이미 만든 bounded next-briefing suffix를 복원한다. 긴 calendar gap의 result도 닫을 때
+exact next chapter minute로 전진해 같은 handoff를 만든다.
 
-## 현재 완료 사실
+## 수정 범위
 
-- current write schema v2는 deterministic story candidate prefix 중 닫은 개수인 required nonnegative
-  32-bit `closedStoryCount`를 기록한다. 실제 파일명 `gridworks-r2-campaign-save-v1.json`은 그대로다.
-- v1은 read-only로 복원하며 cursor가 없으므로 replay에서 projected candidate를 모두 닫은 story-idle로
-  해석한다. probe/restore 자체는 원본을 rewrite하지 않고, Continue 뒤 정상 종료는 current v2 write
-  정책을 따른다.
-- `RealtimeChapterStoryFlow`의 live와 restore는 Core transition history + selected campaign의 같은 pure
-  projection으로 candidate 순서, closed prefix와 active request를 만든다.
-- story-idle 진행과 더불어 pending story queue가 없고 trigger minute == saved minute인 active
-  `EventStory | DecisionWindowStory` 진행을 capture·title probe·Resume에서 같은 의미로 허용한다.
-- live active-story capture는 같은 blocking Story modal·pause reason, AutoPaused와 Running/PlayerPaused
-  `ModalRestore`까지 일치해야 한다. Continue는 저장한 interaction DTO 없이 authored request에서 같은 modal과
-  AutoPaused를 재구성하고, 닫으면 PlayerPaused·Normal로 돌아간다. trigger minute를 지난 채 열린 story는
-  저장하지 않는다.
-- product fresh process는 `SECOND_HEART/FLOOD_ISOLATION_TEST` active story를 같은 modal로 복원한다.
-  session harness는 exact Core snapshot/hash/journal/history와 닫기 뒤 다음 result→`SECOND_SOURCE` briefing의
-  exact-once 미래까지 검증한다.
-- prior exact standalone `FIRST_LIGHT`, product-only write ownership과 invalid/unsupported/I/O 원본 보존
-  정책은 그대로다.
+- `RealtimeChapterStoryFlow`가 first unclosed candidate를 active로, 뒤의 제한된 handoff suffix를 pending으로
+  live/restore에서 같은 순서로 유지
+- 기존 queue-empty `EventStory | DecisionWindowStory` 외에 exact-minute non-final `ChapterResult`, 이어지는
+  `ChapterBriefing`, optional same-chapter `DecisionWindowStory`만 허용
+- `RealtimeSession`의 Core/story 조합 gate가 active started chapter와 typed between-chapter result를 구분
+- product smoke의 같은 save path를 active FLOOD story→`SECOND_HEART` result→`SECOND_SOURCE` briefing으로
+  fresh process마다 atomic v2 write/Continue
+- session smoke에서 zero-gap handoff와 `SECOND_SOURCE`→`NORTH_BANK_PROMISE` long-gap handoff의 FIFO exact-once
+  확인
+- 이 단계의 current fact 문서와 완료 이력
 
-## 완료 검증
+## 단일 권위
 
-- focused `campaign-save-strict-replay`: 1 suite/105 assertions
-- `./dev check`: Realtime 26 suites/1,182 assertions, Commercial 31 suites/7,084 assertions와 active
-  `FLOOD_ISOLATION_TEST` product save-create→fresh Continue, prior v1와 blocked title smoke
-- `dotnet build Gridworks.sln -c Release`: warning/error 0
-- 전체 Godot UI harness: `REALTIME_R2_OFFSCREEN_CONTROL_TREE_PASS`
-- 독립 code review: trigger-minute live gate, v1 read-only writer 경계와 v2 null/overflow strict finding 수정 후
-  재검토에서 actionable finding 0
-- 독립 Markdown audit 2회: current-facing 8개 문서 식별, 상대 링크 missing 0
+- Core source·journal·hash replay와 unchanged v1/v2 wire shape: `RealtimeCampaignSaveCodec`
+- authored candidate prefix와 bounded result/briefing suffix: `RealtimeChapterStoryFlow`
+- Core snapshot + story position, live interaction과 Resume 정책: `RealtimeSession`
+- product title probe·write ownership·atomic store lifecycle: `RealtimeSliceMain`
 
-## 아직 증명하지 않은 경계
+Main과 title view는 handoff phase, candidate count나 modal body를 계산하지 않는다.
 
-- undelivered pending transition의 Core delivery state
-- queued story suffix, initial/chapter briefing과 chapter result→next briefing handoff
-- draft·catch-up debt·critical-incident auto-pause reason 저장
-- 완료 run, finale/epilogue cursor와 완료 후 result/chapter/replay 선택
-- overwrite/recovery UI와 지원 대상 v1 밖 구버전의 migration 정책, settings/audio, package, 공식 평가와
-  사람 UX 판정
-- 전체 8장 production-input 직접 여정, 비정상 종료 journal, 다중 slot, cloud save, push/PR/merge
+## 유지할 경계
 
-다음 구현은 [남은 작업](NEXT_TASKS.md)에서 한 단계만 골라 이 문서에 수정 범위·단일 권위·완료 검사를
-먼저 적은 뒤 시작한다.
+- v2 cursor는 계속 required nonnegative 32-bit `closedStoryCount` 하나이고 current writes만 v2
+- active와 restored handoff suffix의 trigger minute는 saved minute와 같고 authored campaign 순서와 일치
+- active result는 non-final이며 마지막 completed chapter와 일치; next briefing은 바로 다음 started chapter
+- zero-gap result는 이미 queued인 briefing과 optional decision을 FIFO로 열고, long-gap result는 닫을 때
+  `ChapterStartMinute`로 한 번 전진한 뒤 같은 FIFO를 만든다.
+- story-idle save는 계속 started chapter만 허용하고 between-chapter는 active non-final result에서만 허용
+- blocking Story modal·pause reason·AutoPaused·restorable Running/PlayerPaused interaction gate 유지
+- v1 all-closed read-only, product-only writes, actual filename과 invalid/unsupported/I/O 원본 보존 유지
+
+## 범위 밖
+
+- initial briefing, arbitrary in-chapter queued event/story suffix와 overshot trigger
+- undelivered Core pending transition과 raw delivery cursor
+- final result, completed run, finale/epilogue cursor와 완료 후 result/chapter/replay 선택
+- draft·catch-up debt·critical-incident auto-pause state
+- overwrite/recovery UI, settings/audio, package, 공식 평가, 사람 UX 판정, push/PR/merge
+
+## 완료 검사
+
+- 기존 R2 smoke가 zero-gap result save/Resume→next briefing과 long-gap result save/Resume→briefing→decision
+  FIFO를 exact snapshot/hash/journal/history와 함께 검증한다.
+- 기존 product save path의 첫 fresh Continue가 active FLOOD regression을 유지하면서 active result v2를 쓰고,
+  두 번째 fresh Continue가 같은 result를 복원해 `SECOND_SOURCE` briefing을 정확히 한 번 연다.
+- current active-story, story-idle v2, prior standalone `FIRST_LIGHT` v1, invalid/unsupported/I/O와 product-only
+  write 회귀를 유지한다.
+- 새 schema·field·test suite를 만들지 않는다.
+- `./dev check`, root Release build, 전체 Godot UI harness와 독립 review를 통과한다.
+
+이 단계는 result→next briefing의 bounded application suffix만 연다. general queued story, raw pending,
+completion 또는 전체 transient save를 완료했다고 주장하지 않는다.

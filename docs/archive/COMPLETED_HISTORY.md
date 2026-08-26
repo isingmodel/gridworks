@@ -315,6 +315,18 @@ Debug/Release build, `./dev check`, 전체 Godot UI harness와 두 독립 review
 terminal frame debt와 실패/write 증거 공백도 수정했다. 이 완료는 transient cursor, 완료 저장 뒤 새
 캠페인 시작, recovery, package 또는 사람 UX 품질의 증거로 확대하지 않는다.
 
+### UX-R2.18 — completed save의 새 게임
+
+exact current-v3 terminal title에서 기존 `이어하기`와 `새 게임`을 함께 열었다. `새 게임`은 chapter
+checkpoint나 새 UI를 만들지 않고 missing-save와 같은 canonical `ProductCampaign` bootstrap을 재사용한다.
+선택만으로 terminal bytes를 바꾸지 않으며, saveable 지점의 정상 tree exit가 same slot을 current-v3
+initial/progress로 교체한다.
+
+completed create→fresh terminal Continue·terminal write; 별도 fresh completed title→New Game→initial write→
+fresh Continue 제품 연쇄와 `./dev check`,
+Debug build 및 두 독립 review를 통과했다. in-progress/blocked save의 New Game은 계속 차단하며, 이 완료는
+safe-point preservation/reset, transient cursor, package 또는 사람 UX 품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

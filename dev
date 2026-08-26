@@ -62,6 +62,8 @@ run_product_save_continue_smoke() {
     run_product_entry_smoke -- "--save-continue=$smoke_save"
     run_product_entry_smoke -- "--save-completed-create=$completed_save"
     run_product_entry_smoke -- "--save-continue=$completed_save"
+    run_product_entry_smoke -- "--save-completed-new-game=$completed_save"
+    run_product_entry_smoke -- "--save-continue=$completed_save"
     run_product_entry_smoke -- "--save-continue=$smoke_save"
     run_product_entry_smoke -- "--save-continue=$smoke_save"
     run_product_entry_smoke -- "--save-legacy-continue=$legacy_save"

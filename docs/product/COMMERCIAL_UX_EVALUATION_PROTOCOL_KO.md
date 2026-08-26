@@ -125,7 +125,7 @@ native category weight의 합은 100이다.
 
 | category | weight | 핵심 질문 |
 |---|---:|---|
-| journey cohesion | 12 | title→tutorial→본편→결과→epilogue/replay가 한 여정인가 |
+| journey cohesion | 12 | title→tutorial→본편→결과→epilogue/completed New Game이 한 여정인가 |
 | tutorial/learnability | 13 | 시계·속도·forecast·경로·용량을 첫 3장에서 배우는가 |
 | state hierarchy | 13 | 시간축의 사건/공사/열 경계와 actual/forecast가 구분되는가 |
 | interaction feedback | 12 | 선택·배치·발주·시간 경과·완공·복귀가 일관적인가 |
@@ -223,7 +223,8 @@ deterministic failure 또는 blinded observation
 - finale→세 epilogue card와 누적 Keep/Defer·남은 자금의 deterministic native presentation: 구현
 - full `ProductCampaign` current-v3 terminal save→fresh `이어하기`→exact `Ended` world와 동일 terminal
   종료 write: fresh-process smoke 완료; prior v1/v2 completion은 차단
-- transient non-saveable 구간의 직전 safe-save 보존→다음 safe-point 갱신과 완료 저장의 `새 게임`:
+- completed terminal title의 `새 게임`→canonical initial write→fresh `이어하기`: fresh-process smoke 완료
+- transient non-saveable 구간의 직전 safe-save 보존→다음 safe-point 갱신과 readable save reset:
   product E2E 미완료; transient cursor 자체는 제품 범위 밖
 - audio/settings, current R2 package와 score-bearing execution authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음

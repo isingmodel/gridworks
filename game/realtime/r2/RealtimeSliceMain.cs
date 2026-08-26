@@ -315,12 +315,14 @@ internal sealed partial class RealtimeSliceMain : Control
                 $"{RealtimePresentationText.Time(snapshot.Minute)} · " +
                 $"운영 자금 {RealtimePresentationText.Cash(snapshot.CashUnit)} · " +
                 (completed
-                    ? "이어하기는 완료된 망을 읽기 전용으로 엽니다."
+                    ? "이어하기는 완료된 망을 읽기 전용으로 엽니다. " +
+                        "새 게임은 첫 장부터 시작하며 저장 가능한 지점에서 " +
+                        "정상 종료할 때 이 저장을 교체합니다."
                     : resumePlan.ActiveStoryModalId is null
                         ? "이어하기는 paused 상태로 열립니다."
                         : "저장된 story를 먼저 열고, 닫으면 paused 상태로 이어집니다."),
                 CanContinue: true,
-                CanStartNewGame: false);
+                CanStartNewGame: completed);
         }
         catch (Exception exception) when (
             exception is RealtimeCampaignPersistenceException or

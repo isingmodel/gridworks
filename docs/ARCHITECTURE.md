@@ -18,11 +18,12 @@ launch argument → RealtimeLaunchCatalog
 │  │     └─ RealtimeSliceResources.LoadNativeRelease
 │  └─ ProductCampaign 또는 exact prior FIRST_LIGHT source
 │     └─ codec replay + RealtimeSession.ValidateProgressResume → validated Continue availability
-│        └─ ContinueRequested → Product write ownership → RealtimeSession.Resume
-│           ├─ story-idle/prior v1 → PlayerPaused·Normal·no-modal
-│           ├─ supported active v3 또는 normalized v2 story → same authored modal·AutoPaused
-│           │  └─ non-final result close → bounded next briefing(+decision) FIFO
-│           └─ current-v3 full terminal completion → Ended·World·no-modal, epilogue replay 없음
+│        ├─ ContinueRequested → Product write ownership → RealtimeSession.Resume
+│        │  ├─ story-idle/prior v1 → PlayerPaused·Normal·no-modal
+│        │  ├─ supported active v3 또는 normalized v2 story → same authored modal·AutoPaused
+│        │  │  └─ non-final result close → bounded next briefing(+decision) FIFO
+│        │  └─ current-v3 full terminal completion → Ended·World·no-modal, epilogue replay 없음
+│        └─ completed NewGameRequested → 기존 missing-save ProductCampaign bootstrap 재사용
 ├─ explicit DEBUG technical fixture/known checkpoint → TechnicalFixture
 │  └─ No write ownership + RealtimeSliceResources.LoadTechnicalFixture → stage R1 fixture data
 └─ exact native argument → NativeRelease → RealtimeNativeRouteCatalog
@@ -200,6 +201,9 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
   interaction만 허용한다. 성공 final은 epilogue completed, 실패 final은 epilogue never-started여야 한다.
   prior v1/v2 completion, partial route와 nonterminal cursor는 fail-closed한다. terminal callback overrun은
   authoritative completion minute에서 폐기해 저장을 막는 frame debt로 남기지 않는다.
+- completed title만 기존 New Game action을 함께 연다. 이 action은 completed journal을 rewind하지 않고
+  missing-save와 같은 canonical bootstrap을 사용하며, saveable product exit 전까지 terminal bytes를
+  바꾸지 않는다. in-progress와 blocked save의 New Game은 현재 계속 차단한다.
 - Main은 cached title availability를 handler에서 다시 검사해 stale/programmatic action도 상태 변경 전에
   거부한다.
 - 이미 닫힌 modal처럼 stale하지만 무해한 요청은 명시적인 no-op으로만 다룬다.
@@ -222,7 +226,8 @@ build와 기본 자동 회귀를 닫는다. 이 명령은 no-arg 제품 title과
 포함하며, Core의 누적 8장 stable replay와 pending fail-closed, 같은 save path의
 initial briefing create→fresh Continue→`FLOOD_ISOLATION_TEST` write→fresh Continue→`SECOND_HEART` result
 write→fresh Continue→`SECOND_SOURCE` briefing write, exact prior `FIRST_LIGHT` v1 Continue→current v3 write와
-성공 8장 terminal save create→fresh Continue→`Ended`·동일 terminal disk write, blocked save 상태를
+성공 8장 terminal create→fresh Continue→`Ended`·terminal write; fresh completed title→New Game→initial
+write→fresh Continue, blocked save 상태를
 검사한다. root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지 않는다. 해당
 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
 

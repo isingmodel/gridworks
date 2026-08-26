@@ -23,6 +23,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         "res://realtime/r2/RealtimeSliceMain.tscn";
     private const string SaveCreatePrefix = "--save-create=";
     private const string SaveCompletedCreatePrefix = "--save-completed-create=";
+    private const string SaveCompletedNewGamePrefix = "--save-completed-new-game=";
     private const string SaveContinuePrefix = "--save-continue=";
     private const string SaveLegacyContinuePrefix = "--save-legacy-continue=";
     private const string SaveInvalidPrefix = "--save-invalid=";
@@ -35,6 +36,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         TechnicalFixture,
         CreateSave,
         CreateCompletedSave,
+        CompletedNewGame,
         ContinueSave,
         LegacyContinueSave,
         InvalidSave,
@@ -63,7 +65,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         SubViewport? viewport = null;
         EntryRequest? request = null;
         byte[]? guardedBytes = null;
-        byte[]? replacementProbeBytes = null;
+        byte[]? priorSaveBytes = null;
         try
         {
             request = ParseRequest(OS.GetCmdlineUserArgs());
@@ -105,6 +107,14 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 case EntryMode.CreateCompletedSave:
                     ValidateCompletedSaveTitle(slice);
                     break;
+                case EntryMode.CompletedNewGame:
+                    priorSaveBytes = File.ReadAllBytes(request.SavePath!);
+                    expectedWrite = await ValidateCompletedSaveNewGame(
+                        viewport,
+                        slice,
+                        request.SavePath!,
+                        priorSaveBytes);
+                    break;
                 case EntryMode.ContinueSave:
                     expectedWrite = await ValidateContinue(
                         viewport,
@@ -130,7 +140,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
 
             if (expectedWrite is { Terminal: true })
             {
-                replacementProbeBytes = StageInProgressReplacementProbe(
+                priorSaveBytes = StageInProgressReplacementProbe(
                     request.SavePath!,
                     expectedWrite);
             }
@@ -143,7 +153,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 ValidateWrittenSave(
                     request.SavePath!,
                     expectedWrite,
-                    replacementProbeBytes);
+                    priorSaveBytes);
             }
             ValidateGuardedSavePreserved(request, guardedBytes);
 
@@ -157,6 +167,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     "REALTIME_PRODUCT_ENTRY_SAVE_CREATE_PASS",
                 EntryMode.CreateCompletedSave =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_COMPLETED_CREATE_PASS",
+                EntryMode.CompletedNewGame =>
+                    "REALTIME_PRODUCT_ENTRY_SAVE_COMPLETED_NEW_GAME_PASS",
                 EntryMode.ContinueSave =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_CONTINUE_PASS",
                 EntryMode.LegacyContinueSave =>
@@ -227,6 +239,13 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         {
             mode = EntryMode.CreateCompletedSave;
             path = arguments[0][SaveCompletedCreatePrefix.Length..];
+        }
+        else if (arguments[0].StartsWith(
+                     SaveCompletedNewGamePrefix,
+                     StringComparison.Ordinal))
+        {
+            mode = EntryMode.CompletedNewGame;
+            path = arguments[0][SaveCompletedNewGamePrefix.Length..];
         }
         else if (arguments[0].StartsWith(SaveCreatePrefix, StringComparison.Ordinal))
         {
@@ -475,6 +494,14 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
 
         PushPrimary(viewport, title.NewGameButton.GetGlobalRect().GetCenter());
         await SettleFrames(4);
+        ValidateStartedProductCampaign(slice, title);
+    }
+
+    private static void ValidateStartedProductCampaign(
+        RealtimeSliceMain slice,
+        RealtimeProductTitle title)
+    {
+        RealtimeUiRoot ui = slice.UiForSmoke;
         Require(slice.HasSessionForSmoke && !title.Visible &&
                 ui.HudSurfaceVisibleForSmoke && slice.WorldVisibleForSmoke,
             "New Game input did not replace the title with the live R2 surface.");
@@ -528,10 +555,28 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 !slice.HasSessionForSmoke &&
                 title.Visible &&
                 !title.ContinueButton.Disabled &&
-                title.NewGameButton.Disabled &&
+                !title.NewGameButton.Disabled &&
                 ReferenceEquals(ui.FocusOwnerForSmoke, title.ContinueButton) &&
                 title.DetailText.Contains("완료", StringComparison.Ordinal),
-            "The staged terminal save did not open an exact completed Continue title.");
+            "The staged terminal save did not enable completed Continue and New Game.");
+    }
+
+    private async Task<SaveExpectation> ValidateCompletedSaveNewGame(
+        SubViewport viewport,
+        RealtimeSliceMain slice,
+        string savePath,
+        byte[] completedBytes)
+    {
+        ValidateCompletedSaveTitle(slice);
+        RealtimeProductTitle title = slice.UiForSmoke.ProductTitleForSmoke;
+        PushPrimary(viewport, title.NewGameButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        ValidateStartedProductCampaign(slice, title);
+
+        SaveExpectation initial = PrepareInitialBriefingProgress(slice);
+        Require(File.ReadAllBytes(savePath).SequenceEqual(completedBytes),
+            "Selecting completed New Game changed the save before normal tree exit.");
+        return initial;
     }
 
     private static SaveExpectation PrepareInitialBriefingProgress(
@@ -649,12 +694,12 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
     private static void ValidateWrittenSave(
         string savePath,
         SaveExpectation expected,
-        byte[]? replacementProbeBytes)
+        byte[]? priorSaveBytes)
     {
         byte[] writtenBytes = File.ReadAllBytes(savePath);
-        Require(replacementProbeBytes is null ||
-                !writtenBytes.SequenceEqual(replacementProbeBytes),
-            "Normal tree exit did not replace the staged in-progress save.");
+        Require(priorSaveBytes is null ||
+                !writtenBytes.SequenceEqual(priorSaveBytes),
+            "Normal tree exit did not replace the prior save bytes.");
         RealtimeCampaignSaveLoadResult load = RealtimeCampaignSaveStore.Load(savePath);
         Require(load is
                 {
@@ -706,22 +751,27 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
 
         RealtimeUiRoot ui = slice.UiForSmoke;
         RealtimeProductTitle title = ui.ProductTitleForSmoke;
+        bool completed = expectedPlan.Kind == RealtimeProgressResumeKind.Completed;
         Require(slice.LaunchForSmoke.Kind == RealtimeLaunchKind.ProductTitle &&
                 !slice.HasSessionForSmoke && title.Visible,
             "A valid save bypassed the fresh product title.");
-        Require(!title.ContinueButton.Disabled && title.NewGameButton.Disabled &&
+        Require(!title.ContinueButton.Disabled &&
+                title.NewGameButton.Disabled == !completed &&
                 ReferenceEquals(ui.FocusOwnerForSmoke, title.ContinueButton),
-            "A valid save did not exclusively enable and focus Continue.");
+            "A valid save did not expose its typed title actions and focus Continue.");
         Require(title.DetailText.Contains(
-                expectedPlan.Kind == RealtimeProgressResumeKind.Completed
+                completed
                     ? "완료"
                     : "paused",
                 StringComparison.Ordinal),
             "The valid-save title did not disclose its typed resume policy.");
-        RequireUnavailableTitleActionRejected(
-            slice.RequestNewGameForSmoke,
-            slice,
-            "A valid save accepted stale New Game input.");
+        if (!completed)
+        {
+            RequireUnavailableTitleActionRejected(
+                slice.RequestNewGameForSmoke,
+                slice,
+                "An in-progress save accepted stale New Game input.");
+        }
 
         PushPrimary(viewport, title.ContinueButton.GetGlobalRect().GetCenter());
         await SettleFrames(4);

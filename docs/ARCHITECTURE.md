@@ -209,7 +209,8 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
   bootstrap을 즉시 사용하며, saveable product exit 전까지 terminal bytes를 바꾸지 않는다. in-progress와
   readable blocked save는 typed reset action을 함께 연다. 첫 activation은 presentation만 confirm으로
   바꾸고, 두 번째 activation의 raw sibling backup이 성공한 뒤에만 같은 canonical bootstrap을 사용한다.
-  backup 실패는 continuation, ownership, primary bytes와 confirm title을 그대로 둔다.
+  backup 실패는 confirm action, Continue 가능성·continuation, ownership과 primary bytes를 그대로 두고
+  title 문구만 실패 이유로 갱신한다.
 - Main은 cached title availability를 handler에서 다시 검사해 stale/programmatic action도 상태 변경 전에
   거부한다.
 - 이미 닫힌 modal처럼 stale하지만 무해한 요청은 명시적인 no-op으로만 다룬다.

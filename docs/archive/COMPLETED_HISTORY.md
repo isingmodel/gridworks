@@ -327,6 +327,20 @@ fresh Continue 제품 연쇄와 `./dev check`,
 Debug build 및 두 독립 review를 통과했다. in-progress/blocked save의 New Game은 계속 차단하며, 이 완료는
 safe-point preservation/reset, transient cursor, package 또는 사람 UX 품질의 증거로 확대하지 않는다.
 
+### UX-R2.19 — safe-point 보존과 확인형 reset
+
+새 transient cursor/schema 없이 non-saveable node-draft 정상 종료가 직전 valid save bytes를 그대로 두고,
+다음 saveable 정상 종료만 primary를 current v3로 갱신하게 했다. valid in-progress와 raw bytes를 읽을 수
+있는 invalid/unsupported/source/replay save는 기존 `새 게임` action의 확인 상태를 공유한다. 두 번째
+activation은 원본을 unique raw-byte sibling backup으로 보존한 뒤에만 canonical `ProductCampaign`을
+시작하며, I/O와 backup 실패는 continuation·ownership·primary를 바꾸지 않고 fail-closed한다.
+
+node-draft exit→fresh Continue→safe write, 진행 저장의 확인→backup 실패→재시도→byte-exact backup→initial
+write→fresh Continue 연쇄, invalid/unsupported 확인 상태, I/O 차단, completed/missing 즉시 New Game 회귀와
+`./dev check`, 두 독립 review를 통과했다. invalid/unsupported는 대표 확인 상태까지만 fresh-process로
+검사했고 source/replay는 같은 typed production 분류를 공유한다. 이 완료는 transient cursor, backup
+browser/restore/delete UI, packaged 전체 캠페인 E2E 또는 사람 UX 품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

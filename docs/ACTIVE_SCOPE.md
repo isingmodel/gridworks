@@ -2,51 +2,26 @@
 
 ## 상태
 
-**safe-point reset scope가 활성화됐다.**
+**safe-point reset scope는 완료되어 닫혔다. 현재 활성 구현 scope는 없다.**
 
-exact completed save의 title은 기존 `이어하기`와 `새 게임`을 함께 제공한다. `새 게임`은 별도 replay
-구조 없이 canonical `ProductCampaign`을 `FIRST_LIGHT` initial briefing에서 시작하며, 선택만으로 terminal
-bytes를 바꾸지 않는다. 저장 가능한 지점의 정상 종료가 same slot을 current-v3 진행으로 교체하고 fresh
-`이어하기`가 이를 복원한다.
+non-saveable product 상태의 정상 tree exit는 직전 valid save bytes를 그대로 보존하고, 다음 saveable 정상
+exit만 primary를 current v3로 갱신한다. valid in-progress와 raw bytes를 읽을 수 있는
+invalid/unsupported/source/replay save는 기존 `새 게임`의 확인→unique raw-byte sibling backup→canonical
+`ProductCampaign` 시작 경로를 공유한다. I/O failure는 두 action을 차단하고, backup failure는 confirm
+action·Continue 가능성/continuation·ownership·primary를 보존한 채 실패 이유를 표시한다.
 
-남은 제품 seam은 두 가지지만 한 reset lifecycle로 닫을 수 있다. transient story/finale 구간은 새 cursor를
-만들지 않고 직전 safe save를 보존해야 한다. valid in-progress 또는 읽을 수 있는 blocked save에서 처음부터
-시작하려면 원본을 보존하는 명시적 확인 경로가 필요하다.
+focused fresh-process product-entry 연쇄, `./dev check`와 두 독립 review를 통과했다. 세부 완료 이력은
+[UX-R2.19](archive/COMPLETED_HISTORY.md)가 소유한다.
 
-## 결과물
+## 구현 권한
 
-- non-saveable transient 구간의 정상 tree exit는 기존 valid save bytes를 그대로 둔다. 이후 saveable
-  지점의 정상 exit만 primary slot을 current v3로 갱신한다.
-- valid in-progress와 읽을 수 있는 invalid/unsupported/source/replay save의 title은 기존 `새 게임` action을
-  reset action으로 재사용한다.
-- 첫 activation은 확인 상태만 표시하고 session/save를 바꾸지 않는다. 두 번째 activation은 원본을 unique
-  sibling backup으로 복사한 뒤 canonical 새 게임을 시작한다.
-- backup 실패 또는 I/O-failure save는 fail-closed하며 primary bytes와 기존 title 상태를 보존한다.
+새 구현은 아직 열리지 않았다. 최신 사용자 지시의 “가장 구현하기 쉬운 방향으로 전체 목표를 빠르게
+구현”은 다음 scope의 우선순위를 정하지만, [남은 작업](NEXT_TASKS.md)의 항목 자체가 구현 권한을 만들지는
+않는다. 다음 작업은 먼저 이 문서에 결과물·범위 밖 항목·완료 검사를 적은 뒤 시작한다.
 
-## 구현 범위
+## 유지할 경계
 
-- `RealtimeSliceMain`의 작은 typed reset eligibility/confirmation state와 기존 New Game routing
-- `RealtimeCampaignSaveStore`의 fail-closed sibling backup 한 동작
-- 기존 `RealtimeProductTitle` presentation/button 재사용; 새 UI component 없음
-- 기존 save/session/product-entry smoke의 대표 safe-point와 reset path 최소 확장
-- 실제 변경 사실을 소유하는 current Markdown 문서
-
-## 범위 밖
-
-- transient pending/general queued/finale/epilogue cursor 또는 새 save schema
-- save migration, backup browser/restore/delete UI
-- completed save의 즉시 New Game 정책 변경
-- explicit chapter/through/fixture의 product persistence
-- settings/audio, package, 공식 평가와 사람 UX 판정
-- push, PR, merge
-
-## 완료 검사
-
-- 대표 non-saveable exit가 이전 valid bytes를 byte-exact 보존하고 다음 safe-point exit가 이를 갱신한다.
-- valid in-progress reset은 첫 activation에서 bytes/session 불변, 두 번째 activation에서 byte-exact sibling
-  backup 생성→canonical initial briefing 시작→safe exit primary current-v3 교체 순서를 지킨다.
-- readable invalid/unsupported/source/replay는 같은 확인·backup seam을 사용하고 I/O failure는 두 action을
-  계속 차단한다.
-- completed title의 immediate New Game, terminal/in-progress Continue와 missing-save New Game 회귀를 유지한다.
-- 새 schema, transient cursor, UI component와 별도 test suite를 만들지 않는다.
-- focused product-entry smoke, `./dev check`와 두 독립 review를 통과한다.
+- transient pending/general queued/finale/epilogue cursor 또는 새 save schema를 추가하지 않는다.
+- backup browser/restore/delete UI와 save migration은 현재 구현 사실이 아니다.
+- deterministic PASS를 packaged 전체 캠페인 E2E, 사람 UX 품질 또는 출시 승인으로 확대하지 않는다.
+- push, PR, merge는 현재 범위 밖이다.

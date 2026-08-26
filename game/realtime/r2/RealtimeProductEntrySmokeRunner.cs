@@ -769,6 +769,10 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 !slice.OwnsProductProgressForSmoke &&
                 title.Visible &&
                 !title.NewGameButton.Disabled &&
+                string.Equals(
+                    title.ContinueButton.AccessibilityDescription,
+                    "저장된 진행을 이어갑니다.",
+                    StringComparison.Ordinal) &&
                 !string.Equals(
                     title.DetailText,
                     beforeConfirmationDetail,

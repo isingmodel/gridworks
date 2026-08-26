@@ -85,7 +85,9 @@ internal sealed partial class RealtimeProductTitle : Control
             RealtimeProductNewGameAction.ConfirmReset
                 ? "새 게임 시작 확인"
                 : "새 게임";
-        _continue.AccessibilityDescription = presentation.Detail;
+        _continue.AccessibilityDescription = presentation.CanContinue
+            ? "저장된 진행을 이어갑니다."
+            : presentation.Detail;
         _newGame.AccessibilityDescription = presentation.NewGameAction switch
         {
             RealtimeProductNewGameAction.Immediate =>

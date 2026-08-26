@@ -68,26 +68,28 @@ live operation cue mapping은 완료됐다. 남은 일은 실제 상태 전반�
 
 1.0의 audio는 non-voice ambient와 interaction/state cue 범위다. 음성 연기는 이 단계에 포함하지 않는다.
 
-### 2. current R2 packaged product-data qualification과 전체 E2E
+### 2. current R2 packaged product-data와 lifecycle InputEvent qualification
 
 2A의 current R2 internal package identity와 2B1의 exact-empty app-owned save/settings fresh-process
 qualification은 완료됐다. 2B1 record는 source/package/tool, missing/settings/initial/terminal stage와 실제
 default 두 파일·app tree 불변을 결속한다. 이는 Godot engine `user://` 전체나 새 OS account 격리가 아니다.
 
-남은 2B2는 그 exact candidate를 default-scene `Viewport.PushInput`으로 조작해 전체 제품 여정과 audio
-request를 검증하는 가장 작은 단위다. engine 입력은 OS hardware input이나 speaker 청감 증거가 아니다.
-packager를 복제하지 않고 2B1 record를 먼저 독립 재검증한 뒤 그 identity를 소비한다.
+남은 2B2는 그 exact candidate의 default scene에서 제품 lifecycle seam을 `Viewport.PushInput`으로 조작하는
+가장 작은 단위다. authored 8장 규칙·상태는 동일 source의 deterministic Core/actual-scene 검사가 소유하고,
+2B2는 package에서 달라질 수 있는 title·Continue·reset·settings·generated audio wiring만 다시 확인한다.
+engine 입력은 OS hardware input이나 speaker 청감 증거가 아니다. packager와 runner scene을 복제하지 않고
+2B1 authority와 record를 확장한다.
 
 2B2 완료 기준:
 
 - 시작할 exact candidate의 2B1 record를 독립 재검증하고 동일 source/package/tool identity를 유지
-- title→8장→finale→epilogue→완료 저장 재개와 completed `새 게임`의 production E2E
-- 진행 중 저장→프로세스 종료→동일 후보의 fresh process 재개
-- non-saveable exit의 prior-save 보존과 readable-save backup/reset을 packaged runtime에서 재검증
-- settings 변경→동일 후보의 fresh process 재실행→UI scale·Reduce Motion·volume/mute 값 복원
-- 개발 fixture와 checkpoint가 명시적 인자 없이는 평가 여정에 섞이지 않음
-- packaged generated audio의 stream/bus/play request와 essential visual cue 동등성을 상태별로 확인
-- 2B2 record가 2B1 source/package/tool identity와 input journey·save/settings/audio 결과를 결속하고
+- empty title의 disabled Continue와 New Game→exact initial briefing을 packaged pointer input으로 확인
+- source-staged in-progress/completed save의 packaged Continue→paused/Ended, completed New Game→initial 확인
+- readable blocked save의 New Game 두 번→raw sibling backup 하나와 canonical initial session 확인
+- settings open, candidate apply, close와 동일 후보 fresh process의 UI/runtime 값 복원 확인
+- default scene은 app user argument 없이 실행되고 개발 fixture/checkpoint/runner scene이 섞이지 않음
+- generated ambient stream/bus와 lifecycle 중 중복 start·history cue 부재 확인; live state cue·speaker는 별도
+- 2B2 record가 2B1 source/package/tool identity와 lifecycle input/save/settings/audio 결과를 결속하고
   누락·변조·다른 candidate에서 fail-closed
 - qualification 중 package contents가 바뀌면 기존 2B1/2B2 record를 폐기하고 다시 생성
 

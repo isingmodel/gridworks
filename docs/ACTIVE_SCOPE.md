@@ -2,25 +2,38 @@
 
 ## 상태
 
-**활성 구현 scope가 없다.**
+**current R2 packaged lifecycle InputEvent qualification 2B2가 활성 scope다.**
 
-current R2 packaged app-owned persistence qualification 2B1은 완료·검증·문서화됐다. 결과와 증거 상한은
-[완료 이력](archive/COMPLETED_HISTORY.md)의 `UX-R2.23`이 소유한다.
+[남은 작업](NEXT_TASKS.md)의 큰 packaged E2E를 가장 구현하기 쉬운 제품 lifecycle seam으로 줄인다. 동일
+source의 8장 규칙·상태 진행은 기존 deterministic Core/actual-scene 검사가 소유한다. 이번 2B2는 exact
+package에서만 달라질 수 있는 default scene의 title, Continue, reset, settings와 generated audio wiring을
+engine `Viewport.PushInput`으로 확인한다. authored 8장을 release test harness로 복제하지 않는다.
 
-다음 구현 전에 이 파일에 하나의 결과물, 범위 밖 항목과 결정론적 완료 검사를 먼저 적어 active scope를
-명시적으로 열어야 한다. [남은 작업](NEXT_TASKS.md)은 후보와 순서를 설명하지만 그 자체로 구현 권한을
-만들지 않는다.
+## 결과물
 
-## 닫힌 범위의 경계
+- `RealtimeSliceMain.Qualification.cs` 한 release-safe dormant partial이 명시적 qualification env scenario에서만
+  default scene의 실제 control에 pointer/key InputEvent를 넣고 machine-readable 결과 하나를 출력한다.
+- empty New Game, in-progress Continue, completed Continue/New Game, readable-save reset confirm, settings
+  apply→fresh restore 시나리오가 기존 2B1 app-owned root와 source actual-scene fixture를 재사용한다.
+- 기존 `tools/r2_qualification.py`와 canonical record를 v2로 확장해 2B1 data stages와 2B2 lifecycle stages를
+  한 fresh reconstruction에 결속한다. 새 packager·runner scene·별도 tool 계층은 만들지 않는다.
 
-- release-safe env seam은 current save/settings 두 fixed filename만 별도 absolute real directory로 보낸다.
-  env가 없으면 기존 `user://` 동작을 유지하고 invalid/relative/missing/symlink root는 fail-closed한다.
-- `./dev qualify run | verify` 한 권위가 strict 2A candidate를 private copy로 고정하고 exact-empty app-owned
-  root의 missing/settings/initial/terminal 상태를 fresh packaged process로 재구성해 canonical record에
-  결속한다.
-- 실제 account home의 current 두 파일과 package app tree는 전체 실행 전후 동일했다. 각 packaged title
-  stage의 expected root files/bytes도 그 stage 전후 동일했고 record type/key/canonical mutation은 거부됐다.
-- 이는 Godot engine `user://` 전체 격리, packaged InputEvent 전체 여정, audio device·speaker, 사람 UX,
-  evaluation readiness, Developer ID·공증·출시 증거가 아니다.
-- `./dev check`, qualification run/verify와 두 bounded independent review를 통과했고 finding 0으로 닫혔다.
-- push, PR, merge는 수행하지 않았다.
+## 범위 밖
+
+- authored 8장을 action-by-action으로 다시 재생하는 release test harness와 새 gameplay
+- OS hardware keyboard/mouse, 전체 Godot engine `user://`, 실제 window/display와 CoreAudio device·speaker
+- 모든 gameplay 상태의 live cue coverage, 사람 UX·미감·접근성, score-bearing 평가
+- Developer ID·공증·공개 배포, push·PR·merge
+
+## 완료 검사
+
+1. qualification env가 없으면 기존 product boot에 새 marker·입력·상태 전이가 없고 invalid scenario/root는
+   title bootstrap 전에 fail-closed한다.
+2. strict exact candidate의 default scene을 app user argument 없이 fresh process로 실행하고, 각 lifecycle
+   scenario가 실제 `Viewport.PushInput` 횟수와 기대 title/session/settings/save/audio 분류를 exact marker로
+   출력한다.
+3. 각 stage의 expected app-owned files/bytes, 실제 account home 두 파일, package app tree와 pinned candidate
+   identity가 실행 전후 보존된다. reset stage의 한 raw sibling backup만 명시적으로 허용한다.
+4. record v2가 source/package/tool/data/lifecycle identity를 strict canonical bytes로 결속하고 fresh verify와
+   type/key/canonical/identity mutation을 fail-closed한다.
+5. targeted build·qualification run/verify, `./dev check`와 두 bounded independent review를 통과한다.

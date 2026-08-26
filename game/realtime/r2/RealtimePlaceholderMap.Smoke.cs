@@ -46,6 +46,9 @@ internal sealed partial class RealtimePlaceholderMap
 
     internal int DrawnG3SpriteCountForSmoke => _drawnG3SpriteCount;
 
+    internal static long WeatherMinutePhaseForSmoke(
+        RealtimeWorldPresentation presentation) => WeatherMinutePhase(presentation);
+
     internal bool AllG3AssetsLoadableForSmoke =>
         G3AssetPaths.All(path => G3Texture(path) is not null);
 

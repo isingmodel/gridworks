@@ -878,6 +878,25 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 $"(drawn={drawnUnion.Count}, allowed={map.G3AssetPathsForSmoke.Count}, " +
                 $"missing=[{missingG3Assets}])",
                 failures);
+            RealtimeWorldPresentation movingWeather = baseline.World with
+            {
+                Weather = RealtimeWorldWeather.Storm,
+                Minute = 41,
+                ReduceMotion = false,
+            };
+            RealtimeWorldPresentation reducedWeather = movingWeather with
+            {
+                ReduceMotion = true,
+            };
+            Require(
+                RealtimePlaceholderMap.WeatherMinutePhaseForSmoke(movingWeather) !=
+                    RealtimePlaceholderMap.WeatherMinutePhaseForSmoke(
+                        movingWeather with { Minute = 42 }) &&
+                RealtimePlaceholderMap.WeatherMinutePhaseForSmoke(reducedWeather) == 0 &&
+                RealtimePlaceholderMap.WeatherMinutePhaseForSmoke(
+                    reducedWeather with { Minute = 42 }) == 0,
+                "G3 Reduce Motion did not freeze the minute-driven weather phase",
+                failures);
         }
         finally
         {

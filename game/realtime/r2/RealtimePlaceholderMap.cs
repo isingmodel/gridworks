@@ -720,7 +720,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                     new Rect2(Vector2.Zero, Size),
                     new Color(Color.FromHtml(storm ? "18313b" : "315963"),
                         storm ? 0.18f : 0.10f));
-                long minutePhase = Math.Abs(presentation.Minute % 997L);
+                long minutePhase = WeatherMinutePhase(presentation);
                 int streakCount = storm ? 34 : 20;
                 for (int index = 0; index < streakCount; index++)
                 {
@@ -739,6 +739,9 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 break;
         }
     }
+
+    private static long WeatherMinutePhase(RealtimeWorldPresentation presentation) =>
+        presentation.ReduceMotion ? 0L : Math.Abs(presentation.Minute % 997L);
 
     private void DrawG3TexturedPolygon(
         Vector2[] polygon,

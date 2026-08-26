@@ -107,7 +107,7 @@ internal sealed partial class CommercialMapView : Control
     private const int KeyboardLargeStepUnit = 500;
 
     private CommercialMapPresentation? _presentation;
-    private CommercialMapTransform? _transform;
+    private MapViewportTransform? _transform;
     private CoreMapPoint _keyboardPoint;
     private CoreMapPoint? _pointerPoint;
     private readonly List<string> _candidateNodeIds = [];
@@ -247,14 +247,14 @@ internal sealed partial class CommercialMapView : Control
         ArgumentNullException.ThrowIfNull(presentation);
         _presentation = presentation;
         MapBounds bounds = presentation.Snapshot.World.Bounds;
-        var gameBounds = new CommercialMapBounds(
+        var gameBounds = new MapViewportBounds(
             bounds.MinXUnit,
             bounds.MaxXUnit,
             bounds.MinYUnit,
             bounds.MaxYUnit);
         if (_transform is null)
         {
-            _transform = new CommercialMapTransform(gameBounds, Size);
+            _transform = new MapViewportTransform(gameBounds, Size);
             _keyboardPoint = InitialKeyboardPoint(presentation.Snapshot.World);
             _pointerPoint = _keyboardPoint;
         }
@@ -300,12 +300,12 @@ internal sealed partial class CommercialMapView : Control
 #if DEBUG
     public Vector2 ViewportPointForWorld(CoreMapPoint point)
     {
-        CommercialMapTransform transform = RequireTransform();
+        MapViewportTransform transform = RequireTransform();
         Vector2 local = transform.WorldToCanvas(point.XUnit, point.YUnit);
         return GetGlobalTransformWithCanvas() * local;
     }
 
-    public CommercialWorldPosition WorldAtViewportPoint(Vector2 viewportPoint)
+    public MapWorldPosition WorldAtViewportPoint(Vector2 viewportPoint)
     {
         Vector2 local = GetGlobalTransformWithCanvas().AffineInverse() * viewportPoint;
         return RequireTransform().CanvasToWorld(local);
@@ -594,7 +594,7 @@ internal sealed partial class CommercialMapView : Control
 
     private void ZoomBy(int direction, Vector2 anchor)
     {
-        CommercialMapTransform transform = RequireTransform();
+        MapViewportTransform transform = RequireTransform();
         transform.SetZoomAt(transform.ZoomIndex + direction, anchor);
         RefreshCandidates(notify: true);
         CameraChanged?.Invoke();
@@ -721,13 +721,13 @@ internal sealed partial class CommercialMapView : Control
 
     private bool TryMapPoint(Vector2 canvasPoint, out CoreMapPoint point)
     {
-        CommercialMapTransform transform = RequireTransform();
+        MapViewportTransform transform = RequireTransform();
         if (!transform.PlotRect.HasPoint(canvasPoint))
         {
             point = default;
             return false;
         }
-        CommercialWorldPosition world = transform.CanvasToWorld(canvasPoint);
+        MapWorldPosition world = transform.CanvasToWorld(canvasPoint);
         MapBounds bounds = _presentation!.Snapshot.World.Bounds;
         point = new CoreMapPoint(
             Math.Clamp(RoundUnit(world.X), bounds.MinXUnit, bounds.MaxXUnit),
@@ -737,7 +737,7 @@ internal sealed partial class CommercialMapView : Control
 
     private void DrawMapGround()
     {
-        CommercialMapTransform transform = RequireTransform();
+        MapViewportTransform transform = RequireTransform();
         MapBounds bounds = _presentation!.Snapshot.World.Bounds;
         Vector2 topLeft = transform.WorldToCanvas(bounds.MinXUnit, bounds.MinYUnit);
         Vector2 bottomRight = transform.WorldToCanvas(bounds.MaxXUnit, bounds.MaxYUnit);
@@ -1735,7 +1735,7 @@ internal sealed partial class CommercialMapView : Control
         }
         MapBounds bounds = _presentation.Snapshot.World.Bounds;
         _transform.Configure(
-            new CommercialMapBounds(
+            new MapViewportBounds(
                 bounds.MinXUnit,
                 bounds.MaxXUnit,
                 bounds.MinYUnit,
@@ -1797,7 +1797,7 @@ internal sealed partial class CommercialMapView : Control
         point.XUnit,
         point.YUnit);
 
-    private CommercialMapTransform RequireTransform() => _transform ??
+    private MapViewportTransform RequireTransform() => _transform ??
         throw new InvalidOperationException("지도가 아직 준비되지 않았습니다.");
 
     private static CoreMapPoint InitialKeyboardPoint(SpatialWorldDefinition world)

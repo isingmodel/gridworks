@@ -13,6 +13,9 @@
     <DebugSymbols>false</DebugSymbols>
     <Deterministic>true</Deterministic>
     <PathMap>$(MSBuildProjectDirectory)=/_/game</PathMap>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'ExportRelease' and '$(GridworksLegacyV2Export)' == 'true' and '$(GridworksCurrentR2Export)' != 'true'">
     <CommercialProductVersion Condition="'$(CommercialProductVersion)' == ''">1.0.0</CommercialProductVersion>
     <CommercialBuildIdentityFile>$(IntermediateOutputPath)commercial-build-identity-v1.json</CommercialBuildIdentityFile>
   </PropertyGroup>
@@ -21,9 +24,9 @@
     <ProjectReference Include="../src/Gridworks.Core/Gridworks.Core.csproj" />
   </ItemGroup>
 
-  <!-- Current R2 owns only its Godot adapter/UI and the six resources it actually loads. -->
-  <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
-    <Compile Include="CommercialMapTransform.cs" />
+  <!-- Current R2 owns only its Godot adapter/UI and product data. -->
+  <ItemGroup Condition="'$(Configuration)' != 'ExportRelease' or ('$(GridworksCurrentR2Export)' == 'true' and '$(GridworksLegacyV2Export)' != 'true')">
+    <Compile Include="realtime/MapViewportTransform.cs" />
     <Compile Include="realtime/r2/**/*.cs" />
     <Compile Include="realtime/ui/**/*.cs" />
 
@@ -33,12 +36,6 @@
     <EmbeddedResource Include="../data/release-campaign-v2.json"
                       Link="EmbeddedData/release-campaign-v2.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-campaign-v2.json" />
-    <EmbeddedResource Include="../tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-world-realtime-v3.json"
-                      Link="EmbeddedData/stage-r1-world-realtime-v3.json"
-                      LogicalName="Gridworks.Game.EmbeddedData.stage-r1-world-realtime-v3.json" />
-    <EmbeddedResource Include="../tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-first-light-realtime-v3.json"
-                      Link="EmbeddedData/stage-r1-first-light-realtime-v3.json"
-                      LogicalName="Gridworks.Game.EmbeddedData.stage-r1-first-light-realtime-v3.json" />
     <EmbeddedResource Include="../data/release-world-v3.json"
                       Link="EmbeddedData/release-world-v3.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-world-v3.json" />
@@ -47,13 +44,23 @@
                       LogicalName="Gridworks.Game.EmbeddedData.release-campaign-v3.json" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">
+  <!-- Deterministic realtime fixtures are development-only, never product payload. -->
+  <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
+    <EmbeddedResource Include="../tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-world-realtime-v3.json"
+                      Link="EmbeddedData/stage-r1-world-realtime-v3.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.stage-r1-world-realtime-v3.json" />
+    <EmbeddedResource Include="../tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-first-light-realtime-v3.json"
+                      Link="EmbeddedData/stage-r1-first-light-realtime-v3.json"
+                      LogicalName="Gridworks.Game.EmbeddedData.stage-r1-first-light-realtime-v3.json" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'ExportRelease' and '$(GridworksLegacyV2Export)' == 'true' and '$(GridworksCurrentR2Export)' != 'true'">
     <!-- Frozen historical V2 export allowlist; this cannot produce a current R2 candidate. -->
     <Compile Include="CommercialAudio.cs" />
     <Compile Include="CommercialAudioLibrary.cs" />
     <Compile Include="CommercialLaunchOptions.cs" />
     <Compile Include="CommercialMain.cs" />
-    <Compile Include="CommercialMapTransform.cs" />
+    <Compile Include="realtime/MapViewportTransform.cs" />
     <Compile Include="CommercialMapView.cs" />
     <Compile Include="CommercialProductResources.cs" />
     <Compile Include="CommercialShell.cs" />
@@ -73,7 +80,7 @@
 
   <Target Name="GenerateCommercialBuildIdentity"
           BeforeTargets="PrepareResourceNames"
-          Condition="'$(Configuration)' == 'ExportRelease'">
+          Condition="'$(Configuration)' == 'ExportRelease' and '$(GridworksLegacyV2Export)' == 'true' and '$(GridworksCurrentR2Export)' != 'true'">
     <Exec Command="git -C &quot;$(MSBuildProjectDirectory)/..&quot; rev-parse --verify HEAD"
           ConsoleToMSBuild="true"
           StandardOutputImportance="Low">

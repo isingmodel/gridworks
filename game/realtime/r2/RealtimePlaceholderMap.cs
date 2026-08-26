@@ -139,7 +139,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private RealtimeWorldPresentation? _presentation;
     private RealtimeWorldPointerFeedback _pointerFeedback =
         RealtimeWorldPointerFeedback.Empty;
-    private CommercialMapTransform? _transform;
+    private MapViewportTransform? _transform;
     private CoreMapPoint? _pointer;
     private IReadOnlyList<string> _candidateCycle = Array.Empty<string>();
     private int _candidateIndex;
@@ -1471,14 +1471,14 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             return;
         }
         MapBounds bounds = _presentation.World.Bounds;
-        var mapBounds = new CommercialMapBounds(
+        var mapBounds = new MapViewportBounds(
             bounds.MinXUnit,
             bounds.MaxXUnit,
             bounds.MinYUnit,
             bounds.MaxYUnit);
         if (_transform is null)
         {
-            _transform = new CommercialMapTransform(mapBounds, Size);
+            _transform = new MapViewportTransform(mapBounds, Size);
         }
         else
         {
@@ -1602,7 +1602,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
 
     private CoreMapPoint ToWorld(Vector2 point)
     {
-        CommercialWorldPosition world = _transform!.CanvasToWorld(point);
+        MapWorldPosition world = _transform!.CanvasToWorld(point);
         return new CoreMapPoint(
             (int)Math.Round(world.X, MidpointRounding.AwayFromZero),
             (int)Math.Round(world.Y, MidpointRounding.AwayFromZero));

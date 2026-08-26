@@ -3,7 +3,7 @@ using Godot;
 
 namespace Gridworks.Game;
 
-internal readonly record struct CommercialMapBounds(int MinX, int MaxX, int MinY, int MaxY)
+internal readonly record struct MapViewportBounds(int MinX, int MaxX, int MinY, int MaxY)
 {
     public double Width => checked((long)MaxX - MinX);
 
@@ -22,23 +22,23 @@ internal readonly record struct CommercialMapBounds(int MinX, int MaxX, int MinY
     }
 }
 
-internal readonly record struct CommercialWorldPosition(double X, double Y);
+internal readonly record struct MapWorldPosition(double X, double Y);
 
 /// <summary>
-/// Pure world/canvas camera math for the commercial map. It deliberately owns no
+/// Pure world/canvas camera math shared by realtime and frozen map views. It owns no
 /// Godot node, Core session, hover state, or command state.
 /// </summary>
-internal sealed class CommercialMapTransform
+internal sealed class MapViewportTransform
 {
     private static readonly double[] ZoomMultipliers = [1d, 1.5d, 2.25d];
     private const float PlotPadding = 28f;
 
-    private CommercialMapBounds _bounds;
+    private MapViewportBounds _bounds;
     private Vector2 _viewportSize;
     private Vector2 _center;
     private int _zoomIndex;
 
-    public CommercialMapTransform(CommercialMapBounds bounds, Vector2 viewportSize)
+    public MapViewportTransform(MapViewportBounds bounds, Vector2 viewportSize)
     {
         bounds.Validate();
         _bounds = bounds;
@@ -46,7 +46,7 @@ internal sealed class CommercialMapTransform
         _center = bounds.Center;
     }
 
-    public CommercialMapBounds Bounds => _bounds;
+    public MapViewportBounds Bounds => _bounds;
 
     public Vector2 Center => _center;
 
@@ -84,10 +84,10 @@ internal sealed class CommercialMapTransform
         }
     }
 
-    public void Configure(CommercialMapBounds bounds, Vector2 viewportSize)
+    public void Configure(MapViewportBounds bounds, Vector2 viewportSize)
     {
         bounds.Validate();
-        CommercialWorldPosition oldCenter = new(_center.X, _center.Y);
+        MapWorldPosition oldCenter = new(_center.X, _center.Y);
         _bounds = bounds;
         _viewportSize = ValidViewport(viewportSize);
         _center = ClampCenter(new Vector2((float)oldCenter.X, (float)oldCenter.Y));
@@ -102,12 +102,12 @@ internal sealed class CommercialMapTransform
             (float)((worldY - _center.Y) * scale));
     }
 
-    public CommercialWorldPosition CanvasToWorld(Vector2 canvasPoint)
+    public MapWorldPosition CanvasToWorld(Vector2 canvasPoint)
     {
         Rect2 plot = PlotRect;
         double scale = Scale;
         Vector2 offset = canvasPoint - plot.GetCenter();
-        return new CommercialWorldPosition(
+        return new MapWorldPosition(
             _center.X + (offset.X / scale),
             _center.Y + (offset.Y / scale));
     }
@@ -120,9 +120,9 @@ internal sealed class CommercialMapTransform
             return;
         }
 
-        CommercialWorldPosition anchoredWorld = CanvasToWorld(canvasAnchor);
+        MapWorldPosition anchoredWorld = CanvasToWorld(canvasAnchor);
         _zoomIndex = clampedIndex;
-        CommercialWorldPosition worldAfterZoom = CanvasToWorld(canvasAnchor);
+        MapWorldPosition worldAfterZoom = CanvasToWorld(canvasAnchor);
         _center = ClampCenter(_center + new Vector2(
             (float)(anchoredWorld.X - worldAfterZoom.X),
             (float)(anchoredWorld.Y - worldAfterZoom.Y)));

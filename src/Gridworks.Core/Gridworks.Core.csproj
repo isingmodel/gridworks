@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'ExportRelease'">
-    <!-- Frozen historical V2 export graph. This is not a current R2 candidate. -->
+    <!-- Shared deterministic export settings; selectors below choose one graph. -->
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <Deterministic>true</Deterministic>
@@ -17,12 +17,12 @@
   </PropertyGroup>
 
   <!-- The regular project is the current R2 Core graph: its strict V2 base plus V3 realtime rules. -->
-  <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
+  <ItemGroup Condition="'$(Configuration)' != 'ExportRelease' or ('$(GridworksCurrentR2Export)' == 'true' and '$(GridworksLegacyV2Export)' != 'true')">
     <Compile Include="Release/V2/**/*.cs" />
     <Compile Include="Release/V3/**/*.cs" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">
+  <ItemGroup Condition="'$(Configuration)' == 'ExportRelease' and '$(GridworksLegacyV2Export)' == 'true' and '$(GridworksCurrentR2Export)' != 'true'">
     <Compile Include="Release/V2/**/*.cs" />
   </ItemGroup>
 </Project>

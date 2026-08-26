@@ -740,7 +740,7 @@ internal sealed partial class CommercialMain
             GetWindow().Size = new Vector2I(1920, 1080);
             await NextFrame();
             CoreMapPoint resolutionPoint = new(913, 711);
-            CommercialWorldPosition highResolutionRoundTrip = _map.WorldAtViewportPoint(
+            MapWorldPosition highResolutionRoundTrip = _map.WorldAtViewportPoint(
                 _map.ViewportPointForWorld(resolutionPoint));
             Require(
                 NearlyEqual(highResolutionRoundTrip.X, resolutionPoint.XUnit, 0.02d) &&
@@ -788,10 +788,10 @@ internal sealed partial class CommercialMain
 
             CoreMapPoint mapCenter = new(1600, 1000);
             Vector2 anchor = _map.ViewportPointForWorld(mapCenter);
-            CommercialWorldPosition beforeZoom = _map.WorldAtViewportPoint(anchor);
+            MapWorldPosition beforeZoom = _map.WorldAtViewportPoint(anchor);
             await WheelAt(anchor, MouseButton.WheelUp);
             await WheelAt(anchor, MouseButton.WheelUp);
-            CommercialWorldPosition afterZoom = _map.WorldAtViewportPoint(anchor);
+            MapWorldPosition afterZoom = _map.WorldAtViewportPoint(anchor);
             Require(
                 _map.ZoomIndex == 2 &&
                 NearlyEqual(beforeZoom.X, afterZoom.X, 0.02d) &&

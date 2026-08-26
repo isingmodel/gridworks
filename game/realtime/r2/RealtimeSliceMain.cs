@@ -84,6 +84,7 @@ internal sealed partial class RealtimeSliceMain : Control
         {
             LoadProductSettings();
             PresentProductTitle();
+            GD.Print("REALTIME_R2_PRODUCT_TITLE_READY");
         }
         else
         {

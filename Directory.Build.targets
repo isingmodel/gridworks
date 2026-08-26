@@ -5,9 +5,12 @@
     <Error Text="ExportDebug is disabled because current R2 has no authorized export or package graph. Use Debug or Release for current development." />
   </Target>
 
-  <Target Name="RequireExplicitLegacyV2Export"
-          BeforeTargets="PrepareForBuild"
-          Condition="'$(Configuration)' == 'ExportRelease' and '$(GridworksLegacyV2Export)' != 'true'">
-    <Error Text="ExportRelease is the frozen historical V2 graph, not a current R2 candidate. Use its historical packaging tool or explicitly set GridworksLegacyV2Export=true." />
+  <Target Name="RequireExplicitExportReleaseGraph"
+          BeforeTargets="CheckForDuplicateItems;PrepareForBuild"
+          Condition="'$(Configuration)' == 'ExportRelease'">
+    <Error Condition="'$(GridworksCurrentR2Export)' != 'true' and '$(GridworksLegacyV2Export)' != 'true'"
+           Text="ExportRelease requires exactly one explicit graph selector: GridworksCurrentR2Export=true or GridworksLegacyV2Export=true." />
+    <Error Condition="'$(GridworksCurrentR2Export)' == 'true' and '$(GridworksLegacyV2Export)' == 'true'"
+           Text="ExportRelease cannot select both current R2 and frozen legacy V2. Set exactly one of GridworksCurrentR2Export=true or GridworksLegacyV2Export=true." />
   </Target>
 </Project>

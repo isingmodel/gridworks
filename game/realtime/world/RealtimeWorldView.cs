@@ -36,7 +36,7 @@ internal sealed partial class RealtimeWorldView : Control
     private readonly Dictionary<string, Texture2D> _textures =
         new(StringComparer.Ordinal);
     private RealtimeWorldPresentation? _presentation;
-    private CommercialMapTransform? _transform;
+    private MapViewportTransform? _transform;
     private bool _panning;
     private Vector2 _lastPointer;
     private double _weatherPhase;
@@ -584,7 +584,7 @@ internal sealed partial class RealtimeWorldView : Control
 
     private CoreMapPoint ToWorld(Vector2 canvasPoint)
     {
-        CommercialWorldPosition world = _transform!.CanvasToWorld(canvasPoint);
+        MapWorldPosition world = _transform!.CanvasToWorld(canvasPoint);
         return new CoreMapPoint(
             (int)Math.Round(world.X, MidpointRounding.AwayFromZero),
             (int)Math.Round(world.Y, MidpointRounding.AwayFromZero));
@@ -626,14 +626,14 @@ internal sealed partial class RealtimeWorldView : Control
             return;
         }
         MapBounds bounds = _presentation.World.Bounds;
-        var mapBounds = new CommercialMapBounds(
+        var mapBounds = new MapViewportBounds(
             bounds.MinXUnit,
             bounds.MaxXUnit,
             bounds.MinYUnit,
             bounds.MaxYUnit);
         if (_transform is null)
         {
-            _transform = new CommercialMapTransform(mapBounds, Size);
+            _transform = new MapViewportTransform(mapBounds, Size);
         }
         else
         {

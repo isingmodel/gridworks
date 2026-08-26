@@ -14,6 +14,8 @@ usage() {
     print -u2 -- "       ./dev play through CHAPTER_ID"
     print -u2 -- "       ./dev checkpoint CHECKPOINT_ID"
     print -u2 -- "       ./dev story SELECTOR|manifest"
+    print -u2 -- "       ./dev candidate build"
+    print -u2 -- "       ./dev candidate verify MANIFEST"
 }
 
 fail() {
@@ -197,6 +199,10 @@ case $command_name in
                 -- \
                 --story-part "$1"
         fi
+        ;;
+    candidate)
+        [[ $# -ge 1 ]] || fail "candidate requires build or verify MANIFEST."
+        python3 "$repository_dir/tools/r2_candidate.py" "$@"
         ;;
     help|-h|--help)
         [[ $# -eq 0 ]] || fail "help takes no arguments."

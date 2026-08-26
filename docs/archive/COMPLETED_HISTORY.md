@@ -129,6 +129,20 @@ BEFORE_WATER_RISE story selector, 누적 Godot UI harness와 두 독립 review�
 route는 3개를 유지했다. production-input 직접 플레이의 관찰 상한은 여전히 `NORTH_BANK_PROMISE`까지
 4장이고, 남은 2장이나 전체 캠페인·사람 UX 품질의 증거로 확대하지 않는다.
 
+### UX-R2.8 — 일곱 번째 장 native 구현
+
+`SWITCH_OFF_TO_PROTECT`까지 앞선 망·공사·자금·시계와 결과를 잇는 누적 7장 경로를 구현했다. 267270분에
+이전 종료 현금을 상속하고 1,600,000원 grant를 더한 뒤, 기존 정수장 player corridor 1/2에서 범람 장의
+`(1950, 850)` 보강 전신주→새 `(2300, 900)` 소형 변전소→정수장 보강 회선을 267417분까지 완공해
+첫 사건 시작인 267690분에 접속 2/2를 고정했다.
+
+267690–267810분 계획정지에는 서부 전원을 제외하고 남부 3,900 kW로 의료원 1,800 kW·정수장
+1,400 kW·동부 700 kW를 연속 공급했으며 비상·보호정지를 만들지 않았다. 267870–267990분 복귀에는
+서부 전원을 다시 사용해 의료원·정수장 각 900 kW와 동부 700 kW를 연속 공급했다. exact standard
+result, 7장의 ordered result와 full-flow evidence, canonical 3-route cap을 Release build, story selector,
+`./dev check`, 누적 Godot UI harness와 두 독립 review로 확인했다. production-input 직접 플레이의 관찰
+상한은 여전히 `NORTH_BANK_PROMISE`까지 4장이며 남은 native 장은 1개다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

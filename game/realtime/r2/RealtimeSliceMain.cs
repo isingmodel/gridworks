@@ -78,10 +78,12 @@ internal sealed partial class RealtimeSliceMain : Control
 
     public override void _Ready()
     {
+        string[] userArguments = OS.GetCmdlineUserArgs();
         try
         {
             _qualificationUserDataDirectory =
                 ResolveQualificationUserDataDirectory();
+            ConfigureLifecycleQualification(userArguments.Length);
         }
         catch (InvalidOperationException exception)
         {
@@ -90,7 +92,6 @@ internal sealed partial class RealtimeSliceMain : Control
             return;
         }
 
-        string[] userArguments = OS.GetCmdlineUserArgs();
 #if DEBUG
         _launch = _launchOverrideForSmoke ??
             ParseLaunchArguments(userArguments);
@@ -125,6 +126,7 @@ internal sealed partial class RealtimeSliceMain : Control
         }
         _audio.StartAmbient();
         SetProcess(true);
+        StartLifecycleQualificationIfConfigured();
     }
 
     public override void _ExitTree()

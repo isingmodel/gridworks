@@ -3,6 +3,12 @@ using Godot;
 
 namespace Gridworks.Game.Realtime.R2;
 
+internal readonly record struct RealtimeAudioQualificationFacts(
+    int AmbientStarts,
+    int LiveCues,
+    bool AmbientReady,
+    bool SfxQuiet);
+
 /// <summary>
 /// Owns the current R2 generated PCM streams and engine playback only. Live cue
 /// meaning belongs to RealtimeSession, while volume and mute belong to Main's
@@ -21,10 +27,10 @@ internal sealed partial class RealtimeAudio : Node
     private AudioStreamWav _outage = null!;
     private bool _ready;
     private bool _ambientStarted;
-
-#if DEBUG
     private int _ambientStartCount;
     private int _liveCuePlayCount;
+
+#if DEBUG
     private RealtimeLiveAudioCue? _lastLiveCue;
 
     internal int AmbientStartCountForSmoke => _ambientStartCount;
@@ -94,9 +100,7 @@ internal sealed partial class RealtimeAudio : Node
             _ambientPlayer.Play();
         }
         _ambientStarted = true;
-#if DEBUG
         _ambientStartCount++;
-#endif
     }
 
     internal void PlayLive(RealtimeLiveAudioCue cue)
@@ -111,10 +115,35 @@ internal sealed partial class RealtimeAudio : Node
         {
             _sfxPlayer.Play();
         }
-#if DEBUG
         _liveCuePlayCount++;
+#if DEBUG
         _lastLiveCue = cue;
 #endif
+    }
+
+    internal RealtimeAudioQualificationFacts CaptureQualificationFacts()
+    {
+        bool ambientReady = _ready &&
+            _ambientStarted &&
+            _ambientPlayer.Stream is AudioStreamWav stream &&
+            ReferenceEquals(stream, _ambient) &&
+            string.Equals(_ambientPlayer.Bus, "Ambient", StringComparison.Ordinal) &&
+            stream.Format == AudioStreamWav.FormatEnum.Format16Bits &&
+            stream.MixRate == SampleRate &&
+            !stream.Stereo &&
+            stream.LoopMode == AudioStreamWav.LoopModeEnum.Forward &&
+            stream.LoopBegin == 0 &&
+            stream.LoopEnd > 0 &&
+            stream.Data.Length > 0;
+        bool sfxQuiet = _ready &&
+            string.Equals(_sfxPlayer.Bus, "SFX", StringComparison.Ordinal) &&
+            _sfxPlayer.Stream is null &&
+            !_sfxPlayer.Playing;
+        return new RealtimeAudioQualificationFacts(
+            _ambientStartCount,
+            _liveCuePlayCount,
+            ambientReady,
+            sfxQuiet);
     }
 
     private AudioStreamWav Stream(RealtimeLiveAudioCue cue) => cue switch

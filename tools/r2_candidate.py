@@ -44,6 +44,7 @@ SAVE_SCHEMA = "gridworks.realtime.campaign-save.v3"
 SETTINGS_PATH = "user://realtime-settings-v1.json"
 SETTINGS_SCHEMA = "gridworks.realtime-settings.v1"
 QUALIFICATION_DATA_ENV = "GRIDWORKS_R2_QUALIFICATION_USER_DATA_DIR"
+QUALIFICATION_SCENARIO_ENV = "GRIDWORKS_R2_QUALIFICATION_SCENARIO"
 LEGAL_PATHS = (
     "INSTALL.md",
     "CREDITS.md",
@@ -879,6 +880,7 @@ def packaged_title_smoke(root: Path) -> None:
         log = smoke_root / "title.log"
         environment = dict(os.environ)
         environment.pop(QUALIFICATION_DATA_ENV, None)
+        environment.pop(QUALIFICATION_SCENARIO_ENV, None)
         result = run(
             [
                 str(executable),
@@ -1096,6 +1098,7 @@ def build_candidate() -> None:
         export_log = work / "export.log"
         environment = dict(os.environ)
         environment.pop(QUALIFICATION_DATA_ENV, None)
+        environment.pop(QUALIFICATION_SCENARIO_ENV, None)
         environment["GridworksCurrentR2Export"] = "true"
         environment.pop("GridworksLegacyV2Export", None)
         run(

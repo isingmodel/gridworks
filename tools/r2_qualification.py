@@ -7,6 +7,7 @@ import argparse
 import os
 from pathlib import Path
 import pwd
+import re
 import shutil
 import stat
 import subprocess
@@ -20,15 +21,79 @@ import r2_candidate as candidate
 ROOT = candidate.ROOT
 GAME = candidate.GAME
 TOOL_PATH = ROOT / "tools/r2_qualification.py"
-SCHEMA = "gridworks.r2-app-persistence-qualification.v1"
+SCHEMA = "gridworks.r2-app-persistence-qualification.v2"
 RECORD_NAME = "Gridworks-current-r2-macOS-internal.qualification.json"
 RUNNER_SCENE = "res://realtime/r2/RealtimeProductEntrySmokeRunner.tscn"
 MARKER_PREFIX = "REALTIME_R2_QUALIFICATION_DATA_READY "
+LIFECYCLE_MARKER_PREFIX = "REALTIME_R2_QUALIFICATION_LIFECYCLE_READY "
 TITLE_MARKER = candidate.TITLE_MARKER
 
 SETTINGS_FILE = "realtime-settings-v1.json"
 SAVE_FILE = "gridworks-r2-campaign-save-v1.json"
 PRODUCT_ROUTE_ID = "--release-through=LONGEST_NIGHT"
+
+LIFECYCLE_EXPECTATIONS = {
+    "EMPTY_NEW_GAME": {
+        "title": "HIDDEN",
+        "session": "INITIAL_BRIEFING",
+        "settings": "DEFAULT",
+        "save": "MISSING_TO_INITIAL",
+        "dataSettings": "MISSING",
+        "continuation": "MISSING",
+    },
+    "PROGRESS_CONTINUE": {
+        "title": "HIDDEN",
+        "session": "INITIAL_BRIEFING",
+        "settings": "DEFAULT",
+        "save": "PROGRESS_UNCHANGED",
+        "dataSettings": "MISSING",
+        "continuation": "RESTORABLE",
+    },
+    "COMPLETED_CONTINUE": {
+        "title": "HIDDEN",
+        "session": "ENDED",
+        "settings": "DEFAULT",
+        "save": "COMPLETED_UNCHANGED",
+        "dataSettings": "MISSING",
+        "continuation": "COMPLETED",
+    },
+    "COMPLETED_NEW_GAME": {
+        "title": "HIDDEN",
+        "session": "INITIAL_BRIEFING",
+        "settings": "DEFAULT",
+        "save": "COMPLETED_TO_INITIAL",
+        "dataSettings": "MISSING",
+        "continuation": "COMPLETED",
+    },
+    "RESET_NEW_GAME": {
+        "title": "HIDDEN",
+        "session": "INITIAL_BRIEFING",
+        "settings": "DEFAULT",
+        "save": "PROGRESS_TO_INITIAL_BACKUP",
+        "dataSettings": "MISSING",
+        "continuation": "RESTORABLE",
+    },
+    "SETTINGS_APPLY": {
+        "title": "VISIBLE",
+        "session": "NONE",
+        "settings": "APPLIED",
+        "save": "MISSING",
+        "dataSettings": "MISSING",
+        "continuation": "MISSING",
+    },
+    "SETTINGS_RESTORE": {
+        "title": "VISIBLE",
+        "session": "NONE",
+        "settings": "RESTORED",
+        "save": "MISSING",
+        "dataSettings": "LOADED",
+        "continuation": "MISSING",
+    },
+}
+RESET_BACKUP_PATTERN = f"{SAVE_FILE}.reset-<32-lowercase-hex>.bak"
+RESET_BACKUP_NAME = re.compile(
+    rf"^{re.escape(SAVE_FILE)}\.reset-[0-9a-f]{{32}}\.bak$"
+)
 
 
 def fail(message: str) -> None:
@@ -80,6 +145,7 @@ def run_source_smoke(
 ) -> None:
     environment = dict(os.environ)
     environment.pop(candidate.QUALIFICATION_DATA_ENV, None)
+    environment.pop(candidate.QUALIFICATION_SCENARIO_ENV, None)
     environment.pop("GridworksCurrentR2Export", None)
     environment.pop("GridworksLegacyV2Export", None)
     result = candidate.run(
@@ -130,6 +196,57 @@ def exact_qualification_marker(
     return expected
 
 
+def exact_title_marker(output: str, label: str) -> None:
+    markers = [
+        line.strip()
+        for line in output.splitlines()
+        if line.strip() == TITLE_MARKER
+    ]
+    if markers != [TITLE_MARKER]:
+        fail(
+            f"{label} title marker drift: expected exactly one "
+            f"{TITLE_MARKER!r}, got {markers!r}"
+        )
+
+
+def exact_lifecycle_marker(output: str, scenario: str) -> str:
+    expectation = LIFECYCLE_EXPECTATIONS[scenario]
+    markers = [
+        line.strip()
+        for line in output.splitlines()
+        if line.strip().startswith(LIFECYCLE_MARKER_PREFIX)
+    ]
+    if len(markers) != 1:
+        fail(
+            f"packaged lifecycle marker count drift for {scenario}: "
+            f"expected one, got {markers!r}"
+        )
+    pattern = re.compile(
+        rf"^{re.escape(LIFECYCLE_MARKER_PREFIX)}"
+        rf"scenario={re.escape(scenario)} "
+        r"pointer_inputs=(0|[1-9][0-9]*) "
+        r"key_inputs=(0|[1-9][0-9]*) "
+        rf"title={expectation['title']} "
+        rf"session={expectation['session']} "
+        rf"settings={expectation['settings']} "
+        rf"save={expectation['save']} "
+        r"audio=AMBIENT_READY_SFX_QUIET$"
+    )
+    match = pattern.fullmatch(markers[0])
+    if match is None:
+        fail(
+            f"packaged lifecycle marker field drift for {scenario}: "
+            f"{markers[0]!r}"
+        )
+    pointer_inputs = int(match.group(1))
+    key_inputs = int(match.group(2))
+    if pointer_inputs < 1:
+        fail(f"packaged lifecycle scenario {scenario} pushed no pointer input")
+    if scenario.startswith("SETTINGS_") and key_inputs < 1:
+        fail(f"packaged lifecycle scenario {scenario} pushed no key input")
+    return markers[0]
+
+
 def run_packaged_title(
     app: Path,
     data_root: Path,
@@ -144,6 +261,7 @@ def run_packaged_title(
         fail("qualified package executable is missing")
     environment = dict(os.environ)
     environment[candidate.QUALIFICATION_DATA_ENV] = str(data_root)
+    environment.pop(candidate.QUALIFICATION_SCENARIO_ENV, None)
     environment.pop("GridworksCurrentR2Export", None)
     environment.pop("GridworksLegacyV2Export", None)
     before_root = root_files(data_root, expected_root_names)
@@ -164,14 +282,65 @@ def run_packaged_title(
     )
     output = combined_output(result, log_path)
     require_success_output(output, TITLE_MARKER, "packaged product-title stage")
+    log_output = read_log(log_path)
+    exact_title_marker(log_output, "packaged product-title stage")
     marker = exact_qualification_marker(
-        read_log(log_path),
+        log_output,
         settings=settings,
         continuation=continuation,
     )
     if root_files(data_root, expected_root_names) != before_root:
         fail("packaged product-title stage changed app-owned persistence bytes")
     return marker
+
+
+def run_packaged_lifecycle(
+    app: Path,
+    data_root: Path,
+    log_path: Path,
+    scenario: str,
+    *,
+    expected_root_names: set[str],
+) -> str:
+    expectation = LIFECYCLE_EXPECTATIONS.get(scenario)
+    if expectation is None:
+        fail(f"unknown packaged lifecycle scenario: {scenario}")
+    executable = app / "Contents/MacOS/Gridworks"
+    if not executable.is_file() or executable.is_symlink():
+        fail("qualified package executable is missing")
+    root_files(data_root, expected_root_names)
+    environment = dict(os.environ)
+    environment[candidate.QUALIFICATION_DATA_ENV] = str(data_root)
+    environment[candidate.QUALIFICATION_SCENARIO_ENV] = scenario
+    environment.pop("GridworksCurrentR2Export", None)
+    environment.pop("GridworksLegacyV2Export", None)
+    result = candidate.run(
+        [
+            str(executable),
+            "--headless",
+            "--audio-driver",
+            "Dummy",
+            "--log-file",
+            str(log_path),
+        ],
+        cwd=log_path.parent,
+        env=environment,
+        timeout=60,
+    )
+    output = combined_output(result, log_path)
+    require_success_output(
+        output,
+        LIFECYCLE_MARKER_PREFIX,
+        f"packaged lifecycle stage {scenario}",
+    )
+    log_output = read_log(log_path)
+    exact_title_marker(log_output, f"packaged lifecycle stage {scenario}")
+    exact_qualification_marker(
+        log_output,
+        settings=expectation["dataSettings"],
+        continuation=expectation["continuation"],
+    )
+    return exact_lifecycle_marker(log_output, scenario)
 
 
 def root_files(data_root: Path, expected_names: set[str]) -> list[dict[str, Any]]:
@@ -200,6 +369,70 @@ def root_files(data_root: Path, expected_names: set[str]) -> list[dict[str, Any]
             f"expected {sorted(expected_names)}, got {sorted(actual_names)}"
         )
     return rows
+
+
+def fresh_data_root(work: Path, name: str) -> Path:
+    data_root = work / name
+    data_root.mkdir(mode=0o700)
+    data_root = data_root.resolve(strict=True)
+    validate_empty_root(data_root)
+    return data_root
+
+
+def copy_fixture(source: Path, target: Path) -> None:
+    if not source.is_file() or source.is_symlink():
+        fail(f"qualification fixture source is unsafe: {source.name}")
+    if target.exists() or target.is_symlink():
+        fail(f"qualification fixture target was not absent: {target.name}")
+    shutil.copyfile(source, target)
+    if not target.is_file() or target.is_symlink():
+        fail(f"qualification fixture copy is unsafe: {target.name}")
+
+
+def require_fixture_bytes(path: Path, fixture: Path, label: str) -> None:
+    if (
+        not fixture.is_file()
+        or fixture.is_symlink()
+        or not path.is_file()
+        or path.is_symlink()
+        or path.stat().st_size != fixture.stat().st_size
+        or candidate.sha256_file(path) != candidate.sha256_file(fixture)
+    ):
+        fail(f"{label} differs from its source actual-scene fixture bytes")
+
+
+def normalized_reset_root_files(
+    data_root: Path,
+    primary_fixture: Path,
+    backup_fixture: Path,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    root_metadata = data_root.lstat()
+    if not stat.S_ISDIR(root_metadata.st_mode) or data_root.is_symlink():
+        fail("reset lifecycle data root stopped being a real directory")
+    if data_root.resolve(strict=True) != data_root:
+        fail("reset lifecycle data root stopped being canonical")
+    names = {path.name for path in data_root.iterdir()}
+    backups = sorted(name for name in names if RESET_BACKUP_NAME.fullmatch(name))
+    if names != {SAVE_FILE, *backups} or len(backups) != 1:
+        fail(
+            "reset lifecycle root closure drift: expected the primary and one "
+            f"GUID sibling backup, got {sorted(names)}"
+        )
+    backup_name = backups[0]
+    primary = data_root / SAVE_FILE
+    backup = data_root / backup_name
+    require_fixture_bytes(primary, primary_fixture, "reset primary save")
+    require_fixture_bytes(backup, backup_fixture, "reset sibling backup")
+    rows = root_files(data_root, names)
+    backup_row: dict[str, Any] | None = None
+    for row in rows:
+        if row["fileName"] == backup_name:
+            row["fileName"] = RESET_BACKUP_PATTERN
+            backup_row = dict(row)
+    if backup_row is None:
+        fail("reset lifecycle normalized backup metadata is missing")
+    rows.sort(key=lambda row: row["fileName"].encode("utf-8"))
+    return rows, backup_row
 
 
 def verified_account_home() -> Path:
@@ -307,6 +540,108 @@ def package_identity(manifest_path: Path, manifest: dict[str, Any]) -> dict[str,
     }
 
 
+def run_unchanged_save_lifecycle(
+    app: Path,
+    work: Path,
+    logs: Path,
+    scenario: str,
+    fixture: Path,
+) -> dict[str, Any]:
+    data_root = fresh_data_root(
+        work,
+        f"lifecycle-{scenario.lower().replace('_', '-')}",
+    )
+    save_path = data_root / SAVE_FILE
+    copy_fixture(fixture, save_path)
+    before = root_files(data_root, {SAVE_FILE})
+    marker = run_packaged_lifecycle(
+        app,
+        data_root,
+        logs / f"lifecycle-{scenario.lower().replace('_', '-')}.log",
+        scenario,
+        expected_root_names={SAVE_FILE},
+    )
+    require_fixture_bytes(save_path, fixture, f"{scenario} primary save")
+    after = root_files(data_root, {SAVE_FILE})
+    if after != before:
+        fail(f"{scenario} changed the app-owned root bytes")
+    return {
+        "id": scenario,
+        "marker": marker,
+        "rootFilesAfter": after,
+        "rootFilesBefore": before,
+        "save": save_facts(save_path),
+    }
+
+
+def run_save_transition_lifecycle(
+    app: Path,
+    work: Path,
+    logs: Path,
+    scenario: str,
+    *,
+    source_fixture: Path | None,
+    result_fixture: Path,
+    expect_reset_backup: bool = False,
+) -> dict[str, Any]:
+    data_root = fresh_data_root(
+        work,
+        f"lifecycle-{scenario.lower().replace('_', '-')}",
+    )
+    save_path = data_root / SAVE_FILE
+    expected_before: set[str] = set()
+    if source_fixture is not None:
+        copy_fixture(source_fixture, save_path)
+        expected_before.add(SAVE_FILE)
+    before = root_files(data_root, expected_before)
+    marker = run_packaged_lifecycle(
+        app,
+        data_root,
+        logs / f"lifecycle-{scenario.lower().replace('_', '-')}.log",
+        scenario,
+        expected_root_names=expected_before,
+    )
+    require_fixture_bytes(save_path, result_fixture, f"{scenario} primary save")
+    source_sha256 = (
+        None
+        if source_fixture is None
+        else candidate.sha256_file(source_fixture)
+    )
+    result_sha256 = candidate.sha256_file(result_fixture)
+    same_primary_bytes = (
+        None if source_sha256 is None else source_sha256 == result_sha256
+    )
+    if expect_reset_backup and same_primary_bytes is not True:
+        fail(
+            "the current reset probe requires the source-generated c0 progress "
+            "fixture to equal the canonical initial result bytes"
+        )
+    result: dict[str, Any] = {
+        "id": scenario,
+        "marker": marker,
+        "rootFilesBefore": before,
+        "save": save_facts(save_path),
+        "transition": {
+            "resultSaveSha256": result_sha256,
+            "samePrimaryBytes": same_primary_bytes,
+            "sourceSaveSha256": source_sha256,
+        },
+    }
+    if expect_reset_backup:
+        if source_fixture is None:
+            fail("a reset lifecycle requires source save bytes")
+        after, backup = normalized_reset_root_files(
+            data_root,
+            result_fixture,
+            source_fixture,
+        )
+        result["backup"] = backup
+        result["rootFilesAfter"] = after
+    else:
+        result["rootFilesAfter"] = root_files(data_root, {SAVE_FILE})
+    return result
+
+
 def reconstruct(manifest_path: Path) -> dict[str, Any]:
     manifest_path = manifest_path.resolve()
     if manifest_path.name != candidate.MANIFEST_NAME:
@@ -329,6 +664,9 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
     )
     source_archive = manifest_path.parent / candidate.ARCHIVE_NAME
 
+    build_environment = dict(os.environ)
+    build_environment.pop(candidate.QUALIFICATION_DATA_ENV, None)
+    build_environment.pop(candidate.QUALIFICATION_SCENARIO_ENV, None)
     candidate.run(
         [
             candidate.require_tool("dotnet"),
@@ -340,6 +678,7 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
             "-v:minimal",
         ],
         cwd=ROOT,
+        env=build_environment,
         timeout=600,
     )
 
@@ -378,6 +717,11 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
         validate_empty_root(data_root)
         logs = work / "logs"
         logs.mkdir(mode=0o700)
+        fixtures = work / "source-fixtures"
+        fixtures.mkdir(mode=0o700)
+        settings_fixture = fixtures / "settings.json"
+        progress_fixture = fixtures / "progress.json"
+        completed_fixture = fixtures / "completed.json"
 
         stages: list[dict[str, Any]] = []
         stages.append(
@@ -402,6 +746,7 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
             logs / "settings-source.log",
             allowed_error_prefixes=("ERROR: R2 settings save failed:",),
         )
+        copy_fixture(settings_path, settings_fixture)
         settings = settings_facts(settings_path)
         stages.append(
             {
@@ -425,6 +770,7 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
             "REALTIME_PRODUCT_ENTRY_SAVE_CREATE_PASS",
             logs / "progress-source.log",
         )
+        copy_fixture(save_path, progress_fixture)
         progress = save_facts(save_path)
         stages.append(
             {
@@ -448,6 +794,7 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
             "REALTIME_PRODUCT_ENTRY_SAVE_COMPLETED_CREATE_PASS",
             logs / "completed-source.log",
         )
+        copy_fixture(save_path, completed_fixture)
         completed = save_facts(save_path)
         if completed["sha256"] == progress["sha256"]:
             fail("completed save is indistinguishable from initial progress")
@@ -464,6 +811,112 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
                 ),
                 "rootFiles": root_files(data_root, {SAVE_FILE, SETTINGS_FILE}),
                 "save": completed,
+            }
+        )
+
+        lifecycle_stages = [
+            run_save_transition_lifecycle(
+                app,
+                work,
+                logs,
+                "EMPTY_NEW_GAME",
+                source_fixture=None,
+                result_fixture=progress_fixture,
+            ),
+            run_unchanged_save_lifecycle(
+                app,
+                work,
+                logs,
+                "PROGRESS_CONTINUE",
+                progress_fixture,
+            ),
+            run_unchanged_save_lifecycle(
+                app,
+                work,
+                logs,
+                "COMPLETED_CONTINUE",
+                completed_fixture,
+            ),
+            run_save_transition_lifecycle(
+                app,
+                work,
+                logs,
+                "COMPLETED_NEW_GAME",
+                source_fixture=completed_fixture,
+                result_fixture=progress_fixture,
+            ),
+            run_save_transition_lifecycle(
+                app,
+                work,
+                logs,
+                "RESET_NEW_GAME",
+                source_fixture=progress_fixture,
+                result_fixture=progress_fixture,
+                expect_reset_backup=True,
+            ),
+        ]
+
+        settings_lifecycle_root = fresh_data_root(
+            work,
+            "lifecycle-settings",
+        )
+        settings_apply_before = root_files(settings_lifecycle_root, set())
+        settings_apply_marker = run_packaged_lifecycle(
+            app,
+            settings_lifecycle_root,
+            logs / "lifecycle-settings-apply.log",
+            "SETTINGS_APPLY",
+            expected_root_names=set(),
+        )
+        applied_settings = settings_lifecycle_root / SETTINGS_FILE
+        require_fixture_bytes(
+            applied_settings,
+            settings_fixture,
+            "settings Apply primary file",
+        )
+        settings_apply_after = root_files(
+            settings_lifecycle_root,
+            {SETTINGS_FILE},
+        )
+        lifecycle_stages.append(
+            {
+                "id": "SETTINGS_APPLY",
+                "marker": settings_apply_marker,
+                "rootFilesAfter": settings_apply_after,
+                "rootFilesBefore": settings_apply_before,
+                "settings": settings_facts(applied_settings),
+            }
+        )
+
+        settings_restore_before = root_files(
+            settings_lifecycle_root,
+            {SETTINGS_FILE},
+        )
+        settings_restore_marker = run_packaged_lifecycle(
+            app,
+            settings_lifecycle_root,
+            logs / "lifecycle-settings-restore.log",
+            "SETTINGS_RESTORE",
+            expected_root_names={SETTINGS_FILE},
+        )
+        require_fixture_bytes(
+            applied_settings,
+            settings_fixture,
+            "settings Restore primary file",
+        )
+        settings_restore_after = root_files(
+            settings_lifecycle_root,
+            {SETTINGS_FILE},
+        )
+        if settings_restore_after != settings_restore_before:
+            fail("settings Restore changed the app-owned root bytes")
+        lifecycle_stages.append(
+            {
+                "id": "SETTINGS_RESTORE",
+                "marker": settings_restore_marker,
+                "rootFilesAfter": settings_restore_after,
+                "rootFilesBefore": settings_restore_before,
+                "settings": settings_facts(applied_settings),
             }
         )
 
@@ -496,19 +949,25 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
             "appOwnedPersistenceQualified": True,
             "engineUserDataIsolated": False,
             "fullProductionInputE2E": False,
+            "generatedAudioWiringQualified": True,
             "humanQa": False,
             "osHardwareInput": False,
+            "packagedLifecycleInputQualified": True,
             "speakerAudioQualified": False,
         },
         "isolation": {
             "environmentVariable": candidate.QUALIFICATION_DATA_ENV,
             "homeReassigned": False,
             "initialRootEmpty": True,
+            "lifecycleEnvironmentVariable": candidate.QUALIFICATION_SCENARIO_ENV,
+            "lifecycleSaveRootsIndependent": True,
+            "lifecycleSettingsApplyRestoreRootShared": True,
             "packageAppTreeUnchanged": True,
             "packageUserArgumentCount": 0,
             "realDefaultProductFilesUnchanged": True,
-            "scope": "GRIDWORKS_OWNED_SAVE_AND_SETTINGS_ONLY",
+            "scope": "GRIDWORKS_OWNED_DATA_AND_PACKAGED_LIFECYCLE_SEAMS_ONLY",
         },
+        "lifecycleStages": lifecycle_stages,
         "package": package_identity(manifest_path, manifest),
         "producer": {
             "path": TOOL_PATH.relative_to(ROOT).as_posix(),
@@ -552,6 +1011,7 @@ def verify_record(record_path: Path) -> None:
     if not isinstance(record, dict) or set(record) != {
         "claims",
         "isolation",
+        "lifecycleStages",
         "package",
         "producer",
         "schemaVersion",

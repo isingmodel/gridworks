@@ -2,7 +2,7 @@
   <Target Name="RejectCurrentR2ExportDebug"
           BeforeTargets="PrepareForBuild"
           Condition="'$(Configuration)' == 'ExportDebug'">
-    <Error Text="ExportDebug is disabled because current R2 has no authorized export or package graph. Use Debug or Release for current development." />
+    <Error Text="ExportDebug is disabled. Use Debug or Release for current development, or the explicitly selected ExportRelease graph for an authorized package." />
   </Target>
 
   <Target Name="RequireExplicitExportReleaseGraph"

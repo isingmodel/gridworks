@@ -378,6 +378,25 @@ review를 통과했다. headless에서는 `AudioStreamPlayer.Play()`를 호출�
 이 완료는 speaker 출력, loudness·loop seam·상태 전반 coverage의 사람 청감, packaged candidate 또는 출시
 품질의 증거로 확대하지 않는다.
 
+### UX-R2.22 — current R2 macOS package identity
+
+큰 fresh-install gate를 가장 작은 2A/2B로 나누고 2A에서 current R2 package bytes와 identity만 닫았다.
+`ExportRelease`는 current/legacy selector 중 정확히 하나를 요구한다. current graph는 strict V2 base+V3
+Core, `realtime/r2`·`realtime/ui`와 중립 map leaf만 포함하고 DEBUG fixture와 historical V2 runtime을
+제외한다. product main scene, default audio bus와 G3 57개만 고른 universal macOS 14.0 ad-hoc preset을
+추가했다.
+
+`tools/r2_candidate.py`와 `./dev candidate build | verify` 한 경로가 clean HEAD와 고정 Godot/.NET,
+canonical manifest, bounded ZIP/tree, plist·signature·architecture, exact managed runtime, parsed PCK의 G3
+import/backing, legal closure를 독립 재구성한다. 별도 임시 설치 위치에서 no-arg product title marker도
+headless로 확인했다. archive/manifest 변조, path/alias/NUL/AppleDouble/symlink/outer closure mutation, current/legacy
+graph build, `./dev check`와 두 bounded independent review를 통과했다.
+
+manifest의 `freshUserDataQualified`, `fullProductionInputE2E`, `humanQa`, `evaluationReady`,
+`developerIdSigned`, `notarized`, `scoreBearing` claim은 모두 false다. packaged settings/audio도 별도로
+qualification하지 않았다. title smoke는 설치 위치만 임시화했으며 `user://`가 빈 상태임을 증명하지
+않는다. 후속 2B가 exact package identity를 소비해 이 qualification을 별도로 소유한다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

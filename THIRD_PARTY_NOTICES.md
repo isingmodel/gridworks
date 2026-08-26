@@ -1,8 +1,10 @@
 # Gridworks 제3자 고지
 
-동결된 V2 내부 macOS 빌드 경로는 Godot Engine 4.7.1 Mono와 .NET 8.0.29 runtime을 포함하도록
-구성돼 있다. 각 구성요소의 정확한 저작권·라이선스 원문은 그 내부 배포물의 `licenses/` 폴더에 버전별
-파일로 동봉한다. current R2 설치 패키지는 아직 없다.
+동결된 V2와 current R2 내부 macOS package identity 경로는 Godot Engine 4.7.1 Mono와 .NET 8.0.29
+runtime을 포함하도록 구성돼 있다. 각 구성요소의 정확한 저작권·라이선스 원문은 내부 배포물의
+`licenses/` 폴더에 버전별 파일로 동봉한다. current R2 strict verifier는 아래 세 tracked 제3자 원문과
+package에 필요한 다섯 local 안내·권리 문서만 legal closure로 허용한다. 이 내부 ad-hoc 후보는 공개 배포
+승인을 뜻하지 않는다.
 
 ## Godot Engine 4.7.1
 

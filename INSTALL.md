@@ -9,8 +9,10 @@ current-v3 terminal save가 있으면 `이어하기`가 활성화된다. termina
 모든 장의 stable 상태, story-idle active event·duty,
 zero-command exact initial briefing, exact-minute active `EventStory | DecisionWindowStory`와 bounded
 non-final result→next briefing, full `ProductCampaign`의 exact terminal 완료 save/Continue는 구현됐다.
-non-saveable 정상 종료의 prior-save 보존과 readable save의 확인·backup·reset도 구현됐다. 설치 패키지는
-아직 없다. 제품 title과 gameplay는 current R2 설정 surface를 공유하고, window mode, UI 배율,
+non-saveable 정상 종료의 prior-save 보존과 readable save의 확인·backup·reset도 구현됐다. current R2
+전용 universal macOS ad-hoc 내부 package identity 후보와 strict verifier는 있다. 다만 빈 user-data 전체
+여정, packaged settings/audio, Developer ID·공증 또는 출시 후보 qualification은 아직 없다. 제품 title과
+gameplay는 current R2 설정 surface를 공유하고, window mode, UI 배율,
 Master/Ambient/SFX volume·mute와 Reduce Motion을 별도 strict 파일에 저장한다. 과거 V2의 저장·설정
 파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다. `RealtimeAudio`는 별도 음원 파일 없이
 22,050Hz mono PCM16 ambient와 `Breaker/Energize/Outage` SFX를 생성해 기존 Ambient/SFX bus를 사용한다.
@@ -208,15 +210,35 @@ Godot user-data에 과거 V2의 `release-campaign-save-v3.json`이나 `settings.
 권위가 아니다. 빈 user-data를 검사할 때 기존 파일을 삭제하거나 덮어쓰지 말고 별도 폴더로 옮겨
 백업한다. 남은 transient cursor와 backup 관리 UI는 현재 제품 범위 밖이다.
 
-## 패키지와 공개 배포
+## current R2 macOS 내부 package identity
 
-저장소에는 과거 `CommercialMain` V2를 위한 내부 패키징 스크립트와 회귀 자료가 남아 있다. 그
-스크립트의 성공은 current R2 package나 출시 후보를 만들지 않는다. current R2의 fresh-install 후보,
-지원 OS 검증, Developer ID 서명·공증과 공개 배포 승인은 아직 없다.
+macOS의 clean committed HEAD에서 다음 명령을 사용한다. build는 Godot 4.7.1 Mono, .NET SDK 8.0.129와
+.NET runtime 8.0.29를 고정 확인하고 candidate를 만든 뒤 같은 strict verifier까지 실행한다.
 
-일반 Debug/Release의 current R2 graph와 `ExportRelease`는 서로 다르다. `ExportRelease`는 동결된 V2
-내부 export allowlist이며 current R2 후보를 만들지 않는다. current 개발 경계와 변경 순서는
-[개발 구조](docs/ARCHITECTURE.md)가 소유한다.
+```sh
+./dev candidate build
+./dev candidate verify dist/Gridworks-current-r2-macOS-internal.manifest.json
+```
 
-과거 V2 내부 후보의 범위는 [완료 이력](docs/archive/COMPLETED_HISTORY.md), 앞으로 필요한 단계는
-[남은 작업](docs/NEXT_TASKS.md)을 따른다.
+출력은 `.gitignore` 대상인 다음 sibling pair다.
+
+- `dist/Gridworks-current-r2-macOS-internal.zip`
+- `dist/Gridworks-current-r2-macOS-internal.manifest.json`
+
+단일 권위 `tools/r2_candidate.py`는 archive hash/size와 안전한 ZIP/tree closure, universal arm64+x86_64
+launcher와 각 runtime architecture, plist의 `com.gridworks.game`·`0.2.0`·macOS 14.0, ad-hoc signature,
+managed assemblies, current R2 PCK의 G3 `.png.import` 57개와 exact `.ctex` backing 57개, license files를
+재구성한다. 별도 임시 설치 위치에서 user argument 없이 headless 실행해
+`REALTIME_R2_PRODUCT_TITLE_READY`도 확인한다.
+
+이 title smoke는 앱 설치 위치만 임시화하며 Godot `user://`를 비우거나 격리하지 않는다. 따라서 결과는
+`gridworks.r2-package-manifest.v1`의 package identity일 뿐 fresh user-data, 전체 8장 production 입력,
+save/reset/settings restore, speaker audio·청감, 사람/native UX, evaluation readiness, 지원 OS 일반화,
+Developer ID·공증 또는 공개 배포 승인이 아니다.
+
+일반 Debug/Release graph와 `ExportRelease`는 서로 다르다. `ExportRelease`는
+`GridworksCurrentR2Export=true`와 `GridworksLegacyV2Export=true` 중 정확히 하나를 요구하며 missing/both는
+fail-closed한다. current candidate 명령은 current selector를 직접 설정한다. frozen V2 내부 경로는 legacy
+selector만 쓰며 current R2 후보로 해석하지 않는다. 상세 graph와 claim 경계는
+[개발 구조](docs/ARCHITECTURE.md), 다음 fresh-user-data qualification은 [남은 작업](docs/NEXT_TASKS.md)을
+따른다.

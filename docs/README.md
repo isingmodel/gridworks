@@ -68,12 +68,15 @@ backlog는 `NEXT_TASKS.md`처럼 질문별 표가 지정한 문서가 세부 사
   packaged candidate 복원이나 사람 접근성 증거를 뜻하지 않음
 - `current R2 basic audio`: source-tree generated ambient와 live Breaker/Energize/Outage cue wiring;
   packaged speaker 출력, 상태 전반의 audio coverage·청감 품질 증거를 뜻하지 않음
+- `current R2 package identity candidate`: clean source와 exact internal ZIP/tree·runtime·PCK·G3·legal
+  closure, ad-hoc signature와 임시 설치 위치의 headless title marker를 strict manifest로 결속한 후보; 빈
+  user-data, 전체 캠페인, packaged settings/audio, 사람 UX·공증·출시 증거는 아님
 - `deterministic PASS`: 규칙·상태·wiring 검사 통과; 미감·재미·출시 품질을 뜻하지 않음
 - `historical baseline`: 회귀 참고용 과거 제품; 현재 제품 entry가 아님
 - `사건 지평선`: 한 줄 future-event bar의 플레이어용 이름; 코드명은 `RealtimeEventRail`
 - `사건 시간축`: 사건 지평선의 시간 관계를 설명하는 일반 표현이며 별도 UI가 아님
-- `current R2 evaluation candidate`: finalized manifest에 결속된 설치 가능 package; editor tree나 V2
-  candidate가 아님
+- `current R2 evaluation candidate`: package identity 후보가 별도 fresh-user-data 전체 E2E qualification까지
+  통과한 exact package; editor tree, V2 candidate 또는 title-only smoke가 아님
 - `score-bearing`: 실제 후보·evidence·hard gate·model receipt에 결속되어 공식 점수에 들어갈 수 있음
 
 완료 task는 이 폴더 곳곳에 복제하지 않는다. 새 단계가 끝나면

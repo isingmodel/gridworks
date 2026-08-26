@@ -32,8 +32,8 @@ OS 호환성이나 출시 승인을 대신하지 않는다.
 | 실시간 장 일정·사건·결정 기한 | `data/release-campaign-v3.json` |
 | 실시간 규칙 | `src/Gridworks.Core/Release/V3/` |
 | native UX | `game/realtime/r2/`, `game/realtime/ui/` |
-| 제품 title·이어하기·settings·audio | finalized current R2 candidate의 실제 runtime |
-| 평가 후보 | finalized candidate manifest가 고정한 exact package contents |
+| 제품 title·이어하기·settings·audio | 2B qualification을 통과한 exact current R2 package의 실제 runtime |
+| 평가 후보 | 2A manifest/archive identity와 2B qualification record가 함께 고정한 exact package contents |
 | score-bearing model identity·freshness | 같은 session에 결속된 검증 가능한 platform/API raw receipt |
 | 사건 지평선(future-event bar) | `game/realtime/ui/RealtimeEventRail.cs`와 typed presentation |
 | 점수 label·weight·수치 reduction | `tools/commercial-ux/rubric.json` |
@@ -71,7 +71,7 @@ native coverage에 맞춰 만든다.
 
 ### NATIVE
 
-finalized current R2 evaluation candidate를 처음부터 조작하는 cold journey와 고정
+2B-qualified finalized current R2 evaluation candidate를 처음부터 조작하는 cold journey와 고정
 checkpoint/alternate branch를 다루는 coverage journey를 같은 evidence set으로 평가한다. 이 결과만
 `CommercialUXProxy` 후보가 될 수 있다.
 
@@ -87,7 +87,7 @@ actor는 judge가 아니며 judge는 게임을 대신 조작하지 않는다. ac
 ## 4. 게임 완결성 coverage
 
 공식 native session은 전체 여정, title/이어하기, save, settings, audio와 exact install package가
-완성되고 candidate manifest가 finalized된 뒤에만 시작한다.
+완성되고 2A package manifest와 그 identity에 결속된 2B qualification record가 finalized된 뒤에만 시작한다.
 
 공식 native session은 다음을 모두 포함해야 한다.
 
@@ -158,11 +158,11 @@ judge 간 spread에는 고정 penalty를 적용한다.
 - crash, soft-lock, state corruption, save mismatch, 누락 장/결과/epilogue hard gate 0
 - material unsupported evidence claim 0
 - candidate, source, evidence와 judge run이 한 session에 결속됨
-- 모든 cold/coverage evidence가 동일한 finalized package contents에서 생성됨
+- 모든 cold/coverage evidence가 동일한 2B-qualified exact package contents에서 생성됨
 - title의 `새 게임`·`이어하기`, 필수 settings와 synchronized audio 누락 0
 - capture 당시 settings와 audio channel 상태가 evidence에 기록되고 fresh-process settings 복원이 확인됨
 
-첫 score-bearing capture 전에 finalized candidate를 소비하는 versioned evaluation-session authority,
+첫 score-bearing capture 전에 2B-qualified exact candidate를 소비하는 versioned evaluation-session authority,
 evidence verifier, hard-gate oracle과 aggregator가 `rubric.json`, 이 절의 hard gate, candidate,
 evidence와 model identity·receipt를 결속해야 한다. 하나라도 없거나 불일치하면 점수를 내지 않고
 fail-closed한다. 현재 `tools/commercial-ux/native/`의 non-score 구조물은 이 권위를 대신하지 않는다.
@@ -235,11 +235,13 @@ deterministic failure 또는 blinded observation
   create→fresh restore, explicit 개발 route read-only, UI scale·volume/mute·Reduce Motion과 local macOS
   non-headless window-mode projection: deterministic wiring 완료. packaged candidate 복원이나 사람 접근성
   증거는 아님
+- current R2 universal macOS ad-hoc package identity ZIP, strict manifest/verifier와 임시 설치 위치의 no-arg
+  headless title marker: 완료. 빈 user-data, 전체 packaged-campaign production 입력, packaged
+  settings/audio·speaker, 사람 UX 또는 evaluation-ready 증거는 아님
 - source-tree basic audio는 구현됐지만 packaged audio playback·상태 coverage·청감 품질, packaged settings
-  재검증, current R2 package와 score-bearing execution
-  authority·oracle/aggregator: 미완료
+  재검증과 score-bearing execution authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음
 
-평가 실행은 전체 native 여정, exact candidate의 packaged settings/audio와 score-bearing execution authority가 모두
-준비된 뒤 [남은 작업](../NEXT_TASKS.md)의 별도 scope로 연다.
+평가 실행은 전체 native 여정과 exact candidate의 2B packaged settings/audio qualification,
+score-bearing execution authority가 모두 준비된 뒤 [남은 작업](../NEXT_TASKS.md)의 별도 scope로 연다.

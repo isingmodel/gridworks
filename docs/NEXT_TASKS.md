@@ -33,7 +33,9 @@
   exit만 갱신한다. in-progress와 readable blocked save는 확인→raw sibling backup 뒤 canonical 새 게임을
   시작하며 I/O failure는 차단한다. title/gameplay 공용 current R2 settings vertical slice와 strict
   persistence, generated non-voice ambient와 live `Breaker/Energize/Outage` cue는 구현됐다. packaged
-  settings/audio 재검증, 상태 전반의 청감·접근성 coverage, current R2 패키지와 공식 UX 점수는 없다.
+  settings/audio 재검증과 상태 전반의 청감·접근성 coverage는 남았다. current R2 전용 universal macOS
+  ad-hoc package identity 후보와 strict manifest/verifier는 구현됐지만 fresh-user-data 전체 여정이나 평가
+  후보 qualification, 공식 UX 점수는 없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
 연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
@@ -66,30 +68,30 @@ runtime authority가 아니다.
 
 1.0의 audio는 non-voice ambient와 interaction/state cue 범위다. 음성 연기는 이 단계에 포함하지 않는다.
 
-### 2. current R2 fresh-install 후보와 전체 E2E
+### 2. current R2 fresh-user-data qualification과 전체 E2E
 
-과거 V2 내부 패키지가 아니라 current R2 전체 여정이 들어 있는 평가용 fresh-install 후보를 만든다.
-서명·공증·공개 배포는 아직 하지 않지만, 빈 user-data의 별도 설치 위치에서 production 입력만으로 전체
-여정을 재생해 공식 capture에 사용할 수 있는 후보임을 먼저 증명한다. 이 단계가 current R2 candidate
-packager, finalized manifest와 manifest verifier의 권위를 함께 소유한다.
+2A에서 과거 V2와 분리된 current R2 internal package identity ZIP, strict manifest/verifier와 임시 설치
+위치의 headless title marker 확인을 완료했다. 2B는 그 exact package를 입력으로 삼아 별도 빈 user-data에서
+production 입력만으로 전체 여정과 제품 persistence/audio를 검증한다. 새 packager 계층을 만들지 않고 qualification
+record 하나만 package manifest identity에 결속한다. 서명·공증·공개 배포는 아직 하지 않는다.
 
 완료 기준:
 
-- clean build의 current R2 package와 빈 user-data 설치 검사
+- 기존 strict verifier를 통과한 clean-HEAD current R2 package와 실제 빈 user-data의 분리 증명
 - title→8장→finale→epilogue→완료 저장 재개와 completed `새 게임`의 production E2E
 - 진행 중 저장→프로세스 종료→동일 후보의 fresh process 재개
 - non-saveable exit의 prior-save 보존과 readable-save backup/reset을 packaged runtime에서 재검증
 - settings 변경→동일 후보의 fresh process 재실행→UI scale·Reduce Motion·volume/mute 값 복원
 - 개발 fixture와 checkpoint가 명시적 인자 없이는 평가 여정에 섞이지 않음
-- source commit, package bytes/tree, target OS/runtime, 기본 settings와 save/settings 경로를 finalized candidate
-  manifest에 결속
-- candidate packager와 manifest verifier가 누락·변조·다른 source/package에서 fail-closed
-- capture 중 package contents가 바뀌면 기존 session을 폐기하고 새 candidate/session을 만듦
+- source commit, package manifest/archive/tree identity, target OS/runtime과 격리된 save/settings 경로를 단일
+  qualification record에 결속
+- qualification verifier가 누락·변조·다른 source/package/user-data에서 fail-closed
+- qualification 중 package contents가 바뀌면 기존 record를 폐기하고 새 package/qualification을 만듦
 
 ### 3. score-bearing 평가 권위와 공식 LLM-as-a-judge
 
 현재 `tools/commercial-ux/native/`는 구조·거부 경로를 위한 non-score 기준선이므로 그대로 공식 점수를
-내지 않는다. 2번의 finalized candidate를 소비하는 versioned evaluation-session authority, native
+내지 않는다. 2번의 2B-qualified exact candidate를 소비하는 versioned evaluation-session authority, native
 capture, judge input, evidence verifier, deterministic hard-gate oracle과 score aggregator를 current
 R2용으로 구현·검증한다. 그 다음 새 설치 cold journey와 고정 coverage journey를 수집한다.
 

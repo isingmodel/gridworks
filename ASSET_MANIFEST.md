@@ -39,6 +39,11 @@
 결정론 검사는 tracked source set, Godot import와 실제 draw/theme wiring을 확인한다. 이 검사는 사람의
 미감·가독성, 자산 권리 판단이나 모든 상태의 production 완성도를 대신하지 않는다.
 
+current R2 macOS package identity verifier는 PCK 안의 G3 `.png.import` 57개와 각 remap이 가리키는 exact
+`.ctex` backing 57개를 함께 요구하고 다른 G3 PNG closure를 거부한다. 과거 portrait/theme/audio나 루트
+reference 이미지가 package에 없다는 것도 확인한다. 이는 package bytes의 자산 정체성 증거이며 미감,
+권리 승인, 상태별 coverage 또는 공개 배포 승인이 아니다.
+
 ## 3. code-native 현재 표현
 
 R2는 G3 texture와 함께 다음 code-native 표현을 사용한다.

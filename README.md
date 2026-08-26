@@ -29,6 +29,7 @@ exact initial briefing, exact-minute active in-chapter story, non-final result�
 | 사건 지평선 | 한 줄 future-event bar(`RealtimeEventRail`)의 compact marker와 hover/선택 상세 정보 |
 | product settings | title/gameplay 공용 surface, UI 100/125/150/200%, Master/Ambient/SFX 0/25/50/75/100%, windowed/fullscreen, Reduce Motion과 strict atomic persistence 구현 |
 | product audio | 22,050Hz mono PCM16 ambient 1개와 live `Breaker/Energize/Outage` cue를 source-tree에서 생성; Session 의미·Ambient/SFX bus·Resume 무재생 연결 완료 |
+| macOS 내부 package identity | current R2 전용 universal ad-hoc ZIP과 strict manifest·verifier, 임시 설치 위치의 no-arg headless 제품 title marker 확인; fresh user-data·전체 여정·speaker·사람 UX·공증 qualification은 아직 아님 |
 | 공식 상용 UX 점수 | 없음. 텍스트 계획 형성평가만 `83.4475` |
 | 현재 구현 권한 | [현재 작업 범위](docs/ACTIVE_SCOPE.md)가 단일 권위 |
 
@@ -110,7 +111,20 @@ current R2의 기본 자동 회귀 명령은 하나다.
 ./dev check
 ```
 
-이 명령은 current root solution, RealtimeChecks의 누적 8장 stable replay와 pending fail-closed,
+macOS에서 clean committed HEAD의 current R2 내부 package identity 후보를 만들고 재검증할 때는 다음 단일
+진입점을 사용한다.
+
+```sh
+./dev candidate build
+./dev candidate verify dist/Gridworks-current-r2-macOS-internal.manifest.json
+```
+
+이 후보는 exact archive/tree, universal runtime, PCK의 G3 57개, legal files와 headless 제품 title marker를
+검증한다.
+ad-hoc 서명된 내부 구조 후보일 뿐 빈 user-data, 전체 8장 production 입력, packaged settings/audio, 사람 UX,
+Developer ID·공증 또는 출시 승인을 주장하지 않는다.
+
+`./dev check`는 current root solution, RealtimeChecks의 누적 8장 stable replay와 pending fail-closed,
 CommercialChecks, 세 Python 회귀, no-arg 제품 title과 명시적 fixture entry smoke, 같은 save path의
 initial briefing create→non-saveable draft exit의 byte-exact 보존→fresh Continue와 safe write→fresh Continue,
 진행 저장의 확인→backup 실패 차단→byte-exact sibling backup→initial write→fresh Continue, 이어지는
@@ -167,7 +181,7 @@ selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체
 [자산 안내](ASSET_MANIFEST.md)에 기록한다.
 
 현재 R2에는 외부 녹음 음원과 상태 전반의 packaged audio·사람 청감 검증, transient cursor/schema와
-backup browser/restore/delete UI,
-서명·공증된 패키지, 지원 OS 검증,
+backup browser/restore/delete UI가 없다. universal macOS ad-hoc 내부 package identity 후보는 있지만
+fresh user-data 전체 여정, Developer ID 서명·공증, 지원 OS 검증,
 사람 미감·사용성 검토, 한국어·전력설비 전문 검토 또는 공개 출시 승인이 없다. 저장소를
 열람할 수 있다는 사실은 자산의 재사용·재배포 허가를 뜻하지 않는다.

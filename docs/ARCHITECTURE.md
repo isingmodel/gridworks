@@ -9,7 +9,12 @@ compile 시간이 아니라, 한 변경에 필요한 권위·분기·파일 추�
 ```text
 ./dev
 ├─ build/check/story/checkpoint
-└─ play product/fixture/chapter/through
+├─ play product/fixture/chapter/through
+└─ candidate build/verify → tools/r2_candidate.py
+
+candidate build → clean HEAD + current ExportRelease selector + selected-resource preset
+→ universal ad-hoc app/ZIP → independent manifest reconstruction → temporary-install headless title marker
+candidate verify → exact sibling ZIP + clean HEAD → same reconstruction/headless marker
 
 launch argument → RealtimeLaunchCatalog
 ├─ no args → ProductTitle
@@ -108,6 +113,7 @@ chapter 정책을 찾기 위해 이 adapter부터 UI node 안쪽으로 내려가
 | 같은 snapshot을 화면에서 어떻게 읽는가? | typed immutable presentation | 해당 `Realtime*Presenter.cs`와 `game/realtime/ui/` contract |
 | Godot에서 어떻게 받아 그리고 focus를 옮기는가? | scene adapter와 owning UI node | `RealtimeSliceMain.cs`, `game/realtime/ui/` |
 | 무엇을 build·play·검사하는가? | `./dev`와 root `Gridworks.sln` | `dev`, `Gridworks.sln` |
+| current R2 package identity를 만들고 검증하는가? | `tools/r2_candidate.py` | `tools/r2_candidate.py`, `game/export_presets.cfg` |
 
 한 규칙을 presenter나 Godot adapter에서 다시 계산하지 않는다. Core fact가 부족하면 Core의 snapshot 또는
 typed contract를 보강하고, application 전용 결정은 Session에서 한 번 계산해 presentation source로
@@ -153,8 +159,25 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
 - `Gridworks.RealtimeChecks`, `Gridworks.CommercialChecks`: current deterministic checks와 story selector.
 
 기존 Product/V1 prototype과 옛 check project는 current root solution 밖의 historical 기준선이다.
-`game/Gridworks.Game.sln`도 과거 solution이며 current 개발 진입점이 아니다. `ExportRelease`는 동결된 V2
-내부 export allowlist라서 current R2 candidate를 만들 수 없다.
+`game/Gridworks.Game.sln`도 과거 solution이며 current 개발 진입점이 아니다. `ExportRelease`는 암묵적인
+기본 graph가 없으며 `GridworksCurrentR2Export=true`와 `GridworksLegacyV2Export=true` 중 정확히 하나를
+요구한다. current graph는 strict V2 base+V3 Core와 `realtime/r2`, `realtime/ui`, 중립 shared leaf
+`realtime/MapViewportTransform.cs`만 포함한다. frozen legacy graph는 V2 Core와 `CommercialMain` allowlist만
+포함하며 두 selector의 missing/both는 build 전에 실패한다.
+
+## current R2 package identity
+
+macOS 내부 package identity의 단일 application authority는 `tools/r2_candidate.py`이고 `./dev candidate
+build | verify`만 이를 호출한다. build는 clean committed HEAD, 고정 Godot/.NET version과
+`GridworksCurrentR2Export=true`를 요구하고 current preset의 selected-resource closure를 export한다.
+verifier는 manifest를 신뢰해 실행하지 않고 ZIP/tree, plist·signature·architecture, managed runtime,
+PCK와 G3 import backing, legal closure와 source identity를 독립적으로 재구성한 뒤 no-arg headless title
+marker를 확인한다.
+
+manifest의 `freshUserDataQualified`, `fullProductionInputE2E`, `humanQa`, `evaluationReady`,
+`developerIdSigned`, `notarized`, `scoreBearing` false ceiling은 구조 경계다. package identity/headless title
+marker는 packaged settings/audio도 qualification하지 않는다. 후속 record가 package tool을 복제하지 않고
+exact manifest/archive identity를 소비해야 한다.
 
 ## 변경 종류별 가장 짧은 경로
 
@@ -268,6 +291,7 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
 ./dev checkpoint A1_CONSTRUCTION_DUE_1M
 ./dev story SWITCH_OFF_TO_PROTECT/result/standard
 ./dev check
+./dev candidate verify dist/Gridworks-current-r2-macOS-internal.manifest.json
 ```
 
 가장 가까운 unit/story/checkpoint에서 시작하고, 완료 전 `./dev check`로 current root graph의 Debug
@@ -294,7 +318,8 @@ canonical state hash도 유지한다.
 - presenter가 Core 규칙을 복제하거나 Session이 presentation DTO를 사후 수정함
 - UI node가 Core command나 chapter transition을 직접 호출함
 - 새로운 입력 enum 값이 추가됐지만 capability/rejection 검사가 없음
-- current 개발에 historical solution, Product/V1 또는 `ExportRelease` 명령이 필요함
+- 일반 current 개발에 historical solution이나 Product/V1 graph가 필요하거나 current package에 legacy
+  export selector가 섞임
 
 이 신호가 보이면 파일을 더 나누기 전에 권위가 두 곳으로 복제됐는지 먼저 확인한다. 작은 파일 수 자체가
 목표가 아니라, 변경 이유 하나가 ownership boundary 하나로 이어지는 구조가 목표다.

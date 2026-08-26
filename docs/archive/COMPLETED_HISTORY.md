@@ -162,6 +162,23 @@ exact standard result, 8장의 ordered result와 full-flow evidence, `CampaignCo
 여전히 `NORTH_BANK_PROMISE`까지 4장이다. finale·epilogue, save/package, 사람 UX 품질이나 공식 점수의
 증거로 확대하지 않는다.
 
+### UX-R2.10 — finale와 세 epilogue card
+
+8장 cumulative route의 exact `LONGEST_NIGHT` standard result를 별도 카드로 복제하지 않고 finale로
+유지했다. 성공한 finale를 닫으면 strict base campaign의 city report→medical witness→closing 세 카드가
+한 번씩 순서대로 열리고, 마지막 카드를 닫으면 기존 완료 망을 `Ended` 읽기 전용으로 보여 준다. 실패한
+마지막 장은 성공 epilogue에 진입하지 않는다.
+
+chapter story queue에 epilogue 목적을 섞지 않고 작은 `RealtimeEpilogueFlow`가 세 카드의 순서와 완료만
+소유한다. city report는 authored promise line을 completed chapter outcome과 generic join해 세 Keep/Defer
+문장과 남은 운영 자금을 표시한다. production flow에는 chapter ID·고유 수요처 분기가 없으며, finale
+close부터 epilogue 종료까지 Core canonical hash, 시각, command count, 현금과 망이 바뀌지 않는다.
+
+Debug/Release build, `./dev check`, 전체 누적 Godot UI harness와 두 독립 review를 통과했다. 이 완료는
+명시적 8장 개발 route의 completion presentation만 증명하며, 제품 title의 standalone `FIRST_LIGHT`,
+save/resume, 완료 후 result/chapter/replay 선택, package, production-input 직접 관찰 또는 사람 UX 품질의
+증거를 바꾸지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

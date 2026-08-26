@@ -4,9 +4,10 @@
 플레이어는 청류시의 전신주·선로·변전소를 직접 연결하고, 예고된 수요 증가·기상·공사·설비 정지에
 대비해 병원과 정수장 같은 필수 시설을 지킨다.
 
-현재 저장소는 **실시간 R2 플레이 빌드와 G3 아이소메트릭 아트 기준선**을 제공한다. 작성된 8장은
-누적 native 경로에 연결됐지만 아직 판매 가능한 1.0 게임은 아니다. finale·epilogue를 포함한 전체
-제품 여정, R2 저장/재개, 제품용 audio·settings, 출시 패키지와 공식 UX 평가가 남아 있다.
+현재 저장소는 **실시간 R2 플레이 빌드와 G3 아이소메트릭 아트 기준선**을 제공한다. 작성된 8장과
+finale→세 epilogue card는 누적 native 개발 경로에 연결됐지만 아직 판매 가능한 1.0 게임은 아니다.
+제품 title에서 시작하는 전체 여정, R2 저장/재개와 완료 후 선택, 제품용 audio·settings, 출시 패키지와
+공식 UX 평가가 남아 있다.
 
 ## 30초 현재 상태
 
@@ -17,7 +18,7 @@
 | 인자 없는 실행 | 제품 title; `새 게임`은 `FIRST_LIGHT`로 진입하고 `이어하기`는 저장 부재 이유와 함께 비활성 |
 | 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
-| R2 native 구현 | `LONGEST_NIGHT`까지 누적 8장 |
+| R2 native 구현 | `LONGEST_NIGHT`까지 누적 8장, exact finale 뒤 authored epilogue 3장 |
 | 직접 플레이 관찰 | `NORTH_BANK_PROMISE`까지 누적 4장; Keep·명시적 Defer를 각각 fresh process에서 확인 |
 | 사건 지평선 | 한 줄 future-event bar(`RealtimeEventRail`)의 compact marker와 hover/선택 상세 정보 |
 | product audio·settings | R2 audio layer, 설정 UI와 설정 저장은 아직 없음 |
@@ -32,10 +33,10 @@
 
 직접 관찰은 headless smoke와 다르지만, 사람 참가자의 사용성·미감·재미 증거는 아니다.
 
-작성 사실과 native 도달성은 별도 증거이며, 현재 명시적 개발 route에서는 8장 누적 경로를 플레이할
-수 있다. 다만 인자 없는 제품 title의 `새 게임`은 여전히 standalone `FIRST_LIGHT` 한 장 경로다.
-8장 native route 종료는 finale·epilogue나 저장 기반 `이어하기`를 포함한 전체 제품 여정의 완성을
-뜻하지 않는다.
+작성 사실과 native 도달성은 별도 증거이며, 현재 명시적 개발 route에서는 8장 누적 경로와 마지막
+authored result→city report→medical witness→closing을 플레이할 수 있다. 다만 인자 없는 제품 title의
+`새 게임`은 여전히 standalone `FIRST_LIGHT` 한 장 경로다. 이 completion presentation에는 저장 기반
+`이어하기`와 완료 후 result/chapter/replay 선택이 없으므로 전체 제품 여정의 완성을 뜻하지 않는다.
 
 ## 게임 경험
 

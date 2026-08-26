@@ -205,7 +205,8 @@ deterministic failure 또는 blinded observation
 - 실제 직접 플레이: `NORTH_BANK_PROMISE`까지 누적 4장 Keep·명시적 Defer 결과 관찰
 - current R2 product title, 비활성 `이어하기` 이유와 `새 게임`→standalone `FIRST_LIGHT` wiring:
   구현·결정론적 production-input smoke 완료
-- save/resume, finale/epilogue, current R2 package: 미완료
+- finale→세 epilogue card와 누적 Keep/Defer·남은 자금의 deterministic native presentation: 구현
+- save/resume, 완료 후 result/chapter/replay 선택, current R2 package: 미완료
 - save-backed 실제 `이어하기`, audio/settings와 score-bearing execution authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음

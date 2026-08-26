@@ -25,7 +25,9 @@ technical/native resource load → RealtimeSliceData
 Godot InputEvent → RealtimeInputRouter → typed RealtimeInputRequest
 Godot signal/frame 또는 typed request
 → RealtimeSliceMain                       scene·input·publication adapter
-→ RealtimeSession                         application interaction과 chapter flow
+→ RealtimeSession                         application interaction과 story handoff
+   ├─ RealtimeChapterStoryFlow            장별 story queue와 달력 전환
+   └─ RealtimeEpilogueFlow                full-campaign finale 뒤 세 카드
 → RealtimeCampaignRun                     규칙·시간·공사·결과·canonical state
 → RealtimePresentationSource
 → RealtimeSlicePresenter                  한 곳에서 immutable 화면 조립
@@ -55,6 +57,7 @@ adapter부터 UI node 안쪽으로 내려가지 않는다. 먼저 `RealtimeSessi
 | 어떤 release route가 native인가? | `RealtimeNativeRouteCatalog` | `game/realtime/r2/RealtimeNativeRouteCatalog.cs` |
 | 제품 title의 표시·focus·입력 차단은? | `RealtimeProductTitle`과 `RealtimeUiRoot` | `game/realtime/ui/` |
 | 입력 뒤 application 상태와 chapter/story flow는? | `RealtimeSession` | `RealtimeSession.cs`, `RealtimeChapterStoryFlow.cs` |
+| final result 뒤 epilogue 순서와 약속 집계는? | `RealtimeEpilogueFlow`, strict base epilogue와 completed Core outcome | `RealtimeEpilogueFlow.cs`, `RealtimeModalPresenter.cs` |
 | raw input이 어떤 typed request가 되는가? | `RealtimeInputRouter` | `game/realtime/ui/RealtimeInputRouter.cs` |
 | intent/action/tool/modal이 지원되는가? | 명시적 capability와 reducer/session 분기 | `game/realtime/r2/RealtimeInteractionReducer.cs`, `game/realtime/ui/RealtimeUiCapabilities.cs`, `game/realtime/r2/RealtimeSession.cs` |
 | 같은 snapshot을 화면에서 어떻게 읽는가? | typed immutable presentation | 해당 `Realtime*Presenter.cs`와 `game/realtime/ui/` contract |
@@ -68,6 +71,12 @@ typed contract를 보강하고, application 전용 결정은 Session에서 한 �
 `CityPromise` 문구와 집계는 chapter ID가 아니라 event의 typed promise duty(profile/outcome)를 따른다.
 실제 열 rail/detail은 소진된 pending 목록을 다시 읽지 않고 Session이 보존한 Core transition history와
 stable target resolver에서 투영한다.
+
+full authored campaign의 성공한 마지막 result를 닫으면 `RealtimeSession`이 chapter queue를 늘리지 않고
+별도 `RealtimeEpilogueFlow`로 handoff한다. 이 flow는 strict `BaseCampaign.Epilogue`의 세 authored card와
+completed outcome을 chapter ID로 generic join한 Keep/Defer 문장·남은 자금만 typed request로 만든다.
+`RealtimeModalPresenter`는 이를 generic `Story` modal에 투영하며 Core 상태나 카드 순서를 다시 계산하지
+않는다.
 
 ## current graph와 historical graph
 

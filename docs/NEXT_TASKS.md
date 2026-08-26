@@ -14,9 +14,12 @@
   hover 또는 선택으로 연다.
 - 8장/16개 사건/34개 story part가 작성돼 있다.
 - R2에는 `FIRST_LIGHT`부터 `LONGEST_NIGHT`까지 작성된 8장 모두가 누적 구현·자동검증돼 있다.
+- 마지막 authored result를 finale로 유지하고, 그 뒤 city report→medical witness→closing 세 epilogue
+  card와 세 Keep/Defer 약속 결과·남은 자금을 표시한다.
 - 실제 production mouse/keyboard 직접 플레이는 `NORTH_BANK_PROMISE`까지 누적 4장의 Keep과 명시적
   Defer를 각각 fresh process에서 관찰했다.
-- R2 save/resume, finale/epilogue, product audio·settings, current R2 패키지와 공식 UX 점수는 없다.
+- R2 save/resume과 완료 후 result/chapter/replay 선택, product audio·settings, current R2 패키지와 공식
+  UX 점수는 없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
 연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
@@ -25,10 +28,11 @@
 
 ## 권장 순서
 
-### 1. 캠페인 완결성과 저장
+### 1. 캠페인 저장과 완료 후 재개
 
-R2 save/resume, finale, 세 epilogue card, 누적 약속 결과와 완료 후 재개를 구현한다. 동결 V2 저장을
-그대로 현재 R2 저장이라고 주장하지 말고, Release.V3 상태에 맞는 권위를 정의한다.
+R2 진행 저장/재개, 완료 저장과 title `이어하기`, result/chapter/replay 선택을 구현한다. 이미 연결된
+finale→세 epilogue card를 저장 없이 다시 만드는 별도 흐름을 추가하지 않는다. 동결 V2 저장을 그대로
+현재 R2 저장이라고 주장하지 말고, Release.V3 상태에 맞는 권위를 정의한다.
 
 완료 기준:
 

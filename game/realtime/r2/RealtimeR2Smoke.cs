@@ -62,8 +62,8 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseFirstLightNoActionResult(failures), failures);
         RunCase("release-tutorial-through-second-source",
             () => ValidateReleaseTutorialThroughSecondSource(failures), failures);
-        RunCase("release-through-whose-margin-controller",
-            () => ValidateReleaseThroughWhoseMarginController(failures), failures);
+        RunCase("release-through-before-water-rise-controller",
+            () => ValidateReleaseThroughBeforeWaterRiseController(failures), failures);
         RunCase("release-promise-result-branches",
             () => ValidateReleasePromiseResultBranches(failures), failures);
         RunCase("release-tutorial-connection-failure-result",
@@ -2498,7 +2498,7 @@ internal static class RealtimeR2Smoke
             "tutorial exact launch route or FIRST_LIGHT preservation drifted",
             failures);
         Check(RealtimeNativeRouteCatalog.NativeThroughChapterId ==
-                  "WHOSE_MARGIN" &&
+                  "BEFORE_WATER_RISE" &&
               RealtimeNativeRouteCatalog.All.Count == 3 &&
               RealtimeNativeRouteCatalog.All.Select(item => item.LaunchArgument)
                   .SequenceEqual(
@@ -2506,7 +2506,7 @@ internal static class RealtimeR2Smoke
                       {
                           "--release-chapter=FIRST_LIGHT",
                           "--release-through=SECOND_SOURCE",
-                          "--release-through=WHOSE_MARGIN",
+                          "--release-through=BEFORE_WATER_RISE",
                       },
                       StringComparer.Ordinal) &&
               RealtimeNativeRouteCatalog.All.All(item =>
@@ -2514,8 +2514,8 @@ internal static class RealtimeR2Smoke
                       RealtimeNativeRouteCatalog.ThroughNativeCoverage
                           .SelectedChapterCount) &&
               RealtimeNativeRouteCatalog.ThroughNativeCoverage
-                  .SelectedChapterCount == 5,
-            "native route catalog or explicit WHOSE_MARGIN cap drifted",
+                  .SelectedChapterCount == 6,
+            "native route catalog or explicit BEFORE_WATER_RISE cap drifted",
             failures);
         bool forgedRouteRejected = false;
         try
@@ -2524,8 +2524,8 @@ internal static class RealtimeR2Smoke
                 typeof(RealtimeSliceMain).Assembly,
                 RealtimeNativeRouteCatalog.ThroughNativeCoverage with
                 {
-                    EndChapterId = "BEFORE_WATER_RISE",
-                    SelectedChapterCount = 6,
+                    EndChapterId = "SWITCH_OFF_TO_PROTECT",
+                    SelectedChapterCount = 7,
                     FullFlowPassToken = "FORGED_FULL_FLOW_PASS",
                 });
         }
@@ -2541,7 +2541,8 @@ internal static class RealtimeR2Smoke
         [
             ["--release-through=SECOND_HEART"],
             ["--release-through=NORTH_BANK_PROMISE"],
-            ["--release-through=BEFORE_WATER_RISE"],
+            ["--release-through=WHOSE_MARGIN"],
+            ["--release-through=SWITCH_OFF_TO_PROTECT"],
             ["--release-through"],
             ["--bogus"],
             ["--checkpoint=UNKNOWN"],
@@ -2848,7 +2849,7 @@ internal static class RealtimeR2Smoke
             failures);
     }
 
-    private static void ValidateReleaseThroughWhoseMarginController(
+    private static void ValidateReleaseThroughBeforeWaterRiseController(
         ICollection<string> failures)
     {
         var slice = new RealtimeSliceMain();
@@ -3037,6 +3038,59 @@ internal static class RealtimeR2Smoke
               whoseResult.Body == whoseKept.Body,
             "reinforced explicit Keep did not produce the exact WHOSE_MARGIN result",
             failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null &&
+              !slice.CoreSnapshot.CampaignComplete &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
+                  new[]
+                  {
+                      "FIRST_LIGHT",
+                      "SECOND_HEART",
+                      "SECOND_SOURCE",
+                      "NORTH_BANK_PROMISE",
+                      "WHOSE_MARGIN",
+                  },
+                  StringComparer.Ordinal) &&
+              !slice.FormativeTutorialFullFlowRecordedForSmoke,
+            "WHOSE_MARGIN Keep did not preserve the five-result chain into the flood chapter",
+            failures);
+
+        EnterBeforeWaterRisePlanning(slice, data, failures, "flood-keep");
+        SelectBeforeWaterRisePromiseDeadline(slice, failures, "flood-keep");
+        slice.RequestActionForSmoke(RealtimeR2Ids.PromiseKeepAction);
+        BuildBeforeWaterRiseHighlandLine(
+            slice,
+            reinforced: true,
+            failures,
+            "flood-keep");
+        AssertBeforeWaterRiseForecast(
+            slice,
+            CommercialPromiseDecision.Keep,
+            failures,
+            "flood-keep");
+        CloseBeforeWaterRiseFloodStory(slice, data, failures, "flood-keep");
+        (RealtimeChapterOutcome floodOutcome, RealtimeModalPresentation floodResult) =
+            CompleteBeforeWaterRiseChapter(slice, failures, "flood-keep");
+        CommercialStoryCard floodKept = data.BaseCampaign.Chapters[5]
+            .ResultCards.Kept!;
+        Check(floodOutcome.ObjectiveSatisfied &&
+              floodOutcome.PromiseDecision == CommercialPromiseDecision.Keep &&
+              floodOutcome.ConnectionRequirementAssessment is
+              {
+                  FrozenForChapter: true,
+                  Satisfied: true,
+              } keptConnections &&
+              keptConnections.Facts.Single().CurrentConnections == 2 &&
+              floodOutcome.Events.Single() is
+              {
+                  EventId: "FLOOD_ARRIVAL",
+                  SafetySatisfied: true,
+                  PromiseSatisfied: true,
+              } &&
+              floodResult.Eyebrow == floodKept.Speaker &&
+              floodResult.Heading == floodKept.Title &&
+              floodResult.Body == floodKept.Body,
+            "explicit flood Keep did not preserve inherited 2/2, safe supply, or exact result",
+            failures);
         Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
               slice.CoreSnapshot.CampaignComplete &&
               slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
@@ -3047,6 +3101,7 @@ internal static class RealtimeR2Smoke
                       "SECOND_SOURCE",
                       "NORTH_BANK_PROMISE",
                       "WHOSE_MARGIN",
+                      "BEFORE_WATER_RISE",
                   },
                   StringComparer.Ordinal) &&
               slice.FormativeTutorialFullFlowRecordedForSmoke &&
@@ -3066,9 +3121,10 @@ internal static class RealtimeR2Smoke
                           "HOT_BASE",
                           "NIGHT_SHIFT",
                           "LATE_NIGHT",
+                          "FLOOD_ARRIVAL",
                       },
                       StringComparer.Ordinal),
-            "WHOSE_MARGIN Keep did not close the exact five-result/full-flow chain",
+            "BEFORE_WATER_RISE Keep did not close the exact six-result/full-flow chain",
             failures);
     }
 
@@ -3177,11 +3233,75 @@ internal static class RealtimeR2Smoke
               whoseDeferredResult.Body == whoseDeferred.Body,
             "explicit WHOSE_MARGIN Defer did not present exact authored bytes",
             failures);
-        _ = deferredSlice.ClosePresentedChapterStoryModalForSmoke();
-        Check(deferredSlice.CoreSnapshot.CampaignComplete &&
+        Check(deferredSlice.ClosePresentedChapterStoryModalForSmoke() is not null &&
+              !deferredSlice.CoreSnapshot.CampaignComplete &&
               deferredSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !deferredSlice.FormativeTutorialFullFlowRecordedForSmoke,
-            "WHOSE_MARGIN Defer minted the Keep-only five-chapter token",
+            "WHOSE_MARGIN Defer minted the Keep-only token or blocked the flood handoff",
+            failures);
+
+        EnterBeforeWaterRisePlanning(
+            deferredSlice,
+            deferredData,
+            failures,
+            "explicit-flood-defer");
+        SelectBeforeWaterRisePromiseDeadline(
+            deferredSlice,
+            failures,
+            "explicit-flood-defer");
+        deferredSlice.RequestActionForSmoke(RealtimeR2Ids.PromiseDeferAction);
+        BuildBeforeWaterRiseHighlandLine(
+            deferredSlice,
+            reinforced: false,
+            failures,
+            "explicit-flood-defer");
+        AssertBeforeWaterRiseForecast(
+            deferredSlice,
+            CommercialPromiseDecision.Defer,
+            failures,
+            "explicit-flood-defer");
+        CloseBeforeWaterRiseFloodStory(
+            deferredSlice,
+            deferredData,
+            failures,
+            "explicit-flood-defer");
+        (RealtimeChapterOutcome floodDeferredOutcome,
+            RealtimeModalPresentation floodDeferredResult) =
+            CompleteBeforeWaterRiseChapter(
+                deferredSlice,
+                failures,
+                "explicit-flood-defer");
+        CommercialStoryCard floodDeferred = deferredData.BaseCampaign.Chapters[5]
+            .ResultCards.Deferred!;
+        Check(floodDeferredOutcome.ObjectiveSatisfied &&
+              floodDeferredOutcome.PromiseDecision ==
+                  CommercialPromiseDecision.Defer &&
+              floodDeferredOutcome.ConnectionRequirementAssessment is
+              {
+                  FrozenForChapter: true,
+                  Satisfied: true,
+              } deferredConnections &&
+              deferredConnections.Facts.Single().CurrentConnections == 2 &&
+              floodDeferredOutcome.Events.Single() is
+              {
+                  EventId: "FLOOD_ARRIVAL",
+                  SafetySatisfied: true,
+                  PromiseSatisfied: true,
+              } deferredFloodEvent &&
+              deferredFloodEvent.DutySegments
+                  .SelectMany(segment => segment.Loads)
+                  .Where(load => load.LoadId == "EAST_RESIDENTIAL")
+                  .All(load => !load.Required) &&
+              floodDeferredResult.Eyebrow == floodDeferred.Speaker &&
+              floodDeferredResult.Heading == floodDeferred.Title &&
+              floodDeferredResult.Body == floodDeferred.Body,
+            "explicit flood Defer did not exclude only East duty or present exact result",
+            failures);
+        Check(deferredSlice.ClosePresentedChapterStoryModalForSmoke() is null &&
+              deferredSlice.CoreSnapshot.CampaignComplete &&
+              deferredSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
+              !deferredSlice.FormativeTutorialFullFlowRecordedForSmoke,
+            "BEFORE_WATER_RISE Defer minted the Keep-only six-chapter token",
             failures);
 
         // Unset reaches the exact deadline once, becomes auto-Defer, stays
@@ -3367,7 +3487,7 @@ internal static class RealtimeR2Smoke
             failures);
         _ = defaultedSlice.ClosePresentedChapterStoryModalForSmoke();
         Check(!defaultedSlice.FormativeTutorialFullFlowRecordedForSmoke,
-            "standard WHOSE_MARGIN failure minted the five-chapter token",
+            "standard WHOSE_MARGIN failure minted the six-chapter token",
             failures);
 
         // Explicit Defer with an unsafe water network is still a safety failure.
@@ -3506,7 +3626,7 @@ internal static class RealtimeR2Smoke
         Check(data.NativeRoute ==
                   RealtimeNativeRouteCatalog.ThroughNativeCoverage &&
               data.CampaignSha256 ==
-                  "62be77290ce7f6e973b63ad3ac8adb665d2f22fdde2539b9c5393c21a27742c8" &&
+                  "43ed23f48d8c27b2cfeb3628bfe1c667ccf4fe347b6c95ef2912ce1da767bec3" &&
               data.Campaign.Chapters.Select(item => item.Content.ChapterId)
                   .SequenceEqual(
                       new[]
@@ -3516,13 +3636,15 @@ internal static class RealtimeR2Smoke
                           "SECOND_SOURCE",
                           "NORTH_BANK_PROMISE",
                           "WHOSE_MARGIN",
+                          "BEFORE_WATER_RISE",
                       },
                       StringComparer.Ordinal) &&
-              data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 10 &&
+              data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 11 &&
               RealtimeSliceMain.ParseLaunchArguments(
-                  ["--release-through=WHOSE_MARGIN"]).NativeRoute ==
+                  ["--release-through=BEFORE_WATER_RISE"]).NativeRoute ==
                   RealtimeNativeRouteCatalog.ThroughNativeCoverage,
-            "WHOSE_MARGIN exact route/prefix identity drifted",
+            "BEFORE_WATER_RISE exact route/prefix identity drifted: " +
+            data.CampaignSha256,
             failures);
         bool isolatedRejected = false;
         try
@@ -3878,9 +4000,10 @@ internal static class RealtimeR2Smoke
         Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null,
             $"{label} WHOSE_MARGIN briefing did not queue HOT planning",
             failures);
-        RequireWhoseMarginWindow(
+        RequireDecisionWindow(
             slice,
             authored,
+            "WHOSE_MARGIN",
             "HOT_EVENING_PLANNING_WINDOW",
             failures,
             label);
@@ -4022,9 +4145,10 @@ internal static class RealtimeR2Smoke
             266400,
             RealtimeSimulationSpeed.VeryFast,
             failures);
-        RequireWhoseMarginWindow(
+        RequireDecisionWindow(
             slice,
             data.BaseCampaign.Chapters[4],
+            "WHOSE_MARGIN",
             "LATE_NIGHT_RECOVERY_WINDOW",
             failures,
             label);
@@ -4085,7 +4209,10 @@ internal static class RealtimeR2Smoke
         RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
             throw new InvalidOperationException(
                 $"{label} WHOSE_MARGIN result modal is absent.");
-        Check(slice.CoreSnapshot.CampaignComplete &&
+        Check(!slice.CoreSnapshot.CampaignComplete &&
+              slice.CoreSnapshot.ChapterStarted &&
+              slice.CoreSnapshot.Minute == 266850 &&
+              slice.CoreSnapshot.Chapter.Content.ChapterId == "BEFORE_WATER_RISE" &&
               result.Id == RealtimeR2Ids.TutorialResultModal("WHOSE_MARGIN") &&
               slice.EmittedTransitions
                   .Where(item => item.ChapterId == "WHOSE_MARGIN" &&
@@ -4094,14 +4221,286 @@ internal static class RealtimeR2Smoke
                   .SequenceEqual(
                       new[] { "HOT_BASE", "NIGHT_SHIFT", "LATE_NIGHT" },
                       StringComparer.Ordinal),
-            $"{label} WHOSE_MARGIN did not end with exact event/result FIFO",
+            $"{label} WHOSE_MARGIN did not hand its exact event/result FIFO to " +
+            "BEFORE_WATER_RISE",
             failures);
         return (outcome, result);
     }
 
-    private static void RequireWhoseMarginWindow(
+    private static void EnterBeforeWaterRisePlanning(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        ICollection<string> failures,
+        string label)
+    {
+        CommercialCampaignChapterDefinition authored = data.BaseCampaign.Chapters[5];
+        RealtimeConnectionRequirementAssessment connection = slice.CoreSnapshot
+            .Forecast.ConnectionRequirementAssessment ?? throw new InvalidOperationException(
+                $"{label} BEFORE_WATER_RISE connection assessment is absent.");
+        Check(slice.CoreSnapshot is
+              {
+                  Minute: 266850,
+                  ChapterStarted: true,
+                  CampaignComplete: false,
+                  PromiseDecision: CommercialPromiseDecision.Unset,
+              } &&
+              slice.CoreSnapshot.Chapter.Content.ChapterId == "BEFORE_WATER_RISE" &&
+              connection is { FrozenForChapter: false, Satisfied: true } &&
+              connection.Facts.Single() is
+              {
+                  NodeId: "EAST_RESIDENTIAL_TERMINAL",
+                  CurrentConnections: 2,
+                  RequiredConnections: 2,
+              },
+            $"{label} did not inherit the exact clock and already-built East 2/2",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "BEFORE_WATER_RISE",
+            null,
+            authored.Briefing,
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null,
+            $"{label} flood briefing did not queue BEFORE_FLOOD_WINDOW",
+            failures);
+
+        RequireDecisionWindow(
+            slice,
+            authored,
+            "BEFORE_WATER_RISE",
+            "BEFORE_FLOOD_WINDOW",
+            failures,
+            label);
+        Check(slice.EmittedTransitions.All(item =>
+                  item.ChapterId != "BEFORE_WATER_RISE" ||
+                  item.Kind != RealtimeTransitionKind.EventStarted) &&
+              slice.ClosePresentedChapterStoryModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            $"{label} flood window did not precede the event and close into realtime play",
+            failures);
+    }
+
+    private static void SelectBeforeWaterRisePromiseDeadline(
+        RealtimeSliceMain slice,
+        ICollection<string> failures,
+        string label)
+    {
+        string markerId = RealtimeR2Ids.PromiseDecisionMarker(
+            "EAST_CONTINUITY_PROMISE");
+        RealtimeTimelineItemPresentation marker = slice.LatestPresentation.Rail.Items
+            .Single(item => item.Id == markerId);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetTimelineMarker(
+                    markerId,
+                    markerId,
+                    null,
+                    slice.InteractionState.TimelineHorizon)),
+            $"{label} East promise marker selection",
+            failures,
+            coreCommandExpected: false);
+        Check(marker.StartMinute == 267090 &&
+              marker.Visibility == RealtimeTimelineVisibility.Announced &&
+              marker.Description.Contains("동부 생활권", StringComparison.Ordinal) &&
+              slice.LatestPresentation.Context is
+              {
+                  SubjectId: var selected,
+                  PrimaryAction.Id: RealtimeR2Ids.PromiseKeepAction,
+                  SecondaryAction.Id: RealtimeR2Ids.PromiseDeferAction,
+              } &&
+              selected == markerId,
+            $"{label} East promise deadline/actions drifted",
+            failures);
+    }
+
+    private static void BuildBeforeWaterRiseHighlandLine(
+        RealtimeSliceMain slice,
+        bool reinforced,
+        ICollection<string> failures,
+        string label)
+    {
+        string hospitalSubstationId = slice.CoreSnapshot.Construction.World.Nodes
+            .Single(item => item.ClassId == "SMALL_SUBSTATION" &&
+                item.Position == new CoreMapPoint(2250, 1300))
+            .NodeId;
+        CoreMapPoint[] points = reinforced
+            ?
+            [
+                new CoreMapPoint(550, 1100),
+                new CoreMapPoint(990, 750),
+                new CoreMapPoint(1640, 750),
+                new CoreMapPoint(1950, 850),
+            ]
+            :
+            [
+                new CoreMapPoint(450, 1200),
+                new CoreMapPoint(650, 750),
+                new CoreMapPoint(1040, 750),
+                new CoreMapPoint(1620, 750),
+                new CoreMapPoint(1900, 800),
+                new CoreMapPoint(2100, 1000),
+            ];
+        RealtimeProjectQuote quote = OrderTutorialLine(
+            slice,
+            "SOUTH_SOURCE_NODE",
+            points,
+            hospitalSubstationId,
+            reinforced ? "REINFORCED_LINE" : "STANDARD_LINE",
+            reinforced ? "REINFORCED_POLE" : "STANDARD_POLE",
+            failures,
+            $"{label} flood-safe highland line");
+        RealtimeConnectionRequirementAssessment connection = slice.CoreSnapshot
+            .Forecast.ConnectionRequirementAssessment ?? throw new InvalidOperationException(
+                $"{label} post-construction connection assessment is absent.");
+        Check(quote.RiskAreaIds.Count == 0 &&
+              quote.CompletionMinute <= 267150 &&
+              slice.CoreSnapshot.Minute == quote.CompletionMinute &&
+              connection.Facts.Single().CurrentConnections == 2,
+            $"{label} highland line was late, crossed flood risk, or forged East 2/2",
+            failures);
+    }
+
+    private static void AssertBeforeWaterRiseForecast(
+        RealtimeSliceMain slice,
+        CommercialPromiseDecision decision,
+        ICollection<string> failures,
+        string label)
+    {
+        RealtimeForecastEvent flood = slice.LatestPresentation.BaseForecast.Events
+            .Single(item => item.EventId == "FLOOD_ARRIVAL");
+        RealtimeEventOutcome projected = flood.TemporalProjection.Outcome;
+        bool eastRequired = projected.DutySegments
+            .SelectMany(segment => segment.Loads)
+            .Where(load => load.LoadId == "EAST_RESIDENTIAL")
+            .Any(load => load.Required);
+        RealtimeTimelineItemPresentation rail = slice.LatestPresentation.Rail.Items
+            .Single(item => item.Id == "FLOOD_ARRIVAL");
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.SetTimelineMarker(
+                "FLOOD_ARRIVAL",
+                "EAST_RESIDENTIAL_TERMINAL",
+                null,
+                slice.InteractionState.TimelineHorizon)),
+            $"{label} flood marker selection",
+            failures,
+            coreCommandExpected: false);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                new RealtimeR2Intent(RealtimeR2IntentKind.ToggleAnalysis)),
+            $"{label} flood analysis",
+            failures,
+            coreCommandExpected: false);
+        Check(slice.CoreSnapshot.PromiseDecision == decision &&
+              flood.StartMinute == 267150 &&
+              flood.EndMinute == 267270 &&
+              flood.OperatingProfile.ActiveRiskAreaIds.SequenceEqual(
+                  new[] { "RIVER_FLOOD_ZONE" },
+                  StringComparer.Ordinal) &&
+              flood.OperatingProfile.UnavailableNodeIds.SequenceEqual(
+                  new[] { "WEST_SOURCE_NODE" },
+                  StringComparer.Ordinal) &&
+              projected.SafetySatisfied &&
+              projected.PromiseSatisfied &&
+              eastRequired == (decision == CommercialPromiseDecision.Keep) &&
+              rail.Kind == RealtimeTimelineItemKind.Weather &&
+              rail.Lane == RealtimeTimelineLane.WeatherAndOutage &&
+              slice.LatestPresentation.World.ForecastRiskAreaIds.SequenceEqual(
+                  new[] { "RIVER_FLOOD_ZONE" },
+                  StringComparer.Ordinal) &&
+              slice.LatestPresentation.World.ActiveRiskAreaIds.Count == 0,
+            $"{label} flood forecast lost timing, risk/unavailability, or promise scope",
+            failures);
+    }
+
+    private static void CloseBeforeWaterRiseFloodStory(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        ICollection<string> failures,
+        string label)
+    {
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            267150,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        CommercialStoryCard story = data.BaseCampaign.Chapters[5].OperatingPhases
+            .Single(item => item.PhaseId == "FLOOD_ARRIVAL").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "BEFORE_WATER_RISE",
+            "FLOOD_ARRIVAL",
+            story,
+            failures);
+        RealtimeConnectionRequirementAssessment frozen = slice.CoreSnapshot.Forecast
+            .ConnectionRequirementAssessment ?? throw new InvalidOperationException(
+                $"{label} frozen flood connection assessment is absent.");
+        RealtimeActiveEventState activeFlood = slice.CoreSnapshot.ActiveEventStates.Single();
+        Check(activeFlood.EventId == "FLOOD_ARRIVAL" &&
+              activeFlood.Event.OperatingProfile.UnavailableNodeIds.SequenceEqual(
+                  new[] { "WEST_SOURCE_NODE" },
+                  StringComparer.Ordinal) &&
+              frozen is
+              {
+                  EvaluatedMinute: 267150,
+                  FrozenForChapter: true,
+                  Satisfied: true,
+              } &&
+              frozen.Facts.Single().CurrentConnections == 2 &&
+              slice.LatestPresentation.World.ForecastRiskAreaIds.Count == 0 &&
+              slice.LatestPresentation.World.ActiveRiskAreaIds.SequenceEqual(
+                  new[] { "RIVER_FLOOD_ZONE" },
+                  StringComparer.Ordinal) &&
+              slice.LatestPresentation.World.Weather == RealtimeWorldWeather.Storm &&
+              slice.EmittedTransitions
+                  .Where(item => item.ChapterId == "BEFORE_WATER_RISE" &&
+                      item.Kind == RealtimeTransitionKind.EventStarted)
+                  .Select(item => item.EventId!)
+                  .SequenceEqual(new[] { "FLOOD_ARRIVAL" }, StringComparer.Ordinal),
+            $"{label} active flood lost frozen 2/2, risk geometry, or West isolation",
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            $"{label} flood story did not restore realtime play",
+            failures);
+    }
+
+    private static (RealtimeChapterOutcome Outcome, RealtimeModalPresentation Result)
+        CompleteBeforeWaterRiseChapter(
+            RealtimeSliceMain slice,
+            ICollection<string> failures,
+            string label)
+    {
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            267270,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeChapterOutcome outcome = slice.CoreSnapshot.CompletedChapters.Single(item =>
+            item.ChapterId == "BEFORE_WATER_RISE");
+        RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException(
+                $"{label} BEFORE_WATER_RISE result modal is absent.");
+        Check(slice.CoreSnapshot is
+              {
+                  Minute: 267270,
+                  CampaignComplete: true,
+              } &&
+              slice.CoreSnapshot.CompletedChapters.Count == 6 &&
+              result.Id == RealtimeR2Ids.TutorialResultModal("BEFORE_WATER_RISE") &&
+              outcome.Events.Single() is
+              {
+                  EventId: "FLOOD_ARRIVAL",
+                  StartMinute: 267150,
+                  EndMinute: 267270,
+              },
+            $"{label} BEFORE_WATER_RISE did not end with exact event/result FIFO",
+            failures);
+        return (outcome, result);
+    }
+
+    private static void RequireDecisionWindow(
         RealtimeSliceMain slice,
         CommercialCampaignChapterDefinition authored,
+        string chapterId,
         string windowId,
         ICollection<string> failures,
         string label)
@@ -4116,11 +4515,12 @@ internal static class RealtimeR2Smoke
         Check(request is
               {
                   Purpose: RealtimeChapterStoryModalPurpose.DecisionWindowStory,
-                  ChapterId: "WHOSE_MARGIN",
+                  ChapterId: var requestedChapterId,
               } &&
+              requestedChapterId == chapterId &&
               request.WindowId == windowId &&
               modal.Id == RealtimeR2Ids.TutorialDecisionWindowModal(
-                  "WHOSE_MARGIN",
+                  chapterId,
                   windowId) &&
               modal.Eyebrow == window.Story!.Speaker &&
               modal.Heading == window.Story.Title &&

@@ -303,6 +303,18 @@ initial은 command 수와 무관하게 exact zero-command snapshot을 요구하�
 재검토됐다. 이 완료는 undelivered pending transition, general queued story, final/completed
 run·finale·epilogue, overwrite/recovery UI, package 또는 사람 UX 품질의 증거로 확대하지 않는다.
 
+### UX-R2.17 — terminal completed save·Continue
+
+current v3 wire를 바꾸지 않고 canonical full `ProductCampaign`의 exact terminal 완료를 product save 경계에
+포함했다. 모든 chapter story가 닫혀야 하며, 성공은 세 epilogue card까지 닫힌 `Ended`·World·no-modal,
+실패는 result를 닫고 epilogue가 시작되지 않은 상태만 허용한다. codec Restore가 원본 schema를 보존해
+current v3 completion만 승인하고 prior v1/v2 completion, partial route와 nonterminal cursor는 차단한다.
+
+제품 title의 fresh `이어하기`는 같은 terminal Core/world/outcome을 epilogue 재생 없이 복원한다.
+Debug/Release build, `./dev check`, 전체 Godot UI harness와 두 독립 review를 통과했고, review에서 발견한
+terminal frame debt와 실패/write 증거 공백도 수정했다. 이 완료는 transient cursor, 완료 저장 뒤 새
+캠페인 시작, recovery, package 또는 사람 UX 품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

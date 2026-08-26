@@ -57,6 +57,8 @@ backlog는 `NEXT_TASKS.md`처럼 질문별 표가 지정한 문서가 세부 사
 - `default scene`: Godot이 처음 여는 scene; 완성된 새 게임 여정을 뜻하지 않음
 - `product title`: default boot의 `새 게임`·`이어하기` 시작 화면; debug launcher나 story modal이 아님
 - `title Continue` (`이어하기`): 유효한 current R2 save를 복구하는 동작; story/modal continue와 다름
+- `completed Continue`: current-v3 full `ProductCampaign` terminal을 epilogue 재생 없이 `Ended` world로
+  복구하는 title Continue; prior v1/v2 completion은 포함하지 않음
 - `deterministic PASS`: 규칙·상태·wiring 검사 통과; 미감·재미·출시 품질을 뜻하지 않음
 - `historical baseline`: 회귀 참고용 과거 제품; 현재 제품 entry가 아님
 - `사건 지평선`: 한 줄 future-event bar의 플레이어용 이름; 코드명은 `RealtimeEventRail`

@@ -20,8 +20,9 @@ launch argument → RealtimeLaunchCatalog
 │     └─ codec replay + RealtimeSession.ValidateProgressResume → validated Continue availability
 │        └─ ContinueRequested → Product write ownership → RealtimeSession.Resume
 │           ├─ story-idle/prior v1 → PlayerPaused·Normal·no-modal
-│           └─ supported active v3 또는 normalized v2 story → same authored modal·AutoPaused
-│              └─ non-final result close → bounded next briefing(+decision) FIFO
+│           ├─ supported active v3 또는 normalized v2 story → same authored modal·AutoPaused
+│           │  └─ non-final result close → bounded next briefing(+decision) FIFO
+│           └─ current-v3 full terminal completion → Ended·World·no-modal, epilogue replay 없음
 ├─ explicit DEBUG technical fixture/known checkpoint → TechnicalFixture
 │  └─ No write ownership + RealtimeSliceResources.LoadTechnicalFixture → stage R1 fixture data
 └─ exact native argument → NativeRelease → RealtimeNativeRouteCatalog
@@ -74,7 +75,7 @@ session 없는 product-title save probe, route와 분리된 product-write owners
 | save v1/v2/v3 wire shape·strict Core replay는? | `RealtimeCampaignSaveCodec` | `src/Gridworks.Core/Release/V3/RealtimeCampaignPersistence.cs` |
 | native save source identity는? | `RealtimeSliceData.RequireSaveSourceIdentity` | `game/realtime/r2/RealtimeSliceResources.cs` |
 | story candidate 순서·closed prefix·active request 재구성은? | `RealtimeChapterStoryFlow` | `game/realtime/r2/RealtimeChapterStoryFlow.cs` |
-| journal-restorable idle/active capture·Resume interaction 정책은? | `RealtimeSession` | `game/realtime/r2/RealtimeSession.cs` |
+| journal-restorable idle/active/terminal capture·Resume interaction 정책은? | `RealtimeSession` | `game/realtime/r2/RealtimeSession.cs` |
 | save 파일 상태·atomic write는? | `RealtimeCampaignSaveStore` | `game/realtime/r2/RealtimeCampaignSaveStore.cs` |
 | title save probe와 product-owned write lifecycle은? | `RealtimeSliceMain`; title은 표시·signal만 | `RealtimeSliceMain.cs`, `game/realtime/ui/RealtimeProductTitle.cs` |
 | 입력 뒤 application 상태와 chapter/story flow는? | `RealtimeSession` | `RealtimeSession.cs`, `RealtimeChapterStoryFlow.cs` |
@@ -98,6 +99,11 @@ all-closed 상태다. first unclosed candidate와 exact saved minute가 exact in
 Core snapshot과 일치하는지만 검증한다. Main과 title view는 story count, handoff phase나 modal body를
 계산하지 않는다.
 
+terminal completion도 새 wire cursor를 만들지 않는다. current-v3 full `ProductCampaign`의 completed Core,
+Flow all-candidates-closed, `Ended`·World·no-modal과 final 성공/실패를 한 predicate에서 맞춘다. 성공이면
+`RealtimeEpilogueFlow.RestoreCompleted`가 authored 세 카드를 소비된 상태로 재구성하고, 실패면 epilogue는
+시작하지 않는다. Restore 결과가 보존한 원본 schema가 v3가 아니면 crafted completion을 거부한다.
+
 fresh cumulative Session만 neutral interaction에서 Core의 initial transition batch를 current minute에 한 번
 drain해 Flow에 전달한다. Resume는 codec replay history를 그대로 복원하고 다시 drain하지 않으며,
 standalone/fixture의 synthetic first briefing은 cumulative Flow projection에 섞지 않는다.
@@ -110,7 +116,8 @@ full authored campaign의 성공한 마지막 result를 닫으면 `RealtimeSessi
 별도 `RealtimeEpilogueFlow`로 handoff한다. 이 flow는 strict `BaseCampaign.Epilogue`의 세 authored card와
 completed outcome을 chapter ID로 generic join한 Keep/Defer 문장·남은 자금만 typed request로 만든다.
 `RealtimeModalPresenter`는 이를 generic `Story` modal에 투영하며 Core 상태나 카드 순서를 다시 계산하지
-않는다.
+않는다. 세 카드를 닫은 성공 terminal과 epilogue를 시작하지 않은 실패 terminal은 같은 current v3
+product save lifecycle을 사용하며, completed Continue는 카드를 다시 열지 않고 exact `Ended` world를 연다.
 
 ## current graph와 historical graph
 
@@ -160,8 +167,9 @@ completed outcome을 chapter ID로 generic join한 Keep/Defer 문장·남은 자
 
 1. canonical route와 bundled base/realtime source identity를 먼저 고정한다.
 2. `RealtimeCampaignSaveCodec`의 strict journal replay와 canonical hash를 Core에서 검증한다.
-3. `RealtimeSession`의 shared predicate에서 command count를 포함한 Core replay 경계를 한 번 정하고,
-   modal/story/application 경계와 resume interaction 정책을 그 바깥에서 한 번 정한다.
+3. `RealtimeSession`의 shared predicate에서 command count를 포함한 in-progress Core replay와 full terminal
+   completion 경계를 나누고, modal/story/application 경계와 typed resume interaction을 그 바깥에서 한
+   번 정한다.
 4. session 없는 product title/Main만 save를 probe하고, 그 title action에서 시작한 session만 write
    ownership을 갖게 한다. explicit development route는 같은 route라도 읽거나 쓰지 않는다.
 5. Main은 store·title·Godot lifecycle만 연결하고 title view에는 파일 또는 Core 권위를 주지 않는다.
@@ -179,15 +187,19 @@ completed outcome을 chapter ID로 generic join한 Keep/Defer 문장·남은 자
 - `ProductCampaign`과 exact prior `FIRST_LIGHT`만 product continuation route로 허용한다. 다른 개발 route,
   형식 손상·지원하지 않는 schema/version·source/hash/replay 불일치·I/O 실패 save는 원본을 바꾸지 않고
   `새 게임`과 `이어하기`를 모두 차단한다.
-- active event·duty는 Core journal에서 exact replay한다. undelivered pending transition·draft·completion은
-  shared Core predicate가 capture와 title probe에서 함께 차단한다. command-bearing progress 외에는 first
+- active event·duty는 Core journal에서 exact replay한다. undelivered pending transition과 draft는 shared
+  Core predicate가 capture와 title probe에서 함께 차단한다. command-bearing progress 외에는 first
   chapter exact minute의 drained zero-command initial active `c0` 또는 closed-idle `c1`만 허용한다. Session은
   story-idle, exact-minute queue-empty active `EventStory | DecisionWindowStory`, 또는 Flow가 제한한 non-final
-  Result→next Briefing→optional Decision suffix만 허용한다. general queued story·epilogue·
-  frame debt는 차단한다. active result는 마지막 completed chapter와, later briefing은 바로 다음 started
+  Result→next Briefing→optional Decision suffix만 허용한다. general queued story, active final result/
+  epilogue와 frame debt는 차단한다. active result는 마지막 completed chapter와, later briefing은 바로 다음 started
   chapter와 일치해야 한다. live active capture는 blocking Story modal·pause reason·AutoPaused·restorable
   Running/PlayerPaused interaction까지 확인하고, Resume는 저장된 interaction DTO 없이 authored request에서
   same-modal AutoPaused 상태를 재구성한다.
+- completion은 current-v3 canonical full route, completed Core, all-closed chapter Flow와 exact `Ended`
+  interaction만 허용한다. 성공 final은 epilogue completed, 실패 final은 epilogue never-started여야 한다.
+  prior v1/v2 completion, partial route와 nonterminal cursor는 fail-closed한다. terminal callback overrun은
+  authoritative completion minute에서 폐기해 저장을 막는 frame debt로 남기지 않는다.
 - Main은 cached title availability를 handler에서 다시 검사해 stale/programmatic action도 상태 변경 전에
   거부한다.
 - 이미 닫힌 modal처럼 stale하지만 무해한 요청은 명시적인 no-op으로만 다룬다.
@@ -210,8 +222,9 @@ build와 기본 자동 회귀를 닫는다. 이 명령은 no-arg 제품 title과
 포함하며, Core의 누적 8장 stable replay와 pending fail-closed, 같은 save path의
 initial briefing create→fresh Continue→`FLOOD_ISOLATION_TEST` write→fresh Continue→`SECOND_HEART` result
 write→fresh Continue→`SECOND_SOURCE` briefing write, exact prior `FIRST_LIGHT` v1 Continue→current v3 write와
-blocked save 상태를 검사한다. root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지
-않는다. 해당 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
+성공 8장 terminal save create→fresh Continue→`Ended`·동일 terminal disk write, blocked save 상태를
+검사한다. root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지 않는다. 해당
+검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
 
 product title과 explicit fixture/native route의 launch·save ownership 의미를 구조 변경의 불변조건으로
 취급한다. session을 만드는 fixture와 `FIRST_LIGHT`, `SECOND_SOURCE`, `LONGEST_NIGHT` native route의

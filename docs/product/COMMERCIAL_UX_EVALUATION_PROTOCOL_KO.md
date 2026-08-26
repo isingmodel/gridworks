@@ -96,9 +96,9 @@ actor는 judge가 아니며 judge는 게임을 대신 조작하지 않는다. ac
 5. 한 줄 사건 지평선의 현재 시각, countdown, event interval, 공사 완료, promise deadline,
    열 노출·정지·복귀와 actual/draft 구분
 6. 세 약속의 Keep/Defer 결과와 epilogue 반영
-7. finale→세 epilogue card→누적 약속→chapter/replay 선택
+7. finale→세 epilogue card→누적 약속→terminal save
 8. 진행 중 save→프로세스 종료→같은 candidate 재실행→title의 `이어하기`→정확한 상태 복구
-9. 완료 save→같은 candidate 재실행→title의 `이어하기`→결과와 chapter/replay 선택 복구
+9. 완료 save→같은 candidate 재실행→title의 `이어하기` terminal 복구와 `새 게임` 재시작
 10. invalid action, pause/speed, keyboard-only, title/pause settings, UI 125%, Reduce Motion과 색 외 cue;
     settings 변경→같은 candidate의 fresh process 재실행→값 복원
 11. 정상·공사·폭염·범람·보호정지·회복·finale의 동기화된 화면과 audio; volume/mute와 capture settings
@@ -221,8 +221,10 @@ deterministic failure 또는 blinded observation
   Core/history/FIFO 복원: session harness 완료; 이후 미래나 각 장의 fresh-process, 전체 8장
   production-input 직접 여정의 증거는 아님
 - finale→세 epilogue card와 누적 Keep/Defer·남은 자금의 deterministic native presentation: 구현
-- undelivered Core transition·general queued story·완료 저장과
-  result/chapter/replay 선택: 미완료
+- full `ProductCampaign` current-v3 terminal save→fresh `이어하기`→exact `Ended` world와 동일 terminal
+  종료 write: fresh-process smoke 완료; prior v1/v2 completion은 차단
+- transient non-saveable 구간의 직전 safe-save 보존→다음 safe-point 갱신과 완료 저장의 `새 게임`:
+  product E2E 미완료; transient cursor 자체는 제품 범위 밖
 - audio/settings, current R2 package와 score-bearing execution authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음

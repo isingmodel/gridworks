@@ -1,24 +1,24 @@
 # Gridworks 문서 지도
 
-이 폴더는 문서를 다섯 종류로 나눈다. 현재 상태, 구현 backlog, 외부 release gate, 제품 기준,
-완료 이력을 한 문서에 섞지
-않는다.
+이 문서는 질문마다 **어느 문서가 답을 소유하는지** 정한다. 현재 상태, 작업 절차, 코드 구조,
+구현 backlog, 외부 release gate, 제품 기준과 완료 이력을 한 문서에 섞지 않는다.
 
 ## 처음 읽는 순서
 
 1. [루트 README](../README.md) — 게임과 현재 실행 상태
 2. [현재 작업 범위](ACTIVE_SCOPE.md) — 지금 허용된 변경
-3. [개발 구조](ARCHITECTURE.md) — current R2의 권위와 변경 경로
-4. [남은 구현 작업](NEXT_TASKS.md) — 현재 repository backlog는 없음
-5. [외부 출시 gate](RELEASE_GATES.md) — 실제 device·사람·평가·서명·승인 상태
-6. 필요한 제품 문서 — 게임·비주얼·오브젝트·평가 기준
-7. [완료 이력](archive/COMPLETED_HISTORY.md) — 과거 task 요약
+3. [Agent 작업 안내](AGENT_GUIDE.md) — 시작·검증·commit·review·handoff 절차
+4. 이 문서 — 현재 질문의 단일 소유자 선택
+5. 코드를 변경할 때만 [개발 구조](ARCHITECTURE.md) — current R2 ownership과 변경 경로
+6. 필요한 backlog·gate·제품 문서
+7. 과거 맥락이 필요할 때만 [완료 이력](archive/COMPLETED_HISTORY.md)
 
 ## 질문별 문서
 
 | 질문 | 문서 |
 |---|---|
 | 지금 구현해도 되는가? | [ACTIVE_SCOPE.md](ACTIVE_SCOPE.md) |
+| 작업을 어떤 순서로 시작하고 검증·종료하는가? | [AGENT_GUIDE.md](AGENT_GUIDE.md) |
 | current R2를 어디서 이해하고 변경하는가? | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | 저장소 안에 구현할 일이 남았는가? | [NEXT_TASKS.md](NEXT_TASKS.md) |
 | 물리 장치·사람·평가·출시에 무엇이 남았는가? | [RELEASE_GATES.md](RELEASE_GATES.md) |
@@ -44,13 +44,30 @@
 → Git의 과거 문서
 ```
 
-`NEXT_TASKS.md`와 완료 이력은 구현 권한을 만들지 않는다. 현재 사용자 지시와
-`ACTIVE_SCOPE.md`가 없으면 준비된 후보나 과거 계획을 실행하지 않는다.
+`NEXT_TASKS.md`와 완료 이력은 구현 권한을 만들지 않는다. 현재 사용자 지시가 없거나
+`ACTIVE_SCOPE.md`에 해당 결과물이 열려 있지 않으면 준비된 후보나 과거 계획을 실행하지 않는다.
 위 순서는 변경 권한의 우선순위다. 개발 구조는 `ARCHITECTURE.md`, 제품 기준은 해당 제품 문서,
 repository backlog는 `NEXT_TASKS.md`, 외부 증거·승인은 `RELEASE_GATES.md`처럼 질문별 표가
 지정한 문서가 세부 사실을 소유한다. 증거가 무엇을 주장할 수
 있는지는 질문 소유 문서의 hard gate를 우회하지 않는다. 사용자 지시와 active scope가 평가 작업을
 열어도 score-bearing execution authority가 없으면 공식 점수는 만들 수 없다.
+
+## 문서별 소유 범위
+
+| 문서 | 소유하는 사실 | 갱신할 때 | 두지 않는 내용 |
+|---|---|---|---|
+| 루트 `README.md` | 현재 제품·실행·검증의 짧은 사실 | 플레이 가능한 경로, 기본 장면, 현재 capability가 바뀜 | task 로그, 미래 계획 |
+| `ACTIVE_SCOPE.md` | 지금 허용된 결과물과 완료 검사 | 변경 작업을 열거나 닫음 | 여러 독립 목표, 장기 backlog |
+| `AGENT_GUIDE.md` | 반복 가능한 작업 절차 | 시작·검증·handoff 규칙이 바뀜 | 제품 상태, 코드 세부 구조 |
+| `ARCHITECTURE.md` | current code authority와 변경 경로 | ownership·dependency·entry가 바뀜 | 작업 권한, 과거 task 로그 |
+| `NEXT_TASKS.md` | repository-controlled 구현 backlog | 확인된 제품 결함이나 새 목표가 구현 후보가 됨 | 외부 증거·승인, 자동 실행 권한 |
+| `RELEASE_GATES.md` | device·사람·평가·서명·공개 승인 상태 | exact 외부 gate를 실행하거나 상태가 바뀜 | repository 구현 backlog |
+| `product/*.md` | 장기 경험·화면·오브젝트·평가 기준 | 제품 기준 자체가 바뀜 | 현재 chapter 수, active scope |
+| `scopes/*.md` | 과거 링크를 보존하는 tombstone | 오래된 외부 링크의 목적지가 필요함 | 현재 scope, 실행 지시 |
+| `archive/COMPLETED_HISTORY.md` | 완료·중단 task의 짧은 결과와 한계 | scope를 닫고 장기 맥락이 필요함 | 현재 권한, 상세 실행 로그 |
+
+한 사실은 위 소유 문서 한 곳에서 설명하고 다른 문서에는 짧은 요약과 링크만 둔다. 어떤 문서를
+갱신할지 애매하면 파일 이름이 아니라 위 표의 질문으로 결정한다.
 
 ## 오해를 막는 용어
 
@@ -92,10 +109,8 @@ repository backlog는 `NEXT_TASKS.md`, 외부 증거·승인은 `RELEASE_GATES.m
   capture·evidence는 이 후보에서 나오는 평가 산출물이며 bounded 2B만으로는 해당하지 않음
 - `score-bearing`: 실제 후보·evidence·hard gate·model receipt에 결속되어 공식 점수에 들어갈 수 있음
 
-완료 task는 이 폴더 곳곳에 복제하지 않는다. 새 단계가 끝나면
-`archive/COMPLETED_HISTORY.md`에 한두 문단으로 추가하고 `ACTIVE_SCOPE.md`를 닫는다. `README.md`,
-`ARCHITECTURE.md`, `NEXT_TASKS.md`, `RELEASE_GATES.md`와 질문별 표의 다른 current 문서 중
-실제로 바뀐 사실을 소유한
-문서만 함께 갱신한다. 세부 실행 로그와 과거 scope 원문은 Git 이력에 둔다.
-게임·비주얼 제품 문서는 장기 목표와 통과 기준을 소유하며 현재 chapter 수나 미완료 목록을 복제하지
-않는다. 평가 프로토콜의 `현재 판정`은 score/evidence 상한을 명시하는 질문 소유 기록이다.
+완료 task는 이 폴더 곳곳에 복제하지 않는다. 작업 시작·종료 checklist는
+[Agent 작업 안내](AGENT_GUIDE.md)를 따르고, 실제로 바뀐 사실을 소유한 current 문서만 함께 갱신한다.
+세부 실행 로그와 과거 scope 원문은 Git 이력에 둔다. 제품 문서는 장기 목표와 통과 기준만 소유하며
+현재 chapter 수나 미완료 목록을 복제하지 않는다. 평가 프로토콜의 `현재 판정`은 score/evidence 상한을
+명시하는 질문 소유 기록이다.

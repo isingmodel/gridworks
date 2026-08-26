@@ -1,8 +1,9 @@
 # Repository instructions
 
-1. Read `README.md`, then the active scope it names. Current user instruction wins, followed by the active scope and the question ownership map in `docs/README.md`.
-2. Only the active scope is authorized. Readiness, a detailed candidate, or an ambiguous goal does not authorize implementation or execution outside it; do not prebuild future systems.
-3. Use the active scope's single data authority and completion checks. Prove rules, state transitions, builds, and wiring with deterministic checks and smoke tests before considering a playtest.
-4. Use an LLM playtest only when the active scope explicitly needs an interaction or comprehension observation that automation cannot provide. Keep one small fixed sample, do not tune from it, do not treat it as human evidence, and do not duplicate evidence already preserved by the platform or app.
-5. After a major unit, commit it, run one bounded independent subagent review when available, fix only scope-valid findings, rerun checks, and update current-state documentation before opening another gate.
-6. Push, open a PR, or merge only when the current user task explicitly authorizes that repository write.
+1. Read `README.md`, `docs/ACTIVE_SCOPE.md`, then `docs/AGENT_GUIDE.md`. Use the question ownership map in `docs/README.md` instead of searching every document.
+2. Current user instruction wins, followed by the active scope and the question owner's current document. History and readiness never authorize work.
+3. Read-only explanation or diagnosis may inspect relevant evidence. Before changing task files, record the authorized change in one active scope with a single result, authority, out-of-scope list, and completion checks.
+4. Prove rules, state transitions, builds, and wiring with the smallest deterministic check first. Treat headless/package evidence and device/human evidence as different claims.
+5. Use an LLM playtest only when the active scope requires an observation automation cannot provide. Keep one fixed sample, do not tune from it, and never call it human evidence.
+6. Commit major units, request one bounded independent review when available, fix only scope-valid findings, rerun checks, update only the documents that own changed facts, and close the scope.
+7. Push, open a PR, merge, run an external release gate, or publish only when the current user task explicitly authorizes that action.

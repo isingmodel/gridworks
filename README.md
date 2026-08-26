@@ -181,14 +181,13 @@ selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체
 
 1. 이 README — 제품과 현재 구현의 차이
 2. [현재 작업 범위](docs/ACTIVE_SCOPE.md) — 지금 변경이 허용됐는지
-3. [개발 구조](docs/ARCHITECTURE.md) — current R2의 권위와 변경 경로
-4. [남은 구현 작업](docs/NEXT_TASKS.md) — 현재 repository backlog는 없음
-5. [외부 출시 gate](docs/RELEASE_GATES.md) — device·사람·평가·서명·승인의 미실행 상태
-6. [문서 지도](docs/README.md) — 질문별 상세 문서
-7. [완료 이력](docs/archive/COMPLETED_HISTORY.md) — 과거 task의 유일한 요약
+3. [Agent 작업 안내](docs/AGENT_GUIDE.md) — 시작·검증·commit·review·handoff 절차
+4. [문서 지도](docs/README.md) — 질문별 단일 소유 문서
+5. 코드를 바꿀 때만 [개발 구조](docs/ARCHITECTURE.md) — current R2의 ownership과 변경 경로
 
-새 작업을 시작할 때는 먼저 `docs/ACTIVE_SCOPE.md`에 결과물, 범위 밖 항목과 완료 검사를 적는다.
-`docs/NEXT_TASKS.md`의 항목, 과거 scope 또는 준비된 코드가 있다는 사실만으로 구현을 시작하지 않는다.
+새 작업의 scope 작성 형식, 변경별 최소 검사와 종료 checklist는 `Agent 작업 안내`가 소유한다.
+[남은 구현 작업](docs/NEXT_TASKS.md), [외부 출시 gate](docs/RELEASE_GATES.md), 과거 scope 또는 준비된
+코드는 그 자체로 구현·평가·배포 권한을 만들지 않는다.
 
 ## 출시와 자산 경계
 

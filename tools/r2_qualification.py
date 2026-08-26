@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import os
 from pathlib import Path
+import pwd
 import stat
 import subprocess
 import sys
@@ -37,10 +38,13 @@ def combined_output(
     result: subprocess.CompletedProcess[str],
     log_path: Path,
 ) -> str:
-    output = result.stdout + result.stderr
-    if log_path.is_file() and not log_path.is_symlink():
-        output += log_path.read_text(encoding="utf-8", errors="replace")
-    return output
+    return result.stdout + result.stderr + read_log(log_path)
+
+
+def read_log(log_path: Path) -> str:
+    if not log_path.is_file() or log_path.is_symlink():
+        fail(f"qualification log is missing or unsafe: {log_path.name}")
+    return log_path.read_text(encoding="utf-8", errors="replace")
 
 
 def require_success_output(
@@ -112,15 +116,15 @@ def exact_qualification_marker(
         f"{MARKER_PREFIX}user_args=0 settings={settings} "
         f"continuation={continuation}"
     )
-    markers = {
+    markers = [
         line.strip()
         for line in output.splitlines()
         if line.strip().startswith(MARKER_PREFIX)
-    }
-    if markers != {expected}:
+    ]
+    if markers != [expected]:
         fail(
             "packaged qualification marker drift: "
-            f"expected {expected!r}, got {sorted(markers)!r}"
+            f"expected one {expected!r}, got {markers!r}"
         )
     return expected
 
@@ -160,7 +164,7 @@ def run_packaged_title(
     output = combined_output(result, log_path)
     require_success_output(output, TITLE_MARKER, "packaged product-title stage")
     marker = exact_qualification_marker(
-        output,
+        read_log(log_path),
         settings=settings,
         continuation=continuation,
     )
@@ -170,6 +174,11 @@ def run_packaged_title(
 
 
 def root_files(data_root: Path, expected_names: set[str]) -> list[dict[str, Any]]:
+    root_metadata = data_root.lstat()
+    if not stat.S_ISDIR(root_metadata.st_mode) or data_root.is_symlink():
+        fail("qualification data root stopped being a real directory")
+    if data_root.resolve(strict=True) != data_root:
+        fail("qualification data root stopped being canonical")
     actual_names: set[str] = set()
     rows: list[dict[str, Any]] = []
     for path in sorted(data_root.iterdir(), key=lambda item: item.name.encode("utf-8")):
@@ -192,9 +201,25 @@ def root_files(data_root: Path, expected_names: set[str]) -> list[dict[str, Any]
     return rows
 
 
-def default_product_file_snapshot() -> dict[str, dict[str, Any] | None]:
+def verified_account_home() -> Path:
+    raw_environment_home = os.environ.get("HOME")
+    if raw_environment_home is None or not Path(raw_environment_home).is_absolute():
+        fail("qualification requires the current account HOME")
+    try:
+        account_home = Path(pwd.getpwuid(os.getuid()).pw_dir).resolve(strict=True)
+        environment_home = Path(raw_environment_home).resolve(strict=True)
+    except (KeyError, OSError) as exception:
+        fail(f"qualification could not resolve the current account HOME: {exception}")
+    if environment_home != account_home or Path.home().resolve(strict=True) != account_home:
+        fail("qualification refuses a reassigned HOME")
+    return account_home
+
+
+def default_product_file_snapshot(
+    account_home: Path,
+) -> dict[str, dict[str, Any] | None]:
     default_root = (
-        Path.home()
+        account_home
         / "Library/Application Support/Godot/app_userdata/Gridworks"
     )
     result: dict[str, dict[str, Any] | None] = {}
@@ -285,6 +310,8 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
     manifest_path = manifest_path.resolve()
     if manifest_path.name != candidate.MANIFEST_NAME:
         fail("qualification requires the fixed current R2 candidate manifest name")
+    account_home = verified_account_home()
+    before_default = default_product_file_snapshot(account_home)
     candidate.verify_manifest(manifest_path)
     manifest = candidate.strict_json(
         manifest_path,
@@ -309,7 +336,6 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
         timeout=600,
     )
 
-    before_default = default_product_file_snapshot()
     with tempfile.TemporaryDirectory(prefix="gridworks-r2-qualification-") as raw:
         work = Path(raw).resolve(strict=True)
         extracted = work / "package"
@@ -413,7 +439,7 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
         if candidate.tree_entries(extracted) != baseline_tree:
             fail("packaged app tree changed during qualification")
 
-    if default_product_file_snapshot() != before_default:
+    if default_product_file_snapshot(account_home) != before_default:
         fail("default current R2 save/settings changed during qualification")
     if candidate.require_clean_source() != manifest["source"]["commit"]:
         fail("source changed during qualification")

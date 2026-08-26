@@ -25,6 +25,8 @@
   headless title marker와 exact-empty app-owned save/settings root의 missing/settings/initial/terminal
   fresh-process 2B1, 일곱 bounded default-scene lifecycle InputEvent 2B2 record v2: 완료; engine `user://` 전체·
   full production E2E·OS hardware·speaker·사람 UX 증거는 아님
+- repository-controlled current R2 internal candidate 구현 backlog: 없음; 실제 여정·device·사람·
+  score·release 증거는 [외부 출시 gate](../../docs/RELEASE_GATES.md)에서 계속 미실행
 - text 형성평가: `TextPlanProxy = 83.4475`
 - 공식 native 평가: 미실행, `CommercialUXProxy` 없음
 - current R2 evaluation candidate package: 없음; package identity와 bounded combined 2B qualification까지만 완료
@@ -140,14 +142,12 @@ generated audio selector·scene/bus·one-start·Continue 무재생, 전체 Godot
 transient save cursor는 의도적으로 지원하지 않는다. 전체 8장 packaged
 production-input 여정은 별도 E2E가 필요하다.
 
-## 4. `native/` 도구의 경계
+## 4. native 평가 경계
 
-`native/`에는 candidate, session/attempt, evaluation chain, evidence artifact와 controlled transcript를
-fail-closed로 다루는 비점수 도구가 있다. 이들은 UX-R1에서 구조와 거부 경로를 검증했지만, current R2의
-finale·epilogue를 포함한 전체 제품 여정 candidate와 실제 화면/audio evidence를 만들지 않는다.
-그 안의 pinned candidate는 historical editor-native/비기본 First Light 기준선이다. 설치 가능한 current
-R2 package가 아니며 title/이어하기/settings/audio/finale·epilogue evidence나 score-bearing model call을
-만들지 않는다.
+과거 `native/` 비점수 evaluator는 editor-native/비기본 First Light 정책에 고정되고 current R2
+package·combined 2B·`./dev`와 연결되지 않아 제거했다. 선행 policy·schema·test 30개를
+현행화하는 대신 Git 이력에 기준선을 남겼다. 현재 repository에는 native evaluation session,
+screen/audio capture, evidence verifier, score aggregator나 model execution authority가 없다.
 
 따라서 다음 주장은 금지한다.
 
@@ -162,11 +162,10 @@ R2 package가 아니며 title/이어하기/settings/audio/finale·epilogue evide
   승격하기
 - text score를 `CommercialUXProxy`로 승격하기
 
-공식 native 평가를 열 때는 완료된 combined 2B record가 고정한 exact package를 소비한다. 그 위에서
-finale·epilogue 포함 전체 cold/coverage 여정, safe-point save/resume, live state cue·audio playback과 실제
-화면 evidence를 수집하는 versioned evaluation-session authority, capture, evidence verifier, hard-gate
-oracle과 score aggregator를 구현한다. bounded lifecycle 2B2를 full journey나 evaluation-ready evidence로
-승격하지 않는다. 이 전환은
+공식 native 평가는 [외부 출시 gate](../../docs/RELEASE_GATES.md)가 실행 주체·capture·model/API
+receipt를 갖춘 뒤 별도 active scope로만 연다. 그때도 combined 2B record가 고정한 exact package와
+current `rubric.json`를 직접 소비하는 하나의 작은 authority로 시작한다. bounded lifecycle 2B2를
+full journey나 evaluation-ready evidence로 승격하지 않는다. 이 전환은
 [평가 프로토콜](../../docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)의
 rubric·hard gate·model receipt를 함께 결속하고 누락에서 fail-closed해야 한다. 기존 UX-R0 context와
 panel은 덮어쓰지 않으며, 새 version에서 current coverage와 evidence 상한을 다시 정의한다.

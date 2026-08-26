@@ -1,6 +1,7 @@
 # Gridworks 문서 지도
 
-이 폴더는 문서를 네 종류로 나눈다. 현재 상태, 남은 일, 제품 기준, 완료 이력을 한 문서에 섞지
+이 폴더는 문서를 다섯 종류로 나눈다. 현재 상태, 구현 backlog, 외부 release gate, 제품 기준,
+완료 이력을 한 문서에 섞지
 않는다.
 
 ## 처음 읽는 순서
@@ -8,9 +9,10 @@
 1. [루트 README](../README.md) — 게임과 현재 실행 상태
 2. [현재 작업 범위](ACTIVE_SCOPE.md) — 지금 허용된 변경
 3. [개발 구조](ARCHITECTURE.md) — current R2의 권위와 변경 경로
-4. [남은 작업](NEXT_TASKS.md) — 다음 후보와 완료 조건
-5. 필요한 제품 문서 — 게임·비주얼·오브젝트·평가 기준
-6. [완료 이력](archive/COMPLETED_HISTORY.md) — 과거 task 요약
+4. [남은 구현 작업](NEXT_TASKS.md) — 현재 repository backlog는 없음
+5. [외부 출시 gate](RELEASE_GATES.md) — 실제 device·사람·평가·서명·승인 상태
+6. 필요한 제품 문서 — 게임·비주얼·오브젝트·평가 기준
+7. [완료 이력](archive/COMPLETED_HISTORY.md) — 과거 task 요약
 
 ## 질문별 문서
 
@@ -18,7 +20,8 @@
 |---|---|
 | 지금 구현해도 되는가? | [ACTIVE_SCOPE.md](ACTIVE_SCOPE.md) |
 | current R2를 어디서 이해하고 변경하는가? | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| 무엇이 남았고 어떤 순서인가? | [NEXT_TASKS.md](NEXT_TASKS.md) |
+| 저장소 안에 구현할 일이 남았는가? | [NEXT_TASKS.md](NEXT_TASKS.md) |
+| 물리 장치·사람·평가·출시에 무엇이 남았는가? | [RELEASE_GATES.md](RELEASE_GATES.md) |
 | 최종 게임은 어떤 경험인가? | [GAME_DESIGN_KO.md](product/GAME_DESIGN_KO.md) |
 | 화면과 아트의 통과 기준은? | [VISUAL_PRODUCTION_SPEC.md](product/VISUAL_PRODUCTION_SPEC.md) |
 | 설비·시설·표현 coverage는? | [OBJECT_CATALOG.md](product/OBJECT_CATALOG.md) |
@@ -44,7 +47,8 @@
 `NEXT_TASKS.md`와 완료 이력은 구현 권한을 만들지 않는다. 현재 사용자 지시와
 `ACTIVE_SCOPE.md`가 없으면 준비된 후보나 과거 계획을 실행하지 않는다.
 위 순서는 변경 권한의 우선순위다. 개발 구조는 `ARCHITECTURE.md`, 제품 기준은 해당 제품 문서,
-backlog는 `NEXT_TASKS.md`처럼 질문별 표가 지정한 문서가 세부 사실을 소유한다. 증거가 무엇을 주장할 수
+repository backlog는 `NEXT_TASKS.md`, 외부 증거·승인은 `RELEASE_GATES.md`처럼 질문별 표가
+지정한 문서가 세부 사실을 소유한다. 증거가 무엇을 주장할 수
 있는지는 질문 소유 문서의 hard gate를 우회하지 않는다. 사용자 지시와 active scope가 평가 작업을
 열어도 score-bearing execution authority가 없으면 공식 점수는 만들 수 없다.
 
@@ -76,6 +80,9 @@ backlog는 `NEXT_TASKS.md`처럼 질문별 표가 지정한 문서가 세부 사
 - `current R2 2B qualification`: exact package의 별도 app-owned root에서 2B1 data 분류와 2B2 bounded
   default-scene lifecycle InputEvent·settings restore·generated-audio wiring을 한 canonical record v2로 결속;
   engine `user://` 전체, full production input, hardware/speaker 또는 evaluation readiness를 뜻하지 않음
+- `current R2 internal candidate complete`: 위 current graph의 8장 product·settings·audio wiring·package·
+  combined 2B까지 repository-controlled 구현 backlog가 닫힘; 외부 release gate 통과나 공개 1.0을
+  뜻하지 않음
 - `deterministic PASS`: 규칙·상태·wiring 검사 통과; 미감·재미·출시 품질을 뜻하지 않음
 - `historical baseline`: 회귀 참고용 과거 제품; 현재 제품 entry가 아님
 - `사건 지평선`: 한 줄 future-event bar의 플레이어용 이름; 코드명은 `RealtimeEventRail`
@@ -87,7 +94,8 @@ backlog는 `NEXT_TASKS.md`처럼 질문별 표가 지정한 문서가 세부 사
 
 완료 task는 이 폴더 곳곳에 복제하지 않는다. 새 단계가 끝나면
 `archive/COMPLETED_HISTORY.md`에 한두 문단으로 추가하고 `ACTIVE_SCOPE.md`를 닫는다. `README.md`,
-`ARCHITECTURE.md`, `NEXT_TASKS.md`와 질문별 표의 다른 current 문서 중 실제로 바뀐 사실을 소유한
+`ARCHITECTURE.md`, `NEXT_TASKS.md`, `RELEASE_GATES.md`와 질문별 표의 다른 current 문서 중
+실제로 바뀐 사실을 소유한
 문서만 함께 갱신한다. 세부 실행 로그와 과거 scope 원문은 Git 이력에 둔다.
 게임·비주얼 제품 문서는 장기 목표와 통과 기준을 소유하며 현재 chapter 수나 미완료 목록을 복제하지
 않는다. 평가 프로토콜의 `현재 판정`은 score/evidence 상한을 명시하는 질문 소유 기록이다.

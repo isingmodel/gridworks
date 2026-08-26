@@ -440,6 +440,28 @@ authored 8장 packaged production-input E2E, OS hardware input, 실제 window/di
 live cue 전체 coverage, 사람 UX·미감·접근성, evaluation readiness, Developer ID·공증·출시를 뜻하지 않는다.
 push, PR, merge는 수행하지 않았다.
 
+### UX-R2.25 — repository-owned 내부 후보 완료선
+
+가장 단순한 구현 목표로 current R2 내부 후보와 외부 release 증거·승인을 분리했다.
+production `RealtimeWorldPresenter`는 active risk area를 `Storm`, thermal-limit override를 `Heat`,
+그 외을 `Clear`로 투영하고 복합 상태의 flood를 우선한다. `Reduce Motion`은 비·폭우
+스트릭의 minute phase를 고정해 현재 renderer에서 실제 효과를 갖는다. 기존 full-campaign·G3
+smoke에 Clear/Heat/Storm 우선순위와 motion 고정 검사만 추가했다.
+
+current `./dev`·package·combined 2B와 연결되지 않고 historical editor-native First Light
+non-score 정책에 고정된 `tools/commercial-ux/native/` 30개 파일 26,732줄을 제거했다.
+과거 기준선은 Git 이력이 보존한다. `NEXT_TASKS.md`는 repository-controlled implementation
+backlog만 소유하며 현재 비어 있다. full packaged journey, 실제 display/input/audio,
+사람·전문가 검토, score-bearing 평가, 권리·서명·공증·공개 승인은 새
+`RELEASE_GATES.md`에 `NOT_RUN | PENDING | NOT_APPROVED`로 보존했다. non-spatial 여정은
+keyboard로 완결하되 연속 좌표 pan/zoom/free placement는 pointer-owned spatial interaction으로
+제품 계약을 명확히 했다.
+
+Debug build, `./dev check`, final clean candidate/qualification build·fresh verify, Markdown 링크 감사와
+두 bounded independent review를 통과했다. 이 완료는 current R2 내부 후보의 repository 구현
+완료선이며, 외부 gate나 판매 가능한 1.0·공개 배포 승인을 뜻하지 않는다. push, PR,
+merge는 수행하지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.
@@ -491,6 +513,7 @@ Godot UI harness를 유지했다. 이 완료는 compile 시간 개선, 새 chapt
 ## 8. 이 문서가 소유하지 않는 항목
 
 현재 질문의 소유 문서는 [문서 지도](../README.md)가 지정한다. 제품 구현 상태는
-[루트 README](../../README.md), current 개발 구조는 [개발 구조](../ARCHITECTURE.md), 미완료 항목·순서는
-[남은 작업](../NEXT_TASKS.md)이 소유한다. 이 완료 이력의 경계 문장을 current 문서로 복사해 갱신하지
-않는다.
+[루트 README](../../README.md), current 개발 구조는 [개발 구조](../ARCHITECTURE.md), repository backlog는
+[남은 구현 작업](../NEXT_TASKS.md), device·사람·평가·출시 증거와 승인은
+[외부 출시 gate](../RELEASE_GATES.md)가 소유한다. 이 완료 이력의 경계 문장을 current 문서로 복사해
+갱신하지 않는다.

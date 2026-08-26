@@ -3,6 +3,8 @@
 이 문서는 current R2를 이해하고 변경할 때 따라갈 **하나의 개발 지도**다. 여기서 “빠른 개발”은
 compile 시간이 아니라, 한 변경에 필요한 권위·분기·파일 추적 수를 줄이는 뜻이다. 새 기능의 구현
 권한은 이 문서가 아니라 [현재 작업 범위](ACTIVE_SCOPE.md)가 정한다.
+저장소가 소유하는 current R2 내부 후보 완료와 실제 device·사람·승인은
+[외부 출시 gate](RELEASE_GATES.md)로 분리한다.
 
 ## 가장 짧은 실행 경로
 
@@ -115,6 +117,7 @@ chapter 정책을 찾기 위해 이 adapter부터 UI node 안쪽으로 내려가
 | raw input이 어떤 typed request가 되는가? | `RealtimeInputRouter` | `game/realtime/ui/RealtimeInputRouter.cs` |
 | intent/action/tool/modal이 지원되는가? | 명시적 capability와 reducer/session 분기 | `game/realtime/r2/RealtimeInteractionReducer.cs`, `game/realtime/ui/RealtimeUiCapabilities.cs`, `game/realtime/r2/RealtimeSession.cs` |
 | 같은 snapshot을 화면에서 어떻게 읽는가? | typed immutable presentation | 해당 `Realtime*Presenter.cs`와 `game/realtime/ui/` contract |
+| active weather를 어떻게 표현하는가? | `RealtimeWorldPresenter` 우선순위 `risk area → Storm`, `thermal override → Heat`, 그 외 `Clear` | `game/realtime/r2/RealtimeWorldPresenter.cs` |
 | Godot에서 어떻게 받아 그리고 focus를 옮기는가? | scene adapter와 owning UI node | `RealtimeSliceMain.cs`, `game/realtime/ui/` |
 | 무엇을 build·play·검사하는가? | `./dev`와 root `Gridworks.sln` | `dev`, `Gridworks.sln` |
 | current R2 package identity를 만들고 검증하는가? | `tools/r2_candidate.py` | `tools/r2_candidate.py`, `game/export_presets.cfg` |
@@ -169,6 +172,11 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
 요구한다. current graph는 strict V2 base+V3 Core와 `realtime/r2`, `realtime/ui`, 중립 shared leaf
 `realtime/MapViewportTransform.cs`만 포함한다. frozen legacy graph는 V2 Core와 `CommercialMain` allowlist만
 포함하며 두 selector의 missing/both는 build 전에 실패한다.
+
+과거 `tools/commercial-ux/native/` 30개 파일은 editor-native First Light non-score 정책에 고정되고
+current `./dev`·package·combined 2B와 연결되지 않아 제거했다. Git 이력이 그 기준선을
+보존한다. score-bearing 평가가 나중에 승인되면 historical policy/schema를 복제하지 않고
+current candidate·qualification·rubric을 소비하는 하나의 새 execution authority로 연다.
 
 ## current R2 package identity
 
@@ -326,6 +334,8 @@ fresh completed title→New Game→initial write→fresh Continue, readable bloc
 explicit fixture read-only surface와 전체 Godot UI layout harness도 포함한다. root `Gridworks.sln` 전체의
 Release build는 포함하지 않는다. headless harness는 물리 display·native fullscreen·사람 UX 증거가 아니며,
 그 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
+world presentation은 actual campaign의 Clear/Heat/Storm 우선순위와 `Reduce Motion` weather phase
+고정도 같은 기본 harness에서 검사한다.
 
 product title과 explicit fixture/native route의 launch·save ownership 의미를 구조 변경의 불변조건으로
 취급한다. session을 만드는 fixture와 `FIRST_LIGHT`, `SECOND_SOURCE`, `LONGEST_NIGHT` native route의
@@ -340,6 +350,7 @@ canonical state hash도 유지한다.
 - 새로운 입력 enum 값이 추가됐지만 capability/rejection 검사가 없음
 - 일반 current 개발에 historical solution이나 Product/V1 graph가 필요하거나 current package에 legacy
   export selector가 섞임
+- current package와 연결되지 않은 candidate/session/schema 계층을 미리 만들어 외부 gate를 흠내 냄
 
 이 신호가 보이면 파일을 더 나누기 전에 권위가 두 곳으로 복제됐는지 먼저 확인한다. 작은 파일 수 자체가
 목표가 아니라, 변경 이유 하나가 ownership boundary 하나로 이어지는 구조가 목표다.

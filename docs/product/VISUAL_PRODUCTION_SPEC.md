@@ -1,7 +1,8 @@
 # Gridworks — `./assets` 스타일 비주얼 제작 명세
 
 이 문서는 루트 `./assets` 네 이미지를 **실제 조작 가능한 Gridworks 화면**으로 번역하는 제작 규격이다.
-현재 구현 권한과 단계는 [현재 작업 범위](../ACTIVE_SCOPE.md)와 [남은 작업](../NEXT_TASKS.md), 제품
+현재 구현 권한과 repository backlog는 [현재 작업 범위](../ACTIVE_SCOPE.md)와
+[남은 구현 작업](../NEXT_TASKS.md), 실제 display·사람 검수는 [외부 출시 gate](../RELEASE_GATES.md), 제품
 규칙은 [게임 기획서](GAME_DESIGN_KO.md), 설비와 표현 coverage는
 [오브젝트 카탈로그](OBJECT_CATALOG.md)가 소유한다.
 

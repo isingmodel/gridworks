@@ -14,6 +14,10 @@ exact initial briefing, exact-minute active in-chapter story, non-final result�
 제품 설정과 strict persistence, code-native 기본 audio는 구현됐고, 출시 패키지에서의 audio coverage·
 청감 검증과 공식 UX 평가는 남아 있다. exact 내부 package는 별도 app-owned root의 save/settings 2B1과
 default scene의 title·Continue·reset·settings·generated-audio lifecycle seam 2B2 qualification을 통과했다.
+active flood/thermal-override event는 각각 storm/heat world로 표현되고 `Reduce Motion`은 비·폭우
+weather phase를 고정한다. 여기까지가 저장소가 소유하는 **current R2 내부 후보 완료선**이다.
+실제 hardware·사람·공식 평가·서명·공증·공개 승인은 별도 외부 gate며, 아직 판매 가능한
+1.0 게임이라고 주장하지 않는다.
 
 ## 30초 현재 상태
 
@@ -31,6 +35,7 @@ default scene의 title·Continue·reset·settings·generated-audio lifecycle sea
 | product settings | title/gameplay 공용 surface, UI 100/125/150/200%, Master/Ambient/SFX 0/25/50/75/100%, windowed/fullscreen, Reduce Motion과 strict atomic persistence 구현 |
 | product audio | 22,050Hz mono PCM16 ambient와 live `Breaker/Energize/Outage` cue 생성; Session 의미·bus·Resume 무재생, packaged ambient one-start/SFX-quiet wiring 2B2 완료 |
 | macOS 내부 package와 2B | current R2 universal ad-hoc ZIP·strict manifest/verifier, app-owned save/settings 2B1과 packaged lifecycle InputEvent 2B2 완료; 전체 8장 packaged 입력·OS hardware·speaker·사람 UX·공증은 아직 아님 |
+| 저장소 구현 backlog | 없음; 실제 device·사람·score-bearing 평가·출시 승인은 외부 gate로 분리 |
 | 공식 상용 UX 점수 | 없음. 텍스트 계획 형성평가만 `83.4475` |
 | 현재 구현 권한 | [현재 작업 범위](docs/ACTIVE_SCOPE.md)가 단일 권위 |
 
@@ -177,9 +182,10 @@ selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체
 1. 이 README — 제품과 현재 구현의 차이
 2. [현재 작업 범위](docs/ACTIVE_SCOPE.md) — 지금 변경이 허용됐는지
 3. [개발 구조](docs/ARCHITECTURE.md) — current R2의 권위와 변경 경로
-4. [남은 작업](docs/NEXT_TASKS.md) — 우선순위가 있는 backlog; 자동 실행 권한은 아님
-5. [문서 지도](docs/README.md) — 질문별 상세 문서
-6. [완료 이력](docs/archive/COMPLETED_HISTORY.md) — 과거 task의 유일한 요약
+4. [남은 구현 작업](docs/NEXT_TASKS.md) — 현재 repository backlog는 없음
+5. [외부 출시 gate](docs/RELEASE_GATES.md) — device·사람·평가·서명·승인의 미실행 상태
+6. [문서 지도](docs/README.md) — 질문별 상세 문서
+7. [완료 이력](docs/archive/COMPLETED_HISTORY.md) — 과거 task의 유일한 요약
 
 새 작업을 시작할 때는 먼저 `docs/ACTIVE_SCOPE.md`에 결과물, 범위 밖 항목과 완료 검사를 적는다.
 `docs/NEXT_TASKS.md`의 항목, 과거 scope 또는 준비된 코드가 있다는 사실만으로 구현을 시작하지 않는다.
@@ -196,3 +202,4 @@ packaged lifecycle seam 2B2 qualification은 있지만 engine `user://` 전체 �
 Developer ID 서명·공증, 지원 OS 검증,
 사람 미감·사용성 검토, 한국어·전력설비 전문 검토 또는 공개 출시 승인이 없다. 저장소를
 열람할 수 있다는 사실은 자산의 재사용·재배포 허가를 뜻하지 않는다.
+이 미완료 증거·승인의 소유자와 통과 조건은 [외부 출시 gate](docs/RELEASE_GATES.md)에 있다.

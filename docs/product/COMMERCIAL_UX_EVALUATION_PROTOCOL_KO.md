@@ -2,7 +2,8 @@
 
 > 고정 judge: `gpt-5.6-sol`, reasoning effort `ultra`
 >
-> 현재 상태: text-plan 형성평가만 완료. 공식 native 점수 없음.
+> 현재 상태: text-plan 형성평가만 완료. 공식 native 점수 없음. 이 프로토콜은
+> [외부 출시 gate](../RELEASE_GATES.md)가 집행 권위를 갖춘 뒤에만 실행한다.
 
 ## 1. 목적
 
@@ -19,7 +20,9 @@
 - 결과, 누적 약속, finale와 epilogue가 플레이를 회수하는가?
 - 실패·pause·save/resume 뒤 현재 시각과 다음 행동을 되찾는가?
 - world, HUD, 한 줄 사건 지평선(future-event bar), context와 audio가 같은 Core 상태를 말하는가?
-- mouse/keyboard, UI scale, Reduce Motion과 색 외 cue에서 필수 정보가 유지되는가?
+- title/settings/modal/HUD/tool/timeline·겹친 후보 선택의 keyboard 경로, UI scale,
+  Reduce Motion과 색 외 cue에서 필수 정보가 유지되는가? 연속 좌표 map pan/zoom/
+  free placement는 pointer-owned spatial interaction으로 평가한다.
 
 LLM 점수는 내부 product-risk proxy다. 사람의 재미·미감·사용성, 한국어·전력설비 전문 검토,
 OS 호환성이나 출시 승인을 대신하지 않는다.
@@ -103,7 +106,8 @@ lifecycle record 자체를 evaluation-ready evidence로 승격하지 않는다.
 7. finale→세 epilogue card→누적 약속→terminal save
 8. 진행 중 save→프로세스 종료→같은 candidate 재실행→title의 `이어하기`→정확한 상태 복구
 9. 완료 save→같은 candidate 재실행→title의 `이어하기` terminal 복구와 `새 게임` 재시작
-10. invalid action, pause/speed, keyboard-only, title/pause settings, UI 125%, Reduce Motion과 색 외 cue;
+10. invalid action, pause/speed, non-spatial journey의 keyboard-only, pointer-owned spatial interaction,
+    title/pause settings, UI 125%, Reduce Motion과 색 외 cue;
     settings 변경→같은 candidate의 fresh process 재실행→값 복원
 11. 정상·공사·폭염·범람·보호정지·회복·finale의 동기화된 화면과 audio; volume/mute와 capture settings
     기록
@@ -138,7 +142,7 @@ native category weight의 합은 100이다.
 | pacing/payoff | 8 | 대기와 압박이 납득되고 finale가 회수하는가 |
 | audiovisual integration | 6 | world·HUD·motion·sound가 같은 상태를 강화하는가 |
 | recovery orientation | 5 | 오류·pause·resume 뒤 현재 상태를 되찾는가 |
-| accessible legibility | 4 | keyboard/UI125/Reduce Motion/색 외 cue가 동등한가 |
+| accessible legibility | 4 | non-spatial keyboard, pointer-owned spatial input, UI125/Reduce Motion/색 외 cue가 명확한가 |
 | Korean clarity | 4 | 조작·시간·경고·결과 용어가 자연스럽고 일관적인가 |
 
 judge는 각 cell에 `EXCELLENT`, `STRONG`, `SERVICEABLE`, `WEAK`, `BROKEN`과 evidence에 존재하는 짧은
@@ -166,7 +170,7 @@ judge 간 spread에는 고정 penalty를 적용한다.
 첫 score-bearing capture 전에 2B-qualified exact package를 소비하는 versioned evaluation-session authority,
 evidence verifier, hard-gate oracle과 aggregator가 `rubric.json`, 이 절의 hard gate, candidate,
 evidence와 model identity·receipt를 결속해야 한다. 하나라도 없거나 불일치하면 점수를 내지 않고
-fail-closed한다. 현재 `tools/commercial-ux/native/`의 non-score 구조물은 이 권위를 대신하지 않는다.
+fail-closed한다. 현재 repository에는 이 score-bearing execution authority가 없다.
 
 text 점수, developer smoke, Core-only replay 또는 checkpoint PASS는 공식 점수로 승격할 수 없다.
 
@@ -245,6 +249,8 @@ deterministic failure 또는 blinded observation
   device·speaker, live cue 상태 coverage·청감 품질과 score-bearing execution authority·oracle/aggregator는 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음
+- historical editor-native non-score evaluator: current package와 미연결이어서 제거; 새 권위는 없음
 
 평가 실행은 완료된 2B-qualified exact package를 소비하는 full native journey capture와 score-bearing
-execution authority가 모두 준비된 뒤 [남은 작업](../NEXT_TASKS.md)의 별도 scope로 연다.
+execution authority가 모두 준비된 뒤 [외부 출시 gate](../RELEASE_GATES.md)의 명시적 승인으로
+별도 scope를 연다.

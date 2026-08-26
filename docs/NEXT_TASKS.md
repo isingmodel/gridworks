@@ -1,122 +1,30 @@
-# Gridworks 남은 작업
+# Gridworks 남은 구현 작업
 
-이 문서는 **미완료 작업의 유일한 우선순위 목록**이다. 현재 기준선에서 무엇이 부족한지 설명하지만,
-어떤 항목도 자동으로 활성 scope가 되지 않는다. 시작 전 [현재 작업 범위](ACTIVE_SCOPE.md)에 선택한
-한 단계의 파일 범위와 완료 검사를 적어야 한다.
+## 현재 상태
 
-## 현재 기준선
+**repository-controlled implementation backlog는 없다.**
 
-- Godot 기본 장면은 live R2 `RealtimeSliceMain`이다.
-- 인자 없는 실행은 session 없는 제품 title을 연다. 저장 파일이 없으면 `새 게임`이 canonical
-  `FIRST_LIGHT`→`LONGEST_NIGHT` 누적 8장 `ProductCampaign`으로 진입한다. product-owned session의 모든
-  장 stable 진행, story-idle active event·duty, exact-minute active `EventStory | DecisionWindowStory`와
-  bounded non-final result→next briefing handoff는 current v3로 저장된다. first authored briefing의
-  zero-command active `c0`와 closed-idle `c1`도 같은 Flow로 저장된다. story-idle과 prior v1은
-  PlayerPaused·Normal·no-modal로, supported active v2/v3 story는 같은 authored modal로 복원된다.
-- G3 아트 57개(지도 50/UI 7)가 R2 world와 UI에 연결돼 있다.
-- 한 줄 사건 지평선이 사건·공사·결정 기한·열 경계를 compact marker로 표시하고 상세 정보를
-  hover 또는 선택으로 연다.
-- 8장/16개 사건/34개 story part가 작성돼 있다.
-- R2에는 `FIRST_LIGHT`부터 `LONGEST_NIGHT`까지 작성된 8장 모두가 누적 구현·자동검증돼 있다.
-- 마지막 authored result를 finale로 유지하고, 그 뒤 city report→medical witness→closing 세 epilogue
-  card와 세 Keep/Defer 약속 결과·남은 자금을 표시한다.
-- 실제 production mouse/keyboard 직접 플레이는 `NORTH_BANK_PROMISE`까지 누적 4장의 Keep과 명시적
-  Defer를 각각 fresh process에서 관찰했다.
-- product title의 누적 8장 진입, 모든 장의 stable 진행, story-idle active event·duty, queue-empty
-  exact-minute active in-chapter story와 non-final result→next briefing save/Continue seam은 구현됐다. zero-gap
-  suffix와 긴 chapter gap 뒤 briefing(+decision)을 FIFO로 복원한다. v3의 단일 application cursor는
-  initial-inclusive `closedStoryCount`이고 prior v2는 Restore에서 `+1`, prior v1은 all-closed로 읽는다.
-  full `ProductCampaign`의 current-v3 exact terminal 완료도 저장하며 fresh Continue는 epilogue 재생 없이
-  `Ended` read-only world를 연다. completed title의 `새 게임`은 기존 canonical bootstrap으로 첫 장부터 다시
-  시작하고 saveable 정상 exit가 same slot을 새 진행으로 교체한다. 명시적 chapter/through/fixture 개발
-  실행은 product save를 읽거나 쓰지 않는다. non-saveable 정상 exit는 직전 bytes를 보존하고 다음 safe
-  exit만 갱신한다. in-progress와 readable blocked save는 확인→raw sibling backup 뒤 canonical 새 게임을
-  시작하며 I/O failure는 차단한다. title/gameplay 공용 current R2 settings vertical slice와 strict
-  persistence, generated non-voice ambient와 live `Breaker/Energize/Outage` cue는 구현됐다. current R2
-  universal macOS ad-hoc package identity와 app-owned data 2B1, bounded default-scene lifecycle InputEvent
-  2B2 record v2도 완료됐다. packaged settings apply/fresh restore와 generated stream/bus one-start wiring은
-  확인했지만 실제 display·hardware input·audio device/speaker, 상태 전반의 청감·접근성 coverage, 전체 8장
-  packaged production-input, evaluation-ready authority와 공식 UX 점수는 없다.
+현재 저장소가 소유하는 목표는 **current R2 내부 후보**다. 다음 경로가 동일한
+current graph에 결속돼 있다.
 
-다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
-연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
-새 mechanic은 Core→intent/capability→Session→typed presentation→Godot adapter 순서로 연결한다. 화면
-표현만 바꾸는 작업은 presenter와 owning UI에서 시작하며 Core hash를 바꾸지 않는다.
+- 실시간 8장, 16개 사건, 34개 story part와 finale→epilogue 3장
+- 제품 title·New Game·Continue·reset, current-v3 save, title/gameplay 공용 settings
+- generated non-voice ambient와 typed live operation cue, flood/heat 상태 표현,
+  `Reduce Motion` weather 동작
+- universal macOS ad-hoc internal ZIP의 strict package identity와 app-owned data/lifecycle combined 2B
+  qualification
 
-## 권장 순서
+이 완료선은 실제 hardware·사람 검수, score-bearing 평가, Developer ID·공증·공개
+배포 승인을 포함하지 않는다. 그 항목은 미완료 주장을 삭제하지 않고
+[외부 출시 gate](RELEASE_GATES.md)에 별도로 보존한다.
 
-### 1. 시청각·설정·조작성·접근성 마감
+## 다시 여는 규칙
 
-현재 G3 적용을 출발점으로 정상·공사·폭염·범람·비상·보호정지·냉각·복귀 화면을 실제 플레이에서
-검수한다. player settings surface와 source-tree fresh-process persistence, generated non-voice ambient와
-live operation cue mapping, exact candidate의 title settings apply/fresh restore와 headless UI/audio-bus
-projection은 완료됐다. 남은 일은 실제 display·hardware input·audio device에서 상태 전반의 시청각·
-조작성·접근성 coverage와 gameplay settings/focus 복귀를 검수하는 것이다.
-과거 V2의 자산은 current runtime authority가 아니다.
-아트·audio 파일의 존재가 아니라 화면 밀도, 설비
-실루엣, 상태 인과, sound cue, hit target과 프레임 성능을 판정한다.
+새 구현은 다음 중 하나가 있을 때만 작은 [현재 작업 범위](ACTIVE_SCOPE.md)로 연다.
 
-완료 기준:
+1. 외부 gate의 exact package 관찰에서 재현 가능한 제품 결함이 발견됨
+2. 사용자가 internal R2 후보를 넘는 새 제품 목표를 명시함
 
-- FHD와 UHD, UI 100/125/150/200%의 가독성
-- 정상 조작·공사·폭염·범람·보호정지·냉각·복귀·finale의 화면과 audio가 같은 Core 상태를 말함
-- title과 pause에서 settings를 열고 원래 여정·focus로 돌아갈 수 있음
-- window mode, master/ambient/SFX volume·mute, UI scale과 Reduce Motion을 제품 UI에서 바꿀 수 있고
-  fresh process에서 복원
-- mouse와 keyboard 동등 조작, focus 복구와 색 외 cue
-- audio를 꺼도 필수 상태·경고·행동을 시각·icon·문장 cue로 동일하게 읽을 수 있음
-- hover와 선택 상세 overlay가 world를 과도하게 가리지 않음
-- 사람 미감·사용성, 한국어와 전력설비 검토의 이슈 처리
-
-1.0의 audio는 non-voice ambient와 interaction/state cue 범위다. 음성 연기는 이 단계에 포함하지 않는다.
-
-### 2. score-bearing 평가 권위와 공식 LLM-as-a-judge
-
-현재 `tools/commercial-ux/native/`는 구조·거부 경로를 위한 non-score 기준선이므로 그대로 공식 점수를
-내지 않는다. 완료된 2B-qualified exact package를 소비하는 versioned evaluation-session authority, native
-capture, judge input, evidence verifier, deterministic hard-gate oracle과 score aggregator를 current
-R2용으로 구현·검증한다. 그 다음 새 설치 cold journey와 고정 coverage journey를 수집한다.
-
-judge는 `gpt-5.6-sol`, reasoning effort `ultra`를 사용한다. [평가 프로토콜](product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)의
-rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지 원인 단위로 개선한다.
-
-완료 기준:
-
-- rubric, hard gate, candidate, source, evidence, model identity·platform/API raw receipt와 aggregate가 한
-  versioned session에 결속되고 누락·불일치에서 fail-closed
-- UX-R0 파일을 덮어쓰지 않고 새 text/native context와 전체 current coverage를 별도 version으로 생성
-- fresh actor/judge와 검증 가능한 동일 evidence set
-- 필수 category와 hard gate를 포함한 공식 점수 87 이상
-- 점수와 별개로 사람 사용성·미감 검토의 출시 차단 이슈 0
-
-검증 가능한 score-bearing execution authority가 없으면 capture와 judgment는 non-score로만 보존하고
-`CommercialUXProxy = null`로 닫는다. 나중에 영수증을 붙여 공식 session으로 승격하지 않는다.
-
-### 3. 출시 준비와 배포 승인
-
-평가에 사용한 current R2 후보의 source와 product payload를 유지한 배포 후보를 준비한다. 서명·공증이
-추가하는 wrapper·metadata 차이는 별도 allowlist와 deterministic 검사로 한정한다. 내부 평가 package의
-통과를 서명·공증이나 공개 출시 승인으로 해석하지 않는다.
-
-완료 기준:
-
-- 지원 OS/하드웨어, 설정·save 경로와 제거/업데이트 정책
-- 라이선스·자산 권리·고지 검토
-- 평가 후보와 배포 후보의 차이가 허용된 signing/notarization metadata뿐임을 재검증
-- signed/notarized artifact를 빈 user-data에 fresh-install해 title boot와 기본 입력 smoke 재검증
-- product payload나 gameplay-affecting contents가 달라지면 2A manifest/archive, combined 2B record와
-  2번 평가 session을 다시 생성
-- Developer ID 서명·공증과 공개 출시 여부의 명시적 소유자 승인
-
-## 테스트 선택 원칙
-
-| 질문 | 가장 작은 올바른 시작점 |
-|---|---|
-| 문장·결과 하나가 맞는가? | `./dev story <selector>` |
-| 특정 시각의 UI/Core 상태가 맞는가? | `./dev checkpoint <CHECKPOINT_ID>` |
-| 한 장의 누적 전환이 맞는가? | catalog가 명시적으로 지원하는 `./dev play through <CHAPTER_ID>` |
-| 첫 경험·저장·누적 선택·전체 완결성이 맞는가? | fresh-process E2E |
-| 미감·이해·재미가 충분한가? | 실제 화면의 사람/LLM 관찰 |
-
-unit 테스트가 가능하도록 새 story 구간도 독립 selector를 먼저 제공한다. 다만 unit fixture가 production
-controller나 앞선 누적 상태를 흉내 내서 E2E 증거를 대체하게 만들지 않는다.
+이때도 결함/목표 하나의 단일 권위, 범위 밖 항목과 가장 작은 완료 검사를 먼저
+적는다. 물리 장치나 사람 관찰을 흉내 내는 대형 headless harness, 실행 권위 없는
+score platform, 승인 전 release automation은 미리 만들지 않는다.

@@ -2,8 +2,9 @@
 
 > 한 줄 소개: **살아 움직이는 산업도시 위에 설명 가능하고 여유 있는 전력망을 건설하라.**
 
-이 문서는 장기 제품 경험만 정의한다. 현재 구현 권한은 [현재 작업 범위](../ACTIVE_SCOPE.md), 단계
-순서는 [남은 작업](../NEXT_TASKS.md), 시각 표현은 [비주얼 제작 명세](VISUAL_PRODUCTION_SPEC.md),
+이 문서는 장기 제품 경험만 정의한다. 현재 구현 권한은 [현재 작업 범위](../ACTIVE_SCOPE.md), repository
+backlog는 [남은 구현 작업](../NEXT_TASKS.md), 외부 증거·승인은 [출시 gate](../RELEASE_GATES.md),
+시각 표현은 [비주얼 제작 명세](VISUAL_PRODUCTION_SPEC.md),
 설비와 표현 coverage는 [오브젝트 카탈로그](OBJECT_CATALOG.md)가 소유한다.
 
 ## 1. 플레이어와 도시
@@ -125,7 +126,8 @@ Gridworks의 지도는 밝고 깨끗한 도시 builder도, 파란 선 위주의 
 긴 컷신·음성은 만들지 않는다. 브리핑, 핵심 사건과 결과만 짧게 쓴다.
 
 이 문서는 8장 목표 경험만 소유한다. 현재 native 구현·직접 관찰 범위는 [루트 README](../../README.md),
-아직 구현하지 않은 순서와 완료 조건은 [남은 작업](../NEXT_TASKS.md)에서만 갱신한다.
+repository 구현 backlog는 [남은 구현 작업](../NEXT_TASKS.md), 미실행 device·사람·출시 검수는
+[외부 출시 gate](../RELEASE_GATES.md)에서만 갱신한다.
 
 ## 9. 문체와 접근성
 
@@ -133,7 +135,9 @@ Gridworks의 지도는 밝고 깨끗한 도시 builder도, 파란 선 위주의 
 - 버튼은 `전신주 놓기`, `선로 잇기`, `공사 발주`처럼 대상과 행동을 함께 쓴다.
 - 기계 ID, enum, raw exception과 구현 단계 이름을 플레이어에게 보이지 않는다.
 - 돈·전력·시각은 `370만 원`, `2.5 MW`, `2일차 06:45`처럼 의미와 단위를 붙인다.
-- mouse와 keyboard를 동등하게 지원하고 focus·pause reason을 복원한다.
+- title·settings·modal·HUD·tool·timeline과 겹친 후보 선택은 keyboard로 완결하고 focus·
+  pause reason을 복원한다. 연속 좌표 map pan/zoom/free placement는 pointer-owned spatial
+  interaction으로 둔다.
 - 색만으로 연결·건설·비상·정지를 구분하지 않는다.
 - motion reduction에서 필수 정보와 상태 구분이 사라지지 않는다.
 

@@ -13,7 +13,8 @@ non-saveable 정상 종료의 prior-save 보존과 readable save의 확인·back
 전용 universal macOS ad-hoc 내부 package identity 후보와 strict verifier는 있다. exact package의
 app-owned save/settings 2B1과 default-scene lifecycle InputEvent 2B2 qualification도 완료됐다. 다만 engine
 user-data 전체 격리, 전체 8장 packaged production 입력, 실제 audio device·speaker, Developer ID·공증 또는
-출시 후보 qualification은 아직 없다. 제품 title과
+출시 후보 qualification은 아직 없다. 이들은 [외부 출시 gate](docs/RELEASE_GATES.md)로 분리한다.
+제품 title과
 gameplay는 current R2 설정 surface를 공유하고, window mode, UI 배율,
 Master/Ambient/SFX volume·mute와 Reduce Motion을 별도 strict 파일에 저장한다. 과거 V2의 저장·설정
 파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다. `RealtimeAudio`는 별도 음원 파일 없이
@@ -258,4 +259,5 @@ evaluation readiness, 지원 OS 일반화, Developer ID·공증 또는 공개 �
 fail-closed한다. current candidate 명령은 current selector를 직접 설정한다. frozen V2 내부 경로는 legacy
 selector만 쓰며 current R2 후보로 해석하지 않는다. 상세 graph와 claim 경계는
 [개발 구조](docs/ARCHITECTURE.md), 남은 제품 마감·평가·배포 gate는
-[남은 작업](docs/NEXT_TASKS.md)을 따른다.
+[외부 출시 gate](docs/RELEASE_GATES.md)를 따른다. 현재 [repository 구현 backlog](docs/NEXT_TASKS.md)는
+비어 있다.

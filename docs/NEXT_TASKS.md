@@ -33,9 +33,9 @@
   exit만 갱신한다. in-progress와 readable blocked save는 확인→raw sibling backup 뒤 canonical 새 게임을
   시작하며 I/O failure는 차단한다. title/gameplay 공용 current R2 settings vertical slice와 strict
   persistence, generated non-voice ambient와 live `Breaker/Energize/Outage` cue는 구현됐다. packaged
-  settings/audio 재검증과 상태 전반의 청감·접근성 coverage는 남았다. current R2 전용 universal macOS
-  ad-hoc package identity 후보와 strict manifest/verifier는 구현됐지만 fresh-user-data 전체 여정이나 평가
-  후보 qualification, 공식 UX 점수는 없다.
+  settings UI/audio 재검증과 상태 전반의 청감·접근성 coverage는 남았다. current R2 전용 universal macOS
+  ad-hoc package identity 후보·strict manifest/verifier와 app-owned save/settings 2B1 qualification은
+  구현됐지만 packaged production-input 전체 여정이나 평가 후보 qualification, 공식 UX 점수는 없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
 연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
@@ -49,8 +49,8 @@
 현재 G3 적용을 출발점으로 정상·공사·폭염·범람·비상·보호정지·냉각·복귀 화면을 실제 플레이에서
 검수한다. player settings surface와 source-tree fresh-process persistence, generated non-voice ambient와
 live operation cue mapping은 완료됐다. 남은 일은 실제 상태 전반에서 시청각·조작성·접근성 coverage를
-검수하고 exact candidate에서 settings와 audio playback을 다시 검증하는 것이다. 과거 V2의 자산은 current
-runtime authority가 아니다.
+검수하고 exact candidate에서 settings UI 조작·runtime projection과 audio playback을 검증하는 것이다.
+과거 V2의 자산은 current runtime authority가 아니다.
 아트·audio 파일의 존재가 아니라 화면 밀도, 설비
 실루엣, 상태 인과, sound cue, hit target과 프레임 성능을 판정한다.
 
@@ -70,30 +70,26 @@ runtime authority가 아니다.
 
 ### 2. current R2 packaged product-data qualification과 전체 E2E
 
-2A에서 과거 V2와 분리된 current R2 internal package identity ZIP, strict manifest/verifier와 임시 설치
-위치의 headless title marker 확인을 완료했다. 2B는 구현 난이도와 증거 상한이 다른 두 단위다. 2B1은
-exact package가 별도 빈 Gridworks-owned save/settings root를 fresh process마다 읽는지 결속한다. 2B2는 그
-후보를 실제 default-scene InputEvent로 조작해 전체 여정과 audio를 검증한다. app-owned root는 Godot engine
-`user://` 전체나 새 OS account가 아니며, engine `Viewport.PushInput`도 OS hardware input은 아니다. 새
-packager 계층을 만들지 않고 qualification record만 package manifest identity에 결속한다.
+2A의 current R2 internal package identity와 2B1의 exact-empty app-owned save/settings fresh-process
+qualification은 완료됐다. 2B1 record는 source/package/tool, missing/settings/initial/terminal stage와 실제
+default 두 파일·app tree 불변을 결속한다. 이는 Godot engine `user://` 전체나 새 OS account 격리가 아니다.
 
-완료 기준:
+남은 2B2는 그 exact candidate를 default-scene `Viewport.PushInput`으로 조작해 전체 제품 여정과 audio
+request를 검증하는 가장 작은 단위다. engine 입력은 OS hardware input이나 speaker 청감 증거가 아니다.
+packager를 복제하지 않고 2B1 record를 먼저 독립 재검증한 뒤 그 identity를 소비한다.
 
-- 기존 strict verifier를 통과한 clean-HEAD current R2 package와 exact-empty app-owned save/settings root
-- fresh packaged title의 missing settings/save, source actual-scene이 만든 settings·initial save·terminal save의
-  fresh packaged load 분류와 source/package/tool identity를 strict 2B1 record에 결속
-- qualification env가 없을 때 기존 `user://` 동작 유지, 실제 default current save/settings bytes와 package
-  app tree의 실행 전후 불변
-- 2B2 시작 전 2B1 record의 독립 재검증
+2B2 완료 기준:
+
+- 시작할 exact candidate의 2B1 record를 독립 재검증하고 동일 source/package/tool identity를 유지
 - title→8장→finale→epilogue→완료 저장 재개와 completed `새 게임`의 production E2E
 - 진행 중 저장→프로세스 종료→동일 후보의 fresh process 재개
 - non-saveable exit의 prior-save 보존과 readable-save backup/reset을 packaged runtime에서 재검증
 - settings 변경→동일 후보의 fresh process 재실행→UI scale·Reduce Motion·volume/mute 값 복원
 - 개발 fixture와 checkpoint가 명시적 인자 없이는 평가 여정에 섞이지 않음
-- source commit, package manifest/archive/tree identity, target OS/runtime과 app-owned save/settings root를
-  qualification record에 결속
-- qualification verifier가 누락·변조·다른 source/package/user-data에서 fail-closed
-- qualification 중 package contents가 바뀌면 기존 record를 폐기하고 새 package/qualification을 만듦
+- packaged generated audio의 stream/bus/play request와 essential visual cue 동등성을 상태별로 확인
+- 2B2 record가 2B1 source/package/tool identity와 input journey·save/settings/audio 결과를 결속하고
+  누락·변조·다른 candidate에서 fail-closed
+- qualification 중 package contents가 바뀌면 기존 2B1/2B2 record를 폐기하고 다시 생성
 
 ### 3. score-bearing 평가 권위와 공식 LLM-as-a-judge
 

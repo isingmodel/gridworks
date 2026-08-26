@@ -32,8 +32,8 @@ OS 호환성이나 출시 승인을 대신하지 않는다.
 | 실시간 장 일정·사건·결정 기한 | `data/release-campaign-v3.json` |
 | 실시간 규칙 | `src/Gridworks.Core/Release/V3/` |
 | native UX | `game/realtime/r2/`, `game/realtime/ui/` |
-| 제품 title·이어하기·settings·audio | 2B qualification을 통과한 exact current R2 package의 실제 runtime |
-| 평가 후보 | 2A manifest/archive identity와 2B qualification record가 함께 고정한 exact package contents |
+| 제품 title·이어하기·settings·audio | 2B1+2B2 qualification을 통과한 exact current R2 package의 실제 runtime |
+| 평가 후보 | 2A manifest/archive identity와 2B1/2B2 record가 함께 고정한 exact package contents |
 | score-bearing model identity·freshness | 같은 session에 결속된 검증 가능한 platform/API raw receipt |
 | 사건 지평선(future-event bar) | `game/realtime/ui/RealtimeEventRail.cs`와 typed presentation |
 | 점수 label·weight·수치 reduction | `tools/commercial-ux/rubric.json` |
@@ -87,7 +87,7 @@ actor는 judge가 아니며 judge는 게임을 대신 조작하지 않는다. ac
 ## 4. 게임 완결성 coverage
 
 공식 native session은 전체 여정, title/이어하기, save, settings, audio와 exact install package가
-완성되고 2A package manifest와 그 identity에 결속된 2B qualification record가 finalized된 뒤에만 시작한다.
+완성되고 2A package manifest와 그 identity에 결속된 2B1/2B2 records가 finalized된 뒤에만 시작한다.
 
 공식 native session은 다음을 모두 포함해야 한다.
 
@@ -233,15 +233,16 @@ deterministic failure 또는 blinded observation
   production-input E2E와 transient cursor는 이 증거에 포함되지 않음
 - title/gameplay 공용 current R2 settings, strict missing/invalid/unsupported/read/write fail-closed,
   create→fresh restore, explicit 개발 route read-only, UI scale·volume/mute·Reduce Motion과 local macOS
-  non-headless window-mode projection: deterministic wiring 완료. packaged candidate 복원이나 사람 접근성
-  증거는 아님
+  non-headless window-mode projection: deterministic wiring 완료. exact package의 app-owned settings bytes
+  fresh-process load 분류도 2B1 완료; packaged UI 조작이나 사람 접근성 증거는 아님
 - current R2 universal macOS ad-hoc package identity ZIP, strict manifest/verifier와 임시 설치 위치의 no-arg
-  headless title marker: 완료. 빈 user-data, 전체 packaged-campaign production 입력, packaged
-  settings/audio·speaker, 사람 UX 또는 evaluation-ready 증거는 아님
+  headless title marker: 완료. exact-empty app-owned root의 missing/settings/initial/terminal fresh-process
+  분류와 strict record도 2B1 완료. engine `user://` 전체, packaged-campaign production 입력,
+  settings UI/audio·speaker, 사람 UX 또는 evaluation-ready 증거는 아님
 - source-tree basic audio는 구현됐지만 packaged audio playback·상태 coverage·청감 품질, packaged settings
-  재검증과 score-bearing execution authority·oracle/aggregator: 미완료
+  UI 조작과 score-bearing execution authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음
 
-평가 실행은 전체 native 여정과 exact candidate의 2B packaged settings/audio qualification,
+평가 실행은 전체 native 여정과 exact candidate의 2B2 packaged settings UI/audio qualification,
 score-bearing execution authority가 모두 준비된 뒤 [남은 작업](../NEXT_TASKS.md)의 별도 scope로 연다.

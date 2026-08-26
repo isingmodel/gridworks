@@ -10,11 +10,14 @@ compile 시간이 아니라, 한 변경에 필요한 권위·분기·파일 추�
 ./dev
 ├─ build/check/story/checkpoint
 ├─ play product/fixture/chapter/through
-└─ candidate build/verify → tools/r2_candidate.py
+├─ candidate build/verify → tools/r2_candidate.py
+└─ qualify run/verify → tools/r2_qualification.py
 
 candidate build → clean HEAD + current ExportRelease selector + selected-resource preset
 → universal ad-hoc app/ZIP → independent manifest reconstruction → temporary-install headless title marker
 candidate verify → exact sibling ZIP + clean HEAD → same reconstruction/headless marker
+qualify run/verify → exact candidate private copy → empty app-owned data root
+→ packaged missing/settings/progress/completed classification → canonical record/fresh reconstruction
 
 launch argument → RealtimeLaunchCatalog
 ├─ no args → ProductTitle
@@ -114,6 +117,7 @@ chapter 정책을 찾기 위해 이 adapter부터 UI node 안쪽으로 내려가
 | Godot에서 어떻게 받아 그리고 focus를 옮기는가? | scene adapter와 owning UI node | `RealtimeSliceMain.cs`, `game/realtime/ui/` |
 | 무엇을 build·play·검사하는가? | `./dev`와 root `Gridworks.sln` | `dev`, `Gridworks.sln` |
 | current R2 package identity를 만들고 검증하는가? | `tools/r2_candidate.py` | `tools/r2_candidate.py`, `game/export_presets.cfg` |
+| exact package의 app-owned save/settings load/continuation 분류와 bytes 불변을 검증하는가? | `tools/r2_qualification.py` | `tools/r2_qualification.py`, `RealtimeSliceMain.cs`의 qualification env seam |
 
 한 규칙을 presenter나 Godot adapter에서 다시 계산하지 않는다. Core fact가 부족하면 Core의 snapshot 또는
 typed contract를 보강하고, application 전용 결정은 Session에서 한 번 계산해 presentation source로
@@ -176,8 +180,18 @@ marker를 확인한다.
 
 manifest의 `freshUserDataQualified`, `fullProductionInputE2E`, `humanQa`, `evaluationReady`,
 `developerIdSigned`, `notarized`, `scoreBearing` false ceiling은 구조 경계다. package identity/headless title
-marker는 packaged settings/audio도 qualification하지 않는다. 후속 record가 package tool을 복제하지 않고
-exact manifest/archive identity를 소비해야 한다.
+marker 자체는 packaged settings/audio를 qualification하지 않는다.
+
+app-owned persistence qualification의 단일 authority는 `tools/r2_qualification.py`와 `./dev qualify
+run | verify`다. candidate verifier를 재사용하고 manifest/archive를 private copy로 고정한 뒤, exact-empty
+Gridworks-owned root에서 source actual-scene이 만든 settings·initial save·terminal save를 fresh packaged
+title process가 `LOADED | RESTORABLE | COMPLETED`로 분류하는지 확인한다. record는 source/package/tool과
+각 stage file hash를 canonical JSON으로 결속하며 verify는 전부 새로 재구성한다. env가 없으면 Main은 기존
+`user://`를 사용한다.
+
+이 seam은 current save/settings 두 fixed filename만 소유한다. Godot engine `user://` 전체, packaged
+InputEvent, audio device·speaker와 사람 UX를 격리·검증했다고 해석하지 않는다. 그 상한은 record의 false
+claim으로 유지한다.
 
 ## 변경 종류별 가장 짧은 경로
 
@@ -292,6 +306,7 @@ exact manifest/archive identity를 소비해야 한다.
 ./dev story SWITCH_OFF_TO_PROTECT/result/standard
 ./dev check
 ./dev candidate verify dist/Gridworks-current-r2-macOS-internal.manifest.json
+./dev qualify verify dist/Gridworks-current-r2-macOS-internal.qualification.json
 ```
 
 가장 가까운 unit/story/checkpoint에서 시작하고, 완료 전 `./dev check`로 current root graph의 Debug

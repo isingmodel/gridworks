@@ -397,6 +397,26 @@ manifest의 `freshUserDataQualified`, `fullProductionInputE2E`, `humanQa`, `eval
 qualification하지 않았다. title smoke는 설치 위치만 임시화했으며 `user://`가 빈 상태임을 증명하지
 않는다. 후속 2B가 exact package identity를 소비해 이 qualification을 별도로 소유한다.
 
+### UX-R2.23 — packaged app-owned persistence qualification
+
+큰 2B를 가장 작은 2B1/2B2로 나누고, 2B1에서 exact current R2 package가 별도 Gridworks-owned root의
+save/settings bytes를 fresh process마다 읽는 경계만 닫았다. `RealtimeSliceMain`의 release-safe env seam은
+기존 absolute real directory 아래 current 두 fixed filename만 사용하며 env 없음은 기존 `user://`를
+유지한다. invalid·relative·missing·symlink root는 title bootstrap 전에 fail-closed한다.
+
+`tools/r2_qualification.py`와 `./dev qualify run | verify`가 2A verifier를 재사용하고 manifest/archive를
+private copy로 고정한다. exact-empty root의 missing/missing, source actual-scene이 만든 settings,
+initial save와 terminal save를 user-argument 없는 fresh packaged title process가 각각
+loaded/missing, loaded/restorable, loaded/completed로 분류해야 한다. source/package/tool, 각 stage marker와
+file hash를 canonical record로 결속하고 verify는 새 extraction/root에서 전부 재구성한다. 실제 account
+home의 current 두 파일과 package app tree는 전체 실행 전후 동일해야 한다. 각 packaged title stage의
+expected root files/bytes도 그 stage 전후 동일해야 한다.
+
+invalid root, type/key/canonical record mutation, targeted Debug/ExportRelease build, qualification run/verify,
+전체 `./dev check`와 두 bounded independent review를 통과했고 finding 0으로 닫혔다. 이 완료는 Godot engine
+`user://` 전체 격리, packaged InputEvent 전체 8장·reset/settings UI, audio device·speaker, 사람 UX,
+evaluation readiness, Developer ID·공증·출시를 뜻하지 않는다. push, PR, merge는 수행하지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

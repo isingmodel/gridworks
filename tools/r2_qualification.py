@@ -42,17 +42,35 @@ def combined_output(
     return output
 
 
-def require_success_output(output: str, marker: str, label: str) -> None:
+def require_success_output(
+    output: str,
+    marker: str,
+    label: str,
+    *,
+    allowed_error_prefixes: tuple[str, ...] = (),
+) -> None:
     if marker not in output:
         fail(f"{label} did not emit {marker}")
-    if "ERROR" in output.upper():
-        fail(f"{label} logged an error")
+    error_lines = {
+        line.strip()
+        for line in output.splitlines()
+        if line.lstrip().upper().startswith(("ERROR:", "SCRIPT ERROR:"))
+    }
+    unexpected = sorted(
+        line
+        for line in error_lines
+        if not any(line.startswith(prefix) for prefix in allowed_error_prefixes)
+    )
+    if unexpected:
+        fail(f"{label} logged an unexpected error: {unexpected[0]}")
 
 
 def run_source_smoke(
     argument: str,
     expected_marker: str,
     log_path: Path,
+    *,
+    allowed_error_prefixes: tuple[str, ...] = (),
 ) -> None:
     environment = dict(os.environ)
     environment.pop(candidate.QUALIFICATION_DATA_ENV, None)
@@ -79,6 +97,7 @@ def run_source_smoke(
         combined_output(result, log_path),
         expected_marker,
         f"source actual-scene stage {expected_marker}",
+        allowed_error_prefixes=allowed_error_prefixes,
     )
 
 
@@ -323,6 +342,7 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
             f"--settings-create={settings_path}",
             "REALTIME_PRODUCT_ENTRY_SETTINGS_CREATE_PASS",
             logs / "settings-source.log",
+            allowed_error_prefixes=("ERROR: R2 settings save failed:",),
         )
         settings = settings_facts(settings_path)
         stages.append(

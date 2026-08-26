@@ -13,11 +13,10 @@
 - 한 줄 사건 지평선이 사건·공사·결정 기한·열 경계를 compact marker로 표시하고 상세 정보를
   hover 또는 선택으로 연다.
 - 8장/16개 사건/34개 story part가 작성돼 있다.
-- R2에는 `FIRST_LIGHT`부터 `SWITCH_OFF_TO_PROTECT`까지 누적 7장이 구현·자동검증돼 있다.
+- R2에는 `FIRST_LIGHT`부터 `LONGEST_NIGHT`까지 작성된 8장 모두가 누적 구현·자동검증돼 있다.
 - 실제 production mouse/keyboard 직접 플레이는 `NORTH_BANK_PROMISE`까지 누적 4장의 Keep과 명시적
   Defer를 각각 fresh process에서 관찰했다.
-- R2 save/resume, 남은 1장, finale/epilogue, product audio·settings, current R2 패키지와 공식 UX 점수는
-  없다.
+- R2 save/resume, finale/epilogue, product audio·settings, current R2 패키지와 공식 UX 점수는 없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
 연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
@@ -26,24 +25,7 @@
 
 ## 권장 순서
 
-### 1. 남은 1장 native 구현
-
-작성된 마지막 장을 R2 Core/controller/presentation에 연결한다.
-
-1. `LONGEST_NIGHT`
-
-이 장은 별도 작은 scope로 연다. briefing, 준비시간, forecast, 사건 시작/종료, 플레이어 결정, authored
-result와 누적 8장 native route 종료를 같은 누적 상태에서 닫아야 한다. story part selector 단독 실행은 계속
-유지하되, 그 통과를 native 도달성으로 세지 않는다.
-
-완료 기준:
-
-- 8장이 동일한 망·자금·시계에서 순서대로 진행된다.
-- 각 장의 story/result가 작성 데이터와 일치한다.
-- 사건·공사·결정·열 경계가 한 줄 사건 지평선에 시간순으로 나타난다.
-- 장별 unit/checkpoint와 8장 누적 경로가 모두 통과한다.
-
-### 2. 캠페인 완결성과 저장
+### 1. 캠페인 완결성과 저장
 
 R2 save/resume, finale, 세 epilogue card, 누적 약속 결과와 완료 후 재개를 구현한다. 동결 V2 저장을
 그대로 현재 R2 저장이라고 주장하지 말고, Release.V3 상태에 맞는 권위를 정의한다.
@@ -56,7 +38,7 @@ R2 save/resume, finale, 세 epilogue card, 누적 약속 결과와 완료 후 �
 - 유효한 저장이 있을 때 `새 게임`의 확인·덮어쓰기 정책
 - 빈·손상·구버전 저장의 `이어하기` 비활성, 명시적 거부 또는 migration 정책과 원본 보존
 
-### 3. 시청각·설정·조작성·접근성 마감
+### 2. 시청각·설정·조작성·접근성 마감
 
 현재 G3 적용을 출발점으로 정상·공사·폭염·범람·비상·보호정지·냉각·복귀 화면을 실제 플레이에서
 검수한다. 아직 없는 current R2 product audio와 player settings surface를 먼저 구현하고, 과거 V2
@@ -77,7 +59,7 @@ audio/settings를 현재 권위로 재사용하지 않는다. 아트·audio 파�
 
 1.0의 audio는 non-voice ambient와 interaction/state cue 범위다. 음성 연기는 이 단계에 포함하지 않는다.
 
-### 4. current R2 fresh-install 후보와 전체 E2E
+### 3. current R2 fresh-install 후보와 전체 E2E
 
 과거 V2 내부 패키지가 아니라 current R2 전체 여정이 들어 있는 평가용 fresh-install 후보를 만든다.
 서명·공증·공개 배포는 아직 하지 않지만, 빈 user-data의 별도 설치 위치에서 production 입력만으로 전체
@@ -96,10 +78,10 @@ packager, finalized manifest와 manifest verifier의 권위를 함께 소유한�
 - candidate packager와 manifest verifier가 누락·변조·다른 source/package에서 fail-closed
 - capture 중 package contents가 바뀌면 기존 session을 폐기하고 새 candidate/session을 만듦
 
-### 5. score-bearing 평가 권위와 공식 LLM-as-a-judge
+### 4. score-bearing 평가 권위와 공식 LLM-as-a-judge
 
 현재 `tools/commercial-ux/native/`는 구조·거부 경로를 위한 non-score 기준선이므로 그대로 공식 점수를
-내지 않는다. 4번의 finalized candidate를 소비하는 versioned evaluation-session authority, native
+내지 않는다. 3번의 finalized candidate를 소비하는 versioned evaluation-session authority, native
 capture, judge input, evidence verifier, deterministic hard-gate oracle과 score aggregator를 current
 R2용으로 구현·검증한다. 그 다음 새 설치 cold journey와 고정 coverage journey를 수집한다.
 
@@ -118,7 +100,7 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 검증 가능한 score-bearing execution authority가 없으면 capture와 judgment는 non-score로만 보존하고
 `CommercialUXProxy = null`로 닫는다. 나중에 영수증을 붙여 공식 session으로 승격하지 않는다.
 
-### 6. 출시 준비와 배포 승인
+### 5. 출시 준비와 배포 승인
 
 평가에 사용한 current R2 후보의 source와 product payload를 유지한 배포 후보를 준비한다. 서명·공증이
 추가하는 wrapper·metadata 차이는 별도 allowlist와 deterministic 검사로 한정한다. 내부 평가 package의
@@ -130,7 +112,7 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 - 라이선스·자산 권리·고지 검토
 - 평가 후보와 배포 후보의 차이가 허용된 signing/notarization metadata뿐임을 재검증
 - signed/notarized artifact를 빈 user-data에 fresh-install해 title boot와 기본 입력 smoke 재검증
-- product payload나 gameplay-affecting contents가 달라지면 4번 candidate와 5번 평가 session을 다시 생성
+- product payload나 gameplay-affecting contents가 달라지면 3번 candidate와 4번 평가 session을 다시 생성
 - Developer ID 서명·공증과 공개 출시 여부의 명시적 소유자 승인
 
 ## 테스트 선택 원칙

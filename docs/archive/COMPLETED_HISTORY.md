@@ -143,6 +143,25 @@ result, 7장의 ordered result와 full-flow evidence, canonical 3-route cap을 R
 `./dev check`, 누적 Godot UI harness와 두 독립 review로 확인했다. production-input 직접 플레이의 관찰
 상한은 여전히 `NORTH_BANK_PROMISE`까지 4장이며 남은 native 장은 1개다.
 
+### UX-R2.9 — 여덟 번째 장 native 구현
+
+`LONGEST_NIGHT`까지 앞선 망·공사·자금·시계와 결과를 잇는 누적 8장 경로를 구현했다. 267990분에
+이전 종료 현금과 망을 상속하고 1,800,000원 grant를 더한 뒤, 새 공사나 Core command 없이 briefing과
+`FINAL_OPERATING_PLAN_WINDOW`를 닫고 세 사건을 진행했다. 최대수요에서는 authored 5개 수요를 모두
+연속 공급했고, 폭염 정점에서는 의료원 1,600 kW·정수장 1,400 kW를 공급하며 같은 실제 회선의
+268770분 비상 진입→268845분 보호정지→268935분 복귀를 기록했다. 마지막 범람 국면은
+`RIVER_FLOOD_ZONE`을 반영하면서 의료원·정수장 각 900 kW를 모든 duty segment에서 공급하고 새
+비상·보호정지를 만들지 않았다. 회선은 범람 시작 15분 전에 실제 복귀하므로 마지막 국면에 비상 설비가
+멈춘다고 말하는 authored planning 문구와 Core timing 사이에는 차이가 남는다. strict V2 문구를
+재작성하거나 불필요한 공사로 정지 구간을 늘리지 않고, authored card와 실제 열 기록을 각 권위대로
+보존했다.
+
+exact standard result, 8장의 ordered result와 full-flow evidence, `CampaignComplete=true`, canonical
+3-route cap을 Release build, 세 LONGEST_NIGHT story selector, `./dev check`, 누적 Godot UI harness와
+두 독립 review로 확인했다. 추가 authored native 장은 없지만 production-input 직접 플레이의 관찰 상한은
+여전히 `NORTH_BANK_PROMISE`까지 4장이다. finale·epilogue, save/package, 사람 UX 품질이나 공식 점수의
+증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

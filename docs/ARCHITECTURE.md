@@ -140,7 +140,7 @@ build와 기본 자동 회귀를 닫는다. 이 명령은 no-arg 제품 title과
 포함하지만, root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지 않는다. 해당
 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다. product title과 explicit fixture/native
 route의 launch 의미를 구조 변경의 불변조건으로 취급한다. session을 만드는 fixture와
-`FIRST_LIGHT`, `SECOND_SOURCE`, `SWITCH_OFF_TO_PROTECT` native route의 canonical state hash도 유지한다.
+`FIRST_LIGHT`, `SECOND_SOURCE`, `LONGEST_NIGHT` native route의 canonical state hash도 유지한다.
 자동 PASS는 사람 직접 플레이나 UX 품질의 증거가 아니다.
 
 ## 구조를 다시 얽히게 하는 신호

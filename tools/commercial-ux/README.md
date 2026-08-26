@@ -7,7 +7,7 @@
 ## 현재 사실
 
 - 작성 콘텐츠: 8장, 16개 사건, 34개 story part
-- R2 native 구현: `SWITCH_OFF_TO_PROTECT`까지 누적 7장
+- R2 native 구현: `LONGEST_NIGHT`까지 누적 8장
 - 실제 직접 플레이 관찰: `NORTH_BANK_PROMISE`까지 누적 4장 Keep·명시적 Defer 결과
 - text 형성평가: `TextPlanProxy = 83.4475`
 - 공식 native 평가: 미실행, `CommercialUXProxy` 없음
@@ -62,7 +62,7 @@ python3 tools/commercial-ux/build-text-plan-input.py \
 
 builder는 8장/16개 사건의 priority, 시작 offset, duration, forecast lead와 34개 story part,
 text-plan context가 기록한 coverage 상한을 하나의 입력에 묶는다. 현재 context의
-`FIRST_LIGHT_TARGETED_R2_SLICE_ONLY`는 UX-R0 형성평가 baseline을 보존한 값이며 현재 7장 구현 상태가
+`FIRST_LIGHT_TARGETED_R2_SLICE_ONLY`는 UX-R0 형성평가 baseline을 보존한 값이며 현재 8장 구현 상태가
 아니다. 다만 현재 기본 장면 사실은 갱신됐으므로 UX-R0의 byte-exact context는
 `playtests/commercial-ux-87-realtime/text-plan-r0/text-plan-context.json`에 따로 보존한다. 역사 panel은
 그 파일과 해당 README가 지정한 동결 도구 기준으로만 재검증한다. text-plan은 구현 화면을 보지 않으므로
@@ -109,10 +109,10 @@ checkpoint는 production controller·HUD signal·clock·presentation·world draw
 ## 4. `native/` 도구의 경계
 
 `native/`에는 candidate, session/attempt, evaluation chain, evidence artifact와 controlled transcript를
-fail-closed로 다루는 비점수 도구가 있다. 이들은 UX-R1에서 구조와 거부 경로를 검증했지만, current R2
-전체 캠페인 candidate와 실제 화면/audio evidence를 만들지 않는다.
+fail-closed로 다루는 비점수 도구가 있다. 이들은 UX-R1에서 구조와 거부 경로를 검증했지만, current R2의
+finale·epilogue를 포함한 전체 제품 여정 candidate와 실제 화면/audio evidence를 만들지 않는다.
 그 안의 pinned candidate는 historical editor-native/비기본 First Light 기준선이다. 설치 가능한 current
-R2 package가 아니며 title/이어하기/settings/audio/full-campaign evidence나 score-bearing model call을
+R2 package가 아니며 title/이어하기/settings/audio/finale·epilogue evidence나 score-bearing model call을
 만들지 않는다.
 
 따라서 다음 주장은 금지한다.
@@ -127,11 +127,12 @@ R2 package가 아니며 title/이어하기/settings/audio/full-campaign evidence
 - package gate 전에 수집한 artifact를 나중에 official session으로 승격하기
 - text score를 `CommercialUXProxy`로 승격하기
 
-공식 native 평가를 열 때는 [남은 작업](../../docs/NEXT_TASKS.md)의 full campaign, save/resume,
-audio/settings와 fresh-install candidate gate를 먼저 닫는다. 이 package gate가 current R2 candidate
-packager, finalized manifest와 verifier를 소유한다. 이어서 그 finalized candidate를 소비하는 versioned
-evaluation-session authority, capture, evidence verifier, hard-gate oracle과 score aggregator를 별도 gate로
-구현한다. 이 전환은 [평가 프로토콜](../../docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)의
+공식 native 평가를 열 때는 [남은 작업](../../docs/NEXT_TASKS.md)의 finale·epilogue 포함 전체 제품 여정,
+save/resume, audio/settings와 fresh-install candidate gate를 먼저 닫는다. 이 package gate가 current R2
+candidate packager, finalized manifest와 verifier를 소유한다. 이어서 그 finalized candidate를 소비하는
+versioned evaluation-session authority, capture, evidence verifier, hard-gate oracle과 score aggregator를
+별도 gate로 구현한다. 이 전환은
+[평가 프로토콜](../../docs/product/COMMERCIAL_UX_EVALUATION_PROTOCOL_KO.md)의
 rubric·hard gate·model receipt를 함께 결속하고 누락에서 fail-closed해야 한다. 기존 UX-R0 context와
 panel은 덮어쓰지 않으며, 새 version에서 current coverage와 evidence 상한을 다시 정의한다.
 

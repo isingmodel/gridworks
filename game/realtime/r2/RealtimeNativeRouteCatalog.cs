@@ -45,7 +45,7 @@ internal static class RealtimeNativeRouteCatalog
         "SECOND_SOURCE",
         "FULL_FLOW_E2E_PASS:TUTORIAL_THROUGH_SECOND_SOURCE");
 
-    internal static RealtimeNativeRoute ThroughNativeCoverage { get; } = Prefix(
+    internal static RealtimeNativeRoute ProductCampaign { get; } = Prefix(
         NativeThroughChapterId,
         "FULL_FLOW_E2E_PASS:RELEASE_FULL_CAMPAIGN_THROUGH_LONGEST_NIGHT");
 
@@ -53,7 +53,7 @@ internal static class RealtimeNativeRouteCatalog
     [
         FirstLight,
         TutorialThroughSecondSource,
-        ThroughNativeCoverage,
+        ProductCampaign,
     ]);
 
     internal static IReadOnlyList<RealtimeNativeRoute> All { get; } =
@@ -69,6 +69,13 @@ internal static class RealtimeNativeRouteCatalog
                 nameof(route));
         }
         return route;
+    }
+
+    internal static bool SupportsProductContinuation(RealtimeNativeRoute route)
+    {
+        route = RequireSupported(route);
+        return ReferenceEquals(route, ProductCampaign) ||
+            ReferenceEquals(route, FirstLight);
     }
 
     internal static RealtimeNativeRoute Parse(string[] arguments)

@@ -1942,7 +1942,7 @@ internal sealed partial class RealtimeSession
         _run.AcceptedCommands.Count > 0 &&
         IsStableProgressSnapshot(_run.GetSnapshot()) &&
         _interaction.ActiveModalId is null &&
-        _chapterStoryFlow.Active is null &&
+        _chapterStoryFlow.IsIdle &&
         !_epilogueFlow.Started &&
         _retainedFrameDebt.Count == 0 &&
         _interaction.Simulation is

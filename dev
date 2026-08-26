@@ -46,20 +46,23 @@ run_product_entry_smoke() {
 run_product_save_continue_smoke() {
     local smoke_dir
     local smoke_save
+    local legacy_save
     local invalid_save
     local unsupported_save
     local io_failure_save
     smoke_dir=$(mktemp -d "${TMPDIR:-/tmp}/gridworks-r2-save-smoke.XXXXXX")
     smoke_save="$smoke_dir/campaign.json"
+    legacy_save="$smoke_dir/legacy-first-light.json"
     invalid_save="$smoke_dir/invalid.json"
     unsupported_save="$smoke_dir/unsupported.json"
     io_failure_save="$smoke_dir/io-failure"
     run_product_entry_smoke -- "--save-create=$smoke_save"
     run_product_entry_smoke -- "--save-continue=$smoke_save"
+    run_product_entry_smoke -- "--save-legacy-continue=$legacy_save"
     run_product_entry_smoke -- "--save-invalid=$invalid_save"
     run_product_entry_smoke -- "--save-unsupported=$unsupported_save"
     run_product_entry_smoke -- "--save-io-failure=$io_failure_save"
-    rm -- "$smoke_save" "$invalid_save" "$unsupported_save"
+    rm -- "$smoke_save" "$legacy_save" "$invalid_save" "$unsupported_save"
     rmdir -- "$io_failure_save"
     rmdir -- "$smoke_dir"
 }

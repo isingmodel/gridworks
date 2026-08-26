@@ -20,6 +20,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         "res://realtime/r2/RealtimeSliceMain.tscn";
     private const string SaveCreatePrefix = "--save-create=";
     private const string SaveContinuePrefix = "--save-continue=";
+    private const string SaveLegacyContinuePrefix = "--save-legacy-continue=";
     private const string SaveInvalidPrefix = "--save-invalid=";
     private const string SaveUnsupportedPrefix = "--save-unsupported=";
     private const string SaveIoFailurePrefix = "--save-io-failure=";
@@ -30,6 +31,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         TechnicalFixture,
         CreateSave,
         ContinueSave,
+        LegacyContinueSave,
         InvalidSave,
         UnsupportedSave,
         IoFailureSave,
@@ -41,6 +43,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         bool DeleteSaveAfterRun);
 
     private sealed record SaveExpectation(
+        string RouteId,
         long Minute,
         string CanonicalStateSha256,
         int CommandCount);
@@ -56,7 +59,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         try
         {
             request = ParseRequest(OS.GetCmdlineUserArgs());
-            guardedBytes = PrepareGuardedSave(request);
+            guardedBytes = PrepareSaveFixture(request);
 
             viewport = new SubViewport
             {
@@ -92,7 +95,18 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     created = PrepareStableProgress(slice);
                     break;
                 case EntryMode.ContinueSave:
-                    await ValidateContinue(viewport, slice, request.SavePath!);
+                    await ValidateContinue(
+                        viewport,
+                        slice,
+                        request.SavePath!,
+                        RealtimeNativeRouteCatalog.ProductCampaign);
+                    break;
+                case EntryMode.LegacyContinueSave:
+                    await ValidateContinue(
+                        viewport,
+                        slice,
+                        request.SavePath!,
+                        RealtimeNativeRouteCatalog.FirstLight);
                     break;
                 case EntryMode.InvalidSave:
                 case EntryMode.UnsupportedSave:
@@ -122,6 +136,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     "REALTIME_PRODUCT_ENTRY_SAVE_CREATE_PASS",
                 EntryMode.ContinueSave =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_CONTINUE_PASS",
+                EntryMode.LegacyContinueSave =>
+                    "REALTIME_PRODUCT_ENTRY_SAVE_LEGACY_CONTINUE_PASS",
                 EntryMode.InvalidSave =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_INVALID_PASS",
                 EntryMode.UnsupportedSave =>
@@ -195,6 +211,13 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             path = arguments[0][SaveContinuePrefix.Length..];
         }
         else if (arguments[0].StartsWith(
+                     SaveLegacyContinuePrefix,
+                     StringComparison.Ordinal))
+        {
+            mode = EntryMode.LegacyContinueSave;
+            path = arguments[0][SaveLegacyContinuePrefix.Length..];
+        }
+        else if (arguments[0].StartsWith(
                      SaveInvalidPrefix,
                      StringComparison.Ordinal))
         {
@@ -228,8 +251,13 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         return new EntryRequest(mode, path, DeleteSaveAfterRun: false);
     }
 
-    private static byte[]? PrepareGuardedSave(EntryRequest request)
+    private static byte[]? PrepareSaveFixture(EntryRequest request)
     {
+        if (request.Mode == EntryMode.LegacyContinueSave)
+        {
+            PrepareLegacyFirstLightSave(request.SavePath!);
+            return null;
+        }
         if (request.Mode is not (
                 EntryMode.InvalidSave or
                 EntryMode.UnsupportedSave or
@@ -255,6 +283,43 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             : "{\"broken\":true}"u8.ToArray();
         File.WriteAllBytes(path, bytes);
         return bytes;
+    }
+
+    private static void PrepareLegacyFirstLightSave(string path)
+    {
+        if (File.Exists(path) || Directory.Exists(path))
+        {
+            throw new InvalidOperationException(
+                "A legacy-save smoke path must start absent.");
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        RealtimeSliceData data = RealtimeSliceResources.LoadNativeRelease(
+            typeof(RealtimeSliceMain).Assembly,
+            RealtimeNativeRouteCatalog.FirstLight);
+        var run = new RealtimeCampaignRun(data.Campaign, data.World);
+        RealtimeCommandResult draft = run.ApplyCommand(RealtimeCommand.SetNodeDraft(
+            "SMALL_SUBSTATION",
+            new MapPoint(2100, 700)));
+        Require(draft.Accepted, "Unable to create the legacy FIRST_LIGHT node draft.");
+        RealtimeCommandResult order = run.ApplyCommand(RealtimeCommand.OrderNode());
+        Require(order.Accepted, "Unable to create the legacy FIRST_LIGHT node order.");
+        ActiveConstructionSnapshot construction =
+            order.Snapshot.Construction.ActiveConstruction ??
+            throw new InvalidOperationException(
+                "The legacy FIRST_LIGHT order created no construction.");
+        long savedMinute = checked(order.Snapshot.Minute + 15);
+        Require(savedMinute < construction.CompletionMinute,
+            "The legacy FIRST_LIGHT save is not mid-construction.");
+        _ = run.AdvanceTo(savedMinute);
+        Require(RealtimeSession.IsStableProgressSnapshot(run.GetSnapshot()),
+            "The legacy FIRST_LIGHT save is not stable.");
+        RealtimeCampaignSaveStore.Save(
+            path,
+            RealtimeCampaignSaveCodec.Capture(
+                data.RequireSaveSourceIdentity(),
+                data.Campaign,
+                data.World,
+                run));
     }
 
     private static void ValidateGuardedSavePreserved(
@@ -320,11 +385,12 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         Require(slice.LaunchForSmoke.Kind == RealtimeLaunchKind.NativeRelease &&
                 ReferenceEquals(
                     slice.LaunchForSmoke.NativeRoute,
-                    RealtimeNativeRouteCatalog.FirstLight) &&
+                    RealtimeNativeRouteCatalog.ProductCampaign) &&
                 ReferenceEquals(
                     slice.SliceDataForSmoke.NativeRoute,
-                    RealtimeNativeRouteCatalog.FirstLight),
-            "New Game did not select the canonical FIRST_LIGHT native route.");
+                    RealtimeNativeRouteCatalog.ProductCampaign) &&
+                slice.OwnsProductProgressForSmoke,
+            "New Game did not select the product-owned cumulative native route.");
 
         RealtimeSliceData data = slice.SliceDataForSmoke;
         CommercialCampaignChapterDefinition authored = data.BaseCampaign.Chapters.Single(
@@ -335,14 +401,18 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         RealtimeModalPresentation briefing = slice.LatestPresentation.Modal ??
             throw new InvalidOperationException(
                 "New Game did not show the FIRST_LIGHT briefing.");
-        Require(data.Campaign.Chapters.Count == 1 &&
+        Require(data.Campaign.Chapters.Count ==
+                    RealtimeNativeRouteCatalog.ProductCampaign.SelectedChapterCount &&
                 data.Campaign.Chapters[0].Content.ChapterId ==
                     RealtimeCampaignOverlayLoader.FirstReleaseChapterId &&
+                data.Campaign.Chapters[^1].Content.ChapterId ==
+                    RealtimeNativeRouteCatalog.NativeThroughChapterId &&
                 briefing.Id == RealtimeR2Ids.ChapterBriefingModal &&
                 briefing.Eyebrow == authored.Briefing.Speaker &&
                 briefing.Heading == authored.Briefing.Title &&
                 briefing.Body == authored.Briefing.Body,
-            "New Game briefing is not the exact authored FIRST_LIGHT card.");
+            "New Game did not open the exact eight-chapter product route and " +
+            "authored FIRST_LIGHT briefing.");
         Require(briefing.PrimaryAction.Id == RealtimeR2Ids.BriefingContinueAction &&
                 briefing.PrimaryAction.Label == "도시 운영 시작" &&
                 briefing.PrimaryAction.Label != title.ContinueButton.Text,
@@ -390,6 +460,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         // adding wall-clock time between this expectation and normal tree exit.
         slice.FreezeAutonomousClockForSmoke();
         return new SaveExpectation(
+            slice.SliceDataForSmoke.RequireSaveSourceIdentity().RouteId,
             snapshot.Minute,
             slice.CanonicalStateSha256,
             slice.AcceptedCommandCount);
@@ -407,16 +478,20 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 },
             "Normal tree exit did not write a readable R2 save.");
         RealtimeCampaignSave save = load.Save!;
-        Require(save.SavedMinute == expected.Minute &&
+        Require(save.Source.RouteId == expected.RouteId &&
+                save.Source.RouteId ==
+                    RealtimeNativeRouteCatalog.ProductCampaign.LaunchArgument &&
+                save.SavedMinute == expected.Minute &&
                 save.CanonicalStateSha256 == expected.CanonicalStateSha256 &&
                 save.Commands.Count == expected.CommandCount,
-            "The written R2 save does not match the stable exit boundary.");
+            "The written R2 save does not match the product source and stable exit boundary.");
     }
 
     private async Task ValidateContinue(
         SubViewport viewport,
         RealtimeSliceMain slice,
-        string savePath)
+        string savePath,
+        RealtimeNativeRoute expectedRoute)
     {
         RealtimeCampaignSaveLoadResult load = RealtimeCampaignSaveStore.Load(savePath);
         Require(load is
@@ -429,14 +504,14 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         Require(RealtimeNativeRouteCatalog.TryResolve(
                     save.Source.RouteId,
                     out RealtimeNativeRoute? route) &&
-                route is not null,
+                ReferenceEquals(route, expectedRoute),
             "The saved route is unavailable in the fresh process.");
         RealtimeSliceData data = RealtimeSliceResources.LoadNativeRelease(
             typeof(RealtimeSliceMain).Assembly,
-            route!);
+            expectedRoute);
         RealtimeCampaignRestoreResult expectedRestore =
             RealtimeCampaignSaveCodec.Restore(
-                save.Source,
+                data.RequireSaveSourceIdentity(),
                 data.Campaign,
                 data.World,
                 save);
@@ -460,7 +535,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "Continue did not replace the title with restored gameplay.");
         Require(slice.LaunchForSmoke.Kind == RealtimeLaunchKind.NativeRelease &&
                 ReferenceEquals(slice.LaunchForSmoke.NativeRoute, route) &&
-                ReferenceEquals(slice.SliceDataForSmoke.NativeRoute, route),
+                ReferenceEquals(slice.SliceDataForSmoke.NativeRoute, route) &&
+                slice.OwnsProductProgressForSmoke,
             "Continue did not preserve the saved canonical route.");
 
         RealtimeCampaignSnapshot actual = slice.CoreSnapshot;
@@ -570,10 +646,16 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         [
             RealtimeNativeRouteCatalog.FirstLight,
             RealtimeNativeRouteCatalog.TutorialThroughSecondSource,
-            RealtimeNativeRouteCatalog.ThroughNativeCoverage,
+            RealtimeNativeRouteCatalog.ProductCampaign,
         ];
-        Require(RealtimeNativeRouteCatalog.All.Count == expected.Length,
-            "Native route catalog count drifted.");
+        Require(RealtimeNativeRouteCatalog.All.Count == expected.Length &&
+                RealtimeNativeRouteCatalog.SupportsProductContinuation(
+                    RealtimeNativeRouteCatalog.ProductCampaign) &&
+                RealtimeNativeRouteCatalog.SupportsProductContinuation(
+                    RealtimeNativeRouteCatalog.FirstLight) &&
+                !RealtimeNativeRouteCatalog.SupportsProductContinuation(
+                    RealtimeNativeRouteCatalog.TutorialThroughSecondSource),
+            "Native route catalog or product-continuation policy drifted.");
         foreach (RealtimeNativeRoute route in expected)
         {
             RealtimeLaunchSelection launch = RealtimeSliceMain.ParseLaunchArguments(

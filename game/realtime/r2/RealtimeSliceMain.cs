@@ -21,6 +21,12 @@ internal sealed record RealtimeContinuation(
 /// </summary>
 internal sealed partial class RealtimeSliceMain : Control
 {
+    private enum ProgressPersistenceOwnership
+    {
+        None,
+        Product,
+    }
+
     private static readonly Vector2I RequiredLogicalCanvas = new(1920, 1080);
 
     private readonly Dictionary<RealtimePointerOwner, int> _clickCounters = [];
@@ -35,6 +41,8 @@ internal sealed partial class RealtimeSliceMain : Control
     private Window.ContentScaleAspectEnum _priorContentScaleAspect;
     private bool _logicalCanvasApplied;
     private bool _gameplayNodesWired;
+    private ProgressPersistenceOwnership _progressPersistenceOwnership =
+        ProgressPersistenceOwnership.None;
     private RealtimeLaunchSelection _launch =
         RealtimeLaunchSelection.TechnicalFixture;
 
@@ -212,7 +220,9 @@ internal sealed partial class RealtimeSliceMain : Control
             throw new InvalidOperationException(
                 "New Game is available only from the product title.");
         }
-        _launch = RealtimeLaunchSelection.Native(RealtimeNativeRouteCatalog.FirstLight);
+        _progressPersistenceOwnership = ProgressPersistenceOwnership.Product;
+        _launch = RealtimeLaunchSelection.Native(
+            RealtimeNativeRouteCatalog.ProductCampaign);
         _continuation = null;
         WireGameplayNodes();
         ShowGameplaySurface();
@@ -228,6 +238,7 @@ internal sealed partial class RealtimeSliceMain : Control
             throw new InvalidOperationException(
                 "Continue is available only for a validated product-title save.");
         }
+        _progressPersistenceOwnership = ProgressPersistenceOwnership.Product;
         _continuation = null;
         _launch = RealtimeLaunchSelection.Native(continuation.Route);
         WireGameplayNodes();
@@ -271,18 +282,18 @@ internal sealed partial class RealtimeSliceMain : Control
             if (!RealtimeNativeRouteCatalog.TryResolve(
                     save.Source.RouteId,
                     out RealtimeNativeRoute? route) ||
-                !ReferenceEquals(route, RealtimeNativeRouteCatalog.FirstLight))
+                !RealtimeNativeRouteCatalog.SupportsProductContinuation(route!))
             {
                 throw new RealtimeCampaignPersistenceException(
                     RealtimeCampaignPersistenceFailureKind.Invalid,
-                    "The save is not the standalone FIRST_LIGHT product route.");
+                    "The save route is not a supported product continuation.");
             }
             RealtimeSliceData data = RealtimeSliceResources.LoadNativeRelease(
                 typeof(RealtimeSliceMain).Assembly,
-                route);
+                route!);
             RealtimeCampaignRestoreResult restore =
                 RealtimeCampaignSaveCodec.Restore(
-                    SourceIdentity(data),
+                    data.RequireSaveSourceIdentity(),
                     data.Campaign,
                     data.World,
                     save);
@@ -293,7 +304,7 @@ internal sealed partial class RealtimeSliceMain : Control
                     RealtimeCampaignPersistenceFailureKind.Invalid,
                     "The saved run is outside the stable progress boundary.");
             }
-            _continuation = new RealtimeContinuation(route, data, restore);
+            _continuation = new RealtimeContinuation(route!, data, restore);
             RealtimeCampaignSnapshot snapshot = restore.Run.GetSnapshot();
             return new RealtimeProductTitlePresentation(
                 "저장된 청류시 운영을 이어갈 수 있습니다.",
@@ -318,16 +329,14 @@ internal sealed partial class RealtimeSliceMain : Control
     private void PersistProgress()
     {
         if (_session is null ||
-            !ReferenceEquals(
-                _launch.NativeRoute,
-                RealtimeNativeRouteCatalog.FirstLight))
+            _progressPersistenceOwnership != ProgressPersistenceOwnership.Product)
         {
             return;
         }
         try
         {
             if (Session.TryCaptureProgress(
-                    SourceIdentity(Session.Data),
+                    Session.Data.RequireSaveSourceIdentity(),
                     out RealtimeCampaignSave? save) &&
                 save is not null)
             {
@@ -340,23 +349,6 @@ internal sealed partial class RealtimeSliceMain : Control
         {
             GD.PushError($"R2 progress save failed: {exception.Message}");
         }
-    }
-
-    private static RealtimeCampaignSourceIdentity SourceIdentity(RealtimeSliceData data)
-    {
-        RealtimeNativeRoute route = RealtimeNativeRouteCatalog.RequireSupported(
-            data.NativeRoute ?? throw new InvalidOperationException(
-                "Only a canonical native route may be saved."));
-        return new RealtimeCampaignSourceIdentity(
-            route.LaunchArgument,
-            data.BaseWorldSha256,
-            data.BaseCampaignSha256,
-            data.WorldSha256,
-            data.CampaignOverlaySha256 ?? throw new InvalidOperationException(
-                "A native save requires the realtime overlay identity."),
-            data.CampaignSha256,
-            data.FullComposedCampaignSha256 ?? throw new InvalidOperationException(
-                "A native save requires the full composed campaign identity."));
     }
 
     private string ResolveSavePath()

@@ -18,7 +18,25 @@ internal sealed record RealtimeSliceData(
     string CampaignSha256,
     RealtimeNativeRoute? NativeRoute,
     string? CampaignOverlaySha256,
-    string? FullComposedCampaignSha256);
+    string? FullComposedCampaignSha256)
+{
+    internal RealtimeCampaignSourceIdentity RequireSaveSourceIdentity()
+    {
+        RealtimeNativeRoute route = RealtimeNativeRouteCatalog.RequireSupported(
+            NativeRoute ?? throw new InvalidOperationException(
+                "Only a canonical native route may be saved."));
+        return new RealtimeCampaignSourceIdentity(
+            route.LaunchArgument,
+            BaseWorldSha256,
+            BaseCampaignSha256,
+            WorldSha256,
+            CampaignOverlaySha256 ?? throw new InvalidOperationException(
+                "A native save requires the realtime overlay identity."),
+            CampaignSha256,
+            FullComposedCampaignSha256 ?? throw new InvalidOperationException(
+                "A native save requires the full composed campaign identity."));
+    }
+}
 
 internal static class RealtimeSliceResources
 {

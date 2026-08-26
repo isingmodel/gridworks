@@ -49,6 +49,8 @@ internal sealed class RealtimeChapterStoryFlow
 
     internal RealtimeChapterStoryModalRequest? Active { get; private set; }
 
+    internal bool IsIdle => Active is null && _pending.Count == 0;
+
     internal void Reset()
     {
         _pending.Clear();

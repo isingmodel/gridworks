@@ -62,6 +62,8 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseFirstLightNoActionResult(failures), failures);
         RunCase("release-tutorial-through-second-source",
             () => ValidateReleaseTutorialThroughSecondSource(failures), failures);
+        RunCase("cumulative-stable-resume",
+            () => ValidateCumulativeStableResume(failures), failures);
         RunCase("release-through-longest-night-controller",
             () => ValidateReleaseThroughLongestNightController(failures), failures);
         RunCase("release-promise-result-branches",
@@ -2522,11 +2524,11 @@ internal static class RealtimeR2Smoke
                       StringComparer.Ordinal) &&
               RealtimeNativeRouteCatalog.All.All(item =>
                   item.SelectedChapterCount <=
-                      RealtimeNativeRouteCatalog.ThroughNativeCoverage
+                      RealtimeNativeRouteCatalog.ProductCampaign
                           .SelectedChapterCount) &&
-              RealtimeNativeRouteCatalog.ThroughNativeCoverage
+              RealtimeNativeRouteCatalog.ProductCampaign
                   .SelectedChapterCount == 8 &&
-              RealtimeNativeRouteCatalog.ThroughNativeCoverage
+              RealtimeNativeRouteCatalog.ProductCampaign
                   .FullFlowPassToken ==
                   "FULL_FLOW_E2E_PASS:RELEASE_FULL_CAMPAIGN_THROUGH_LONGEST_NIGHT",
             "native route catalog or explicit LONGEST_NIGHT cap drifted",
@@ -2536,7 +2538,7 @@ internal static class RealtimeR2Smoke
         {
             _ = RealtimeSliceResources.LoadNativeRelease(
                 typeof(RealtimeSliceMain).Assembly,
-                RealtimeNativeRouteCatalog.ThroughNativeCoverage with
+                RealtimeNativeRouteCatalog.ProductCampaign with
                 {
                     EndChapterId = "SWITCH_OFF_TO_PROTECT",
                     SelectedChapterCount = 7,
@@ -2864,6 +2866,110 @@ internal static class RealtimeR2Smoke
             failures);
     }
 
+    private static void ValidateCumulativeStableResume(ICollection<string> failures)
+    {
+        var live = new RealtimeSliceMain();
+        try
+        {
+            live.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.ProductCampaign);
+        }
+        catch
+        {
+            live.Free();
+            throw;
+        }
+        using var liveLifetime = live.FreeAfterSmoke();
+        RealtimeSliceData data = live.SliceDataForSmoke;
+        Check(live.ClosePresentedStoryModalForSmoke() is null,
+            "cumulative resume FIRST_LIGHT briefing did not close",
+            failures);
+        _ = BuildTutorialFirstLightNetwork(live, failures);
+        _ = live.AdvanceToForSmoke(1320);
+        RequireAuthoredTutorialModal(
+            live,
+            RealtimeChapterStoryModalPurpose.ChapterResult,
+            "FIRST_LIGHT",
+            null,
+            data.BaseCampaign.Chapters[0].ResultCards.Standard!,
+            failures);
+        Check(live.ClosePresentedStoryModalForSmoke() is not null,
+            "cumulative resume FIRST_LIGHT result did not queue SECOND_HEART briefing",
+            failures);
+        RequireAuthoredTutorialModal(
+            live,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "SECOND_HEART",
+            null,
+            data.BaseCampaign.Chapters[1].Briefing,
+            failures);
+        Check(live.ClosePresentedStoryModalForSmoke() is null &&
+              RealtimeSession.IsStableProgressSnapshot(live.CoreSnapshot),
+            "cumulative resume did not reach a story-idle SECOND_HEART boundary",
+            failures);
+
+        RealtimeCampaignSnapshot expectedSnapshot = live.CoreSnapshot;
+        string expectedHash = live.CanonicalStateSha256;
+        TimedRealtimeCommand[] expectedJournal = live.AcceptedCommands.ToArray();
+        RealtimeTransition[] expectedTransitions = live.EmittedTransitions.ToArray();
+        RealtimeCampaignSave save = live.CaptureProgressForSmoke();
+
+        var resumed = new RealtimeSliceMain();
+        try
+        {
+            resumed.BootstrapNativeResumeForSmoke(
+                RealtimeNativeRouteCatalog.ProductCampaign,
+                save);
+        }
+        catch
+        {
+            resumed.Free();
+            throw;
+        }
+        using var resumedLifetime = resumed.FreeAfterSmoke();
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                  expectedSnapshot,
+                  resumed.CoreSnapshot) &&
+              string.Equals(
+                  expectedHash,
+                  resumed.CanonicalStateSha256,
+                  StringComparison.Ordinal) &&
+              resumed.AcceptedCommands.SequenceEqual(expectedJournal) &&
+              resumed.EmittedTransitions.SequenceEqual(expectedTransitions) &&
+              resumed.CoreSnapshot.ChapterIndex == 1 &&
+              resumed.CoreSnapshot.CompletedChapters.Select(item => item.ChapterId)
+                  .SequenceEqual(new[] { "FIRST_LIGHT" }, StringComparer.Ordinal),
+            "cumulative SECOND_HEART resume lost Core state, journal, or history",
+            failures);
+        Check(resumed.InteractionState is
+              {
+                  Simulation: RealtimeSimulationState.PlayerPaused,
+                  RunningSpeed: RealtimeSimulationSpeed.Normal,
+                  ActiveModalId: null,
+              } &&
+              resumed.LatestPresentation.Modal is null &&
+              resumed.ActiveChapterStoryModalForSmoke is null &&
+              resumed.AccumulatorSnapshot.Paused,
+            "cumulative SECOND_HEART resume did not apply paused/no-modal policy",
+            failures);
+
+        _ = resumed.AdvanceToForSmoke(1800);
+        RealtimeChapterStoryModalRequest? nextStory =
+            resumed.ActiveChapterStoryModalForSmoke;
+        Check(nextStory is
+              {
+                  Purpose: RealtimeChapterStoryModalPurpose.EventStory,
+                  ChapterId: "SECOND_HEART",
+                  EventId: "FLOOD_ISOLATION_TEST",
+              } &&
+              resumed.LatestPresentation.Modal?.Id ==
+                  RealtimeR2Ids.TutorialEventStoryModal(
+                      "SECOND_HEART",
+                      "FLOOD_ISOLATION_TEST"),
+            "cumulative resume replayed past story or missed the next authored story",
+            failures);
+    }
+
     private static void ValidateReleaseThroughLongestNightController(
         ICollection<string> failures)
     {
@@ -2871,7 +2977,7 @@ internal static class RealtimeR2Smoke
         try
         {
             slice.BootstrapNativeReleaseForSmoke(
-                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
+                RealtimeNativeRouteCatalog.ProductCampaign);
         }
         catch
         {
@@ -2879,6 +2985,9 @@ internal static class RealtimeR2Smoke
             throw;
         }
         using var sliceLifetime = slice.FreeAfterSmoke();
+        Check(!slice.OwnsProductProgressForSmoke,
+            "explicit cumulative development route acquired product-save ownership",
+            failures);
         (RealtimeSliceData data, string rootSubstationId) =
             AdvanceReleasePrefixToNorthBankPlanning(slice, failures);
 
@@ -3381,7 +3490,7 @@ internal static class RealtimeR2Smoke
         try
         {
             deferredSlice.BootstrapNativeReleaseForSmoke(
-                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
+                RealtimeNativeRouteCatalog.ProductCampaign);
         }
         catch
         {
@@ -3556,7 +3665,7 @@ internal static class RealtimeR2Smoke
         try
         {
             defaultedSlice.BootstrapNativeReleaseForSmoke(
-                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
+                RealtimeNativeRouteCatalog.ProductCampaign);
         }
         catch
         {
@@ -3741,7 +3850,7 @@ internal static class RealtimeR2Smoke
         try
         {
             deferSafetyFailureSlice.BootstrapNativeReleaseForSmoke(
-                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
+                RealtimeNativeRouteCatalog.ProductCampaign);
         }
         catch
         {
@@ -3811,7 +3920,7 @@ internal static class RealtimeR2Smoke
         try
         {
             promiseFailureSlice.BootstrapNativeReleaseForSmoke(
-                RealtimeNativeRouteCatalog.ThroughNativeCoverage);
+                RealtimeNativeRouteCatalog.ProductCampaign);
         }
         catch
         {
@@ -3869,7 +3978,7 @@ internal static class RealtimeR2Smoke
     {
         RealtimeSliceData data = slice.SliceDataForSmoke;
         Check(data.NativeRoute ==
-                  RealtimeNativeRouteCatalog.ThroughNativeCoverage &&
+                  RealtimeNativeRouteCatalog.ProductCampaign &&
               data.CampaignSha256 ==
                   "7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09" &&
               data.Campaign.Chapters.Select(item => item.Content.ChapterId)
@@ -3889,7 +3998,7 @@ internal static class RealtimeR2Smoke
               data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 16 &&
               RealtimeSliceMain.ParseLaunchArguments(
                   ["--release-through=LONGEST_NIGHT"]).NativeRoute ==
-                  RealtimeNativeRouteCatalog.ThroughNativeCoverage,
+                  RealtimeNativeRouteCatalog.ProductCampaign,
             "LONGEST_NIGHT exact route/prefix identity drifted: " +
             data.CampaignSha256,
             failures);

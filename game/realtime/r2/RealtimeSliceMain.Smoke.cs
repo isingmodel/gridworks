@@ -110,6 +110,9 @@ internal sealed partial class RealtimeSliceMain
         _savePathOverrideForSmoke = absolutePath;
     }
 
+    internal bool OwnsProductProgressForSmoke =>
+        _progressPersistenceOwnership == ProgressPersistenceOwnership.Product;
+
     internal RealtimeUiRoot UiForSmoke => _ui ??
         throw new InvalidOperationException("Scene UI is not ready.");
 
@@ -354,6 +357,39 @@ internal sealed partial class RealtimeSliceMain
         Bootstrap();
     }
 
+    internal RealtimeCampaignSave CaptureProgressForSmoke()
+    {
+        EnsureBootstrapped();
+        if (!Session.TryCaptureProgress(
+                Session.Data.RequireSaveSourceIdentity(),
+                out RealtimeCampaignSave? save) ||
+            save is null)
+        {
+            throw new InvalidOperationException(
+                "The smoke session is outside the stable progress boundary.");
+        }
+        return save;
+    }
+
+    internal void BootstrapNativeResumeForSmoke(
+        RealtimeNativeRoute route,
+        RealtimeCampaignSave save)
+    {
+        ArgumentNullException.ThrowIfNull(route);
+        ArgumentNullException.ThrowIfNull(save);
+        route = RealtimeNativeRouteCatalog.RequireSupported(route);
+        RealtimeSliceData data = RealtimeSliceResources.LoadNativeRelease(
+            typeof(RealtimeSliceMain).Assembly,
+            route);
+        RealtimeCampaignRestoreResult restore = RealtimeCampaignSaveCodec.Restore(
+            data.RequireSaveSourceIdentity(),
+            data.Campaign,
+            data.World,
+            save);
+        _launch = RealtimeLaunchSelection.Native(route);
+        Bootstrap(data, restore);
+    }
+
     internal bool ClosePresentedPrimaryModalForSmoke()
     {
         RealtimeModalPresentation modal = Session.LatestPresentation.Modal ??
@@ -538,6 +574,8 @@ internal sealed partial class RealtimeSliceMain
     internal RealtimeFrameAccumulatorSnapshot AccumulatorSnapshot =>
         Session.AccumulatorSnapshot;
     internal RealtimeInteractionState InteractionState => Session.InteractionState;
+    internal IReadOnlyList<TimedRealtimeCommand> AcceptedCommands =>
+        Session.AcceptedCommands;
     internal int AcceptedCommandCount => _session?.AcceptedCommandCount ?? 0;
     internal long CommandSequence => _session?.CommandSequence ?? 1;
     internal long CurrentMinute => CoreSnapshot.Minute;

@@ -506,6 +506,142 @@ internal sealed class Checks
                 _world,
                 changedHash),
             "changed final state hash");
+
+        CampaignSaveFullRouteStableReplay();
+    }
+
+    private void CampaignSaveFullRouteStableReplay()
+    {
+        RealtimeCampaignOverlayLoadResult loaded =
+            RealtimeCampaignOverlayLoader.LoadAll(
+                _releaseBaseCampaignBytes,
+                _releaseCampaignOverlayBytes,
+                _releaseWorld);
+        var identity = new RealtimeCampaignSourceIdentity(
+            "--release-through=LONGEST_NIGHT",
+            new string('a', 64),
+            loaded.SourceIdentity.BaseCampaignSha256,
+            new string('c', 64),
+            loaded.SourceIdentity.RealtimeOverlaySha256,
+            loaded.SourceIdentity.SelectedComposedCampaignSha256,
+            loaded.SourceIdentity.FullComposedCampaignSha256);
+        var live = new RealtimeCampaignRun(loaded.Campaign, _releaseWorld);
+        var expectedTransitions = new List<RealtimeTransition>();
+
+        RealtimeCommandResult draft = live.ApplyCommand(
+            RealtimeCommand.SetNodeDraft(
+                "SMALL_SUBSTATION",
+                new MapPoint(2100, 700)));
+        Accepted(draft, "full-route save node draft");
+        expectedTransitions.AddRange(draft.Transitions);
+        RealtimeCommandResult order = live.ApplyCommand(RealtimeCommand.OrderNode());
+        Accepted(order, "full-route save node order");
+        expectedTransitions.AddRange(order.Transitions);
+        ActiveConstructionSnapshot construction =
+            order.Snapshot.Construction.ActiveConstruction ??
+            throw new InvalidOperationException(
+                "full-route save order created no active construction");
+        long firstStableMinute = checked(order.Snapshot.Minute + 15);
+        Check(firstStableMinute < construction.CompletionMinute,
+            "full-route first stable boundary is not mid-construction");
+        RealtimeAdvanceResult firstProgress = live.AdvanceTo(firstStableMinute);
+        expectedTransitions.AddRange(firstProgress.Transitions);
+
+        for (int chapterIndex = 0;
+             chapterIndex < loaded.Campaign.Chapters.Count;
+             chapterIndex++)
+        {
+            RealtimeCampaignSnapshot snapshot = live.GetSnapshot();
+            string chapterId = loaded.Campaign.Chapters[chapterIndex].Content.ChapterId;
+            Check(snapshot.ChapterStarted &&
+                  !snapshot.CampaignComplete &&
+                  snapshot.ChapterIndex == chapterIndex &&
+                  string.Equals(
+                      snapshot.Chapter.Content.ChapterId,
+                      chapterId,
+                      StringComparison.Ordinal) &&
+                  snapshot.ActiveEventStates.Count == 0 &&
+                  snapshot.ActiveDuty is null &&
+                  snapshot.PendingTransitions.Count == 0 &&
+                  snapshot.Construction.NodeDraft is null &&
+                  snapshot.Construction.LineDraft is null,
+                $"full-route {chapterId} boundary is not stable");
+
+            RealtimeCampaignSave save = RealtimeCampaignSaveCodec.Deserialize(
+                RealtimeCampaignSaveCodec.Serialize(
+                    RealtimeCampaignSaveCodec.Capture(
+                        identity,
+                        loaded.Campaign,
+                        _releaseWorld,
+                        live)));
+            RealtimeCampaignRestoreResult restored =
+                RealtimeCampaignSaveCodec.Restore(
+                    identity,
+                    loaded.Campaign,
+                    _releaseWorld,
+                    save);
+            Check(RealtimeStateCanonicalizer.StructuralEquals(
+                    snapshot,
+                    restored.Run.GetSnapshot()) &&
+                  string.Equals(
+                      live.GetCanonicalStateSha256(),
+                      restored.Run.GetCanonicalStateSha256(),
+                      StringComparison.Ordinal),
+                $"full-route {chapterId} stable replay state");
+            SequenceEqual(live.AcceptedCommands, restored.Run.AcceptedCommands,
+                $"full-route {chapterId} stable replay journal");
+            SequenceEqual(expectedTransitions, restored.Transitions,
+                $"full-route {chapterId} stable replay transitions");
+
+            if (chapterIndex + 1 >= loaded.Campaign.Chapters.Count)
+            {
+                long probeMinute = checked(snapshot.Minute + 1);
+                RealtimeAdvanceResult liveProbe = live.AdvanceTo(probeMinute);
+                RealtimeAdvanceResult restoredProbe =
+                    restored.Run.AdvanceTo(probeMinute);
+                Equal(liveProbe.CanonicalStateSha256,
+                    restoredProbe.CanonicalStateSha256,
+                    $"full-route {chapterId} next advance");
+                SequenceEqual(liveProbe.Transitions, restoredProbe.Transitions,
+                    $"full-route {chapterId} next transitions");
+                break;
+            }
+
+            long chapterEndMinute = checked(
+                snapshot.ChapterStartMinute + snapshot.Chapter.EndOffsetMinutes);
+            RealtimeAdvanceResult liveEnd = live.AdvanceTo(chapterEndMinute);
+            RealtimeAdvanceResult restoredEnd =
+                restored.Run.AdvanceTo(chapterEndMinute);
+            Equal(liveEnd.CanonicalStateSha256,
+                restoredEnd.CanonicalStateSha256,
+                $"full-route {chapterId} completion advance");
+            SequenceEqual(liveEnd.Transitions, restoredEnd.Transitions,
+                $"full-route {chapterId} completion transitions");
+            expectedTransitions.AddRange(liveEnd.Transitions);
+
+            RealtimeCampaignSnapshot between = live.GetSnapshot();
+            Check(between.CompletedChapters.Count == chapterIndex + 1,
+                $"full-route {chapterId} did not reach its handoff boundary: " +
+                $"minute={between.Minute}, chapterStarted={between.ChapterStarted}, " +
+                $"completed={between.CompletedChapters.Count}, " +
+                $"chapterStart={between.ChapterStartMinute}");
+            if (between.ChapterStarted)
+            {
+                Check(between.ChapterIndex == chapterIndex + 1,
+                    $"full-route {chapterId} started the wrong next chapter");
+                continue;
+            }
+            long nextStartMinute = between.ChapterStartMinute;
+            RealtimeAdvanceResult liveStart = live.AdvanceTo(nextStartMinute);
+            RealtimeAdvanceResult restoredStart =
+                restored.Run.AdvanceTo(nextStartMinute);
+            Equal(liveStart.CanonicalStateSha256,
+                restoredStart.CanonicalStateSha256,
+                $"full-route {chapterId} next chapter advance");
+            SequenceEqual(liveStart.Transitions, restoredStart.Transitions,
+                $"full-route {chapterId} next chapter transitions");
+            expectedTransitions.AddRange(liveStart.Transitions);
+        }
     }
 
     private void StrictReleaseOverlayComposition()

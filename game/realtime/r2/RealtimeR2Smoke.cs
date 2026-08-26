@@ -3054,7 +3054,12 @@ internal static class RealtimeR2Smoke
             "WHOSE_MARGIN Keep did not preserve the five-result chain into the flood chapter",
             failures);
 
-        EnterBeforeWaterRisePlanning(slice, data, failures, "flood-keep");
+        EnterBeforeWaterRisePlanning(
+            slice,
+            data,
+            whoseOutcome.EndingCashUnit,
+            failures,
+            "flood-keep");
         SelectBeforeWaterRisePromiseDeadline(slice, failures, "flood-keep");
         slice.RequestActionForSmoke(RealtimeR2Ids.PromiseKeepAction);
         BuildBeforeWaterRiseHighlandLine(
@@ -3243,6 +3248,7 @@ internal static class RealtimeR2Smoke
         EnterBeforeWaterRisePlanning(
             deferredSlice,
             deferredData,
+            whoseDeferredOutcome.EndingCashUnit,
             failures,
             "explicit-flood-defer");
         SelectBeforeWaterRisePromiseDeadline(
@@ -4209,10 +4215,8 @@ internal static class RealtimeR2Smoke
         RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
             throw new InvalidOperationException(
                 $"{label} WHOSE_MARGIN result modal is absent.");
-        Check(!slice.CoreSnapshot.CampaignComplete &&
-              slice.CoreSnapshot.ChapterStarted &&
-              slice.CoreSnapshot.Minute == 266850 &&
-              slice.CoreSnapshot.Chapter.Content.ChapterId == "BEFORE_WATER_RISE" &&
+        Check(slice.CoreSnapshot.Minute == 266850 &&
+              slice.CoreSnapshot.CompletedChapters.Count == 5 &&
               result.Id == RealtimeR2Ids.TutorialResultModal("WHOSE_MARGIN") &&
               slice.EmittedTransitions
                   .Where(item => item.ChapterId == "WHOSE_MARGIN" &&
@@ -4230,6 +4234,7 @@ internal static class RealtimeR2Smoke
     private static void EnterBeforeWaterRisePlanning(
         RealtimeSliceMain slice,
         RealtimeSliceData data,
+        long previousEndingCashUnit,
         ICollection<string> failures,
         string label)
     {
@@ -4245,6 +4250,8 @@ internal static class RealtimeR2Smoke
                   PromiseDecision: CommercialPromiseDecision.Unset,
               } &&
               slice.CoreSnapshot.Chapter.Content.ChapterId == "BEFORE_WATER_RISE" &&
+              slice.CoreSnapshot.CashUnit == checked(
+                  previousEndingCashUnit + authored.BudgetGrantCashUnit) &&
               connection is { FrozenForChapter: false, Satisfied: true } &&
               connection.Facts.Single() is
               {
@@ -4434,10 +4441,19 @@ internal static class RealtimeR2Smoke
             .ConnectionRequirementAssessment ?? throw new InvalidOperationException(
                 $"{label} frozen flood connection assessment is absent.");
         RealtimeActiveEventState activeFlood = slice.CoreSnapshot.ActiveEventStates.Single();
+        ThermalIntervalEvaluation actualFlood = slice.CoreSnapshot.Thermal.Evaluation;
         Check(activeFlood.EventId == "FLOOD_ARRIVAL" &&
               activeFlood.Event.OperatingProfile.UnavailableNodeIds.SequenceEqual(
                   new[] { "WEST_SOURCE_NODE" },
                   StringComparer.Ordinal) &&
+              actualFlood.Sources.Single(source =>
+                  source.SourceId == "WEST_GENERATION").UsedKw == 0 &&
+              actualFlood.Sources.Single(source =>
+                  source.SourceId == "SOUTH_GENERATION").UsedKw ==
+                  actualFlood.Loads.Sum(load => load.DeliveredKw) &&
+              actualFlood.Loads.All(load =>
+                  load.DeliveredKw == load.DemandKw &&
+                  load.SourceId == "SOUTH_GENERATION") &&
               frozen is
               {
                   EvaluatedMinute: 267150,
@@ -4479,11 +4495,7 @@ internal static class RealtimeR2Smoke
         RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
             throw new InvalidOperationException(
                 $"{label} BEFORE_WATER_RISE result modal is absent.");
-        Check(slice.CoreSnapshot is
-              {
-                  Minute: 267270,
-                  CampaignComplete: true,
-              } &&
+        Check(slice.CoreSnapshot.Minute == 267270 &&
               slice.CoreSnapshot.CompletedChapters.Count == 6 &&
               result.Id == RealtimeR2Ids.TutorialResultModal("BEFORE_WATER_RISE") &&
               outcome.Events.Single() is

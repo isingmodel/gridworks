@@ -258,6 +258,29 @@ trigger-minute gate, v1 read-only writer 경계와 v2 null/overflow strict case�
 completion/finale/epilogue, overwrite/recovery UI, package, 전체 8장 production-input 직접 여정 또는 사람 UX
 품질의 증거로 확대하지 않는다.
 
+### UX-R2.15 — non-final result→next briefing save·Continue
+
+schema나 필드를 더하지 않고 current v2 `closedStoryCount`의 first-unclosed 해석을 bounded handoff suffix로
+확장했다. `RealtimeChapterStoryFlow`가 live/restore 모두에서 exact saved minute의 non-final
+`ChapterResult`→next `ChapterBriefing`→optional same-chapter `DecisionWindowStory` shape만 허용하고,
+`RealtimeSession`은 active started chapter와 마지막 completed chapter의 typed between-chapter result를 Core
+snapshot에 맞춰 fail-closed한다. zero-gap result는 이미 projected된 queue를 FIFO로 열고, 긴 gap은 result를
+닫을 때 exact next `ChapterStartMinute`로 한 번 전진한 뒤 같은 briefing(+decision)을 연다.
+
+같은 product save path의 active `FLOOD_ISOLATION_TEST` create→첫 fresh Continue의 `SECOND_HEART` result v2
+write→두 번째 fresh Continue의 result 복원·`SECOND_SOURCE` briefing v2 write를 검증했다. session smoke는
+zero-gap result와 briefing을 각각 복원하고, `SECOND_SOURCE`→`NORTH_BANK_PROMISE`의 long-gap result를
+복원해 exact minute `265260`의 briefing→decision FIFO와 story-idle cursor tamper 거부를 확인했다. prior
+`FIRST_LIGHT` v1도 Continue 정상 종료 뒤 같은 route의 current v2로 실제 disk에 쓰이는지 함께 검증한다.
+
+Debug/Release build, `./dev check`의 Realtime 26 suites/1,182 assertions와 Commercial 31 suites/7,084
+assertions, 전체 Godot UI harness와 두 독립 review를 통과했다. review에서 각 Continue가 `_ExitTree` 뒤
+disk write를 재검증하지 않아 마지막 write 실패를 놓칠 수 있던 smoke를 찾았고, same-path reload의
+route/minute/hash/journal count/schema/cursor 대조로 수정한 뒤 finding 0건으로 재검토됐다. 이 완료는
+undelivered pending transition, general queued story, initial briefing, final/completed run·finale·epilogue,
+overwrite/recovery UI, package, 전체 8장 production-input 직접 여정 또는 사람 UX 품질의 증거로 확대하지
+않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

@@ -43,8 +43,9 @@ OS 호환성이나 출시 승인을 대신하지 않는다.
 현재 기본 장면의 인자 없는 실행은 session 없는 제품 title을 열고, 저장 파일이 없을 때 `새 게임`은
 canonical `FIRST_LIGHT`→`LONGEST_NIGHT` 누적 8장 `ProductCampaign`의 briefing으로 진입한다. product-owned
 session의 모든 장 stable 진행, story-idle active event·duty와 exact-minute active in-chapter story는
-current v2로 저장된다. story-idle과 exact-current standalone `FIRST_LIGHT` v1은 paused·normal speed·
-no-modal로, active story v2는 같은 authored modal로 복원해 닫은 뒤 paused·normal speed로 돌아간다.
+current v2로 저장되며, bounded non-final result→next briefing handoff도 같은 cursor로 복원한다.
+story-idle과 exact-current standalone `FIRST_LIGHT` v1은 paused·normal speed·no-modal로, active story v2는
+같은 authored modal로 복원된다.
 명시적 개발 route는 product save를 읽거나 쓰지 않는다. 이 결정론적 title/journal-restorable-save wiring,
 작성·구현된 8장과 누적 4장 production-input 직접 관찰을 같은 coverage로 세지 않는다.
 과거 V2 title/save/settings/audio, editor project tree와 UX-R1 candidate는 current R2 평가 권위가 아니다.
@@ -212,10 +213,13 @@ deterministic failure 또는 blinded observation
   deterministic 검사 완료
 - active `SECOND_HEART/FLOOD_ISOLATION_TEST` story product save-create→`이어하기`→같은 authored modal→
   닫은 뒤 paused 복원: fresh-process smoke 완료
-- 같은 active story의 exact Core/history 복원 뒤 `SECOND_HEART` result→`SECOND_SOURCE` briefing exact-once:
-  session harness 완료; 이후 미래나 각 장의 fresh-process, 전체 8장 production-input 직접 여정의 증거는 아님
+- 같은 save path의 active story→`SECOND_HEART` result write→fresh `이어하기`→`SECOND_SOURCE` briefing
+  exact-once 및 종료 write: fresh-process smoke 완료
+- zero-gap result/briefing과 `SECOND_SOURCE`→`NORTH_BANK_PROMISE` long-gap result→briefing→decision의 exact
+  Core/history/FIFO 복원: session harness 완료; 이후 미래나 각 장의 fresh-process, 전체 8장
+  production-input 직접 여정의 증거는 아님
 - finale→세 epilogue card와 누적 Keep/Defer·남은 자금의 deterministic native presentation: 구현
-- undelivered Core transition·queued story·initial/result/briefing handoff·완료 저장과
+- undelivered Core transition·general queued story·initial briefing·완료 저장과
   result/chapter/replay 선택: 미완료
 - audio/settings, current R2 package와 score-bearing execution authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음

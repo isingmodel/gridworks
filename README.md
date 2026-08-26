@@ -7,9 +7,9 @@
 현재 저장소는 **실시간 R2 플레이 빌드와 G3 아이소메트릭 아트 기준선**을 제공한다. 작성된 8장과
 finale→세 epilogue card는 누적 native 개발 경로에 연결됐지만 아직 판매 가능한 1.0 게임은 아니다.
 제품 title의 `새 게임`은 누적 8장을 시작하고 모든 장의 stable 진행, story-idle active event·duty와
-exact-minute active in-chapter story 저장·재개를 지원한다. undelivered Core transition, queued story·
-result/briefing handoff와 완료 저장, 완료 후 선택, 제품용 audio·settings, 출시 패키지와 공식 UX 평가는
-남아 있다.
+exact-minute active in-chapter story, non-final result→next briefing handoff 저장·재개를 지원한다.
+undelivered Core transition, general queued story·initial briefing과 완료 저장, 완료 후 선택, 제품용
+audio·settings, 출시 패키지와 공식 UX 평가는 남아 있다.
 
 ## 30초 현재 상태
 
@@ -18,7 +18,7 @@ result/briefing handoff와 완료 저장, 완료 후 선택, 제품용 audio·se
 | 제품 방향 | turn 방식이 아닌 pause·1×·2×·4× 실시간 전력망 운영 |
 | 기본 Godot 장면 | `res://realtime/r2/RealtimeSliceMain.tscn` |
 | 인자 없는 실행 | 제품 title; 저장 파일이 없으면 누적 8장 `새 게임`, 유효한 product save 또는 직전 exact `FIRST_LIGHT` save는 `이어하기`만 활성 |
-| R2 save/Continue | current v2 write/prior v1 read, exact journal replay; story-idle은 paused/no-modal, exact-minute active event/decision story는 same-modal 복원; pending·queued story·handoff·완료 미지원 |
+| R2 save/Continue | current v2 write/prior v1 read, exact journal replay; story-idle, exact-minute active event/decision, bounded non-final result→next briefing 복원; pending·general queued story·initial·완료 미지원 |
 | 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
 | R2 native 구현 | `LONGEST_NIGHT`까지 누적 8장, exact finale 뒤 authored epilogue 3장 |
@@ -39,13 +39,13 @@ result/briefing handoff와 완료 저장, 완료 후 선택, 제품용 audio·se
 작성 사실과 native 도달성은 별도 증거다. 인자 없는 제품 title의 `새 게임`과 명시적 8장 개발 route는
 모두 `FIRST_LIGHT`→`LONGEST_NIGHT` 누적 경로와 마지막 authored result→city report→medical witness→
 closing을 사용한다. product-owned session은 모든 장의 stable 진행, story flow가 idle인 active event·duty,
-그리고 pending story queue가 없고 trigger minute와 saved minute가 같은 active `EventStory` 또는
-`DecisionWindowStory`를 저장할 수 있다. story-idle Continue는 PlayerPaused·Normal·no-modal로 복원하고,
-active story Continue는 같은 authored modal을 AutoPaused로 먼저 열어 닫은 뒤 PlayerPaused·Normal로
-돌아간다. Core strict replay는 8장 stable 상태를, session harness는 active story의 exact 현재와 다음
-result→briefing 미래를, 별도 fresh-process smoke는 `FLOOD_ISOLATION_TEST` same-modal Continue를 검증한다.
-current writes는 `closedStoryCount`가 있는 v2이며 prior v1은 모든 projected story를 닫은 상태로 migration
-없이 읽는다. undelivered pending transition, queued story suffix·initial/result/briefing handoff와 완료 save,
+queue-empty exact-minute active `EventStory | DecisionWindowStory`, 그리고 exact-minute non-final
+`ChapterResult`→다음 `ChapterBriefing`(+optional same-chapter decision)의 bounded handoff를 저장할 수 있다.
+story-idle Continue는 PlayerPaused·Normal·no-modal로 복원하고, active story는 같은 authored modal을
+AutoPaused로 복원한다. result를 닫으면 zero-gap suffix를 FIFO로 열고, 긴 장 간격이면 exact next-chapter
+minute로 한 번 전진한 뒤 같은 briefing을 연다. current writes는 `closedStoryCount`가 있는 v2이며 prior
+v1은 모든 projected story를 닫은 상태로 읽고, Continue 뒤 정상 종료 때만 current v2로 쓴다.
+undelivered pending transition, general queued story suffix·initial briefing과 완료 save,
 result/chapter/replay 선택은 없으므로 전체 제품 여정의 완성을 뜻하지 않는다.
 
 ## 게임 경험
@@ -105,9 +105,10 @@ current R2의 기본 자동 회귀 명령은 하나다.
 ```
 
 이 명령은 current root solution, RealtimeChecks의 누적 8장 stable replay와 pending fail-closed,
-CommercialChecks, 세 Python 회귀, no-arg 제품 title과 명시적 fixture entry smoke, 별도 process의 active
-`FLOOD_ISOLATION_TEST` story product save-create→same-story Continue·직전 exact `FIRST_LIGHT` v1 Continue·
-invalid/unsupported-schema/I/O 실패 title smoke, 두 named checkpoint를 실행한다.
+CommercialChecks, 세 Python 회귀, no-arg 제품 title과 명시적 fixture entry smoke, 같은 save path의
+`FLOOD_ISOLATION_TEST` create→same-story Continue→`SECOND_HEART` result write→fresh Continue→
+`SECOND_SOURCE` briefing write, 직전 exact `FIRST_LIGHT` v1 Continue→current v2 write,
+invalid/unsupported-schema/I/O 실패 title smoke와 두 named checkpoint를 실행한다.
 
 root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 이 기본 명령에 포함되지 않는다.
 해당 검사가 필요한 변경은 active scope의 완료 검사에 별도로 명시한다.
@@ -153,7 +154,7 @@ selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체
 배경이 아니다. 현재 R2에는 별도로 제작된 G3 자산 57개가 연결돼 있다. 출처와 사용 경계는
 [자산 안내](ASSET_MANIFEST.md)에 기록한다.
 
-현재 R2에는 제품용 audio/settings, undelivered Core transition·queued story·initial/result/briefing
-handoff·완료까지 포괄하는 전체 campaign save/resume, 서명·공증된 패키지, 지원 OS 검증,
+현재 R2에는 제품용 audio/settings, undelivered Core transition·general queued story·initial briefing·완료까지
+포괄하는 전체 campaign save/resume, 서명·공증된 패키지, 지원 OS 검증,
 사람 미감·사용성 검토, 한국어·전력설비 전문 검토 또는 공개 출시 승인이 없다. 저장소를
 열람할 수 있다는 사실은 자산의 재사용·재배포 허가를 뜻하지 않는다.

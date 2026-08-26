@@ -196,6 +196,26 @@ journal/hash를 player-paused·normal speed·no-modal 상태로 복원한다. De
 finding을 수정했다. 이 완료는 사건·장 전환·완료 save, 누적 8장 product 새 게임, overwrite/recovery UI,
 package, production-input 직접 관찰이나 사람 UX 품질의 증거로 확대하지 않는다.
 
+### UX-R2.12 — 누적 8장 product stable save·Continue
+
+저장 파일이 없는 제품 title의 `새 게임`을 canonical `FIRST_LIGHT`→`LONGEST_NIGHT` 누적 8장
+`ProductCampaign`에 연결했다. session 없는 product title/Main만 기존 v1 accepted-journal save를
+probe·strict restore하고, title New Game/Continue가 만든 product-owned session만 정상 종료 때 쓴다.
+명시적 chapter/through/fixture 개발 실행은 같은 native route여도 product save lifecycle을 소유하지
+않는다. native data가 한 곳에서 canonical source identity를 만들고, active와 pending story가 모두 없는
+상태까지 stable capture 계약에 포함했다.
+
+모든 장의 stable in-progress 상태를 source·journal·hash·ordered transition history까지 exact replay한다.
+별도 fresh process의 product save-create→Continue는 clock·cash·world·construction을
+player-paused·normal speed·no-modal 상태로 복원하며, 직전 exact-current standalone `FIRST_LIGHT` v1 save도
+원 route 그대로 Continue할 수 있다. migration은 하지 않는다. 형식 손상·지원하지 않는 schema/version·
+다른 route/source/hash/replay·I/O 실패는 원본을 보존하고 두 title action을 차단한다.
+
+Debug/Release build, `./dev check`, 전체 Godot UI harness와 독립 review를 통과했다. review에서 찾은
+stale/programmatic title action의 availability 우회는 handler 재검사로 수정했다. 이 완료는 사건·duty·
+story·result/handoff·완료 save, overwrite/recovery UI, 완료 후 선택, 전체 8장 production-input 직접 여정,
+package 또는 사람 UX 품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

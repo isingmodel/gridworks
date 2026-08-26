@@ -6,9 +6,9 @@
 
 현재 저장소는 **실시간 R2 플레이 빌드와 G3 아이소메트릭 아트 기준선**을 제공한다. 작성된 8장과
 finale→세 epilogue card는 누적 native 개발 경로에 연결됐지만 아직 판매 가능한 1.0 게임은 아니다.
-standalone `FIRST_LIGHT`의 첫 stable 진행 저장·재개는 연결됐지만, 제품 title에서 시작하는 누적 8장
-전체 여정, 사건·장 전환·완료 저장과 완료 후 선택, 제품용 audio·settings, 출시 패키지와 공식 UX
-평가가 남아 있다.
+제품 title의 `새 게임`은 누적 8장을 시작하고 모든 장의 stable in-progress 저장·재개를 지원한다. 사건·
+duty·story·result handoff와 완료 저장, 완료 후 선택, 제품용 audio·settings, 출시 패키지와 공식 UX
+평가는 남아 있다.
 
 ## 30초 현재 상태
 
@@ -16,8 +16,8 @@ standalone `FIRST_LIGHT`의 첫 stable 진행 저장·재개는 연결됐지만,
 |---|---|
 | 제품 방향 | turn 방식이 아닌 pause·1×·2×·4× 실시간 전력망 운영 |
 | 기본 Godot 장면 | `res://realtime/r2/RealtimeSliceMain.tscn` |
-| 인자 없는 실행 | 제품 title; 저장 파일이 없으면 `새 게임`만, 유효한 standalone `FIRST_LIGHT` 진행 저장은 `이어하기`만 활성 |
-| R2 save/Continue | stable 진행의 정상 종료 한 파일·exact journal replay·paused/no-modal 복원; 사건·장 전환·완료 저장은 미지원 |
+| 인자 없는 실행 | 제품 title; 저장 파일이 없으면 누적 8장 `새 게임`, 유효한 product save 또는 직전 exact `FIRST_LIGHT` save는 `이어하기`만 활성 |
+| R2 save/Continue | product-owned stable 진행만 한 파일·exact journal replay·paused/no-modal 복원; 사건·story·handoff·완료 저장은 미지원 |
 | 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
 | R2 native 구현 | `LONGEST_NIGHT`까지 누적 8장, exact finale 뒤 authored epilogue 3장 |
@@ -35,12 +35,13 @@ standalone `FIRST_LIGHT`의 첫 stable 진행 저장·재개는 연결됐지만,
 
 직접 관찰은 headless smoke와 다르지만, 사람 참가자의 사용성·미감·재미 증거는 아니다.
 
-작성 사실과 native 도달성은 별도 증거이며, 현재 명시적 개발 route에서는 8장 누적 경로와 마지막
-authored result→city report→medical witness→closing을 플레이할 수 있다. 다만 인자 없는 제품 title의
-`새 게임`은 여전히 standalone `FIRST_LIGHT` 한 장 경로다. 이 경로의 stable 진행 상태는 정상 종료 뒤
-저장되고 fresh process의 `이어하기`에서 paused 상태로 복원된다. 그러나 누적 8장 product 진입,
-사건·장 전환·story modal·완료 저장과 result/chapter/replay 선택은 없으므로 전체 제품 여정의 완성을
-뜻하지 않는다.
+작성 사실과 native 도달성은 별도 증거다. 인자 없는 제품 title의 `새 게임`과 명시적 8장 개발 route는
+모두 `FIRST_LIGHT`→`LONGEST_NIGHT` 누적 경로와 마지막 authored result→city report→medical witness→
+closing을 사용한다. product-owned session은 장 result와 다음 briefing을 모두 닫은 뒤의 stable 진행을
+어느 장에서나 저장할 수 있고, Core strict replay는 8장 각각을 검증한다. 별도 fresh-process smoke는
+대표 product save를 `이어하기`에서 paused로 복원한다. 직전 exact standalone `FIRST_LIGHT` v1 save도
+migration 없이 원 route로 이어 할 수 있다. 사건·duty·queued/active story·result handoff 자체와 완료
+save, result/chapter/replay 선택은 없으므로 전체 제품 여정의 완성을 뜻하지 않는다.
 
 ## 게임 경험
 
@@ -85,10 +86,10 @@ authored result→city report→medical witness→closing을 플레이할 수 �
 ./dev play through LONGEST_NIGHT
 ```
 
-`./dev play product`는 Godot user argument 없이 제품 title을 열고, `./dev play fixture`는 명시적
-`--technical-fixture` 인자로 title을 우회하는 DEBUG 개발 경로다. fixture를 새 게임이나 전체
-캠페인으로 평가하지 않는다. 환경 준비, 전체 명령과 현재 저장/패키지 경계는
-[실행 안내](INSTALL.md)에 있다.
+`./dev play product`만 Godot user argument 없이 제품 title과 product save lifecycle을 연다. `fixture`,
+`chapter`, `through` 명령은 title을 우회하는 명시적 개발 경로이며 product save를 읽거나 쓰지 않는다.
+fixture를 새 게임이나 전체 캠페인으로 평가하지 않는다. 환경 준비, 전체 명령과 현재 저장/패키지
+경계는 [실행 안내](INSTALL.md)에 있다.
 
 ## 개발 검증
 
@@ -98,9 +99,10 @@ current R2의 기본 자동 회귀 명령은 하나다.
 ./dev check
 ```
 
-이 명령은 current root solution, RealtimeChecks, CommercialChecks, 세 Python 회귀, no-arg 제품 title과
-명시적 fixture entry smoke, 별도 process의 `FIRST_LIGHT` save-create→Continue와 invalid·unsupported-schema·I/O 실패
-title smoke, 두 named checkpoint를 실행한다.
+이 명령은 current root solution, RealtimeChecks의 누적 8장 stable replay, CommercialChecks, 세 Python
+회귀, no-arg 제품 title과 명시적 fixture entry smoke, 별도 process의 누적 product
+save-create→Continue·직전 exact `FIRST_LIGHT` Continue·invalid/unsupported-schema/I/O 실패 title smoke,
+두 named checkpoint를 실행한다.
 
 root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 이 기본 명령에 포함되지 않는다.
 해당 검사가 필요한 변경은 active scope의 완료 검사에 별도로 명시한다.
@@ -146,6 +148,6 @@ selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체
 배경이 아니다. 현재 R2에는 별도로 제작된 G3 자산 57개가 연결돼 있다. 출처와 사용 경계는
 [자산 안내](ASSET_MANIFEST.md)에 기록한다.
 
-현재 R2에는 제품용 audio/settings, 사건·장 전환·완료까지 포괄하는 전체 campaign save/resume,
+현재 R2에는 제품용 audio/settings, 사건·story·result handoff·완료까지 포괄하는 전체 campaign save/resume,
 서명·공증된 패키지, 지원 OS 검증, 사람 미감·사용성 검토, 한국어·전력설비 전문 검토 또는 공개 출시
 승인이 없다. 저장소를 열람할 수 있다는 사실은 자산의 재사용·재배포 허가를 뜻하지 않는다.

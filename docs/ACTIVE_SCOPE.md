@@ -30,7 +30,7 @@
 - package, 평가 실행, 사람 미감·사용성 판정, 배포
 - V2/V3의 authored 시각·story 문구 재작성
 - chapter ID별 loader/Session/Main/UI 분기 또는 선제 refactor
-- 정수장 세 번째 회선, 별도 실패/대안 replay나 새 UI abstraction
+- 값싼 공유 회랑의 emergency/trip 실패 replay, 별도 대안 replay나 새 UI abstraction
 - branch 통합, push, PR 또는 merge
 
 ## 완료 검사
@@ -40,12 +40,13 @@
 - 앞선 6장의 성공 상태가 267270분의 일곱 번째 장으로 이어지고 이전 종료 현금에 1,600,000원이
   더해진다. modal FIFO는 briefing→`BEFORE_PLANNED_OUTAGE_WINDOW`→
   `WEST_SOURCE_PLANNED_OUTAGE` event story→`WEST_SOURCE_RETURN_SERVICE` event story→standard result다.
-- 기존 base `EDGE_WATER`와 북안 장의 player corridor가 만든 정수장 2/2를 계획 선행으로 상속한다.
-  이번 장의 새 공사나 세 번째 회선으로 위조하지 않고 첫 사건 시작에 2/2로 freeze되는지 확인한다.
+- 북안 장에서 만든 정수장 player corridor 1/2를 상속한다. 범람 장의 기존 `(1950, 850)` 보강
+  전신주에서 새 소형 변전소 `(2300, 900)`를 거쳐 정수장으로 가는 보강 회선 하나만 267417분까지
+  완공하고, 첫 사건 시작에 2/2로 freeze되는지 확인한다.
 - 계획정지는 267690–267810분에 `WEST_SOURCE_NODE`를 실제 공급에서 제외하고 의료원 1,800 kW,
-  정수장 1,400 kW와 동부 700 kW를 공급한다. Core가 만든 비상·보호 전이와 남은 경로를 보존한다.
+  정수장 1,400 kW와 동부 700 kW를 연속 한계 안에서 공급해 비상·보호정지를 만들지 않는다.
   복귀는 267870–267990분에 서부 전원을 다시 사용하고 의료원·정수장 각 900 kW와 동부 700 kW를
-  연속 한계 안에서 공급하며 보호정지 설비를 경로에서 제외한다.
+  연속 한계 안에서 공급한다.
 - 두 사건과 접속 의무가 성공한 exact standard authored result를 표시한다. 결과를 닫으면 7장 ordered
   result와 full-flow evidence를 한 번만 만들고 prefix campaign을 종료한다.
 - SWITCH_OFF_TO_PROTECT의 기존 story selector, 누적 R2 harness, Release build와 기본 `./dev check`가

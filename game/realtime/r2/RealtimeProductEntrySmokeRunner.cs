@@ -527,6 +527,10 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "A valid save did not exclusively enable and focus Continue.");
         Require(title.DetailText.Contains("paused", StringComparison.Ordinal),
             "The valid-save title did not disclose the resume pause policy.");
+        RequireUnavailableTitleActionRejected(
+            slice.RequestNewGameForSmoke,
+            slice,
+            "A valid save accepted stale New Game input.");
 
         PushPrimary(viewport, title.ContinueButton.GetGlobalRect().GetCenter());
         await SettleFrames(4);
@@ -621,11 +625,40 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     RealtimeInputPriority.BlockingModal,
             "A blocked-save title does not own input.");
 
+        RequireUnavailableTitleActionRejected(
+            slice.RequestContinueForSmoke,
+            slice,
+            "A blocked save accepted stale Continue input.");
+        RequireUnavailableTitleActionRejected(
+            slice.RequestNewGameForSmoke,
+            slice,
+            "A blocked save accepted stale New Game input.");
+
         PushPrimary(viewport, title.ContinueButton.GetGlobalRect().GetCenter());
         PushPrimary(viewport, title.NewGameButton.GetGlobalRect().GetCenter());
         await SettleFrames(2);
         Require(!slice.HasSessionForSmoke && title.Visible,
             "A disabled blocked-save action started a session.");
+    }
+
+    private static void RequireUnavailableTitleActionRejected(
+        Action action,
+        RealtimeSliceMain slice,
+        string failure)
+    {
+        bool rejected = false;
+        try
+        {
+            action();
+        }
+        catch (InvalidOperationException)
+        {
+            rejected = true;
+        }
+        Require(rejected &&
+                !slice.HasSessionForSmoke &&
+                !slice.OwnsProductProgressForSmoke,
+            failure);
     }
 
     private static void ValidateTechnicalFixture(RealtimeSliceMain slice)

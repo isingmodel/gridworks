@@ -113,6 +113,10 @@ internal sealed partial class RealtimeSliceMain
     internal bool OwnsProductProgressForSmoke =>
         _progressPersistenceOwnership == ProgressPersistenceOwnership.Product;
 
+    internal void RequestNewGameForSmoke() => StartNewGame();
+
+    internal void RequestContinueForSmoke() => ContinueGame();
+
     internal RealtimeUiRoot UiForSmoke => _ui ??
         throw new InvalidOperationException("Scene UI is not ready.");
 

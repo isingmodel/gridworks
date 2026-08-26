@@ -32,6 +32,7 @@ internal sealed partial class RealtimeSliceMain : Control
     private readonly Dictionary<RealtimePointerOwner, int> _clickCounters = [];
     private RealtimeSession? _session;
     private RealtimeContinuation? _continuation;
+    private RealtimeProductTitlePresentation? _productTitlePresentation;
     private Control? _worldControl;
     private IRealtimeWorldView? _worldView;
     private RealtimeUiRoot? _ui;
@@ -209,13 +210,15 @@ internal sealed partial class RealtimeSliceMain : Control
     {
         DetachSession();
         _worldControl!.Visible = false;
-        RealtimeProductTitlePresentation presentation = ProbeContinuation();
-        _ui!.ShowProductTitle(presentation);
+        _productTitlePresentation = ProbeContinuation();
+        _ui!.ShowProductTitle(_productTitlePresentation);
     }
 
     private void StartNewGame()
     {
-        if (_launch.Kind != RealtimeLaunchKind.ProductTitle || _session is not null)
+        if (_launch.Kind != RealtimeLaunchKind.ProductTitle ||
+            _session is not null ||
+            _productTitlePresentation?.CanStartNewGame != true)
         {
             throw new InvalidOperationException(
                 "New Game is available only from the product title.");
@@ -224,6 +227,7 @@ internal sealed partial class RealtimeSliceMain : Control
         _launch = RealtimeLaunchSelection.Native(
             RealtimeNativeRouteCatalog.ProductCampaign);
         _continuation = null;
+        _productTitlePresentation = null;
         WireGameplayNodes();
         ShowGameplaySurface();
         Bootstrap();
@@ -233,6 +237,7 @@ internal sealed partial class RealtimeSliceMain : Control
     {
         if (_launch.Kind != RealtimeLaunchKind.ProductTitle ||
             _session is not null ||
+            _productTitlePresentation?.CanContinue != true ||
             _continuation is not RealtimeContinuation continuation)
         {
             throw new InvalidOperationException(
@@ -240,6 +245,7 @@ internal sealed partial class RealtimeSliceMain : Control
         }
         _progressPersistenceOwnership = ProgressPersistenceOwnership.Product;
         _continuation = null;
+        _productTitlePresentation = null;
         _launch = RealtimeLaunchSelection.Native(continuation.Route);
         WireGameplayNodes();
         ShowGameplaySurface();

@@ -34,6 +34,8 @@ PRODUCT_ROUTE_ID = "--release-through=LONGEST_NIGHT"
 
 LIFECYCLE_EXPECTATIONS = {
     "EMPTY_NEW_GAME": {
+        "pointerInputs": 6,
+        "keyInputs": 0,
         "title": "HIDDEN",
         "session": "INITIAL_BRIEFING",
         "settings": "DEFAULT",
@@ -42,6 +44,8 @@ LIFECYCLE_EXPECTATIONS = {
         "continuation": "MISSING",
     },
     "PROGRESS_CONTINUE": {
+        "pointerInputs": 3,
+        "keyInputs": 0,
         "title": "HIDDEN",
         "session": "INITIAL_BRIEFING",
         "settings": "DEFAULT",
@@ -50,6 +54,8 @@ LIFECYCLE_EXPECTATIONS = {
         "continuation": "RESTORABLE",
     },
     "COMPLETED_CONTINUE": {
+        "pointerInputs": 3,
+        "keyInputs": 0,
         "title": "HIDDEN",
         "session": "ENDED",
         "settings": "DEFAULT",
@@ -58,6 +64,8 @@ LIFECYCLE_EXPECTATIONS = {
         "continuation": "COMPLETED",
     },
     "COMPLETED_NEW_GAME": {
+        "pointerInputs": 3,
+        "keyInputs": 0,
         "title": "HIDDEN",
         "session": "INITIAL_BRIEFING",
         "settings": "DEFAULT",
@@ -66,6 +74,8 @@ LIFECYCLE_EXPECTATIONS = {
         "continuation": "COMPLETED",
     },
     "RESET_NEW_GAME": {
+        "pointerInputs": 6,
+        "keyInputs": 0,
         "title": "HIDDEN",
         "session": "INITIAL_BRIEFING",
         "settings": "DEFAULT",
@@ -74,6 +84,8 @@ LIFECYCLE_EXPECTATIONS = {
         "continuation": "RESTORABLE",
     },
     "SETTINGS_APPLY": {
+        "pointerInputs": 39,
+        "keyInputs": 2,
         "title": "VISIBLE",
         "session": "NONE",
         "settings": "APPLIED",
@@ -82,6 +94,8 @@ LIFECYCLE_EXPECTATIONS = {
         "continuation": "MISSING",
     },
     "SETTINGS_RESTORE": {
+        "pointerInputs": 3,
+        "keyInputs": 2,
         "title": "VISIBLE",
         "session": "NONE",
         "settings": "RESTORED",
@@ -224,8 +238,8 @@ def exact_lifecycle_marker(output: str, scenario: str) -> str:
     pattern = re.compile(
         rf"^{re.escape(LIFECYCLE_MARKER_PREFIX)}"
         rf"scenario={re.escape(scenario)} "
-        r"pointer_inputs=(0|[1-9][0-9]*) "
-        r"key_inputs=(0|[1-9][0-9]*) "
+        rf"pointer_inputs={expectation['pointerInputs']} "
+        rf"key_inputs={expectation['keyInputs']} "
         rf"title={expectation['title']} "
         rf"session={expectation['session']} "
         rf"settings={expectation['settings']} "
@@ -238,13 +252,17 @@ def exact_lifecycle_marker(output: str, scenario: str) -> str:
             f"packaged lifecycle marker field drift for {scenario}: "
             f"{markers[0]!r}"
         )
-    pointer_inputs = int(match.group(1))
-    key_inputs = int(match.group(2))
-    if pointer_inputs < 1:
-        fail(f"packaged lifecycle scenario {scenario} pushed no pointer input")
-    if scenario.startswith("SETTINGS_") and key_inputs < 1:
-        fail(f"packaged lifecycle scenario {scenario} pushed no key input")
     return markers[0]
+
+
+def require_no_lifecycle_marker(output: str, label: str) -> None:
+    markers = [
+        line.strip()
+        for line in output.splitlines()
+        if line.strip().startswith(LIFECYCLE_MARKER_PREFIX)
+    ]
+    if markers:
+        fail(f"{label} unexpectedly emitted lifecycle markers: {markers!r}")
 
 
 def run_packaged_title(
@@ -284,6 +302,7 @@ def run_packaged_title(
     require_success_output(output, TITLE_MARKER, "packaged product-title stage")
     log_output = read_log(log_path)
     exact_title_marker(log_output, "packaged product-title stage")
+    require_no_lifecycle_marker(log_output, "packaged product-title stage")
     marker = exact_qualification_marker(
         log_output,
         settings=settings,
@@ -377,6 +396,75 @@ def fresh_data_root(work: Path, name: str) -> Path:
     data_root = data_root.resolve(strict=True)
     validate_empty_root(data_root)
     return data_root
+
+
+def run_rejected_packaged_lifecycle(
+    app: Path,
+    guard_root: Path,
+    log_path: Path,
+    *,
+    rejection_id: str,
+    scenario: str,
+    data_environment: Path,
+    expected_error: str,
+) -> dict[str, Any]:
+    executable = app / "Contents/MacOS/Gridworks"
+    if not executable.is_file() or executable.is_symlink():
+        fail("qualified package executable is missing")
+    before = root_files(guard_root, set())
+    environment = dict(os.environ)
+    environment[candidate.QUALIFICATION_DATA_ENV] = str(data_environment)
+    environment[candidate.QUALIFICATION_SCENARIO_ENV] = scenario
+    environment.pop("GridworksCurrentR2Export", None)
+    environment.pop("GridworksLegacyV2Export", None)
+    result = subprocess.run(
+        [
+            str(executable),
+            "--headless",
+            "--audio-driver",
+            "Dummy",
+            "--log-file",
+            str(log_path),
+        ],
+        cwd=log_path.parent,
+        env=environment,
+        text=True,
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
+    output = combined_output(result, log_path)
+    if result.returncode != 1:
+        fail(
+            f"{rejection_id} returned {result.returncode}, expected fail-closed 1"
+        )
+    forbidden_markers = (
+        TITLE_MARKER,
+        MARKER_PREFIX,
+        LIFECYCLE_MARKER_PREFIX,
+    )
+    if any(marker in output for marker in forbidden_markers):
+        fail(f"{rejection_id} reached a qualification-ready marker")
+    log_output = read_log(log_path)
+    error_lines = [
+        line.strip()
+        for line in log_output.splitlines()
+        if line.lstrip().upper().startswith(("ERROR:", "SCRIPT ERROR:"))
+    ]
+    if error_lines != [f"ERROR: {expected_error}"]:
+        fail(
+            f"{rejection_id} error output drift: "
+            f"expected one {expected_error!r}, got {error_lines!r}"
+        )
+    after = root_files(guard_root, set())
+    if after != before:
+        fail(f"{rejection_id} changed its guard root")
+    return {
+        "exitCode": result.returncode,
+        "id": rejection_id,
+        "readyMarkersEmitted": False,
+        "rootFiles": after,
+    }
 
 
 def copy_fixture(source: Path, target: Path) -> None:
@@ -717,6 +805,41 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
         validate_empty_root(data_root)
         logs = work / "logs"
         logs.mkdir(mode=0o700)
+        invalid_scenario_root = fresh_data_root(
+            work,
+            "lifecycle-invalid-scenario",
+        )
+        invalid_root_guard = fresh_data_root(
+            work,
+            "lifecycle-invalid-root-guard",
+        )
+        lifecycle_rejections = [
+            run_rejected_packaged_lifecycle(
+                app,
+                invalid_scenario_root,
+                logs / "lifecycle-invalid-scenario.log",
+                rejection_id="INVALID_SCENARIO",
+                scenario="NOT_A_QUALIFICATION_SCENARIO",
+                data_environment=invalid_scenario_root,
+                expected_error=(
+                    "R2 qualification user-data rejected: "
+                    "GRIDWORKS_R2_QUALIFICATION_SCENARIO is not a fixed "
+                    "supported scenario."
+                ),
+            ),
+            run_rejected_packaged_lifecycle(
+                app,
+                invalid_root_guard,
+                logs / "lifecycle-invalid-root.log",
+                rejection_id="INVALID_ROOT",
+                scenario="EMPTY_NEW_GAME",
+                data_environment=invalid_root_guard / "missing",
+                expected_error=(
+                    "R2 qualification user-data rejected: "
+                    "GRIDWORKS_R2_QUALIFICATION_USER_DATA_DIR must already exist."
+                ),
+            ),
+        ]
         fixtures = work / "source-fixtures"
         fixtures.mkdir(mode=0o700)
         settings_fixture = fixtures / "settings.json"
@@ -967,6 +1090,7 @@ def reconstruct(manifest_path: Path) -> dict[str, Any]:
             "realDefaultProductFilesUnchanged": True,
             "scope": "GRIDWORKS_OWNED_DATA_AND_PACKAGED_LIFECYCLE_SEAMS_ONLY",
         },
+        "lifecycleRejections": lifecycle_rejections,
         "lifecycleStages": lifecycle_stages,
         "package": package_identity(manifest_path, manifest),
         "producer": {
@@ -1000,17 +1124,31 @@ def run_qualification(manifest_path: Path) -> None:
 
 
 def verify_record(record_path: Path) -> None:
+    if record_path.is_symlink():
+        fail("qualification record must not be a symlink")
     record_path = record_path.resolve()
     if record_path.name != RECORD_NAME:
         fail("qualification record filename drift")
+    initial_metadata = record_path.lstat()
+    if not stat.S_ISREG(initial_metadata.st_mode):
+        fail("qualification record is not a regular file")
+    initial_size = initial_metadata.st_size
+    initial_sha256 = candidate.sha256_file(record_path)
     record = candidate.strict_json(
         record_path,
         label="qualification record",
         canonical=True,
     )
+    parsed_bytes = candidate.canonical_bytes(record) + b"\n"
+    if (
+        len(parsed_bytes) != initial_size
+        or candidate.sha256_bytes(parsed_bytes) != initial_sha256
+    ):
+        fail("qualification record changed before or during parsing")
     if not isinstance(record, dict) or set(record) != {
         "claims",
         "isolation",
+        "lifecycleRejections",
         "lifecycleStages",
         "package",
         "producer",
@@ -1026,6 +1164,13 @@ def verify_record(record_path: Path) -> None:
     expected = reconstruct(record_path.parent / candidate.MANIFEST_NAME)
     if candidate.canonical_bytes(record) != candidate.canonical_bytes(expected):
         fail("qualification record differs from reconstructed authority")
+    final_metadata = record_path.lstat()
+    if (
+        not stat.S_ISREG(final_metadata.st_mode)
+        or final_metadata.st_size != initial_size
+        or candidate.sha256_file(record_path) != initial_sha256
+    ):
+        fail("qualification record changed during verification")
     print(f"R2_QUALIFICATION_VERIFY_PASS record={record_path}")
 
 

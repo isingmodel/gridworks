@@ -86,6 +86,18 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def file_contains(path: Path, needle: bytes) -> bool:
+    overlap = max(0, len(needle) - 1)
+    carry = b""
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            data = carry + chunk
+            if needle in data:
+                return True
+            carry = data[-overlap:] if overlap else b""
+    return False
+
+
 def canonical_bytes(value: Any) -> bytes:
     return json.dumps(
         value,
@@ -198,19 +210,58 @@ def macos_path_key(path: str) -> tuple[str, ...]:
     )
 
 
+def zip_entry_count(path: Path) -> int:
+    file_size = path.stat().st_size
+    with path.open("rb") as stream:
+        stream.seek(max(0, file_size - (65_535 + 22)))
+        tail = stream.read()
+    signature = b"PK\x05\x06"
+    search_end = len(tail)
+    fields: tuple[Any, ...] | None = None
+    eocd_offset = -1
+    while search_end:
+        index = tail.rfind(signature, 0, search_end)
+        if index < 0:
+            break
+        if len(tail) - index >= 22:
+            candidate = struct.unpack("<4s4H2LH", tail[index : index + 22])
+            if index + 22 + candidate[-1] == len(tail):
+                fields = candidate
+                eocd_offset = file_size - len(tail) + index
+                break
+        search_end = index
+    if fields is None:
+        raise CandidateError("candidate archive end-of-directory record is missing")
+    _, disk, directory_disk, disk_entries, total_entries, size, offset, _ = fields
+    if disk or directory_disk or disk_entries != total_entries:
+        raise CandidateError("multi-disk candidate archives are unsupported")
+    if total_entries in (0, 0xFFFF) or total_entries > MAX_ARCHIVE_ENTRIES:
+        raise CandidateError("candidate archive entry count is outside bounds")
+    if size == 0xFFFFFFFF or offset == 0xFFFFFFFF or size > 16_000_000:
+        raise CandidateError("candidate archive central directory is outside bounds")
+    if offset + size > eocd_offset:
+        raise CandidateError("candidate archive central directory range is invalid")
+    return total_entries
+
+
 def validate_zip(path: Path) -> None:
     if not path.is_file() or path.is_symlink():
         raise CandidateError(f"candidate archive is not a regular file: {path}")
     if path.stat().st_size > MAX_ARCHIVE_BYTES:
         raise CandidateError("candidate archive exceeds the bounded byte ceiling")
+    expected_entry_count = zip_entry_count(path)
     seen: dict[tuple[str, ...], tuple[str, bool]] = {}
+    archive_entries: list[tuple[str, bool]] = []
     expanded_bytes = 0
     with zipfile.ZipFile(path) as archive:
         infos = archive.infolist()
-        if not infos or len(infos) > MAX_ARCHIVE_ENTRIES:
+        if len(infos) != expected_entry_count:
             raise CandidateError("candidate archive entry count is outside bounds")
         for info in infos:
-            normalized = normalized_zip_name(info.filename)
+            original_name = getattr(info, "orig_filename", info.filename)
+            if original_name != info.filename:
+                raise CandidateError(f"unsafe raw archive path: {original_name!r}")
+            normalized = normalized_zip_name(original_name)
             mode = (info.external_attr >> 16) & 0xFFFF
             kind = stat.S_IFMT(mode)
             if kind not in (0, stat.S_IFREG, stat.S_IFDIR, stat.S_IFLNK):
@@ -253,6 +304,7 @@ def validate_zip(path: Path) -> None:
                     f"archive non-directory shadows an existing path: {normalized}"
                 )
             seen[logical_key] = (normalized, is_directory)
+            archive_entries.append((normalized, is_directory))
 
             if kind == stat.S_IFLNK:
                 if info.file_size > 4_096:
@@ -276,6 +328,15 @@ def validate_zip(path: Path) -> None:
                     raise CandidateError(
                         f"archive symlink escapes extraction root: {normalized} -> {target}"
                     )
+    for normalized, is_directory in archive_entries:
+        if not normalized.startswith("__MACOSX/") or is_directory:
+            continue
+        parts = PurePosixPath(normalized).parts
+        if len(parts) < 3 or not parts[-1].startswith("._"):
+            raise CandidateError(f"invalid AppleDouble archive entry: {normalized}")
+        target = PurePosixPath(*parts[1:-1], parts[-1][2:]).as_posix()
+        if macos_path_key(target) not in seen:
+            raise CandidateError(f"orphan AppleDouble archive entry: {normalized}")
 
 
 def tree_entries(root: Path) -> list[dict[str, Any]]:
@@ -443,7 +504,7 @@ def md5_range(stream: Any, offset: int, byte_count: int) -> bytes:
     return digest.digest()
 
 
-def pck_entries(path: Path) -> set[str]:
+def pck_entries(path: Path) -> dict[str, tuple[int, int]]:
     file_size = path.stat().st_size
     entries: list[tuple[str, int, int, bytes]] = []
     logical_paths: dict[tuple[str, ...], str] = {}
@@ -513,7 +574,20 @@ def pck_entries(path: Path) -> set[str]:
             if md5_range(stream, offset, byte_count) != expected_md5:
                 raise CandidateError(f"PCK entry hash mismatch: {normalized}")
             previous_end = max(previous_end, offset + byte_count)
-    return {entry[0] for entry in entries}
+    return {entry[0]: (entry[1], entry[2]) for entry in entries}
+
+
+def pck_text(path: Path, entry: tuple[int, int], label: str) -> str:
+    offset, byte_count = entry
+    if byte_count > 1_000_000:
+        raise CandidateError(f"PCK text entry is too large: {label}")
+    with path.open("rb") as stream:
+        stream.seek(offset)
+        raw = read_exact(stream, byte_count, f"PCK {label}")
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as exception:
+        raise CandidateError(f"PCK text entry is not UTF-8: {label}") from exception
 
 
 def validate_packaged_runtime(resources: Path) -> None:
@@ -532,6 +606,7 @@ def validate_packaged_runtime(resources: Path) -> None:
         "Gridworks.Game.dll",
         "Gridworks.Core.dll",
         "System.Private.CoreLib.dll",
+        "createdump",
         "libcoreclr.dylib",
         "libhostfxr.dylib",
         "libhostpolicy.dylib",
@@ -544,6 +619,18 @@ def validate_packaged_runtime(resources: Path) -> None:
             if not payload.is_file() or payload.is_symlink():
                 raise CandidateError(
                     f"packaged runtime payload is missing: {architecture}/{name}"
+                )
+        native_payloads = [directory / "createdump", *sorted(directory.glob("*.dylib"))]
+        if len(native_payloads) < 2:
+            raise CandidateError(f"packaged native runtime is incomplete: {architecture}")
+        for payload in native_payloads:
+            payload_architectures = run(
+                [require_tool("lipo", "/usr/bin/lipo"), "-archs", str(payload)]
+            ).stdout.split()
+            if payload_architectures != [architecture]:
+                raise CandidateError(
+                    "packaged native runtime architecture drift: "
+                    f"{architecture}/{payload.name}={payload_architectures}"
                 )
 
         runtime_config = strict_json(
@@ -584,6 +671,13 @@ def validate_packaged_runtime(resources: Path) -> None:
 
 
 def validate_payload(root: Path) -> dict[str, Any]:
+    expected_top_level = {"Gridworks.app"} | {
+        PurePosixPath(relative).parts[0] for relative in LEGAL_PATHS
+    }
+    actual_top_level = {path.name for path in root.iterdir()}
+    if actual_top_level != expected_top_level:
+        difference = sorted(actual_top_level ^ expected_top_level)
+        raise CandidateError(f"package root closure drift: {difference[0]}")
     app = root / "Gridworks.app"
     if not app.is_dir() or app.is_symlink():
         raise CandidateError("package must contain one regular Gridworks.app directory")
@@ -648,15 +742,40 @@ def validate_payload(root: Path) -> dict[str, Any]:
         require_excludes(content, ("Gridworks.LegacyCore", "/Users/", "/home/", "/private/tmp/"), "Core assembly")
 
     resources = app / "Contents/Resources"
-    pcks = sorted(resources.glob("*.pck"))
-    if len(pcks) != 1:
-        raise CandidateError(f"expected one standalone PCK, found {len(pcks)}")
-    packaged_entries = pck_entries(pcks[0])
+    expected_pck = resources / "Gridworks.pck"
+    pcks = sorted(root.rglob("*.pck"))
+    if pcks != [expected_pck] or expected_pck.is_symlink():
+        raise CandidateError("package must contain only the expected standalone PCK")
+    loose_resources = sorted(
+        path.relative_to(root)
+        for path in root.rglob("*")
+        if path.is_file()
+        and path != expected_pck
+        and path.suffix.lower()
+        in {
+            ".ctex",
+            ".import",
+            ".jpg",
+            ".mp3",
+            ".ogg",
+            ".png",
+            ".res",
+            ".sample",
+            ".scn",
+            ".svg",
+            ".tres",
+            ".tscn",
+            ".wav",
+        }
+    )
+    if loose_resources:
+        raise CandidateError(f"package contains loose resource: {loose_resources[0]}")
+    packaged_entries = pck_entries(expected_pck)
     required_entries = {
         "realtime/r2/RealtimeSliceMain.tscn.remap",
         "default_bus_layout.tres.remap",
     }
-    missing_entries = required_entries - packaged_entries
+    missing_entries = required_entries - packaged_entries.keys()
     if missing_entries:
         raise CandidateError(f"PCK is missing current entry: {min(missing_entries)}")
     g3_count, g3_sha256, g3_resources = g3_identity()
@@ -670,6 +789,36 @@ def validate_payload(root: Path) -> dict[str, Any]:
     if actual_g3_entries != expected_g3_entries:
         difference = sorted(actual_g3_entries ^ expected_g3_entries)
         raise CandidateError(f"PCK G3 closure drift: {difference[0]}")
+    g3_targets: set[str] = set()
+    for import_path in sorted(expected_g3_entries):
+        source_path = import_path.removesuffix(".import")
+        import_text = pck_text(
+            expected_pck,
+            packaged_entries[import_path],
+            import_path,
+        )
+        target_lines = [
+            line for line in import_text.splitlines()
+            if line.startswith('path="res://') and line.endswith('"')
+        ]
+        if len(target_lines) != 1:
+            raise CandidateError(f"PCK G3 import target drift: {import_path}")
+        target = target_lines[0][len('path="res://') : -1]
+        target_prefix = f".godot/imported/{PurePosixPath(source_path).name}-"
+        if (
+            not target.startswith(target_prefix)
+            or not target.endswith(".ctex")
+            or target not in packaged_entries
+        ):
+            raise CandidateError(f"PCK G3 import backing drift: {import_path}")
+        g3_targets.add(target)
+    actual_ctex = {
+        entry for entry in packaged_entries if entry.endswith(".ctex")
+    }
+    if len(g3_targets) != g3_count or actual_ctex != g3_targets:
+        difference = sorted(actual_ctex ^ g3_targets)
+        detail = difference[0] if difference else "duplicate target"
+        raise CandidateError(f"PCK G3 imported texture closure drift: {detail}")
     forbidden_entries = {
         "CommercialMain.tscn.remap",
         "CommercialTheme.tres.remap",
@@ -682,11 +831,19 @@ def validate_payload(root: Path) -> dict[str, Any]:
         if entry in forbidden_entries
         or entry.startswith("assets/commercial/portraits/")
         or entry.startswith("assets/realtime/")
-        or entry.lower().endswith((".mp3", ".ogg", ".wav"))
+        or entry.lower().removesuffix(".import").endswith((".mp3", ".ogg", ".wav"))
+        or entry.lower().endswith((".mp3str", ".oggvorbisstr", ".sample"))
     )
     if forbidden:
         raise CandidateError(f"PCK contains forbidden entry: {forbidden[0]}")
     validate_packaged_runtime(resources)
+
+    checkout = str(ROOT.resolve()).encode("utf-8")
+    for path in root.rglob("*"):
+        if path.is_file() and not path.is_symlink() and file_contains(path, checkout):
+            raise CandidateError(
+                f"package contains checkout path: {path.relative_to(root)}"
+            )
 
     legal_hashes: dict[str, str] = {}
     for relative in LEGAL_PATHS:
@@ -844,7 +1001,11 @@ def verify_manifest(manifest_path: Path) -> None:
     archive = manifest_path.parent / ARCHIVE_NAME
     claimed_size = package.get("byteLength")
     claimed_sha256 = package.get("sha256")
-    if type(claimed_size) is not int or claimed_size < 1:
+    if (
+        type(claimed_size) is not int
+        or claimed_size < 1
+        or claimed_size > MAX_ARCHIVE_BYTES
+    ):
         raise CandidateError("candidate manifest archive size is invalid")
     if (
         not isinstance(claimed_sha256, str)
@@ -854,7 +1015,10 @@ def verify_manifest(manifest_path: Path) -> None:
         raise CandidateError("candidate manifest archive hash is invalid")
     if not archive.is_file() or archive.is_symlink():
         raise CandidateError("candidate archive is missing or not a regular file")
-    if archive.stat().st_size != claimed_size or sha256_file(archive) != claimed_sha256:
+    actual_size = archive.stat().st_size
+    if actual_size > MAX_ARCHIVE_BYTES:
+        raise CandidateError("candidate archive exceeds the bounded byte ceiling")
+    if actual_size != claimed_size or sha256_file(archive) != claimed_sha256:
         raise CandidateError("candidate archive bytes differ from manifest identity")
     with tempfile.TemporaryDirectory(prefix="gridworks-r2-verify-") as raw:
         extracted = Path(raw) / "package"
@@ -876,6 +1040,44 @@ def copy_legal_files(stage: Path) -> None:
         target = stage / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
+
+
+def publish_candidate(candidate_archive: Path, manifest_bytes: bytes) -> None:
+    final_archive = DIST / ARCHIVE_NAME
+    final_manifest = DIST / MANIFEST_NAME
+    archive_temp = DIST / f".{ARCHIVE_NAME}.tmp"
+    manifest_temp = DIST / f".{MANIFEST_NAME}.tmp"
+    archive_backup = DIST / f".{ARCHIVE_NAME}.previous"
+    manifest_backup = DIST / f".{MANIFEST_NAME}.previous"
+
+    if archive_backup.exists():
+        os.replace(archive_backup, final_archive)
+    if manifest_backup.exists():
+        os.replace(manifest_backup, final_manifest)
+    shutil.copy2(candidate_archive, archive_temp)
+    manifest_temp.write_bytes(manifest_bytes)
+    had_archive = final_archive.exists()
+    had_manifest = final_manifest.exists()
+    try:
+        if had_archive:
+            os.replace(final_archive, archive_backup)
+        if had_manifest:
+            os.replace(final_manifest, manifest_backup)
+        os.replace(archive_temp, final_archive)
+        os.replace(manifest_temp, final_manifest)
+    except BaseException:
+        if had_archive and archive_backup.exists():
+            os.replace(archive_backup, final_archive)
+        elif not had_archive:
+            final_archive.unlink(missing_ok=True)
+        if had_manifest and manifest_backup.exists():
+            os.replace(manifest_backup, final_manifest)
+        elif not had_manifest:
+            final_manifest.unlink(missing_ok=True)
+        raise
+    else:
+        archive_backup.unlink(missing_ok=True)
+        manifest_backup.unlink(missing_ok=True)
 
 
 def build_candidate() -> None:
@@ -965,12 +1167,7 @@ def build_candidate() -> None:
         candidate_manifest = work / MANIFEST_NAME
         candidate_manifest.write_bytes(manifest_bytes)
         verify_manifest(candidate_manifest)
-        archive_temp = DIST / f".{ARCHIVE_NAME}.tmp"
-        manifest_temp = DIST / f".{MANIFEST_NAME}.tmp"
-        shutil.copy2(candidate_archive, archive_temp)
-        manifest_temp.write_bytes(manifest_bytes)
-        os.replace(archive_temp, final_archive)
-        os.replace(manifest_temp, final_manifest)
+        publish_candidate(candidate_archive, manifest_bytes)
     print(f"R2_CANDIDATE_BUILD_PASS manifest={final_manifest} archive={final_archive}")
 
 

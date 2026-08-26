@@ -28,7 +28,7 @@ launch argument → RealtimeLaunchCatalog
 
 technical/native resource load → RealtimeSliceData
 
-normal stable product-owned exit
+normal journal-restorable product-owned exit
 → RealtimeSession.TryCaptureProgress
 → RealtimeSliceData.RequireSaveSourceIdentity
 → RealtimeCampaignSaveCodec.Capture
@@ -71,7 +71,7 @@ session 없는 product-title save probe, route와 분리된 product-write owners
 | 제품 title의 표시·focus·입력 차단은? | `RealtimeProductTitle`과 `RealtimeUiRoot` | `game/realtime/ui/` |
 | save schema·strict replay는? | `RealtimeCampaignSaveCodec` | `src/Gridworks.Core/Release/V3/RealtimeCampaignPersistence.cs` |
 | native save source identity는? | `RealtimeSliceData.RequireSaveSourceIdentity` | `game/realtime/r2/RealtimeSliceResources.cs` |
-| stable/story-idle capture·paused resume 정책은? | `RealtimeSession` | `game/realtime/r2/RealtimeSession.cs` |
+| journal-restorable/story-idle capture·paused resume 정책은? | `RealtimeSession` | `game/realtime/r2/RealtimeSession.cs` |
 | save 파일 상태·atomic write는? | `RealtimeCampaignSaveStore` | `game/realtime/r2/RealtimeCampaignSaveStore.cs` |
 | title save probe와 product-owned write lifecycle은? | `RealtimeSliceMain`; title은 표시·signal만 | `RealtimeSliceMain.cs`, `game/realtime/ui/RealtimeProductTitle.cs` |
 | 입력 뒤 application 상태와 chapter/story flow는? | `RealtimeSession` | `RealtimeSession.cs`, `RealtimeChapterStoryFlow.cs` |
@@ -144,7 +144,8 @@ completed outcome을 chapter ID로 generic join한 Keep/Defer 문장·남은 자
 
 1. canonical route와 bundled base/realtime source identity를 먼저 고정한다.
 2. `RealtimeCampaignSaveCodec`의 strict journal replay와 canonical hash를 Core에서 검증한다.
-3. `RealtimeSession`에서 저장 가능한 application boundary와 resume interaction 정책을 한 번 정한다.
+3. `RealtimeSession`의 shared predicate에서 command count를 포함한 Core replay 경계를 한 번 정하고,
+   modal/story/application 경계와 resume interaction 정책을 그 바깥에서 한 번 정한다.
 4. session 없는 product title/Main만 save를 probe하고, 그 title action에서 시작한 session만 write
    ownership을 갖게 한다. explicit development route는 같은 route라도 읽거나 쓰지 않는다.
 5. Main은 store·title·Godot lifecycle만 연결하고 title view에는 파일 또는 Core 권위를 주지 않는다.
@@ -162,6 +163,9 @@ completed outcome을 chapter ID로 generic join한 Keep/Defer 문장·남은 자
 - `ProductCampaign`과 exact prior `FIRST_LIGHT`만 product continuation route로 허용한다. 다른 개발 route,
   형식 손상·지원하지 않는 schema/version·source/hash/replay 불일치·I/O 실패 save는 원본을 바꾸지 않고
   `새 게임`과 `이어하기`를 모두 차단한다.
+- active event·duty는 Core journal에서 exact replay한다. undelivered pending transition·draft·completion은
+  shared Core predicate가 capture와 title probe에서 함께 차단하고, story modal·epilogue·frame debt는
+  Session capture boundary에서 차단한다.
 - Main은 cached title availability를 handler에서 다시 검사해 stale/programmatic action도 상태 변경 전에
   거부한다.
 - 이미 닫힌 modal처럼 stale하지만 무해한 요청은 명시적인 no-op으로만 다룬다.
@@ -181,9 +185,10 @@ completed outcome을 chapter ID로 generic join한 Keep/Defer 문장·남은 자
 
 가장 가까운 unit/story/checkpoint에서 시작하고, 완료 전 `./dev check`로 current root graph의 Debug
 build와 기본 자동 회귀를 닫는다. 이 명령은 no-arg 제품 title과 명시적 technical fixture entry smoke도
-포함하며, Core의 누적 8장 stable replay, isolated fresh process의 product save-create→Continue, exact prior
-`FIRST_LIGHT` Continue와 blocked save 상태를 검사한다. root `Gridworks.sln` 전체의 Release build와 전체
-Godot UI harness는 포함하지 않는다. 해당 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
+포함하며, Core의 누적 8장 stable replay와 pending fail-closed, isolated fresh process의 active event·duty
+product save-create→Continue, exact prior `FIRST_LIGHT` Continue와 blocked save 상태를 검사한다. root
+`Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지 않는다. 해당 검사가 필요한 변경은
+active scope의 완료 검사에 별도로 적는다.
 product title과 explicit fixture/native route의 launch·save ownership 의미를 구조 변경의 불변조건으로
 취급한다. session을 만드는 fixture와
 `FIRST_LIGHT`, `SECOND_SOURCE`, `LONGEST_NIGHT` native route의 canonical state hash도 유지한다.

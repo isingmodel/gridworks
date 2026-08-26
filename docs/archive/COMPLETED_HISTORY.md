@@ -216,6 +216,26 @@ stale/programmatic title action의 availability 우회는 handler 재검사로 �
 story·result/handoff·완료 save, overwrite/recovery UI, 완료 후 선택, 전체 8장 production-input 직접 여정,
 package 또는 사람 UX 품질의 증거로 확대하지 않는다.
 
+### UX-R2.13 — active event·duty progress save·Continue
+
+기존 v1 accepted-journal이 이미 exact replay하는 Core-owned active event와 active duty를 product 저장
+경계에 포함했다. `RealtimeSession.IsJournalRestorableProgressSnapshot` 하나가 accepted command·active
+incomplete chapter·pending-empty·draft-free 조건을 capture, title probe와 Resume에 공통 적용한다. active
+modal, queued/active story, epilogue, retained frame debt와 completion은 계속 차단하며 schema·codec·store는
+바꾸지 않았다.
+
+별도 fresh process의 `FIRST_LIGHT_SUPPLY` active event·duty save-create→Continue가 exact Core
+snapshot/hash/journal과 paused·normal speed·no-modal 정책을 복원했다. session harness는
+snapshot/hash/journal/ordered transition history를 exact 복원하고, 닫은 `FLOOD_ISOLATION_TEST` story 뒤
+active event·duty를 재개해 과거 story를 다시 열지 않고 `SECOND_HEART` result와 `SECOND_SOURCE`
+briefing을 각각 한 번 열었다. undelivered pending transition은 v1
+delivery cursor가 exact replay되지 않으므로 계속 fail-closed한다.
+
+Debug/Release build, `./dev check`, 전체 Godot UI harness와 독립 review를 통과했다. review에서 accepted-command
+조건의 세 경로 중복을 shared predicate로 합치고 result exact-once 검사를 강화했다. 이 완료는 pending·
+queued/active story·result/handoff·completion save, overwrite/recovery UI, package, 전체 8장 production-input
+직접 여정 또는 사람 UX 품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

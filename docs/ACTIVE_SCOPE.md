@@ -2,42 +2,52 @@
 
 ## 상태
 
-**활성 구현 scope가 없다.**
+**active event·duty save/Continue scope가 활성화됐다.**
 
-직전 scope에서 저장 파일이 없는 제품 title의 `새 게임`을 canonical `FIRST_LIGHT`→`LONGEST_NIGHT`
-`ProductCampaign`에 연결하고, 누적 8장 모든 장의 stable in-progress save/Continue를 닫았다.
+기존 v1 accepted-journal save가 이미 exact replay하는 Core-owned active event와 active duty를 제품 진행
+저장 경계에 포함한다. story/application cursor나 schema를 추가하지 않고, 현재 한 shared session predicate의
+두 과도한 차단 조건만 제거한다.
 
-## 현재 완료 사실
+## 수정 범위
 
-- session 없는 product title/Main만 v1 accepted-journal save를 probe·strict restore하고, title의
-  New Game/Continue가 만든 product-owned session만 정상 종료 때 쓴다.
-- 명시적 `play chapter`/`play through`/fixture 개발 실행은 같은 native route여도 product save를 읽거나
-  쓰지 않는다.
-- Core command가 하나 이상 수락됐고 active chapter가 미완료이며 사건·duty·pending transition·draft·
-  queued/active story·epilogue·frame debt가 없는 stable 상태를 모든 장에서 exact replay한다.
-- Continue는 exact clock·cash·world·construction·journal/hash와 chapter transition history를 복원한 뒤
-  player-paused·normal speed·no-modal로 시작한다.
-- 직전 standalone `FIRST_LIGHT` v1 save는 exact-current source인 경우 원 route 그대로 Continue할 수 있다.
-  누적 save로 migration하지 않는다.
-- 다른 개발 route, 형식 손상, 지원하지 않는 schema/version, source/hash/replay 불일치와 I/O 실패는
-  원본을 바꾸지 않고 두 title action을 차단한다.
+- `RealtimeSession`의 stable 전용 이름을 journal-restorable progress 계약으로 바꾸고 active event·duty 허용
+- capture, title probe와 Resume가 계속 같은 predicate를 사용
+- 실제 누적 product route의 mid-event/duty save→restore와 future event 종료 exact 회귀
+- 기존 product fresh-process save-create→Continue를 대표 active event/duty 상태로 전진
+- 이 단계의 current fact 문서와 완료 이력
 
-## 완료 검증
+## 단일 권위
 
-- focused save/session 회귀: 8장 stable exact replay와 `SECOND_HEART` handoff 뒤 story 재개
-- `./dev check`: Realtime 26 suites/1,166 assertions, Commercial 31 suites/7,084 assertions와 product·legacy·
-  invalid/unsupported/I/O fresh-process smoke
-- `dotnet build Gridworks.sln -c Release`: warning/error 0
-- 전체 Godot UI harness: `REALTIME_R2_OFFSCREEN_CONTROL_TREE_PASS`
-- 독립 코드 review 2건: stale/programmatic title action finding을 수정하고 재검토 통과
+- gameplay event·duty·accepted journal·canonical hash: `RealtimeCampaignRun`
+- v1 strict decode·deterministic replay: `RealtimeCampaignSaveCodec`
+- journal-restorable capture·paused resume와 story-idle 정책: `RealtimeSession`
+- product title probe·write ownership·store lifecycle: `RealtimeSliceMain`
 
-## 아직 증명하지 않은 경계
+## 유지할 경계
 
-- 사건 중·active duty·pending transition, queued/active story, chapter result·handoff 저장
+- accepted Core command 1개 이상, active incomplete chapter, no node/line draft
+- `PendingTransitions.Count == 0`; undelivered public-transition cursor는 v1 replay가 보존하지 못함
+- active modal 없음, chapter story flow idle, epilogue 미시작, retained frame debt 없음
+- Running 또는 PlayerPaused에서만 capture; Continue는 player-paused·normal speed·no-modal
+- v1 schema/source/store와 prior exact standalone `FIRST_LIGHT` 호환 정책은 변경하지 않음
+
+## 범위 밖
+
+- undelivered pending transition, queued/active story, result/briefing handoff와 application cursor
+- draft·catch-up debt·application auto-pause reason 저장
 - 완료 run, finale/epilogue cursor와 완료 후 result/chapter/replay 선택
-- snapshot/application cursor 신규 schema, 유효 save 덮어쓰기 확인, 삭제·migration/recovery UI
-- 전체 8장 production-input 직접 여정, settings/audio, package, 공식 평가와 사람 UX 판정
-- 비정상 종료 journal, 다중 slot, cloud save, push/PR/merge
+- overwrite/recovery/migration UI, settings/audio, package, 공식 평가, 사람 UX 판정, push/PR/merge
 
-다음 구현은 [남은 작업](NEXT_TASKS.md)에서 한 단계만 골라 이 문서에 수정 범위·단일 권위·완료 검사를
-먼저 적은 뒤 시작한다.
+## 완료 검사
+
+- actual `ProductCampaign`의 story-idle active event+duty 상태를 v1 save로 capture한다.
+- restore가 snapshot/hash/journal/ordered transition history를 exact 복원하고 paused·normal speed·no-modal로
+  시작한다.
+- uninterrupted run과 restored run이 event 종료까지 같은 hash·transition·outcome을 만든다.
+- 이미 닫은 event story를 다시 열지 않고 다음 authored story만 정확히 한 번 연다.
+- undelivered pending transition과 나머지 범위 밖 상태는 계속 fail-closed한다.
+- 기존 8장 stable replay, prior standalone `FIRST_LIGHT`, invalid/unsupported/I/O 회귀를 유지한다.
+- focused 검사, Debug/Release build, `./dev check`와 독립 review를 통과한다.
+
+이 단계는 Core-owned active event·duty만 추가한다. pending delivery cursor, story/result/handoff, completion 또는
+전체 transient save를 완료했다고 주장하지 않는다.

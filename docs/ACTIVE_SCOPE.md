@@ -13,6 +13,8 @@
 - `RealtimeWorldPresenter`가 active risk area를 폭우, thermal-limit override를 폭염으로 표현해
   기존 G3 flood/heat renderer가 실제 Core 상태를 사용하게 한다. risk area가 있는 복합
   상태는 폭우가 우선한다.
+- `Reduce Motion`이 켜지면 비·폭우 스트릭의 minute phase를 고정해 해당 제품 설정이
+  실제 current renderer의 움직임을 줄이게 한다.
 - `tools/commercial-ux/native/` 30개 파일의 detached historical evaluator를 제거한다. 이 계층은
   current `./dev`·`./dev check`와 연결되지 않고 old editor-native First Light non-score 정책에
   고정돼 있다. 기존 이력은 Git이 보존한다.
@@ -35,7 +37,8 @@
 ## 완료 검사
 
 1. 작은 production smoke가 flood는 `Storm`, thermal override event는 `Heat`, 평상은 `Clear`로
-   판정하며 기존 live campaign 회귀가 통과한다.
+   판정하고, `Reduce Motion` off의 weather phase는 시간에 따라 바뀌지만 on은 고정한다.
+   기존 live campaign 회귀도 통과한다.
 2. `git ls-files 'tools/commercial-ux/native/**'`가 비어 있고 current 문서·명령에 삭제한 권위
    참조가 없다.
 3. 상대 Markdown 링크, `git diff --check`과 `./dev check`가 통과한다. 동일 규칙을 별도

@@ -3,7 +3,8 @@
 > 고정 judge: `gpt-5.6-sol`, reasoning effort `ultra`
 >
 > 현재 상태: text-plan 형성평가만 완료. 공식 native 점수 없음. 이 프로토콜은
-> [외부 출시 gate](../RELEASE_GATES.md)가 집행 권위를 갖춘 뒤에만 실행한다.
+> [외부 출시 gate](../RELEASE_GATES.md)의 실행 owner·선행 증거가 준비되고, 현재 사용자 지시와
+> 새 `ACTIVE_SCOPE.md`가 명시적으로 열 때만 실행한다.
 
 ## 1. 목적
 
@@ -252,5 +253,5 @@ deterministic failure 또는 blinded observation
 - historical editor-native non-score evaluator: current package와 미연결이어서 제거; 새 권위는 없음
 
 평가 실행은 완료된 2B-qualified exact package를 소비하는 full native journey capture와 score-bearing
-execution authority가 모두 준비된 뒤 [외부 출시 gate](../RELEASE_GATES.md)의 명시적 승인으로
-별도 scope를 연다.
+execution authority가 모두 준비된 뒤에도 [외부 출시 gate](../RELEASE_GATES.md) 상태만으로는
+시작하지 않는다. 현재 사용자 지시와 새 `ACTIVE_SCOPE.md`가 명시적으로 승인한 별도 scope를 연다.

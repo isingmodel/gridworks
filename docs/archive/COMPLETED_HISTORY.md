@@ -444,7 +444,7 @@ push, PR, merge는 수행하지 않았다.
 
 가장 단순한 구현 목표로 current R2 내부 후보와 외부 release 증거·승인을 분리했다.
 production `RealtimeWorldPresenter`는 active risk area를 `Storm`, thermal-limit override를 `Heat`,
-그 외을 `Clear`로 투영하고 복합 상태의 flood를 우선한다. `Reduce Motion`은 비·폭우
+그 외를 `Clear`로 투영하고 복합 상태의 flood를 우선한다. `Reduce Motion`은 비·폭우
 스트릭의 minute phase를 고정해 현재 renderer에서 실제 효과를 갖는다. 기존 full-campaign·G3
 smoke에 Clear/Heat/Storm 우선순위와 motion 고정 검사만 추가했다.
 

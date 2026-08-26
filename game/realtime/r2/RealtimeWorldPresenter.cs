@@ -292,11 +292,19 @@ internal static class RealtimeWorldPresenter
             thermal?.ProtectiveOutage ?? false);
     }
 
-    private static RealtimeWorldWeather Weather(RealtimeCampaignSnapshot snapshot) =>
-        snapshot.ActiveEventStates.Any(item =>
-            item.Event.OperatingProfile.ActiveRiskAreaIds.Count > 0)
-            ? RealtimeWorldWeather.Storm
+    private static RealtimeWorldWeather Weather(RealtimeCampaignSnapshot snapshot)
+    {
+        if (snapshot.ActiveEventStates.Any(item =>
+                item.Event.OperatingProfile.ActiveRiskAreaIds.Count > 0))
+        {
+            return RealtimeWorldWeather.Storm;
+        }
+
+        return snapshot.ActiveEventStates.Any(item =>
+            item.Event.OperatingProfile.ThermalLimitOverrides.Count > 0)
+            ? RealtimeWorldWeather.Heat
             : RealtimeWorldWeather.Clear;
+    }
 
     private static int ClampInt(long value) => value > int.MaxValue
         ? int.MaxValue
@@ -304,4 +312,3 @@ internal static class RealtimeWorldPresenter
             ? int.MinValue
             : (int)value;
 }
-

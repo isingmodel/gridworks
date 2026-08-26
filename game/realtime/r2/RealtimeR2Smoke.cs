@@ -6120,6 +6120,7 @@ internal static class RealtimeR2Smoke
         Check(slice.ActiveChapterStoryModalForSmoke is null &&
               slice.LatestPresentation.Modal is null &&
               slice.CoreSnapshot.ActiveEventStates.Single().EventId == "MAX_DEMAND" &&
+              slice.LatestPresentation.World.Weather == RealtimeWorldWeather.Clear &&
               maximum.Loads.Single(load => load.LoadId == "HOSPITAL").DeliveredKw == 900 &&
               maximum.Loads.Single(load => load.LoadId == "WATERWORKS").DeliveredKw == 900 &&
               maximum.Loads.All(load => load.DeliveredKw == load.DemandKw) &&
@@ -6143,11 +6144,12 @@ internal static class RealtimeR2Smoke
             heatwaveStory,
             failures);
         ThermalIntervalEvaluation heatwave = slice.CoreSnapshot.Thermal.Evaluation;
-        Check(heatwave.Loads.Single(load => load.LoadId == "HOSPITAL").DeliveredKw == 1600 &&
+        Check(slice.LatestPresentation.World.Weather == RealtimeWorldWeather.Heat &&
+              heatwave.Loads.Single(load => load.LoadId == "HOSPITAL").DeliveredKw == 1600 &&
               heatwave.Loads.Single(load => load.LoadId == "WATERWORKS").DeliveredKw == 1400 &&
               heatwave.Assets.Any(asset =>
                   asset.State == ThermalOperatingState.Emergency),
-            $"{label} active heatwave lost safety supply or emergency operation",
+            $"{label} active heatwave lost heat presentation, safety supply, or emergency operation",
             failures);
         Check(slice.ClosePresentedStoryModalForSmoke() is null,
             $"{label} heatwave story did not restore realtime play",
@@ -6174,7 +6176,8 @@ internal static class RealtimeR2Smoke
             floodStory,
             failures);
         ThermalIntervalEvaluation flood = slice.CoreSnapshot.Thermal.Evaluation;
-        Check(slice.LatestPresentation.World.ActiveRiskAreaIds.SequenceEqual(
+        Check(slice.LatestPresentation.World.Weather == RealtimeWorldWeather.Storm &&
+              slice.LatestPresentation.World.ActiveRiskAreaIds.SequenceEqual(
                   new[] { "RIVER_FLOOD_ZONE" },
                   StringComparer.Ordinal) &&
               flood.Loads.Single(load => load.LoadId == "HOSPITAL").DeliveredKw == 900 &&
@@ -6183,7 +6186,7 @@ internal static class RealtimeR2Smoke
                   asset.State != ThermalOperatingState.ProtectiveOutage) &&
               flood.Assets.Where(asset => asset.UsedKw > 0).All(asset =>
                   asset.State == ThermalOperatingState.Continuous),
-            $"{label} active protective flood lost risk or continuous safety reroute",
+            $"{label} active protective flood lost storm risk or continuous safety reroute",
             failures);
         Check(slice.ClosePresentedStoryModalForSmoke() is null,
             $"{label} protective-flood story did not restore realtime play",

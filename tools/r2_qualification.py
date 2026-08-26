@@ -26,6 +26,7 @@ TITLE_MARKER = candidate.TITLE_MARKER
 
 SETTINGS_FILE = "realtime-settings-v1.json"
 SAVE_FILE = "gridworks-r2-campaign-save-v1.json"
+PRODUCT_ROUTE_ID = "--release-through=LONGEST_NIGHT"
 
 
 def fail(message: str) -> None:
@@ -225,7 +226,7 @@ def save_facts(path: Path) -> dict[str, Any]:
     commands = value.get("commands")
     if (
         not isinstance(source, dict)
-        or source.get("routeId") != "ProductCampaign"
+        or source.get("routeId") != PRODUCT_ROUTE_ID
         or not isinstance(commands, list)
         or type(value.get("closedStoryCount")) is not int
         or not isinstance(value.get("canonicalStateSha256"), str)

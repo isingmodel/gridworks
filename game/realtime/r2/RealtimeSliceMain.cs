@@ -304,11 +304,12 @@ internal sealed partial class RealtimeSliceMain : Control
                     data.World,
                     save);
             if (restore.Run.AcceptedCommands.Count == 0 ||
-                !RealtimeSession.IsStableProgressSnapshot(restore.Run.GetSnapshot()))
+                !RealtimeSession.IsJournalRestorableProgressSnapshot(
+                    restore.Run.GetSnapshot()))
             {
                 throw new RealtimeCampaignPersistenceException(
                     RealtimeCampaignPersistenceFailureKind.Invalid,
-                    "The saved run is outside the stable progress boundary.");
+                    "The saved run is outside the journal-restorable progress boundary.");
             }
             _continuation = new RealtimeContinuation(route!, data, restore);
             RealtimeCampaignSnapshot snapshot = restore.Run.GetSnapshot();

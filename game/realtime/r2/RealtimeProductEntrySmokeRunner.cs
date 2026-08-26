@@ -92,7 +92,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     break;
                 case EntryMode.CreateSave:
                     await ValidateProductTitle(viewport, slice);
-                    created = PrepareStableProgress(slice);
+                    created = PrepareEventDutyProgress(slice);
                     break;
                 case EntryMode.ContinueSave:
                     await ValidateContinue(
@@ -311,8 +311,9 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         Require(savedMinute < construction.CompletionMinute,
             "The legacy FIRST_LIGHT save is not mid-construction.");
         _ = run.AdvanceTo(savedMinute);
-        Require(RealtimeSession.IsStableProgressSnapshot(run.GetSnapshot()),
-            "The legacy FIRST_LIGHT save is not stable.");
+        Require(RealtimeSession.IsJournalRestorableProgressSnapshot(
+                run.GetSnapshot()),
+            "The legacy FIRST_LIGHT save is not journal-restorable.");
         RealtimeCampaignSaveStore.Save(
             path,
             RealtimeCampaignSaveCodec.Capture(
@@ -419,7 +420,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "Story continue was confused with title Continue.");
     }
 
-    private static SaveExpectation PrepareStableProgress(RealtimeSliceMain slice)
+    private static SaveExpectation PrepareEventDutyProgress(RealtimeSliceMain slice)
     {
         Require(slice.ClosePresentedStoryModalForSmoke() is null,
             "FIRST_LIGHT briefing did not close before save preparation.");
@@ -437,24 +438,23 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             RealtimeR2IntentKind.OrderNode)),
             "order a FIRST_LIGHT node");
 
-        RealtimeCampaignSnapshot ordered = slice.CoreSnapshot;
-        ActiveConstructionSnapshot construction =
-            ordered.Construction.ActiveConstruction ??
-            throw new InvalidOperationException(
-                "The accepted FIRST_LIGHT order has no active construction.");
-        long midConstructionMinute = checked(ordered.Minute + 15);
-        Require(midConstructionMinute < construction.CompletionMinute,
-            "The save smoke cannot advance within the active construction window.");
-        _ = slice.AdvanceToForSmoke(midConstructionMinute);
+        _ = slice.AdvanceToForSmoke(1261);
         RealtimeCampaignSnapshot snapshot = slice.CoreSnapshot;
-        construction = snapshot.Construction.ActiveConstruction ??
+        RealtimeActiveEventState activeEvent = snapshot.ActiveEventStates.Single();
+        RealtimeEventDutyProgress duty = snapshot.ActiveDuty ??
             throw new InvalidOperationException(
-                "FIRST_LIGHT construction completed before the save boundary.");
-        Require(snapshot.ActiveEventStates.Count == 0 &&
+                "The FIRST_LIGHT event has no active duty progress.");
+        Require(activeEvent.EventId == "FIRST_LIGHT_SUPPLY" &&
+                duty.EventId == activeEvent.EventId &&
+                duty.ClosedSegments.Count > 0 &&
                 snapshot.PendingTransitions.Count == 0 &&
                 snapshot.Construction.NodeDraft is null &&
-                snapshot.Construction.LineDraft is null,
-            "The FIRST_LIGHT save preparation did not reach a stable boundary.");
+                snapshot.Construction.LineDraft is null &&
+                slice.LatestPresentation.Modal is null &&
+                slice.ActiveChapterStoryModalForSmoke is null &&
+                RealtimeSession.IsJournalRestorableProgressSnapshot(snapshot),
+            "The FIRST_LIGHT save preparation did not reach a journal-restorable " +
+            "active event/duty boundary.");
 
         // Keep the application state Running while preventing the smoke host from
         // adding wall-clock time between this expectation and normal tree exit.
@@ -484,7 +484,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 save.SavedMinute == expected.Minute &&
                 save.CanonicalStateSha256 == expected.CanonicalStateSha256 &&
                 save.Commands.Count == expected.CommandCount,
-            "The written R2 save does not match the product source and stable exit boundary.");
+            "The written R2 save does not match the product source and event exit boundary.");
     }
 
     private async Task ValidateContinue(
@@ -544,30 +544,30 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "Continue did not preserve the saved canonical route.");
 
         RealtimeCampaignSnapshot actual = slice.CoreSnapshot;
-        ActiveConstructionSnapshot expectedConstruction =
-            expected.Construction.ActiveConstruction ??
-            throw new InvalidOperationException(
-                "The source save is not mid-construction.");
-        ActiveConstructionSnapshot actualConstruction =
-            actual.Construction.ActiveConstruction ??
-            throw new InvalidOperationException(
-                "Continue lost the active construction.");
         Require(RealtimeStateCanonicalizer.StructuralEquals(expected, actual) &&
                 actual.Minute == save.SavedMinute &&
                 actual.CashUnit == expected.CashUnit &&
                 slice.CanonicalStateSha256 == save.CanonicalStateSha256 &&
-                slice.AcceptedCommandCount == save.Commands.Count &&
-                actualConstruction.Kind == expectedConstruction.Kind &&
-                actualConstruction.CostCashUnit == expectedConstruction.CostCashUnit &&
-                actualConstruction.CompletionMinute ==
-                    expectedConstruction.CompletionMinute &&
-                actualConstruction.NodeIds.SequenceEqual(
-                    expectedConstruction.NodeIds,
-                    StringComparer.Ordinal) &&
-                actualConstruction.EdgeIds.SequenceEqual(
-                    expectedConstruction.EdgeIds,
-                    StringComparer.Ordinal),
-            "Continue did not restore the exact clock/cash/world/construction/journal/hash.");
+                slice.AcceptedCommandCount == save.Commands.Count,
+            "Continue did not restore the exact clock/cash/world/journal/hash.");
+        if (ReferenceEquals(expectedRoute, RealtimeNativeRouteCatalog.ProductCampaign))
+        {
+            RealtimeActiveEventState expectedEvent = expected.ActiveEventStates.Single();
+            Require(actual.ActiveEventStates.Single().EventId == expectedEvent.EventId &&
+                    actual.ActiveDuty is
+                    {
+                        EventId: var actualDutyEventId,
+                        ClosedSegments.Count: > 0,
+                    } &&
+                    actualDutyEventId == expectedEvent.EventId,
+                "Continue lost active product event/duty progress.");
+        }
+        else
+        {
+            Require(expected.Construction.ActiveConstruction is not null &&
+                    actual.Construction.ActiveConstruction is not null,
+                "Legacy Continue lost its active construction.");
+        }
         Require(slice.InteractionState is
                 {
                     Simulation: RealtimeSimulationState.PlayerPaused,

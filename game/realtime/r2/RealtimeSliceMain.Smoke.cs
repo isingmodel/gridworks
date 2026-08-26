@@ -370,7 +370,7 @@ internal sealed partial class RealtimeSliceMain
             save is null)
         {
             throw new InvalidOperationException(
-                "The smoke session is outside the stable progress boundary.");
+                "The smoke session is outside the journal-restorable progress boundary.");
         }
         return save;
     }

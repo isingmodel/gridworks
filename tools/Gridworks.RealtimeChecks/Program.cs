@@ -368,6 +368,17 @@ internal sealed class Checks
             new string('d', 64),
             new string('e', 64),
             new string('f', 64));
+        var pending = new RealtimeCampaignRun(_campaign, _world);
+        Check(pending.GetSnapshot().PendingTransitions.Count > 0,
+            "pending-transition save negative has no undelivered cursor");
+        ExpectPersistence(
+            RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Capture(
+                identity,
+                _campaign,
+                _world,
+                pending),
+            "pending-transition save must remain fail-closed");
         var live = new RealtimeCampaignRun(_campaign, _world);
         var expectedTransitions = new List<RealtimeTransition>();
 
@@ -642,6 +653,7 @@ internal sealed class Checks
                 $"full-route {chapterId} next chapter transitions");
             expectedTransitions.AddRange(liveStart.Transitions);
         }
+
     }
 
     private void StrictReleaseOverlayComposition()

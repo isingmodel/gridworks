@@ -62,8 +62,8 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseFirstLightNoActionResult(failures), failures);
         RunCase("release-tutorial-through-second-source",
             () => ValidateReleaseTutorialThroughSecondSource(failures), failures);
-        RunCase("cumulative-stable-resume",
-            () => ValidateCumulativeStableResume(failures), failures);
+        RunCase("cumulative-event-duty-resume",
+            () => ValidateCumulativeEventDutyResume(failures), failures);
         RunCase("release-through-longest-night-controller",
             () => ValidateReleaseThroughLongestNightController(failures), failures);
         RunCase("release-promise-result-branches",
@@ -2866,7 +2866,8 @@ internal static class RealtimeR2Smoke
             failures);
     }
 
-    private static void ValidateCumulativeStableResume(ICollection<string> failures)
+    private static void ValidateCumulativeEventDutyResume(
+        ICollection<string> failures)
     {
         var live = new RealtimeSliceMain();
         try
@@ -2903,9 +2904,35 @@ internal static class RealtimeR2Smoke
             null,
             data.BaseCampaign.Chapters[1].Briefing,
             failures);
-        Check(live.ClosePresentedStoryModalForSmoke() is null &&
-              RealtimeSession.IsStableProgressSnapshot(live.CoreSnapshot),
+        Check(live.ClosePresentedStoryModalForSmoke() is null,
             "cumulative resume did not reach a story-idle SECOND_HEART boundary",
+            failures);
+
+        _ = live.AdvanceToForSmoke(1800);
+        RequireAuthoredTutorialModal(
+            live,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "SECOND_HEART",
+            "FLOOD_ISOLATION_TEST",
+            data.BaseCampaign.Chapters[1].OperatingPhases[1].Story!,
+            failures);
+        Check(live.ClosePresentedStoryModalForSmoke() is null,
+            "cumulative resume FLOOD event story did not close cleanly",
+            failures);
+        _ = live.AdvanceToForSmoke(1801);
+        RealtimeCampaignSnapshot eventSnapshot = live.CoreSnapshot;
+        Check(eventSnapshot.ActiveEventStates.Single().EventId ==
+                  "FLOOD_ISOLATION_TEST" &&
+              eventSnapshot.ActiveDuty is
+              {
+                  EventId: "FLOOD_ISOLATION_TEST",
+                  ClosedSegments.Count: > 0,
+              } &&
+              eventSnapshot.PendingTransitions.Count == 0 &&
+              live.ActiveChapterStoryModalForSmoke is null &&
+              live.LatestPresentation.Modal is null &&
+              RealtimeSession.IsJournalRestorableProgressSnapshot(eventSnapshot),
+            "cumulative resume did not reach a journal-restorable active event/duty boundary",
             failures);
 
         RealtimeCampaignSnapshot expectedSnapshot = live.CoreSnapshot;
@@ -2939,7 +2966,7 @@ internal static class RealtimeR2Smoke
               resumed.CoreSnapshot.ChapterIndex == 1 &&
               resumed.CoreSnapshot.CompletedChapters.Select(item => item.ChapterId)
                   .SequenceEqual(new[] { "FIRST_LIGHT" }, StringComparer.Ordinal),
-            "cumulative SECOND_HEART resume lost Core state, journal, or history",
+            "cumulative event/duty resume lost Core state, journal, or history",
             failures);
         Check(resumed.InteractionState is
               {
@@ -2950,23 +2977,33 @@ internal static class RealtimeR2Smoke
               resumed.LatestPresentation.Modal is null &&
               resumed.ActiveChapterStoryModalForSmoke is null &&
               resumed.AccumulatorSnapshot.Paused,
-            "cumulative SECOND_HEART resume did not apply paused/no-modal policy",
+            "cumulative event/duty resume did not apply paused/no-modal policy",
             failures);
 
-        _ = resumed.AdvanceToForSmoke(1800);
+        _ = live.AdvanceToForSmoke(1860);
+        _ = resumed.AdvanceToForSmoke(1860);
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                  live.CoreSnapshot,
+                  resumed.CoreSnapshot) &&
+              string.Equals(
+                  live.CanonicalStateSha256,
+                  resumed.CanonicalStateSha256,
+                  StringComparison.Ordinal) &&
+              live.EmittedTransitions.SequenceEqual(resumed.EmittedTransitions),
+            "cumulative event/duty resume diverged at the next chapter result",
+            failures);
         RealtimeChapterStoryModalRequest? nextStory =
             resumed.ActiveChapterStoryModalForSmoke;
         Check(nextStory is
               {
-                  Purpose: RealtimeChapterStoryModalPurpose.EventStory,
+                  Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
                   ChapterId: "SECOND_HEART",
-                  EventId: "FLOOD_ISOLATION_TEST",
+                  EventId: null,
               } &&
               resumed.LatestPresentation.Modal?.Id ==
-                  RealtimeR2Ids.TutorialEventStoryModal(
-                      "SECOND_HEART",
-                      "FLOOD_ISOLATION_TEST"),
-            "cumulative resume replayed past story or missed the next authored story",
+                  RealtimeR2Ids.TutorialResultModal("SECOND_HEART") &&
+              live.ActiveChapterStoryModalForSmoke?.ModalId == nextStory.ModalId,
+            "cumulative resume replayed the closed event story or missed the next result",
             failures);
     }
 

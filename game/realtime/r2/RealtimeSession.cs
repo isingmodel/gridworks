@@ -125,11 +125,12 @@ internal sealed partial class RealtimeSession
         if (resumed)
         {
             RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
-            if (!IsStableProgressSnapshot(snapshot) ||
+            if (!IsJournalRestorableProgressSnapshot(snapshot) ||
                 _run.AcceptedCommands.Count == 0)
             {
                 throw new InvalidOperationException(
-                    "A resumed R2 session requires accepted stable incomplete progress.");
+                    "A resumed R2 session requires accepted journal-restorable " +
+                    "incomplete progress.");
             }
             _emittedTransitions.AddRange(transitionHistory);
             foreach (RealtimeTransition transition in transitionHistory.Where(item =>
@@ -1940,7 +1941,7 @@ internal sealed partial class RealtimeSession
 
     private bool CanCaptureProgress =>
         _run.AcceptedCommands.Count > 0 &&
-        IsStableProgressSnapshot(_run.GetSnapshot()) &&
+        IsJournalRestorableProgressSnapshot(_run.GetSnapshot()) &&
         _interaction.ActiveModalId is null &&
         _chapterStoryFlow.IsIdle &&
         !_epilogueFlow.Started &&
@@ -1949,11 +1950,10 @@ internal sealed partial class RealtimeSession
             RealtimeSimulationState.Running or
             RealtimeSimulationState.PlayerPaused;
 
-    internal static bool IsStableProgressSnapshot(RealtimeCampaignSnapshot snapshot) =>
+    internal static bool IsJournalRestorableProgressSnapshot(
+        RealtimeCampaignSnapshot snapshot) =>
         snapshot.ChapterStarted &&
         !snapshot.CampaignComplete &&
-        snapshot.ActiveEventStates.Count == 0 &&
-        snapshot.ActiveDuty is null &&
         snapshot.PendingTransitions.Count == 0 &&
         snapshot.Construction.NodeDraft is null &&
         snapshot.Construction.LineDraft is null;

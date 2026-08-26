@@ -17,9 +17,10 @@ launch argument → RealtimeLaunchCatalog
 │  │  └─ Product write ownership + NativeRelease(RealtimeNativeRouteCatalog.ProductCampaign)
 │  │     └─ RealtimeSliceResources.LoadNativeRelease
 │  └─ ProductCampaign 또는 exact prior FIRST_LIGHT source
-│     └─ resource load + RealtimeCampaignSaveCodec.Restore → validated Continue availability
-│        └─ ContinueRequested → Product write ownership
-│           └─ RealtimeSession.Resume(paused, no modal)
+│     └─ codec replay + RealtimeSession.ValidateProgressResume → validated Continue availability
+│        └─ ContinueRequested → Product write ownership → RealtimeSession.Resume
+│           ├─ story-idle/v1 → PlayerPaused·Normal·no-modal
+│           └─ active v2 Event/Decision story → same authored modal·AutoPaused
 ├─ explicit DEBUG technical fixture/known checkpoint → TechnicalFixture
 │  └─ No write ownership + RealtimeSliceResources.LoadTechnicalFixture → stage R1 fixture data
 └─ exact native argument → NativeRelease → RealtimeNativeRouteCatalog
@@ -69,9 +70,10 @@ session 없는 product-title save probe, route와 분리된 product-write owners
 | product boot와 개발/native launch를 어떻게 구분하는가? | `RealtimeLaunchCatalog` | `game/realtime/r2/RealtimeLaunchCatalog.cs` |
 | product campaign과 허용 continuation route는? | `RealtimeNativeRouteCatalog` | `game/realtime/r2/RealtimeNativeRouteCatalog.cs` |
 | 제품 title의 표시·focus·입력 차단은? | `RealtimeProductTitle`과 `RealtimeUiRoot` | `game/realtime/ui/` |
-| save schema·strict replay는? | `RealtimeCampaignSaveCodec` | `src/Gridworks.Core/Release/V3/RealtimeCampaignPersistence.cs` |
+| save v1/v2 wire shape·strict Core replay는? | `RealtimeCampaignSaveCodec` | `src/Gridworks.Core/Release/V3/RealtimeCampaignPersistence.cs` |
 | native save source identity는? | `RealtimeSliceData.RequireSaveSourceIdentity` | `game/realtime/r2/RealtimeSliceResources.cs` |
-| journal-restorable/story-idle capture·paused resume 정책은? | `RealtimeSession` | `game/realtime/r2/RealtimeSession.cs` |
+| story candidate 순서·closed prefix·active request 재구성은? | `RealtimeChapterStoryFlow` | `game/realtime/r2/RealtimeChapterStoryFlow.cs` |
+| journal-restorable idle/active capture·Resume interaction 정책은? | `RealtimeSession` | `game/realtime/r2/RealtimeSession.cs` |
 | save 파일 상태·atomic write는? | `RealtimeCampaignSaveStore` | `game/realtime/r2/RealtimeCampaignSaveStore.cs` |
 | title save probe와 product-owned write lifecycle은? | `RealtimeSliceMain`; title은 표시·signal만 | `RealtimeSliceMain.cs`, `game/realtime/ui/RealtimeProductTitle.cs` |
 | 입력 뒤 application 상태와 chapter/story flow는? | `RealtimeSession` | `RealtimeSession.cs`, `RealtimeChapterStoryFlow.cs` |
@@ -85,6 +87,10 @@ session 없는 product-title save probe, route와 분리된 product-write owners
 한 규칙을 presenter나 Godot adapter에서 다시 계산하지 않는다. Core fact가 부족하면 Core의 snapshot 또는
 typed contract를 보강하고, application 전용 결정은 Session에서 한 번 계산해 presentation source로
 넘긴다. presenter는 상태를 바꾸지 않고 화면 의미만 만든다.
+
+current v2의 유일한 application cursor는 `closedStoryCount`다. `RealtimeChapterStoryFlow`가 transition
+history + selected campaign의 pure projection으로 candidate prefix를 해석하고, v1은 cursor가 없는 read-only
+all-closed 상태다. Main과 title view는 story count나 modal body를 계산하지 않는다.
 
 `CityPromise` 문구와 집계는 chapter ID가 아니라 event의 typed promise duty(profile/outcome)를 따른다.
 실제 열 rail/detail은 소진된 pending 목록을 다시 읽지 않고 Session이 보존한 Core transition history와
@@ -164,8 +170,11 @@ completed outcome을 chapter ID로 generic join한 Keep/Defer 문장·남은 자
   형식 손상·지원하지 않는 schema/version·source/hash/replay 불일치·I/O 실패 save는 원본을 바꾸지 않고
   `새 게임`과 `이어하기`를 모두 차단한다.
 - active event·duty는 Core journal에서 exact replay한다. undelivered pending transition·draft·completion은
-  shared Core predicate가 capture와 title probe에서 함께 차단하고, story modal·epilogue·frame debt는
-  Session capture boundary에서 차단한다.
+  shared Core predicate가 capture와 title probe에서 함께 차단한다. Session은 story-idle 또는 exact-minute·
+  queue-empty active `EventStory | DecisionWindowStory`만 허용하고 queued suffix·result/briefing·epilogue·
+  frame debt는 차단한다. live active capture는 blocking Story modal·pause reason·AutoPaused·restorable
+  Running/PlayerPaused interaction까지 확인하고, Resume는 저장된 interaction DTO 없이 authored request에서
+  same-modal AutoPaused 상태를 재구성한다.
 - Main은 cached title availability를 handler에서 다시 검사해 stale/programmatic action도 상태 변경 전에
   거부한다.
 - 이미 닫힌 modal처럼 stale하지만 무해한 요청은 명시적인 no-op으로만 다룬다.
@@ -185,8 +194,9 @@ completed outcome을 chapter ID로 generic join한 Keep/Defer 문장·남은 자
 
 가장 가까운 unit/story/checkpoint에서 시작하고, 완료 전 `./dev check`로 current root graph의 Debug
 build와 기본 자동 회귀를 닫는다. 이 명령은 no-arg 제품 title과 명시적 technical fixture entry smoke도
-포함하며, Core의 누적 8장 stable replay와 pending fail-closed, isolated fresh process의 active event·duty
-product save-create→Continue, exact prior `FIRST_LIGHT` Continue와 blocked save 상태를 검사한다. root
+포함하며, Core의 누적 8장 stable replay와 pending fail-closed, isolated fresh process의 active
+`FLOOD_ISOLATION_TEST` story save-create→same-story Continue, exact prior `FIRST_LIGHT` v1 Continue와 blocked
+save 상태를 검사한다. root
 `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지 않는다. 해당 검사가 필요한 변경은
 active scope의 완료 검사에 별도로 적는다.
 product title과 explicit fixture/native route의 launch·save ownership 의미를 구조 변경의 불변조건으로

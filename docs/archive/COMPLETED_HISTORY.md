@@ -236,6 +236,28 @@ Debug/Release build, `./dev check`, 전체 Godot UI harness와 독립 review를 
 queued/active story·result/handoff·completion save, overwrite/recovery UI, package, 전체 8장 production-input
 직접 여정 또는 사람 UX 품질의 증거로 확대하지 않는다.
 
+### UX-R2.14 — active authored story save·Continue
+
+current write schema를 v2로 올리고 deterministic story candidate prefix 중 닫은 개수 하나인 required
+nonnegative 32-bit `closedStoryCount`를 application cursor로 추가했다. `RealtimeChapterStoryFlow`의 live와 restore는 Core
+transition history + selected campaign의 같은 pure projection으로 candidate 순서, closed prefix와 active
+request를 만든다. prior v1은 read-only이고 cursor가 없으므로 모든 projected candidate를 닫은 story-idle로
+해석한다. probe/restore 자체는 원본을 rewrite하지 않고, Continue 뒤 정상 종료는 current v2 write 정책을
+따른다. 실제 파일명은 `gridworks-r2-campaign-save-v1.json`을 유지했다.
+
+pending story queue가 없고 trigger minute == saved minute인 active `EventStory | DecisionWindowStory`만
+저장한다. 별도 fresh process의 product `FLOOD_ISOLATION_TEST` save-create→Continue가 같은 authored modal을
+먼저 열고, 닫으면 PlayerPaused·Normal로 돌아갔다. session harness는 exact Core snapshot/hash/journal/history와
+닫기 뒤 `SECOND_HEART` result→`SECOND_SOURCE` briefing의 exact-once 미래를 확인했다. trigger minute를 지난
+채 열린 story는 capture 단계에서 거부한다.
+
+Debug/Release build, focused 1 suite/105 assertions, `./dev check`의 Realtime 26 suites/1,182 assertions와
+Commercial 31 suites/7,084 assertions, 전체 Godot UI harness와 독립 review를 통과했다. review에서 live
+trigger-minute gate, v1 read-only writer 경계와 v2 null/overflow strict case를 수정한 뒤 actionable finding
+0건으로 재검토됐다. 이 완료는 undelivered pending transition, queued story, initial/result/briefing handoff,
+completion/finale/epilogue, overwrite/recovery UI, package, 전체 8장 production-input 직접 여정 또는 사람 UX
+품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

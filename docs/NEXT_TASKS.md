@@ -9,8 +9,9 @@
 - Godot 기본 장면은 live R2 `RealtimeSliceMain`이다.
 - 인자 없는 실행은 session 없는 제품 title을 연다. 저장 파일이 없으면 `새 게임`이 canonical
   `FIRST_LIGHT`→`LONGEST_NIGHT` 누적 8장 `ProductCampaign`으로 진입한다. product-owned session의 모든
-  장 stable 진행과 story-idle active event·duty save, exact-current standalone `FIRST_LIGHT` v1 save는
-  `이어하기`로 player-paused·normal speed·no-modal 상태에 복원된다.
+  장 stable 진행, story-idle active event·duty와 exact-minute active `EventStory | DecisionWindowStory`는
+  current v2로 저장된다. story-idle과 read-only v1은 PlayerPaused·Normal·no-modal로, active story v2는
+  같은 authored modal로 복원해 닫은 뒤 PlayerPaused·Normal로 돌아간다.
 - G3 아트 57개(지도 50/UI 7)가 R2 world와 UI에 연결돼 있다.
 - 한 줄 사건 지평선이 사건·공사·결정 기한·열 경계를 compact marker로 표시하고 상세 정보를
   hover 또는 선택으로 연다.
@@ -20,10 +21,12 @@
   card와 세 Keep/Defer 약속 결과·남은 자금을 표시한다.
 - 실제 production mouse/keyboard 직접 플레이는 `NORTH_BANK_PROMISE`까지 누적 4장의 Keep과 명시적
   Defer를 각각 fresh process에서 관찰했다.
-- product title의 누적 8장 진입, 모든 장의 stable 진행과 story-idle active event·duty save/Continue seam은
-  구현됐다. 명시적 chapter/through/fixture 개발 실행은 product save를 읽거나 쓰지 않는다. pending·
-  queued/active story·장 전환·완료 저장과 완료 후 result/chapter/replay 선택, overwrite/recovery UI,
-  product audio·settings, current R2 패키지와 공식 UX 점수는 없다.
+- product title의 누적 8장 진입, 모든 장의 stable 진행, story-idle active event·duty와 queue-empty
+  exact-minute active in-chapter story save/Continue seam은 구현됐다. v2의 단일 application cursor는
+  `closedStoryCount`이고 prior v1은 all-closed로만 읽는다. 명시적 chapter/through/fixture 개발 실행은
+  product save를 읽거나 쓰지 않는다. pending·queued story·initial/result/briefing handoff·완료 저장과
+  완료 후 result/chapter/replay 선택, overwrite/recovery UI, product audio·settings, current R2 패키지와
+  공식 UX 점수는 없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
 연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
@@ -34,19 +37,20 @@
 
 ### 1. transient·완료 저장과 완료 후 재개
 
-현재 누적 8장 product의 저장·재개를 서로 다른 두 권위인 Core의 undelivered public-transition
-delivery state와 Session의 story·장 전환 application cursor, 완료 상태까지 확장하고
-result/chapter/replay 선택을 구현한다. 이미 연결된 finale→세 epilogue card를 저장 없이 다시
-만드는 별도 흐름을 추가하지 않으며 동결 V2 저장을 current R2 권위로 재사용하지 않는다.
+현재 누적 8장 product의 저장·재개를 Core의 undelivered public-transition delivery state와 기존 v2
+`closedStoryCount` application cursor의 queued suffix·result/briefing handoff, 완료 상태까지 확장하고
+result/chapter/replay 선택을 구현한다. 이미 연결된 finale→세 epilogue card를 저장 없이 다시 만드는
+별도 흐름을 추가하지 않으며 동결 V2 저장을 current R2 권위로 재사용하지 않는다.
 
 완료 기준:
 
 - undelivered pending transition의 delivery state를 exact 복구
-- queued/active story 경계의 Core 시간·망·결정과 application cursor 복구
-- chapter result·handoff에서 과거 story를 중복 재생하지 않고 다음 authored interaction을 정확히 한 번 엶
+- queued story suffix와 initial/chapter briefing의 Core 시간·망·결정 및 application cursor 복구
+- chapter result→next briefing handoff에서 과거 story를 중복 재생하지 않고 다음 authored interaction을
+  정확히 한 번 엶
 - 8장 완료→finale→epilogue→완료 저장→fresh process의 `이어하기`→결과와 chapter/replay 선택 복구
 - 유효한 저장이 있을 때 `새 게임`의 확인·덮어쓰기 정책
-- 손상·구버전 저장의 migration/recovery 또는 명시적 폐기 정책
+- 손상·지원 대상 v1 밖 구버전 저장의 migration/recovery 또는 명시적 사용자 폐기 정책
 
 ### 2. 시청각·설정·조작성·접근성 마감
 

@@ -5,10 +5,10 @@
 현재 저장소의 기본 장면은 live R2 `RealtimeSliceMain`이고 G3 자산 57개가 연결돼 있다. 인자 없는
 실행은 제품 title을 연다. 저장 파일이 없으면 `새 게임`이 authored `FIRST_LIGHT` briefing부터 누적
 8장을 시작하고, 유효한 product journal-restorable 진행 저장이나 직전 exact standalone `FIRST_LIGHT` v1
-save가 있으면 `이어하기`만 활성화된다. 모든 장의 stable 상태와 story-idle active event·duty
-save/Continue는 구현됐지만 undelivered Core transition·queued/active story·result handoff·완료
-저장과 설치 패키지는 아직 없다. 과거 V2의 저장 파일과 내부 macOS 후보를 current R2 기능으로
-간주하지 않는다.
+save가 있으면 `이어하기`만 활성화된다. 모든 장의 stable 상태, story-idle active event·duty와
+exact-minute active `EventStory | DecisionWindowStory` save/Continue는 구현됐지만 undelivered Core
+transition·queued story·result/briefing handoff·완료 저장과 설치 패키지는 아직 없다. 과거 V2의 저장
+파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다.
 
 ## 요구 환경
 
@@ -81,9 +81,10 @@ lifecycle은 `./dev play product`에서 검증한다.
 
 `./dev check`는 current root solution, RealtimeChecks의 누적 8장 stable replay와 pending fail-closed,
 CommercialChecks, 세 Python 회귀, no-arg 제품 title과 명시적 fixture entry smoke, 별도 process의 active
-event·duty product save-create→Continue·직전 exact `FIRST_LIGHT` Continue·invalid/unsupported-schema/I/O
-실패 title 상태와 두 named checkpoint를 묶은 기본 회귀다. 한 화면 상태나 story part를 조사할 때는 더 작은
-`checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는 `./dev help`에서 확인한다.
+`FLOOD_ISOLATION_TEST` story product save-create→same-story Continue·직전 exact `FIRST_LIGHT` v1 Continue·
+invalid/unsupported-schema/I/O 실패 title 상태와 두 named checkpoint를 묶은 기본 회귀다. 한 화면 상태나
+story part를 조사할 때는 더 작은 `checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는
+`./dev help`에서 확인한다.
 
 저장소에 포함된 Godot 대신 다른 Mono executable을 사용할 때의 예:
 
@@ -93,13 +94,26 @@ GRIDWORKS_GODOT_BIN=/absolute/path/to/Godot ./dev check
 
 ## 저장과 user-data
 
-current 파일은 `user://gridworks-r2-campaign-save-v1.json` 하나다. 제품 title의 New Game 또는 Continue로
-시작한 product-owned session만 이 파일을 쓴다. Core command가 하나 이상 수락되고 active incomplete
-chapter이며 pending transition·draft가 없어야 한다. 또한 active modal이 없고 chapter story flow가 idle이며
-epilogue·frame debt가 없고 simulation이 Running 또는 PlayerPaused인 진행을 정상 종료해야 같은
-디렉터리의 private temp를 거쳐 atomic하게 교체한다. 이 공통 조건에서 active construction과 story-idle
-active event·duty는 허용한다. save는 current route와 base/realtime source hash, saved minute,
-ordered accepted journal과 final canonical hash를 기록하며 snapshot이나 seed를 복제하지 않는다.
+current 파일은 `user://gridworks-r2-campaign-save-v1.json` 하나다. 파일명은 유지하지만 current write wire
+schema는 v2이며 deterministic story candidate prefix 중 닫은 개수인 required nonnegative 32-bit
+`closedStoryCount`를 기록한다. prior
+v1은 read-only이고 cursor가 없으므로 projected candidate를 모두 닫은 story-idle로 해석한다. v1 probe와
+restore 자체는 원본 bytes를 rewrite하지 않으며, Continue 뒤 정상 종료는 같은 파일의 current v2 write
+정책을 따른다.
+
+제품 title의 New Game 또는 Continue로 시작한 product-owned session만 이 파일을 쓴다. 공통 Core 경계는
+command 하나 이상, active incomplete chapter, pending transition·draft 없음이며 epilogue와 frame debt도
+없어야 한다. application 경계는 다음 둘뿐이다.
+
+- story-idle: active modal 없음, story flow idle, simulation이 Running 또는 PlayerPaused
+- active story: pending story queue 없음, `EventStory | DecisionWindowStory`, trigger minute == saved minute,
+  같은 blocking story modal과 AutoPaused interaction, `ModalRestore.Simulation`이 Running 또는 PlayerPaused,
+  story pause reason 일치
+
+이 조건에서 active construction과 active event·duty도 허용한다. save는 current route와 base/realtime source
+hash, saved minute, ordered accepted journal, final canonical hash와 v2 cursor를 기록하며 snapshot, modal body,
+seed나 raw transition queue를 복제하지 않는다. 정상 종료 때 같은 디렉터리의 private temp를 거쳐
+atomic하게 교체한다.
 
 title의 파일 상태 정책은 다음과 같다.
 
@@ -109,17 +123,18 @@ title의 파일 상태 정책은 다음과 같다.
 - 다른 개발 route·형식 손상·지원하지 않는 schema/version·source/hash/replay 불일치·I/O 실패:
   두 action disabled, 원본 bytes 보존
 
-`이어하기`는 exact clock·cash·world·construction·journal/hash를 되살린 뒤 player-paused·normal speed·
-no-modal 상태로 연다. pointer, camera, selection과 fractional frame remainder는 복원하지 않는다.
+`이어하기`는 exact clock·cash·world·construction·journal/hash를 되살린다. story-idle과 prior v1은
+PlayerPaused·Normal·no-modal로 열고, active story v2는 같은 authored modal을 AutoPaused로 먼저 열어 닫으면
+PlayerPaused·Normal·no-modal로 돌아간다. pointer, camera, selection과 fractional frame remainder는 복원하지
+않는다.
 
-위 공통 조건을 만족하면 누적 8장의 어느 장이든 result와 다음 briefing을 닫은 stable 상태나
-story가 없거나 이미 닫혀 story flow가 idle인 active event·duty 상태를 저장할 수 있다. undelivered
-pending transition, queued/active story·result handoff, 완료 run/finale/epilogue와 crash journal은 아직
-저장하지 않는다. 직전 exact
-`FIRST_LIGHT` save는 migration 없이 원 route로 Continue한다. 유효 save의 새 게임 덮어쓰기 확인, 삭제,
-migration/recovery UI도 없다. 새 게임이 필요하면 앱을 종료한 상태에서 current save를 별도
-위치로 백업·이동한다. 명시적 `chapter`, `through`,
-`fixture` 개발 명령은 product save를 읽거나 갱신하지 않는다.
+위 경계를 만족하면 누적 8장의 어느 장이든 result와 다음 briefing을 닫은 stable 상태, story-idle active
+event·duty 또는 exact-minute active in-chapter story를 저장할 수 있다. undelivered pending transition,
+queued story suffix, initial/chapter briefing, chapter result→next briefing handoff, 완료 run/finale/epilogue와
+crash journal은 아직 저장하지 않는다. 직전 exact `FIRST_LIGHT` v1 save는 migration 없이 원 route로
+Continue한다. 유효 save의 새 게임 덮어쓰기 확인, 삭제, migration/recovery UI도 없다. 새 게임이 필요하면
+앱을 종료한 상태에서 current save를 별도 위치로 백업·이동한다. 명시적 `chapter`, `through`, `fixture`
+개발 명령은 product save를 읽거나 갱신하지 않는다.
 
 Godot user-data에 과거 V2의 `release-campaign-save-v3.json`이나 `settings.json`이 남아 있어도 current R2
 권위가 아니다. 빈 user-data를 검사할 때 기존 파일을 삭제하거나 덮어쓰지 말고 별도 폴더로 옮겨

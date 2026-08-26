@@ -104,6 +104,7 @@ internal sealed partial class RealtimeSession
     private IReadOnlyList<string> _timelineClusterIds = Array.Empty<string>();
     private int _timelineClusterIndex;
     private bool _draftCancelArmed;
+    private bool _reduceMotion;
     private bool _formativeDirectPlayRecorded;
     private bool _formativeTutorialFullFlowRecorded;
 
@@ -111,7 +112,7 @@ internal sealed partial class RealtimeSession
     internal event Action<RealtimeSlicePresentation>? PointerPresentationPublished;
     internal event Action<string>? EvidenceRecorded;
 
-    internal RealtimeSession(RealtimeSliceData data)
+    internal RealtimeSession(RealtimeSliceData data, bool reduceMotion = false)
         : this(
             data,
             new RealtimeCampaignRun(
@@ -120,7 +121,8 @@ internal sealed partial class RealtimeSession
             Array.Empty<RealtimeTransition>(),
             resumed: false,
             closedStoryCount: null,
-            sourceSchemaVersion: null)
+            sourceSchemaVersion: null,
+            reduceMotion)
     {
     }
 
@@ -130,11 +132,13 @@ internal sealed partial class RealtimeSession
         IReadOnlyList<RealtimeTransition> transitionHistory,
         bool resumed,
         int? closedStoryCount,
-        string? sourceSchemaVersion)
+        string? sourceSchemaVersion,
+        bool reduceMotion)
     {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         _run = run ?? throw new ArgumentNullException(nameof(run));
         ArgumentNullException.ThrowIfNull(transitionHistory);
+        _reduceMotion = reduceMotion;
         _frame = new RealtimeFrameAccumulator(CatchUpCeilingMinutes);
         if (resumed)
         {
@@ -210,7 +214,8 @@ internal sealed partial class RealtimeSession
 
     internal static RealtimeSession Resume(
         RealtimeSliceData data,
-        RealtimeCampaignRestoreResult restore)
+        RealtimeCampaignRestoreResult restore,
+        bool reduceMotion = false)
     {
         ArgumentNullException.ThrowIfNull(restore);
         return new RealtimeSession(
@@ -219,7 +224,8 @@ internal sealed partial class RealtimeSession
             restore.Transitions,
             resumed: true,
             restore.ClosedStoryCount,
-            restore.OriginalSchemaVersion);
+            restore.OriginalSchemaVersion,
+            reduceMotion);
     }
 
     internal static RealtimeProgressResumePlan ValidateProgressResume(
@@ -844,7 +850,7 @@ internal sealed partial class RealtimeSession
                 _pointerPoint,
                 _pointerAccepted,
                 _pointerMessage),
-            ReduceMotion: false,
+            ReduceMotion: _reduceMotion,
             _nodeOrderQuote,
             _lineOrderQuote,
             _emittedTransitions,
@@ -1598,6 +1604,16 @@ internal sealed partial class RealtimeSession
         }
     }
 
+    internal void SetReduceMotion(bool reduceMotion)
+    {
+        if (_reduceMotion == reduceMotion)
+        {
+            return;
+        }
+        _reduceMotion = reduceMotion;
+        Present();
+    }
+
     internal void HandleToggleBuildShelf()
     {
         ConstructionSnapshot construction = PresentedCoreSnapshot.Construction;
@@ -2262,6 +2278,8 @@ internal sealed partial class RealtimeSession
         _frame.GetSnapshot();
 
     internal RealtimeInteractionState InteractionState => _interaction;
+
+    internal bool ReduceMotion => _reduceMotion;
 
     internal IReadOnlyList<TimedRealtimeCommand> AcceptedCommands =>
         _run.AcceptedCommands;

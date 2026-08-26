@@ -31,6 +31,10 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
     private const string SaveInvalidPrefix = "--save-invalid=";
     private const string SaveUnsupportedPrefix = "--save-unsupported=";
     private const string SaveIoFailurePrefix = "--save-io-failure=";
+    private const string SettingsCreatePrefix = "--settings-create=";
+    private const string SettingsRestorePrefix = "--settings-restore=";
+    private const string SettingsInvalidPrefix = "--settings-invalid=";
+    private const string SettingsReadFailurePrefix = "--settings-read-failure=";
 
     private enum EntryMode
     {
@@ -46,12 +50,40 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         InvalidSave,
         UnsupportedSave,
         IoFailureSave,
+        CreateSettings,
+        RestoreSettings,
+        InvalidSettings,
+        ReadFailureSettings,
     }
 
     private sealed record EntryRequest(
         EntryMode Mode,
         string? SavePath,
-        bool DeleteSaveAfterRun);
+        string? SettingsPath,
+        bool DeleteSaveAfterRun,
+        bool DeleteSettingsAfterRun);
+
+    private sealed record SettingsFixture(
+        byte[]? GuardedBytes,
+        FileStream? ReadLock);
+
+    private static RealtimeProductSettings StoredSettings { get; } = new(
+        RealtimeProductSettings.SupportedSchemaVersion,
+        RealtimeProductWindowMode.Fullscreen,
+        200,
+        0,
+        25,
+        75,
+        ReduceMotion: true);
+
+    private static RealtimeProductSettings RejectedSettings { get; } = new(
+        RealtimeProductSettings.SupportedSchemaVersion,
+        RealtimeProductWindowMode.Windowed,
+        150,
+        100,
+        50,
+        0,
+        ReduceMotion: false);
 
     private sealed record SaveExpectation(
         string RouteId,
@@ -66,6 +98,13 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         byte[] OriginalBytes,
         SaveExpectation ExpectedWrite);
 
+    private sealed record SettingsGameplayInvariant(
+        string CanonicalStateSha256,
+        IReadOnlyList<TimedRealtimeCommand> Commands,
+        RealtimeMapCameraSnapshot Camera,
+        RealtimeInteractionState Interaction,
+        bool OwnsProductProgress);
+
     public override void _Ready() => _ = RunAsync();
 
     private async Task RunAsync()
@@ -76,11 +115,15 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         byte[]? guardedBytes = null;
         byte[]? priorSaveBytes = null;
         byte[]? preservedSaveBytes = null;
+        byte[]? preservedSettingsBytes = null;
         ResetExpectation? resetExpectation = null;
+        FileStream? settingsReadLock = null;
         try
         {
             request = ParseRequest(OS.GetCmdlineUserArgs());
             guardedBytes = PrepareSaveFixture(request);
+            SettingsFixture settingsFixture = PrepareSettingsFixture(request);
+            settingsReadLock = settingsFixture.ReadLock;
 
             viewport = new SubViewport
             {
@@ -97,6 +140,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             {
                 slice.UseProductTitleLaunchForSmoke();
                 slice.SetSavePathOverrideForSmoke(request.SavePath!);
+                slice.SetSettingsPathOverrideForSmoke(request.SettingsPath!);
             }
             viewport.AddChild(slice);
             await SettleFrames(4);
@@ -163,9 +207,38 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                         request.Mode,
                         request.SavePath!);
                     break;
+                case EntryMode.CreateSettings:
+                    preservedSettingsBytes = await ValidateSettingsCreate(
+                        viewport,
+                        slice,
+                        request.SettingsPath!);
+                    break;
+                case EntryMode.RestoreSettings:
+                    preservedSettingsBytes = await ValidateSettingsRestore(
+                        viewport,
+                        slice,
+                        request.SettingsPath!);
+                    break;
+                case EntryMode.InvalidSettings:
+                    preservedSettingsBytes = await ValidateGuardedSettings(
+                        viewport,
+                        slice,
+                        settingsFixture.GuardedBytes!,
+                        "손상");
+                    break;
+                case EntryMode.ReadFailureSettings:
+                    preservedSettingsBytes = await ValidateGuardedSettings(
+                        viewport,
+                        slice,
+                        settingsFixture.GuardedBytes!,
+                        "읽지 못");
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            settingsReadLock?.Dispose();
+            settingsReadLock = null;
 
             if (expectedWrite is { Terminal: true })
             {
@@ -196,6 +269,12 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 resetExpectation = null;
             }
             ValidateGuardedSavePreserved(request, guardedBytes);
+            if (preservedSettingsBytes is not null)
+            {
+                Require(File.ReadAllBytes(request.SettingsPath!).SequenceEqual(
+                        preservedSettingsBytes),
+                    "A settings smoke changed the guarded primary bytes on tree exit.");
+            }
 
             GD.Print(request.Mode switch
             {
@@ -223,6 +302,14 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     "REALTIME_PRODUCT_ENTRY_SAVE_UNSUPPORTED_PASS",
                 EntryMode.IoFailureSave =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_IO_FAILURE_PASS",
+                EntryMode.CreateSettings =>
+                    "REALTIME_PRODUCT_ENTRY_SETTINGS_CREATE_PASS",
+                EntryMode.RestoreSettings =>
+                    "REALTIME_PRODUCT_ENTRY_SETTINGS_RESTORE_PASS",
+                EntryMode.InvalidSettings =>
+                    "REALTIME_PRODUCT_ENTRY_SETTINGS_INVALID_PASS",
+                EntryMode.ReadFailureSettings =>
+                    "REALTIME_PRODUCT_ENTRY_SETTINGS_READ_FAILURE_PASS",
                 _ => throw new ArgumentOutOfRangeException(),
             });
             exitCode = 0;
@@ -233,6 +320,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 $"REALTIME_PRODUCT_ENTRY_FAIL {exception.GetType().Name}: " +
                 exception.Message);
         }
+        settingsReadLock?.Dispose();
         if (viewport is not null && GodotObject.IsInstanceValid(viewport))
         {
             viewport.QueueFree();
@@ -242,6 +330,21 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             try
             {
                 File.Delete(request.SavePath);
+            }
+            catch (IOException)
+            {
+                // The isolated path is best-effort cleanup after the smoke outcome.
+            }
+        }
+        if (request is
+            {
+                DeleteSettingsAfterRun: true,
+                SettingsPath: not null,
+            })
+        {
+            try
+            {
+                File.Delete(request.SettingsPath);
             }
             catch (IOException)
             {
@@ -266,12 +369,15 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
     {
         if (arguments.Length == 0)
         {
+            string savePath = Path.Combine(
+                Path.GetTempPath(),
+                $"gridworks-product-entry-{Guid.NewGuid():N}.json");
             return new EntryRequest(
                 EntryMode.ProductTitle,
-                Path.Combine(
-                    Path.GetTempPath(),
-                    $"gridworks-product-entry-{Guid.NewGuid():N}.json"),
-                DeleteSaveAfterRun: true);
+                savePath,
+                $"{savePath}.settings",
+                DeleteSaveAfterRun: true,
+                DeleteSettingsAfterRun: true);
         }
         if (arguments.Length != 1)
         {
@@ -283,12 +389,50 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 RealtimeLaunchCatalog.TechnicalFixtureArgument,
                 StringComparison.Ordinal))
         {
-            return new EntryRequest(EntryMode.TechnicalFixture, null, false);
+            return new EntryRequest(
+                EntryMode.TechnicalFixture,
+                null,
+                null,
+                DeleteSaveAfterRun: false,
+                DeleteSettingsAfterRun: false);
         }
 
         EntryMode mode;
         string path;
+        bool settingsPath = false;
         if (arguments[0].StartsWith(
+                SettingsReadFailurePrefix,
+                StringComparison.Ordinal))
+        {
+            mode = EntryMode.ReadFailureSettings;
+            path = arguments[0][SettingsReadFailurePrefix.Length..];
+            settingsPath = true;
+        }
+        else if (arguments[0].StartsWith(
+                     SettingsRestorePrefix,
+                     StringComparison.Ordinal))
+        {
+            mode = EntryMode.RestoreSettings;
+            path = arguments[0][SettingsRestorePrefix.Length..];
+            settingsPath = true;
+        }
+        else if (arguments[0].StartsWith(
+                     SettingsInvalidPrefix,
+                     StringComparison.Ordinal))
+        {
+            mode = EntryMode.InvalidSettings;
+            path = arguments[0][SettingsInvalidPrefix.Length..];
+            settingsPath = true;
+        }
+        else if (arguments[0].StartsWith(
+                     SettingsCreatePrefix,
+                     StringComparison.Ordinal))
+        {
+            mode = EntryMode.CreateSettings;
+            path = arguments[0][SettingsCreatePrefix.Length..];
+            settingsPath = true;
+        }
+        else if (arguments[0].StartsWith(
                 SaveCompletedCreatePrefix,
                 StringComparison.Ordinal))
         {
@@ -364,9 +508,21 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         }
         if (!Path.IsPathFullyQualified(path))
         {
-            throw new ArgumentException("The smoke save path must be absolute.");
+            throw new ArgumentException("The smoke path must be absolute.");
         }
-        return new EntryRequest(mode, path, DeleteSaveAfterRun: false);
+        return settingsPath
+            ? new EntryRequest(
+                mode,
+                $"{path}.campaign",
+                path,
+                DeleteSaveAfterRun: true,
+                DeleteSettingsAfterRun: false)
+            : new EntryRequest(
+                mode,
+                path,
+                $"{path}.settings",
+                DeleteSaveAfterRun: false,
+                DeleteSettingsAfterRun: true);
     }
 
     private static byte[]? PrepareSaveFixture(EntryRequest request)
@@ -406,6 +562,62 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             : "{\"broken\":true}"u8.ToArray();
         File.WriteAllBytes(path, bytes);
         return bytes;
+    }
+
+    private static SettingsFixture PrepareSettingsFixture(EntryRequest request)
+    {
+        if (request.Mode is not (
+                EntryMode.CreateSettings or
+                EntryMode.RestoreSettings or
+                EntryMode.InvalidSettings or
+                EntryMode.ReadFailureSettings))
+        {
+            return new SettingsFixture(null, null);
+        }
+
+        string settingsPath = request.SettingsPath!;
+        string campaignPath = request.SavePath!;
+        if (File.Exists(campaignPath) || Directory.Exists(campaignPath))
+        {
+            throw new InvalidOperationException(
+                "A settings smoke campaign path must start absent.");
+        }
+        if (request.Mode == EntryMode.RestoreSettings)
+        {
+            if (!File.Exists(settingsPath))
+            {
+                throw new InvalidOperationException(
+                    "Settings restore requires the process-A primary file.");
+            }
+            return new SettingsFixture(File.ReadAllBytes(settingsPath), null);
+        }
+        if (File.Exists(settingsPath) || Directory.Exists(settingsPath))
+        {
+            throw new InvalidOperationException(
+                "A fresh settings smoke path must start absent.");
+        }
+
+        Directory.CreateDirectory(Path.GetDirectoryName(settingsPath)!);
+        if (request.Mode == EntryMode.CreateSettings)
+        {
+            return new SettingsFixture(null, null);
+        }
+
+        byte[] bytes = request.Mode == EntryMode.InvalidSettings
+            ? "{\"broken\":true}"u8.ToArray()
+            : RealtimeProductSettingsCodec.Serialize(StoredSettings);
+        File.WriteAllBytes(settingsPath, bytes);
+        if (request.Mode == EntryMode.InvalidSettings)
+        {
+            return new SettingsFixture(bytes, null);
+        }
+        return new SettingsFixture(
+            bytes,
+            new FileStream(
+                settingsPath,
+                FileMode.Open,
+                System.IO.FileAccess.Read,
+                FileShare.None));
     }
 
     private static void PrepareCompletedProductSave(string path)
@@ -615,6 +827,365 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 briefing.PrimaryAction.Label != title.ContinueButton.Text,
             "Story continue was confused with title Continue.");
     }
+
+    private async Task<byte[]> ValidateSettingsCreate(
+        SubViewport viewport,
+        RealtimeSliceMain slice,
+        string settingsPath)
+    {
+        RealtimeUiRoot ui = slice.UiForSmoke;
+        RealtimeProductTitle title = ui.ProductTitleForSmoke;
+        RealtimeSettingsSurface surface = ui.SettingsSurface;
+        Require(!File.Exists(settingsPath) &&
+                slice.ProductSettingsForSmoke == RealtimeProductSettings.Default &&
+                !slice.SettingsStatusIsErrorForSmoke &&
+                title.Visible &&
+                title.SettingsButton.Visible &&
+                !title.SettingsButton.Disabled &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, title.NewGameButton),
+            "Missing settings did not open the product title with defaults.");
+        ValidateSettingsRuntime(slice, RealtimeProductSettings.Default);
+
+        PushPrimary(viewport, title.SettingsButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        ValidateOpenSettings(
+            slice,
+            RealtimeSettingsJourney.ProductTitle,
+            surface);
+        PushPrimary(viewport, surface.CloseButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        Require(!ui.SettingsVisible &&
+                slice.ActiveSettingsJourneyForSmoke is null &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, title.SettingsButton) &&
+                ui.InputRouterForSmoke.ActiveOwner == "product_title",
+            "Pointer-close did not restore the title settings opener.");
+
+        title.SettingsButton.GrabFocus();
+        await SettleFrames(1);
+        PushKey(viewport, Key.Enter, pressed: true);
+        PushKey(viewport, Key.Enter, pressed: false);
+        await SettleFrames(4);
+        ValidateOpenSettings(
+            slice,
+            RealtimeSettingsJourney.ProductTitle,
+            surface);
+        SetSettingsControls(surface, StoredSettings);
+        PushPrimary(viewport, surface.ApplyButton.GetGlobalRect().GetCenter());
+        await SettleFrames(10);
+
+        byte[] storedBytes = RealtimeProductSettingsCodec.Serialize(StoredSettings);
+        Require(File.Exists(settingsPath) &&
+                File.ReadAllBytes(settingsPath).SequenceEqual(storedBytes) &&
+                !File.Exists($"{settingsPath}.tmp") &&
+                !Directory.Exists($"{settingsPath}.tmp") &&
+                !slice.SettingsStatusIsErrorForSmoke &&
+                surface.StatusText.Contains("저장", StringComparison.Ordinal),
+            "Title settings did not atomically persist the typed candidate.");
+        RequireSettingsControls(surface, StoredSettings);
+        ValidateSettingsRuntime(slice, StoredSettings);
+
+        PushKey(viewport, Key.Escape, pressed: true);
+        PushKey(viewport, Key.Escape, pressed: false);
+        await SettleFrames(4);
+        Require(!ui.SettingsVisible &&
+                slice.ActiveSettingsJourneyForSmoke is null &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, title.SettingsButton),
+            "Keyboard-close did not restore the title settings opener.");
+
+        PushPrimary(viewport, title.NewGameButton.GetGlobalRect().GetCenter());
+        await SettleFrames(5);
+        ValidateStartedProductCampaign(slice, title);
+        Require(slice.ClosePresentedStoryModalForSmoke() is null,
+            "Settings gameplay probe could not close the initial briefing.");
+        await SettleFrames(4);
+        Require(slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            "Fresh product gameplay was not running after its briefing.");
+        slice.FreezeAutonomousClockForSmoke();
+        slice.SetSpeedForSmoke(RealtimeSimulationSpeed.VeryFast);
+
+        SpatialNodeDefinition selectedNode = slice.CoreSnapshot.Construction.World.Nodes
+            .OrderBy(node => node.NodeId, StringComparer.Ordinal)
+            .First();
+        RequireAccepted(
+            slice.ApplyIntentForSmoke(RealtimeR2Intent.Select(selectedNode.NodeId)),
+            "select a gameplay settings invariant node");
+        slice.RestoreCameraForSmoke(new RealtimeMapCameraSnapshot(
+            new Vector2(
+                selectedNode.Position.XUnit,
+                selectedNode.Position.YUnit),
+            ZoomIndex: 1));
+        await SettleFrames(2);
+
+        RealtimeTopHud topHud = ui.TopHudForSmoke;
+        SettingsGameplayInvariant running = CaptureSettingsInvariant(slice);
+        PushPrimary(viewport, topHud.SettingsButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        ValidateOpenSettings(slice, RealtimeSettingsJourney.Gameplay, surface);
+        ValidateSettingsInvariant(
+            slice,
+            running,
+            running.Interaction with
+            {
+                Simulation = RealtimeSimulationState.PlayerPaused,
+                PauseReason = RealtimePauseReason.PlayerRequest,
+            },
+            "running settings open");
+        PushPrimary(viewport, surface.CloseButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        ValidateSettingsInvariant(slice, running, running.Interaction,
+            "running settings close");
+        Require(!ui.SettingsVisible &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, topHud.SettingsButton),
+            "Running settings close did not restore the gameplay opener.");
+
+        slice.SetPlayerPausedForSmoke(true);
+        SettingsGameplayInvariant paused = CaptureSettingsInvariant(slice);
+        PushPrimary(viewport, topHud.SettingsButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        ValidateOpenSettings(slice, RealtimeSettingsJourney.Gameplay, surface);
+        ValidateSettingsInvariant(slice, paused, paused.Interaction,
+            "player-paused settings open");
+
+        string blockedTemporaryPath = $"{settingsPath}.tmp";
+        Directory.CreateDirectory(blockedTemporaryPath);
+        try
+        {
+            SetSettingsControls(surface, RejectedSettings);
+            PushPrimary(viewport, surface.ApplyButton.GetGlobalRect().GetCenter());
+            await SettleFrames(6);
+            Require(slice.SettingsStatusIsErrorForSmoke &&
+                    surface.StatusText.Contains("저장하지 못", StringComparison.Ordinal) &&
+                    File.ReadAllBytes(settingsPath).SequenceEqual(storedBytes),
+                "A blocked settings write did not preserve the visible/raw state.");
+            RequireSettingsControls(surface, StoredSettings);
+            ValidateSettingsRuntime(slice, StoredSettings);
+            ValidateSettingsInvariant(slice, paused, paused.Interaction,
+                "failed settings write");
+        }
+        finally
+        {
+            if (Directory.Exists(blockedTemporaryPath))
+            {
+                Directory.Delete(blockedTemporaryPath);
+            }
+        }
+
+        PushKey(viewport, Key.Escape, pressed: true);
+        PushKey(viewport, Key.Escape, pressed: false);
+        await SettleFrames(4);
+        ValidateSettingsInvariant(slice, paused, paused.Interaction,
+            "player-paused settings close");
+        Require(!ui.SettingsVisible &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, topHud.SettingsButton),
+            "Player-paused settings close did not restore the gameplay opener.");
+        return storedBytes;
+    }
+
+    private async Task<byte[]> ValidateSettingsRestore(
+        SubViewport viewport,
+        RealtimeSliceMain slice,
+        string settingsPath)
+    {
+        byte[] originalBytes = File.ReadAllBytes(settingsPath);
+        byte[] expectedBytes = RealtimeProductSettingsCodec.Serialize(StoredSettings);
+        RealtimeUiRoot ui = slice.UiForSmoke;
+        RealtimeProductTitle title = ui.ProductTitleForSmoke;
+        Require(originalBytes.SequenceEqual(expectedBytes) &&
+                title.Visible &&
+                !slice.HasSessionForSmoke &&
+                slice.SettingsStatusForSmoke.Contains("불러", StringComparison.Ordinal) &&
+                !slice.SettingsStatusIsErrorForSmoke,
+            "Fresh process B did not load the process-A settings primary.");
+        ValidateSettingsRuntime(slice, StoredSettings);
+
+        PushPrimary(viewport, title.SettingsButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        ValidateOpenSettings(
+            slice,
+            RealtimeSettingsJourney.ProductTitle,
+            ui.SettingsSurface);
+        RequireSettingsControls(ui.SettingsSurface, StoredSettings);
+        PushPrimary(
+            viewport,
+            ui.SettingsSurface.CloseButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        Require(!ui.SettingsVisible &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, title.SettingsButton) &&
+                File.ReadAllBytes(settingsPath).SequenceEqual(originalBytes),
+            "Fresh settings restore changed bytes or lost opener focus.");
+        return originalBytes;
+    }
+
+    private async Task<byte[]> ValidateGuardedSettings(
+        SubViewport viewport,
+        RealtimeSliceMain slice,
+        byte[] originalBytes,
+        string expectedStatus)
+    {
+        RealtimeUiRoot ui = slice.UiForSmoke;
+        RealtimeProductTitle title = ui.ProductTitleForSmoke;
+        Require(title.Visible &&
+                !slice.HasSessionForSmoke &&
+                slice.ProductSettingsForSmoke == RealtimeProductSettings.Default &&
+                slice.SettingsStatusIsErrorForSmoke &&
+                slice.SettingsStatusForSmoke.Contains(
+                    expectedStatus,
+                    StringComparison.Ordinal) &&
+                slice.SettingsStatusForSmoke.Contains("기본값", StringComparison.Ordinal) &&
+                slice.SettingsStatusForSmoke.Contains("덮어쓰지", StringComparison.Ordinal),
+            "A guarded settings load did not fail closed with visible defaults.");
+        ValidateSettingsRuntime(slice, RealtimeProductSettings.Default);
+
+        PushPrimary(viewport, title.SettingsButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        ValidateOpenSettings(
+            slice,
+            RealtimeSettingsJourney.ProductTitle,
+            ui.SettingsSurface);
+        Require(ui.SettingsSurface.StatusText.Contains(
+                    expectedStatus,
+                    StringComparison.Ordinal),
+            "The guarded settings error was not visible on the shared surface.");
+        RequireSettingsControls(ui.SettingsSurface, RealtimeProductSettings.Default);
+        PushPrimary(
+            viewport,
+            ui.SettingsSurface.CloseButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        Require(!ui.SettingsVisible &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, title.SettingsButton),
+            "Guarded settings close did not restore title focus.");
+        return originalBytes;
+    }
+
+    private static void ValidateOpenSettings(
+        RealtimeSliceMain slice,
+        RealtimeSettingsJourney journey,
+        RealtimeSettingsSurface surface)
+    {
+        RealtimeUiRoot ui = slice.UiForSmoke;
+        Require(ui.SettingsVisible &&
+                surface.Visible &&
+                slice.ActiveSettingsJourneyForSmoke == journey &&
+                ui.InputRouterForSmoke.ActiveOwner == "product_settings" &&
+                ui.InputRouterForSmoke.ActivePriority ==
+                    RealtimeInputPriority.BlockingModal &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, surface.WindowModeOption),
+            "Settings did not own blocking input and initial focus for its journey.");
+    }
+
+    private static SettingsGameplayInvariant CaptureSettingsInvariant(
+        RealtimeSliceMain slice) => new(
+        slice.CanonicalStateSha256,
+        Array.AsReadOnly(slice.AcceptedCommands.ToArray()),
+        slice.CaptureCameraForSmoke(),
+        slice.InteractionState,
+        slice.OwnsProductProgressForSmoke);
+
+    private static void ValidateSettingsInvariant(
+        RealtimeSliceMain slice,
+        SettingsGameplayInvariant expected,
+        RealtimeInteractionState expectedInteraction,
+        string stage)
+    {
+        Require(string.Equals(
+                    slice.CanonicalStateSha256,
+                    expected.CanonicalStateSha256,
+                    StringComparison.Ordinal) &&
+                slice.AcceptedCommands.SequenceEqual(expected.Commands) &&
+                slice.CaptureCameraForSmoke() == expected.Camera &&
+                slice.InteractionState == expectedInteraction &&
+                slice.InteractionState.SelectionId ==
+                    expected.Interaction.SelectionId &&
+                slice.OwnsProductProgressForSmoke == expected.OwnsProductProgress,
+            $"Settings changed Core/journal/camera/selection/ownership at {stage}.");
+    }
+
+    private static void ValidateSettingsRuntime(
+        RealtimeSliceMain slice,
+        RealtimeProductSettings expected)
+    {
+        RealtimeUiRoot ui = slice.UiForSmoke;
+        Require(slice.ProductSettingsForSmoke == expected &&
+                ui.UiScalePercent == expected.UiScalePercent &&
+                slice.ReduceMotionForSmoke == expected.ReduceMotion &&
+                (!slice.HasSessionForSmoke ||
+                    slice.LatestPresentation.World.ReduceMotion ==
+                        expected.ReduceMotion),
+            "Settings did not project UI scale or Reduce Motion to current R2.");
+        RequireBus("Master", expected.MasterVolumePercent);
+        RequireBus("Ambient", expected.AmbientVolumePercent);
+        RequireBus("SFX", expected.SfxVolumePercent);
+
+        if (!string.Equals(
+                DisplayServer.GetName(),
+                "headless",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            Window.ModeEnum expectedMode = expected.WindowMode ==
+                RealtimeProductWindowMode.Fullscreen
+                    ? Window.ModeEnum.Fullscreen
+                    : Window.ModeEnum.Windowed;
+            Require(slice.GetWindow().Mode == expectedMode,
+                "Settings did not project the requested native window mode.");
+        }
+    }
+
+    private static void RequireBus(string busName, int percent)
+    {
+        int bus = AudioServer.GetBusIndex(busName);
+        Require(bus >= 0 &&
+                AudioServer.IsBusMute(bus) == (percent == 0) &&
+                (percent == 0 || Mathf.IsEqualApprox(
+                    AudioServer.GetBusVolumeLinear(bus),
+                    percent / 100f)),
+            $"Settings did not project {busName}={percent}% to its audio bus.");
+    }
+
+    private static void SetSettingsControls(
+        RealtimeSettingsSurface surface,
+        RealtimeProductSettings settings)
+    {
+        SelectOption(
+            surface.WindowModeOption,
+            settings.WindowMode == RealtimeProductWindowMode.Fullscreen ? 1 : 0);
+        SelectOption(surface.UiScaleOption, settings.UiScalePercent);
+        SelectOption(surface.MasterVolumeOption, settings.MasterVolumePercent);
+        SelectOption(surface.AmbientVolumeOption, settings.AmbientVolumePercent);
+        SelectOption(surface.SfxVolumeOption, settings.SfxVolumePercent);
+        surface.ReduceMotionCheck.ButtonPressed = settings.ReduceMotion;
+    }
+
+    private static void RequireSettingsControls(
+        RealtimeSettingsSurface surface,
+        RealtimeProductSettings settings)
+    {
+        Require(SelectedOption(surface.WindowModeOption) ==
+                    (settings.WindowMode == RealtimeProductWindowMode.Fullscreen ? 1 : 0) &&
+                SelectedOption(surface.UiScaleOption) == settings.UiScalePercent &&
+                SelectedOption(surface.MasterVolumeOption) ==
+                    settings.MasterVolumePercent &&
+                SelectedOption(surface.AmbientVolumeOption) ==
+                    settings.AmbientVolumePercent &&
+                SelectedOption(surface.SfxVolumeOption) == settings.SfxVolumePercent &&
+                surface.ReduceMotionCheck.ButtonPressed == settings.ReduceMotion,
+            "The shared settings controls do not show the committed values.");
+    }
+
+    private static void SelectOption(OptionButton option, int id)
+    {
+        for (int index = 0; index < option.ItemCount; index++)
+        {
+            if (option.GetItemId(index) == id)
+            {
+                option.Select(index);
+                return;
+            }
+        }
+        throw new InvalidOperationException($"Settings option id {id} is unavailable.");
+    }
+
+    private static int SelectedOption(OptionButton option) =>
+        option.GetItemId(option.Selected);
 
     private static void ValidateCompletedSaveTitle(RealtimeSliceMain slice)
     {
@@ -1519,6 +2090,16 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             ButtonIndex = MouseButton.Left,
             ButtonMask = (MouseButtonMask)0,
             Pressed = false,
+        }, inLocalCoords: true);
+    }
+
+    private static void PushKey(SubViewport viewport, Key key, bool pressed)
+    {
+        viewport.PushInput(new InputEventKey
+        {
+            Keycode = key,
+            PhysicalKeycode = key,
+            Pressed = pressed,
         }, inLocalCoords: true);
     }
 

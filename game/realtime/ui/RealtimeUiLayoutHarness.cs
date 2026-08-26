@@ -68,6 +68,9 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 northBankSelectedPresentation,
                 failures);
             GD.Print("REALTIME_R2_SMOKE_PHASE native-offscreen-profile-matrix end");
+            GD.Print("REALTIME_R2_SMOKE_PHASE settings-surface-profiles begin");
+            await ValidateSettingsSurfaceProfiles(presentation, failures);
+            GD.Print("REALTIME_R2_SMOKE_PHASE settings-surface-profiles end");
             GD.Print("REALTIME_R2_SMOKE_PHASE live-presentation-state-matrix begin");
             await ValidatePresentationStates(presentationStates, failures);
             GD.Print("REALTIME_R2_SMOKE_PHASE live-presentation-state-matrix end");
@@ -396,6 +399,126 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     viewport,
                     profileRoot,
                     northBankLabel,
+                    failures);
+            }
+            finally
+            {
+                RemoveAndFree(viewport);
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+        }
+    }
+
+    private async Task ValidateSettingsSurfaceProfiles(
+        RealtimeSlicePresentation presentation,
+        ICollection<string> failures)
+    {
+        Vector2 logical = RealtimeUiMetrics.ReferenceResolution;
+        foreach (int scale in new[] { 100, 200 })
+        {
+            string label = $"settings/FHD@{scale}%";
+            (SubViewport viewport, RealtimeUiRoot root) = await CreateOffscreenUi(
+                new Vector2I(1920, 1080),
+                logical,
+                scale,
+                presentation with { Modal = null });
+            try
+            {
+                RealtimeSettingsSurface settings = root.SettingsSurfaceForSmoke;
+                Button opener = root.TopHudForSmoke.SettingsButton;
+                var settingsPresentation = new RealtimeSettingsPresentation(
+                    new RealtimeSettingsValues(
+                        Fullscreen: false,
+                        UiScalePercent: scale,
+                        MasterVolumePercent: 100,
+                        AmbientVolumePercent: 75,
+                        SfxVolumePercent: 50,
+                        ReduceMotion: true),
+                    "설정 layout smoke",
+                    CanApply: true);
+                root.SettingsOpenRequested += journey =>
+                {
+                    if (journey != RealtimeSettingsJourney.Gameplay)
+                    {
+                        failures.Add($"{label} opened the wrong settings journey.");
+                        return;
+                    }
+                    root.ShowSettings(settingsPresentation);
+                };
+                root.SettingsCloseRequested += _ => root.HideSettings();
+
+                opener.GrabFocus();
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+                opener.EmitSignal(BaseButton.SignalName.Pressed);
+                await SettleLayout();
+
+                BaseButton[] targets =
+                [
+                    settings.WindowModeOption,
+                    settings.UiScaleOption,
+                    settings.MasterVolumeOption,
+                    settings.AmbientVolumeOption,
+                    settings.SfxVolumeOption,
+                    settings.ReduceMotionCheck,
+                    settings.CloseButton,
+                    settings.ApplyButton,
+                ];
+                PanelContainer panel = settings.GetNode<PanelContainer>("%SettingsPanel");
+                Rect2 panelRect = panel.GetGlobalRect();
+                var safeRect = new Rect2(24f, 24f, logical.X - 48f, logical.Y - 48f);
+                RealtimeLayoutProfile profile = RealtimeUiMetrics.ForWindow(
+                    new Vector2I(1920, 1080),
+                    scale);
+                Require(settings.Visible &&
+                        root.InputRouterForSmoke.ActiveOwner == "product_settings" &&
+                        root.InputRouterForSmoke.ActivePriority ==
+                            RealtimeInputPriority.BlockingModal &&
+                        ReferenceEquals(root.FocusOwnerForSmoke, settings.WindowModeOption),
+                    $"{label} did not own input and initial focus", failures);
+                Require(safeRect.Encloses(panelRect) &&
+                        panelRect.Size.X > 0f && panelRect.Size.Y > 0f,
+                    $"{label} panel escaped the 24px safe bounds: {panelRect}", failures);
+                Require(targets.Length == 8 && targets.All(control =>
+                            control.IsVisibleInTree() &&
+                            !control.Disabled &&
+                            control.FocusMode != Control.FocusModeEnum.None &&
+                            control.Size.X >= profile.MinimumHitTarget &&
+                            control.Size.Y >= profile.MinimumHitTarget &&
+                            panelRect.Encloses(control.GetGlobalRect())),
+                    $"{label} did not keep all eight focus targets visible, enabled, " +
+                    "inside the panel, and at the minimum hit target",
+                    failures);
+                Require(settings.CloseButton.Size.Y >= profile.PrimaryHitTarget &&
+                        settings.ApplyButton.Size.Y >= profile.PrimaryHitTarget,
+                    $"{label} action buttons missed the primary hit target", failures);
+
+                string[] targetPaths = targets
+                    .Select(control => control.GetPath().ToString())
+                    .ToArray();
+                await ValidateFocusDirection(
+                    viewport,
+                    root,
+                    targets[0],
+                    targetPaths,
+                    backwards: false,
+                    label,
+                    failures);
+                await ValidateFocusDirection(
+                    viewport,
+                    root,
+                    targets[^1],
+                    targetPaths,
+                    backwards: true,
+                    label,
+                    failures);
+
+                settings.CloseButton.EmitSignal(BaseButton.SignalName.Pressed);
+                await SettleLayout();
+                Require(!settings.Visible &&
+                        ReferenceEquals(root.FocusOwnerForSmoke, opener) &&
+                        root.InputRouterForSmoke.ActivePriority ==
+                            RealtimeInputPriority.EmptyTerrain,
+                    $"{label} close did not restore its exact opener and input owner",
                     failures);
             }
             finally

@@ -92,6 +92,7 @@ internal sealed partial class RealtimeSliceMain
     private bool _suppressFormativeDirectPlayOutputForSmoke;
     private RealtimeLaunchSelection? _launchOverrideForSmoke;
     private string? _savePathOverrideForSmoke;
+    private string? _settingsPathOverrideForSmoke;
 
     /// <summary>
     /// Owns an off-tree smoke host. GodotObject.Dispose only releases the
@@ -110,8 +111,36 @@ internal sealed partial class RealtimeSliceMain
         _savePathOverrideForSmoke = absolutePath;
     }
 
+    internal void SetSettingsPathOverrideForSmoke(string absolutePath)
+    {
+        if (!System.IO.Path.IsPathFullyQualified(absolutePath))
+        {
+            throw new ArgumentException(
+                "A smoke settings override must be absolute.",
+                nameof(absolutePath));
+        }
+        _settingsPathOverrideForSmoke = absolutePath;
+    }
+
     internal bool OwnsProductProgressForSmoke =>
         _progressPersistenceOwnership == ProgressPersistenceOwnership.Product;
+
+    internal RealtimeProductSettings ProductSettingsForSmoke => _settings;
+
+    internal string SettingsStatusForSmoke => _settingsStatus;
+
+    internal bool SettingsStatusIsErrorForSmoke => _settingsStatusIsError;
+
+    internal RealtimeSettingsJourney? ActiveSettingsJourneyForSmoke =>
+        _activeSettingsJourney;
+
+    internal bool ReduceMotionForSmoke => _session?.ReduceMotion ?? _settings.ReduceMotion;
+
+    internal void RequestSettingsCandidateForSmoke(RealtimeSettingsValues values) =>
+        SaveSettingsCandidate(values);
+
+    internal void RequestSettingsCloseForSmoke(RealtimeSettingsJourney journey) =>
+        CloseSettings(journey);
 
     internal void RequestNewGameForSmoke() => StartNewGame();
 

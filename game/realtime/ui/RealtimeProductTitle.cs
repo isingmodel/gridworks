@@ -33,13 +33,17 @@ internal sealed partial class RealtimeProductTitle : Control
     private Label _continueReason = null!;
     private Button _newGame = null!;
     private Button _continue = null!;
+    private Button _settings = null!;
 
     public event Action? NewGameRequested;
     public event Action? ContinueRequested;
+    public event Action? SettingsRequested;
 
     internal Button NewGameButton => _newGame;
 
     internal Button ContinueButton => _continue;
+
+    internal Button SettingsButton => _settings;
 
     internal string DetailText => _continueReason.Text;
 
@@ -56,9 +60,13 @@ internal sealed partial class RealtimeProductTitle : Control
         _continueReason = GetNode<Label>("%ContinueReasonLabel");
         _newGame = GetNode<Button>("%NewGameButton");
         _continue = GetNode<Button>("%ContinueButton");
+        _settings = GetNode<Button>("%SettingsButton");
 
         _newGame.Pressed += () => NewGameRequested?.Invoke();
         _continue.Pressed += () => ContinueRequested?.Invoke();
+        _settings.Pressed += () => SettingsRequested?.Invoke();
+        _settings.AccessibilityDescription =
+            "화면, UI 배율, 음량과 움직임 설정을 엽니다.";
         AccessibilityName = "Gridworks 제품 시작 화면";
         Dismiss();
     }
@@ -129,10 +137,11 @@ internal sealed partial class RealtimeProductTitle : Control
     public void ApplyLayout(RealtimeLayoutProfile profile)
     {
         float width = Math.Clamp(720f * profile.AccessibilityScale, 680f, 960f);
-        float height = Math.Clamp(520f * profile.AccessibilityScale, 500f, 760f);
+        float height = Math.Clamp(520f * profile.AccessibilityScale, 500f, 920f);
         _panel.CustomMinimumSize = new Vector2(width, height);
         _newGame.CustomMinimumSize = new Vector2(0, profile.PrimaryHitTarget);
         _continue.CustomMinimumSize = new Vector2(0, profile.PrimaryHitTarget);
+        _settings.CustomMinimumSize = new Vector2(0, profile.PrimaryHitTarget);
         _status.CustomMinimumSize = new Vector2(0, profile.MinimumHitTarget);
         _continueReason.CustomMinimumSize = new Vector2(0, profile.MinimumHitTarget);
     }

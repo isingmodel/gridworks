@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://realtime/ui/RealtimeUiRoot.cs" id="1_root"]
 [ext_resource type="Script" path="res://realtime/ui/RealtimeInputRouter.cs" id="2_router"]
@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://realtime/ui/RealtimeActionDock.tscn" id="8_action"]
 [ext_resource type="PackedScene" path="res://realtime/ui/RealtimeModalHost.tscn" id="9_modal"]
 [ext_resource type="PackedScene" path="res://realtime/ui/RealtimeProductTitle.tscn" id="10_title"]
+[ext_resource type="PackedScene" path="res://realtime/ui/RealtimeSettingsSurface.tscn" id="11_settings"]
 
 [node name="RealtimeUiRoot" type="Node"]
 script = ExtResource("1_root")
@@ -94,4 +95,10 @@ layout_mode = 1
 layer = 60
 
 [node name="ProductTitle" parent="TitleLayer" instance=ExtResource("10_title")]
+unique_name_in_owner = true
+
+[node name="SettingsLayer" type="CanvasLayer" parent="."]
+layer = 80
+
+[node name="SettingsSurface" parent="SettingsLayer" instance=ExtResource("11_settings")]
 unique_name_in_owner = true

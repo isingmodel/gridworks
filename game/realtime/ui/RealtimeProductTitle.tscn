@@ -124,3 +124,9 @@ custom_minimum_size = Vector2(0, 54)
 layout_mode = 2
 disabled = true
 text = "이어하기"
+
+[node name="SettingsButton" type="Button" parent="Center/TitlePanel/Margin/FocusScope/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+text = "설정"

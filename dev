@@ -43,6 +43,13 @@ run_product_entry_smoke() {
         "$@"
 }
 
+run_realtime_ui_harness() {
+    "$godot_bin" \
+        --headless \
+        --path "$repository_dir/game" \
+        --scene res://realtime/ui/RealtimeUiLayoutHarness.tscn
+}
+
 run_product_save_continue_smoke() {
     local smoke_dir
     local smoke_save
@@ -82,6 +89,23 @@ run_product_save_continue_smoke() {
     rmdir -- "$smoke_dir"
 }
 
+run_product_settings_smoke() {
+    local smoke_dir
+    local settings_path
+    local invalid_path
+    local read_failure_path
+    smoke_dir=$(mktemp -d "${TMPDIR:-/tmp}/gridworks-r2-settings-smoke.XXXXXX")
+    settings_path="$smoke_dir/settings.json"
+    invalid_path="$smoke_dir/invalid.json"
+    read_failure_path="$smoke_dir/read-failure.json"
+    run_product_entry_smoke -- "--settings-create=$settings_path"
+    run_product_entry_smoke -- "--settings-restore=$settings_path"
+    run_product_entry_smoke -- "--settings-invalid=$invalid_path"
+    run_product_entry_smoke -- "--settings-read-failure=$read_failure_path"
+    rm -- "$settings_path" "$invalid_path" "$read_failure_path"
+    rmdir -- "$smoke_dir"
+}
+
 command_name=${1:-help}
 if (( $# > 0 )); then
     shift
@@ -106,6 +130,8 @@ case $command_name in
         run_product_entry_smoke
         run_product_entry_smoke -- --technical-fixture
         run_product_save_continue_smoke
+        run_product_settings_smoke
+        run_realtime_ui_harness
         run_checkpoint A1_NORMAL_READY
         run_checkpoint A1_CONSTRUCTION_DUE_1M
         ;;

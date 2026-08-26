@@ -19,6 +19,7 @@ internal sealed partial class RealtimeTopHud : PanelContainer
     private Button _fast = null!;
     private Button _veryFast = null!;
     private Button _menu = null!;
+    private Button _settings = null!;
     private HBoxContainer _statusRow = null!;
     private HBoxContainer _controlRow = null!;
     private HBoxContainer _speedControls = null!;
@@ -30,6 +31,9 @@ internal sealed partial class RealtimeTopHud : PanelContainer
 
     public event Action<RealtimeSimulationSpeed>? SpeedRequested;
     public event Action? MenuRequested;
+    public event Action? SettingsRequested;
+
+    internal Button SettingsButton => _settings;
 
     public override void _Ready()
     {
@@ -45,6 +49,7 @@ internal sealed partial class RealtimeTopHud : PanelContainer
         _fast = GetNode<Button>("%FastSpeedButton");
         _veryFast = GetNode<Button>("%VeryFastSpeedButton");
         _menu = GetNode<Button>("%MenuButton");
+        _settings = GetNode<Button>("%SettingsButton");
         _statusRow = GetNode<HBoxContainer>("%StatusRow");
         _controlRow = GetNode<HBoxContainer>("%ControlRow");
         _speedControls = GetNode<HBoxContainer>("%SpeedControls");
@@ -79,6 +84,11 @@ internal sealed partial class RealtimeTopHud : PanelContainer
         _menu.AccessibilityName = "건설·분석 도구";
         _menu.AccessibilityDescription =
             "하단의 건설 및 망 분석 도구를 열거나 닫습니다. 단축키 B.";
+        _settings.Pressed += () => SettingsRequested?.Invoke();
+        _settings.TooltipText = "화면, UI 배율, 음량과 움직임 설정";
+        _settings.AccessibilityName = "설정";
+        _settings.AccessibilityDescription =
+            "현재 여정을 유지한 채 화면, UI 배율, 음량과 움직임 설정을 엽니다.";
     }
 
     public void SetPresentation(RealtimeTopHudPresentation presentation)
@@ -211,6 +221,9 @@ internal sealed partial class RealtimeTopHud : PanelContainer
         _menu.CustomMinimumSize = new Vector2(
             Math.Max(88, profile.MinimumHitTarget * 2),
             profile.MinimumHitTarget);
+        _settings.CustomMinimumSize = new Vector2(
+            Math.Max(88, profile.MinimumHitTarget * 2),
+            profile.MinimumHitTarget);
         ApplyContentMinimums(profile);
     }
 
@@ -229,12 +242,14 @@ internal sealed partial class RealtimeTopHud : PanelContainer
             _warning.Reparent(_controlRow);
             _speedControls.Reparent(_controlRow);
             _menu.Reparent(_controlRow);
+            _settings.Reparent(_controlRow);
             _controlRow.MoveChild(_pauseStatus, 0);
             _controlRow.MoveChild(_cash, 1);
             _controlRow.MoveChild(_reliability, 2);
             _controlRow.MoveChild(_warning, 3);
-            _controlRow.MoveChild(_speedControls, _controlRow.GetChildCount() - 2);
-            _controlRow.MoveChild(_menu, _controlRow.GetChildCount() - 1);
+            _controlRow.MoveChild(_speedControls, _controlRow.GetChildCount() - 3);
+            _controlRow.MoveChild(_menu, _controlRow.GetChildCount() - 2);
+            _controlRow.MoveChild(_settings, _controlRow.GetChildCount() - 1);
             _controlRow.Visible = true;
         }
         else
@@ -245,12 +260,14 @@ internal sealed partial class RealtimeTopHud : PanelContainer
             _warning.Reparent(_statusRow);
             _speedControls.Reparent(_statusRow);
             _menu.Reparent(_statusRow);
+            _settings.Reparent(_statusRow);
             _statusRow.MoveChild(_pauseStatus, 3);
             _statusRow.MoveChild(_cash, 4);
             _statusRow.MoveChild(_reliability, 5);
             _statusRow.MoveChild(_warning, 6);
             _statusRow.MoveChild(_speedControls, 7);
             _statusRow.MoveChild(_menu, 8);
+            _statusRow.MoveChild(_settings, 9);
             _controlRow.Visible = false;
         }
     }

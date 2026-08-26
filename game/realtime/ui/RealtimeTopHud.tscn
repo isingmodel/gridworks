@@ -129,6 +129,12 @@ custom_minimum_size = Vector2(92, 44)
 layout_mode = 2
 text = "도구"
 
+[node name="SettingsButton" type="Button" parent="Margin/Rows/StatusRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(92, 44)
+layout_mode = 2
+text = "설정"
+
 [node name="ControlRow" type="HBoxContainer" parent="Margin/Rows"]
 unique_name_in_owner = true
 visible = false

@@ -168,6 +168,8 @@ internal sealed partial class RealtimeUiRoot
         _buildShelf.ApplyLayout(_layoutProfile);
         _actionDock.ApplyLayout(_layoutProfile);
         _modalHost.ApplyLayout(_layoutProfile);
+        _productTitle.ApplyLayout(_layoutProfile);
+        _settingsSurface.ApplyLayout(_layoutProfile);
         ApplySyntheticSurfaceRectsForSmoke(logicalSize);
         ApplyTypography();
     }
@@ -222,7 +224,8 @@ internal sealed partial class RealtimeUiRoot
                 true,
                 false)
             .OfType<ScrollContainer>()
-            .Where(item => item.Owner is not null)
+            .Where(item => item.Owner is not null &&
+                !_settingsSurface.IsAncestorOf(item))
             .Select(item => new RealtimeUiSmokeScrollFact(
                 PathForSmoke(item),
                 item.IsVisibleInTree(),
@@ -258,6 +261,7 @@ internal sealed partial class RealtimeUiRoot
     internal RealtimeActionDock ActionDockForSmoke => _actionDock;
     internal RealtimeModalHost ModalHostForSmoke => _modalHost;
     internal RealtimeProductTitle ProductTitleForSmoke => _productTitle;
+    internal RealtimeSettingsSurface SettingsSurfaceForSmoke => _settingsSurface;
     internal RealtimeInputRouter InputRouterForSmoke => _inputRouter;
     internal bool HudSurfaceVisibleForSmoke => _hudSurface.Visible;
     internal Theme ThemeForSmoke => _hudSurface.Theme ??

@@ -14,6 +14,7 @@ internal sealed partial class RealtimeUiRoot : Node
     private RealtimeActionDock _actionDock = null!;
     private RealtimeModalHost _modalHost = null!;
     private RealtimeProductTitle _productTitle = null!;
+    private RealtimeSettingsSurface _settingsSurface = null!;
     private RealtimeInputRouter _inputRouter = null!;
     private RealtimeActionDockPresentation? _actionDockPresentation;
     private RealtimeBuildShelfPresentation? _buildShelfPresentation;
@@ -24,6 +25,9 @@ internal sealed partial class RealtimeUiRoot : Node
     private int _surfaceStabilizationPassesRemaining;
     private long? _modalInputToken;
     private long? _titleInputToken;
+    private long? _settingsInputToken;
+    private RealtimeSettingsJourney? _settingsJourney;
+    private Control? _settingsReturnFocus;
     private RealtimeLayoutProfile _layoutProfile;
     private readonly Dictionary<ulong, int> _baseFontSizes = [];
     private int _uiScalePercent = 100;
@@ -56,6 +60,10 @@ internal sealed partial class RealtimeUiRoot : Node
 
     public RealtimeModalHost ModalHost => _modalHost;
 
+    internal RealtimeSettingsSurface SettingsSurface => _settingsSurface;
+
+    public bool SettingsVisible => _settingsSurface.Visible;
+
     public event Action<RealtimeSimulationSpeed>? SpeedRequested;
     public event Action? MenuRequested;
     public event Action<int>? TimelineHorizonDeltaRequested;
@@ -71,6 +79,9 @@ internal sealed partial class RealtimeUiRoot : Node
     public event Action<Rect2>? MapInteractionRectChanged;
     public event Action? NewGameRequested;
     public event Action? ContinueRequested;
+    public event Action<RealtimeSettingsJourney>? SettingsOpenRequested;
+    public event Action<RealtimeSettingsValues>? SettingsCandidateRequested;
+    public event Action<RealtimeSettingsJourney>? SettingsCloseRequested;
 
     public override void _Ready()
     {
@@ -83,10 +94,14 @@ internal sealed partial class RealtimeUiRoot : Node
         _actionDock = GetNode<RealtimeActionDock>("%ActionDock");
         _modalHost = GetNode<RealtimeModalHost>("%ModalHost");
         _productTitle = GetNode<RealtimeProductTitle>("%ProductTitle");
+        _settingsSurface = GetNode<RealtimeSettingsSurface>("%SettingsSurface");
         _inputRouter = GetNode<RealtimeInputRouter>("%InputRouter");
 
         _topHud.SpeedRequested += speed => SpeedRequested?.Invoke(speed);
         _topHud.MenuRequested += () => MenuRequested?.Invoke();
+        _topHud.SettingsRequested += () => RequestSettingsOpen(
+            RealtimeSettingsJourney.Gameplay,
+            _topHud.SettingsButton);
         _eventRail.HorizonDeltaRequested += delta =>
             TimelineHorizonDeltaRequested?.Invoke(delta);
         _eventRail.ItemsRequested += ids => TimelineItemsRequested?.Invoke(ids);
@@ -105,6 +120,12 @@ internal sealed partial class RealtimeUiRoot : Node
         _modalHost.DepthChanged += OnModalDepthChanged;
         _productTitle.NewGameRequested += () => NewGameRequested?.Invoke();
         _productTitle.ContinueRequested += () => ContinueRequested?.Invoke();
+        _productTitle.SettingsRequested += () => RequestSettingsOpen(
+            RealtimeSettingsJourney.ProductTitle,
+            _productTitle.SettingsButton);
+        _settingsSurface.CandidateRequested += values =>
+            SettingsCandidateRequested?.Invoke(values);
+        _settingsSurface.CloseRequested += RequestSettingsClose;
         _inputRouter.InputRequested += RouteShortcut;
         GetViewport().SizeChanged += ApplyResponsiveLayout;
         CallDeferred(nameof(ApplyResponsiveLayout));
@@ -203,6 +224,44 @@ internal sealed partial class RealtimeUiRoot : Node
         _hudSurface.Visible = true;
     }
 
+    public void ShowSettings(RealtimeSettingsPresentation presentation)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+        if (!_settingsJourney.HasValue)
+        {
+            throw new InvalidOperationException(
+                "Settings must be opened from the title or gameplay opener.");
+        }
+        if (!_settingsInputToken.HasValue)
+        {
+            _inputRouter.CancelPanCapture();
+            _settingsInputToken = _inputRouter.PushContext(
+                "product_settings",
+                RealtimeInputPriority.BlockingModal);
+        }
+        _settingsSurface.Present(presentation, _settingsReturnFocus);
+        ScheduleTypography();
+    }
+
+    public void UpdateSettings(RealtimeSettingsPresentation presentation)
+    {
+        ArgumentNullException.ThrowIfNull(presentation);
+        _settingsSurface.SetPresentation(presentation);
+        ScheduleTypography();
+    }
+
+    public void HideSettings()
+    {
+        _settingsSurface.Dismiss();
+        if (_settingsInputToken.HasValue)
+        {
+            _inputRouter.PopContext(_settingsInputToken.Value);
+            _settingsInputToken = null;
+        }
+        _settingsReturnFocus = null;
+        _settingsJourney = null;
+    }
+
     /// <summary>
     /// Routes a timeline shortcut through the rail's single navigation owner
     /// so controller selection and semantic marker focus advance together.
@@ -233,6 +292,7 @@ internal sealed partial class RealtimeUiRoot : Node
         _actionDock.ApplyLayout(_layoutProfile);
         _modalHost.ApplyLayout(_layoutProfile);
         _productTitle.ApplyLayout(_layoutProfile);
+        _settingsSurface.ApplyLayout(_layoutProfile);
         // Font, container minimum, and native window-mode notifications do
         // not settle in one Godot layout turn. Reassert the single layout
         // authority over a bounded sequence of deferred turns so a panel that
@@ -337,6 +397,14 @@ internal sealed partial class RealtimeUiRoot : Node
 
     private void RouteShortcut(RealtimeInputRequest request)
     {
+        if (_settingsSurface.Visible)
+        {
+            if (request.Command == RealtimeInputCommand.CancelOrBack)
+            {
+                _settingsSurface.HandleCancel();
+            }
+            return;
+        }
         if (_productTitle.Visible)
         {
             return;
@@ -373,6 +441,7 @@ internal sealed partial class RealtimeUiRoot : Node
         ApplyTypographyRecursive(_hudSurface);
         ApplyTypographyRecursive(_modalHost);
         ApplyTypographyRecursive(_productTitle);
+        ApplyTypographyRecursive(_settingsSurface);
         // Font changes invalidate combined minimum sizes. Reapply the single
         // surface authority on the following idle turn so a 200%→100%
         // round-trip cannot retain an enlarged control rectangle.
@@ -417,6 +486,27 @@ internal sealed partial class RealtimeUiRoot : Node
         foreach (Node child in node.GetChildren())
         {
             ApplyTypographyRecursive(child);
+        }
+    }
+
+    private void RequestSettingsOpen(
+        RealtimeSettingsJourney journey,
+        Control opener)
+    {
+        if (_settingsSurface.Visible)
+        {
+            return;
+        }
+        _settingsJourney = journey;
+        _settingsReturnFocus = opener;
+        SettingsOpenRequested?.Invoke(journey);
+    }
+
+    private void RequestSettingsClose()
+    {
+        if (_settingsJourney is RealtimeSettingsJourney journey)
+        {
+            SettingsCloseRequested?.Invoke(journey);
         }
     }
 

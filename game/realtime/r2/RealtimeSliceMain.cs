@@ -33,6 +33,12 @@ internal sealed partial class RealtimeSliceMain : Control
     private RealtimeSession? _session;
     private RealtimeContinuation? _continuation;
     private RealtimeProductTitlePresentation? _productTitlePresentation;
+    private RealtimeProductSettings _settings = RealtimeProductSettings.Default;
+    private string _settingsStatus = "기본 설정을 사용합니다.";
+    private bool _settingsStatusIsError;
+    private string? _settingsPath;
+    private RealtimeSettingsJourney? _activeSettingsJourney;
+    private bool _resumeRunningAfterSettings;
     private Control? _worldControl;
     private IRealtimeWorldView? _worldView;
     private RealtimeUiRoot? _ui;
@@ -67,10 +73,14 @@ internal sealed partial class RealtimeSliceMain : Control
         _ui = GetNode<RealtimeUiRoot>("%UiRoot");
         _ui.NewGameRequested += StartNewGame;
         _ui.ContinueRequested += ContinueGame;
+        _ui.SettingsOpenRequested += OpenSettings;
+        _ui.SettingsCandidateRequested += SaveSettingsCandidate;
+        _ui.SettingsCloseRequested += CloseSettings;
         ApplyLogicalCanvas();
         GetWindow().Title = "Gridworks";
         if (_launch.Kind == RealtimeLaunchKind.ProductTitle)
         {
+            LoadProductSettings();
             PresentProductTitle();
         }
         else
@@ -84,6 +94,7 @@ internal sealed partial class RealtimeSliceMain : Control
 
     public override void _ExitTree()
     {
+        RestoreSettingsJourney();
         PersistProgress();
         DetachSession();
         if (_logicalCanvasApplied && GetWindow() is Window window)
@@ -131,8 +142,8 @@ internal sealed partial class RealtimeSliceMain : Control
 
         DetachSession();
         _session = restore is null
-            ? new RealtimeSession(data)
-            : RealtimeSession.Resume(data, restore);
+            ? new RealtimeSession(data, _settings.ReduceMotion)
+            : RealtimeSession.Resume(data, restore, _settings.ReduceMotion);
         Session.PresentationPublished += PublishPresentation;
         Session.PointerPresentationPublished += PublishPointerPresentation;
         Session.EvidenceRecorded += RecordEvidence;
@@ -386,6 +397,182 @@ internal sealed partial class RealtimeSliceMain : Control
         }
     }
 
+    private void LoadProductSettings()
+    {
+        _settingsPath = ResolveSettingsPath();
+        RealtimeProductSettingsLoadResult load =
+            RealtimeProductSettingsStore.Load(_settingsPath);
+        _settings = load.Settings;
+        (_settingsStatus, _settingsStatusIsError) = load.Status switch
+        {
+            RealtimeProductSettingsLoadStatus.Missing =>
+                ("current R2 기본 설정을 사용합니다.", false),
+            RealtimeProductSettingsLoadStatus.Loaded =>
+                ("저장된 current R2 설정을 불러왔습니다.", false),
+            RealtimeProductSettingsLoadStatus.Unsupported =>
+                ("지원하지 않는 설정 파일이라 기본값을 사용합니다. 원본은 덮어쓰지 않았습니다.", true),
+            RealtimeProductSettingsLoadStatus.Invalid =>
+                ("설정 파일이 손상되어 기본값을 사용합니다. 원본은 덮어쓰지 않았습니다.", true),
+            RealtimeProductSettingsLoadStatus.ReadFailure =>
+                ("설정 파일을 읽지 못해 기본값을 사용합니다. 원본은 덮어쓰지 않았습니다.", true),
+            _ => throw new ArgumentOutOfRangeException(),
+        };
+        ApplyProductSettings(_settings);
+    }
+
+    private void OpenSettings(RealtimeSettingsJourney journey)
+    {
+        if (_activeSettingsJourney.HasValue)
+        {
+            return;
+        }
+        bool validJourney = journey switch
+        {
+            RealtimeSettingsJourney.ProductTitle =>
+                _session is null && _productTitlePresentation is not null,
+            RealtimeSettingsJourney.Gameplay =>
+                _session is not null && _worldControl?.Visible == true,
+            _ => false,
+        };
+        if (!validJourney)
+        {
+            throw new InvalidOperationException(
+                "Settings can open only from the matching title or gameplay journey.");
+        }
+
+        _resumeRunningAfterSettings = false;
+        if (journey == RealtimeSettingsJourney.Gameplay &&
+            Session.InteractionState.Simulation == RealtimeSimulationState.Running)
+        {
+            RealtimeR2IntentResult paused = ApplyIntent(
+                RealtimeR2Intent.SetPlayerPaused(true));
+            if (!paused.Accepted)
+            {
+                throw new InvalidOperationException(
+                    $"Settings could not pause the running session: {paused.Error}");
+            }
+            _resumeRunningAfterSettings = true;
+        }
+        _activeSettingsJourney = journey;
+        _ui!.ShowSettings(SettingsPresentation());
+    }
+
+    private void SaveSettingsCandidate(RealtimeSettingsValues values)
+    {
+        if (!_activeSettingsJourney.HasValue)
+        {
+            throw new InvalidOperationException(
+                "A settings candidate requires the shared settings surface.");
+        }
+        if (_settingsPath is null)
+        {
+            _settingsStatus =
+                "명시적 개발 경로는 제품 설정 파일을 읽거나 쓰지 않습니다.";
+            _settingsStatusIsError = true;
+            _ui!.UpdateSettings(SettingsPresentation());
+            return;
+        }
+
+        var candidate = new RealtimeProductSettings(
+            RealtimeProductSettings.SupportedSchemaVersion,
+            values.Fullscreen
+                ? RealtimeProductWindowMode.Fullscreen
+                : RealtimeProductWindowMode.Windowed,
+            values.UiScalePercent,
+            values.MasterVolumePercent,
+            values.AmbientVolumePercent,
+            values.SfxVolumePercent,
+            values.ReduceMotion);
+        RealtimeProductSettingsSaveResult save =
+            RealtimeProductSettingsStore.Save(_settingsPath, candidate);
+        if (save.Status != RealtimeProductSettingsSaveStatus.Saved)
+        {
+            _settingsStatus = save.Status == RealtimeProductSettingsSaveStatus.Invalid
+                ? "지원하지 않는 설정 값입니다. 이전 설정을 유지합니다."
+                : "설정을 저장하지 못했습니다. 기존 파일과 이전 설정을 유지합니다.";
+            _settingsStatusIsError = true;
+            GD.PushError($"R2 settings save failed: {save.Message}");
+            _ui!.UpdateSettings(SettingsPresentation());
+            return;
+        }
+
+        _settings = candidate;
+        _settingsStatus = "current R2 설정을 저장하고 적용했습니다.";
+        _settingsStatusIsError = false;
+        ApplyProductSettings(_settings);
+        _ui!.UpdateSettings(SettingsPresentation());
+    }
+
+    private void CloseSettings(RealtimeSettingsJourney journey)
+    {
+        if (_activeSettingsJourney != journey)
+        {
+            throw new InvalidOperationException(
+                "Settings close did not match the journey that opened it.");
+        }
+        _ui!.HideSettings();
+        RestoreSettingsJourney();
+    }
+
+    private void RestoreSettingsJourney()
+    {
+        bool resume = _activeSettingsJourney == RealtimeSettingsJourney.Gameplay &&
+            _resumeRunningAfterSettings;
+        _activeSettingsJourney = null;
+        _resumeRunningAfterSettings = false;
+        if (!resume || _session is null ||
+            Session.InteractionState.Simulation != RealtimeSimulationState.PlayerPaused ||
+            Session.InteractionState.PauseReason != RealtimePauseReason.PlayerRequest)
+        {
+            return;
+        }
+        RealtimeR2IntentResult restored = ApplyIntent(
+            RealtimeR2Intent.SetPlayerPaused(false));
+        if (!restored.Accepted)
+        {
+            throw new InvalidOperationException(
+                $"Settings could not restore the running session: {restored.Error}");
+        }
+    }
+
+    private RealtimeSettingsPresentation SettingsPresentation() => new(
+        new RealtimeSettingsValues(
+            _settings.WindowMode == RealtimeProductWindowMode.Fullscreen,
+            _settings.UiScalePercent,
+            _settings.MasterVolumePercent,
+            _settings.AmbientVolumePercent,
+            _settings.SfxVolumePercent,
+            _settings.ReduceMotion),
+        _settingsPath is null
+            ? "명시적 개발 경로는 제품 설정 파일을 읽거나 쓰지 않습니다."
+            : _settingsStatus,
+        CanApply: _settingsPath is not null,
+        IsError: _settingsPath is null || _settingsStatusIsError);
+
+    private void ApplyProductSettings(RealtimeProductSettings settings)
+    {
+        GetWindow().Mode = settings.WindowMode == RealtimeProductWindowMode.Fullscreen
+            ? Window.ModeEnum.Fullscreen
+            : Window.ModeEnum.Windowed;
+        _ui!.UiScalePercent = settings.UiScalePercent;
+        ApplyBusVolume("Master", settings.MasterVolumePercent);
+        ApplyBusVolume("Ambient", settings.AmbientVolumePercent);
+        ApplyBusVolume("SFX", settings.SfxVolumePercent);
+        _session?.SetReduceMotion(settings.ReduceMotion);
+    }
+
+    private static void ApplyBusVolume(string busName, int percent)
+    {
+        int bus = AudioServer.GetBusIndex(busName);
+        if (bus < 0)
+        {
+            throw new InvalidOperationException(
+                $"Required audio bus '{busName}' is missing.");
+        }
+        AudioServer.SetBusMute(bus, percent == 0);
+        AudioServer.SetBusVolumeLinear(bus, percent / 100f);
+    }
+
     private void PersistProgress()
     {
         if (_session is null ||
@@ -421,6 +608,18 @@ internal sealed partial class RealtimeSliceMain : Control
 #endif
         return ProjectSettings.GlobalizePath(
             $"user://{RealtimeCampaignSaveStore.FileName}");
+    }
+
+    private string ResolveSettingsPath()
+    {
+#if DEBUG
+        if (!string.IsNullOrWhiteSpace(_settingsPathOverrideForSmoke))
+        {
+            return _settingsPathOverrideForSmoke;
+        }
+#endif
+        return ProjectSettings.GlobalizePath(
+            $"user://{RealtimeProductSettingsStore.FileName}");
     }
 
     private void ShowGameplaySurface()

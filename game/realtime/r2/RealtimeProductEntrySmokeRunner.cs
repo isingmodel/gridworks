@@ -1,5 +1,6 @@
 #if DEBUG
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -21,6 +22,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
     private const string SliceScenePath =
         "res://realtime/r2/RealtimeSliceMain.tscn";
     private const string SaveCreatePrefix = "--save-create=";
+    private const string SaveCompletedCreatePrefix = "--save-completed-create=";
     private const string SaveContinuePrefix = "--save-continue=";
     private const string SaveLegacyContinuePrefix = "--save-legacy-continue=";
     private const string SaveInvalidPrefix = "--save-invalid=";
@@ -32,6 +34,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         ProductTitle,
         TechnicalFixture,
         CreateSave,
+        CreateCompletedSave,
         ContinueSave,
         LegacyContinueSave,
         InvalidSave,
@@ -97,6 +100,9 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     await ValidateProductTitle(viewport, slice);
                     expectedWrite = PrepareInitialBriefingProgress(slice);
                     break;
+                case EntryMode.CreateCompletedSave:
+                    ValidateCompletedSaveTitle(slice);
+                    break;
                 case EntryMode.ContinueSave:
                     expectedWrite = await ValidateContinue(
                         viewport,
@@ -137,6 +143,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     "REALTIME_PRODUCT_ENTRY_TITLE_PASS",
                 EntryMode.CreateSave =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_CREATE_PASS",
+                EntryMode.CreateCompletedSave =>
+                    "REALTIME_PRODUCT_ENTRY_SAVE_COMPLETED_CREATE_PASS",
                 EntryMode.ContinueSave =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_CONTINUE_PASS",
                 EntryMode.LegacyContinueSave =>
@@ -201,7 +209,14 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
 
         EntryMode mode;
         string path;
-        if (arguments[0].StartsWith(SaveCreatePrefix, StringComparison.Ordinal))
+        if (arguments[0].StartsWith(
+                SaveCompletedCreatePrefix,
+                StringComparison.Ordinal))
+        {
+            mode = EntryMode.CreateCompletedSave;
+            path = arguments[0][SaveCompletedCreatePrefix.Length..];
+        }
+        else if (arguments[0].StartsWith(SaveCreatePrefix, StringComparison.Ordinal))
         {
             mode = EntryMode.CreateSave;
             path = arguments[0][SaveCreatePrefix.Length..];
@@ -256,6 +271,11 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
 
     private static byte[]? PrepareSaveFixture(EntryRequest request)
     {
+        if (request.Mode == EntryMode.CreateCompletedSave)
+        {
+            PrepareCompletedProductSave(request.SavePath!);
+            return null;
+        }
         if (request.Mode == EntryMode.LegacyContinueSave)
         {
             PrepareLegacyFirstLightSave(request.SavePath!);
@@ -286,6 +306,26 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             : "{\"broken\":true}"u8.ToArray();
         File.WriteAllBytes(path, bytes);
         return bytes;
+    }
+
+    private static void PrepareCompletedProductSave(string path)
+    {
+        if (File.Exists(path) || Directory.Exists(path))
+        {
+            throw new InvalidOperationException(
+                "A completed-save smoke path must start absent.");
+        }
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var failures = new List<string>();
+        RealtimeCampaignSave save =
+            RealtimeR2Smoke.CreateCompletedProductSave(failures);
+        if (failures.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "Unable to create the completed product save: " +
+                string.Join(" | ", failures));
+        }
+        RealtimeCampaignSaveStore.Save(path, save);
     }
 
     private static void PrepareLegacyFirstLightSave(string path)
@@ -428,11 +468,25 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 briefing.Heading == authored.Briefing.Title &&
                 briefing.Body == authored.Briefing.Body,
             "New Game did not open the exact eight-chapter product route and " +
-            "authored FIRST_LIGHT briefing.");
+                "authored FIRST_LIGHT briefing.");
         Require(briefing.PrimaryAction.Id == RealtimeR2Ids.BriefingContinueAction &&
                 briefing.PrimaryAction.Label == "도시 운영 시작" &&
                 briefing.PrimaryAction.Label != title.ContinueButton.Text,
             "Story continue was confused with title Continue.");
+    }
+
+    private static void ValidateCompletedSaveTitle(RealtimeSliceMain slice)
+    {
+        RealtimeUiRoot ui = slice.UiForSmoke;
+        RealtimeProductTitle title = ui.ProductTitleForSmoke;
+        Require(slice.LaunchForSmoke.Kind == RealtimeLaunchKind.ProductTitle &&
+                !slice.HasSessionForSmoke &&
+                title.Visible &&
+                !title.ContinueButton.Disabled &&
+                title.NewGameButton.Disabled &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, title.ContinueButton) &&
+                title.DetailText.Contains("완료", StringComparison.Ordinal),
+            "The staged terminal save did not open an exact completed Continue title.");
     }
 
     private static SaveExpectation PrepareInitialBriefingProgress(
@@ -595,7 +649,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 data.Campaign,
                 data.World,
                 save);
-        RealtimeChapterStoryModalRequest? expectedStory =
+        RealtimeProgressResumePlan expectedPlan =
             RealtimeSession.ValidateProgressResume(data, expectedRestore);
         RealtimeCampaignSnapshot expected = expectedRestore.Run.GetSnapshot();
 
@@ -607,8 +661,12 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         Require(!title.ContinueButton.Disabled && title.NewGameButton.Disabled &&
                 ReferenceEquals(ui.FocusOwnerForSmoke, title.ContinueButton),
             "A valid save did not exclusively enable and focus Continue.");
-        Require(title.DetailText.Contains("paused", StringComparison.Ordinal),
-            "The valid-save title did not disclose the resume pause policy.");
+        Require(title.DetailText.Contains(
+                expectedPlan.Kind == RealtimeProgressResumeKind.Completed
+                    ? "완료"
+                    : "paused",
+                StringComparison.Ordinal),
+            "The valid-save title did not disclose its typed resume policy.");
         RequireUnavailableTitleActionRejected(
             slice.RequestNewGameForSmoke,
             slice,
@@ -634,11 +692,15 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "Continue did not restore the exact clock/cash/world/journal/hash.");
         if (ReferenceEquals(expectedRoute, RealtimeNativeRouteCatalog.ProductCampaign))
         {
+            if (expectedPlan.Kind == RealtimeProgressResumeKind.Completed)
+            {
+                return ValidateCompletedContinue(slice, actual);
+            }
             RealtimeChapterStoryModalRequest story =
                 slice.ActiveChapterStoryModalForSmoke ??
                 throw new InvalidOperationException(
                     "Continue did not restore the active product story.");
-            Require(expectedStory?.ModalId == story.ModalId,
+            Require(expectedPlan.ActiveStoryModalId == story.ModalId,
                 "Continue restored a different product story than the title probe.");
             if (story.Purpose == RealtimeChapterStoryModalPurpose.EventStory)
             {
@@ -690,6 +752,40 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             slice.FreezeAutonomousClockForSmoke();
             return ExpectWrittenSave(staged);
         }
+    }
+
+    private static SaveExpectation ValidateCompletedContinue(
+        RealtimeSliceMain slice,
+        RealtimeCampaignSnapshot snapshot)
+    {
+        Require(snapshot.CampaignComplete &&
+                !snapshot.ChapterStarted &&
+                slice.ActiveChapterStoryModalForSmoke is null &&
+                slice.ActiveEpilogueModalForSmoke is null &&
+                slice.EpilogueCompletedForSmoke &&
+                slice.LatestPresentation.Modal is null &&
+                slice.InteractionState is
+                {
+                    Simulation: RealtimeSimulationState.Ended,
+                    Tool: RealtimeTool.Inspect,
+                    Surface: RealtimeSurface.World,
+                    PauseReason: RealtimePauseReason.CampaignResult,
+                    ActiveModalId: null,
+                    SelectedBuildToolId: null,
+                } &&
+                slice.AccumulatorSnapshot.Paused &&
+                !slice.AccumulatorSnapshot.HasPendingTime &&
+                slice.RetainedFrameDebt.Count == 0,
+            "Continue did not restore the exact terminal read-only product world.");
+        RealtimeCampaignSave staged = slice.CaptureProgressForSmoke();
+        Require(staged.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
+                staged.SavedMinute == snapshot.Minute &&
+                staged.CanonicalStateSha256 == slice.CanonicalStateSha256 &&
+                staged.Commands.Count == slice.AcceptedCommandCount &&
+                staged.ClosedStoryCount is > 0,
+            "The restored terminal world could not reproduce its current save.");
+        slice.FreezeAutonomousClockForSmoke();
+        return ExpectWrittenSave(staged);
     }
 
     private static SaveExpectation ValidateAndStageInitialBriefingContinue(

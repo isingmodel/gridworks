@@ -74,6 +74,13 @@ internal static class RealtimeR2Smoke
         RunCase("pointer-priority", () => ValidatePointerPriority(failures), failures);
     }
 
+    internal static RealtimeCampaignSave CreateCompletedProductSave(
+        ICollection<string> failures)
+    {
+        ArgumentNullException.ThrowIfNull(failures);
+        return ValidateReleaseThroughLongestNightController(failures);
+    }
+
     private static void ValidateStableR2IdProtocol(ICollection<string> failures)
     {
         var transition = new RealtimeThermalTransition(
@@ -3493,7 +3500,23 @@ internal static class RealtimeR2Smoke
         }
     }
 
-    private static void ValidateReleaseThroughLongestNightController(
+    private static bool ProductResumeRejected(RealtimeCampaignSave save) =>
+        ThrowsInvalidOperation(() =>
+        {
+            var invalid = new RealtimeSliceMain();
+            try
+            {
+                invalid.BootstrapNativeResumeForSmoke(
+                    RealtimeNativeRouteCatalog.ProductCampaign,
+                    save);
+            }
+            finally
+            {
+                invalid.Free();
+            }
+        });
+
+    private static RealtimeCampaignSave ValidateReleaseThroughLongestNightController(
         ICollection<string> failures)
     {
         var slice = new RealtimeSliceMain();
@@ -3879,6 +3902,9 @@ internal static class RealtimeR2Smoke
         int completedCommandCount = slice.AcceptedCommandCount;
         long completedMinute = slice.CurrentMinute;
         long completedCash = slice.CoreSnapshot.CashUnit;
+        Check(ThrowsInvalidOperation(() => slice.CaptureProgressForSmoke()),
+            "the active full-campaign finale was captured as terminal progress",
+            failures);
         string[] expectedPromiseLines = data.BaseCampaign.Epilogue.PromiseLines
             .Select(line => slice.CoreSnapshot.CompletedChapters.Single(outcome =>
                 string.Equals(
@@ -3948,6 +3974,9 @@ internal static class RealtimeR2Smoke
               slice.FormativeTutorialFullFlowRecordedForSmoke,
             "the exact finale did not hand off to the authored city report and promise facts",
             failures);
+        Check(ThrowsInvalidOperation(() => slice.CaptureProgressForSmoke()),
+            "the active city report was captured as terminal progress",
+            failures);
 
         RealtimeModalPresentation medicalWitness =
             slice.ClosePresentedStoryModalForSmoke() ??
@@ -3966,6 +3995,9 @@ internal static class RealtimeR2Smoke
               medicalWitness.Body == data.BaseCampaign.Epilogue.MedicalWitness.Body,
             "the city report did not hand off to the exact medical witness",
             failures);
+        Check(ThrowsInvalidOperation(() => slice.CaptureProgressForSmoke()),
+            "the active medical witness was captured as terminal progress",
+            failures);
 
         RealtimeModalPresentation closing =
             slice.ClosePresentedStoryModalForSmoke() ??
@@ -3982,6 +4014,9 @@ internal static class RealtimeR2Smoke
               closing.Body == data.BaseCampaign.Epilogue.Closing.Body &&
               closing.PrimaryAction.Label == "완료된 망 보기",
             "the medical witness did not hand off to the exact closing record",
+            failures);
+        Check(ThrowsInvalidOperation(() => slice.CaptureProgressForSmoke()),
+            "the active closing record was captured as terminal progress",
             failures);
 
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
@@ -4002,6 +4037,39 @@ internal static class RealtimeR2Smoke
                       StringComparer.Ordinal),
             "the three-card epilogue did not close into the unchanged ended campaign",
             failures);
+        RealtimeCampaignSave completedSave = slice.CaptureProgressForSmoke();
+        Check(completedSave.SchemaVersion ==
+                  RealtimeCampaignSave.SupportedSchemaVersion &&
+              completedSave.SavedMinute == completedMinute &&
+              completedSave.CanonicalStateSha256 == completedHash &&
+              completedSave.Commands.Count == completedCommandCount &&
+              completedSave.ClosedStoryCount is > 0,
+            "the completed campaign did not produce an exact current terminal save",
+            failures);
+        RealtimeCampaignSave openFinalCursor = completedSave with
+        {
+            ClosedStoryCount = completedSave.ClosedStoryCount - 1,
+        };
+        Check(ProductResumeRejected(openFinalCursor),
+            "a nonterminal final-result cursor was accepted as terminal completion",
+            failures);
+        RealtimeCampaignSave priorCompletion = completedSave with
+        {
+            SchemaVersion = RealtimeCampaignSave.PriorSchemaVersion,
+            ClosedStoryCount = completedSave.ClosedStoryCount - 1,
+        };
+        Check(ProductResumeRejected(priorCompletion),
+            "a prior-v2 completion was accepted as current terminal state",
+            failures);
+        RealtimeCampaignSave legacyCompletion = completedSave with
+        {
+            SchemaVersion = RealtimeCampaignSave.LegacySchemaVersion,
+            ClosedStoryCount = null,
+        };
+        Check(ProductResumeRejected(legacyCompletion),
+            "a legacy-v1 completion was accepted as current terminal state",
+            failures);
+        return completedSave;
     }
 
     private static void ValidateReleasePromiseResultBranches(

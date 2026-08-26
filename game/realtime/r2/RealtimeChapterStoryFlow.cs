@@ -181,6 +181,28 @@ internal sealed class RealtimeChapterStoryFlow
                 StringComparison.Ordinal));
     }
 
+    internal bool MatchesCompletedSnapshot(RealtimeCampaignSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if (!snapshot.CampaignComplete ||
+            snapshot.ChapterStarted ||
+            !IsIdle ||
+            ClosedStoryCount != _observedModalIds.Count ||
+            snapshot.CompletedChapters.Count == 0 ||
+            snapshot.ChapterIndex != snapshot.CompletedChapters.Count - 1)
+        {
+            return false;
+        }
+
+        string finalChapterId = snapshot.Chapter.Content.ChapterId;
+        return string.Equals(
+                   snapshot.CompletedChapters[^1].ChapterId,
+                   finalChapterId,
+                   StringComparison.Ordinal) &&
+               _observedModalIds.Contains(
+                   RealtimeR2Ids.TutorialResultModal(finalChapterId));
+    }
+
     internal RealtimeChapterStoryModalRequest? ActivateNext()
     {
         if (_active is null && _pending.TryDequeue(out ProjectedStory? next))

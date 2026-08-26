@@ -405,6 +405,9 @@ internal sealed class Checks
             "current zero-command save journal");
         Equal<int?>(0, initialRestore.ClosedStoryCount,
             "current zero-command restore story cursor");
+        Equal(RealtimeCampaignSave.SupportedSchemaVersion,
+            initialRestore.OriginalSchemaVersion,
+            "current zero-command restore original schema");
         Check(RealtimeStateCanonicalizer.StructuralEquals(
                 initial.GetSnapshot(),
                 initialRestore.Run.GetSnapshot()),
@@ -457,6 +460,9 @@ internal sealed class Checks
             "save closed story count");
         Equal<int?>(closedStoryCount, restored.ClosedStoryCount,
             "restored closed story count");
+        Equal(RealtimeCampaignSave.SupportedSchemaVersion,
+            restored.OriginalSchemaVersion,
+            "restored current original schema");
         Equal(savedMinute, decoded.SavedMinute, "save minute");
         Equal(live.GetCanonicalStateSha256(), decoded.CanonicalStateSha256,
             "save final hash");
@@ -487,6 +493,9 @@ internal sealed class Checks
             "prior save raw story cursor");
         Equal<int?>(closedStoryCount, restoredPrior.ClosedStoryCount,
             "prior restore normalized story cursor");
+        Equal(RealtimeCampaignSave.PriorSchemaVersion,
+            restoredPrior.OriginalSchemaVersion,
+            "prior restore original schema");
         ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
             () => RealtimeCampaignSaveCodec.Serialize(decodedPrior),
             "prior save schema is read-only");
@@ -540,6 +549,9 @@ internal sealed class Checks
             "legacy save closed story count");
         Equal<int?>(null, restoredLegacy.ClosedStoryCount,
             "legacy restore closed story count");
+        Equal(RealtimeCampaignSave.LegacySchemaVersion,
+            restoredLegacy.OriginalSchemaVersion,
+            "legacy restore original schema");
         ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
             () => RealtimeCampaignSaveCodec.Serialize(decodedLegacy),
             "legacy save schema is read-only");
@@ -775,6 +787,7 @@ internal sealed class Checks
                     $"full-route {chapterId} next advance");
                 SequenceEqual(liveProbe.Transitions, restoredProbe.Transitions,
                     $"full-route {chapterId} next transitions");
+                expectedTransitions.AddRange(liveProbe.Transitions);
                 break;
             }
 
@@ -814,6 +827,44 @@ internal sealed class Checks
             expectedTransitions.AddRange(liveStart.Transitions);
         }
 
+        RealtimeCampaignSnapshot finalChapter = live.GetSnapshot();
+        long completionMinute = checked(
+            finalChapter.ChapterStartMinute + finalChapter.Chapter.EndOffsetMinutes);
+        RealtimeAdvanceResult completion = live.AdvanceTo(completionMinute);
+        expectedTransitions.AddRange(completion.Transitions);
+        Check(completion.Snapshot.CampaignComplete &&
+              completion.Snapshot.CompletedChapters.Count ==
+                  loaded.Campaign.Chapters.Count,
+            "full-route save did not reach completed Core state");
+
+        RealtimeCampaignSave completedSave = RealtimeCampaignSaveCodec.Deserialize(
+            RealtimeCampaignSaveCodec.Serialize(
+                RealtimeCampaignSaveCodec.Capture(
+                    identity,
+                    loaded.Campaign,
+                    _releaseWorld,
+                    live,
+                    closedStoryCount: 0)));
+        RealtimeCampaignRestoreResult completedRestore =
+            RealtimeCampaignSaveCodec.Restore(
+                identity,
+                loaded.Campaign,
+                _releaseWorld,
+                completedSave);
+        Check(completedSave.SchemaVersion ==
+                  RealtimeCampaignSave.SupportedSchemaVersion &&
+              completedRestore.OriginalSchemaVersion ==
+                  RealtimeCampaignSave.SupportedSchemaVersion &&
+              RealtimeStateCanonicalizer.StructuralEquals(
+                  completion.Snapshot,
+                  completedRestore.Run.GetSnapshot()) &&
+              completedSave.CanonicalStateSha256 ==
+                  completedRestore.Run.GetCanonicalStateSha256(),
+            "full-route completed current-v3 replay state or schema identity");
+        SequenceEqual(live.AcceptedCommands, completedRestore.Run.AcceptedCommands,
+            "full-route completed replay journal");
+        SequenceEqual(expectedTransitions, completedRestore.Transitions,
+            "full-route completed replay transitions");
     }
 
     private void StrictReleaseOverlayComposition()

@@ -55,6 +55,16 @@ internal sealed record RealtimeR2PendingFrameDebt(
     int FramesPerSecond,
     int SpeedMultiplier);
 
+internal enum RealtimeProgressResumeKind
+{
+    InProgress,
+    Completed,
+}
+
+internal sealed record RealtimeProgressResumePlan(
+    RealtimeProgressResumeKind Kind,
+    string? ActiveStoryModalId);
+
 internal enum RealtimeBuildToolFamily
 {
     Node,
@@ -109,7 +119,8 @@ internal sealed partial class RealtimeSession
                 data.World),
             Array.Empty<RealtimeTransition>(),
             resumed: false,
-            closedStoryCount: null)
+            closedStoryCount: null,
+            sourceSchemaVersion: null)
     {
     }
 
@@ -118,7 +129,8 @@ internal sealed partial class RealtimeSession
         RealtimeCampaignRun run,
         IReadOnlyList<RealtimeTransition> transitionHistory,
         bool resumed,
-        int? closedStoryCount)
+        int? closedStoryCount,
+        string? sourceSchemaVersion)
     {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         _run = run ?? throw new ArgumentNullException(nameof(run));
@@ -127,12 +139,14 @@ internal sealed partial class RealtimeSession
         if (resumed)
         {
             RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
-            RestoreProgressStoryFlow(
+            RealtimeProgressResumePlan resumePlan = RestoreProgressFlows(
                 _chapterStoryFlow,
+                _epilogueFlow,
                 _data,
                 _run,
                 transitionHistory,
-                closedStoryCount);
+                closedStoryCount,
+                sourceSchemaVersion);
             _emittedTransitions.AddRange(transitionHistory);
             foreach (RealtimeTransition transition in transitionHistory.Where(item =>
                          item.Kind == RealtimeTransitionKind.ThermalProtectiveTrip))
@@ -140,20 +154,29 @@ internal sealed partial class RealtimeSession
                 _autoPausedIncidentKeys.Add(
                     $"{transition.Minute}:{transition.AssetKind}:{transition.AssetId}");
             }
-            RealtimeInteractionState running =
+            RealtimeInteractionState neutral =
                 RealtimeInteractionReducer.Initial(chapterBriefing: false);
-            RealtimeInteractionReduction paused = RealtimeInteractionReducer.Reduce(
-                running,
-                RealtimeR2Intent.SetPlayerPaused(true),
-                snapshot.Construction);
-            if (!paused.Accepted)
+            if (resumePlan.Kind == RealtimeProgressResumeKind.Completed)
             {
-                throw new InvalidOperationException(
-                    "A restored R2 session could not enter its paused resume policy.");
+                _interaction = RealtimeInteractionReducer.AutoPause(
+                    neutral,
+                    RealtimePauseReason.CampaignResult);
             }
-            _interaction = RealtimeInteractionReducer.AlignWithAuthoritativeDraft(
-                paused.State,
-                snapshot.Construction);
+            else
+            {
+                RealtimeInteractionReduction paused = RealtimeInteractionReducer.Reduce(
+                    neutral,
+                    RealtimeR2Intent.SetPlayerPaused(true),
+                    snapshot.Construction);
+                if (!paused.Accepted)
+                {
+                    throw new InvalidOperationException(
+                        "A restored R2 session could not enter its paused resume policy.");
+                }
+                _interaction = RealtimeInteractionReducer.AlignWithAuthoritativeDraft(
+                    paused.State,
+                    snapshot.Construction);
+            }
         }
         else
         {
@@ -173,6 +196,7 @@ internal sealed partial class RealtimeSession
         if (_data.NativeRoute?.UsesChapterStoryFlow == true)
         {
             TryOpenChapterStoryModal();
+            TryOpenEpilogueModal();
             if (_latestPresentation is null)
             {
                 Present();
@@ -194,38 +218,87 @@ internal sealed partial class RealtimeSession
             restore.Run,
             restore.Transitions,
             resumed: true,
-            restore.ClosedStoryCount);
+            restore.ClosedStoryCount,
+            restore.OriginalSchemaVersion);
     }
 
-    internal static RealtimeChapterStoryModalRequest? ValidateProgressResume(
+    internal static RealtimeProgressResumePlan ValidateProgressResume(
         RealtimeSliceData data,
         RealtimeCampaignRestoreResult restore)
     {
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(restore);
         var storyFlow = new RealtimeChapterStoryFlow();
-        RestoreProgressStoryFlow(
+        var epilogueFlow = new RealtimeEpilogueFlow();
+        return RestoreProgressFlows(
             storyFlow,
+            epilogueFlow,
             data,
             restore.Run,
             restore.Transitions,
-            restore.ClosedStoryCount);
-        return storyFlow.Active;
+            restore.ClosedStoryCount,
+            restore.OriginalSchemaVersion);
     }
 
-    private static void RestoreProgressStoryFlow(
+    private static RealtimeProgressResumePlan RestoreProgressFlows(
         RealtimeChapterStoryFlow storyFlow,
+        RealtimeEpilogueFlow epilogueFlow,
         RealtimeSliceData data,
         RealtimeCampaignRun run,
         IReadOnlyList<RealtimeTransition> transitionHistory,
-        int? closedStoryCount)
+        int? closedStoryCount,
+        string? sourceSchemaVersion)
     {
         ArgumentNullException.ThrowIfNull(storyFlow);
+        ArgumentNullException.ThrowIfNull(epilogueFlow);
         ArgumentNullException.ThrowIfNull(data);
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(transitionHistory);
         RealtimeCampaignSnapshot snapshot = run.GetSnapshot();
         bool cumulativeStory = data.NativeRoute?.UsesChapterStoryFlow == true;
+        if (snapshot.CampaignComplete)
+        {
+            if (!cumulativeStory ||
+                !string.Equals(
+                    sourceSchemaVersion,
+                    RealtimeCampaignSave.SupportedSchemaVersion,
+                    StringComparison.Ordinal) ||
+                !IsJournalRestorableTerminalCompletionSnapshot(snapshot) ||
+                closedStoryCount is null ||
+                !RealtimeEpilogueFlow.IsFullCampaign(
+                    data.BaseCampaign,
+                    data.Campaign))
+            {
+                throw new InvalidOperationException(
+                    "A completed R2 resume requires an exact current-schema " +
+                    "full-campaign terminal snapshot.");
+            }
+            storyFlow.Restore(
+                transitionHistory,
+                data.Campaign,
+                closedStoryCount,
+                snapshot.Minute);
+            if (!storyFlow.MatchesCompletedSnapshot(snapshot))
+            {
+                throw new InvalidOperationException(
+                    "The completed chapter-story cursor is not the all-closed prefix.");
+            }
+            if (snapshot.CompletedChapters[^1].ObjectiveSatisfied)
+            {
+                if (!epilogueFlow.RestoreCompleted(
+                        data.BaseCampaign,
+                        data.Campaign,
+                        snapshot))
+                {
+                    throw new InvalidOperationException(
+                        "The successful completed campaign could not restore its " +
+                        "consumed authored epilogue.");
+                }
+            }
+            return new RealtimeProgressResumePlan(
+                RealtimeProgressResumeKind.Completed,
+                ActiveStoryModalId: null);
+        }
         if (!IsJournalRestorableProgressSnapshot(
                 snapshot,
                 allowExactInitial: cumulativeStory))
@@ -236,7 +309,9 @@ internal sealed partial class RealtimeSession
         }
         if (!cumulativeStory)
         {
-            return;
+            return new RealtimeProgressResumePlan(
+                RealtimeProgressResumeKind.InProgress,
+                ActiveStoryModalId: null);
         }
         storyFlow.Restore(
             transitionHistory,
@@ -256,6 +331,9 @@ internal sealed partial class RealtimeSession
             throw new InvalidOperationException(
                 "A zero-command resume requires the exact initial briefing cursor.");
         }
+        return new RealtimeProgressResumePlan(
+            RealtimeProgressResumeKind.InProgress,
+            storyFlow.Active?.ModalId);
     }
 
     internal RealtimeR2IntentResult ApplyIntent(RealtimeR2Intent intent)
@@ -2026,12 +2104,19 @@ internal sealed partial class RealtimeSession
         get
         {
             RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
+            if (_retainedFrameDebt.Count != 0)
+            {
+                return false;
+            }
+            if (snapshot.CampaignComplete)
+            {
+                return CanCaptureTerminalCompletion(snapshot);
+            }
             if (!IsJournalRestorableProgressSnapshot(
                     snapshot,
                     allowExactInitial:
                         _data.NativeRoute?.UsesChapterStoryFlow == true) ||
-                _epilogueFlow.Started ||
-                _retainedFrameDebt.Count != 0)
+                _epilogueFlow.Started)
             {
                 return false;
             }
@@ -2042,6 +2127,33 @@ internal sealed partial class RealtimeSession
             }
             return CanCaptureStoryIdleProgress || CanCaptureActiveStoryProgress;
         }
+    }
+
+    private bool CanCaptureTerminalCompletion(RealtimeCampaignSnapshot snapshot)
+    {
+        bool successfulFinal = snapshot.CompletedChapters.Count > 0 &&
+            snapshot.CompletedChapters[^1].ObjectiveSatisfied;
+        return _data.NativeRoute?.UsesChapterStoryFlow == true &&
+            RealtimeEpilogueFlow.IsFullCampaign(
+                _data.BaseCampaign,
+                _data.Campaign) &&
+            IsJournalRestorableTerminalCompletionSnapshot(snapshot) &&
+            _chapterStoryFlow.MatchesCompletedSnapshot(snapshot) &&
+            _interaction is
+            {
+                Simulation: RealtimeSimulationState.Ended,
+                Tool: RealtimeTool.Inspect,
+                Surface: RealtimeSurface.World,
+                PauseReason: RealtimePauseReason.CampaignResult,
+                ActiveModalId: null,
+                ActiveModalKind: null,
+                ModalRestore: null,
+                SelectedBuildToolId: null,
+            } &&
+            _latestPresentation.Modal is null &&
+            (successfulFinal
+                ? _epilogueFlow.Completed
+                : !_epilogueFlow.Started);
     }
 
     private bool CanCaptureStoryIdleProgress =>
@@ -2077,6 +2189,17 @@ internal sealed partial class RealtimeSession
          allowExactInitial && IsExactInitialProgressSnapshot(snapshot)) &&
         !snapshot.CampaignComplete &&
         snapshot.PendingTransitions.Count == 0 &&
+        snapshot.Construction.NodeDraft is null &&
+        snapshot.Construction.LineDraft is null;
+
+    internal static bool IsJournalRestorableTerminalCompletionSnapshot(
+        RealtimeCampaignSnapshot snapshot) =>
+        snapshot.CampaignComplete &&
+        !snapshot.ChapterStarted &&
+        snapshot.CompletedChapters.Count > 0 &&
+        snapshot.PendingTransitions.Count == 0 &&
+        snapshot.ActiveDuty is null &&
+        snapshot.ActiveEventStates.Count == 0 &&
         snapshot.Construction.NodeDraft is null &&
         snapshot.Construction.LineDraft is null;
 

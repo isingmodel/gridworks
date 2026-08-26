@@ -67,61 +67,76 @@ internal sealed class RealtimeEpilogueFlow
                 "The realtime epilogue flow has already started.");
         }
 
-        string[] fullChapterIds = fullCampaign.Chapters
-            .Select(chapter => chapter.ChapterId)
-            .ToArray();
-        string[] selectedChapterIds = selectedCampaign.Chapters
-            .Select(chapter => chapter.Content.ChapterId)
-            .ToArray();
-        string[] completedChapterIds = snapshot.CompletedChapters
-            .Select(outcome => outcome.ChapterId)
-            .ToArray();
-        if (fullChapterIds.Length == 0)
-        {
-            throw new InvalidOperationException(
-                "The realtime epilogue requires a non-empty full campaign.");
-        }
-        if (!selectedChapterIds.SequenceEqual(fullChapterIds, StringComparer.Ordinal))
-        {
-            return false;
-        }
-        if (!snapshot.CampaignComplete ||
-            !completedChapterIds.SequenceEqual(fullChapterIds, StringComparer.Ordinal))
-        {
-            throw new InvalidOperationException(
-                "The realtime epilogue requires every full-campaign chapter outcome in authored order.");
-        }
-        if (!snapshot.CompletedChapters[^1].ObjectiveSatisfied)
+        RealtimeEpilogueModalRequest[]? requests = BuildRequests(
+            fullCampaign,
+            selectedCampaign,
+            snapshot);
+        if (requests is null)
         {
             return false;
         }
 
-        IReadOnlyList<string> promiseLines = PromiseLines(fullCampaign, snapshot);
-        CommercialCampaignEpilogueDefinition epilogue = fullCampaign.Epilogue;
-        RealtimeEpilogueModalRequest[] requests =
-        [
-            new RealtimeEpilogueModalRequest(
-                RealtimeEpiloguePurpose.CityReport,
-                epilogue.CityReport,
-                promiseLines,
-                snapshot.CashUnit),
-            new RealtimeEpilogueModalRequest(
-                RealtimeEpiloguePurpose.MedicalWitness,
-                epilogue.MedicalWitness,
-                Array.Empty<string>(),
-                snapshot.CashUnit),
-            new RealtimeEpilogueModalRequest(
-                RealtimeEpiloguePurpose.Closing,
-                epilogue.Closing,
-                Array.Empty<string>(),
-                snapshot.CashUnit),
-        ];
         foreach (RealtimeEpilogueModalRequest request in requests)
         {
             _pending.Enqueue(request);
         }
         Started = true;
         return true;
+    }
+
+    internal bool RestoreCompleted(
+        CommercialCampaignDefinition fullCampaign,
+        RealtimeCampaignDefinition selectedCampaign,
+        RealtimeCampaignSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(fullCampaign);
+        ArgumentNullException.ThrowIfNull(selectedCampaign);
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if (Started)
+        {
+            throw new InvalidOperationException(
+                "The realtime epilogue flow has already started.");
+        }
+
+        RealtimeEpilogueModalRequest[]? requests = BuildRequests(
+            fullCampaign,
+            selectedCampaign,
+            snapshot);
+        if (requests is null)
+        {
+            return false;
+        }
+
+        // Terminal restore validates the same authored sequence as live start,
+        // then consumes every card without reopening a modal or adding a cursor.
+        foreach (RealtimeEpilogueModalRequest request in requests)
+        {
+            _pending.Enqueue(request);
+        }
+        while (_pending.TryDequeue(out _))
+        {
+        }
+        Started = true;
+        return true;
+    }
+
+    internal static bool IsFullCampaign(
+        CommercialCampaignDefinition fullCampaign,
+        RealtimeCampaignDefinition selectedCampaign)
+    {
+        ArgumentNullException.ThrowIfNull(fullCampaign);
+        ArgumentNullException.ThrowIfNull(selectedCampaign);
+        string[] fullChapterIds = fullCampaign.Chapters
+            .Select(chapter => chapter.ChapterId)
+            .ToArray();
+        if (fullChapterIds.Length == 0)
+        {
+            throw new InvalidOperationException(
+                "The realtime epilogue requires a non-empty full campaign.");
+        }
+        return selectedCampaign.Chapters
+            .Select(chapter => chapter.Content.ChapterId)
+            .SequenceEqual(fullChapterIds, StringComparer.Ordinal);
     }
 
     internal RealtimeEpilogueModalRequest? ActivateNext()
@@ -145,6 +160,55 @@ internal sealed class RealtimeEpilogueFlow
         }
         Active = null;
         return true;
+    }
+
+    private static RealtimeEpilogueModalRequest[]? BuildRequests(
+        CommercialCampaignDefinition fullCampaign,
+        RealtimeCampaignDefinition selectedCampaign,
+        RealtimeCampaignSnapshot snapshot)
+    {
+        if (!IsFullCampaign(fullCampaign, selectedCampaign))
+        {
+            return null;
+        }
+
+        string[] fullChapterIds = fullCampaign.Chapters
+            .Select(chapter => chapter.ChapterId)
+            .ToArray();
+        string[] completedChapterIds = snapshot.CompletedChapters
+            .Select(outcome => outcome.ChapterId)
+            .ToArray();
+        if (!snapshot.CampaignComplete ||
+            !completedChapterIds.SequenceEqual(fullChapterIds, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException(
+                "The realtime epilogue requires every full-campaign chapter outcome in authored order.");
+        }
+        if (!snapshot.CompletedChapters[^1].ObjectiveSatisfied)
+        {
+            return null;
+        }
+
+        IReadOnlyList<string> promiseLines = PromiseLines(fullCampaign, snapshot);
+        CommercialCampaignEpilogueDefinition epilogue = fullCampaign.Epilogue;
+        return
+        [
+            new RealtimeEpilogueModalRequest(
+                RealtimeEpiloguePurpose.CityReport,
+                epilogue.CityReport,
+                promiseLines,
+                snapshot.CashUnit),
+            new RealtimeEpilogueModalRequest(
+                RealtimeEpiloguePurpose.MedicalWitness,
+                epilogue.MedicalWitness,
+                Array.Empty<string>(),
+                snapshot.CashUnit),
+            new RealtimeEpilogueModalRequest(
+                RealtimeEpiloguePurpose.Closing,
+                epilogue.Closing,
+                Array.Empty<string>(),
+                snapshot.CashUnit),
+        ];
     }
 
     private static string[] PromiseLines(

@@ -42,7 +42,8 @@ public sealed record RealtimeCampaignSave(
 public sealed record RealtimeCampaignRestoreResult(
     RealtimeCampaignRun Run,
     IReadOnlyList<RealtimeTransition> Transitions,
-    int? ClosedStoryCount)
+    int? ClosedStoryCount,
+    string OriginalSchemaVersion)
 {
     private IReadOnlyList<RealtimeTransition> _transitions =
         RealtimeStructural.Freeze(Transitions);
@@ -280,7 +281,8 @@ public static class RealtimeCampaignSaveCodec
             return new RealtimeCampaignRestoreResult(
                 run,
                 transitions,
-                closedStoryCount);
+                closedStoryCount,
+                save.SchemaVersion);
         }
         catch (RealtimeCampaignPersistenceException)
         {

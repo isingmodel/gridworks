@@ -3005,6 +3005,16 @@ internal static class RealtimeR2Smoke
               live.ActiveChapterStoryModalForSmoke?.ModalId == nextStory.ModalId,
             "cumulative resume replayed the closed event story or missed the next result",
             failures);
+        Check(resumed.ClosePresentedStoryModalForSmoke() is not null,
+            "cumulative resume result did not advance to the next briefing",
+            failures);
+        RequireAuthoredTutorialModal(
+            resumed,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "SECOND_SOURCE",
+            null,
+            data.BaseCampaign.Chapters[2].Briefing,
+            failures);
     }
 
     private static void ValidateReleaseThroughLongestNightController(

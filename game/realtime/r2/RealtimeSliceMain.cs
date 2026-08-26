@@ -303,8 +303,7 @@ internal sealed partial class RealtimeSliceMain : Control
                     data.Campaign,
                     data.World,
                     save);
-            if (restore.Run.AcceptedCommands.Count == 0 ||
-                !RealtimeSession.IsJournalRestorableProgressSnapshot(
+            if (!RealtimeSession.IsJournalRestorableProgressSnapshot(
                     restore.Run.GetSnapshot()))
             {
                 throw new RealtimeCampaignPersistenceException(

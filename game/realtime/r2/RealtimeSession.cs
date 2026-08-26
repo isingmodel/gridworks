@@ -125,8 +125,7 @@ internal sealed partial class RealtimeSession
         if (resumed)
         {
             RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
-            if (!IsJournalRestorableProgressSnapshot(snapshot) ||
-                _run.AcceptedCommands.Count == 0)
+            if (!IsJournalRestorableProgressSnapshot(snapshot))
             {
                 throw new InvalidOperationException(
                     "A resumed R2 session requires accepted journal-restorable " +
@@ -1940,7 +1939,6 @@ internal sealed partial class RealtimeSession
         _latestPresentation?.CoreSnapshot ?? _run.GetSnapshot();
 
     private bool CanCaptureProgress =>
-        _run.AcceptedCommands.Count > 0 &&
         IsJournalRestorableProgressSnapshot(_run.GetSnapshot()) &&
         _interaction.ActiveModalId is null &&
         _chapterStoryFlow.IsIdle &&
@@ -1952,6 +1950,7 @@ internal sealed partial class RealtimeSession
 
     internal static bool IsJournalRestorableProgressSnapshot(
         RealtimeCampaignSnapshot snapshot) =>
+        snapshot.CommandCount > 0 &&
         snapshot.ChapterStarted &&
         !snapshot.CampaignComplete &&
         snapshot.PendingTransitions.Count == 0 &&

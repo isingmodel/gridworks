@@ -36,7 +36,7 @@ internal static class RealtimeNativeRouteCatalog
     private const string ReleaseChapterArgumentPrefix = "--release-chapter=";
     private const string ReleaseThroughArgumentPrefix = "--release-through=";
 
-    internal const string NativeThroughChapterId = "SWITCH_OFF_TO_PROTECT";
+    internal const string NativeThroughChapterId = "LONGEST_NIGHT";
 
     internal static RealtimeNativeRoute FirstLight { get; } = Standalone(
         RealtimeCampaignOverlayLoader.FirstReleaseChapterId);
@@ -47,7 +47,7 @@ internal static class RealtimeNativeRouteCatalog
 
     internal static RealtimeNativeRoute ThroughNativeCoverage { get; } = Prefix(
         NativeThroughChapterId,
-        "FULL_FLOW_E2E_PASS:RELEASE_PREFIX_THROUGH_SWITCH_OFF_TO_PROTECT");
+        "FULL_FLOW_E2E_PASS:RELEASE_FULL_CAMPAIGN_THROUGH_LONGEST_NIGHT");
 
     private static readonly RealtimeNativeRoute[] SupportedRoutes = Validate(
     [

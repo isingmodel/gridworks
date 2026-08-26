@@ -62,8 +62,8 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseFirstLightNoActionResult(failures), failures);
         RunCase("release-tutorial-through-second-source",
             () => ValidateReleaseTutorialThroughSecondSource(failures), failures);
-        RunCase("release-through-switch-off-to-protect-controller",
-            () => ValidateReleaseThroughSwitchOffToProtectController(failures), failures);
+        RunCase("release-through-longest-night-controller",
+            () => ValidateReleaseThroughLongestNightController(failures), failures);
         RunCase("release-promise-result-branches",
             () => ValidateReleasePromiseResultBranches(failures), failures);
         RunCase("release-tutorial-connection-failure-result",
@@ -2498,7 +2498,7 @@ internal static class RealtimeR2Smoke
             "tutorial exact launch route or FIRST_LIGHT preservation drifted",
             failures);
         Check(RealtimeNativeRouteCatalog.NativeThroughChapterId ==
-                  "SWITCH_OFF_TO_PROTECT" &&
+                  "LONGEST_NIGHT" &&
               RealtimeNativeRouteCatalog.All.Count == 3 &&
               RealtimeNativeRouteCatalog.All.Select(item => item.LaunchArgument)
                   .SequenceEqual(
@@ -2506,7 +2506,7 @@ internal static class RealtimeR2Smoke
                       {
                           "--release-chapter=FIRST_LIGHT",
                           "--release-through=SECOND_SOURCE",
-                          "--release-through=SWITCH_OFF_TO_PROTECT",
+                          "--release-through=LONGEST_NIGHT",
                       },
                       StringComparer.Ordinal) &&
               RealtimeNativeRouteCatalog.All.All(item =>
@@ -2514,8 +2514,11 @@ internal static class RealtimeR2Smoke
                       RealtimeNativeRouteCatalog.ThroughNativeCoverage
                           .SelectedChapterCount) &&
               RealtimeNativeRouteCatalog.ThroughNativeCoverage
-                  .SelectedChapterCount == 7,
-            "native route catalog or explicit SWITCH_OFF_TO_PROTECT cap drifted",
+                  .SelectedChapterCount == 8 &&
+              RealtimeNativeRouteCatalog.ThroughNativeCoverage
+                  .FullFlowPassToken ==
+                  "FULL_FLOW_E2E_PASS:RELEASE_FULL_CAMPAIGN_THROUGH_LONGEST_NIGHT",
+            "native route catalog or explicit LONGEST_NIGHT cap drifted",
             failures);
         bool forgedRouteRejected = false;
         try
@@ -2524,8 +2527,8 @@ internal static class RealtimeR2Smoke
                 typeof(RealtimeSliceMain).Assembly,
                 RealtimeNativeRouteCatalog.ThroughNativeCoverage with
                 {
-                    EndChapterId = "LONGEST_NIGHT",
-                    SelectedChapterCount = 8,
+                    EndChapterId = "SWITCH_OFF_TO_PROTECT",
+                    SelectedChapterCount = 7,
                     FullFlowPassToken = "FORGED_FULL_FLOW_PASS",
                 });
         }
@@ -2543,7 +2546,7 @@ internal static class RealtimeR2Smoke
             ["--release-through=NORTH_BANK_PROMISE"],
             ["--release-through=WHOSE_MARGIN"],
             ["--release-through=BEFORE_WATER_RISE"],
-            ["--release-through=LONGEST_NIGHT"],
+            ["--release-through=SWITCH_OFF_TO_PROTECT"],
             ["--release-through"],
             ["--bogus"],
             ["--checkpoint=UNKNOWN"],
@@ -2850,7 +2853,7 @@ internal static class RealtimeR2Smoke
             failures);
     }
 
-    private static void ValidateReleaseThroughSwitchOffToProtectController(
+    private static void ValidateReleaseThroughLongestNightController(
         ICollection<string> failures)
     {
         var slice = new RealtimeSliceMain();
@@ -3151,6 +3154,84 @@ internal static class RealtimeR2Smoke
               switchResult.Body == switchStandard.Body,
             "planned outage did not preserve inherited 2/2 or exact standard result",
             failures);
+        int longestStartCommandCount = slice.CoreSnapshot.CommandCount;
+        long longestStartCashUnit = slice.CoreSnapshot.CashUnit;
+        SpatialNodeDefinition[] longestStartNodes = slice.CoreSnapshot.Construction.World
+            .Nodes.ToArray();
+        SpatialEdgeDefinition[] longestStartEdges = slice.CoreSnapshot.Construction.World
+            .Edges.ToArray();
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null &&
+              !slice.CoreSnapshot.CampaignComplete &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.Count == 7 &&
+              !slice.FormativeTutorialFullFlowRecordedForSmoke &&
+              longestStartCashUnit == checked(
+                  switchOutcome.EndingCashUnit +
+                  data.BaseCampaign.Chapters[7].BudgetGrantCashUnit) &&
+              slice.CoreSnapshot.CommandCount == longestStartCommandCount &&
+              slice.CoreSnapshot.CashUnit == longestStartCashUnit &&
+              slice.CoreSnapshot.Construction is
+              {
+                  Phase: ConstructionPhase.Ready,
+                  NodeDraft: null,
+                  LineDraft: null,
+                  ActiveConstruction: null,
+              } &&
+              slice.CoreSnapshot.Construction.World.Nodes.SequenceEqual(
+                  longestStartNodes) &&
+              slice.CoreSnapshot.Construction.World.Edges.SequenceEqual(
+                  longestStartEdges),
+            "SWITCH_OFF_TO_PROTECT did not hand the seven-result chain to the final chapter",
+            failures);
+
+        EnterLongestNightPlanning(
+            slice,
+            data,
+            switchOutcome.EndingCashUnit,
+            failures);
+        Check(slice.CoreSnapshot.CommandCount == longestStartCommandCount &&
+              slice.CoreSnapshot.CashUnit == longestStartCashUnit &&
+              slice.CoreSnapshot.Construction is
+              {
+                  Phase: ConstructionPhase.Ready,
+                  NodeDraft: null,
+                  LineDraft: null,
+                  ActiveConstruction: null,
+              } &&
+              slice.CoreSnapshot.Construction.World.Nodes.SequenceEqual(
+                  longestStartNodes) &&
+              slice.CoreSnapshot.Construction.World.Edges.SequenceEqual(
+                  longestStartEdges),
+            "LONGEST_NIGHT planning changed Core command, cash, construction, or world",
+            failures);
+        AdvanceAndAssertLongestNightForecast(slice, failures);
+        RunLongestNightEvents(slice, data, failures);
+        (RealtimeChapterOutcome longestOutcome, RealtimeModalPresentation longestResult) =
+            CompleteLongestNightChapter(slice, failures);
+        CommercialStoryCard longestStandard = data.BaseCampaign.Chapters[7]
+            .ResultCards.Standard!;
+        Check(longestOutcome.ObjectiveSatisfied &&
+              longestOutcome.PromiseDecision == CommercialPromiseDecision.Unset &&
+              longestOutcome.ConnectionRequirementAssessment is null &&
+              longestOutcome.EndingCashUnit == longestStartCashUnit &&
+              slice.CoreSnapshot.CommandCount == longestStartCommandCount &&
+              slice.CoreSnapshot.Construction is
+              {
+                  Phase: ConstructionPhase.Ready,
+                  NodeDraft: null,
+                  LineDraft: null,
+                  ActiveConstruction: null,
+              } &&
+              slice.CoreSnapshot.Construction.World.Nodes.SequenceEqual(
+                  longestStartNodes) &&
+              slice.CoreSnapshot.Construction.World.Edges.SequenceEqual(
+                  longestStartEdges) &&
+              longestOutcome.Events.All(item =>
+                  item.SafetySatisfied && item.PromiseSatisfied) &&
+              longestResult.Eyebrow == longestStandard.Speaker &&
+              longestResult.Heading == longestStandard.Title &&
+              longestResult.Body == longestStandard.Body,
+            "LONGEST_NIGHT did not preserve safety duty or the exact standard result",
+            failures);
         Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
               slice.CoreSnapshot.CampaignComplete &&
               slice.InteractionState.Simulation == RealtimeSimulationState.Ended &&
@@ -3165,7 +3246,7 @@ internal static class RealtimeR2Smoke
                       data.Campaign.Chapters.SelectMany(chapter =>
                           chapter.ScheduledEvents).Select(item => item.EventId),
                       StringComparer.Ordinal),
-            "SWITCH_OFF_TO_PROTECT did not close the exact seven-result/full-flow chain",
+            "LONGEST_NIGHT did not close the exact eight-result/full-flow chain",
             failures);
     }
 
@@ -3668,7 +3749,7 @@ internal static class RealtimeR2Smoke
         Check(data.NativeRoute ==
                   RealtimeNativeRouteCatalog.ThroughNativeCoverage &&
               data.CampaignSha256 ==
-                  "f4db2dee945b3162af8365cd1a8b4a6f2996ee946dee1b1abdfe55407bf751e0" &&
+                  "7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09" &&
               data.Campaign.Chapters.Select(item => item.Content.ChapterId)
                   .SequenceEqual(
                       new[]
@@ -3680,13 +3761,14 @@ internal static class RealtimeR2Smoke
                           "WHOSE_MARGIN",
                           "BEFORE_WATER_RISE",
                           "SWITCH_OFF_TO_PROTECT",
+                          "LONGEST_NIGHT",
                       },
                       StringComparer.Ordinal) &&
-              data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 13 &&
+              data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 16 &&
               RealtimeSliceMain.ParseLaunchArguments(
-                  ["--release-through=SWITCH_OFF_TO_PROTECT"]).NativeRoute ==
+                  ["--release-through=LONGEST_NIGHT"]).NativeRoute ==
                   RealtimeNativeRouteCatalog.ThroughNativeCoverage,
-            "SWITCH_OFF_TO_PROTECT exact route/prefix identity drifted: " +
+            "LONGEST_NIGHT exact route/prefix identity drifted: " +
             data.CampaignSha256,
             failures);
         bool isolatedRejected = false;
@@ -4858,6 +4940,376 @@ internal static class RealtimeR2Smoke
             $"{label} SWITCH_OFF_TO_PROTECT did not end with exact event/result FIFO",
             failures);
         return (outcome, result);
+    }
+
+    private static void EnterLongestNightPlanning(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        long previousEndingCashUnit,
+        ICollection<string> failures)
+    {
+        const string label = "LONGEST_NIGHT";
+        CommercialCampaignChapterDefinition authored = data.BaseCampaign.Chapters[7];
+        Check(slice.CoreSnapshot is
+              {
+                  Minute: 267990,
+                  ChapterStarted: true,
+                  CampaignComplete: false,
+                  PromiseDecision: CommercialPromiseDecision.Unset,
+              } &&
+              slice.CoreSnapshot.Chapter.Content.ChapterId == "LONGEST_NIGHT" &&
+              slice.CoreSnapshot.CashUnit == checked(
+                  previousEndingCashUnit + authored.BudgetGrantCashUnit) &&
+              slice.CoreSnapshot.Forecast.ConnectionRequirementAssessment is null,
+            $"{label} did not inherit the exact clock, cash, or gate-free state",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "LONGEST_NIGHT",
+            null,
+            authored.Briefing,
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null,
+            $"{label} briefing did not queue FINAL_OPERATING_PLAN_WINDOW",
+            failures);
+
+        RequireDecisionWindow(
+            slice,
+            authored,
+            "LONGEST_NIGHT",
+            "FINAL_OPERATING_PLAN_WINDOW",
+            failures,
+            label);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running &&
+              slice.EmittedTransitions.All(item =>
+                  item.ChapterId != "LONGEST_NIGHT" ||
+                  item.Kind != RealtimeTransitionKind.EventStarted),
+            $"{label} final planning window did not precede actual events",
+            failures);
+    }
+
+    private static void AdvanceAndAssertLongestNightForecast(
+        RealtimeSliceMain slice,
+        ICollection<string> failures)
+    {
+        const string label = "LONGEST_NIGHT";
+        CommercialOperatingPhaseDefinition[] authoredPhases = slice.SliceDataForSmoke
+            .BaseCampaign.Chapters[7].OperatingPhases.ToArray();
+        CommercialOperatingPhaseDefinition authoredMaximum = authoredPhases.Single(item =>
+            item.PhaseId == "MAX_DEMAND");
+        CommercialOperatingPhaseDefinition authoredHeatwave = authoredPhases.Single(item =>
+            item.PhaseId == "HEATWAVE_PEAK");
+        CommercialOperatingPhaseDefinition authoredFlood = authoredPhases.Single(item =>
+            item.PhaseId == "PROTECTIVE_STOP_FLOOD");
+        RealtimeForecastEvent[] revealed = slice.LatestPresentation.BaseForecast.Events
+            .Where(item => item.ChapterId == "LONGEST_NIGHT")
+            .OrderBy(item => item.StartMinute)
+            .ToArray();
+        RealtimeForecastEvent maximum = revealed.Single();
+        Check(maximum.EventId == "MAX_DEMAND" &&
+              maximum.RevealMinute == 267990 &&
+              maximum.StartMinute == 268590 &&
+              maximum.EndMinute == 268710 &&
+              maximum.OperatingProfile.ThermalPolicy ==
+                  CommercialPhaseThermalPolicy.ContinuousOnly &&
+              maximum.OperatingProfile.Loads.SequenceEqual(authoredMaximum.Loads) &&
+              maximum.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+              maximum.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "WATERWORKS").DeliveredKw == 900 &&
+              maximum.ProjectedEvaluation.Loads.All(load =>
+                  load.DeliveredKw == load.DemandKw) &&
+              maximum.TemporalProjection.Transitions.Count == 0 &&
+              slice.CoreSnapshot.Minute == 267990,
+            $"{label} maximum forecast lost exact timing, duty, or continuous supply",
+            failures);
+
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            268170,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeForecastEvent heatwave = slice.LatestPresentation.BaseForecast.Events
+            .Single(item => item.EventId == "HEATWAVE_PEAK");
+        RealtimeThermalTransition projectedEmergency = heatwave.TemporalProjection
+            .Transitions.Single(transition => transition is
+            {
+                Minute: 268770,
+                AssetKind: ThermalAssetKind.Edge,
+                Kind: RealtimeThermalTransitionKind.EmergencyEntered,
+            });
+        RealtimeThermalTransition[] projectedThermalArc = heatwave.TemporalProjection
+            .Transitions.Where(transition =>
+                transition.AssetId == projectedEmergency.AssetId).ToArray();
+        Check(heatwave.RevealMinute == 268170 &&
+              heatwave.StartMinute == 268770 &&
+              heatwave.EndMinute == 268890 &&
+              heatwave.OperatingProfile.ThermalPolicy ==
+                  CommercialPhaseThermalPolicy.SafetyEmergencyAllowed &&
+              heatwave.OperatingProfile.Loads.SequenceEqual(authoredHeatwave.Loads) &&
+              heatwave.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "HOSPITAL").DeliveredKw == 1600 &&
+              heatwave.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "WATERWORKS").DeliveredKw == 1400 &&
+              projectedThermalArc is
+              [
+                  {
+                      Minute: 268770,
+                      AssetKind: ThermalAssetKind.Edge,
+                      Kind: RealtimeThermalTransitionKind.EmergencyEntered,
+                  },
+                  {
+                      Minute: 268845,
+                      AssetKind: ThermalAssetKind.Edge,
+                      Kind: RealtimeThermalTransitionKind.ProtectiveTrip,
+                  },
+              ],
+            $"{label} heatwave forecast lost exact timing, duty, or thermal arc",
+            failures);
+
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            268350,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeForecastEvent flood = slice.LatestPresentation.BaseForecast.Events
+            .Single(item => item.EventId == "PROTECTIVE_STOP_FLOOD");
+        Check(flood.RevealMinute == 268350 &&
+              flood.StartMinute == 268950 &&
+              flood.EndMinute == 269070 &&
+              flood.OperatingProfile.ThermalPolicy ==
+                  CommercialPhaseThermalPolicy.SafetyEmergencyAllowed &&
+              flood.OperatingProfile.ActiveRiskAreaIds.SequenceEqual(
+                  new[] { "RIVER_FLOOD_ZONE" },
+                  StringComparer.Ordinal) &&
+              flood.OperatingProfile.Loads.SequenceEqual(authoredFlood.Loads) &&
+              flood.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+              flood.ProjectedEvaluation.Loads.Single(load =>
+                  load.LoadId == "WATERWORKS").DeliveredKw == 900,
+            $"{label} protective-flood forecast lost exact timing, risk, or safety duty",
+            failures);
+    }
+
+    private static void RunLongestNightEvents(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        ICollection<string> failures)
+    {
+        const string label = "LONGEST_NIGHT";
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            268590,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        ThermalIntervalEvaluation maximum = slice.CoreSnapshot.Thermal.Evaluation;
+        Check(slice.ActiveChapterStoryModalForSmoke is null &&
+              slice.LatestPresentation.Modal is null &&
+              slice.CoreSnapshot.ActiveEventStates.Single().EventId == "MAX_DEMAND" &&
+              maximum.Loads.Single(load => load.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+              maximum.Loads.Single(load => load.LoadId == "WATERWORKS").DeliveredKw == 900 &&
+              maximum.Loads.All(load => load.DeliveredKw == load.DemandKw) &&
+              maximum.Assets.Where(asset => asset.UsedKw > 0).All(asset =>
+                  asset.State == ThermalOperatingState.Continuous),
+            $"{label} storyless maximum demand lost continuous safety supply",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            268770,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+
+        CommercialStoryCard heatwaveStory = data.BaseCampaign.Chapters[7]
+            .OperatingPhases.Single(item => item.PhaseId == "HEATWAVE_PEAK").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "LONGEST_NIGHT",
+            "HEATWAVE_PEAK",
+            heatwaveStory,
+            failures);
+        ThermalIntervalEvaluation heatwave = slice.CoreSnapshot.Thermal.Evaluation;
+        Check(heatwave.Loads.Single(load => load.LoadId == "HOSPITAL").DeliveredKw == 1600 &&
+              heatwave.Loads.Single(load => load.LoadId == "WATERWORKS").DeliveredKw == 1400 &&
+              heatwave.Assets.Any(asset =>
+                  asset.State == ThermalOperatingState.Emergency),
+            $"{label} active heatwave lost safety supply or emergency operation",
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
+            $"{label} heatwave story did not restore realtime play",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            268890,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            268950,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        CommercialStoryCard floodStory = data.BaseCampaign.Chapters[7]
+            .OperatingPhases.Single(item =>
+                item.PhaseId == "PROTECTIVE_STOP_FLOOD").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "LONGEST_NIGHT",
+            "PROTECTIVE_STOP_FLOOD",
+            floodStory,
+            failures);
+        ThermalIntervalEvaluation flood = slice.CoreSnapshot.Thermal.Evaluation;
+        Check(slice.LatestPresentation.World.ActiveRiskAreaIds.SequenceEqual(
+                  new[] { "RIVER_FLOOD_ZONE" },
+                  StringComparer.Ordinal) &&
+              flood.Loads.Single(load => load.LoadId == "HOSPITAL").DeliveredKw == 900 &&
+              flood.Loads.Single(load => load.LoadId == "WATERWORKS").DeliveredKw == 900 &&
+              flood.Assets.All(asset =>
+                  asset.State != ThermalOperatingState.ProtectiveOutage) &&
+              flood.Assets.Where(asset => asset.UsedKw > 0).All(asset =>
+                  asset.State == ThermalOperatingState.Continuous),
+            $"{label} active protective flood lost risk or continuous safety reroute",
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null,
+            $"{label} protective-flood story did not restore realtime play",
+            failures);
+    }
+
+    private static (RealtimeChapterOutcome Outcome, RealtimeModalPresentation Result)
+        CompleteLongestNightChapter(
+            RealtimeSliceMain slice,
+            ICollection<string> failures)
+    {
+        const string label = "LONGEST_NIGHT";
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            269070,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeChapterOutcome outcome = slice.CoreSnapshot.CompletedChapters.Single(item =>
+            item.ChapterId == "LONGEST_NIGHT");
+        RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException(
+                $"{label} LONGEST_NIGHT result modal is absent.");
+        RealtimeTransition[] thermal = slice.EmittedTransitions
+            .Where(item => item.ChapterId == "LONGEST_NIGHT" &&
+                RealtimeThermalPresentation.IsThermalTransition(item))
+            .ToArray();
+        RealtimeTransition emergency = thermal.Single(item => item is
+        {
+            Minute: 268770,
+            AssetKind: ThermalAssetKind.Edge,
+            Kind: RealtimeTransitionKind.ThermalEmergencyEntered,
+        });
+        RealtimeTransition[] thermalArc = thermal.Where(item =>
+            item.AssetId == emergency.AssetId).ToArray();
+        RealtimeTransition[] finalTransitions = slice.EmittedTransitions
+            .Where(item => item.Minute == 269070)
+            .ToArray();
+        CommercialOperatingPhaseDefinition[] authoredPhases = slice.SliceDataForSmoke
+            .BaseCampaign.Chapters[7].OperatingPhases.ToArray();
+        RealtimeEventOutcome maximum = outcome.Events.Single(item =>
+            item.EventId == "MAX_DEMAND");
+        RealtimeEventOutcome heatwave = outcome.Events.Single(item =>
+            item.EventId == "HEATWAVE_PEAK");
+        RealtimeEventOutcome flood = outcome.Events.Single(item =>
+            item.EventId == "PROTECTIVE_STOP_FLOOD");
+        Check(slice.CoreSnapshot is
+              {
+                  Minute: 269070,
+                  CampaignComplete: true,
+              } &&
+              slice.CoreSnapshot.CompletedChapters.Count == 8 &&
+              result.Id == RealtimeR2Ids.TutorialResultModal("LONGEST_NIGHT") &&
+              outcome.Events.Select(item =>
+                      (item.EventId, item.StartMinute, item.EndMinute))
+                  .SequenceEqual(
+                  [
+                      ("MAX_DEMAND", 268590L, 268710L),
+                      ("HEATWAVE_PEAK", 268770L, 268890L),
+                      ("PROTECTIVE_STOP_FLOOD", 268950L, 269070L),
+                  ]) &&
+              HasAuthoredSafetyDutyCoverage(
+                  maximum,
+                  authoredPhases.Single(item => item.PhaseId == maximum.EventId)) &&
+              maximum.DutySegments.All(segment => segment.Loads.All(load =>
+                  load.DeliveredKw == load.DemandKw)) &&
+              HasAuthoredSafetyDutyCoverage(
+                  heatwave,
+                  authoredPhases.Single(item => item.PhaseId == heatwave.EventId)) &&
+              HasAuthoredSafetyDutyCoverage(
+                  flood,
+                  authoredPhases.Single(item => item.PhaseId == flood.EventId)) &&
+              thermalArc is
+              [
+                  {
+                      Minute: 268770,
+                      AssetKind: ThermalAssetKind.Edge,
+                      Kind: RealtimeTransitionKind.ThermalEmergencyEntered,
+                  },
+                  {
+                      Minute: 268845,
+                      AssetKind: ThermalAssetKind.Edge,
+                      Kind: RealtimeTransitionKind.ThermalProtectiveTrip,
+                  },
+                  {
+                      Minute: 268935,
+                      AssetKind: ThermalAssetKind.Edge,
+                      Kind: RealtimeTransitionKind.ThermalRecovered,
+                  },
+              ] &&
+              thermal.All(item =>
+                  item.Minute < 268950 || item.Kind is not
+                      (RealtimeTransitionKind.ThermalEmergencyEntered or
+                       RealtimeTransitionKind.ThermalProtectiveTrip)) &&
+              finalTransitions is
+              [
+                  {
+                      Kind: RealtimeTransitionKind.EventCompleted,
+                      ChapterId: "LONGEST_NIGHT",
+                      EventId: "PROTECTIVE_STOP_FLOOD",
+                  },
+                  {
+                      Kind: RealtimeTransitionKind.ChapterCompleted,
+                      ChapterId: "LONGEST_NIGHT",
+                      EventId: null,
+                  },
+                  {
+                      Kind: RealtimeTransitionKind.CampaignCompleted,
+                      ChapterId: "LONGEST_NIGHT",
+                      EventId: null,
+                  },
+              ],
+            $"{label} did not close exact safety segments, thermal arc, or result FIFO",
+            failures);
+        return (outcome, result);
+    }
+
+    private static bool HasAuthoredSafetyDutyCoverage(
+        RealtimeEventOutcome outcome,
+        CommercialOperatingPhaseDefinition authored)
+    {
+        (string LoadId, CommercialObligationKind Obligation, long DemandKw, bool Required)[]
+            expectedLoads = authored.Loads.Select(load =>
+                (load.LoadId, load.Obligation, load.DemandKw, true)).ToArray();
+        return outcome.EventId == authored.PhaseId &&
+            outcome.DutySegments.Count > 0 &&
+            outcome.DutySegments[0].StartMinute == outcome.StartMinute &&
+            outcome.DutySegments[^1].EndMinute == outcome.EndMinute &&
+            outcome.DutySegments.Select((segment, index) =>
+                index == 0 || outcome.DutySegments[index - 1].EndMinute ==
+                    segment.StartMinute).All(connected => connected) &&
+            outcome.DutySegments.All(segment =>
+                segment.StartMinute < segment.EndMinute &&
+                segment.Loads.Select(load =>
+                        (load.LoadId, load.Obligation, load.DemandKw, load.Required))
+                    .SequenceEqual(expectedLoads) &&
+                segment.Loads.Where(load =>
+                        load.Obligation == CommercialObligationKind.SafetyDuty)
+                    .All(load => load.DeliveredKw == load.DemandKw));
     }
 
     private static void RequireDecisionWindow(

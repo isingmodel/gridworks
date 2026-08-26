@@ -2,34 +2,57 @@
 
 ## 상태
 
-**활성 구현 scope가 없다.**
+**terminal completed save·Continue scope가 활성화됐다.**
 
-직전 initial briefing/zero-command bootstrap save·Continue scope는 완료됐다. cumulative route의 첫
-`ChapterStarted`를 `RealtimeChapterStoryFlow`의 `CHAPTER_BRIEFING` candidate로 합치고, fresh cumulative
-Session만 Core initial transition batch를 exact current minute에 한 번 drain한다. cumulative `Present()`의
-synthetic initial 분기는 제거했고 standalone/fixture first briefing은 기존 경계를 유지한다.
+현재 product-owned 누적 8장은 성공한 마지막 result를 닫은 뒤 city report→medical witness→closing을
+보여 주고 완료된 망의 read-only 화면에 남는다. 그러나 `CampaignComplete`와 시작된 epilogue는 저장에서
+차단되므로 정상 종료해도 직전 진행 저장이 남는다. 다음 실행의 `이어하기`가 완료 상태가 아니라 과거
+진행으로 돌아가는 것이 이번 scope의 제품 손실 seam이다.
 
-current write schema는 같은 wire fields의 v3다. v3 `closedStoryCount`는 initial-inclusive이고, prior v2는
-raw cursor를 보존한 채 Restore 결과만 checked `+1`, prior v1은 all-closed로 읽는다. prior schema write와
-ambiguous empty journal, v2 overflow는 fail-closed한다. exact initial은 pending/event/duty/completion/
-construction/draft가 없는 zero-command active `c0` 또는 closed story-idle `c1`만 저장·재개한다.
+## 결과물
 
-같은 product save path에서 initial briefing create→첫 fresh Continue의 active `FLOOD_ISOLATION_TEST` c3
-write→둘째 Continue의 `SECOND_HEART` result c4 write→셋째 Continue의 `SECOND_SOURCE` briefing c5 write를
-실제 disk reload로 확인했다. prior `FIRST_LIGHT` v1과 invalid/unsupported/I/O 차단 경로도 유지했다.
+- current v3 wire를 바꾸지 않고 canonical full `ProductCampaign`의 exact terminal 완료 상태를 저장한다.
+- terminal 완료는 모든 chapter story가 닫혔고, 성공한 마지막 결과라면 세 epilogue card도 모두 닫힌
+  `Ended`·no-modal 상태다. 실패한 마지막 결과는 result를 닫았고 epilogue가 시작되지 않은 상태만
+  허용한다.
+- current v3 journal·minute·canonical hash·`closedStoryCount`로 completed Core를 strict replay하고,
+  restore 결과에 원본 schema identity를 보존해 crafted v1/v2 completion은 거부한다.
+- 제품 title은 완료 저장임을 설명하고 `이어하기`로 동일한 Core/world/outcome을 epilogue 재생 없이
+  `Ended` read-only 화면에 복원한다.
+- 정상 product-owned tree exit가 직전 in-progress 저장을 terminal completed bytes로 교체할 수 있는 기존
+  단일 write lifecycle을 유지한다.
 
-Debug/Release build, `./dev check`의 Realtime 26 suites/1,197 assertions와 Commercial 31 suites/7,084
-assertions, 전체 Godot UI harness와 두 독립 review를 통과했다. 두 review가 command-bearing same-minute
-`c1`의 cursor만 `c0`으로 바꾸면 initial briefing이 부활하던 P2를 독립적으로 찾았고, active initial은
-command 수와 무관하게 exact zero-command snapshot을 요구하도록 수정한 뒤 finding 없이 재검토됐다.
+## 구현 범위
 
-## 유지되는 경계
+- `RealtimeCampaignSaveCodec`의 completed replay 증거와 restore schema identity
+- `RealtimeChapterStoryFlow`의 all-candidates-closed completed matcher
+- `RealtimeEpilogueFlow`의 exact terminal completed restore
+- `RealtimeSession`의 분리된 in-progress/terminal capture predicate와 typed resume plan
+- `RealtimeSliceMain`의 completed title/Continue routing
+- 기존 Realtime save suite, R2 cumulative smoke와 product-entry fresh-process smoke의 최소 확장
+- 실제 변경 사실을 소유하는 current Markdown 문서
 
-- undelivered Core pending transition, general queued story suffix, final/completed run·finale·epilogue cursor와
-  완료 후 result/chapter/replay 선택은 아직 지원하지 않는다.
-- explicit chapter/through/fixture 개발 경로는 product save를 읽거나 쓰지 않는다.
-- overwrite/recovery UI, settings/audio, package, 공식 평가와 사람 UX 판정은 포함되지 않았다.
-- push, PR, merge는 이 완료에 포함되지 않았다.
+## 범위 밖
 
-다음 구현은 별도 active scope를 먼저 열어야 한다. [남은 작업](NEXT_TASKS.md)은 후보와 순서를 소유하지만
-그 자체로 구현 권한을 만들지 않는다.
+- active final result와 city report/medical witness/closing 중간 저장·cursor
+- undelivered Core pending transition과 general queued story suffix
+- 완료 후 result/chapter/replay 선택과 journal suffix 폐기 정책
+- 유효한 저장 위 `새 게임` 확인·덮어쓰기, 손상/구버전 recovery·폐기 UI
+- explicit chapter/through/fixture의 product save ownership
+- settings/audio, package, 공식 평가와 사람 UX 판정
+- push, PR, merge
+
+## 완료 검사
+
+- 성공 경로의 final result와 세 epilogue card 중에는 capture가 계속 거부되고 closing 종료 뒤에만 terminal
+  capture가 성공한다.
+- terminal current v3 serialize→deserialize→restore가 snapshot/hash/journal/transition history와
+  `closedStoryCount`를 exact 유지한다.
+- completed Continue가 `Ended`·no-modal·no-frame-debt read-only world를 열고 epilogue/story transition을
+  재생하지 않는다.
+- prior v1/v2 completion, partial/standalone route, pending/draft와 nonterminal completed cursor는
+  fail-closed한다.
+- 기존 initial c0/c1, v2 `+1`, v1 all-closed, active event/duty와 bounded result→briefing 회귀를 유지한다.
+- 새 test suite를 만들지 않고 기존 focused save suite, cumulative R2 smoke와 product-entry
+  save-create→fresh Continue 경로를 확장한다.
+- `./dev check`, root Release build, 전체 Godot UI harness와 독립 review를 통과한다.

@@ -17,13 +17,14 @@ internal sealed partial class RealtimeSliceCheckpointRunner : Control
     private async Task RunAsync()
     {
         int exitCode = 1;
+        RealtimeSliceMain? slice = null;
         try
         {
             string checkpointId = ParseCheckpointId(OS.GetCmdlineUserArgs());
             PackedScene packed = ResourceLoader.Load<PackedScene>(SliceScenePath) ??
                 throw new InvalidOperationException(
                     $"Unable to load actual slice scene '{SliceScenePath}'.");
-            RealtimeSliceMain slice = packed.Instantiate<RealtimeSliceMain>();
+            slice = packed.Instantiate<RealtimeSliceMain>();
             AddChild(slice);
             await SettleFrames(2);
 
@@ -60,6 +61,10 @@ internal sealed partial class RealtimeSliceCheckpointRunner : Control
                 $"TARGETED_LIVE_CHECKPOINT_FAIL {exception.GetType().Name}: " +
                 exception.Message);
             exitCode = 1;
+        }
+        if (slice is not null && GodotObject.IsInstanceValid(slice))
+        {
+            slice.QueueFree();
         }
         ScheduleQuit(exitCode);
     }

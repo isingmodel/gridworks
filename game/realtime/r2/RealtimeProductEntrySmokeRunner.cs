@@ -783,6 +783,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         SubViewport viewport,
         RealtimeSliceMain slice)
     {
+        ValidateAudioSceneWiring(slice);
         RealtimeUiRoot ui = slice.UiForSmoke;
         RealtimeProductTitle title = ui.ProductTitleForSmoke;
         Require(slice.LaunchForSmoke.Kind == RealtimeLaunchKind.ProductTitle,
@@ -837,6 +838,9 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     RealtimeNativeRouteCatalog.ProductCampaign) &&
                 slice.OwnsProductProgressForSmoke,
             "New Game did not select the product-owned cumulative native route.");
+        Require(slice.AudioForSmoke.AmbientStartCountForSmoke == 1 &&
+                slice.AudioForSmoke.LiveCuePlayCountForSmoke == 0,
+            "Starting gameplay restarted ambience or replayed a historical SFX cue.");
 
         RealtimeSliceData data = slice.SliceDataForSmoke;
         CommercialCampaignChapterDefinition authored = data.BaseCampaign.Chapters.Single(
@@ -1020,6 +1024,9 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         Require(!ui.SettingsVisible &&
                 ReferenceEquals(ui.FocusOwnerForSmoke, topHud.SettingsButton),
             "Player-paused settings close did not restore the gameplay opener.");
+        Require(slice.AudioForSmoke.AmbientStartCountForSmoke == 1 &&
+                slice.AudioForSmoke.LiveCuePlayCountForSmoke == 0,
+            "Settings lifecycle restarted ambience or emitted an unrelated SFX cue.");
         return storedBytes;
     }
 
@@ -1660,6 +1667,9 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 ReferenceEquals(slice.SliceDataForSmoke.NativeRoute, route) &&
                 slice.OwnsProductProgressForSmoke,
             "Continue did not preserve the saved canonical route.");
+        Require(slice.AudioForSmoke.AmbientStartCountForSmoke == 1 &&
+                slice.AudioForSmoke.LiveCuePlayCountForSmoke == 0,
+            "Fresh Continue restarted ambience or replayed historical SFX cues.");
 
         RealtimeCampaignSnapshot actual = slice.CoreSnapshot;
         Require(RealtimeStateCanonicalizer.StructuralEquals(expected, actual) &&
@@ -2116,6 +2126,44 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     ui.TopHudForSmoke.SettingsButton) &&
                 File.ReadAllBytes(settingsPath).SequenceEqual(sentinel),
             "Explicit technical fixture settings changed bytes or lost opener focus.");
+    }
+
+    private static void ValidateAudioSceneWiring(RealtimeSliceMain slice)
+    {
+        RealtimeAudio audio = slice.AudioForSmoke;
+        AudioStreamWav ambient = audio.AmbientPlayerForSmoke.Stream as AudioStreamWav ??
+            throw new InvalidOperationException(
+                "Realtime ambient player has no generated PCM stream.");
+        Require(audio.AmbientStartCountForSmoke == 1 &&
+                audio.LiveCuePlayCountForSmoke == 0 &&
+                audio.LastLiveCueForSmoke is null &&
+                string.Equals(audio.AmbientPlayerForSmoke.Bus, "Ambient",
+                    StringComparison.Ordinal) &&
+                string.Equals(audio.SfxPlayerForSmoke.Bus, "SFX",
+                    StringComparison.Ordinal) &&
+                audio.SfxPlayerForSmoke.Stream is null &&
+                ambient.Format == AudioStreamWav.FormatEnum.Format16Bits &&
+                ambient.MixRate == 22_050 &&
+                !ambient.Stereo &&
+                ambient.LoopMode == AudioStreamWav.LoopModeEnum.Forward &&
+                ambient.LoopBegin == 0 &&
+                ambient.LoopEnd > 0 &&
+                ambient.Data.Length == checked(ambient.LoopEnd * sizeof(short)),
+            "Actual product scene did not start the generated Ambient PCM loop once.");
+
+        foreach (RealtimeLiveAudioCue cue in Enum.GetValues<RealtimeLiveAudioCue>())
+        {
+            AudioStreamWav stream = audio.StreamForSmoke(cue);
+            Require(stream.Format == AudioStreamWav.FormatEnum.Format16Bits &&
+                    stream.MixRate == 22_050 &&
+                    !stream.Stereo &&
+                    stream.LoopMode == AudioStreamWav.LoopModeEnum.Disabled &&
+                    stream.LoopBegin == 0 &&
+                    stream.LoopEnd == 0 &&
+                    stream.Data.Length > 0 &&
+                    stream.Data.Length % sizeof(short) == 0,
+                $"Generated {cue} SFX stream shape or loop policy drifted.");
+        }
     }
 
     private static void ValidateExplicitNativeRoutes()

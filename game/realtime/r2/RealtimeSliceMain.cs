@@ -39,6 +39,7 @@ internal sealed partial class RealtimeSliceMain : Control
     private string? _settingsPath;
     private RealtimeSettingsJourney? _activeSettingsJourney;
     private bool _resumeRunningAfterSettings;
+    private RealtimeAudio? _audio;
     private Control? _worldControl;
     private IRealtimeWorldView? _worldView;
     private RealtimeUiRoot? _ui;
@@ -66,6 +67,7 @@ internal sealed partial class RealtimeSliceMain : Control
 #else
         _launch = ParseLaunchArguments(OS.GetCmdlineUserArgs());
 #endif
+        _audio = GetNode<RealtimeAudio>("%RealtimeAudio");
         _worldControl = GetNode<Control>("%WorldView");
         _worldView = _worldControl as IRealtimeWorldView ??
             throw new InvalidOperationException(
@@ -89,6 +91,7 @@ internal sealed partial class RealtimeSliceMain : Control
             ShowGameplaySurface();
             Bootstrap();
         }
+        _audio.StartAmbient();
         SetProcess(true);
     }
 
@@ -147,6 +150,7 @@ internal sealed partial class RealtimeSliceMain : Control
         Session.PresentationPublished += PublishPresentation;
         Session.PointerPresentationPublished += PublishPointerPresentation;
         Session.EvidenceRecorded += RecordEvidence;
+        Session.LiveAudioCueRequested += PlayLiveAudioCue;
 
         _clickCounters.Clear();
         foreach (RealtimePointerOwner owner in Enum.GetValues<RealtimePointerOwner>())
@@ -182,8 +186,12 @@ internal sealed partial class RealtimeSliceMain : Control
         _session.PresentationPublished -= PublishPresentation;
         _session.PointerPresentationPublished -= PublishPointerPresentation;
         _session.EvidenceRecorded -= RecordEvidence;
+        _session.LiveAudioCueRequested -= PlayLiveAudioCue;
         _session = null;
     }
+
+    private void PlayLiveAudioCue(RealtimeLiveAudioCue cue) =>
+        _audio?.PlayLive(cue);
 
     private void WireGameplayNodes()
     {

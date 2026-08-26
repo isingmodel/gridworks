@@ -44,6 +44,10 @@ internal sealed partial class RealtimeSession
         RealtimeAdvanceResult result = _run.AdvanceTo(targetMinute);
         CollectTransitions(result.Transitions);
         Present();
+        RequestLiveAudioCue(
+            operationAccepted: true,
+            acceptedIntentKind: null,
+            result.Transitions);
         return new RealtimeR2AdvanceResult(
             result,
             _presentationRevision - beforeRevision);

@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://realtime/r2/RealtimeSliceMain.cs" id="1_main"]
 [ext_resource type="Script" path="res://realtime/r2/RealtimePlaceholderMap.cs" id="2_map"]
 [ext_resource type="PackedScene" path="res://realtime/ui/RealtimeUiRoot.tscn" id="3_ui"]
+[ext_resource type="Script" path="res://realtime/r2/RealtimeAudio.cs" id="4_audio"]
 
 [node name="RealtimeSliceMain" type="Control"]
 layout_mode = 3
@@ -12,6 +13,10 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_main")
+
+[node name="RealtimeAudio" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("4_audio")
 
 [node name="WorldView" type="Control" parent="."]
 unique_name_in_owner = true

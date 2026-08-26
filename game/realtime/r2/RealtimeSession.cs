@@ -71,6 +71,13 @@ internal enum RealtimeBuildToolFamily
     Line,
 }
 
+internal enum RealtimeLiveAudioCue
+{
+    Breaker,
+    Energize,
+    Outage,
+}
+
 /// <summary>
 /// Godot-free application session for one current R2 run. Core state, interaction state,
 /// exact time, chapter flow, and immutable presentation publication have one owner here.
@@ -111,6 +118,7 @@ internal sealed partial class RealtimeSession
     internal event Action<RealtimeSlicePresentation>? PresentationPublished;
     internal event Action<RealtimeSlicePresentation>? PointerPresentationPublished;
     internal event Action<string>? EvidenceRecorded;
+    internal event Action<RealtimeLiveAudioCue>? LiveAudioCueRequested;
 
     internal RealtimeSession(RealtimeSliceData data, bool reduceMotion = false)
         : this(
@@ -350,6 +358,7 @@ internal sealed partial class RealtimeSession
         {
             RealtimeCampaignSnapshot unsupportedSnapshot = _run.GetSnapshot();
             return IntentResult(
+                intent.Kind,
                 false,
                 RealtimeInteractionReducer.UnsupportedIntentReason,
                 null,
@@ -381,6 +390,7 @@ internal sealed partial class RealtimeSession
                 RealtimeInteractionReducer.CampaignEndedReadOnlyReason);
             Present();
             return IntentResult(
+                intent.Kind,
                 false,
                 RealtimeInteractionReducer.CampaignEndedReadOnlyReason,
                 null,
@@ -408,6 +418,7 @@ internal sealed partial class RealtimeSession
                 Present();
             }
             return IntentResult(
+                intent.Kind,
                 false,
                 reduction.Error,
                 null,
@@ -438,6 +449,7 @@ internal sealed partial class RealtimeSession
                 Present();
             }
             return IntentResult(
+                intent.Kind,
                 false,
                 shapeError,
                 null,
@@ -467,6 +479,7 @@ internal sealed partial class RealtimeSession
                     Present();
                 }
                 return IntentResult(
+                    intent.Kind,
                     false,
                     RealtimePresentationText.RealtimeRunErrorText(commandResult.Error),
                     commandResult,
@@ -514,6 +527,7 @@ internal sealed partial class RealtimeSession
             Present();
         }
         return IntentResult(
+            intent.Kind,
             true,
             null,
             commandResult,
@@ -719,6 +733,10 @@ internal sealed partial class RealtimeSession
         {
             Present();
         }
+        RequestLiveAudioCue(
+            operationAccepted: true,
+            acceptedIntentKind: null,
+            transitions);
         if (lastFrame is not null)
         {
             // One host callback may cross a minute and then end with a
@@ -793,6 +811,50 @@ internal sealed partial class RealtimeSession
         if (openChapterStory)
         {
             TryOpenChapterStoryModal();
+        }
+    }
+
+    internal static RealtimeLiveAudioCue? SelectLiveAudioCue(
+        bool operationAccepted,
+        RealtimeR2IntentKind? acceptedIntentKind,
+        IReadOnlyList<RealtimeTransition> transitions)
+    {
+        ArgumentNullException.ThrowIfNull(transitions);
+        if (!operationAccepted)
+        {
+            return null;
+        }
+        if (transitions.Any(item => item.Kind is
+                RealtimeTransitionKind.ThermalEmergencyEntered or
+                RealtimeTransitionKind.ThermalProtectiveTrip))
+        {
+            return RealtimeLiveAudioCue.Outage;
+        }
+        if (transitions.Any(item => item.Kind is
+                RealtimeTransitionKind.ConstructionCompleted or
+                RealtimeTransitionKind.ThermalEmergencyCleared or
+                RealtimeTransitionKind.ThermalRecovered))
+        {
+            return RealtimeLiveAudioCue.Energize;
+        }
+        return acceptedIntentKind is
+            RealtimeR2IntentKind.OrderNode or RealtimeR2IntentKind.OrderLine
+                ? RealtimeLiveAudioCue.Breaker
+                : null;
+    }
+
+    private void RequestLiveAudioCue(
+        bool operationAccepted,
+        RealtimeR2IntentKind? acceptedIntentKind,
+        IReadOnlyList<RealtimeTransition> transitions)
+    {
+        RealtimeLiveAudioCue? cue = SelectLiveAudioCue(
+            operationAccepted,
+            acceptedIntentKind,
+            transitions);
+        if (cue is RealtimeLiveAudioCue selected)
+        {
+            LiveAudioCueRequested?.Invoke(selected);
         }
     }
 
@@ -1275,6 +1337,10 @@ internal sealed partial class RealtimeSession
         {
             Present();
         }
+        RequestLiveAudioCue(
+            operationAccepted: true,
+            acceptedIntentKind: null,
+            advance.Transitions);
         return true;
     }
 
@@ -2071,6 +2137,7 @@ internal sealed partial class RealtimeSession
     }
 
     private RealtimeR2IntentResult IntentResult(
+        RealtimeR2IntentKind intentKind,
         bool accepted,
         string? error,
         RealtimeCommandResult? commandResult,
@@ -2078,18 +2145,25 @@ internal sealed partial class RealtimeSession
         long beforeMinute,
         long beforeSequence,
         int beforeCount,
-        long beforeRevision) => new(
-        accepted,
-        error,
-        commandResult,
-        beforeHash,
-        _run!.GetCanonicalStateSha256(),
-        beforeMinute,
-        _run.Minute,
-        beforeSequence,
-        NextCommandSequence,
-        _run.AcceptedCommands.Count - beforeCount,
-        _presentationRevision - beforeRevision);
+        long beforeRevision)
+    {
+        RequestLiveAudioCue(
+            accepted,
+            accepted ? intentKind : null,
+            commandResult?.Transitions ?? Array.Empty<RealtimeTransition>());
+        return new RealtimeR2IntentResult(
+            accepted,
+            error,
+            commandResult,
+            beforeHash,
+            _run!.GetCanonicalStateSha256(),
+            beforeMinute,
+            _run.Minute,
+            beforeSequence,
+            NextCommandSequence,
+            _run.AcceptedCommands.Count - beforeCount,
+            _presentationRevision - beforeRevision);
+    }
 
     private RealtimeR2FrameResult FrameResult(
         RealtimeFrameAdvanceResult? frame,

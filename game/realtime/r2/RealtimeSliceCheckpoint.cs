@@ -266,6 +266,7 @@ internal sealed partial class RealtimeSliceMain
 
     private RealtimeSliceCheckpointFact? _enteredTargetedCheckpoint;
     private InteractiveCheckpointState? _interactiveCheckpoint;
+    private int _checkpointLiveAudioCueCountAtEntry;
 
     internal RealtimeSliceCheckpointFact EnterTargetedLiveCheckpoint(
         string checkpointId)
@@ -304,6 +305,8 @@ internal sealed partial class RealtimeSliceMain
         RequireAccepted(
             ApplyIntent(RealtimeR2Intent.CloseModal(RealtimeR2Ids.ChapterBriefingModal)),
             "close chapter briefing");
+        RealtimeAudio audio = AudioForSmoke;
+        int? cueCountBeforeOrder = null;
 
         string stateCreationMethod;
         if (checkpointId == RealtimeSliceCheckpointIds.ConstructionDueOneMinute)
@@ -315,6 +318,7 @@ internal sealed partial class RealtimeSliceMain
             Require(plan.Intents.Count == 3,
                 "fixture line plan is not the bounded start/finish/order replay");
             _ = AdvanceToForSmoke(plan.OrderMinute);
+            cueCountBeforeOrder = audio.LiveCuePlayCountForSmoke;
             foreach ((RealtimeR2Intent intent, int index) in
                      plan.Intents.Select((intent, index) => (intent, index)))
             {
@@ -332,6 +336,29 @@ internal sealed partial class RealtimeSliceMain
         }
 
         NormalizeCheckpointInteraction();
+        Require(audio.AmbientStartCountForSmoke == 1,
+            "checkpoint entry did not preserve the one current-R2 ambient start");
+        if (checkpointId == RealtimeSliceCheckpointIds.ConstructionDueOneMinute)
+        {
+            Require(cueCountBeforeOrder.HasValue &&
+                    audio.LiveCuePlayCountForSmoke == cueCountBeforeOrder.Value + 1 &&
+                    audio.LastLiveCueForSmoke == RealtimeLiveAudioCue.Breaker &&
+                    ReferenceEquals(
+                        audio.SfxPlayerForSmoke.Stream,
+                        audio.StreamForSmoke(RealtimeLiveAudioCue.Breaker)),
+                "accepted construction order did not request exactly one Breaker SFX; " +
+                $"before={cueCountBeforeOrder}; " +
+                $"count={audio.LiveCuePlayCountForSmoke}; " +
+                $"last={audio.LastLiveCueForSmoke}; " +
+                $"actualStream={audio.SfxPlayerForSmoke.Stream?.GetInstanceId()}; " +
+                $"expectedStream={audio.StreamForSmoke(RealtimeLiveAudioCue.Breaker).GetInstanceId()}");
+        }
+        else
+        {
+            Require(audio.LiveCuePlayCountForSmoke == 0,
+                "normal checkpoint entry emitted an unrelated live SFX cue");
+        }
+        _checkpointLiveAudioCueCountAtEntry = audio.LiveCuePlayCountForSmoke;
         RealtimeCampaignSnapshot snapshot = session.CoreSnapshot;
         RealtimeSliceCheckpointFact fact = BuildCheckpointFact(
             checkpointId,
@@ -625,6 +652,31 @@ internal sealed partial class RealtimeSliceMain
                     segment.EndCanonicalStateSha256,
                     StringComparison.Ordinal),
             "the final presentation does not carry the authoritative Core identity");
+        RealtimeAudio audio = AudioForSmoke;
+        if (checkpoint.CheckpointId == RealtimeSliceCheckpointIds.ConstructionDueOneMinute)
+        {
+            Require(audio.AmbientStartCountForSmoke == 1 &&
+                    audio.LiveCuePlayCountForSmoke ==
+                        _checkpointLiveAudioCueCountAtEntry + 1 &&
+                    audio.LastLiveCueForSmoke == RealtimeLiveAudioCue.Outage &&
+                    ReferenceEquals(
+                        audio.SfxPlayerForSmoke.Stream,
+                        audio.StreamForSmoke(RealtimeLiveAudioCue.Outage)),
+                "mixed construction/emergency completion did not replace Breaker " +
+                "with one highest-priority Outage SFX; " +
+                $"entry={_checkpointLiveAudioCueCountAtEntry}; " +
+                $"count={audio.LiveCuePlayCountForSmoke}; " +
+                $"last={audio.LastLiveCueForSmoke}; " +
+                $"actualStream={audio.SfxPlayerForSmoke.Stream?.GetInstanceId()}; " +
+                $"expectedStream={audio.StreamForSmoke(RealtimeLiveAudioCue.Outage).GetInstanceId()}");
+        }
+        else
+        {
+            Require(audio.AmbientStartCountForSmoke == 1 &&
+                    audio.LiveCuePlayCountForSmoke ==
+                        _checkpointLiveAudioCueCountAtEntry,
+                "normal checkpoint segment restarted ambience or emitted an SFX cue");
+        }
 
         return new RealtimeSliceCheckpointEvidence(
             checkpoint.EvidenceLabel,

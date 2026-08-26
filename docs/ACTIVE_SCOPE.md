@@ -40,8 +40,9 @@ Godot playback은 Main 아래의 audio node 하나가 소유한다.
    고정하고 operation당 최대 한 cue인지 확인한다.
 2. actual `RealtimeSliceMain` scene에서 audio node, PCM16/22,050Hz/mono/loop shape와 Ambient/SFX bus,
    ambient one-start를 확인한다.
-3. 실제 construction checkpoint가 accepted order의 `Breaker` 뒤 completion의 `Energize`를 한 번씩 받고,
-   cue 전후 canonical Core/journal이 audio 때문에 달라지지 않는지 확인한다.
+3. pure selector가 단독 construction completion의 `Energize`를 확인하고, 실제 construction checkpoint는
+   accepted order의 `Breaker` 뒤 completion과 emergency가 섞인 batch의 최고 우선순위 `Outage`를 한 번만
+   받으며 canonical Core/journal이 audio 때문에 달라지지 않는지 확인한다.
 4. fresh product Resume가 replay history SFX를 발행하지 않고 기존 settings restore의 bus mute/linear 값을
    그대로 소비하는지 확인한다.
 5. `./dev check`를 통과하고 bounded independent review 두 건의 scope-valid finding을 수정한 뒤 current

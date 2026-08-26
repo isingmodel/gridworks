@@ -29,6 +29,8 @@ internal static class RealtimeR2Smoke
     {
         ArgumentNullException.ThrowIfNull(failures);
         RunCase("stable-r2-id-protocol", () => ValidateStableR2IdProtocol(failures), failures);
+        RunCase("live-audio-cue-selection",
+            () => ValidateLiveAudioCueSelection(failures), failures);
         RunCase("fail-closed-routing", () => ValidateFailClosedRouting(failures), failures);
         RunCase("clock-pause", () => ValidateClockAndPause(failures), failures);
         RunCase("frame-rate-matrix", () => ValidateFrameRateMatrix(failures), failures);
@@ -173,6 +175,72 @@ internal static class RealtimeR2Smoke
             """;
         Check(string.Equals(actual, expected, StringComparison.Ordinal),
             "the centralized R2 ID protocol drifted from its stable UI/evidence contract",
+            failures);
+    }
+
+    private static void ValidateLiveAudioCueSelection(ICollection<string> failures)
+    {
+        IReadOnlyList<RealtimeTransition> none = Array.Empty<RealtimeTransition>();
+        Check(
+            RealtimeSession.SelectLiveAudioCue(
+                operationAccepted: false,
+                RealtimeR2IntentKind.OrderNode,
+                [new RealtimeTransition(
+                    42,
+                    RealtimeTransitionKind.ThermalProtectiveTrip)]) is null &&
+            RealtimeSession.SelectLiveAudioCue(
+                operationAccepted: true,
+                acceptedIntentKind: null,
+                [new RealtimeTransition(
+                    42,
+                    RealtimeTransitionKind.ChapterStarted)]) is null,
+            "rejected or unrelated live operations selected an audio cue",
+            failures);
+
+        Check(
+            RealtimeSession.SelectLiveAudioCue(
+                operationAccepted: true,
+                RealtimeR2IntentKind.OrderNode,
+                none) == RealtimeLiveAudioCue.Breaker &&
+            RealtimeSession.SelectLiveAudioCue(
+                operationAccepted: true,
+                RealtimeR2IntentKind.OrderLine,
+                none) == RealtimeLiveAudioCue.Breaker,
+            "accepted node/line orders did not select the breaker cue",
+            failures);
+
+        RealtimeTransitionKind[] energizeKinds =
+        [
+            RealtimeTransitionKind.ConstructionCompleted,
+            RealtimeTransitionKind.ThermalEmergencyCleared,
+            RealtimeTransitionKind.ThermalRecovered,
+        ];
+        Check(energizeKinds.All(kind =>
+                RealtimeSession.SelectLiveAudioCue(
+                    operationAccepted: true,
+                    RealtimeR2IntentKind.OrderNode,
+                    [new RealtimeTransition(42, kind)]) ==
+                RealtimeLiveAudioCue.Energize),
+            "completion/clear/recovery did not override an order with energize",
+            failures);
+
+        RealtimeTransitionKind[] outageKinds =
+        [
+            RealtimeTransitionKind.ThermalEmergencyEntered,
+            RealtimeTransitionKind.ThermalProtectiveTrip,
+        ];
+        Check(outageKinds.All(kind =>
+                RealtimeSession.SelectLiveAudioCue(
+                    operationAccepted: true,
+                    RealtimeR2IntentKind.OrderLine,
+                    [
+                        new RealtimeTransition(
+                            42,
+                            RealtimeTransitionKind.ConstructionCompleted),
+                        new RealtimeTransition(42, kind),
+                        new RealtimeTransition(42, kind),
+                    ]) == RealtimeLiveAudioCue.Outage),
+            "emergency/trip did not select one highest-priority outage cue",
             failures);
     }
 

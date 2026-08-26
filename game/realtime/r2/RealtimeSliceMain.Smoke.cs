@@ -146,6 +146,9 @@ internal sealed partial class RealtimeSliceMain
 
     internal void RequestContinueForSmoke() => ContinueGame();
 
+    internal RealtimeAudio AudioForSmoke => _audio ??
+        throw new InvalidOperationException("Scene audio is not ready.");
+
     internal RealtimeUiRoot UiForSmoke => _ui ??
         throw new InvalidOperationException("Scene UI is not ready.");
 

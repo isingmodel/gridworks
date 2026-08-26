@@ -18,7 +18,7 @@
 | 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
 | R2 native 구현 | `NORTH_BANK_PROMISE`까지 누적 4장 |
-| 직접 플레이 관찰 | `SECOND_SOURCE`까지 첫 3장; 4장은 자동검사·review까지만 완료 |
+| 직접 플레이 관찰 | `NORTH_BANK_PROMISE`까지 누적 4장; Keep·명시적 Defer를 각각 fresh process에서 확인 |
 | 사건 지평선 | 한 줄 future-event bar(`RealtimeEventRail`)의 compact marker와 hover/선택 상세 정보 |
 | product audio·settings | R2 audio layer, 설정 UI와 설정 저장은 아직 없음 |
 | 공식 상용 UX 점수 | 없음. 텍스트 계획 형성평가만 `83.4475` |
@@ -28,7 +28,9 @@
 
 - **작성됨**: 데이터와 story selector가 존재한다.
 - **native 구현됨**: R2 화면과 실제 Core 진행 경로가 연결됐다.
-- **직접 관찰됨**: 사람이 fresh process에서 mouse/keyboard로 해당 경로를 끝까지 확인했다.
+- **직접 관찰됨**: fresh process에서 production mouse/keyboard 입력으로 해당 경로를 끝까지 확인했다.
+
+직접 관찰은 headless smoke와 다르지만, 사람 참가자의 사용성·미감·재미 증거는 아니다.
 
 따라서 “8장이 작성됐다”는 말은 “R2에서 8장을 플레이할 수 있다”는 뜻이 아니다. 인자 없는 기본
 장면은 이제 제품 title이지만, `새 게임`이 여는 것은 현재 standalone `FIRST_LIGHT` 한 장 경로다.

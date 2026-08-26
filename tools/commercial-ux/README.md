@@ -8,7 +8,7 @@
 
 - 작성 콘텐츠: 8장, 16개 사건, 34개 story part
 - R2 native 구현: `NORTH_BANK_PROMISE`까지 누적 4장
-- 실제 직접 플레이 관찰: 첫 3장
+- 실제 직접 플레이 관찰: `NORTH_BANK_PROMISE`까지 누적 4장 Keep·명시적 Defer 결과
 - text 형성평가: `TextPlanProxy = 83.4475`
 - 공식 native 평가: 미실행, `CommercialUXProxy` 없음
 - current R2 evaluation candidate package: 없음

@@ -91,6 +91,17 @@ checkpoint와 세 native 개발 route에서 분리한다.
 fixture/native resource 경계를 확인했다. 이는 자동 wiring 증거이며 사람 미감·사용성, fresh-install,
 save/resume 또는 전체 캠페인 완결성의 증거가 아니다.
 
+### UX-R2.5 — 누적 4장 production-input 직접 플레이
+
+`./dev play through NORTH_BANK_PROMISE`를 서로 독립된 fresh process에서 Keep과 명시적 Defer로 각각
+결과까지 진행했다. 첫 3장의 실제 망·완공/진행 공사·자금·시계가 네 번째 장에 보존됐고, 6개월 달력
+전환, 약속 기한과 주변 사건 상세, 두 authored 결과를 production mouse/keyboard 입력으로 확인했다.
+
+Keep은 canonical formative chapter·full-flow evidence를 기록했다. Defer는 authored Defer 결과로
+도달성을 관찰했으며 설계상 Keep 전용 PASS evidence를 만들지 않는다. 재현된 결함이 없어 gameplay
+code와 regression은 바꾸지 않았다. 이는 사람 참가자의 미감·사용성, 남은 4장, save/resume, 전체
+캠페인 또는 공식 UX 점수의 증거가 아니다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

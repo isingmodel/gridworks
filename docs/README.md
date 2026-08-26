@@ -52,7 +52,8 @@ backlog는 `NEXT_TASKS.md`처럼 질문별 표가 지정한 문서가 세부 사
 
 - `authored`: 데이터와 story part가 존재함
 - `native implemented`: R2 Core/controller/presentation 경로가 연결됨
-- `direct-play observed`: 사람이 실제 입력으로 확인함
+- `direct-play observed`: fresh process의 production mouse/keyboard 입력으로 실제 경로를 확인함;
+  사람 참가자의 사용성·미감·재미 증거는 아님
 - `default scene`: Godot이 처음 여는 scene; 완성된 새 게임 여정을 뜻하지 않음
 - `product title`: default boot의 `새 게임`·`이어하기` 시작 화면; debug launcher나 story modal이 아님
 - `title Continue` (`이어하기`): 유효한 current R2 save를 복구하는 동작; story/modal continue와 다름

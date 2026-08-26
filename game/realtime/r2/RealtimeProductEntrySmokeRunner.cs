@@ -52,7 +52,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         long Minute,
         string CanonicalStateSha256,
         int CommandCount,
-        int ClosedStoryCount);
+        int ClosedStoryCount,
+        bool Terminal);
 
     public override void _Ready() => _ = RunAsync();
 
@@ -62,6 +63,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         SubViewport? viewport = null;
         EntryRequest? request = null;
         byte[]? guardedBytes = null;
+        byte[]? replacementProbeBytes = null;
         try
         {
             request = ParseRequest(OS.GetCmdlineUserArgs());
@@ -126,12 +128,22 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     throw new ArgumentOutOfRangeException();
             }
 
+            if (expectedWrite is { Terminal: true })
+            {
+                replacementProbeBytes = StageInProgressReplacementProbe(
+                    request.SavePath!,
+                    expectedWrite);
+            }
+
             viewport.QueueFree();
             await SettleFrames(2);
             viewport = null;
             if (expectedWrite is not null)
             {
-                ValidateWrittenSave(request.SavePath!, expectedWrite);
+                ValidateWrittenSave(
+                    request.SavePath!,
+                    expectedWrite,
+                    replacementProbeBytes);
             }
             ValidateGuardedSavePreserved(request, guardedBytes);
 
@@ -326,6 +338,39 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 string.Join(" | ", failures));
         }
         RealtimeCampaignSaveStore.Save(path, save);
+    }
+
+    private static byte[] StageInProgressReplacementProbe(
+        string path,
+        SaveExpectation terminal)
+    {
+        RealtimeSliceData data = RealtimeSliceResources.LoadNativeRelease(
+            typeof(RealtimeSliceMain).Assembly,
+            RealtimeNativeRouteCatalog.ProductCampaign);
+        var run = new RealtimeCampaignRun(data.Campaign, data.World);
+        RealtimeAdvanceResult initial = run.AdvanceTo(run.Minute);
+        var storyFlow = new RealtimeChapterStoryFlow();
+        storyFlow.Restore(
+            initial.Transitions,
+            data.Campaign,
+            closedStoryCount: 0,
+            run.Minute);
+        Require(storyFlow.IsExactInitialActive(
+                    data.Campaign.Chapters[0].Content.ChapterId),
+            "The terminal replacement probe could not stage initial progress.");
+        RealtimeCampaignSave progress = RealtimeCampaignSaveCodec.Capture(
+            data.RequireSaveSourceIdentity(),
+            data.Campaign,
+            data.World,
+            run,
+            storyFlow.ClosedStoryCount);
+        Require(progress.SavedMinute != terminal.Minute ||
+                progress.CanonicalStateSha256 != terminal.CanonicalStateSha256 ||
+                progress.Commands.Count != terminal.CommandCount ||
+                progress.ClosedStoryCount != terminal.ClosedStoryCount,
+            "The terminal replacement probe is not distinguishable progress.");
+        RealtimeCampaignSaveStore.Save(path, progress);
+        return File.ReadAllBytes(path);
     }
 
     private static void PrepareLegacyFirstLightSave(string path)
@@ -597,13 +642,19 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             snapshot.Minute,
             slice.CanonicalStateSha256,
             slice.AcceptedCommandCount,
-            ClosedStoryCount: 3);
+            ClosedStoryCount: 3,
+            Terminal: false);
     }
 
     private static void ValidateWrittenSave(
         string savePath,
-        SaveExpectation expected)
+        SaveExpectation expected,
+        byte[]? replacementProbeBytes)
     {
+        byte[] writtenBytes = File.ReadAllBytes(savePath);
+        Require(replacementProbeBytes is null ||
+                !writtenBytes.SequenceEqual(replacementProbeBytes),
+            "Normal tree exit did not replace the staged in-progress save.");
         RealtimeCampaignSaveLoadResult load = RealtimeCampaignSaveStore.Load(savePath);
         Require(load is
                 {
@@ -758,11 +809,15 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         RealtimeSliceMain slice,
         RealtimeCampaignSnapshot snapshot)
     {
+        bool successfulFinal = snapshot.CompletedChapters.Count > 0 &&
+            snapshot.CompletedChapters[^1].ObjectiveSatisfied;
         Require(snapshot.CampaignComplete &&
                 !snapshot.ChapterStarted &&
                 slice.ActiveChapterStoryModalForSmoke is null &&
                 slice.ActiveEpilogueModalForSmoke is null &&
-                slice.EpilogueCompletedForSmoke &&
+                (successfulFinal
+                    ? slice.EpilogueStartedForSmoke && slice.EpilogueCompletedForSmoke
+                    : !slice.EpilogueStartedForSmoke && !slice.EpilogueCompletedForSmoke) &&
                 slice.LatestPresentation.Modal is null &&
                 slice.InteractionState is
                 {
@@ -785,7 +840,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 staged.ClosedStoryCount is > 0,
             "The restored terminal world could not reproduce its current save.");
         slice.FreezeAutonomousClockForSmoke();
-        return ExpectWrittenSave(staged);
+        return ExpectWrittenSave(staged, terminal: true);
     }
 
     private static SaveExpectation ValidateAndStageInitialBriefingContinue(
@@ -967,14 +1022,17 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         return ExpectWrittenSave(staged);
     }
 
-    private static SaveExpectation ExpectWrittenSave(RealtimeCampaignSave save) =>
+    private static SaveExpectation ExpectWrittenSave(
+        RealtimeCampaignSave save,
+        bool terminal = false) =>
         new(
             save.Source.RouteId,
             save.SavedMinute,
             save.CanonicalStateSha256,
             save.Commands.Count,
             save.ClosedStoryCount ?? throw new InvalidOperationException(
-                "A staged current save omitted its required story cursor."));
+                "A staged current save omitted its required story cursor."),
+            terminal);
 
     private static void RequireAccepted(
         RealtimeR2IntentResult result,

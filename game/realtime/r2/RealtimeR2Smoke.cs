@@ -3516,6 +3516,127 @@ internal static class RealtimeR2Smoke
             }
         });
 
+    private static void ValidateFailedTerminalCompletion(
+        RealtimeSliceData data,
+        ICollection<string> failures)
+    {
+        var run = new RealtimeCampaignRun(data.Campaign, data.World);
+        var history = new List<RealtimeTransition>();
+        history.AddRange(run.AdvanceTo(run.Minute).Transitions);
+        RealtimeCommandResult draft = run.ApplyCommand(RealtimeCommand.SetNodeDraft(
+            "SMALL_SUBSTATION",
+            new CoreMapPoint(2100, 700)));
+        RealtimeCommandResult cancel = run.ApplyCommand(RealtimeCommand.CancelNodeDraft());
+        if (!draft.Accepted || !cancel.Accepted)
+        {
+            throw new InvalidOperationException(
+                $"Unable to stage failed terminal progress: {draft.Error}; {cancel.Error}.");
+        }
+        history.AddRange(draft.Transitions);
+        history.AddRange(cancel.Transitions);
+
+        int finalChapterIndex = data.Campaign.Chapters.Count - 1;
+        for (int guard = 0;
+             guard < data.Campaign.Chapters.Count * 2 &&
+             run.GetSnapshot().ChapterIndex < finalChapterIndex;
+             guard++)
+        {
+            RealtimeCampaignSnapshot snapshot = run.GetSnapshot();
+            long target = snapshot.ChapterStarted
+                ? checked(snapshot.ChapterStartMinute + snapshot.Chapter.EndOffsetMinutes)
+                : snapshot.ChapterStartMinute;
+            history.AddRange(run.AdvanceTo(target).Transitions);
+        }
+
+        RealtimeCampaignSnapshot finalStart = run.GetSnapshot();
+        var storyFlow = new RealtimeChapterStoryFlow();
+        storyFlow.Restore(
+            history,
+            data.Campaign,
+            closedStoryCount: null,
+            run.Minute);
+        if (finalStart.ChapterIndex != finalChapterIndex ||
+            !finalStart.ChapterStarted ||
+            finalStart.CampaignComplete ||
+            !storyFlow.IsIdle ||
+            !storyFlow.MatchesSnapshot(finalStart))
+        {
+            throw new InvalidOperationException(
+                "Unable to stage an idle final-chapter progress boundary.");
+        }
+        RealtimeCampaignSave finalStartSave = RealtimeCampaignSaveCodec.Capture(
+            data.RequireSaveSourceIdentity(),
+            data.Campaign,
+            data.World,
+            run,
+            storyFlow.ClosedStoryCount);
+
+        RealtimeSliceMain failedSlice = ResumeProductProgress(finalStartSave);
+        using var failedLifetime = failedSlice.FreeAfterSmoke();
+        Check(failedSlice.InteractionState.Simulation ==
+                  RealtimeSimulationState.PlayerPaused &&
+              failedSlice.ActiveChapterStoryModalForSmoke is null &&
+              failedSlice.LatestPresentation.Modal is null,
+            "failed final progress did not resume at the idle paused boundary",
+            failures);
+        failedSlice.SetPlayerPausedForSmoke(false);
+        _ = failedSlice.AdvanceToForSmoke(checked(
+            finalStart.ChapterStartMinute + finalStart.Chapter.EndOffsetMinutes));
+
+        bool closedFailedFinal = false;
+        for (int guard = 0;
+             guard < 16 && failedSlice.ActiveChapterStoryModalForSmoke is { } story;
+             guard++)
+        {
+            if (story.FinalResult)
+            {
+                closedFailedFinal = true;
+                Check(failedSlice.CoreSnapshot.CompletedChapters.Count == 8 &&
+                      !failedSlice.CoreSnapshot.CompletedChapters[^1].ObjectiveSatisfied,
+                    "the staged final result was not the required failed outcome",
+                    failures);
+            }
+            _ = failedSlice.ClosePresentedStoryModalForSmoke();
+        }
+
+        RealtimeCampaignSnapshot failed = failedSlice.CoreSnapshot;
+        Check(closedFailedFinal &&
+              failed.CampaignComplete &&
+              !failed.ChapterStarted &&
+              !failed.CompletedChapters[^1].ObjectiveSatisfied &&
+              failedSlice.ActiveChapterStoryModalForSmoke is null &&
+              failedSlice.ActiveEpilogueModalForSmoke is null &&
+              !failedSlice.EpilogueStartedForSmoke &&
+              !failedSlice.EpilogueCompletedForSmoke &&
+              failedSlice.LatestPresentation.Modal is null &&
+              failedSlice.InteractionState.Simulation == RealtimeSimulationState.Ended,
+            "failed final result did not close directly into an ended no-epilogue world",
+            failures);
+
+        RealtimeCampaignSave terminal = failedSlice.CaptureProgressForSmoke();
+        RealtimeSliceMain resumed = ResumeProductProgress(terminal);
+        using var resumedLifetime = resumed.FreeAfterSmoke();
+        Check(RealtimeStateCanonicalizer.StructuralEquals(failed, resumed.CoreSnapshot) &&
+              resumed.CanonicalStateSha256 == terminal.CanonicalStateSha256 &&
+              resumed.AcceptedCommands.SequenceEqual(terminal.Commands) &&
+              resumed.ActiveChapterStoryModalForSmoke is null &&
+              resumed.ActiveEpilogueModalForSmoke is null &&
+              !resumed.EpilogueStartedForSmoke &&
+              !resumed.EpilogueCompletedForSmoke &&
+              resumed.LatestPresentation.Modal is null &&
+              resumed.InteractionState.Simulation == RealtimeSimulationState.Ended &&
+              resumed.RetainedFrameDebt.Count == 0,
+            "failed terminal Continue did not restore the exact ended no-epilogue world",
+            failures);
+        RealtimeCampaignSave recaptured = resumed.CaptureProgressForSmoke();
+        Check(recaptured.SavedMinute == terminal.SavedMinute &&
+              recaptured.CanonicalStateSha256 == terminal.CanonicalStateSha256 &&
+              recaptured.Commands.SequenceEqual(terminal.Commands) &&
+              recaptured.ClosedStoryCount == terminal.ClosedStoryCount,
+            "failed terminal Continue could not reproduce its current save",
+            failures);
+    }
+
     private static RealtimeCampaignSave ValidateReleaseThroughLongestNightController(
         ICollection<string> failures)
     {
@@ -4069,6 +4190,7 @@ internal static class RealtimeR2Smoke
         Check(ProductResumeRejected(legacyCompletion),
             "a legacy-v1 completion was accepted as current terminal state",
             failures);
+        ValidateFailedTerminalCompletion(data, failures);
         return completedSave;
     }
 
@@ -6008,8 +6130,17 @@ internal static class RealtimeR2Smoke
         const string label = "LONGEST_NIGHT";
         _ = AdvanceToMinuteByFrames(
             slice,
-            269070,
+            269069,
             RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeR2FrameResult terminalOverrun = slice.InjectFramesForSmoke(
+            frameCount: 30,
+            framesPerSecond: 60);
+        Check(terminalOverrun.RequestedFrameCount == 30 &&
+              terminalOverrun.ConsumedFrameCount == 15 &&
+              terminalOverrun.RetainedFrameDebt.Count == 0 &&
+              slice.RetainedFrameDebt.Count == 0,
+            $"{label} retained host-frame overrun beyond the terminal minute",
             failures);
         RealtimeChapterOutcome outcome = slice.CoreSnapshot.CompletedChapters.Single(item =>
             item.ChapterId == "LONGEST_NIGHT");

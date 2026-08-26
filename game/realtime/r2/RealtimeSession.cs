@@ -688,6 +688,15 @@ internal sealed partial class RealtimeSession
             {
                 transitions.AddRange(lastFrame.Campaign.Transitions);
                 CollectTransitions(lastFrame.Campaign.Transitions);
+                if (lastFrame.Campaign.Snapshot.CampaignComplete)
+                {
+                    // The campaign has no clock beyond its terminal minute. A host
+                    // callback may include later virtual frames, but retaining them
+                    // would leave an Ended session permanently ineligible to save.
+                    _retainedFrameDebt.Clear();
+                    _wallClockVirtualFrameRemainder = 0;
+                    _wallClockRemainderUnits = 0;
+                }
             }
             if (lastFrame.CatchUpCeilingReached)
             {
@@ -2313,6 +2322,8 @@ internal sealed partial class RealtimeSession
 
     internal RealtimeEpilogueModalRequest? ActiveEpilogueModal =>
         _epilogueFlow.Active;
+
+    internal bool EpilogueStarted => _epilogueFlow.Started;
 
     internal bool EpilogueCompleted => _epilogueFlow.Completed;
 

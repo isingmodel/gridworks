@@ -5005,8 +5005,12 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     frame.Frame.Accumulator == slice.AccumulatorSnapshot &&
                     slice.AccumulatorSnapshot.AppliedSimulationMinutes ==
                         beforeAccumulator.AppliedSimulationMinutes + 1 &&
-                    frame.ConsumedFrameCount + retainedFramesAfter ==
-                        retainedFramesBefore + frame.RequestedFrameCount &&
+                    (frame.ConsumedFrameCount + retainedFramesAfter ==
+                         retainedFramesBefore + frame.RequestedFrameCount ||
+                     frame.CoreSnapshot.CampaignComplete &&
+                         retainedFramesAfter == 0 &&
+                         frame.ConsumedFrameCount <=
+                             retainedFramesBefore + frame.RequestedFrameCount) &&
                     frame.RetainedFrameDebt.All(item =>
                         item.FramesPerSecond == 60 &&
                         item.SpeedMultiplier == 1),

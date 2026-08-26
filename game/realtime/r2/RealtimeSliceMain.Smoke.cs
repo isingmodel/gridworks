@@ -148,6 +148,8 @@ internal sealed partial class RealtimeSliceMain
     internal RealtimeEpilogueModalRequest? ActiveEpilogueModalForSmoke =>
         Session.ActiveEpilogueModal;
 
+    internal bool EpilogueStartedForSmoke => Session.EpilogueStarted;
+
     internal bool EpilogueCompletedForSmoke => Session.EpilogueCompleted;
 
     internal void RequestActionForSmoke(string actionId) => HandleAction(actionId);

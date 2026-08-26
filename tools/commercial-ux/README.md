@@ -14,6 +14,9 @@
   save/Continue, current-v3-only full-campaign terminal `Ended` save/Continue와 completed `새 게임`, prior v1/v2
   in-progress read와 정상 종료 current v3 write, non-saveable exit의 prior bytes 보존과 readable-save
   확인·raw sibling backup·reset: deterministic wiring 완료
+- title/gameplay 공용 current R2 settings, strict atomic persistence, create→fresh restore,
+  invalid/unsupported/read/write failure 보존, explicit 개발 route read-only와 UI/audio bus/Reduce Motion
+  projection: deterministic wiring 완료; packaged candidate나 사람 UX 증거는 아님
 - text 형성평가: `TextPlanProxy = 83.4475`
 - 공식 native 평가: 미실행, `CommercialUXProxy` 없음
 - current R2 evaluation candidate package: 없음
@@ -124,7 +127,8 @@ Continue→current v3 write, 성공 8장 terminal create→fresh Continue→`End
 title→New Game→initial write→fresh Continue와
 non-saveable draft exit의 prior bytes 보존→다음 safe write, 진행 저장의 확인→backup 실패
 차단→byte-exact sibling backup→initial write→fresh Continue, invalid/unsupported 확인 상태와 I/O-failure
-차단을 함께 검사한다. transient save cursor는 의도적으로 지원하지 않는다. 전체 8장 packaged
+차단, settings create→fresh restore와 invalid/unsupported/read/write failure, explicit fixture read-only,
+전체 Godot UI layout harness를 함께 검사한다. transient save cursor는 의도적으로 지원하지 않는다. 전체 8장 packaged
 production-input 여정은 별도 E2E가 필요하다.
 
 ## 4. `native/` 도구의 경계
@@ -149,7 +153,8 @@ R2 package가 아니며 title/이어하기/settings/audio/finale·epilogue evide
 - text score를 `CommercialUXProxy`로 승격하기
 
 공식 native 평가를 열 때는 [남은 작업](../../docs/NEXT_TASKS.md)의 finale·epilogue 포함 전체 제품 여정,
-구현된 safe-point save/resume와 readable-save reset의 packaged 재검증, audio/settings와 fresh-install
+구현된 safe-point save/resume와 readable-save reset의 packaged 재검증, product audio와 packaged settings
+재검증, fresh-install
 candidate gate를 먼저 닫는다. 이 package gate가 current R2 candidate
 packager, finalized manifest와 verifier를 소유한다. 이어서 그 finalized candidate를 소비하는 versioned
 evaluation-session authority, capture, evidence verifier, hard-gate oracle과 score aggregator를 별도 gate로

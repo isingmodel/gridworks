@@ -231,9 +231,14 @@ deterministic failure 또는 blinded observation
   확인→backup 실패 차단→raw sibling backup→canonical reset: focused fresh-process product-entry smoke 완료;
   readable invalid/unsupported는 같은 확인 상태, I/O failure는 차단됨. 전체 packaged-campaign
   production-input E2E와 transient cursor는 이 증거에 포함되지 않음
-- audio/settings, current R2 package와 score-bearing execution authority·oracle/aggregator: 미완료
+- title/gameplay 공용 current R2 settings, strict missing/invalid/unsupported/read/write fail-closed,
+  create→fresh restore, explicit 개발 route read-only, UI scale·volume/mute·Reduce Motion과 local macOS
+  non-headless window-mode projection: deterministic wiring 완료. packaged candidate 복원이나 사람 접근성
+  증거는 아님
+- product audio, packaged settings 재검증, current R2 package와 score-bearing execution
+  authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음
 
-평가 실행은 전체 native 여정, exact candidate, settings/audio와 score-bearing execution authority가 모두
+평가 실행은 전체 native 여정, exact candidate의 packaged settings/audio와 score-bearing execution authority가 모두
 준비된 뒤 [남은 작업](../NEXT_TASKS.md)의 별도 scope로 연다.

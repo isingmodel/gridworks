@@ -64,6 +64,8 @@ backlog는 `NEXT_TASKS.md`처럼 질문별 표가 지정한 문서가 세부 사
 - `reset New Game`: in-progress 또는 raw bytes를 읽을 수 있는 blocked save에서 첫 activation은 확인만
   표시하고, 두 번째 activation은 원본 sibling backup 성공 뒤 canonical 8장을 시작하는 action; completed
   New Game은 이 확인 없이 즉시 시작함
+- `current R2 product settings`: title/gameplay가 공유하는 source-tree 설정 authority와 strict persistence;
+  packaged candidate 복원, 실제 audio coverage나 사람 접근성 증거를 뜻하지 않음
 - `deterministic PASS`: 규칙·상태·wiring 검사 통과; 미감·재미·출시 품질을 뜻하지 않음
 - `historical baseline`: 회귀 참고용 과거 제품; 현재 제품 entry가 아님
 - `사건 지평선`: 한 줄 future-event bar의 플레이어용 이름; 코드명은 `RealtimeEventRail`

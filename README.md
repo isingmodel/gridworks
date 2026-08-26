@@ -10,8 +10,8 @@ finale→세 epilogue card는 누적 native 개발 경로에 연결됐지만 아
 exact initial briefing, exact-minute active in-chapter story, non-final result→next briefing handoff
 저장·재개와 full campaign의 exact terminal 완료 저장·재개를 지원한다. completed title에서는 기존
 `새 게임`으로 첫 장부터 다시 시작할 수 있다. 진행 중이거나 읽을 수 있는 비호환 저장도 같은 버튼의
-확인→원본 sibling backup 뒤 첫 장부터 다시 시작할 수 있다. 제품용 audio·settings, 출시 패키지와 공식
-UX 평가는 남아 있다.
+확인→원본 sibling backup 뒤 첫 장부터 다시 시작할 수 있다. title과 gameplay가 공유하는 current R2
+제품 설정과 strict persistence는 구현됐고, 제품용 audio, 출시 패키지와 공식 UX 평가는 남아 있다.
 
 ## 30초 현재 상태
 
@@ -26,7 +26,8 @@ UX 평가는 남아 있다.
 | R2 native 구현 | `LONGEST_NIGHT`까지 누적 8장, exact finale 뒤 authored epilogue 3장 |
 | 직접 플레이 관찰 | `NORTH_BANK_PROMISE`까지 누적 4장; Keep·명시적 Defer를 각각 fresh process에서 확인 |
 | 사건 지평선 | 한 줄 future-event bar(`RealtimeEventRail`)의 compact marker와 hover/선택 상세 정보 |
-| product audio·settings | R2 audio layer, 설정 UI와 설정 저장은 아직 없음 |
+| product settings | title/gameplay 공용 surface, UI 100/125/150/200%, Master/Ambient/SFX 0/25/50/75/100%, windowed/fullscreen, Reduce Motion과 strict atomic persistence 구현 |
+| product audio | R2 audio playback/cue layer는 아직 없음 |
 | 공식 상용 UX 점수 | 없음. 텍스트 계획 형성평가만 `83.4475` |
 | 현재 구현 권한 | [현재 작업 범위](docs/ACTIVE_SCOPE.md)가 단일 권위 |
 
@@ -94,8 +95,9 @@ non-saveable 구간으로 남긴다. 이 구간의 정상 종료는 직전 safe 
 ./dev play through LONGEST_NIGHT
 ```
 
-`./dev play product`만 Godot user argument 없이 제품 title과 product save lifecycle을 연다. `fixture`,
-`chapter`, `through` 명령은 title을 우회하는 명시적 개발 경로이며 product save를 읽거나 쓰지 않는다.
+`./dev play product`만 Godot user argument 없이 제품 title과 product save/settings lifecycle을 연다.
+`fixture`, `chapter`, `through` 명령은 title을 우회하는 명시적 개발 경로이며 product save/settings를
+읽거나 쓰지 않는다. 설정 surface는 같은 UI를 read-only로 보여 준다.
 fixture를 새 게임이나 전체 캠페인으로 평가하지 않는다. 환경 준비, 전체 명령과 현재 저장/패키지
 경계는 [실행 안내](INSTALL.md)에 있다.
 
@@ -114,10 +116,12 @@ initial briefing create→non-saveable draft exit의 byte-exact 보존→fresh C
 `FLOOD_ISOLATION_TEST`→`SECOND_HEART` result→`SECOND_SOURCE` briefing write/Continue, 직전 exact
 `FIRST_LIGHT` v1 Continue→current v3 write, 성공 8장 terminal create→fresh Continue→`Ended`·terminal write,
 fresh completed title→`새 게임`→initial write→fresh Continue, invalid/unsupported 확인 상태와 I/O 실패
-차단, 두 named checkpoint를 실행한다.
+차단, 제품 설정 create→fresh restore와 invalid/unsupported/read/write failure 보존, explicit fixture의
+read-only 설정, 전체 Godot UI layout harness와 두 named checkpoint를 실행한다.
 
-root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 이 기본 명령에 포함되지 않는다.
-해당 검사가 필요한 변경은 active scope의 완료 검사에 별도로 명시한다.
+root `Gridworks.sln` 전체의 Release build는 이 기본 명령에 포함되지 않는다. Godot 검사는 headless라서
+실제 물리 display나 사람 사용성은 주장하지 않으며, native window mode가 검증 대상이면 별도
+non-headless 실행을 active scope의 완료 검사에 명시한다.
 
 결함을 재현할 때는 전체 캠페인을 매번 처음부터 돌리지 않는다. 가장 가까운 단위나 named checkpoint를
 사용하되, onboarding·누적 장 전환·save/resume·전체 캠페인처럼 시작 경로 자체가 검증 대상일 때만
@@ -160,7 +164,7 @@ selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체
 배경이 아니다. 현재 R2에는 별도로 제작된 G3 자산 57개가 연결돼 있다. 출처와 사용 경계는
 [자산 안내](ASSET_MANIFEST.md)에 기록한다.
 
-현재 R2에는 제품용 audio/settings, transient cursor/schema와 backup browser/restore/delete UI,
+현재 R2에는 제품용 audio, transient cursor/schema와 backup browser/restore/delete UI,
 서명·공증된 패키지, 지원 OS 검증,
 사람 미감·사용성 검토, 한국어·전력설비 전문 검토 또는 공개 출시 승인이 없다. 저장소를
 열람할 수 있다는 사실은 자산의 재사용·재배포 허가를 뜻하지 않는다.

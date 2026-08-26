@@ -341,6 +341,26 @@ write→fresh Continue 연쇄, invalid/unsupported 확인 상태, I/O 차단, co
 검사했고 source/replay는 같은 typed production 분류를 공유한다. 이 완료는 transient cursor, backup
 browser/restore/delete UI, packaged 전체 캠페인 E2E 또는 사람 UX 품질의 증거로 확대하지 않는다.
 
+### UX-R2.20 — current R2 제품 설정
+
+title과 gameplay가 하나의 `RealtimeSettingsSurface`를 공유하게 했다. windowed/fullscreen, UI
+100/125/150/200%, Master/Ambient/SFX 0/25/50/75/100%와 Reduce Motion을 strict
+`gridworks.realtime-settings.v1` authority로 묶었다. 인자 없는 product boot만 load/write하고 explicit
+fixture/chapter/through는 같은 surface를 read-only로 사용한다. Main은 store 성공 뒤에만 window/audio
+engine seam, UI scale와 Session Reduce Motion을 적용한다.
+
+missing은 write 없이 기본값을 쓰고 invalid/unsupported/read failure는 원본과 보이는 오류를 보존한다.
+same-directory temp·flush·atomic replace의 실제 write failure도 prior bytes, committed controls/runtime,
+Core hash·journal·camera·selection과 save ownership을 그대로 두는지 확인했다. running gameplay는 settings
+동안만 player-pause하고 닫을 때 원래 상태와 opener focus를 복구하며, 기존 player-paused는 유지한다.
+
+create→fresh restore, invalid/unsupported/read/write failure, explicit fixture read-only, 설정 surface layout·
+focus와 전체 `./dev check`를 통과했다. 두 독립 review가 찾은 unsupported, explicit-route, native window-mode
+증거 공백을 보강했고, 격리 경로의 두 macOS non-headless process에서 Windowed→Fullscreen 적용과 fresh
+Fullscreen 복원을 engine mode assertion으로 확인한 뒤 finding 0건으로 재검토됐다. 이 완료는 product
+audio playback, packaged candidate 복원, Reduce Motion의 사람 관찰, 물리 display 품질이나 공식 UX 증거로
+확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

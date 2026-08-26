@@ -12,20 +12,22 @@ compile 시간이 아니라, 한 변경에 필요한 권위·분기·파일 추�
 └─ play product/fixture/chapter/through
 
 launch argument → RealtimeLaunchCatalog
-├─ no args → ProductTitle → Main이 save probe (session 없음)
-│  ├─ missing save → RealtimeProductTitle → NewGameRequested
-│  │  └─ Product write ownership + NativeRelease(RealtimeNativeRouteCatalog.ProductCampaign)
-│  │     └─ RealtimeSliceResources.LoadNativeRelease
-│  └─ ProductCampaign 또는 exact prior FIRST_LIGHT source
-│     └─ codec replay + RealtimeSession.ValidateProgressResume → validated Continue availability
-│        ├─ ContinueRequested → Product write ownership → RealtimeSession.Resume
-│        │  ├─ story-idle/prior v1 → PlayerPaused·Normal·no-modal
-│        │  ├─ supported active v3 또는 normalized v2 story → same authored modal·AutoPaused
-│        │  │  └─ non-final result close → bounded next briefing(+decision) FIFO
-│        │  └─ current-v3 full terminal completion → Ended·World·no-modal, epilogue replay 없음
-│        ├─ completed NewGameRequested → 기존 missing-save ProductCampaign bootstrap 재사용
-│        └─ in-progress/readable blocked NewGameRequested
-│           └─ typed confirm → raw-byte sibling backup 성공 → 같은 ProductCampaign bootstrap
+├─ no args → ProductTitle
+│  ├─ Main이 strict product settings load → engine/UI projection (session 없음)
+│  └─ Main이 save probe (session 없음)
+│     ├─ missing save → RealtimeProductTitle → NewGameRequested
+│     │  └─ Product write ownership + NativeRelease(RealtimeNativeRouteCatalog.ProductCampaign)
+│     │     └─ RealtimeSliceResources.LoadNativeRelease
+│     └─ ProductCampaign 또는 exact prior FIRST_LIGHT source
+│        └─ codec replay + RealtimeSession.ValidateProgressResume → validated Continue availability
+│           ├─ ContinueRequested → Product write ownership → RealtimeSession.Resume
+│           │  ├─ story-idle/prior v1 → PlayerPaused·Normal·no-modal
+│           │  ├─ supported active v3 또는 normalized v2 story → same authored modal·AutoPaused
+│           │  │  └─ non-final result close → bounded next briefing(+decision) FIFO
+│           │  └─ current-v3 full terminal completion → Ended·World·no-modal, epilogue replay 없음
+│           ├─ completed NewGameRequested → 기존 missing-save ProductCampaign bootstrap 재사용
+│           └─ in-progress/readable blocked NewGameRequested
+│              └─ typed confirm → raw-byte sibling backup 성공 → 같은 ProductCampaign bootstrap
 ├─ explicit DEBUG technical fixture/known checkpoint → TechnicalFixture
 │  └─ No write ownership + RealtimeSliceResources.LoadTechnicalFixture → stage R1 fixture data
 └─ exact native argument → NativeRelease → RealtimeNativeRouteCatalog
@@ -41,6 +43,11 @@ normal journal-restorable product-owned exit
 → RealtimeCampaignSaveStore atomic replace
 
 non-saveable product-owned normal exit → no store call → prior primary bytes 보존
+
+title/gameplay SettingsRequested
+→ RealtimeSettingsSurface가 typed candidate만 생성
+→ RealtimeSliceMain이 RealtimeProductSettingsStore atomic save
+→ save 성공 뒤에만 window/audio bus + UiRoot scale + Session ReduceMotion 적용
 
 Godot InputEvent → RealtimeInputRouter → typed RealtimeInputRequest
 Godot signal/frame 또는 typed request
@@ -63,8 +70,9 @@ Godot signal/frame 또는 typed request
 
 `RealtimeInputRouter`는 raw `InputEvent`를 priority가 있는 typed request로 바꾼다. `RealtimeSliceMain`은
 launch/resource bootstrap, title과 session의 경계, Godot lifecycle, signal·typed request 검증과 routing,
-session 없는 product-title save probe, route와 분리된 product-write ownership, focus, canvas와 publication을
-소유한다. 게임 규칙이나 chapter 정책을 찾기 위해 이 adapter부터 UI node 안쪽으로 내려가지 않는다.
+session 없는 product-title save probe, route와 분리된 product-write ownership, product settings의 load/save와
+window/audio engine seam, focus, canvas와 publication을 소유한다. 게임 규칙이나 chapter 정책을 찾기 위해
+이 adapter부터 UI node 안쪽으로 내려가지 않는다.
 먼저 `RealtimeSession`과 `RealtimeCampaignRun`을 본다.
 
 ## 권위와 수정 위치
@@ -83,6 +91,9 @@ session 없는 product-title save probe, route와 분리된 product-write owners
 | journal-restorable idle/active/terminal capture·Resume interaction 정책은? | `RealtimeSession` | `game/realtime/r2/RealtimeSession.cs` |
 | save 파일 상태·atomic write·raw sibling backup은? | `RealtimeCampaignSaveStore` | `game/realtime/r2/RealtimeCampaignSaveStore.cs` |
 | title save probe, typed reset 확인과 product-owned write lifecycle은? | `RealtimeSliceMain`; title은 표시·signal만 | `RealtimeSliceMain.cs`, `game/realtime/ui/RealtimeProductTitle.cs` |
+| current settings wire·strict load·atomic write는? | `RealtimeProductSettingsCodec`과 `RealtimeProductSettingsStore` | `game/realtime/r2/RealtimeProductSettings.cs` |
+| title/gameplay 공용 settings 편집·focus·입력 차단은? | `RealtimeSettingsSurface`와 `RealtimeUiRoot` | `game/realtime/ui/RealtimeSettingsSurface.cs`, `game/realtime/ui/RealtimeUiRoot.cs` |
+| settings runtime projection은? | Main의 window/audio seam, `RealtimeUiRoot.UiScalePercent`, `RealtimeSession.SetReduceMotion` | `RealtimeSliceMain.cs`, `RealtimeUiRoot.cs`, `RealtimeSession.cs` |
 | 입력 뒤 application 상태와 chapter/story flow는? | `RealtimeSession` | `RealtimeSession.cs`, `RealtimeChapterStoryFlow.cs` |
 | final result 뒤 epilogue 순서와 약속 집계는? | `RealtimeEpilogueFlow`, strict base epilogue와 completed Core outcome | `RealtimeEpilogueFlow.cs`, `RealtimeModalPresenter.cs` |
 | raw input이 어떤 typed request가 되는가? | `RealtimeInputRouter` | `game/realtime/ui/RealtimeInputRouter.cs` |
@@ -180,6 +191,18 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
 5. Main은 store·title·Godot lifecycle만 연결하고 title view에는 파일 또는 Core 권위를 주지 않는다.
 6. 가장 작은 Core strict suite 뒤 별도 fresh process의 save-create→Continue와 guarded/reset title 상태를 검증한다.
 
+### 제품 설정을 바꿀 때
+
+1. 지원 값과 strict JSON shape는 `RealtimeProductSettings`와 codec 한 곳에서 바꾼다.
+2. `RealtimeSettingsSurface`는 committed 값을 표시하고 typed candidate만 내보낸다. 파일과 engine을 직접
+   만지지 않는다.
+3. Main은 product boot에서만 load하고, store 성공 뒤에만 committed 설정과 window/audio/UI/Session
+   projection을 갱신한다.
+4. title과 gameplay는 `RealtimeUiRoot`의 같은 surface·focus scope를 쓰며 explicit 개발 route는
+   read-only로 둔다.
+5. 가장 작은 create→fresh restore와 invalid/unsupported/read/write failure smoke 뒤 `./dev check`를
+   실행한다. 실제 window mode가 쟁점이면 격리 경로의 bounded non-headless smoke를 별도로 실행한다.
+
 ## Fail-closed 규칙
 
 - release 인자는 catalog의 정확한 capability와 일치해야 한다. 알 수 없는 chapter, 초과 prefix, 복수 인자는
@@ -213,6 +236,9 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
   title 문구만 실패 이유로 갱신한다.
 - Main은 cached title availability를 handler에서 다시 검사해 stale/programmatic action도 상태 변경 전에
   거부한다.
+- settings는 exact current schema와 열거된 값만 받는다. missing은 write 없이 기본값, malformed·unsupported·
+  read failure는 원본 보존과 보이는 오류로 닫고, save 성공 전에는 runtime/control을 바꾸지 않는다.
+  explicit 개발 route는 settings path를 소유하지 않는다.
 - 이미 닫힌 modal처럼 stale하지만 무해한 요청은 명시적인 no-op으로만 다룬다.
 - 한 full projection은 하나의 `RealtimePresentationSource`에서 조립한다. projection 뒤 modal 같은 일부를
   다시 덮어써 두 번째 권위를 만들지 않는다. pointer feedback만 마지막 authoritative presentation에서
@@ -236,8 +262,10 @@ initial briefing create→non-saveable draft exit의 prior bytes 보존→fresh 
 `FLOOD_ISOLATION_TEST`→`SECOND_HEART` result→`SECOND_SOURCE` briefing write/Continue, exact prior
 `FIRST_LIGHT` v1 Continue→current v3 write와 성공 8장 terminal create→fresh Continue→`Ended`·terminal write,
 fresh completed title→New Game→initial write→fresh Continue, readable blocked reset 확인과 I/O 차단 상태를
-검사한다. root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지 않는다. 해당
-검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
+검사한다. product settings의 create→fresh restore, invalid/unsupported/read/write failure 보존,
+explicit fixture read-only surface와 전체 Godot UI layout harness도 포함한다. root `Gridworks.sln` 전체의
+Release build는 포함하지 않는다. headless harness는 물리 display·native fullscreen·사람 UX 증거가 아니며,
+그 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
 
 product title과 explicit fixture/native route의 launch·save ownership 의미를 구조 변경의 불변조건으로
 취급한다. session을 만드는 fixture와 `FIRST_LIGHT`, `SECOND_SOURCE`, `LONGEST_NIGHT` native route의

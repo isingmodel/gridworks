@@ -10,7 +10,9 @@ current-v3 terminal save가 있으면 `이어하기`가 활성화된다. termina
 zero-command exact initial briefing, exact-minute active `EventStory | DecisionWindowStory`와 bounded
 non-final result→next briefing, full `ProductCampaign`의 exact terminal 완료 save/Continue는 구현됐다.
 non-saveable 정상 종료의 prior-save 보존과 readable save의 확인·backup·reset도 구현됐다. 설치 패키지는
-아직 없다. 과거 V2의 저장 파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다.
+아직 없다. 제품 title과 gameplay는 current R2 설정 surface를 공유하고, window mode, UI 배율,
+Master/Ambient/SFX volume·mute와 Reduce Motion을 별도 strict 파일에 저장한다. 과거 V2의 저장·설정
+파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다.
 
 ## 요구 환경
 
@@ -47,6 +49,10 @@ terminal 완료 저장이면 `이어하기`가 같은 완료 world/outcome을 `E
 `새 게임`은 canonical 8장을 첫 briefing부터 다시 시작한다. 선택만으로 terminal bytes를 바꾸지 않으며
 saveable 지점의 정상 종료가 same slot을 새 진행으로 교체한다.
 
+title의 `설정`은 session을 만들지 않고 열리며, gameplay의 `설정`은 running을 임시 pause한 뒤 닫을 때
+정확한 이전 상태와 opener focus를 복구한다. 이미 player-paused이면 그대로 유지한다. 설정은 저장이
+성공한 뒤에만 window, UI, audio bus와 Reduce Motion runtime에 적용된다.
+
 ### 누적 8장 경로
 
 ```sh
@@ -72,8 +78,8 @@ saveable 지점의 정상 종료가 same slot을 새 진행으로 교체한다.
 ```
 
 `through`, `chapter`, `fixture`는 모두 제품 title을 우회하는 명시적 개발 경로다. 같은 누적 8장 route를
-쓰는 `./dev play through LONGEST_NIGHT`도 product save를 읽거나 쓰지 않는다. 제품용 새 게임이나 저장
-lifecycle은 `./dev play product`에서 검증한다.
+쓰는 `./dev play through LONGEST_NIGHT`도 product save/settings를 읽거나 쓰지 않는다. 이 경로의 공용
+설정 surface는 read-only다. 제품용 새 게임, 저장과 설정 lifecycle은 `./dev play product`에서 검증한다.
 
 ## 검증과 단위 진입점
 
@@ -92,9 +98,14 @@ initial briefing create→non-saveable draft exit의 byte-exact 보존→fresh C
 `FLOOD_ISOLATION_TEST`→`SECOND_HEART` result→`SECOND_SOURCE` briefing write/Continue, 직전 exact
 `FIRST_LIGHT` v1 Continue→current v3 write, 성공 8장 terminal create→fresh Continue→`Ended`·terminal write,
 fresh completed title→`새 게임`→initial write→fresh Continue, invalid/unsupported reset 확인과 I/O 실패
-차단, 두 named checkpoint를 묶은 기본 회귀다. 한 화면
+차단, 제품 설정 create→fresh restore, invalid/unsupported/read/write failure의 원본·runtime 보존,
+explicit fixture의 read-only 설정, 전체 Godot UI layout harness와 두 named checkpoint를 묶은 기본
+회귀다. 한 화면
 상태나 story part를 조사할 때는 더 작은 `checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는
 `./dev help`에서 확인한다.
+
+기본 Godot 회귀는 headless라서 OS의 물리 fullscreen 표시나 사람 사용성을 주장하지 않는다. window
+mode 자체가 scope의 완료 조건이면 격리 settings path를 쓴 별도 non-headless smoke로 확인한다.
 
 저장소에 포함된 Godot 대신 다른 Mono executable을 사용할 때의 예:
 
@@ -104,8 +115,13 @@ GRIDWORKS_GODOT_BIN=/absolute/path/to/Godot ./dev check
 
 ## 저장과 user-data
 
-current 파일은 `user://gridworks-r2-campaign-save-v1.json` 하나다. 파일명은 유지하지만 current write wire
-schema는 v3이며 first briefing을 포함한 deterministic story candidate prefix 중 닫은 개수인 required
+current R2의 서로 독립된 primary file authority는 두 개다.
+
+- campaign 진행: `user://gridworks-r2-campaign-save-v1.json`
+- 제품 설정: `user://realtime-settings-v1.json`
+
+campaign 파일명은 유지하지만 current write wire schema는 v3이며 first briefing을 포함한 deterministic
+story candidate prefix 중 닫은 개수인 required
 nonnegative 32-bit `closedStoryCount`를 기록한다. prior v2는 read-only이며 raw cursor를 보존하고 Restore
 결과만 checked `+1`로 initial-inclusive 의미에 맞춘다. prior v1도 read-only이고 cursor가 없으므로 projected
 candidate를 모두 닫은 story-idle로 해석한다. prior probe와 restore 자체는 원본 bytes를 rewrite하지 않으며,
@@ -171,6 +187,15 @@ saveable 상태의 정상 exit만 current v3로 갱신한다. prior v1/v2 save�
 Continue 뒤 정상 종료 때 원 route의 current v3로 쓴다. 이후 그 v3도 같은 continuation source로 읽는다.
 유효 save의 새 게임 덮어쓰기 확인과 raw backup은 지원하지만 migration, backup restore/delete/browser
 UI는 없다. 명시적 `chapter`, `through`, `fixture` 개발 명령은 product save를 읽거나 갱신하지 않는다.
+
+제품 설정의 exact schema는 `gridworks.realtime-settings.v1`이며 `windowMode`, `uiScalePercent`,
+`masterVolumePercent`, `ambientVolumePercent`, `sfxVolumePercent`, `reduceMotion`을 strict하게 요구한다. unknown,
+duplicate, missing field와 지원하지 않는 값은 거부한다. 파일이 없으면 기본값
+`windowed/100/100/100/100/Reduce Motion off`를 사용하고 파일을 만들지 않는다. malformed·unsupported·read
+failure는 기본값과 보이는 오류를 사용하되 원본 bytes를 덮어쓰지 않는다. Apply는 같은 디렉터리의
+고정 private temp에 쓰고 flush한 뒤 atomic replace하며, write failure면 이전 파일·runtime·control 값을
+유지한다. 인자 없는 product boot만 이 파일을 load/write하고 explicit 개발 경로는 override 경로가
+있어도 읽거나 쓰지 않는다.
 
 Godot user-data에 과거 V2의 `release-campaign-save-v3.json`이나 `settings.json`이 남아 있어도 current R2
 권위가 아니다. 빈 user-data를 검사할 때 기존 파일을 삭제하거나 덮어쓰지 말고 별도 폴더로 옮겨

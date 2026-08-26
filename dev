@@ -93,16 +93,19 @@ run_product_settings_smoke() {
     local smoke_dir
     local settings_path
     local invalid_path
+    local unsupported_path
     local read_failure_path
     smoke_dir=$(mktemp -d "${TMPDIR:-/tmp}/gridworks-r2-settings-smoke.XXXXXX")
     settings_path="$smoke_dir/settings.json"
     invalid_path="$smoke_dir/invalid.json"
+    unsupported_path="$smoke_dir/unsupported.json"
     read_failure_path="$smoke_dir/read-failure.json"
     run_product_entry_smoke -- "--settings-create=$settings_path"
     run_product_entry_smoke -- "--settings-restore=$settings_path"
     run_product_entry_smoke -- "--settings-invalid=$invalid_path"
+    run_product_entry_smoke -- "--settings-unsupported=$unsupported_path"
     run_product_entry_smoke -- "--settings-read-failure=$read_failure_path"
-    rm -- "$settings_path" "$invalid_path" "$read_failure_path"
+    rm -- "$settings_path" "$invalid_path" "$unsupported_path" "$read_failure_path"
     rmdir -- "$smoke_dir"
 }
 

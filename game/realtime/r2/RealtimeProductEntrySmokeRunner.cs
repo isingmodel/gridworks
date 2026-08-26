@@ -34,6 +34,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
     private const string SettingsCreatePrefix = "--settings-create=";
     private const string SettingsRestorePrefix = "--settings-restore=";
     private const string SettingsInvalidPrefix = "--settings-invalid=";
+    private const string SettingsUnsupportedPrefix = "--settings-unsupported=";
     private const string SettingsReadFailurePrefix = "--settings-read-failure=";
 
     private enum EntryMode
@@ -53,6 +54,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         CreateSettings,
         RestoreSettings,
         InvalidSettings,
+        UnsupportedSettings,
         ReadFailureSettings,
     }
 
@@ -136,7 +138,11 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 throw new InvalidOperationException(
                     $"Unable to load actual product scene '{SliceScenePath}'.");
             RealtimeSliceMain slice = packed.Instantiate<RealtimeSliceMain>();
-            if (request.Mode != EntryMode.TechnicalFixture)
+            if (request.Mode == EntryMode.TechnicalFixture)
+            {
+                slice.SetSettingsPathOverrideForSmoke(request.SettingsPath!);
+            }
+            else
             {
                 slice.UseProductTitleLaunchForSmoke();
                 slice.SetSavePathOverrideForSmoke(request.SavePath!);
@@ -149,7 +155,11 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             switch (request.Mode)
             {
                 case EntryMode.TechnicalFixture:
-                    ValidateTechnicalFixture(slice);
+                    preservedSettingsBytes = settingsFixture.GuardedBytes;
+                    await ValidateTechnicalFixture(
+                        viewport,
+                        slice,
+                        request.SettingsPath!);
                     break;
                 case EntryMode.ProductTitle:
                     ValidateExplicitNativeRoutes();
@@ -225,6 +235,13 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                         slice,
                         settingsFixture.GuardedBytes!,
                         "손상");
+                    break;
+                case EntryMode.UnsupportedSettings:
+                    preservedSettingsBytes = await ValidateGuardedSettings(
+                        viewport,
+                        slice,
+                        settingsFixture.GuardedBytes!,
+                        "지원하지");
                     break;
                 case EntryMode.ReadFailureSettings:
                     preservedSettingsBytes = await ValidateGuardedSettings(
@@ -308,6 +325,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     "REALTIME_PRODUCT_ENTRY_SETTINGS_RESTORE_PASS",
                 EntryMode.InvalidSettings =>
                     "REALTIME_PRODUCT_ENTRY_SETTINGS_INVALID_PASS",
+                EntryMode.UnsupportedSettings =>
+                    "REALTIME_PRODUCT_ENTRY_SETTINGS_UNSUPPORTED_PASS",
                 EntryMode.ReadFailureSettings =>
                     "REALTIME_PRODUCT_ENTRY_SETTINGS_READ_FAILURE_PASS",
                 _ => throw new ArgumentOutOfRangeException(),
@@ -389,12 +408,15 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 RealtimeLaunchCatalog.TechnicalFixtureArgument,
                 StringComparison.Ordinal))
         {
+            string technicalSettingsPath = Path.Combine(
+                Path.GetTempPath(),
+                $"gridworks-technical-entry-{Guid.NewGuid():N}.settings");
             return new EntryRequest(
                 EntryMode.TechnicalFixture,
                 null,
-                null,
+                technicalSettingsPath,
                 DeleteSaveAfterRun: false,
-                DeleteSettingsAfterRun: false);
+                DeleteSettingsAfterRun: true);
         }
 
         EntryMode mode;
@@ -422,6 +444,14 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         {
             mode = EntryMode.InvalidSettings;
             path = arguments[0][SettingsInvalidPrefix.Length..];
+            settingsPath = true;
+        }
+        else if (arguments[0].StartsWith(
+                     SettingsUnsupportedPrefix,
+                     StringComparison.Ordinal))
+        {
+            mode = EntryMode.UnsupportedSettings;
+            path = arguments[0][SettingsUnsupportedPrefix.Length..];
             settingsPath = true;
         }
         else if (arguments[0].StartsWith(
@@ -567,15 +597,23 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
     private static SettingsFixture PrepareSettingsFixture(EntryRequest request)
     {
         if (request.Mode is not (
+                EntryMode.TechnicalFixture or
                 EntryMode.CreateSettings or
                 EntryMode.RestoreSettings or
                 EntryMode.InvalidSettings or
+                EntryMode.UnsupportedSettings or
                 EntryMode.ReadFailureSettings))
         {
             return new SettingsFixture(null, null);
         }
 
         string settingsPath = request.SettingsPath!;
+        if (request.Mode == EntryMode.TechnicalFixture)
+        {
+            byte[] sentinel = "technical-route-settings-sentinel"u8.ToArray();
+            File.WriteAllBytes(settingsPath, sentinel);
+            return new SettingsFixture(sentinel, null);
+        }
         string campaignPath = request.SavePath!;
         if (File.Exists(campaignPath) || Directory.Exists(campaignPath))
         {
@@ -603,11 +641,15 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             return new SettingsFixture(null, null);
         }
 
-        byte[] bytes = request.Mode == EntryMode.InvalidSettings
-            ? "{\"broken\":true}"u8.ToArray()
-            : RealtimeProductSettingsCodec.Serialize(StoredSettings);
+        byte[] bytes = request.Mode switch
+        {
+            EntryMode.InvalidSettings => "{\"broken\":true}"u8.ToArray(),
+            EntryMode.UnsupportedSettings =>
+                "{\"schemaVersion\":\"gridworks.realtime-settings.v2\"}"u8.ToArray(),
+            _ => RealtimeProductSettingsCodec.Serialize(StoredSettings),
+        };
         File.WriteAllBytes(settingsPath, bytes);
-        if (request.Mode == EntryMode.InvalidSettings)
+        if (request.Mode is EntryMode.InvalidSettings or EntryMode.UnsupportedSettings)
         {
             return new SettingsFixture(bytes, null);
         }
@@ -2023,7 +2065,10 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             failure);
     }
 
-    private static void ValidateTechnicalFixture(RealtimeSliceMain slice)
+    private async Task ValidateTechnicalFixture(
+        SubViewport viewport,
+        RealtimeSliceMain slice,
+        string settingsPath)
     {
         RealtimeUiRoot ui = slice.UiForSmoke;
         Require(slice.HasSessionForSmoke &&
@@ -2033,6 +2078,44 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         Require(!ui.ProductTitleForSmoke.Visible &&
                 ui.HudSurfaceVisibleForSmoke && slice.WorldVisibleForSmoke,
             "Explicit technical fixture did not bypass the product title.");
+        Require(slice.ClosePresentedStoryModalForSmoke() is null,
+            "Explicit technical fixture could not close its initial briefing.");
+        await SettleFrames(4);
+
+        byte[] sentinel = File.ReadAllBytes(settingsPath);
+        PushPrimary(
+            viewport,
+            ui.TopHudForSmoke.SettingsButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        RealtimeSettingsSurface surface = ui.SettingsSurface;
+        Require(ui.SettingsVisible &&
+                surface.Visible &&
+                slice.ActiveSettingsJourneyForSmoke ==
+                    RealtimeSettingsJourney.Gameplay &&
+                ui.InputRouterForSmoke.ActiveOwner == "product_settings" &&
+                ui.InputRouterForSmoke.ActivePriority ==
+                    RealtimeInputPriority.BlockingModal,
+            "Explicit technical fixture settings did not own blocking input.");
+        Require(surface.WindowModeOption.Disabled &&
+                surface.UiScaleOption.Disabled &&
+                surface.MasterVolumeOption.Disabled &&
+                surface.AmbientVolumeOption.Disabled &&
+                surface.SfxVolumeOption.Disabled &&
+                surface.ReduceMotionCheck.Disabled &&
+                surface.ApplyButton.Disabled &&
+                surface.StatusText.Contains("읽거나 쓰지", StringComparison.Ordinal) &&
+                File.ReadAllBytes(settingsPath).SequenceEqual(sentinel),
+            "Explicit technical fixture did not expose read-only product settings.");
+        Require(ReferenceEquals(ui.FocusOwnerForSmoke, surface.CloseButton),
+            "Explicit technical fixture settings did not focus the available Close action.");
+        PushPrimary(viewport, surface.CloseButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        Require(!ui.SettingsVisible &&
+                ReferenceEquals(
+                    ui.FocusOwnerForSmoke,
+                    ui.TopHudForSmoke.SettingsButton) &&
+                File.ReadAllBytes(settingsPath).SequenceEqual(sentinel),
+            "Explicit technical fixture settings changed bytes or lost opener focus.");
     }
 
     private static void ValidateExplicitNativeRoutes()

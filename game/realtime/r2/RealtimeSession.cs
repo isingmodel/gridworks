@@ -157,12 +157,26 @@ internal sealed partial class RealtimeSession
         }
         else
         {
-            _interaction = RealtimeInteractionReducer.Initial(chapterBriefing: true);
+            bool cumulativeStory =
+                _data.NativeRoute?.UsesChapterStoryFlow == true;
+            _interaction = RealtimeInteractionReducer.Initial(
+                chapterBriefing: !cumulativeStory);
+            if (cumulativeStory)
+            {
+                RealtimeAdvanceResult initialDelivery = _run.AdvanceTo(_run.Minute);
+                CollectTransitions(
+                    initialDelivery.Transitions,
+                    openChapterStory: false);
+            }
         }
         _frame.Pause();
-        if (resumed && _chapterStoryFlow.Active is not null)
+        if (_data.NativeRoute?.UsesChapterStoryFlow == true)
         {
             TryOpenChapterStoryModal();
+            if (_latestPresentation is null)
+            {
+                Present();
+            }
         }
         else
         {
@@ -211,11 +225,18 @@ internal sealed partial class RealtimeSession
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(transitionHistory);
         RealtimeCampaignSnapshot snapshot = run.GetSnapshot();
-        if (!IsJournalRestorableProgressSnapshot(snapshot))
+        bool cumulativeStory = data.NativeRoute?.UsesChapterStoryFlow == true;
+        if (!IsJournalRestorableProgressSnapshot(
+                snapshot,
+                allowExactInitial: cumulativeStory))
         {
             throw new InvalidOperationException(
                 "A resumed R2 session requires accepted journal-restorable " +
                 "incomplete progress.");
+        }
+        if (!cumulativeStory)
+        {
+            return;
         }
         storyFlow.Restore(
             transitionHistory,
@@ -226,6 +247,12 @@ internal sealed partial class RealtimeSession
         {
             throw new InvalidOperationException(
                 "The restored chapter-story cursor does not match its Core position.");
+        }
+        if (snapshot.CommandCount == 0 &&
+            !IsSupportedInitialStoryCursor(storyFlow, snapshot))
+        {
+            throw new InvalidOperationException(
+                "A zero-command resume requires the exact initial briefing cursor.");
         }
     }
 
@@ -623,7 +650,9 @@ internal sealed partial class RealtimeSession
             beforeRevision);
     }
 
-    private void CollectTransitions(IReadOnlyList<RealtimeTransition> transitions)
+    private void CollectTransitions(
+        IReadOnlyList<RealtimeTransition> transitions,
+        bool openChapterStory = true)
     {
         foreach (RealtimeTransition transition in transitions)
         {
@@ -666,7 +695,10 @@ internal sealed partial class RealtimeSession
                 _frame!.Pause();
             }
         }
-        TryOpenChapterStoryModal();
+        if (openChapterStory)
+        {
+            TryOpenChapterStoryModal();
+        }
     }
 
     private void Present()
@@ -692,13 +724,7 @@ internal sealed partial class RealtimeSession
                 : null;
         RealtimeChapterStoryModalRequest? activeStoryRequest =
             _data!.NativeRoute?.UsesChapterStoryFlow == true
-                ? string.Equals(
-                    _interaction.ActiveModalId,
-                    RealtimeR2Ids.ChapterBriefingModal,
-                    StringComparison.Ordinal)
-                    ? RealtimeChapterStoryFlow.InitialBriefing(
-                        snapshot.Chapter.Content.ChapterId)
-                    : _chapterStoryFlow.Active
+                ? _chapterStoryFlow.Active
                 : null;
         bool storyResultAdvancesCalendar = activeStoryRequest is not null &&
             string.Equals(
@@ -1993,11 +2019,28 @@ internal sealed partial class RealtimeSession
     private RealtimeCampaignSnapshot PresentedCoreSnapshot =>
         _latestPresentation?.CoreSnapshot ?? _run.GetSnapshot();
 
-    private bool CanCaptureProgress =>
-        IsJournalRestorableProgressSnapshot(_run.GetSnapshot()) &&
-        !_epilogueFlow.Started &&
-        _retainedFrameDebt.Count == 0 &&
-        (CanCaptureStoryIdleProgress || CanCaptureActiveStoryProgress);
+    private bool CanCaptureProgress
+    {
+        get
+        {
+            RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
+            if (!IsJournalRestorableProgressSnapshot(
+                    snapshot,
+                    allowExactInitial:
+                        _data.NativeRoute?.UsesChapterStoryFlow == true) ||
+                _epilogueFlow.Started ||
+                _retainedFrameDebt.Count != 0)
+            {
+                return false;
+            }
+            if (snapshot.CommandCount == 0 &&
+                !IsSupportedInitialStoryCursor(_chapterStoryFlow, snapshot))
+            {
+                return false;
+            }
+            return CanCaptureStoryIdleProgress || CanCaptureActiveStoryProgress;
+        }
+    }
 
     private bool CanCaptureStoryIdleProgress =>
         _chapterStoryFlow.MatchesSnapshot(_run.GetSnapshot()) &&
@@ -2026,12 +2069,44 @@ internal sealed partial class RealtimeSession
         _interaction.PauseReason == story.PauseReason;
 
     internal static bool IsJournalRestorableProgressSnapshot(
-        RealtimeCampaignSnapshot snapshot) =>
-        snapshot.CommandCount > 0 &&
+        RealtimeCampaignSnapshot snapshot,
+        bool allowExactInitial = false) =>
+        (snapshot.CommandCount > 0 ||
+         allowExactInitial && IsExactInitialProgressSnapshot(snapshot)) &&
         !snapshot.CampaignComplete &&
         snapshot.PendingTransitions.Count == 0 &&
         snapshot.Construction.NodeDraft is null &&
         snapshot.Construction.LineDraft is null;
+
+    private static bool IsExactInitialProgressSnapshot(
+        RealtimeCampaignSnapshot snapshot) =>
+        snapshot.CommandCount == 0 &&
+        snapshot.ChapterStarted &&
+        snapshot.ChapterIndex == 0 &&
+        snapshot.Minute == snapshot.ChapterStartMinute &&
+        snapshot.CompletedChapters.Count == 0 &&
+        snapshot.CurrentChapterEvents.Count == 0 &&
+        snapshot.ActiveDuty is null &&
+        snapshot.ActiveEventStates.Count == 0 &&
+        snapshot.Construction.ActiveConstruction is null &&
+        snapshot.PendingTransitions.Count == 0;
+
+    private static bool IsSupportedInitialStoryCursor(
+        RealtimeChapterStoryFlow storyFlow,
+        RealtimeCampaignSnapshot snapshot)
+    {
+        if (!IsExactInitialProgressSnapshot(snapshot))
+        {
+            return false;
+        }
+        return storyFlow.ClosedStoryCount switch
+        {
+            0 => storyFlow.IsExactInitialActive(
+                snapshot.Chapter.Content.ChapterId),
+            1 => storyFlow.IsIdle,
+            _ => false,
+        };
+    }
 
     private void EnsureBootstrapped(bool requirePresentation = true)
     {

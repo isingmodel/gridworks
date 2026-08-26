@@ -2895,9 +2895,114 @@ internal static class RealtimeR2Smoke
         }
         using var liveLifetime = live.FreeAfterSmoke();
         RealtimeSliceData data = live.SliceDataForSmoke;
-        Check(live.ClosePresentedStoryModalForSmoke() is null,
+        RealtimeCampaignSnapshot initialSnapshot = live.CoreSnapshot;
+        string initialHash = live.CanonicalStateSha256;
+        RealtimeTransition[] initialHistory = live.EmittedTransitions.ToArray();
+        RequireAuthoredTutorialModal(
+            live,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "FIRST_LIGHT",
+            null,
+            data.BaseCampaign.Chapters[0].Briefing,
+            failures);
+        Check(initialSnapshot.CommandCount == 0 &&
+              initialSnapshot.ChapterStarted &&
+              initialSnapshot.ChapterIndex == 0 &&
+              initialSnapshot.Minute == initialSnapshot.ChapterStartMinute &&
+              initialSnapshot.PendingTransitions.Count == 0 &&
+              initialHistory.Count(item =>
+                  item.Kind == RealtimeTransitionKind.ChapterStarted) == 1 &&
+              initialHistory.All(item => item.Minute == initialSnapshot.Minute) &&
+              live.ActiveChapterStoryModalForSmoke is
+              {
+                  ModalId: RealtimeR2Ids.ChapterBriefingModal,
+                  Purpose: RealtimeChapterStoryModalPurpose.ChapterBriefing,
+                  ChapterId: "FIRST_LIGHT",
+              },
+            "cumulative initial delivery did not open the counted authored briefing once",
+            failures);
+
+        RealtimeCampaignSave initialActiveSave = live.CaptureProgressForSmoke();
+        Check(initialActiveSave.SchemaVersion ==
+                  RealtimeCampaignSave.SupportedSchemaVersion &&
+              initialActiveSave.Commands.Count == 0 &&
+              initialActiveSave.ClosedStoryCount == 0,
+            "active initial briefing did not capture the exact current c0 boundary",
+            failures);
+        RealtimeSliceMain initialActiveResumed =
+            ResumeProductProgress(initialActiveSave);
+        using var initialActiveResumedLifetime =
+            initialActiveResumed.FreeAfterSmoke();
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                  initialSnapshot,
+                  initialActiveResumed.CoreSnapshot) &&
+              initialActiveResumed.CanonicalStateSha256 == initialHash &&
+              initialActiveResumed.AcceptedCommands.Count == 0 &&
+              initialActiveResumed.EmittedTransitions.SequenceEqual(initialHistory),
+            "active initial briefing resume redelivered or changed Core bootstrap state",
+            failures);
+        RequireAuthoredTutorialModal(
+            initialActiveResumed,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "FIRST_LIGHT",
+            null,
+            data.BaseCampaign.Chapters[0].Briefing,
+            failures);
+        Check(live.ClosePresentedStoryModalForSmoke() is null &&
+              initialActiveResumed.ClosePresentedStoryModalForSmoke() is null,
             "cumulative resume FIRST_LIGHT briefing did not close",
             failures);
+
+        RealtimeCampaignSave initialIdleSave =
+            initialActiveResumed.CaptureProgressForSmoke();
+        Check(initialIdleSave.Commands.Count == 0 &&
+              initialIdleSave.ClosedStoryCount == 1,
+            "closed initial briefing did not capture the exact current c1 boundary",
+            failures);
+        RealtimeSliceMain initialIdleResumed = ResumeProductProgress(initialIdleSave);
+        using var initialIdleResumedLifetime = initialIdleResumed.FreeAfterSmoke();
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                  initialSnapshot,
+                  initialIdleResumed.CoreSnapshot) &&
+              initialIdleResumed.CanonicalStateSha256 == initialHash &&
+              initialIdleResumed.AcceptedCommands.Count == 0 &&
+              initialIdleResumed.EmittedTransitions.SequenceEqual(initialHistory) &&
+              initialIdleResumed.ActiveChapterStoryModalForSmoke is null &&
+              initialIdleResumed.LatestPresentation.Modal is null &&
+              initialIdleResumed.InteractionState is
+              {
+                  Simulation: RealtimeSimulationState.PlayerPaused,
+                  RunningSpeed: RealtimeSimulationSpeed.Normal,
+                  ActiveModalId: null,
+              },
+            "closed initial briefing resume did not restore exact paused story-idle state",
+            failures);
+        RealtimeCampaignSave skippedInitial = initialIdleSave with
+        {
+            ClosedStoryCount = 2,
+        };
+        Check(ThrowsInvalidOperation(() =>
+            {
+                var invalid = new RealtimeSliceMain();
+                try
+                {
+                    invalid.BootstrapNativeResumeForSmoke(
+                        RealtimeNativeRouteCatalog.ProductCampaign,
+                        skippedInitial);
+                }
+                finally
+                {
+                    invalid.Free();
+                }
+            }),
+            "zero-command initial resume accepted a cursor beyond c1",
+            failures);
+        _ = initialIdleResumed.AdvanceToForSmoke(initialSnapshot.Minute + 1);
+        Check(ThrowsInvalidOperation(() =>
+                initialIdleResumed.CaptureProgressForSmoke()),
+            "zero-command progress remained capturable after the exact initial minute",
+            failures);
+
         _ = BuildTutorialFirstLightNetwork(live, failures);
         _ = live.AdvanceToForSmoke(1320);
         RequireAuthoredTutorialModal(
@@ -2954,12 +3059,54 @@ internal static class RealtimeR2Smoke
         RealtimeTransition[] expectedTransitions = live.EmittedTransitions.ToArray();
         RealtimeCampaignSave save = live.CaptureProgressForSmoke();
         Check(save.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
-              save.ClosedStoryCount == 2,
-            "cumulative active story did not capture the exact v2 closed prefix",
+              save.ClosedStoryCount == 3,
+            "cumulative active story did not capture the exact v3 closed prefix",
             failures);
         _ = live.AdvanceToForSmoke(1801);
         Check(ThrowsInvalidOperation(() => live.CaptureProgressForSmoke()),
             "cumulative active story remained capturable after its trigger minute",
+            failures);
+
+        RealtimeCampaignSave priorV2 = save with
+        {
+            SchemaVersion = RealtimeCampaignSave.PriorSchemaVersion,
+            ClosedStoryCount = save.ClosedStoryCount - 1,
+        };
+        RealtimeSliceMain priorV2Resumed = ResumeProductProgress(priorV2);
+        using var priorV2ResumedLifetime = priorV2Resumed.FreeAfterSmoke();
+        RequireAuthoredTutorialModal(
+            priorV2Resumed,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "SECOND_HEART",
+            "FLOOD_ISOLATION_TEST",
+            data.BaseCampaign.Chapters[1].OperatingPhases[1].Story!,
+            failures);
+        RealtimeCampaignSave normalizedV3 =
+            priorV2Resumed.CaptureProgressForSmoke();
+        Check(normalizedV3.SchemaVersion ==
+                  RealtimeCampaignSave.SupportedSchemaVersion &&
+              normalizedV3.ClosedStoryCount == save.ClosedStoryCount,
+            "prior v2 cursor was not normalized by +1 into the current v3 prefix",
+            failures);
+        RealtimeCampaignSave invalidPriorV2 = priorV2 with
+        {
+            ClosedStoryCount = save.ClosedStoryCount + 1,
+        };
+        Check(ThrowsInvalidOperation(() =>
+            {
+                var invalid = new RealtimeSliceMain();
+                try
+                {
+                    invalid.BootstrapNativeResumeForSmoke(
+                        RealtimeNativeRouteCatalog.ProductCampaign,
+                        invalidPriorV2);
+                }
+                finally
+                {
+                    invalid.Free();
+                }
+            }),
+            "prior v2 resume accepted a normalized cursor beyond projected history",
             failures);
 
         var resumed = new RealtimeSliceMain();
@@ -3052,7 +3199,7 @@ internal static class RealtimeR2Smoke
         RealtimeTransition[] resultHistory = resumed.EmittedTransitions.ToArray();
         RealtimeModalPresentation resultModal = resumed.LatestPresentation.Modal!;
         RealtimeCampaignSave resultSave = resumed.CaptureProgressForSmoke();
-        Check(resultSave.ClosedStoryCount == 3,
+        Check(resultSave.ClosedStoryCount == 4,
             "zero-gap result did not capture its bounded briefing suffix",
             failures);
         RealtimeSliceMain resultResumed = ResumeProductProgress(resultSave);
@@ -3097,7 +3244,7 @@ internal static class RealtimeR2Smoke
             failures);
 
         RealtimeCampaignSave briefingSave = resultResumed.CaptureProgressForSmoke();
-        Check(briefingSave.ClosedStoryCount == 4,
+        Check(briefingSave.ClosedStoryCount == 5,
             "zero-gap briefing did not capture its exact closed prefix",
             failures);
         RealtimeSliceMain briefingResumed = ResumeProductProgress(briefingSave);
@@ -3165,7 +3312,7 @@ internal static class RealtimeR2Smoke
         RealtimeModalPresentation gapResultModal =
             briefingResumed.LatestPresentation.Modal!;
         RealtimeCampaignSave gapSave = briefingResumed.CaptureProgressForSmoke();
-        Check(gapSave.ClosedStoryCount == 6,
+        Check(gapSave.ClosedStoryCount == 7,
             "long-gap result did not capture its exact closed prefix",
             failures);
         RealtimeCampaignSave skippedGapResult = gapSave with
@@ -3231,7 +3378,7 @@ internal static class RealtimeR2Smoke
             failures);
 
         RealtimeCampaignSave northBriefingSave = gapResumed.CaptureProgressForSmoke();
-        Check(northBriefingSave.ClosedStoryCount == 7,
+        Check(northBriefingSave.ClosedStoryCount == 8,
             "North briefing did not preserve its queued decision suffix",
             failures);
         RealtimeSliceMain northBriefingResumed =
@@ -6177,13 +6324,15 @@ internal static class RealtimeR2Smoke
         ICollection<string> failures)
     {
         RealtimeModalPresentation? modal = slice.LatestPresentation.Modal;
-        RealtimeChapterStoryModalRequest request = string.Equals(
-                modal?.Id,
-                RealtimeR2Ids.ChapterBriefingModal,
-                StringComparison.Ordinal)
-            ? RealtimeChapterStoryFlow.InitialBriefing(chapterId)
-            : slice.ActiveChapterStoryModalForSmoke ??
-              throw new InvalidOperationException("Tutorial flow has no active modal step.");
+        RealtimeChapterStoryModalRequest request =
+            slice.ActiveChapterStoryModalForSmoke ??
+            (string.Equals(
+                    modal?.Id,
+                    RealtimeR2Ids.ChapterBriefingModal,
+                    StringComparison.Ordinal)
+                ? RealtimeChapterStoryFlow.InitialBriefing(chapterId)
+                : throw new InvalidOperationException(
+                    "Tutorial flow has no active modal step."));
         Check(modal is not null && request.Purpose == purpose &&
               request.ChapterId == chapterId && request.EventId == eventId &&
               modal.Eyebrow == card.Speaker && modal.Heading == card.Title &&

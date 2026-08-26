@@ -380,6 +380,38 @@ internal sealed class Checks
                 pending,
                 closedStoryCount: 0),
             "pending-transition save must remain fail-closed");
+
+        var initial = new RealtimeCampaignRun(_campaign, _world);
+        RealtimeAdvanceResult initialDelivery = initial.AdvanceTo(initial.Minute);
+        Check(initial.AcceptedCommands.Count == 0 &&
+              initialDelivery.Transitions.Count > 0 &&
+              initial.GetSnapshot().PendingTransitions.Count == 0,
+            "zero-command save boundary did not drain the initial transition batch");
+        RealtimeCampaignSave initialSave = RealtimeCampaignSaveCodec.Deserialize(
+            RealtimeCampaignSaveCodec.Serialize(
+                RealtimeCampaignSaveCodec.Capture(
+                    identity,
+                    _campaign,
+                    _world,
+                    initial,
+                    closedStoryCount: 0)));
+        RealtimeCampaignRestoreResult initialRestore =
+            RealtimeCampaignSaveCodec.Restore(
+                identity,
+                _campaign,
+                _world,
+                initialSave);
+        Equal(0, initialSave.Commands.Count,
+            "current zero-command save journal");
+        Equal<int?>(0, initialRestore.ClosedStoryCount,
+            "current zero-command restore story cursor");
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                initial.GetSnapshot(),
+                initialRestore.Run.GetSnapshot()),
+            "current zero-command save replay snapshot");
+        SequenceEqual(initialDelivery.Transitions, initialRestore.Transitions,
+            "current zero-command save replay transitions");
+
         var live = new RealtimeCampaignRun(_campaign, _world);
         var expectedTransitions = new List<RealtimeTransition>();
 
@@ -437,6 +469,56 @@ internal sealed class Checks
         SequenceEqual(expectedTransitions, restored.Transitions,
             "save replay transition history order");
 
+        JsonObject priorJson = ParseObject(json);
+        priorJson["schemaVersion"] = RealtimeCampaignSave.PriorSchemaVersion;
+        priorJson["closedStoryCount"] = closedStoryCount - 1;
+        RealtimeCampaignSave decodedPrior =
+            RealtimeCampaignSaveCodec.Deserialize(priorJson.ToJsonString());
+        RealtimeCampaignRestoreResult restoredPrior =
+            RealtimeCampaignSaveCodec.Restore(
+                identity,
+                _campaign,
+                _world,
+                decodedPrior);
+        Equal(RealtimeCampaignSave.PriorSchemaVersion,
+            decodedPrior.SchemaVersion,
+            "prior save schema");
+        Equal<int?>(closedStoryCount - 1, decodedPrior.ClosedStoryCount,
+            "prior save raw story cursor");
+        Equal<int?>(closedStoryCount, restoredPrior.ClosedStoryCount,
+            "prior restore normalized story cursor");
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Serialize(decodedPrior),
+            "prior save schema is read-only");
+        Check(RealtimeStateCanonicalizer.StructuralEquals(
+                live.GetSnapshot(),
+                restoredPrior.Run.GetSnapshot()),
+            "prior save replay snapshot differs from uninterrupted state");
+        SequenceEqual(expectedTransitions, restoredPrior.Transitions,
+            "prior save replay transition history order");
+
+        JsonObject overflowingPriorJson = ParseObject(priorJson.ToJsonString());
+        overflowingPriorJson["closedStoryCount"] = int.MaxValue;
+        RealtimeCampaignSave overflowingPrior =
+            RealtimeCampaignSaveCodec.Deserialize(
+                overflowingPriorJson.ToJsonString());
+        Equal<int?>(int.MaxValue, overflowingPrior.ClosedStoryCount,
+            "prior save overflowing raw story cursor");
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Restore(
+                identity,
+                _campaign,
+                _world,
+                overflowingPrior),
+            "prior save normalized story cursor overflow");
+
+        JsonObject emptyPriorJson = ParseObject(priorJson.ToJsonString());
+        emptyPriorJson["commands"] = new JsonArray();
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(
+                emptyPriorJson.ToJsonString()),
+            "prior empty command journal is ambiguous");
+
         JsonObject legacyJson = ParseObject(json);
         legacyJson["schemaVersion"] = RealtimeCampaignSave.LegacySchemaVersion;
         legacyJson.Remove("closedStoryCount");
@@ -467,6 +549,13 @@ internal sealed class Checks
             "legacy save replay snapshot differs from uninterrupted state");
         SequenceEqual(expectedTransitions, restoredLegacy.Transitions,
             "legacy save replay transition history order");
+
+        JsonObject emptyLegacyJson = ParseObject(legacyJson.ToJsonString());
+        emptyLegacyJson["commands"] = new JsonArray();
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(
+                emptyLegacyJson.ToJsonString()),
+            "legacy empty command journal is ambiguous");
 
         JsonObject legacyWithCursor = ParseObject(legacyJson.ToJsonString());
         legacyWithCursor["closedStoryCount"] = 0;
@@ -510,7 +599,7 @@ internal sealed class Checks
             "duplicate save field");
 
         JsonObject unsupported = ParseObject(json);
-        unsupported["schemaVersion"] = "gridworks.realtime.campaign-save.v3";
+        unsupported["schemaVersion"] = "gridworks.realtime.campaign-save.v4";
         ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Unsupported,
             () => RealtimeCampaignSaveCodec.Deserialize(unsupported.ToJsonString()),
             "unsupported save schema");

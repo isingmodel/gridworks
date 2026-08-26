@@ -95,7 +95,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     break;
                 case EntryMode.CreateSave:
                     await ValidateProductTitle(viewport, slice);
-                    expectedWrite = PrepareActiveStoryProgress(slice);
+                    expectedWrite = PrepareInitialBriefingProgress(slice);
                     break;
                 case EntryMode.ContinueSave:
                     expectedWrite = await ValidateContinue(
@@ -282,7 +282,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         }
 
         byte[] bytes = request.Mode == EntryMode.UnsupportedSave
-            ? "{\"schemaVersion\":\"gridworks.realtime.campaign-save.v3\"}"u8.ToArray()
+            ? "{\"schemaVersion\":\"gridworks.realtime.campaign-save.v4\"}"u8.ToArray()
             : "{\"broken\":true}"u8.ToArray();
         File.WriteAllBytes(path, bytes);
         return bytes;
@@ -412,13 +412,18 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         RealtimeModalPresentation briefing = slice.LatestPresentation.Modal ??
             throw new InvalidOperationException(
                 "New Game did not show the FIRST_LIGHT briefing.");
+        RealtimeChapterStoryModalRequest story =
+            slice.ActiveChapterStoryModalForSmoke ??
+            throw new InvalidOperationException(
+                "New Game did not open an authored FIRST_LIGHT story request.");
         Require(data.Campaign.Chapters.Count ==
                     RealtimeNativeRouteCatalog.ProductCampaign.SelectedChapterCount &&
                 data.Campaign.Chapters[0].Content.ChapterId ==
                     RealtimeCampaignOverlayLoader.FirstReleaseChapterId &&
                 data.Campaign.Chapters[^1].Content.ChapterId ==
                     RealtimeNativeRouteCatalog.NativeThroughChapterId &&
-                briefing.Id == RealtimeR2Ids.ChapterBriefingModal &&
+                IsInitialBriefing(story) &&
+                briefing.Id == story.ModalId &&
                 briefing.Eyebrow == authored.Briefing.Speaker &&
                 briefing.Heading == authored.Briefing.Title &&
                 briefing.Body == authored.Briefing.Body,
@@ -430,11 +435,46 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "Story continue was confused with title Continue.");
     }
 
-    private static SaveExpectation PrepareActiveStoryProgress(RealtimeSliceMain slice)
+    private static SaveExpectation PrepareInitialBriefingProgress(
+        RealtimeSliceMain slice)
     {
-        Require(slice.ClosePresentedStoryModalForSmoke() is null,
-            "FIRST_LIGHT briefing did not close before save preparation.");
+        RealtimeCampaignSnapshot snapshot = slice.CoreSnapshot;
+        RealtimeChapterStoryModalRequest story =
+            slice.ActiveChapterStoryModalForSmoke ??
+            throw new InvalidOperationException(
+                "The initial product briefing is not active.");
+        Require(IsInitialBriefing(story) &&
+                snapshot.ChapterStarted &&
+                snapshot.Minute == snapshot.ChapterStartMinute &&
+                snapshot.CommandCount == 0 &&
+                snapshot.PendingTransitions.Count == 0 &&
+                snapshot.ActiveEventStates.Count == 0 &&
+                snapshot.ActiveDuty is null &&
+                snapshot.Construction.ActiveConstruction is null &&
+                snapshot.Construction.NodeDraft is null &&
+                snapshot.Construction.LineDraft is null &&
+                !snapshot.CampaignComplete &&
+                slice.LatestPresentation.Modal?.Id == story.ModalId &&
+                slice.InteractionState is
+                {
+                    Simulation: RealtimeSimulationState.AutoPaused,
+                    RunningSpeed: RealtimeSimulationSpeed.Normal,
+                    ActiveModalId: var activeModalId,
+                } &&
+                activeModalId == story.ModalId,
+            "New Game did not reach the exact drained initial save boundary.");
+        RealtimeCampaignSave staged = slice.CaptureProgressForSmoke();
+        Require(staged.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
+                staged.SavedMinute == snapshot.Minute &&
+                staged.Commands.Count == 0 &&
+                staged.ClosedStoryCount == 0,
+            "The staged initial briefing did not preserve the v3 c0 boundary.");
+        slice.FreezeAutonomousClockForSmoke();
+        return ExpectWrittenSave(staged);
+    }
 
+    private static SaveExpectation StageActiveFloodProgress(RealtimeSliceMain slice)
+    {
         (string toolId, MapPoint position) = slice.AcceptedNodeDraftForSmoke();
         RequireAccepted(slice.ApplyIntentForSmoke(
             RealtimeR2Intent.SelectBuildTool(RealtimeTool.BuildNode, toolId)),
@@ -503,7 +543,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             snapshot.Minute,
             slice.CanonicalStateSha256,
             slice.AcceptedCommandCount,
-            ClosedStoryCount: 2);
+            ClosedStoryCount: 3);
     }
 
     private static void ValidateWrittenSave(
@@ -613,6 +653,14 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             {
                 return ValidateAndStageResultHandoffContinue(slice, data, story);
             }
+            else if (IsInitialBriefing(story))
+            {
+                return ValidateAndStageInitialBriefingContinue(
+                    slice,
+                    expected,
+                    actual,
+                    story);
+            }
             else
             {
                 throw new InvalidOperationException(
@@ -643,6 +691,60 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             return ExpectWrittenSave(staged);
         }
     }
+
+    private static SaveExpectation ValidateAndStageInitialBriefingContinue(
+        RealtimeSliceMain slice,
+        RealtimeCampaignSnapshot expected,
+        RealtimeCampaignSnapshot actual,
+        RealtimeChapterStoryModalRequest story)
+    {
+        Require(IsInitialBriefing(story) &&
+                expected.CommandCount == 0 &&
+                actual.CommandCount == 0 &&
+                actual.Minute == actual.ChapterStartMinute &&
+                actual.PendingTransitions.Count == 0 &&
+                slice.InteractionState is
+                {
+                    Simulation: RealtimeSimulationState.AutoPaused,
+                    RunningSpeed: RealtimeSimulationSpeed.Normal,
+                    ActiveModalId: var activeModalId,
+                } &&
+                activeModalId == story.ModalId &&
+                slice.LatestPresentation.Modal?.Id == story.ModalId &&
+                slice.AccumulatorSnapshot.Paused &&
+                !slice.AccumulatorSnapshot.HasPendingTime &&
+                slice.RetainedFrameDebt.Count == 0,
+            "Continue did not restore the same drained initial briefing boundary.");
+        string beforeCloseHash = slice.CanonicalStateSha256;
+        int beforeCloseCommands = slice.AcceptedCommandCount;
+        RealtimeTransition[] beforeCloseHistory = slice.EmittedTransitions.ToArray();
+        Require(slice.ClosePresentedStoryModalForSmoke() is null &&
+                slice.ActiveChapterStoryModalForSmoke is null &&
+                slice.LatestPresentation.Modal is null &&
+                slice.CanonicalStateSha256 == beforeCloseHash &&
+                slice.AcceptedCommandCount == beforeCloseCommands &&
+                slice.EmittedTransitions.SequenceEqual(beforeCloseHistory) &&
+                slice.InteractionState is
+                {
+                    Simulation: RealtimeSimulationState.PlayerPaused,
+                    RunningSpeed: RealtimeSimulationSpeed.Normal,
+                    Tool: RealtimeTool.Inspect,
+                    SelectionId: null,
+                    ActiveModalId: null,
+                    SelectedBuildToolId: null,
+                },
+            "Closing the restored initial briefing did not return to paused product play.");
+        return StageActiveFloodProgress(slice);
+    }
+
+    private static bool IsInitialBriefing(
+        RealtimeChapterStoryModalRequest story) => story is
+        {
+            ModalId: RealtimeR2Ids.ChapterBriefingModal,
+            Purpose: RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            ChapterId: RealtimeCampaignOverlayLoader.FirstReleaseChapterId,
+            EventId: null,
+        };
 
     private static SaveExpectation ValidateAndStageActiveFloodContinue(
         RealtimeSliceMain slice,
@@ -704,8 +806,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         RealtimeCampaignSave staged = slice.CaptureProgressForSmoke();
         Require(staged.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
                 staged.SavedMinute == 1860 &&
-                staged.ClosedStoryCount == 3,
-            "The staged result did not preserve the v2 closed prefix.");
+                staged.ClosedStoryCount == 4,
+            "The staged result did not preserve the v3 closed prefix.");
         slice.FreezeAutonomousClockForSmoke();
         return ExpectWrittenSave(staged);
     }
@@ -763,8 +865,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         RealtimeCampaignSave staged = slice.CaptureProgressForSmoke();
         Require(staged.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
                 staged.SavedMinute == 1860 &&
-                staged.ClosedStoryCount == 4,
-            "The staged briefing did not preserve the v2 closed prefix.");
+                staged.ClosedStoryCount == 5,
+            "The staged briefing did not preserve the v3 closed prefix.");
         slice.FreezeAutonomousClockForSmoke();
         return ExpectWrittenSave(staged);
     }

@@ -23,6 +23,8 @@ public sealed record RealtimeCampaignSave(
     int? ClosedStoryCount)
 {
     public const string SupportedSchemaVersion =
+        "gridworks.realtime.campaign-save.v3";
+    public const string PriorSchemaVersion =
         "gridworks.realtime.campaign-save.v2";
     public const string LegacySchemaVersion =
         "gridworks.realtime.campaign-save.v1";
@@ -148,7 +150,7 @@ public static class RealtimeCampaignSaveCodec
                 save.SchemaVersion,
                 RealtimeCampaignSave.SupportedSchemaVersion,
                 StringComparison.Ordinal),
-            "The legacy realtime save schema is read-only.");
+            "Prior realtime save schemas are read-only.");
         try
         {
             return JsonSerializer.SerializeToUtf8Bytes(save, JsonOptions);
@@ -267,10 +269,18 @@ public static class RealtimeCampaignSaveCodec
                 "The replayed canonical state hash does not match the save.");
             Require(run.AcceptedCommands.SequenceEqual(save.Commands),
                 "The replayed accepted journal does not match the save.");
+            int? closedStoryCount = save.SchemaVersion switch
+            {
+                RealtimeCampaignSave.SupportedSchemaVersion => save.ClosedStoryCount,
+                RealtimeCampaignSave.PriorSchemaVersion =>
+                    checked(save.ClosedStoryCount!.Value + 1),
+                RealtimeCampaignSave.LegacySchemaVersion => null,
+                _ => throw Invalid("The realtime save schema is invalid."),
+            };
             return new RealtimeCampaignRestoreResult(
                 run,
                 transitions,
-                save.ClosedStoryCount);
+                closedStoryCount);
         }
         catch (RealtimeCampaignPersistenceException)
         {
@@ -425,6 +435,12 @@ public static class RealtimeCampaignSaveCodec
             throw Invalid("commands is null.");
         Require(commands.Count <= RealtimeCampaignRun.MaximumAcceptedCommands,
             "The realtime command journal exceeds its limit.");
+        Require(
+            commands.Count > 0 || string.Equals(
+                save.SchemaVersion,
+                RealtimeCampaignSave.SupportedSchemaVersion,
+                StringComparison.Ordinal),
+            "Prior realtime save schemas require a nonempty command journal.");
 
         long previousMinute = 0;
         for (int index = 0; index < commands.Count; index++)
@@ -448,6 +464,10 @@ public static class RealtimeCampaignSaveCodec
         if (!string.Equals(
                 schemaVersion,
                 RealtimeCampaignSave.SupportedSchemaVersion,
+                StringComparison.Ordinal) &&
+            !string.Equals(
+                schemaVersion,
+                RealtimeCampaignSave.PriorSchemaVersion,
                 StringComparison.Ordinal) &&
             !string.Equals(
                 schemaVersion,

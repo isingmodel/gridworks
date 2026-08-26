@@ -59,6 +59,7 @@ run_product_save_continue_smoke() {
     run_product_entry_smoke -- "--save-create=$smoke_save"
     run_product_entry_smoke -- "--save-continue=$smoke_save"
     run_product_entry_smoke -- "--save-continue=$smoke_save"
+    run_product_entry_smoke -- "--save-continue=$smoke_save"
     run_product_entry_smoke -- "--save-legacy-continue=$legacy_save"
     run_product_entry_smoke -- "--save-invalid=$invalid_save"
     run_product_entry_smoke -- "--save-unsupported=$unsupported_save"

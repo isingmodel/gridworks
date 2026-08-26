@@ -148,6 +148,20 @@ internal sealed class RealtimeChapterStoryFlow
         return IsSupportedOpenSuffix(open, savedMinute);
     }
 
+    internal bool IsExactInitialActive(string chapterId) =>
+        ClosedStoryCount == 0 &&
+        _pending.Count == 0 &&
+        Active is
+        {
+            ModalId: RealtimeR2Ids.ChapterBriefingModal,
+            Purpose: RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            EventId: null,
+            FinalResult: false,
+        } initial && string.Equals(
+            initial.ChapterId,
+            chapterId,
+            StringComparison.Ordinal);
+
     internal bool MatchesSnapshot(RealtimeCampaignSnapshot snapshot)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
@@ -224,9 +238,10 @@ internal sealed class RealtimeChapterStoryFlow
         RealtimeChapterStoryModalRequest? request = transition.Kind switch
         {
             RealtimeTransitionKind.ChapterStarted when
-                transition.ChapterId is not null &&
-                ChapterIndex(campaign, transition.ChapterId) > 0 =>
-                Briefing(transition.ChapterId),
+                transition.ChapterId is not null =>
+                ChapterIndex(campaign, transition.ChapterId) == 0
+                    ? InitialBriefing(transition.ChapterId)
+                    : Briefing(transition.ChapterId),
             RealtimeTransitionKind.ForecastRevealed when
                 transition.ChapterId is not null &&
                 transition.EventId is not null => DecisionWindowStory(

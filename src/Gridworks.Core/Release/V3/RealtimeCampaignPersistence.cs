@@ -100,33 +100,7 @@ public static class RealtimeCampaignSaveCodec
         RealtimeCampaignDefinition campaign,
         RealtimeWorldDefinition world,
         RealtimeCampaignRun run,
-        int closedStoryCount) => Capture(
-        identity,
-        campaign,
-        world,
-        run,
-        RealtimeCampaignSave.SupportedSchemaVersion,
-        closedStoryCount);
-
-    public static RealtimeCampaignSave CaptureLegacyV1(
-        RealtimeCampaignSourceIdentity identity,
-        RealtimeCampaignDefinition campaign,
-        RealtimeWorldDefinition world,
-        RealtimeCampaignRun run) => Capture(
-        identity,
-        campaign,
-        world,
-        run,
-        RealtimeCampaignSave.LegacySchemaVersion,
-        closedStoryCount: null);
-
-    private static RealtimeCampaignSave Capture(
-        RealtimeCampaignSourceIdentity identity,
-        RealtimeCampaignDefinition campaign,
-        RealtimeWorldDefinition world,
-        RealtimeCampaignRun run,
-        string schemaVersion,
-        int? closedStoryCount)
+        int closedStoryCount)
     {
         ArgumentNullException.ThrowIfNull(run);
         ValidateContext(identity, campaign, world);
@@ -136,7 +110,7 @@ public static class RealtimeCampaignSaveCodec
             IReadOnlyList<TimedRealtimeCommand> journal = run.AcceptedCommands;
             string liveHash = run.GetCanonicalStateSha256();
             var save = new RealtimeCampaignSave(
-                schemaVersion,
+                RealtimeCampaignSave.SupportedSchemaVersion,
                 identity,
                 run.Minute,
                 liveHash,
@@ -170,6 +144,11 @@ public static class RealtimeCampaignSaveCodec
     public static byte[] Serialize(RealtimeCampaignSave save)
     {
         ValidateSave(save);
+        Require(string.Equals(
+                save.SchemaVersion,
+                RealtimeCampaignSave.SupportedSchemaVersion,
+                StringComparison.Ordinal),
+            "The legacy realtime save schema is read-only.");
         try
         {
             return JsonSerializer.SerializeToUtf8Bytes(save, JsonOptions);

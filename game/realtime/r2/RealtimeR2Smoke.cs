@@ -413,6 +413,19 @@ internal static class RealtimeR2Smoke
         }
     }
 
+    private static bool ThrowsInvalidOperation(Action action)
+    {
+        try
+        {
+            action();
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return true;
+        }
+    }
+
     /// <summary>
     /// Produces a dense but genuine R1-backed presentation for the live UI
     /// matrix. The line is a comparison draft, so the bottom action dock has
@@ -2943,6 +2956,10 @@ internal static class RealtimeR2Smoke
         Check(save.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
               save.ClosedStoryCount == 2,
             "cumulative active story did not capture the exact v2 closed prefix",
+            failures);
+        _ = live.AdvanceToForSmoke(1801);
+        Check(ThrowsInvalidOperation(() => live.CaptureProgressForSmoke()),
+            "cumulative active story remained capturable after its trigger minute",
             failures);
 
         var resumed = new RealtimeSliceMain();

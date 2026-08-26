@@ -2,6 +2,8 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using Godot;
 using Gridworks.Core.Release.V2;
@@ -315,13 +317,20 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         Require(RealtimeSession.IsJournalRestorableProgressSnapshot(
                 run.GetSnapshot()),
             "The legacy FIRST_LIGHT save is not journal-restorable.");
-        RealtimeCampaignSaveStore.Save(
-            path,
-            RealtimeCampaignSaveCodec.CaptureLegacyV1(
-                data.RequireSaveSourceIdentity(),
-                data.Campaign,
-                data.World,
-                run));
+        RealtimeCampaignSave current = RealtimeCampaignSaveCodec.Capture(
+            data.RequireSaveSourceIdentity(),
+            data.Campaign,
+            data.World,
+            run,
+            closedStoryCount: 0);
+        JsonObject legacy = JsonNode.Parse(
+                Encoding.UTF8.GetString(
+                    RealtimeCampaignSaveCodec.Serialize(current)))?.AsObject() ??
+            throw new InvalidOperationException(
+                "The legacy FIRST_LIGHT fixture is not a JSON object.");
+        legacy["schemaVersion"] = RealtimeCampaignSave.LegacySchemaVersion;
+        legacy.Remove("closedStoryCount");
+        File.WriteAllBytes(path, Encoding.UTF8.GetBytes(legacy.ToJsonString()));
     }
 
     private static void ValidateGuardedSavePreserved(

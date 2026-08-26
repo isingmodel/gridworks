@@ -2002,7 +2002,7 @@ internal sealed partial class RealtimeSession
             RealtimeSimulationState.PlayerPaused;
 
     private bool CanCaptureActiveStoryProgress =>
-        !_chapterStoryFlow.HasPending &&
+        _chapterStoryFlow.CanCaptureActiveAt(_run.Minute) &&
         _chapterStoryFlow.Active is
         {
             Purpose: RealtimeChapterStoryModalPurpose.EventStory or

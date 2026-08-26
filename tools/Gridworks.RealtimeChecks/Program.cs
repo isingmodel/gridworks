@@ -410,6 +410,7 @@ internal sealed class Checks
             live,
             closedStoryCount);
         byte[] bytes = RealtimeCampaignSaveCodec.Serialize(captured);
+        string json = Encoding.UTF8.GetString(bytes);
         RealtimeCampaignSave decoded = RealtimeCampaignSaveCodec.Deserialize(bytes);
         RealtimeCampaignRestoreResult restored = RealtimeCampaignSaveCodec.Restore(
             identity,
@@ -436,14 +437,10 @@ internal sealed class Checks
         SequenceEqual(expectedTransitions, restored.Transitions,
             "save replay transition history order");
 
-        RealtimeCampaignSave capturedLegacy =
-            RealtimeCampaignSaveCodec.CaptureLegacyV1(
-                identity,
-                _campaign,
-                _world,
-                live);
-        byte[] legacyBytes = RealtimeCampaignSaveCodec.Serialize(capturedLegacy);
-        JsonObject legacyJson = ParseObject(Encoding.UTF8.GetString(legacyBytes));
+        JsonObject legacyJson = ParseObject(json);
+        legacyJson["schemaVersion"] = RealtimeCampaignSave.LegacySchemaVersion;
+        legacyJson.Remove("closedStoryCount");
+        byte[] legacyBytes = Encoding.UTF8.GetBytes(legacyJson.ToJsonString());
         Check(!legacyJson.ContainsKey("closedStoryCount"),
             "legacy save serialized a v2 story cursor");
         RealtimeCampaignSave decodedLegacy =
@@ -461,6 +458,9 @@ internal sealed class Checks
             "legacy save closed story count");
         Equal<int?>(null, restoredLegacy.ClosedStoryCount,
             "legacy restore closed story count");
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Serialize(decodedLegacy),
+            "legacy save schema is read-only");
         Check(RealtimeStateCanonicalizer.StructuralEquals(
                 live.GetSnapshot(),
                 restoredLegacy.Run.GetSnapshot()),
@@ -495,7 +495,6 @@ internal sealed class Checks
             restoredCommand.CanonicalStateSha256,
             "next command state after restore");
 
-        string json = Encoding.UTF8.GetString(bytes);
         JsonObject unknownField = ParseObject(json);
         unknownField["unexpected"] = true;
         ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
@@ -528,6 +527,18 @@ internal sealed class Checks
             () => RealtimeCampaignSaveCodec.Deserialize(
                 negativeClosedStoryCount.ToJsonString()),
             "negative save closed story count");
+        JsonObject nullClosedStoryCount = ParseObject(json);
+        nullClosedStoryCount["closedStoryCount"] = null;
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(
+                nullClosedStoryCount.ToJsonString()),
+            "null save closed story count");
+        JsonObject overflowingClosedStoryCount = ParseObject(json);
+        overflowingClosedStoryCount["closedStoryCount"] = 2147483648L;
+        ExpectPersistence(RealtimeCampaignPersistenceFailureKind.Invalid,
+            () => RealtimeCampaignSaveCodec.Deserialize(
+                overflowingClosedStoryCount.ToJsonString()),
+            "overflowing save closed story count");
 
         JsonObject badSequence = ParseObject(json);
         Object(JsonArrayOf(badSequence, "commands")[0]!)["sequence"] = 2;

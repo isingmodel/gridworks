@@ -48,10 +48,11 @@ internal sealed class RealtimeChapterStoryFlow
         RealtimeChapterStoryModalRequest Request,
         long TriggerMinute);
 
-    private readonly Queue<RealtimeChapterStoryModalRequest> _pending = new();
+    private readonly Queue<ProjectedStory> _pending = new();
     private readonly HashSet<string> _observedModalIds = new(StringComparer.Ordinal);
+    private ProjectedStory? _active;
 
-    internal RealtimeChapterStoryModalRequest? Active { get; private set; }
+    internal RealtimeChapterStoryModalRequest? Active => _active?.Request;
 
     internal bool IsIdle => Active is null && _pending.Count == 0;
 
@@ -63,7 +64,7 @@ internal sealed class RealtimeChapterStoryFlow
     {
         _pending.Clear();
         _observedModalIds.Clear();
-        Active = null;
+        _active = null;
         ClosedStoryCount = 0;
     }
 
@@ -77,7 +78,7 @@ internal sealed class RealtimeChapterStoryFlow
         ProjectedStory? projected = Project(transition, campaign);
         if (projected is not null)
         {
-            Enqueue(projected.Request);
+            Enqueue(projected);
         }
     }
 
@@ -130,24 +131,25 @@ internal sealed class RealtimeChapterStoryFlow
                 "The current chapter-story cursor cannot restore a queued story suffix.");
         }
         ProjectedStory active = candidates[closed];
-        if (active.Request.Purpose is not (
-                RealtimeChapterStoryModalPurpose.EventStory or
-                RealtimeChapterStoryModalPurpose.DecisionWindowStory) ||
-            active.TriggerMinute != savedMinute)
+        if (!IsSupportedActive(active, savedMinute))
         {
             throw new InvalidOperationException(
                 "The current chapter-story cursor must identify one active " +
                 "in-chapter story at the saved minute.");
         }
-        Active = active.Request;
+        _active = active;
     }
+
+    internal bool CanCaptureActiveAt(long savedMinute) =>
+        !HasPending &&
+        _active is ProjectedStory active &&
+        IsSupportedActive(active, savedMinute);
 
     internal RealtimeChapterStoryModalRequest? ActivateNext()
     {
-        if (Active is null &&
-            _pending.TryDequeue(out RealtimeChapterStoryModalRequest? next))
+        if (_active is null && _pending.TryDequeue(out ProjectedStory? next))
         {
-            Active = next;
+            _active = next;
         }
         return Active;
     }
@@ -161,7 +163,7 @@ internal sealed class RealtimeChapterStoryFlow
         {
             return false;
         }
-        Active = null;
+        _active = null;
         ClosedStoryCount = checked(ClosedStoryCount + 1);
         return true;
     }
@@ -317,11 +319,17 @@ internal sealed class RealtimeChapterStoryFlow
             $"Chapter '{chapterId}' is absent from the selected realtime campaign.");
     }
 
-    private void Enqueue(RealtimeChapterStoryModalRequest request)
+    private static bool IsSupportedActive(ProjectedStory active, long savedMinute) =>
+        active.Request.Purpose is
+            RealtimeChapterStoryModalPurpose.EventStory or
+            RealtimeChapterStoryModalPurpose.DecisionWindowStory &&
+        active.TriggerMinute == savedMinute;
+
+    private void Enqueue(ProjectedStory projected)
     {
-        if (_observedModalIds.Add(request.ModalId))
+        if (_observedModalIds.Add(projected.Request.ModalId))
         {
-            _pending.Enqueue(request);
+            _pending.Enqueue(projected);
         }
     }
 }

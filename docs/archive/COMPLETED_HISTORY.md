@@ -510,7 +510,18 @@ Debug/Release build, current check suites, Python 회귀, 두 named checkpoint�
 Godot UI harness를 유지했다. 이 완료는 compile 시간 개선, 새 chapter/title/save/package 또는 사람 UX
 품질을 주장하지 않는다.
 
-## 8. 이 문서가 소유하지 않는 항목
+## 8. Agent 온보딩 문서 정리
+
+새 agent가 제품 상태, 변경 권한과 작업 절차를 한 문서에서 추측하지 않도록 문서 역할을 분리했다.
+루트 README→active scope→agent guide→질문별 문서 지도의 첫 읽기 순서를 `AGENTS.md`와 current 문서에서
+통일하고, `AGENT_GUIDE.md` 하나가 scope 작성, 최소 검증, commit·review·handoff와 금지된 추론을
+소유하게 했다. 문서 지도에는 각 문서가 갱신될 때와 두지 않을 내용을 명시했다.
+
+상대 링크와 문서 권위·용어 충돌을 다시 감사하고 internal qualification과 공개 출시 자격을 혼동할 수
+있던 실행 안내 문구를 바로잡았다. 이 정리는 제품 코드, current R2 capability, 외부 gate 또는 공개
+배포 상태를 바꾸지 않았다.
+
+## 9. 이 문서가 소유하지 않는 항목
 
 현재 질문의 소유 문서는 [문서 지도](../README.md)가 지정한다. 제품 구현 상태는
 [루트 README](../../README.md), current 개발 구조는 [개발 구조](../ARCHITECTURE.md), repository backlog는

@@ -248,7 +248,9 @@ internal sealed partial class RealtimeSession
             throw new InvalidOperationException(
                 "The restored chapter-story cursor does not match its Core position.");
         }
-        if (snapshot.CommandCount == 0 &&
+        bool activeInitial = storyFlow.IsInitialBriefingActive(
+            snapshot.Chapter.Content.ChapterId);
+        if ((snapshot.CommandCount == 0 || activeInitial) &&
             !IsSupportedInitialStoryCursor(storyFlow, snapshot))
         {
             throw new InvalidOperationException(

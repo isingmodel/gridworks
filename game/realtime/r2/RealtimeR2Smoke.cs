@@ -2997,6 +2997,58 @@ internal static class RealtimeR2Smoke
             }),
             "zero-command initial resume accepted a cursor beyond c1",
             failures);
+
+        (string initialToolId, CoreMapPoint initialPosition) =
+            initialActiveResumed.AcceptedNodeDraftForSmoke();
+        RequireIntent(initialActiveResumed.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildNode,
+                    initialToolId)),
+            "command-bearing initial node tool",
+            failures,
+            coreCommandExpected: false);
+        RequireIntent(initialActiveResumed.ApplyIntentForSmoke(
+                new RealtimeR2Intent(
+                    RealtimeR2IntentKind.SetNodeDraft,
+                    FirstId: initialToolId[
+                        RealtimeR2Ids.NodeToolPrefix.Length..],
+                    Position: initialPosition)),
+            "command-bearing initial node draft",
+            failures);
+        RequireIntent(initialActiveResumed.ApplyIntentForSmoke(
+                new RealtimeR2Intent(RealtimeR2IntentKind.OrderNode)),
+            "command-bearing initial node order",
+            failures);
+        RealtimeCampaignSave commandedInitial =
+            initialActiveResumed.CaptureProgressForSmoke();
+        Check(commandedInitial.SavedMinute == initialSnapshot.Minute &&
+              commandedInitial.Commands.Count > 0 &&
+              commandedInitial.ClosedStoryCount == 1 &&
+              initialActiveResumed.CoreSnapshot.Construction.ActiveConstruction
+                  is not null,
+            "command-bearing exact-initial story-idle state did not capture c1",
+            failures);
+        RealtimeCampaignSave resurrectedInitial = commandedInitial with
+        {
+            ClosedStoryCount = 0,
+        };
+        Check(ThrowsInvalidOperation(() =>
+            {
+                var invalid = new RealtimeSliceMain();
+                try
+                {
+                    invalid.BootstrapNativeResumeForSmoke(
+                        RealtimeNativeRouteCatalog.ProductCampaign,
+                        resurrectedInitial);
+                }
+                finally
+                {
+                    invalid.Free();
+                }
+            }),
+            "command-bearing c1 cursor tamper resurrected the initial briefing",
+            failures);
+
         _ = initialIdleResumed.AdvanceToForSmoke(initialSnapshot.Minute + 1);
         Check(ThrowsInvalidOperation(() =>
                 initialIdleResumed.CaptureProgressForSmoke()),

@@ -148,9 +148,8 @@ internal sealed class RealtimeChapterStoryFlow
         return IsSupportedOpenSuffix(open, savedMinute);
     }
 
-    internal bool IsExactInitialActive(string chapterId) =>
+    internal bool IsInitialBriefingActive(string chapterId) =>
         ClosedStoryCount == 0 &&
-        _pending.Count == 0 &&
         Active is
         {
             ModalId: RealtimeR2Ids.ChapterBriefingModal,
@@ -161,6 +160,9 @@ internal sealed class RealtimeChapterStoryFlow
             initial.ChapterId,
             chapterId,
             StringComparison.Ordinal);
+
+    internal bool IsExactInitialActive(string chapterId) =>
+        _pending.Count == 0 && IsInitialBriefingActive(chapterId);
 
     internal bool MatchesSnapshot(RealtimeCampaignSnapshot snapshot)
     {

@@ -281,6 +281,28 @@ undelivered pending transition, general queued story, initial briefing, final/co
 overwrite/recovery UI, package, 전체 8장 production-input 직접 여정 또는 사람 UX 품질의 증거로 확대하지
 않는다.
 
+### UX-R2.16 — initial briefing/zero-command save·Continue
+
+첫 `ChapterStarted`를 `RealtimeChapterStoryFlow`의 `CHAPTER_BRIEFING` candidate로 합쳐 cumulative
+Session의 synthetic initial 분기를 제거했다. fresh cumulative Session만 Core initial transition batch를
+exact current minute에 한 번 drain하고, Resume replay와 standalone/fixture는 이 bootstrap을 반복하거나
+같은 Flow에 섞지 않는다. exact initial의 authored briefing active `c0`와 이를 닫은 story-idle `c1`만
+zero-command으로 저장·재개한다.
+
+같은 wire fields의 current schema를 v3로 올려 `closedStoryCount`를 initial-inclusive로 정의했다. prior
+v2 object의 raw cursor는 보존하고 Restore 결과만 checked `+1`, prior v1은 새 initial candidate까지
+all-closed로 읽는다. prior schema write, ambiguous v1/v2 empty journal, v2 cursor overflow와 `exact initial`
+밖의 zero-command는 fail-closed한다.
+
+같은 product save path에서 initial c0 create→첫 fresh Continue의 active `FLOOD_ISOLATION_TEST` c3 write→둘째
+Continue의 `SECOND_HEART` result c4 write→셋째 Continue의 `SECOND_SOURCE` briefing c5 write를
+fresh process마다 disk reload로 확인했다. Debug/Release build, `./dev check`의 Realtime 26 suites/1,197 assertions와
+Commercial 31 suites/7,084 assertions, 전체 Godot UI harness와 두 독립 review를 통과했다. review에서
+command-bearing same-minute c1 cursor를 c0으로 변조하면 initial briefing이 부활하던 P2를 찾았고, active
+initial은 command 수와 무관하게 exact zero-command snapshot을 요구하도록 수정한 뒤 finding 없이
+재검토됐다. 이 완료는 undelivered pending transition, general queued story, final/completed
+run·finale·epilogue, overwrite/recovery UI, package 또는 사람 UX 품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

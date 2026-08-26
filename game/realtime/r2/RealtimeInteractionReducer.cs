@@ -250,7 +250,7 @@ internal static class RealtimeInteractionReducer
                 ? RealtimePauseReason.ChapterBriefing
                 : RealtimePauseReason.None,
             chapterBriefing ? RealtimeR2Ids.ChapterBriefingModal : null,
-            chapterBriefing ? RealtimeModalKind.ChapterStory : null,
+            chapterBriefing ? RealtimeModalKind.Story : null,
             chapterBriefing ? "WORLD" : null,
             chapterBriefing
                 ? new RealtimeInteractionRestorePoint(

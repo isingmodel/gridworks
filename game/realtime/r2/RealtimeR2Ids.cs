@@ -18,6 +18,7 @@ internal static class RealtimeR2Ids
     internal const string EventStoryContinueAction = "EVENT_STORY_CONTINUE";
     internal const string DecisionWindowContinueAction = "DECISION_WINDOW_CONTINUE";
     internal const string ResultCloseAction = "RESULT_CLOSE";
+    internal const string EpilogueContinueAction = "EPILOGUE_CONTINUE";
 
     internal const string ChapterBriefingModal = "CHAPTER_BRIEFING";
     internal const string CampaignResultModal = "CAMPAIGN_RESULT";
@@ -26,6 +27,7 @@ internal static class RealtimeR2Ids
     internal const string TutorialDecisionWindowModalPrefix =
         "TUTORIAL_DECISION_WINDOW:";
     internal const string TutorialEventStoryModalPrefix = "TUTORIAL_EVENT_STORY:";
+    internal const string EpilogueModalPrefix = "EPILOGUE:";
 
     internal const string InspectTool = "TOOL:INSPECT";
     internal const string AnalysisTool = "TOOL:ANALYSIS";
@@ -55,6 +57,15 @@ internal static class RealtimeR2Ids
 
     internal static string TutorialEventStoryModal(string chapterId, string eventId) =>
         $"{TutorialEventStoryModalPrefix}{chapterId}:{eventId}";
+
+    internal static string EpilogueModal(RealtimeEpiloguePurpose purpose) =>
+        EpilogueModalPrefix + (purpose switch
+        {
+            RealtimeEpiloguePurpose.CityReport => "CITY_REPORT",
+            RealtimeEpiloguePurpose.MedicalWitness => "MEDICAL_WITNESS",
+            RealtimeEpiloguePurpose.Closing => "CLOSING",
+            _ => throw new System.ArgumentOutOfRangeException(nameof(purpose)),
+        });
 
     internal static string NodeTool(string classId) => $"{NodeToolPrefix}{classId}";
 
@@ -94,7 +105,8 @@ internal static class RealtimeR2Ids
             BriefingContinueAction or
             EventStoryContinueAction or
             DecisionWindowContinueAction or
-            ResultCloseAction;
+            ResultCloseAction or
+            EpilogueContinueAction;
 
     internal static bool IsComparisonMarker(string? id) => id is not null &&
         (id.StartsWith(ComparisonEventMarkerPrefix, System.StringComparison.Ordinal) ||

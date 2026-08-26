@@ -24,7 +24,8 @@ internal sealed record RealtimePresentationSource(
     IReadOnlyList<RealtimeTransition> TransitionHistory,
     RealtimeChapterStoryModalRequest? ActiveStoryRequest,
     bool StoryResultAdvancesCalendar,
-    bool SuccessfulStandaloneCompletion)
+    bool SuccessfulStandaloneCompletion,
+    RealtimeEpilogueModalRequest? ActiveEpilogueRequest)
 {
     private IReadOnlyList<RealtimeTransition> _transitionHistory =
         Freeze(TransitionHistory);

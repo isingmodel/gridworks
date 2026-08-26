@@ -67,7 +67,7 @@ internal static class RealtimeModalPresenter
                 Pause = pause,
             };
         }
-        if (interaction.ActiveModalKind == RealtimeModalKind.ChapterStory)
+        if (interaction.ActiveModalKind == RealtimeModalKind.Story)
         {
             return new RealtimeModalPresentation(
                 interaction.ActiveModalId,
@@ -120,6 +120,13 @@ internal static class RealtimeModalPresenter
         {
             return modal;
         }
+        if (source.ActiveEpilogueRequest is { } epilogue && string.Equals(
+                epilogue.ModalId,
+                modal.Id,
+                StringComparison.Ordinal))
+        {
+            return AuthoredEpilogueModal(modal, epilogue);
+        }
         if (source.Data.NativeRoute?.UsesChapterStoryFlow == true)
         {
             RealtimeChapterStoryModalRequest? request = source.ActiveStoryRequest;
@@ -151,6 +158,33 @@ internal static class RealtimeModalPresenter
                 Heading = card.Title,
                 Body = card.Body,
             };
+    }
+
+    private static RealtimeModalPresentation AuthoredEpilogueModal(
+        RealtimeModalPresentation modal,
+        RealtimeEpilogueModalRequest request)
+    {
+        string body = request.Card.Body;
+        if (request.Purpose == RealtimeEpiloguePurpose.CityReport)
+        {
+            body += "\n\n" + string.Join("\n", request.PromiseLines) +
+                $"\n남은 운영 자금 {RealtimePresentationText.Cash(
+                    request.RemainingCashUnit)}";
+        }
+        return modal with
+        {
+            Eyebrow = request.Card.Speaker,
+            Heading = request.Card.Title,
+            Body = body,
+            PrimaryAction = new RealtimeActionPresentation(
+                RealtimeR2Ids.EpilogueContinueAction,
+                request.FinalCard ? "완료된 망 보기" : "다음 기록",
+                request.FinalCard
+                    ? "세 기록을 닫고 완료된 최종 망을 확인합니다."
+                    : "현재 기록을 닫고 다음 에필로그 기록을 확인합니다.",
+                true),
+            DismissOnCancel = false,
+        };
     }
 
     private static RealtimeModalPresentation AuthoredChapterStoryModal(

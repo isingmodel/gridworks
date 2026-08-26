@@ -41,7 +41,7 @@ internal static class RealtimeUiCapabilities
         RealtimeTimelineNavigation.NextEvent;
 
     internal static bool Supports(RealtimeModalKind value) => value is
-        RealtimeModalKind.ChapterStory or
+        RealtimeModalKind.Story or
         RealtimeModalKind.NewGameConfirmation or
         RealtimeModalKind.RecoveryConfirmation or
         RealtimeModalKind.FatalError;

@@ -75,6 +75,7 @@ internal sealed partial class RealtimeSession
     private readonly HashSet<string> _autoPausedIncidentKeys = new(StringComparer.Ordinal);
     private readonly Queue<PendingFrameBatch> _retainedFrameDebt = [];
     private readonly RealtimeChapterStoryFlow _chapterStoryFlow = new();
+    private readonly RealtimeEpilogueFlow _epilogueFlow = new();
     private readonly HashSet<string> _formativeTutorialResultChapterIds =
         new(StringComparer.Ordinal);
     private readonly RealtimeSliceData _data;
@@ -540,7 +541,7 @@ internal sealed partial class RealtimeSession
                         _interaction,
                         RealtimeR2Intent.OpenModal(
                             RealtimeR2Ids.CampaignResultModal,
-                            RealtimeModalKind.ChapterStory,
+                            RealtimeModalKind.Story,
                             RealtimePauseReason.CampaignResult,
                             "WORLD"));
                     _interaction = modal.State;
@@ -617,7 +618,8 @@ internal sealed partial class RealtimeSession
             _emittedTransitions,
             activeStoryRequest,
             storyResultAdvancesCalendar,
-            successfulStandaloneCompletion));
+            successfulStandaloneCompletion,
+            _epilogueFlow.Active));
         PresentationPublished?.Invoke(_latestPresentation);
     }
 
@@ -960,15 +962,7 @@ internal sealed partial class RealtimeSession
             ApplyIntent(RealtimeR2Intent.CloseModal(modalId));
         if (result.Accepted)
         {
-            TryRecordFormativeDirectPlay(modal);
-            if (_data?.NativeRoute?.UsesChapterStoryFlow == true &&
-                _chapterStoryFlow.Close(modalId))
-            {
-                if (!TryAdvanceToNextChapter(storyRequest))
-                {
-                    TryOpenChapterStoryModal();
-                }
-            }
+            AfterModalClosed(modal, storyRequest);
         }
     }
 
@@ -986,16 +980,38 @@ internal sealed partial class RealtimeSession
             ApplyIntent(RealtimeR2Intent.CloseModal(modalId));
         if (result.Accepted)
         {
-            TryRecordFormativeDirectPlay(modal);
-            if (_data?.NativeRoute?.UsesChapterStoryFlow == true &&
-                _chapterStoryFlow.Close(modalId))
-            {
-                if (!TryAdvanceToNextChapter(storyRequest))
-                {
-                    TryOpenChapterStoryModal();
-                }
-            }
+            AfterModalClosed(modal, storyRequest);
         }
+    }
+
+    private void AfterModalClosed(
+        RealtimeModalPresentation modal,
+        RealtimeChapterStoryModalRequest? storyRequest)
+    {
+        TryRecordFormativeDirectPlay(modal);
+        if (_epilogueFlow.Close(modal.Id))
+        {
+            TryOpenEpilogueModal();
+            return;
+        }
+        if (_data?.NativeRoute?.UsesChapterStoryFlow != true ||
+            !_chapterStoryFlow.Close(modal.Id))
+        {
+            return;
+        }
+        if (TryAdvanceToNextChapter(storyRequest))
+        {
+            return;
+        }
+        if (storyRequest is
+            {
+                Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+                FinalResult: true,
+            } && TryStartEpilogue())
+        {
+            return;
+        }
+        TryOpenChapterStoryModal();
     }
 
     private bool TryAdvanceToNextChapter(
@@ -1048,13 +1064,58 @@ internal sealed partial class RealtimeSession
             _interaction!,
             RealtimeR2Intent.OpenModal(
                 request.ModalId,
-                RealtimeModalKind.ChapterStory,
+                RealtimeModalKind.Story,
                 request.PauseReason,
                 "WORLD"));
         if (!reduction.Accepted)
         {
             throw new InvalidOperationException(
                 $"Tutorial modal '{request.ModalId}' could not be opened: " +
+                reduction.Error);
+        }
+        _interaction = reduction.State;
+        SynchronizeFramePause(before, _interaction);
+        Present();
+    }
+
+    private bool TryStartEpilogue()
+    {
+        RealtimeCampaignSnapshot snapshot = _run!.GetSnapshot();
+        if (!snapshot.CampaignComplete || _epilogueFlow.Started)
+        {
+            return false;
+        }
+        if (!_epilogueFlow.TryStart(_data!.BaseCampaign, _data.Campaign, snapshot))
+        {
+            return false;
+        }
+        TryOpenEpilogueModal();
+        return true;
+    }
+
+    private void TryOpenEpilogueModal()
+    {
+        if (_interaction?.ActiveModalId is not null)
+        {
+            return;
+        }
+        RealtimeEpilogueModalRequest? request = _epilogueFlow.ActivateNext();
+        if (request is null)
+        {
+            return;
+        }
+        RealtimeInteractionState before = _interaction!;
+        RealtimeInteractionReduction reduction = RealtimeInteractionReducer.Reduce(
+            _interaction!,
+            RealtimeR2Intent.OpenModal(
+                request.ModalId,
+                RealtimeModalKind.Story,
+                RealtimePauseReason.CampaignResult,
+                "WORLD"));
+        if (!reduction.Accepted)
+        {
+            throw new InvalidOperationException(
+                $"Epilogue modal '{request.ModalId}' could not be opened: " +
                 reduction.Error);
         }
         _interaction = reduction.State;
@@ -1873,6 +1934,11 @@ internal sealed partial class RealtimeSession
 
     internal RealtimeChapterStoryModalRequest? ActiveChapterStoryModal =>
         _chapterStoryFlow.Active;
+
+    internal RealtimeEpilogueModalRequest? ActiveEpilogueModal =>
+        _epilogueFlow.Active;
+
+    internal bool EpilogueCompleted => _epilogueFlow.Completed;
 
     internal IReadOnlyList<string> FormativeTutorialResultChapterIds =>
         Array.AsReadOnly(_formativeTutorialResultChapterIds

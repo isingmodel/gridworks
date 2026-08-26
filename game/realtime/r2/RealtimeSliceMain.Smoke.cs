@@ -126,13 +126,18 @@ internal sealed partial class RealtimeSliceMain
     internal RealtimeChapterStoryModalRequest? ActiveChapterStoryModalForSmoke =>
         Session.ActiveChapterStoryModal;
 
+    internal RealtimeEpilogueModalRequest? ActiveEpilogueModalForSmoke =>
+        Session.ActiveEpilogueModal;
+
+    internal bool EpilogueCompletedForSmoke => Session.EpilogueCompleted;
+
     internal void RequestActionForSmoke(string actionId) => HandleAction(actionId);
 
-    internal RealtimeModalPresentation? ClosePresentedChapterStoryModalForSmoke()
+    internal RealtimeModalPresentation? ClosePresentedStoryModalForSmoke()
     {
         RealtimeModalPresentation modal = Session.LatestPresentation.Modal ??
             throw new InvalidOperationException(
-                "No tutorial modal is available for the production close handler.");
+                "No story modal is available for the production close handler.");
         _suppressFormativeDirectPlayOutputForSmoke = true;
         try
         {
@@ -173,7 +178,8 @@ internal sealed partial class RealtimeSliceMain
             transitionHistory ?? Array.Empty<RealtimeTransition>(),
             ActiveStoryRequest: null,
             StoryResultAdvancesCalendar: false,
-            SuccessfulStandaloneCompletion: false));
+            SuccessfulStandaloneCompletion: false,
+            ActiveEpilogueRequest: null));
     }
 
     internal RealtimeProjectQuote PreviewNodeOrderForSmoke()

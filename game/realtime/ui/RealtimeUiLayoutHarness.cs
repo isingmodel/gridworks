@@ -3614,7 +3614,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     campaignModal is
                     {
                         Id: RealtimeR2Ids.CampaignResultModal,
-                        Kind: RealtimeModalKind.ChapterStory,
+                        Kind: RealtimeModalKind.Story,
                         Heading: "캠페인 운영 완료",
                         PrimaryAction.Id: RealtimeR2Ids.ResultCloseAction,
                         PrimaryAction.Label: "결과 확인",

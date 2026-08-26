@@ -144,7 +144,7 @@ internal enum RealtimeActionTone
 
 internal enum RealtimeModalKind
 {
-    ChapterStory,
+    Story,
     NewGameConfirmation,
     RecoveryConfirmation,
     FatalError,

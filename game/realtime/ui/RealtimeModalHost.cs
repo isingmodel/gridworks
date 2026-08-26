@@ -241,7 +241,7 @@ internal sealed partial class RealtimeModalHost : Control
 
     private static string ModalKindAccessibility(RealtimeModalKind kind) => kind switch
     {
-        RealtimeModalKind.ChapterStory => "장 시작 또는 결과 이야기 화면",
+        RealtimeModalKind.Story => "장 시작·결과 또는 캠페인 이야기 화면",
         RealtimeModalKind.NewGameConfirmation => "새 게임 확인 대화상자",
         RealtimeModalKind.RecoveryConfirmation => "복구 확인 대화상자",
         RealtimeModalKind.FatalError => "치명적 오류 화면",

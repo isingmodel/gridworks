@@ -116,6 +116,19 @@ build, `./dev check`, WHOSE_MARGIN story selector, 누적 Godot UI harness와 �
 production-input 직접 플레이의 관찰 상한은 여전히 `NORTH_BANK_PROMISE`까지 4장이며, 남은 3장,
 save/resume, 전체 캠페인 또는 사람 UX 품질의 증거는 아니다.
 
+### UX-R2.7 — 여섯 번째 장 native 구현
+
+`BEFORE_WATER_RISE`까지 앞선 망·공사·자금·시계와 결과를 잇는 누적 6장 경로를 구현했다. 이미 상속된
+동부 접속 2회를 새 공사로 세지 않고, 범람 구역을 피하는 남부 고지대 보완 회랑을 완공했다. Keep은
+의료원·정수장·동부 생활권을, 명시적 Defer는 필수시설을 공급한 exact authored result로 이어지며
+Keep만 6장 full-flow evidence를 만든다.
+
+forecast와 active flood는 `RIVER_FLOOD_ZONE` 및 `WEST_SOURCE_NODE` 사용 불가를 보이고, active thermal
+결과에서 실제 수요가 남부 발전원으로 공급되는 것까지 확인했다. Release build, `./dev check`,
+BEFORE_WATER_RISE story selector, 누적 Godot UI harness와 두 독립 review를 통과했으며 canonical native
+route는 3개를 유지했다. production-input 직접 플레이의 관찰 상한은 여전히 `NORTH_BANK_PROMISE`까지
+4장이고, 남은 2장이나 전체 캠페인·사람 UX 품질의 증거로 확대하지 않는다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

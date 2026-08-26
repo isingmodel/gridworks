@@ -5,7 +5,7 @@
 대비해 병원과 정수장 같은 필수 시설을 지킨다.
 
 현재 저장소는 **실시간 R2 플레이 빌드와 G3 아이소메트릭 아트 기준선**을 제공하지만, 아직 판매
-가능한 1.0 게임은 아니다. 남은 3장과 전체 캠페인 완결성, R2 저장/재개, 제품용 audio·settings,
+가능한 1.0 게임은 아니다. 남은 2장과 전체 캠페인 완결성, R2 저장/재개, 제품용 audio·settings,
 출시 패키지와 공식 UX 평가가 남아 있다.
 
 ## 30초 현재 상태
@@ -17,7 +17,7 @@
 | 인자 없는 실행 | 제품 title; `새 게임`은 `FIRST_LIGHT`로 진입하고 `이어하기`는 저장 부재 이유와 함께 비활성 |
 | 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
-| R2 native 구현 | `WHOSE_MARGIN`까지 누적 5장 |
+| R2 native 구현 | `BEFORE_WATER_RISE`까지 누적 6장 |
 | 직접 플레이 관찰 | `NORTH_BANK_PROMISE`까지 누적 4장; Keep·명시적 Defer를 각각 fresh process에서 확인 |
 | 사건 지평선 | 한 줄 future-event bar(`RealtimeEventRail`)의 compact marker와 hover/선택 상세 정보 |
 | product audio·settings | R2 audio layer, 설정 UI와 설정 저장은 아직 없음 |
@@ -71,12 +71,12 @@
 | 개발용 기술 fixture | `./dev play fixture` |
 | 첫 장만 플레이 | `./dev play chapter FIRST_LIGHT` |
 | 튜토리얼 3장 누적 플레이 | `./dev play through SECOND_SOURCE` |
-| 구현된 5장 누적 플레이 | `./dev play through WHOSE_MARGIN` |
+| 구현된 6장 누적 플레이 | `./dev play through BEFORE_WATER_RISE` |
 
-예를 들어 현재 구현된 5장 경로는 다음과 같이 실행한다.
+예를 들어 현재 구현된 6장 경로는 다음과 같이 실행한다.
 
 ```sh
-./dev play through WHOSE_MARGIN
+./dev play through BEFORE_WATER_RISE
 ```
 
 `./dev play product`는 Godot user argument 없이 제품 title을 열고, `./dev play fixture`는 명시적
@@ -105,7 +105,7 @@ root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 이 �
 작성된 story part 하나만 검사하는 예:
 
 ```sh
-./dev story WHOSE_MARGIN/result/keep
+./dev story BEFORE_WATER_RISE/result/keep
 ./dev story manifest
 ```
 

@@ -13,10 +13,10 @@
 - 한 줄 사건 지평선이 사건·공사·결정 기한·열 경계를 compact marker로 표시하고 상세 정보를
   hover 또는 선택으로 연다.
 - 8장/16개 사건/34개 story part가 작성돼 있다.
-- R2에는 `FIRST_LIGHT`부터 `WHOSE_MARGIN`까지 누적 5장이 구현·자동검증돼 있다.
+- R2에는 `FIRST_LIGHT`부터 `BEFORE_WATER_RISE`까지 누적 6장이 구현·자동검증돼 있다.
 - 실제 production mouse/keyboard 직접 플레이는 `NORTH_BANK_PROMISE`까지 누적 4장의 Keep과 명시적
   Defer를 각각 fresh process에서 관찰했다.
-- R2 save/resume, 남은 3장, finale/epilogue, product audio·settings, current R2 패키지와 공식 UX 점수는
+- R2 save/resume, 남은 2장, finale/epilogue, product audio·settings, current R2 패키지와 공식 UX 점수는
   없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
@@ -26,13 +26,12 @@
 
 ## 권장 순서
 
-### 1. 남은 3장 native 구현
+### 1. 남은 2장 native 구현
 
 작성된 다음 장을 R2 Core/controller/presentation에 순서대로 연결한다.
 
-1. `BEFORE_WATER_RISE`
-2. `SWITCH_OFF_TO_PROTECT`
-3. `LONGEST_NIGHT`
+1. `SWITCH_OFF_TO_PROTECT`
+2. `LONGEST_NIGHT`
 
 각 장은 별도 작은 scope로 연다. briefing, 준비시간, forecast, 사건 시작/종료, 플레이어 결정, authored
 result와 다음 장 전환을 같은 누적 상태에서 닫아야 한다. story part selector 단독 실행은 계속

@@ -101,6 +101,41 @@ internal static class RealtimeCampaignSaveStore
         }
     }
 
+    internal static string CreateUniqueSiblingBackup(string absolutePath)
+    {
+        ValidatePath(absolutePath);
+        byte[] bytes = File.ReadAllBytes(absolutePath);
+        string backupPath = $"{absolutePath}.reset-{Guid.NewGuid():N}.bak";
+        string temporaryPath = $"{backupPath}.tmp";
+        try
+        {
+            using (FileStream stream = new(
+                       temporaryPath,
+                       FileMode.CreateNew,
+                       FileAccess.Write,
+                       FileShare.None))
+            {
+                stream.Write(bytes);
+                stream.Flush(flushToDisk: true);
+            }
+            File.Move(temporaryPath, backupPath, overwrite: false);
+            return backupPath;
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(temporaryPath);
+            }
+            catch (Exception exception) when (
+                exception is IOException or UnauthorizedAccessException)
+            {
+                // The primary is never touched. A private temp cleanup failure
+                // must not hide whether the sibling backup was committed.
+            }
+        }
+    }
+
     private static void ValidatePath(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

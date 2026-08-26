@@ -46,6 +46,9 @@ session의 모든 장 stable 진행, story-idle active event·duty와 exact-minu
 current v3로 저장되며, zero-command exact initial c0/c1과 bounded non-final result→next briefing handoff도
 같은 cursor로 복원한다. story-idle과 prior v1은 paused·normal speed·no-modal로, supported active v2/v3
 story는 같은 authored modal로 복원된다.
+non-saveable 정상 종료는 직전 valid save bytes를 보존하고 이후 safe 정상 종료만 primary를 갱신한다.
+in-progress와 raw bytes를 읽을 수 있는 blocked save는 기존 `새 게임`의 확인→sibling backup→canonical
+bootstrap 경로를 공유하며, I/O 실패와 backup 실패는 fail-closed한다.
 명시적 개발 route는 product save를 읽거나 쓰지 않는다. 이 결정론적 title/journal-restorable-save wiring,
 작성·구현된 8장과 누적 4장 production-input 직접 관찰을 같은 coverage로 세지 않는다.
 과거 V2 title/save/settings/audio, editor project tree와 UX-R1 candidate는 current R2 평가 권위가 아니다.
@@ -224,8 +227,10 @@ deterministic failure 또는 blinded observation
 - full `ProductCampaign` current-v3 terminal save→fresh `이어하기`→exact `Ended` world와 동일 terminal
   종료 write: fresh-process smoke 완료; prior v1/v2 completion은 차단
 - completed terminal title의 `새 게임`→canonical initial write→fresh `이어하기`: fresh-process smoke 완료
-- transient non-saveable 구간의 직전 safe-save 보존→다음 safe-point 갱신과 readable save reset:
-  product E2E 미완료; transient cursor 자체는 제품 범위 밖
+- transient non-saveable 구간의 직전 safe-save byte-exact 보존→다음 safe-point 갱신과 진행 저장의
+  확인→backup 실패 차단→raw sibling backup→canonical reset: focused fresh-process product-entry smoke 완료;
+  readable invalid/unsupported는 같은 확인 상태, I/O failure는 차단됨. 전체 packaged-campaign
+  production-input E2E와 transient cursor는 이 증거에 포함되지 않음
 - audio/settings, current R2 package와 score-bearing execution authority·oracle/aggregator: 미완료
 - `CommercialUXProxy`: 없음
 - score-bearing native capture와 87점 반복: 아직 시작하지 않음

@@ -23,7 +23,9 @@ launch argument → RealtimeLaunchCatalog
 │        │  ├─ supported active v3 또는 normalized v2 story → same authored modal·AutoPaused
 │        │  │  └─ non-final result close → bounded next briefing(+decision) FIFO
 │        │  └─ current-v3 full terminal completion → Ended·World·no-modal, epilogue replay 없음
-│        └─ completed NewGameRequested → 기존 missing-save ProductCampaign bootstrap 재사용
+│        ├─ completed NewGameRequested → 기존 missing-save ProductCampaign bootstrap 재사용
+│        └─ in-progress/readable blocked NewGameRequested
+│           └─ typed confirm → raw-byte sibling backup 성공 → 같은 ProductCampaign bootstrap
 ├─ explicit DEBUG technical fixture/known checkpoint → TechnicalFixture
 │  └─ No write ownership + RealtimeSliceResources.LoadTechnicalFixture → stage R1 fixture data
 └─ exact native argument → NativeRelease → RealtimeNativeRouteCatalog
@@ -37,6 +39,8 @@ normal journal-restorable product-owned exit
 → RealtimeSliceData.RequireSaveSourceIdentity
 → RealtimeCampaignSaveCodec.Capture
 → RealtimeCampaignSaveStore atomic replace
+
+non-saveable product-owned normal exit → no store call → prior primary bytes 보존
 
 Godot InputEvent → RealtimeInputRouter → typed RealtimeInputRequest
 Godot signal/frame 또는 typed request
@@ -77,8 +81,8 @@ session 없는 product-title save probe, route와 분리된 product-write owners
 | native save source identity는? | `RealtimeSliceData.RequireSaveSourceIdentity` | `game/realtime/r2/RealtimeSliceResources.cs` |
 | story candidate 순서·closed prefix·active request 재구성은? | `RealtimeChapterStoryFlow` | `game/realtime/r2/RealtimeChapterStoryFlow.cs` |
 | journal-restorable idle/active/terminal capture·Resume interaction 정책은? | `RealtimeSession` | `game/realtime/r2/RealtimeSession.cs` |
-| save 파일 상태·atomic write는? | `RealtimeCampaignSaveStore` | `game/realtime/r2/RealtimeCampaignSaveStore.cs` |
-| title save probe와 product-owned write lifecycle은? | `RealtimeSliceMain`; title은 표시·signal만 | `RealtimeSliceMain.cs`, `game/realtime/ui/RealtimeProductTitle.cs` |
+| save 파일 상태·atomic write·raw sibling backup은? | `RealtimeCampaignSaveStore` | `game/realtime/r2/RealtimeCampaignSaveStore.cs` |
+| title save probe, typed reset 확인과 product-owned write lifecycle은? | `RealtimeSliceMain`; title은 표시·signal만 | `RealtimeSliceMain.cs`, `game/realtime/ui/RealtimeProductTitle.cs` |
 | 입력 뒤 application 상태와 chapter/story flow는? | `RealtimeSession` | `RealtimeSession.cs`, `RealtimeChapterStoryFlow.cs` |
 | final result 뒤 epilogue 순서와 약속 집계는? | `RealtimeEpilogueFlow`, strict base epilogue와 completed Core outcome | `RealtimeEpilogueFlow.cs`, `RealtimeModalPresenter.cs` |
 | raw input이 어떤 typed request가 되는가? | `RealtimeInputRouter` | `game/realtime/ui/RealtimeInputRouter.cs` |
@@ -174,7 +178,7 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
 4. session 없는 product title/Main만 save를 probe하고, 그 title action에서 시작한 session만 write
    ownership을 갖게 한다. explicit development route는 같은 route라도 읽거나 쓰지 않는다.
 5. Main은 store·title·Godot lifecycle만 연결하고 title view에는 파일 또는 Core 권위를 주지 않는다.
-6. 가장 작은 Core strict suite 뒤 별도 fresh process의 save-create→Continue와 blocked title 상태를 검증한다.
+6. 가장 작은 Core strict suite 뒤 별도 fresh process의 save-create→Continue와 guarded/reset title 상태를 검증한다.
 
 ## Fail-closed 규칙
 
@@ -184,10 +188,10 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
   처리한다.
 - 지원하지 않는 요청은 Core나 interaction 상태를 바꾸기 전에 거부한다.
 - save는 canonical lowercase source/hash, exact schema/field/command shape와 ordered journal만 받는다. source가
-  다르거나 replay 결과가 final hash와 다르면 title action을 열지 않는다.
+  다르거나 replay 결과가 final hash와 다르면 validated `이어하기`를 열지 않는다.
 - `ProductCampaign`과 exact prior `FIRST_LIGHT`만 product continuation route로 허용한다. 다른 개발 route,
-  형식 손상·지원하지 않는 schema/version·source/hash/replay 불일치·I/O 실패 save는 원본을 바꾸지 않고
-  `새 게임`과 `이어하기`를 모두 차단한다.
+  형식 손상·지원하지 않는 schema/version·source/hash/replay 불일치처럼 raw bytes를 읽을 수 있는 save는
+  `이어하기`를 차단하고 확인형 `새 게임`만 연다. I/O 실패는 두 action을 모두 차단한다.
 - active event·duty는 Core journal에서 exact replay한다. undelivered pending transition과 draft는 shared
   Core predicate가 capture와 title probe에서 함께 차단한다. command-bearing progress 외에는 first
   chapter exact minute의 drained zero-command initial active `c0` 또는 closed-idle `c1`만 허용한다. Session은
@@ -201,9 +205,11 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
   interaction만 허용한다. 성공 final은 epilogue completed, 실패 final은 epilogue never-started여야 한다.
   prior v1/v2 completion, partial route와 nonterminal cursor는 fail-closed한다. terminal callback overrun은
   authoritative completion minute에서 폐기해 저장을 막는 frame debt로 남기지 않는다.
-- completed title만 기존 New Game action을 함께 연다. 이 action은 completed journal을 rewind하지 않고
-  missing-save와 같은 canonical bootstrap을 사용하며, saveable product exit 전까지 terminal bytes를
-  바꾸지 않는다. in-progress와 blocked save의 New Game은 현재 계속 차단한다.
+- completed title의 New Game은 completed journal을 rewind하지 않고 missing-save와 같은 canonical
+  bootstrap을 즉시 사용하며, saveable product exit 전까지 terminal bytes를 바꾸지 않는다. in-progress와
+  readable blocked save는 typed reset action을 함께 연다. 첫 activation은 presentation만 confirm으로
+  바꾸고, 두 번째 activation의 raw sibling backup이 성공한 뒤에만 같은 canonical bootstrap을 사용한다.
+  backup 실패는 continuation, ownership, primary bytes와 confirm title을 그대로 둔다.
 - Main은 cached title availability를 handler에서 다시 검사해 stale/programmatic action도 상태 변경 전에
   거부한다.
 - 이미 닫힌 modal처럼 stale하지만 무해한 요청은 명시적인 no-op으로만 다룬다.
@@ -224,10 +230,11 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
 가장 가까운 unit/story/checkpoint에서 시작하고, 완료 전 `./dev check`로 current root graph의 Debug
 build와 기본 자동 회귀를 닫는다. 이 명령은 no-arg 제품 title과 명시적 technical fixture entry smoke도
 포함하며, Core의 누적 8장 stable replay와 pending fail-closed, 같은 save path의
-initial briefing create→fresh Continue→`FLOOD_ISOLATION_TEST` write→fresh Continue→`SECOND_HEART` result
-write→fresh Continue→`SECOND_SOURCE` briefing write, exact prior `FIRST_LIGHT` v1 Continue→current v3 write와
-성공 8장 terminal create→fresh Continue→`Ended`·terminal write; fresh completed title→New Game→initial
-write→fresh Continue, blocked save 상태를
+initial briefing create→non-saveable draft exit의 prior bytes 보존→fresh Continue와 safe write,
+진행 저장의 confirm→backup 실패 차단→raw sibling backup→initial write→fresh Continue,
+`FLOOD_ISOLATION_TEST`→`SECOND_HEART` result→`SECOND_SOURCE` briefing write/Continue, exact prior
+`FIRST_LIGHT` v1 Continue→current v3 write와 성공 8장 terminal create→fresh Continue→`Ended`·terminal write,
+fresh completed title→New Game→initial write→fresh Continue, readable blocked reset 확인과 I/O 차단 상태를
 검사한다. root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 포함하지 않는다. 해당
 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
 

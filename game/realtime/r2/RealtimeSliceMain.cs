@@ -218,11 +218,55 @@ internal sealed partial class RealtimeSliceMain : Control
     {
         if (_launch.Kind != RealtimeLaunchKind.ProductTitle ||
             _session is not null ||
-            _productTitlePresentation?.CanStartNewGame != true)
+            _productTitlePresentation is not RealtimeProductTitlePresentation
+                presentation ||
+            !presentation.CanStartNewGame)
         {
             throw new InvalidOperationException(
                 "New Game is available only from the product title.");
         }
+
+        switch (presentation.NewGameAction)
+        {
+            case RealtimeProductNewGameAction.Reset:
+                _productTitlePresentation = presentation with
+                {
+                    Status = "새 게임을 한 번 더 선택해 확인하세요.",
+                    Detail =
+                        "원본 저장을 별도 백업 파일로 보존한 뒤 첫 장부터 시작합니다.",
+                    NewGameAction = RealtimeProductNewGameAction.ConfirmReset,
+                };
+                _ui!.ShowProductTitle(_productTitlePresentation);
+                return;
+            case RealtimeProductNewGameAction.ConfirmReset:
+                try
+                {
+                    _ = RealtimeCampaignSaveStore.CreateUniqueSiblingBackup(
+                        ResolveSavePath());
+                }
+                catch (Exception exception) when (
+                    exception is IOException or UnauthorizedAccessException or
+                        ArgumentException or NotSupportedException)
+                {
+                    GD.PushError($"R2 progress backup failed: {exception.Message}");
+                    _productTitlePresentation = presentation with
+                    {
+                        Status = "원본 저장을 백업하지 못했습니다.",
+                        Detail = presentation.CanContinue
+                            ? "원본을 바꾸지 않았습니다. 다시 시도하거나 이어하기를 선택하세요."
+                            : "원본을 바꾸지 않았습니다. 새 게임을 다시 선택해 시도하세요.",
+                    };
+                    _ui!.ShowProductTitle(_productTitlePresentation);
+                    return;
+                }
+                break;
+            case RealtimeProductNewGameAction.Immediate:
+                break;
+            default:
+                throw new InvalidOperationException(
+                    "The product title does not expose a New Game action.");
+        }
+
         _progressPersistenceOwnership = ProgressPersistenceOwnership.Product;
         _launch = RealtimeLaunchSelection.Native(
             RealtimeNativeRouteCatalog.ProductCampaign);
@@ -263,23 +307,25 @@ internal sealed partial class RealtimeSliceMain : Control
                 "새로운 청류시 운영을 시작할 준비가 됐습니다.",
                 "저장된 진행이 없어 이어하기를 사용할 수 없습니다. 새 게임을 시작하세요.",
                 CanContinue: false,
-                CanStartNewGame: true);
+                NewGameAction: RealtimeProductNewGameAction.Immediate);
         }
         if (load.Status != RealtimeCampaignSaveLoadStatus.Loaded || load.Save is null)
         {
             string reason = load.Status switch
             {
                 RealtimeCampaignSaveLoadStatus.Unsupported =>
-                    "이 버전에서 지원하지 않는 저장입니다. 원본을 보존하기 위해 시작을 차단했습니다.",
+                    "이 버전에서 지원하지 않는 저장입니다. 새 게임을 선택하면 원본 백업 확인 단계가 열립니다.",
                 RealtimeCampaignSaveLoadStatus.IoFailure =>
                     "저장 파일을 읽을 수 없습니다. 원본을 바꾸지 않았습니다.",
-                _ => "저장 파일이 손상됐습니다. 원본을 보존하기 위해 시작을 차단했습니다.",
+                _ => "저장 파일이 손상됐습니다. 새 게임을 선택하면 원본 백업 확인 단계가 열립니다.",
             };
             return new RealtimeProductTitlePresentation(
                 "저장된 진행을 확인하지 못했습니다.",
                 reason,
                 CanContinue: false,
-                CanStartNewGame: false);
+                NewGameAction: load.Status == RealtimeCampaignSaveLoadStatus.IoFailure
+                    ? RealtimeProductNewGameAction.Unavailable
+                    : RealtimeProductNewGameAction.Reset);
         }
 
         try
@@ -319,10 +365,14 @@ internal sealed partial class RealtimeSliceMain : Control
                         "새 게임은 첫 장부터 시작하며 저장 가능한 지점에서 " +
                         "정상 종료할 때 이 저장을 교체합니다."
                     : resumePlan.ActiveStoryModalId is null
-                        ? "이어하기는 paused 상태로 열립니다."
-                        : "저장된 story를 먼저 열고, 닫으면 paused 상태로 이어집니다."),
+                        ? "이어하기는 paused 상태로 열립니다. " +
+                            "새 게임은 원본 백업 확인 후 첫 장부터 시작합니다."
+                        : "저장된 story를 먼저 열고, 닫으면 paused 상태로 이어집니다. " +
+                            "새 게임은 원본 백업 확인 후 첫 장부터 시작합니다."),
                 CanContinue: true,
-                CanStartNewGame: completed);
+                NewGameAction: completed
+                    ? RealtimeProductNewGameAction.Immediate
+                    : RealtimeProductNewGameAction.Reset);
         }
         catch (Exception exception) when (
             exception is RealtimeCampaignPersistenceException or
@@ -330,9 +380,9 @@ internal sealed partial class RealtimeSliceMain : Control
         {
             return new RealtimeProductTitlePresentation(
                 "저장된 진행이 현재 콘텐츠와 일치하지 않습니다.",
-                "원본을 바꾸지 않았습니다. 이 scope에서는 새 게임 덮어쓰기도 차단됩니다.",
+                "원본을 바꾸지 않았습니다. 새 게임을 선택하면 원본 백업 확인 단계가 열립니다.",
                 CanContinue: false,
-                CanStartNewGame: false);
+                NewGameAction: RealtimeProductNewGameAction.Reset);
         }
     }
 

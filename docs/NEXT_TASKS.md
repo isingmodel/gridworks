@@ -29,8 +29,9 @@
   full `ProductCampaign`의 current-v3 exact terminal 완료도 저장하며 fresh Continue는 epilogue 재생 없이
   `Ended` read-only world를 연다. completed title의 `새 게임`은 기존 canonical bootstrap으로 첫 장부터 다시
   시작하고 saveable 정상 exit가 same slot을 새 진행으로 교체한다. 명시적 chapter/through/fixture 개발
-  실행은 product save를 읽거나 쓰지 않는다. safe-point reset/recovery UI, product audio·settings, current
-  R2 패키지와 공식 UX 점수는 없다.
+  실행은 product save를 읽거나 쓰지 않는다. non-saveable 정상 exit는 직전 bytes를 보존하고 다음 safe
+  exit만 갱신한다. in-progress와 readable blocked save는 확인→raw sibling backup 뒤 canonical 새 게임을
+  시작하며 I/O failure는 차단한다. product audio·settings, current R2 패키지와 공식 UX 점수는 없다.
 
 다음 scope는 [current R2 개발 구조](ARCHITECTURE.md)의 단일 권위를 따라야 한다. 기존 규칙으로 장을
 연결할 때는 content/schedule과 native route endpoint를 전진시키고 generic loader/story flow를 유지한다.
@@ -39,24 +40,7 @@
 
 ## 권장 순서
 
-### 1. safe-point save와 단순 recovery
-
-빠른 제품 경로는 transient queue마다 새 cursor/schema를 추가하지 않는다. 저장할 수 없는 짧은 story/finale
-구간에서 정상 종료하면 기존 atomic save를 그대로 보존하고, 이후 safe point에서 정상 종료할 때 current
-v3로 갱신한다. valid in-progress와 읽을 수 있는 invalid/unsupported/source/replay save는 하나의 명시적
-reset 확인 경로로 묶고, 원본을 unique sibling backup한 뒤 새 게임을 시작한다. 읽을 수 없거나 쓸 수 없는
-I/O failure는 계속 fail-closed한다.
-
-완료 기준:
-
-- non-saveable transient의 정상 tree exit는 직전 valid bytes를 손상시키지 않음
-- 다음 safe point의 정상 tree exit는 current v3로 갱신되고 fresh `이어하기`가 그 상태를 복원
-- in-progress v1/v2 read와 current-v3 write, current-v3-only terminal 회귀 유지
-- valid in-progress와 readable invalid/unsupported/source/replay save는 같은 확인·backup·reset seam 사용
-- I/O failure는 원본을 보존하고 두 action을 차단
-- 새 transient cursor/schema와 migration matrix 없음
-
-### 2. 시청각·설정·조작성·접근성 마감
+### 1. 시청각·설정·조작성·접근성 마감
 
 현재 G3 적용을 출발점으로 정상·공사·폭염·범람·비상·보호정지·냉각·복귀 화면을 실제 플레이에서
 검수한다. 아직 없는 current R2 product audio와 player settings surface를 먼저 구현한다. 과거 V2의
@@ -78,7 +62,7 @@ I/O failure는 계속 fail-closed한다.
 
 1.0의 audio는 non-voice ambient와 interaction/state cue 범위다. 음성 연기는 이 단계에 포함하지 않는다.
 
-### 3. current R2 fresh-install 후보와 전체 E2E
+### 2. current R2 fresh-install 후보와 전체 E2E
 
 과거 V2 내부 패키지가 아니라 current R2 전체 여정이 들어 있는 평가용 fresh-install 후보를 만든다.
 서명·공증·공개 배포는 아직 하지 않지만, 빈 user-data의 별도 설치 위치에서 production 입력만으로 전체
@@ -90,6 +74,7 @@ packager, finalized manifest와 manifest verifier의 권위를 함께 소유한�
 - clean build의 current R2 package와 빈 user-data 설치 검사
 - title→8장→finale→epilogue→완료 저장 재개와 completed `새 게임`의 production E2E
 - 진행 중 저장→프로세스 종료→동일 후보의 fresh process 재개
+- non-saveable exit의 prior-save 보존과 readable-save backup/reset을 packaged runtime에서 재검증
 - settings 변경→동일 후보의 fresh process 재실행→UI scale·Reduce Motion·volume/mute 값 복원
 - 개발 fixture와 checkpoint가 명시적 인자 없이는 평가 여정에 섞이지 않음
 - source commit, package bytes/tree, target OS/runtime, 기본 settings와 save/settings 경로를 finalized candidate
@@ -97,10 +82,10 @@ packager, finalized manifest와 manifest verifier의 권위를 함께 소유한�
 - candidate packager와 manifest verifier가 누락·변조·다른 source/package에서 fail-closed
 - capture 중 package contents가 바뀌면 기존 session을 폐기하고 새 candidate/session을 만듦
 
-### 4. score-bearing 평가 권위와 공식 LLM-as-a-judge
+### 3. score-bearing 평가 권위와 공식 LLM-as-a-judge
 
 현재 `tools/commercial-ux/native/`는 구조·거부 경로를 위한 non-score 기준선이므로 그대로 공식 점수를
-내지 않는다. 3번의 finalized candidate를 소비하는 versioned evaluation-session authority, native
+내지 않는다. 2번의 finalized candidate를 소비하는 versioned evaluation-session authority, native
 capture, judge input, evidence verifier, deterministic hard-gate oracle과 score aggregator를 current
 R2용으로 구현·검증한다. 그 다음 새 설치 cold journey와 고정 coverage journey를 수집한다.
 
@@ -119,7 +104,7 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 검증 가능한 score-bearing execution authority가 없으면 capture와 judgment는 non-score로만 보존하고
 `CommercialUXProxy = null`로 닫는다. 나중에 영수증을 붙여 공식 session으로 승격하지 않는다.
 
-### 5. 출시 준비와 배포 승인
+### 4. 출시 준비와 배포 승인
 
 평가에 사용한 current R2 후보의 source와 product payload를 유지한 배포 후보를 준비한다. 서명·공증이
 추가하는 wrapper·metadata 차이는 별도 allowlist와 deterministic 검사로 한정한다. 내부 평가 package의
@@ -131,7 +116,7 @@ rubric·hard gate를 모두 만족한 `CommercialUXProxy >= 87`이 될 때까지
 - 라이선스·자산 권리·고지 검토
 - 평가 후보와 배포 후보의 차이가 허용된 signing/notarization metadata뿐임을 재검증
 - signed/notarized artifact를 빈 user-data에 fresh-install해 title boot와 기본 입력 smoke 재검증
-- product payload나 gameplay-affecting contents가 달라지면 3번 candidate와 4번 평가 session을 다시 생성
+- product payload나 gameplay-affecting contents가 달라지면 2번 candidate와 3번 평가 session을 다시 생성
 - Developer ID 서명·공증과 공개 출시 여부의 명시적 소유자 승인
 
 ## 테스트 선택 원칙

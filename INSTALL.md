@@ -9,8 +9,8 @@ current-v3 terminal save가 있으면 `이어하기`가 활성화된다. termina
 모든 장의 stable 상태, story-idle active event·duty,
 zero-command exact initial briefing, exact-minute active `EventStory | DecisionWindowStory`와 bounded
 non-final result→next briefing, full `ProductCampaign`의 exact terminal 완료 save/Continue는 구현됐다.
-safe-point reset/recovery와 설치
-패키지는 아직 없다. 과거 V2의 저장 파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다.
+non-saveable 정상 종료의 prior-save 보존과 readable save의 확인·backup·reset도 구현됐다. 설치 패키지는
+아직 없다. 과거 V2의 저장 파일과 내부 macOS 후보를 current R2 기능으로 간주하지 않는다.
 
 ## 요구 환경
 
@@ -41,7 +41,8 @@ safe-point reset/recovery와 설치
 
 이 명령은 Godot user argument 없이 기본 장면을 열어 제품 title을 재현한다. 저장 파일이 없으면
 `새 게임`이 `FIRST_LIGHT`→`LONGEST_NIGHT` 누적 8장을 시작한다. 유효한 journal-restorable 진행 저장이
-있으면 새 게임을 차단하고 `이어하기`에서 같은 Core 상태를 paused로 복원한다. current v3의 exact
+있으면 `이어하기`에서 같은 Core 상태를 paused로 복원하거나, 확인형 `새 게임`으로 원본을 백업한 뒤
+처음부터 시작할 수 있다. current v3의 exact
 terminal 완료 저장이면 `이어하기`가 같은 완료 world/outcome을 `Ended` read-only 화면으로 복원하고,
 `새 게임`은 canonical 8장을 첫 briefing부터 다시 시작한다. 선택만으로 terminal bytes를 바꾸지 않으며
 saveable 지점의 정상 종료가 same slot을 새 진행으로 교체한다.
@@ -86,11 +87,12 @@ lifecycle은 `./dev play product`에서 검증한다.
 
 `./dev check`는 current root solution, RealtimeChecks의 누적 8장 stable replay와 pending fail-closed,
 CommercialChecks, 세 Python 회귀, no-arg 제품 title과 명시적 fixture entry smoke, 같은 save path의
-initial briefing create→fresh Continue→`FLOOD_ISOLATION_TEST` write→fresh Continue→`SECOND_HEART` result
-write→fresh Continue→`SECOND_SOURCE` briefing write, 직전 exact `FIRST_LIGHT` v1 Continue→current v3 write,
-성공 8장 terminal create→fresh Continue→`Ended`·terminal write; fresh completed title→`새 게임`→
-initial write→fresh Continue,
-invalid/unsupported-schema/I/O 실패 title 상태와 두 named checkpoint를 묶은 기본 회귀다. 한 화면
+initial briefing create→non-saveable draft exit의 byte-exact 보존→fresh Continue와 safe write,
+진행 저장의 확인→backup 실패 차단→byte-exact sibling backup→initial write→fresh Continue,
+`FLOOD_ISOLATION_TEST`→`SECOND_HEART` result→`SECOND_SOURCE` briefing write/Continue, 직전 exact
+`FIRST_LIGHT` v1 Continue→current v3 write, 성공 8장 terminal create→fresh Continue→`Ended`·terminal write,
+fresh completed title→`새 게임`→initial write→fresh Continue, invalid/unsupported reset 확인과 I/O 실패
+차단, 두 named checkpoint를 묶은 기본 회귀다. 한 화면
 상태나 story part를 조사할 때는 더 작은 `checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는
 `./dev help`에서 확인한다.
 
@@ -137,11 +139,19 @@ title의 파일 상태 정책은 다음과 같다.
 
 - 저장 파일 없음: `이어하기` disabled, `새 게임` enabled
 - exact current `ProductCampaign | FIRST_LIGHT` source의 journal-restorable in-progress v1/v2/v3 save:
-  `이어하기` enabled, `새 게임` disabled
+  `이어하기` enabled, 확인형 `새 게임` enabled
 - current v3 full `ProductCampaign` exact terminal completion: 완료 문구와 함께 `이어하기` enabled,
   `새 게임` enabled; crafted prior v1/v2 completion은 invalid로 차단
-- 다른 개발 route·형식 손상·지원하지 않는 schema/version·source/hash/replay 불일치·I/O 실패:
-  두 action disabled, 원본 bytes 보존
+- 다른 개발 route·형식 손상·지원하지 않는 schema/version·source/hash/replay 불일치처럼 raw bytes를
+  읽을 수 있는 저장: `이어하기` disabled, 확인형 `새 게임` enabled
+- I/O 실패: 두 action disabled, 원본 보존
+
+확인형 `새 게임`의 첫 activation은 title 문구와 focus만 확인 상태로 바꾸며 session, write ownership,
+primary bytes와 유효한 `이어하기`를 그대로 둔다. 두 번째 activation은
+`<save>.reset-<32자리 GUID>.bak` sibling에 원본 raw bytes를 temp+flush+non-overwrite move로 보존한 뒤에만
+canonical `ProductCampaign`을 시작한다. backup을 읽거나 쓸 수 없으면 확인 title에 남고 primary와 기존
+continuation을 바꾸지 않는다. completed save와 저장 파일 없음의 `새 게임`은 확인 없이 즉시 시작한다.
+backup browser/restore/delete UI는 제공하지 않는다.
 
 `이어하기`는 exact clock·cash·world·construction·journal/hash를 되살린다. story-idle과 prior v1은
 PlayerPaused·Normal·no-modal로 열고, supported active v2/v3 story는 같은 authored modal을 AutoPaused로
@@ -156,15 +166,15 @@ selection과 fractional frame remainder는 복원하지 않는다.
 exact-minute active in-chapter story, bounded non-final result→next briefing handoff 또는 full campaign의
 exact terminal 완료를 저장할 수 있다. terminal 진행 중인 final result와 city report/medical witness/
 closing은 저장하지 않는다. undelivered pending transition, general queued story suffix와 crash journal도
-아직 저장하지 않는다. prior v1/v2 save는 probe/restore 때 원본을 보존하고, Continue 뒤 정상 종료 때 원
-route의 current v3로 쓴다. 이후 그 v3도 같은 continuation source로 읽는다. 유효 save의 새
-게임 덮어쓰기 확인, 삭제, migration/recovery UI도 없다. completed save가 아닌 진행을 초기화해야 하면
-앱을 종료한 상태에서 current save를 별도 위치로 백업·이동한다. 명시적 `chapter`, `through`, `fixture` 개발 명령은 product
-save를 읽거나 갱신하지 않는다.
+저장하지 않는다. 이 non-saveable 상태의 정상 tree exit는 직전 primary bytes를 건드리지 않고, 이후
+saveable 상태의 정상 exit만 current v3로 갱신한다. prior v1/v2 save는 probe/restore 때 원본을 보존하고,
+Continue 뒤 정상 종료 때 원 route의 current v3로 쓴다. 이후 그 v3도 같은 continuation source로 읽는다.
+유효 save의 새 게임 덮어쓰기 확인과 raw backup은 지원하지만 migration, backup restore/delete/browser
+UI는 없다. 명시적 `chapter`, `through`, `fixture` 개발 명령은 product save를 읽거나 갱신하지 않는다.
 
 Godot user-data에 과거 V2의 `release-campaign-save-v3.json`이나 `settings.json`이 남아 있어도 current R2
 권위가 아니다. 빈 user-data를 검사할 때 기존 파일을 삭제하거나 덮어쓰지 말고 별도 폴더로 옮겨
-백업한다. 남은 save 범위와 recovery 정책은 [남은 작업](docs/NEXT_TASKS.md)의 후속 단계다.
+백업한다. 남은 transient cursor와 backup 관리 UI는 현재 제품 범위 밖이다.
 
 ## 패키지와 공개 배포
 

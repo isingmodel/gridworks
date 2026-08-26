@@ -3,11 +3,23 @@ using Godot;
 
 namespace Gridworks.Game.Realtime.UI;
 
+internal enum RealtimeProductNewGameAction
+{
+    Unavailable,
+    Immediate,
+    Reset,
+    ConfirmReset,
+}
+
 internal sealed record RealtimeProductTitlePresentation(
     string Status,
     string Detail,
     bool CanContinue,
-    bool CanStartNewGame);
+    RealtimeProductNewGameAction NewGameAction)
+{
+    internal bool CanStartNewGame =>
+        NewGameAction != RealtimeProductNewGameAction.Unavailable;
+}
 
 /// <summary>
 /// Current-R2 product entry surface. Campaign bootstrap and persistence remain
@@ -69,10 +81,21 @@ internal sealed partial class RealtimeProductTitle : Control
 
         _continue.Disabled = !presentation.CanContinue;
         _newGame.Disabled = !presentation.CanStartNewGame;
+        _newGame.Text = presentation.NewGameAction ==
+            RealtimeProductNewGameAction.ConfirmReset
+                ? "새 게임 시작 확인"
+                : "새 게임";
         _continue.AccessibilityDescription = presentation.Detail;
-        _newGame.AccessibilityDescription = presentation.CanStartNewGame
-            ? "첫 임무 안내를 열고 새 게임을 시작합니다."
-            : presentation.Detail;
+        _newGame.AccessibilityDescription = presentation.NewGameAction switch
+        {
+            RealtimeProductNewGameAction.Immediate =>
+                "첫 임무 안내를 열고 새 게임을 시작합니다.",
+            RealtimeProductNewGameAction.Reset =>
+                "저장 원본을 백업하기 위한 새 게임 확인 단계를 엽니다.",
+            RealtimeProductNewGameAction.ConfirmReset =>
+                "저장 원본을 백업하고 새 게임 시작을 확인합니다.",
+            _ => presentation.Detail,
+        };
         _continueReason.Text = presentation.Detail;
         _continueReason.AccessibilityName = presentation.Detail;
 
@@ -80,11 +103,14 @@ internal sealed partial class RealtimeProductTitle : Control
             $"{presentation.Status} {presentation.Detail}".Trim();
         Visible = true;
         MouseFilter = MouseFilterEnum.Stop;
-        Control? preferredFocus = presentation.CanContinue
-            ? _continue
-            : presentation.CanStartNewGame
+        Control? preferredFocus = presentation.NewGameAction ==
+            RealtimeProductNewGameAction.ConfirmReset
                 ? _newGame
-                : null;
+                : presentation.CanContinue
+                    ? _continue
+                    : presentation.CanStartNewGame
+                        ? _newGame
+                        : null;
         _focusScope.Activate(preferredFocus);
     }
 

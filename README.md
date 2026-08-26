@@ -9,8 +9,9 @@ finale→세 epilogue card는 누적 native 개발 경로에 연결됐지만 아
 제품 title의 `새 게임`은 누적 8장을 시작하고 모든 장의 stable 진행, story-idle active event·duty와
 exact initial briefing, exact-minute active in-chapter story, non-final result→next briefing handoff
 저장·재개와 full campaign의 exact terminal 완료 저장·재개를 지원한다. completed title에서는 기존
-`새 게임`으로 첫 장부터 다시 시작할 수 있다. safe-point reset/recovery, 제품용 audio·settings,
-출시 패키지와 공식 UX 평가는 남아 있다.
+`새 게임`으로 첫 장부터 다시 시작할 수 있다. 진행 중이거나 읽을 수 있는 비호환 저장도 같은 버튼의
+확인→원본 sibling backup 뒤 첫 장부터 다시 시작할 수 있다. 제품용 audio·settings, 출시 패키지와 공식
+UX 평가는 남아 있다.
 
 ## 30초 현재 상태
 
@@ -18,8 +19,8 @@ exact initial briefing, exact-minute active in-chapter story, non-final result�
 |---|---|
 | 제품 방향 | turn 방식이 아닌 pause·1×·2×·4× 실시간 전력망 운영 |
 | 기본 Godot 장면 | `res://realtime/r2/RealtimeSliceMain.tscn` |
-| 인자 없는 실행 | 제품 title; 저장 파일 없음은 `새 게임`, in-progress는 `이어하기`, current-v3 terminal은 `이어하기`와 `새 게임` 활성 |
-| R2 save/Continue | in-progress는 current v3 write/prior v1·v2 read, terminal은 current v3만 지원; stable/active story/handoff와 full-campaign `Ended` 복원, transient queue·active epilogue cursor 미지원 |
+| 인자 없는 실행 | 제품 title; 저장 파일 없음은 즉시 `새 게임`, in-progress는 `이어하기`와 확인형 `새 게임`, current-v3 terminal은 `이어하기`와 즉시 `새 게임` 활성 |
+| R2 save/Continue | in-progress는 current v3 write/prior v1·v2 read, terminal은 current v3만 지원; stable/active story/handoff와 full-campaign `Ended` 복원, non-saveable exit의 prior bytes 보존과 readable-save backup/reset 지원 |
 | 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
 | R2 native 구현 | `LONGEST_NIGHT`까지 누적 8장, exact finale 뒤 authored epilogue 3장 |
@@ -42,11 +43,13 @@ exact initial briefing, exact-minute active in-chapter story, non-final result�
 stable/active story와 bounded 장 전환을 exact journal replay로 복원한다. full campaign terminal은 current
 v3만 허용하고 `이어하기`에서 epilogue 재생 없이 같은 `Ended` world를 연다. completed title의 `새 게임`은
 기존 canonical bootstrap을 재사용하며 saveable 지점의 정상 종료 전까지 terminal bytes를 보존한다. prior
-v1/v2 terminal은 거부한다. 상세 wire·cursor·title 정책은 [실행 안내](INSTALL.md)가 소유한다.
+v1/v2 terminal은 거부한다. in-progress와 읽을 수 있는 invalid/unsupported/source/replay 저장의 `새 게임`은
+첫 activation에서 확인만 열고, 두 번째 activation에서 원본 raw bytes를 unique sibling backup으로 만든
+뒤 같은 canonical bootstrap을 사용한다. 상세 wire·cursor·title 정책은 [실행 안내](INSTALL.md)가 소유한다.
 
 undelivered pending transition, general queued story suffix와 active final result/epilogue cursor는 의도적인
-non-saveable 구간으로 남기고 직전 safe save를 보존하는 정책을 사용한다. 이 정책의 제품 E2E와 readable
-save의 확인·backup·reset은 아직 없다.
+non-saveable 구간으로 남긴다. 이 구간의 정상 종료는 직전 safe save bytes를 그대로 두며, 다음 saveable
+정상 종료만 primary를 갱신한다. transient cursor/schema를 추가하지 않는다.
 
 ## 게임 경험
 
@@ -106,11 +109,12 @@ current R2의 기본 자동 회귀 명령은 하나다.
 
 이 명령은 current root solution, RealtimeChecks의 누적 8장 stable replay와 pending fail-closed,
 CommercialChecks, 세 Python 회귀, no-arg 제품 title과 명시적 fixture entry smoke, 같은 save path의
-initial briefing create→fresh Continue→`FLOOD_ISOLATION_TEST` write→fresh Continue→`SECOND_HEART`
-result write→fresh Continue→`SECOND_SOURCE` briefing write, 직전 exact `FIRST_LIGHT` v1 Continue→current v3
-write, 성공 8장 terminal create→fresh Continue→`Ended`·terminal write; fresh completed title→`새 게임`→
-initial write→fresh Continue,
-invalid/unsupported-schema/I/O 실패 title smoke와 두 named checkpoint를 실행한다.
+initial briefing create→non-saveable draft exit의 byte-exact 보존→fresh Continue와 safe write→fresh Continue,
+진행 저장의 확인→backup 실패 차단→byte-exact sibling backup→initial write→fresh Continue, 이어지는
+`FLOOD_ISOLATION_TEST`→`SECOND_HEART` result→`SECOND_SOURCE` briefing write/Continue, 직전 exact
+`FIRST_LIGHT` v1 Continue→current v3 write, 성공 8장 terminal create→fresh Continue→`Ended`·terminal write,
+fresh completed title→`새 게임`→initial write→fresh Continue, invalid/unsupported 확인 상태와 I/O 실패
+차단, 두 named checkpoint를 실행한다.
 
 root `Gridworks.sln` 전체의 Release build와 전체 Godot UI harness는 이 기본 명령에 포함되지 않는다.
 해당 검사가 필요한 변경은 active scope의 완료 검사에 별도로 명시한다.
@@ -156,8 +160,7 @@ selector와 checkpoint의 통과는 해당 콘텐츠의 native 도달성, 전체
 배경이 아니다. 현재 R2에는 별도로 제작된 G3 자산 57개가 연결돼 있다. 출처와 사용 경계는
 [자산 안내](ASSET_MANIFEST.md)에 기록한다.
 
-현재 R2에는 제품용 audio/settings, transient 구간에서 직전 safe save를 보존하고 다음 safe point에서
-갱신하는 제품 E2E와 readable save의 확인·backup·reset,
+현재 R2에는 제품용 audio/settings, transient cursor/schema와 backup browser/restore/delete UI,
 서명·공증된 패키지, 지원 OS 검증,
 사람 미감·사용성 검토, 한국어·전력설비 전문 검토 또는 공개 출시 승인이 없다. 저장소를
 열람할 수 있다는 사실은 자산의 재사용·재배포 허가를 뜻하지 않는다.

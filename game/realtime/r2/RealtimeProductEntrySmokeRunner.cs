@@ -24,6 +24,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
     private const string SaveCreatePrefix = "--save-create=";
     private const string SaveCompletedCreatePrefix = "--save-completed-create=";
     private const string SaveCompletedNewGamePrefix = "--save-completed-new-game=";
+    private const string SaveNonSaveableExitPrefix = "--save-nonsaveable-exit=";
+    private const string SaveResetPrefix = "--save-reset=";
     private const string SaveContinuePrefix = "--save-continue=";
     private const string SaveLegacyContinuePrefix = "--save-legacy-continue=";
     private const string SaveInvalidPrefix = "--save-invalid=";
@@ -37,6 +39,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         CreateSave,
         CreateCompletedSave,
         CompletedNewGame,
+        NonSaveableExit,
+        ResetSave,
         ContinueSave,
         LegacyContinueSave,
         InvalidSave,
@@ -57,6 +61,11 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         int ClosedStoryCount,
         bool Terminal);
 
+    private sealed record ResetExpectation(
+        string BackupPath,
+        byte[] OriginalBytes,
+        SaveExpectation ExpectedWrite);
+
     public override void _Ready() => _ = RunAsync();
 
     private async Task RunAsync()
@@ -66,6 +75,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         EntryRequest? request = null;
         byte[]? guardedBytes = null;
         byte[]? priorSaveBytes = null;
+        byte[]? preservedSaveBytes = null;
+        ResetExpectation? resetExpectation = null;
         try
         {
             request = ParseRequest(OS.GetCmdlineUserArgs());
@@ -115,6 +126,20 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                         request.SavePath!,
                         priorSaveBytes);
                     break;
+                case EntryMode.NonSaveableExit:
+                    preservedSaveBytes = await ValidateNonSaveableExit(
+                        viewport,
+                        slice,
+                        request.SavePath!);
+                    break;
+                case EntryMode.ResetSave:
+                    resetExpectation = await ValidateReset(
+                        viewport,
+                        slice,
+                        request.SavePath!);
+                    priorSaveBytes = resetExpectation.OriginalBytes;
+                    expectedWrite = resetExpectation.ExpectedWrite;
+                    break;
                 case EntryMode.ContinueSave:
                     expectedWrite = await ValidateContinue(
                         viewport,
@@ -132,7 +157,11 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 case EntryMode.InvalidSave:
                 case EntryMode.UnsupportedSave:
                 case EntryMode.IoFailureSave:
-                    await ValidateBlockedSaveTitle(viewport, slice, request.Mode);
+                    await ValidateBlockedSaveTitle(
+                        viewport,
+                        slice,
+                        request.Mode,
+                        request.SavePath!);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
@@ -155,6 +184,17 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     expectedWrite,
                     priorSaveBytes);
             }
+            if (preservedSaveBytes is not null)
+            {
+                Require(File.ReadAllBytes(request.SavePath!).SequenceEqual(
+                        preservedSaveBytes),
+                    "A non-saveable normal tree exit changed the prior save bytes.");
+            }
+            if (resetExpectation is not null)
+            {
+                ValidateAndDeleteResetBackup(resetExpectation);
+                resetExpectation = null;
+            }
             ValidateGuardedSavePreserved(request, guardedBytes);
 
             GD.Print(request.Mode switch
@@ -169,6 +209,10 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     "REALTIME_PRODUCT_ENTRY_SAVE_COMPLETED_CREATE_PASS",
                 EntryMode.CompletedNewGame =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_COMPLETED_NEW_GAME_PASS",
+                EntryMode.NonSaveableExit =>
+                    "REALTIME_PRODUCT_ENTRY_SAVE_NON_SAVEABLE_EXIT_PASS",
+                EntryMode.ResetSave =>
+                    "REALTIME_PRODUCT_ENTRY_SAVE_RESET_PASS",
                 EntryMode.ContinueSave =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_CONTINUE_PASS",
                 EntryMode.LegacyContinueSave =>
@@ -202,6 +246,17 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             catch (IOException)
             {
                 // The isolated path is best-effort cleanup after the smoke outcome.
+            }
+        }
+        if (resetExpectation is not null)
+        {
+            try
+            {
+                File.Delete(resetExpectation.BackupPath);
+            }
+            catch (IOException)
+            {
+                // The exact smoke-created backup is best-effort cleanup on failure.
             }
         }
         ScheduleQuit(exitCode);
@@ -246,6 +301,20 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         {
             mode = EntryMode.CompletedNewGame;
             path = arguments[0][SaveCompletedNewGamePrefix.Length..];
+        }
+        else if (arguments[0].StartsWith(
+                     SaveNonSaveableExitPrefix,
+                     StringComparison.Ordinal))
+        {
+            mode = EntryMode.NonSaveableExit;
+            path = arguments[0][SaveNonSaveableExitPrefix.Length..];
+        }
+        else if (arguments[0].StartsWith(
+                     SaveResetPrefix,
+                     StringComparison.Ordinal))
+        {
+            mode = EntryMode.ResetSave;
+            path = arguments[0][SaveResetPrefix.Length..];
         }
         else if (arguments[0].StartsWith(SaveCreatePrefix, StringComparison.Ordinal))
         {
@@ -579,6 +648,204 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         return initial;
     }
 
+    private async Task<byte[]> ValidateNonSaveableExit(
+        SubViewport viewport,
+        RealtimeSliceMain slice,
+        string savePath)
+    {
+        byte[] originalBytes = File.ReadAllBytes(savePath);
+        RealtimeCampaignSaveLoadResult load = RealtimeCampaignSaveStore.Load(savePath);
+        Require(load is
+                {
+                    Status: RealtimeCampaignSaveLoadStatus.Loaded,
+                    Save: not null,
+                },
+            "The non-saveable exit probe could not read its prior save.");
+        RealtimeCampaignSave save = load.Save!;
+        RealtimeSliceData data = RealtimeSliceResources.LoadNativeRelease(
+            typeof(RealtimeSliceMain).Assembly,
+            RealtimeNativeRouteCatalog.ProductCampaign);
+        RealtimeCampaignRestoreResult restore = RealtimeCampaignSaveCodec.Restore(
+            data.RequireSaveSourceIdentity(),
+            data.Campaign,
+            data.World,
+            save);
+        RealtimeProgressResumePlan plan = RealtimeSession.ValidateProgressResume(
+            data,
+            restore);
+        Require(plan.Kind == RealtimeProgressResumeKind.InProgress &&
+                save.Commands.Count == 0 &&
+                save.ClosedStoryCount == 0,
+            "The non-saveable exit probe requires fresh c0 progress.");
+
+        RealtimeUiRoot ui = slice.UiForSmoke;
+        RealtimeProductTitle title = ui.ProductTitleForSmoke;
+        Require(!title.ContinueButton.Disabled &&
+                !title.NewGameButton.Disabled &&
+                ReferenceEquals(ui.FocusOwnerForSmoke, title.ContinueButton),
+            "Fresh c0 did not expose Continue and reset New Game.");
+        PushPrimary(viewport, title.ContinueButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        RealtimeCampaignSnapshot expected = restore.Run.GetSnapshot();
+        Require(slice.HasSessionForSmoke &&
+                !title.Visible &&
+                RealtimeStateCanonicalizer.StructuralEquals(
+                    expected,
+                    slice.CoreSnapshot),
+            "The non-saveable exit probe did not restore exact c0 progress.");
+
+        RealtimeChapterStoryModalRequest story =
+            slice.ActiveChapterStoryModalForSmoke ??
+            throw new InvalidOperationException(
+                "The non-saveable exit probe did not restore the initial briefing.");
+        Require(IsInitialBriefing(story) &&
+                slice.ClosePresentedStoryModalForSmoke() is null,
+            "The non-saveable exit probe could not close the initial briefing.");
+        (string toolId, MapPoint position) = slice.AcceptedNodeDraftForSmoke();
+        RequireAccepted(slice.ApplyIntentForSmoke(
+            RealtimeR2Intent.SelectBuildTool(RealtimeTool.BuildNode, toolId)),
+            "select a node tool for the non-saveable exit probe");
+        RequireAccepted(slice.ApplyIntentForSmoke(new RealtimeR2Intent(
+            RealtimeR2IntentKind.SetNodeDraft,
+            FirstId: toolId[RealtimeR2Ids.NodeToolPrefix.Length..],
+            Position: position)),
+            "place a non-saveable node draft");
+        Require(slice.CoreSnapshot.Construction.NodeDraft is not null,
+            "The non-saveable exit probe did not retain its node draft.");
+        bool captureRejected = false;
+        try
+        {
+            _ = slice.CaptureProgressForSmoke();
+        }
+        catch (InvalidOperationException)
+        {
+            captureRejected = true;
+        }
+        Require(captureRejected,
+            "A transient node draft unexpectedly became saveable progress.");
+        slice.FreezeAutonomousClockForSmoke();
+        Require(File.ReadAllBytes(savePath).SequenceEqual(originalBytes),
+            "Staging a transient node draft changed the save before tree exit.");
+        return originalBytes;
+    }
+
+    private async Task<ResetExpectation> ValidateReset(
+        SubViewport viewport,
+        RealtimeSliceMain slice,
+        string savePath)
+    {
+        byte[] originalBytes = File.ReadAllBytes(savePath);
+        RealtimeCampaignSaveLoadResult load = RealtimeCampaignSaveStore.Load(savePath);
+        Require(load is
+                {
+                    Status: RealtimeCampaignSaveLoadStatus.Loaded,
+                    Save: not null,
+                },
+            "The reset probe could not read its prior save.");
+        RealtimeCampaignSave save = load.Save!;
+        RealtimeSliceData data = RealtimeSliceResources.LoadNativeRelease(
+            typeof(RealtimeSliceMain).Assembly,
+            RealtimeNativeRouteCatalog.ProductCampaign);
+        RealtimeCampaignRestoreResult restore = RealtimeCampaignSaveCodec.Restore(
+            data.RequireSaveSourceIdentity(),
+            data.Campaign,
+            data.World,
+            save);
+        Require(RealtimeSession.ValidateProgressResume(data, restore).Kind ==
+                    RealtimeProgressResumeKind.InProgress,
+            "The reset probe requires an in-progress product save.");
+
+        RealtimeProductTitle title = slice.UiForSmoke.ProductTitleForSmoke;
+        Require(!title.ContinueButton.Disabled &&
+                !title.NewGameButton.Disabled &&
+                !slice.HasSessionForSmoke,
+            "An in-progress save did not expose its reset action.");
+        string beforeConfirmationDetail = title.DetailText;
+        string[] beforeBackups = EnumerateResetBackups(savePath);
+
+        PushPrimary(viewport, title.NewGameButton.GetGlobalRect().GetCenter());
+        await SettleFrames(2);
+        Require(!slice.HasSessionForSmoke &&
+                !slice.OwnsProductProgressForSmoke &&
+                title.Visible &&
+                !title.NewGameButton.Disabled &&
+                !string.Equals(
+                    title.DetailText,
+                    beforeConfirmationDetail,
+                    StringComparison.Ordinal) &&
+                File.ReadAllBytes(savePath).SequenceEqual(originalBytes) &&
+                EnumerateResetBackups(savePath).SequenceEqual(beforeBackups),
+            "The first reset activation did not remain a save/session-neutral confirmation.");
+
+        using (FileStream lockedPrimary = new(
+                   savePath,
+                   FileMode.Open,
+                   System.IO.FileAccess.Read,
+                   FileShare.None))
+        {
+            PushPrimary(viewport, title.NewGameButton.GetGlobalRect().GetCenter());
+            await SettleFrames(2);
+            Require(!slice.HasSessionForSmoke &&
+                    !slice.OwnsProductProgressForSmoke &&
+                    title.Visible &&
+                    !title.NewGameButton.Disabled &&
+                    EnumerateResetBackups(savePath).SequenceEqual(beforeBackups),
+                "A failed reset backup did not fail closed at the confirmation title.");
+        }
+        Require(File.ReadAllBytes(savePath).SequenceEqual(originalBytes),
+            "A failed reset backup changed the primary save bytes.");
+
+        PushPrimary(viewport, title.NewGameButton.GetGlobalRect().GetCenter());
+        await SettleFrames(4);
+        string[] afterBackups = EnumerateResetBackups(savePath);
+        string[] createdBackups = afterBackups.Except(
+            beforeBackups,
+            StringComparer.Ordinal).ToArray();
+        Require(createdBackups.Length == 1,
+            "The confirmed reset did not create exactly one sibling backup.");
+        string backupPath = createdBackups[0];
+        Require(File.ReadAllBytes(backupPath).SequenceEqual(originalBytes),
+            "The reset backup is not byte-exact.");
+        Require(File.ReadAllBytes(savePath).SequenceEqual(originalBytes),
+            "Confirmed reset changed the primary save before normal tree exit.");
+        ValidateStartedProductCampaign(slice, title);
+        SaveExpectation initial = PrepareInitialBriefingProgress(slice);
+        return new ResetExpectation(backupPath, originalBytes, initial);
+    }
+
+    private static string[] EnumerateResetBackups(string savePath)
+    {
+        string directory = Path.GetDirectoryName(savePath) ??
+            throw new InvalidOperationException("The reset save has no sibling directory.");
+        string fileName = Path.GetFileName(savePath);
+        string absolutePrefix = Path.Combine(directory, $"{fileName}.reset-");
+        return Directory.GetFiles(directory, $"{fileName}.reset-*.bak")
+            .Where(path =>
+            {
+                if (!path.StartsWith(absolutePrefix, StringComparison.Ordinal) ||
+                    !path.EndsWith(".bak", StringComparison.Ordinal))
+                {
+                    return false;
+                }
+                string suffix = path[
+                    absolutePrefix.Length..^".bak".Length];
+                return Guid.TryParseExact(suffix, "N", out _);
+            })
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+    }
+
+    private static void ValidateAndDeleteResetBackup(ResetExpectation reset)
+    {
+        Require(File.Exists(reset.BackupPath) &&
+                File.ReadAllBytes(reset.BackupPath).SequenceEqual(
+                    reset.OriginalBytes),
+            "The byte-exact reset backup did not survive normal tree exit.");
+        File.Delete(reset.BackupPath);
+        Require(!File.Exists(reset.BackupPath),
+            "The verified reset smoke backup was not cleaned up.");
+    }
+
     private static SaveExpectation PrepareInitialBriefingProgress(
         RealtimeSliceMain slice)
     {
@@ -756,7 +1023,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 !slice.HasSessionForSmoke && title.Visible,
             "A valid save bypassed the fresh product title.");
         Require(!title.ContinueButton.Disabled &&
-                title.NewGameButton.Disabled == !completed &&
+                !title.NewGameButton.Disabled &&
                 ReferenceEquals(ui.FocusOwnerForSmoke, title.ContinueButton),
             "A valid save did not expose its typed title actions and focus Continue.");
         Require(title.DetailText.Contains(
@@ -765,13 +1032,6 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     : "paused",
                 StringComparison.Ordinal),
             "The valid-save title did not disclose its typed resume policy.");
-        if (!completed)
-        {
-            RequireUnavailableTitleActionRejected(
-                slice.RequestNewGameForSmoke,
-                slice,
-                "An in-progress save accepted stale New Game input.");
-        }
 
         PushPrimary(viewport, title.ContinueButton.GetGlobalRect().GetCenter());
         await SettleFrames(4);
@@ -1094,15 +1354,18 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
     private async Task ValidateBlockedSaveTitle(
         SubViewport viewport,
         RealtimeSliceMain slice,
-        EntryMode mode)
+        EntryMode mode,
+        string savePath)
     {
         RealtimeUiRoot ui = slice.UiForSmoke;
         RealtimeProductTitle title = ui.ProductTitleForSmoke;
         Require(slice.LaunchForSmoke.Kind == RealtimeLaunchKind.ProductTitle &&
                 !slice.HasSessionForSmoke && title.Visible,
             "A blocked save bypassed the product title.");
-        Require(title.ContinueButton.Disabled && title.NewGameButton.Disabled,
-            "A blocked save left a destructive title action enabled.");
+        bool resetEligible = mode is EntryMode.InvalidSave or EntryMode.UnsupportedSave;
+        Require(title.ContinueButton.Disabled &&
+                title.NewGameButton.Disabled == !resetEligible,
+            "A guarded save exposed the wrong title actions.");
         string expectedReason = mode switch
         {
             EntryMode.InvalidSave => "손상",
@@ -1115,10 +1378,17 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     title.ContinueButton.AccessibilityDescription,
                     title.DetailText,
                     StringComparison.Ordinal) &&
-                string.Equals(
-                    title.NewGameButton.AccessibilityDescription,
-                    title.DetailText,
-                    StringComparison.Ordinal),
+                (resetEligible
+                    ? title.NewGameButton.AccessibilityDescription.Contains(
+                            "백업",
+                            StringComparison.Ordinal) &&
+                        title.NewGameButton.AccessibilityDescription.Contains(
+                            "확인",
+                            StringComparison.Ordinal)
+                    : string.Equals(
+                        title.NewGameButton.AccessibilityDescription,
+                        title.DetailText,
+                        StringComparison.Ordinal)),
             "A blocked save has no matching visible/accessibility reason.");
         Require(ui.InputRouterForSmoke.ActiveOwner == "product_title" &&
                 ui.InputRouterForSmoke.ActivePriority ==
@@ -1129,16 +1399,33 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             slice.RequestContinueForSmoke,
             slice,
             "A blocked save accepted stale Continue input.");
-        RequireUnavailableTitleActionRejected(
-            slice.RequestNewGameForSmoke,
-            slice,
-            "A blocked save accepted stale New Game input.");
-
         PushPrimary(viewport, title.ContinueButton.GetGlobalRect().GetCenter());
+        if (!resetEligible)
+        {
+            RequireUnavailableTitleActionRejected(
+                slice.RequestNewGameForSmoke,
+                slice,
+                "An I/O-failure save accepted stale New Game input.");
+            PushPrimary(viewport, title.NewGameButton.GetGlobalRect().GetCenter());
+            await SettleFrames(2);
+            Require(!slice.HasSessionForSmoke && title.Visible,
+                "A disabled I/O-failure action started a session.");
+            return;
+        }
+
+        byte[] originalBytes = File.ReadAllBytes(savePath);
+        string initialDetail = title.DetailText;
+        string[] beforeBackups = EnumerateResetBackups(savePath);
         PushPrimary(viewport, title.NewGameButton.GetGlobalRect().GetCenter());
         await SettleFrames(2);
-        Require(!slice.HasSessionForSmoke && title.Visible,
-            "A disabled blocked-save action started a session.");
+        Require(!slice.HasSessionForSmoke &&
+                !slice.OwnsProductProgressForSmoke &&
+                title.Visible &&
+                !title.NewGameButton.Disabled &&
+                !string.Equals(title.DetailText, initialDetail, StringComparison.Ordinal) &&
+                File.ReadAllBytes(savePath).SequenceEqual(originalBytes) &&
+                EnumerateResetBackups(savePath).SequenceEqual(beforeBackups),
+            "A guarded-save first reset activation was not confirmation-only.");
     }
 
     private static void RequireUnavailableTitleActionRejected(

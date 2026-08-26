@@ -32,6 +32,9 @@ internal static class RealtimeTimelinePresenter
                 baseForecast.Events.Any(item =>
                 item.ChapterIndex == snapshot.ChapterIndex &&
                 !item.TemporalProjection.Outcome.PromiseSatisfied);
+            string promiseLoadName = RealtimePresentationText.LoadDisplayName(
+                displayWorld,
+                promise.LoadId);
             RealtimeTimelineSeverity promiseSeverity = defaulted
                 ? RealtimeTimelineSeverity.Warning
                 : promiseRisk && snapshot.PromiseDecision != CommercialPromiseDecision.Defer
@@ -48,6 +51,7 @@ internal static class RealtimeTimelinePresenter
                 "약속 마감",
                 PromiseDecisionDescription(
                     promise,
+                    promiseLoadName,
                     snapshot.PromiseDecision,
                     deadline,
                     locked,
@@ -92,7 +96,7 @@ internal static class RealtimeTimelinePresenter
                 item.EndMinute,
                 eventName,
                 eventName,
-                EventDescription(snapshot, item, eventName),
+                EventDescription(displayWorld, snapshot, item, eventName),
                 safetyRisk || promiseRisk
                     ? RealtimeTimelineSeverity.Critical
                     : RealtimeTimelineSeverity.Advisory,
@@ -175,7 +179,7 @@ internal static class RealtimeTimelinePresenter
                     item.EndMinute,
                     $"현재 초안 기준 예상 · {eventName}",
                     "현재 초안 기준 예상",
-                    $"현재 초안 기준 예상 · {EventDescription(snapshot, item, eventName)}",
+                    $"현재 초안 기준 예상 · {EventDescription(displayWorld, snapshot, item, eventName)}",
                     safetyRisk || promiseRisk
                         ? RealtimeTimelineSeverity.Critical
                         : RealtimeTimelineSeverity.Advisory,
@@ -268,7 +272,7 @@ internal static class RealtimeTimelinePresenter
                 outcome.EndMinute,
                 eventName,
                 eventName,
-                CompletedEventDescription(snapshot, outcome),
+                CompletedEventDescription(displayWorld, snapshot, outcome),
                 outcome.SafetySatisfied && outcome.PromiseSatisfied
                     ? RealtimeTimelineSeverity.Information
                     : RealtimeTimelineSeverity.Critical,
@@ -348,6 +352,67 @@ internal static class RealtimeTimelinePresenter
                 Priority = int.MinValue + 1,
                 TimeLabel = RealtimePresentationText.Time(completion.CompletionMinute),
                 SeverityLabel = "실제 완공 기록",
+            });
+        }
+
+        foreach (RealtimeTransition transition in transitionHistory
+                     .Where(RealtimeThermalPresentation.IsThermalTransition)
+                     .Where(item => item.Minute <= snapshot.Minute &&
+                         string.Equals(
+                             item.ChapterId,
+                             snapshot.Chapter.Content.ChapterId,
+                             StringComparison.Ordinal))
+                     .GroupBy(item => (item.AssetId, item.AssetKind, item.Kind))
+                     .Select(group => group
+                         .OrderByDescending(item => item.Minute)
+                         .ThenBy(item => item.AssetId, StringComparer.Ordinal)
+                         .First())
+                     .OrderBy(item => item.Minute)
+                     .ThenBy(item => item.Kind))
+        {
+            RealtimeThermalTransition thermal =
+                RealtimeThermalPresentation.FromTransition(transition);
+            bool trip = thermal.Kind ==
+                RealtimeThermalTransitionKind.ProtectiveTrip;
+            bool recovered = thermal.Kind is
+                RealtimeThermalTransitionKind.EmergencyCleared or
+                RealtimeThermalTransitionKind.Recovered;
+            items.Add(new RealtimeTimelineItemPresentation(
+                RealtimeR2Ids.ActualThermalMarker(transition),
+                RealtimeTimelineItemKind.ThermalProtection,
+                transition.Minute,
+                null,
+                RealtimePresentationText.ThermalTitle(
+                    displayWorld,
+                    snapshot,
+                    thermal),
+                RealtimePresentationText.AssetDisplayName(
+                    displayWorld,
+                    snapshot,
+                    thermal.AssetId),
+                $"실제 운영 기록 · {RealtimePresentationText.ThermalTitle(
+                    displayWorld,
+                    snapshot,
+                    thermal)}",
+                trip
+                    ? RealtimeTimelineSeverity.Critical
+                    : recovered
+                        ? RealtimeTimelineSeverity.Information
+                        : RealtimeTimelineSeverity.Warning,
+                RealtimeTimelineVisibility.Completed,
+                false,
+                true)
+            {
+                Lane = RealtimeTimelineLane.ThermalProtection,
+                Priority = highestAuthoredPriority < int.MaxValue
+                    ? highestAuthoredPriority + 1
+                    : int.MaxValue,
+                TimeLabel = RealtimePresentationText.Time(transition.Minute),
+                SeverityLabel = trip
+                    ? "실제 보호정지 기록"
+                    : recovered
+                        ? "실제 복귀 기록"
+                        : "실제 비상 운전 기록",
             });
         }
 
@@ -450,6 +515,7 @@ internal static class RealtimeTimelinePresenter
     }
 
     private static string EventDescription(
+        CommercialWorldDefinition displayWorld,
         RealtimeCampaignSnapshot snapshot,
         RealtimeForecastEvent item,
         string eventName)
@@ -458,10 +524,14 @@ internal static class RealtimeTimelinePresenter
         string safety = outcome.SafetySatisfied
             ? "안전 의무 충족 예상"
             : $"안전 의무 {outcome.SafetyUnservedMinutes}분 위험";
-        string promise = snapshot.Chapter.Content.CityPromise is null
+        string promise = snapshot.Chapter.Content.CityPromise is not
+                CommercialCityPromiseDefinition cityPromise ||
+            !RealtimePromisePresentationFacts.HasPromiseDuty(item.OperatingProfile)
             ? string.Empty
             : snapshot.PromiseDecision == CommercialPromiseDecision.Defer
-                ? " · Defer 기준 · 북안 수요 의무 제외"
+                ? $" · Defer 기준 · {RealtimePresentationText.LoadDisplayName(
+                    displayWorld,
+                    cityPromise.LoadId)} 수요 의무 제외"
                 : outcome.PromiseSatisfied
                     ? snapshot.PromiseDecision == CommercialPromiseDecision.Unset
                         ? " · 선택 전 Keep 가정 · 약속 의무 충족 예상"
@@ -475,16 +545,21 @@ internal static class RealtimeTimelinePresenter
     }
 
     private static string CompletedEventDescription(
+        CommercialWorldDefinition displayWorld,
         RealtimeCampaignSnapshot snapshot,
         RealtimeEventOutcome outcome)
     {
         string safety = outcome.SafetySatisfied
             ? "안전 의무 충족"
             : $"안전 의무 {outcome.SafetyUnservedMinutes}분 미공급";
-        string promise = snapshot.Chapter.Content.CityPromise is null
+        string promise = snapshot.Chapter.Content.CityPromise is not
+                CommercialCityPromiseDefinition cityPromise ||
+            !RealtimePromisePresentationFacts.HasPromiseDuty(outcome)
             ? string.Empty
             : snapshot.PromiseDecision == CommercialPromiseDecision.Defer
-                ? " · Defer · 북안 수요 의무 제외"
+                ? $" · Defer · {RealtimePresentationText.LoadDisplayName(
+                    displayWorld,
+                    cityPromise.LoadId)} 수요 의무 제외"
                 : outcome.PromiseSatisfied
                     ? " · Keep · 약속 의무 충족"
                     : $" · Keep · 약속 의무 {outcome.PromiseUnservedMinutes}분 미공급";
@@ -502,6 +577,7 @@ internal static class RealtimeTimelinePresenter
             risks.Add("안전 의무 위험");
         }
         if (snapshot.Chapter.Content.CityPromise is not null &&
+            RealtimePromisePresentationFacts.HasPromiseDuty(outcome) &&
             snapshot.PromiseDecision != CommercialPromiseDecision.Defer &&
             !outcome.PromiseSatisfied)
         {
@@ -527,6 +603,7 @@ internal static class RealtimeTimelinePresenter
 
     private static string PromiseDecisionDescription(
         CommercialCityPromiseDefinition promise,
+        string promiseLoadName,
         CommercialPromiseDecision decision,
         long deadline,
         bool locked,
@@ -547,7 +624,7 @@ internal static class RealtimeTimelinePresenter
                 ? "Keep 기준 약속 미공급 위험"
                 : "Keep 기준 약속 공급 가능",
             CommercialPromiseDecision.Defer =>
-                "Defer 기준 북안 수요를 이번 의무에서 제외",
+                $"Defer 기준 {promiseLoadName} 수요를 이번 의무에서 제외",
             _ => throw new ArgumentOutOfRangeException(nameof(decision)),
         };
         return $"{promise.DisplayName} · 마감 {RealtimePresentationText.Time(deadline)} · {state} · " +
@@ -603,4 +680,3 @@ internal static class RealtimeTimelinePresenter
     }
 
 }
-

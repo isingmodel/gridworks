@@ -326,13 +326,15 @@ internal static class RealtimePresentationText
     }
 
     internal static string TransitionHistory(
-        RealtimeCampaignSnapshot snapshot,
+        IReadOnlyList<RealtimeTransition> transitionHistory,
         RealtimeThermalAssetSnapshot asset)
     {
-        RealtimeTransition[] transitions = snapshot.PendingTransitions
+        RealtimeTransition[] transitions = transitionHistory
+            .Where(RealtimeThermalPresentation.IsThermalTransition)
             .Where(item => string.Equals(item.AssetId, asset.AssetId, StringComparison.Ordinal))
             .OrderBy(item => item.Minute)
             .ThenBy(item => item.Kind)
+            .TakeLast(RealtimeTimelinePolicy.HistoryLimit)
             .ToArray();
         return transitions.Length == 0
             ? "현재 운영 기록에 설비 전환이 없습니다."

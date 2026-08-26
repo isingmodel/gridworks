@@ -5577,7 +5577,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     deferredNorthDuty.Length > 0 &&
                     deferredNorthDuty.All(required => !required) &&
                     slice.LatestPresentation.Context.Sections.Any(item =>
-                        item.Body.Contains("북안 수요", StringComparison.Ordinal) &&
+                        item.Body.Contains("북안 생활권 수요", StringComparison.Ordinal) &&
                         item.Body.Contains("제외", StringComparison.Ordinal)),
                 "actual Defer pointer click did not send exactly one command, preserve " +
                 "the live minute, and remove North demand from the forecast duty",
@@ -6758,6 +6758,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             slice.CoreSnapshot,
             presentation.BaseForecast,
             presentation.ComparisonDraftForecast,
+            presentation.TransitionHistory,
             expectedMarkerId);
         RealtimeR2TimelineChooserFacts facts = slice.TimelineChooserFacts;
         Require(string.Equals(facts.SelectedMarkerId, expectedMarkerId,
@@ -6785,14 +6786,24 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             bool comparison = expectedMarkerId.StartsWith(
                 RealtimeR2Ids.ComparisonThermalMarkerPrefix,
                 StringComparison.Ordinal);
+            bool actual = expectedMarkerId.StartsWith(
+                RealtimeR2Ids.ActualThermalMarkerPrefix,
+                StringComparison.Ordinal);
             bool commonThermalContext = presentation.Context.Sections.Any(item =>
-                    item.Heading == "예상 시각" &&
+                    item.Heading == (actual ? "기록 시각" : "예상 시각") &&
                     string.Equals(item.Body, marker.TimeLabel,
                         StringComparison.Ordinal)) &&
                 presentation.Context.Sections.Any(item =>
-                    item.Heading == "예상 변화");
+                    item.Heading == (actual ? "실제 변화" : "예상 변화"));
             Require(commonThermalContext &&
-                    (comparison
+                    (actual
+                        ? string.Equals(
+                              presentation.Context.Eyebrow,
+                              "실제 열 보호 기록",
+                              StringComparison.Ordinal) &&
+                          presentation.Context.Sections.Any(item =>
+                              item.Heading == "운영 구간")
+                        : comparison
                         ? string.Equals(
                               presentation.Context.Eyebrow,
                               "현재 초안 기준 예상 · 열 보호",
@@ -6807,7 +6818,10 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                               StringComparison.Ordinal) &&
                           presentation.Context.Sections.Any(item =>
                               item.Heading == "현재 상태")),
-                comparison
+                actual
+                    ? $"actual thermal marker {expectedMarkerId} context lost " +
+                      "record/time/change/evidence causality"
+                    : comparison
                     ? $"comparison thermal marker {expectedMarkerId} context lost " +
                       "draft/time/change/evidence causality"
                     : $"thermal marker {expectedMarkerId} context lost " +

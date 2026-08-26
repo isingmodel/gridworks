@@ -38,6 +38,7 @@ internal static class RealtimeR2Ids
         "COMPLETED_CONSTRUCTION:";
     internal const string PromiseDecisionMarkerPrefix = "PROMISE_DEADLINE:";
     internal const string ThermalMarkerPrefix = "THERMAL:";
+    internal const string ActualThermalMarkerPrefix = "ACTUAL_THERMAL:";
     internal const string ComparisonEventMarkerPrefix = "DRAFT_FORECAST:";
     internal const string ComparisonThermalMarkerPrefix = "DRAFT_THERMAL:";
 
@@ -68,6 +69,10 @@ internal static class RealtimeR2Ids
         RealtimeThermalTransition transition) =>
         $"{ThermalMarkerPrefix}{eventId}:{transition.Minute}:" +
         $"{transition.Kind}:{transition.AssetId}";
+
+    internal static string ActualThermalMarker(RealtimeTransition transition) =>
+        $"{ActualThermalMarkerPrefix}{transition.Minute}:{transition.Kind}:" +
+        $"{transition.AssetKind}:{transition.AssetId}";
 
     internal static string ComparisonEventMarker(string eventId) =>
         $"{ComparisonEventMarkerPrefix}{eventId}";

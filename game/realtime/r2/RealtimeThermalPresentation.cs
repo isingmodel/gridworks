@@ -19,6 +19,43 @@ internal sealed record RealtimeThermalProtectionCopy(
 /// </summary>
 internal static class RealtimeThermalPresentation
 {
+    internal static bool IsThermalTransition(RealtimeTransition transition) =>
+        transition.Kind is
+            RealtimeTransitionKind.ThermalEmergencyEntered or
+            RealtimeTransitionKind.ThermalEmergencyCleared or
+            RealtimeTransitionKind.ThermalProtectiveTrip or
+            RealtimeTransitionKind.ThermalRecovered;
+
+    internal static RealtimeThermalTransition FromTransition(
+        RealtimeTransition transition)
+    {
+        ArgumentNullException.ThrowIfNull(transition);
+        if (!IsThermalTransition(transition) ||
+            transition.AssetId is null ||
+            transition.AssetKind is null)
+        {
+            throw new ArgumentException(
+                "A typed thermal transition with an asset is required.",
+                nameof(transition));
+        }
+        return new RealtimeThermalTransition(
+            transition.Minute,
+            transition.AssetId,
+            transition.AssetKind.Value,
+            transition.Kind switch
+            {
+                RealtimeTransitionKind.ThermalEmergencyEntered =>
+                    RealtimeThermalTransitionKind.EmergencyEntered,
+                RealtimeTransitionKind.ThermalEmergencyCleared =>
+                    RealtimeThermalTransitionKind.EmergencyCleared,
+                RealtimeTransitionKind.ThermalProtectiveTrip =>
+                    RealtimeThermalTransitionKind.ProtectiveTrip,
+                RealtimeTransitionKind.ThermalRecovered =>
+                    RealtimeThermalTransitionKind.Recovered,
+                _ => throw new ArgumentOutOfRangeException(nameof(transition)),
+            });
+    }
+
     internal static RealtimeThermalProtectionCopy For(
         RealtimeWorldDefinition world,
         RealtimeThermalSnapshot snapshot,

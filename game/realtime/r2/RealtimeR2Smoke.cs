@@ -62,10 +62,10 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseFirstLightNoActionResult(failures), failures);
         RunCase("release-tutorial-through-second-source",
             () => ValidateReleaseTutorialThroughSecondSource(failures), failures);
-        RunCase("release-north-bank-promise-controller",
-            () => ValidateReleaseNorthBankPromiseController(failures), failures);
-        RunCase("release-north-bank-promise-result-branches",
-            () => ValidateReleaseNorthBankPromiseResultBranches(failures), failures);
+        RunCase("release-through-whose-margin-controller",
+            () => ValidateReleaseThroughWhoseMarginController(failures), failures);
+        RunCase("release-promise-result-branches",
+            () => ValidateReleasePromiseResultBranches(failures), failures);
         RunCase("release-tutorial-connection-failure-result",
             () => ValidateReleaseTutorialConnectionFailureResult(failures), failures);
         RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
@@ -110,6 +110,13 @@ internal static class RealtimeR2Smoke
             $"completed-prefix={RealtimeR2Ids.CompletedConstructionMarkerPrefix}",
             $"promise-marker={RealtimeR2Ids.PromiseDecisionMarker("PROMISE")}",
             $"thermal={RealtimeR2Ids.ThermalMarker("EVENT", transition)}",
+            $"actual-thermal={RealtimeR2Ids.ActualThermalMarker(new RealtimeTransition(
+                42,
+                RealtimeTransitionKind.ThermalProtectiveTrip,
+                "CHAPTER",
+                "EVENT",
+                "ASSET",
+                ThermalAssetKind.Edge))}",
             $"completed={RealtimeR2Ids.CompletedConstructionMarker(completion)}",
             $"comparison-event={RealtimeR2Ids.ComparisonEventMarker("EVENT")}",
             $"comparison-thermal={RealtimeR2Ids.ComparisonThermalMarker("EVENT", transition)}",
@@ -139,6 +146,7 @@ internal static class RealtimeR2Smoke
             completed-prefix=COMPLETED_CONSTRUCTION:
             promise-marker=PROMISE_DEADLINE:PROMISE
             thermal=THERMAL:EVENT:42:ProtectiveTrip:ASSET
+            actual-thermal=ACTUAL_THERMAL:42:ThermalProtectiveTrip:Edge:ASSET
             completed=COMPLETED_CONSTRUCTION:42:Line:NODE_A+NODE_B:EDGE_A+EDGE_B
             comparison-event=DRAFT_FORECAST:EVENT
             comparison-thermal=DRAFT_THERMAL:EVENT:42:ProtectiveTrip:ASSET
@@ -1375,7 +1383,8 @@ internal static class RealtimeR2Smoke
             .First().EndMinute;
         historySlice.AdvanceToForSmoke(firstEnd);
         RealtimeTimelineItemPresentation[] completed = historySlice.LatestPresentation.Rail.Items
-            .Where(item => item.Visibility == RealtimeTimelineVisibility.Completed)
+            .Where(item => item.Visibility == RealtimeTimelineVisibility.Completed &&
+                item.EndMinute.HasValue)
             .ToArray();
         Check(completed.Length > 0 && completed.All(item =>
                 !item.IsCurrent &&
@@ -2489,7 +2498,7 @@ internal static class RealtimeR2Smoke
             "tutorial exact launch route or FIRST_LIGHT preservation drifted",
             failures);
         Check(RealtimeNativeRouteCatalog.NativeThroughChapterId ==
-                  "NORTH_BANK_PROMISE" &&
+                  "WHOSE_MARGIN" &&
               RealtimeNativeRouteCatalog.All.Count == 3 &&
               RealtimeNativeRouteCatalog.All.Select(item => item.LaunchArgument)
                   .SequenceEqual(
@@ -2497,7 +2506,7 @@ internal static class RealtimeR2Smoke
                       {
                           "--release-chapter=FIRST_LIGHT",
                           "--release-through=SECOND_SOURCE",
-                          "--release-through=NORTH_BANK_PROMISE",
+                          "--release-through=WHOSE_MARGIN",
                       },
                       StringComparer.Ordinal) &&
               RealtimeNativeRouteCatalog.All.All(item =>
@@ -2505,8 +2514,8 @@ internal static class RealtimeR2Smoke
                       RealtimeNativeRouteCatalog.ThroughNativeCoverage
                           .SelectedChapterCount) &&
               RealtimeNativeRouteCatalog.ThroughNativeCoverage
-                  .SelectedChapterCount == 4,
-            "native route catalog or explicit NORTH_BANK_PROMISE cap drifted",
+                  .SelectedChapterCount == 5,
+            "native route catalog or explicit WHOSE_MARGIN cap drifted",
             failures);
         bool forgedRouteRejected = false;
         try
@@ -2515,8 +2524,8 @@ internal static class RealtimeR2Smoke
                 typeof(RealtimeSliceMain).Assembly,
                 RealtimeNativeRouteCatalog.ThroughNativeCoverage with
                 {
-                    EndChapterId = "WHOSE_MARGIN",
-                    SelectedChapterCount = 5,
+                    EndChapterId = "BEFORE_WATER_RISE",
+                    SelectedChapterCount = 6,
                     FullFlowPassToken = "FORGED_FULL_FLOW_PASS",
                 });
         }
@@ -2531,7 +2540,8 @@ internal static class RealtimeR2Smoke
         string[][] rejectedRoutes =
         [
             ["--release-through=SECOND_HEART"],
-            ["--release-through=WHOSE_MARGIN"],
+            ["--release-through=NORTH_BANK_PROMISE"],
+            ["--release-through=BEFORE_WATER_RISE"],
             ["--release-through"],
             ["--bogus"],
             ["--checkpoint=UNKNOWN"],
@@ -2838,7 +2848,7 @@ internal static class RealtimeR2Smoke
             failures);
     }
 
-    private static void ValidateReleaseNorthBankPromiseController(
+    private static void ValidateReleaseThroughWhoseMarginController(
         ICollection<string> failures)
     {
         var slice = new RealtimeSliceMain();
@@ -2922,7 +2932,7 @@ internal static class RealtimeR2Smoke
                       .Where(load => load.LoadId == "NORTH_RESIDENTIAL")
                       .All(load => !load.Required)) &&
               slice.LatestPresentation.Context.Sections.Any(item =>
-                  item.Body.Contains("북안 수요", StringComparison.Ordinal) &&
+                  item.Body.Contains("북안 생활권 수요", StringComparison.Ordinal) &&
                   item.Body.Contains("제외", StringComparison.Ordinal)),
             "production Defer action did not immediately remove North duty",
             failures);
@@ -2962,7 +2972,7 @@ internal static class RealtimeR2Smoke
               result.Body == kept.Body,
             "successful explicit Keep did not present the exact kept result",
             failures);
-        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null &&
               slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
                   new[]
                   {
@@ -2972,8 +2982,8 @@ internal static class RealtimeR2Smoke
                       "NORTH_BANK_PROMISE",
                   },
                   StringComparer.Ordinal) &&
-              slice.FormativeTutorialFullFlowRecordedForSmoke,
-            "explicit Keep did not close the ordered four-result formative chain",
+              !slice.FormativeTutorialFullFlowRecordedForSmoke,
+            "explicit Keep did not preserve the ordered four-result chain into WHOSE_MARGIN",
             failures);
         Check(slice.EmittedTransitions
                 .Where(item => item.Kind == RealtimeTransitionKind.EventStarted)
@@ -2992,9 +3002,77 @@ internal static class RealtimeR2Smoke
                     StringComparer.Ordinal),
             "four-chapter controller event FIFO drifted",
             failures);
+
+        EnterWhoseMarginPlanning(slice, data, failures, "reinforced-keep");
+        AssertWhoseMarginPromiseEventScope(slice, failures, "reinforced-keep");
+        SelectWhoseMarginPromiseDeadline(slice, failures, "reinforced-keep");
+        slice.RequestActionForSmoke(RealtimeR2Ids.PromiseKeepAction);
+        BuildWhoseMarginFactoryCorridor(
+            slice,
+            reinforced: true,
+            failures,
+            "reinforced-keep");
+        Check(slice.CoreSnapshot.Minute < 266400 &&
+              slice.LatestPresentation.BaseForecast.Events.All(item =>
+                  item.TemporalProjection.Outcome.SafetySatisfied &&
+                  item.TemporalProjection.Outcome.PromiseSatisfied),
+            "reinforced WHOSE_MARGIN corridor did not clear the authored forecast",
+            failures);
+        CloseWhoseMarginLateWindow(slice, data, failures, "reinforced-keep");
+        AssertWhoseMarginPromiseEventScope(slice, failures, "reinforced-keep-revealed");
+        CloseWhoseMarginNightStory(slice, data, failures, "reinforced-keep");
+        (RealtimeChapterOutcome whoseOutcome, RealtimeModalPresentation whoseResult) =
+            CompleteWhoseMarginChapter(slice, data, failures, "reinforced-keep");
+        CommercialStoryCard whoseKept = data.BaseCampaign.Chapters[4]
+            .ResultCards.Kept!;
+        Check(whoseOutcome.ObjectiveSatisfied &&
+              whoseOutcome.PromiseDecision == CommercialPromiseDecision.Keep &&
+              whoseOutcome.Events.Select(item => item.EventId).SequenceEqual(
+                  new[] { "HOT_BASE", "NIGHT_SHIFT", "LATE_NIGHT" },
+                  StringComparer.Ordinal) &&
+              whoseOutcome.Events.All(item =>
+                  item.SafetySatisfied && item.PromiseSatisfied) &&
+              whoseResult.Eyebrow == whoseKept.Speaker &&
+              whoseResult.Heading == whoseKept.Title &&
+              whoseResult.Body == whoseKept.Body,
+            "reinforced explicit Keep did not produce the exact WHOSE_MARGIN result",
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
+              slice.CoreSnapshot.CampaignComplete &&
+              slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
+                  new[]
+                  {
+                      "FIRST_LIGHT",
+                      "SECOND_HEART",
+                      "SECOND_SOURCE",
+                      "NORTH_BANK_PROMISE",
+                      "WHOSE_MARGIN",
+                  },
+                  StringComparer.Ordinal) &&
+              slice.FormativeTutorialFullFlowRecordedForSmoke &&
+              slice.EmittedTransitions
+                  .Where(item => item.Kind == RealtimeTransitionKind.EventStarted)
+                  .Select(item => item.EventId!)
+                  .SequenceEqual(
+                      new[]
+                      {
+                          "FIRST_LIGHT_SUPPLY",
+                          "HOSPITAL_TRANSFER_TEST",
+                          "FLOOD_ISOLATION_TEST",
+                          "WEST_MAIN_COMMISSIONING_TEST",
+                          "SOUTH_SOURCE_COMMISSIONING_TEST",
+                          "NORTH_BANK_COMMISSIONING",
+                          "NEXT_HOT_EVENING_FORECAST",
+                          "HOT_BASE",
+                          "NIGHT_SHIFT",
+                          "LATE_NIGHT",
+                      },
+                      StringComparer.Ordinal),
+            "WHOSE_MARGIN Keep did not close the exact five-result/full-flow chain",
+            failures);
     }
 
-    private static void ValidateReleaseNorthBankPromiseResultBranches(
+    private static void ValidateReleasePromiseResultBranches(
         ICollection<string> failures)
     {
         // Explicit Defer: safety succeeds, exact deferred authored bytes render,
@@ -3036,6 +3114,74 @@ internal static class RealtimeR2Smoke
         Check(deferredSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !deferredSlice.FormativeTutorialFullFlowRecordedForSmoke,
             "explicit Defer minted the Keep-only formative token",
+            failures);
+
+        EnterWhoseMarginPlanning(
+            deferredSlice,
+            deferredData,
+            failures,
+            "explicit-whose-defer");
+        AssertWhoseMarginPromiseEventScope(
+            deferredSlice,
+            failures,
+            "explicit-whose-defer");
+        SelectWhoseMarginPromiseDeadline(
+            deferredSlice,
+            failures,
+            "explicit-whose-defer");
+        deferredSlice.RequestActionForSmoke(RealtimeR2Ids.PromiseDeferAction);
+        Check(deferredSlice.CoreSnapshot.PromiseDecision ==
+                  CommercialPromiseDecision.Defer,
+            "WHOSE_MARGIN Defer command was not accepted",
+            failures);
+        CloseWhoseMarginLateWindow(
+            deferredSlice,
+            deferredData,
+            failures,
+            "explicit-whose-defer");
+        AssertWhoseMarginPromiseEventScope(
+            deferredSlice,
+            failures,
+            "explicit-whose-defer-revealed");
+        RealtimeForecastEvent deferredNight = deferredSlice.LatestPresentation
+            .BaseForecast.Events.Single(item => item.EventId == "NIGHT_SHIFT");
+        Check(deferredNight.TemporalProjection.Outcome.DutySegments
+                  .SelectMany(segment => segment.Loads)
+                  .Where(load => load.LoadId == "RIVER_FACTORY")
+                  .All(load => !load.Required) &&
+              deferredSlice.LatestPresentation.Rail.Items.Single(item =>
+                  item.Id == "NIGHT_SHIFT").Description.Contains(
+                      "강변 산업단지 수요 의무 제외",
+                      StringComparison.Ordinal),
+            "WHOSE_MARGIN Defer did not remove only the factory promise duty",
+            failures);
+        CloseWhoseMarginNightStory(
+            deferredSlice,
+            deferredData,
+            failures,
+            "explicit-whose-defer");
+        (RealtimeChapterOutcome whoseDeferredOutcome,
+            RealtimeModalPresentation whoseDeferredResult) =
+            CompleteWhoseMarginChapter(
+                deferredSlice,
+                deferredData,
+                failures,
+                "explicit-whose-defer");
+        CommercialStoryCard whoseDeferred = deferredData.BaseCampaign.Chapters[4]
+            .ResultCards.Deferred!;
+        Check(whoseDeferredOutcome.ObjectiveSatisfied &&
+              whoseDeferredOutcome.PromiseDecision ==
+                  CommercialPromiseDecision.Defer &&
+              whoseDeferredResult.Eyebrow == whoseDeferred.Speaker &&
+              whoseDeferredResult.Heading == whoseDeferred.Title &&
+              whoseDeferredResult.Body == whoseDeferred.Body,
+            "explicit WHOSE_MARGIN Defer did not present exact authored bytes",
+            failures);
+        _ = deferredSlice.ClosePresentedChapterStoryModalForSmoke();
+        Check(deferredSlice.CoreSnapshot.CampaignComplete &&
+              deferredSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
+              !deferredSlice.FormativeTutorialFullFlowRecordedForSmoke,
+            "WHOSE_MARGIN Defer minted the Keep-only five-chapter token",
             failures);
 
         // Unset reaches the exact deadline once, becomes auto-Defer, stays
@@ -3102,6 +3248,126 @@ internal static class RealtimeR2Smoke
         Check(defaultedSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !defaultedSlice.FormativeTutorialFullFlowRecordedForSmoke,
             "auto-Defer minted an explicit-choice formative token",
+            failures);
+
+        EnterWhoseMarginPlanning(
+            defaultedSlice,
+            defaultedData,
+            failures,
+            "standard-corridor");
+        SelectWhoseMarginPromiseDeadline(
+            defaultedSlice,
+            failures,
+            "standard-corridor");
+        defaultedSlice.RequestActionForSmoke(RealtimeR2Ids.PromiseKeepAction);
+        BuildWhoseMarginFactoryCorridor(
+            defaultedSlice,
+            reinforced: false,
+            failures,
+            "standard-corridor");
+        CloseWhoseMarginLateWindow(
+            defaultedSlice,
+            defaultedData,
+            failures,
+            "standard-corridor");
+        CloseWhoseMarginNightStory(
+            defaultedSlice,
+            defaultedData,
+            failures,
+            "standard-corridor");
+        _ = AdvanceToMinuteByFrames(
+            defaultedSlice,
+            266760,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeTransition[] standardThermal = defaultedSlice.EmittedTransitions
+            .Where(item => item.ChapterId == "WHOSE_MARGIN" &&
+                RealtimeThermalPresentation.IsThermalTransition(item))
+            .ToArray();
+        Check(standardThermal.Any(item => item.Kind ==
+                  RealtimeTransitionKind.ThermalEmergencyEntered &&
+                  item.Minute == 266580) &&
+              standardThermal.Any(item => item.Kind ==
+                  RealtimeTransitionKind.ThermalProtectiveTrip &&
+                  item.Minute == 266640) &&
+              standardThermal.Any(item => item.Kind ==
+                  RealtimeTransitionKind.ThermalRecovered &&
+                  item.Minute == 266730),
+            "standard factory corridor lost its 60-minute pole trip/recovery boundaries",
+            failures);
+        RealtimeTimelineItemPresentation[] actualThermalMarkers = defaultedSlice
+            .LatestPresentation.Rail.Items
+            .Where(item => item.Id.StartsWith(
+                RealtimeR2Ids.ActualThermalMarkerPrefix,
+                StringComparison.Ordinal))
+            .ToArray();
+        Check(actualThermalMarkers.Any(item => item.Description.Contains(
+                  "비상 운전 시작",
+                  StringComparison.Ordinal)) &&
+              actualThermalMarkers.Any(item => item.Description.Contains(
+                  "보호정지",
+                  StringComparison.Ordinal)) &&
+              actualThermalMarkers.Any(item => item.Description.Contains(
+                  "냉각 복귀",
+                  StringComparison.Ordinal)),
+            "actual standard-corridor emergency/trip/recovery left the event rail",
+            failures);
+        AssertNoUnknownRailTargets(
+            defaultedSlice,
+            defaultedSlice.LatestPresentation,
+            failures,
+            "standard-corridor-recovered");
+        RealtimeTransition selectedActualTrip = standardThermal
+            .Where(item => item.Kind == RealtimeTransitionKind.ThermalProtectiveTrip)
+            .OrderBy(item => item.Minute)
+            .ThenBy(item => item.AssetId, StringComparer.Ordinal)
+            .First();
+        RealtimeTimelineItemPresentation actualTrip = actualThermalMarkers.Single(item =>
+            item.Id == RealtimeR2Ids.ActualThermalMarker(selectedActualTrip));
+        RequireIntent(defaultedSlice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetTimelineMarker(
+                    actualTrip.Id,
+                    actualTrip.Id,
+                    null,
+                    defaultedSlice.InteractionState.TimelineHorizon)),
+            "standard-corridor actual trip selection",
+            failures,
+            coreCommandExpected: false);
+        RealtimeContextDockPresentation actualTripContext =
+            defaultedSlice.LatestPresentation.Context;
+        string actualTripHistory = actualTripContext.Details.Single(item =>
+            item.Tab == RealtimeContextDetailTab.History).Body;
+        Check(actualTripContext.Eyebrow == "실제 열 보호 기록" &&
+              actualTripHistory.Contains("비상 운전 시작", StringComparison.Ordinal) &&
+              actualTripHistory.Contains("보호정지", StringComparison.Ordinal) &&
+              actualTripHistory.Contains("냉각 복귀", StringComparison.Ordinal),
+            "actual trip detail did not retain its typed Core transition history",
+            failures);
+        (RealtimeChapterOutcome standardOutcome,
+            RealtimeModalPresentation standardResult) =
+            CompleteWhoseMarginChapter(
+                defaultedSlice,
+                defaultedData,
+                failures,
+                "standard-corridor");
+        CommercialStoryCard authoredWhoseKept = defaultedData.BaseCampaign.Chapters[4]
+            .ResultCards.Kept!;
+        Check(!standardOutcome.ObjectiveSatisfied &&
+              standardOutcome.Events.All(item => item.SafetySatisfied) &&
+              standardOutcome.Events.Single(item => item.EventId == "NIGHT_SHIFT")
+                  .PromiseUnservedMinutes > 0 &&
+              standardResult.Body.Contains("약속 Keep 0/1 충족", StringComparison.Ordinal) &&
+              (!string.Equals(standardResult.Eyebrow,
+                   authoredWhoseKept.Speaker, StringComparison.Ordinal) ||
+               !string.Equals(standardResult.Heading,
+                   authoredWhoseKept.Title, StringComparison.Ordinal) ||
+               !string.Equals(standardResult.Body,
+                   authoredWhoseKept.Body, StringComparison.Ordinal)),
+            "standard corridor counterfeited the authored WHOSE_MARGIN Keep success",
+            failures);
+        _ = defaultedSlice.ClosePresentedChapterStoryModalForSmoke();
+        Check(!defaultedSlice.FormativeTutorialFullFlowRecordedForSmoke,
+            "standard WHOSE_MARGIN failure minted the five-chapter token",
             failures);
 
         // Explicit Defer with an unsafe water network is still a safety failure.
@@ -3222,42 +3488,8 @@ internal static class RealtimeR2Smoke
             failures);
         long recordedPromiseUnservedMinutes = promiseFailureOutcome.Events.Sum(item =>
             item.PromiseUnservedMinutes);
-        _ = promiseFailureSlice.ClosePresentedChapterStoryModalForSmoke();
-        SelectPromiseDeadline(
-            promiseFailureSlice,
-            failures,
-            "completed-promise-failure");
-        RealtimeTimelineItemPresentation failedDeadline =
-            promiseFailureSlice.LatestPresentation.Rail.Items.Single(item =>
-                item.Id == RealtimeR2Ids.PromiseDecisionMarker(
-                    "NORTH_BANK_MOVE_IN_PROMISE"));
-        RealtimeContextDockPresentation failedDeadlineContext =
-            promiseFailureSlice.LatestPresentation.Context;
-        Check(recordedPromiseUnservedMinutes > 0 &&
-              failedDeadline is
-              {
-                  Visibility: RealtimeTimelineVisibility.Completed,
-                  Severity: RealtimeTimelineSeverity.Critical,
-                  IsActionable: false,
-              } &&
-              failedDeadline.Description.Contains(
-                  $"기록된 약속 미공급 {recordedPromiseUnservedMinutes}분",
-                  StringComparison.Ordinal) &&
-              failedDeadline.SeverityLabel.Contains(
-                  $"약속 미공급 {recordedPromiseUnservedMinutes}분",
-                  StringComparison.Ordinal) &&
-              !failedDeadline.Description.Contains(
-                  "약속 공급 가능",
-                  StringComparison.Ordinal) &&
-              failedDeadlineContext.PrimaryAction is { Enabled: false } &&
-              failedDeadlineContext.SecondaryAction is { Enabled: false } &&
-              failedDeadlineContext.Sections.Any(item => item.Body.Contains(
-                  $"약속 {recordedPromiseUnservedMinutes}분 미공급",
-                  StringComparison.Ordinal)) &&
-              failedDeadlineContext.Sections.All(item => !item.Body.Contains(
-                  "약속 가능",
-                  StringComparison.Ordinal)),
-            "completed Keep failure disappeared from the locked deadline marker/context",
+        Check(recordedPromiseUnservedMinutes > 0,
+            "completed Keep failure lost its authoritative promise-unserved minutes",
             failures);
         Check(promiseFailureSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !promiseFailureSlice.FormativeTutorialFullFlowRecordedForSmoke,
@@ -3274,7 +3506,7 @@ internal static class RealtimeR2Smoke
         Check(data.NativeRoute ==
                   RealtimeNativeRouteCatalog.ThroughNativeCoverage &&
               data.CampaignSha256 ==
-                  "54dcad845e4cbcff8ebbcd758ec07ca43bf5997d708b1d96cb6beba6ff4d3bb5" &&
+                  "62be77290ce7f6e973b63ad3ac8adb665d2f22fdde2539b9c5393c21a27742c8" &&
               data.Campaign.Chapters.Select(item => item.Content.ChapterId)
                   .SequenceEqual(
                       new[]
@@ -3283,13 +3515,14 @@ internal static class RealtimeR2Smoke
                           "SECOND_HEART",
                           "SECOND_SOURCE",
                           "NORTH_BANK_PROMISE",
+                          "WHOSE_MARGIN",
                       },
                       StringComparer.Ordinal) &&
-              data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 7 &&
+              data.Campaign.Chapters.Sum(item => item.ScheduledEvents.Count) == 10 &&
               RealtimeSliceMain.ParseLaunchArguments(
-                  ["--release-through=NORTH_BANK_PROMISE"]).NativeRoute ==
+                  ["--release-through=WHOSE_MARGIN"]).NativeRoute ==
                   RealtimeNativeRouteCatalog.ThroughNativeCoverage,
-            "North Bank exact route/prefix identity drifted",
+            "WHOSE_MARGIN exact route/prefix identity drifted",
             failures);
         bool isolatedRejected = false;
         try
@@ -3610,11 +3843,291 @@ internal static class RealtimeR2Smoke
             item.ChapterId == "NORTH_BANK_PROMISE");
         RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
             throw new InvalidOperationException("North Bank result modal is absent.");
-        Check(slice.CoreSnapshot.CampaignComplete &&
+        Check(!slice.CoreSnapshot.CampaignComplete &&
+              slice.CoreSnapshot.Chapter.Content.ChapterId == "WHOSE_MARGIN" &&
+              slice.CoreSnapshot.ChapterStarted &&
               result.Id == RealtimeR2Ids.TutorialResultModal("NORTH_BANK_PROMISE"),
-            "North Bank did not end in the cumulative chapter result",
+            "North Bank result did not preserve the live cumulative handoff",
             failures);
         return (outcome, result);
+    }
+
+    private static void EnterWhoseMarginPlanning(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        ICollection<string> failures,
+        string label)
+    {
+        CommercialCampaignChapterDefinition authored = data.BaseCampaign.Chapters[4];
+        Check(slice.CoreSnapshot is
+              {
+                  Minute: 266070,
+                  ChapterStarted: true,
+                  CampaignComplete: false,
+              } &&
+              slice.CoreSnapshot.Chapter.Content.ChapterId == "WHOSE_MARGIN",
+            $"{label} did not inherit the cumulative clock into WHOSE_MARGIN",
+            failures);
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.ChapterBriefing,
+            "WHOSE_MARGIN",
+            null,
+            authored.Briefing,
+            failures);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is not null,
+            $"{label} WHOSE_MARGIN briefing did not queue HOT planning",
+            failures);
+        RequireWhoseMarginWindow(
+            slice,
+            authored,
+            "HOT_EVENING_PLANNING_WINDOW",
+            failures,
+            label);
+        Check(slice.ClosePresentedChapterStoryModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
+            $"{label} HOT planning did not close into realtime play",
+            failures);
+    }
+
+    private static void AssertWhoseMarginPromiseEventScope(
+        RealtimeSliceMain slice,
+        ICollection<string> failures,
+        string label)
+    {
+        RealtimeForecastEvent[] events = slice.LatestPresentation.BaseForecast.Events
+            .Where(item => item.ChapterId == "WHOSE_MARGIN")
+            .OrderBy(item => item.StartMinute)
+            .ToArray();
+        Check(events.Length > 0 &&
+              events.Select(item => item.EventId).SequenceEqual(
+                  new[] { "HOT_BASE", "NIGHT_SHIFT", "LATE_NIGHT" }
+                      .Take(events.Length),
+                  StringComparer.Ordinal) &&
+              events.All(item =>
+                  RealtimePromisePresentationFacts.HasPromiseDuty(
+                      item.OperatingProfile) ==
+                  string.Equals(
+                      item.EventId,
+                      "NIGHT_SHIFT",
+                      StringComparison.Ordinal)) &&
+              events.Count(item => RealtimePromisePresentationFacts.HasPromiseDuty(
+                  item.OperatingProfile)) ==
+                  events.Count(item => item.EventId == "NIGHT_SHIFT"),
+            $"{label} promise duty was not isolated to NIGHT_SHIFT",
+            failures);
+        RealtimeEventRailPresentation rail = slice.LatestPresentation.Rail;
+        Check(events.All(item =>
+        {
+            string description = rail.Items.Single(candidate =>
+                candidate.Id == item.EventId).Description;
+            bool hasPromiseCopy = description.Contains(
+                    "약속",
+                    StringComparison.Ordinal) ||
+                description.Contains("수요 의무 제외", StringComparison.Ordinal);
+            return hasPromiseCopy == (item.EventId == "NIGHT_SHIFT");
+        }),
+            $"{label} rail attached promise copy to a non-promise event",
+            failures);
+    }
+
+    private static void SelectWhoseMarginPromiseDeadline(
+        RealtimeSliceMain slice,
+        ICollection<string> failures,
+        string label)
+    {
+        string markerId = RealtimeR2Ids.PromiseDecisionMarker(
+            "FACTORY_NIGHT_SHIFT_PROMISE");
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetTimelineMarker(
+                    markerId,
+                    markerId,
+                    null,
+                    slice.InteractionState.TimelineHorizon)),
+            $"{label} factory promise marker selection",
+            failures,
+            coreCommandExpected: false);
+        Check(slice.LatestPresentation.Context is
+            {
+                SubjectId: var selected,
+                PrimaryAction.Id: RealtimeR2Ids.PromiseKeepAction,
+                SecondaryAction.Id: RealtimeR2Ids.PromiseDeferAction,
+            } && string.Equals(selected, markerId, StringComparison.Ordinal),
+            $"{label} factory promise actions were not presented",
+            failures);
+    }
+
+    private static string BuildWhoseMarginFactoryCorridor(
+        RealtimeSliceMain slice,
+        bool reinforced,
+        ICollection<string> failures,
+        string label)
+    {
+        string nodeId = OrderTutorialNode(
+            slice,
+            new CoreMapPoint(2050, 1650),
+            failures,
+            $"{label} factory substation");
+        string lineClassId = reinforced ? "REINFORCED_LINE" : "STANDARD_LINE";
+        string poleClassId = reinforced ? "REINFORCED_POLE" : "STANDARD_POLE";
+        CoreMapPoint[] points = reinforced
+            ?
+            [
+                new CoreMapPoint(700, 1850),
+                new CoreMapPoint(1190, 1850),
+                new CoreMapPoint(1760, 1850),
+            ]
+            :
+            [
+                new CoreMapPoint(700, 1850),
+                new CoreMapPoint(1200, 1850),
+                new CoreMapPoint(1760, 1850),
+            ];
+        _ = OrderTutorialLine(
+            slice,
+            "SOUTH_SOURCE_NODE",
+            points,
+            nodeId,
+            lineClassId,
+            poleClassId,
+            failures,
+            $"{label} source corridor");
+        _ = OrderTutorialLine(
+            slice,
+            nodeId,
+            Array.Empty<CoreMapPoint>(),
+            "FACTORY_TERMINAL",
+            lineClassId,
+            poleClassId,
+            failures,
+            $"{label} factory service");
+        Check(slice.CoreSnapshot.Minute < 266400 &&
+              slice.CoreSnapshot.Construction.World.Edges
+                  .Where(item => item.FromNodeId == nodeId || item.ToNodeId == nodeId)
+                  .Count(item => item.Commissioned &&
+                      item.LineClassId == lineClassId) == 2,
+            $"{label} factory corridor missed the recovery-window reveal",
+            failures);
+        return nodeId;
+    }
+
+    private static void CloseWhoseMarginLateWindow(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        ICollection<string> failures,
+        string label)
+    {
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            266400,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RequireWhoseMarginWindow(
+            slice,
+            data.BaseCampaign.Chapters[4],
+            "LATE_NIGHT_RECOVERY_WINDOW",
+            failures,
+            label);
+        Check(slice.EmittedTransitions.All(item =>
+                  item.ChapterId != "WHOSE_MARGIN" ||
+                  item.Kind != RealtimeTransitionKind.EventStarted) &&
+              slice.ClosePresentedChapterStoryModalForSmoke() is null,
+            $"{label} late-night planning did not precede the first event",
+            failures);
+    }
+
+    private static void CloseWhoseMarginNightStory(
+        RealtimeSliceMain slice,
+        RealtimeSliceData data,
+        ICollection<string> failures,
+        string label)
+    {
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            266580,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        CommercialStoryCard story = data.BaseCampaign.Chapters[4].OperatingPhases
+            .Single(item => item.PhaseId == "NIGHT_SHIFT").Story!;
+        RequireAuthoredTutorialModal(
+            slice,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "WHOSE_MARGIN",
+            "NIGHT_SHIFT",
+            story,
+            failures);
+        Check(slice.EmittedTransitions
+                  .Where(item => item.ChapterId == "WHOSE_MARGIN" &&
+                      item.Kind == RealtimeTransitionKind.EventStarted)
+                  .Select(item => item.EventId!)
+                  .SequenceEqual(
+                      new[] { "HOT_BASE", "NIGHT_SHIFT" },
+                      StringComparer.Ordinal) &&
+              slice.ClosePresentedChapterStoryModalForSmoke() is null,
+            $"{label} event/story FIFO drifted before NIGHT_SHIFT",
+            failures);
+    }
+
+    private static (RealtimeChapterOutcome Outcome, RealtimeModalPresentation Result)
+        CompleteWhoseMarginChapter(
+            RealtimeSliceMain slice,
+            RealtimeSliceData data,
+            ICollection<string> failures,
+            string label)
+    {
+        _ = AdvanceToMinuteByFrames(
+            slice,
+            266850,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        RealtimeChapterOutcome outcome = slice.CoreSnapshot.CompletedChapters.Single(
+            item => item.ChapterId == "WHOSE_MARGIN");
+        RealtimeModalPresentation result = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException(
+                $"{label} WHOSE_MARGIN result modal is absent.");
+        Check(slice.CoreSnapshot.CampaignComplete &&
+              result.Id == RealtimeR2Ids.TutorialResultModal("WHOSE_MARGIN") &&
+              slice.EmittedTransitions
+                  .Where(item => item.ChapterId == "WHOSE_MARGIN" &&
+                      item.Kind == RealtimeTransitionKind.EventStarted)
+                  .Select(item => item.EventId!)
+                  .SequenceEqual(
+                      new[] { "HOT_BASE", "NIGHT_SHIFT", "LATE_NIGHT" },
+                      StringComparer.Ordinal),
+            $"{label} WHOSE_MARGIN did not end with exact event/result FIFO",
+            failures);
+        return (outcome, result);
+    }
+
+    private static void RequireWhoseMarginWindow(
+        RealtimeSliceMain slice,
+        CommercialCampaignChapterDefinition authored,
+        string windowId,
+        ICollection<string> failures,
+        string label)
+    {
+        CommercialDecisionWindowDefinition window = authored.DecisionWindows.Single(item =>
+            item.WindowId == windowId);
+        RealtimeChapterStoryModalRequest request =
+            slice.ActiveChapterStoryModalForSmoke ??
+            throw new InvalidOperationException($"{label} {windowId} is not active.");
+        RealtimeModalPresentation modal = slice.LatestPresentation.Modal ??
+            throw new InvalidOperationException($"{label} {windowId} modal is absent.");
+        Check(request is
+              {
+                  Purpose: RealtimeChapterStoryModalPurpose.DecisionWindowStory,
+                  ChapterId: "WHOSE_MARGIN",
+              } &&
+              request.WindowId == windowId &&
+              modal.Id == RealtimeR2Ids.TutorialDecisionWindowModal(
+                  "WHOSE_MARGIN",
+                  windowId) &&
+              modal.Eyebrow == window.Story!.Speaker &&
+              modal.Heading == window.Story.Title &&
+              modal.Body == window.Story.Body &&
+              modal.PrimaryAction.Id == RealtimeR2Ids.DecisionWindowContinueAction,
+            $"{label} {windowId} authored modal drifted",
+            failures);
     }
 
     private static void ValidateReleaseTutorialConnectionFailureResult(

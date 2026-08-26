@@ -1,12 +1,23 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Gridworks.Core.Release.V2;
 using Gridworks.Core.Release.V3;
 
 namespace Gridworks.Game.Realtime.R2;
 
 internal static class RealtimePromisePresentationFacts
 {
+    internal static bool HasPromiseDuty(
+        CommercialOperatingPhaseDefinition operatingProfile) =>
+        operatingProfile.Loads.Any(item =>
+            item.Obligation == CommercialObligationKind.CityPromise);
+
+    internal static bool HasPromiseDuty(RealtimeEventOutcome outcome) =>
+        outcome.DutySegments
+            .SelectMany(item => item.Loads)
+            .Any(item => item.Obligation == CommercialObligationKind.CityPromise);
+
     internal static bool PromiseDefaulted(
         RealtimeCampaignSnapshot snapshot,
         IReadOnlyList<RealtimeTransition> transitionHistory) =>
@@ -34,6 +45,4 @@ internal static class RealtimePromisePresentationFacts
                 StringComparison.Ordinal))?
             .Events.Sum(item => item.PromiseUnservedMinutes) ?? 0;
     }
-
 }
-

@@ -199,8 +199,11 @@ internal static class RealtimeModalPresenter
                             item.NodeId)} " +
                         $"{item.CurrentConnections}/{item.RequiredConnections}"));
             int safeEvents = outcome.Events.Count(item => item.SafetySatisfied);
-            int promisedEvents = outcome.Events.Count(item => item.PromiseSatisfied);
-            long promiseUnservedMinutes = outcome.Events.Sum(item =>
+            RealtimeEventOutcome[] promiseEvents = outcome.Events
+                .Where(RealtimePromisePresentationFacts.HasPromiseDuty)
+                .ToArray();
+            int promisedEvents = promiseEvents.Count(item => item.PromiseSatisfied);
+            long promiseUnservedMinutes = promiseEvents.Sum(item =>
                 item.PromiseUnservedMinutes);
             string promiseFacts = chapter.CityPromise is null
                 ? string.Empty
@@ -211,7 +214,7 @@ internal static class RealtimeModalPresenter
                           snapshot,
                           chapter.CityPromise.LoadId)} 수요 의무 제외"
                     : $" · 약속 {outcome.PromiseDecision} " +
-                      $"{promisedEvents}/{outcome.Events.Count} 충족" +
+                      $"{promisedEvents}/{promiseEvents.Length} 충족" +
                       (promiseUnservedMinutes > 0
                           ? $" · {promiseUnservedMinutes}분 미공급"
                           : string.Empty);
@@ -219,8 +222,10 @@ internal static class RealtimeModalPresenter
             string authoredBody = authored?.Body ?? string.Empty;
             if (authored is not null && autoDefaulted)
             {
-                authoredBody += "\n\n마감까지 선택하지 않아 입주 일정은 자동으로 연기됐습니다.";
+                authoredBody += "\n\n마감까지 선택하지 않아 자동으로 연기됐습니다. " +
+                    $"적용된 방침: {chapter.CityPromise!.DeferLabel}.";
             }
+            string nextChapterName = snapshot.Chapter.Content.DisplayName;
             return modal with
             {
                 Eyebrow = authored?.Speaker ?? "계통운영 기록",
@@ -235,16 +240,16 @@ internal static class RealtimeModalPresenter
                 PrimaryAction = new RealtimeActionPresentation(
                     RealtimeR2Ids.ResultCloseAction,
                     calendarTransition
-                        ? "6개월 뒤 북안 검토로"
+                        ? $"6개월 뒤 {nextChapterName} 검토로"
                         : request.FinalResult
                             ? chapter.CityPromise is not null
-                                ? "북안 운영 결과 확인"
+                                ? $"{chapter.DisplayName} 운영 결과 확인"
                                 : "튜토리얼 결과 확인"
                             : "다음 장으로",
                     calendarTransition
                         ? $"결과를 닫고 실제 망·현금·공사를 보존한 채 " +
                           $"{RealtimePresentationText.Time(snapshot.ChapterStartMinute)}의 " +
-                          "북안 검토로 이동합니다."
+                          $"{nextChapterName} 검토로 이동합니다."
                         : request.FinalResult
                             ? $"누적 {source.Data.Campaign.Chapters.Count}장의 운영 결과를 확인합니다."
                             : "결과를 확인하고 다음 임무 안내로 이동합니다.",
@@ -263,14 +268,14 @@ internal static class RealtimeModalPresenter
                         request.WindowId,
                         StringComparison.Ordinal))
                     .Story ?? throw new InvalidOperationException(
-                        $"Tutorial window '{request.WindowId}' has no authored story."),
+                        $"Chapter window '{request.WindowId}' has no authored story."),
             RealtimeChapterStoryModalPurpose.EventStory => chapter.OperatingPhases
                 .Single(item => string.Equals(
                     item.PhaseId,
                     request.EventId,
                     StringComparison.Ordinal))
                 .Story ?? throw new InvalidOperationException(
-                    $"Tutorial event '{request.EventId}' has no authored story."),
+                    $"Chapter event '{request.EventId}' has no authored story."),
             _ => throw new ArgumentOutOfRangeException(nameof(request)),
         };
         bool eventStory = request.Purpose == RealtimeChapterStoryModalPurpose.EventStory;
@@ -291,7 +296,7 @@ internal static class RealtimeModalPresenter
                         ? RealtimeR2Ids.DecisionWindowContinueAction
                         : RealtimeR2Ids.BriefingContinueAction,
                 eventStory
-                    ? "시험 계속"
+                    ? "운영 계속"
                     : decisionWindow
                         ? "약속 결정 화면 열기"
                         : promiseBriefing
@@ -302,7 +307,8 @@ internal static class RealtimeModalPresenter
                     : decisionWindow
                         ? "계획 설명을 닫고 한 줄 마감 표식에서 Keep 또는 Defer를 선택합니다."
                         : promiseBriefing
-                            ? "임무 안내 다음에 북안 서비스권역 계획 원칙을 확인합니다."
+                            ? $"임무 안내 다음에 {chapter.CityPromise!.DisplayName} " +
+                              "계획 원칙을 확인합니다."
                             : "임무 안내를 닫고 실시간 운영을 시작합니다.",
                 true),
             DismissOnCancel = false,

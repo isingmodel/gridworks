@@ -35,9 +35,9 @@ Keep/Defer를 generic chapter flow로 진행하고 authored 결과까지 도달�
 ## 완료 검사
 
 - native catalog가 정확히 `WHOSE_MARGIN`까지 5장을 허용하고 다음 장과 위조 route를 fail-closed한다.
-- 앞선 4장의 성공 상태가 다섯 번째 장으로 이어진다. modal FIFO는 briefing→
-  `HOT_EVENING_PLANNING_WINDOW`→`LATE_NIGHT_RECOVERY_WINDOW`→`NIGHT_SHIFT` event story→result,
-  event FIFO는 `HOT_BASE`→`NIGHT_SHIFT`→`LATE_NIGHT`로 authored forecast/Core transition과 일치한다.
+- 앞선 4장의 성공 상태가 다섯 번째 장으로 이어진다. authored reveal 순서에 따라 modal FIFO는
+  briefing→`HOT_EVENING_PLANNING_WINDOW`→`LATE_NIGHT_RECOVERY_WINDOW`→`NIGHT_SHIFT` event story→
+  result이며, event FIFO는 `HOT_BASE`→`NIGHT_SHIFT`→`LATE_NIGHT`로 Core transition과 일치한다.
 - 약속 정보는 실제 city-promise 수요가 있는 `NIGHT_SHIFT`에만 나타난다. 보강 회랑 Keep의 실제 공급·열
   상태와 exact kept result, 명시적 Defer의 수요 제외와 exact deferred result를 검증한다. Keep만 5장
   full-flow evidence를 만들고 Defer는 만들지 않는다.

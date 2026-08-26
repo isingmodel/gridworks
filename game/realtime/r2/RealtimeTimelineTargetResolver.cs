@@ -142,6 +142,17 @@ internal static class RealtimeTimelineTargetResolver
                 }
             }
         }
+        if (TryResolveActualThermalMarker(
+                transitionHistory,
+                markerId,
+                out RealtimeTransition actualThermal))
+        {
+            return new RealtimeTimelineTarget(
+                markerId,
+                RealtimeTimelineTargetKind.ThermalAsset,
+                markerId,
+                actualThermal.AssetId);
+        }
         RealtimeEventOutcome? selectedOutcome = snapshot.CurrentChapterEvents.FirstOrDefault(
             item => IsCurrentChapterOutcome(snapshot, item) &&
                 string.Equals(item.EventId, markerId, StringComparison.Ordinal));
@@ -254,6 +265,20 @@ internal static class RealtimeTimelineTargetResolver
         }
         completion = null!;
         return false;
+    }
+
+    internal static bool TryResolveActualThermalMarker(
+        IReadOnlyList<RealtimeTransition> transitionHistory,
+        string markerId,
+        out RealtimeTransition transition)
+    {
+        transition = transitionHistory.FirstOrDefault(item =>
+            RealtimeThermalPresentation.IsThermalTransition(item) &&
+            string.Equals(
+                RealtimeR2Ids.ActualThermalMarker(item),
+                markerId,
+                StringComparison.Ordinal))!;
+        return transition is not null;
     }
 
     internal static bool TryResolveComparisonEvent(
@@ -373,6 +398,13 @@ internal static class RealtimeTimelineTargetResolver
                 out RealtimeThermalTransition transition))
         {
             return transition.AssetId;
+        }
+        if (TryResolveActualThermalMarker(
+                transitionHistory,
+                selectionId,
+                out RealtimeTransition actualThermal))
+        {
+            return actualThermal.AssetId;
         }
         if (TryResolveComparisonThermalMarker(
                 comparisonDraftForecast,

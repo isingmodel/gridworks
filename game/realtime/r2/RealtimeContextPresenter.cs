@@ -44,6 +44,9 @@ internal static class RealtimeContextPresenter
                 baseForecast.Events.Any(item =>
                 item.ChapterIndex == snapshot.ChapterIndex &&
                 !item.TemporalProjection.Outcome.PromiseSatisfied);
+            string promiseLoadName = RealtimePresentationText.LoadDisplayName(
+                displayWorld,
+                promise.LoadId);
             string decision = defaulted
                 ? "자동 Defer"
                 : snapshot.PromiseDecision switch
@@ -65,7 +68,7 @@ internal static class RealtimeContextPresenter
                     ? "약속 위험"
                     : "약속 가능",
                 CommercialPromiseDecision.Defer =>
-                    "북안 수요 의무 제외",
+                    $"{promiseLoadName} 수요 의무 제외",
                 _ => throw new ArgumentOutOfRangeException(nameof(snapshot)),
             };
             bool actionsEnabled = !locked;
@@ -94,14 +97,14 @@ internal static class RealtimeContextPresenter
                     RealtimeR2Ids.PromiseKeepAction,
                     promise.KeepLabel,
                     actionsEnabled
-                        ? "북안 수요를 두 운영 사건의 약속 의무에 포함합니다."
+                        ? $"{promiseLoadName} 수요를 약속 의무에 포함합니다."
                         : "약속 마감이 지나 선택을 바꿀 수 없습니다.",
                     actionsEnabled),
                 new RealtimeActionPresentation(
                     RealtimeR2Ids.PromiseDeferAction,
                     promise.DeferLabel,
                     actionsEnabled
-                        ? "북안 수요를 이번 운영 의무에서 제외하고 일정을 연기합니다."
+                        ? $"{promiseLoadName} 수요를 이번 운영 의무에서 제외합니다."
                         : "약속 마감이 지나 선택을 바꿀 수 없습니다.",
                     actionsEnabled,
                     RealtimeActionTone.Secondary));
@@ -211,7 +214,7 @@ internal static class RealtimeContextPresenter
                 true,
                 "현재 초안 기준 예상",
                 eventName,
-                EventContextSections(snapshot, outcome,
+                EventContextSections(displayWorld, snapshot, outcome,
                 [
                     new("발생", $"{RealtimePresentationText.Time(comparisonEvent.StartMinute)}–{RealtimePresentationText.Time(comparisonEvent.EndMinute)}"),
                     new("안전 의무", outcome.SafetySatisfied
@@ -295,7 +298,7 @@ internal static class RealtimeContextPresenter
                 true,
                 "사건 지평선",
                 eventName,
-                EventContextSections(snapshot, outcome,
+                EventContextSections(displayWorld, snapshot, outcome,
                 [
                     new("발생", $"{RealtimePresentationText.Time(forecast.StartMinute)}–{RealtimePresentationText.Time(forecast.EndMinute)}"),
                     new("안전 의무", outcome.SafetySatisfied
@@ -346,7 +349,7 @@ internal static class RealtimeContextPresenter
                 true,
                 "최근 운영 기록",
                 eventName,
-                EventContextSections(snapshot, completed,
+                EventContextSections(displayWorld, snapshot, completed,
                 [
                     new("운영 시각", $"{RealtimePresentationText.Time(completed.StartMinute)}–{RealtimePresentationText.Time(completed.EndMinute)}"),
                     new("안전 의무", completed.SafetySatisfied
@@ -421,6 +424,72 @@ internal static class RealtimeContextPresenter
                             ? RealtimeTimelineSeverity.Critical
                             : RealtimeTimelineSeverity.Warning),
                 },
+            };
+        }
+
+        if (RealtimeTimelineTargetResolver.TryResolveActualThermalMarker(
+                transitionHistory,
+                selectedId,
+                out RealtimeTransition actualThermal))
+        {
+            RealtimeThermalTransition actualTransition =
+                RealtimeThermalPresentation.FromTransition(actualThermal);
+            RealtimeThermalAssetSnapshot? current = snapshot.Thermal.Assets
+                .FirstOrDefault(item => string.Equals(
+                    item.AssetId,
+                    actualTransition.AssetId,
+                    StringComparison.Ordinal));
+            string source = actualThermal.EventId is null
+                ? "실시간 운영"
+                : snapshot.Chapter.ScheduledEvents
+                    .Where(item => string.Equals(
+                        item.EventId,
+                        actualThermal.EventId,
+                        StringComparison.Ordinal))
+                    .Select(item => RealtimePresentationText.PlayerEventName(
+                        displayWorld,
+                        item.OperatingProfile))
+                    .SingleOrDefault() ?? "실시간 운영";
+            return new RealtimeContextDockPresentation(
+                selectedId,
+                true,
+                "실제 열 보호 기록",
+                RealtimePresentationText.AssetDisplayName(
+                    displayWorld,
+                    snapshot,
+                    actualTransition.AssetId),
+                new RealtimeContextSectionPresentation[]
+                {
+                    new("기록 시각", RealtimePresentationText.Time(
+                        actualTransition.Minute)),
+                    new("실제 변화", RealtimePresentationText.ThermalTitle(
+                            displayWorld,
+                            snapshot,
+                            actualTransition),
+                        actualTransition.Kind switch
+                        {
+                            RealtimeThermalTransitionKind.ProtectiveTrip =>
+                                RealtimeTimelineSeverity.Critical,
+                            RealtimeThermalTransitionKind.EmergencyCleared or
+                                RealtimeThermalTransitionKind.Recovered =>
+                                RealtimeTimelineSeverity.Information,
+                            _ => RealtimeTimelineSeverity.Warning,
+                        }),
+                    new("운영 구간", source),
+                })
+            {
+                Details = current is null
+                    ? Array.Empty<RealtimeContextDetailPresentation>()
+                    : new RealtimeContextDetailPresentation[]
+                    {
+                        new(
+                            RealtimeContextDetailTab.History,
+                            "최근 상태 변화",
+                            RealtimePresentationText.TransitionHistory(
+                                transitionHistory,
+                                current),
+                            RealtimeTimelineSeverity.Advisory),
+                    },
             };
         }
 
@@ -524,7 +593,9 @@ internal static class RealtimeContextPresenter
                     new(
                         RealtimeContextDetailTab.History,
                         "최근 상태 변화",
-                        RealtimePresentationText.TransitionHistory(snapshot, asset),
+                        RealtimePresentationText.TransitionHistory(
+                            transitionHistory,
+                            asset),
                         RealtimeTimelineSeverity.Advisory),
                 },
             };
@@ -548,15 +619,21 @@ internal static class RealtimeContextPresenter
 
     private static IReadOnlyList<RealtimeContextSectionPresentation>
         EventContextSections(
+            CommercialWorldDefinition displayWorld,
             RealtimeCampaignSnapshot snapshot,
             RealtimeEventOutcome outcome,
             IReadOnlyList<RealtimeContextSectionPresentation> baseSections,
             string prefix)
     {
-        if (snapshot.Chapter.Content.CityPromise is null)
+        if (snapshot.Chapter.Content.CityPromise is not
+                CommercialCityPromiseDefinition promise ||
+            !RealtimePromisePresentationFacts.HasPromiseDuty(outcome))
         {
             return baseSections;
         }
+        string promiseLoadName = RealtimePresentationText.LoadDisplayName(
+            displayWorld,
+            promise.LoadId);
         string body = snapshot.PromiseDecision switch
         {
             CommercialPromiseDecision.Unset => outcome.PromiseSatisfied
@@ -567,7 +644,7 @@ internal static class RealtimeContextPresenter
                 ? $"{prefix}Keep · 공급 충족"
                 : $"{prefix}Keep · {outcome.PromiseUnservedMinutes}분 미공급",
             CommercialPromiseDecision.Defer =>
-                $"{prefix}Defer · 북안 수요 의무 제외",
+                $"{prefix}Defer · {promiseLoadName} 수요 의무 제외",
             _ => throw new ArgumentOutOfRangeException(nameof(snapshot)),
         };
         var sections = new List<RealtimeContextSectionPresentation>(baseSections)

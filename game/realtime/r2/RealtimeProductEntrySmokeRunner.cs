@@ -46,7 +46,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         string RouteId,
         long Minute,
         string CanonicalStateSha256,
-        int CommandCount);
+        int CommandCount,
+        int ClosedStoryCount);
 
     public override void _Ready() => _ = RunAsync();
 
@@ -92,7 +93,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     break;
                 case EntryMode.CreateSave:
                     await ValidateProductTitle(viewport, slice);
-                    created = PrepareEventDutyProgress(slice);
+                    created = PrepareActiveStoryProgress(slice);
                     break;
                 case EntryMode.ContinueSave:
                     await ValidateContinue(
@@ -279,7 +280,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         }
 
         byte[] bytes = request.Mode == EntryMode.UnsupportedSave
-            ? "{\"schemaVersion\":\"gridworks.realtime.campaign-save.v2\"}"u8.ToArray()
+            ? "{\"schemaVersion\":\"gridworks.realtime.campaign-save.v3\"}"u8.ToArray()
             : "{\"broken\":true}"u8.ToArray();
         File.WriteAllBytes(path, bytes);
         return bytes;
@@ -316,7 +317,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "The legacy FIRST_LIGHT save is not journal-restorable.");
         RealtimeCampaignSaveStore.Save(
             path,
-            RealtimeCampaignSaveCodec.Capture(
+            RealtimeCampaignSaveCodec.CaptureLegacyV1(
                 data.RequireSaveSourceIdentity(),
                 data.Campaign,
                 data.World,
@@ -420,7 +421,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             "Story continue was confused with title Continue.");
     }
 
-    private static SaveExpectation PrepareEventDutyProgress(RealtimeSliceMain slice)
+    private static SaveExpectation PrepareActiveStoryProgress(RealtimeSliceMain slice)
     {
         Require(slice.ClosePresentedStoryModalForSmoke() is null,
             "FIRST_LIGHT briefing did not close before save preparation.");
@@ -438,32 +439,62 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             RealtimeR2IntentKind.OrderNode)),
             "order a FIRST_LIGHT node");
 
-        _ = slice.AdvanceToForSmoke(1261);
+        _ = slice.AdvanceToForSmoke(1320);
+        Require(slice.ActiveChapterStoryModalForSmoke is
+                {
+                    Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+                    ChapterId: "FIRST_LIGHT",
+                },
+            "The product save preparation missed the FIRST_LIGHT result.");
+        Require(slice.ClosePresentedStoryModalForSmoke() is not null &&
+                slice.ActiveChapterStoryModalForSmoke is
+                {
+                    Purpose: RealtimeChapterStoryModalPurpose.ChapterBriefing,
+                    ChapterId: "SECOND_HEART",
+                },
+            "The FIRST_LIGHT result did not open the SECOND_HEART briefing.");
+        Require(slice.ClosePresentedStoryModalForSmoke() is null,
+            "The SECOND_HEART briefing did not close before story save preparation.");
+
+        _ = slice.AdvanceToForSmoke(1800);
         RealtimeCampaignSnapshot snapshot = slice.CoreSnapshot;
         RealtimeActiveEventState activeEvent = snapshot.ActiveEventStates.Single();
         RealtimeEventDutyProgress duty = snapshot.ActiveDuty ??
             throw new InvalidOperationException(
-                "The FIRST_LIGHT event has no active duty progress.");
-        Require(activeEvent.EventId == "FIRST_LIGHT_SUPPLY" &&
+                "The FLOOD_ISOLATION_TEST event has no active duty progress.");
+        RealtimeChapterStoryModalRequest story =
+            slice.ActiveChapterStoryModalForSmoke ??
+            throw new InvalidOperationException(
+                "The FLOOD_ISOLATION_TEST story is not active.");
+        Require(activeEvent.EventId == "FLOOD_ISOLATION_TEST" &&
                 duty.EventId == activeEvent.EventId &&
-                duty.ClosedSegments.Count > 0 &&
                 snapshot.PendingTransitions.Count == 0 &&
                 snapshot.Construction.NodeDraft is null &&
                 snapshot.Construction.LineDraft is null &&
-                slice.LatestPresentation.Modal is null &&
-                slice.ActiveChapterStoryModalForSmoke is null &&
+                story is
+                {
+                    Purpose: RealtimeChapterStoryModalPurpose.EventStory,
+                    ChapterId: "SECOND_HEART",
+                    EventId: "FLOOD_ISOLATION_TEST",
+                } &&
+                slice.LatestPresentation.Modal?.Id == story.ModalId &&
+                slice.InteractionState is
+                {
+                    Simulation: RealtimeSimulationState.AutoPaused,
+                    ActiveModalId: var activeModalId,
+                } &&
+                activeModalId == story.ModalId &&
                 RealtimeSession.IsJournalRestorableProgressSnapshot(snapshot),
-            "The FIRST_LIGHT save preparation did not reach a journal-restorable " +
-            "active event/duty boundary.");
+            "The product save preparation did not reach an active FLOOD story boundary.");
 
-        // Keep the application state Running while preventing the smoke host from
-        // adding wall-clock time between this expectation and normal tree exit.
+        // Prevent host callbacks between this expectation and normal tree exit.
         slice.FreezeAutonomousClockForSmoke();
         return new SaveExpectation(
             slice.SliceDataForSmoke.RequireSaveSourceIdentity().RouteId,
             snapshot.Minute,
             slice.CanonicalStateSha256,
-            slice.AcceptedCommandCount);
+            slice.AcceptedCommandCount,
+            ClosedStoryCount: 2);
     }
 
     private static void ValidateWrittenSave(
@@ -483,8 +514,10 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     RealtimeNativeRouteCatalog.ProductCampaign.LaunchArgument &&
                 save.SavedMinute == expected.Minute &&
                 save.CanonicalStateSha256 == expected.CanonicalStateSha256 &&
-                save.Commands.Count == expected.CommandCount,
-            "The written R2 save does not match the product source and event exit boundary.");
+                save.Commands.Count == expected.CommandCount &&
+                save.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
+                save.ClosedStoryCount == expected.ClosedStoryCount,
+            "The written R2 save does not match the product active-story boundary.");
     }
 
     private async Task ValidateContinue(
@@ -557,31 +590,67 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     actual.ActiveDuty is
                     {
                         EventId: var actualDutyEventId,
-                        ClosedSegments.Count: > 0,
                     } &&
                     actualDutyEventId == expectedEvent.EventId,
                 "Continue lost active product event/duty progress.");
+            RealtimeChapterStoryModalRequest story =
+                slice.ActiveChapterStoryModalForSmoke ??
+                throw new InvalidOperationException(
+                    "Continue did not restore the active product story.");
+            Require(story is
+                    {
+                        Purpose: RealtimeChapterStoryModalPurpose.EventStory,
+                        ChapterId: "SECOND_HEART",
+                        EventId: "FLOOD_ISOLATION_TEST",
+                    } &&
+                    slice.InteractionState is
+                    {
+                        Simulation: RealtimeSimulationState.AutoPaused,
+                        RunningSpeed: RealtimeSimulationSpeed.Normal,
+                        ActiveModalId: var activeModalId,
+                    } &&
+                    activeModalId == story.ModalId &&
+                    slice.LatestPresentation.Modal?.Id == story.ModalId &&
+                    slice.AccumulatorSnapshot.Paused &&
+                    !slice.AccumulatorSnapshot.HasPendingTime &&
+                    slice.RetainedFrameDebt.Count == 0,
+                "Continue did not restore the same paused active product story.");
+            string beforeCloseHash = slice.CanonicalStateSha256;
+            Require(slice.ClosePresentedStoryModalForSmoke() is null &&
+                    slice.ActiveChapterStoryModalForSmoke is null &&
+                    slice.LatestPresentation.Modal is null &&
+                    slice.CanonicalStateSha256 == beforeCloseHash &&
+                    slice.InteractionState is
+                    {
+                        Simulation: RealtimeSimulationState.PlayerPaused,
+                        RunningSpeed: RealtimeSimulationSpeed.Normal,
+                        Tool: RealtimeTool.Inspect,
+                        SelectionId: null,
+                        ActiveModalId: null,
+                        SelectedBuildToolId: null,
+                    },
+                "Closing the restored story did not return to paused product play.");
         }
         else
         {
             Require(expected.Construction.ActiveConstruction is not null &&
                     actual.Construction.ActiveConstruction is not null,
                 "Legacy Continue lost its active construction.");
+            Require(slice.InteractionState is
+                    {
+                        Simulation: RealtimeSimulationState.PlayerPaused,
+                        RunningSpeed: RealtimeSimulationSpeed.Normal,
+                        Tool: RealtimeTool.Inspect,
+                        SelectionId: null,
+                        ActiveModalId: null,
+                        SelectedBuildToolId: null,
+                    } &&
+                    slice.LatestPresentation.Modal is null &&
+                    slice.AccumulatorSnapshot.Paused &&
+                    !slice.AccumulatorSnapshot.HasPendingTime &&
+                    slice.RetainedFrameDebt.Count == 0,
+                "Legacy Continue did not apply paused/no-modal/no-frame-debt policy.");
         }
-        Require(slice.InteractionState is
-                {
-                    Simulation: RealtimeSimulationState.PlayerPaused,
-                    RunningSpeed: RealtimeSimulationSpeed.Normal,
-                    Tool: RealtimeTool.Inspect,
-                    SelectionId: null,
-                    ActiveModalId: null,
-                    SelectedBuildToolId: null,
-                } &&
-                slice.LatestPresentation.Modal is null &&
-                slice.AccumulatorSnapshot.Paused &&
-                !slice.AccumulatorSnapshot.HasPendingTime &&
-                slice.RetainedFrameDebt.Count == 0,
-            "Continue did not apply paused/normal/no-modal/no-frame-debt policy.");
     }
 
     private static void RequireAccepted(

@@ -44,6 +44,10 @@ internal sealed record RealtimeChapterStoryModalRequest(
 /// </summary>
 internal sealed class RealtimeChapterStoryFlow
 {
+    private sealed record ProjectedStory(
+        RealtimeChapterStoryModalRequest Request,
+        long TriggerMinute);
+
     private readonly Queue<RealtimeChapterStoryModalRequest> _pending = new();
     private readonly HashSet<string> _observedModalIds = new(StringComparer.Ordinal);
 
@@ -51,45 +55,91 @@ internal sealed class RealtimeChapterStoryFlow
 
     internal bool IsIdle => Active is null && _pending.Count == 0;
 
+    internal bool HasPending => _pending.Count > 0;
+
+    internal int ClosedStoryCount { get; private set; }
+
     internal void Reset()
     {
         _pending.Clear();
         _observedModalIds.Clear();
         Active = null;
+        ClosedStoryCount = 0;
     }
 
     internal void Observe(
         RealtimeTransition transition,
-        RealtimeCampaignSnapshot snapshot,
         RealtimeCampaignDefinition campaign)
     {
         ArgumentNullException.ThrowIfNull(transition);
-        ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentNullException.ThrowIfNull(campaign);
 
-        RealtimeChapterStoryModalRequest? request = transition.Kind switch
+        ProjectedStory? projected = Project(transition, campaign);
+        if (projected is not null)
         {
-            RealtimeTransitionKind.ChapterStarted when
-                transition.ChapterId is not null &&
-                snapshot.CompletedChapters.Count > 0 => Briefing(transition.ChapterId),
-            RealtimeTransitionKind.ForecastRevealed when
-                transition.ChapterId is not null &&
-                transition.EventId is not null => DecisionWindowStory(
-                    Chapter(campaign, transition.ChapterId),
-                    transition.EventId),
-            RealtimeTransitionKind.EventStarted when
-                transition.ChapterId is not null &&
-                transition.EventId is not null => EventStory(
-                    Chapter(campaign, transition.ChapterId),
-                    transition.EventId),
-            RealtimeTransitionKind.ChapterCompleted when transition.ChapterId is not null =>
-                Result(transition.ChapterId, snapshot.CampaignComplete),
-            _ => null,
-        };
-        if (request is not null)
-        {
-            Enqueue(request);
+            Enqueue(projected.Request);
         }
+    }
+
+    internal void Restore(
+        IReadOnlyList<RealtimeTransition> history,
+        RealtimeCampaignDefinition campaign,
+        int? closedStoryCount,
+        long savedMinute)
+    {
+        ArgumentNullException.ThrowIfNull(history);
+        ArgumentNullException.ThrowIfNull(campaign);
+        if (savedMinute < 0)
+        {
+            throw new InvalidOperationException(
+                "A chapter-story cursor requires a nonnegative saved minute.");
+        }
+
+        Reset();
+        var candidates = new List<ProjectedStory>();
+        var candidateIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (RealtimeTransition transition in history)
+        {
+            ProjectedStory? projected = Project(transition, campaign);
+            if (projected is not null && candidateIds.Add(projected.Request.ModalId))
+            {
+                candidates.Add(projected);
+            }
+        }
+
+        foreach (ProjectedStory candidate in candidates)
+        {
+            _observedModalIds.Add(candidate.Request.ModalId);
+        }
+
+        int closed = closedStoryCount ?? candidates.Count;
+        if (closed < 0 || closed > candidates.Count)
+        {
+            throw new InvalidOperationException(
+                "The chapter-story cursor is outside the projected story history.");
+        }
+        ClosedStoryCount = closed;
+        if (closed == candidates.Count)
+        {
+            return;
+        }
+
+        if (closed != candidates.Count - 1)
+        {
+            throw new InvalidOperationException(
+                "The current chapter-story cursor cannot restore a queued story suffix.");
+        }
+        ProjectedStory active = candidates[closed];
+        if (active.Request.Purpose is not (
+                RealtimeChapterStoryModalPurpose.EventStory or
+                RealtimeChapterStoryModalPurpose.DecisionWindowStory) ||
+            active.TriggerMinute != savedMinute)
+        {
+            throw new InvalidOperationException(
+                "The current chapter-story cursor must identify one active " +
+                "in-chapter story at the saved minute.");
+        }
+        Active = active.Request;
     }
 
     internal RealtimeChapterStoryModalRequest? ActivateNext()
@@ -112,6 +162,7 @@ internal sealed class RealtimeChapterStoryFlow
             return false;
         }
         Active = null;
+        ClosedStoryCount = checked(ClosedStoryCount + 1);
         return true;
     }
 
@@ -150,6 +201,38 @@ internal sealed class RealtimeChapterStoryFlow
             chapterId,
             null,
             false);
+
+    private static ProjectedStory? Project(
+        RealtimeTransition transition,
+        RealtimeCampaignDefinition campaign)
+    {
+        RealtimeChapterStoryModalRequest? request = transition.Kind switch
+        {
+            RealtimeTransitionKind.ChapterStarted when
+                transition.ChapterId is not null &&
+                ChapterIndex(campaign, transition.ChapterId) > 0 =>
+                Briefing(transition.ChapterId),
+            RealtimeTransitionKind.ForecastRevealed when
+                transition.ChapterId is not null &&
+                transition.EventId is not null => DecisionWindowStory(
+                    Chapter(campaign, transition.ChapterId),
+                    transition.EventId),
+            RealtimeTransitionKind.EventStarted when
+                transition.ChapterId is not null &&
+                transition.EventId is not null => EventStory(
+                    Chapter(campaign, transition.ChapterId),
+                    transition.EventId),
+            RealtimeTransitionKind.ChapterCompleted when transition.ChapterId is not null =>
+                Result(
+                    transition.ChapterId,
+                    ChapterIndex(campaign, transition.ChapterId) ==
+                        campaign.Chapters.Count - 1),
+            _ => null,
+        };
+        return request is null
+            ? null
+            : new ProjectedStory(request, transition.Minute);
+    }
 
     private static RealtimeChapterStoryModalRequest Result(
         string chapterId,
@@ -215,6 +298,24 @@ internal sealed class RealtimeChapterStoryFlow
         item.Content.ChapterId,
         chapterId,
         StringComparison.Ordinal));
+
+    private static int ChapterIndex(
+        RealtimeCampaignDefinition campaign,
+        string chapterId)
+    {
+        for (int index = 0; index < campaign.Chapters.Count; index++)
+        {
+            if (string.Equals(
+                    campaign.Chapters[index].Content.ChapterId,
+                    chapterId,
+                    StringComparison.Ordinal))
+            {
+                return index;
+            }
+        }
+        throw new InvalidOperationException(
+            $"Chapter '{chapterId}' is absent from the selected realtime campaign.");
+    }
 
     private void Enqueue(RealtimeChapterStoryModalRequest request)
     {

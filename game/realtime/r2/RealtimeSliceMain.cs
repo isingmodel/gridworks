@@ -303,20 +303,17 @@ internal sealed partial class RealtimeSliceMain : Control
                     data.Campaign,
                     data.World,
                     save);
-            if (!RealtimeSession.IsJournalRestorableProgressSnapshot(
-                    restore.Run.GetSnapshot()))
-            {
-                throw new RealtimeCampaignPersistenceException(
-                    RealtimeCampaignPersistenceFailureKind.Invalid,
-                    "The saved run is outside the journal-restorable progress boundary.");
-            }
+            RealtimeChapterStoryModalRequest? resumedStory =
+                RealtimeSession.ValidateProgressResume(data, restore);
             _continuation = new RealtimeContinuation(route!, data, restore);
             RealtimeCampaignSnapshot snapshot = restore.Run.GetSnapshot();
             return new RealtimeProductTitlePresentation(
                 "저장된 청류시 운영을 이어갈 수 있습니다.",
                 $"{RealtimePresentationText.Time(snapshot.Minute)} · " +
                 $"운영 자금 {RealtimePresentationText.Cash(snapshot.CashUnit)} · " +
-                "이어하기는 paused 상태로 열립니다.",
+                (resumedStory is null
+                    ? "이어하기는 paused 상태로 열립니다."
+                    : "저장된 story를 먼저 열고, 닫으면 paused 상태로 이어집니다."),
                 CanContinue: true,
                 CanStartNewGame: false);
         }

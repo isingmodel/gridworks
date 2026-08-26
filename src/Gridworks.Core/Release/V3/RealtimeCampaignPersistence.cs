@@ -19,9 +19,12 @@ public sealed record RealtimeCampaignSave(
     RealtimeCampaignSourceIdentity Source,
     long SavedMinute,
     string CanonicalStateSha256,
-    IReadOnlyList<TimedRealtimeCommand> Commands)
+    IReadOnlyList<TimedRealtimeCommand> Commands,
+    int? ClosedStoryCount)
 {
     public const string SupportedSchemaVersion =
+        "gridworks.realtime.campaign-save.v2";
+    public const string LegacySchemaVersion =
         "gridworks.realtime.campaign-save.v1";
 
     private IReadOnlyList<TimedRealtimeCommand> _commands =
@@ -36,7 +39,8 @@ public sealed record RealtimeCampaignSave(
 
 public sealed record RealtimeCampaignRestoreResult(
     RealtimeCampaignRun Run,
-    IReadOnlyList<RealtimeTransition> Transitions)
+    IReadOnlyList<RealtimeTransition> Transitions,
+    int? ClosedStoryCount)
 {
     private IReadOnlyList<RealtimeTransition> _transitions =
         RealtimeStructural.Freeze(Transitions);
@@ -95,7 +99,34 @@ public static class RealtimeCampaignSaveCodec
         RealtimeCampaignSourceIdentity identity,
         RealtimeCampaignDefinition campaign,
         RealtimeWorldDefinition world,
-        RealtimeCampaignRun run)
+        RealtimeCampaignRun run,
+        int closedStoryCount) => Capture(
+        identity,
+        campaign,
+        world,
+        run,
+        RealtimeCampaignSave.SupportedSchemaVersion,
+        closedStoryCount);
+
+    public static RealtimeCampaignSave CaptureLegacyV1(
+        RealtimeCampaignSourceIdentity identity,
+        RealtimeCampaignDefinition campaign,
+        RealtimeWorldDefinition world,
+        RealtimeCampaignRun run) => Capture(
+        identity,
+        campaign,
+        world,
+        run,
+        RealtimeCampaignSave.LegacySchemaVersion,
+        closedStoryCount: null);
+
+    private static RealtimeCampaignSave Capture(
+        RealtimeCampaignSourceIdentity identity,
+        RealtimeCampaignDefinition campaign,
+        RealtimeWorldDefinition world,
+        RealtimeCampaignRun run,
+        string schemaVersion,
+        int? closedStoryCount)
     {
         ArgumentNullException.ThrowIfNull(run);
         ValidateContext(identity, campaign, world);
@@ -105,11 +136,12 @@ public static class RealtimeCampaignSaveCodec
             IReadOnlyList<TimedRealtimeCommand> journal = run.AcceptedCommands;
             string liveHash = run.GetCanonicalStateSha256();
             var save = new RealtimeCampaignSave(
-                RealtimeCampaignSave.SupportedSchemaVersion,
+                schemaVersion,
                 identity,
                 run.Minute,
                 liveHash,
-                journal);
+                journal,
+                closedStoryCount);
             ValidateSave(save);
 
             RealtimeCampaignRestoreResult replay = Restore(
@@ -167,20 +199,37 @@ public static class RealtimeCampaignSaveCodec
 
             string schema = ReadString(root, "schemaVersion", "$");
             ValidateSchema(schema);
-            RequireFields(root, "$", [
-                "schemaVersion",
-                "source",
-                "savedMinute",
-                "canonicalStateSha256",
-                "commands",
-            ]);
+            bool legacy = string.Equals(
+                schema,
+                RealtimeCampaignSave.LegacySchemaVersion,
+                StringComparison.Ordinal);
+            RequireFields(
+                root,
+                "$",
+                legacy
+                    ? [
+                        "schemaVersion",
+                        "source",
+                        "savedMinute",
+                        "canonicalStateSha256",
+                        "commands",
+                    ]
+                    : [
+                        "schemaVersion",
+                        "source",
+                        "savedMinute",
+                        "canonicalStateSha256",
+                        "commands",
+                        "closedStoryCount",
+                    ]);
 
             var save = new RealtimeCampaignSave(
                 schema,
                 ReadSource(root.GetProperty("source")),
                 ReadInt64(root, "savedMinute", "$"),
                 ReadString(root, "canonicalStateSha256", "$"),
-                ReadCommands(root.GetProperty("commands")));
+                ReadCommands(root.GetProperty("commands")),
+                legacy ? null : ReadInt32(root, "closedStoryCount", "$"));
             ValidateSave(save);
             return save;
         }
@@ -239,7 +288,10 @@ public static class RealtimeCampaignSaveCodec
                 "The replayed canonical state hash does not match the save.");
             Require(run.AcceptedCommands.SequenceEqual(save.Commands),
                 "The replayed accepted journal does not match the save.");
-            return new RealtimeCampaignRestoreResult(run, transitions);
+            return new RealtimeCampaignRestoreResult(
+                run,
+                transitions,
+                save.ClosedStoryCount);
         }
         catch (RealtimeCampaignPersistenceException)
         {
@@ -374,6 +426,19 @@ public static class RealtimeCampaignSaveCodec
     {
         ArgumentNullException.ThrowIfNull(save);
         ValidateSchema(save.SchemaVersion);
+        if (string.Equals(
+                save.SchemaVersion,
+                RealtimeCampaignSave.LegacySchemaVersion,
+                StringComparison.Ordinal))
+        {
+            Require(save.ClosedStoryCount is null,
+                "closedStoryCount is not valid for the legacy save schema.");
+        }
+        else
+        {
+            Require(save.ClosedStoryCount is >= 0,
+                "closedStoryCount must be a nonnegative 32-bit integer.");
+        }
         ValidateSource(save.Source);
         Require(save.SavedMinute >= 0, "savedMinute must be nonnegative.");
         RequireSha256(save.CanonicalStateSha256, "canonicalStateSha256");
@@ -404,6 +469,10 @@ public static class RealtimeCampaignSaveCodec
         if (!string.Equals(
                 schemaVersion,
                 RealtimeCampaignSave.SupportedSchemaVersion,
+                StringComparison.Ordinal) &&
+            !string.Equals(
+                schemaVersion,
+                RealtimeCampaignSave.LegacySchemaVersion,
                 StringComparison.Ordinal))
         {
             throw new RealtimeCampaignPersistenceException(

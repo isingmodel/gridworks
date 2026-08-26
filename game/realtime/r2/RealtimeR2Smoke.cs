@@ -2916,23 +2916,23 @@ internal static class RealtimeR2Smoke
             "FLOOD_ISOLATION_TEST",
             data.BaseCampaign.Chapters[1].OperatingPhases[1].Story!,
             failures);
-        Check(live.ClosePresentedStoryModalForSmoke() is null,
-            "cumulative resume FLOOD event story did not close cleanly",
-            failures);
-        _ = live.AdvanceToForSmoke(1801);
         RealtimeCampaignSnapshot eventSnapshot = live.CoreSnapshot;
         Check(eventSnapshot.ActiveEventStates.Single().EventId ==
                   "FLOOD_ISOLATION_TEST" &&
               eventSnapshot.ActiveDuty is
               {
                   EventId: "FLOOD_ISOLATION_TEST",
-                  ClosedSegments.Count: > 0,
               } &&
               eventSnapshot.PendingTransitions.Count == 0 &&
-              live.ActiveChapterStoryModalForSmoke is null &&
-              live.LatestPresentation.Modal is null &&
+              live.ActiveChapterStoryModalForSmoke is
+              {
+                  Purpose: RealtimeChapterStoryModalPurpose.EventStory,
+                  ChapterId: "SECOND_HEART",
+                  EventId: "FLOOD_ISOLATION_TEST",
+              } activeStory &&
+              live.LatestPresentation.Modal?.Id == activeStory.ModalId &&
               RealtimeSession.IsJournalRestorableProgressSnapshot(eventSnapshot),
-            "cumulative resume did not reach a journal-restorable active event/duty boundary",
+            "cumulative resume did not reach an active FLOOD story boundary",
             failures);
 
         RealtimeCampaignSnapshot expectedSnapshot = live.CoreSnapshot;
@@ -2940,6 +2940,10 @@ internal static class RealtimeR2Smoke
         TimedRealtimeCommand[] expectedJournal = live.AcceptedCommands.ToArray();
         RealtimeTransition[] expectedTransitions = live.EmittedTransitions.ToArray();
         RealtimeCampaignSave save = live.CaptureProgressForSmoke();
+        Check(save.SchemaVersion == RealtimeCampaignSave.SupportedSchemaVersion &&
+              save.ClosedStoryCount == 2,
+            "cumulative active story did not capture the exact v2 closed prefix",
+            failures);
 
         var resumed = new RealtimeSliceMain();
         try
@@ -2968,16 +2972,36 @@ internal static class RealtimeR2Smoke
                   .SequenceEqual(new[] { "FIRST_LIGHT" }, StringComparer.Ordinal),
             "cumulative event/duty resume lost Core state, journal, or history",
             failures);
+        RequireAuthoredTutorialModal(
+            resumed,
+            RealtimeChapterStoryModalPurpose.EventStory,
+            "SECOND_HEART",
+            "FLOOD_ISOLATION_TEST",
+            data.BaseCampaign.Chapters[1].OperatingPhases[1].Story!,
+            failures);
         Check(resumed.InteractionState is
+              {
+                  Simulation: RealtimeSimulationState.AutoPaused,
+                  RunningSpeed: RealtimeSimulationSpeed.Normal,
+                  ActiveModalId: var resumedStoryId,
+              } &&
+              resumed.ActiveChapterStoryModalForSmoke?.ModalId == resumedStoryId &&
+              resumed.LatestPresentation.Modal?.Id == resumedStoryId &&
+              resumed.AccumulatorSnapshot.Paused,
+            "cumulative event/duty resume did not reopen the saved story",
+            failures);
+        Check(live.ClosePresentedStoryModalForSmoke() is null &&
+              resumed.ClosePresentedStoryModalForSmoke() is null &&
+              live.ActiveChapterStoryModalForSmoke is null &&
+              resumed.ActiveChapterStoryModalForSmoke is null &&
+              resumed.InteractionState is
               {
                   Simulation: RealtimeSimulationState.PlayerPaused,
                   RunningSpeed: RealtimeSimulationSpeed.Normal,
                   ActiveModalId: null,
               } &&
-              resumed.LatestPresentation.Modal is null &&
-              resumed.ActiveChapterStoryModalForSmoke is null &&
-              resumed.AccumulatorSnapshot.Paused,
-            "cumulative event/duty resume did not apply paused/no-modal policy",
+              resumed.LatestPresentation.Modal is null,
+            "closing the restored FLOOD story did not return to paused play",
             failures);
 
         _ = live.AdvanceToForSmoke(1860);

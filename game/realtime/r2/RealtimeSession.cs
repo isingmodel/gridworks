@@ -108,7 +108,8 @@ internal sealed partial class RealtimeSession
                 data?.Campaign ?? throw new ArgumentNullException(nameof(data)),
                 data.World),
             Array.Empty<RealtimeTransition>(),
-            resumed: false)
+            resumed: false,
+            closedStoryCount: null)
     {
     }
 
@@ -116,7 +117,8 @@ internal sealed partial class RealtimeSession
         RealtimeSliceData data,
         RealtimeCampaignRun run,
         IReadOnlyList<RealtimeTransition> transitionHistory,
-        bool resumed)
+        bool resumed,
+        int? closedStoryCount)
     {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         _run = run ?? throw new ArgumentNullException(nameof(run));
@@ -125,12 +127,12 @@ internal sealed partial class RealtimeSession
         if (resumed)
         {
             RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
-            if (!IsJournalRestorableProgressSnapshot(snapshot))
-            {
-                throw new InvalidOperationException(
-                    "A resumed R2 session requires accepted journal-restorable " +
-                    "incomplete progress.");
-            }
+            RestoreProgressStoryFlow(
+                _chapterStoryFlow,
+                _data,
+                _run,
+                transitionHistory,
+                closedStoryCount);
             _emittedTransitions.AddRange(transitionHistory);
             foreach (RealtimeTransition transition in transitionHistory.Where(item =>
                          item.Kind == RealtimeTransitionKind.ThermalProtectiveTrip))
@@ -158,7 +160,14 @@ internal sealed partial class RealtimeSession
             _interaction = RealtimeInteractionReducer.Initial(chapterBriefing: true);
         }
         _frame.Pause();
-        Present();
+        if (resumed && _chapterStoryFlow.Active is not null)
+        {
+            TryOpenChapterStoryModal();
+        }
+        else
+        {
+            Present();
+        }
     }
 
     internal static RealtimeSession Resume(
@@ -170,7 +179,49 @@ internal sealed partial class RealtimeSession
             data,
             restore.Run,
             restore.Transitions,
-            resumed: true);
+            resumed: true,
+            restore.ClosedStoryCount);
+    }
+
+    internal static RealtimeChapterStoryModalRequest? ValidateProgressResume(
+        RealtimeSliceData data,
+        RealtimeCampaignRestoreResult restore)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(restore);
+        var storyFlow = new RealtimeChapterStoryFlow();
+        RestoreProgressStoryFlow(
+            storyFlow,
+            data,
+            restore.Run,
+            restore.Transitions,
+            restore.ClosedStoryCount);
+        return storyFlow.Active;
+    }
+
+    private static void RestoreProgressStoryFlow(
+        RealtimeChapterStoryFlow storyFlow,
+        RealtimeSliceData data,
+        RealtimeCampaignRun run,
+        IReadOnlyList<RealtimeTransition> transitionHistory,
+        int? closedStoryCount)
+    {
+        ArgumentNullException.ThrowIfNull(storyFlow);
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(run);
+        ArgumentNullException.ThrowIfNull(transitionHistory);
+        RealtimeCampaignSnapshot snapshot = run.GetSnapshot();
+        if (!IsJournalRestorableProgressSnapshot(snapshot))
+        {
+            throw new InvalidOperationException(
+                "A resumed R2 session requires accepted journal-restorable " +
+                "incomplete progress.");
+        }
+        storyFlow.Restore(
+            transitionHistory,
+            data.Campaign,
+            closedStoryCount,
+            snapshot.Minute);
     }
 
     internal RealtimeR2IntentResult ApplyIntent(RealtimeR2Intent intent)
@@ -576,7 +627,6 @@ internal sealed partial class RealtimeSession
             {
                 _chapterStoryFlow.Observe(
                     transition,
-                    _run!.GetSnapshot(),
                     _data!.Campaign);
             }
             if (transition.Kind == RealtimeTransitionKind.ThermalProtectiveTrip)
@@ -1940,13 +1990,37 @@ internal sealed partial class RealtimeSession
 
     private bool CanCaptureProgress =>
         IsJournalRestorableProgressSnapshot(_run.GetSnapshot()) &&
-        _interaction.ActiveModalId is null &&
-        _chapterStoryFlow.IsIdle &&
         !_epilogueFlow.Started &&
         _retainedFrameDebt.Count == 0 &&
+        (CanCaptureStoryIdleProgress || CanCaptureActiveStoryProgress);
+
+    private bool CanCaptureStoryIdleProgress =>
+        _interaction.ActiveModalId is null &&
+        _chapterStoryFlow.IsIdle &&
         _interaction.Simulation is
             RealtimeSimulationState.Running or
             RealtimeSimulationState.PlayerPaused;
+
+    private bool CanCaptureActiveStoryProgress =>
+        !_chapterStoryFlow.HasPending &&
+        _chapterStoryFlow.Active is
+        {
+            Purpose: RealtimeChapterStoryModalPurpose.EventStory or
+                RealtimeChapterStoryModalPurpose.DecisionWindowStory,
+        } story &&
+        string.Equals(
+            _interaction.ActiveModalId,
+            story.ModalId,
+            StringComparison.Ordinal) &&
+        _interaction is
+        {
+            Simulation: RealtimeSimulationState.AutoPaused,
+            Surface: RealtimeSurface.BlockingModal,
+            ActiveModalKind: RealtimeModalKind.Story,
+            ModalRestore.Simulation: RealtimeSimulationState.Running or
+                RealtimeSimulationState.PlayerPaused,
+        } &&
+        _interaction.PauseReason == story.PauseReason;
 
     internal static bool IsJournalRestorableProgressSnapshot(
         RealtimeCampaignSnapshot snapshot) =>
@@ -1995,7 +2069,8 @@ internal sealed partial class RealtimeSession
             source,
             _data.Campaign,
             _data.World,
-            _run);
+            _run,
+            _chapterStoryFlow.ClosedStoryCount);
         return true;
     }
 

@@ -30,7 +30,7 @@ standard authored 결과를 기존 generic chapter flow로 진행한다.
 - package, 평가 실행, 사람 미감·사용성 판정, 배포
 - V2/V3의 authored 시각·story 문구 재작성
 - chapter ID별 loader/Session/Main/UI 분기 또는 선제 refactor
-- 새 대형/소형 refuge 대안, 실패 replay나 별도 route branch
+- 새 공사·refuge 대안, 실패 replay나 별도 route branch
 - branch 통합, push, PR 또는 merge
 
 ## 완료 검사
@@ -41,16 +41,16 @@ standard authored 결과를 기존 generic chapter flow로 진행한다.
   이 장에는 promise와 connection gate가 없다. modal FIFO는 briefing→`FINAL_OPERATING_PLAN_WINDOW`→
   `HEATWAVE_PEAK` event story→`PROTECTIVE_STOP_FLOOD` event story→standard result이며 story가 없는
   `MAX_DEMAND`는 modal을 만들지 않는다.
-- SWITCH에서 만든 기존 `(2300, 900)` 소형 변전소를 재사용한다. 서부 전원에서 `(650, 450)`,
-  `(990, 400)`, `(1570, 400)`, `(1800, 850)`, `(1950, 1000)`을 거치는 범람 비노출 보강 feed와 그
-  변전소에서 의료원으로 가는 보강 직결 회선만 추가해 268230분에 완공한다.
+- 앞선 7장에서 만든 망이 이미 마지막 장의 safety duty를 충족한다. 새 공사나 Core command를 만들지
+  않고 이전 종료 현금과 망을 그대로 보존한 채 최종 운영안만 진행한다.
 - forecast reveal은 267990/268170/268350분이고, 사건은 `MAX_DEMAND` 268590–268710,
   `HEATWAVE_PEAK` 268770–268890, `PROTECTIVE_STOP_FLOOD` 268950–269070분이다. 각 forecast와 actual은
   authored 5개 수요와 thermal policy를 유지한다.
-- 최대수요에서 의료원·정수장 각 900 kW를 연속 공급한다. 폭염 정점에서 의료원 1,600 kW와 정수장
-  1,400 kW를 공급하고 실제 비상 운전과 보호정지 전이를 남긴다. 마지막 범람 국면은
-  `RIVER_FLOOD_ZONE`과 실제 보호정지·복귀를 반영하면서 모든 duty segment에서 의료원·정수장 각
-  900 kW를 공급한다. 일반 수요는 operating record이며 성공 hard gate로 위조하지 않는다.
+- 최대수요에서 의료원·정수장 각 900 kW와 세 일반 수요를 연속 공급한다. 폭염 정점에서 의료원
+  1,600 kW와 정수장 1,400 kW를 공급하고, 같은 실제 자산의 268770분 비상 진입→268845분 보호정지→
+  268935분 복귀를 남긴다. 마지막 범람 국면은 `RIVER_FLOOD_ZONE`을 반영하고 모든 duty segment에서
+  의료원·정수장 각 900 kW를 공급하며 새 비상·보호정지를 만들지 않는다. 일반 수요는 operating
+  record이며 성공 hard gate로 위조하지 않는다.
 - 세 사건의 safety duty가 성공한 exact standard authored result를 표시한다. 결과를 닫으면 8장 ordered
   result와 full-flow evidence를 한 번만 만들고 `CampaignComplete=true`인 native route를 종료한다.
   이를 epilogue·save·전체 제품 완결성 증거로 확대하지 않는다.

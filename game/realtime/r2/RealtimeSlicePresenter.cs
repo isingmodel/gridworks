@@ -114,7 +114,12 @@ internal static class RealtimeSlicePresenter
                 source.Pointer.Accepted,
                 source.Pointer.Message,
                 source.NodeOrderQuote,
-                source.LineOrderQuote),
+                source.LineOrderQuote,
+                source.Data.NativeRoute is not null &&
+                string.Equals(
+                    snapshot.Chapter.Content.ChapterId,
+                    "FIRST_LIGHT",
+                    StringComparison.Ordinal)),
             RealtimeModalPresenter.Present(source, pause));
     }
 
@@ -129,7 +134,8 @@ internal static class RealtimeSlicePresenter
         long revision,
         RealtimeWorldPointerFeedback pointer,
         RealtimeProjectQuote? nodeOrderQuote,
-        RealtimeProjectQuote? lineOrderQuote)
+        RealtimeProjectQuote? lineOrderQuote,
+        bool firstLightAdvanceEnabled)
     {
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(interaction);
@@ -152,7 +158,8 @@ internal static class RealtimeSlicePresenter
                 pointer.Accepted,
                 pointer.Message,
                 nodeOrderQuote,
-                lineOrderQuote),
+                lineOrderQuote,
+                firstLightAdvanceEnabled),
         };
     }
 }

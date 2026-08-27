@@ -158,7 +158,8 @@ internal static class RealtimeConstructionPresenter
         bool pointerAccepted,
         string pointerMessage,
         RealtimeProjectQuote? nodeOrderQuote,
-        RealtimeProjectQuote? lineOrderQuote)
+        RealtimeProjectQuote? lineOrderQuote,
+        bool firstLightAdvanceEnabled)
     {
         ConstructionSnapshot construction = snapshot.Construction;
         bool ended = snapshot.CampaignComplete ||
@@ -214,11 +215,42 @@ internal static class RealtimeConstructionPresenter
         }
         if (construction.ActiveConstruction is ActiveConstructionSnapshot active)
         {
+            string detail = $"{RealtimePresentationText.Time(active.CompletionMinute)} 자동 완공 · 두 번째 발주 불가";
             return new RealtimeActionDockPresentation(
                 true,
                 "공사 진행",
-                $"{RealtimePresentationText.Time(active.CompletionMinute)} 자동 완공 · 두 번째 발주 불가",
-                null);
+                detail,
+                firstLightAdvanceEnabled
+                    ? new RealtimeActionPresentation(
+                        RealtimeR2Ids.AdvanceFirstLightAction,
+                        "공사 완료까지 진행",
+                        $"대기를 건너뛰고 {RealtimePresentationText.Time(active.CompletionMinute)} 공사 완료 시점으로 진행합니다.",
+                        true)
+                    : null);
+        }
+        if (firstLightAdvanceEnabled &&
+            (snapshot.ActiveEvent is not null ||
+             RealtimePresentationText.FirstLightRouteReady(snapshot)))
+        {
+            RealtimeScheduledEventDefinition scheduled = snapshot.Chapter.ScheduledEvents
+                .OrderBy(item => item.StartOffsetMinutes)
+                .First();
+            long startMinute = checked(
+                snapshot.ChapterStartMinute + scheduled.StartOffsetMinutes);
+            bool eventActive = snapshot.ActiveEvent is not null;
+            return new RealtimeActionDockPresentation(
+                true,
+                eventActive ? "첫 공급 시험 진행" : "첫 공급 시험 대기",
+                eventActive
+                    ? $"{RealtimePresentationText.Time(snapshot.ChapterStartMinute + scheduled.EndOffsetMinutes)} 결과 확인"
+                    : $"{RealtimePresentationText.Time(startMinute)} 시험 시작",
+                new RealtimeActionPresentation(
+                    RealtimeR2Ids.AdvanceFirstLightAction,
+                    eventActive ? "시험 결과까지 진행" : "첫 공급 시험까지 진행",
+                    eventActive
+                        ? "남은 시험 시간을 건너뛰고 공급 결과를 확인합니다."
+                        : $"준비 시간을 건너뛰고 {RealtimePresentationText.Time(startMinute)} 첫 공급 시험을 시작합니다.",
+                    true));
         }
         return new RealtimeActionDockPresentation(false, string.Empty, string.Empty, null);
     }
@@ -234,4 +266,3 @@ internal static class RealtimeConstructionPresenter
         } && quote.CostCashUnit.Value <= snapshot.CashUnit;
 
 }
-

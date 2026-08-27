@@ -104,9 +104,20 @@ internal static class RealtimePresentationText
         return $"{remainderMinutes}분 뒤";
     }
 
-    internal static string Cash(long cashUnit) => string.Create(
-        CultureInfo.InvariantCulture,
-        $"{cashUnit:N0}만 원");
+    internal static string Cash(long cashUnit)
+    {
+        long manWon = cashUnit / 10_000;
+        long won = cashUnit % 10_000;
+        if (manWon == 0)
+        {
+            return string.Create(CultureInfo.InvariantCulture, $"{cashUnit:N0}원");
+        }
+        return won == 0
+            ? string.Create(CultureInfo.InvariantCulture, $"{manWon:N0}만 원")
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"{manWon:N0}만 {won:N0}원");
+    }
 
     internal static string AssetDisplayName(
         CommercialWorldDefinition displayWorld,
@@ -415,11 +426,7 @@ internal static class RealtimePresentationText
         {
             return string.Empty;
         }
-        SpatialNodeDefinition? substation = snapshot.Construction.World.Nodes
-            .Where(item => item.Commissioned)
-            .FirstOrDefault(item => snapshot.Construction.World.NodeClasses.Any(nodeClass =>
-                string.Equals(nodeClass.ClassId, item.ClassId, StringComparison.Ordinal) &&
-                nodeClass.Kind == SpatialNodeKind.Substation));
+        SpatialNodeDefinition? substation = FirstLightSubstation(snapshot);
         if (substation is null)
         {
             return "다음 행동 · 1/3 N으로 동부 생활권 옆에 변전소를 배치·완공하세요.";
@@ -441,6 +448,18 @@ internal static class RealtimePresentationText
         return "경로 준비 완료 · 21:00 동부 첫 공급까지 유지하세요.";
     }
 
+    internal static bool FirstLightRouteReady(RealtimeCampaignSnapshot snapshot)
+    {
+        SpatialNodeDefinition? substation = FirstLightSubstation(snapshot);
+        return IsFirstLight(snapshot) &&
+            substation is not null &&
+            Connected(snapshot.Construction.World, "WEST_SOURCE_NODE", substation.NodeId) &&
+            Connected(
+                snapshot.Construction.World,
+                substation.NodeId,
+                "EAST_RESIDENTIAL_TERMINAL");
+    }
+
     internal static string SpanDetail(long? length, int? maximum) =>
         length.HasValue && maximum.HasValue
             ? $"경간 {length.Value:N0} / 허용 {maximum.Value:N0}"
@@ -460,15 +479,50 @@ internal static class RealtimePresentationText
             .SelectMany(item => item.FinalEvaluation.Loads)
             .Select(item => item.Failure)
             .FirstOrDefault(item => item is not null);
-        string cause = failure is null
-            ? "원인 · 필수 수요의 완공된 공급 경로가 없습니다."
+        SpatialNodeDefinition? substation = FirstLightSubstation(snapshot);
+        bool nodeReady = substation is not null;
+        bool sourceReady = nodeReady && Connected(
+            snapshot.Construction.World,
+            "WEST_SOURCE_NODE",
+            substation!.NodeId);
+        bool loadReady = nodeReady && Connected(
+            snapshot.Construction.World,
+            substation!.NodeId,
+            "EAST_RESIDENTIAL_TERMINAL");
+        int progress = (nodeReady ? 1 : 0) + (sourceReady ? 1 : 0) +
+            (loadReady ? 1 : 0);
+        string progressFacts =
+            $"진행 {progress}/3 · 변전소 {(nodeReady ? "완공" : "미완료")} · " +
+            $"서부 연결 {(sourceReady ? "완료" : "미완료")} · " +
+            $"동부 연결 {(loadReady ? "완료" : "미완료")}";
+        string cause = failure is null || failure.Kind == ThermalFailureKind.NoTopologyPath
+            ? "원인 · 완공된 공급 경로 없음"
             : $"원인 · {FailureKindText(failure.Kind)} · " +
               FailureSubjectName(displayWorld, snapshot, failure);
+        string retry = !nodeReady
+            ? "변전소를 완공하고 서부 발전 접속점과 동부 생활권을 모두 이으세요."
+            : !sourceReady && !loadReady
+                ? "완공한 변전소의 서쪽은 발전 접속점, 동쪽은 생활권 접속점까지 이으세요."
+                : !sourceReady
+                    ? "서부 발전 접속점에서 완공한 변전소까지 선로를 이으세요."
+                    : "완공한 변전소에서 동부 생활권 접속점까지 선로를 이으세요.";
         return $"안전 의무 {safeEvents}/{outcome.Events.Count} 충족 · " +
                $"동부 생활권 {unservedMinutes}분 미공급\n{cause}\n" +
-               "다음 시도 · 변전소를 완공한 뒤 서부 발전 접속점→전신주→" +
-               "변전소→동부 생활권 접속점을 모두 이으세요.\n" +
+               $"{progressFacts}\n다음 시도 · {retry}\n" +
                $"최종 운영 자금 {Cash(outcome.EndingCashUnit)}";
+    }
+
+    internal static string FirstLightSuccessDebrief(
+        RealtimeChapterOutcome outcome,
+        string authoredBody)
+    {
+        int safeEvents = outcome.Events.Count(item => item.SafetySatisfied);
+        long unservedMinutes = outcome.Events.Sum(item => item.SafetyUnservedMinutes);
+        return authoredBody +
+            $"\n\n✓ 첫 공급 성공 · 안전 의무 {safeEvents}/{outcome.Events.Count} · " +
+            $"미공급 {unservedMinutes}분\n" +
+            "완공 경로 · 서부 발전 접속점 → 변전소 → 동부 생활권\n" +
+            $"남은 운영 자금 {Cash(outcome.EndingCashUnit)}";
     }
 
     private static bool IsFirstLight(RealtimeCampaignSnapshot snapshot) =>
@@ -476,6 +530,13 @@ internal static class RealtimePresentationText
             snapshot.Chapter.Content.ChapterId,
             "FIRST_LIGHT",
             StringComparison.Ordinal);
+
+    private static SpatialNodeDefinition? FirstLightSubstation(
+        RealtimeCampaignSnapshot snapshot) => snapshot.Construction.World.Nodes
+        .Where(item => item.Commissioned)
+        .FirstOrDefault(item => snapshot.Construction.World.NodeClasses.Any(nodeClass =>
+            string.Equals(nodeClass.ClassId, item.ClassId, StringComparison.Ordinal) &&
+            nodeClass.Kind == SpatialNodeKind.Substation));
 
     private static bool Connected(
         SpatialWorldDefinition world,

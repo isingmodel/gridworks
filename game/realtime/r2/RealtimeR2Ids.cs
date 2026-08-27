@@ -10,6 +10,7 @@ internal static class RealtimeR2Ids
 {
     internal const string OrderNodeAction = "ORDER_NODE";
     internal const string OrderLineAction = "ORDER_LINE";
+    internal const string AdvanceFirstLightAction = "ADVANCE_FIRST_LIGHT";
     internal const string PromiseKeepAction = "PROMISE_KEEP";
     internal const string PromiseDeferAction = "PROMISE_DEFER";
 
@@ -18,6 +19,8 @@ internal static class RealtimeR2Ids
     internal const string EventStoryContinueAction = "EVENT_STORY_CONTINUE";
     internal const string DecisionWindowContinueAction = "DECISION_WINDOW_CONTINUE";
     internal const string ResultCloseAction = "RESULT_CLOSE";
+    internal const string FirstLightReplayAction = "FIRST_LIGHT_REPLAY";
+    internal const string FirstLightReturnAction = "FIRST_LIGHT_RETURN";
     internal const string EpilogueContinueAction = "EPILOGUE_CONTINUE";
 
     internal const string ChapterBriefingModal = "CHAPTER_BRIEFING";

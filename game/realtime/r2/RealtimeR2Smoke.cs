@@ -802,7 +802,7 @@ internal static class RealtimeR2Smoke
         long minuteOfDay = completionMinute % (24 * 60);
         string expected = string.Create(
             CultureInfo.InvariantCulture,
-            $"발주 견적 · 비용 {cost:N0}만 원 · 공기 {buildMinutes}분 · " +
+            $"발주 견적 · 비용 {RealtimePresentationText.Cash(cost)} · 공기 {buildMinutes}분 · " +
             $"{day}일 {minuteOfDay / 60:00}:{minuteOfDay % 60:00} 완공");
         Check(dock is
               {
@@ -1410,17 +1410,16 @@ internal static class RealtimeR2Smoke
         var slice = CreateRunningSlice();
         using var sliceLifetime = slice.FreeAfterSmoke();
         RealtimeSlicePresentation presentation = slice.LatestPresentation;
-        string expectedCash = string.Create(
-            CultureInfo.InvariantCulture,
-            $"운영 자금 {slice.CoreSnapshot.CashUnit:N0}만 원");
+        string expectedCash =
+            $"운영 자금 {RealtimePresentationText.Cash(slice.CoreSnapshot.CashUnit)}";
         Check(!string.IsNullOrWhiteSpace(presentation.Hud.Objective) &&
               string.Equals(presentation.Hud.Cash, expectedCash,
                   StringComparison.Ordinal),
             "HUD lost its authored objective or player cash unit", failures);
         Check(presentation.BuildShelf.Tools
                 .Where(item => item.Id.StartsWith(RealtimeR2Ids.NodeToolPrefix, StringComparison.Ordinal))
-                .All(item => item.Description.Contains("만 원", StringComparison.Ordinal)),
-            "node tool cost copy does not use the player-facing 만 원 unit", failures);
+                .All(item => item.Description.Contains("원", StringComparison.Ordinal)),
+            "node tool cost copy does not use the player-facing won unit", failures);
 
         string[] forbidden = { "병목 시험", "원자적", "스냅샷", "투영" };
         string[] visibleCopy = PlayerFacingStrings(presentation).ToArray();
@@ -2326,14 +2325,11 @@ internal static class RealtimeR2Smoke
         Check(substationId == "PLAYER_SUBSTATION_1",
             "release substation generated an unexpected stable ID",
             failures);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
-            "release substation 4x resume", failures, coreCommandExpected: false);
-        _ = AdvanceToMinuteByFrames(
-            slice,
-            nodeQuote.CompletionMinute!.Value,
-            RealtimeSimulationSpeed.VeryFast,
+        Check(slice.LatestPresentation.ActionDock.PrimaryAction?.Id ==
+                  RealtimeR2Ids.AdvanceFirstLightAction,
+            "release substation construction omitted its completion advance action",
             failures);
+        slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
         Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
               slice.LatestPresentation.Hud.Objective.Contains(
                   "2/3",
@@ -2343,10 +2339,6 @@ internal static class RealtimeR2Smoke
                   StringComparison.Ordinal),
             "release FIRST_LIGHT node completion did not pause with the source-corridor step",
             failures);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.SetPlayerPaused(true)),
-            "release pause after substation", failures, coreCommandExpected: false);
-
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
@@ -2392,24 +2384,13 @@ internal static class RealtimeR2Smoke
             failures);
         RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.OrderLine()),
             "release west line order", failures);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
-            "release west line 4x resume", failures, coreCommandExpected: false);
-        _ = AdvanceToMinuteByFrames(
-            slice,
-            westQuote.CompletionMinute!.Value,
-            RealtimeSimulationSpeed.VeryFast,
-            failures);
+        slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
         Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
               slice.LatestPresentation.Hud.Objective.Contains(
                   "3/3",
                   StringComparison.Ordinal),
             "release FIRST_LIGHT west-line completion did not show the service-line step",
             failures);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.SetPlayerPaused(true)),
-            "release pause after west line", failures, coreCommandExpected: false);
-
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SelectBuildTool(
                     RealtimeTool.BuildLine,
@@ -2436,14 +2417,7 @@ internal static class RealtimeR2Smoke
             failures);
         RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.OrderLine()),
             "release service line order", failures);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
-            "release service line 4x resume", failures, coreCommandExpected: false);
-        _ = AdvanceToMinuteByFrames(
-            slice,
-            serviceQuote.CompletionMinute!.Value,
-            RealtimeSimulationSpeed.VeryFast,
-            failures);
+        slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
         Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
               slice.LatestPresentation.Hud.Objective.Contains(
                   "경로 준비 완료",
@@ -2462,14 +2436,14 @@ internal static class RealtimeR2Smoke
               slice.CoreSnapshot.CashUnit == 7_030_000,
             "release live state lost its exact next-event countdown or construction cost",
             failures);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
-            "release ready network 4x resume", failures, coreCommandExpected: false);
-        _ = AdvanceToMinuteByFrames(
-            slice,
-            1260,
-            RealtimeSimulationSpeed.VeryFast,
+        Check(slice.LatestPresentation.ActionDock.PrimaryAction is
+              {
+                  Id: RealtimeR2Ids.AdvanceFirstLightAction,
+                  Label: "첫 공급 시험까지 진행",
+              },
+            "release ready network omitted its event-start advance action",
             failures);
+        slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
         Check(slice.CoreSnapshot.ActiveEventStates.Single().EventId ==
                   "FIRST_LIGHT_SUPPLY" &&
               slice.EmittedTransitions.Any(item =>
@@ -2478,11 +2452,14 @@ internal static class RealtimeR2Smoke
                   item.EventId == "FIRST_LIGHT_SUPPLY"),
             "release FIRST_LIGHT event did not begin on its authored live boundary",
             failures);
-        _ = AdvanceToMinuteByFrames(
-            slice,
-            1320,
-            RealtimeSimulationSpeed.VeryFast,
+        Check(slice.LatestPresentation.ActionDock.PrimaryAction is
+              {
+                  Id: RealtimeR2Ids.AdvanceFirstLightAction,
+                  Label: "시험 결과까지 진행",
+              },
+            "release active event omitted its result advance action",
             failures);
+        slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
 
         RealtimeCampaignSnapshot completed = slice.CoreSnapshot;
         RealtimeChapterOutcome outcome = completed.CompletedChapters.Single();
@@ -2523,13 +2500,20 @@ internal static class RealtimeR2Smoke
         Check(result.Id == RealtimeR2Ids.CampaignResultModal &&
               result.Eyebrow == standardResult.Speaker &&
               result.Heading == standardResult.Title &&
-              result.Body == standardResult.Body,
-            "release FIRST_LIGHT native result did not reuse the exact authored story card",
+              result.Body.StartsWith(standardResult.Body, StringComparison.Ordinal) &&
+              result.Body.Contains("첫 공급 성공", StringComparison.Ordinal) &&
+              result.Body.Contains("미공급 0분", StringComparison.Ordinal) &&
+              result.Body.Contains("남은 운영 자금 703만 원", StringComparison.Ordinal) &&
+              result.PrimaryAction.Id == RealtimeR2Ids.FirstLightReplayAction &&
+              result.SecondaryAction?.Id == RealtimeR2Ids.FirstLightReturnAction,
+            "release FIRST_LIGHT result omitted its payoff or terminal choices",
             failures);
         bool formativeRecord = slice.ClosePresentedPrimaryModalForSmoke();
-        Check(formativeRecord && slice.LatestPresentation.Modal is null,
-            "successful FIRST_LIGHT result did not close through the production " +
-            "handler and authorize its formative direct-play record",
+        Check(formativeRecord &&
+              slice.LatestPresentation.Modal?.Id == RealtimeR2Ids.ChapterBriefingModal &&
+              slice.CoreSnapshot.Minute == slice.CoreSnapshot.ChapterStartMinute,
+            "successful FIRST_LIGHT replay did not restart through the production " +
+            "handler after authorizing its formative direct-play record",
             failures);
     }
 
@@ -2586,8 +2570,12 @@ internal static class RealtimeR2Smoke
               result.Eyebrow == "운영 결과" &&
               result.Heading == "첫 불빛 공급 목표 미달" &&
               result.Body.Contains("안전 의무 0/1 충족", StringComparison.Ordinal) &&
-              result.Body.Contains("연결 경로 없음", StringComparison.Ordinal) &&
+              result.Body.Contains("완공된 공급 경로 없음", StringComparison.Ordinal) &&
+              result.Body.Contains("진행 0/3", StringComparison.Ordinal) &&
               result.Body.Contains("다음 시도", StringComparison.Ordinal) &&
+              result.Body.Contains("최종 운영 자금 850만 원", StringComparison.Ordinal) &&
+              result.PrimaryAction.Id == RealtimeR2Ids.FirstLightReplayAction &&
+              result.SecondaryAction?.Id == RealtimeR2Ids.FirstLightReturnAction &&
               (!string.Equals(result.Eyebrow, standardResult.Speaker,
                    StringComparison.Ordinal) ||
                !string.Equals(result.Heading, standardResult.Title,
@@ -2597,9 +2585,11 @@ internal static class RealtimeR2Smoke
             "no-action FIRST_LIGHT completion counterfeited the positive authored result",
             failures);
         bool formativeRecord = slice.ClosePresentedPrimaryModalForSmoke();
-        Check(!formativeRecord && slice.LatestPresentation.Modal is null,
-            "no-action FIRST_LIGHT result close counterfeited the formative " +
-            "direct-play PASS record",
+        Check(!formativeRecord &&
+              slice.LatestPresentation.Modal?.Id == RealtimeR2Ids.ChapterBriefingModal &&
+              slice.CoreSnapshot.Minute == slice.CoreSnapshot.ChapterStartMinute,
+            "no-action FIRST_LIGHT replay counterfeited the formative PASS or failed " +
+            "to restart the chapter",
             failures);
     }
 
@@ -6697,10 +6687,16 @@ internal static class RealtimeR2Smoke
                 ? RealtimeChapterStoryFlow.InitialBriefing(chapterId)
                 : throw new InvalidOperationException(
                     "Tutorial flow has no active modal step."));
+        bool bodyMatches = modal is not null &&
+            purpose == RealtimeChapterStoryModalPurpose.ChapterResult &&
+            string.Equals(chapterId, "FIRST_LIGHT", StringComparison.Ordinal)
+                ? modal.Body.StartsWith(card.Body, StringComparison.Ordinal) &&
+                  modal.Body.Contains("첫 공급 성공", StringComparison.Ordinal)
+                : string.Equals(modal?.Body, card.Body, StringComparison.Ordinal);
         Check(modal is not null && request.Purpose == purpose &&
               request.ChapterId == chapterId && request.EventId == eventId &&
               modal.Eyebrow == card.Speaker && modal.Heading == card.Title &&
-              modal.Body == card.Body,
+              bodyMatches,
             $"tutorial authored modal mismatch: {purpose}/{chapterId}/{eventId}",
             failures);
     }

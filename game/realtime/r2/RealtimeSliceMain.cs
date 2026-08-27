@@ -185,6 +185,8 @@ internal sealed partial class RealtimeSliceMain : Control
         Session.PointerPresentationPublished += PublishPointerPresentation;
         Session.EvidenceRecorded += RecordEvidence;
         Session.LiveAudioCueRequested += PlayLiveAudioCue;
+        Session.FirstLightReplayRequested += ReplayFirstLight;
+        Session.TerminalReturnRequested += ReturnFromTerminalResult;
 
         _clickCounters.Clear();
         foreach (RealtimePointerOwner owner in Enum.GetValues<RealtimePointerOwner>())
@@ -221,7 +223,34 @@ internal sealed partial class RealtimeSliceMain : Control
         _session.PointerPresentationPublished -= PublishPointerPresentation;
         _session.EvidenceRecorded -= RecordEvidence;
         _session.LiveAudioCueRequested -= PlayLiveAudioCue;
+        _session.FirstLightReplayRequested -= ReplayFirstLight;
+        _session.TerminalReturnRequested -= ReturnFromTerminalResult;
         _session = null;
+    }
+
+    private void ReplayFirstLight()
+    {
+        if (!ReferenceEquals(_launch.NativeRoute, RealtimeNativeRouteCatalog.FirstLight))
+        {
+            throw new InvalidOperationException(
+                "FIRST_LIGHT replay requires the standalone native route.");
+        }
+        Bootstrap();
+    }
+
+    private void ReturnFromTerminalResult()
+    {
+        if (_progressPersistenceOwnership == ProgressPersistenceOwnership.Product)
+        {
+            PersistProgress();
+            _ui!.PopModal();
+            _presentedModalId = null;
+            _launch = RealtimeLaunchSelection.ProductTitle;
+            _productTitlePresentation = null;
+            PresentProductTitle();
+            return;
+        }
+        GetTree().Quit();
     }
 
     private void PlayLiveAudioCue(RealtimeLiveAudioCue cue) =>

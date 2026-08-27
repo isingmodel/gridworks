@@ -51,6 +51,10 @@ internal static class RealtimeModalPresenter
                 outcome is not null &&
                 string.Equals(outcome.ChapterId, "FIRST_LIGHT", StringComparison.Ordinal) &&
                 !outcome.ObjectiveSatisfied;
+            bool terminalFirstLight = firstLightGuidanceEnabled &&
+                outcome is not null &&
+                string.Equals(outcome.ChapterId, "FIRST_LIGHT", StringComparison.Ordinal) &&
+                snapshot.CampaignComplete;
             string resultBody = failedFirstLight
                 ? RealtimePresentationText.FirstLightFailureDebrief(
                     displayWorld,
@@ -71,13 +75,24 @@ internal static class RealtimeModalPresenter
                     : snapshot.CampaignComplete ? "캠페인 운영 완료" : "장 운영 완료",
                 resultBody,
                 new RealtimeActionPresentation(
-                    RealtimeR2Ids.ResultCloseAction,
-                    "결과 확인",
-                    "종료 상태를 유지하고 결과 창을 닫습니다.",
+                    terminalFirstLight
+                        ? RealtimeR2Ids.FirstLightReplayAction
+                        : RealtimeR2Ids.ResultCloseAction,
+                    terminalFirstLight ? "다시 하기" : "결과 확인",
+                    terminalFirstLight
+                        ? "같은 FIRST_LIGHT 임무를 처음부터 다시 시작합니다."
+                        : "종료 상태를 유지하고 결과 창을 닫습니다.",
                     true),
-                null,
+                terminalFirstLight
+                    ? new RealtimeActionPresentation(
+                        RealtimeR2Ids.FirstLightReturnAction,
+                        "임무 나가기",
+                        "제품 시작 화면으로 돌아가거나 단독 임무 실행을 종료합니다.",
+                        true,
+                        RealtimeActionTone.Secondary)
+                    : null,
                 true,
-                true)
+                !terminalFirstLight)
             {
                 Pause = pause,
             };
@@ -165,13 +180,25 @@ internal static class RealtimeModalPresenter
                 source.SuccessfulStandaloneCompletion => chapter.ResultCards.Standard,
             _ => null,
         };
+        RealtimeChapterOutcome? standaloneOutcome = source.Snapshot.CompletedChapters
+            .LastOrDefault(item => string.Equals(
+                item.ChapterId,
+                chapter.ChapterId,
+                StringComparison.Ordinal));
+        string cardBody = card is not null &&
+            standaloneOutcome is { ObjectiveSatisfied: true } &&
+            string.Equals(chapter.ChapterId, "FIRST_LIGHT", StringComparison.Ordinal)
+                ? RealtimePresentationText.FirstLightSuccessDebrief(
+                    standaloneOutcome,
+                    card.Body)
+                : card?.Body ?? string.Empty;
         return card is null
             ? modal
             : modal with
             {
                 Eyebrow = card.Speaker,
                 Heading = card.Title,
-                Body = card.Body,
+                Body = cardBody,
             };
     }
 
@@ -269,6 +296,16 @@ internal static class RealtimeModalPresenter
                           : string.Empty);
             bool calendarTransition = source.StoryResultAdvancesCalendar;
             string authoredBody = authored?.Body ?? string.Empty;
+            if (authored is not null &&
+                string.Equals(
+                    outcome.ChapterId,
+                    "FIRST_LIGHT",
+                    StringComparison.Ordinal))
+            {
+                authoredBody = RealtimePresentationText.FirstLightSuccessDebrief(
+                    outcome,
+                    authoredBody);
+            }
             if (authored is not null && autoDefaulted)
             {
                 authoredBody += "\n\n마감까지 선택하지 않아 자동으로 연기됐습니다. " +
@@ -287,7 +324,7 @@ internal static class RealtimeModalPresenter
                 : $"안전 의무 {safeEvents}/{outcome.Events.Count} 충족" +
                   promiseFacts +
                   requirement +
-                  $" · 운영 자금 {outcome.EndingCashUnit:N0}만 원. " +
+                  $" · 운영 자금 {RealtimePresentationText.Cash(outcome.EndingCashUnit)}. " +
                   "충족하지 못한 사실과 첫 병목을 확인하세요.";
             return modal with
             {

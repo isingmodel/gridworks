@@ -430,19 +430,15 @@ internal sealed partial class RealtimeSliceMain
 
     internal bool ClosePresentedPrimaryModalForSmoke()
     {
-        RealtimeModalPresentation modal = Session.LatestPresentation.Modal ??
+        RealtimeSession session = Session;
+        RealtimeModalPresentation modal = session.LatestPresentation.Modal ??
             throw new InvalidOperationException(
                 "No presented modal is available for the production close handler.");
         _suppressFormativeDirectPlayOutputForSmoke = true;
         try
         {
-            Session.HandleModalAction(modal.Id, modal.PrimaryAction.Id);
-            if (Session.LatestPresentation.Modal is not null)
-            {
-                throw new InvalidOperationException(
-                    "Production modal close handler did not close the presented modal.");
-            }
-            return Session.FormativeDirectPlayRecorded;
+            session.HandleModalAction(modal.Id, modal.PrimaryAction.Id);
+            return session.FormativeDirectPlayRecorded;
         }
         finally
         {

@@ -120,6 +120,8 @@ internal sealed partial class RealtimeSession
     internal event Action<RealtimeSlicePresentation>? PointerPresentationPublished;
     internal event Action<string>? EvidenceRecorded;
     internal event Action<RealtimeLiveAudioCue>? LiveAudioCueRequested;
+    internal event Action? FirstLightReplayRequested;
+    internal event Action? TerminalReturnRequested;
 
     internal RealtimeSession(RealtimeSliceData data, bool reduceMotion = false)
         : this(
@@ -953,7 +955,8 @@ internal sealed partial class RealtimeSession
             _presentationRevision,
             pointer,
             _nodeOrderQuote,
-            _lineOrderQuote);
+            _lineOrderQuote,
+            IsFirstLight());
         PointerPresentationPublished?.Invoke(_latestPresentation);
     }
 
@@ -1197,6 +1200,14 @@ internal sealed partial class RealtimeSession
 
     internal void HandleAction(string id)
     {
+        if (string.Equals(
+                id,
+                RealtimeR2Ids.AdvanceFirstLightAction,
+                StringComparison.Ordinal))
+        {
+            AdvanceFirstLightBeat();
+            return;
+        }
         if ((id is RealtimeR2Ids.PromiseKeepAction or
                 RealtimeR2Ids.PromiseDeferAction) &&
             !CanRequestPromiseAction(id))
@@ -1270,6 +1281,36 @@ internal sealed partial class RealtimeSession
         {
             return;
         }
+        if (string.Equals(
+                actionId,
+                RealtimeR2Ids.FirstLightReplayAction,
+                StringComparison.Ordinal) ||
+            string.Equals(
+                actionId,
+                RealtimeR2Ids.FirstLightReturnAction,
+                StringComparison.Ordinal))
+        {
+            if (!IsTerminalStandaloneFirstLightResult(modal))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(actionId),
+                    actionId,
+                    "FIRST_LIGHT terminal action is unavailable here.");
+            }
+            TryRecordFormativeDirectPlay(modal);
+            if (string.Equals(
+                    actionId,
+                    RealtimeR2Ids.FirstLightReplayAction,
+                    StringComparison.Ordinal))
+            {
+                FirstLightReplayRequested?.Invoke();
+            }
+            else
+            {
+                TerminalReturnRequested?.Invoke();
+            }
+            return;
+        }
         if (!primaryMatch || !RealtimeR2Ids.IsSupportedModalCloseAction(actionId))
         {
             throw new ArgumentOutOfRangeException(
@@ -1287,6 +1328,59 @@ internal sealed partial class RealtimeSession
             AfterModalClosed(modal, storyRequest);
         }
     }
+
+    private void AdvanceFirstLightBeat()
+    {
+        RealtimeActionPresentation? action = _latestPresentation?.ActionDock.PrimaryAction;
+        if (!IsFirstLight() ||
+            action is not { Visible: true, Enabled: true } ||
+            !string.Equals(
+                action.Id,
+                RealtimeR2Ids.AdvanceFirstLightAction,
+                StringComparison.Ordinal) ||
+            _interaction.ActiveModalId is not null)
+        {
+            return;
+        }
+
+        RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
+        long targetMinute;
+        if (snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot active)
+        {
+            targetMinute = active.CompletionMinute;
+        }
+        else
+        {
+            RealtimeScheduledEventDefinition scheduled = snapshot.Chapter.ScheduledEvents
+                .OrderBy(item => item.StartOffsetMinutes)
+                .First();
+            targetMinute = snapshot.ActiveEvent is null
+                ? checked(snapshot.ChapterStartMinute + scheduled.StartOffsetMinutes)
+                : checked(snapshot.ChapterStartMinute + scheduled.EndOffsetMinutes);
+        }
+        if (targetMinute <= snapshot.Minute)
+        {
+            return;
+        }
+
+        RealtimeAdvanceResult advance = _run.AdvanceTo(targetMinute);
+        CollectTransitions(advance.Transitions);
+        Present();
+        RequestLiveAudioCue(
+            operationAccepted: true,
+            acceptedIntentKind: null,
+            advance.Transitions);
+    }
+
+    private bool IsTerminalStandaloneFirstLightResult(
+        RealtimeModalPresentation modal) =>
+        _data.NativeRoute?.IsStandaloneChapter == true &&
+        IsFirstLight() &&
+        _run.GetSnapshot().CampaignComplete &&
+        string.Equals(
+            modal.Id,
+            RealtimeR2Ids.CampaignResultModal,
+            StringComparison.Ordinal);
 
     internal void HandleModalDismiss(string modalId)
     {
@@ -1475,9 +1569,13 @@ internal sealed partial class RealtimeSession
         CommercialStoryCard authored = chapter.ResultCards.Standard ??
             throw new InvalidOperationException(
                 "FIRST_LIGHT release route has no authored standard result.");
+        RealtimeChapterOutcome outcome = snapshot.CompletedChapters.Single();
+        string expectedBody = RealtimePresentationText.FirstLightSuccessDebrief(
+            outcome,
+            authored.Body);
         if (!string.Equals(closedModal.Eyebrow, authored.Speaker, StringComparison.Ordinal) ||
             !string.Equals(closedModal.Heading, authored.Title, StringComparison.Ordinal) ||
-            !string.Equals(closedModal.Body, authored.Body, StringComparison.Ordinal) ||
+            !string.Equals(closedModal.Body, expectedBody, StringComparison.Ordinal) ||
             snapshot.CompletedChapters.Count != 1 ||
             !string.Equals(
                 snapshot.CompletedChapters[0].ChapterId,
@@ -1534,9 +1632,15 @@ internal sealed partial class RealtimeSession
                 $"Promise chapter '{request.ChapterId}' has no kept result.")
             : chapter.ResultCards.Standard ?? throw new InvalidOperationException(
                 $"Tutorial chapter '{request.ChapterId}' has no standard result.");
+        string expectedBody = string.Equals(
+                request.ChapterId,
+                "FIRST_LIGHT",
+                StringComparison.Ordinal)
+            ? RealtimePresentationText.FirstLightSuccessDebrief(outcome, authored.Body)
+            : authored.Body;
         if (!string.Equals(closedModal.Eyebrow, authored.Speaker, StringComparison.Ordinal) ||
             !string.Equals(closedModal.Heading, authored.Title, StringComparison.Ordinal) ||
-            !string.Equals(closedModal.Body, authored.Body, StringComparison.Ordinal))
+            !string.Equals(closedModal.Body, expectedBody, StringComparison.Ordinal))
         {
             throw new InvalidOperationException(
                 $"Tutorial result '{request.ChapterId}' did not carry its exact authored card.");

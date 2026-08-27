@@ -91,7 +91,7 @@ internal sealed partial class RealtimeBuildShelf : PanelContainer
         _layoutProfile = profile;
         CustomMinimumSize = new Vector2(0f, profile.BuildShelfHeight);
         _guidance.CustomMinimumSize = new Vector2(
-            Math.Min(380f, 220f * profile.AccessibilityScale),
+            Math.Min(420f, 300f * profile.AccessibilityScale),
             profile.MinimumHitTarget);
         foreach (Button button in _buttons.Values)
         {

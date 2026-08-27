@@ -462,6 +462,24 @@ Debug build, `./dev check`, final clean candidate/qualification build·fresh ver
 완료선이며, 외부 gate나 판매 가능한 1.0·공개 배포 승인을 뜻하지 않는다. push, PR,
 merge는 수행하지 않았다.
 
+### UX-R2.26 — FIRST_LIGHT 초반 안내·피드백
+
+세 번의 `FIRST_LIGHT` 직접 플레이 review에서 공통으로 드러난 초반 경로 이해, 실시간 계획 손실,
+모호한 경간 거부와 약한 결과 설명을 한 bounded 변경으로 고쳤다. 새 tutorial cursor나 save state 대신
+완공된 현재 망에서 단계를 유도해 HUD가 변전소 1/3, 서부 발전 경로 2/3, 동부 생활권 경로 3/3을
+표시한다. native release/product 경로는 건설 도구 진입, 초안 거부와 각 공사 완공에서 시간을 멈추며,
+기술 fixture의 기존 입력 의미는 유지한다.
+
+선로 preview와 거부 문구는 현재 경간/허용 경간을 함께 표시하고, 거부된 ghost segment와 끝점은
+붉고 굵게 그린다. `FIRST_LIGHT` 실패 결과는 안전 충족 수, 동부 미공급 시간, 첫 공급·열 실패 원인,
+다음 시도 경로와 최종 자금을 함께 설명한다. 고정 높이 build shelf는 두 줄로 제한하되 전체 문구를
+tooltip과 accessibility name에 보존한다.
+
+기존 controller/presentation smoke, Debug build와 전체 Godot UI layout harness, 한 번의 fresh native
+`FIRST_LIGHT` 초반 입력을 확인했다. 전체 `./dev check`와 새 test suite는 사용자의 단순성 요청에 따라
+실행·추가하지 않았다. native 확인은 LLM formative direct-play이며 사람 재미·사용성·미감 증거,
+Core 규칙 변경, 자동 경로, 패키지·외부 gate·배포를 뜻하지 않는다. push, PR, merge는 수행하지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

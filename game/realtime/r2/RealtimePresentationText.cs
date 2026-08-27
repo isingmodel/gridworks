@@ -402,7 +402,7 @@ internal static class RealtimePresentationText
         }
         if (IsFirstLight(snapshot))
         {
-            return planningPause + "HUD 단계 행동 확인";
+            return planningPause + FirstLightNextStep(snapshot);
         }
         return interaction.Tool switch
         {

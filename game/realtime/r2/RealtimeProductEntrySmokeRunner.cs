@@ -944,8 +944,11 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         Require(slice.ClosePresentedStoryModalForSmoke() is null,
             "Settings gameplay probe could not close the initial briefing.");
         await SettleFrames(4);
+        Require(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused,
+            "Fresh product gameplay did not preserve its explicit planning pause.");
+        slice.SetSpeedForSmoke(RealtimeSimulationSpeed.Normal);
         Require(slice.InteractionState.Simulation == RealtimeSimulationState.Running,
-            "Fresh product gameplay was not running after its briefing.");
+            "Fresh product gameplay could not explicitly resume after planning.");
         slice.FreezeAutonomousClockForSmoke();
         slice.SetSpeedForSmoke(RealtimeSimulationSpeed.VeryFast);
 

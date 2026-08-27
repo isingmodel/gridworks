@@ -364,6 +364,11 @@ internal static class RealtimePresentationText
         {
             return RealtimeInteractionReducer.CampaignEndedReadOnlyReason;
         }
+        if (interaction.Simulation == RealtimeSimulationState.AutoPaused &&
+            interaction.PauseReason == RealtimePauseReason.CriticalIncident)
+        {
+            return "중대 사건 정지 · 설비와 공급 경로를 확인한 뒤 P 또는 상단 ▶로 계속하세요.";
+        }
         RealtimeDraftToolLock? draftToolLock =
             RealtimeInteractionReducer.ResolveDraftToolLock(snapshot.Construction);
         if (draftToolLock is not null)
@@ -429,21 +434,21 @@ internal static class RealtimePresentationText
         SpatialNodeDefinition? substation = FirstLightSubstation(snapshot);
         if (substation is null)
         {
-            return "다음 행동 · 1/3 N으로 동부 생활권 옆에 변전소를 배치·완공하세요.";
+            return "다음 행동 · 1/3 N · 동부 생활권 옆 변전소 배치·완공";
         }
         if (!Connected(
                 snapshot.Construction.World,
                 "WEST_SOURCE_NODE",
                 substation.NodeId))
         {
-            return "다음 행동 · 2/3 L을 눌러 서부 발전 접속점→전신주→변전소를 이으세요.";
+            return "다음 행동 · 2/3 L · 서부 발전→전신주→변전소 연결";
         }
         if (!Connected(
                 snapshot.Construction.World,
                 substation.NodeId,
                 "EAST_RESIDENTIAL_TERMINAL"))
         {
-            return "다음 행동 · 3/3 L을 눌러 변전소→동부 생활권 접속점을 이으세요.";
+            return "다음 행동 · 3/3 L · 변전소→동부 생활권 연결";
         }
         return "경로 준비 완료 · 21:00 동부 첫 공급까지 유지하세요.";
     }
@@ -491,15 +496,25 @@ internal static class RealtimePresentationText
             "EAST_RESIDENTIAL_TERMINAL");
         int progress = (nodeReady ? 1 : 0) + (sourceReady ? 1 : 0) +
             (loadReady ? 1 : 0);
+        bool completedLate = nodeReady && sourceReady && loadReady &&
+            failed.Any(item => item.SafetyUnservedMinutes > 0);
+        long firstTestMinute = failed
+            .Select(item => item.StartMinute)
+            .DefaultIfEmpty(outcome.StartMinute)
+            .Min();
         string progressFacts =
             $"진행 {progress}/3 · 변전소 {(nodeReady ? "완공" : "미완료")} · " +
             $"서부 연결 {(sourceReady ? "완료" : "미완료")} · " +
             $"동부 연결 {(loadReady ? "완료" : "미완료")}";
-        string cause = failure is null || failure.Kind == ThermalFailureKind.NoTopologyPath
-            ? "원인 · 완공된 공급 경로 없음"
+        string cause = completedLate
+            ? $"원인 · {Clock(firstTestMinute)} 시험 시작 뒤 경로 완공 · 준비 지연"
+            : failure is null || failure.Kind == ThermalFailureKind.NoTopologyPath
+                ? "원인 · 시험 시작 시점에 완공된 공급 경로 없음"
             : $"원인 · {FailureKindText(failure.Kind)} · " +
               FailureSubjectName(displayWorld, snapshot, failure);
-        string retry = !nodeReady
+        string retry = completedLate
+            ? $"{Clock(firstTestMinute)} 시험 시작 전에 3/3 공급 경로를 완공하세요."
+            : !nodeReady
             ? "변전소를 완공하고 서부 발전 접속점과 동부 생활권을 모두 이으세요."
             : !sourceReady && !loadReady
                 ? "완공한 변전소의 서쪽은 발전 접속점, 동쪽은 생활권 접속점까지 이으세요."

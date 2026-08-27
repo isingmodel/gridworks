@@ -266,7 +266,9 @@ internal static class RealtimeModalPresenter
                 : null;
             string requirement = outcome.ConnectionRequirementAssessment is null
                 ? string.Empty
-                : " · 접속 조건 " + string.Join(
+                : $" · {RealtimePresentationText.Clock(
+                    outcome.ConnectionRequirementAssessment.EvaluatedMinute)} " +
+                  "평가 시점 접속 조건 " + string.Join(
                     ", ",
                     outcome.ConnectionRequirementAssessment.Facts.Select(item =>
                         $"{RealtimePresentationText.AssetDisplayName(
@@ -312,6 +314,7 @@ internal static class RealtimeModalPresenter
                     $"적용된 방침: {chapter.CityPromise!.DeferLabel}.";
             }
             string nextChapterName = snapshot.Chapter.Content.DisplayName;
+            bool failedFinal = request.FinalResult && !outcome.ObjectiveSatisfied;
             string failureBody = source.Data.NativeRoute is not null &&
                 string.Equals(
                     outcome.ChapterId,
@@ -326,6 +329,11 @@ internal static class RealtimeModalPresenter
                   requirement +
                   $" · 운영 자금 {RealtimePresentationText.Cash(outcome.EndingCashUnit)}. " +
                   "충족하지 못한 사실과 첫 병목을 확인하세요.";
+            if (failedFinal)
+            {
+                failureBody += "\n\n이번 운영은 목표 미달로 종료됩니다. " +
+                    "성공한 최종 계획에서 세 도시 기록이 열립니다.";
+            }
             return modal with
             {
                 Eyebrow = authored?.Speaker ?? "계통운영 기록",
@@ -338,16 +346,18 @@ internal static class RealtimeModalPresenter
                     calendarTransition
                         ? $"6개월 뒤 {nextChapterName} 검토로"
                         : request.FinalResult
-                            ? chapter.CityPromise is not null
-                                ? $"{chapter.DisplayName} 운영 결과 확인"
-                                : "튜토리얼 결과 확인"
+                            ? failedFinal
+                                ? "종료된 도시 보기"
+                                : "캠페인 결과 확인"
                             : "다음 장으로",
                     calendarTransition
                         ? $"결과를 닫고 실제 망·현금·공사를 보존한 채 " +
                           $"{RealtimePresentationText.Time(snapshot.ChapterStartMinute)}의 " +
                           $"{nextChapterName} 검토로 이동합니다."
                         : request.FinalResult
-                            ? $"누적 {source.Data.Campaign.Chapters.Count}장의 운영 결과를 확인합니다."
+                            ? failedFinal
+                                ? "목표 미달로 종료된 최종 망을 읽기 전용으로 확인합니다."
+                                : $"누적 {source.Data.Campaign.Chapters.Count}장의 운영 결과와 도시 기록을 확인합니다."
                             : "결과를 확인하고 다음 임무 안내로 이동합니다.",
                     true),
                 DismissOnCancel = !calendarTransition,

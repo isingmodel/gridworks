@@ -86,6 +86,9 @@ internal static class RealtimeUiMetrics
         // reduced. Keeping four physical rows at 125% leaves less than 610px
         // for the inspector on Full HD and forces its content off-canvas.
         int defaultLaneCount = uiScalePercent >= 125 ? 2 : 4;
+        int buildShelfHeight = Math.Max(
+            minimumHitTarget + Scaled(20, accessibilityScale),
+            Scaled(52, accessibilityScale) + Scaled(16, accessibilityScale));
         return new RealtimeLayoutProfile(
             physicalSize,
             tier,
@@ -95,7 +98,7 @@ internal static class RealtimeUiMetrics
             topHudHeight,
             EventRailHeight(accessibilityScale, minimumHitTarget, defaultLaneCount),
             Math.Clamp(Scaled(448, accessibilityScale), 400, 840),
-            minimumHitTarget + Scaled(20, accessibilityScale),
+            buildShelfHeight,
             minimumHitTarget,
             Scaled(54, accessibilityScale),
             Scaled(16, accessibilityScale));

@@ -1039,6 +1039,13 @@ internal static class RealtimeR2Smoke
         Check(slice.InteractionState.Simulation == RealtimeSimulationState.AutoPaused &&
               slice.InteractionState.PauseReason == RealtimePauseReason.CriticalIncident,
             "protective trip did not create the typed critical auto-pause", failures);
+        Check(slice.LatestPresentation.BuildShelf.Guidance.Contains(
+                  "P",
+                  StringComparison.Ordinal) &&
+              slice.LatestPresentation.BuildShelf.Guidance.Contains(
+                  "▶",
+                  StringComparison.Ordinal),
+            "critical auto-pause omitted explicit resume guidance", failures);
         Check(hitch.Transitions.Any(item =>
                 item.Kind == RealtimeTransitionKind.ThermalProtectiveTrip &&
                 item.Minute == tripMinute &&
@@ -2549,6 +2556,19 @@ internal static class RealtimeR2Smoke
             "no-action release 4x", failures, coreCommandExpected: false);
         _ = AdvanceToMinuteByFrames(
             slice,
+            1260,
+            RealtimeSimulationSpeed.VeryFast,
+            failures);
+        Check(slice.CoreSnapshot.ActiveEventStates.Single().EventId ==
+                  RealtimeCampaignOverlayLoader.FirstReleaseEventId &&
+              slice.LatestPresentation.Hud.Objective.Contains(
+                  "1/3",
+                  StringComparison.Ordinal) &&
+              slice.LatestPresentation.ActionDock.PrimaryAction is null,
+            "incomplete FIRST_LIGHT exposed a dominant result fast-forward action",
+            failures);
+        _ = AdvanceToMinuteByFrames(
+            slice,
             1320,
             RealtimeSimulationSpeed.VeryFast,
             failures);
@@ -2570,7 +2590,9 @@ internal static class RealtimeR2Smoke
               result.Eyebrow == "운영 결과" &&
               result.Heading == "첫 불빛 공급 목표 미달" &&
               result.Body.Contains("안전 의무 0/1 충족", StringComparison.Ordinal) &&
-              result.Body.Contains("완공된 공급 경로 없음", StringComparison.Ordinal) &&
+              result.Body.Contains(
+                  "시험 시작 시점에 완공된 공급 경로 없음",
+                  StringComparison.Ordinal) &&
               result.Body.Contains("진행 0/3", StringComparison.Ordinal) &&
               result.Body.Contains("다음 시도", StringComparison.Ordinal) &&
               result.Body.Contains("최종 운영 자금 850만 원", StringComparison.Ordinal) &&
@@ -2711,8 +2733,8 @@ internal static class RealtimeR2Smoke
             data.BaseCampaign.Chapters[0].Briefing,
             failures);
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
-              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
-            "tutorial FIRST_LIGHT briefing did not close into realtime play",
+              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused,
+            "tutorial FIRST_LIGHT briefing did not close into explicit planning pause",
             failures);
 
         string substationId = BuildTutorialFirstLightNetwork(slice, failures);
@@ -2750,9 +2772,9 @@ internal static class RealtimeR2Smoke
             data.BaseCampaign.Chapters[1].Briefing,
             failures);
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
-              slice.InteractionState.Simulation == RealtimeSimulationState.Running &&
-              slice.InteractionState.PresentedSpeed == RealtimeSimulationSpeed.VeryFast,
-            "SECOND_HEART briefing did not restore the prior realtime speed",
+              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
+              slice.InteractionState.RunningSpeed == RealtimeSimulationSpeed.VeryFast,
+            "SECOND_HEART briefing did not preserve speed behind planning pause",
             failures);
 
         string hospitalSubstationId = OrderTutorialNode(
@@ -2892,8 +2914,9 @@ internal static class RealtimeR2Smoke
             null,
             data.BaseCampaign.Chapters[2].Briefing,
             failures);
-        Check(slice.ClosePresentedStoryModalForSmoke() is null,
-            "SECOND_SOURCE briefing did not close into realtime play",
+        Check(slice.ClosePresentedStoryModalForSmoke() is null &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused,
+            "SECOND_SOURCE briefing did not close into planning pause",
             failures);
         ObserveTutorialRail(slice, observedRailEvents);
         RealtimeBuildToolPresentation standardLine = slice.LatestPresentation.BuildShelf.Tools
@@ -3691,9 +3714,17 @@ internal static class RealtimeR2Smoke
             if (story.FinalResult)
             {
                 closedFailedFinal = true;
+                RealtimeModalPresentation failedResult =
+                    failedSlice.LatestPresentation.Modal ??
+                    throw new InvalidOperationException(
+                        "The failed final story has no result modal.");
                 Check(failedSlice.CoreSnapshot.CompletedChapters.Count == 8 &&
-                      !failedSlice.CoreSnapshot.CompletedChapters[^1].ObjectiveSatisfied,
-                    "the staged final result was not the required failed outcome",
+                      !failedSlice.CoreSnapshot.CompletedChapters[^1].ObjectiveSatisfied &&
+                      failedResult.PrimaryAction.Label == "종료된 도시 보기" &&
+                      failedResult.Body.Contains(
+                          "성공한 최종 계획에서 세 도시 기록이 열립니다.",
+                          StringComparison.Ordinal),
+                    "the staged final result omitted its failed-terminal orientation",
                     failures);
             }
             _ = failedSlice.ClosePresentedStoryModalForSmoke();
@@ -3806,10 +3837,11 @@ internal static class RealtimeR2Smoke
                   SecondaryAction.Id: RealtimeR2Ids.PromiseDeferAction,
                   SecondaryAction.Enabled: true,
               } &&
-              context.Sections.Any(item => item.Body.Contains(
-                  "미선택", StringComparison.Ordinal)) &&
-              context.Sections.Any(item => item.Body.Contains(
-                  "Keep 가정", StringComparison.Ordinal)),
+              context.Sections.Count == 2 &&
+              context.Sections.Single(item => item.Heading == "결정과 전망") is
+                  { Body: var decisionSummary } &&
+              decisionSummary.Contains("현재 미선택\n", StringComparison.Ordinal) &&
+              decisionSummary.Contains("Keep 가정", StringComparison.Ordinal),
             "deadline selection mutated Core or omitted its two authored actions",
             failures);
 
@@ -5013,8 +5045,8 @@ internal static class RealtimeR2Smoke
             "North planning-window authored FIFO drifted",
             failures);
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
-              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
-            "North planning window did not close into live streaming play",
+              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused,
+            "North planning window did not close into explicit planning pause",
             failures);
         return (data, rootSubstationId);
     }
@@ -5176,8 +5208,8 @@ internal static class RealtimeR2Smoke
             failures,
             label);
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
-              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
-            $"{label} HOT planning did not close into realtime play",
+              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused,
+            $"{label} HOT planning did not close into explicit planning pause",
             failures);
     }
 
@@ -5443,8 +5475,8 @@ internal static class RealtimeR2Smoke
                   item.ChapterId != "BEFORE_WATER_RISE" ||
                   item.Kind != RealtimeTransitionKind.EventStarted) &&
               slice.ClosePresentedStoryModalForSmoke() is null &&
-              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
-            $"{label} flood window did not precede the event and close into realtime play",
+              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused,
+            $"{label} flood window did not precede the event or preserve planning pause",
             failures);
     }
 
@@ -5729,8 +5761,8 @@ internal static class RealtimeR2Smoke
             failures,
             label);
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
-              slice.InteractionState.Simulation == RealtimeSimulationState.Running,
-            $"{label} planning window did not close into realtime play",
+              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused,
+            $"{label} planning window did not close into explicit planning pause",
             failures);
     }
 
@@ -6026,11 +6058,11 @@ internal static class RealtimeR2Smoke
             failures,
             label);
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
-              slice.InteractionState.Simulation == RealtimeSimulationState.Running &&
+              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
               slice.EmittedTransitions.All(item =>
                   item.ChapterId != "LONGEST_NIGHT" ||
                   item.Kind != RealtimeTransitionKind.EventStarted),
-            $"{label} final planning window did not precede actual events",
+            $"{label} final planning window did not preserve planning pause before events",
             failures);
     }
 
@@ -6520,6 +6552,9 @@ internal static class RealtimeR2Smoke
               result.Eyebrow == "계통운영 기록" &&
               result.Heading.Contains("목표 미달", StringComparison.Ordinal) &&
               result.Body.Contains("1/2", StringComparison.Ordinal) &&
+              result.Body.Contains(
+                  "04:00 평가 시점 접속 조건",
+                  StringComparison.Ordinal) &&
               (!string.Equals(result.Eyebrow, standard.Speaker, StringComparison.Ordinal) ||
                !string.Equals(result.Heading, standard.Title, StringComparison.Ordinal) ||
                !string.Equals(result.Body, standard.Body, StringComparison.Ordinal)),
@@ -6632,7 +6667,7 @@ internal static class RealtimeR2Smoke
         _ = AdvanceToMinuteByFrames(
             slice,
             quote.CompletionMinute!.Value,
-            slice.InteractionState.PresentedSpeed,
+            slice.InteractionState.RunningSpeed,
             failures);
         return quote;
     }
@@ -6664,7 +6699,7 @@ internal static class RealtimeR2Smoke
         _ = AdvanceToMinuteByFrames(
             slice,
             quote.CompletionMinute!.Value,
-            slice.InteractionState.PresentedSpeed,
+            slice.InteractionState.RunningSpeed,
             failures);
         return nodeId;
     }
@@ -6934,6 +6969,21 @@ internal static class RealtimeR2Smoke
         RealtimeSimulationSpeed speed,
         ICollection<string> failures)
     {
+        if (speed == RealtimeSimulationSpeed.Paused)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(speed),
+                speed,
+                "Frame advancement requires an explicit running speed.");
+        }
+        if (slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused)
+        {
+            RequireIntent(
+                slice.ApplyIntentForSmoke(RealtimeR2Intent.SetSpeed(speed)),
+                "resume explicit planning pause",
+                failures,
+                coreCommandExpected: false);
+        }
         var transitions = new List<RealtimeTransition>();
         while (slice.CurrentMinute < targetMinute)
         {

@@ -1415,6 +1415,7 @@ internal sealed partial class RealtimeSession
         {
             return;
         }
+        PauseAfterPlanningStoryIfRunning(storyRequest);
         if (TryAdvanceToNextChapter(storyRequest))
         {
             return;
@@ -1744,18 +1745,20 @@ internal sealed partial class RealtimeSession
                 id,
                 "Unsupported realtime build tool.");
         }
-        bool enteringFirstLightBuild =
+        bool enteringBuild =
             (tool is RealtimeTool.BuildNode or RealtimeTool.BuildLine) &&
-            IsFirstLight() &&
             (!string.Equals(
                  _interaction.SelectedBuildToolId,
                  id,
                  StringComparison.Ordinal) ||
              _interaction.Tool != tool.Value);
-        if (enteringFirstLightBuild)
+        if (enteringBuild)
         {
-            _firstLightGuidedPlanning = true;
-            PauseFirstLightPlanningIfRunning();
+            if (IsFirstLight())
+            {
+                _firstLightGuidedPlanning = true;
+            }
+            PausePlanningIfRunning();
         }
         _ = ApplyIntent(
             tool is RealtimeTool.BuildNode or RealtimeTool.BuildLine
@@ -2297,8 +2300,28 @@ internal sealed partial class RealtimeSession
     private void PauseFirstLightPlanningIfRunning()
     {
         if (!_firstLightGuidedPlanning ||
-            !IsFirstLight() ||
-            _interaction.Simulation != RealtimeSimulationState.Running)
+            !IsFirstLight())
+        {
+            return;
+        }
+        PausePlanningIfRunning();
+    }
+
+    private void PauseAfterPlanningStoryIfRunning(
+        RealtimeChapterStoryModalRequest? storyRequest)
+    {
+        if (storyRequest?.Purpose is not (
+                RealtimeChapterStoryModalPurpose.ChapterBriefing or
+                RealtimeChapterStoryModalPurpose.DecisionWindowStory))
+        {
+            return;
+        }
+        PausePlanningIfRunning();
+    }
+
+    private void PausePlanningIfRunning()
+    {
+        if (_interaction.Simulation != RealtimeSimulationState.Running)
         {
             return;
         }

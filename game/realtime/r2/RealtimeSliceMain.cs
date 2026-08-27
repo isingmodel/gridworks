@@ -235,7 +235,7 @@ internal sealed partial class RealtimeSliceMain : Control
             throw new InvalidOperationException(
                 "FIRST_LIGHT replay requires the standalone native route.");
         }
-        _ui!.PopModal();
+        _ui?.PopModal();
         _presentedModalId = null;
         Bootstrap();
     }

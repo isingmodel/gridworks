@@ -229,8 +229,7 @@ internal static class RealtimeConstructionPresenter
                     : null);
         }
         if (firstLightAdvanceEnabled &&
-            (snapshot.ActiveEvent is not null ||
-             RealtimePresentationText.FirstLightRouteReady(snapshot)))
+            RealtimePresentationText.FirstLightRouteReady(snapshot))
         {
             RealtimeScheduledEventDefinition scheduled = snapshot.Chapter.ScheduledEvents
                 .OrderBy(item => item.StartOffsetMinutes)

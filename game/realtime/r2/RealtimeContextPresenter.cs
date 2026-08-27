@@ -83,15 +83,13 @@ internal static class RealtimeContextPresenter
                         locked
                             ? RealtimeTimelineSeverity.Warning
                             : RealtimeTimelineSeverity.Advisory),
-                    new("선택", decision,
-                        defaulted
-                            ? RealtimeTimelineSeverity.Warning
-                            : RealtimeTimelineSeverity.Information),
-                    new("전망", promiseForecastState,
+                    new("결정과 전망", $"현재 {decision}\n{promiseForecastState}",
                         promiseRisk && snapshot.PromiseDecision !=
                             CommercialPromiseDecision.Defer
                                 ? RealtimeTimelineSeverity.Critical
-                                : RealtimeTimelineSeverity.Information),
+                                : defaulted
+                                    ? RealtimeTimelineSeverity.Warning
+                                    : RealtimeTimelineSeverity.Information),
                 },
                 new RealtimeActionPresentation(
                     RealtimeR2Ids.PromiseKeepAction,

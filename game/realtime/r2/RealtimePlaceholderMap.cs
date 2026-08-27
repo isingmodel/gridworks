@@ -188,7 +188,9 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
 
     private string ActiveCandidateVisibleLabel =>
         ActiveCandidateId is string candidateId && _presentation is not null
-            ? $"후보 {_candidateIndex + 1}/{_candidateCycle.Count} · " +
+            ? $"후보 {_candidateIndex + 1}/{_candidateCycle.Count}" +
+              (_candidateCycle.Count > 1 ? " · Q/E 전환" : string.Empty) +
+              " · " +
               CandidateDisplayName(_presentation, candidateId)
             : string.Empty;
 
@@ -1189,7 +1191,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         {
             return;
         }
-        int fontSize = Math.Max(LabelFontSize, Mathf.RoundToInt(13f * _accessibilityScale));
+        int fontSize = Math.Max(LabelFontSize, Mathf.RoundToInt(15f * _accessibilityScale));
         Vector2 textSize = ThemeDB.FallbackFont.GetStringSize(
             label,
             HorizontalAlignment.Left,

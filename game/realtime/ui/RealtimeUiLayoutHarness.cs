@@ -2196,6 +2196,9 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         StringComparison.Ordinal) &&
                     map.ActiveCandidateVisibleLabelForSmoke.StartsWith(
                         $"후보 {map.CandidateIndexForSmoke + 1}/{candidateCount} · ",
+                        StringComparison.Ordinal) &&
+                    map.ActiveCandidateVisibleLabelForSmoke.Contains(
+                        "Q/E 전환",
                         StringComparison.Ordinal),
                 "actual E key did not expose its exact active candidate with a visible " +
                 "badge and geometry outline",
@@ -2736,8 +2739,9 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         slice.InteractionState.SelectionId,
                         escSelection,
                         StringComparison.Ordinal) &&
-                    slice.InteractionState.Simulation == RealtimeSimulationState.Running,
-                "actual Esc-chain fixture did not preserve draft/tool/surface/selection/run",
+                    slice.InteractionState.Simulation ==
+                        RealtimeSimulationState.PlayerPaused,
+                "actual Esc-chain fixture did not preserve the build-entry planning pause",
                 failures);
 
             int escRequests = actualInputRequests.Count;
@@ -2795,7 +2799,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     slice.InteractionState.Surface == RealtimeSurface.World &&
                     slice.InteractionState.SelectionId is null &&
                     slice.InteractionState.Simulation ==
-                        RealtimeSimulationState.Running &&
+                        RealtimeSimulationState.PlayerPaused &&
                     slice.AcceptedCommandCount == escCommands + 1 &&
                     slice.PresentationRevision == escRevision + 4,
                 "Esc step 3 did not clear only the selection after confirmed cancel",
@@ -2810,8 +2814,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         RealtimeSimulationState.PlayerPaused &&
                     slice.InteractionState.PauseReason ==
                         RealtimePauseReason.PlayerRequest &&
-                    slice.PresentationRevision == escRevision + 5,
-                "Esc step 4 did not enter the typed player pause",
+                    slice.PresentationRevision == escRevision + 4,
+                "Esc step 4 did not preserve the existing typed planning pause",
                 failures);
 
             long pausedRevision = slice.PresentationRevision;

@@ -33,9 +33,10 @@ internal static class RealtimeShellPresenter
                     : null;
         RealtimeConnectionRequirementAssessment? connection =
             snapshot.Forecast.ConnectionRequirementAssessment;
+        string baseObjective = RealtimePresentationText.FirstLightObjective(snapshot);
         string objective = connection is null
-            ? snapshot.Chapter.Content.Objective
-            : snapshot.Chapter.Content.Objective + " · 접속 조건 " +
+            ? baseObjective
+            : baseObjective + " · 접속 조건 " +
               string.Join(
                   ", ",
                   connection.Facts.Select(item =>
@@ -107,4 +108,3 @@ internal static class RealtimeShellPresenter
     }
 
 }
-

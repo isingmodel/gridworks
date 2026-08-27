@@ -114,6 +114,7 @@ internal sealed partial class RealtimeSession
     private bool _reduceMotion;
     private bool _formativeDirectPlayRecorded;
     private bool _formativeTutorialFullFlowRecorded;
+    private bool _firstLightGuidedPlanning;
 
     internal event Action<RealtimeSlicePresentation>? PresentationPublished;
     internal event Action<RealtimeSlicePresentation>? PointerPresentationPublished;
@@ -375,6 +376,7 @@ internal sealed partial class RealtimeSession
         int beforeCount = _run.AcceptedCommands.Count;
         long beforeRevision = _presentationRevision;
         bool constructionIntent = IsConstructionIntent(intent.Kind);
+        string constructionDetail = ConstructionIntentDetail(intent);
         ConstructionSnapshot authoritativeConstruction =
             beforeSnapshot.Construction;
         bool endedWriteIntent =
@@ -413,6 +415,7 @@ internal sealed partial class RealtimeSession
                 endedWriteIntent)
             {
                 SetPointerFeedback(false, reduction.Error ?? "입력을 처리할 수 없습니다.");
+                PauseFirstLightPlanningIfRunning();
                 Present();
             }
             return IntentResult(
@@ -443,6 +446,7 @@ internal sealed partial class RealtimeSession
             if (constructionIntent)
             {
                 SetPointerFeedback(false, shapeError);
+                PauseFirstLightPlanningIfRunning();
                 Present();
             }
             return IntentResult(
@@ -466,10 +470,14 @@ internal sealed partial class RealtimeSession
             {
                 SetPointerFeedback(
                     commandResult.Accepted,
-                    ConstructionFeedback(intent.Kind, commandResult));
+                    ConstructionFeedback(
+                        intent.Kind,
+                        commandResult,
+                        constructionDetail));
             }
             if (!commandResult.Accepted)
             {
+                PauseFirstLightPlanningIfRunning();
                 if (interactionChanged || constructionIntent)
                 {
                     Present();
@@ -773,6 +781,16 @@ internal sealed partial class RealtimeSession
                 _chapterStoryFlow.Observe(
                     transition,
                     _data!.Campaign);
+            }
+            if (transition.Kind == RealtimeTransitionKind.ConstructionCompleted &&
+                transition.Construction is not null &&
+                IsFirstLight() &&
+                _firstLightGuidedPlanning)
+            {
+                SetPointerFeedback(
+                    true,
+                    FirstLightCompletionFeedback(transition.Construction));
+                PauseFirstLightPlanningIfRunning();
             }
             if (transition.Kind == RealtimeTransitionKind.ThermalProtectiveTrip)
             {
@@ -1157,8 +1175,11 @@ internal sealed partial class RealtimeSession
                 preview.Accepted,
                 preview.Accepted
                     ? $"{DisplayAssetName(endId)}에 접속 가능 · " +
+                      $"{RealtimePresentationText.SpanDetail(preview.SegmentLengthUnit, preview.MaxSpanUnit)} · " +
                       "클릭 또는 Enter로 경로를 닫습니다."
-                    : $"접속 불가 · {RealtimePresentationText.ConstructionErrorText(preview.Error)}");
+                    : $"접속 불가 · " +
+                      $"{RealtimePresentationText.SpanDetail(preview.SegmentLengthUnit, preview.MaxSpanUnit)} · " +
+                      RealtimePresentationText.ConstructionErrorText(preview.Error));
             return;
         }
         LinePointPreview pointPreview = _run!.PreviewLinePoint(worldPoint);
@@ -1166,9 +1187,12 @@ internal sealed partial class RealtimeSession
             pointPreview.Accepted,
             pointPreview.Accepted
                 ? pointPreview.RiskAreaIds.Count == 0
-                    ? "경로점 추가 가능 · 클릭 또는 Enter로 확정합니다."
-                    : $"경로점 추가 가능 · 위험구역 {pointPreview.RiskAreaIds.Count}곳을 지납니다."
-                : $"경로점 불가 · {RealtimePresentationText.ConstructionErrorText(pointPreview.Error)}");
+                    ? $"경로점 추가 가능 · {RealtimePresentationText.SpanDetail(pointPreview.SegmentLengthUnit, pointPreview.MaxSpanUnit)} · " +
+                      "클릭 또는 Enter로 확정합니다."
+                    : $"경로점 추가 가능 · {RealtimePresentationText.SpanDetail(pointPreview.SegmentLengthUnit, pointPreview.MaxSpanUnit)} · " +
+                      $"위험구역 {pointPreview.RiskAreaIds.Count}곳을 지납니다."
+                : $"경로점 불가 · {RealtimePresentationText.SpanDetail(pointPreview.SegmentLengthUnit, pointPreview.MaxSpanUnit)} · " +
+                  RealtimePresentationText.ConstructionErrorText(pointPreview.Error));
     }
 
     internal void HandleAction(string id)
@@ -1616,9 +1640,23 @@ internal sealed partial class RealtimeSession
                 id,
                 "Unsupported realtime build tool.");
         }
-        _ = ApplyIntent(tool is RealtimeTool.BuildNode or RealtimeTool.BuildLine
-            ? RealtimeR2Intent.SelectBuildTool(tool.Value, id)
-            : RealtimeR2Intent.SelectTool(tool.Value));
+        bool enteringFirstLightBuild =
+            (tool is RealtimeTool.BuildNode or RealtimeTool.BuildLine) &&
+            IsFirstLight() &&
+            (!string.Equals(
+                 _interaction.SelectedBuildToolId,
+                 id,
+                 StringComparison.Ordinal) ||
+             _interaction.Tool != tool.Value);
+        if (enteringFirstLightBuild)
+        {
+            _firstLightGuidedPlanning = true;
+            PauseFirstLightPlanningIfRunning();
+        }
+        _ = ApplyIntent(
+            tool is RealtimeTool.BuildNode or RealtimeTool.BuildLine
+                ? RealtimeR2Intent.SelectBuildTool(tool.Value, id)
+                : RealtimeR2Intent.SelectTool(tool.Value));
     }
 
     private bool TrySelectedNodeClass(out string nodeClassId)
@@ -1646,6 +1684,10 @@ internal sealed partial class RealtimeSession
 
     internal void HandleSpeedRequested(RealtimeSimulationSpeed speed)
     {
+        if (IsFirstLight())
+        {
+            _firstLightGuidedPlanning = true;
+        }
         if (speed == RealtimeSimulationSpeed.Paused)
         {
             HandleTogglePause();
@@ -2089,14 +2131,18 @@ internal sealed partial class RealtimeSession
 
     private static string ConstructionFeedback(
         RealtimeR2IntentKind kind,
-        RealtimeCommandResult result)
+        RealtimeCommandResult result,
+        string detail)
     {
         if (!result.Accepted)
         {
             string reason = result.ConstructionError.HasValue
                 ? RealtimePresentationText.ConstructionErrorText(result.ConstructionError)
                 : RealtimePresentationText.RealtimeRunErrorText(result.Error);
-            return $"공사 입력을 처리하지 못했습니다. {reason}";
+            string exact = string.IsNullOrWhiteSpace(detail)
+                ? string.Empty
+                : $" {detail}.";
+            return $"공사 입력을 처리하지 못했습니다.{exact} {reason}";
         }
         return kind switch
         {
@@ -2114,6 +2160,66 @@ internal sealed partial class RealtimeSession
             RealtimeR2IntentKind.CancelLineDraft => "선로 초안을 취소했습니다.",
             _ => "공사 입력을 승인했습니다.",
         };
+    }
+
+    private string ConstructionIntentDetail(RealtimeR2Intent intent)
+    {
+        if (intent.Kind == RealtimeR2IntentKind.AddLinePoint &&
+            intent.Position.HasValue)
+        {
+            LinePointPreview preview = _run.PreviewLinePoint(intent.Position.Value);
+            return RealtimePresentationText.SpanDetail(
+                preview.SegmentLengthUnit,
+                preview.MaxSpanUnit);
+        }
+        if (intent.Kind == RealtimeR2IntentKind.FinishLineDraft &&
+            intent.FirstId is not null)
+        {
+            LineFinishPreview preview = _run.PreviewLineFinish(intent.FirstId);
+            return RealtimePresentationText.SpanDetail(
+                preview.SegmentLengthUnit,
+                preview.MaxSpanUnit);
+        }
+        return string.Empty;
+    }
+
+    private bool IsFirstLight() =>
+        _data?.NativeRoute is not null &&
+        string.Equals(
+            _run.GetSnapshot().Chapter.Content.ChapterId,
+            "FIRST_LIGHT",
+            StringComparison.Ordinal);
+
+    private void PauseFirstLightPlanningIfRunning()
+    {
+        if (!_firstLightGuidedPlanning ||
+            !IsFirstLight() ||
+            _interaction.Simulation != RealtimeSimulationState.Running)
+        {
+            return;
+        }
+        RealtimeInteractionState before = _interaction;
+        RealtimeInteractionReduction pause = RealtimeInteractionReducer.Reduce(
+            _interaction,
+            RealtimeR2Intent.SetPlayerPaused(true),
+            _run.GetSnapshot().Construction);
+        if (!pause.Accepted)
+        {
+            return;
+        }
+        _interaction = pause.State;
+        SynchronizeFramePause(before, _interaction);
+    }
+
+    private string FirstLightCompletionFeedback(
+        RealtimeConstructionCompletion completion)
+    {
+        RealtimeCampaignSnapshot snapshot = _run.GetSnapshot();
+        string completed = completion.Kind == ConstructionKind.Node
+            ? string.Join(", ", completion.NodeIds.Select(DisplayAssetName))
+            : $"선로 {completion.EdgeIds.Count}구간";
+        return $"공사 완료 · {completed}. " +
+               RealtimePresentationText.FirstLightNextStep(snapshot);
     }
 
     private void SynchronizeFramePause(

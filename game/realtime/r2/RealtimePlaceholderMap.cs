@@ -1295,9 +1295,10 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             return;
         }
         var points = presentation.Draft.LinePath.Select(Point).ToList();
+        Vector2? ghost = null;
         if (presentation.Draft.ExtendLineToPointer && _pointer is CoreMapPoint pointer)
         {
-            points.Add(Point(pointer));
+            ghost = Point(pointer);
         }
         if (points.Count > 1)
         {
@@ -1312,6 +1313,23 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 Selected,
                 false,
                 2f * _accessibilityScale,
+                true);
+        }
+        if (ghost.HasValue)
+        {
+            Color ghostColor = _pointerFeedback.Accepted ? Planned : Danger;
+            DrawLine(
+                points[^1],
+                ghost.Value,
+                ghostColor,
+                (_pointerFeedback.Accepted ? 4f : 6f) * _accessibilityScale,
+                true);
+            DrawCircle(
+                ghost.Value,
+                8f * _accessibilityScale,
+                ghostColor,
+                false,
+                3f * _accessibilityScale,
                 true);
         }
     }

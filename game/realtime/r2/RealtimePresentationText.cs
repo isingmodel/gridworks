@@ -366,29 +366,150 @@ internal static class RealtimePresentationText
         {
             return $"{(pointerAccepted ? "✓" : "!")} {pointerMessage}";
         }
+        string planningPause = IsFirstLight(snapshot) &&
+            interaction.Simulation == RealtimeSimulationState.PlayerPaused
+                ? "계획 정지 · "
+                : string.Empty;
         ConstructionSnapshot construction = snapshot.Construction;
         if (construction.ActiveConstruction is ActiveConstructionSnapshot active)
         {
-            return $"현재 공사는 {Time(active.CompletionMinute)}에 끝납니다. 비교 초안은 가능하지만 두 번째 발주는 대기합니다.";
+            return $"{planningPause}공사 완료 {Time(active.CompletionMinute)} · HUD 단계 확인";
         }
         if (construction.NodeDraft is not null)
         {
-            return "변전소 초안입니다. 발주를 확인하거나 우클릭으로 취소하세요.";
+            return $"{planningPause}변전소 초안입니다. 발주를 확인하거나 우클릭으로 취소하세요.";
         }
         if (construction.LineDraft is LineDraftSnapshot line)
         {
-            return line.EndNodeId is null
+            return planningPause + (line.EndNodeId is null
                 ? "선로 경로를 이어 주세요. Backspace는 마지막 점, 우클릭은 현재 단계를 되돌립니다."
-                : "선로 경로가 닫혔습니다. 발주하거나 Backspace로 끝점을 되돌리세요.";
+                : "선로 경로가 닫혔습니다. 발주하거나 Backspace로 끝점을 되돌리세요.");
+        }
+        if (interaction.Tool == RealtimeTool.Analysis)
+        {
+            return "망 분석 켜짐 · 예상 공급 경로와 첫 병목을 지도에서 확인합니다.";
+        }
+        if (IsFirstLight(snapshot))
+        {
+            return planningPause + "HUD 단계 행동 확인";
         }
         return interaction.Tool switch
         {
             RealtimeTool.BuildNode => "지도에서 변전소 위치를 선택하세요.",
             RealtimeTool.BuildLine => "기존 설비에서 선로 시작점을 선택하세요.",
-            RealtimeTool.Analysis =>
-                "망 분석 켜짐 · 예상 공급 경로와 첫 병목을 지도에서 확인합니다.",
             _ => "설비나 사건을 선택해 상태와 다음 행동을 확인하세요.",
         };
+    }
+
+    internal static string FirstLightObjective(RealtimeCampaignSnapshot snapshot)
+    {
+        string next = FirstLightNextStep(snapshot);
+        return IsFirstLight(snapshot)
+            ? next.Replace("다음 행동 · ", string.Empty, StringComparison.Ordinal)
+            : snapshot.Chapter.Content.Objective;
+    }
+
+    internal static string FirstLightNextStep(RealtimeCampaignSnapshot snapshot)
+    {
+        if (!IsFirstLight(snapshot))
+        {
+            return string.Empty;
+        }
+        SpatialNodeDefinition? substation = snapshot.Construction.World.Nodes
+            .Where(item => item.Commissioned)
+            .FirstOrDefault(item => snapshot.Construction.World.NodeClasses.Any(nodeClass =>
+                string.Equals(nodeClass.ClassId, item.ClassId, StringComparison.Ordinal) &&
+                nodeClass.Kind == SpatialNodeKind.Substation));
+        if (substation is null)
+        {
+            return "다음 행동 · 1/3 N으로 동부 생활권 옆에 변전소를 배치·완공하세요.";
+        }
+        if (!Connected(
+                snapshot.Construction.World,
+                "WEST_SOURCE_NODE",
+                substation.NodeId))
+        {
+            return "다음 행동 · 2/3 L을 눌러 서부 발전 접속점→전신주→변전소를 이으세요.";
+        }
+        if (!Connected(
+                snapshot.Construction.World,
+                substation.NodeId,
+                "EAST_RESIDENTIAL_TERMINAL"))
+        {
+            return "다음 행동 · 3/3 L을 눌러 변전소→동부 생활권 접속점을 이으세요.";
+        }
+        return "경로 준비 완료 · 21:00 동부 첫 공급까지 유지하세요.";
+    }
+
+    internal static string SpanDetail(long? length, int? maximum) =>
+        length.HasValue && maximum.HasValue
+            ? $"경간 {length.Value:N0} / 허용 {maximum.Value:N0}"
+            : string.Empty;
+
+    internal static string FirstLightFailureDebrief(
+        CommercialWorldDefinition displayWorld,
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeChapterOutcome outcome)
+    {
+        RealtimeEventOutcome[] failed = outcome.Events
+            .Where(item => !item.SafetySatisfied)
+            .ToArray();
+        int safeEvents = outcome.Events.Count(item => item.SafetySatisfied);
+        long unservedMinutes = failed.Sum(item => item.SafetyUnservedMinutes);
+        ThermalSupplyFailure? failure = failed
+            .SelectMany(item => item.FinalEvaluation.Loads)
+            .Select(item => item.Failure)
+            .FirstOrDefault(item => item is not null);
+        string cause = failure is null
+            ? "원인 · 필수 수요의 완공된 공급 경로가 없습니다."
+            : $"원인 · {FailureKindText(failure.Kind)} · " +
+              FailureSubjectName(displayWorld, snapshot, failure);
+        return $"안전 의무 {safeEvents}/{outcome.Events.Count} 충족 · " +
+               $"동부 생활권 {unservedMinutes}분 미공급\n{cause}\n" +
+               "다음 시도 · 변전소를 완공한 뒤 서부 발전 접속점→전신주→" +
+               "변전소→동부 생활권 접속점을 모두 이으세요.\n" +
+               $"최종 운영 자금 {Cash(outcome.EndingCashUnit)}";
+    }
+
+    private static bool IsFirstLight(RealtimeCampaignSnapshot snapshot) =>
+        string.Equals(
+            snapshot.Chapter.Content.ChapterId,
+            "FIRST_LIGHT",
+            StringComparison.Ordinal);
+
+    private static bool Connected(
+        SpatialWorldDefinition world,
+        string startNodeId,
+        string endNodeId)
+    {
+        var visited = new HashSet<string>(StringComparer.Ordinal) { startNodeId };
+        var queue = new Queue<string>();
+        queue.Enqueue(startNodeId);
+        while (queue.Count > 0)
+        {
+            string current = queue.Dequeue();
+            if (string.Equals(current, endNodeId, StringComparison.Ordinal))
+            {
+                return true;
+            }
+            foreach (SpatialEdgeDefinition edge in world.Edges.Where(item =>
+                         item.Commissioned &&
+                         (string.Equals(item.FromNodeId, current, StringComparison.Ordinal) ||
+                          string.Equals(item.ToNodeId, current, StringComparison.Ordinal))))
+            {
+                string next = string.Equals(
+                        edge.FromNodeId,
+                        current,
+                        StringComparison.Ordinal)
+                    ? edge.ToNodeId
+                    : edge.FromNodeId;
+                if (visited.Add(next))
+                {
+                    queue.Enqueue(next);
+                }
+            }
+        }
+        return false;
     }
 
     internal static string DisabledConstructionReason(ActiveConstructionSnapshot active) =>

@@ -19,6 +19,8 @@ internal static class RealtimeModalPresenter
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(pause);
         RealtimeModalPresentation? modal = Modal(
+            source.Data.BaseWorld,
+            source.Data.NativeRoute is not null,
             source.Snapshot,
             source.Interaction,
             pause);
@@ -26,6 +28,8 @@ internal static class RealtimeModalPresenter
     }
 
     private static RealtimeModalPresentation? Modal(
+        CommercialWorldDefinition displayWorld,
+        bool firstLightGuidanceEnabled,
         RealtimeCampaignSnapshot snapshot,
         RealtimeInteractionState interaction,
         RealtimePausePresentation pause)
@@ -43,7 +47,16 @@ internal static class RealtimeModalPresenter
             int satisfied = outcome?.Events.Count(item => item.SafetySatisfied) ??
                 snapshot.CurrentChapterEvents.Count(item => item.SafetySatisfied);
             int total = outcome?.Events.Count ?? snapshot.CurrentChapterEvents.Count;
-            string resultBody = outcome is null
+            bool failedFirstLight = firstLightGuidanceEnabled &&
+                outcome is not null &&
+                string.Equals(outcome.ChapterId, "FIRST_LIGHT", StringComparison.Ordinal) &&
+                !outcome.ObjectiveSatisfied;
+            string resultBody = failedFirstLight
+                ? RealtimePresentationText.FirstLightFailureDebrief(
+                    displayWorld,
+                    snapshot,
+                    outcome!)
+                : outcome is null
                 ? $"운영 종료 시각 {RealtimePresentationText.Time(snapshot.Minute)} · 최종 운영 자금 " +
                   RealtimePresentationText.Cash(snapshot.CashUnit)
                 : $"{snapshot.Chapter.Content.DisplayName} 운영 완료 · " +
@@ -53,7 +66,9 @@ internal static class RealtimeModalPresenter
                 interaction.ActiveModalId,
                 interaction.ActiveModalKind.Value,
                 "운영 결과",
-                snapshot.CampaignComplete ? "캠페인 운영 완료" : "장 운영 완료",
+                failedFirstLight
+                    ? "첫 불빛 공급 목표 미달"
+                    : snapshot.CampaignComplete ? "캠페인 운영 완료" : "장 운영 완료",
                 resultBody,
                 new RealtimeActionPresentation(
                     RealtimeR2Ids.ResultCloseAction,
@@ -260,17 +275,27 @@ internal static class RealtimeModalPresenter
                     $"적용된 방침: {chapter.CityPromise!.DeferLabel}.";
             }
             string nextChapterName = snapshot.Chapter.Content.DisplayName;
+            string failureBody = source.Data.NativeRoute is not null &&
+                string.Equals(
+                    outcome.ChapterId,
+                    "FIRST_LIGHT",
+                    StringComparison.Ordinal)
+                ? RealtimePresentationText.FirstLightFailureDebrief(
+                    source.Data.BaseWorld,
+                    snapshot,
+                    outcome)
+                : $"안전 의무 {safeEvents}/{outcome.Events.Count} 충족" +
+                  promiseFacts +
+                  requirement +
+                  $" · 운영 자금 {outcome.EndingCashUnit:N0}만 원. " +
+                  "충족하지 못한 사실과 첫 병목을 확인하세요.";
             return modal with
             {
                 Eyebrow = authored?.Speaker ?? "계통운영 기록",
                 Heading = authored?.Title ?? $"{chapter.DisplayName} 목표 미달",
                 Body = authored is not null
                     ? authoredBody
-                    : $"안전 의무 {safeEvents}/{outcome.Events.Count} 충족" +
-                    promiseFacts +
-                    requirement +
-                    $" · 운영 자금 {outcome.EndingCashUnit:N0}만 원. " +
-                    "충족하지 못한 사실과 첫 병목을 확인하세요.",
+                    : failureBody,
                 PrimaryAction = new RealtimeActionPresentation(
                     RealtimeR2Ids.ResultCloseAction,
                     calendarTransition

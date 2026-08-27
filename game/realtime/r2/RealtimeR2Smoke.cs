@@ -2288,15 +2288,18 @@ internal static class RealtimeR2Smoke
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.CloseModal(RealtimeR2Ids.ChapterBriefingModal)),
             "release briefing close", failures, coreCommandExpected: false);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.SetPlayerPaused(true)),
-            "release player pause", failures, coreCommandExpected: false);
-
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.SelectBuildTool(
-                    RealtimeTool.BuildNode,
-                    "NODE:SMALL_SUBSTATION")),
-            "release node tool", failures, coreCommandExpected: false);
+        Check(slice.LatestPresentation.Hud.Objective.Contains(
+                  "1/3",
+                  StringComparison.Ordinal),
+            "release FIRST_LIGHT did not begin with staged node guidance",
+            failures);
+        slice.RequestBuildToolForSmoke("NODE:SMALL_SUBSTATION");
+        Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
+              slice.LatestPresentation.BuildShelf.Guidance.Contains(
+                  "계획 정지",
+                  StringComparison.Ordinal),
+            "release FIRST_LIGHT build entry did not pause protected planning",
+            failures);
         RequireIntent(slice.ApplyIntentForSmoke(new RealtimeR2Intent(
                 RealtimeR2IntentKind.SetNodeDraft,
                 FirstId: "SMALL_SUBSTATION",
@@ -2331,6 +2334,15 @@ internal static class RealtimeR2Smoke
             nodeQuote.CompletionMinute!.Value,
             RealtimeSimulationSpeed.VeryFast,
             failures);
+        Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
+              slice.LatestPresentation.Hud.Objective.Contains(
+                  "2/3",
+                  StringComparison.Ordinal) &&
+              slice.LatestPresentation.BuildShelf.Guidance.Contains(
+                  "공사 완료",
+                  StringComparison.Ordinal),
+            "release FIRST_LIGHT node completion did not pause with the source-corridor step",
+            failures);
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SetPlayerPaused(true)),
             "release pause after substation", failures, coreCommandExpected: false);
@@ -2340,12 +2352,25 @@ internal static class RealtimeR2Smoke
                     RealtimeTool.BuildLine,
                     "LINE:STANDARD_LINE:STANDARD_POLE")),
             "release west line tool", failures, coreCommandExpected: false);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.StartLineDraft(
+                    "WEST_SOURCE_NODE",
+                    "STANDARD_LINE",
+                    "STANDARD_POLE")),
+            "release west line start", failures);
+        RealtimeR2IntentResult overSpan = slice.ApplyIntentForSmoke(
+            RealtimeR2Intent.FinishLineDraft(substationId));
+        Check(!overSpan.Accepted &&
+              slice.LatestPresentation.BuildShelf.Guidance.Contains(
+                  "경간",
+                  StringComparison.Ordinal) &&
+              slice.LatestPresentation.BuildShelf.Guidance.Contains(
+                  "허용 600",
+                  StringComparison.Ordinal),
+            "release FIRST_LIGHT rejected span omitted its exact length and limit",
+            failures);
         foreach ((RealtimeR2Intent intent, string label) in new[]
                  {
-                     (RealtimeR2Intent.StartLineDraft(
-                         "WEST_SOURCE_NODE",
-                         "STANDARD_LINE",
-                         "STANDARD_POLE"), "start"),
                      (RealtimeR2Intent.AddLinePoint(new CoreMapPoint(750, 650)), "point-1"),
                      (RealtimeR2Intent.AddLinePoint(new CoreMapPoint(1050, 650)), "point-2"),
                      (RealtimeR2Intent.AddLinePoint(new CoreMapPoint(1600, 650)), "point-3"),
@@ -2374,6 +2399,12 @@ internal static class RealtimeR2Smoke
             slice,
             westQuote.CompletionMinute!.Value,
             RealtimeSimulationSpeed.VeryFast,
+            failures);
+        Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
+              slice.LatestPresentation.Hud.Objective.Contains(
+                  "3/3",
+                  StringComparison.Ordinal),
+            "release FIRST_LIGHT west-line completion did not show the service-line step",
             failures);
         RequireIntent(slice.ApplyIntentForSmoke(
                 RealtimeR2Intent.SetPlayerPaused(true)),
@@ -2413,6 +2444,12 @@ internal static class RealtimeR2Smoke
             serviceQuote.CompletionMinute!.Value,
             RealtimeSimulationSpeed.VeryFast,
             failures);
+        Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
+              slice.LatestPresentation.Hud.Objective.Contains(
+                  "경로 준비 완료",
+                  StringComparison.Ordinal),
+            "release FIRST_LIGHT service completion did not pause with ready guidance",
+            failures);
 
         RealtimeNextEventPresentation? next = slice.LatestPresentation.Rail.NextEvent;
         Check(next is
@@ -2425,6 +2462,9 @@ internal static class RealtimeR2Smoke
               slice.CoreSnapshot.CashUnit == 7_030_000,
             "release live state lost its exact next-event countdown or construction cost",
             failures);
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SetSpeed(RealtimeSimulationSpeed.VeryFast)),
+            "release ready network 4x resume", failures, coreCommandExpected: false);
         _ = AdvanceToMinuteByFrames(
             slice,
             1260,
@@ -2544,8 +2584,10 @@ internal static class RealtimeR2Smoke
               eventOutcome.SafetyUnservedMinutes > 0 &&
               result.Id == RealtimeR2Ids.CampaignResultModal &&
               result.Eyebrow == "운영 결과" &&
-              result.Heading == "캠페인 운영 완료" &&
+              result.Heading == "첫 불빛 공급 목표 미달" &&
               result.Body.Contains("안전 의무 0/1 충족", StringComparison.Ordinal) &&
+              result.Body.Contains("연결 경로 없음", StringComparison.Ordinal) &&
+              result.Body.Contains("다음 시도", StringComparison.Ordinal) &&
               (!string.Equals(result.Eyebrow, standardResult.Speaker,
                    StringComparison.Ordinal) ||
                !string.Equals(result.Heading, standardResult.Title,

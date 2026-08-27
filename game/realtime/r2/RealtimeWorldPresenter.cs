@@ -82,7 +82,8 @@ internal static class RealtimeWorldPresenter
                 interaction.SelectionId),
             reduceMotion,
             interaction.Tool,
-            interaction.Surface);
+            interaction.Surface,
+            snapshot.Chapter.Content.ChapterId);
     }
 
     private static RealtimeWorldDraftPresentation Draft(ConstructionSnapshot construction)

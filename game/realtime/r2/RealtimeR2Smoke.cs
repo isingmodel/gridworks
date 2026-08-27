@@ -5016,10 +5016,14 @@ internal static class RealtimeR2Smoke
                   Minute: 265260,
                   ChapterStarted: true,
               } &&
+              slice.InteractionState.Tool == RealtimeTool.Inspect &&
+              slice.InteractionState.SelectedBuildToolId is null &&
+              string.IsNullOrEmpty(slice.LatestPresentation.Pointer.Message) &&
               slice.FormativeTutorialResultChapterIdsForSmoke.SequenceEqual(
                   new[] { "FIRST_LIGHT", "SECOND_HEART", "SECOND_SOURCE" },
                   StringComparer.Ordinal),
-            "production result action did not preserve the three-result chain into North Bank",
+            "production result action did not preserve the three-result chain or clear " +
+            "planning transients into North Bank",
             failures);
         RequireAuthoredTutorialModal(
             slice,
@@ -5045,7 +5049,10 @@ internal static class RealtimeR2Smoke
             "North planning-window authored FIFO drifted",
             failures);
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
-              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused,
+              slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
+              slice.LatestPresentation.Hud.SimulationState ==
+                  RealtimeSimulationState.PlayerPaused &&
+              slice.LatestPresentation.Hud.Speed == RealtimeSimulationSpeed.Paused,
             "North planning window did not close into explicit planning pause",
             failures);
         return (data, rootSubstationId);

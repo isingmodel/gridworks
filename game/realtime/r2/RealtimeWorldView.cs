@@ -26,7 +26,8 @@ internal sealed record RealtimeWorldPresentation(
     RealtimeWorldHighlight? Highlight,
     bool ReduceMotion,
     RealtimeTool Tool,
-    RealtimeSurface Surface)
+    RealtimeSurface Surface,
+    string ChapterId)
 {
     private IReadOnlyList<RealtimeWorldAssetStatus> _assetStatuses =
         Freeze(AssetStatuses);

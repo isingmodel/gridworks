@@ -4912,6 +4912,21 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             actualInputRequests,
             "blocking modal close without pointer motion",
             failures);
+
+        RealtimeWorldPresentation currentChapter = slice.LatestPresentation.World;
+        map.SetPresentation(currentChapter with
+        {
+            ChapterId = currentChapter.ChapterId + "_NEXT",
+        });
+        await SettleLayout();
+        Require(map.CandidateIdsForSmoke.Count == 0 &&
+                map.ActiveCandidateIdForSmoke is null &&
+                map.PreferredCandidateIdForSmoke is null &&
+                string.IsNullOrEmpty(map.ActiveCandidateVisibleLabelForSmoke),
+            "chapter transition retained a stale overlap candidate",
+            failures);
+        map.SetPresentation(currentChapter);
+        await SettleLayout();
     }
 
     private async Task<ActualMapCandidateFact?> ArmNonFirstActualCandidate(

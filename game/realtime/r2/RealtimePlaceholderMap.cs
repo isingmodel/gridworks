@@ -210,11 +210,22 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     public void SetPresentation(RealtimeWorldPresentation presentation)
     {
         ArgumentNullException.ThrowIfNull(presentation);
+        bool chapterChanged = _presentation is not null &&
+            !string.Equals(
+                _presentation.ChapterId,
+                presentation.ChapterId,
+                StringComparison.Ordinal);
         _presentation = presentation;
         ConfigureTransform();
         EnsureKeyboardCursor();
         FollowSelection();
         _ = RefreshPointerResolution(RealtimeWorldProbeIds.PresentationRefresh);
+        if (chapterChanged)
+        {
+            _candidateCycle = Array.Empty<string>();
+            _candidateIndex = 0;
+            _preferredCandidateId = null;
+        }
         UpdateAccessibility();
         QueueRedraw();
     }

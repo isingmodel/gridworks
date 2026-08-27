@@ -1449,6 +1449,7 @@ internal sealed partial class RealtimeSession
         }
 
         RealtimeAdvanceResult advance = _run.AdvanceTo(targetMinute.Value);
+        ResetChapterPlanningTransients(before, advance.Snapshot);
         CollectTransitions(advance.Transitions);
         if (_latestPresentation?.CoreSnapshot.Minute != advance.Snapshot.Minute)
         {
@@ -2316,14 +2317,17 @@ internal sealed partial class RealtimeSession
         {
             return;
         }
-        PausePlanningIfRunning();
+        if (PausePlanningIfRunning())
+        {
+            Present();
+        }
     }
 
-    private void PausePlanningIfRunning()
+    private bool PausePlanningIfRunning()
     {
         if (_interaction.Simulation != RealtimeSimulationState.Running)
         {
-            return;
+            return false;
         }
         RealtimeInteractionState before = _interaction;
         RealtimeInteractionReduction pause = RealtimeInteractionReducer.Reduce(
@@ -2332,10 +2336,40 @@ internal sealed partial class RealtimeSession
             _run.GetSnapshot().Construction);
         if (!pause.Accepted)
         {
-            return;
+            return false;
         }
         _interaction = pause.State;
         SynchronizeFramePause(before, _interaction);
+        return true;
+    }
+
+    private void ResetChapterPlanningTransients(
+        RealtimeCampaignSnapshot before,
+        RealtimeCampaignSnapshot after)
+    {
+        bool chapterActivated = !before.ChapterStarted && after.ChapterStarted;
+        if (!chapterActivated && string.Equals(
+                before.Chapter.Content.ChapterId,
+                after.Chapter.Content.ChapterId,
+                StringComparison.Ordinal))
+        {
+            return;
+        }
+        RealtimeInteractionReduction reset = RealtimeInteractionReducer.Reduce(
+            _interaction,
+            RealtimeR2Intent.SelectTool(RealtimeTool.Inspect),
+            after.Construction);
+        if (!reset.Accepted)
+        {
+            throw new InvalidOperationException(
+                "A chapter transition could not clear its planning tool.");
+        }
+        _interaction = reset.State;
+        _draftCancelArmed = false;
+        _pointerPoint = null;
+        SetPointerFeedback(true, string.Empty);
+        _nodeOrderQuote = null;
+        _lineOrderQuote = null;
     }
 
     private string FirstLightCompletionFeedback(

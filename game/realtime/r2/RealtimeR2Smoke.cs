@@ -2771,6 +2771,11 @@ internal static class RealtimeR2Smoke
             null,
             data.BaseCampaign.Chapters[1].Briefing,
             failures);
+        Check(slice.InteractionState.Tool == RealtimeTool.Inspect &&
+              slice.InteractionState.SelectedBuildToolId is null &&
+              string.IsNullOrEmpty(slice.LatestPresentation.Pointer.Message),
+            "SECOND_HEART activation retained FIRST_LIGHT planning transients",
+            failures);
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
               slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
               slice.InteractionState.RunningSpeed == RealtimeSimulationSpeed.VeryFast,

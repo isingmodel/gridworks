@@ -4925,6 +4925,14 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 string.IsNullOrEmpty(map.ActiveCandidateVisibleLabelForSmoke),
             "chapter transition retained a stale overlap candidate",
             failures);
+        PushViewportPointerMotion(
+            viewport,
+            map.ViewportPointForSmoke(worldPoint));
+        await SettleLayout();
+        Require(map.CandidateIdsForSmoke.Count >= 2 &&
+                map.ActiveCandidateIdForSmoke is not null,
+            "fresh candidate input did not re-enable chapter-local overlap selection",
+            failures);
         map.SetPresentation(currentChapter);
         await SettleLayout();
     }

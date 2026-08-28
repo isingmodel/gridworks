@@ -777,7 +777,19 @@ internal sealed partial class RealtimeSession
     {
         foreach (RealtimeTransition transition in transitions)
         {
+            bool chapterBoundary = transition.Kind ==
+                    RealtimeTransitionKind.ChapterStarted &&
+                _emittedTransitions.Any(item =>
+                    item.Kind == RealtimeTransitionKind.ChapterStarted &&
+                    !string.Equals(
+                        item.ChapterId,
+                        transition.ChapterId,
+                        StringComparison.Ordinal));
             _emittedTransitions.Add(transition);
+            if (chapterBoundary)
+            {
+                ResetChapterPlanningTransients(_run!.GetSnapshot());
+            }
             if (_data?.NativeRoute?.UsesChapterStoryFlow == true)
             {
                 _chapterStoryFlow.Observe(
@@ -1449,7 +1461,6 @@ internal sealed partial class RealtimeSession
         }
 
         RealtimeAdvanceResult advance = _run.AdvanceTo(targetMinute.Value);
-        ResetChapterPlanningTransients(before, advance.Snapshot);
         CollectTransitions(advance.Transitions);
         if (_latestPresentation?.CoreSnapshot.Minute != advance.Snapshot.Minute)
         {
@@ -2344,21 +2355,12 @@ internal sealed partial class RealtimeSession
     }
 
     private void ResetChapterPlanningTransients(
-        RealtimeCampaignSnapshot before,
-        RealtimeCampaignSnapshot after)
+        RealtimeCampaignSnapshot snapshot)
     {
-        bool chapterActivated = !before.ChapterStarted && after.ChapterStarted;
-        if (!chapterActivated && string.Equals(
-                before.Chapter.Content.ChapterId,
-                after.Chapter.Content.ChapterId,
-                StringComparison.Ordinal))
-        {
-            return;
-        }
         RealtimeInteractionReduction reset = RealtimeInteractionReducer.Reduce(
             _interaction,
             RealtimeR2Intent.SelectTool(RealtimeTool.Inspect),
-            after.Construction);
+            snapshot.Construction);
         if (!reset.Accepted)
         {
             throw new InvalidOperationException(

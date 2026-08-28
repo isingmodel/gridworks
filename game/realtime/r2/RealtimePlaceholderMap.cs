@@ -144,6 +144,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private IReadOnlyList<string> _candidateCycle = Array.Empty<string>();
     private int _candidateIndex;
     private string? _preferredCandidateId;
+    private bool _candidateSuppressedUntilInput;
     private bool _panning;
     private Vector2 _lastCanvasPointer;
     private bool _hasCanvasPointer;
@@ -219,12 +220,17 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         ConfigureTransform();
         EnsureKeyboardCursor();
         FollowSelection();
-        _ = RefreshPointerResolution(RealtimeWorldProbeIds.PresentationRefresh);
         if (chapterChanged)
         {
+            _candidateSuppressedUntilInput = true;
             _candidateCycle = Array.Empty<string>();
             _candidateIndex = 0;
             _preferredCandidateId = null;
+            _pointerFeedback = RealtimeWorldPointerFeedback.Empty;
+        }
+        else if (!_candidateSuppressedUntilInput)
+        {
+            _ = RefreshPointerResolution(RealtimeWorldProbeIds.PresentationRefresh);
         }
         UpdateAccessibility();
         QueueRedraw();
@@ -265,6 +271,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         {
             return;
         }
+        _candidateSuppressedUntilInput = false;
         RealtimePointerResolution? resolution = RefreshPointerResolution(
             RealtimeWorldProbeIds.KeyboardChooser);
         // Selection actions and draft handles own the point above any world
@@ -301,6 +308,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         {
             return;
         }
+        _candidateSuppressedUntilInput = false;
         RealtimePointerResolution? resolution = RefreshPointerResolution(
             RealtimeWorldProbeIds.KeyboardConfirm);
         if (resolution is not null && _pointer is CoreMapPoint point)
@@ -338,6 +346,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         switch (inputEvent)
         {
             case InputEventMouseMotion motion when _panning:
+                _candidateSuppressedUntilInput = false;
                 if (_hasCanvasPointer)
                 {
                     _transform.PanByCanvasDelta(motion.Position - _lastCanvasPointer);
@@ -355,6 +364,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 AcceptEvent();
                 break;
             case InputEventMouseMotion motion:
+                _candidateSuppressedUntilInput = false;
                 _hasCanvasPointer = true;
                 _lastCanvasPointer = motion.Position;
                 _pointer = ToWorld(motion.Position);
@@ -368,6 +378,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 break;
             case InputEventMouseButton mouse when mouse.ButtonIndex == MouseButton.Left &&
                 mouse.Pressed:
+                _candidateSuppressedUntilInput = false;
                 CoreMapPoint worldPoint = ToWorld(mouse.Position);
                 _pointer = worldPoint;
                 _lastCanvasPointer = mouse.Position;

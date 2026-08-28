@@ -2,22 +2,42 @@
 
 ## 상태
 
-**활성 scope가 없다.**
+**game-design review and focused repair scope가 활성 상태다.**
 
-청류시 native world 합성을 보완했다. 물 surface 자체가 굽이치는 양안 contour를 따르고, 흐름선과
-저대비 반사가 같은 형태를 공유한다. 두 교량은 시각 강둑을 직접 재서 양안 너머까지 착지하며 차도,
-교대, 측면 두께와 보강재를 가진다. pole 도체는 지면 중심이 아니라 pole sprite의 상단 attachment를
-사용하고, building terrain plate는 주변 parcel·road·ground와 섞이는 저대비 표현으로 바뀌었다. Core
-terrain·hit geometry·게임 규칙·save와 자산 목록은 바꾸지 않았다.
+## 단일 결과물
 
-renderer 불변조건, Debug build와 전체 `./dev check`가 PASS했다. exact final commit의 native full-screen에서
-normal world, 실제 line-construction mode와 전신주 망 fixture를 관찰해 강·교량·건물 조화와 pole 상단 간
-도체 연결을 다시 확인했다. 이는 한 LLM의 formative native 관찰이며 사람 미감 승인이나 공식 UX 점수가
-아니다. package·외부 gate·push·PR·merge·배포는 수행하지 않았다.
+기존 8장 플레이에서 플레이어가 다가오는 문제, 선택 가능한 대응과 그 결과를 더 빠르게 연결해 읽고,
+망을 보강한 이유와 다음 행동을 명확히 이해한다.
 
-저장소가 소유하는 제품 목표는 실시간 8장·finale/epilogue, product save/settings/audio wiring,
-internal macOS package identity와 combined 2B를 포함하는 **current R2 내부 후보**다.
-[남은 구현 작업](NEXT_TASKS.md)은 현재 비어 있다.
+## 단일 권위
+
+- gameplay 규칙·상태: 기존 Release V3 Core와 authored campaign을 유지한다.
+- 목표·병목·행동·결과의 화면 의미와 문구: 기존 `RealtimeSession`→typed presentation→owning UI node가
+  각각 한 번 소유한다.
+- 장기 게임 디자인 기준: `docs/product/GAME_DESIGN_KO.md`를 유지한다.
+
+## 범위 안
+
+- 한 고정 LLM subagent sample로 current native 플레이의 agency, decision readability, pacing과 feedback을
+  게임 디자인 관점에서 검토한다.
+- 자동 증거로 확인할 수 없는 실제 플레이 관찰만 subagent review에 맡긴다.
+- 재현된 고영향 결함 중 기존 mechanic·content authority 안에서 고칠 수 있는 목표, 행동 안내,
+  인과 feedback과 결과 설명을 보완한다.
+- 가장 작은 결정론적 contract를 먼저 추가하고 필요한 native 재관찰과 전체 회귀를 수행한다.
+
+## 범위 밖
+
+- 새 gameplay mechanic·chapter·event·경제·열·경로 선택 규칙·save schema·자산 제작
+- 공식 점수, 사람 재미·사용성 증거, package·외부 gate·push·PR·merge·배포
+- review의 취향성·저영향 지적이나 현재 권위 밖의 대규모 재설계
+
+## 완료 검사
+
+- subagent review의 재현 경로와 수정 우선순위를 기록한다.
+- 채택한 결함을 가장 가까운 story/controller/presentation/UI contract로 고정한다.
+- Debug build, relevant checkpoint/story/UI harness와 `./dev check`를 통과한다.
+- 같은 고정 관점의 bounded independent re-review를 받아 scope-valid 회귀가 없음을 확인한다.
+- 바뀐 current 사실의 소유 문서만 갱신하고 scope를 닫는다.
 
 ## 다음 변경을 여는 조건
 

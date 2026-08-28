@@ -122,6 +122,7 @@ speed 또는 재생 입력만 실제 진행을 재개한다. presenter와 UI nod
 | intent/action/tool/modal이 지원되는가? | 명시적 capability와 reducer/session 분기 | `game/realtime/r2/RealtimeInteractionReducer.cs`, `game/realtime/ui/RealtimeUiCapabilities.cs`, `game/realtime/r2/RealtimeSession.cs` |
 | 같은 snapshot을 화면에서 어떻게 읽는가? | typed immutable presentation | 해당 `Realtime*Presenter.cs`와 `game/realtime/ui/` contract |
 | active weather를 어떻게 표현하는가? | `RealtimeWorldPresenter` 우선순위 `risk area → Storm`, `thermal override → Heat`, 그 외 `Clear` | `game/realtime/r2/RealtimeWorldPresenter.cs` |
+| typed world를 강·교량·건물·설비·도체로 어떻게 합성하는가? | draw-only `RealtimePlaceholderMap`; Release V3 terrain·hit geometry는 유지 | `game/realtime/r2/RealtimePlaceholderMap*.cs` |
 | Godot에서 어떻게 받아 그리고 focus를 옮기는가? | scene adapter와 owning UI node | `RealtimeSliceMain.cs`, `game/realtime/ui/` |
 | 무엇을 build·play·검사하는가? | `./dev`와 root `Gridworks.sln` | `dev`, `Gridworks.sln` |
 | current R2 package identity를 만들고 검증하는가? | `tools/r2_candidate.py` | `tools/r2_candidate.py`, `game/export_presets.cfg` |
@@ -130,6 +131,11 @@ speed 또는 재생 입력만 실제 진행을 재개한다. presenter와 UI nod
 한 규칙을 presenter나 Godot adapter에서 다시 계산하지 않는다. Core fact가 부족하면 Core의 snapshot 또는
 typed contract를 보강하고, application 전용 결정은 Session에서 한 번 계산해 presentation source로
 넘긴다. presenter는 상태를 바꾸지 않고 화면 의미만 만든다.
+
+`RealtimePlaceholderMap`은 typed world의 시각 합성만 소유한다. water polygon에서 결정론적 양안 contour를
+만들어 surface·flow·measured bridge가 같은 화면 geometry를 공유하고, pole sprite 크기에서 상단 conductor
+attachment를 계산한다. building parcel의 낮은 대비 fill도 여기서만 그린다. 이 draw geometry는 Core의
+terrain, construction legality, pointer hit geometry나 save fact를 다시 정의하지 않는다.
 
 current v3의 유일한 application cursor는 initial briefing까지 포함한 `closedStoryCount`다.
 `RealtimeChapterStoryFlow`가 transition history + selected campaign의 pure projection으로 candidate prefix를

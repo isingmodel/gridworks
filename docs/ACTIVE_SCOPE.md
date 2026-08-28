@@ -2,40 +2,22 @@
 
 ## 상태
 
-**native world compositing polish scope가 활성 상태다.**
+**활성 scope가 없다.**
 
-## 단일 결과물
+청류시 native world 합성을 보완했다. 물 surface 자체가 굽이치는 양안 contour를 따르고, 흐름선과
+저대비 반사가 같은 형태를 공유한다. 두 교량은 시각 강둑을 직접 재서 양안 너머까지 착지하며 차도,
+교대, 측면 두께와 보강재를 가진다. pole 도체는 지면 중심이 아니라 pole sprite의 상단 attachment를
+사용하고, building terrain plate는 주변 parcel·road·ground와 섞이는 저대비 표현으로 바뀌었다. Core
+terrain·hit geometry·게임 규칙·save와 자산 목록은 바꾸지 않았다.
 
-청류시 native world에서 강·교량·전신주 도체·건물 필지가 하나의 일관된 oblique 장면으로 보이며,
-직사각형 tile seam이나 떠 있는 교량, 지면 중심에 꽂힌 도체가 플레이 화면의 완성도를 해치지 않는다.
+renderer 불변조건, Debug build와 전체 `./dev check`가 PASS했다. exact final commit의 native full-screen에서
+normal world, 실제 line-construction mode와 전신주 망 fixture를 관찰해 강·교량·건물 조화와 pole 상단 간
+도체 연결을 다시 확인했다. 이는 한 LLM의 formative native 관찰이며 사람 미감 승인이나 공식 UX 점수가
+아니다. package·외부 gate·push·PR·merge·배포는 수행하지 않았다.
 
-## 단일 권위
-
-- gameplay terrain·placement·hit geometry: 기존 Release V3 world와 Core를 유지한다.
-- world 합성·sprite placement·conductor attachment: `RealtimePlaceholderMap`이 한 번 소유한다.
-- 장기 시각 기준: `docs/product/VISUAL_PRODUCTION_SPEC.md`를 유지한다.
-
-## 범위 안
-
-- authoritative water polygon 위에 비직선 bank contour와 물 흐름을 합성한다.
-- 기존 tracked G3 bridge를 양쪽 강둑에 실제로 닿는 일관된 span으로 배치한다.
-- pole class별 authored visual attachment에서 conductor 세 가닥을 시작·종료한다.
-- building terrain plate의 강한 직사각형 fill을 parcel·road·terrain과 섞이는 낮은 대비 표현으로 바꾼다.
-- 가장 작은 renderer regression과 FHD native before/after 화면을 확인한다.
-
-## 범위 밖
-
-- Core terrain polygon·건설 가능 영역·hit test·campaign 규칙·save schema 변경
-- 새 gameplay, UI 정보 구조, 장·사건·밸런스 변경
-- 새 third-party/generated bitmap 자산 채택, package·외부 gate·push·PR·merge·배포
-- 사람 미감 승인이나 공식 상용 UX 점수 주장
-
-## 완료 검사
-
-- bank contour·bridge span·pole attachment·building plate의 renderer 불변조건을 결정론적으로 고정한다.
-- Debug build, relevant live renderer/layout harness와 `./dev check`를 통과한다.
-- native FHD에서 normal/construction world와 selected crop을 다시 캡처해 네 요청 항목을 직접 대조한다.
-- 실제로 바뀐 current 사실의 소유 문서만 갱신하고 scope를 닫는다.
+저장소가 소유하는 제품 목표는 실시간 8장·finale/epilogue, product save/settings/audio wiring,
+internal macOS package identity와 combined 2B를 포함하는 **current R2 내부 후보**다.
+[남은 구현 작업](NEXT_TASKS.md)은 현재 비어 있다.
 
 ## 다음 변경을 여는 조건
 

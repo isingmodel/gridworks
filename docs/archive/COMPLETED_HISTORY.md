@@ -509,6 +509,27 @@ product save/settings failure matrix, 누적 controller와 FHD/QHD/UHD 100–200
 이 review는 한 고정 LLM formative sample이며 사람 재미·사용성·미감 증거, 공식 UX 점수, 성공 epilogue의
 native 관찰, packaged full journey나 외부 release gate를 뜻하지 않는다. push, PR, merge는 수행하지 않았다.
 
+### UX-R2.28 — native world 강·교량·전신주·건물 합성 보완
+
+native screenshot에서 재현된 직선형 강, 떠 있거나 막대처럼 보이는 교량, 지면 중심에서 시작하는 도체,
+강한 직사각형 building plate를 기존 `RealtimePlaceholderMap` draw authority 안에서 보완했다. authoritative
+water polygon을 바꾸지 않고 양쪽 강둑에 공통 굴곡과 독립적인 가장자리 변화를 합성해 water surface와
+흐름선이 같은 S자 실루엣을 따른다. 두 교량은 이 시각 강둑을 직접 샘플링해 양안 너머까지 착지하고,
+차도 texture, 차선, 교대, 측면 두께·보강재를 한 구조로 그린다. 큰 중앙 반사 sprite는 낮은 대비의 작은
+반사로 줄였다.
+
+pole class는 실제 표시 sprite 높이에서 상단 attachment를 계산하며 세 가닥 도체가 pole top 사이에서
+처짐을 유지한다. node equipment→conductor→overlay 순서로 구조물, 선로와 선택 ring의 층을 분리했다.
+building terrain은 불투명한 사각 plate 대신 0.18 이하 parcel fill과 약한 outline을 사용한다. Core terrain,
+construction/hit geometry, gameplay·save schema와 tracked G3 자산 목록은 바꾸지 않았다.
+
+renderer smoke가 bank deviation, 두 measured bridge의 양안 착지, building parcel alpha와 모든 pole endpoint의
+raised attachment를 고정한다. Debug build, 전체 `./dev check`의 Core 8,289 assertions, save/settings failure
+matrix, G3 50-file draw union, FHD/QHD/UHD 100–200% offscreen UI harness와 두 targeted checkpoint가 PASS했다.
+exact final commit의 native full-screen에서 normal world, line-construction mode와 pole-network fixture를
+관찰했다. 이는 한 LLM의 formative 시각 확인이며 사람 미감 승인, 공식 UX 점수, package·외부 release gate를
+뜻하지 않는다. push, PR, merge는 수행하지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

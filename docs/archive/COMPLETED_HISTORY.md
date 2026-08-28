@@ -509,6 +509,32 @@ product save/settings failure matrix, 누적 controller와 FHD/QHD/UHD 100–200
 이 review는 한 고정 LLM formative sample이며 사람 재미·사용성·미감 증거, 공식 UX 점수, 성공 epilogue의
 native 관찰, packaged full journey나 외부 release gate를 뜻하지 않는다. push, PR, merge는 수행하지 않았다.
 
+### UX-R2.29 — 게임 디자인 review 기반 FIRST_LIGHT 결정 피드백 보완
+
+한 고정 LLM subagent가 production native `./dev play through SECOND_SOURCE`의 `FIRST_LIGHT`를 게임 디자인
+관점에서 검토했다. 늦은 공사의 한 번 진행이 다음 장 안쪽까지 넘어가 typed result boundary를 잃는 P0,
+사건 시작보다 늦은 견적의 결과 경고 누락, 서부 발전 접속점 pixel hunting과 line/substation overlap에서
+비연결 edge가 먼저 선택되는 문제를 재현했다. 전체 계획을 미리 보여 달라는 취향성 제안은 범위에서
+제외했다.
+
+active construction 진행은 다음 event start·completion·event end 중 가장 가까운 경계에 멈추며 action
+문구도 그 경계를 그대로 설명한다. order quote는 다음 사건 시작 이후의 완공 시각과 `38분 늦음` 같은
+정확한 차이를 발주 전에 표시한다. `RealtimeSession`이 현재 BuildLine draft에 대해 Core preview가 승인한
+node ID를 typed presentation에 전달하고, map candidate resolver는 compatible node가 있으면 겹친 비연결
+edge를 후보 cycle에서 제외한다. `FIRST_LIGHT`의 현재 source/destination은 cyan ring, 짧은 leader와 exact
+label로 지속 표시된다.
+
+첫 native 재관찰은 위 세 UI 항목을 통과했지만, 21:38 완공 뒤 일부러 남긴 open draft와 SameEndpoint
+feedback이 22:00 chapter transition의 Inspect reset을 거부하는 추가 P0를 찾았다. chapter-start transition은
+이제 미발주 draft를 replay 가능한 cancel command로 먼저 정리한 뒤 planning tool·pointer·quote를 초기화한다.
+최종 같은 reviewer의 고정 native 경로는 완공된 cyan 망을 보존하면서 draft·오류·BuildLine 잔여를 없애고,
+typed `SECOND_HEART` briefing과 22:00 계획 정지까지 crash·freeze 없이 통과했다.
+
+Debug build, 늦은 견적·세 authored boundary·stale draft handoff·compatible candidate deterministic contract,
+전체 Godot UI harness와 `./dev check`를 통과했다. 이 결과는 한 고정 LLM formative review와 자동 회귀
+근거이며 사람 재미·사용성 증거, 공식 점수, 새 규칙·content, package·외부 gate·출시 승인이 아니다.
+push, PR, merge는 수행하지 않았다.
+
 ### UX-R2.28 — native world 강·교량·전신주·건물 합성 보완
 
 native screenshot에서 재현된 직선형 강, 떠 있거나 막대처럼 보이는 교량, 지면 중심에서 시작하는 도체,

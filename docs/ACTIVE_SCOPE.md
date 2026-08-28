@@ -2,42 +2,27 @@
 
 ## 상태
 
-**game-design review and focused repair scope가 활성 상태다.**
+**활성 scope가 없다.**
 
-## 단일 결과물
+한 고정 LLM subagent native sample의 게임 디자인 review에서 `FIRST_LIGHT`의 늦은 공사가 장 결과 경계를
+넘어 진행을 멈추는 문제, 사건보다 늦은 완공 경고 누락, 서부 발전 접속점 pixel hunting과 겹친 선로의
+잘못된 끝점 우선 선택을 재현했다. 완공 진행은 시험 시작·완공·시험 종료의 authored 경계마다 멈추고,
+견적은 다음 사건 시작보다 늦는 정확한 시간을 표시한다. guided BuildLine은 현재 시작·끝 노드를
+ring·leader·label로 고정 표시하며 Core preview가 승인한 node만 겹친 후보에 남긴다.
 
-기존 8장 플레이에서 플레이어가 다가오는 문제, 선택 가능한 대응과 그 결과를 더 빠르게 연결해 읽고,
-망을 보강한 이유와 다음 행동을 명확히 이해한다.
+첫 재관찰에서 결과 시점에 일부러 남긴 open draft가 다음 장 transient reset을 막는 회귀를 추가로 찾아,
+장 시작 transition이 미발주 node/line draft를 journalled cancel command로 먼저 정리한 뒤 Inspect·pointer·
+quote 상태를 초기화하도록 보완했다. 완공된 망과 공사 결과는 보존한다. 최종 native 재관찰은 21:38 완공,
+SameEndpoint open draft, 22:00 실패 결과와 `SECOND_HEART` briefing을 같은 경로로 통과했고, briefing 종료 뒤
+시계가 22:00 계획 정지에 머무는 동안 draft·오류 feedback·build/quote 잔여가 없음을 확인했다.
 
-## 단일 권위
+Debug build, 결정론 controller·presentation·candidate contract, 전체 Godot UI harness와 `./dev check`가
+PASS했다. 이 review는 한 고정 LLM formative sample이며 사람 재미·사용성 증거, 공식 UX 점수, 새 gameplay,
+package·외부 gate·push·PR·merge·배포를 뜻하지 않는다.
 
-- gameplay 규칙·상태: 기존 Release V3 Core와 authored campaign을 유지한다.
-- 목표·병목·행동·결과의 화면 의미와 문구: 기존 `RealtimeSession`→typed presentation→owning UI node가
-  각각 한 번 소유한다.
-- 장기 게임 디자인 기준: `docs/product/GAME_DESIGN_KO.md`를 유지한다.
-
-## 범위 안
-
-- 한 고정 LLM subagent sample로 current native 플레이의 agency, decision readability, pacing과 feedback을
-  게임 디자인 관점에서 검토한다.
-- 자동 증거로 확인할 수 없는 실제 플레이 관찰만 subagent review에 맡긴다.
-- 재현된 고영향 결함 중 기존 mechanic·content authority 안에서 고칠 수 있는 목표, 행동 안내,
-  인과 feedback과 결과 설명을 보완한다.
-- 가장 작은 결정론적 contract를 먼저 추가하고 필요한 native 재관찰과 전체 회귀를 수행한다.
-
-## 범위 밖
-
-- 새 gameplay mechanic·chapter·event·경제·열·경로 선택 규칙·save schema·자산 제작
-- 공식 점수, 사람 재미·사용성 증거, package·외부 gate·push·PR·merge·배포
-- review의 취향성·저영향 지적이나 현재 권위 밖의 대규모 재설계
-
-## 완료 검사
-
-- subagent review의 재현 경로와 수정 우선순위를 기록한다.
-- 채택한 결함을 가장 가까운 story/controller/presentation/UI contract로 고정한다.
-- Debug build, relevant checkpoint/story/UI harness와 `./dev check`를 통과한다.
-- 같은 고정 관점의 bounded independent re-review를 받아 scope-valid 회귀가 없음을 확인한다.
-- 바뀐 current 사실의 소유 문서만 갱신하고 scope를 닫는다.
+저장소가 소유하는 제품 목표는 실시간 8장·finale/epilogue, product save/settings/audio wiring,
+internal macOS package identity와 combined 2B를 포함하는 **current R2 내부 후보**다.
+[남은 구현 작업](NEXT_TASKS.md)은 현재 비어 있다.
 
 ## 다음 변경을 여는 조건
 

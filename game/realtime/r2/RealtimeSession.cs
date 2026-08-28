@@ -2421,6 +2421,7 @@ internal sealed partial class RealtimeSession
     private void ResetChapterPlanningTransients(
         RealtimeCampaignSnapshot snapshot)
     {
+        snapshot = CancelChapterBoundaryDraft(snapshot);
         RealtimeInteractionReduction reset = RealtimeInteractionReducer.Reduce(
             _interaction,
             RealtimeR2Intent.SelectTool(RealtimeTool.Inspect),
@@ -2436,6 +2437,31 @@ internal sealed partial class RealtimeSession
         SetPointerFeedback(true, string.Empty);
         _nodeOrderQuote = null;
         _lineOrderQuote = null;
+    }
+
+    private RealtimeCampaignSnapshot CancelChapterBoundaryDraft(
+        RealtimeCampaignSnapshot snapshot)
+    {
+        RealtimeCommand? cancellation = snapshot.Construction switch
+        {
+            { NodeDraft: not null } => RealtimeCommand.CancelNodeDraft(),
+            { LineDraft: not null } => RealtimeCommand.CancelLineDraft(),
+            _ => null,
+        };
+        if (cancellation is null)
+        {
+            return snapshot;
+        }
+        RealtimeCommandResult result = _run!.ApplyCommand(
+            _run.Minute,
+            NextCommandSequence,
+            cancellation);
+        if (!result.Accepted || result.Transitions.Count != 0)
+        {
+            throw new InvalidOperationException(
+                "A chapter transition could not atomically cancel its planning draft.");
+        }
+        return result.Snapshot;
     }
 
     private string FirstLightCompletionFeedback(

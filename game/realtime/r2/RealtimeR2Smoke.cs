@@ -111,8 +111,8 @@ internal static class RealtimeR2Smoke
             "STANDARD_POLE",
             failures,
             "late FIRST_LIGHT east service");
-        RealtimeR2AdvanceResult preparationDelay = slice.AdvanceToForSmoke(1230);
-        Check(preparationDelay.Advance.Snapshot.Minute == 1230 &&
+        RealtimeR2AdvanceResult preparationDelay = slice.AdvanceToForSmoke(1200);
+        Check(preparationDelay.Advance.Snapshot.Minute == 1200 &&
               preparationDelay.Advance.Transitions.All(item =>
                   item.Kind != RealtimeTransitionKind.EventStarted),
             "late FIRST_LIGHT fixture did not stop before the authored test",
@@ -156,8 +156,11 @@ internal static class RealtimeR2Smoke
         long chapterEnd = checked(
             slice.CoreSnapshot.ChapterStartMinute +
             slice.CoreSnapshot.Chapter.EndOffsetMinutes);
+        long eventStart = checked(
+            slice.CoreSnapshot.ChapterStartMinute +
+            slice.CoreSnapshot.Chapter.ScheduledEvents.Single().StartOffsetMinutes);
         Check(lateQuote is { Accepted: true, CompletionMinute: long completion } &&
-              completion > chapterEnd,
+              completion > eventStart && completion < chapterEnd,
             "late FIRST_LIGHT fixture did not produce a legal post-test completion",
             failures);
         Check(slice.LatestPresentation.ActionDock.Detail.Contains(
@@ -169,16 +172,32 @@ internal static class RealtimeR2Smoke
             "late FIRST_LIGHT west order", failures);
 
         slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
-        long eventStart = checked(
-            slice.CoreSnapshot.ChapterStartMinute +
-            slice.CoreSnapshot.Chapter.ScheduledEvents.Single().StartOffsetMinutes);
         Check(slice.CoreSnapshot.Minute == eventStart &&
               slice.CoreSnapshot.ActiveEventStates.Single().EventId ==
                   "FIRST_LIGHT_SUPPLY" &&
               slice.ActiveChapterStoryModalForSmoke is null &&
               slice.LatestPresentation.ActionDock.PrimaryAction?.Label ==
-                  "시험 결과까지 진행",
+                  "공사 완료까지 진행",
             "late construction did not stop at the visible FIRST_LIGHT test boundary",
+            failures);
+        slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
+        long completionMinute = lateQuote.CompletionMinute!.Value;
+        Check(slice.CoreSnapshot.Minute == completionMinute &&
+              slice.CoreSnapshot.Construction.ActiveConstruction is null &&
+              slice.LatestPresentation.ActionDock.PrimaryAction?.Label ==
+                  "시험 결과까지 진행",
+            "late FIRST_LIGHT construction did not commission at its exact in-test minute",
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.StartLineDraft(
+                substationId,
+                "STANDARD_LINE",
+                "STANDARD_POLE")),
+            "late FIRST_LIGHT stale draft start", failures);
+        RealtimeR2IntentResult sameEndpoint = slice.ApplyIntentForSmoke(
+            RealtimeR2Intent.FinishLineDraft(substationId));
+        Check(!sameEndpoint.Accepted &&
+              slice.CoreSnapshot.Construction.LineDraft is not null,
+            "late FIRST_LIGHT fixture did not retain the native stale open draft",
             failures);
         slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
         Check(slice.CoreSnapshot.Minute == chapterEnd &&
@@ -192,6 +211,9 @@ internal static class RealtimeR2Smoke
             "late construction advance crossed the typed FIRST_LIGHT result boundary",
             failures);
         Check(slice.ClosePresentedStoryModalForSmoke() is not null &&
+              slice.CoreSnapshot.Construction.LineDraft is null &&
+              slice.InteractionState.Tool == RealtimeTool.Inspect &&
+              string.IsNullOrEmpty(slice.LatestPresentation.Pointer.Message) &&
               slice.ActiveChapterStoryModalForSmoke is
               {
                   Purpose: RealtimeChapterStoryModalPurpose.ChapterBriefing,

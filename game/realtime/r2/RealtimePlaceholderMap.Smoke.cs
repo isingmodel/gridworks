@@ -46,6 +46,74 @@ internal sealed partial class RealtimePlaceholderMap
 
     internal int DrawnG3SpriteCountForSmoke => _drawnG3SpriteCount;
 
+    internal float DrawnRiverBankMaxDeviationForSmoke =>
+        _drawnRiverBankMaxDeviation;
+
+    internal float DrawnBuildingParcelAlphaForSmoke =>
+        _drawnBuildingParcelAlpha;
+
+    internal int DrawnMeasuredBridgeCountForSmoke => _drawnBridgeSpans.Count;
+
+    internal bool MeasuredBridgesLandOnBothBanksForSmoke =>
+        _drawnBridgeSpans.Count == 2 &&
+        _drawnBridgeSpans.All(span => span.Length == 4 &&
+            span[2].DistanceTo(span[0]) >= 10f &&
+            span[3].DistanceTo(span[1]) >= 10f &&
+            span[2].X < span[0].X &&
+            span[3].X > span[1].X);
+
+    internal bool PoleConductorsUseRaisedAttachmentsForSmoke
+    {
+        get
+        {
+            if (_presentation is not RealtimeWorldPresentation presentation)
+            {
+                return false;
+            }
+            int poleEndpointCount = 0;
+            foreach (SpatialEdgeDefinition edge in presentation.World.Edges)
+            {
+                if (!_drawnConductorAnchors.TryGetValue(
+                        edge.EdgeId,
+                        out Vector2[]? anchors) ||
+                    anchors.Length != 4)
+                {
+                    return false;
+                }
+                SpatialNodeDefinition from = presentation.World.Nodes.Single(node =>
+                    string.Equals(node.NodeId, edge.FromNodeId, StringComparison.Ordinal));
+                SpatialNodeDefinition to = presentation.World.Nodes.Single(node =>
+                    string.Equals(node.NodeId, edge.ToNodeId, StringComparison.Ordinal));
+                if (IsVisualPole(presentation, from))
+                {
+                    poleEndpointCount++;
+                    if (anchors[1].Y > anchors[0].Y - 20f)
+                    {
+                        return false;
+                    }
+                }
+                if (IsVisualPole(presentation, to))
+                {
+                    poleEndpointCount++;
+                    if (anchors[3].Y > anchors[2].Y - 20f)
+                    {
+                        return false;
+                    }
+                }
+            }
+            return poleEndpointCount > 0;
+        }
+    }
+
+    private static bool IsVisualPole(
+        RealtimeWorldPresentation presentation,
+        SpatialNodeDefinition node) =>
+        !node.AuthoredFoundation &&
+        presentation.World.NodeClasses.Single(item => string.Equals(
+            item.ClassId,
+            node.ClassId,
+            StringComparison.Ordinal)).Kind == SpatialNodeKind.Pole;
+
     internal static long WeatherMinutePhaseForSmoke(
         RealtimeWorldPresentation presentation) => WeatherMinutePhase(presentation);
 

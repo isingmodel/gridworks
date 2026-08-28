@@ -845,11 +845,22 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                             map.DrawnG3WaterMaterialForSmoke,
                             waterMaterial,
                             StringComparison.Ordinal) &&
-                        map.DrawnG3SpriteCountForSmoke >= 100,
+                        map.DrawnG3SpriteCountForSmoke >= 100 &&
+                        map.DrawnRiverBankMaxDeviationForSmoke >= 4f &&
+                        map.DrawnMeasuredBridgeCountForSmoke == 2 &&
+                        map.MeasuredBridgesLandOnBothBanksForSmoke &&
+                        map.DrawnBuildingParcelAlphaForSmoke is > 0f and <= 0.20f &&
+                        map.PoleConductorsUseRaisedAttachmentsForSmoke,
                     $"G3 {weather} map draw omitted a required asset/layer/material " +
                     $"(layers=[{string.Join(',', map.DrawnG3LayersForSmoke)}], " +
                     $"water={map.DrawnG3WaterMaterialForSmoke}, " +
-                    $"sprites={map.DrawnG3SpriteCountForSmoke})",
+                    $"sprites={map.DrawnG3SpriteCountForSmoke}, " +
+                    $"bankDeviation={map.DrawnRiverBankMaxDeviationForSmoke:0.##}, " +
+                    $"bridges={map.DrawnMeasuredBridgeCountForSmoke}/" +
+                    $"{map.MeasuredBridgesLandOnBothBanksForSmoke}, " +
+                    $"parcelAlpha={map.DrawnBuildingParcelAlphaForSmoke:0.##}, " +
+                    $"poleAttachments=" +
+                    $"{map.PoleConductorsUseRaisedAttachmentsForSmoke})",
                     failures);
                 if (forecast)
                 {

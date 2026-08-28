@@ -118,15 +118,12 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         new(G3RiverOutcrop, new CoreMapPoint(1080, 1120), 240f, 0.86f),
         new(G3RiverConifer, new CoreMapPoint(1720, 1320), 260f, 0.82f),
         new(G3RiverScrub, new CoreMapPoint(1170, 1730), 210f, 0.80f),
-        new(G3BridgeFoundation, new CoreMapPoint(1300, 500), 350f, 0.92f),
-        new(G3RiverBridgeAbutment, new CoreMapPoint(1300, 500), 330f, 0.92f),
-        new(G3BridgeFoundation, new CoreMapPoint(1450, 1500), 370f, 0.92f),
-        new(G3RiverBridgeAbutment, new CoreMapPoint(1450, 1500), 350f, 0.92f),
     ];
 
     private static readonly Color Ground = Color.FromHtml("26342e");
     private static readonly Color G3WaterEdge = Color.FromHtml("111817");
     private static readonly Color G3BuildingBase = Color.FromHtml("151b1c");
+    private const float G3BuildingParcelAlpha = 0.18f;
     private static readonly Color Normal = Color.FromHtml("78c7b9");
     private static readonly Color Planned = Color.FromHtml("d5b45c");
     private static readonly Color Emergency = Color.FromHtml("ed964d");
@@ -167,6 +164,11 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private readonly HashSet<string> _drawnG3Layers = new(StringComparer.Ordinal);
     private string? _drawnG3WaterMaterial;
     private int _drawnG3SpriteCount;
+    private float _drawnRiverBankMaxDeviation;
+    private float _drawnBuildingParcelAlpha;
+    private readonly List<Vector2[]> _drawnBridgeSpans = [];
+    private readonly Dictionary<string, Vector2[]> _drawnConductorAnchors =
+        new(StringComparer.Ordinal);
 #endif
 
     public event Action<RealtimePointerResolution, CoreMapPoint>? PrimaryRequested;
@@ -438,6 +440,10 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         _drawnG3Layers.Clear();
         _drawnG3WaterMaterial = null;
         _drawnG3SpriteCount = 0;
+        _drawnRiverBankMaxDeviation = 0f;
+        _drawnBuildingParcelAlpha = 0f;
+        _drawnBridgeSpans.Clear();
+        _drawnConductorAnchors.Clear();
 #endif
         DrawG3Ground();
         if (_presentation is null || _transform is null)
@@ -459,8 +465,9 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         {
             DrawActiveRiskAreas(_presentation);
         }
+        DrawNodeEquipmentLayer(_presentation);
         DrawEdges(_presentation);
-        DrawNodes(_presentation);
+        DrawNodeOverlayLayer(_presentation);
         DrawActiveCandidate(_presentation);
         DrawSelectionAction(_presentation);
         DrawDraft(_presentation);
@@ -669,21 +676,33 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                         weatherMaterial,
                         WeatherWaterModulate(presentation.Weather));
                 }
-                DrawPolyline(
-                    [.. polygon, polygon[0]],
-                    G3WaterEdge with { A = 0.76f },
-                    3f * _accessibilityScale,
-                    true);
+                DrawG3NaturalRiverBanks(polygon);
+                DrawG3RiverCurrent(polygon, presentation.Weather);
+                DrawG3MeasuredBridges(terrain.Polygon);
                 continue;
             }
             if (terrain.Kind == TerrainKind.Building)
             {
-                DrawColoredPolygon(polygon, G3BuildingBase with { A = 0.76f });
+                Vector2 centroid = polygon.Aggregate(Vector2.Zero, (sum, point) =>
+                    sum + point) / polygon.Length;
+                Vector2[] inset = polygon.Select(point => centroid.Lerp(point, 0.94f))
+                    .ToArray();
+                DrawColoredPolygon(polygon, G3BuildingBase with
+                {
+                    A = G3BuildingParcelAlpha * 0.55f,
+                });
+                DrawColoredPolygon(inset, new Color(Color.FromHtml("26302e"),
+                    G3BuildingParcelAlpha));
                 DrawPolyline(
-                    [.. polygon, polygon[0]],
-                    new Color(Color.FromHtml("70807d"), 0.28f),
-                    1.2f * _accessibilityScale,
+                    [.. inset, inset[0]],
+                    new Color(Color.FromHtml("6a756f"), 0.12f),
+                    0.9f * _accessibilityScale,
                     true);
+#if DEBUG
+                _drawnBuildingParcelAlpha = Math.Max(
+                    _drawnBuildingParcelAlpha,
+                    G3BuildingParcelAlpha);
+#endif
             }
         }
         DrawG3Placements(
@@ -953,12 +972,18 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 : edge.Commissioned ? StateColor(status?.State) : Planned;
             float width = (selected || highlighted.Contains(edge.EdgeId) ? 5f : 2.5f) *
                 _accessibilityScale;
-            // The existing map resolver owns edge hover/selection at these exact
-            // ground endpoints. Keep the decorative three-phase span on that same
-            // geometry so its visible wire, candidate badge, and action target do
-            // not diverge; the equipment layer drawn afterward masks each end.
-            Vector2 fromPoint = Point(from.Position);
-            Vector2 toPoint = Point(to.Position);
+            // The existing map resolver continues to own edge hover/selection at
+            // ground level. Rendering alone lifts pole endpoints to their visual
+            // crossarms, while every non-pole endpoint remains on that geometry.
+            Vector2 fromPoint = G3ConductorAnchor(presentation, from);
+            Vector2 toPoint = G3ConductorAnchor(presentation, to);
+#if DEBUG
+            _drawnConductorAnchors[edge.EdgeId] =
+            [
+                Point(from.Position), fromPoint,
+                Point(to.Position), toPoint,
+            ];
+#endif
             DrawG3ConductorSpan(fromPoint, toPoint, color, width);
             if (!edge.Commissioned)
             {
@@ -975,9 +1000,19 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         }
     }
 
-    private void DrawNodes(RealtimeWorldPresentation presentation)
+    private void DrawNodeEquipmentLayer(RealtimeWorldPresentation presentation)
     {
         RecordG3Layer("grid");
+        foreach (SpatialNodeDefinition node in presentation.World.Nodes.OrderBy(item =>
+                     item.NodeId,
+                     StringComparer.Ordinal))
+        {
+            DrawG3NodeEquipment(presentation, node, Status(presentation, node.NodeId));
+        }
+    }
+
+    private void DrawNodeOverlayLayer(RealtimeWorldPresentation presentation)
+    {
         HashSet<string> highlighted =
             presentation.Highlight?.NodeIds.ToHashSet(StringComparer.Ordinal) ?? [];
         foreach (SpatialNodeDefinition node in presentation.World.Nodes.OrderBy(item =>
@@ -993,7 +1028,6 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             float radius = NodeRadius(presentation.World, node);
             Color color = node.Commissioned ? StateColor(status?.State) : Planned;
             Vector2 center = Point(node.Position);
-            DrawG3NodeEquipment(presentation, node, status);
             DrawCircle(center, radius, color with { A = 0.26f });
             DrawCircle(
                 center,
@@ -1018,6 +1052,29 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                     Text);
             }
         }
+    }
+
+    private Vector2 G3ConductorAnchor(
+        RealtimeWorldPresentation presentation,
+        SpatialNodeDefinition node)
+    {
+        Vector2 ground = Point(node.Position);
+        SpatialNodeKind kind = presentation.World.NodeClasses.Single(item =>
+            string.Equals(item.ClassId, node.ClassId, StringComparison.Ordinal)).Kind;
+        if (kind != SpatialNodeKind.Pole || node.AuthoredFoundation)
+        {
+            return ground;
+        }
+        string assetPath = node.ClassId == "STANDARD_POLE"
+            ? G3StandardPole
+            : G3ReinforcedPole;
+        float maxSide = WorldPixels(node.ClassId == "STANDARD_POLE" ? 160f : 185f);
+        if (G3Texture(assetPath) is not Texture2D texture)
+        {
+            return ground;
+        }
+        Vector2 spriteSize = FitG3SpriteSize(texture, maxSide);
+        return ground + new Vector2(0f, -spriteSize.Y * 0.64f);
     }
 
     private void DrawG3ConductorSpan(Vector2 from, Vector2 to, Color color, float width)

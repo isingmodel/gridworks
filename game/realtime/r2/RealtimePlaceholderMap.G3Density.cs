@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
 
@@ -98,6 +99,216 @@ internal sealed partial class RealtimePlaceholderMap
                 WorldPixels(410f),
                 new Color(0.70f, 0.83f, 0.90f, alpha * 0.72f));
         }
+    }
+
+    private void DrawG3NaturalRiverBanks(Vector2[] polygon)
+    {
+        if (polygon.Length < 4)
+        {
+            return;
+        }
+        DrawNaturalBankContour(polygon[0], polygon[^1], phase: 0.35f);
+        DrawNaturalBankContour(polygon[1], polygon[^2], phase: 1.75f);
+    }
+
+    private void DrawNaturalBankContour(Vector2 start, Vector2 end, float phase)
+    {
+        const int segments = 28;
+        float amplitude = 8f * _accessibilityScale;
+        Vector2 tangent = (end - start).Normalized();
+        Vector2 normal = new(-tangent.Y, tangent.X);
+        Vector2[] contour = Enumerable.Range(0, segments + 1)
+            .Select(index =>
+            {
+                float t = index / (float)segments;
+                float envelope = MathF.Sin(MathF.PI * t);
+                float wave = MathF.Sin((t * MathF.PI * 5.2f) + phase) * 0.68f +
+                    MathF.Sin((t * MathF.PI * 11.4f) + (phase * 0.7f)) * 0.32f;
+                float deviation = amplitude * envelope * wave;
+#if DEBUG
+                _drawnRiverBankMaxDeviation = Math.Max(
+                    _drawnRiverBankMaxDeviation,
+                    Math.Abs(deviation));
+#endif
+                return start.Lerp(end, t) + (normal * deviation);
+            })
+            .ToArray();
+        DrawPolyline(
+            contour,
+            new Color(Color.FromHtml("171a17"), 0.92f),
+            17f * _accessibilityScale,
+            true);
+        DrawPolyline(
+            contour,
+            new Color(Color.FromHtml("4a463b"), 0.88f),
+            10f * _accessibilityScale,
+            true);
+        DrawPolyline(
+            contour,
+            new Color(Color.FromHtml("77715f"), 0.48f),
+            2.2f * _accessibilityScale,
+            true);
+    }
+
+    private void DrawG3RiverCurrent(
+        Vector2[] polygon,
+        RealtimeWorldWeather weather)
+    {
+        if (polygon.Length < 4)
+        {
+            return;
+        }
+        Vector2 startCenter = (polygon[0] + polygon[1]) * 0.5f;
+        Vector2 endCenter = (polygon[^1] + polygon[^2]) * 0.5f;
+        Color current = weather switch
+        {
+            RealtimeWorldWeather.Heat => new Color(Color.FromHtml("75928f"), 0.22f),
+            RealtimeWorldWeather.Rain or RealtimeWorldWeather.Storm =>
+                new Color(Color.FromHtml("a8c9d1"), 0.32f),
+            _ => new Color(Color.FromHtml("87b1b5"), 0.27f),
+        };
+        for (int currentIndex = -2; currentIndex <= 2; currentIndex++)
+        {
+            Vector2[] flow = Enumerable.Range(0, 25)
+                .Select(index =>
+                {
+                    float t = index / 24f;
+                    Vector2 center = startCenter.Lerp(endCenter, t);
+                    float width = polygon[0].Lerp(polygon[^1], t).DistanceTo(
+                        polygon[1].Lerp(polygon[^2], t));
+                    float lane = currentIndex * width * 0.105f;
+                    float meander = MathF.Sin(
+                        (t * MathF.PI * 4.4f) + (currentIndex * 0.72f)) *
+                        width * 0.028f;
+                    return center + new Vector2(lane + meander, 0f);
+                })
+                .ToArray();
+            DrawPolyline(flow, current, 1.25f * _accessibilityScale, true);
+        }
+    }
+
+    private void DrawG3MeasuredBridges(IReadOnlyList<CoreMapPoint> waterPolygon)
+    {
+        DrawMeasuredBridge(waterPolygon, 500, G3IndustrialRoadBridgeA);
+        DrawMeasuredBridge(waterPolygon, 1500, G3IndustrialRoadBridgeB);
+    }
+
+    private void DrawMeasuredBridge(
+        IReadOnlyList<CoreMapPoint> waterPolygon,
+        int yUnit,
+        string deckTexturePath)
+    {
+        double[] crossings = WaterCrossingsAtY(waterPolygon, yUnit);
+        if (crossings.Length < 2)
+        {
+            return;
+        }
+        int leftX = (int)Math.Round(crossings[0], MidpointRounding.AwayFromZero);
+        int rightX = (int)Math.Round(crossings[^1], MidpointRounding.AwayFromZero);
+        Vector2 leftBank = Point(new CoreMapPoint(leftX, yUnit));
+        Vector2 rightBank = Point(new CoreMapPoint(rightX, yUnit));
+        Vector2 axis = (rightBank - leftBank).Normalized();
+        Vector2 normal = new(-axis.Y, axis.X);
+        float landing = WorldPixels(75f);
+        float halfDeck = Math.Clamp(WorldPixels(52f), 10f, 24f);
+        Vector2 deckStart = leftBank - (axis * landing);
+        Vector2 deckEnd = rightBank + (axis * landing);
+
+        DrawG3Sprite(
+            G3RiverBridgeAbutment,
+            leftBank,
+            WorldPixels(150f),
+            new Color(0.76f, 0.72f, 0.63f, 0.88f));
+        DrawG3Sprite(
+            G3RiverBridgeAbutment,
+            rightBank,
+            WorldPixels(150f),
+            new Color(0.76f, 0.72f, 0.63f, 0.88f));
+        DrawG3Sprite(
+            G3BridgeFoundation,
+            deckStart.Lerp(deckEnd, 0.5f) + (normal * halfDeck * 0.12f),
+            WorldPixels(128f),
+            new Color(0.58f, 0.62f, 0.59f, 0.62f));
+
+        Vector2[] deck =
+        [
+            deckStart - (normal * halfDeck),
+            deckStart + (normal * halfDeck),
+            deckEnd + (normal * halfDeck),
+            deckEnd - (normal * halfDeck),
+        ];
+        if (G3Texture(deckTexturePath) is Texture2D texture)
+        {
+            float width = texture.GetWidth();
+            float height = texture.GetHeight();
+            Vector2[] uvs =
+            [
+                new(width * 0.16f, height * 0.35f),
+                new(width * 0.16f, height * 0.65f),
+                new(width * 0.84f, height * 0.65f),
+                new(width * 0.84f, height * 0.35f),
+            ];
+            DrawColoredPolygon(
+                deck,
+                new Color(0.78f, 0.75f, 0.68f, 0.96f),
+                uvs,
+                texture);
+            RecordG3Asset(deckTexturePath);
+        }
+        else
+        {
+            DrawColoredPolygon(deck, new Color(Color.FromHtml("292c2b"), 0.98f));
+        }
+        DrawPolyline(
+            [.. deck, deck[0]],
+            new Color(Color.FromHtml("171918"), 0.96f),
+            7f * _accessibilityScale,
+            true);
+        DrawLine(
+            deckStart - (normal * halfDeck * 0.78f),
+            deckEnd - (normal * halfDeck * 0.78f),
+            new Color(Color.FromHtml("8a806d"), 0.92f),
+            2.2f * _accessibilityScale,
+            true);
+        DrawLine(
+            deckStart + (normal * halfDeck * 0.78f),
+            deckEnd + (normal * halfDeck * 0.78f),
+            new Color(Color.FromHtml("8a806d"), 0.92f),
+            2.2f * _accessibilityScale,
+            true);
+        DrawLine(
+            deckStart,
+            deckEnd,
+            new Color(Color.FromHtml("c58a3c"), 0.42f),
+            1.2f * _accessibilityScale,
+            true);
+#if DEBUG
+        _drawnBridgeSpans.Add([leftBank, rightBank, deckStart, deckEnd]);
+#endif
+    }
+
+    private static double[] WaterCrossingsAtY(
+        IReadOnlyList<CoreMapPoint> polygon,
+        int yUnit)
+    {
+        var crossings = new List<double>();
+        for (int index = 0; index < polygon.Count; index++)
+        {
+            CoreMapPoint from = polygon[index];
+            CoreMapPoint to = polygon[(index + 1) % polygon.Count];
+            if (from.YUnit == to.YUnit ||
+                yUnit < Math.Min(from.YUnit, to.YUnit) ||
+                yUnit > Math.Max(from.YUnit, to.YUnit))
+            {
+                continue;
+            }
+            double t = (yUnit - from.YUnit) / (double)(to.YUnit - from.YUnit);
+            if (t >= 0d && t <= 1d)
+            {
+                crossings.Add(from.XUnit + ((to.XUnit - from.XUnit) * t));
+            }
+        }
+        return crossings.Distinct().OrderBy(value => value).ToArray();
     }
 
     private void DrawG3DenseRoads() => DrawG3Placements(
@@ -211,19 +422,17 @@ internal sealed partial class RealtimePlaceholderMap
 
     private static G3Placement[] BuildFullRiverPlacements() =>
     [
-        new(G3RiverBankRockSegment, new CoreMapPoint(1030, 220), 300f, 0.82f),
-        new(G3RiverBankLeftStraight, new CoreMapPoint(1060, 560), 310f, 0.88f),
-        new(G3RiverBankLeftInner, new CoreMapPoint(1110, 930), 300f, 0.88f),
-        new(G3RiverBankLeftOuter, new CoreMapPoint(1190, 1310), 300f, 0.88f),
-        new(G3RiverBankRockSegment, new CoreMapPoint(1260, 1710), 300f, 0.82f),
-        new(G3RiverBankRightStraight, new CoreMapPoint(1450, 230), 310f, 0.88f),
-        new(G3RiverBankRightInner, new CoreMapPoint(1520, 610), 300f, 0.88f),
-        new(G3RiverBankRightOuter, new CoreMapPoint(1600, 1010), 300f, 0.88f),
-        new(G3RiverBankOuterBend, new CoreMapPoint(1660, 1430), 330f, 0.88f),
-        new(G3RiverBankInnerBend, new CoreMapPoint(1730, 1810), 300f, 0.86f),
-        new(G3RiverRockSoilTransition, new CoreMapPoint(920, 820), 250f, 0.78f),
-        new(G3RiverRockSoilTransition, new CoreMapPoint(1840, 1180), 250f, 0.78f),
-        new(G3IndustrialRoadBridgeA, new CoreMapPoint(1300, 500), 390f, 0.86f),
-        new(G3IndustrialRoadBridgeB, new CoreMapPoint(1450, 1500), 430f, 0.96f),
+        new(G3RiverBankRockSegment, new CoreMapPoint(1015, 220), 145f, 0.34f),
+        new(G3RiverBankLeftStraight, new CoreMapPoint(1060, 560), 132f, 0.30f),
+        new(G3RiverBankLeftInner, new CoreMapPoint(1110, 930), 128f, 0.30f),
+        new(G3RiverBankLeftOuter, new CoreMapPoint(1190, 1310), 136f, 0.30f),
+        new(G3RiverBankRockSegment, new CoreMapPoint(1260, 1710), 145f, 0.32f),
+        new(G3RiverBankRightStraight, new CoreMapPoint(1450, 230), 132f, 0.30f),
+        new(G3RiverBankRightInner, new CoreMapPoint(1520, 610), 128f, 0.30f),
+        new(G3RiverBankRightOuter, new CoreMapPoint(1600, 1010), 136f, 0.30f),
+        new(G3RiverBankOuterBend, new CoreMapPoint(1660, 1430), 146f, 0.32f),
+        new(G3RiverBankInnerBend, new CoreMapPoint(1730, 1810), 136f, 0.30f),
+        new(G3RiverRockSoilTransition, new CoreMapPoint(970, 820), 122f, 0.26f),
+        new(G3RiverRockSoilTransition, new CoreMapPoint(1790, 1180), 122f, 0.26f),
     ];
 }

@@ -945,6 +945,7 @@ internal sealed partial class RealtimeSession
             ReduceMotion: _reduceMotion,
             _nodeOrderQuote,
             _lineOrderQuote,
+            CompatibleLineNodeIds(snapshot),
             _emittedTransitions,
             activeStoryRequest,
             storyResultAdvancesCalendar,
@@ -1359,7 +1360,7 @@ internal sealed partial class RealtimeSession
         long targetMinute;
         if (snapshot.Construction.ActiveConstruction is ActiveConstructionSnapshot active)
         {
-            targetMinute = active.CompletionMinute;
+            targetMinute = FirstLightAdvanceTarget(snapshot, active.CompletionMinute);
         }
         else
         {
@@ -1382,6 +1383,30 @@ internal sealed partial class RealtimeSession
             operationAccepted: true,
             acceptedIntentKind: null,
             advance.Transitions);
+    }
+
+    private static long FirstLightAdvanceTarget(
+        RealtimeCampaignSnapshot snapshot,
+        long completionMinute)
+    {
+        long target = completionMinute;
+        foreach (RealtimeScheduledEventDefinition scheduled in
+                 snapshot.Chapter.ScheduledEvents)
+        {
+            long start = checked(
+                snapshot.ChapterStartMinute + scheduled.StartOffsetMinutes);
+            long end = checked(
+                snapshot.ChapterStartMinute + scheduled.EndOffsetMinutes);
+            if (start > snapshot.Minute)
+            {
+                target = Math.Min(target, start);
+            }
+            if (end > snapshot.Minute)
+            {
+                target = Math.Min(target, end);
+            }
+        }
+        return target;
     }
 
     private bool IsTerminalStandaloneFirstLightResult(
@@ -2300,6 +2325,45 @@ internal sealed partial class RealtimeSession
                 preview.MaxSpanUnit);
         }
         return string.Empty;
+    }
+
+    private IReadOnlyList<string> CompatibleLineNodeIds(
+        RealtimeCampaignSnapshot snapshot)
+    {
+        if (_interaction!.Tool != RealtimeTool.BuildLine)
+        {
+            return Array.Empty<string>();
+        }
+        LineDraftSnapshot? draft = snapshot.Construction.LineDraft;
+        if (draft?.EndNodeId is not null)
+        {
+            return Array.Empty<string>();
+        }
+        if (draft is not null)
+        {
+            return Array.AsReadOnly(snapshot.Construction.World.Nodes
+                .Where(node => _run!.PreviewLineFinish(node.NodeId).Accepted)
+                .Select(node => node.NodeId)
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToArray());
+        }
+        CommercialCampaignLinePlanDefinition? plan = snapshot.Chapter.Content
+            .AvailableLinePlans.SingleOrDefault(item => string.Equals(
+                RealtimeR2Ids.LineTool(item.LineClassId, item.PoleClassId),
+                _interaction.SelectedBuildToolId,
+                StringComparison.Ordinal));
+        if (plan is null)
+        {
+            return Array.Empty<string>();
+        }
+        return Array.AsReadOnly(snapshot.Construction.World.Nodes
+            .Where(node => _run!.PreviewLineStart(
+                node.NodeId,
+                plan.LineClassId,
+                plan.PoleClassId).Accepted)
+            .Select(node => node.NodeId)
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray());
     }
 
     private bool IsFirstLight() =>

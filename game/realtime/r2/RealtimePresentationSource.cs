@@ -21,14 +21,23 @@ internal sealed record RealtimePresentationSource(
     bool ReduceMotion,
     RealtimeProjectQuote? NodeOrderQuote,
     RealtimeProjectQuote? LineOrderQuote,
+    IReadOnlyList<string> CompatibleLineNodeIds,
     IReadOnlyList<RealtimeTransition> TransitionHistory,
     RealtimeChapterStoryModalRequest? ActiveStoryRequest,
     bool StoryResultAdvancesCalendar,
     bool SuccessfulStandaloneCompletion,
     RealtimeEpilogueModalRequest? ActiveEpilogueRequest)
 {
+    private IReadOnlyList<string> _compatibleLineNodeIds =
+        FreezeIds(CompatibleLineNodeIds);
     private IReadOnlyList<RealtimeTransition> _transitionHistory =
         Freeze(TransitionHistory);
+
+    public IReadOnlyList<string> CompatibleLineNodeIds
+    {
+        get => _compatibleLineNodeIds;
+        init => _compatibleLineNodeIds = FreezeIds(value);
+    }
 
     public IReadOnlyList<RealtimeTransition> TransitionHistory
     {
@@ -41,5 +50,11 @@ internal sealed record RealtimePresentationSource(
     {
         ArgumentNullException.ThrowIfNull(transitions);
         return Array.AsReadOnly(transitions.ToArray());
+    }
+
+    private static IReadOnlyList<string> FreezeIds(IReadOnlyList<string> ids)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        return Array.AsReadOnly(ids.ToArray());
     }
 }

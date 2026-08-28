@@ -27,6 +27,9 @@ internal sealed partial class RealtimePlaceholderMap
 
     internal string? DrawnActiveCandidateIdForSmoke => _drawnActiveCandidateId;
 
+    internal string? DrawnGuidanceTargetNodeIdForSmoke =>
+        _drawnGuidanceTargetNodeId;
+
     internal bool DrawnAnalysisOverlayForSmoke => _drawnAnalysisOverlay;
 
     internal IReadOnlyList<string> G3AssetPathsForSmoke =>

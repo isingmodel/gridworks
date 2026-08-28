@@ -228,6 +228,7 @@ internal sealed partial class RealtimeSliceMain
             LineOrderQuote: snapshot.Construction.LineDraft is { EndNodeId: not null }
                 ? Session.PreviewLineOrder()
                 : null,
+            CompatibleLineNodeIds: Array.Empty<string>(),
             transitionHistory ?? Array.Empty<RealtimeTransition>(),
             ActiveStoryRequest: null,
             StoryResultAdvancesCalendar: false,

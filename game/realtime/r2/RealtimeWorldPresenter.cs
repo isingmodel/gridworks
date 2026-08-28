@@ -17,6 +17,7 @@ internal static class RealtimeWorldPresenter
         RealtimeComparisonDraftForecast comparisonDraftForecast,
         RealtimeInteractionState interaction,
         bool reduceMotion,
+        IReadOnlyList<string> compatibleLineNodeIds,
         IReadOnlyList<RealtimeTransition> transitionHistory)
     {
         IReadOnlyDictionary<string, RealtimeThermalAssetSnapshot> thermalById =
@@ -83,7 +84,64 @@ internal static class RealtimeWorldPresenter
             reduceMotion,
             interaction.Tool,
             interaction.Surface,
-            snapshot.Chapter.Content.ChapterId);
+            snapshot.Chapter.Content.ChapterId,
+            compatibleLineNodeIds,
+            GuidanceTarget(snapshot, interaction));
+    }
+
+    private static RealtimeWorldGuidanceTarget? GuidanceTarget(
+        RealtimeCampaignSnapshot snapshot,
+        RealtimeInteractionState interaction)
+    {
+        if (interaction.Tool != RealtimeTool.BuildLine ||
+            !string.Equals(
+                snapshot.Chapter.Content.ChapterId,
+                "FIRST_LIGHT",
+                StringComparison.Ordinal) ||
+            RealtimePresentationText.FirstLightSubstation(snapshot) is not
+                SpatialNodeDefinition substation)
+        {
+            return null;
+        }
+        SpatialWorldDefinition world = snapshot.Construction.World;
+        LineDraftSnapshot? draft = snapshot.Construction.LineDraft;
+        if (!RealtimePresentationText.Connected(
+                world,
+                "WEST_SOURCE_NODE",
+                substation.NodeId))
+        {
+            return draft is null
+                ? new RealtimeWorldGuidanceTarget(
+                    "WEST_SOURCE_NODE",
+                    "선로 시작 · 서부 발전 접속점")
+                : string.Equals(
+                    draft.StartNodeId,
+                    "WEST_SOURCE_NODE",
+                    StringComparison.Ordinal)
+                    ? new RealtimeWorldGuidanceTarget(
+                        substation.NodeId,
+                        "선로 끝 · 새 변전소")
+                    : null;
+        }
+        if (!RealtimePresentationText.Connected(
+                world,
+                substation.NodeId,
+                "EAST_RESIDENTIAL_TERMINAL"))
+        {
+            return draft is null
+                ? new RealtimeWorldGuidanceTarget(
+                    substation.NodeId,
+                    "선로 시작 · 새 변전소")
+                : string.Equals(
+                    draft.StartNodeId,
+                    substation.NodeId,
+                    StringComparison.Ordinal)
+                    ? new RealtimeWorldGuidanceTarget(
+                        "EAST_RESIDENTIAL_TERMINAL",
+                        "선로 끝 · 동부 생활권 접속점")
+                    : null;
+        }
+        return null;
     }
 
     private static RealtimeWorldDraftPresentation Draft(ConstructionSnapshot construction)

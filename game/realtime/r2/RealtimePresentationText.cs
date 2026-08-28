@@ -104,6 +104,30 @@ internal static class RealtimePresentationText
         return $"{remainderMinutes}분 뒤";
     }
 
+    internal static string Elapsed(long minutes)
+    {
+        if (minutes < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(minutes));
+        }
+        long days = minutes / (24 * 60);
+        long hours = minutes % (24 * 60) / 60;
+        long remainderMinutes = minutes % 60;
+        if (days > 0)
+        {
+            return hours > 0
+                ? $"{days}일 {hours}시간"
+                : $"{days}일";
+        }
+        if (hours > 0)
+        {
+            return remainderMinutes > 0
+                ? $"{hours}시간 {remainderMinutes}분"
+                : $"{hours}시간";
+        }
+        return $"{remainderMinutes}분";
+    }
+
     internal static string Cash(long cashUnit)
     {
         long manWon = cashUnit / 10_000;
@@ -546,14 +570,14 @@ internal static class RealtimePresentationText
             "FIRST_LIGHT",
             StringComparison.Ordinal);
 
-    private static SpatialNodeDefinition? FirstLightSubstation(
+    internal static SpatialNodeDefinition? FirstLightSubstation(
         RealtimeCampaignSnapshot snapshot) => snapshot.Construction.World.Nodes
         .Where(item => item.Commissioned)
         .FirstOrDefault(item => snapshot.Construction.World.NodeClasses.Any(nodeClass =>
             string.Equals(nodeClass.ClassId, item.ClassId, StringComparison.Ordinal) &&
             nodeClass.Kind == SpatialNodeKind.Substation));
 
-    private static bool Connected(
+    internal static bool Connected(
         SpatialWorldDefinition world,
         string startNodeId,
         string endNodeId)
@@ -621,6 +645,25 @@ internal static class RealtimePresentationText
         string exactQuote =
             $"발주 견적 · 비용 {Cash(cost)} · 공기 {buildMinutes}분 · " +
             $"{Time(completionMinute)} 완공";
+        RealtimeScheduledEventDefinition? nextEvent = snapshot.Chapter.ScheduledEvents
+            .Where(item => checked(
+                snapshot.ChapterStartMinute + item.StartOffsetMinutes) > snapshot.Minute)
+            .OrderBy(item => item.StartOffsetMinutes)
+            .ThenBy(item => item.Priority)
+            .ThenBy(item => item.EventId, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (nextEvent is not null)
+        {
+            long eventStart = checked(
+                snapshot.ChapterStartMinute + nextEvent.StartOffsetMinutes);
+            if (completionMinute > eventStart)
+            {
+                exactQuote +=
+                    $"\n시험 일정 경고 · {nextEvent.OperatingProfile.DisplayName} 시작 " +
+                    $"{Time(eventStart)} 이후 완공 · " +
+                    $"{Elapsed(completionMinute - eventStart)} 늦음";
+            }
+        }
         return cost <= snapshot.CashUnit
             ? exactQuote
             : $"{exactQuote}\n발주 불가 · 운영 자금이 {Cash(cost - snapshot.CashUnit)} 부족합니다.";

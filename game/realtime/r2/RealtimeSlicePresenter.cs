@@ -86,6 +86,7 @@ internal static class RealtimeSlicePresenter
                 comparisonDraftForecast,
                 interaction,
                 source.ReduceMotion,
+                source.CompatibleLineNodeIds,
                 history),
             source.Pointer,
             RealtimeShellPresenter.PresentHud(displayWorld, snapshot, interaction, pause),

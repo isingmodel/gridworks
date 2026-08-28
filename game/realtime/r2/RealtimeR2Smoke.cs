@@ -60,6 +60,8 @@ internal static class RealtimeR2Smoke
             () => ValidateFutureEventActualDraftConstruction(failures), failures);
         RunCase("release-first-light-controller-story",
             () => ValidateReleaseFirstLightControllerStory(failures), failures);
+        RunCase("release-first-light-late-construction-boundary",
+            () => ValidateReleaseFirstLightLateConstructionBoundary(failures), failures);
         RunCase("release-first-light-no-action-result",
             () => ValidateReleaseFirstLightNoActionResult(failures), failures);
         RunCase("release-tutorial-through-second-source",
@@ -74,6 +76,129 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseTutorialConnectionFailureResult(failures), failures);
         RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
         RunCase("pointer-priority", () => ValidatePointerPriority(failures), failures);
+    }
+
+    private static void ValidateReleaseFirstLightLateConstructionBoundary(
+        ICollection<string> failures)
+    {
+        var slice = new RealtimeSliceMain();
+        try
+        {
+            slice.BootstrapNativeReleaseForSmoke(
+                RealtimeNativeRouteCatalog.ProductCampaign);
+        }
+        catch
+        {
+            slice.Free();
+            throw;
+        }
+        using var lifetime = slice.FreeAfterSmoke();
+        Check(slice.ClosePresentedStoryModalForSmoke() is null,
+            "late FIRST_LIGHT fixture did not close the initial briefing",
+            failures);
+
+        string substationId = OrderTutorialNode(
+            slice,
+            new CoreMapPoint(2100, 700),
+            failures,
+            "late FIRST_LIGHT substation");
+        _ = OrderTutorialLine(
+            slice,
+            substationId,
+            Array.Empty<CoreMapPoint>(),
+            "EAST_RESIDENTIAL_TERMINAL",
+            "STANDARD_LINE",
+            "STANDARD_POLE",
+            failures,
+            "late FIRST_LIGHT east service");
+        RealtimeR2AdvanceResult preparationDelay = slice.AdvanceToForSmoke(1230);
+        Check(preparationDelay.Advance.Snapshot.Minute == 1230 &&
+              preparationDelay.Advance.Transitions.All(item =>
+                  item.Kind != RealtimeTransitionKind.EventStarted),
+            "late FIRST_LIGHT fixture did not stop before the authored test",
+            failures);
+
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.SelectBuildTool(
+                    RealtimeTool.BuildLine,
+                    RealtimeR2Ids.LineTool("STANDARD_LINE", "STANDARD_POLE"))),
+            "late FIRST_LIGHT west tool", failures, coreCommandExpected: false);
+        Check(slice.LatestPresentation.World.GuidanceTarget is
+              {
+                  NodeId: "WEST_SOURCE_NODE",
+              } &&
+              slice.LatestPresentation.World.CompatibleLineNodeIds.Contains(
+                  "WEST_SOURCE_NODE",
+                  StringComparer.Ordinal),
+            "FIRST_LIGHT line guidance did not expose the exact compatible west source node",
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.StartLineDraft(
+                "WEST_SOURCE_NODE",
+                "STANDARD_LINE",
+                "STANDARD_POLE")),
+            "late FIRST_LIGHT west start", failures);
+        CoreMapPoint[] corridor =
+        [
+            new(750, 650),
+            new(1050, 650),
+            new(1600, 650),
+        ];
+        foreach (CoreMapPoint point in corridor)
+        {
+            RequireIntent(slice.ApplyIntentForSmoke(
+                    RealtimeR2Intent.AddLinePoint(point)),
+                $"late FIRST_LIGHT west point {point.XUnit},{point.YUnit}", failures);
+        }
+        RequireIntent(slice.ApplyIntentForSmoke(
+                RealtimeR2Intent.FinishLineDraft(substationId)),
+            "late FIRST_LIGHT west finish", failures);
+        RealtimeProjectQuote lateQuote = slice.PreviewLineOrderForSmoke();
+        long chapterEnd = checked(
+            slice.CoreSnapshot.ChapterStartMinute +
+            slice.CoreSnapshot.Chapter.EndOffsetMinutes);
+        Check(lateQuote is { Accepted: true, CompletionMinute: long completion } &&
+              completion > chapterEnd,
+            "late FIRST_LIGHT fixture did not produce a legal post-test completion",
+            failures);
+        Check(slice.LatestPresentation.ActionDock.Detail.Contains(
+                  "늦음",
+                  StringComparison.Ordinal),
+            "post-test FIRST_LIGHT quote did not warn about its exact lateness",
+            failures);
+        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.OrderLine()),
+            "late FIRST_LIGHT west order", failures);
+
+        slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
+        long eventStart = checked(
+            slice.CoreSnapshot.ChapterStartMinute +
+            slice.CoreSnapshot.Chapter.ScheduledEvents.Single().StartOffsetMinutes);
+        Check(slice.CoreSnapshot.Minute == eventStart &&
+              slice.CoreSnapshot.ActiveEventStates.Single().EventId ==
+                  "FIRST_LIGHT_SUPPLY" &&
+              slice.ActiveChapterStoryModalForSmoke is null &&
+              slice.LatestPresentation.ActionDock.PrimaryAction?.Label ==
+                  "시험 결과까지 진행",
+            "late construction did not stop at the visible FIRST_LIGHT test boundary",
+            failures);
+        slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
+        Check(slice.CoreSnapshot.Minute == chapterEnd &&
+              slice.CoreSnapshot.CompletedChapters.Any(item =>
+                  string.Equals(item.ChapterId, "FIRST_LIGHT", StringComparison.Ordinal)) &&
+              slice.ActiveChapterStoryModalForSmoke is
+              {
+                  Purpose: RealtimeChapterStoryModalPurpose.ChapterResult,
+                  ChapterId: "FIRST_LIGHT",
+              },
+            "late construction advance crossed the typed FIRST_LIGHT result boundary",
+            failures);
+        Check(slice.ClosePresentedStoryModalForSmoke() is not null &&
+              slice.ActiveChapterStoryModalForSmoke is
+              {
+                  Purpose: RealtimeChapterStoryModalPurpose.ChapterBriefing,
+                  ChapterId: "SECOND_HEART",
+              },
+            "late FIRST_LIGHT result did not hand off to SECOND_HEART briefing",
+            failures);
     }
 
     internal static RealtimeCampaignSave CreateCompletedProductSave(
@@ -6947,6 +7072,30 @@ internal static class RealtimeR2Smoke
                     $"decorative {kind} intercepted the world hit", failures);
             }
         }
+
+        RealtimePointerResolution lineEndpoint = RealtimePointerOwnerResolver.Resolve(
+            new RealtimePointerProbe(
+                "LINE_ENDPOINT_OVERLAP",
+                new CoreMapPoint(0, 0),
+                [
+                    new RealtimeMapCandidate(
+                        "OVERLAPPING_EDGE",
+                        RealtimeMapCandidateKind.Edge,
+                        RealtimePointerOwner.WorldCandidate,
+                        0),
+                    new RealtimeMapCandidate(
+                        "COMPATIBLE_SUBSTATION",
+                        RealtimeMapCandidateKind.Node,
+                        RealtimePointerOwner.WorldCandidate,
+                        100),
+                ]),
+            ["COMPATIBLE_SUBSTATION"]);
+        Check(lineEndpoint.ResolvedId == "COMPATIBLE_SUBSTATION" &&
+              lineEndpoint.OrderedWorldCandidateIds.SequenceEqual(
+                  new[] { "COMPATIBLE_SUBSTATION" },
+                  StringComparer.Ordinal),
+            "BuildLine overlap did not isolate the compatible node from the edge",
+            failures);
     }
 
     private static RealtimeSliceMain CreateRunningSlice()

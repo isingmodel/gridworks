@@ -27,12 +27,16 @@ internal sealed record RealtimeWorldPresentation(
     bool ReduceMotion,
     RealtimeTool Tool,
     RealtimeSurface Surface,
-    string ChapterId)
+    string ChapterId,
+    IReadOnlyList<string> CompatibleLineNodeIds,
+    RealtimeWorldGuidanceTarget? GuidanceTarget)
 {
     private IReadOnlyList<RealtimeWorldAssetStatus> _assetStatuses =
         Freeze(AssetStatuses);
     private IReadOnlyList<string> _forecastRiskAreaIds = Freeze(ForecastRiskAreaIds);
     private IReadOnlyList<string> _activeRiskAreaIds = Freeze(ActiveRiskAreaIds);
+    private IReadOnlyList<string> _compatibleLineNodeIds =
+        Freeze(CompatibleLineNodeIds);
 
     public IReadOnlyList<RealtimeWorldAssetStatus> AssetStatuses
     {
@@ -52,12 +56,20 @@ internal sealed record RealtimeWorldPresentation(
         init => _forecastRiskAreaIds = Freeze(value);
     }
 
+    public IReadOnlyList<string> CompatibleLineNodeIds
+    {
+        get => _compatibleLineNodeIds;
+        init => _compatibleLineNodeIds = Freeze(value);
+    }
+
     private static IReadOnlyList<T> Freeze<T>(IReadOnlyList<T> values)
     {
         ArgumentNullException.ThrowIfNull(values);
         return Array.AsReadOnly(values.ToArray());
     }
 }
+
+internal sealed record RealtimeWorldGuidanceTarget(string NodeId, string Label);
 
 /// <summary>
 /// Pointer-only feedback. Updating it must not require a Core snapshot, forecast, or a complete
@@ -333,17 +345,29 @@ internal static class RealtimeWorldProbeIds
 
 internal static class RealtimePointerOwnerResolver
 {
-    internal static RealtimePointerResolution Resolve(RealtimePointerProbe probe)
+    internal static RealtimePointerResolution Resolve(
+        RealtimePointerProbe probe,
+        IReadOnlyList<string>? preferredWorldNodeIds = null)
     {
         ArgumentNullException.ThrowIfNull(probe);
         RealtimeMapCandidate[] ordered = probe.Candidates
             .Where(item => item.Kind != RealtimeMapCandidateKind.EmptyTerrain)
             .OrderByDescending(item => Priority(item.Owner))
+            .ThenByDescending(item => item.Kind == RealtimeMapCandidateKind.Node &&
+                preferredWorldNodeIds?.Contains(item.Id, StringComparer.Ordinal) == true)
             .ThenBy(item => item.DistanceSquared)
             .ThenBy(item => item.Id, StringComparer.Ordinal)
             .ToArray();
-        string[] worldIds = ordered
+        RealtimeMapCandidate[] worldCandidates = ordered
             .Where(item => item.Owner == RealtimePointerOwner.WorldCandidate)
+            .ToArray();
+        RealtimeMapCandidate[] compatibleNodes = worldCandidates
+            .Where(item => item.Kind == RealtimeMapCandidateKind.Node &&
+                preferredWorldNodeIds?.Contains(item.Id, StringComparer.Ordinal) == true)
+            .ToArray();
+        string[] worldIds = (compatibleNodes.Length > 0
+                ? compatibleNodes
+                : worldCandidates)
             .Select(item => item.Id)
             .Distinct(StringComparer.Ordinal)
             .ToArray();

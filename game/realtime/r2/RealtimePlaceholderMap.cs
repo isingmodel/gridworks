@@ -159,6 +159,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private readonly HashSet<string> _drawnActiveRiskAreaIds =
         new(StringComparer.Ordinal);
     private string? _drawnActiveCandidateId;
+    private string? _drawnGuidanceTargetNodeId;
     private bool _drawnAnalysisOverlay;
     private readonly HashSet<string> _drawnG3AssetPaths = new(StringComparer.Ordinal);
     private readonly HashSet<string> _drawnG3Layers = new(StringComparer.Ordinal);
@@ -435,6 +436,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         _drawnForecastRiskAreaIds.Clear();
         _drawnActiveRiskAreaIds.Clear();
         _drawnActiveCandidateId = null;
+        _drawnGuidanceTargetNodeId = null;
         _drawnAnalysisOverlay = false;
         _drawnG3AssetPaths.Clear();
         _drawnG3Layers.Clear();
@@ -468,6 +470,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         DrawNodeEquipmentLayer(_presentation);
         DrawEdges(_presentation);
         DrawNodeOverlayLayer(_presentation);
+        DrawGuidanceTarget(_presentation);
         DrawActiveCandidate(_presentation);
         DrawSelectionAction(_presentation);
         DrawDraft(_presentation);
@@ -475,7 +478,9 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     }
 
     internal RealtimePointerResolution ResolveWorldProbe(RealtimePointerProbe probe) =>
-        RealtimePointerOwnerResolver.Resolve(probe);
+        RealtimePointerOwnerResolver.Resolve(
+            probe,
+            _presentation?.CompatibleLineNodeIds);
 
     private RealtimePointerResolution ResolveCanvasPoint(
         string probeId,
@@ -492,7 +497,8 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 BlockingModalHit: _presentation!.Surface ==
                     RealtimeSurface.BlockingModal,
                 OverlayVisible: _presentation.AnalysisVisible,
-                WeatherVisible: _presentation.Weather != RealtimeWorldWeather.Clear));
+                WeatherVisible: _presentation.Weather != RealtimeWorldWeather.Clear),
+            _presentation.CompatibleLineNodeIds);
         bool candidateIdIsConfirmable = _presentation!.Tool is
             RealtimeTool.Inspect or RealtimeTool.Analysis or RealtimeTool.BuildLine;
         if (resolution.OrderedWorldCandidateIds.Count == 0 ||
@@ -510,7 +516,13 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         }
         string[] candidateIds = resolution.OrderedWorldCandidateIds.ToArray();
         _candidateCycle = Array.AsReadOnly(candidateIds);
-        int retainedIndex = previousCandidateId is null
+        bool compatibleNodeAvailable = candidateIds.Any(id =>
+            _presentation.CompatibleLineNodeIds.Contains(id, StringComparer.Ordinal));
+        bool mayRetainPrevious = previousCandidateId is not null &&
+            (!compatibleNodeAvailable || _presentation.CompatibleLineNodeIds.Contains(
+                previousCandidateId,
+                StringComparer.Ordinal));
+        int retainedIndex = !mayRetainPrevious
             ? -1
             : Array.FindIndex(candidateIds, id => string.Equals(
                 id,
@@ -1279,6 +1291,47 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         DrawActiveCandidateBadge(anchor, ActiveCandidateVisibleLabel);
     }
 
+    private void DrawGuidanceTarget(RealtimeWorldPresentation presentation)
+    {
+        if (presentation.GuidanceTarget is not RealtimeWorldGuidanceTarget target)
+        {
+            return;
+        }
+        SpatialNodeDefinition? node = presentation.World.Nodes.FirstOrDefault(item =>
+            string.Equals(item.NodeId, target.NodeId, StringComparison.Ordinal));
+        if (node is null)
+        {
+            return;
+        }
+#if DEBUG
+        _drawnGuidanceTargetNodeId = node.NodeId;
+#endif
+        Vector2 center = Point(node.Position);
+        float radius = NodeRadius(presentation.World, node) +
+            16f * _accessibilityScale;
+        DrawCircle(
+            center,
+            radius,
+            Selected with { A = 0.18f });
+        DrawCircle(
+            center,
+            radius,
+            Selected,
+            false,
+            3f * _accessibilityScale,
+            true);
+        Vector2 elbow = center + new Vector2(
+            radius + 12f * _accessibilityScale,
+            -radius - 8f * _accessibilityScale);
+        DrawLine(
+            center + new Vector2(radius * 0.7f, -radius * 0.7f),
+            elbow,
+            Selected,
+            2f * _accessibilityScale,
+            true);
+        DrawActiveCandidateBadge(elbow, target.Label);
+    }
+
     private void DrawActiveCandidateBadge(Vector2 anchor, string label)
     {
         if (string.IsNullOrWhiteSpace(label))
@@ -1712,8 +1765,11 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             : (_pointerFeedback.Accepted ? "승인" : "거절") + " " +
               _pointerFeedback.Message;
         AccessibilityName = Accessibility(_presentation);
+        string guidance = _presentation.GuidanceTarget is { } target
+            ? $"안내 대상 {target.Label}"
+            : "안내 대상 없음";
         AccessibilityDescription =
-            $"{selection}. {candidate}. {feedback}. " +
+            $"{selection}. {candidate}. {guidance}. {feedback}. " +
             "Q와 E로 겹친 후보를 바꾸고 Enter로 현재 후보를 선택합니다.";
     }
 

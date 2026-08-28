@@ -215,16 +215,46 @@ internal static class RealtimeConstructionPresenter
         }
         if (construction.ActiveConstruction is ActiveConstructionSnapshot active)
         {
-            string detail = $"{RealtimePresentationText.Time(active.CompletionMinute)} 자동 완공 · 두 번째 발주 불가";
+            RealtimeScheduledEventDefinition? scheduled = firstLightAdvanceEnabled
+                ? snapshot.Chapter.ScheduledEvents
+                    .OrderBy(item => item.StartOffsetMinutes)
+                    .ThenBy(item => item.Priority)
+                    .ThenBy(item => item.EventId, StringComparer.Ordinal)
+                    .FirstOrDefault()
+                : null;
+            long? eventStart = scheduled is null
+                ? null
+                : checked(snapshot.ChapterStartMinute + scheduled.StartOffsetMinutes);
+            long? eventEnd = scheduled is null
+                ? null
+                : checked(snapshot.ChapterStartMinute + scheduled.EndOffsetMinutes);
+            long? nextEventBoundary = eventStart > snapshot.Minute
+                ? eventStart
+                : eventEnd > snapshot.Minute
+                    ? eventEnd
+                    : null;
+            bool eventBoundaryFirst = nextEventBoundary.HasValue &&
+                nextEventBoundary.Value < active.CompletionMinute;
+            string detail = eventBoundaryFirst
+                ? $"공사 완공 {RealtimePresentationText.Time(active.CompletionMinute)} · " +
+                  $"{scheduled!.OperatingProfile.DisplayName} " +
+                  $"{RealtimePresentationText.Time(nextEventBoundary!.Value)} 경계 우선"
+                : $"{RealtimePresentationText.Time(active.CompletionMinute)} 자동 완공 · 두 번째 발주 불가";
             return new RealtimeActionDockPresentation(
                 true,
-                "공사 진행",
+                eventBoundaryFirst ? "공사 중 · 시험 경계 우선" : "공사 진행",
                 detail,
                 firstLightAdvanceEnabled
                     ? new RealtimeActionPresentation(
                         RealtimeR2Ids.AdvanceFirstLightAction,
-                        "공사 완료까지 진행",
-                        $"대기를 건너뛰고 {RealtimePresentationText.Time(active.CompletionMinute)} 공사 완료 시점으로 진행합니다.",
+                        eventBoundaryFirst
+                            ? eventStart > snapshot.Minute
+                                ? "첫 공급 시험까지 진행"
+                                : "시험 결과까지 진행"
+                            : "공사 완료까지 진행",
+                        eventBoundaryFirst
+                            ? $"공사를 건너뛰지 않고 {RealtimePresentationText.Time(nextEventBoundary!.Value)} 시험 경계까지만 진행합니다."
+                            : $"대기를 건너뛰고 {RealtimePresentationText.Time(active.CompletionMinute)} 공사 완료 시점으로 진행합니다.",
                         true)
                     : null);
         }

@@ -14,6 +14,9 @@ exact initial briefing, exact-minute active in-chapter story, non-final result�
 제품 설정과 strict persistence, code-native 기본 audio는 구현됐고, 출시 패키지에서의 audio coverage·
 청감 검증과 공식 UX 평가는 남아 있다. exact 내부 package는 별도 app-owned root의 save/settings 2B1과
 default scene의 title·Continue·reset·settings·generated-audio lifecycle seam 2B2 qualification을 통과했다.
+chapter briefing·계획 decision story를 닫거나 공사 도구에 진입하면 선택한 속도를 보존한 채 계획 정지하며,
+플레이어가 speed·재생 입력으로 명시적으로 재개한다. 결과 화면은 접속 조건의 평가 시각과 실패 terminal의
+읽기 전용 경계를 설명한다.
 active flood/thermal-override event는 각각 storm/heat world로 표현되고 `Reduce Motion`은 비·폭우
 weather phase를 고정한다. 여기까지가 저장소가 소유하는 **current R2 내부 후보 완료선**이다.
 실제 hardware·사람·공식 평가·서명·공증·공개 승인은 별도 외부 gate며, 아직 판매 가능한
@@ -30,8 +33,8 @@ weather phase를 고정한다. 여기까지가 저장소가 소유하는 **curre
 | 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
 | R2 native 구현 | `LONGEST_NIGHT`까지 누적 8장, exact finale 뒤 authored epilogue 3장 |
-| `FIRST_LIGHT` 초반 안내 | HUD의 1/3→2/3→3/3 경로 안내, 건설 진입·거부·완공의 계획 정지, 수치 경간과 원인별 실패 디브리프 |
-| 직접 플레이 관찰 | `NORTH_BANK_PROMISE`까지 누적 4장; Keep·명시적 Defer를 각각 fresh process에서 확인 |
+| `FIRST_LIGHT` 초반 안내 | HUD의 1/3→2/3→3/3 경로 안내, 완료 경로에서만 시험 진행 action, 건설 진입·거부·완공의 계획 정지, 수치 경간과 평가 시점·원인별 실패 디브리프 |
+| 직접 플레이 관찰 | 고정 LLM sample로 누적 8장·모든 Defer·실패 finale까지 확인; 성공 전용 epilogue는 이 sample에서 관찰하지 않음 |
 | 사건 지평선 | 한 줄 future-event bar(`RealtimeEventRail`)의 compact marker와 hover/선택 상세 정보 |
 | product settings | title/gameplay 공용 surface, UI 100/125/150/200%, Master/Ambient/SFX 0/25/50/75/100%, windowed/fullscreen, Reduce Motion과 strict atomic persistence 구현 |
 | product audio | 22,050Hz mono PCM16 ambient와 live `Breaker/Energize/Outage` cue 생성; Session 의미·bus·Resume 무재생, packaged ambient one-start/SFX-quiet wiring 2B2 완료 |

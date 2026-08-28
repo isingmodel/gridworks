@@ -91,6 +91,10 @@ Godot playback은 `RealtimeAudio`, volume/mute projection은 Main이 각각 한 
 chapter 정책을 찾기 위해 이 adapter부터 UI node 안쪽으로 내려가지 않는다.
 먼저 `RealtimeSession`과 `RealtimeCampaignRun`을 본다.
 
+`RealtimeSession`은 chapter briefing·decision-window story를 닫거나 새 node/line build tool에 진입할 때
+실행 중인 시계를 `PlayerPaused` 계획 상태로 바꾼다. 선택한 `RunningSpeed`는 보존하며 플레이어의 명시적
+speed 또는 재생 입력만 실제 진행을 재개한다. presenter와 UI node는 이 pause를 다시 계산하지 않는다.
+
 ## 권위와 수정 위치
 
 | 질문 | 단일 권위 | 수정 시작점 |

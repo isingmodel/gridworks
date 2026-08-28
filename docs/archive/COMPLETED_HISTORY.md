@@ -480,6 +480,35 @@ tooltip과 accessibility name에 보존한다.
 실행·추가하지 않았다. native 확인은 LLM formative direct-play이며 사람 재미·사용성·미감 증거,
 Core 규칙 변경, 자동 경로, 패키지·외부 gate·배포를 뜻하지 않는다. push, PR, merge는 수행하지 않았다.
 
+### UX-R2.27 — 누적 8장 native 품질 review와 보완
+
+고정 `gpt-5.6-sol` xhigh LLM sample이 `./dev play through LONGEST_NIGHT`를 production native 입력으로
+누적 8장 끝까지 진행했다. 모든 도시 약속은 Defer를 골랐고 마지막 safety 0/3의 실패 finale와 완료 망까지
+관찰했다. 이 실패 경로는 설계대로 성공 전용 epilogue를 시작하지 않았으므로 세 epilogue card의 native
+직접 관찰 증거로 확대하지 않는다. macOS full-screen과 Computer Use window 탐색의 일시 실패는 같은
+process에서 회복됐고 게임 crash·soft-lock으로 분류하지 않았다.
+
+review에서 재현된 고영향 문제를 기존 authority 안에서 보완했다. chapter briefing·decision story를 닫거나
+새 build tool에 진입하면 선택 속도를 보존한 `PlayerPaused` 계획 상태가 되고, 플레이어 입력만 진행을
+재개한다. 불완전한 `FIRST_LIGHT` active test는 결과 건너뛰기 action을 표시하지 않으며, 실패 debrief는
+시험 시작 시점의 미완공과 시험 뒤 늦은 완공을 구분한다. 접속 조건 결과에는 frozen 평가 시각을 함께
+표시하고, 실패 finale는 종료된 읽기 전용 도시와 성공 전용 세 기록의 경계를 설명한다. 약속 context는
+세 칸을 두 칸으로 합쳤고, critical auto-pause는 `P`·상단 재생 입력을 안내하며, 겹친 후보 badge는
+`Q/E 전환`을 직접 노출한다. accessibility scale에서 build shelf의 실제 typography 높이와 간결한 1/3–3/3
+안내도 함께 맞췄다. decision 창의 숫자 `0` 후보는 native screenshot과 source를 대조해 Computer Use click
+indicator로 판단했고 게임 결함으로 채택하지 않았다.
+
+같은 reviewer의 native 재관찰에서 story 직후 HUD의 이전 실행 표기와 `FIRST_LIGHT` 후보·완료 feedback의
+다음 장 유출을 추가로 재현해 보완했다. 최종 확인에서는 `SECOND_HEART` briefing 직후 22:00 계획 정지가
+3.5초 유지되는 동안 이전 후보 badge, pointer feedback, build tool·quote·draft가 모두 없었고, 새 mouse 입력
+뒤에만 겹친 후보 badge가 다시 나타났다. 이어 `E` 입력이 2/2에서 1/2로 후보를 바꿨으며 process는 crash나
+soft-lock 없이 정상 종료했다.
+
+Debug build, `A1_NORMAL_READY`, `A1_CONSTRUCTION_DUE_1M`, 전체 `./dev check`의 Core 8,289 assertions,
+product save/settings failure matrix, 누적 controller와 FHD/QHD/UHD 100–200% offscreen UI harness를 통과했다.
+이 review는 한 고정 LLM formative sample이며 사람 재미·사용성·미감 증거, 공식 UX 점수, 성공 epilogue의
+native 관찰, packaged full journey나 외부 release gate를 뜻하지 않는다. push, PR, merge는 수행하지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

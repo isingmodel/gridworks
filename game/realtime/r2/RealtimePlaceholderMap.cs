@@ -660,10 +660,17 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             Vector2[] polygon = terrain.Polygon.Select(Point).ToArray();
             if (terrain.Kind == TerrainKind.Water)
             {
+                (Vector2[] leftBank, Vector2[] rightBank) =
+                    BuildG3NaturalRiverBanks(polygon);
+                Vector2[] riverSurface =
+                [
+                    .. leftBank,
+                    .. rightBank.Reverse(),
+                ];
                 if (G3Texture(G3RiverWaterSurface) is Texture2D baseWater)
                 {
                     DrawG3TexturedPolygon(
-                        polygon,
+                        riverSurface,
                         baseWater,
                         G3RiverWaterSurface,
                         new Color(0.54f, 0.68f, 0.72f, 0.86f));
@@ -671,14 +678,14 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 if (weatherWater is not null)
                 {
                     DrawG3TexturedPolygon(
-                        polygon,
+                        riverSurface,
                         weatherWater,
                         weatherMaterial,
                         WeatherWaterModulate(presentation.Weather));
                 }
-                DrawG3NaturalRiverBanks(polygon);
-                DrawG3RiverCurrent(polygon, presentation.Weather);
-                DrawG3MeasuredBridges(terrain.Polygon);
+                DrawG3NaturalRiverBanks(leftBank, rightBank);
+                DrawG3RiverCurrent(leftBank, rightBank, presentation.Weather);
+                DrawG3MeasuredBridges(leftBank, rightBank);
                 continue;
             }
             if (terrain.Kind == TerrainKind.Building)

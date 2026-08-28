@@ -4918,6 +4918,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         {
             ChapterId = currentChapter.ChapterId + "_NEXT",
         });
+        map.ApplyLayout(slice.UiForSmoke.LayoutProfile);
         await SettleLayout();
         Require(map.CandidateIdsForSmoke.Count == 0 &&
                 map.ActiveCandidateIdForSmoke is null &&

@@ -248,7 +248,10 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     {
         _accessibilityScale = Math.Max(1f, profile.AccessibilityScale);
         _minimumPointerHitRadius = Math.Max(20f, profile.MinimumHitTarget / 2f);
-        _ = RefreshPointerResolution(RealtimeWorldProbeIds.LayoutRefresh);
+        if (!_candidateSuppressedUntilInput)
+        {
+            _ = RefreshPointerResolution(RealtimeWorldProbeIds.LayoutRefresh);
+        }
         QueueRedraw();
     }
 
@@ -333,7 +336,10 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         _transform.PanByCanvasDelta(
             new Vector2(current.X - camera.Center.X, current.Y - camera.Center.Y) *
             (float)_transform.Scale);
-        _ = RefreshPointerResolution(RealtimeWorldProbeIds.CameraRestore);
+        if (!_candidateSuppressedUntilInput)
+        {
+            _ = RefreshPointerResolution(RealtimeWorldProbeIds.CameraRestore);
+        }
         QueueRedraw();
     }
 
@@ -397,6 +403,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 break;
             case InputEventMouseButton mouse when mouse.ButtonIndex == MouseButton.WheelUp &&
                 mouse.Pressed:
+                _candidateSuppressedUntilInput = false;
                 _transform.SetZoomAt(_transform.ZoomIndex + 1, mouse.Position);
                 _ = RefreshPointerResolution(RealtimeWorldProbeIds.ZoomRefresh);
                 QueueRedraw();
@@ -404,6 +411,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 break;
             case InputEventMouseButton mouse when mouse.ButtonIndex == MouseButton.WheelDown &&
                 mouse.Pressed:
+                _candidateSuppressedUntilInput = false;
                 _transform.SetZoomAt(_transform.ZoomIndex - 1, mouse.Position);
                 _ = RefreshPointerResolution(RealtimeWorldProbeIds.ZoomRefresh);
                 QueueRedraw();
@@ -1529,7 +1537,10 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         {
             _transform.Configure(mapBounds, Size);
         }
-        _ = RefreshPointerResolution(RealtimeWorldProbeIds.TransformRefresh);
+        if (!_candidateSuppressedUntilInput)
+        {
+            _ = RefreshPointerResolution(RealtimeWorldProbeIds.TransformRefresh);
+        }
         QueueRedraw();
     }
 

@@ -2391,7 +2391,7 @@ internal static class RealtimeR2Smoke
 
         Check(data.NativeRoute == RealtimeNativeRouteCatalog.FirstLight &&
               data.BaseCampaignSha256 ==
-                  "078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a" &&
+                  "19d042ca18cebec4d3164aba5932319ec123e1520283094fc3473eea548afd8c" &&
               data.WorldSha256 ==
                   "a0a837717bbd6d35f655d8094dfa6daac182d47b2d03f24b18c4883c04feecdf" &&
               data.CampaignOverlaySha256 ==
@@ -2442,7 +2442,7 @@ internal static class RealtimeR2Smoke
                 RealtimeR2Intent.CloseModal(RealtimeR2Ids.ChapterBriefingModal)),
             "release briefing close", failures, coreCommandExpected: false);
         Check(slice.LatestPresentation.Hud.Objective.Contains(
-                  "1/3",
+                  "1/2",
                   StringComparison.Ordinal),
             "release FIRST_LIGHT did not begin with staged node guidance",
             failures);
@@ -2486,7 +2486,7 @@ internal static class RealtimeR2Smoke
         slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
         Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
               slice.LatestPresentation.Hud.Objective.Contains(
-                  "2/3",
+                  "2/2",
                   StringComparison.Ordinal) &&
               slice.LatestPresentation.BuildShelf.Guidance.Contains(
                   "공사 완료",
@@ -2541,42 +2541,9 @@ internal static class RealtimeR2Smoke
         slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
         Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
               slice.LatestPresentation.Hud.Objective.Contains(
-                  "3/3",
-                  StringComparison.Ordinal),
-            "release FIRST_LIGHT west-line completion did not show the service-line step",
-            failures);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.SelectBuildTool(
-                    RealtimeTool.BuildLine,
-                    "LINE:STANDARD_LINE:STANDARD_POLE")),
-            "release service line tool", failures, coreCommandExpected: false);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.StartLineDraft(
-                    substationId,
-                    "STANDARD_LINE",
-                    "STANDARD_POLE")),
-            "release service line start", failures);
-        RequireIntent(slice.ApplyIntentForSmoke(
-                RealtimeR2Intent.FinishLineDraft("EAST_RESIDENTIAL_TERMINAL")),
-            "release service line finish", failures);
-        RealtimeProjectQuote serviceQuote = slice.PreviewLineOrderForSmoke();
-        Check(serviceQuote is
-              {
-                  Accepted: true,
-                  CostCashUnit: 25_000,
-                  BuildMinutes: 10,
-                  CompletionMinute: 1248,
-              },
-            "release service line quote drifted from the playable preparation window",
-            failures);
-        RequireIntent(slice.ApplyIntentForSmoke(RealtimeR2Intent.OrderLine()),
-            "release service line order", failures);
-        slice.RequestActionForSmoke(RealtimeR2Ids.AdvanceFirstLightAction);
-        Check(slice.InteractionState.Simulation == RealtimeSimulationState.PlayerPaused &&
-              slice.LatestPresentation.Hud.Objective.Contains(
                   "경로 준비 완료",
                   StringComparison.Ordinal),
-            "release FIRST_LIGHT service completion did not pause with ready guidance",
+            "release FIRST_LIGHT source-feed completion did not pause with ready guidance",
             failures);
 
         RealtimeNextEventPresentation? next = slice.LatestPresentation.Rail.NextEvent;
@@ -2585,9 +2552,9 @@ internal static class RealtimeR2Smoke
                   EventId: "FIRST_LIGHT_SUPPLY",
                   StartMinute: 1260,
                   EndMinute: 1320,
-                  MinutesUntilStart: 12,
+                  MinutesUntilStart: 22,
               } &&
-              slice.CoreSnapshot.CashUnit == 7_030_000,
+              slice.CoreSnapshot.CashUnit == 7_055_000,
             "release live state lost its exact next-event countdown or construction cost",
             failures);
         Check(slice.LatestPresentation.ActionDock.PrimaryAction is
@@ -2709,7 +2676,7 @@ internal static class RealtimeR2Smoke
         Check(slice.CoreSnapshot.ActiveEventStates.Single().EventId ==
                   RealtimeCampaignOverlayLoader.FirstReleaseEventId &&
               slice.LatestPresentation.Hud.Objective.Contains(
-                  "1/3",
+                  "1/2",
                   StringComparison.Ordinal) &&
               slice.LatestPresentation.ActionDock.PrimaryAction is null,
             "incomplete FIRST_LIGHT exposed a dominant result fast-forward action",
@@ -6776,15 +6743,6 @@ internal static class RealtimeR2Smoke
             "STANDARD_POLE",
             failures,
             "tutorial west source corridor");
-        _ = OrderTutorialLine(
-            slice,
-            substationId,
-            Array.Empty<CoreMapPoint>(),
-            "EAST_RESIDENTIAL_TERMINAL",
-            "STANDARD_LINE",
-            "STANDARD_POLE",
-            failures,
-            "tutorial east service corridor");
         return substationId;
     }
 

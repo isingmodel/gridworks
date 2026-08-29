@@ -312,7 +312,8 @@ internal static class RealtimePresentationText
                 string path = item.PathNodeIds.Count == 0
                     ? "경로 없음"
                     : string.Join(" → ", item.PathNodeIds.Select(id =>
-                        AssetDisplayName(displayWorld, snapshot, id)));
+                        AssetDisplayName(displayWorld, snapshot, id))) +
+                      $" ⇢ 반경 R 서비스 ⇢ {LoadDisplayName(displayWorld, item.LoadId)}";
                 string supply = string.Create(CultureInfo.InvariantCulture,
                     $"{item.DeliveredKw:N0}/{item.DemandKw:N0} kW");
                 string failure = item.Failure is null
@@ -458,21 +459,14 @@ internal static class RealtimePresentationText
         SpatialNodeDefinition? substation = FirstLightSubstation(snapshot);
         if (substation is null)
         {
-            return "다음 행동 · 1/3 N · 동부 생활권 옆 변전소 배치·완공";
+            return "다음 행동 · 1/2 N · R 550 안에 동부 생활권을 둔 변전소 배치·완공";
         }
         if (!Connected(
                 snapshot.Construction.World,
                 "WEST_SOURCE_NODE",
                 substation.NodeId))
         {
-            return "다음 행동 · 2/3 L · 서부 발전→전신주→변전소 연결";
-        }
-        if (!Connected(
-                snapshot.Construction.World,
-                substation.NodeId,
-                "EAST_RESIDENTIAL_TERMINAL"))
-        {
-            return "다음 행동 · 3/3 L · 변전소→동부 생활권 연결";
+            return "다음 행동 · 2/2 L · 서부 발전→전신주→변전소 연결";
         }
         return "경로 준비 완료 · 21:00 동부 첫 공급까지 유지하세요.";
     }
@@ -482,11 +476,7 @@ internal static class RealtimePresentationText
         SpatialNodeDefinition? substation = FirstLightSubstation(snapshot);
         return IsFirstLight(snapshot) &&
             substation is not null &&
-            Connected(snapshot.Construction.World, "WEST_SOURCE_NODE", substation.NodeId) &&
-            Connected(
-                snapshot.Construction.World,
-                substation.NodeId,
-                "EAST_RESIDENTIAL_TERMINAL");
+            Connected(snapshot.Construction.World, "WEST_SOURCE_NODE", substation.NodeId);
     }
 
     internal static string SpanDetail(long? length, int? maximum) =>
@@ -514,22 +504,16 @@ internal static class RealtimePresentationText
             snapshot.Construction.World,
             "WEST_SOURCE_NODE",
             substation!.NodeId);
-        bool loadReady = nodeReady && Connected(
-            snapshot.Construction.World,
-            substation!.NodeId,
-            "EAST_RESIDENTIAL_TERMINAL");
-        int progress = (nodeReady ? 1 : 0) + (sourceReady ? 1 : 0) +
-            (loadReady ? 1 : 0);
-        bool completedLate = nodeReady && sourceReady && loadReady &&
+        int progress = (nodeReady ? 1 : 0) + (sourceReady ? 1 : 0);
+        bool completedLate = nodeReady && sourceReady &&
             failed.Any(item => item.SafetyUnservedMinutes > 0);
         long firstTestMinute = failed
             .Select(item => item.StartMinute)
             .DefaultIfEmpty(outcome.StartMinute)
             .Min();
         string progressFacts =
-            $"진행 {progress}/3 · 변전소 {(nodeReady ? "완공" : "미완료")} · " +
-            $"서부 연결 {(sourceReady ? "완료" : "미완료")} · " +
-            $"동부 연결 {(loadReady ? "완료" : "미완료")}";
+            $"진행 {progress}/2 · 변전소 {(nodeReady ? "완공" : "미완료")} · " +
+            $"상류 연결 {(sourceReady ? "완료" : "미완료")}";
         string cause = completedLate
             ? $"원인 · {Clock(firstTestMinute)} 시험 시작 뒤 경로 완공 · 준비 지연"
             : failure is null || failure.Kind == ThermalFailureKind.NoTopologyPath
@@ -537,14 +521,10 @@ internal static class RealtimePresentationText
             : $"원인 · {FailureKindText(failure.Kind)} · " +
               FailureSubjectName(displayWorld, snapshot, failure);
         string retry = completedLate
-            ? $"{Clock(firstTestMinute)} 시험 시작 전에 3/3 공급 경로를 완공하세요."
+            ? $"{Clock(firstTestMinute)} 시험 시작 전에 2/2 상류 공급 경로를 완공하세요."
             : !nodeReady
-            ? "변전소를 완공하고 서부 발전 접속점과 동부 생활권을 모두 이으세요."
-            : !sourceReady && !loadReady
-                ? "완공한 변전소의 서쪽은 발전 접속점, 동쪽은 생활권 접속점까지 이으세요."
-                : !sourceReady
-                    ? "서부 발전 접속점에서 완공한 변전소까지 선로를 이으세요."
-                    : "완공한 변전소에서 동부 생활권 접속점까지 선로를 이으세요.";
+            ? "동부 생활권이 반경 R 안에 들도록 변전소를 완공하세요."
+            : "서부 발전 접속점에서 완공한 변전소까지만 선로를 이으세요.";
         return $"안전 의무 {safeEvents}/{outcome.Events.Count} 충족 · " +
                $"동부 생활권 {unservedMinutes}분 미공급\n{cause}\n" +
                $"{progressFacts}\n다음 시도 · {retry}\n" +
@@ -560,7 +540,7 @@ internal static class RealtimePresentationText
         return authoredBody +
             $"\n\n✓ 첫 공급 성공 · 안전 의무 {safeEvents}/{outcome.Events.Count} · " +
             $"미공급 {unservedMinutes}분\n" +
-            "완공 경로 · 서부 발전 접속점 → 변전소 → 동부 생활권\n" +
+            "완공 경로 · 서부 발전 접속점 → 변전소 · 반경 R 서비스 → 동부 생활권\n" +
             $"남은 운영 자금 {Cash(outcome.EndingCashUnit)}";
     }
 

@@ -254,7 +254,7 @@ internal sealed partial class RealtimeSliceMain
     private const string ExpectedBaseWorldSourceSha256 =
         "c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14";
     private const string ExpectedBaseCampaignSourceSha256 =
-        "078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a";
+        "19d042ca18cebec4d3164aba5932319ec123e1520283094fc3473eea548afd8c";
     private const string ExpectedRealtimeWorldSourceSha256 =
         "0d047c66063a9e925f1c0d0d6a19940956cbd3fb7e6a7d7be0df6035ff3d4ed0";
     private const string ExpectedRealtimeCampaignSourceSha256 =

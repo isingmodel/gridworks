@@ -62,7 +62,7 @@
           "forecastLeadMinutes": 264,
           "thermalPolicy": "safetyEmergencyAllowed",
           "loads": [{ "loadId": "WATERWORKS", "demandKw": 2000, "obligation": "safetyDuty" }],
-          "unavailableNodeIds": [], "unavailableEdgeIds": [], "activeRiskAreaIds": [], "thermalLimitOverrides": []
+          "unavailableNodeIds": ["SLICE_LINE_SUBSTATION"], "unavailableEdgeIds": [], "activeRiskAreaIds": [], "thermalLimitOverrides": []
         },
         {
           "eventId": "FIRST_LIGHT_LINE_BOTTLENECK",
@@ -73,7 +73,7 @@
           "forecastLeadMinutes": 240,
           "thermalPolicy": "safetyEmergencyAllowed",
           "loads": [{ "loadId": "EAST_RESIDENTIAL", "demandKw": 2000, "obligation": "safetyDuty" }],
-          "unavailableNodeIds": [], "unavailableEdgeIds": [], "activeRiskAreaIds": [], "thermalLimitOverrides": []
+          "unavailableNodeIds": ["SLICE_POLE_SUBSTATION", "SLICE_SUBSTATION_TARGET"], "unavailableEdgeIds": [], "activeRiskAreaIds": [], "thermalLimitOverrides": []
         },
         {
           "eventId": "FIRST_LIGHT_POLE_BOTTLENECK",
@@ -84,7 +84,7 @@
           "forecastLeadMinutes": 252,
           "thermalPolicy": "safetyEmergencyAllowed",
           "loads": [{ "loadId": "HOSPITAL", "demandKw": 2000, "obligation": "safetyDuty" }],
-          "unavailableNodeIds": [], "unavailableEdgeIds": [], "activeRiskAreaIds": [], "thermalLimitOverrides": []
+          "unavailableNodeIds": ["SLICE_LINE_SUBSTATION"], "unavailableEdgeIds": [], "activeRiskAreaIds": [], "thermalLimitOverrides": []
         }
       ]
     }

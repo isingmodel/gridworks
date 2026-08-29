@@ -163,6 +163,7 @@ internal sealed class Checks
             ("frame-speed-canonical-hash", FrameSpeedCanonicalHash),
             ("canonical-future-equivalence", CanonicalFutureEquivalence),
             ("stable-allocation-no-ghost-usage", SupplyAllocation),
+            ("substation-radius-endpoint-supply", SubstationRadiusEndpointSupply),
             ("allocator-polynomial-layered-graph", AllocatorPolynomialLayeredGraph),
             ("allocator-optimizer-proof-matrix", AllocatorOptimizerProofMatrix),
             ("interval-duty-trip-recover", IntervalDutyTripRecover),
@@ -952,7 +953,7 @@ internal sealed class Checks
             "release overlay FIRST_LIGHT repeated composition");
 
         Equal(
-            "078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a",
+            "19d042ca18cebec4d3164aba5932319ec123e1520283094fc3473eea548afd8c",
             all.SourceIdentity.BaseCampaignSha256,
             "release overlay exact raw V2 source hash");
         Equal(
@@ -1336,7 +1337,7 @@ internal sealed class Checks
             "NORTH_BANK release prefix absolute schedule");
 
         Equal(
-            "078df95f9f0c833be7e1a299088b4ab6e0de4ddf13426ce5b96a1abbeee70b7a",
+            "19d042ca18cebec4d3164aba5932319ec123e1520283094fc3473eea548afd8c",
             selected.SourceIdentity.BaseCampaignSha256,
             "NORTH_BANK exact raw V2 source hash");
         Equal(
@@ -1749,7 +1750,7 @@ internal sealed class Checks
             "CONCURRENT_C",
             "동시 사건 C",
             0);
-        c["unavailableEdgeIds"] = new JsonArray("SLICE_POLE_LOAD");
+        c["unavailableEdgeIds"] = new JsonArray("SLICE_POLE_SOURCE");
         JsonObject a = CloneEvent(
             "FIRST_LIGHT_LINE_BOTTLENECK",
             "CONCURRENT_A",
@@ -1806,7 +1807,7 @@ internal sealed class Checks
             started.Snapshot.Thermal.Evaluation.Loads.Select(item => item.LoadId),
             "composed dispatch did not use event priority/ID after obligation priority");
         Check(started.Snapshot.Thermal.Assets.Single(item =>
-                    item.AssetId == "SLICE_POLE_LOAD").AuthoredUnavailable &&
+                    item.AssetId == "SLICE_POLE_SOURCE").AuthoredUnavailable &&
                 started.Snapshot.Thermal.Assets.Single(item =>
                     item.AssetId == "SLICE_LINE_SUBSTATION").AuthoredUnavailable,
             "concurrent authored unavailability was not unioned");
@@ -2154,7 +2155,7 @@ internal sealed class Checks
                 $"{outcome.EventId} lacks forecast trip/recovery");
             RealtimeDutyLoadFact unavailable = outcome.DutySegments
                 .SelectMany(item => item.Loads)
-                .Single(item => item.Failure?.AssetId == targetId);
+                .Single(item => item.DeliveredKw == 0);
             ThermalSupplyFailure failure = unavailable.Failure ??
                 throw new InvalidOperationException(
                     $"{outcome.EventId} protective-outage failure missing");
@@ -2829,7 +2830,7 @@ internal sealed class Checks
                     Array.Empty<ThermalLimitOverride>()),
                 Array.Empty<string>())
             .Loads.Single();
-        SequenceEqual(new[] { "B_IN", "B_OUT", "LOAD_ONE" },
+        SequenceEqual(new[] { "B_IN", "B_OUT" },
             continuousPreferred.PathEdgeIds,
             "continuous route did not outrank earlier emergency route");
         Equal(400L, continuousPreferred.MinimumRemainingKw,
@@ -2853,7 +2854,7 @@ internal sealed class Checks
                             5500)]),
                     Array.Empty<string>())
                 .Loads.Single();
-        SequenceEqual(new[] { "B_IN", "B_OUT", "LOAD_ONE" },
+        SequenceEqual(new[] { "B_IN", "B_OUT" },
             fewerEmergencyAssets.PathEdgeIds,
             "fewer-emergency-assets route was not preferred within emergency grade");
         Equal(0L, fewerEmergencyAssets.MinimumRemainingKw,
@@ -2880,12 +2881,12 @@ internal sealed class Checks
         SequenceEqual(new[] { "DIAMOND_LOAD_ONE", "DIAMOND_LOAD_TWO" },
             sameSource.Loads.Select(item => item.LoadId),
             "diamond caller load order");
-        SequenceEqual(new[] { "B_IN", "B_OUT", "LOAD_ONE" },
+        SequenceEqual(new[] { "B_IN", "B_OUT" },
             sameSource.Loads[0].PathEdgeIds,
             "greater-margin continuous route was not preferred");
         Equal(1000L, sameSource.Loads[0].MinimumRemainingKw,
             "greater-margin continuous route exact margin");
-        SequenceEqual(new[] { "A_IN", "A_OUT", "LOAD_TWO" },
+        SequenceEqual(new[] { "A_IN", "A_OUT" },
             sameSource.Loads[1].PathEdgeIds,
             "equal-quality routes did not use deterministic static path order");
         Equal(0L, sameSource.Loads[1].MinimumRemainingKw,
@@ -2936,10 +2937,10 @@ internal sealed class Checks
                     Array.Empty<string>(),
                     Array.Empty<ThermalLimitOverride>()),
                 Array.Empty<string>());
-        SequenceEqual(new[] { "A_IN", "A_OUT", "LOAD_ONE" },
+        SequenceEqual(new[] { "A_IN", "A_OUT" },
             rejectedThenAlternate.Loads[0].PathEdgeIds,
             "setup did not reserve the first ordered branch");
-        SequenceEqual(new[] { "B_IN", "B_OUT", "LOAD_TWO" },
+        SequenceEqual(new[] { "B_IN", "B_OUT" },
             rejectedThenAlternate.Loads[1].PathEdgeIds,
             "same-source rejected first candidate did not fall through to alternate");
         Equal(4000L, rejectedThenAlternate.Assets.Single(item =>
@@ -3045,7 +3046,7 @@ internal sealed class Checks
             .Loads.Single();
         Equal("DIAMOND_SOURCE_TWO", laterContinuous.SourceId,
             "earlier dispatch order overrode a later continuous source route");
-        SequenceEqual(new[] { "C_IN", "B_OUT", "LOAD_ONE" },
+        SequenceEqual(new[] { "C_IN", "B_OUT" },
             laterContinuous.PathEdgeIds,
             "two-source continuous route identity");
 
@@ -3086,9 +3087,101 @@ internal sealed class Checks
                 .Loads.Single();
         Equal("DIAMOND_SOURCE", equalQualityEarlyDispatch.SourceId,
             "equal-quality sources ignored authored dispatch order");
-        SequenceEqual(new[] { "A_IN", "A_OUT", "LOAD_ONE" },
+        SequenceEqual(new[] { "A_IN", "A_OUT" },
             equalQualityEarlyDispatch.PathEdgeIds,
             "equal-quality source route identity");
+    }
+
+    private void SubstationRadiusEndpointSupply()
+    {
+        CommercialWorldDefinition WorldAt(int loadY)
+        {
+            CommercialWorldDefinition result = _baseWorld with
+            {
+                Terrain = Array.Empty<TerrainPolygonDefinition>(),
+                RiskAreas = Array.Empty<SpatialRiskAreaDefinition>(),
+                Nodes =
+                [
+                    new SpatialNodeDefinition(
+                        "R_SOURCE_NODE", "SOURCE_TERMINAL", "Radius source",
+                        new MapPoint(200, 400), true, false),
+                    new SpatialNodeDefinition(
+                        "R_SUBSTATION", "SMALL_SUBSTATION", "Radius substation",
+                        new MapPoint(600, 400), true, false),
+                    new SpatialNodeDefinition(
+                        "R_LOAD_NODE", "LOAD_TERMINAL", "Radius load",
+                        new MapPoint(600, loadY), true, false),
+                ],
+                Edges =
+                [
+                    new SpatialEdgeDefinition(
+                        "R_FEEDER", "REINFORCED_LINE",
+                        "R_SOURCE_NODE", "R_SUBSTATION", true),
+                ],
+                Sources =
+                [
+                    new CommercialSourceDefinition(
+                        "R_SOURCE", "Radius source", "R_SOURCE_NODE", 1000, 0),
+                ],
+                Loads =
+                [
+                    new CommercialLoadDefinition(
+                        "R_LOAD", "Radius load", "R_LOAD_NODE"),
+                ],
+            };
+            CommercialWorldLoader.Validate(result);
+            return result;
+        }
+
+        ThermalIntervalRequest request = new(
+            "RADIUS_ENDPOINT",
+            [new ThermalLoadRequest("R_LOAD", 400, ThermalPermission.ContinuousOnly)],
+            Array.Empty<string>(),
+            Array.Empty<string>(),
+            Array.Empty<ThermalLimitOverride>());
+        CommercialWorldDefinition boundary = WorldAt(950);
+        ThermalIntervalEvaluation supplied = RealtimeSupplyAllocator.EvaluateInterval(
+            boundary,
+            request,
+            Array.Empty<string>());
+        ThermalLoadSupply boundarySupply = supplied.Loads.Single();
+        Equal(400L, boundarySupply.DeliveredKw,
+            "load on radius R was not supplied without a load-side line");
+        SequenceEqual(new[] { "R_SOURCE_NODE", "R_SUBSTATION" },
+            boundarySupply.PathNodeIds,
+            "radius supply wired path did not terminate at the substation");
+        SequenceEqual(new[] { "R_FEEDER" }, boundarySupply.PathEdgeIds,
+            "radius supply used a non-existent load-side line");
+        Equal(400L, supplied.Assets.Single(item =>
+                item.AssetId == "R_SUBSTATION").UsedKw,
+            "serving substation did not carry radius load usage");
+
+        ThermalLoadSupply outside = RealtimeSupplyAllocator.EvaluateInterval(
+                WorldAt(951),
+                request with { IntervalId = "RADIUS_OUTSIDE" },
+                Array.Empty<string>())
+            .Loads.Single();
+        Equal(0L, outside.DeliveredKw, "load beyond radius R was supplied");
+        Equal(ThermalFailureKind.NoEligibleSubstation,
+            outside.Failure?.Kind,
+            "outside-radius load did not report missing eligible substation");
+
+        ThermalLoadSupply unavailable = RealtimeSupplyAllocator.EvaluateInterval(
+                boundary,
+                request with
+                {
+                    IntervalId = "RADIUS_UNAVAILABLE",
+                    UnavailableNodeIds = new[] { "R_SUBSTATION" },
+                },
+                Array.Empty<string>())
+            .Loads.Single();
+        Equal(0L, unavailable.DeliveredKw,
+            "unavailable radius substation supplied a load");
+        Equal(ThermalFailureKind.AssetUnavailable,
+            unavailable.Failure?.Kind,
+            "unavailable radius substation failure kind");
+        Equal("R_SUBSTATION", unavailable.Failure?.AssetId,
+            "unavailable radius substation failure asset");
     }
 
     private void AllocatorPolynomialLayeredGraph()
@@ -3113,7 +3206,7 @@ internal sealed class Checks
         ThermalLoadSupply supplied = evaluation.Loads.Single();
         Equal(1000L, supplied.DeliveredKw,
             "layered graph load was not supplied");
-        Equal(stages * 2 + 2, supplied.PathEdgeIds.Count,
+        Equal(stages * 2 + 1, supplied.PathEdgeIds.Count,
             "layered graph selected path edge count");
         Check(supplied.PathEdgeIds
                 .Where(item => item.Contains("_A_", StringComparison.Ordinal) ||
@@ -3230,20 +3323,15 @@ internal sealed class Checks
                     Array.Empty<ThermalLimitOverride>()),
                 Array.Empty<string>());
         ThermalLoadSupply articulationSupply = articulationResult.Loads.Single();
-        Equal(0L, articulationSupply.DeliveredKw,
-            "repeated-node substation walk was accepted as a service path");
-        ThermalSupplyFailure articulationFailure = articulationSupply.Failure ??
-            throw new InvalidOperationException("articulation rejection missing");
-        Equal(ThermalFailureKind.NoEligibleSubstation, articulationFailure.Kind,
-            "articulation rejection kind");
+        Equal(100L, articulationSupply.DeliveredKw,
+            "radius service incorrectly required a substation-to-load wire");
         SequenceEqual(
-            new[] { "ART_SOURCE_NODE", "ART_JOIN", "ART_LOAD_NODE" },
+            new[] { "ART_SOURCE_NODE", "ART_JOIN", "ART_SUBSTATION" },
             articulationSupply.PathNodeIds,
-            "articulation diagnostic path");
-        Check(articulationResult.Assets.All(item => item.UsedKw == 0),
-            "articulation rejection leaked ghost asset usage");
-        Check(articulationResult.Sources.All(item => item.UsedKw == 0),
-            "articulation rejection leaked ghost source usage");
+            "articulation radius supply path");
+        SequenceEqual(new[] { "ART_IN", "ART_SUB" },
+            articulationSupply.PathEdgeIds,
+            "articulation radius supply used a load-side line");
 
         SpatialNodeDefinition[] tieNodes =
         [
@@ -3303,10 +3391,10 @@ internal sealed class Checks
                 tieRequest with { IntervalId = "OPTIMIZER_EXACT_EDGE_TIE_PERMUTED" },
                 Array.Empty<string>());
         ThermalLoadSupply tieSupply = tieResult.Loads.Single();
-        SequenceEqual(new[] { "A_TIE_IN", "Z_TIE_A_OUT" }, tieSupply.PathEdgeIds,
+        SequenceEqual(new[] { "A_TIE_IN" }, tieSupply.PathEdgeIds,
             "equal numeric routes did not use exact edge-ID tie order");
         SequenceEqual(
-            new[] { "TIE_SOURCE_NODE", "TIE_SUB_A", "TIE_LOAD_NODE" },
+            new[] { "TIE_SOURCE_NODE", "TIE_SUB_A" },
             tieSupply.PathNodeIds,
             "equal numeric route node identity");
         AssertSimpleAcceptedPath(tieSupply);
@@ -3455,7 +3543,7 @@ internal sealed class Checks
                 Array.Empty<string>());
         ThermalLoadSupply diagnosticControlSupply = diagnosticControl.Loads.Single();
         SequenceEqual(
-            new[] { "Z_SERVICE_IN", "Z_SERVICE_BLOCK", "Z_SERVICE_LOAD" },
+            new[] { "Z_SERVICE_IN", "Z_SERVICE_BLOCK" },
             diagnosticControlSupply.PathEdgeIds,
             "service-path control did not prove the longer route exists");
         AssertSimpleAcceptedPath(diagnosticControlSupply);
@@ -3476,17 +3564,19 @@ internal sealed class Checks
             "thermally blocked service route unexpectedly supplied the load");
         ThermalSupplyFailure diagnosticFailure = diagnosticBlockedSupply.Failure ??
             throw new InvalidOperationException("first-rejection diagnostic missing");
-        Equal(ThermalFailureKind.NoEligibleSubstation, diagnosticFailure.Kind,
-            "later thermal blocker replaced the first ordered rejection");
+        Equal(ThermalFailureKind.ContinuousLimit, diagnosticFailure.Kind,
+            "radius feeder thermal blocker kind");
         Equal("DIAG_SOURCE", diagnosticFailure.AttemptedSourceId,
             "first-rejection diagnostic source");
-        SequenceEqual(new[] { "A_DIRECT_IN", "A_DIRECT_OUT" },
+        Equal("Z_SERVICE_BLOCK", diagnosticFailure.AssetId,
+            "radius feeder thermal blocker asset");
+        SequenceEqual(new[] { "Z_SERVICE_IN", "Z_SERVICE_BLOCK" },
             diagnosticBlockedSupply.PathEdgeIds,
-            "first-rejection diagnostic did not freeze the direct static path");
+            "radius feeder diagnostic path");
         SequenceEqual(
-            new[] { "DIAG_SOURCE_NODE", "DIAG_DIRECT_POLE", "DIAG_LOAD_NODE" },
+            new[] { "DIAG_SOURCE_NODE", "DIAG_SERVICE_POLE", "DIAG_SUBSTATION" },
             diagnosticBlockedSupply.PathNodeIds,
-            "first-rejection diagnostic node path");
+            "radius feeder diagnostic node path");
         Check(diagnosticBlocked.Assets.All(item => item.UsedKw == 0),
             "all-rejected diagnostic leaked ghost asset usage");
         Check(diagnosticBlocked.Sources.All(item => item.UsedKw == 0),
@@ -4236,9 +4326,9 @@ internal sealed class Checks
                 DisplayName = "Check bottleneck line",
                 ThermalLimit = new ThermalLimit(1000, 5000),
             });
-            int index = edges.FindIndex(item => item.EdgeId == "EDGE_WATER");
+            int index = edges.FindIndex(item => item.EdgeId == "EDGE_NORTH_SUBSTATION");
             edges[index] = edges[index] with { LineClassId = customLine };
-            targetId = "EDGE_WATER";
+            targetId = "EDGE_NORTH_SUBSTATION";
             targetKind = ThermalAssetKind.Edge;
             targetClass = customLine;
         }
@@ -4558,7 +4648,9 @@ internal sealed class Checks
     {
         Accepted(run.ApplyCommand(RealtimeCommand.SetNodeDraft(
                 "LARGE_SUBSTATION",
-                new MapPoint(2050, 400))),
+                includeNorthPromiseLine
+                    ? new MapPoint(2100, 600)
+                    : new MapPoint(1900, 400))),
             "NORTH_BANK large substation draft");
         RealtimeProjectQuote nodeQuote = run.PreviewNodeOrder();
         Check(nodeQuote is
@@ -4584,26 +4676,11 @@ internal sealed class Checks
             ],
             substationId,
             "NORTH_BANK reinforced source feed");
-        BuildNorthBankLine(
-            run,
-            substationId,
-            [new MapPoint(2050, 750)],
-            "EAST_RESIDENTIAL_TERMINAL",
-            "NORTH_BANK east operating service");
-        BuildNorthBankLine(
-            run,
-            substationId,
-            Array.Empty<MapPoint>(),
-            "WATER_TERMINAL",
-            "NORTH_BANK water safety service");
         if (includeNorthPromiseLine)
         {
-            BuildNorthBankLine(
-                run,
-                "WATER_TERMINAL",
-                Array.Empty<MapPoint>(),
-                "NORTH_RESIDENTIAL_TERMINAL",
-                "NORTH_BANK residential promise service");
+            Check(run.GetSnapshot().Construction.World.Nodes.Single(item =>
+                        item.NodeId == substationId).Position == new MapPoint(2100, 600),
+                "NORTH_BANK promise coverage substation position");
         }
         Check(run.Minute < 2280,
             "NORTH_BANK test network missed the SECOND_SOURCE preparation window");

@@ -561,6 +561,37 @@ internal static class RealtimeContextPresenter
                     $"사용 {asset.UsedKw:N0} / 연속 {asset.ContinuousKw:N0} / 비상 {asset.EmergencyKw:N0} kW")),
                 new("보호", protection.Summary),
             };
+            if (node is not null)
+            {
+                CommercialNodeClassDefinition nodeClass = displayWorld.NodeClasses.Single(
+                    item => string.Equals(item.ClassId, node.ClassId,
+                        StringComparison.Ordinal));
+                if (nodeClass.Kind == SpatialNodeKind.Substation &&
+                    nodeClass.ServiceRadiusUnit is int radius)
+                {
+                    string[] coveredLoads = displayWorld.Loads.Where(load =>
+                            FixedGeometry.CeilDistance(
+                                node.Position,
+                                snapshot.Construction.World.Nodes.Single(item =>
+                                    string.Equals(item.NodeId, load.NodeId,
+                                        StringComparison.Ordinal)).Position) <= radius)
+                        .Select(load => load.DisplayName)
+                        .OrderBy(name => name, StringComparer.Ordinal)
+                        .ToArray();
+                    int serving = snapshot.Thermal.Evaluation.Loads.Count(load =>
+                        load.DeliveredKw == load.DemandKw &&
+                        string.Equals(load.PathNodeIds.LastOrDefault(), node.NodeId,
+                            StringComparison.Ordinal));
+                    sections.Insert(1, new RealtimeContextSectionPresentation(
+                        "서비스 반경",
+                        $"R {radius:N0} · 포함 수요 {coveredLoads.Length}곳 · 현재 공급 {serving}곳"));
+                    sections.Add(new RealtimeContextSectionPresentation(
+                        "반경 안 시설",
+                        coveredLoads.Length == 0
+                            ? "없음"
+                            : string.Join(" · ", coveredLoads)));
+                }
+            }
             if (asset.AuthoredUnavailable || asset.ProtectiveOutage)
             {
                 sections.Add(new RealtimeContextSectionPresentation(
@@ -615,7 +646,7 @@ internal static class RealtimeContextPresenter
                 string.Equals(item.ToNodeId, node.NodeId, StringComparison.Ordinal));
             SpatialNodeClassDefinition nodeClass = snapshot.Construction.World.NodeClasses.Single(
                 item => string.Equals(item.ClassId, node.ClassId, StringComparison.Ordinal));
-            identificationSections = new RealtimeContextSectionPresentation[]
+            var nodeSections = new List<RealtimeContextSectionPresentation>
             {
                 new("역할", RealtimePresentationText.NodeClassDisplayName(snapshot, node.ClassId)),
                 new(
@@ -626,6 +657,32 @@ internal static class RealtimeContextPresenter
                         : RealtimeTimelineSeverity.Advisory),
                 new("연결", $"현재 {connectionCount} / 최대 {nodeClass.MaxConnections}개"),
             };
+            if (nodeClass.Kind == SpatialNodeKind.DedicatedLoadTerminal)
+            {
+                CommercialLoadDefinition? load = displayWorld.Loads.FirstOrDefault(item =>
+                    string.Equals(item.NodeId, node.NodeId, StringComparison.Ordinal));
+                ThermalLoadSupply? supply = load is null
+                    ? null
+                    : snapshot.Thermal.Evaluation.Loads.FirstOrDefault(item =>
+                        string.Equals(item.LoadId, load.LoadId, StringComparison.Ordinal));
+                if (load is not null)
+                {
+                    string service = supply is { DeliveredKw: > 0 } &&
+                                     supply.PathNodeIds.LastOrDefault() is string substationId
+                        ? $"{RealtimePresentationText.AssetDisplayName(displayWorld, snapshot, substationId)} · " +
+                          $"{supply.DeliveredKw:N0}/{supply.DemandKw:N0} kW"
+                        : supply?.Failure is not null
+                            ? $"미공급 · {RealtimePresentationText.FailureKindText(supply.Failure.Kind)}"
+                            : "현재 운영 수요 없음";
+                    nodeSections.Add(new RealtimeContextSectionPresentation(
+                        "공급 변전소",
+                        service,
+                        supply is { DeliveredKw: > 0 }
+                            ? RealtimeTimelineSeverity.Information
+                            : RealtimeTimelineSeverity.Advisory));
+                }
+            }
+            identificationSections = Array.AsReadOnly(nodeSections.ToArray());
         }
         else
         {

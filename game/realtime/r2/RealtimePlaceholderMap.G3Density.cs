@@ -119,8 +119,8 @@ internal sealed partial class RealtimePlaceholderMap
         float side)
     {
         const int segments = 36;
-        float centerAmplitude = 28f * _accessibilityScale;
-        float edgeAmplitude = 7f * _accessibilityScale;
+        float centerAmplitude = 44f * _accessibilityScale;
+        float edgeAmplitude = 10f * _accessibilityScale;
         Vector2 tangent = (end - start).Normalized();
         Vector2 normal = new(-tangent.Y, tangent.X);
         return Enumerable.Range(0, segments + 1)
@@ -223,7 +223,7 @@ internal sealed partial class RealtimePlaceholderMap
         Vector2 axis = (rightBank - leftBank).Normalized();
         Vector2 normal = new(-axis.Y, axis.X);
         float landing = WorldPixels(75f);
-        float halfDeck = Math.Clamp(WorldPixels(64f), 15f, 30f);
+        float halfDeck = Math.Clamp(WorldPixels(78f), 18f, 36f);
         float skew = 9f * _accessibilityScale;
         Vector2 deckStart = leftBank - (axis * landing);
         Vector2 deckEnd = rightBank + (axis * landing);

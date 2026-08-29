@@ -15,6 +15,7 @@ namespace Gridworks.Game.Realtime.R2;
 internal sealed record RealtimeWorldPresentation(
     SpatialWorldDefinition World,
     IReadOnlyList<RealtimeWorldAssetStatus> AssetStatuses,
+    IReadOnlyList<RealtimeWorldServiceArea> ServiceAreas,
     RealtimeWorldDraftPresentation Draft,
     bool PlacementMode,
     string? SelectedAssetId,
@@ -29,10 +30,12 @@ internal sealed record RealtimeWorldPresentation(
     RealtimeSurface Surface,
     string ChapterId,
     IReadOnlyList<string> CompatibleLineNodeIds,
-    RealtimeWorldGuidanceTarget? GuidanceTarget)
+    RealtimeWorldGuidanceTarget? GuidanceTarget,
+    RealtimeWorldPlacementClass? PlacementClass)
 {
     private IReadOnlyList<RealtimeWorldAssetStatus> _assetStatuses =
         Freeze(AssetStatuses);
+    private IReadOnlyList<RealtimeWorldServiceArea> _serviceAreas = Freeze(ServiceAreas);
     private IReadOnlyList<string> _forecastRiskAreaIds = Freeze(ForecastRiskAreaIds);
     private IReadOnlyList<string> _activeRiskAreaIds = Freeze(ActiveRiskAreaIds);
     private IReadOnlyList<string> _compatibleLineNodeIds =
@@ -42,6 +45,12 @@ internal sealed record RealtimeWorldPresentation(
     {
         get => _assetStatuses;
         init => _assetStatuses = Freeze(value);
+    }
+
+    public IReadOnlyList<RealtimeWorldServiceArea> ServiceAreas
+    {
+        get => _serviceAreas;
+        init => _serviceAreas = Freeze(value);
     }
 
     public IReadOnlyList<string> ActiveRiskAreaIds
@@ -70,6 +79,18 @@ internal sealed record RealtimeWorldPresentation(
 }
 
 internal sealed record RealtimeWorldGuidanceTarget(string NodeId, string Label);
+
+internal sealed record RealtimeWorldServiceArea(
+    string NodeId,
+    int RadiusUnit,
+    int FootprintRadiusUnit,
+    string ClassDisplayName);
+
+internal sealed record RealtimeWorldPlacementClass(
+    string ClassId,
+    string DisplayName,
+    int FootprintRadiusUnit,
+    int ServiceRadiusUnit);
 
 /// <summary>
 /// Pointer-only feedback. Updating it must not require a Core snapshot, forecast, or a complete
@@ -117,7 +138,8 @@ internal sealed record RealtimeWorldHighlight(
     IReadOnlyList<string> NodeIds,
     IReadOnlyList<string> EdgeIds,
     string? LimitingAssetId,
-    string AccessibilitySummary)
+    string AccessibilitySummary,
+    RealtimeWorldServiceLink? ServiceLink = null)
 {
     private IReadOnlyList<string> _nodeIds = Freeze(NodeIds);
     private IReadOnlyList<string> _edgeIds = Freeze(EdgeIds);
@@ -141,12 +163,20 @@ internal sealed record RealtimeWorldHighlight(
     }
 }
 
+internal sealed record RealtimeWorldServiceLink(
+    string SubstationNodeId,
+    string LoadNodeId,
+    int RadiusUnit,
+    int DistanceUnit,
+    bool Supplied);
+
 internal sealed record RealtimeWorldDraftHandle(string Id, CoreMapPoint Point);
 
 internal sealed record RealtimeWorldDraftPresentation(
     IReadOnlyList<RealtimeWorldDraftHandle> Handles,
     IReadOnlyList<CoreMapPoint> LinePath,
-    bool ExtendLineToPointer)
+    bool ExtendLineToPointer,
+    string? NodeClassId)
 {
     private IReadOnlyList<RealtimeWorldDraftHandle> _handles = Freeze(Handles);
     private IReadOnlyList<CoreMapPoint> _linePath = Freeze(LinePath);

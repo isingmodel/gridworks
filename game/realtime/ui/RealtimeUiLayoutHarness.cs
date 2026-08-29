@@ -857,7 +857,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                                 "north_residential", "waterworks",
                             },
                             StringComparer.Ordinal) &&
-                        map.DrawnCityRoadPathCountForSmoke == 6 &&
+                        map.DrawnCityRoadPathCountForSmoke == 7 &&
                         map.PoleConductorsUseRaisedAttachmentsForSmoke,
                     $"G3 {weather} map draw omitted a required asset/layer/material " +
                     $"(layers=[{string.Join(',', map.DrawnG3LayersForSmoke)}], " +
@@ -891,11 +891,67 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 ',',
                 map.G3AssetPathsForSmoke.Where(path => !drawnUnion.Contains(path)));
             Require(drawnUnion.SetEquals(map.G3AssetPathsForSmoke) &&
-                    map.G3AssetPathsForSmoke.Count == 41,
-                "Realtime clear/heat/rain/storm draw union did not exactly match the 41-file " +
+                    map.G3AssetPathsForSmoke.Count == 43,
+                "Realtime clear/heat/rain/storm draw union did not exactly match the 43-file " +
                 "adopted map palette " +
                 $"(drawn={drawnUnion.Count}, allowed={map.G3AssetPathsForSmoke.Count}, " +
                 $"missing=[{missingG3Assets}])",
+                failures);
+            RealtimeWorldServiceArea serviceArea = baseline.World.ServiceAreas.First();
+            SpatialNodeDefinition serviceNode = baseline.World.World.Nodes.Single(item =>
+                string.Equals(item.NodeId, serviceArea.NodeId, StringComparison.Ordinal));
+            SpatialNodeDefinition coveredLoad = baseline.World.World.Nodes
+                .Where(item => baseline.World.World.NodeClasses.Single(nodeClass =>
+                        string.Equals(nodeClass.ClassId, item.ClassId,
+                            StringComparison.Ordinal)).Kind ==
+                    SpatialNodeKind.DedicatedLoadTerminal)
+                .First(item => FixedGeometry.CeilDistance(
+                    serviceNode.Position,
+                    item.Position) <= serviceArea.RadiusUnit);
+            int serviceDistance = checked((int)FixedGeometry.CeilDistance(
+                serviceNode.Position,
+                coveredLoad.Position));
+            map.SetPresentation(baseline.World with
+            {
+                SelectedAssetId = serviceArea.NodeId,
+                Highlight = new RealtimeWorldHighlight(
+                    [serviceArea.NodeId, coveredLoad.NodeId],
+                    Array.Empty<string>(),
+                    null,
+                    "service-radius-check",
+                    new RealtimeWorldServiceLink(
+                        serviceArea.NodeId,
+                        coveredLoad.NodeId,
+                        serviceArea.RadiusUnit,
+                        serviceDistance,
+                        true)),
+            });
+            await ForceActualMapDraw(viewport, map);
+            Require(map.DrawnServiceAreaRadiusUnitForSmoke == serviceArea.RadiusUnit &&
+                    map.DrawnServiceLinkForSmoke,
+                "selected substation did not draw its exact R service area and load link",
+                failures);
+
+            map.SetPresentation(baseline.World with
+            {
+                Draft = new RealtimeWorldDraftPresentation(
+                    [new RealtimeWorldDraftHandle(
+                        RealtimeWorldIds.DraftNode,
+                        serviceNode.Position)],
+                    Array.Empty<CoreMapPoint>(),
+                    false,
+                    "SMALL_SUBSTATION"),
+                PlacementClass = new RealtimeWorldPlacementClass(
+                    "SMALL_SUBSTATION",
+                    "소형 배전 변전소",
+                    serviceArea.FootprintRadiusUnit,
+                    serviceArea.RadiusUnit),
+                Tool = RealtimeTool.BuildNode,
+            });
+            await ForceActualMapDraw(viewport, map);
+            Require(map.DrawnSubstationDraftFootprintForSmoke &&
+                    map.DrawnServiceAreaRadiusUnitForSmoke == serviceArea.RadiusUnit,
+                "substation placement draft omitted its footprint or exact R preview",
                 failures);
             RealtimeWorldPresentation movingWeather = baseline.World with
             {

@@ -35,6 +35,18 @@ internal static class RealtimeWorldPresenter
                 thermalById.GetValueOrDefault(item.EdgeId))))
             .OrderBy(item => item.AssetId, StringComparer.Ordinal)
             .ToArray();
+        RealtimeWorldServiceArea[] serviceAreas = snapshot.Construction.World.Nodes
+            .Select(node => (Node: node, Class: displayWorld.NodeClasses.Single(item =>
+                string.Equals(item.ClassId, node.ClassId, StringComparison.Ordinal))))
+            .Where(item => item.Class.Kind == SpatialNodeKind.Substation &&
+                item.Class.ServiceRadiusUnit.HasValue)
+            .Select(item => new RealtimeWorldServiceArea(
+                item.Node.NodeId,
+                item.Class.ServiceRadiusUnit!.Value,
+                item.Class.FootprintRadiusUnit,
+                item.Class.DisplayName))
+            .OrderBy(item => item.NodeId, StringComparer.Ordinal)
+            .ToArray();
         string[] riskIds = snapshot.ActiveEventStates
             .SelectMany(item => item.Event.OperatingProfile.ActiveRiskAreaIds)
             .Distinct(StringComparer.Ordinal)
@@ -57,6 +69,7 @@ internal static class RealtimeWorldPresenter
         return new RealtimeWorldPresentation(
             snapshot.Construction.World,
             Array.AsReadOnly(statuses),
+            Array.AsReadOnly(serviceAreas),
             Draft(snapshot.Construction),
             !snapshot.CampaignComplete &&
                 interaction.Simulation != RealtimeSimulationState.Ended &&
@@ -86,7 +99,8 @@ internal static class RealtimeWorldPresenter
             interaction.Surface,
             snapshot.Chapter.Content.ChapterId,
             compatibleLineNodeIds,
-            GuidanceTarget(snapshot, interaction));
+            GuidanceTarget(snapshot, interaction),
+            PlacementClass(displayWorld, snapshot.Construction, interaction));
     }
 
     private static RealtimeWorldGuidanceTarget? GuidanceTarget(
@@ -123,25 +137,42 @@ internal static class RealtimeWorldPresenter
                         "선로 끝 · 새 변전소")
                     : null;
         }
-        if (!RealtimePresentationText.Connected(
-                world,
-                substation.NodeId,
-                "EAST_RESIDENTIAL_TERMINAL"))
-        {
-            return draft is null
-                ? new RealtimeWorldGuidanceTarget(
-                    substation.NodeId,
-                    "선로 시작 · 새 변전소")
-                : string.Equals(
-                    draft.StartNodeId,
-                    substation.NodeId,
-                    StringComparison.Ordinal)
-                    ? new RealtimeWorldGuidanceTarget(
-                        "EAST_RESIDENTIAL_TERMINAL",
-                        "선로 끝 · 동부 생활권 접속점")
-                    : null;
-        }
         return null;
+    }
+
+    private static RealtimeWorldPlacementClass? PlacementClass(
+        CommercialWorldDefinition displayWorld,
+        ConstructionSnapshot construction,
+        RealtimeInteractionState interaction)
+    {
+        if (construction.NodeDraft is NodeDraftSnapshot draft)
+        {
+            CommercialNodeClassDefinition draftClass = displayWorld.NodeClasses.Single(item =>
+                string.Equals(item.ClassId, draft.NodeClassId, StringComparison.Ordinal));
+            return new RealtimeWorldPlacementClass(
+                draftClass.ClassId,
+                draftClass.DisplayName,
+                draftClass.FootprintRadiusUnit,
+                draftClass.ServiceRadiusUnit ?? throw new InvalidOperationException(
+                    "A substation draft class is missing its service radius."));
+        }
+        string? toolId = interaction.SelectedBuildToolId;
+        string? classId = interaction.Tool == RealtimeTool.BuildNode &&
+               toolId?.StartsWith(RealtimeR2Ids.NodeToolPrefix, StringComparison.Ordinal) == true
+            ? toolId[RealtimeR2Ids.NodeToolPrefix.Length..]
+            : null;
+        if (classId is null)
+        {
+            return null;
+        }
+        CommercialNodeClassDefinition nodeClass = displayWorld.NodeClasses.Single(item =>
+            string.Equals(item.ClassId, classId, StringComparison.Ordinal));
+        return new RealtimeWorldPlacementClass(
+            nodeClass.ClassId,
+            nodeClass.DisplayName,
+            nodeClass.FootprintRadiusUnit,
+            nodeClass.ServiceRadiusUnit ?? throw new InvalidOperationException(
+                "A substation placement class is missing its service radius."));
     }
 
     private static RealtimeWorldDraftPresentation Draft(ConstructionSnapshot construction)
@@ -187,7 +218,8 @@ internal static class RealtimeWorldPresenter
         return new RealtimeWorldDraftPresentation(
             Array.AsReadOnly(handles.ToArray()),
             Array.AsReadOnly(linePath.ToArray()),
-            extendLineToPointer);
+            extendLineToPointer,
+            construction.NodeDraft?.NodeClassId);
     }
 
     private static RealtimeWorldHighlight? Highlight(
@@ -287,7 +319,43 @@ internal static class RealtimeWorldPresenter
         {
             return null;
         }
+        string? substationNodeId = route.PathNodeIds.LastOrDefault(nodeId =>
+            displayWorld.NodeClasses.Single(nodeClass => string.Equals(
+                    nodeClass.ClassId,
+                    snapshot.Construction.World.Nodes.Single(node => string.Equals(
+                        node.NodeId,
+                        nodeId,
+                        StringComparison.Ordinal)).ClassId,
+                    StringComparison.Ordinal)).Kind == SpatialNodeKind.Substation);
+        CommercialLoadDefinition load = displayWorld.Loads.Single(item => string.Equals(
+            item.LoadId,
+            route.LoadId,
+            StringComparison.Ordinal));
+        RealtimeWorldServiceLink? serviceLink = null;
+        if (substationNodeId is not null)
+        {
+            SpatialNodeDefinition substation = snapshot.Construction.World.Nodes.Single(item =>
+                string.Equals(item.NodeId, substationNodeId, StringComparison.Ordinal));
+            CommercialNodeClassDefinition substationClass = displayWorld.NodeClasses.Single(
+                item => string.Equals(item.ClassId, substation.ClassId,
+                    StringComparison.Ordinal));
+            int radius = substationClass.ServiceRadiusUnit ?? throw new InvalidOperationException(
+                "A serving substation is missing its service radius.");
+            int distance = checked((int)FixedGeometry.CeilDistance(
+                substation.Position,
+                snapshot.Construction.World.Nodes.Single(item => string.Equals(
+                    item.NodeId,
+                    load.NodeId,
+                    StringComparison.Ordinal)).Position));
+            serviceLink = new RealtimeWorldServiceLink(
+                substationNodeId,
+                load.NodeId,
+                radius,
+                distance,
+                route.DeliveredKw == route.DemandKw && route.Failure is null);
+        }
         string[] nodeIds = route.PathNodeIds
+            .Concat(serviceLink is null ? Array.Empty<string>() : new[] { load.NodeId })
             .Concat(mapSelectionId is not null && snapshot.Construction.World.Nodes.Any(
                     item => string.Equals(item.NodeId, mapSelectionId,
                         StringComparison.Ordinal))
@@ -309,9 +377,13 @@ internal static class RealtimeWorldPresenter
             route.Failure?.AssetId ??
                 (forecast is null && completed is null ? mapSelectionId : null),
             route.Failure is null
-                ? $"{RealtimePresentationText.LoadDisplayName(displayWorld, route.LoadId)} 공급 경로"
+                ? $"{RealtimePresentationText.LoadDisplayName(displayWorld, route.LoadId)} 공급 경로" +
+                  (serviceLink is null
+                      ? string.Empty
+                      : $" · 변전소 거리 {serviceLink.DistanceUnit:N0} / R {serviceLink.RadiusUnit:N0}")
                 : $"{RealtimePresentationText.LoadDisplayName(displayWorld, route.LoadId)} 첫 병목 · " +
-                  RealtimePresentationText.FailureKindText(route.Failure.Kind));
+                  RealtimePresentationText.FailureKindText(route.Failure.Kind),
+            serviceLink);
     }
 
     private static RealtimeWorldAssetState WorldState(ThermalOperatingState state) =>

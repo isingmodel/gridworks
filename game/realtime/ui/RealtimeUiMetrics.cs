@@ -173,16 +173,14 @@ internal static class RealtimeUiMetrics
             logicalSize.Y - margin - actionHeight,
             actionWidth,
             actionHeight);
-        float commandOcclusion = buildShelfVisible
-            ? profile.BuildShelfHeight + gap
-            : actionDockVisible
-                ? actionHeight + gap
-                : 0f;
+        // Command panels overlay the world and intercept their own pointer input.
+        // Keep rendering the map behind them so the lower workspace remains one
+        // continuous city surface instead of exposing a dead clear-color strip.
         var mapInteraction = new Rect2(
             margin,
             workspaceTop,
             mapWidth,
-            Math.Max(1f, workspaceHeight - commandOcclusion));
+            workspaceHeight);
         return new RealtimeSurfaceLayout(
             topHud,
             eventRail,

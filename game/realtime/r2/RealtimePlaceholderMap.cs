@@ -80,6 +80,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         G3PlantTurbineHall, G3SwitchyardBreakerBay, G3SubstationTransformer,
         G3StandardPole, G3ReinforcedPole, G3BridgeFoundation,
         CityResidentialBlock, CityIndustrialCampus,
+        CityHospitalCampus, CityWaterworksCampus,
         .. G3ExtendedMapAssetPaths,
     ];
 
@@ -172,6 +173,9 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private readonly List<Vector2[]> _drawnBridgeSpans = [];
     private readonly Dictionary<string, Vector2[]> _drawnConductorAnchors =
         new(StringComparer.Ordinal);
+    private int? _drawnServiceAreaRadiusUnit;
+    private bool _drawnServiceLink;
+    private bool _drawnSubstationDraftFootprint;
 #endif
 
     public event Action<RealtimePointerResolution, CoreMapPoint>? PrimaryRequested;
@@ -450,6 +454,9 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         _drawnCityRoadPathCount = 0;
         _drawnBridgeSpans.Clear();
         _drawnConductorAnchors.Clear();
+        _drawnServiceAreaRadiusUnit = null;
+        _drawnServiceLink = false;
+        _drawnSubstationDraftFootprint = false;
 #endif
         DrawG3Ground();
         if (_presentation is null || _transform is null)
@@ -460,6 +467,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         DrawG3Roads();
         DrawG3City(_presentation);
         DrawG3Weather(_presentation);
+        DrawServiceAreasAndLinks(_presentation);
         if (_presentation.AnalysisVisible)
         {
 #if DEBUG
@@ -479,6 +487,194 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         DrawSelectionAction(_presentation);
         DrawDraft(_presentation);
         DrawPointer(_presentation);
+    }
+
+    private void DrawServiceAreasAndLinks(RealtimeWorldPresentation presentation)
+    {
+        RealtimeWorldDraftHandle? nodeDraft = presentation.Draft.Handles.FirstOrDefault(
+            item => string.Equals(item.Id, RealtimeWorldIds.DraftNode,
+                StringComparison.Ordinal));
+        if (nodeDraft is not null && presentation.PlacementClass is not null)
+        {
+            DrawServiceArea(
+                presentation,
+                nodeDraft.Point,
+                presentation.PlacementClass.ServiceRadiusUnit,
+                presentation.PlacementClass.FootprintRadiusUnit,
+                Planned,
+                presentation.PlacementClass.DisplayName,
+                drawGhost: true);
+        }
+        else if (presentation.Tool == RealtimeTool.BuildNode &&
+                 presentation.PlacementClass is not null &&
+                 (_pointerFeedback.Point ?? _pointer) is CoreMapPoint pointer)
+        {
+            DrawServiceArea(
+                presentation,
+                pointer,
+                presentation.PlacementClass.ServiceRadiusUnit,
+                presentation.PlacementClass.FootprintRadiusUnit,
+                _pointerFeedback.Accepted ? Planned : Danger,
+                presentation.PlacementClass.DisplayName,
+                drawGhost: true);
+        }
+        else
+        {
+            RealtimeWorldServiceArea? selectedArea = presentation.ServiceAreas.FirstOrDefault(
+                item => string.Equals(item.NodeId, presentation.SelectedAssetId,
+                    StringComparison.Ordinal));
+            RealtimeWorldServiceLink? link = presentation.Highlight?.ServiceLink;
+            RealtimeWorldServiceArea? linkedArea = link is null
+                ? null
+                : presentation.ServiceAreas.FirstOrDefault(item => string.Equals(
+                    item.NodeId,
+                    link.SubstationNodeId,
+                    StringComparison.Ordinal));
+            RealtimeWorldServiceArea? visibleArea = selectedArea ?? linkedArea;
+            if (visibleArea is not null)
+            {
+                SpatialNodeDefinition node = presentation.World.Nodes.Single(item =>
+                    string.Equals(item.NodeId, visibleArea.NodeId,
+                        StringComparison.Ordinal));
+                DrawServiceArea(
+                    presentation,
+                    node.Position,
+                    visibleArea.RadiusUnit,
+                    visibleArea.FootprintRadiusUnit,
+                    Selected,
+                    visibleArea.ClassDisplayName,
+                    drawGhost: false);
+            }
+        }
+
+        if (presentation.Highlight?.ServiceLink is not RealtimeWorldServiceLink service)
+        {
+            return;
+        }
+        SpatialNodeDefinition from = presentation.World.Nodes.Single(item => string.Equals(
+            item.NodeId,
+            service.SubstationNodeId,
+            StringComparison.Ordinal));
+        SpatialNodeDefinition to = presentation.World.Nodes.Single(item => string.Equals(
+            item.NodeId,
+            service.LoadNodeId,
+            StringComparison.Ordinal));
+#if DEBUG
+        _drawnServiceLink = true;
+#endif
+        Color linkColor = service.Supplied ? Selected : Danger;
+        Vector2 fromPoint = Point(from.Position);
+        Vector2 toPoint = Point(to.Position);
+        DrawDashedLine(fromPoint, toPoint, linkColor with { A = 0.92f });
+        DrawCircle(toPoint, 9f * _accessibilityScale, linkColor, false,
+            2.5f * _accessibilityScale, true);
+        DrawLine(
+            toPoint + new Vector2(-5f, 0f) * _accessibilityScale,
+            toPoint + new Vector2(-1f, 5f) * _accessibilityScale,
+            linkColor,
+            2f * _accessibilityScale,
+            true);
+        DrawLine(
+            toPoint + new Vector2(-1f, 5f) * _accessibilityScale,
+            toPoint + new Vector2(6f, -5f) * _accessibilityScale,
+            linkColor,
+            2f * _accessibilityScale,
+            true);
+    }
+
+    private void DrawServiceArea(
+        RealtimeWorldPresentation presentation,
+        CoreMapPoint centerWorld,
+        int radiusUnit,
+        int footprintRadiusUnit,
+        Color color,
+        string classDisplayName,
+        bool drawGhost)
+    {
+#if DEBUG
+        _drawnServiceAreaRadiusUnit = radiusUnit;
+        _drawnSubstationDraftFootprint = drawGhost;
+#endif
+        Vector2 center = Point(centerWorld);
+        float radius = Math.Max(1f, radiusUnit * (float)_transform!.Scale);
+        DrawCircle(center, radius, color with { A = 0.035f });
+        const int segmentCount = 64;
+        for (int index = 0; index < segmentCount; index += 2)
+        {
+            float fromAngle = Mathf.Tau * index / segmentCount;
+            float toAngle = Mathf.Tau * (index + 1) / segmentCount;
+            DrawLine(
+                center + Vector2.FromAngle(fromAngle) * radius,
+                center + Vector2.FromAngle(toAngle) * radius,
+                color with { A = 0.9f },
+                1.8f * _accessibilityScale,
+                true);
+        }
+
+        int covered = 0;
+        foreach (SpatialNodeDefinition loadNode in presentation.World.Nodes.Where(item =>
+                     presentation.World.NodeClasses.Single(nodeClass => string.Equals(
+                         nodeClass.ClassId,
+                         item.ClassId,
+                         StringComparison.Ordinal)).Kind ==
+                     SpatialNodeKind.DedicatedLoadTerminal))
+        {
+            int distance = checked((int)FixedGeometry.CeilDistance(
+                centerWorld,
+                loadNode.Position));
+            if (distance > radiusUnit)
+            {
+                continue;
+            }
+            covered++;
+            Vector2 loadPoint = Point(loadNode.Position);
+            float glyph = 7f * _accessibilityScale;
+            DrawLine(loadPoint + new Vector2(-glyph, -glyph),
+                loadPoint + new Vector2(glyph, -glyph), color,
+                2f * _accessibilityScale, true);
+            DrawLine(loadPoint + new Vector2(-glyph, -glyph),
+                loadPoint + new Vector2(-glyph, glyph), color,
+                2f * _accessibilityScale, true);
+        }
+
+        string label = $"{classDisplayName} · R {radiusUnit:N0} · 수요 {covered}곳";
+        DrawString(
+            ThemeDB.FallbackFont,
+            center + new Vector2(14f, -radius - 10f) * _accessibilityScale,
+            label,
+            HorizontalAlignment.Left,
+            -1,
+            Math.Max(LabelFontSize, Mathf.RoundToInt(13f * _accessibilityScale)),
+            color);
+
+        if (!drawGhost)
+        {
+            return;
+        }
+        float footprint = Math.Max(
+            18f * _accessibilityScale,
+            footprintRadiusUnit * (float)_transform.Scale);
+        Color footprintColor = color;
+        Vector2[] footprintPoints =
+        [
+            center + new Vector2(0f, -footprint * 0.62f),
+            center + new Vector2(footprint, 0f),
+            center + new Vector2(0f, footprint * 0.62f),
+            center + new Vector2(-footprint, 0f),
+        ];
+        DrawColoredPolygon(footprintPoints, footprintColor with { A = 0.13f });
+        for (int index = 0; index < footprintPoints.Length; index++)
+        {
+            DrawDashedLine(
+                footprintPoints[index],
+                footprintPoints[(index + 1) % footprintPoints.Length],
+                footprintColor);
+        }
+        DrawG3Sprite(
+            G3SubstationTransformer,
+            center,
+            WorldPixels(360f),
+            new Color(footprintColor, 0.52f));
     }
 
     internal RealtimePointerResolution ResolveWorldProbe(RealtimePointerProbe probe) =>
@@ -658,9 +854,9 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             ground,
             new Rect2(Vector2.Zero, Size),
             new Rect2(Vector2.Zero, Size * 1.62f),
-            new Color(0.66f, 0.65f, 0.60f, 1f));
+            new Color(0.34f, 0.35f, 0.32f, 1f));
         DrawG3GroundVariation();
-        DrawRect(new Rect2(Vector2.Zero, Size), new Color(Color.FromHtml("101716"), 0.14f));
+        DrawRect(new Rect2(Vector2.Zero, Size), new Color(Color.FromHtml("101716"), 0.48f));
         RecordG3Asset(G3GroundRubble);
     }
 

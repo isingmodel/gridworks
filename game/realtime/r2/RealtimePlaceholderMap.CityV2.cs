@@ -12,6 +12,8 @@ internal sealed partial class RealtimePlaceholderMap
     private const string CityV2Root = "res://art/realtime/city-v2/";
     private const string CityResidentialBlock = CityV2Root + "residential-block-a.png";
     private const string CityIndustrialCampus = CityV2Root + "industrial-campus-a.png";
+    private const string CityHospitalCampus = CityV2Root + "hospital-campus-a.png";
+    private const string CityWaterworksCampus = CityV2Root + "waterworks-campus-a.png";
 
     private enum CityDistrictKind
     {
@@ -25,6 +27,7 @@ internal sealed partial class RealtimePlaceholderMap
     private readonly record struct CityDistrict(
         string NodeId,
         string DisplayId,
+        string Label,
         CityDistrictKind Kind,
         CoreMapPoint Center,
         CoreMapPoint SpriteGround,
@@ -37,42 +40,50 @@ internal sealed partial class RealtimePlaceholderMap
         new(
             "WATER_TERMINAL",
             "waterworks",
+            "정수장",
             CityDistrictKind.Waterworks,
-            new CoreMapPoint(2550, 220),
-            new CoreMapPoint(2550, 360),
-            new Vector2(500f, 360f),
-            0f),
+            new CoreMapPoint(2440, 270),
+            new CoreMapPoint(2440, 465),
+            new Vector2(610f, 390f),
+            700f,
+            CityWaterworksCampus),
         new(
             "NORTH_RESIDENTIAL_TERMINAL",
             "north_residential",
+            "북안 생활권",
             CityDistrictKind.NorthResidential,
-            new CoreMapPoint(3000, 225),
-            new CoreMapPoint(3000, 380),
-            new Vector2(330f, 330f),
-            0f),
+            new CoreMapPoint(2930, 380),
+            new CoreMapPoint(2930, 525),
+            new Vector2(390f, 330f),
+            560f,
+            CityResidentialBlock),
         new(
             "EAST_RESIDENTIAL_TERMINAL",
             "east_residential",
+            "동부 생활권",
             CityDistrictKind.EastResidential,
-            new CoreMapPoint(2910, 725),
-            new CoreMapPoint(2910, 960),
+            new CoreMapPoint(2790, 810),
+            new CoreMapPoint(2790, 1025),
             new Vector2(560f, 450f),
             720f,
             CityResidentialBlock),
         new(
             "HOSPITAL_TERMINAL",
             "hospital",
+            "청류의료원",
             CityDistrictKind.Hospital,
-            new CoreMapPoint(2875, 1350),
-            new CoreMapPoint(2875, 1530),
-            new Vector2(550f, 400f),
-            0f),
+            new CoreMapPoint(2480, 1280),
+            new CoreMapPoint(2480, 1485),
+            new Vector2(620f, 410f),
+            750f,
+            CityHospitalCampus),
         new(
             "FACTORY_TERMINAL",
             "industrial",
+            "강변 산업단지",
             CityDistrictKind.Industrial,
-            new CoreMapPoint(2875, 1800),
-            new CoreMapPoint(2875, 1980),
+            new CoreMapPoint(2890, 1720),
+            new CoreMapPoint(2890, 1910),
             new Vector2(560f, 330f),
             740f,
             CityIndustrialCampus),
@@ -80,13 +91,14 @@ internal sealed partial class RealtimePlaceholderMap
 
     private static readonly CoreMapPoint[][] CityRoadPaths =
     [
-        [new(2015, 150), new(2060, 480), new(2040, 820), new(2090, 1180),
-            new(2070, 1480), new(2150, 1850)],
-        [new(2050, 330), new(2200, 320), new(2320, 270)],
-        [new(2070, 480), new(2320, 420), new(2550, 330), new(2780, 245)],
-        [new(2045, 820), new(2260, 785), new(2460, 745), new(2605, 725)],
-        [new(2080, 1180), new(2260, 1210), new(2440, 1280), new(2590, 1340)],
-        [new(2100, 1650), new(2280, 1690), new(2440, 1760), new(2585, 1800)],
+        [new(1650, 520), new(1880, 560), new(2110, 700), new(2240, 980),
+            new(2180, 1270), new(2330, 1540), new(2580, 1760)],
+        [new(1890, 560), new(2110, 430), new(2410, 380)],
+        [new(2160, 505), new(2480, 430), new(2790, 410)],
+        [new(2200, 850), new(2460, 830), new(2680, 810)],
+        [new(2190, 1270), new(2320, 1340), new(2380, 1430)],
+        [new(2320, 1540), new(2520, 1640), new(2760, 1740)],
+        [new(1650, 1500), new(1880, 1460), new(2170, 1380)],
     ];
 
     private CityDistrict? DistrictForNode(string nodeId)
@@ -104,9 +116,9 @@ internal sealed partial class RealtimePlaceholderMap
     private void DrawCityRoadNetwork()
     {
         DrawCityGroundPlane();
-        Color shoulder = new(Color.FromHtml("202725"), 0.96f);
-        Color asphalt = new(Color.FromHtml("303634"), 0.98f);
-        Color lane = new(Color.FromHtml("a88b55"), 0.42f);
+        Color shoulder = new(Color.FromHtml("171e1d"), 0.98f);
+        Color asphalt = new(Color.FromHtml("3b4240"), 0.98f);
+        Color lane = new(Color.FromHtml("c39c5b"), 0.55f);
         foreach (CoreMapPoint[] path in CityRoadPaths)
         {
             Vector2[] points = SmoothRoadPath(path.Select(Point).ToArray());
@@ -128,7 +140,7 @@ internal sealed partial class RealtimePlaceholderMap
             new(1885, 1930), new(1915, 1320), new(1825, 680),
         ];
         Vector2[] polygon = boundary.Select(Point).ToArray();
-        DrawColoredPolygon(polygon, new Color(Color.FromHtml("1b2421"), 0.32f));
+        DrawColoredPolygon(polygon, new Color(Color.FromHtml("1b2421"), 0.74f));
         DrawPolyline(
             [.. polygon, polygon[0]],
             new Color(Color.FromHtml("718078"), 0.07f),
@@ -192,26 +204,69 @@ internal sealed partial class RealtimePlaceholderMap
             DrawDistrictFoundation(district, stateModulate);
             switch (district.Kind)
             {
-                case CityDistrictKind.Waterworks:
-                    DrawWaterworksDistrict(district, stateModulate);
-                    break;
                 case CityDistrictKind.NorthResidential:
-                    DrawNorthResidentialDistrict(district, stateModulate);
-                    break;
                 case CityDistrictKind.EastResidential:
+                case CityDistrictKind.Waterworks:
+                case CityDistrictKind.Hospital:
                 case CityDistrictKind.Industrial:
                     DrawDistrictCampusSprite(district, stateModulate);
-                    break;
-                case CityDistrictKind.Hospital:
-                    DrawHospitalDistrict(district, stateModulate);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(district));
             }
+            DrawDistrictIdentity(district, stateModulate);
 #if DEBUG
             _drawnCityDistrictIds.Add(district.DisplayId);
 #endif
         }
+    }
+
+    private void DrawDistrictIdentity(CityDistrict district, Color stateModulate)
+    {
+        Vector2 center = Point(district.Center);
+        float halfWidth = WorldPixels(district.WorldFootprint.X) * 0.5f;
+        Vector2 labelPoint = center + new Vector2(
+            -halfWidth + (14f * _accessibilityScale),
+            WorldPixels(district.WorldFootprint.Y) * 0.22f);
+        string glyph = district.Kind switch
+        {
+            CityDistrictKind.Waterworks => "≋",
+            CityDistrictKind.Hospital => "+",
+            CityDistrictKind.Industrial => "▥",
+            CityDistrictKind.NorthResidential or CityDistrictKind.EastResidential => "⌂",
+            _ => "•",
+        };
+        string text = $"{glyph}  {district.Label}";
+        Vector2 textSize = ThemeDB.FallbackFont.GetStringSize(
+            text,
+            HorizontalAlignment.Left,
+            -1,
+            LabelFontSize);
+        var badge = new Rect2(
+            labelPoint - new Vector2(6f, textSize.Y + 5f) * _accessibilityScale,
+            textSize + new Vector2(12f, 8f) * _accessibilityScale);
+        var style = new StyleBoxFlat
+        {
+            BgColor = new Color(Color.FromHtml("111817"), 0.88f),
+            BorderColor = stateModulate with { A = 0.52f },
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 3,
+            CornerRadiusTopRight = 3,
+            CornerRadiusBottomLeft = 3,
+            CornerRadiusBottomRight = 3,
+        };
+        DrawStyleBox(style, badge);
+        DrawString(
+            ThemeDB.FallbackFont,
+            labelPoint,
+            text,
+            HorizontalAlignment.Left,
+            -1,
+            LabelFontSize,
+            Text with { A = 0.88f });
     }
 
     private void DrawDistrictFoundation(CityDistrict district, Color stateModulate)

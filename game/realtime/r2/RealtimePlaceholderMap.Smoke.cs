@@ -64,6 +64,14 @@ internal sealed partial class RealtimePlaceholderMap
 
     internal int DrawnMeasuredBridgeCountForSmoke => _drawnBridgeSpans.Count;
 
+    internal int? DrawnServiceAreaRadiusUnitForSmoke =>
+        _drawnServiceAreaRadiusUnit;
+
+    internal bool DrawnServiceLinkForSmoke => _drawnServiceLink;
+
+    internal bool DrawnSubstationDraftFootprintForSmoke =>
+        _drawnSubstationDraftFootprint;
+
     internal bool MeasuredBridgesLandOnBothBanksForSmoke =>
         _drawnBridgeSpans.Count == 2 &&
         _drawnBridgeSpans.All(span => span.Length == 4 &&

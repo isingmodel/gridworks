@@ -2,37 +2,30 @@
 
 ## 상태
 
-**도시 건물·배경·UI 조화 개선 scope가 활성 상태다.**
+**활성 scope가 없다.**
 
-## 단일 결과물
+도시 건물·배경·UI 조화 scope는 완료됐다. 반복 placement와 설비 건물의 중복 draw를 제거하고, 정수장·
+북부/동부 생활권·병원·산업단지를 authored footprint, 공통 ground plane, 완만한 road spine/branch와 한
+depth 순서로 묶었다. 서부/남부 발전원도 서로 다른 campus 실루엣과 바닥 접점을 사용한다. 내장 ImageGen
+후보 중 공통 3/4 isometric camera·좌상단 광원·RGBA를 통과한 주거/산업 구역 2개만 source-tree runtime에
+채택했으며 provenance와 package 밖 사용 경계를 기록했다.
 
-플레이어가 기본·선택·건설 화면에서 같은 원근과 광원의 연속된 도시 구역을 읽고, 고유 시설과 전력 설비,
-상태와 조작 UI를 서로 혼동하지 않는 전문적인 current R2 화면을 얻는다.
+선택 dock은 376px 기준 폭의 compact overlay가 되어 지도 아래 dead strip을 만들지 않고, 역할·운영 상태·
+연결 정보와 상세 탭을 분리한다. top HUD, event rail, 일반/primary/tool control과 modal은 G3 metal texture
+대신 기능별 flat style hierarchy를 사용한다. `./dev check`의 Core/Commercial, G3 identity, save/settings
+failure matrix, FHD/QHD/UHD 100–200% UI harness와 normal/construction checkpoint가 PASS했다. fresh native
+normal·selected·construction 화면은 한 LLM이 직접 비교했으며 사람 미감·사용성 승인이나 공식 점수는
+수집하지 않았다.
 
-## 단일 권위
+이 완료는 Core gameplay·경제·story·save schema, package identity나 외부 release gate를 바꾸지 않는다.
+push, PR, merge, 공개 배포는 수행하지 않았다.
 
-- 월드 시각 구성·건물 footprint/anchor/depth·상태 overlay: `game/realtime/r2/RealtimePlaceholderMap*.cs`
-- 반응형 surface 크기와 선택 패널 내용: `game/realtime/ui/*`, `game/realtime/r2/RealtimeContextPresenter.cs`
-- 채택 runtime raster와 UI skin: `game/art/commercial/g3/**`, `game/RealtimeTheme.tres`, `ASSET_MANIFEST.md`
+## 다음 변경을 여는 조건
 
-## 범위 안
+- 읽기·설명·진단은 관련 질문 소유 문서를 read-only로 확인한다.
+- 파일 변경은 사용자가 명시한 결과물 하나를 이 문서에 먼저 연다.
+- 외부 gate 실행, push, PR, merge와 공개 배포는 각각 사용자의 명시적 권한이 있어야 한다.
+- 시작 형식, 최소 검증과 종료 checklist는 [Agent 작업 안내](AGENT_GUIDE.md)를 따른다.
 
-- 이전 native UI review에서 확인한 건물 삼중 중복, 반복 격자, 혼합 원근·비율, 과도한 축소, 약한 부지와
-  도로 연결, 시설 의미 혼동, 고정 대형 inspector·선택 후 clipping, 과한 metal chrome, 낮은 정보 대비를
-  빠짐없이 목록화하고 수정한다.
-- 동일 카메라·광원·최종 표시 크기의 건물/구역 자산만 채택하고 provenance·사용 경계를 기록한다.
-- normal, selected asset, construction 상태와 FHD/UI scale의 결정론 smoke 및 fresh native 직접 관찰을 갱신한다.
-
-## 범위 밖
-
-- Core gameplay 규칙·경제·chapter/story·save schema 변경
-- 새 설비 class, 자유 회전 camera, 신규 gameplay 또는 오디오 제작
-- 사람 미감·사용성 승인, 공식 평가 점수, package·외부 release gate
-- push, PR, merge, 공개 배포
-
-## 완료 검사
-
-- G3 asset/load/layer/anchor와 responsive layout/context presentation의 가장 가까운 smoke가 새 불변조건을 증명한다.
-- `./dev check`가 통과하고 normal·selected·construction native 화면을 fresh process에서 직접 비교한다.
-- 채택 자산 provenance와 current 시각 사실의 소유 문서만 갱신하고 major unit·scope closure를 commit한다.
-- 사람 시각 검토는 수집하지 않았음을 명시한다.
+`NEXT_TASKS.md`, [외부 출시 gate](RELEASE_GATES.md), 준비된 코드와 과거 PASS는 자동으로
+구현·평가·배포 권한을 만들지 않는다.

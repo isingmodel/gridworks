@@ -556,6 +556,28 @@ exact final commit의 native full-screen에서 normal world, line-construction m
 관찰했다. 이는 한 LLM의 formative 시각 확인이며 사람 미감 승인, 공식 UX 점수, package·외부 release gate를
 뜻하지 않는다. push, PR, merge는 수행하지 않았다.
 
+### UX-R2.29 — 도시 구역·배경·UI 시각 위계 재구축
+
+건물 삼중 중복, 반복 격자, 혼합 camera/anchor, 도로와 분리된 footprint, 시설 landmark 부족을 current
+`RealtimePlaceholderMap` draw authority 안에서 제거했다. 정수장, 북부/동부 생활권, 병원과 산업단지는
+authored district 5개와 curve-sampled road 6개, 공통 도시 ground plane, 통합 hit/selection footprint를
+사용한다. 발전원 두 곳은 서로 다른 campus 실루엣과 바닥 접점을 가지며, 기존 강·measured bridge와 pole
+top conductor attachment를 보존한다.
+
+내장 ImageGen으로 만든 후보 중 공통 3/4 isometric camera, 좌상단 key light와 실제 alpha를 통과한 주거
+block과 산업 campus 두 개만 768px RGBA source-tree 자산으로 채택했다. opaque/checkerboard 병원·정수장
+후보는 버렸고 source·prompt 축·pivot·footprint·package 밖 사용 경계를 별도 provenance에 기록했다.
+
+UI는 G3 metal texture mapping을 제거하고 top HUD, event rail, elevated surface, 일반/primary/tool control을
+구분하는 code-native flat hierarchy로 바꿨다. context dock은 376px 기준 compact overlay와 요약/상세 mode를
+사용해 지도 아래 dead strip을 없애고 선택 뒤 camera framing을 다시 적용한다. modal 크기·본문 대비·dim도
+함께 조정했다.
+
+전체 `./dev check`의 Core/Commercial suites, 57-file G3 identity, save/settings failure matrix,
+FHD/QHD/UHD 100/125/150/200% control-tree harness와 normal/construction targeted checkpoint가 PASS했다.
+fresh native normal·selected·construction 화면을 한 LLM이 관찰했다. 이는 사람 미감·사용성 증거, 공식
+평가 점수, package·외부 release gate나 공개 출시 승인이 아니다. push, PR, merge는 수행하지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

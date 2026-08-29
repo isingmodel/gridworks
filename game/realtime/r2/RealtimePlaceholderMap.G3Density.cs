@@ -69,7 +69,7 @@ internal sealed partial class RealtimePlaceholderMap
             rubble,
             new Rect2(Vector2.Zero, Size),
             new Rect2(new Vector2(168f, 91f), Size * 1.30f),
-            new Color(0.72f, 0.71f, 0.65f, 0.18f));
+            new Color(0.72f, 0.71f, 0.65f, 0.07f));
         RecordG3Asset(G3GroundRubbleMixB);
     }
 

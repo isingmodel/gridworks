@@ -73,13 +73,13 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     [
         G3GroundRubble, G3RiverWaterSurface, G3RiverWaterNeutral, G3RiverWaterHeat,
         G3RiverWaterFlood, G3RiverConifer, G3RiverScrub, G3RiverOutcrop,
-        G3RiverBridgeAbutment, G3RoadNorthWestSouthEast, G3RoadNorthEastSouthWest,
-        G3RoadCornerNorthEast, G3RoadTJunction, G3RoadCrossJunction, G3ServiceYard,
-        G3WorkerHouseA, G3WorkerHouseB, G3WorkerHouseC, G3RowShop, G3Workshop,
-        G3SmallWarehouse, G3HospitalMain, G3HospitalService, G3PumpHouse, G3WaterTank,
-        G3RetainingWall, G3StreetLamp, G3PlantMainHall, G3PlantSmokestack,
+        G3RiverBridgeAbutment,
+        G3WorkerHouseA, G3WorkerHouseB, G3RowShop,
+        G3HospitalMain, G3HospitalService, G3PumpHouse, G3WaterTank,
+        G3PlantMainHall, G3PlantSmokestack,
         G3PlantTurbineHall, G3SwitchyardBreakerBay, G3SubstationTransformer,
         G3StandardPole, G3ReinforcedPole, G3BridgeFoundation,
+        CityResidentialBlock, CityIndustrialCampus,
         .. G3ExtendedMapAssetPaths,
     ];
 
@@ -123,7 +123,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private static readonly Color Ground = Color.FromHtml("26342e");
     private static readonly Color G3WaterEdge = Color.FromHtml("111817");
     private static readonly Color G3BuildingBase = Color.FromHtml("151b1c");
-    private const float G3BuildingParcelAlpha = 0.18f;
+    private const float G3BuildingParcelAlpha = 0.08f;
     private static readonly Color Normal = Color.FromHtml("78c7b9");
     private static readonly Color Planned = Color.FromHtml("d5b45c");
     private static readonly Color Emergency = Color.FromHtml("ed964d");
@@ -163,10 +163,12 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private bool _drawnAnalysisOverlay;
     private readonly HashSet<string> _drawnG3AssetPaths = new(StringComparer.Ordinal);
     private readonly HashSet<string> _drawnG3Layers = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _drawnCityDistrictIds = new(StringComparer.Ordinal);
     private string? _drawnG3WaterMaterial;
     private int _drawnG3SpriteCount;
     private float _drawnRiverBankMaxDeviation;
     private float _drawnBuildingParcelAlpha;
+    private int _drawnCityRoadPathCount;
     private readonly List<Vector2[]> _drawnBridgeSpans = [];
     private readonly Dictionary<string, Vector2[]> _drawnConductorAnchors =
         new(StringComparer.Ordinal);
@@ -440,10 +442,12 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         _drawnAnalysisOverlay = false;
         _drawnG3AssetPaths.Clear();
         _drawnG3Layers.Clear();
+        _drawnCityDistrictIds.Clear();
         _drawnG3WaterMaterial = null;
         _drawnG3SpriteCount = 0;
         _drawnRiverBankMaxDeviation = 0f;
         _drawnBuildingParcelAlpha = 0f;
+        _drawnCityRoadPathCount = 0;
         _drawnBridgeSpans.Clear();
         _drawnConductorAnchors.Clear();
 #endif
@@ -454,7 +458,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         }
         DrawG3Terrain(_presentation);
         DrawG3Roads();
-        DrawG3City();
+        DrawG3City(_presentation);
         DrawG3Weather(_presentation);
         if (_presentation.AnalysisVisible)
         {
@@ -605,13 +609,17 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             double hitRadius = Math.Max(
                 36f * _accessibilityScale,
                 _minimumPointerHitRadius);
-            if (distance <= hitRadius * hitRadius)
+            bool districtHit = DistrictContainsPoint(
+                node,
+                canvasPoint,
+                out double districtDistance);
+            if (districtHit || distance <= hitRadius * hitRadius)
             {
                 yield return new RealtimeMapCandidate(
                     node.NodeId,
                     RealtimeMapCandidateKind.Node,
                     RealtimePointerOwner.WorldCandidate,
-                    distance);
+                    districtHit ? districtDistance : distance);
             }
         }
         foreach (SpatialEdgeDefinition edge in presentation.World.Edges)
@@ -650,9 +658,9 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             ground,
             new Rect2(Vector2.Zero, Size),
             new Rect2(Vector2.Zero, Size * 1.62f),
-            new Color(0.76f, 0.75f, 0.67f, 1f));
+            new Color(0.66f, 0.65f, 0.60f, 1f));
         DrawG3GroundVariation();
-        DrawRect(new Rect2(Vector2.Zero, Size), new Color(Color.FromHtml("090d0e"), 0.12f));
+        DrawRect(new Rect2(Vector2.Zero, Size), new Color(Color.FromHtml("101716"), 0.14f));
         RecordG3Asset(G3GroundRubble);
     }
 
@@ -708,13 +716,13 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                     .ToArray();
                 DrawColoredPolygon(polygon, G3BuildingBase with
                 {
-                    A = G3BuildingParcelAlpha * 0.55f,
+                    A = G3BuildingParcelAlpha * 0.45f,
                 });
                 DrawColoredPolygon(inset, new Color(Color.FromHtml("26302e"),
                     G3BuildingParcelAlpha));
                 DrawPolyline(
                     [.. inset, inset[0]],
-                    new Color(Color.FromHtml("6a756f"), 0.12f),
+                    new Color(Color.FromHtml("81877d"), 0.10f),
                     0.9f * _accessibilityScale,
                     true);
 #if DEBUG
@@ -733,19 +741,13 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private void DrawG3Roads()
     {
         RecordG3Layer("roads");
-        DrawG3Placements(
-            G3RoadPlacements,
-            new Color(0.87f, 0.82f, 0.72f, 1f));
-        DrawG3DenseRoads();
+        DrawCityRoadNetwork();
     }
 
-    private void DrawG3City()
+    private void DrawG3City(RealtimeWorldPresentation presentation)
     {
         RecordG3Layer("city");
-        DrawG3Placements(
-            G3CityPlacements,
-            new Color(0.92f, 0.88f, 0.78f, 1f));
-        DrawG3DenseCity();
+        DrawCityDistricts(presentation);
     }
 
     private void DrawG3Placements(
@@ -1044,6 +1046,15 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 node.NodeId,
                 StringComparison.Ordinal);
             bool routeHighlighted = highlighted.Contains(node.NodeId);
+            if (DrawDistrictNodeOverlay(
+                    presentation,
+                    node,
+                    status,
+                    selected,
+                    routeHighlighted))
+            {
+                continue;
+            }
             float radius = NodeRadius(presentation.World, node);
             Color color = node.Commissioned ? StateColor(status?.State) : Planned;
             Vector2 center = Point(node.Position);
@@ -1144,7 +1155,8 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             StringComparison.Ordinal)).Kind;
         if (kind == SpatialNodeKind.SourceTerminal)
         {
-            DrawG3SourcePlant(node.Position, modulate);
+            DrawG3SourceCampusFoundation(node);
+            DrawG3SourcePlant(node, modulate);
             return;
         }
         if (node.AuthoredFoundation)
@@ -1169,13 +1181,35 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                     modulate);
                 return;
             case SpatialNodeKind.DedicatedLoadTerminal:
-                DrawG3LoadTerminal(node, modulate);
+                // City districts own the visible facility mass and its authored footprint.
+                // The electrical terminal remains at the world node so conductors and Core
+                // geometry keep one authority without drawing the building a second time.
                 return;
         }
     }
 
-    private void DrawG3SourcePlant(CoreMapPoint origin, Color modulate)
+    private void DrawG3SourcePlant(SpatialNodeDefinition node, Color modulate)
     {
+        CoreMapPoint origin = node.Position;
+        if (string.Equals(node.NodeId, "SOUTH_SOURCE_NODE", StringComparison.Ordinal))
+        {
+            DrawG3Sprite(
+                G3PlantTurbineHall,
+                Point(new CoreMapPoint(origin.XUnit - 95, origin.YUnit + 35)),
+                WorldPixels(500f),
+                modulate);
+            DrawG3Sprite(
+                G3PlantMainHall,
+                Point(new CoreMapPoint(origin.XUnit + 45, origin.YUnit + 85)),
+                WorldPixels(440f),
+                modulate with { A = 0.96f });
+            DrawG3Sprite(
+                G3SwitchyardBreakerBay,
+                Point(new CoreMapPoint(origin.XUnit + 205, origin.YUnit + 105)),
+                WorldPixels(340f),
+                modulate);
+            return;
+        }
         DrawG3Sprite(
             G3PlantSmokestack,
             Point(new CoreMapPoint(origin.XUnit + 60, origin.YUnit - 150)),
@@ -1192,6 +1226,35 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             Point(new CoreMapPoint(origin.XUnit + 190, origin.YUnit + 110)),
             WorldPixels(360f),
             modulate);
+    }
+
+    private void DrawG3SourceCampusFoundation(SpatialNodeDefinition node)
+    {
+        Vector2 center = Point(new CoreMapPoint(
+            node.Position.XUnit,
+            node.Position.YUnit + 65));
+        float halfWidth = WorldPixels(
+            string.Equals(node.NodeId, "SOUTH_SOURCE_NODE", StringComparison.Ordinal)
+                ? 390f
+                : 470f) * 0.5f;
+        float halfDepth = WorldPixels(330f) * 0.27f;
+        Vector2[] footprint =
+        [
+            center + new Vector2(-halfWidth, 0f),
+            center + new Vector2(0f, -halfDepth),
+            center + new Vector2(halfWidth, 0f),
+            center + new Vector2(0f, halfDepth),
+        ];
+        DrawColoredPolygon(
+            footprint.Select(point => point + new Vector2(0f, 5f * _accessibilityScale))
+                .ToArray(),
+            new Color(0f, 0f, 0f, 0.34f));
+        DrawColoredPolygon(footprint, new Color(Color.FromHtml("30332f"), 0.82f));
+        DrawPolyline(
+            [.. footprint, footprint[0]],
+            new Color(Color.FromHtml("6c7068"), 0.26f),
+            1.2f * _accessibilityScale,
+            true);
     }
 
     private void DrawG3LoadTerminal(SpatialNodeDefinition node, Color modulate)
@@ -1244,16 +1307,19 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             string.Equals(item.NodeId, candidateId, StringComparison.Ordinal));
         if (node is not null)
         {
-            anchor = Point(node.Position);
-            float radius = NodeRadius(presentation.World, node) +
-                11f * _accessibilityScale;
-            DrawCircle(
-                anchor,
-                radius,
-                Candidate,
-                false,
-                3f * _accessibilityScale,
-                true);
+            if (!DrawDistrictCandidateOutline(node, Candidate, out anchor))
+            {
+                anchor = Point(node.Position);
+                float radius = NodeRadius(presentation.World, node) +
+                    11f * _accessibilityScale;
+                DrawCircle(
+                    anchor,
+                    radius,
+                    Candidate,
+                    false,
+                    3f * _accessibilityScale,
+                    true);
+            }
         }
         else
         {
@@ -1306,6 +1372,11 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
 #if DEBUG
         _drawnGuidanceTargetNodeId = node.NodeId;
 #endif
+        if (DrawDistrictCandidateOutline(node, Selected, out Vector2 districtAnchor))
+        {
+            DrawActiveCandidateBadge(districtAnchor, target.Label);
+            return;
+        }
         Vector2 center = Point(node.Position);
         float radius = NodeRadius(presentation.World, node) +
             16f * _accessibilityScale;
@@ -1402,6 +1473,17 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             string.Equals(item.NodeId, selectedId, StringComparison.Ordinal));
         if (node is not null)
         {
+            if (TryGetDistrictVisual(
+                    node,
+                    out _,
+                    out Vector2 districtCenter,
+                    out Vector2 halfExtents))
+            {
+                Vector2 districtAction = districtCenter + new Vector2(
+                    halfExtents.X * 0.72f,
+                    -halfExtents.Y - (18f * _accessibilityScale));
+                return (selectedId, ClampSelectionAction(districtAction));
+            }
             float radius = NodeRadius(presentation.World, node);
             Vector2 direction = new Vector2(1f, -1f).Normalized();
             Vector2 raw = Point(node.Position) +
@@ -1654,6 +1736,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         {
             _transform.Configure(mapBounds, Size);
         }
+        FollowSelection(force: true);
         if (!_candidateSuppressedUntilInput)
         {
             _ = RefreshPointerResolution(RealtimeWorldProbeIds.TransformRefresh);
@@ -1686,9 +1769,9 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             target.Value);
     }
 
-    private void FollowSelection()
+    private void FollowSelection(bool force = false)
     {
-        if (_presentation is null || _transform is null || string.Equals(
+        if (_presentation is null || _transform is null || !force && string.Equals(
                 _lastFollowSelectionId,
                 _presentation.SelectedAssetId,
                 StringComparison.Ordinal))
@@ -1699,7 +1782,24 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         CoreMapPoint? target = SelectionTarget(_presentation);
         if (target.HasValue)
         {
-            _transform.Follow(target.Value.XUnit, target.Value.YUnit, 80f);
+            float edgeMargin = 80f;
+            SpatialNodeDefinition? selectedNode = _presentation.World.Nodes.FirstOrDefault(
+                item => string.Equals(
+                    item.NodeId,
+                    _presentation.SelectedAssetId,
+                    StringComparison.Ordinal));
+            if (selectedNode is not null && TryGetDistrictVisual(
+                    selectedNode,
+                    out _,
+                    out _,
+                    out Vector2 districtHalfExtents))
+            {
+                edgeMargin = Math.Max(
+                    edgeMargin,
+                    Math.Max(districtHalfExtents.X, districtHalfExtents.Y) +
+                    (30f * _accessibilityScale));
+            }
+            _transform.Follow(target.Value.XUnit, target.Value.YUnit, edgeMargin);
             _pointer = target;
             _lastCanvasPointer = Point(target.Value);
             _hasCanvasPointer = true;
@@ -1710,7 +1810,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         }
     }
 
-    private static CoreMapPoint? SelectionTarget(
+    private CoreMapPoint? SelectionTarget(
         RealtimeWorldPresentation presentation)
     {
         string? selectedId = presentation.SelectedAssetId;
@@ -1718,6 +1818,11 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             string.Equals(item.NodeId, selectedId, StringComparison.Ordinal));
         if (node is not null)
         {
+            CityDistrict? district = DistrictForNode(node.NodeId);
+            if (district.HasValue)
+            {
+                return district.Value.Center;
+            }
             return node.Position;
         }
         SpatialEdgeDefinition? edge = presentation.World.Edges.FirstOrDefault(item =>

@@ -9,7 +9,7 @@
 |---|---|
 | 규칙 연결 | Release.V3 Core가 배치·공급·공사·열 상태를 계산함 |
 | native 연결 | R2 controller와 presentation에서 실제로 사용함 |
-| G3 기준선 | 현재 world/UI에 G3 texture가 연결되고 자동검사됨 |
+| 시각 기준선 | current world raster와 code-native UI가 연결되고 자동검사됨 |
 | production gap | 상태별 아트, 가독성·성능 또는 사람 검토가 남음 |
 
 ## 2. 전력 설비
@@ -30,10 +30,10 @@
 
 | 오브젝트 | 제품 의미 | 현재 G3 기준선 | 남은 품질 항목 |
 |---|---|---|---|
-| 주거지 | 생활·상업 수요와 폭염 결과 | worker house·row shop·도로·가로등 | 공급/미공급을 조명 외 cue로 검수 |
-| 청류의료원 | 생명 유지, 두 접속과 범람 시험 | hospital main/service 구조 | 두 회선·범람·결과의 명확성 |
-| 정수장 | 필수 서비스와 범람·정지 결과 | pump house·water tank | 시설 역할과 공급 상태 식별 |
-| 산업단지 | 큰 수요와 공유 병목 | warehouse·workshop·plant 구조 | 선택 경로와 도시 배경의 대비 |
+| 주거지 | 생활·상업 수요와 폭염 결과 | 통합 주거 block과 소형 worker-house 구역, authored 필지·진입로 | 공급/미공급을 조명 외 cue로 사람 검수 |
+| 청류의료원 | 생명 유지, 두 접속과 범람 시험 | hospital main/service campus, 의료 cross, authored footprint | 두 회선·범람·결과의 사람 검수 |
+| 정수장 | 필수 서비스와 범람·정지 결과 | pump house·water tank·배관 campus와 authored footprint | 공급 상태의 사람 검수 |
+| 산업단지 | 큰 수요와 공유 병목 | 통합 생산동·하역장·yard campus와 진입로 | 선택 경로와 배경 대비의 사람 검수 |
 
 warm window light는 도시가 살아 있음을 보여 주지만 공급 판정이 아니다. Core state, world cue,
 사건 지평선과 context 문장이 함께 같은 결과를 말해야 한다.
@@ -42,9 +42,9 @@ warm window light는 도시가 살아 있음을 보여 주지만 공급 판정�
 
 | 레이어 | gameplay 역할 | 현재 G3 기준선 | 남은 품질 항목 |
 |---|---|---|---|
-| 지형·필지 | footprint 합법성과 도시 밀도 | rubble/relief tile과 도시 props | 반복감·빈 공간·depth 검수 |
+| 지형·필지 | footprint 합법성과 도시 밀도 | 저대비 terrain, 비반복 도시 ground plane과 구역별 authored footprint | 사람 미감·세 zoom 검수 |
 | 강·제방 | 지지 설비 거부, 가공선 횡단 | water, bank, rock, bridge 조각 | clear/heat/flood 전환의 경계 가독성 |
-| 도로·yard | 도시 정체성과 건설 회랑 | straight/corner/junction/yard/bridge | 연속성·건물 footpoint·hit test 검수 |
+| 도로·yard | 도시 정체성과 건설 회랑 | curve-sampled spine/branch와 구역 내장 진입로·yard, measured bridge | 사람 미감·세 zoom 검수 |
 | service area | 수요 연결의 기하학적 자격 | typed overlay 유지 | 건물과 도체를 가리지 않는지 검수 |
 | 위험구역 | 사건 사용불가와 배치 경고 | forecast pattern과 active fill 유지 | 날씨·선택·공사와 겹칠 때 구분 |
 | 날씨·시간 | 사건 분위기와 상태 강조 | clear·heat·rain·storm draw 경로 | 실제 플레이 성능·대비·motion 검수 |
@@ -54,9 +54,12 @@ service area 안에 있다는 사실만으로 전력이 공급되지 않는다. 
 
 ## 5. UI surface
 
-G3 UI 7개는 generic panel, top HUD metric, inspector, tool slot, default/cyan/amber button chrome에
-사용된다. live R2의 top HUD, 한 줄 사건 지평선, context dock, build shelf, action dock와 modal이
-이 theme을 공유한다.
+live R2는 code-native flat stylebox를 사용한다. top HUD는 cyan 운영 chrome, 사건 지평선은 얇은 amber
+rail, context/action/modal은 elevated surface, 일반·primary·tool button은 서로 다른 fill·border 위계를
+가진다. G3 UI 7개는 package identity에 보존하지만 current theme mapping에는 사용하지 않는다.
+
+context dock은 376px 기준 폭과 최대 460px 높이의 우상단 overlay이며, 요약·운영 상태·연결 수를 먼저
+보이고 상세만 내부 scroll한다. 열고 닫을 때 지도는 full workspace를 유지하고 선택 구역을 다시 framing한다.
 
 한 줄 사건 지평선은 수요·기상·공사·결정 기한·열 보호 경계를 별도 상시 패널로 나누지 않는다.
 시간순 compact marker를 한 rail에 놓고 hover 또는 선택한 항목의 상세만 overlay로 연다.

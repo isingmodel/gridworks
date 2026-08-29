@@ -55,6 +55,13 @@ internal sealed partial class RealtimePlaceholderMap
     internal float DrawnBuildingParcelAlphaForSmoke =>
         _drawnBuildingParcelAlpha;
 
+    internal IReadOnlyList<string> DrawnCityDistrictIdsForSmoke =>
+        Array.AsReadOnly(_drawnCityDistrictIds
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToArray());
+
+    internal int DrawnCityRoadPathCountForSmoke => _drawnCityRoadPathCount;
+
     internal int DrawnMeasuredBridgeCountForSmoke => _drawnBridgeSpans.Count;
 
     internal bool MeasuredBridgesLandOnBothBanksForSmoke =>

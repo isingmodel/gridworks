@@ -18,9 +18,9 @@
 
 이미지의 UI 배치, 거대 송전설비, 발전원 종류와 수치를 그대로 복제하지 않는다.
 
-## 2. 현재 R2 G3 runtime 자산
+## 2. 현재 R2 runtime raster
 
-`game/art/commercial/g3/` 아래 PNG 57개가 live R2에 연결돼 있다. 제작 과정과 prompt provenance는
+`game/art/commercial/g3/` 아래 PNG 57개는 current package identity closure로 보존된다. 제작 과정과 prompt provenance는
 `game/art/commercial/g3-assets.prompts.md`에 byte 고정된 역사 ledger로 보존한다. 그 ledger 도입부의
 “current package 29개”는 당시 G3 생산 checkpoint의 문구이며 지금의 runtime 수량이나 package 상태가
 아니다. 현재 수량과 사용 경계는 이 문서가 소유한다.
@@ -33,11 +33,22 @@
 | `river/` | 15 | 물, 제방, 암반, 식생, 범람·폭염 상태 |
 | `roads/` | 6 | 도로 방향·교차로·yard |
 | `tiles/` | 3 | 지형·수면 base |
-| `ui/`, `ui-v2/` | 7 | panel, HUD metric, inspector, tool slot과 버튼 chrome |
+| `ui/`, `ui-v2/` | 7 | package identity에 보존; current live theme mapping에서는 사용하지 않음 |
 
-지도 50개는 clear·heat·rain·storm의 world draw에, UI 7개는 live R2 theme에 사용된다. 저장소의
+current world draw는 이 가운데 39개를 clear·heat·rain·storm의 지형·강·교량·전력 설비와 시설 조합에
+사용한다. current live theme은 G3 texture chrome 대신 code-native flat stylebox 계층을 사용한다. 저장소의
 결정론 검사는 tracked source set, Godot import와 실제 draw/theme wiring을 확인한다. 이 검사는 사람의
 미감·가독성, 자산 권리 판단이나 모든 상태의 production 완성도를 대신하지 않는다.
+
+`game/art/realtime/city-v2/`에는 내장 ImageGen으로 생성하고 투명도·카메라·광원을 검수한 구역 raster
+2개가 추가되어 current world draw의 생활권과 산업단지에 연결된다.
+
+| 파일 | 크기 | 역할 | provenance |
+|---|---:|---|---|
+| `residential-block-a.png` | 768×568 RGBA | 동부 생활권의 통합 주거·상점 필지 | [`PROVENANCE.md`](game/art/realtime/city-v2/PROVENANCE.md) |
+| `industrial-campus-a.png` | 768×599 RGBA | 산업단지의 통합 yard·건물·진입로 | [`PROVENANCE.md`](game/art/realtime/city-v2/PROVENANCE.md) |
+
+두 파일은 source-tree runtime 채택이며 current macOS package identity closure에는 아직 포함하지 않는다.
 
 current R2 macOS package identity verifier는 PCK 안의 G3 `.png.import` 57개와 각 remap이 가리키는 exact
 `.ctex` backing 57개를 함께 요구하고 다른 G3 PNG closure를 거부한다. 과거 portrait/theme/audio나 루트
@@ -46,9 +57,11 @@ reference 이미지가 package에 없다는 것도 확인한다. 이는 package 
 
 ## 3. code-native 현재 표현
 
-R2는 G3 texture와 함께 다음 code-native 표현을 사용한다.
+R2는 runtime raster와 함께 다음 code-native 표현을 사용한다.
 
 - 실제 전력 경로와 도체, 선택·초안·공사 overlay
+- 구역별 필지, 완만한 도로 spine/branch, 발전원 campus와 상태 footprint
+- 기능 위계가 다른 top HUD·event rail·dock·modal의 flat UI chrome
 - service area와 forecast/active 위험 pattern
 - 한 줄 future-event bar의 marker, cluster와 상세 overlay
 - focus, hit target, 접근성 이름과 한국어 text layout

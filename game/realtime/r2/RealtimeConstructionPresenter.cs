@@ -159,7 +159,8 @@ internal static class RealtimeConstructionPresenter
         string pointerMessage,
         RealtimeProjectQuote? nodeOrderQuote,
         RealtimeProjectQuote? lineOrderQuote,
-        bool firstLightAdvanceEnabled)
+        bool firstLightAdvanceEnabled,
+        RealtimeWorldPlacementClass? placementClass)
     {
         ConstructionSnapshot construction = snapshot.Construction;
         bool ended = snapshot.CampaignComplete ||
@@ -186,6 +187,20 @@ internal static class RealtimeConstructionPresenter
                 snapshot,
                 nodeOrderQuote,
                 construction.ActiveConstruction);
+            int radius = placementClass?.ServiceRadiusUnit ??
+                throw new InvalidOperationException(
+                    "A substation draft presentation is missing its service radius.");
+            HashSet<string> loadClassIds = construction.World.NodeClasses
+                .Where(item => item.Kind == SpatialNodeKind.DedicatedLoadTerminal)
+                .Select(item => item.ClassId)
+                .ToHashSet(StringComparer.Ordinal);
+            int coveredLoads = construction.World.Nodes.Count(terminal =>
+                loadClassIds.Contains(terminal.ClassId) &&
+                FixedGeometry.CeilDistance(
+                    construction.NodeDraft.Position,
+                    terminal.Position) <= radius);
+            quoteDetail = $"서비스 반경 R {radius:N0} m · 포함 수요 {coveredLoads}곳\n" +
+                quoteDetail;
             return new RealtimeActionDockPresentation(
                 true,
                 "변전소 초안",

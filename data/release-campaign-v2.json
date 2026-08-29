@@ -1003,7 +1003,7 @@
             {
               "assetKind": "node",
               "classId": "SMALL_SUBSTATION",
-              "continuousKw": 1800,
+              "continuousKw": 1500,
               "emergencyKw": 3000
             },
             {

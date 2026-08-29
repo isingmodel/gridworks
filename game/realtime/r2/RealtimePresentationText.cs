@@ -459,14 +459,14 @@ internal static class RealtimePresentationText
         SpatialNodeDefinition? substation = FirstLightSubstation(snapshot);
         if (substation is null)
         {
-            return "다음 행동 · 1/2 N · R 550 안에 동부 생활권을 둔 변전소 배치·완공";
+            return "다음 행동 · 1/2 N · 변전소 R550 안에 동부 생활권 포함";
         }
         if (!Connected(
                 snapshot.Construction.World,
                 "WEST_SOURCE_NODE",
                 substation.NodeId))
         {
-            return "다음 행동 · 2/2 L · 서부 발전→전신주→변전소 연결";
+            return "다음 행동 · 2/2 L · 서부 발전소→변전소 급전선 연결";
         }
         return "경로 준비 완료 · 21:00 동부 첫 공급까지 유지하세요.";
     }

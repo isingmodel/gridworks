@@ -1492,10 +1492,25 @@ internal sealed class CommercialChecks
         Check(longestNight.OperatingPhases[1].ThermalLimitOverrides.Count > 0 &&
                 longestNight.OperatingPhases[2].ThermalLimitOverrides.Count > 0,
             "longest-night heat limits are not present in both stressed phases");
+        ThermalLimitOverride heatwaveSmall = longestNight.OperatingPhases[1]
+            .ThermalLimitOverrides.Single(item =>
+                item.AssetKind == ThermalAssetKind.Node &&
+                item.ClassId == "SMALL_SUBSTATION");
+        ThermalLimitOverride floodSmall = longestNight.OperatingPhases[2]
+            .ThermalLimitOverrides.Single(item =>
+                item.AssetKind == ThermalAssetKind.Node &&
+                item.ClassId == "SMALL_SUBSTATION");
+        Check(heatwaveSmall is { ContinuousKw: 1500, EmergencyKw: 3000 } &&
+                floodSmall is { ContinuousKw: 1800, EmergencyKw: 3000 },
+            "longest-night small-substation heat derating/recovery profile drifted");
         SequenceEqual(
-            longestNight.OperatingPhases[1].ThermalLimitOverrides,
-            longestNight.OperatingPhases[2].ThermalLimitOverrides,
-            "longest-night final heat limits differ from the heatwave");
+            longestNight.OperatingPhases[1].ThermalLimitOverrides.Where(item =>
+                item.AssetKind != ThermalAssetKind.Node ||
+                item.ClassId != "SMALL_SUBSTATION").ToArray(),
+            longestNight.OperatingPhases[2].ThermalLimitOverrides.Where(item =>
+                item.AssetKind != ThermalAssetKind.Node ||
+                item.ClassId != "SMALL_SUBSTATION").ToArray(),
+            "longest-night non-substation final heat limits differ from the heatwave");
         SequenceEqual(
             ["RIVER_FLOOD_ZONE"],
             longestNight.OperatingPhases[2].ActiveRiskAreaIds,

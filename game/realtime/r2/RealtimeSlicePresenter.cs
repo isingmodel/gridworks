@@ -72,6 +72,15 @@ internal static class RealtimeSlicePresenter
             source.NodeOrderQuote,
             source.LineOrderQuote,
             history);
+        RealtimeWorldPresentation world = RealtimeWorldPresenter.Present(
+            displayWorld,
+            snapshot,
+            baseForecast,
+            comparisonDraftForecast,
+            interaction,
+            source.ReduceMotion,
+            source.CompatibleLineNodeIds,
+            history);
         return new RealtimeSlicePresentation(
             source.Revision,
             snapshot,
@@ -79,15 +88,7 @@ internal static class RealtimeSlicePresenter
             comparisonDraftForecast,
             history,
             interactionPresentation,
-            RealtimeWorldPresenter.Present(
-                displayWorld,
-                snapshot,
-                baseForecast,
-                comparisonDraftForecast,
-                interaction,
-                source.ReduceMotion,
-                source.CompatibleLineNodeIds,
-                history),
+            world,
             source.Pointer,
             RealtimeShellPresenter.PresentHud(displayWorld, snapshot, interaction, pause),
             rail,
@@ -120,7 +121,8 @@ internal static class RealtimeSlicePresenter
                 string.Equals(
                     snapshot.Chapter.Content.ChapterId,
                     "FIRST_LIGHT",
-                    StringComparison.Ordinal)),
+                    StringComparison.Ordinal),
+                world.PlacementClass),
             RealtimeModalPresenter.Present(source, pause));
     }
 
@@ -160,7 +162,8 @@ internal static class RealtimeSlicePresenter
                 pointer.Message,
                 nodeOrderQuote,
                 lineOrderQuote,
-                firstLightAdvanceEnabled),
+                firstLightAdvanceEnabled,
+                current.World.PlacementClass),
         };
     }
 }

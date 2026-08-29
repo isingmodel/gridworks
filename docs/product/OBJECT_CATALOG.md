@@ -20,7 +20,7 @@
 | 일반 전신주 | 저비용 경유·분기, 제한된 접속 | 규칙/native 연결, G3 standard pole | 작은 zoom의 attachment·hit target 검수 |
 | 보강 전신주 | 큰 분기·합류와 접속부 한도 | 규칙/native 연결, G3 reinforced pole | 일반형과 색 없이 구분되는지 사람 검수 |
 | 일반/보강 선로 | 실제 공급 경로와 열 병목 | 규칙/native 연결, code-drawn conductor와 G3 지지 구조 | 3상 cue, 교차/접속, 비상·정지 상태 polish |
-| 소형/대형 배전 변전소 | 등급별 service area·접속 수·주기기 한도 | 규칙/native 연결, 현재 공통 G3 transformer/bay | 색 없이 구분되는 등급별 실루엣·footprint와 service area·열 상태 동시 가독성 |
+| 소형/대형 배전 변전소 | 등급별 반경 R 안의 수요 직접 공급·접속 수·주기기 한도 | 규칙/native 연결, exact R/포함 수요/점선 service link와 G3 transformer/bay | 색 없이 구분되는 등급별 실루엣과 열 상태의 사람 검수 |
 | 공사 초안·공사 중 | 비용·공기·완공 전 무전압 | actual/draft construction과 rail marker 연결 | scaffold·미완성 구조와 overlay 혼잡 검수 |
 
 전신주의 열 한계는 기둥 온도가 아니라 단자·퓨즈·개폐기·분기 접속부를 추상화한 게임용 계획
@@ -45,12 +45,13 @@ warm window light는 도시가 살아 있음을 보여 주지만 공급 판정�
 | 지형·필지 | footprint 합법성과 도시 밀도 | 저대비 terrain, 비반복 도시 ground plane과 구역별 authored footprint | 사람 미감·세 zoom 검수 |
 | 강·제방 | 지지 설비 거부, 가공선 횡단 | water, bank, rock, bridge 조각 | clear/heat/flood 전환의 경계 가독성 |
 | 도로·yard | 도시 정체성과 건설 회랑 | curve-sampled spine/branch와 구역 내장 진입로·yard, measured bridge | 사람 미감·세 zoom 검수 |
-| service area | 수요 연결의 기하학적 자격 | typed overlay 유지 | 건물과 도체를 가리지 않는지 검수 |
+| service area | 급전된 변전소가 직접 공급할 수 있는 반경 R | 선택·배치 때 exact R, 포함 수요 bracket, 점선 service link | 건물과 도체를 가리지 않는지 사람 검수 |
 | 위험구역 | 사건 사용불가와 배치 경고 | forecast pattern과 active fill 유지 | 날씨·선택·공사와 겹칠 때 구분 |
 | 날씨·시간 | 사건 분위기와 상태 강조 | clear·heat·rain·storm draw 경로 | 실제 플레이 성능·대비·motion 검수 |
 
-service area 안에 있다는 사실만으로 전력이 공급되지 않는다. 발전 접속점까지 완공·사용 가능한
-경로와 충분한 설비 한도가 모두 필요하다.
+service area 안의 수요는 그 변전소의 직접 공급 후보다. 실제 공급에는 발전 접속점에서 변전소까지
+완공·사용 가능한 급전 경로와 충분한 선로·접속부·주기기 한도가 필요하다. 변전소에서 수요처까지
+별도 선로는 요구하지 않는다.
 
 ## 5. UI surface
 

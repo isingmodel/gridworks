@@ -554,6 +554,13 @@ internal static class RealtimeContextPresenter
                             RealtimeTimelineSeverity.Warning,
                         _ => RealtimeTimelineSeverity.Critical,
                     };
+            string? unavailableCause = asset.AuthoredUnavailable || asset.ProtectiveOutage
+                ? asset.AuthoredUnavailable && asset.ProtectiveOutage
+                    ? "작성된 사용불가와 열 보호정지가 함께 적용 중입니다. 더 늦은 복귀 시각까지 공급 경로에서 제외됩니다."
+                    : asset.AuthoredUnavailable
+                        ? "작성된 계획 사용불가가 적용 중이며 공급 경로에서 제외됩니다."
+                        : "비상 허용시간 소진으로 열 보호정지가 적용 중입니다."
+                : null;
             var sections = new List<RealtimeContextSectionPresentation>
             {
                 new("현재 상태", state, stateSeverity),
@@ -561,6 +568,7 @@ internal static class RealtimeContextPresenter
                     $"사용 {asset.UsedKw:N0} / 연속 {asset.ContinuousKw:N0} / 비상 {asset.EmergencyKw:N0} kW")),
                 new("보호", protection.Summary),
             };
+            RealtimeContextDetailPresentation? serviceRadiusDetail = null;
             if (node is not null)
             {
                 CommercialNodeClassDefinition nodeClass = displayWorld.NodeClasses.Single(
@@ -585,26 +593,46 @@ internal static class RealtimeContextPresenter
                     sections.Insert(1, new RealtimeContextSectionPresentation(
                         "서비스 반경",
                         $"R {radius:N0} · 포함 수요 {coveredLoads.Length}곳 · 현재 공급 {serving}곳"));
-                    sections.Add(new RealtimeContextSectionPresentation(
+                    serviceRadiusDetail = new RealtimeContextDetailPresentation(
+                        RealtimeContextDetailTab.Route,
                         "반경 안 시설",
                         coveredLoads.Length == 0
                             ? "없음"
-                            : string.Join(" · ", coveredLoads)));
+                            : string.Join(" · ", coveredLoads));
                 }
             }
-            if (asset.AuthoredUnavailable || asset.ProtectiveOutage)
+            if (unavailableCause is not null)
             {
                 sections.Add(new RealtimeContextSectionPresentation(
                     "사용불가 원인",
-                    asset.AuthoredUnavailable && asset.ProtectiveOutage
-                        ? "작성된 사용불가와 열 보호정지가 함께 적용 중입니다. 더 늦은 복귀 시각까지 공급 경로에서 제외됩니다."
-                        : asset.AuthoredUnavailable
-                            ? "작성된 계획 사용불가가 적용 중이며 공급 경로에서 제외됩니다."
-                            : "비상 허용시간 소진으로 열 보호정지가 적용 중입니다.",
+                    unavailableCause,
                     asset.ProtectiveOutage
                         ? RealtimeTimelineSeverity.Critical
                         : RealtimeTimelineSeverity.Warning));
             }
+            if (sections.Count > 4)
+            {
+                sections.RemoveAll(section => section.Heading == "열여유");
+            }
+            var details = new List<RealtimeContextDetailPresentation>();
+            if (serviceRadiusDetail is not null)
+            {
+                details.Add(serviceRadiusDetail);
+            }
+            details.Add(
+                new RealtimeContextDetailPresentation(
+                    RealtimeContextDetailTab.Thermal,
+                    "열 보호 상태",
+                    protection.Detail,
+                    stateSeverity));
+            details.Add(
+                new RealtimeContextDetailPresentation(
+                    RealtimeContextDetailTab.History,
+                    "최근 상태 변화",
+                    RealtimePresentationText.TransitionHistory(
+                        transitionHistory,
+                        asset),
+                    RealtimeTimelineSeverity.Advisory));
             return new RealtimeContextDockPresentation(
                 selectedId,
                 true,
@@ -612,21 +640,7 @@ internal static class RealtimeContextPresenter
                 RealtimePresentationText.AssetDisplayName(displayWorld, snapshot, selectedId),
                 Array.AsReadOnly(sections.ToArray()))
             {
-                Details = new RealtimeContextDetailPresentation[]
-                {
-                    new(
-                        RealtimeContextDetailTab.Thermal,
-                        "열 보호 상태",
-                        protection.Detail,
-                        stateSeverity),
-                    new(
-                        RealtimeContextDetailTab.History,
-                        "최근 상태 변화",
-                        RealtimePresentationText.TransitionHistory(
-                            transitionHistory,
-                            asset),
-                        RealtimeTimelineSeverity.Advisory),
-                },
+                Details = Array.AsReadOnly(details.ToArray()),
             };
         }
 

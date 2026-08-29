@@ -917,7 +917,10 @@ internal static class RealtimeR2Smoke
               } &&
               rejectedAction is { Id: RealtimeR2Ids.OrderNodeAction, Enabled: false } &&
               rejectedAction.Description.StartsWith(
-                  "발주 불가 · 현재 공사가 ",
+                  "서비스 반경 R ",
+                  StringComparison.Ordinal) &&
+              rejectedAction.Description.Contains(
+                  "\n발주 불가 · 현재 공사가 ",
                   StringComparison.Ordinal) &&
               rejectedAction.Description.EndsWith(
                   "에 끝난 뒤 발주할 수 있습니다.",
@@ -960,10 +963,15 @@ internal static class RealtimeR2Smoke
                   dock.PrimaryAction!.Id,
                   expectedActionId,
                   StringComparison.Ordinal) &&
-              string.Equals(
-                  dock.PrimaryAction.Description,
-                  expected,
-                  StringComparison.Ordinal) &&
+              (expectedActionId == RealtimeR2Ids.OrderNodeAction
+                  ? dock.PrimaryAction.Description.StartsWith(
+                        "서비스 반경 R ", StringComparison.Ordinal) &&
+                    dock.PrimaryAction.Description.EndsWith(
+                        expected, StringComparison.Ordinal)
+                  : string.Equals(
+                        dock.PrimaryAction.Description,
+                        expected,
+                        StringComparison.Ordinal)) &&
               dock.Detail.Contains(expected, StringComparison.Ordinal),
             $"{label} action did not render the exact typed Core cost/build/completion quote",
             failures);
@@ -1784,12 +1792,14 @@ internal static class RealtimeR2Smoke
                           StringComparison.Ordinal) &&
                       string.Equals(presentation.Context.Eyebrow, kindLabel,
                           StringComparison.Ordinal) &&
+                      presentation.Context.Sections.Count is >= 1 and <= 4 &&
                       presentation.Context.Sections.Single(item =>
                           item.Heading == "보호").Body == expectedSummary &&
                       presentation.Context.Details.Single(item =>
                           item.Tab == RealtimeContextDetailTab.Thermal).Body == expectedDetail &&
                       worldStatus.State == ExpectedWorldState(state),
-                    $"{kindLabel}/{state} lost exact allowance/cooldown copy or world state",
+                    $"{kindLabel}/{state} lost bounded summary, exact allowance/cooldown " +
+                    "copy, or world state",
                     failures);
             }
         }
@@ -2391,13 +2401,13 @@ internal static class RealtimeR2Smoke
 
         Check(data.NativeRoute == RealtimeNativeRouteCatalog.FirstLight &&
               data.BaseCampaignSha256 ==
-                  "19d042ca18cebec4d3164aba5932319ec123e1520283094fc3473eea548afd8c" &&
+                  "818124ba86c0ec4be7dd033390c6aa623152ae193425189d8394fc9fc501e484" &&
               data.WorldSha256 ==
-                  "a0a837717bbd6d35f655d8094dfa6daac182d47b2d03f24b18c4883c04feecdf" &&
+                  "746bd2706c2b1d02141f70a70322e3610917e286f67a9fa60492fb8fa997a79f" &&
               data.CampaignOverlaySha256 ==
                   "ef962a272683bfd6761fbf10a0ca14cb6c8bf90cdfde810b468ad451088f2258" &&
               data.FullComposedCampaignSha256 ==
-                  "7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09" &&
+                  "4d9709da70891e2a32956d53d5607b0f53cc254a0aa609d237b1dabb0bb2232e" &&
               data.CampaignSha256 ==
                   "94379c0e8e4dae54b760a55df8c1143c975eaa12f11079e675b2e67ba57df88e" &&
               chapter.ChapterId == RealtimeCampaignOverlayLoader.FirstReleaseChapterId &&
@@ -2603,7 +2613,7 @@ internal static class RealtimeR2Smoke
             .Select(item => item.Id)
             .ToArray();
         Check(completed.CampaignComplete && completed.Minute == 1320 &&
-              completed.CashUnit == 7_030_000 &&
+              completed.CashUnit == 7_055_000 &&
               outcome.ChapterId == "FIRST_LIGHT" &&
               eventOutcome.EventId == "FIRST_LIGHT_SUPPLY" &&
               eventOutcome.SafetySatisfied &&
@@ -2615,7 +2625,7 @@ internal static class RealtimeR2Smoke
               !slice.EmittedTransitions.Any(item => item.Kind is
                   RealtimeTransitionKind.ThermalEmergencyEntered or
                   RealtimeTransitionKind.ThermalProtectiveTrip) &&
-              completedConstructionIds.Length == 3,
+              completedConstructionIds.Length == 2,
             "release FIRST_LIGHT did not complete safely through exact event/chapter/campaign transitions",
             failures);
         Check(result.Id == RealtimeR2Ids.CampaignResultModal &&
@@ -2624,7 +2634,7 @@ internal static class RealtimeR2Smoke
               result.Body.StartsWith(standardResult.Body, StringComparison.Ordinal) &&
               result.Body.Contains("첫 공급 성공", StringComparison.Ordinal) &&
               result.Body.Contains("미공급 0분", StringComparison.Ordinal) &&
-              result.Body.Contains("남은 운영 자금 703만 원", StringComparison.Ordinal) &&
+              result.Body.Contains("남은 운영 자금 705만 5,000원", StringComparison.Ordinal) &&
               result.PrimaryAction.Id == RealtimeR2Ids.FirstLightReplayAction &&
               result.SecondaryAction?.Id == RealtimeR2Ids.FirstLightReturnAction,
             "release FIRST_LIGHT result omitted its payoff or terminal choices",
@@ -2705,9 +2715,9 @@ internal static class RealtimeR2Smoke
               result.Heading == "첫 불빛 공급 목표 미달" &&
               result.Body.Contains("안전 의무 0/1 충족", StringComparison.Ordinal) &&
               result.Body.Contains(
-                  "시험 시작 시점에 완공된 공급 경로 없음",
+                  "적합한 변전소 없음 · 변전소 접속",
                   StringComparison.Ordinal) &&
-              result.Body.Contains("진행 0/3", StringComparison.Ordinal) &&
+              result.Body.Contains("진행 0/2", StringComparison.Ordinal) &&
               result.Body.Contains("다음 시도", StringComparison.Ordinal) &&
               result.Body.Contains("최종 운영 자금 850만 원", StringComparison.Ordinal) &&
               result.PrimaryAction.Id == RealtimeR2Ids.FirstLightReplayAction &&
@@ -4808,8 +4818,9 @@ internal static class RealtimeR2Smoke
             "standard WHOSE_MARGIN failure minted the six-chapter token",
             failures);
 
-        // Explicit Defer with an unsafe water network is still a safety failure.
-        // Excluded North demand must never be described as a fulfilled promise.
+        // FIRST_LIGHT's station now radius-serves Water as well as East. Explicit
+        // Defer without another station is therefore a valid safety route, while
+        // excluded North demand must still never be described as fulfilled.
         var deferSafetyFailureSlice = new RealtimeSliceMain();
         try
         {
@@ -4840,42 +4851,23 @@ internal static class RealtimeR2Smoke
                 failures);
         CommercialStoryCard authoredDeferred = deferSafetyFailureData.BaseCampaign
             .Chapters[3].ResultCards.Deferred!;
-        Check(!deferSafetyFailureOutcome.ObjectiveSatisfied &&
+        Check(deferSafetyFailureOutcome.ObjectiveSatisfied &&
               deferSafetyFailureOutcome.PromiseDecision ==
                   CommercialPromiseDecision.Defer &&
-              deferSafetyFailureOutcome.Events.Any(item => !item.SafetySatisfied) &&
-              deferSafetyFailureResult.Eyebrow == "계통운영 기록" &&
-              deferSafetyFailureResult.Heading.Contains(
-                  "목표 미달",
-                  StringComparison.Ordinal) &&
-              deferSafetyFailureResult.Body.Contains(
-                  "안전 의무",
-                  StringComparison.Ordinal) &&
-              deferSafetyFailureResult.Body.Contains(
-                  "수요 의무 제외",
-                  StringComparison.Ordinal) &&
+              deferSafetyFailureOutcome.Events.All(item => item.SafetySatisfied) &&
+              deferSafetyFailureResult.Eyebrow == authoredDeferred.Speaker &&
+              deferSafetyFailureResult.Heading == authoredDeferred.Title &&
+              deferSafetyFailureResult.Body == authoredDeferred.Body &&
               !deferSafetyFailureResult.Body.Contains(
                   "약속 Defer 2/2 충족",
-                  StringComparison.Ordinal) &&
-              (!string.Equals(
-                   deferSafetyFailureResult.Eyebrow,
-                   authoredDeferred.Speaker,
-                   StringComparison.Ordinal) ||
-               !string.Equals(
-                   deferSafetyFailureResult.Heading,
-                   authoredDeferred.Title,
-                   StringComparison.Ordinal) ||
-               !string.Equals(
-                   deferSafetyFailureResult.Body,
-                   authoredDeferred.Body,
-                   StringComparison.Ordinal)),
-            "Defer safety failure conflated excluded North demand with promise " +
-            "fulfillment or counterfeited the authored deferred result",
+                  StringComparison.Ordinal),
+            "Defer route conflated excluded North demand with promise fulfillment " +
+            "or lost the authored deferred result",
             failures);
         _ = deferSafetyFailureSlice.ClosePresentedStoryModalForSmoke();
         Check(deferSafetyFailureSlice.FormativeTutorialResultChapterIdsForSmoke.Count == 3 &&
               !deferSafetyFailureSlice.FormativeTutorialFullFlowRecordedForSmoke,
-            "Defer safety failure minted a formative token",
+            "Defer route minted a formative token",
             failures);
 
         // Keep with only Water supplied is a promise-only failure. It must use
@@ -4944,7 +4936,7 @@ internal static class RealtimeR2Smoke
         Check(data.NativeRoute ==
                   RealtimeNativeRouteCatalog.ProductCampaign &&
               data.CampaignSha256 ==
-                  "7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09" &&
+                  "4d9709da70891e2a32956d53d5607b0f53cc254a0aa609d237b1dabb0bb2232e" &&
               data.Campaign.Chapters.Select(item => item.Content.ChapterId)
                   .SequenceEqual(
                       new[]
@@ -5186,7 +5178,9 @@ internal static class RealtimeR2Smoke
     {
         string northSubstationId = OrderTutorialNode(
             slice,
-            new CoreMapPoint(2500, 500),
+            includeNorth
+                ? new CoreMapPoint(2500, 500)
+                : new CoreMapPoint(1900, 350),
             failures,
             $"{label} North service substation");
         _ = OrderTutorialLine(
@@ -5414,7 +5408,11 @@ internal static class RealtimeR2Smoke
     {
         string nodeId = OrderTutorialNode(
             slice,
-            new CoreMapPoint(2050, 1650),
+            // Keep the factory service area clear of the hospital. With direct
+            // radius service, the former 2050/1650 fixture also covered the
+            // hospital and consumed this small station's capacity before the
+            // 2,700 kW night-shift promise was evaluated.
+            new CoreMapPoint(2420, 1910),
             failures,
             $"{label} factory substation");
         string lineClassId = reinforced ? "REINFORCED_LINE" : "STANDARD_LINE";
@@ -5424,13 +5422,14 @@ internal static class RealtimeR2Smoke
             [
                 new CoreMapPoint(700, 1850),
                 new CoreMapPoint(1190, 1850),
-                new CoreMapPoint(1760, 1850),
+                new CoreMapPoint(1775, 1850),
             ]
             :
             [
                 new CoreMapPoint(700, 1850),
                 new CoreMapPoint(1200, 1850),
-                new CoreMapPoint(1760, 1850),
+                new CoreMapPoint(1775, 1850),
+                new CoreMapPoint(2075, 1880),
             ];
         _ = OrderTutorialLine(
             slice,
@@ -5570,14 +5569,14 @@ internal static class RealtimeR2Smoke
               slice.CoreSnapshot.Chapter.Content.ChapterId == "BEFORE_WATER_RISE" &&
               slice.CoreSnapshot.CashUnit == checked(
                   previousEndingCashUnit + authored.BudgetGrantCashUnit) &&
-              connection is { FrozenForChapter: false, Satisfied: true } &&
+              connection is { FrozenForChapter: false, Satisfied: false } &&
               connection.Facts.Single() is
               {
                   NodeId: "EAST_RESIDENTIAL_TERMINAL",
-                  CurrentConnections: 2,
+                  CurrentConnections: 1,
                   RequiredConnections: 2,
               },
-            $"{label} did not inherit the exact clock and already-built East 2/2",
+            $"{label} did not inherit the exact clock and meaningful East 1/2 objective",
             failures);
         RequireAuthoredTutorialModal(
             slice,
@@ -5644,9 +5643,9 @@ internal static class RealtimeR2Smoke
         ICollection<string> failures,
         string label)
     {
-        string hospitalSubstationId = slice.CoreSnapshot.Construction.World.Nodes
+        string eastServiceSubstationId = slice.CoreSnapshot.Construction.World.Nodes
             .Single(item => item.ClassId == "SMALL_SUBSTATION" &&
-                item.Position == new CoreMapPoint(2250, 1300))
+                item.Position == new CoreMapPoint(2100, 700))
             .NodeId;
         CoreMapPoint[] points = reinforced
             ?
@@ -5665,21 +5664,36 @@ internal static class RealtimeR2Smoke
                 new CoreMapPoint(1900, 800),
                 new CoreMapPoint(2100, 1000),
             ];
-        RealtimeProjectQuote quote = OrderTutorialLine(
+        RealtimeProjectQuote highlandQuote = OrderTutorialLine(
             slice,
             "SOUTH_SOURCE_NODE",
             points,
-            hospitalSubstationId,
+            eastServiceSubstationId,
             reinforced ? "REINFORCED_LINE" : "STANDARD_LINE",
             reinforced ? "REINFORCED_POLE" : "STANDARD_POLE",
             failures,
             $"{label} flood-safe highland line");
+        string branchPoleClassId = reinforced ? "REINFORCED_POLE" : "STANDARD_POLE";
+        string highlandBranchPoleId = slice.CoreSnapshot.Construction.World.Nodes
+            .Single(item => item.ClassId == branchPoleClassId &&
+                item.Position == points[^1])
+            .NodeId;
+        RealtimeProjectQuote connectionQuote = OrderTutorialLine(
+            slice,
+            highlandBranchPoleId,
+            Array.Empty<CoreMapPoint>(),
+            "EAST_RESIDENTIAL_TERMINAL",
+            reinforced ? "REINFORCED_LINE" : "STANDARD_LINE",
+            reinforced ? "REINFORCED_POLE" : "STANDARD_POLE",
+            failures,
+            $"{label} East second connection");
         RealtimeConnectionRequirementAssessment connection = slice.CoreSnapshot
             .Forecast.ConnectionRequirementAssessment ?? throw new InvalidOperationException(
                 $"{label} post-construction connection assessment is absent.");
-        Check(quote.RiskAreaIds.Count == 0 &&
-              quote.CompletionMinute <= 267150 &&
-              slice.CoreSnapshot.Minute == quote.CompletionMinute &&
+        Check(highlandQuote.RiskAreaIds.Count == 0 &&
+              connectionQuote.RiskAreaIds.Count == 0 &&
+              connectionQuote.CompletionMinute <= 267150 &&
+              slice.CoreSnapshot.Minute == connectionQuote.CompletionMinute &&
               connection.Facts.Single().CurrentConnections == 2,
             $"{label} highland line was late, crossed flood risk, or forged East 2/2",
             failures);
@@ -5903,13 +5917,17 @@ internal static class RealtimeR2Smoke
             .NodeId;
         string waterSubstationId = OrderTutorialNode(
             slice,
-            new CoreMapPoint(2300, 900),
+            // The reinforced junction covers Hospital + East, while its separate
+            // Water terminal edge satisfies the chapter's second-connection fact.
+            // Their heatwave sum creates one readable emergency arc; their smaller
+            // flood sum returns inside the continuous limit after recovery.
+            new CoreMapPoint(2400, 1050),
             failures,
             $"{label} continuous Water substation");
         _ = OrderTutorialLine(
             slice,
             reinforcedTrunkPoleId,
-            Array.Empty<CoreMapPoint>(),
+            [new CoreMapPoint(2080, 1150)],
             waterSubstationId,
             "REINFORCED_LINE",
             "REINFORCED_POLE",
@@ -5927,7 +5945,7 @@ internal static class RealtimeR2Smoke
         RealtimeConnectionRequirementAssessment connection = slice.CoreSnapshot.Forecast
             .ConnectionRequirementAssessment ?? throw new InvalidOperationException(
                 $"{label} completed Water connection assessment is absent.");
-        Check(slice.CoreSnapshot.Minute == 267417 &&
+        Check(slice.CoreSnapshot.Minute == 267462 &&
               connection is { FrozenForChapter: false, Satisfied: true } &&
               connection.Facts.Single().CurrentConnections == 2,
             $"{label} continuous Water branch lost its exact completion or 2/2",
@@ -5939,7 +5957,8 @@ internal static class RealtimeR2Smoke
         ICollection<string> failures)
     {
         const string label = "SWITCH_OFF_TO_PROTECT";
-        RealtimeForecastEvent planned = slice.LatestPresentation.BaseForecast.Events.Single();
+        RealtimeForecastEvent planned = slice.LatestPresentation.BaseForecast.Events
+            .Single(item => item.EventId == "WEST_SOURCE_PLANNED_OUTAGE");
         Check(planned.EventId == "WEST_SOURCE_PLANNED_OUTAGE" &&
               planned.RevealMinute == 267270 &&
               planned.StartMinute == 267690 &&
@@ -5958,14 +5977,23 @@ internal static class RealtimeR2Smoke
               planned.TemporalProjection.Transitions.Count == 0 &&
               planned.TemporalProjection.Outcome.SafetySatisfied &&
               planned.TemporalProjection.Outcome.PromiseSatisfied,
-            $"{label} planned-outage forecast lost authored timing, West isolation, or supply",
+            $"{label} planned-outage forecast lost authored timing, West isolation, or supply; " +
+            $"loads={string.Join(',', planned.ProjectedEvaluation.Loads.Select(item =>
+                $"{item.LoadId}:{item.DeliveredKw}/{item.DemandKw}:{item.SourceId}:{item.Failure?.Kind}"))}; " +
+            $"assets={string.Join(',', planned.ProjectedEvaluation.Assets.Where(item => item.UsedKw > 0).Select(item =>
+                $"{item.AssetId}:{item.UsedKw}:{item.ContinuousKw}:{item.EmergencyKw}:{item.State}"))}; " +
+            $"transitions={string.Join(',', planned.TemporalProjection.Transitions.Select(item =>
+                $"{item.Minute}:{item.AssetKind}:{item.Kind}:{item.AssetId}"))}",
             failures);
 
-        _ = AdvanceToMinuteByFrames(
-            slice,
-            267450,
-            RealtimeSimulationSpeed.VeryFast,
-            failures);
+        if (slice.CoreSnapshot.Minute < 267450)
+        {
+            _ = AdvanceToMinuteByFrames(
+                slice,
+                267450,
+                RealtimeSimulationSpeed.VeryFast,
+                failures);
+        }
         RealtimeForecastEvent[] revealed = slice.LatestPresentation.BaseForecast.Events
             .ToArray();
         RealtimeForecastEvent returned = revealed.Single(item =>
@@ -5992,7 +6020,11 @@ internal static class RealtimeR2Smoke
               returned.TemporalProjection.Transitions.Count == 0 &&
               returned.TemporalProjection.Outcome.SafetySatisfied &&
               returned.TemporalProjection.Outcome.PromiseSatisfied,
-            $"{label} return-service forecast lost reveal order or continuous supply",
+            $"{label} return-service forecast lost reveal order or continuous supply; " +
+            $"loads={string.Join(',', returned.ProjectedEvaluation.Loads.Select(item =>
+                $"{item.LoadId}:{item.DeliveredKw}/{item.DemandKw}:{item.SourceId}:{item.Failure?.Kind}"))}; " +
+            $"transitions={string.Join(',', returned.TemporalProjection.Transitions.Select(item =>
+                $"{item.Minute}:{item.AssetKind}:{item.Kind}:{item.AssetId}"))}",
             failures);
     }
 
@@ -6042,7 +6074,9 @@ internal static class RealtimeR2Smoke
                   Satisfied: true,
               } &&
               frozen.Facts.Single().CurrentConnections == 2,
-            $"{label} active outage lost frozen 2/2, West isolation, or South supply",
+            $"{label} active outage lost frozen 2/2, West isolation, or South supply; " +
+            $"loads={string.Join(',', actual.Loads.Select(item =>
+                $"{item.LoadId}:{item.DeliveredKw}/{item.DemandKw}:{item.SourceId}:{item.Failure?.Kind}"))}",
             failures);
         Check(slice.ClosePresentedStoryModalForSmoke() is null &&
               slice.InteractionState.Simulation == RealtimeSimulationState.Running,
@@ -6235,15 +6269,16 @@ internal static class RealtimeR2Smoke
             failures);
         RealtimeForecastEvent heatwave = slice.LatestPresentation.BaseForecast.Events
             .Single(item => item.EventId == "HEATWAVE_PEAK");
-        RealtimeThermalTransition projectedEmergency = heatwave.TemporalProjection
-            .Transitions.Single(transition => transition is
+        RealtimeThermalTransition? projectedEmergency = heatwave.TemporalProjection
+            .Transitions.FirstOrDefault(transition => transition is
             {
                 Minute: 268770,
-                AssetKind: ThermalAssetKind.Edge,
+                AssetKind: ThermalAssetKind.Node,
                 Kind: RealtimeThermalTransitionKind.EmergencyEntered,
             });
-        RealtimeThermalTransition[] projectedThermalArc = heatwave.TemporalProjection
-            .Transitions.Where(transition =>
+        RealtimeThermalTransition[] projectedThermalArc = projectedEmergency is null
+            ? []
+            : heatwave.TemporalProjection.Transitions.Where(transition =>
                 transition.AssetId == projectedEmergency.AssetId).ToArray();
         Check(heatwave.RevealMinute == 268170 &&
               heatwave.StartMinute == 268770 &&
@@ -6255,20 +6290,25 @@ internal static class RealtimeR2Smoke
                   load.LoadId == "HOSPITAL").DeliveredKw == 1600 &&
               heatwave.ProjectedEvaluation.Loads.Single(load =>
                   load.LoadId == "WATERWORKS").DeliveredKw == 1400 &&
+              projectedEmergency is not null &&
               projectedThermalArc is
               [
                   {
                       Minute: 268770,
-                      AssetKind: ThermalAssetKind.Edge,
+                      AssetKind: ThermalAssetKind.Node,
                       Kind: RealtimeThermalTransitionKind.EmergencyEntered,
                   },
                   {
-                      Minute: 268845,
-                      AssetKind: ThermalAssetKind.Edge,
+                      Minute: 268860,
+                      AssetKind: ThermalAssetKind.Node,
                       Kind: RealtimeThermalTransitionKind.ProtectiveTrip,
                   },
               ],
-            $"{label} heatwave forecast lost exact timing, duty, or thermal arc",
+            $"{label} heatwave forecast lost exact timing, duty, or thermal arc; " +
+            $"assets={string.Join(',', heatwave.ProjectedEvaluation.Assets.Where(item => item.UsedKw > 0).Select(item =>
+                $"{item.AssetId}:{item.AssetKind}:{item.UsedKw}:{item.ContinuousKw}:{item.EmergencyKw}:{item.State}"))}; " +
+            $"observed={string.Join(',', heatwave.TemporalProjection.Transitions.Select(item =>
+                $"{item.Minute}:{item.AssetKind}:{item.Kind}:{item.AssetId}"))}",
             failures);
 
         _ = AdvanceToMinuteByFrames(
@@ -6415,7 +6455,7 @@ internal static class RealtimeR2Smoke
         RealtimeTransition emergency = thermal.Single(item => item is
         {
             Minute: 268770,
-            AssetKind: ThermalAssetKind.Edge,
+            AssetKind: ThermalAssetKind.Node,
             Kind: RealtimeTransitionKind.ThermalEmergencyEntered,
         });
         RealtimeTransition[] thermalArc = thermal.Where(item =>
@@ -6461,17 +6501,17 @@ internal static class RealtimeR2Smoke
               [
                   {
                       Minute: 268770,
-                      AssetKind: ThermalAssetKind.Edge,
+                      AssetKind: ThermalAssetKind.Node,
                       Kind: RealtimeTransitionKind.ThermalEmergencyEntered,
                   },
                   {
-                      Minute: 268845,
-                      AssetKind: ThermalAssetKind.Edge,
+                      Minute: 268860,
+                      AssetKind: ThermalAssetKind.Node,
                       Kind: RealtimeTransitionKind.ThermalProtectiveTrip,
                   },
                   {
-                      Minute: 268935,
-                      AssetKind: ThermalAssetKind.Edge,
+                      Minute: 268950,
+                      AssetKind: ThermalAssetKind.Node,
                       Kind: RealtimeTransitionKind.ThermalRecovered,
                   },
               ] &&
@@ -7301,7 +7341,7 @@ internal static class RealtimeR2Smoke
         catch (Exception exception)
         {
             failures.Add($"R2 smoke {label} threw {exception.GetType().Name}: " +
-                         exception.Message);
+                         exception.Message + Environment.NewLine + exception.StackTrace);
         }
     }
 

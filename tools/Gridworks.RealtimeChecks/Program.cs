@@ -953,7 +953,7 @@ internal sealed class Checks
             "release overlay FIRST_LIGHT repeated composition");
 
         Equal(
-            "19d042ca18cebec4d3164aba5932319ec123e1520283094fc3473eea548afd8c",
+            "818124ba86c0ec4be7dd033390c6aa623152ae193425189d8394fc9fc501e484",
             all.SourceIdentity.BaseCampaignSha256,
             "release overlay exact raw V2 source hash");
         Equal(
@@ -961,7 +961,7 @@ internal sealed class Checks
             all.SourceIdentity.RealtimeOverlaySha256,
             "release overlay exact raw V3 source hash");
         Equal(
-            "7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09",
+            "4d9709da70891e2a32956d53d5607b0f53cc254a0aa609d237b1dabb0bb2232e",
             all.SourceIdentity.FullComposedCampaignSha256,
             "release overlay exact full composed hash");
         Equal(
@@ -1337,7 +1337,7 @@ internal sealed class Checks
             "NORTH_BANK release prefix absolute schedule");
 
         Equal(
-            "19d042ca18cebec4d3164aba5932319ec123e1520283094fc3473eea548afd8c",
+            "818124ba86c0ec4be7dd033390c6aa623152ae193425189d8394fc9fc501e484",
             selected.SourceIdentity.BaseCampaignSha256,
             "NORTH_BANK exact raw V2 source hash");
         Equal(
@@ -1345,7 +1345,7 @@ internal sealed class Checks
             selected.SourceIdentity.RealtimeOverlaySha256,
             "NORTH_BANK exact raw V3 source hash");
         Equal(
-            "7bd151399040934cfcb9f7c96d2879aef6354cda79ced2af184641eb33a02f09",
+            "4d9709da70891e2a32956d53d5607b0f53cc254a0aa609d237b1dabb0bb2232e",
             selected.SourceIdentity.FullComposedCampaignSha256,
             "NORTH_BANK exact complete composed hash");
         Equal(

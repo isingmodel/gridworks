@@ -74,13 +74,12 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         G3GroundRubble, G3RiverWaterSurface, G3RiverWaterNeutral, G3RiverWaterHeat,
         G3RiverWaterFlood, G3RiverConifer, G3RiverScrub, G3RiverOutcrop,
         G3RiverBridgeAbutment,
-        G3WorkerHouseA, G3WorkerHouseB, G3RowShop,
-        G3HospitalMain, G3HospitalService, G3PumpHouse, G3WaterTank,
         G3PlantMainHall, G3PlantSmokestack,
         G3PlantTurbineHall, G3SwitchyardBreakerBay, G3SubstationTransformer,
         G3StandardPole, G3ReinforcedPole, G3BridgeFoundation,
         CityResidentialBlock, CityIndustrialCampus,
         CityHospitalCampus, CityWaterworksCampus,
+        G3WorkerHouseA, G3RowShop, G3Workshop, G3SmallWarehouse, G3StreetLamp,
         .. G3ExtendedMapAssetPaths,
     ];
 
@@ -622,29 +621,75 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             int distance = checked((int)FixedGeometry.CeilDistance(
                 centerWorld,
                 loadNode.Position));
+            Vector2 loadPoint = Point(loadNode.Position);
+            float glyph = 10f * _accessibilityScale;
             if (distance > radiusUnit)
             {
+                if (distance <= radiusUnit + Math.Max(160, radiusUnit / 3))
+                {
+                    Color outside = Outage with { A = 0.72f };
+                    DrawLine(loadPoint + new Vector2(-glyph, -glyph),
+                        loadPoint + new Vector2(glyph, glyph), outside,
+                        2.4f * _accessibilityScale, true);
+                    DrawLine(loadPoint + new Vector2(-glyph, glyph),
+                        loadPoint + new Vector2(glyph, -glyph), outside,
+                        2.4f * _accessibilityScale, true);
+                }
                 continue;
             }
             covered++;
-            Vector2 loadPoint = Point(loadNode.Position);
-            float glyph = 7f * _accessibilityScale;
+            DrawCircle(loadPoint, glyph + (4f * _accessibilityScale),
+                color with { A = 0.18f });
+            DrawCircle(loadPoint, glyph + (4f * _accessibilityScale), color,
+                false, 2.3f * _accessibilityScale, true);
             DrawLine(loadPoint + new Vector2(-glyph, -glyph),
                 loadPoint + new Vector2(glyph, -glyph), color,
                 2f * _accessibilityScale, true);
             DrawLine(loadPoint + new Vector2(-glyph, -glyph),
                 loadPoint + new Vector2(-glyph, glyph), color,
                 2f * _accessibilityScale, true);
+            DrawLine(loadPoint + new Vector2(-glyph * 0.45f, 0f),
+                loadPoint + new Vector2(-glyph * 0.08f, glyph * 0.42f), color,
+                2.4f * _accessibilityScale, true);
+            DrawLine(loadPoint + new Vector2(-glyph * 0.08f, glyph * 0.42f),
+                loadPoint + new Vector2(glyph * 0.58f, -glyph * 0.5f), color,
+                2.4f * _accessibilityScale, true);
         }
 
-        string label = $"{classDisplayName} · R {radiusUnit:N0} · 수요 {covered}곳";
-        DrawString(
-            ThemeDB.FallbackFont,
-            center + new Vector2(14f, -radius - 10f) * _accessibilityScale,
+        string label = $"R {radiusUnit:N0} m · 포함 {covered}곳";
+        int labelSize = Math.Max(LabelFontSize,
+            Mathf.RoundToInt(15f * _accessibilityScale));
+        Vector2 labelOrigin = center +
+            new Vector2(12f, -radius - 12f) * _accessibilityScale;
+        Vector2 labelTextSize = ThemeDB.FallbackFont.GetStringSize(
             label,
             HorizontalAlignment.Left,
             -1,
-            Math.Max(LabelFontSize, Mathf.RoundToInt(13f * _accessibilityScale)),
+            labelSize);
+        var labelBadge = new Rect2(
+            labelOrigin - new Vector2(7f, labelTextSize.Y + 5f) * _accessibilityScale,
+            labelTextSize + new Vector2(14f, 9f) * _accessibilityScale);
+        var labelStyle = new StyleBoxFlat
+        {
+            BgColor = new Color(Color.FromHtml("101615"), 0.9f),
+            BorderColor = color with { A = 0.72f },
+            BorderWidthLeft = 1,
+            BorderWidthTop = 1,
+            BorderWidthRight = 1,
+            BorderWidthBottom = 1,
+            CornerRadiusTopLeft = 4,
+            CornerRadiusTopRight = 4,
+            CornerRadiusBottomLeft = 4,
+            CornerRadiusBottomRight = 4,
+        };
+        DrawStyleBox(labelStyle, labelBadge);
+        DrawString(
+            ThemeDB.FallbackFont,
+            labelOrigin,
+            label,
+            HorizontalAlignment.Left,
+            -1,
+            labelSize,
             color);
 
         if (!drawGhost)
@@ -670,11 +715,16 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 footprintPoints[(index + 1) % footprintPoints.Length],
                 footprintColor);
         }
+        float ghostSize = radiusUnit >= 800 ? 650f : 520f;
         DrawG3Sprite(
             G3SubstationTransformer,
             center,
-            WorldPixels(360f),
-            new Color(footprintColor, 0.52f));
+            WorldPixels(ghostSize),
+            new Color(footprintColor, 0.64f));
+        Vector2 bayAnchor = center + new Vector2(footprint * 1.18f, 0f);
+        DrawLine(center, bayAnchor, footprintColor with { A = 0.9f },
+            3f * _accessibilityScale, true);
+        DrawCircle(bayAnchor, 5f * _accessibilityScale, footprintColor);
     }
 
     internal RealtimePointerResolution ResolveWorldProbe(RealtimePointerProbe probe) =>
@@ -1294,13 +1344,13 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         string assetPath = node.ClassId == "STANDARD_POLE"
             ? G3StandardPole
             : G3ReinforcedPole;
-        float maxSide = WorldPixels(node.ClassId == "STANDARD_POLE" ? 160f : 185f);
+        float maxSide = WorldPixels(node.ClassId == "STANDARD_POLE" ? 280f : 320f);
         if (G3Texture(assetPath) is not Texture2D texture)
         {
             return ground;
         }
         Vector2 spriteSize = FitG3SpriteSize(texture, maxSide);
-        return ground + new Vector2(0f, -spriteSize.Y * 0.64f);
+        return ground + new Vector2(0f, -spriteSize.Y * 0.68f);
     }
 
     private void DrawG3ConductorSpan(Vector2 from, Vector2 to, Color color, float width)
@@ -1311,7 +1361,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             return;
         }
         Vector2 normal = new Vector2(-axis.Y, axis.X).Normalized() *
-            (2.8f * _accessibilityScale);
+            (3.8f * _accessibilityScale);
         float sag = Math.Clamp(axis.Length() * 0.13f, 5f, 28f) * _accessibilityScale;
         Vector2[] center = Enumerable.Range(0, 17)
             .Select(index =>
@@ -1326,7 +1376,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             center,
             center.Select(point => point - normal).ToArray(),
         ];
-        float conductorWidth = Math.Max(0.9f, width * 0.44f);
+        float conductorWidth = Math.Max(1.15f, width * 0.48f);
         foreach (Vector2[] strand in strands)
         {
             DrawPolyline(
@@ -1366,7 +1416,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 DrawG3Sprite(
                     node.ClassId == "STANDARD_POLE" ? G3StandardPole : G3ReinforcedPole,
                     Point(node.Position),
-                    WorldPixels(node.ClassId == "STANDARD_POLE" ? 160f : 185f),
+                    WorldPixels(node.ClassId == "STANDARD_POLE" ? 280f : 320f),
                     modulate);
                 return;
             case SpatialNodeKind.Substation:

@@ -27,7 +27,7 @@
       "emergencyKw": 3800,
       "emergencyExposureLimitMinutes": 90,
       "emergencyExposureRecoveryPerMinute": 1,
-      "protectiveOutageMinutes": 120
+      "protectiveOutageMinutes": 90
     },
     {
       "assetKind": "node",

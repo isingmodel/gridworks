@@ -846,7 +846,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                             waterMaterial,
                             StringComparison.Ordinal) &&
                         map.DrawnG3SpriteCountForSmoke >= 45 &&
-                        map.DrawnRiverBankMaxDeviationForSmoke >= 4f &&
+                        map.DrawnRiverBankMaxDeviationForSmoke >= 50f &&
                         map.DrawnMeasuredBridgeCountForSmoke == 2 &&
                         map.MeasuredBridgesLandOnBothBanksForSmoke &&
                         map.DrawnBuildingParcelAlphaForSmoke is > 0f and <= 0.10f &&
@@ -857,7 +857,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                                 "north_residential", "waterworks",
                             },
                             StringComparer.Ordinal) &&
-                        map.DrawnCityRoadPathCountForSmoke == 7 &&
+                        map.DrawnCityRoadPathCountForSmoke == 9 &&
                         map.PoleConductorsUseRaisedAttachmentsForSmoke,
                     $"G3 {weather} map draw omitted a required asset/layer/material " +
                     $"(layers=[{string.Join(',', map.DrawnG3LayersForSmoke)}], " +
@@ -891,8 +891,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 ',',
                 map.G3AssetPathsForSmoke.Where(path => !drawnUnion.Contains(path)));
             Require(drawnUnion.SetEquals(map.G3AssetPathsForSmoke) &&
-                    map.G3AssetPathsForSmoke.Count == 43,
-                "Realtime clear/heat/rain/storm draw union did not exactly match the 43-file " +
+                    map.G3AssetPathsForSmoke.Count == 41,
+                "Realtime clear/heat/rain/storm draw union did not exactly match the 41-file " +
                 "adopted map palette " +
                 $"(drawn={drawnUnion.Count}, allowed={map.G3AssetPathsForSmoke.Count}, " +
                 $"missing=[{missingG3Assets}])",

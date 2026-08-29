@@ -100,6 +100,7 @@ speed 또는 재생 입력만 실제 진행을 재개한다. presenter와 UI nod
 | 질문 | 단일 권위 | 수정 시작점 |
 |---|---|---|
 | 망·공사·공급·열·시간·결과는 어떻게 바뀌는가? | `RealtimeCampaignRun`과 Release V3 Core | `src/Gridworks.Core/Release/V3/` |
+| 수요가 어느 변전소에서 공급되는가? | `RealtimeSupplyAllocator`: 발전원→가동 변전소 유선 경로 + class 반경 R | `src/Gridworks.Core/Release/V3/RealtimeSupplyAllocator.cs` |
 | authored world·chapter의 원문은? | strict Release V2 content와 loader | `data/release-world-v2.json`, `data/release-campaign-v2.json`, `src/Gridworks.Core/Release/V2/` |
 | realtime world·schedule overlay는? | V3 world/overlay loader | `data/release-world-v3.json`, `data/release-campaign-v3.json`, `src/Gridworks.Core/Release/V3/` |
 | product boot와 개발/native launch를 어떻게 구분하는가? | `RealtimeLaunchCatalog` | `game/realtime/r2/RealtimeLaunchCatalog.cs` |
@@ -131,6 +132,12 @@ speed 또는 재생 입력만 실제 진행을 재개한다. presenter와 UI nod
 한 규칙을 presenter나 Godot adapter에서 다시 계산하지 않는다. Core fact가 부족하면 Core의 snapshot 또는
 typed contract를 보강하고, application 전용 결정은 Session에서 한 번 계산해 presentation source로
 넘긴다. presenter는 상태를 바꾸지 않고 화면 의미만 만든다.
+
+Release V3 공급은 수요 접속점까지의 유선 경로를 요구하지 않는다. allocator가 완공·사용 가능한
+`발전 접속점 → 변전소` 경로를 먼저 찾고, 그 변전소 class의 `serviceRadiusUnit` 안(경계 포함)에 있는
+dedicated load를 직접 배정한다. 여러 후보의 용량·열 한계·사용불가·보호정지와 결정론적 선택도 같은
+allocator가 소유한다. presenter는 선택된 변전소, 거리/R와 유선 경로를 typed fact로 받고, map은 유선
+도체와 비유선 service link를 서로 다른 표식으로만 그린다.
 
 `RealtimePlaceholderMap`은 typed world의 시각 합성만 소유한다. water polygon에서 결정론적 양안 contour를
 만들어 surface·flow·measured bridge가 같은 화면 geometry를 공유하고, pole sprite 크기에서 상단 conductor

@@ -254,15 +254,15 @@ internal sealed partial class RealtimeSliceMain
     private const string ExpectedBaseWorldSourceSha256 =
         "c4923f752205c193efa78ddb4ca9e5431801731e6087be3ba3796abf9117ac14";
     private const string ExpectedBaseCampaignSourceSha256 =
-        "19d042ca18cebec4d3164aba5932319ec123e1520283094fc3473eea548afd8c";
+        "818124ba86c0ec4be7dd033390c6aa623152ae193425189d8394fc9fc501e484";
     private const string ExpectedRealtimeWorldSourceSha256 =
         "0d047c66063a9e925f1c0d0d6a19940956cbd3fb7e6a7d7be0df6035ff3d4ed0";
     private const string ExpectedRealtimeCampaignSourceSha256 =
-        "e33510b49b32c127bca66ce14e755e48f75067cddc8b38d7d94b92b64d2c530a";
+        "77cba042d6a38820e4a9615653fe42c831e39390a66afabd672d8e9322de0e5d";
     private const string ExpectedRealtimeWorldDefinitionSha256 =
         "7bc7061a5564dbbbf0d98217c60e977ed20287f6b5da71f8153b6893a0923b60";
     private const string ExpectedRealtimeCampaignDefinitionSha256 =
-        "4dc4dee6a9740e6b3babf1f9b2ccf9b8d107e541c9918e33a822ef4006163519";
+        "428252f99c81d6ba50bb167e53583b6e05a440bd3805dd4066d2d090494f1ccb";
 
     private RealtimeSliceCheckpointFact? _enteredTargetedCheckpoint;
     private InteractiveCheckpointState? _interactiveCheckpoint;
@@ -815,22 +815,22 @@ internal sealed partial class RealtimeSliceMain
             RealtimeSliceCheckpointIds.NormalReady => new FrozenCheckpointIdentity(
                 StartMinute: 1020,
                 StartCanonicalStateSha256:
-                    "7094f631c89fe072800858a205d08358be07a6e0e7341b83026ff619fc03f9a3",
+                    "f4ebf29f7f66dba14fc0cd7c93ead342fdf95f043d10ce3937ebc07ad1c380ea",
                 CommandReplaySha256:
                     "4f4d3748681585f49eeb4291262db3c99676baba10913450c94d5e1eda9e1611",
                 CommandCount: 0,
                 EndCanonicalStateSha256:
-                    "d61217a830053e59f9c75a69eef110da2604892baf9b52ea74cb04d406ad6fec"),
+                    "618e11016d490866f47643b1b0b0003c6a77bc77493eea87d1210f5fa878bad8"),
             RealtimeSliceCheckpointIds.ConstructionDueOneMinute =>
                 new FrozenCheckpointIdentity(
                     StartMinute: 1259,
                     StartCanonicalStateSha256:
-                        "3a00c6c937d130cc7574e3971403445cb036a26aecba6671e300e1398d4b9989",
+                        "a951cbf0bf3e4ca2bc3918b92461cb246f1882502d016937e3a1fce7bc27b0e5",
                     CommandReplaySha256:
                         "9bd7c3226fd36396d9d9f7a8d81da25379cedb8e0e54441601bb7c89e947c65c",
                     CommandCount: 3,
                     EndCanonicalStateSha256:
-                        "304b96410d7652db9928613fe77443d8d50e29efcb273ff8061c064f876f37f9"),
+                        "14bb6b93d3b40968d7e99cea60d8b2bc2f769fba528463d3579ba5108d0fef19"),
             _ => throw new ArgumentOutOfRangeException(
                 nameof(checkpointId), checkpointId, "Unknown checkpoint identity."),
         };

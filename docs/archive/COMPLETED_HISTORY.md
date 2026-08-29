@@ -578,6 +578,28 @@ FHD/QHD/UHD 100/125/150/200% control-tree harness와 normal/construction targete
 fresh native normal·selected·construction 화면을 한 LLM이 관찰했다. 이는 사람 미감·사용성 증거, 공식
 평가 점수, package·외부 release gate나 공개 출시 승인이 아니다. push, PR, merge는 수행하지 않았다.
 
+### UX-R2.30 — 변전소 반경 직접 공급과 도시 조화 재감사
+
+Release V3 공급 경로를 발전원→가동 변전소의 완공망에서 끝내고, 각 변전소가 class별 반경 R 안의 전용
+수요를 별도 수요측 선로 없이 직접 공급하도록 바꿨다. 반경 경계를 포함하며 여러 후보는 용량·열 상태와
+stable tie-break로 선택한다. 사용불가·보호정지·용량 부족과 반경 밖 수요는 기존 typed failure로 남는다.
+튜토리얼은 변전소 배치와 발전원 feed 두 단계로 바뀌었고, 지도·draft·context는 exact R, 포함/밖 수요,
+현재 공급과 service 관계를 실제 3상 통전 선로와 구분한다.
+
+skeptical LLM 시각 검토가 지적한 직선 강, 이상한 교량, pole-top 접속, 고립된 campus, 건물·배경 불일치,
+ward seam, 빈 도시 블록, 약한 도로 hierarchy와 겹친 ghost를 같은 renderer authority 안에서 수정했다.
+강은 S자 양안 contour와 두 measured bridge를 사용하고, 발전소 service road부터 도시 spine·branch·산업
+access까지 폭·재질을 구분했다. 병원·정수장은 공통 camera·광원·재질의 투명 campus로 교체하고 저대비
+인필·주차 court·가로등으로 큰 시설 사이의 block grain을 채웠다. 전신주 sprite와 상단 attachment를 키웠다.
+
+마지막 native 조작에서 변전소 선택 요약이 4개 제한을 넘는 예외를 추가로 찾아, 핵심 R 요약은 유지하고
+반경 안 시설 목록을 route 상세로 옮겼다. 전체 `./dev check`의 Realtime 27 suites/1,132 assertions,
+Commercial 31 suites/7,085 assertions, G3 identity, 41-file live palette, save/settings failure matrix,
+FHD/QHD/UHD UI harness와 두 checkpoint가 PASS했다. 같은 GPT-5.6-sol xhigh reviewer의 재감사는 요청된
+건물·배경 조화와 전문적 조직성에 남은 P0/P1이 없다고 판정했다. 이는 LLM 형성평가와 headless 자동 근거이며
+사람 미감·사용성 승인, 물리 display·하드웨어 입력, package·외부 release gate가 아니다. push, PR, merge는
+수행하지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

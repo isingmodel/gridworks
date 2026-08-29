@@ -30,10 +30,10 @@ weather phase를 고정한다. 여기까지가 저장소가 소유하는 **curre
 | 기본 Godot 장면 | `res://realtime/r2/RealtimeSliceMain.tscn` |
 | 인자 없는 실행 | 제품 title; 저장 파일 없음은 즉시 `새 게임`, in-progress는 `이어하기`와 확인형 `새 게임`, current-v3 terminal은 `이어하기`와 즉시 `새 게임` 활성 |
 | R2 save/Continue | in-progress는 current v3 write/prior v1·v2 read, terminal은 current v3만 지원; stable/active story/handoff와 full-campaign `Ended` 복원, non-saveable exit의 prior bytes 보존과 readable-save backup/reset 지원 |
-| 게임 아트 | G3 PNG 57개가 R2에 연결됨: 지도 50개, UI 7개; 굽이치는 강·양안 착지 교량·pole 상단 도체·저대비 건물 parcel 합성 |
+| 게임 아트 | G3/city-v2 PNG 43개가 current R2 palette에 연결됨: 지도 36개, UI 7개; 굽이치는 강·양안 착지 교량·pole 상단 도체·구역별 통합 캠퍼스와 저대비 parcel 합성 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
 | R2 native 구현 | `LONGEST_NIGHT`까지 누적 8장, exact finale 뒤 authored epilogue 3장 |
-| `FIRST_LIGHT` 초반 안내 | HUD의 1/3→2/3→3/3 경로 안내, 지도 위 exact 시작·끝 접속점 표시와 compatible-node 우선 선택, 사건보다 늦은 견적 경고, 시험 경계별 진행 action, 장 전환의 미발주 초안 정리, 수치 경간과 평가 시점·원인별 실패 디브리프 |
+| `FIRST_LIGHT` 초반 안내 | HUD의 1/2→2/2 안내: 수요를 포함하는 변전소 반경 R 배치 뒤 발전소→변전소 급전 경로 건설, 지도 위 exact R·포함 수요·접속점 표시, 사건보다 늦은 견적 경고, 시험 경계별 진행 action, 수치 경간과 평가 시점·원인별 실패 디브리프 |
 | 직접 플레이 관찰 | 고정 LLM sample로 누적 8장·모든 Defer·실패 finale까지 확인; 성공 전용 epilogue는 이 sample에서 관찰하지 않음 |
 | 사건 지평선 | 한 줄 future-event bar(`RealtimeEventRail`)의 compact marker와 hover/선택 상세 정보 |
 | product settings | title/gameplay 공용 surface, UI 100/125/150/200%, Master/Ambient/SFX 0/25/50/75/100%, windowed/fullscreen, Reduce Motion과 strict atomic persistence 구현 |
@@ -77,8 +77,9 @@ non-saveable 구간으로 남긴다. 이 구간의 정상 종료는 직전 safe 
 → 결과를 확인하고 다음 장에서 같은 망을 보강한다
 ```
 
-전기는 발전량 총합만으로 공급되지 않는다. 발전 접속점에서 수요처까지 완공된 실제 경로가 있어야
-하며, 공유 선로·전신주 접속부·변전소의 연속/비상 한도가 병목이 된다. 공사는 시간이 걸리고, 비상
+전기는 발전량 총합만으로 공급되지 않는다. 수요처가 변전소 등급의 반경 R 안에 있고 발전 접속점에서
+그 변전소까지 완공·사용 가능한 실제 경로가 있어야 한다. 변전소→수요처에 별도 선로를 요구하지 않으며,
+공유 선로·전신주 접속부·변전소의 연속/비상 한도가 병목이 된다. 공사는 시간이 걸리고, 비상
 운전은 허용시간 뒤 보호정지와 냉각·복귀로 이어진다.
 
 장기 제품 경험은 [게임 기획서](docs/product/GAME_DESIGN_KO.md), 화면과 아트 기준은

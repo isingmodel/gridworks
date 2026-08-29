@@ -91,14 +91,16 @@ internal sealed partial class RealtimePlaceholderMap
 
     private static readonly CoreMapPoint[][] CityRoadPaths =
     [
+        [new(250, 715), new(590, 700), new(880, 625), new(1160, 535)],
+        [new(250, 1715), new(610, 1700), new(930, 1630), new(1280, 1515)],
         [new(1650, 520), new(1880, 560), new(2110, 700), new(2240, 980),
-            new(2180, 1270), new(2330, 1540), new(2580, 1760)],
+            new(2200, 1250), new(2300, 1500), new(2580, 1760)],
         [new(1890, 560), new(2110, 430), new(2410, 380)],
         [new(2160, 505), new(2480, 430), new(2790, 410)],
         [new(2200, 850), new(2460, 830), new(2680, 810)],
-        [new(2190, 1270), new(2320, 1340), new(2380, 1430)],
-        [new(2320, 1540), new(2520, 1640), new(2760, 1740)],
-        [new(1650, 1500), new(1880, 1460), new(2170, 1380)],
+        [new(2300, 1500), new(2350, 1370), new(2460, 1280)],
+        [new(2300, 1500), new(2520, 1640), new(2760, 1740)],
+        [new(1650, 1500), new(1900, 1500), new(2150, 1480), new(2300, 1500)],
     ];
 
     private CityDistrict? DistrictForNode(string nodeId)
@@ -116,36 +118,168 @@ internal sealed partial class RealtimePlaceholderMap
     private void DrawCityRoadNetwork()
     {
         DrawCityGroundPlane();
-        Color shoulder = new(Color.FromHtml("171e1d"), 0.98f);
-        Color asphalt = new(Color.FromHtml("3b4240"), 0.98f);
-        Color lane = new(Color.FromHtml("c39c5b"), 0.55f);
-        foreach (CoreMapPoint[] path in CityRoadPaths)
+        foreach ((CoreMapPoint[] path, int index) in CityRoadPaths.Select(
+                     (path, index) => (path, index)))
         {
             Vector2[] points = SmoothRoadPath(path.Select(Point).ToArray());
-            DrawPolyline(points, shoulder, WorldPixels(58f), true);
-            DrawPolyline(points, asphalt, WorldPixels(42f), true);
-            DrawPolyline(points, lane, Math.Max(1f, 1.2f * _accessibilityScale), true);
+            bool sourceService = index is 0 or 1;
+            bool citySpine = index is 2 or 8;
+            bool industrialAccess = index == 7;
+            Color shoulder = sourceService
+                ? new Color(Color.FromHtml("252723"), 0.90f)
+                : citySpine
+                    ? new Color(Color.FromHtml("171e1d"), 0.98f)
+                    : new Color(Color.FromHtml("202624"), 0.88f);
+            Color surface = sourceService
+                ? new Color(Color.FromHtml("46443b"), 0.90f)
+                : industrialAccess
+                    ? new Color(Color.FromHtml("514d41"), 0.92f)
+                    : citySpine
+                        ? new Color(Color.FromHtml("424a48"), 0.98f)
+                        : new Color(Color.FromHtml("323937"), 0.92f);
+            Color lane = industrialAccess
+                ? new Color(Color.FromHtml("d3af64"), 0.62f)
+                : citySpine
+                    ? new Color(Color.FromHtml("d1ad69"), 0.68f)
+                    : new Color(Color.FromHtml("9a8d68"), 0.24f);
+            float shoulderWidth = index switch
+            {
+                0 or 1 => 42f,
+                2 => 68f,
+                8 => 58f,
+                7 => 42f,
+                _ => 34f,
+            };
+            float roadWidth = index switch
+            {
+                0 or 1 => 30f,
+                2 => 50f,
+                8 => 42f,
+                7 => 32f,
+                _ => 22f,
+            };
+            DrawPolyline(points, shoulder, WorldPixels(shoulderWidth), true);
+            DrawPolyline(points, surface, WorldPixels(roadWidth), true);
+            if (!sourceService)
+            {
+                DrawPolyline(points, lane,
+                    Math.Max(0.8f, (citySpine ? 1.45f : 0.9f) * _accessibilityScale),
+                    true);
+            }
 #if DEBUG
             _drawnCityRoadPathCount++;
 #endif
+        }
+        DrawCityCivicInfill();
+        DrawCityLowContrastInfill();
+    }
+
+    private void DrawCityCivicInfill()
+    {
+        // Small parking/service courts bridge the visual gap between the large
+        // authored campuses without competing with their silhouettes.
+        foreach ((CoreMapPoint centerPoint, float width, float depth) in new[]
+                 {
+                     (new CoreMapPoint(2310, 760), 250f, 125f),
+                     (new CoreMapPoint(2710, 575), 230f, 112f),
+                     (new CoreMapPoint(2510, 1080), 240f, 110f),
+                     (new CoreMapPoint(2680, 1210), 300f, 135f),
+                     (new CoreMapPoint(2550, 1570), 260f, 120f),
+                     (new CoreMapPoint(2820, 1510), 220f, 105f),
+                 })
+        {
+            Vector2 center = Point(centerPoint);
+            float halfWidth = WorldPixels(width) * 0.5f;
+            float halfDepth = WorldPixels(depth) * 0.28f;
+            Vector2[] court = DistrictDiamond(center, halfWidth, halfDepth);
+            DrawColoredPolygon(court, new Color(Color.FromHtml("303735"), 0.66f));
+            DrawPolyline([.. court, court[0]],
+                new Color(Color.FromHtml("777c73"), 0.16f),
+                _accessibilityScale,
+                true);
+            for (int stall = -2; stall <= 2; stall++)
+            {
+                float t = 0.5f + stall * 0.11f;
+                Vector2 near = court[0].Lerp(court[3], t);
+                Vector2 far = court[1].Lerp(court[2], t);
+                DrawLine(near.Lerp(far, 0.18f), near.Lerp(far, 0.34f),
+                    new Color(Color.FromHtml("b5a777"), 0.28f),
+                    Math.Max(0.8f, _accessibilityScale),
+                    true);
+            }
+        }
+    }
+
+    private void DrawCityLowContrastInfill()
+    {
+        // These small masses sit between the authored gameplay campuses. They
+        // establish block grain without impersonating selectable facilities.
+        foreach ((string asset, CoreMapPoint ground, float maxSide, float alpha) in new[]
+                 {
+                     (G3RowShop, new CoreMapPoint(2650, 610), 210f, 0.52f),
+                     (G3WorkerHouseA, new CoreMapPoint(2810, 620), 180f, 0.48f),
+                     (G3RowShop, new CoreMapPoint(2500, 1050), 200f, 0.50f),
+                     (G3Workshop, new CoreMapPoint(2910, 1120), 185f, 0.48f),
+                     (G3WorkerHouseA, new CoreMapPoint(2660, 1110), 170f, 0.44f),
+                     (G3SmallWarehouse, new CoreMapPoint(2700, 1540), 220f, 0.48f),
+                     (G3Workshop, new CoreMapPoint(2940, 1510), 190f, 0.46f),
+                 })
+        {
+            DrawG3Sprite(
+                asset,
+                Point(ground),
+                WorldPixels(maxSide),
+                new Color(0.72f, 0.70f, 0.63f, alpha));
+        }
+
+        foreach (CoreMapPoint light in new[]
+                 {
+                     new CoreMapPoint(2570, 660), new CoreMapPoint(2760, 650),
+                     new CoreMapPoint(2450, 1110), new CoreMapPoint(2810, 1130),
+                     new CoreMapPoint(2600, 1510), new CoreMapPoint(2860, 1540),
+                 })
+        {
+            DrawG3Sprite(
+                G3StreetLamp,
+                Point(light),
+                WorldPixels(54f),
+                new Color(0.78f, 0.73f, 0.58f, 0.48f));
         }
     }
 
     private void DrawCityGroundPlane()
     {
-        CoreMapPoint[] boundary =
+        CoreMapPoint[][] wards =
         [
-            new(1870, 40), new(2520, 10), new(3180, 95), new(3235, 560),
-            new(3165, 1050), new(3240, 1540), new(3130, 2050), new(2380, 2090),
-            new(1885, 1930), new(1915, 1320), new(1825, 680),
+            [new(1880, 80), new(2510, 20), new(3180, 100), new(3170, 620),
+                new(2630, 710), new(2040, 620)],
+            [new(2040, 650), new(3170, 610), new(3150, 1180), new(2670, 1390),
+                new(2110, 1250)],
+            [new(2060, 1270), new(2710, 1330), new(3170, 1450), new(3110, 2020),
+                new(2380, 2050), new(1900, 1880)],
         ];
-        Vector2[] polygon = boundary.Select(Point).ToArray();
-        DrawColoredPolygon(polygon, new Color(Color.FromHtml("1b2421"), 0.74f));
-        DrawPolyline(
-            [.. polygon, polygon[0]],
-            new Color(Color.FromHtml("718078"), 0.07f),
-            1.4f * _accessibilityScale,
-            true);
+        foreach (CoreMapPoint[] ward in wards)
+        {
+            Vector2[] polygon = ward.Select(Point).ToArray();
+            DrawColoredPolygon(polygon, new Color(Color.FromHtml("1b2421"), 0.20f));
+        }
+
+        // The two generation campuses belong to the same municipal landscape as
+        // the east-bank districts. Low-contrast reserve parcels and service roads
+        // prevent their authored foundations from reading as loose stickers on an
+        // otherwise empty ground texture.
+        CoreMapPoint[][] sourceReserves =
+        [
+            [new(0, 410), new(430, 340), new(910, 540), new(780, 900),
+                new(260, 980), new(0, 820)],
+            [new(0, 1390), new(430, 1330), new(930, 1530), new(790, 1910),
+                new(280, 2030), new(0, 1860)],
+        ];
+        foreach (CoreMapPoint[] reserve in sourceReserves)
+        {
+            Vector2[] polygon = reserve.Select(Point).ToArray();
+            DrawColoredPolygon(polygon, new Color(Color.FromHtml("272b28"), 0.18f));
+        }
 
         // Two subdued green belts break the corridor into neighborhoods without
         // reintroducing a repeated tile grid behind the authored campuses.

@@ -119,8 +119,11 @@ internal sealed partial class RealtimePlaceholderMap
         float side)
     {
         const int segments = 36;
-        float centerAmplitude = 44f * _accessibilityScale;
-        float edgeAmplitude = 10f * _accessibilityScale;
+        // The river is a city-scale landmark, not a straight separator. Keep the
+        // two banks moving together through a strong S-curve, then add a smaller
+        // independent bank variation so width changes remain natural.
+        float centerAmplitude = 82f * _accessibilityScale;
+        float edgeAmplitude = 18f * _accessibilityScale;
         Vector2 tangent = (end - start).Normalized();
         Vector2 normal = new(-tangent.Y, tangent.X);
         return Enumerable.Range(0, segments + 1)
@@ -235,17 +238,17 @@ internal sealed partial class RealtimePlaceholderMap
             deckEnd + (normal * halfDeck) - (axis * skew),
             deckStart + (normal * halfDeck) - (axis * skew),
         ];
-        Vector2 shadowOffset = new(0f, 8f * _accessibilityScale);
+        Vector2 shadowOffset = new(0f, 12f * _accessibilityScale);
         DrawG3BridgeSupportTexture(
             G3RiverBridgeAbutment,
             leftBank.Lerp(rightBank, 0.5f),
             Math.Clamp(leftBank.DistanceTo(rightBank) * 0.56f, 72f, 118f),
-            new Color(0.52f, 0.50f, 0.45f, 0.08f));
+            new Color(0.52f, 0.50f, 0.45f, 0.18f));
         DrawG3BridgeSupportTexture(
             G3BridgeFoundation,
             leftBank.Lerp(rightBank, 0.5f),
             Math.Clamp(leftBank.DistanceTo(rightBank) * 0.42f, 64f, 104f),
-            new Color(0.48f, 0.49f, 0.46f, 0.08f));
+            new Color(0.48f, 0.49f, 0.46f, 0.16f));
         DrawColoredPolygon(
             deck.Select(point => point + shadowOffset).ToArray(),
             new Color(0f, 0f, 0f, 0.48f));
@@ -255,6 +258,22 @@ internal sealed partial class RealtimePlaceholderMap
             deck[2] + shadowOffset,
             deck[3] + shadowOffset,
         ], new Color(Color.FromHtml("171a1a"), 0.96f));
+        foreach (float pierProgress in new[] { 0.38f, 0.62f })
+        {
+            Vector2 pier = leftBank.Lerp(rightBank, pierProgress);
+            DrawLine(
+                pier - (normal * halfDeck * 0.72f),
+                pier + (normal * halfDeck * 0.72f) + shadowOffset,
+                new Color(Color.FromHtml("4f504a"), 0.92f),
+                7f * _accessibilityScale,
+                true);
+            DrawLine(
+                pier - (normal * halfDeck * 0.68f),
+                pier + (normal * halfDeck * 0.68f),
+                new Color(Color.FromHtml("898272"), 0.72f),
+                2f * _accessibilityScale,
+                true);
+        }
         DrawG3BridgeAbutment(leftBank, axis, normal, halfDeck);
         DrawG3BridgeAbutment(rightBank, axis, normal, halfDeck);
         DrawColoredPolygon(deck, new Color(Color.FromHtml("343837"), 1f));

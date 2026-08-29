@@ -129,7 +129,9 @@ Depth sort는 asset의 임의 이미지 높이가 아니라 authored footpoint/w
 ### 변전소
 
 - 소형은 한 주기기와 제한된 베이, 대형은 더 큰 주기기·모선·접속 bay로 읽힌다.
-- service area는 얇은 cyan 영역과 경계 pattern으로 표시하되 건물을 물에 잠긴 듯 덮지 않는다.
+- 배치 초안은 실제 footprint와 등급별 exact 반경 R을 동시에 보이고, R 안 수요에는 bracket을 붙인다.
+- 선택한 변전소의 service area는 4% 이하 cyan 면과 점선 경계로 표시하되 건물을 물에 잠긴 듯 덮지 않는다.
+- 실제 공급은 발전소→변전소의 3상 실선과 변전소→수요의 점선 service link를 구분해 표시한다.
 - 사용량·열 상태는 선택 시 world cue와 context에서 같은 값으로 표시한다.
 
 ### 시설
@@ -143,7 +145,7 @@ Depth sort는 asset의 임의 이미지 높이가 아니라 authored footpoint/w
 | 상태 | 색/광원 | 형태·pattern | 아이콘·문장 |
 |---|---|---|---|
 | 완공·연속 | 낮은 cyan 흐름 | 단일 안정선 | `정상`·현재/연속 |
-| 선택 경로 | 밝은 cyan | 외곽선+방향 pulse | 발전원→수요·첫 병목 |
+| 선택 경로 | 밝은 cyan | 발전원→변전소 실선 + 변전소→수요 점선 | 거리/R·첫 병목 |
 | 초안 | amber | 점선+footprint | class·배치 가능/거부 |
 | 공사 중 | warm amber | scaffold/사선+미완성 부재 | 완공 시각 |
 | 비상 운전 | cyan+orange | 이중선/삼각 notch | 노출 남은 시간 |

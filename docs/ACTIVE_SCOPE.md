@@ -2,30 +2,35 @@
 
 ## 상태
 
-**활성 scope가 없다.**
+**변전소 반경 공급과 도시 가독성 scope가 활성 상태다.**
 
-도시 건물·배경·UI 조화 scope는 완료됐다. 반복 placement와 설비 건물의 중복 draw를 제거하고, 정수장·
-북부/동부 생활권·병원·산업단지를 authored footprint, 공통 ground plane, 완만한 road spine/branch와 한
-depth 순서로 묶었다. 서부/남부 발전원도 서로 다른 campus 실루엣과 바닥 접점을 사용한다. 내장 ImageGen
-후보 중 공통 3/4 isometric camera·좌상단 광원·RGBA를 통과한 주거/산업 구역 2개만 source-tree runtime에
-채택했으며 provenance와 package 밖 사용 경계를 기록했다.
+## 단일 결과물
 
-선택 dock은 376px 기준 폭의 compact overlay가 되어 지도 아래 dead strip을 만들지 않고, 역할·운영 상태·
-연결 정보와 상세 탭을 분리한다. top HUD, event rail, 일반/primary/tool control과 modal은 G3 metal texture
-대신 기능별 flat style hierarchy를 사용한다. `./dev check`의 Core/Commercial, G3 identity, save/settings
-failure matrix, FHD/QHD/UHD 100–200% UI harness와 normal/construction checkpoint가 PASS했다. fresh native
-normal·selected·construction 화면은 한 LLM이 직접 비교했으며 사람 미감·사용성 승인이나 공식 점수는
-수집하지 않았다.
+발전원에서 가동 중인 변전소까지 완공된 망이 이어지면 그 변전소가 등급별 반경 R 안의 수요를 직접
+공급하고, 플레이어가 같은 반경·공급 관계와 도시 시설을 전문적인 native 화면에서 즉시 구분한다.
 
-이 완료는 Core gameplay·경제·story·save schema, package identity나 외부 release gate를 바꾸지 않는다.
-push, PR, merge, 공개 배포는 수행하지 않았다.
+## 단일 권위
 
-## 다음 변경을 여는 조건
+- 변전소 반경 공급 자격·선택 경로·설비 사용량: Release V3 Core의 `RealtimeSupplyAllocator`
+- 위 Core 사실의 화면 의미: typed realtime presentation과 draw-only `RealtimePlaceholderMap`
 
-- 읽기·설명·진단은 관련 질문 소유 문서를 read-only로 확인한다.
-- 파일 변경은 사용자가 명시한 결과물 하나를 이 문서에 먼저 연다.
-- 외부 gate 실행, push, PR, merge와 공개 배포는 각각 사용자의 명시적 권한이 있어야 한다.
-- 시작 형식, 최소 검증과 종료 checklist는 [Agent 작업 안내](AGENT_GUIDE.md)를 따른다.
+## 범위 안
 
-`NEXT_TASKS.md`, [외부 출시 gate](RELEASE_GATES.md), 준비된 코드와 과거 PASS는 자동으로
-구현·평가·배포 권한을 만들지 않는다.
+- 공급 경로를 발전 접속점→가동 변전소에서 끝내고, 반경 R 안 수요에는 별도 수요측 선로를 요구하지 않는다.
+- 반경 경계·밖, 변전소 사용불가·보호정지, 여러 변전소, 용량·열 병목의 결정론적 선택과 진단을 고정한다.
+- 선택 수요/변전소에서 공급 변전소, 반경 R, 서비스 구간과 실제 통전 선로를 혼동 없이 표시한다.
+- 고정 native 장면의 변경 전 스크린샷을 회의적인 게임 디자인 리뷰에 제공하고, 건물·배경·설비·UI의
+  scope-valid 지적을 반영한 뒤 같은 장면을 다시 확인한다.
+
+## 범위 밖
+
+- 경제·공사 시간·chapter/story·save wire schema·입력 체계·오디오 규칙 변경
+- 새로운 배전선 모델, 범용 완공망 편집기, 새 chapter·시설 추가
+- 사람 참가자 미감 승인, 공식 UX 점수, package/release gate, push·PR·merge·배포
+
+## 완료 검사
+
+- Release V3 Core의 반경 안·경계·밖, 유선 수요측 선로 없음, 다중 변전소·열/용량·사용불가 accepted/rejected 검사
+- owning presenter/map 검사와 고정 native normal·selected·construction 스크린샷 비교
+- 회의적인 독립 리뷰의 scope-valid finding 반영, named checkpoint와 `./dev check`
+- 실제로 바뀐 제품·구조·자산 사실의 소유 문서 갱신과 scope 종료

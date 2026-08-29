@@ -600,6 +600,24 @@ FHD/QHD/UHD UI harness와 두 checkpoint가 PASS했다. 같은 GPT-5.6-sol xhigh
 사람 미감·사용성 승인, 물리 display·하드웨어 입력, package·외부 release gate가 아니다. push, PR, merge는
 수행하지 않았다.
 
+### UX-R2.31 — 발전원 통합 캠퍼스 교체
+
+native screenshot에서 서부·남부 발전원이 generic main hall, turbine hall, 분리된 굴뚝과 switchyard PNG를
+겹친 조립품처럼 보이고, 굴뚝 크기·흰 가장자리·도로 접점이 주변 도시와 맞지 않는 문제를 수정했다.
+서부는 보일러·터빈동과 결합된 중형 굴뚝·변압기·개폐장을 한 footprint에 넣은 열발전 campus, 남부는
+두 저층 가스터빈동·세 짧은 배기 stack·heat-recovery 배관·개폐장을 넣은 별도 campus를 사용한다.
+
+두 project-local PNG는 내장 ImageGen으로 생성하고 genuine RGBA, 3/4 isometric camera, 좌상단 key light,
+charcoal/warm/cyan palette를 확인했다. 돌출 도로를 제거하려던 edit와 background extraction은 checkerboard
+pixel과 alpha 부재 때문에 폐기했다. 최초 RGBA campus의 gate를 world road 시작점에 맞춰 PNG 도로와
+native service road가 한 번만 접속하게 했다. 기존 네 조각 draw는 live palette에서 제거했지만 source node,
+출력·열·공급 규칙과 gameplay footprint는 바꾸지 않았다.
+
+1229×768 production scene을 다시 캡처하고 전체 `./dev check`의 Realtime 27 suites/1,132 assertions,
+Commercial 31 suites/7,085 assertions, 57-file G3 identity, 39-file live palette, save/settings failure matrix,
+FHD/QHD/UHD UI harness와 두 checkpoint가 PASS했다. 이는 한 native 화면 관찰과 자동 근거이며 사람 미감
+승인, package·외부 release gate가 아니다. push, PR, merge는 수행하지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

@@ -53,10 +53,6 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private const string G3WaterTank = G3Root + "atomic/water-tank-a.png";
     private const string G3RetainingWall = G3Root + "atomic/retaining-wall-a.png";
     private const string G3StreetLamp = G3Root + "atomic/street-lamp-a.png";
-    private const string G3PlantMainHall = G3Root + "grid/plant-main-hall-a.png";
-    private const string G3PlantSmokestack = G3Root + "grid/plant-smokestack-a.png";
-    private const string G3PlantTurbineHall = G3Root + "grid/plant-turbine-hall-a.png";
-    private const string G3SwitchyardBreakerBay = G3Root + "grid/switchyard-breaker-bay-a.png";
     private const string G3SubstationTransformer =
         G3Root + "grid/substation-transformer-a.png";
     private const string G3StandardPole = G3Root + "grid/pole-standard-a.png";
@@ -74,11 +70,11 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         G3GroundRubble, G3RiverWaterSurface, G3RiverWaterNeutral, G3RiverWaterHeat,
         G3RiverWaterFlood, G3RiverConifer, G3RiverScrub, G3RiverOutcrop,
         G3RiverBridgeAbutment,
-        G3PlantMainHall, G3PlantSmokestack,
-        G3PlantTurbineHall, G3SwitchyardBreakerBay, G3SubstationTransformer,
+        G3SubstationTransformer,
         G3StandardPole, G3ReinforcedPole, G3BridgeFoundation,
         CityResidentialBlock, CityIndustrialCampus,
         CityHospitalCampus, CityWaterworksCampus,
+        CityWestPowerCampus, CitySouthPowerCampus,
         G3WorkerHouseA, G3RowShop, G3Workshop, G3SmallWarehouse, G3StreetLamp,
         .. G3ExtendedMapAssetPaths,
     ];
@@ -1401,7 +1397,6 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
             StringComparison.Ordinal)).Kind;
         if (kind == SpatialNodeKind.SourceTerminal)
         {
-            DrawG3SourceCampusFoundation(node);
             DrawG3SourcePlant(node, modulate);
             return;
         }
@@ -1440,67 +1435,17 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         if (string.Equals(node.NodeId, "SOUTH_SOURCE_NODE", StringComparison.Ordinal))
         {
             DrawG3Sprite(
-                G3PlantTurbineHall,
-                Point(new CoreMapPoint(origin.XUnit - 95, origin.YUnit + 35)),
-                WorldPixels(500f),
-                modulate);
-            DrawG3Sprite(
-                G3PlantMainHall,
-                Point(new CoreMapPoint(origin.XUnit + 45, origin.YUnit + 85)),
-                WorldPixels(440f),
-                modulate with { A = 0.96f });
-            DrawG3Sprite(
-                G3SwitchyardBreakerBay,
-                Point(new CoreMapPoint(origin.XUnit + 205, origin.YUnit + 105)),
-                WorldPixels(340f),
+                CitySouthPowerCampus,
+                Point(new CoreMapPoint(origin.XUnit - 55, origin.YUnit + 75)),
+                WorldPixels(780f),
                 modulate);
             return;
         }
         DrawG3Sprite(
-            G3PlantSmokestack,
-            Point(new CoreMapPoint(origin.XUnit + 60, origin.YUnit - 150)),
-            WorldPixels(480f),
+            CityWestPowerCampus,
+            Point(new CoreMapPoint(origin.XUnit - 45, origin.YUnit + 70)),
+            WorldPixels(800f),
             modulate);
-        DrawG3Sprite(
-            G3PlantTurbineHall,
-            Point(new CoreMapPoint(origin.XUnit - 170, origin.YUnit + 70)),
-            WorldPixels(520f),
-            modulate);
-        DrawG3Sprite(G3PlantMainHall, Point(origin), WorldPixels(590f), modulate);
-        DrawG3Sprite(
-            G3SwitchyardBreakerBay,
-            Point(new CoreMapPoint(origin.XUnit + 190, origin.YUnit + 110)),
-            WorldPixels(360f),
-            modulate);
-    }
-
-    private void DrawG3SourceCampusFoundation(SpatialNodeDefinition node)
-    {
-        Vector2 center = Point(new CoreMapPoint(
-            node.Position.XUnit,
-            node.Position.YUnit + 65));
-        float halfWidth = WorldPixels(
-            string.Equals(node.NodeId, "SOUTH_SOURCE_NODE", StringComparison.Ordinal)
-                ? 390f
-                : 470f) * 0.5f;
-        float halfDepth = WorldPixels(330f) * 0.27f;
-        Vector2[] footprint =
-        [
-            center + new Vector2(-halfWidth, 0f),
-            center + new Vector2(0f, -halfDepth),
-            center + new Vector2(halfWidth, 0f),
-            center + new Vector2(0f, halfDepth),
-        ];
-        DrawColoredPolygon(
-            footprint.Select(point => point + new Vector2(0f, 5f * _accessibilityScale))
-                .ToArray(),
-            new Color(0f, 0f, 0f, 0.34f));
-        DrawColoredPolygon(footprint, new Color(Color.FromHtml("30332f"), 0.82f));
-        DrawPolyline(
-            [.. footprint, footprint[0]],
-            new Color(Color.FromHtml("6c7068"), 0.26f),
-            1.2f * _accessibilityScale,
-            true);
     }
 
     private void DrawG3LoadTerminal(SpatialNodeDefinition node, Color modulate)

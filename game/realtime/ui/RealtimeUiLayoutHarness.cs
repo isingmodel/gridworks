@@ -891,8 +891,8 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 ',',
                 map.G3AssetPathsForSmoke.Where(path => !drawnUnion.Contains(path)));
             Require(drawnUnion.SetEquals(map.G3AssetPathsForSmoke) &&
-                    map.G3AssetPathsForSmoke.Count == 41,
-                "Realtime clear/heat/rain/storm draw union did not exactly match the 41-file " +
+                    map.G3AssetPathsForSmoke.Count == 39,
+                "Realtime clear/heat/rain/storm draw union did not exactly match the 39-file " +
                 "adopted map palette " +
                 $"(drawn={drawnUnion.Count}, allowed={map.G3AssetPathsForSmoke.Count}, " +
                 $"missing=[{missingG3Assets}])",

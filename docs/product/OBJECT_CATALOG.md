@@ -16,7 +16,7 @@
 
 | 오브젝트 | gameplay 역할 | 현재 구현·표현 | 남은 품질 항목 |
 |---|---|---|---|
-| 발전 접속점 | 공급 시작점, 출력 한도와 순서 | 규칙/native 연결, G3 발전소·switchyard 구조 | 출력·선택·사건 상태의 실제 화면 검수 |
+| 발전 접속점 | 공급 시작점, 출력 한도와 순서 | 서부 열발전·남부 가스터빈의 통합 RGBA campus, 각 campus 내부 switchyard·gate와 native service road 접속 | 출력·선택·사건 상태와 두 campus 구분의 실제 화면 검수 |
 | 일반 전신주 | 저비용 경유·분기, 제한된 접속 | 규칙/native 연결, G3 standard pole | 작은 zoom의 attachment·hit target 검수 |
 | 보강 전신주 | 큰 분기·합류와 접속부 한도 | 규칙/native 연결, G3 reinforced pole | 일반형과 색 없이 구분되는지 사람 검수 |
 | 일반/보강 선로 | 실제 공급 경로와 열 병목 | 규칙/native 연결, code-drawn conductor와 G3 지지 구조 | 3상 cue, 교차/접속, 비상·정지 상태 polish |

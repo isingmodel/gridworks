@@ -30,7 +30,7 @@ weather phase를 고정한다. 여기까지가 저장소가 소유하는 **curre
 | 기본 Godot 장면 | `res://realtime/r2/RealtimeSliceMain.tscn` |
 | 인자 없는 실행 | 제품 title; 저장 파일 없음은 즉시 `새 게임`, in-progress는 `이어하기`와 확인형 `새 게임`, current-v3 terminal은 `이어하기`와 즉시 `새 게임` 활성 |
 | R2 save/Continue | in-progress는 current v3 write/prior v1·v2 read, terminal은 current v3만 지원; stable/active story/handoff와 full-campaign `Ended` 복원, non-saveable exit의 prior bytes 보존과 readable-save backup/reset 지원 |
-| 게임 아트 | G3/city-v2 PNG 43개가 current R2 palette에 연결됨: 지도 36개, UI 7개; 굽이치는 강·양안 착지 교량·pole 상단 도체·구역별 통합 캠퍼스와 저대비 parcel 합성 |
+| 게임 아트 | G3/city-v2 PNG 46개가 current R2 palette에 연결됨: 지도 39개, UI 7개; 굽이치는 강·양안 착지 교량·pole 상단 도체·구역별 통합 캠퍼스와 저대비 parcel 합성 |
 | 작성된 콘텐츠 | 8장, 16개 사건, 34개 story part |
 | R2 native 구현 | `LONGEST_NIGHT`까지 누적 8장, exact finale 뒤 authored epilogue 3장 |
 | `FIRST_LIGHT` 초반 안내 | HUD의 1/2→2/2 안내: 수요를 포함하는 변전소 반경 R 배치 뒤 발전소→변전소 급전 경로 건설, 지도 위 exact R·포함 수요·접속점 표시, 사건보다 늦은 견적 경고, 시험 경계별 진행 action, 수치 경간과 평가 시점·원인별 실패 디브리프 |

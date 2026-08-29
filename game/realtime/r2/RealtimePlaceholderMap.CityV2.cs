@@ -14,6 +14,10 @@ internal sealed partial class RealtimePlaceholderMap
     private const string CityIndustrialCampus = CityV2Root + "industrial-campus-a.png";
     private const string CityHospitalCampus = CityV2Root + "hospital-campus-a.png";
     private const string CityWaterworksCampus = CityV2Root + "waterworks-campus-a.png";
+    private const string CityWestPowerCampus =
+        CityV2Root + "power-plant-west-campus-b.png";
+    private const string CitySouthPowerCampus =
+        CityV2Root + "power-plant-south-campus-b.png";
 
     private enum CityDistrictKind
     {
@@ -91,8 +95,8 @@ internal sealed partial class RealtimePlaceholderMap
 
     private static readonly CoreMapPoint[][] CityRoadPaths =
     [
-        [new(250, 715), new(590, 700), new(880, 625), new(1160, 535)],
-        [new(250, 1715), new(610, 1700), new(930, 1630), new(1280, 1515)],
+        [new(470, 850), new(590, 700), new(880, 625), new(1160, 535)],
+        [new(470, 1850), new(610, 1700), new(930, 1630), new(1280, 1515)],
         [new(1650, 520), new(1880, 560), new(2110, 700), new(2240, 980),
             new(2200, 1250), new(2300, 1500), new(2580, 1760)],
         [new(1890, 560), new(2110, 430), new(2410, 380)],

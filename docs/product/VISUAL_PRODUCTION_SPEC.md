@@ -132,6 +132,9 @@ Depth sort는 asset의 임의 이미지 높이가 아니라 authored footpoint/w
 - 배치 초안은 실제 footprint와 등급별 exact 반경 R을 동시에 보이고, R 안 수요에는 bracket을 붙인다.
 - 선택한 변전소의 service area는 4% 이하 cyan 면과 점선 경계로 표시하되 건물을 물에 잠긴 듯 덮지 않는다.
 - 실제 공급은 발전소→변전소의 3상 실선과 변전소→수요의 점선 service link를 구분해 표시한다.
+- 발전원은 hall·굴뚝·switchyard 조각을 겹치지 않는다. 서부 열발전과 남부 가스터빈은 각각 하나의
+  authored RGBA campus가 건물·발전 설비·변압기·개폐장·gate를 소유하고 native service road가 gate에
+  한 번만 접속한다.
 - 사용량·열 상태는 선택 시 world cue와 context에서 같은 값으로 표시한다.
 
 ### 시설

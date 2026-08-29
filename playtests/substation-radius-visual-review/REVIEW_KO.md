@@ -6,6 +6,7 @@
 - 입력: `before-first-light.png`, `before-selected.png`, `before-substation-draft.png`
 - 수정 후 캡처: `after-first-light.png`, `after-substation-draft.png`
 - 보조 진단 캡처: `after-pole-top-route.png`는 확대 전 경로 확인본이며 최종 미감 판정 입력이 아니다.
+- 발전원 후속 캡처: `after-generator-campus.png`
 - 이 기록은 LLM 형성평가다. 사람 참가자 UX·미감 증거나 공식 출시 승인이 아니다.
 
 ## 지적 사항과 처리
@@ -48,3 +49,15 @@
 - fixed isometric camera, charcoal/warm/cyan palette, 한 줄 사건 rail, 한 개 primary CTA는 유지했다.
 - 경제·공사시간·story 순서·save schema·입력·audio는 변경하지 않았다.
 - 변전소→수요처를 다시 유선으로 연결하는 모델은 도입하지 않았다.
+
+## 발전원 이미지 후속 수정
+
+`after-first-light.png`의 서부·남부 발전원은 main hall, turbine hall, 굴뚝과 switchyard 조각을 따로
+겹친 결과라 크기·시점이 흔들리고 흰 가장자리와 분리된 굴뚝이 두드러졌다. `after-generator-campus.png`는
+이를 다음처럼 교체한 고정 native 결과다.
+
+- 서부: 낮은 보일러/터빈동, 건물에 결합된 중형 굴뚝, 변압기·개폐장·gate를 한 열발전 campus로 통합
+- 남부: 두 저층 가스터빈동, 세 짧은 배기 stack, heat-recovery 배관, 변압기·개폐장을 한 campus로 통합
+- 두 PNG 모두 실제 RGBA이고 같은 3/4 camera·좌상단 광원·charcoal/warm/cyan 재질을 사용
+- PNG gate 끝을 world `(470, 850)`과 `(470, 1850)`에 맞춰 native service road가 갈라지지 않고 한 번만 접속
+- 발전량·열·공급 규칙과 source node 위치는 바꾸지 않음

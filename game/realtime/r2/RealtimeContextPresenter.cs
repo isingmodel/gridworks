@@ -607,12 +607,42 @@ internal static class RealtimeContextPresenter
                 ? $"{RealtimePresentationText.LineClassDisplayName(snapshot, edge.LineClassId)} · " +
                   $"{(edge.Commissioned ? "사용 가능" : "공사 중")}"
                 : "현재 지평선에서 찾을 수 없습니다.";
+        IReadOnlyList<RealtimeContextSectionPresentation> identificationSections;
+        if (node is not null)
+        {
+            int connectionCount = snapshot.Construction.World.Edges.Count(item =>
+                string.Equals(item.FromNodeId, node.NodeId, StringComparison.Ordinal) ||
+                string.Equals(item.ToNodeId, node.NodeId, StringComparison.Ordinal));
+            SpatialNodeClassDefinition nodeClass = snapshot.Construction.World.NodeClasses.Single(
+                item => string.Equals(item.ClassId, node.ClassId, StringComparison.Ordinal));
+            identificationSections = new RealtimeContextSectionPresentation[]
+            {
+                new("역할", RealtimePresentationText.NodeClassDisplayName(snapshot, node.ClassId)),
+                new(
+                    "운영 상태",
+                    node.Commissioned ? "사용 가능 · 공급 경로에 참여" : "공사 중 · 완공 전 공급 불가",
+                    node.Commissioned
+                        ? RealtimeTimelineSeverity.Information
+                        : RealtimeTimelineSeverity.Advisory),
+                new("연결", $"현재 {connectionCount} / 최대 {nodeClass.MaxConnections}개"),
+            };
+        }
+        else
+        {
+            identificationSections = new[]
+            {
+                new RealtimeContextSectionPresentation("식별", body),
+                new RealtimeContextSectionPresentation(
+                    "운영 상태",
+                    edge is { Commissioned: true } ? "사용 가능" : "공사 중"),
+            };
+        }
         return new RealtimeContextDockPresentation(
             selectedId,
             true,
             "망 설비",
             heading,
-            new[] { new RealtimeContextSectionPresentation("식별", body) });
+            identificationSections);
     }
 
     private static IReadOnlyList<RealtimeContextSectionPresentation>

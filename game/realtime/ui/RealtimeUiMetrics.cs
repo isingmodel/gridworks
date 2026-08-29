@@ -88,7 +88,7 @@ internal static class RealtimeUiMetrics
         int defaultLaneCount = uiScalePercent >= 125 ? 2 : 4;
         int buildShelfHeight = Math.Max(
             minimumHitTarget + Scaled(20, accessibilityScale),
-            Scaled(52, accessibilityScale) + Scaled(16, accessibilityScale));
+            Scaled(54, accessibilityScale) + Scaled(16, accessibilityScale));
         return new RealtimeLayoutProfile(
             physicalSize,
             tier,
@@ -97,7 +97,7 @@ internal static class RealtimeUiMetrics
             Scaled(24, accessibilityScale),
             topHudHeight,
             EventRailHeight(accessibilityScale, minimumHitTarget, defaultLaneCount),
-            Math.Clamp(Scaled(448, accessibilityScale), 400, 840),
+            Math.Clamp(Scaled(376, accessibilityScale), 340, 720),
             buildShelfHeight,
             minimumHitTarget,
             Scaled(54, accessibilityScale),
@@ -140,12 +140,18 @@ internal static class RealtimeUiMetrics
         float workspaceTop = eventRail.End.Y + gap;
         float workspaceBottom = logicalSize.Y - margin;
         float workspaceHeight = Math.Max(1f, workspaceBottom - workspaceTop);
+        float contextHeight = Math.Min(
+            workspaceHeight,
+            Scaled(460, profile.AccessibilityScale));
         var contextDock = new Rect2(
             logicalSize.X - margin - profile.ContextDockWidth,
             workspaceTop,
             profile.ContextDockWidth,
-            workspaceHeight);
-        float mapRight = contextVisible ? contextDock.Position.X - gap : logicalSize.X - margin;
+            contextHeight);
+        // The compact inspector overlays the map instead of reserving a full-height
+        // column. This keeps the world continuous below the dock and removes the
+        // dead gray strip that appeared when a short dock still narrowed the map.
+        float mapRight = logicalSize.X - margin;
         float mapWidth = Math.Max(1f, mapRight - margin);
         float shelfWidth = Math.Min(BuildShelfWidth * profile.AccessibilityScale, mapWidth);
         var buildShelf = new Rect2(
@@ -161,8 +167,9 @@ internal static class RealtimeUiMetrics
             // combined minimum is 158 logical pixels; 104 keeps that exact
             // content inside the assigned rect without relying on clipping.
             profile.PrimaryHitTarget + (104f * profile.AccessibilityScale));
+        float actionRight = contextVisible ? contextDock.Position.X - gap : mapRight;
         var actionDock = new Rect2(
-            mapRight - actionWidth,
+            actionRight - actionWidth,
             logicalSize.Y - margin - actionHeight,
             actionWidth,
             actionHeight);

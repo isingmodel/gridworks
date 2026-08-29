@@ -845,11 +845,19 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                             map.DrawnG3WaterMaterialForSmoke,
                             waterMaterial,
                             StringComparison.Ordinal) &&
-                        map.DrawnG3SpriteCountForSmoke >= 100 &&
+                        map.DrawnG3SpriteCountForSmoke >= 45 &&
                         map.DrawnRiverBankMaxDeviationForSmoke >= 4f &&
                         map.DrawnMeasuredBridgeCountForSmoke == 2 &&
                         map.MeasuredBridgesLandOnBothBanksForSmoke &&
-                        map.DrawnBuildingParcelAlphaForSmoke is > 0f and <= 0.20f &&
+                        map.DrawnBuildingParcelAlphaForSmoke is > 0f and <= 0.10f &&
+                        map.DrawnCityDistrictIdsForSmoke.SequenceEqual(
+                            new[]
+                            {
+                                "east_residential", "hospital", "industrial",
+                                "north_residential", "waterworks",
+                            },
+                            StringComparer.Ordinal) &&
+                        map.DrawnCityRoadPathCountForSmoke == 6 &&
                         map.PoleConductorsUseRaisedAttachmentsForSmoke,
                     $"G3 {weather} map draw omitted a required asset/layer/material " +
                     $"(layers=[{string.Join(',', map.DrawnG3LayersForSmoke)}], " +
@@ -883,9 +891,9 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 ',',
                 map.G3AssetPathsForSmoke.Where(path => !drawnUnion.Contains(path)));
             Require(drawnUnion.SetEquals(map.G3AssetPathsForSmoke) &&
-                    map.G3AssetPathsForSmoke.Count == 50,
-                "G3 clear/heat/rain/storm draw union did not exactly match the 50-file " +
-                "canonical map allowlist " +
+                    map.G3AssetPathsForSmoke.Count == 41,
+                "Realtime clear/heat/rain/storm draw union did not exactly match the 41-file " +
+                "adopted map palette " +
                 $"(drawn={drawnUnion.Count}, allowed={map.G3AssetPathsForSmoke.Count}, " +
                 $"missing=[{missingG3Assets}])",
                 failures);
@@ -927,51 +935,36 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             baseline);
         try
         {
-            const string panelFrame = "res://art/commercial/g3/ui/panel-frame.png";
-            const string defaultButton = "res://art/commercial/g3/ui-v2/button-default-a.png";
-            const string cyanButton = "res://art/commercial/g3/ui-v2/button-cyan-a.png";
-            const string amberButton = "res://art/commercial/g3/ui-v2/button-amber-a.png";
-            const string inspectorFrame = "res://art/commercial/g3/ui-v2/inspector-frame-a.png";
-            const string toolSlot = "res://art/commercial/g3/ui-v2/tool-slot-a.png";
-            const string topMetricPlate = "res://art/commercial/g3/ui-v2/top-metric-plate-a.png";
             Theme theme = root.ThemeForSmoke;
-            var styledAssets = new Dictionary<string, string?>
+            var styles = new Dictionary<string, StyleBox>
             {
-                ["generic panel"] = G3TexturePath(theme.GetStylebox("panel", "PanelContainer")),
-                ["default button"] = G3TexturePath(theme.GetStylebox("normal", "Button")),
-                ["hover button"] = G3TexturePath(theme.GetStylebox("hover", "Button")),
-                ["pressed button"] = G3TexturePath(theme.GetStylebox("pressed", "Button")),
-                ["tool button"] = G3TexturePath(theme.GetStylebox("normal", "ToolButton")),
-                ["top HUD"] = G3TexturePath(root.TopHudForSmoke.GetThemeStylebox("panel")),
-                ["event rail"] = G3TexturePath(root.EventRailForSmoke.GetThemeStylebox("panel")),
-                ["context dock"] = G3TexturePath(root.ContextDockForSmoke.GetThemeStylebox("panel")),
-                ["build shelf"] = G3TexturePath(root.BuildShelfForSmoke.GetThemeStylebox("panel")),
-                ["action dock"] = G3TexturePath(root.ActionDockForSmoke.GetThemeStylebox("panel")),
-                ["modal"] = G3TexturePath(root.ModalHostForSmoke
+                ["generic panel"] = theme.GetStylebox("panel", "PanelContainer"),
+                ["default button"] = theme.GetStylebox("normal", "Button"),
+                ["hover button"] = theme.GetStylebox("hover", "Button"),
+                ["pressed button"] = theme.GetStylebox("pressed", "Button"),
+                ["tool button"] = theme.GetStylebox("normal", "ToolButton"),
+                ["top HUD"] = root.TopHudForSmoke.GetThemeStylebox("panel"),
+                ["event rail"] = root.EventRailForSmoke.GetThemeStylebox("panel"),
+                ["context dock"] = root.ContextDockForSmoke.GetThemeStylebox("panel"),
+                ["build shelf"] = root.BuildShelfForSmoke.GetThemeStylebox("panel"),
+                ["action dock"] = root.ActionDockForSmoke.GetThemeStylebox("panel"),
+                ["modal"] = root.ModalHostForSmoke
                     .GetNode<PanelContainer>("Center/ModalPanel")
-                    .GetThemeStylebox("panel")),
+                    .GetThemeStylebox("panel"),
             };
-            bool pathsMatch =
-                string.Equals(styledAssets["generic panel"], panelFrame, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["default button"], defaultButton, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["hover button"], cyanButton, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["pressed button"], amberButton, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["tool button"], toolSlot, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["top HUD"], topMetricPlate, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["event rail"], topMetricPlate, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["context dock"], inspectorFrame, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["build shelf"], inspectorFrame, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["action dock"], inspectorFrame, StringComparison.Ordinal) &&
-                string.Equals(styledAssets["modal"], inspectorFrame, StringComparison.Ordinal);
-            Require(pathsMatch &&
-                    new[]
-                    {
-                        panelFrame, defaultButton, cyanButton, amberButton, inspectorFrame, toolSlot,
-                        topMetricPlate,
-                    }.All(path => GD.Load<Texture2D>(path) is not null),
-                "G3 UI chrome was not fully assigned to the live R2 controls " +
-                $"(styles=[{string.Join(", ", styledAssets.Select(item =>
-                    $"{item.Key}={item.Value ?? "<none>"}"))}])",
+            StyleBoxFlat? top = styles["top HUD"] as StyleBoxFlat;
+            StyleBoxFlat? rail = styles["event rail"] as StyleBoxFlat;
+            StyleBoxFlat? primary = theme.GetStylebox("normal", "PrimaryButton") as StyleBoxFlat;
+            bool hierarchyIsDistinct = top is not null && rail is not null && primary is not null &&
+                !top.BgColor.IsEqualApprox(rail.BgColor) &&
+                primary.BgColor.Luminance > top.BgColor.Luminance &&
+                top.BorderWidthBottom >= 2 &&
+                rail.BorderWidthBottom == 1;
+            Require(styles.Values.All(style => style is StyleBoxFlat) && hierarchyIsDistinct,
+                "Realtime UI chrome did not use the simplified flat hierarchy " +
+                $"(styles=[{string.Join(", ", styles.Select(item =>
+                    $"{item.Key}={item.Value.GetType().Name}"))}], " +
+                $"top={top?.BgColor}, rail={rail?.BgColor}, primary={primary?.BgColor})",
                 failures);
         }
         finally
@@ -980,9 +973,6 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         }
     }
-
-    private static string? G3TexturePath(StyleBox styleBox) =>
-        styleBox is StyleBoxTexture textured ? textured.Texture?.ResourcePath : null;
 
     private async Task ValidateAuditPresentationSemantics(
         RealtimeSlicePresentation baseline,
@@ -5899,6 +5889,11 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         Require(snapshot.ExpectedLayout.MapInteraction.Size.X >=
                 RealtimeUiMetrics.ReferenceResolution.X / 2f,
             $"{label} reduces world interaction below half the FHD width", failures);
+        Require(Math.Abs(
+                    snapshot.ExpectedLayout.MapInteraction.End.X -
+                    (logical.X - snapshot.Profile.SafeMargin)) <= 0.5f,
+            $"{label} left a dead full-height strip under the compact context overlay",
+            failures);
         IReadOnlySet<string> expectedVisible = ExpectedVisibleSurfaces(presentation);
         Require(snapshot.Surfaces
                     .Where(item => item.Visible)

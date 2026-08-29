@@ -73,32 +73,6 @@ internal sealed partial class RealtimeContextDock : PanelContainer
         _secondary.Pressed += () => RequestAction(_secondaryActionId);
     }
 
-    internal void ReflowToAssignedSize()
-    {
-        if (!IsInsideTree() || Size.X <= 0f || Size.Y <= 0f)
-        {
-            return;
-        }
-        // PanelContainer may retain the child's former expanded allocation
-        // when native fullscreen or UI density shrinks this top-level panel.
-        // Its combined minimum can already be below the new budget while the
-        // stale Margin/VBox rect still protrudes. Fit the direct child to the
-        // authoritative panel rect, then explicitly resort each nested
-        // container that shares the vertical budget.
-        FitChildInRect(_margin, new Rect2(Vector2.Zero, Size));
-        _margin.QueueSort();
-        _column.QueueSort();
-        _summarySections.QueueSort();
-        _details.QueueSort();
-        _detailTabs.QueueSort();
-        _detailScroll.QueueSort();
-        _detailRows.QueueSort();
-        if (_footer is Container footerContainer)
-        {
-            footerContainer.QueueSort();
-        }
-    }
-
     public void SetPresentation(RealtimeContextDockPresentation presentation)
     {
         ArgumentNullException.ThrowIfNull(presentation);
@@ -145,12 +119,11 @@ internal sealed partial class RealtimeContextDock : PanelContainer
         _close.CustomMinimumSize = Vector2.One * profile.MinimumHitTarget;
         _secondary.CustomMinimumSize = new Vector2(0f, profile.MinimumHitTarget);
         _primary.CustomMinimumSize = new Vector2(0f, profile.PrimaryHitTarget);
-        _summarySections.Columns = profile.ContextDockWidth >= 800
-            ? 3
-            : profile.ContextDockWidth >= 600
-                ? 2
-                : 1;
-        bool compactDetails = profile.AccessibilityScale >= 2f;
+        _summarySections.Columns = profile.ContextDockWidth >= 600 ? 2 : 1;
+        // Summary and detail are separate information modes at every density.
+        // Showing both simultaneously made the inspector taller than its content
+        // warranted and recreated the full-height empty-column problem.
+        const bool compactDetails = true;
         if (compactDetails != _compactDetails)
         {
             _compactDetails = compactDetails;
@@ -303,27 +276,33 @@ internal sealed partial class RealtimeContextDock : PanelContainer
             var panel = new PanelContainer
             {
                 ThemeTypeVariation = "ElevatedPanel",
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
                 MouseFilter = MouseFilterEnum.Ignore,
             };
             var margin = new MarginContainer();
-            margin.AddThemeConstantOverride("margin_left", 14);
-            margin.AddThemeConstantOverride("margin_top", 12);
-            margin.AddThemeConstantOverride("margin_right", 14);
-            margin.AddThemeConstantOverride("margin_bottom", 12);
-            var column = new VBoxContainer();
-            column.AddThemeConstantOverride("separation", 7);
+            margin.AddThemeConstantOverride("margin_left", 12);
+            margin.AddThemeConstantOverride("margin_top", 6);
+            margin.AddThemeConstantOverride("margin_right", 12);
+            margin.AddThemeConstantOverride("margin_bottom", 6);
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 10);
             var heading = new Label
             {
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                CustomMinimumSize = new Vector2(80f, 0f),
                 MouseFilter = MouseFilterEnum.Ignore,
             };
+            heading.AddThemeFontSizeOverride("font_size", 13);
             var body = new Label
             {
                 AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
                 MouseFilter = MouseFilterEnum.Ignore,
             };
-            column.AddChild(heading);
-            column.AddChild(body);
-            margin.AddChild(column);
+            body.AddThemeFontSizeOverride("font_size", 14);
+            row.AddChild(heading);
+            row.AddChild(body);
+            margin.AddChild(row);
             panel.AddChild(margin);
             target.AddChild(panel);
             cards.Add(new SectionCard(panel, heading, body));
@@ -340,9 +319,9 @@ internal sealed partial class RealtimeContextDock : PanelContainer
             (string sectionHeading, string sectionBody,
                 RealtimeTimelineSeverity sectionSeverity) = rows[index];
             SectionCard card = cards[index];
-            card.Heading.Text =
-                $"{SeverityIcon(sectionSeverity)} {sectionHeading} · " +
-                SeverityLabel(sectionSeverity);
+            card.Heading.Text = $"{SeverityIcon(sectionSeverity)} {sectionHeading}";
+            card.Heading.AccessibilityName =
+                $"{SeverityLabel(sectionSeverity)}. {sectionHeading}";
             card.Heading.AddThemeColorOverride(
                 "font_color",
                 SeverityColor(sectionSeverity));

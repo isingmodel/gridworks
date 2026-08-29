@@ -350,7 +350,6 @@ internal sealed partial class RealtimeUiRoot : Node
         ApplyRect(_topHud, layout.TopHud);
         ApplyRect(_eventRail, layout.EventRail);
         ApplyRect(_contextDock, layout.ContextDock);
-        _contextDock.ReflowToAssignedSize();
         ApplyRect(_buildShelf, layout.BuildShelf);
         ApplyRect(_actionDock, layout.ActionDock);
         MapInteractionRectChanged?.Invoke(layout.MapInteraction);

@@ -23,7 +23,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0.004, 0.01, 0.012, 0.82)
+color = Color(0.004, 0.01, 0.012, 0.66)
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -40,20 +40,20 @@ mouse_filter = 2
 
 [node name="ModalPanel" type="PanelContainer" parent="Center"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(720, 460)
+custom_minimum_size = Vector2(820, 430)
 layout_mode = 2
 theme_type_variation = &"ElevatedPanel"
 
 [node name="Margin" type="MarginContainer" parent="Center/ModalPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 28
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 28
 
 [node name="FocusScope" type="Control" parent="Center/ModalPanel/Margin"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(664, 412)
+custom_minimum_size = Vector2(756, 374)
 layout_mode = 2
 script = ExtResource("2_focus")
 
@@ -86,7 +86,8 @@ layout_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.86, 0.9, 0.88, 1)
+theme_override_font_sizes/font_size = 20
 text = "한 화면에 읽을 수 있도록 작성된 결정 본문입니다."
 autowrap_mode = 2
 

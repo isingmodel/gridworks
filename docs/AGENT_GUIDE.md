@@ -18,6 +18,10 @@
 지시가 허용한 결과물 하나를 `ACTIVE_SCOPE.md`에 먼저 연다. 외부 평가·device 검수·배포와 원격 저장소
 write는 각각 명시적 사용자 권한이 있어야 한다.
 
+실제 Godot Editor의 Scene tree·2D·Inspector를 직접 조작하는 요청은 프로젝트 skill
+[`godot-editor-ui`](../.agents/skills/godot-editor-ui/SKILL.md)을 사용한다. 이 문서는 공통 작업 순서만,
+skill은 해당 UI 조작·저장·normal game 재현 절차만 소유한다.
+
 ## 권위와 질문 소유권
 
 문장이 충돌하면 다음 순서로 판단한다.

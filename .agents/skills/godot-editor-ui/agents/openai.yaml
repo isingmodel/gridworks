@@ -1,0 +1,3 @@
+interface:
+  display_name: "Gridworks Godot Editor UI"
+  short_description: "Edit Gridworks scenes in the real Godot UI"

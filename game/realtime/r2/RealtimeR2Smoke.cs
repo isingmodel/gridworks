@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using Gridworks.Core.Release.V2;
 using Gridworks.Core.Release.V3;
@@ -28,6 +29,7 @@ internal static class RealtimeR2Smoke
     internal static void Validate(ICollection<string> failures)
     {
         ArgumentNullException.ThrowIfNull(failures);
+        RunCase("visual-layout-data", () => ValidateVisualLayoutData(failures), failures);
         RunCase("stable-r2-id-protocol", () => ValidateStableR2IdProtocol(failures), failures);
         RunCase("live-audio-cue-selection",
             () => ValidateLiveAudioCueSelection(failures), failures);
@@ -76,6 +78,46 @@ internal static class RealtimeR2Smoke
             () => ValidateReleaseTutorialConnectionFailureResult(failures), failures);
         RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
         RunCase("pointer-priority", () => ValidatePointerPriority(failures), failures);
+    }
+
+    private static void ValidateVisualLayoutData(ICollection<string> failures)
+    {
+        RealtimeVisualLayoutDefinition layout = RealtimeVisualLayoutStore.LoadCanonical();
+        string first = RealtimeVisualLayoutStore.Serialize(layout);
+        string second = RealtimeVisualLayoutStore.Serialize(
+            RealtimeVisualLayoutStore.Parse(first));
+        Check(string.Equals(first, second, StringComparison.Ordinal),
+            "visual layout save/load round trip is not deterministic", failures);
+
+        bool unknownPropertyRejected = false;
+        try
+        {
+            _ = RealtimeVisualLayoutStore.Parse(first.Replace(
+                "\"schemaVersion\"",
+                "\"unexpected\": true,\n  \"schemaVersion\"",
+                StringComparison.Ordinal));
+        }
+        catch (InvalidDataException)
+        {
+            unknownPropertyRejected = true;
+        }
+        Check(unknownPropertyRejected,
+            "visual layout accepted an unknown property", failures);
+
+        bool duplicateDistrictRejected = false;
+        try
+        {
+            _ = RealtimeVisualLayoutStore.Parse(first.Replace(
+                "\"EAST_RESIDENTIAL_TERMINAL\"",
+                "\"WATER_TERMINAL\"",
+                StringComparison.Ordinal));
+        }
+        catch (InvalidDataException)
+        {
+            duplicateDistrictRejected = true;
+        }
+        Check(duplicateDistrictRejected,
+            "visual layout accepted a duplicate/missing district ID", failures);
     }
 
     private static void ValidateReleaseFirstLightLateConstructionBoundary(

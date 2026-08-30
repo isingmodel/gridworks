@@ -144,6 +144,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private string? _lastFollowSelectionId;
     private float _accessibilityScale = 1f;
     private float _minimumPointerHitRadius = 22f;
+    private RealtimeVisualLayoutDefinition _visualLayout = null!;
     private readonly Dictionary<string, Texture2D> _g3Textures = new(StringComparer.Ordinal);
 #if DEBUG
     private readonly Dictionary<string, RealtimePlaceholderStateCue> _drawnStateCues =
@@ -201,6 +202,8 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
 
     public override void _Ready()
     {
+        _visualLayout = RealtimeVisualLayoutStore.LoadCanonical();
+        ConfigureVisualLayoutEditor();
         MouseFilter = MouseFilterEnum.Stop;
         FocusMode = FocusModeEnum.All;
         ClipContents = true;
@@ -353,6 +356,10 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         {
             return;
         }
+        if (HandleVisualLayoutEditorInput(inputEvent))
+        {
+            return;
+        }
         switch (inputEvent)
         {
             case InputEventMouseMotion motion when _panning:
@@ -482,6 +489,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         DrawSelectionAction(_presentation);
         DrawDraft(_presentation);
         DrawPointer(_presentation);
+        DrawVisualLayoutEditorOverlay();
     }
 
     private void DrawServiceAreasAndLinks(RealtimeWorldPresentation presentation)
@@ -1431,20 +1439,21 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
 
     private void DrawG3SourcePlant(SpatialNodeDefinition node, Color modulate)
     {
-        CoreMapPoint origin = node.Position;
+        RealtimeVisualSourceLayout layout = _visualLayout.Sources.Single(item =>
+            string.Equals(item.NodeId, node.NodeId, StringComparison.Ordinal));
         if (string.Equals(node.NodeId, "SOUTH_SOURCE_NODE", StringComparison.Ordinal))
         {
             DrawG3Sprite(
                 CitySouthPowerCampus,
-                Point(new CoreMapPoint(origin.XUnit - 55, origin.YUnit + 75)),
-                WorldPixels(780f),
+                Point(new CoreMapPoint(layout.SpriteGround.X, layout.SpriteGround.Y)),
+                WorldPixels(layout.WorldMaxSide),
                 modulate);
             return;
         }
         DrawG3Sprite(
             CityWestPowerCampus,
-            Point(new CoreMapPoint(origin.XUnit - 45, origin.YUnit + 70)),
-            WorldPixels(800f),
+            Point(new CoreMapPoint(layout.SpriteGround.X, layout.SpriteGround.Y)),
+            WorldPixels(layout.WorldMaxSide),
             modulate);
     }
 

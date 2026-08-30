@@ -9,6 +9,7 @@ usage() {
     print -u2 -- "usage: ./dev build"
     print -u2 -- "       ./dev check"
     print -u2 -- "       ./dev play product"
+    print -u2 -- "       ./dev play layout"
     print -u2 -- "       ./dev play fixture"
     print -u2 -- "       ./dev play chapter CHAPTER_ID"
     print -u2 -- "       ./dev play through CHAPTER_ID"
@@ -144,7 +145,7 @@ case $command_name in
         ;;
     play)
         require_godot
-        [[ $# -ge 1 ]] || fail "play requires product, fixture, chapter, or through."
+        [[ $# -ge 1 ]] || fail "play requires product, layout, fixture, chapter, or through."
         play_mode=$1
         shift
         dotnet build "$repository_dir/game/Gridworks.Game.csproj" -c Debug
@@ -153,6 +154,13 @@ case $command_name in
                 [[ $# -eq 0 ]] || fail "play product takes no additional arguments."
                 "$godot_bin" \
                     --path "$repository_dir/game"
+                ;;
+            layout)
+                [[ $# -eq 0 ]] || fail "play layout takes no additional arguments."
+                GRIDWORKS_VISUAL_LAYOUT_EDITOR=1 "$godot_bin" \
+                    --path "$repository_dir/game" \
+                    -- \
+                    --release-chapter=FIRST_LIGHT
                 ;;
             fixture)
                 [[ $# -eq 0 ]] || fail "play fixture takes no additional arguments."

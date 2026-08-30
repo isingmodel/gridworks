@@ -97,6 +97,7 @@ non-saveable 구간으로 남긴다. 이 구간의 정상 종료는 직전 safe 
 | 목적 | 명령 |
 |---|---|
 | 제품 title에서 시작 | `./dev play product` |
+| Godot 시각 배치 편집 | `./dev play layout` |
 | 개발용 기술 fixture | `./dev play fixture` |
 | 첫 장만 플레이 | `./dev play chapter FIRST_LIGHT` |
 | 튜토리얼 3장 누적 플레이 | `./dev play through SECOND_SOURCE` |
@@ -113,6 +114,11 @@ non-saveable 구간으로 남긴다. 이 구간의 정상 종료는 직전 safe 
 읽거나 쓰지 않는다. 설정 surface는 같은 UI를 read-only로 보여 준다.
 fixture를 새 게임이나 전체 캠페인으로 평가하지 않는다. 환경 준비, 전체 명령과 현재 저장/패키지
 경계는 [실행 안내](INSTALL.md)에 있다.
+
+`./dev play layout`은 DEBUG 전용 Godot 시각 배치 모드다. 안내 창을 닫은 뒤 청록 handle은 건물,
+황색 handle은 발전원, 흰색 handle은 도로 제어점을 뜻한다. handle을 드래그해 이동하고 건물·발전원을
+선택한 채 마우스 휠로 크기를 바꾼다. `S`는 strict visual-only layout JSON에 저장하고 `R`은 마지막
+저장 상태로 되돌린다. 이 모드는 Core 전력망 좌표나 게임 규칙을 바꾸지 않는다.
 
 ## 개발 검증
 

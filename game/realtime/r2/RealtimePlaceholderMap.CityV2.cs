@@ -39,73 +39,63 @@ internal sealed partial class RealtimePlaceholderMap
         float WorldMaxSide,
         string? CampusAssetPath = null);
 
-    private static readonly CityDistrict[] CityDistricts =
+    private readonly record struct CityDistrictTemplate(
+        string NodeId,
+        string DisplayId,
+        string Label,
+        CityDistrictKind Kind,
+        string CampusAssetPath);
+
+    private static readonly CityDistrictTemplate[] CityDistrictTemplates =
     [
         new(
             "WATER_TERMINAL",
             "waterworks",
             "정수장",
             CityDistrictKind.Waterworks,
-            new CoreMapPoint(2440, 270),
-            new CoreMapPoint(2440, 465),
-            new Vector2(610f, 390f),
-            700f,
             CityWaterworksCampus),
         new(
             "NORTH_RESIDENTIAL_TERMINAL",
             "north_residential",
             "북안 생활권",
             CityDistrictKind.NorthResidential,
-            new CoreMapPoint(2930, 380),
-            new CoreMapPoint(2930, 525),
-            new Vector2(390f, 330f),
-            560f,
             CityResidentialBlock),
         new(
             "EAST_RESIDENTIAL_TERMINAL",
             "east_residential",
             "동부 생활권",
             CityDistrictKind.EastResidential,
-            new CoreMapPoint(2790, 810),
-            new CoreMapPoint(2790, 1025),
-            new Vector2(560f, 450f),
-            720f,
             CityResidentialBlock),
         new(
             "HOSPITAL_TERMINAL",
             "hospital",
             "청류의료원",
             CityDistrictKind.Hospital,
-            new CoreMapPoint(2480, 1280),
-            new CoreMapPoint(2480, 1485),
-            new Vector2(620f, 410f),
-            750f,
             CityHospitalCampus),
         new(
             "FACTORY_TERMINAL",
             "industrial",
             "강변 산업단지",
             CityDistrictKind.Industrial,
-            new CoreMapPoint(2890, 1720),
-            new CoreMapPoint(2890, 1910),
-            new Vector2(560f, 330f),
-            740f,
             CityIndustrialCampus),
     ];
 
-    private static readonly CoreMapPoint[][] CityRoadPaths =
-    [
-        [new(470, 850), new(590, 700), new(880, 625), new(1160, 535)],
-        [new(470, 1850), new(610, 1700), new(930, 1630), new(1280, 1515)],
-        [new(1650, 520), new(1880, 560), new(2110, 700), new(2240, 980),
-            new(2200, 1250), new(2300, 1500), new(2580, 1760)],
-        [new(1890, 560), new(2110, 430), new(2410, 380)],
-        [new(2160, 505), new(2480, 430), new(2790, 410)],
-        [new(2200, 850), new(2460, 830), new(2680, 810)],
-        [new(2300, 1500), new(2350, 1370), new(2460, 1280)],
-        [new(2300, 1500), new(2520, 1640), new(2760, 1740)],
-        [new(1650, 1500), new(1900, 1500), new(2150, 1480), new(2300, 1500)],
-    ];
+    private IEnumerable<CityDistrict> CityDistricts => CityDistrictTemplates.Select(
+        template =>
+        {
+            RealtimeVisualDistrictLayout layout = _visualLayout.Districts.Single(item =>
+                string.Equals(item.NodeId, template.NodeId, StringComparison.Ordinal));
+            return new CityDistrict(
+                template.NodeId,
+                template.DisplayId,
+                template.Label,
+                template.Kind,
+                new CoreMapPoint(layout.Center.X, layout.Center.Y),
+                new CoreMapPoint(layout.SpriteGround.X, layout.SpriteGround.Y),
+                new Vector2(layout.Footprint.X, layout.Footprint.Y),
+                layout.WorldMaxSide,
+                template.CampusAssetPath);
+        });
 
     private CityDistrict? DistrictForNode(string nodeId)
     {
@@ -122,13 +112,17 @@ internal sealed partial class RealtimePlaceholderMap
     private void DrawCityRoadNetwork()
     {
         DrawCityGroundPlane();
-        foreach ((CoreMapPoint[] path, int index) in CityRoadPaths.Select(
-                     (path, index) => (path, index)))
+        foreach (RealtimeVisualRoadLayout road in _visualLayout.Roads)
         {
+            CoreMapPoint[] path = road.Points
+                .Select(point => new CoreMapPoint(point.X, point.Y))
+                .ToArray();
             Vector2[] points = SmoothRoadPath(path.Select(Point).ToArray());
-            bool sourceService = index is 0 or 1;
-            bool citySpine = index is 2 or 8;
-            bool industrialAccess = index == 7;
+            bool sourceService = road.Style == "source_service";
+            bool citySpine = road.Style.StartsWith("city_spine_",
+                StringComparison.Ordinal);
+            bool primarySpine = road.Style == "city_spine_primary";
+            bool industrialAccess = road.Style == "industrial_access";
             Color shoulder = sourceService
                 ? new Color(Color.FromHtml("252723"), 0.90f)
                 : citySpine
@@ -146,20 +140,20 @@ internal sealed partial class RealtimePlaceholderMap
                 : citySpine
                     ? new Color(Color.FromHtml("d1ad69"), 0.68f)
                     : new Color(Color.FromHtml("9a8d68"), 0.24f);
-            float shoulderWidth = index switch
+            float shoulderWidth = road.Style switch
             {
-                0 or 1 => 42f,
-                2 => 68f,
-                8 => 58f,
-                7 => 42f,
+                "source_service" => 42f,
+                "city_spine_primary" => 68f,
+                "city_spine_secondary" => 58f,
+                "industrial_access" => 42f,
                 _ => 34f,
             };
-            float roadWidth = index switch
+            float roadWidth = road.Style switch
             {
-                0 or 1 => 30f,
-                2 => 50f,
-                8 => 42f,
-                7 => 32f,
+                "source_service" => 30f,
+                "city_spine_primary" => 50f,
+                "city_spine_secondary" => 42f,
+                "industrial_access" => 32f,
                 _ => 22f,
             };
             DrawPolyline(points, shoulder, WorldPixels(shoulderWidth), true);
@@ -167,7 +161,8 @@ internal sealed partial class RealtimePlaceholderMap
             if (!sourceService)
             {
                 DrawPolyline(points, lane,
-                    Math.Max(0.8f, (citySpine ? 1.45f : 0.9f) * _accessibilityScale),
+                    Math.Max(0.8f, (primarySpine ? 1.45f : 0.9f) *
+                        _accessibilityScale),
                     true);
             }
 #if DEBUG

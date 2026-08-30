@@ -11,7 +11,7 @@ compile 시간이 아니라, 한 변경에 필요한 권위·분기·파일 추�
 ```text
 ./dev
 ├─ build/check/story/checkpoint
-├─ play product/fixture/chapter/through
+├─ play product/layout/fixture/chapter/through
 ├─ candidate build/verify → tools/r2_candidate.py
 └─ qualify run/verify → tools/r2_qualification.py
 
@@ -44,6 +44,10 @@ launch argument → RealtimeLaunchCatalog
 └─ exact native argument → NativeRelease → RealtimeNativeRouteCatalog
    └─ No write ownership + RealtimeSliceResources.LoadNativeRelease
       └─ strict Release V2 base + Release V3 overlay
+
+DEBUG `play layout` → canonical FIRST_LIGHT + `RealtimePlaceholderMap` visual-layout handles
+→ strict `realtime-visual-layout-v1.json`의 district/source sprite 위치·크기와 road 제어점만 저장
+→ normal product/chapter renderer가 같은 데이터를 읽음 (Core node·radius·simulation authority와 분리)
 
 technical/native resource load → RealtimeSliceData
 

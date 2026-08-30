@@ -2,26 +2,32 @@
 
 ## 상태
 
-**활성 scope가 없다.**
+**프로젝트 Godot Editor UI skill scope가 활성 상태다.**
 
-Godot Editor 직접 campus polish scope는 완료됐다. 실제 Scene tree와 Inspector에서 서부 source Position을
-`(205,720)→(225,720)`, uniform Scale을 `0.518→0.492`로, 남부 source Position을
-`(195,1725)→(215,1725)`, Scale을 `0.484→0.459`로 수정하고 `⌘S` 저장했다. 두 campus의 visual max side는
-각각 약 `800→760`, `780→740` world-unit이 되어 주변 district보다 과도하던 시각 무게가 줄었다. 오른쪽으로
-20 unit 보정해 축소 후에도 service-road gate 접점을 유지한다.
+## 단일 결과물
 
-별도 fresh normal `FIRST_LIGHT` process에서 두 road 연결과 전체 구도를 확인했다. strict scene projection,
-Debug/Release build와 전체 `./dev check`가 PASS했다. Core source 좌표·출력·열·반경·경제·story·save schema와
-PNG는 바꾸지 않았다. 이는 actual Godot Editor 직접 조작과 한 native 화면의 근거이며 사람 미감 승인이나
-package/release gate는 아니다. push·PR·merge·배포는 수행하지 않았다. 최종 authoring scene은 Godot Editor에
-열린 상태로 남긴다.
+Agent가 Gridworks의 실제 Godot Editor 개발 UI를 열고 scene을 직접 편집·저장한 뒤 normal game에서
+재현을 검증하는 프로젝트 로컬 skill을 제공한다.
 
-## 다음 변경을 여는 조건
+## 단일 권위
 
-- 읽기·설명·진단은 관련 질문 소유 문서를 read-only로 확인한다.
-- 파일 변경은 사용자가 명시한 결과물 하나를 이 문서에 먼저 연다.
-- 외부 gate 실행, push, PR, merge와 공개 배포는 각각 사용자의 명시적 권한이 있어야 한다.
-- 시작 형식, 최소 검증과 종료 checklist는 [Agent 작업 안내](AGENT_GUIDE.md)를 따른다.
+- Godot Editor UI 작업 절차와 trigger: `.agents/skills/godot-editor-ui/SKILL.md`
 
-`NEXT_TASKS.md`, [외부 출시 gate](RELEASE_GATES.md), 준비된 코드와 과거 PASS는 자동으로
-구현·평가·배포 권한을 만들지 않는다.
+## 범위 안
+
+- 프로젝트 로컬 skill과 Codex UI metadata를 만든다.
+- `./dev play layout`, actual Editor 판별, Scene tree·2D·Inspector 편집, `⌘S`, normal game 검증 절차를 고정한다.
+- Gridworks visual-layout 불변조건, UI 자동화 안전 규칙과 Mac 절전 방지 요청 처리법을 기록한다.
+- 프로젝트 작업 안내에서 skill의 canonical 위치만 연결한다.
+
+## 범위 밖
+
+- 현재 게임의 scene·art·배치·규칙·runtime 코드는 바꾸지 않는다.
+- 전역 skill 설치, plugin 제작, Godot Editor plugin·툴 스크립트 추가는 하지 않는다.
+- 사람 미감 승인, package/release gate, push·PR·merge·배포는 수행하지 않는다.
+
+## 완료 검사
+
+- `quick_validate.py`로 skill 구조와 frontmatter를 검증한다.
+- placeholder·절대경로·trigger·실제 project command와 scene authority를 정적 점검한다.
+- 상대 링크와 `git diff --check`를 확인하고 실제로 바뀐 workflow 소유 문서만 갱신한다.

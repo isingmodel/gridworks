@@ -2,25 +2,32 @@
 
 ## 상태
 
-**활성 scope가 없다.**
+**Godot Editor-native 시각 배치 scope가 활성 상태다.**
 
-Godot 직접 시각 배치 편집 scope는 완료됐다. district·발전원 campus의 sprite 위치와 크기, road 제어점은
-이제 strict `realtime-visual-layout.v1` project data 한 곳에 있으며 normal renderer와 DEBUG 편집 모드가
-같은 데이터를 읽는다. `./dev play layout`에서 청록 건물, 황색 발전원, 흰색 도로점 handle을 드래그하고
-건물·발전원 크기를 휠로 조절한 뒤 `S`로 저장하거나 `R`로 되돌릴 수 있다.
+## 단일 결과물
 
-실제 Godot UI에서 병원 campus를 `(2480,1485)`에서 `(2537,1412)`로 옮겨 남동 공장과의 실루엣 중첩을
-줄였고, 편집 모드를 끈 fresh `FIRST_LIGHT`에서도 저장 배치가 재현되는 것을 확인했다. strict loader의
-unknown·누락/중복 ID 거부와 deterministic round trip, Debug/Release build, 전체 `./dev check`가 PASS했다.
-Core node·전력망 기하·반경·열·경제·story·save schema는 바꾸지 않았다. 이는 한 native 화면의 직접 조작
-증거이며 사람 미감 승인이나 package/release gate는 아니다. push·PR·merge·배포는 수행하지 않았다.
+개발자가 게임 실행 창이 아니라 실제 Godot Editor의 2D 뷰와 Inspector에서 건물·발전원·도로를 선택하고
+이동·크기 조절한 뒤 scene 저장만으로 normal 게임 배치를 바꾼다.
 
-## 다음 변경을 여는 조건
+## 단일 권위
 
-- 읽기·설명·진단은 관련 질문 소유 문서를 read-only로 확인한다.
-- 파일 변경은 사용자가 명시한 결과물 하나를 이 문서에 먼저 연다.
-- 외부 gate 실행, push, PR, merge와 공개 배포는 각각 사용자의 명시적 권한이 있어야 한다.
-- 시작 형식, 최소 검증과 종료 checklist는 [Agent 작업 안내](AGENT_GUIDE.md)를 따른다.
+- 시각 배치 위치·크기·도로점: strict `RealtimeVisualLayoutAuthoring.tscn`
+- normal renderer 입력: 위 scene을 읽어 만드는 immutable visual-layout definition
 
-`NEXT_TASKS.md`, [외부 출시 gate](RELEASE_GATES.md), 준비된 코드와 과거 PASS는 자동으로
-구현·평가·배포 권한을 만들지 않는다.
+## 범위 안
+
+- JSON/게임창 overlay 중심 편집을 Godot Editor-native scene authoring으로 교체한다.
+- 실제 campus sprite, river/road context, district footprint와 이름을 2D editor에 표시한다.
+- Godot Editor를 직접 열어 노드를 이동하고 scene 저장 후 normal 게임 재현을 캡처한다.
+- strict ID/type/style/bounds 검사와 runtime/headless 회귀를 유지한다.
+
+## 범위 밖
+
+- Core node·전력망 기하·반경·열·경제·story·save schema 변경
+- 일반 플레이어용 editor, PNG 재생성, package/release gate, push·PR·merge·배포
+
+## 완료 검사
+
+- scene loader의 누락·중복·타입·범위 검사와 deterministic projection
+- Godot Editor 2D/Inspector 직접 조작·scene 저장, fresh normal 재현, `./dev check`
+- 사용 문서와 scope 종료

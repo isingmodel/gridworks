@@ -636,6 +636,14 @@ node type, metadata, uniform scale, road style와 bounds를 검증한다. Debug/
 도시 district 대비 시각 무게를 낮추면서 service-road gate 접점을 유지했다. 실제 Inspector 수정·scene 저장,
 별도 fresh normal 화면과 전체 `./dev check`를 확인했으며 Core source와 PNG는 바꾸지 않았다.
 
+### UX-R2.33 — 프로젝트 Godot Editor UI skill
+
+`.agents/skills/godot-editor-ui`를 프로젝트 로컬 skill로 추가했다. 실제 Godot Editor와 DEBUG 게임창을
+구분하고, Computer Use로 canonical authoring scene의 Scene tree·2D·Inspector를 직접 조작해 저장한 뒤 fresh
+normal game에서 재현하는 절차를 소유한다. strict scene projection 불변조건, source-road gate 접점, 요청 시
+Mac awake 유지와 Editor process 보존도 포함한다. skill 구조와 current command·scene authority를 정적으로
+검증했으며 게임 scene·art·runtime이나 전역 skill은 바꾸지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

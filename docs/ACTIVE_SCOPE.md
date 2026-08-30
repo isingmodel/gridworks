@@ -2,32 +2,25 @@
 
 ## 상태
 
-**프로젝트 Godot Editor UI skill scope가 활성 상태다.**
+**활성 scope가 없다.**
 
-## 단일 결과물
+프로젝트 로컬 `godot-editor-ui` skill을 만들었다. Godot UI·Inspector·Scene tree·2D 배치 요청에 자동으로
+발견되며 `$godot-editor-ui`로도 명시 호출할 수 있다. 실제 `./dev play layout` Editor와 DEBUG 게임창을
+구분하고, Computer Use로 node 선택·Inspector/2D 편집·`⌘S` 저장 후 fresh normal game 재현까지 요구한다.
 
-Agent가 Gridworks의 실제 Godot Editor 개발 UI를 열고 scene을 직접 편집·저장한 뒤 normal game에서
-재현을 검증하는 프로젝트 로컬 skill을 제공한다.
+strict visual-layout의 exact ID·node type·uniform scale·world bounds·road point 불변조건, source gate 접점과
+주변 구도 판단, 요청 시 중복 없는 `caffeinate -dims`, Editor를 남기고 검증 game만 닫는 절차도 포함했다.
+`quick_validate.py`, placeholder·개발자 절대경로 audit, canonical command·scene·projection rule 대조와
+`git diff --check`가 PASS했다. 게임 scene·art·runtime·Core 규칙과 전역 skill은 바꾸지 않았다. 이는 skill
+구조와 프로젝트 절차의 정적 검증이며 실제 UI 변경이나 사람 미감 승인은 아니다. push·PR·merge·배포는
+수행하지 않았다.
 
-## 단일 권위
+## 다음 변경을 여는 조건
 
-- Godot Editor UI 작업 절차와 trigger: `.agents/skills/godot-editor-ui/SKILL.md`
+- 읽기·설명·진단은 관련 질문 소유 문서를 read-only로 확인한다.
+- 파일 변경은 사용자가 명시한 결과물 하나를 이 문서에 먼저 연다.
+- 외부 gate 실행, push, PR, merge와 공개 배포는 각각 사용자의 명시적 권한이 있어야 한다.
+- 시작 형식, 최소 검증과 종료 checklist는 [Agent 작업 안내](AGENT_GUIDE.md)를 따른다.
 
-## 범위 안
-
-- 프로젝트 로컬 skill과 Codex UI metadata를 만든다.
-- `./dev play layout`, actual Editor 판별, Scene tree·2D·Inspector 편집, `⌘S`, normal game 검증 절차를 고정한다.
-- Gridworks visual-layout 불변조건, UI 자동화 안전 규칙과 Mac 절전 방지 요청 처리법을 기록한다.
-- 프로젝트 작업 안내에서 skill의 canonical 위치만 연결한다.
-
-## 범위 밖
-
-- 현재 게임의 scene·art·배치·규칙·runtime 코드는 바꾸지 않는다.
-- 전역 skill 설치, plugin 제작, Godot Editor plugin·툴 스크립트 추가는 하지 않는다.
-- 사람 미감 승인, package/release gate, push·PR·merge·배포는 수행하지 않는다.
-
-## 완료 검사
-
-- `quick_validate.py`로 skill 구조와 frontmatter를 검증한다.
-- placeholder·절대경로·trigger·실제 project command와 scene authority를 정적 점검한다.
-- 상대 링크와 `git diff --check`를 확인하고 실제로 바뀐 workflow 소유 문서만 갱신한다.
+`NEXT_TASKS.md`, [외부 출시 gate](RELEASE_GATES.md), 준비된 코드와 과거 PASS는 자동으로
+구현·평가·배포 권한을 만들지 않는다.

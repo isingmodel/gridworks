@@ -42,8 +42,6 @@
     <EmbeddedResource Include="../data/release-campaign-v3.json"
                       Link="EmbeddedData/release-campaign-v3.json"
                       LogicalName="Gridworks.Game.EmbeddedData.release-campaign-v3.json" />
-    <EmbeddedResource Include="realtime/r2/realtime-visual-layout-v1.json"
-                      LogicalName="Gridworks.Game.EmbeddedData.realtime-visual-layout-v1.json" />
   </ItemGroup>
 
   <!-- Deterministic realtime fixtures are development-only, never product payload. -->

@@ -45,9 +45,9 @@ launch argument → RealtimeLaunchCatalog
    └─ No write ownership + RealtimeSliceResources.LoadNativeRelease
       └─ strict Release V2 base + Release V3 overlay
 
-DEBUG `play layout` → canonical FIRST_LIGHT + `RealtimePlaceholderMap` visual-layout handles
-→ strict `realtime-visual-layout-v1.json`의 district/source sprite 위치·크기와 road 제어점만 저장
-→ normal product/chapter renderer가 같은 데이터를 읽음 (Core node·radius·simulation authority와 분리)
+`play layout` → actual Godot Editor 2D view + strict `RealtimeVisualLayoutAuthoring.tscn`
+→ district/source `Sprite2D` transform과 road `Line2D` point를 scene 저장
+→ normal product/chapter renderer가 같은 scene을 strict projection함 (Core node·radius·simulation authority와 분리)
 
 technical/native resource load → RealtimeSliceData
 

@@ -618,18 +618,19 @@ Commercial 31 suites/7,085 assertions, 57-file G3 identity, 39-file live palette
 FHD/QHD/UHD UI harness와 두 checkpoint가 PASS했다. 이는 한 native 화면 관찰과 자동 근거이며 사람 미감
 승인, package·외부 release gate가 아니다. push, PR, merge는 수행하지 않았다.
 
-### UX-R2.32 — Godot 직접 시각 배치 편집
+### UX-R2.32 — Godot Editor-native 시각 배치
 
-건물·발전원 campus의 sprite 위치·크기와 road 제어점을 C# hardcode에서 strict
-`realtime-visual-layout.v1` project data로 옮겼다. normal renderer와 DEBUG 편집 모드는 같은 데이터를
-읽으며, `./dev play layout`에서 건물·발전원·도로점 handle을 직접 드래그하고 크기를 조절해 `S` 저장 또는
-`R` 되돌리기를 할 수 있다. Core node와 전력망 기하·반경·simulation authority는 분리해 유지한다.
+처음 만든 DEBUG 게임창 handle overlay는 Godot Editor UI가 아니었으므로 제거했다. 대신 실제 campus
+`Sprite2D`, river/bridge/road context, footprint와 label을 가진 `RealtimeVisualLayoutAuthoring.tscn`을
+canonical authority로 만들었다. `./dev play layout`은 이 scene을 Godot Editor 2D 뷰에서 열며 Sprite2D
+position/uniform scale과 Line2D point를 `⌘S`로 저장하면 normal renderer가 같은 scene을 strict projection한다.
+Core node와 전력망 기하·반경·simulation authority는 분리해 유지한다.
 
-실제 Godot UI에서 병원 campus를 위·오른쪽으로 옮겨 남동 공장과의 하단 실루엣 중첩을 줄였고, 편집
-handle이 없는 normal `FIRST_LIGHT` fresh process에서도 저장 위치가 재현됨을 캡처했다. strict data의
-unknown·누락/중복 ID 거부와 deterministic round trip, Debug/Release build, 전체 `./dev check`가 PASS했다.
-이는 개발용 native 배치 도구와 한 직접 조작의 근거이며 사람 미감·사용성 승인, 일반 플레이어용 editor,
-package·외부 release gate가 아니다. push, PR, merge는 수행하지 않았다.
+실제 Godot Editor Scene tree와 Inspector에서 병원 campus Position을 `(2505,1390)`으로 수정·저장하고,
+Editor를 종료한 별도 normal `FIRST_LIGHT` process에서 재현을 캡처했다. strict projection은 exact ID,
+node type, metadata, uniform scale, road style와 bounds를 검증한다. Debug/Release build, 전체 UI harness와
+`./dev check`가 PASS했다. 이는 실제 Editor-native authoring과 한 직접 조작의 근거이며 사람 미감·사용성
+승인, 일반 플레이어용 editor, package·외부 release gate가 아니다. push, PR, merge는 수행하지 않았다.
 
 ## 5. G3 아트와 main 통합
 

@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Godot;
 
 namespace Gridworks.Game.Realtime.R2;
 
@@ -78,9 +78,7 @@ internal static class RealtimeVisualLayoutStore
 {
     internal const string SchemaVersion = "gridworks.realtime.visual-layout.v1";
     internal const string ResourcePath =
-        "res://realtime/r2/realtime-visual-layout-v1.json";
-    private const string EmbeddedResourceName =
-        "Gridworks.Game.EmbeddedData.realtime-visual-layout-v1.json";
+        "res://realtime/r2/RealtimeVisualLayoutAuthoring.tscn";
 
     private static readonly string[] DistrictIds =
     [
@@ -121,47 +119,59 @@ internal static class RealtimeVisualLayoutStore
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = false,
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         WriteIndented = true,
     };
 
     internal static RealtimeVisualLayoutDefinition LoadCanonical()
     {
-#if DEBUG
-        string sourcePath = Godot.ProjectSettings.GlobalizePath(ResourcePath);
-        if (File.Exists(sourcePath))
-        {
-            return Parse(File.ReadAllText(sourcePath));
-        }
-#endif
-        using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(
-            EmbeddedResourceName) ?? throw new InvalidOperationException(
-            "The embedded realtime visual layout is missing.");
-        using var reader = new StreamReader(stream);
-        return Parse(reader.ReadToEnd());
-    }
-
-    internal static RealtimeVisualLayoutDefinition Parse(string json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-        {
-            throw new InvalidDataException("The realtime visual layout is empty.");
-        }
-        RealtimeVisualLayoutDefinition definition;
+        PackedScene scene = GD.Load<PackedScene>(ResourcePath) ??
+            throw new InvalidDataException(
+                $"The realtime visual authoring scene is missing: {ResourcePath}");
+        Node root = scene.Instantiate();
         try
         {
-            definition = JsonSerializer.Deserialize<RealtimeVisualLayoutDefinition>(
-                json,
-                JsonOptions) ?? throw new InvalidDataException(
-                "The realtime visual layout root is null.");
+            return Project(root);
         }
-        catch (JsonException exception)
+        finally
         {
-            throw new InvalidDataException(
-                "The realtime visual layout JSON is invalid.",
-                exception);
+            root.Free();
         }
+    }
+
+    internal static RealtimeVisualLayoutDefinition Project(Node root)
+    {
+        ArgumentNullException.ThrowIfNull(root);
+        string schemaVersion = RequiredStringMeta(root, "schema_version");
+        Node districtsRoot = RequiredChild(root, "Districts");
+        Node sourcesRoot = RequiredChild(root, "Sources");
+        Node roadsRoot = RequiredChild(root, "Roads");
+
+        RealtimeVisualDistrictLayout[] districts = districtsRoot.GetChildren()
+            .Select(child => child is Sprite2D sprite
+                ? ProjectDistrict(sprite)
+                : throw new InvalidDataException(
+                    $"District '{child.Name}' must be a Sprite2D."))
+            .ToArray();
+        RealtimeVisualSourceLayout[] sources = sourcesRoot.GetChildren()
+            .Select(child => child is Sprite2D sprite
+                ? ProjectSource(sprite)
+                : throw new InvalidDataException(
+                    $"Source '{child.Name}' must be a Sprite2D."))
+            .ToArray();
+        RealtimeVisualRoadLayout[] roads = roadsRoot.GetChildren()
+            .Select(child => child is Line2D line
+                ? ProjectRoad(line)
+                : throw new InvalidDataException(
+                    $"Road '{child.Name}' must be a Line2D."))
+            .ToArray();
+
+        var definition = new RealtimeVisualLayoutDefinition
+        {
+            SchemaVersion = schemaVersion,
+            Districts = districts,
+            Sources = sources,
+            Roads = roads,
+        };
         Validate(definition);
         return definition;
     }
@@ -172,15 +182,93 @@ internal static class RealtimeVisualLayoutStore
         return JsonSerializer.Serialize(definition, JsonOptions) + "\n";
     }
 
-#if DEBUG
-    internal static void SaveCanonical(RealtimeVisualLayoutDefinition definition)
+    private static RealtimeVisualDistrictLayout ProjectDistrict(Sprite2D sprite)
     {
-        string path = Godot.ProjectSettings.GlobalizePath(ResourcePath);
-        string temporaryPath = path + ".tmp";
-        File.WriteAllText(temporaryPath, Serialize(definition));
-        File.Move(temporaryPath, path, overwrite: true);
+        RealtimeVisualLayoutPoint ground = ProjectPoint(sprite.Position);
+        Vector2 centerOffset = RequiredVector2Meta(sprite, "center_offset");
+        Vector2 footprint = RequiredVector2Meta(sprite, "footprint");
+        return new RealtimeVisualDistrictLayout
+        {
+            NodeId = sprite.Name.ToString(),
+            Center = ProjectPoint(sprite.Position + centerOffset),
+            SpriteGround = ground,
+            Footprint = ProjectPoint(footprint),
+            WorldMaxSide = ProjectWorldMaxSide(sprite),
+        };
     }
-#endif
+
+    private static RealtimeVisualSourceLayout ProjectSource(Sprite2D sprite) => new()
+    {
+        NodeId = sprite.Name.ToString(),
+        SpriteGround = ProjectPoint(sprite.Position),
+        WorldMaxSide = ProjectWorldMaxSide(sprite),
+    };
+
+    private static RealtimeVisualRoadLayout ProjectRoad(Line2D line) => new()
+    {
+        RoadId = line.Name.ToString(),
+        Style = RequiredStringMeta(line, "style"),
+        Points = line.Points.Select(ProjectPoint).ToArray(),
+    };
+
+    private static int ProjectWorldMaxSide(Sprite2D sprite)
+    {
+        if (sprite.Texture is null)
+        {
+            throw new InvalidDataException($"Sprite '{sprite.Name}' has no texture.");
+        }
+        if (sprite.Scale.X <= 0f || sprite.Scale.Y <= 0f ||
+            !Mathf.IsEqualApprox(sprite.Scale.X, sprite.Scale.Y))
+        {
+            throw new InvalidDataException(
+                $"Sprite '{sprite.Name}' requires positive uniform scale.");
+        }
+        return Mathf.RoundToInt(Math.Max(
+            sprite.Texture.GetWidth(),
+            sprite.Texture.GetHeight()) * sprite.Scale.X);
+    }
+
+    private static RealtimeVisualLayoutPoint ProjectPoint(Vector2 point) => new()
+    {
+        X = Mathf.RoundToInt(point.X),
+        Y = Mathf.RoundToInt(point.Y),
+    };
+
+    private static Node RequiredChild(Node root, string name) =>
+        root.GetNodeOrNull<Node>(name) ?? throw new InvalidDataException(
+            $"The visual authoring scene is missing '{name}'.");
+
+    private static string RequiredStringMeta(Node node, string key)
+    {
+        if (!node.HasMeta(key))
+        {
+            throw new InvalidDataException(
+                $"Node '{node.Name}' is missing metadata '{key}'.");
+        }
+        string value = node.GetMeta(key).AsString();
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidDataException(
+                $"Node '{node.Name}' metadata '{key}' is empty.");
+        }
+        return value;
+    }
+
+    private static Vector2 RequiredVector2Meta(Node node, string key)
+    {
+        if (!node.HasMeta(key))
+        {
+            throw new InvalidDataException(
+                $"Node '{node.Name}' is missing metadata '{key}'.");
+        }
+        Variant value = node.GetMeta(key);
+        if (value.VariantType != Variant.Type.Vector2)
+        {
+            throw new InvalidDataException(
+                $"Node '{node.Name}' metadata '{key}' must be Vector2.");
+        }
+        return value.AsVector2();
+    }
 
     internal static void Validate(RealtimeVisualLayoutDefinition definition)
     {

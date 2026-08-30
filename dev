@@ -157,10 +157,10 @@ case $command_name in
                 ;;
             layout)
                 [[ $# -eq 0 ]] || fail "play layout takes no additional arguments."
-                GRIDWORKS_VISUAL_LAYOUT_EDITOR=1 "$godot_bin" \
+                "$godot_bin" \
+                    --editor \
                     --path "$repository_dir/game" \
-                    -- \
-                    --release-chapter=FIRST_LIGHT
+                    --scene res://realtime/r2/RealtimeVisualLayoutAuthoring.tscn
                 ;;
             fixture)
                 [[ $# -eq 0 ]] || fail "play fixture takes no additional arguments."

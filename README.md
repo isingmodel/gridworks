@@ -115,10 +115,10 @@ non-saveable 구간으로 남긴다. 이 구간의 정상 종료는 직전 safe 
 fixture를 새 게임이나 전체 캠페인으로 평가하지 않는다. 환경 준비, 전체 명령과 현재 저장/패키지
 경계는 [실행 안내](INSTALL.md)에 있다.
 
-`./dev play layout`은 DEBUG 전용 Godot 시각 배치 모드다. 안내 창을 닫은 뒤 청록 handle은 건물,
-황색 handle은 발전원, 흰색 handle은 도로 제어점을 뜻한다. handle을 드래그해 이동하고 건물·발전원을
-선택한 채 마우스 휠로 크기를 바꾼다. `S`는 strict visual-only layout JSON에 저장하고 `R`은 마지막
-저장 상태로 되돌린다. 이 모드는 Core 전력망 좌표나 게임 규칙을 바꾸지 않는다.
+`./dev play layout`은 실제 Godot Editor에서 canonical visual authoring scene을 연다. 2D 뷰나 Scene tree에서
+건물·발전원 `Sprite2D`를 선택해 이동하고 Inspector의 uniform `Scale`로 크기를 바꾼다. 도로 `Line2D`는
+2D point 도구로 제어점을 편집한다. `⌘S`로 scene을 저장하면 normal product/chapter renderer가 다음 실행부터
+그 값을 직접 읽는다. 이 scene은 Core 전력망 좌표나 게임 규칙을 바꾸지 않는다.
 
 ## 개발 검증
 

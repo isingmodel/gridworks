@@ -1,5 +1,10 @@
 ; Engine configuration file.
-; This file is deliberately small: RealtimeSliceMain is the single product entry scene.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
 
 config_version=5
 
@@ -7,13 +12,21 @@ config_version=5
 
 config/name="Gridworks"
 run/main_scene="res://realtime/r2/RealtimeSliceMain.tscn"
+config/features=PackedStringArray("4.7", "C#")
 
 [display]
 
 window/size/viewport_width=1280
 window/size/viewport_height=720
-window/size/resizable=true
 window/stretch/mode="canvas_items"
+
+[dotnet]
+
+project/assembly_name="Gridworks.Game"
+
+[environment]
+
+defaults/default_clear_color=Color(0.0235, 0.0314, 0.0431, 1)
 
 [input]
 
@@ -48,17 +61,8 @@ realtime_build_shelf={
 ]
 }
 
-[dotnet]
-
-project/assembly_name="Gridworks.Game"
-
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-textures/default_filters/use_nearest_mipmap_filter=false
 textures/vram_compression/import_etc2_astc=true
-
-[environment]
-
-defaults/default_clear_color=Color(0.0235, 0.0314, 0.0431, 1)

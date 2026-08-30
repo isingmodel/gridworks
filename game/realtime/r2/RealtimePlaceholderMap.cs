@@ -203,7 +203,6 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     public override void _Ready()
     {
         _visualLayout = RealtimeVisualLayoutStore.LoadCanonical();
-        ConfigureVisualLayoutEditor();
         MouseFilter = MouseFilterEnum.Stop;
         FocusMode = FocusModeEnum.All;
         ClipContents = true;
@@ -356,10 +355,6 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         {
             return;
         }
-        if (HandleVisualLayoutEditorInput(inputEvent))
-        {
-            return;
-        }
         switch (inputEvent)
         {
             case InputEventMouseMotion motion when _panning:
@@ -489,7 +484,6 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         DrawSelectionAction(_presentation);
         DrawDraft(_presentation);
         DrawPointer(_presentation);
-        DrawVisualLayoutEditorOverlay();
     }
 
     private void DrawServiceAreasAndLinks(RealtimeWorldPresentation presentation)

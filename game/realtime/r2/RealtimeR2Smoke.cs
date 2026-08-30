@@ -8,6 +8,10 @@ using Gridworks.Core.Release.V2;
 using Gridworks.Core.Release.V3;
 using Gridworks.Game.Realtime.UI;
 using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
+using GD = Godot.GD;
+using Node = Godot.Node;
+using Node2D = Godot.Node2D;
+using PackedScene = Godot.PackedScene;
 
 namespace Gridworks.Game.Realtime.R2;
 
@@ -85,32 +89,37 @@ internal static class RealtimeR2Smoke
         RealtimeVisualLayoutDefinition layout = RealtimeVisualLayoutStore.LoadCanonical();
         string first = RealtimeVisualLayoutStore.Serialize(layout);
         string second = RealtimeVisualLayoutStore.Serialize(
-            RealtimeVisualLayoutStore.Parse(first));
+            RealtimeVisualLayoutStore.LoadCanonical());
         Check(string.Equals(first, second, StringComparison.Ordinal),
-            "visual layout save/load round trip is not deterministic", failures);
+            "visual authoring scene projection is not deterministic", failures);
 
-        bool unknownPropertyRejected = false;
+        bool invalidSceneNodeRejected = false;
+        PackedScene authoringScene = GD.Load<PackedScene>(
+            RealtimeVisualLayoutStore.ResourcePath)!;
+        Node root = authoringScene.Instantiate();
         try
         {
-            _ = RealtimeVisualLayoutStore.Parse(first.Replace(
-                "\"schemaVersion\"",
-                "\"unexpected\": true,\n  \"schemaVersion\"",
-                StringComparison.Ordinal));
+            Node districts = root.GetNode<Node>("Districts");
+            districts.AddChild(new Node2D { Name = "INVALID_DISTRICT_TYPE" });
+            _ = RealtimeVisualLayoutStore.Project(root);
         }
         catch (InvalidDataException)
         {
-            unknownPropertyRejected = true;
+            invalidSceneNodeRejected = true;
         }
-        Check(unknownPropertyRejected,
-            "visual layout accepted an unknown property", failures);
+        finally
+        {
+            root.Free();
+        }
+        Check(invalidSceneNodeRejected,
+            "visual authoring scene accepted an invalid district node type", failures);
 
         bool duplicateDistrictRejected = false;
         try
         {
-            _ = RealtimeVisualLayoutStore.Parse(first.Replace(
-                "\"EAST_RESIDENTIAL_TERMINAL\"",
-                "\"WATER_TERMINAL\"",
-                StringComparison.Ordinal));
+            layout.Districts.Single(item =>
+                item.NodeId == "EAST_RESIDENTIAL_TERMINAL").NodeId = "WATER_TERMINAL";
+            RealtimeVisualLayoutStore.Validate(layout);
         }
         catch (InvalidDataException)
         {

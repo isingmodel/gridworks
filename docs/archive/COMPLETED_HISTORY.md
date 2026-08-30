@@ -632,6 +632,10 @@ node type, metadata, uniform scale, road style와 bounds를 검증한다. Debug/
 `./dev check`가 PASS했다. 이는 실제 Editor-native authoring과 한 직접 조작의 근거이며 사람 미감·사용성
 승인, 일반 플레이어용 editor, package·외부 release gate가 아니다. push, PR, merge는 수행하지 않았다.
 
+후속 direct Editor polish에서 서부·남부 발전원 campus를 각각 약 5% 축소하고 오른쪽으로 20 unit 옮겨
+도시 district 대비 시각 무게를 낮추면서 service-road gate 접점을 유지했다. 실제 Inspector 수정·scene 저장,
+별도 fresh normal 화면과 전체 `./dev check`를 확인했으며 Core source와 PNG는 바꾸지 않았다.
+
 ## 5. G3 아트와 main 통합
 
 루트 `assets/`의 네 이미지를 시각 방향으로 삼아 회화적 아이소메트릭 도시·설비·UI 자산을 제작했다.

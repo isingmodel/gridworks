@@ -115,8 +115,8 @@ metadata/style = "city_spine_secondary"
 [node name="Sources" type="Node2D" parent="." unique_id=125405996]
 
 [node name="WEST_SOURCE_NODE" type="Sprite2D" parent="Sources" unique_id=1275853690]
-position = Vector2(205, 720)
-scale = Vector2(0.518135, 0.518135)
+position = Vector2(225, 720)
+scale = Vector2(0.492, 0.492)
 texture = ExtResource("5_west")
 offset = Vector2(0, -285.32)
 
@@ -131,8 +131,8 @@ text = "WEST SOURCE"
 horizontal_alignment = 1
 
 [node name="SOUTH_SOURCE_NODE" type="Sprite2D" parent="Sources" unique_id=154184570]
-position = Vector2(195, 1725)
-scale = Vector2(0.483871, 0.483871)
+position = Vector2(215, 1725)
+scale = Vector2(0.459, 0.459)
 texture = ExtResource("6_south")
 offset = Vector2(0, -273.28)
 

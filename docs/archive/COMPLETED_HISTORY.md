@@ -706,6 +706,20 @@ save/settings, UI와 checkpoint 회귀를 유지한다. exact controller/UI 명�
 terminal route/minute/hash/command/story cursor는 isolated case와 전체 lane에서 일치했다. 이는 자동 headless
 evidence 구조 정리이며 gameplay, package·device·사람 gate를 바꾸지 않는다.
 
+source tree도 실제 compile·runtime ownership과 맞췄다. current project에서 이미 제외됐던 historical Core
+33개 파일을 byte 변경 없이 `Gridworks.LegacyCore`의 Prototype·Product·Release V1 tree로 옮겼다. 실제
+world contract·presenter·renderer·authoring scene은 `game/realtime/r2/world/` 한 feature slice와
+`RealtimeWorldMap` 이름으로 통일하고, compile되지 않던 두 번째 world 구현은 제거했다. controller·UI·
+product-entry·checkpoint 관찰 코드는 Debug-only `game/realtime/evidence/`로 분리했으며 7,500줄 안팎의
+controller/UI harness는 registry·phase anchor와 기능별 partial로 나눴다. Release와 두 ExportRelease graph에는
+evidence type이 들어가지 않는다.
+
+독립 검사는 이동한 blob·UID, 31 controller case, 12 UI phase와 모든 method body·marker·assertion의 보존을
+확인했다. historical check family, Debug·Release와 두 ExportRelease build, exact/unknown controller,
+product-entry·UI·checkpoint, 전체 `./dev check`가 기존 terminal signature와 checkpoint hash로 PASS했다. 이는
+개발 경로와 source ownership 정리이며 gameplay·화면 의미·package qualification·device·사람 증거를
+바꾸거나 완료하지 않는다.
+
 ## 8. Agent 온보딩 문서 정리
 
 새 agent가 제품 상태, 변경 권한과 작업 절차를 한 문서에서 추측하지 않도록 문서 역할을 분리했다.

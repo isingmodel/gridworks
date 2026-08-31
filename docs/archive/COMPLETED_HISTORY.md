@@ -692,6 +692,13 @@ Debug/Release build, current check suites, Python 회귀, 두 named checkpoint�
 Godot UI harness를 유지했다. 이 완료는 compile 시간 개선, 새 chapter/title/save/package 또는 사람 UX
 품질을 주장하지 않는다.
 
+후속 개발-loop 정리에서 기존 Realtime exact-suite selector를 `./dev`에 노출하고 CommercialChecks에도 같은
+fail-closed selector를 추가했다. 이제 각 managed executable 전체 또는 exact suite 하나를 Godot 없이 직접
+실행할 수 있으며, 알 수 없는 이름은 전체 허용 목록과 함께 거부된다. exact Realtime/Commercial 표본,
+Realtime 27 suites/1,132 assertions, Commercial 31 suites/7,085 assertions와 기존 전체 `./dev check`가
+PASS했다. 이는 선택한 managed suite의 빠른 결정론적 증거이며 Godot integration·device·사람 gate를
+대체하지 않는다.
+
 ## 8. Agent 온보딩 문서 정리
 
 새 agent가 제품 상태, 변경 권한과 작업 절차를 한 문서에서 추측하지 않도록 문서 역할을 분리했다.

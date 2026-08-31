@@ -126,8 +126,8 @@ speed 또는 재생 입력만 실제 진행을 재개한다. presenter와 UI nod
 | raw input이 어떤 typed request가 되는가? | `RealtimeInputRouter` | `game/realtime/ui/RealtimeInputRouter.cs` |
 | intent/action/tool/modal이 지원되는가? | 명시적 capability와 reducer/session 분기 | `game/realtime/r2/RealtimeInteractionReducer.cs`, `game/realtime/ui/RealtimeUiCapabilities.cs`, `game/realtime/r2/RealtimeSession.cs` |
 | 같은 snapshot을 화면에서 어떻게 읽는가? | typed immutable presentation | 해당 `Realtime*Presenter.cs`와 `game/realtime/ui/` contract |
-| active weather를 어떻게 표현하는가? | `RealtimeWorldPresenter` 우선순위 `risk area → Storm`, `thermal override → Heat`, 그 외 `Clear` | `game/realtime/r2/RealtimeWorldPresenter.cs` |
-| typed world를 강·교량·건물·설비·도체로 어떻게 합성하는가? | draw-only `RealtimePlaceholderMap`; Release V3 terrain·hit geometry는 유지 | `game/realtime/r2/RealtimePlaceholderMap*.cs` |
+| active weather를 어떻게 표현하는가? | `RealtimeWorldPresenter` 우선순위 `risk area → Storm`, `thermal override → Heat`, 그 외 `Clear` | `game/realtime/r2/world/RealtimeWorldPresenter.cs` |
+| typed world를 강·교량·건물·설비·도체로 어떻게 합성하는가? | draw-only `RealtimeWorldMap`; Release V3 terrain·hit geometry는 유지 | `game/realtime/r2/world/RealtimeWorldMap*.cs` |
 | Godot에서 어떻게 받아 그리고 focus를 옮기는가? | scene adapter와 owning UI node | `RealtimeSliceMain.cs`, `game/realtime/ui/` |
 | 무엇을 build·play·검사하는가? | `./dev`와 root `Gridworks.sln` | `dev`, `Gridworks.sln` |
 | current R2 package identity를 만들고 검증하는가? | `tools/r2_candidate.py` | `tools/r2_candidate.py`, `game/export_presets.cfg` |
@@ -143,8 +143,10 @@ dedicated load를 직접 배정한다. 여러 후보의 용량·열 한계·사�
 allocator가 소유한다. presenter는 선택된 변전소, 거리/R와 유선 경로를 typed fact로 받고, map은 유선
 도체와 비유선 service link를 서로 다른 표식으로만 그린다.
 
-`RealtimePlaceholderMap`은 typed world의 시각 합성만 소유한다. water polygon에서 결정론적 양안 contour를
-만들어 surface·flow·measured bridge가 같은 화면 geometry를 공유하고, pole sprite 크기에서 상단 conductor
+`RealtimeWorldMap`은 typed world의 시각 합성만 소유한다. contract, presenter, renderer partial과
+canonical visual-layout scene은 `game/realtime/r2/world/` 한 feature slice에 있다. renderer는 water
+polygon에서 결정론적 양안 contour를 만들어 surface·flow·measured bridge가 같은 화면 geometry를 공유하고,
+pole sprite 크기에서 상단 conductor
 attachment를 계산한다. building parcel의 낮은 대비 fill도 여기서만 그린다. 이 draw geometry는 Core의
 terrain, construction legality, pointer hit geometry나 save fact를 다시 정의하지 않는다.
 
@@ -181,18 +183,38 @@ product save lifecycle을 사용하며, completed Continue는 카드를 다시 �
 
 일반 Debug/Release의 root `Gridworks.sln`은 다음 네 project만 포함한다.
 
-- `Gridworks.Core`: strict Release V2 base, Release V3 realtime 규칙과 current accepted-journal replay
-  persistence를 포함한다.
-- `Gridworks.Game`: `realtime/r2/`, `realtime/ui/`, 현재 map transform과 실제 여섯 embedded resource만
-  포함한다.
+- `Gridworks.Core`: 물리적으로도 strict Release V2 base와 Release V3 realtime 규칙만 두며 current
+  accepted-journal replay persistence를 포함한다.
+- `Gridworks.Game`: production `realtime/r2/`, `realtime/ui/`, 현재 map transform과 실제 여섯 embedded
+  resource를 포함한다. `realtime/evidence/`는 Debug에서만 별도로 compile한다.
 - `Gridworks.RealtimeChecks`, `Gridworks.CommercialChecks`: current deterministic checks와 story selector.
 
-기존 Product/V1 prototype과 옛 check project는 current root solution 밖의 historical 기준선이다.
+기존 prototype·Product·Release V1 source는 `src/Gridworks.LegacyCore/{Prototype,Product,Release/V1}/`가
+물리적으로 소유한다. 옛 check project와 함께 current root solution 밖의 historical 기준선이며 current
+`Gridworks.Core` source를 cross-compile하지 않는다.
 `game/Gridworks.Game.sln`도 과거 solution이며 current 개발 진입점이 아니다. `ExportRelease`는 암묵적인
 기본 graph가 없으며 `GridworksCurrentR2Export=true`와 `GridworksLegacyV2Export=true` 중 정확히 하나를
 요구한다. current graph는 strict V2 base+V3 Core와 `realtime/r2`, `realtime/ui`, 중립 shared leaf
-`realtime/MapViewportTransform.cs`만 포함한다. frozen legacy graph는 V2 Core와 `CommercialMain` allowlist만
-포함하며 두 selector의 missing/both는 build 전에 실패한다.
+`realtime/MapViewportTransform.cs`만 포함한다. Debug-only evidence type과 scene은 current Release·ExportRelease
+assembly에 들어가지 않는다. frozen legacy graph는 V2 Core와 `CommercialMain` allowlist만 포함하며 두
+selector의 missing/both는 build 전에 실패한다.
+
+## Debug evidence graph
+
+`game/realtime/evidence/`는 제품 권위가 아니라 deterministic Godot 관찰 코드의 단일 source root다.
+
+- `controller/RealtimeR2Smoke.cs`는 ordered 31-case registry와 exact selection만 소유한다. contracts/fixture,
+  interaction, presentation, campaign progress/completion과 공용 assertion은 같은 이름의 feature partial로
+  나뉜다.
+- `ui/RealtimeUiLayoutHarness.cs`는 12 phase 순서와 scene lifecycle만 소유한다. profile, presentation,
+  actual-scene, native-window, input과 settle/assertion support는 각각의 partial이 소유한다.
+- `product_entry/`는 실제 default scene의 title/save smoke, `checkpoints/`는 named live checkpoint fixture와
+  runner를 소유한다.
+- production type의 `*.Smoke.cs` seam도 이 Debug root에 있고, exact package용
+  `RealtimeSliceMain.Qualification.cs`만 release-safe dormant adapter라서 production `r2/`에 남는다.
+
+runner·case·phase의 실행 형태는 [실행 안내](../INSTALL.md)가 소유한다. evidence partial은 production
+규칙을 다시 계산하거나 별도 fixture authority를 만들지 않는다.
 
 과거 `tools/commercial-ux/native/` 30개 파일은 editor-native First Light non-score 정책에 고정되고
 current `./dev`·package·combined 2B와 연결되지 않아 제거했다. Git 이력이 그 기준선을

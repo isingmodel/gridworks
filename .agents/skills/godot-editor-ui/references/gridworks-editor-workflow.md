@@ -1,12 +1,12 @@
 # Gridworks editor workflow
 
 Use this reference together with the current repository files. If a command, scene, or validation rule has changed, the
-current `README.md`, `dev`, and `game/realtime/r2/RealtimeVisualLayout.cs` take precedence over this summary.
+current `README.md`, `dev`, and `game/realtime/r2/world/RealtimeVisualLayout.cs` take precedence over this summary.
 
 ## Launch and identify the app
 
 - Canonical launch: `./dev play layout`
-- Canonical scene: `game/realtime/r2/RealtimeVisualLayoutAuthoring.tscn`
+- Canonical scene: `game/realtime/r2/world/RealtimeVisualLayoutAuthoring.tscn`
 - Bundled app relative to repository root: `.tools/godot-4.7.1/Godot_mono.app`
 - Expected editor title: `RealtimeVisualLayoutAuthoring.tscn - Gridworks - Godot Engine`
 - A title such as `Gridworks (DEBUG)` identifies a running game, not the editor.
@@ -35,8 +35,9 @@ road `Line2D` nodes. Preserve exact IDs, child types, metadata, and hierarchy be
 ## Save and prove reproduction
 
 Before saving, note which node and property should change. Save with `super+s`, refresh editor state, and verify the scene
-title no longer indicates an unsaved change. Inspect `git diff -- game/realtime/r2/RealtimeVisualLayoutAuthoring.tscn` to
-confirm serialized values match the UI and no unrelated scene property moved.
+title no longer indicates an unsaved change. Inspect
+`git diff -- game/realtime/r2/world/RealtimeVisualLayoutAuthoring.tscn` to confirm serialized values match the UI and no
+unrelated scene property moved.
 
 Run the Realtime check project before the full repository check. Then use a fresh `./dev play chapter FIRST_LIGHT` process
 for normal-game observation. Keep editor and game sessions distinct so the game can be closed without closing the editor.

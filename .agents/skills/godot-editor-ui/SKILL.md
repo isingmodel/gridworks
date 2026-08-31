@@ -25,7 +25,7 @@ substitute shell or patch edits for an explicit request to use the editor.
 
 1. Check whether the canonical authoring scene is already open. Avoid duplicate editor processes.
 2. Otherwise launch `./dev play layout` in a retained PTY session. This builds the game and opens
-   `res://realtime/r2/RealtimeVisualLayoutAuthoring.tscn` with `--editor`.
+   `res://realtime/r2/world/RealtimeVisualLayoutAuthoring.tscn` with `--editor`.
 3. Target the repository-bundled `Godot_mono.app` by its resolved full app path. Multiple Godot installations may share a
    display name or bundle identifier.
 4. Confirm all three editor surfaces are visible or discoverable before editing: the `Scene` tree, the `2D` workspace, and
@@ -35,8 +35,8 @@ substitute shell or patch edits for an explicit request to use the editor.
 6. Select the exact node in the Scene tree, edit its property in Inspector or its handles in 2D, then inspect the fresh UI
    state to confirm the intended value. Make small, reversible changes and reassess the whole composition after each group.
 7. Save with `super+s`. Confirm the unsaved marker clears and that
-   `game/realtime/r2/RealtimeVisualLayoutAuthoring.tscn` is the only newly changed gameplay file unless the authorized
-   result requires more.
+   `game/realtime/r2/world/RealtimeVisualLayoutAuthoring.tscn` is the only newly changed gameplay file unless the
+   authorized result requires more.
 
 When the user asks to keep the Mac awake, verify an existing `caffeinate -dims` process or start one without duplicating it.
 Report its state in the handoff. This request does not authorize unrelated system-setting changes.

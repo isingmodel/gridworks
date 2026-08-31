@@ -44,6 +44,11 @@
                       LogicalName="Gridworks.Game.EmbeddedData.release-campaign-v3.json" />
   </ItemGroup>
 
+  <!-- Deterministic Godot evidence is an explicit Debug-only source root. -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <Compile Include="realtime/evidence/**/*.cs" />
+  </ItemGroup>
+
   <!-- Deterministic realtime fixtures are development-only, never product payload. -->
   <ItemGroup Condition="'$(Configuration)' != 'ExportRelease'">
     <EmbeddedResource Include="../tools/Gridworks.RealtimeChecks/Fixtures/stage-r1-world-realtime-v3.json"

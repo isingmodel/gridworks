@@ -39,7 +39,7 @@ run_checkpoint() {
     "$godot_bin" \
         --headless \
         --path "$repository_dir/game" \
-        --scene res://realtime/r2/RealtimeSliceCheckpointRunner.tscn \
+        --scene res://realtime/evidence/checkpoints/RealtimeSliceCheckpointRunner.tscn \
         -- \
         --checkpoint="$checkpoint_id"
 }
@@ -48,7 +48,7 @@ run_product_entry_smoke() {
     "$godot_bin" \
         --headless \
         --path "$repository_dir/game" \
-        --scene res://realtime/r2/RealtimeProductEntrySmokeRunner.tscn \
+        --scene res://realtime/evidence/product_entry/RealtimeProductEntrySmokeRunner.tscn \
         "$@"
 }
 
@@ -56,14 +56,14 @@ run_realtime_ui_harness() {
     "$godot_bin" \
         --headless \
         --path "$repository_dir/game" \
-        --scene res://realtime/ui/RealtimeUiLayoutHarness.tscn
+        --scene res://realtime/evidence/ui/RealtimeUiLayoutHarness.tscn
 }
 
 run_realtime_controller_smoke() {
     "$godot_bin" \
         --headless \
         --path "$repository_dir/game" \
-        --scene res://realtime/r2/RealtimeR2SmokeRunner.tscn \
+        --scene res://realtime/evidence/controller/RealtimeR2SmokeRunner.tscn \
         -- \
         "$@"
 }

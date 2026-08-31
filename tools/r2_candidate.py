@@ -825,12 +825,11 @@ def validate_payload(root: Path) -> dict[str, Any]:
         "CommercialMain.tscn.remap",
         "CommercialTheme.tres.remap",
         "ReleaseMain.tscn.remap",
-        "realtime/r2/RealtimeProductEntrySmokeRunner.tscn.remap",
-        "realtime/r2/RealtimeSliceCheckpointRunner.tscn.remap",
     }
     forbidden = sorted(
         entry for entry in packaged_entries
         if entry in forbidden_entries
+        or entry.startswith("realtime/evidence/")
         or entry.startswith("assets/commercial/portraits/")
         or entry.startswith("assets/realtime/")
         or entry.lower().removesuffix(".import").endswith((".mp3", ".ogg", ".wav"))

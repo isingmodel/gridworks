@@ -23,7 +23,9 @@ GAME = candidate.GAME
 TOOL_PATH = ROOT / "tools/r2_qualification.py"
 SCHEMA = "gridworks.r2-app-persistence-qualification.v2"
 RECORD_NAME = "Gridworks-current-r2-macOS-internal.qualification.json"
-RUNNER_SCENE = "res://realtime/r2/RealtimeProductEntrySmokeRunner.tscn"
+RUNNER_SCENE = (
+    "res://realtime/evidence/product_entry/RealtimeProductEntrySmokeRunner.tscn"
+)
 MARKER_PREFIX = "REALTIME_R2_QUALIFICATION_DATA_READY "
 LIFECYCLE_MARKER_PREFIX = "REALTIME_R2_QUALIFICATION_LIFECYCLE_READY "
 TITLE_MARKER = candidate.TITLE_MARKER

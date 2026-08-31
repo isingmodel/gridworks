@@ -1,8 +1,8 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://realtime/r2/RealtimeSliceCheckpointRunner.cs" id="1_runner"]
+[ext_resource type="Script" path="res://realtime/evidence/controller/RealtimeR2SmokeRunner.cs" id="1_runner"]
 
-[node name="RealtimeSliceCheckpointRunner" type="Control"]
+[node name="RealtimeR2SmokeRunner" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0

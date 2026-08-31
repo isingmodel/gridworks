@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" path="res://realtime/ui/RealtimeUiLayoutHarness.cs" id="1_harness"]
+[ext_resource type="Script" path="res://realtime/evidence/ui/RealtimeUiLayoutHarness.cs" id="1_harness"]
 [ext_resource type="Theme" path="res://RealtimeTheme.tres" id="2_theme"]
 [ext_resource type="PackedScene" path="res://realtime/ui/RealtimeUiRoot.tscn" id="3_ui"]
 

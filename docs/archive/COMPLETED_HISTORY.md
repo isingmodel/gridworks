@@ -699,6 +699,13 @@ Realtime 27 suites/1,132 assertions, Commercial 31 suites/7,085 assertions와 �
 PASS했다. 이는 선택한 managed suite의 빠른 결정론적 증거이며 Godot integration·device·사람 gate를
 대체하지 않는다.
 
+Godot evidence ownership도 controller runner와 UI harness로 분리했다. controller는 exact case 선택과 terminal
+fixture 생성을, UI harness는 실제 offscreen control-tree integration만 소유한다. 인자 없는 전체 gate는
+controller suite를 한 번 실행한 뒤 그 결과 bytes를 별도 product-title process에서 probe하며 기존 title,
+save/settings, UI와 checkpoint 회귀를 유지한다. exact controller/UI 명령과 전체 `./dev check`가 PASS했고
+terminal route/minute/hash/command/story cursor는 isolated case와 전체 lane에서 일치했다. 이는 자동 headless
+evidence 구조 정리이며 gameplay, package·device·사람 gate를 바꾸지 않는다.
+
 ## 8. Agent 온보딩 문서 정리
 
 새 agent가 제품 상태, 변경 권한과 작업 절차를 한 문서에서 추측하지 않도록 문서 역할을 분리했다.

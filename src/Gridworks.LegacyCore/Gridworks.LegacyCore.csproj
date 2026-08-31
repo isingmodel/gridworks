@@ -10,11 +10,8 @@
 
   <!-- Historical prototype, Product, and Release V1 rules remain buildable but are not current R2. -->
   <ItemGroup>
-    <Compile Include="../Gridworks.Core/*.cs"
-             Link="Prototype/%(Filename)%(Extension)" />
-    <Compile Include="../Gridworks.Core/Product/**/*.cs"
-             Link="Product/%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="../Gridworks.Core/Release/*.cs"
-             Link="ReleaseV1/%(Filename)%(Extension)" />
+    <Compile Include="Prototype/**/*.cs" />
+    <Compile Include="Product/**/*.cs" />
+    <Compile Include="Release/V1/**/*.cs" />
   </ItemGroup>
 </Project>

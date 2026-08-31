@@ -2,20 +2,39 @@
 
 ## 상태
 
-**활성 scope가 없다.**
+**current source ownership 정렬 scope가 활성 상태다.**
 
-Godot controller/UI evidence lane 분리를 완료했다. `./dev check controller [EXACT_CASE]`와
-`./dev check ui`는 각각 controller와 UI integration evidence를 독립 실행하며, 인자 없는 전체 gate는
-controller suite가 검증한 terminal save를 fresh product-title process에 전달한다. controller case 목록과
-fixture 생성, UI harness, 전체 evidence orchestration은 서로 다른 단일 권위를 가진다. 실행 형태와 증거
-경계는 [실행 안내](../INSTALL.md), current ownership은 [개발 구조](ARCHITECTURE.md)가 소유한다.
+## 단일 결과물
 
-## 다음 변경을 여는 조건
+개발자는 source tree에서 current product, historical implementation, deterministic evidence의 소유권을
+즉시 구분하고 current world/controller/UI 변경을 한 feature slice 안에서 추적할 수 있다.
 
-- 읽기·설명·진단은 관련 질문 소유 문서를 read-only로 확인한다.
-- 파일 변경은 사용자가 명시한 결과물 하나를 이 문서에 먼저 연다.
-- 외부 gate 실행, push, PR, merge와 공개 배포는 각각 사용자의 명시적 권한이 있어야 한다.
-- 시작 형식, 최소 검증과 종료 checklist는 [Agent 작업 안내](AGENT_GUIDE.md)를 따른다.
+## 단일 권위
 
-`NEXT_TASKS.md`, [외부 출시 gate](RELEASE_GATES.md), 준비된 코드와 과거 PASS는 자동으로
-구현·평가·배포 권한을 만들지 않는다.
+- current와 historical Core의 물리 경계: `Gridworks.Core`와 `Gridworks.LegacyCore` project root
+- current world surface의 contract·renderer·scene 경계: `game/realtime/r2/world/`
+- Godot controller/UI evidence의 source grouping: 기존 runner type과 feature별 partial file
+- current 변경 경로: `docs/ARCHITECTURE.md`
+
+## 범위 안
+
+- current project에서 이미 제외된 prototype·Product·Release V1 Core source를 owning LegacyCore tree로 옮긴다.
+- compile되지 않고 참조도 없는 옛 realtime world 구현을 제거하고 current world contract와 renderer를
+  하나의 feature folder와 canonical 이름으로 정렬한다.
+- controller와 UI evidence의 기존 registry·phase·method body를 feature별 partial file로 나눈다.
+- project include, Godot scene path, DEBUG 경계와 architecture map을 새 물리 ownership에 맞춘다.
+
+## 범위 밖
+
+- gameplay 규칙, authored data, presentation 의미, UI layout·input, save/settings/audio와 product scene 동작
+- namespace·assembly·schema·public contract 변경, 새 abstraction이나 test framework 도입
+- assertion·case·phase 삭제 또는 순서·출력 marker 변경
+- package·qualification identity, 외부 device·사람 gate, push·PR·merge·배포
+
+## 완료 검사
+
+- current Core tree에는 V2 base와 V3 realtime source만 남고 모든 legacy checker가 같은 결과로 PASS한다.
+- current world scene은 단일 canonical contract/renderer slice만 참조하며 obsolete implementation reference가 없다.
+- controller 31-case 순서와 UI phase 순서가 refactor 전과 같고 exact/unknown/controller/UI 검사가 PASS한다.
+- Debug·Release build와 인자 없는 `./dev check`가 terminal signature를 포함한 기존 회귀를 통과한다.
+- `ARCHITECTURE.md`, source-path 검사, independent review와 `git diff --check`가 새 ownership과 일치한다.

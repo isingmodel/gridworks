@@ -8,7 +8,7 @@ using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
 
 namespace Gridworks.Game.Realtime.R2;
 
-internal enum RealtimePlaceholderStateCue
+internal enum RealtimeWorldStateCue
 {
     None,
     AuthoredUnavailableBars,
@@ -21,7 +21,7 @@ internal enum RealtimePlaceholderStateCue
 /// R2-only world owner. It renders the Release.V3 typed state with the canonical G3 presentation
 /// layer while retaining the same renderer-neutral contract for geometry, hit testing, and input.
 /// </summary>
-internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldView
+internal sealed partial class RealtimeWorldMap : Control, IRealtimeWorldView
 {
     private const string G3Root = "res://art/commercial/g3/";
     private const string G3GroundRubble = G3Root + "tiles/ground-rubble-relief-c.png";
@@ -147,7 +147,7 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     private RealtimeVisualLayoutDefinition _visualLayout = null!;
     private readonly Dictionary<string, Texture2D> _g3Textures = new(StringComparer.Ordinal);
 #if DEBUG
-    private readonly Dictionary<string, RealtimePlaceholderStateCue> _drawnStateCues =
+    private readonly Dictionary<string, RealtimeWorldStateCue> _drawnStateCues =
         new(StringComparer.Ordinal);
     private readonly HashSet<string> _drawnAnalysisRiskAreaIds =
         new(StringComparer.Ordinal);
@@ -1813,13 +1813,13 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
         Vector2 normal = new Vector2(axis.Y, -axis.X).Normalized();
         Vector2 middle = (from + to) / 2f;
         float scale = _accessibilityScale;
-        RealtimePlaceholderStateCue cue = StateCue(state);
+        RealtimeWorldStateCue cue = StateCue(state);
 #if DEBUG
         _drawnStateCues[assetId] = cue;
 #endif
         switch (cue)
         {
-            case RealtimePlaceholderStateCue.AuthoredUnavailableBars:
+            case RealtimeWorldStateCue.AuthoredUnavailableBars:
                 DrawDashedLine(from, to, Text);
                 DrawLine(
                     middle - normal * 6f * scale,
@@ -1828,16 +1828,16 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                     3f * scale,
                     true);
                 break;
-            case RealtimePlaceholderStateCue.EmergencyTriangle:
+            case RealtimeWorldStateCue.EmergencyTriangle:
                 DrawLine(from + normal * 3f * scale, to + normal * 3f * scale,
                     Emergency, 1.5f * scale, true);
                 DrawTriangle(middle, 6f * scale, Emergency);
                 break;
-            case RealtimePlaceholderStateCue.ProtectiveOutageCross:
+            case RealtimeWorldStateCue.ProtectiveOutageCross:
                 DrawDashedLine(from, to, Text);
                 DrawX(middle, 7f * scale, Outage);
                 break;
-            case RealtimePlaceholderStateCue.OverLimitDiamond:
+            case RealtimeWorldStateCue.OverLimitDiamond:
                 DrawDiamond(middle, 7f * scale, Danger);
                 break;
         }
@@ -1851,13 +1851,13 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
     {
         float scale = _accessibilityScale;
         Vector2 cueCenter = center + Vector2.Up * (radius + 7f * scale);
-        RealtimePlaceholderStateCue cue = StateCue(state);
+        RealtimeWorldStateCue cue = StateCue(state);
 #if DEBUG
         _drawnStateCues[assetId] = cue;
 #endif
         switch (cue)
         {
-            case RealtimePlaceholderStateCue.AuthoredUnavailableBars:
+            case RealtimeWorldStateCue.AuthoredUnavailableBars:
                 DrawLine(
                     center + new Vector2(-radius, radius) * 0.55f,
                     center + new Vector2(radius, -radius) * 0.55f,
@@ -1865,13 +1865,13 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                     2.5f * scale,
                     true);
                 break;
-            case RealtimePlaceholderStateCue.EmergencyTriangle:
+            case RealtimeWorldStateCue.EmergencyTriangle:
                 DrawTriangle(cueCenter, 6f * scale, Emergency);
                 break;
-            case RealtimePlaceholderStateCue.ProtectiveOutageCross:
+            case RealtimeWorldStateCue.ProtectiveOutageCross:
                 DrawX(center, Math.Max(radius * 0.72f, 5f * scale), Text);
                 break;
-            case RealtimePlaceholderStateCue.OverLimitDiamond:
+            case RealtimeWorldStateCue.OverLimitDiamond:
                 DrawDiamond(cueCenter, 6f * scale, Danger);
                 break;
         }
@@ -2219,17 +2219,17 @@ internal sealed partial class RealtimePlaceholderMap : Control, IRealtimeWorldVi
                 ProtectiveOutage:
                     state == RealtimeWorldAssetState.ProtectiveOutage));
 
-    private static RealtimePlaceholderStateCue StateCue(
+    private static RealtimeWorldStateCue StateCue(
         RealtimeWorldAssetState? state) => state switch
     {
         RealtimeWorldAssetState.AuthoredUnavailable =>
-            RealtimePlaceholderStateCue.AuthoredUnavailableBars,
+            RealtimeWorldStateCue.AuthoredUnavailableBars,
         RealtimeWorldAssetState.Emergency =>
-            RealtimePlaceholderStateCue.EmergencyTriangle,
+            RealtimeWorldStateCue.EmergencyTriangle,
         RealtimeWorldAssetState.ProtectiveOutage =>
-            RealtimePlaceholderStateCue.ProtectiveOutageCross,
+            RealtimeWorldStateCue.ProtectiveOutageCross,
         RealtimeWorldAssetState.OverLimit =>
-            RealtimePlaceholderStateCue.OverLimitDiamond,
-        _ => RealtimePlaceholderStateCue.None,
+            RealtimeWorldStateCue.OverLimitDiamond,
+        _ => RealtimeWorldStateCue.None,
     };
 }

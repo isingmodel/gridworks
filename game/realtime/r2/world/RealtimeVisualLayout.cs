@@ -78,7 +78,7 @@ internal static class RealtimeVisualLayoutStore
 {
     internal const string SchemaVersion = "gridworks.realtime.visual-layout.v1";
     internal const string ResourcePath =
-        "res://realtime/r2/RealtimeVisualLayoutAuthoring.tscn";
+        "res://realtime/r2/world/RealtimeVisualLayoutAuthoring.tscn";
 
     private static readonly string[] DistrictIds =
     [

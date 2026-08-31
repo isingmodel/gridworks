@@ -1118,7 +1118,7 @@ internal sealed partial class RealtimeSliceMain
     }
 }
 
-internal sealed partial class RealtimePlaceholderMap :
+internal sealed partial class RealtimeWorldMap :
     IRealtimeWorldCheckpointEvidenceView
 {
     RealtimeSliceCheckpointWorldRenderFact IRealtimeWorldCheckpointEvidenceView

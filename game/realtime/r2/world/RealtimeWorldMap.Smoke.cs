@@ -9,7 +9,7 @@ using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
 
 namespace Gridworks.Game.Realtime.R2;
 
-internal sealed partial class RealtimePlaceholderMap
+internal sealed partial class RealtimeWorldMap
 {
     internal IReadOnlyList<string> CandidateIdsForSmoke =>
         Array.AsReadOnly(_candidateCycle.ToArray());
@@ -160,8 +160,8 @@ internal sealed partial class RealtimePlaceholderMap
     internal bool ActiveRiskUsesSolidFillForSmoke =>
         _drawnActiveRiskAreaIds.Count > 0;
 
-    internal RealtimePlaceholderStateCue? DrawnStateCueForSmoke(string assetId) =>
-        _drawnStateCues.TryGetValue(assetId, out RealtimePlaceholderStateCue cue)
+    internal RealtimeWorldStateCue? DrawnStateCueForSmoke(string assetId) =>
+        _drawnStateCues.TryGetValue(assetId, out RealtimeWorldStateCue cue)
             ? cue
             : null;
 
@@ -182,7 +182,7 @@ internal sealed partial class RealtimePlaceholderMap
     internal string StatusLabelForSmoke(RealtimeWorldAssetState state) =>
         StatusLabel(state);
 
-    internal RealtimePlaceholderStateCue StateCueForSmoke(
+    internal RealtimeWorldStateCue StateCueForSmoke(
         RealtimeWorldAssetState state) => StateCue(state);
 
     internal (string AssetId, Vector2 ViewportPoint)? SelectionActionForSmoke

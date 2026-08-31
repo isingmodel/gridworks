@@ -1,10 +1,10 @@
 [gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://realtime/r2/RealtimeSliceMain.cs" id="1_main"]
-[ext_resource type="Script" path="res://realtime/r2/RealtimePlaceholderMap.cs" id="2_map"]
+[ext_resource type="Script" path="res://realtime/r2/world/RealtimeWorldMap.cs" id="2_map"]
 [ext_resource type="PackedScene" path="res://realtime/ui/RealtimeUiRoot.tscn" id="3_ui"]
 [ext_resource type="Script" path="res://realtime/r2/RealtimeAudio.cs" id="4_audio"]
-[ext_resource type="PackedScene" path="res://realtime/r2/RealtimeVisualLayoutAuthoring.tscn" id="5_visual"]
+[ext_resource type="PackedScene" path="res://realtime/r2/world/RealtimeVisualLayoutAuthoring.tscn" id="5_visual"]
 
 [node name="RealtimeSliceMain" type="Control"]
 layout_mode = 3

@@ -7,7 +7,7 @@ using CoreMapPoint = Gridworks.Core.Release.V2.MapPoint;
 
 namespace Gridworks.Game.Realtime.R2;
 
-internal sealed partial class RealtimePlaceholderMap
+internal sealed partial class RealtimeWorldMap
 {
     private const string CityV2Root = "res://art/realtime/city-v2/";
     private const string CityResidentialBlock = CityV2Root + "residential-block-a.png";

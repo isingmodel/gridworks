@@ -791,7 +791,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             HandleInputLocally = true,
         };
         AddChild(viewport);
-        var map = new RealtimePlaceholderMap
+        var map = new RealtimeWorldMap
         {
             Name = "G3VisualRendererSmokeMap",
             Size = new Vector2(1280, 720),
@@ -961,11 +961,11 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 ReduceMotion = true,
             };
             Require(
-                RealtimePlaceholderMap.WeatherMinutePhaseForSmoke(movingWeather) !=
-                    RealtimePlaceholderMap.WeatherMinutePhaseForSmoke(
+                RealtimeWorldMap.WeatherMinutePhaseForSmoke(movingWeather) !=
+                    RealtimeWorldMap.WeatherMinutePhaseForSmoke(
                         movingWeather with { Minute = 42 }) &&
-                RealtimePlaceholderMap.WeatherMinutePhaseForSmoke(reducedWeather) == 0 &&
-                RealtimePlaceholderMap.WeatherMinutePhaseForSmoke(
+                RealtimeWorldMap.WeatherMinutePhaseForSmoke(reducedWeather) == 0 &&
+                RealtimeWorldMap.WeatherMinutePhaseForSmoke(
                     reducedWeather with { Minute = 42 }) == 0,
                 "G3 Reduce Motion did not freeze the minute-driven weather phase",
                 failures);
@@ -1191,7 +1191,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
 
             SpatialRiskAreaDefinition authoredRisk = typedPresentation.World.World
                 .RiskAreas.First();
-            var riskMap = new RealtimePlaceholderMap
+            var riskMap = new RealtimeWorldMap
             {
                 Size = new Vector2(960, 540),
             };
@@ -1447,7 +1447,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             new Vector2I(1920, 1080), 100);
         RealtimeLayoutProfile label200 = RealtimeUiMetrics.ForWindow(
             new Vector2I(1920, 1080), 200);
-        var map = new RealtimePlaceholderMap();
+        var map = new RealtimeWorldMap();
         try
         {
             map.ApplyLayoutForSmoke(label100);
@@ -1469,13 +1469,13 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 failures);
             Require(map.StateCueForSmoke(
                         RealtimeWorldAssetState.Emergency) ==
-                        RealtimePlaceholderStateCue.EmergencyTriangle &&
+                        RealtimeWorldStateCue.EmergencyTriangle &&
                     map.StateCueForSmoke(
                         RealtimeWorldAssetState.ProtectiveOutage) ==
-                        RealtimePlaceholderStateCue.ProtectiveOutageCross &&
+                        RealtimeWorldStateCue.ProtectiveOutageCross &&
                     map.StateCueForSmoke(
                         RealtimeWorldAssetState.OverLimit) ==
-                        RealtimePlaceholderStateCue.OverLimitDiamond,
+                        RealtimeWorldStateCue.OverLimitDiamond,
                 "map thermal states lost their non-color geometric cues",
                 failures);
         }
@@ -1599,7 +1599,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
     }
 
     private static void ValidateScaledCustomMapHitTargets(
-        RealtimePlaceholderMap map,
+        RealtimeWorldMap map,
         string selectedAssetId,
         RealtimeLayoutProfile restoreProfile,
         ICollection<string> failures)
@@ -1984,7 +1984,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             await SettleLayout();
             await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
             RealtimeUiRoot ui = slice.UiForSmoke;
-            RealtimePlaceholderMap map = slice.MapForSmoke;
+            RealtimeWorldMap map = slice.MapForSmoke;
             observedUi = ui;
             observeInput = request => actualInputRequests.Add(request);
             ui.InputRequested += observeInput;
@@ -2478,7 +2478,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                     map.DrawnAnalysisRiskAreaIdsForSmoke.SequenceEqual(
                         expectedDrawnRiskIds,
                         StringComparer.Ordinal),
-                "actual A key did not reach the PlaceholderMap _Draw analysis/risk " +
+                "actual A key did not reach the WorldMap _Draw analysis/risk " +
                 $"path (expected=[{string.Join(",", expectedDrawnRiskIds)}], " +
                 $"drawn=[{string.Join(",", map.DrawnAnalysisRiskAreaIdsForSmoke)}])",
                 failures);
@@ -2503,7 +2503,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             Require(!slice.LatestPresentation.World.AnalysisVisible &&
                     !map.DrawnAnalysisOverlayForSmoke &&
                     map.DrawnAnalysisRiskAreaIdsForSmoke.Count == 0,
-                "second actual A key left the PlaceholderMap analysis draw path active",
+                "second actual A key left the WorldMap analysis draw path active",
                 failures);
 
             slice.SetPlayerPausedForSmoke(false);
@@ -4244,7 +4244,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             slice.SetPlayerPausedForSmoke(true);
 
             RealtimeUiRoot ui = slice.UiForSmoke;
-            RealtimePlaceholderMap map = slice.MapForSmoke;
+            RealtimeWorldMap map = slice.MapForSmoke;
             RealtimeCampaignSnapshot statusBaseline = slice.CoreSnapshot;
             CommercialWorldDefinition statusRuntimeWorld =
                 slice.RealtimeWorldForSmoke.Network with
@@ -4324,7 +4324,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                         "공사 중",
                         StringComparison.Ordinal) &&
                     map.DrawnStateCueForSmoke(buildingAssetId) ==
-                        RealtimePlaceholderStateCue.None,
+                        RealtimeWorldStateCue.None,
                 "authoritative Core uncommissioned node did not reach exact Building " +
                 "map/status/context/AX/draw facts",
                 failures);
@@ -4351,7 +4351,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 bool expectedProtectiveOutage,
                 string expectedStateCopy,
                 string expectedCauseCopy,
-                RealtimePlaceholderStateCue expectedCue,
+                RealtimeWorldStateCue expectedCue,
                 string label)
             {
                 RealtimeThermalAssetSnapshot coreAsset = thermal.Assets.Single(item =>
@@ -4430,7 +4430,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 expectedProtectiveOutage: false,
                 "계획 사용불가",
                 "작성된 계획 사용불가가 적용 중이며 공급 경로에서 제외됩니다.",
-                RealtimePlaceholderStateCue.AuthoredUnavailableBars,
+                RealtimeWorldStateCue.AuthoredUnavailableBars,
                 "authored unavailable");
 
             var dualCauseAuthority = new RealtimeThermalSession(
@@ -4447,7 +4447,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 expectedProtectiveOutage: true,
                 "보호정지 · 계획 사용불가 겹침",
                 "작성된 사용불가와 열 보호정지가 함께 적용 중입니다. 더 늦은 복귀 시각까지 공급 경로에서 제외됩니다.",
-                RealtimePlaceholderStateCue.ProtectiveOutageCross,
+                RealtimeWorldStateCue.ProtectiveOutageCross,
                 "dual authored/protective outage");
             GD.Print(
                 "REALTIME_R2_ACTUAL_STATUS_AUTHORITY_PASS " +
@@ -4476,7 +4476,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 long minute,
                 ThermalOperatingState coreState,
                 RealtimeWorldAssetState presentationState,
-                RealtimePlaceholderStateCue drawnCue,
+                RealtimeWorldStateCue drawnCue,
                 string visibleStateLabel,
                 string contextStateCopy)
             {
@@ -4549,21 +4549,21 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 boundary.EmergencyStartMinute!.Value,
                 ThermalOperatingState.Emergency,
                 RealtimeWorldAssetState.Emergency,
-                RealtimePlaceholderStateCue.EmergencyTriangle,
+                RealtimeWorldStateCue.EmergencyTriangle,
                 "비상 운전",
                 "비상 운전");
             await ValidateState(
                 boundary.TripMinute!.Value,
                 ThermalOperatingState.ProtectiveOutage,
                 RealtimeWorldAssetState.ProtectiveOutage,
-                RealtimePlaceholderStateCue.ProtectiveOutageCross,
+                RealtimeWorldStateCue.ProtectiveOutageCross,
                 "보호정지",
                 "보호정지");
             await ValidateState(
                 boundary.RecoveryMinute!.Value,
                 ThermalOperatingState.Emergency,
                 RealtimeWorldAssetState.Emergency,
-                RealtimePlaceholderStateCue.EmergencyTriangle,
+                RealtimeWorldStateCue.EmergencyTriangle,
                 "비상 운전",
                 "비상 운전");
             long recoveryMinute = boundary.RecoveryMinute.Value;
@@ -4588,7 +4588,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 idleMinute,
                 ThermalOperatingState.Continuous,
                 RealtimeWorldAssetState.Normal,
-                RealtimePlaceholderStateCue.None,
+                RealtimeWorldStateCue.None,
                 "정상",
                 "연속 운전");
             GD.Print(
@@ -4651,7 +4651,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
                 failures);
 
             RealtimeUiRoot ui = slice.UiForSmoke;
-            RealtimePlaceholderMap map = slice.MapForSmoke;
+            RealtimeWorldMap map = slice.MapForSmoke;
             ui.ApplyLayoutForSmoke(physical, logical, uiScalePercent: 100);
             map.ApplyLayoutForSmoke(RealtimeUiMetrics.ForWindow(
                 physical,
@@ -4826,7 +4826,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
     private async Task ValidateActualMapCandidatePersistence(
         SubViewport viewport,
         RealtimeSliceMain slice,
-        RealtimePlaceholderMap map,
+        RealtimeWorldMap map,
         CoreMapPoint worldPoint,
         List<RealtimeInputRequest> actualInputRequests,
         ICollection<string> failures)
@@ -4995,7 +4995,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
     private async Task<ActualMapCandidateFact?> ArmNonFirstActualCandidate(
         SubViewport viewport,
         RealtimeSliceMain slice,
-        RealtimePlaceholderMap map,
+        RealtimeWorldMap map,
         CoreMapPoint worldPoint,
         List<RealtimeInputRequest> actualInputRequests,
         string label,
@@ -5094,7 +5094,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
 
     private async Task RequireActualCandidateFact(
         SubViewport viewport,
-        RealtimePlaceholderMap map,
+        RealtimeWorldMap map,
         ActualMapCandidateFact expected,
         string label,
         ICollection<string> failures)
@@ -5159,7 +5159,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
 
     private async Task ForceActualMapDraw(
         SubViewport viewport,
-        RealtimePlaceholderMap map)
+        RealtimeWorldMap map)
     {
         map.QueueRedraw();
         viewport.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
@@ -5347,7 +5347,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
             AddChild(slice);
             await SettleNativeWindow();
             RealtimeUiRoot ui = slice.UiForSmoke;
-            RealtimePlaceholderMap map = slice.MapForSmoke;
+            RealtimeWorldMap map = slice.MapForSmoke;
             ui.ModalHostForSmoke.PressPrimaryForSmoke();
             await SettleNativeWindow();
             ui.TopHudForSmoke.PressSpeedForSmoke(RealtimeSimulationSpeed.Paused);
@@ -5544,7 +5544,7 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
     private static void ValidateNativeWindowStage(
         RealtimeSliceMain slice,
         RealtimeUiRoot ui,
-        RealtimePlaceholderMap map,
+        RealtimeWorldMap map,
         Vector2I expectedPhysical,
         int expectedUiScale,
         bool requireExactWindowSize,

@@ -247,7 +247,7 @@ case $command_name in
                 "$godot_bin" \
                     --editor \
                     --path "$repository_dir/game" \
-                    --scene res://realtime/r2/RealtimeVisualLayoutAuthoring.tscn
+                    --scene res://realtime/r2/world/RealtimeVisualLayoutAuthoring.tscn
                 ;;
             fixture)
                 [[ $# -eq 0 ]] || fail "play fixture takes no additional arguments."

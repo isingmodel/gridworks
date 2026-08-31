@@ -11,7 +11,7 @@ namespace Gridworks.Game.Realtime.R2;
 /// These placements are deliberately draw-only: the Release.V3 world remains the
 /// sole authority for terrain, construction, hit testing, and simulation state.
 /// </summary>
-internal sealed partial class RealtimePlaceholderMap
+internal sealed partial class RealtimeWorldMap
 {
     private const string G3GroundRubbleMixB = G3Root + "tiles/ground-rubble-mix-b.png";
     private const string G3IndustrialRoadBridgeA =

@@ -2,25 +2,35 @@
 
 ## 상태
 
-**활성 scope가 없다.**
+**관리형 최소 검사 진입점 scope가 활성 상태다.**
 
-프로젝트 로컬 `godot-editor-ui` skill을 만들었다. Godot UI·Inspector·Scene tree·2D 배치 요청에 자동으로
-발견되며 `$godot-editor-ui`로도 명시 호출할 수 있다. 실제 `./dev play layout` Editor와 DEBUG 게임창을
-구분하고, Computer Use로 node 선택·Inspector/2D 편집·`⌘S` 저장 후 fresh normal game 재현까지 요구한다.
+## 단일 결과물
 
-strict visual-layout의 exact ID·node type·uniform scale·world bounds·road point 불변조건, source gate 접점과
-주변 구도 판단, 요청 시 중복 없는 `caffeinate -dims`, Editor를 남기고 검증 game만 닫는 절차도 포함했다.
-`quick_validate.py`, placeholder·개발자 절대경로 audit, canonical command·scene·projection rule 대조와
-`git diff --check`가 PASS했다. 게임 scene·art·runtime·Core 규칙과 전역 skill은 바꾸지 않았다. 이는 skill
-구조와 프로젝트 절차의 정적 검증이며 실제 UI 변경이나 사람 미감 승인은 아니다. push·PR·merge·배포는
-수행하지 않았다.
+개발자는 전체 `./dev check`를 실행하지 않고도 `./dev check realtime [SUITE]` 또는
+`./dev check commercial [SUITE]`로 해당 관리형 검사 전체나 exact suite 하나를 즉시 실행할 수 있다.
 
-## 다음 변경을 여는 조건
+## 단일 권위
 
-- 읽기·설명·진단은 관련 질문 소유 문서를 read-only로 확인한다.
-- 파일 변경은 사용자가 명시한 결과물 하나를 이 문서에 먼저 연다.
-- 외부 gate 실행, push, PR, merge와 공개 배포는 각각 사용자의 명시적 권한이 있어야 한다.
-- 시작 형식, 최소 검증과 종료 checklist는 [Agent 작업 안내](AGENT_GUIDE.md)를 따른다.
+- 개발 검사 명령 형태와 routing: `dev`
+- 각 executable이 허용하는 exact suite 목록: 해당 `Gridworks.*Checks` suite registry
 
-`NEXT_TASKS.md`, [외부 출시 gate](RELEASE_GATES.md), 준비된 코드와 과거 PASS는 자동으로
-구현·평가·배포 권한을 만들지 않는다.
+## 범위 안
+
+- existing Realtime exact-suite selector를 `./dev`에 노출한다.
+- CommercialChecks에 같은 fail-closed exact-suite selector를 추가한다.
+- 인자 없는 `./dev check`의 전체 회귀 계약을 유지한다.
+- 새 최소 검사 명령과 경계를 실행 안내에 기록한다.
+
+## 범위 밖
+
+- Core·게임 규칙, 콘텐츠, presentation, UI, input, save, settings와 audio 변경
+- Godot UI phase·product lifecycle scenario의 선택 실행과 검사 삭제·병렬화
+- build configuration, package, qualification, 외부 device·사람 gate 변경
+- push, PR, merge와 배포
+
+## 완료 검사
+
+- Realtime와 Commercial의 exact suite 하나가 각각 1 suite만 실행하고 PASS한다.
+- 알 수 없는 suite와 잘못된 명령 형태가 상태 변경 없이 fail-closed하고 허용 목록을 보여 준다.
+- 인자 없는 `./dev check`가 기존 전체 관리형·Python·Godot 회귀를 모두 통과한다.
+- 관련 실행 문서와 `git diff --check`가 현재 명령 형태에 일치한다.

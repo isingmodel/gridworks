@@ -94,6 +94,8 @@ bootstrap과 save replay history는 SFX를 요청하지 않는다.
 
 ```sh
 ./dev check
+./dev check realtime [EXACT_SUITE]
+./dev check commercial [EXACT_SUITE]
 ./dev checkpoint A1_NORMAL_READY
 ./dev checkpoint A1_CONSTRUCTION_DUE_1M
 ./dev story SWITCH_OFF_TO_PROTECT/result/standard
@@ -113,6 +115,19 @@ explicit fixture의 read-only 설정, 전체 Godot UI layout harness와 두 name
 cue, fresh Continue의 history 무재생도 확인한다. 한 화면
 상태나 story part를 조사할 때는 더 작은 `checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는
 `./dev help`에서 확인한다.
+
+Core·data 변경은 전체 gate보다 먼저 owning managed suite를 직접 실행할 수 있다. suite 이름을 생략하면
+해당 executable의 모든 suite만 실행하고, exact 이름을 주면 그 suite 하나만 실행한다. 이 두 targeted
+경로는 Godot을 요구하거나 Python·Godot 회귀를 실행하지 않는다. 알 수 없는 이름은 허용된 exact suite
+목록과 함께 fail-closed한다.
+
+```sh
+./dev check realtime strict-v3-loaders-first-light-schedule
+./dev check commercial strict-commercial-campaign-loader
+```
+
+targeted PASS는 선택한 관리형 suite의 증거일 뿐이며 완료 전 필요한 `./dev check`나 변경 종류별 integration
+검사를 대체하지 않는다.
 
 기본 Godot 회귀는 headless라서 audio stream·routing·play request만 확인하며 실제 speaker 출력, 음질,
 loop seam이나 사람 사용성을 주장하지 않는다. window

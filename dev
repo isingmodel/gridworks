@@ -8,6 +8,8 @@ godot_bin=${GRIDWORKS_GODOT_BIN:-"$repository_dir/.tools/godot-4.7.1/Godot_mono.
 usage() {
     print -u2 -- "usage: ./dev build"
     print -u2 -- "       ./dev check"
+    print -u2 -- "       ./dev check realtime [EXACT_SUITE]"
+    print -u2 -- "       ./dev check commercial [EXACT_SUITE]"
     print -u2 -- "       ./dev play product"
     print -u2 -- "       ./dev play layout"
     print -u2 -- "       ./dev play fixture"
@@ -53,6 +55,19 @@ run_realtime_ui_harness() {
         --headless \
         --path "$repository_dir/game" \
         --scene res://realtime/ui/RealtimeUiLayoutHarness.tscn
+}
+
+run_managed_checks() {
+    local check_name=$1
+    local project_path=$2
+    shift 2
+    (( $# <= 1 )) || fail "check $check_name accepts at most one exact suite name."
+    if (( $# == 0 )); then
+        dotnet run --project "$project_path" -c Release
+        return
+    fi
+    [[ -n $1 ]] || fail "check $check_name requires a non-empty exact suite name."
+    dotnet run --project "$project_path" -c Release -- --suite "$1"
 }
 
 run_product_save_continue_smoke() {
@@ -127,21 +142,42 @@ case $command_name in
         dotnet build "$repository_dir/Gridworks.sln" -c Debug
         ;;
     check)
-        [[ $# -eq 0 ]] || fail "check takes no arguments."
-        require_godot
-        dotnet build "$repository_dir/Gridworks.sln" -c Debug
-        dotnet run --project "$repository_dir/tools/Gridworks.RealtimeChecks" -c Release
-        dotnet run --project "$repository_dir/tools/Gridworks.CommercialChecks" -c Release
-        python3 "$repository_dir/tools/commercial-ux/test-realtime-text-plan-tools.py"
-        python3 "$repository_dir/tools/commercial-ux/test-g3-a1-asset-allowlist.py"
-        python3 "$repository_dir/tools/commercial-ux/test-realtime-default-entry.py"
-        run_product_entry_smoke
-        run_product_entry_smoke -- --technical-fixture
-        run_product_save_continue_smoke
-        run_product_settings_smoke
-        run_realtime_ui_harness
-        run_checkpoint A1_NORMAL_READY
-        run_checkpoint A1_CONSTRUCTION_DUE_1M
+        if (( $# == 0 )); then
+            require_godot
+            dotnet build "$repository_dir/Gridworks.sln" -c Debug
+            dotnet run --project "$repository_dir/tools/Gridworks.RealtimeChecks" -c Release
+            dotnet run --project "$repository_dir/tools/Gridworks.CommercialChecks" -c Release
+            python3 "$repository_dir/tools/commercial-ux/test-realtime-text-plan-tools.py"
+            python3 "$repository_dir/tools/commercial-ux/test-g3-a1-asset-allowlist.py"
+            python3 "$repository_dir/tools/commercial-ux/test-realtime-default-entry.py"
+            run_product_entry_smoke
+            run_product_entry_smoke -- --technical-fixture
+            run_product_save_continue_smoke
+            run_product_settings_smoke
+            run_realtime_ui_harness
+            run_checkpoint A1_NORMAL_READY
+            run_checkpoint A1_CONSTRUCTION_DUE_1M
+        else
+            check_name=$1
+            shift
+            case $check_name in
+                realtime)
+                    run_managed_checks \
+                        realtime \
+                        "$repository_dir/tools/Gridworks.RealtimeChecks" \
+                        "$@"
+                    ;;
+                commercial)
+                    run_managed_checks \
+                        commercial \
+                        "$repository_dir/tools/Gridworks.CommercialChecks" \
+                        "$@"
+                    ;;
+                *)
+                    fail "check requires realtime or commercial when arguments are provided."
+                    ;;
+            esac
+        fi
         ;;
     play)
         require_godot

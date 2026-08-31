@@ -9,6 +9,11 @@ namespace Gridworks.CommercialChecks;
 
 internal static class Program
 {
+    private const string CheckUsage =
+        "usage: Gridworks.CommercialChecks [commercial-spatial-json] " +
+        "[release-world-v2-json] [commercial-core-slice-v1-json] " +
+        "[release-campaign-v2-json] [--suite <exact-name>]";
+
     public static int Main(string[] args)
     {
         try
@@ -17,13 +22,14 @@ internal static class Program
             {
                 return RunStoryCommand(args);
             }
+            (string[] fixtureArguments, string? suiteName) = ParseCheckArguments(args);
             (string spatialPath, string worldPath, string coreSlicePath, string campaignPath) =
-                ResolveFixturePaths(args);
+                ResolveFixturePaths(fixtureArguments);
             return new CommercialChecks(
                 spatialPath,
                 worldPath,
                 coreSlicePath,
-                campaignPath).Run();
+                campaignPath).Run(suiteName);
         }
         catch (Exception exception)
         {
@@ -31,6 +37,32 @@ internal static class Program
             Console.Error.WriteLine(exception);
             return 1;
         }
+    }
+
+    private static (string[] FixtureArguments, string? SuiteName) ParseCheckArguments(
+        string[] args)
+    {
+        if (args.Length >= 2 && args[^2] == "--suite")
+        {
+            string suiteName = args[^1];
+            string[] fixtureArguments = args[..^2];
+            if (fixtureArguments.Length > 4 ||
+                fixtureArguments.Any(argument =>
+                    argument.StartsWith("--", StringComparison.Ordinal)) ||
+                string.IsNullOrWhiteSpace(suiteName))
+            {
+                throw new ArgumentException(CheckUsage);
+            }
+            return (fixtureArguments, suiteName);
+        }
+
+        if (args.Length <= 4 &&
+            args.All(argument => !argument.StartsWith("--", StringComparison.Ordinal)))
+        {
+            return (args, null);
+        }
+
+        throw new ArgumentException(CheckUsage);
     }
 
     internal static CommercialStoryPartHarness LoadCurrentStoryHarness()
@@ -128,10 +160,7 @@ internal static class Program
     {
         if (args.Length > 4)
         {
-            throw new ArgumentException(
-                "usage: Gridworks.CommercialChecks [commercial-spatial-json] " +
-                "[release-world-v2-json] [commercial-core-slice-v1-json] " +
-                "[release-campaign-v2-json]");
+            throw new ArgumentException(CheckUsage);
         }
 
         string spatialPath = args.Length >= 1
@@ -223,7 +252,7 @@ internal sealed class CommercialChecks
         _campaign = CommercialCampaignLoader.Load(_campaignBytes, _commercialWorld);
     }
 
-    public int Run()
+    public int Run(string? suiteName = null)
     {
         (string Name, Action Body)[] suites =
         [
@@ -259,6 +288,19 @@ internal sealed class CommercialChecks
             ("commercial-campaign-completed-save-replay", CheckCommercialCampaignCompletedSaveAndReplay),
             ("stage-g-typed-ux-and-settings-v3", CheckStageGTypedUxAndSettingsV3),
         ];
+        if (suiteName is not null)
+        {
+            int suiteIndex = Array.FindIndex(
+                suites,
+                suite => string.Equals(suite.Name, suiteName, StringComparison.Ordinal));
+            if (suiteIndex < 0)
+            {
+                throw new ArgumentException(
+                    $"Unknown commercial check suite '{suiteName}'. Available suites: " +
+                    string.Join(", ", suites.Select(suite => suite.Name)));
+            }
+            suites = [suites[suiteIndex]];
+        }
         List<string> failures = [];
         foreach ((string name, Action body) in suites)
         {

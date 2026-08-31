@@ -38,9 +38,6 @@ internal sealed partial class RealtimeUiLayoutHarness : Control
         var failures = new List<string>();
         try
         {
-            GD.Print("REALTIME_R2_SMOKE_PHASE deterministic-core-controller begin");
-            RealtimeR2Smoke.Validate(failures);
-            GD.Print("REALTIME_R2_SMOKE_PHASE deterministic-core-controller end");
             RealtimeSlicePresentation presentation =
                 RealtimeR2Smoke.CreateLayoutPresentation(failures);
             RealtimeR2LayoutPresentationSet presentationStates =

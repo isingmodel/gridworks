@@ -96,6 +96,8 @@ bootstrap과 save replay history는 SFX를 요청하지 않는다.
 ./dev check
 ./dev check realtime [EXACT_SUITE]
 ./dev check commercial [EXACT_SUITE]
+./dev check controller [EXACT_CASE]
+./dev check ui
 ./dev checkpoint A1_NORMAL_READY
 ./dev checkpoint A1_CONSTRUCTION_DUE_1M
 ./dev story SWITCH_OFF_TO_PROTECT/result/standard
@@ -107,10 +109,11 @@ CommercialChecks, 세 Python 회귀, no-arg 제품 title과 명시적 fixture en
 initial briefing create→non-saveable draft exit의 byte-exact 보존→fresh Continue와 safe write,
 진행 저장의 확인→backup 실패 차단→byte-exact sibling backup→initial write→fresh Continue,
 `FLOOD_ISOLATION_TEST`→`SECOND_HEART` result→`SECOND_SOURCE` briefing write/Continue, 직전 exact
-`FIRST_LIGHT` v1 Continue→current v3 write, 성공 8장 terminal create→fresh Continue→`Ended`·terminal write,
+`FIRST_LIGHT` v1 Continue→current v3 write, controller suite의 성공 8장 terminal create→fresh title
+probe→Continue→`Ended`·terminal write,
 fresh completed title→`새 게임`→initial write→fresh Continue, invalid/unsupported reset 확인과 I/O 실패
 차단, 제품 설정 create→fresh restore, invalid/unsupported/read/write failure의 원본·runtime 보존,
-explicit fixture의 read-only 설정, 전체 Godot UI layout harness와 두 named checkpoint를 묶은 기본
+explicit fixture의 read-only 설정, controller와 분리된 Godot UI layout harness와 두 named checkpoint를 묶은 기본
 회귀다. 이 연쇄는 generated PCM shape와 bus, ambient one-start, accepted order와 복합 completion/emergency
 cue, fresh Continue의 history 무재생도 확인한다. 한 화면
 상태나 story part를 조사할 때는 더 작은 `checkpoint` 또는 `story` 명령부터 시작한다. 전체 명령 형태는
@@ -124,10 +127,18 @@ Core·data 변경은 전체 gate보다 먼저 owning managed suite를 직접 실
 ```sh
 ./dev check realtime strict-v3-loaders-first-light-schedule
 ./dev check commercial strict-commercial-campaign-loader
+./dev check controller stable-r2-id-protocol
+./dev check ui
 ```
 
-targeted PASS는 선택한 관리형 suite의 증거일 뿐이며 완료 전 필요한 `./dev check`나 변경 종류별 integration
-검사를 대체하지 않는다.
+controller 이름을 생략하면 controller case 전체를, exact 이름을 주면 해당 case 하나만 실제 Godot
+adapter에서 실행한다. `ui`는 controller suite를 다시 실행하지 않고 UI·render·input harness만 실행한다.
+인자 없는 full gate는 all-controller PASS가 만든 absent-path terminal save를 별도 fresh product-title process에
+전달하므로 full campaign controller를 한 번만 실행한다. producer가 하나라도 실패하면 fixture를 쓰지 않고,
+consumer는 받은 exact bytes가 completed로 분류되고 바뀌지 않는지 확인한다.
+
+targeted PASS는 선택한 managed suite, controller case 또는 UI harness의 증거일 뿐이며 완료 전 필요한
+`./dev check`나 변경 종류별 integration 검사를 대체하지 않는다.
 
 기본 Godot 회귀는 headless라서 audio stream·routing·play request만 확인하며 실제 speaker 출력, 음질,
 loop seam이나 사람 사용성을 주장하지 않는다. window

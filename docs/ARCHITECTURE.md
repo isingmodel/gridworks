@@ -335,6 +335,10 @@ packaged E2E, OS hardware input, 실제 audio device·speaker와 사람 UX를 �
 
 ```sh
 ./dev build
+./dev check realtime [EXACT_SUITE]
+./dev check commercial [EXACT_SUITE]
+./dev check controller [EXACT_CASE]
+./dev check ui
 ./dev checkpoint A1_NORMAL_READY
 ./dev checkpoint A1_CONSTRUCTION_DUE_1M
 ./dev story SWITCH_OFF_TO_PROTECT/result/standard
@@ -349,10 +353,14 @@ build와 기본 자동 회귀를 닫는다. 이 명령은 no-arg 제품 title과
 initial briefing create→non-saveable draft exit의 prior bytes 보존→fresh Continue와 safe write,
 진행 저장의 confirm→backup 실패 차단→raw sibling backup→initial write→fresh Continue,
 `FLOOD_ISOLATION_TEST`→`SECOND_HEART` result→`SECOND_SOURCE` briefing write/Continue, exact prior
-`FIRST_LIGHT` v1 Continue→current v3 write와 성공 8장 terminal create→fresh Continue→`Ended`·terminal write,
+`FIRST_LIGHT` v1 Continue→current v3 write와 all-controller PASS 뒤 성공 8장 terminal create→fresh title
+probe→Continue→`Ended`·terminal write,
 fresh completed title→New Game→initial write→fresh Continue, readable blocked reset 확인과 I/O 차단 상태를
 검사한다. product settings의 create→fresh restore, invalid/unsupported/read/write failure 보존,
-explicit fixture read-only surface와 전체 Godot UI layout harness도 포함한다. root `Gridworks.sln` 전체의
+explicit fixture read-only surface와 controller를 다시 실행하지 않는 Godot UI layout harness도 포함한다.
+controller runner는 exact case 하나를 선택할 수 있고 unknown case를 전체 허용 목록과 함께 거부한다. 전체
+gate에서는 모든 case가 PASS한 뒤에만 absent 임시 path에 terminal save를 쓰며, 별도 fresh product-title
+process가 같은 bytes를 completed로 probe한다. root `Gridworks.sln` 전체의
 Release build는 포함하지 않는다. headless harness는 물리 display·native fullscreen·사람 UX 증거가 아니며,
 그 검사가 필요한 변경은 active scope의 완료 검사에 별도로 적는다.
 world presentation은 actual campaign의 Clear/Heat/Storm 우선순위와 `Reduce Motion` weather phase

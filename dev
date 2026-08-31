@@ -10,6 +10,8 @@ usage() {
     print -u2 -- "       ./dev check"
     print -u2 -- "       ./dev check realtime [EXACT_SUITE]"
     print -u2 -- "       ./dev check commercial [EXACT_SUITE]"
+    print -u2 -- "       ./dev check controller [EXACT_CASE]"
+    print -u2 -- "       ./dev check ui"
     print -u2 -- "       ./dev play product"
     print -u2 -- "       ./dev play layout"
     print -u2 -- "       ./dev play fixture"
@@ -57,6 +59,15 @@ run_realtime_ui_harness() {
         --scene res://realtime/ui/RealtimeUiLayoutHarness.tscn
 }
 
+run_realtime_controller_smoke() {
+    "$godot_bin" \
+        --headless \
+        --path "$repository_dir/game" \
+        --scene res://realtime/r2/RealtimeR2SmokeRunner.tscn \
+        -- \
+        "$@"
+}
+
 run_managed_checks() {
     local check_name=$1
     local project_path=$2
@@ -70,7 +81,25 @@ run_managed_checks() {
     dotnet run --project "$project_path" -c Release -- --suite "$1"
 }
 
+cleanup_product_save_smoke_directory() {
+    local cleanup_directory=$1
+    local cleanup_entry
+    if [[ ! -d $cleanup_directory ||
+          ${cleanup_directory:t} != gridworks-r2-save-smoke.* ]]; then
+        return
+    fi
+    for cleanup_entry in "$cleanup_directory"/*(DN); do
+        if [[ -d $cleanup_entry && ! -L $cleanup_entry ]]; then
+            rmdir -- "$cleanup_entry" 2>/dev/null || true
+        else
+            rm -- "$cleanup_entry" 2>/dev/null || true
+        fi
+    done
+    rmdir -- "$cleanup_directory" 2>/dev/null || true
+}
+
 run_product_save_continue_smoke() {
+    setopt localoptions localtraps
     local smoke_dir
     local smoke_save
     local reset_save
@@ -87,6 +116,9 @@ run_product_save_continue_smoke() {
     invalid_save="$smoke_dir/invalid.json"
     unsupported_save="$smoke_dir/unsupported.json"
     io_failure_save="$smoke_dir/io-failure"
+    TRAPEXIT() {
+        cleanup_product_save_smoke_directory "$smoke_dir"
+    }
     run_product_entry_smoke -- "--save-create=$smoke_save"
     run_product_entry_smoke -- "--save-nonsaveable-exit=$smoke_save"
     run_product_entry_smoke -- "--save-continue=$smoke_save"
@@ -94,7 +126,8 @@ run_product_save_continue_smoke() {
     run_product_entry_smoke -- "--save-continue=$reset_save"
     run_product_entry_smoke -- "--save-reset=$reset_save"
     run_product_entry_smoke -- "--save-continue=$reset_save"
-    run_product_entry_smoke -- "--save-completed-create=$completed_save"
+    run_realtime_controller_smoke "--completed-save-output=$completed_save"
+    run_product_entry_smoke -- "--save-completed-probe=$completed_save"
     run_product_entry_smoke -- "--save-continue=$completed_save"
     run_product_entry_smoke -- "--save-completed-new-game=$completed_save"
     run_product_entry_smoke -- "--save-continue=$completed_save"
@@ -104,9 +137,8 @@ run_product_save_continue_smoke() {
     run_product_entry_smoke -- "--save-invalid=$invalid_save"
     run_product_entry_smoke -- "--save-unsupported=$unsupported_save"
     run_product_entry_smoke -- "--save-io-failure=$io_failure_save"
-    rm -- "$smoke_save" "$reset_save" "$completed_save" "$legacy_save" "$invalid_save" "$unsupported_save"
-    rmdir -- "$io_failure_save"
-    rmdir -- "$smoke_dir"
+    cleanup_product_save_smoke_directory "$smoke_dir"
+    trap - EXIT
 }
 
 run_product_settings_smoke() {
@@ -173,8 +205,27 @@ case $command_name in
                         "$repository_dir/tools/Gridworks.CommercialChecks" \
                         "$@"
                     ;;
+                controller)
+                    require_godot
+                    (( $# <= 1 )) || fail \
+                        "check controller accepts at most one exact case name."
+                    dotnet build "$repository_dir/game/Gridworks.Game.csproj" -c Debug
+                    if (( $# == 0 )); then
+                        run_realtime_controller_smoke
+                    else
+                        [[ -n $1 ]] || fail \
+                            "check controller requires a non-empty exact case name."
+                        run_realtime_controller_smoke "--case=$1"
+                    fi
+                    ;;
+                ui)
+                    require_godot
+                    [[ $# -eq 0 ]] || fail "check ui takes no arguments."
+                    dotnet build "$repository_dir/game/Gridworks.Game.csproj" -c Debug
+                    run_realtime_ui_harness
+                    ;;
                 *)
-                    fail "check requires realtime or commercial when arguments are provided."
+                    fail "check arguments require realtime, commercial, controller, or ui."
                     ;;
             esac
         fi

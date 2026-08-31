@@ -23,6 +23,10 @@ internal sealed record RealtimeR2LayoutPresentationSet(
     RealtimeSlicePresentation Timeline,
     RealtimeSlicePresentation Modal);
 
+internal sealed record RealtimeR2SmokeResult(
+    int ExecutedCaseCount,
+    RealtimeCampaignSave? CompletedProductSave);
+
 /// <summary>
 /// Deterministic R2 integration evidence. Every assertion enters through the
 /// real slice host, interaction reducer, frame adapter, Core run, and presenter.
@@ -30,59 +34,121 @@ internal sealed record RealtimeR2LayoutPresentationSet(
 /// </summary>
 internal static class RealtimeR2Smoke
 {
-    internal static void Validate(ICollection<string> failures)
+    internal const string CompletedProductRouteCaseName =
+        "release-through-longest-night-controller";
+
+    private sealed record SmokeCase(
+        string Name,
+        Func<ICollection<string>, RealtimeCampaignSave?> Run);
+
+    private static readonly SmokeCase[] Cases =
+    [
+        DefineCase("visual-layout-data", ValidateVisualLayoutData),
+        DefineCase("stable-r2-id-protocol", ValidateStableR2IdProtocol),
+        DefineCase("live-audio-cue-selection", ValidateLiveAudioCueSelection),
+        DefineCase("fail-closed-routing", ValidateFailClosedRouting),
+        DefineCase("clock-pause", ValidateClockAndPause),
+        DefineCase("frame-rate-matrix", ValidateFrameRateMatrix),
+        DefineCase("callback-partition-matrix", ValidateCallbackPartitionMatrix),
+        DefineCase("typed-order-quote", ValidateTypedOrderQuote),
+        DefineCase("line-command-completion", ValidateLineConstruction),
+        DefineCase("speed-authored-outcome", ValidateSpeedEquivalence),
+        DefineCase("critical-pause-boundary", ValidateCriticalPauseBoundary),
+        DefineCase("presentation-authority", ValidatePresentationAuthority),
+        DefineCase("follow-now-timeline", ValidateFollowNowTimeline),
+        DefineCase("player-facing-copy", ValidatePlayerFacingCopy),
+        DefineCase(
+            "completed-history-thermal-context",
+            ValidateCompletedHistoryAndThermalContext),
+        DefineCase("thermal-protection-copy", ValidateThermalProtectionCopy),
+        DefineCase("draft-menu-cancel", ValidateDraftMenuCancelPolicy),
+        DefineCase("ended-read-only-shell", ValidateEndedReadOnlyShell),
+        DefineCase("analysis-surface-policy", ValidateAnalysisSurfacePolicy),
+        DefineCase("comparison-draft-forecast", ValidateComparisonDraftForecast),
+        DefineCase(
+            "future-event-actual-draft-construction",
+            ValidateFutureEventActualDraftConstruction),
+        DefineCase(
+            "release-first-light-controller-story",
+            ValidateReleaseFirstLightControllerStory),
+        DefineCase(
+            "release-first-light-late-construction-boundary",
+            ValidateReleaseFirstLightLateConstructionBoundary),
+        DefineCase(
+            "release-first-light-no-action-result",
+            ValidateReleaseFirstLightNoActionResult),
+        DefineCase(
+            "release-tutorial-through-second-source",
+            ValidateReleaseTutorialThroughSecondSource),
+        DefineCase("cumulative-event-duty-resume", ValidateCumulativeEventDutyResume),
+        new SmokeCase(
+            CompletedProductRouteCaseName,
+            ValidateReleaseThroughLongestNightController),
+        DefineCase(
+            "release-promise-result-branches",
+            ValidateReleasePromiseResultBranches),
+        DefineCase(
+            "release-tutorial-connection-failure-result",
+            ValidateReleaseTutorialConnectionFailureResult),
+        DefineCase("modal-restore", ValidateModalRestore),
+        DefineCase("pointer-priority", ValidatePointerPriority),
+    ];
+
+    private static readonly IReadOnlyList<string> KnownCaseNames =
+        Array.AsReadOnly(Cases.Select(item => item.Name).ToArray());
+
+    internal static IReadOnlyList<string> CaseNames => KnownCaseNames;
+
+    internal static RealtimeR2SmokeResult Validate(
+        ICollection<string> failures,
+        string? exactCaseName = null)
     {
         ArgumentNullException.ThrowIfNull(failures);
-        RunCase("visual-layout-data", () => ValidateVisualLayoutData(failures), failures);
-        RunCase("stable-r2-id-protocol", () => ValidateStableR2IdProtocol(failures), failures);
-        RunCase("live-audio-cue-selection",
-            () => ValidateLiveAudioCueSelection(failures), failures);
-        RunCase("fail-closed-routing", () => ValidateFailClosedRouting(failures), failures);
-        RunCase("clock-pause", () => ValidateClockAndPause(failures), failures);
-        RunCase("frame-rate-matrix", () => ValidateFrameRateMatrix(failures), failures);
-        RunCase("callback-partition-matrix",
-            () => ValidateCallbackPartitionMatrix(failures), failures);
-        RunCase("typed-order-quote",
-            () => ValidateTypedOrderQuote(failures), failures);
-        RunCase("line-command-completion", () => ValidateLineConstruction(failures), failures);
-        RunCase("speed-authored-outcome", () => ValidateSpeedEquivalence(failures), failures);
-        RunCase("critical-pause-boundary", () => ValidateCriticalPauseBoundary(failures), failures);
-        RunCase("presentation-authority", () => ValidatePresentationAuthority(failures), failures);
-        RunCase("follow-now-timeline", () => ValidateFollowNowTimeline(failures), failures);
-        RunCase("player-facing-copy", () => ValidatePlayerFacingCopy(failures), failures);
-        RunCase("completed-history-thermal-context",
-            () => ValidateCompletedHistoryAndThermalContext(failures), failures);
-        RunCase("thermal-protection-copy",
-            () => ValidateThermalProtectionCopy(failures), failures);
-        RunCase("draft-menu-cancel",
-            () => ValidateDraftMenuCancelPolicy(failures), failures);
-        RunCase("ended-read-only-shell",
-            () => ValidateEndedReadOnlyShell(failures), failures);
-        RunCase("analysis-surface-policy",
-            () => ValidateAnalysisSurfacePolicy(failures), failures);
-        RunCase("comparison-draft-forecast",
-            () => ValidateComparisonDraftForecast(failures), failures);
-        RunCase("future-event-actual-draft-construction",
-            () => ValidateFutureEventActualDraftConstruction(failures), failures);
-        RunCase("release-first-light-controller-story",
-            () => ValidateReleaseFirstLightControllerStory(failures), failures);
-        RunCase("release-first-light-late-construction-boundary",
-            () => ValidateReleaseFirstLightLateConstructionBoundary(failures), failures);
-        RunCase("release-first-light-no-action-result",
-            () => ValidateReleaseFirstLightNoActionResult(failures), failures);
-        RunCase("release-tutorial-through-second-source",
-            () => ValidateReleaseTutorialThroughSecondSource(failures), failures);
-        RunCase("cumulative-event-duty-resume",
-            () => ValidateCumulativeEventDutyResume(failures), failures);
-        RunCase("release-through-longest-night-controller",
-            () => ValidateReleaseThroughLongestNightController(failures), failures);
-        RunCase("release-promise-result-branches",
-            () => ValidateReleasePromiseResultBranches(failures), failures);
-        RunCase("release-tutorial-connection-failure-result",
-            () => ValidateReleaseTutorialConnectionFailureResult(failures), failures);
-        RunCase("modal-restore", () => ValidateModalRestore(failures), failures);
-        RunCase("pointer-priority", () => ValidatePointerPriority(failures), failures);
+        IEnumerable<SmokeCase> selectedCases = Cases;
+        if (exactCaseName is not null)
+        {
+            SmokeCase? selected = Cases.SingleOrDefault(item =>
+                string.Equals(item.Name, exactCaseName, StringComparison.Ordinal));
+            if (selected is null)
+            {
+                throw new ArgumentException(
+                    $"Unknown R2 smoke case '{exactCaseName}'; known cases: " +
+                    $"{string.Join(", ", KnownCaseNames)}.",
+                    nameof(exactCaseName));
+            }
+            selectedCases = new[] { selected };
+        }
+
+        int executedCaseCount = 0;
+        RealtimeCampaignSave? completedProductSave = null;
+        foreach (SmokeCase smokeCase in selectedCases)
+        {
+            int failureCountBeforeCase = failures.Count;
+            RealtimeCampaignSave? candidate = RunCase(smokeCase, failures);
+            executedCaseCount++;
+            if (string.Equals(
+                    smokeCase.Name,
+                    CompletedProductRouteCaseName,
+                    StringComparison.Ordinal) &&
+                candidate is not null &&
+                failures.Count == failureCountBeforeCase)
+            {
+                completedProductSave = candidate;
+            }
+        }
+        return new RealtimeR2SmokeResult(
+            executedCaseCount,
+            completedProductSave);
     }
+
+    private static SmokeCase DefineCase(
+        string name,
+        Action<ICollection<string>> validate) =>
+        new(name, failures =>
+        {
+            validate(failures);
+            return null;
+        });
 
     private static void ValidateVisualLayoutData(ICollection<string> failures)
     {
@@ -7380,19 +7446,20 @@ internal static class RealtimeR2Smoke
         return -1;
     }
 
-    private static void RunCase(
-        string label,
-        Action action,
+    private static RealtimeCampaignSave? RunCase(
+        SmokeCase smokeCase,
         ICollection<string> failures)
     {
         try
         {
-            action();
+            return smokeCase.Run(failures);
         }
         catch (Exception exception)
         {
-            failures.Add($"R2 smoke {label} threw {exception.GetType().Name}: " +
+            failures.Add($"R2 smoke {smokeCase.Name} threw " +
+                         $"{exception.GetType().Name}: " +
                          exception.Message + Environment.NewLine + exception.StackTrace);
+            return null;
         }
     }
 

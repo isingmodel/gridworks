@@ -23,6 +23,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         "res://realtime/r2/RealtimeSliceMain.tscn";
     private const string SaveCreatePrefix = "--save-create=";
     private const string SaveCompletedCreatePrefix = "--save-completed-create=";
+    private const string SaveCompletedProbePrefix = "--save-completed-probe=";
     private const string SaveCompletedNewGamePrefix = "--save-completed-new-game=";
     private const string SaveNonSaveableExitPrefix = "--save-nonsaveable-exit=";
     private const string SaveResetPrefix = "--save-reset=";
@@ -43,6 +44,7 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         TechnicalFixture,
         CreateSave,
         CreateCompletedSave,
+        ProbeCompletedSave,
         CompletedNewGame,
         NonSaveableExit,
         ResetSave,
@@ -170,6 +172,9 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     expectedWrite = PrepareInitialBriefingProgress(slice);
                     break;
                 case EntryMode.CreateCompletedSave:
+                    ValidateCompletedSaveTitle(slice);
+                    break;
+                case EntryMode.ProbeCompletedSave:
                     ValidateCompletedSaveTitle(slice);
                     break;
                 case EntryMode.CompletedNewGame:
@@ -303,6 +308,8 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                     "REALTIME_PRODUCT_ENTRY_SAVE_CREATE_PASS",
                 EntryMode.CreateCompletedSave =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_COMPLETED_CREATE_PASS",
+                EntryMode.ProbeCompletedSave =>
+                    "REALTIME_PRODUCT_ENTRY_SAVE_COMPLETED_PROBE_PASS",
                 EntryMode.CompletedNewGame =>
                     "REALTIME_PRODUCT_ENTRY_SAVE_COMPLETED_NEW_GAME_PASS",
                 EntryMode.NonSaveableExit =>
@@ -470,6 +477,13 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
             path = arguments[0][SaveCompletedCreatePrefix.Length..];
         }
         else if (arguments[0].StartsWith(
+                     SaveCompletedProbePrefix,
+                     StringComparison.Ordinal))
+        {
+            mode = EntryMode.ProbeCompletedSave;
+            path = arguments[0][SaveCompletedProbePrefix.Length..];
+        }
+        else if (arguments[0].StartsWith(
                      SaveCompletedNewGamePrefix,
                      StringComparison.Ordinal))
         {
@@ -561,6 +575,16 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
         {
             PrepareCompletedProductSave(request.SavePath!);
             return null;
+        }
+        if (request.Mode == EntryMode.ProbeCompletedSave)
+        {
+            string probePath = request.SavePath!;
+            if (!File.Exists(probePath) || Directory.Exists(probePath))
+            {
+                throw new InvalidOperationException(
+                    "A completed-save probe requires an existing regular file.");
+            }
+            return File.ReadAllBytes(probePath);
         }
         if (request.Mode == EntryMode.LegacyContinueSave)
         {
@@ -771,11 +795,16 @@ internal sealed partial class RealtimeProductEntrySmokeRunner : Control
                 "The I/O-failure save target was changed.");
             return;
         }
-        if (request.Mode is EntryMode.InvalidSave or EntryMode.UnsupportedSave)
+        if (request.Mode is
+            EntryMode.ProbeCompletedSave or
+            EntryMode.InvalidSave or
+            EntryMode.UnsupportedSave)
         {
             Require(originalBytes is not null &&
                     File.ReadAllBytes(request.SavePath!).SequenceEqual(originalBytes),
-                "The blocked save bytes were changed.");
+                request.Mode == EntryMode.ProbeCompletedSave
+                    ? "The completed-save probe bytes changed through tree exit."
+                    : "The blocked save bytes were changed.");
         }
     }
 
